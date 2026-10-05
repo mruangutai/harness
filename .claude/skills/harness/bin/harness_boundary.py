@@ -203,7 +203,17 @@ def linked_worktrees(owner_root):
     Cost, measured on a fixture with five linked worktrees over 2000 iterations: 0.371 ms
     per call against 0.147 ms before, so +0.22 ms per governed write, scaling linearly
     with worktree count, against the ~38 ms of interpreter start-up the hook already pays.
+
+    A LINKED CALLER RESOLVES TO ITS OWNER FIRST (FEAT-1559, FEAT-58 D-02). Called with a
+    worktree's root, `<root>/.git` is a FILE, so listing `<root>/.git/worktrees` raised
+    NotADirectoryError, caught below, and returned [] as an ordinary value — every sweep run
+    from a worktree silently saw no peer at all. `worktree_owner` parses the pointer with no
+    subprocess; an unparseable one leaves `owner_root` unchanged and the listing finds nothing,
+    exactly as before.
     """
+    found = worktree_owner(owner_root)
+    if found is not None and found[1] is not None:
+        owner_root = found[1]
     wt_dir = os.path.join(owner_root, ".git", "worktrees")
     try:
         entries = sorted(os.listdir(wt_dir))

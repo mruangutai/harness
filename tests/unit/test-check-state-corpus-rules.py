@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / ".claude/skills/harness/bin"))
+import feature_corpus as fc  # noqa: E402
 from check_state import corpus  # noqa: E402
 
 
@@ -23,28 +24,28 @@ def report(*codes):
 
 class VerifyReport(unittest.TestCase):
     def test_structural_codes_are_kept(self):
-        structural, dirty, error = corpus.verify_report_findings(report(3, 4, 7))
+        structural, dirty, error = fc.verify_report_findings(report(3, 4, 7))
         self.assertEqual(([f["code"] for f in structural], dirty, error), ([3, 4, 7], None, None))
 
     def test_dirty_alone_is_not_structural(self):
-        structural, dirty, error = corpus.verify_report_findings(report(8))
+        structural, dirty, error = fc.verify_report_findings(report(8))
         self.assertEqual((structural, dirty["code"], error), ([], 8, None))
 
     def test_dirty_does_not_mask_a_structural_finding(self):
-        structural, dirty, error = corpus.verify_report_findings(report(8, 7))
+        structural, dirty, error = fc.verify_report_findings(report(8, 7))
         self.assertEqual(([f["code"] for f in structural], dirty["code"], error), ([7], 8, None))
 
     def test_clean_report(self):
-        self.assertEqual(corpus.verify_report_findings(report()), ([], None, None))
+        self.assertEqual(fc.verify_report_findings(report()), ([], None, None))
 
     def test_unusable_reports_are_errors_never_permission(self):
         for doc in (None, [], "text", {"checkout": "/c"}, {"findings": "x"},
                     {"findings": [1]}, {"error": "boom"}):
-            _s, _d, error = corpus.verify_report_findings(doc)
+            _s, _d, error = fc.verify_report_findings(doc)
             self.assertIsNotNone(error, doc)
 
     def test_an_unknown_code_is_an_error(self):
-        _s, _d, error = corpus.verify_report_findings(report(5))
+        _s, _d, error = fc.verify_report_findings(report(5))
         self.assertIn("unknown finding code", error)
 
 

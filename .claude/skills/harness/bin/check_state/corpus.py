@@ -20,16 +20,8 @@ are compared with the names on disk — record-less directories included — and
 name refuses before any invariant runs, because an audit over a smaller population than it was
 meant to see is the silent shrink this feature exists to stop.
 """
-import json
-import os
-import subprocess
-import sys
-
 import feature_corpus
 import harness_boundary
-
-STRUCTURAL = {3: "cone", 4: "skip-bits", 7: "materialisation"}
-DIRTY = 8
 
 
 class Preflight:
@@ -47,26 +39,6 @@ class Preflight:
 
 
 # --- pure diagnostics (unit-tested) ---------------------------------------------------------
-
-def verify_report_findings(doc):
-    """`(structural, dirty, error)` from a `worktree-state.py --verify --json` report: the
-    structural findings, the dirty finding or None, and an error string when the report is not
-    one this audit can trust. Never permission to continue on an unusable report."""
-    if not isinstance(doc, dict):
-        return [], None, "worktree-state.py printed no JSON object"
-    if "error" in doc:
-        return [], None, f"worktree-state.py could not read the checkout: {doc['error']}"
-    findings = doc.get("findings")
-    if not isinstance(findings, list) or not all(isinstance(f, dict) for f in findings):
-        return [], None, "worktree-state.py report carries no findings list"
-    structural = [f for f in findings if f.get("code") in STRUCTURAL]
-    dirty = next((f for f in findings if f.get("code") == DIRTY), None)
-    unknown = [f for f in findings if f.get("code") not in STRUCTURAL and f.get("code") != DIRTY]
-    if unknown:
-        return [], None, (f"worktree-state.py reported unknown finding code(s) "
-                          f"{sorted({str(f.get('code')) for f in unknown})}")
-    return structural, dirty, None
-
 
 def name_set_findings(expected, reached, remedy):
     """`(refusal, notes)` comparing expected and reached `<segment>/<id>` names. Missing
@@ -101,25 +73,11 @@ def subject_refusal(feature, local_names):
 
 # --- the preflight ----------------------------------------------------------------------------
 
-def _verify(root, bin_dir):
-    cli = os.path.join(bin_dir, "worktree-state.py")
-    try:
-        proc = subprocess.run([sys.executable, cli, "--verify", "--json", "--checkout", root],
-                              capture_output=True, text=True, timeout=120)
-    except (OSError, subprocess.SubprocessError) as exc:
-        return None, f"worktree-state.py could not run: {exc}"
-    try:
-        return json.loads(proc.stdout), None
-    except json.JSONDecodeError:
-        return None, (f"worktree-state.py exited {proc.returncode} without a JSON report: "
-                      f"{(proc.stderr or proc.stdout).strip()[:200]}")
-
-
 def _layout(pre, root, bin_dir):
     """Verify a record-bearing linked worktree; fill `pre`. Returns the selection (or None)."""
-    doc, error = _verify(root, bin_dir)
+    doc, error = feature_corpus.verify_layout(root, bin_dir)
     if error is None:
-        structural, dirty, error = verify_report_findings(doc)
+        structural, dirty, error = feature_corpus.verify_report_findings(doc)
     if error is not None:
         pre.refusal.append(f"LAYOUT: {error}. The audit refuses rather than judging a tree it "
                            f"cannot see.")

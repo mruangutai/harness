@@ -187,7 +187,11 @@ def _evidence(root, surface, segments):
     returned separately so the caller reports it loudly instead of as a false MIXED
     no reader edit could clear."""
     if surface == "features":
+        # Layout evidence is the shape of THIS checkout's tree, never the main corpus's: the
+        # migration under audit is the one this checkout carries (FEAT-1559).
+        # corpus-scope: checkout-local
         legacy = glob.glob(os.path.join(root, ".harness", "features", "*", "feature.json"))
+        # corpus-scope: checkout-local
         candidates = glob.glob(os.path.join(root, ".harness", "*", "features", "*", "feature.json"))
     else:
         legacy = [p for p in [os.path.join(root, "docs", "harness", "SPEC.md")]

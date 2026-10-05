@@ -22,6 +22,7 @@ are tracked, which branch is checked out.
 Every failure to establish the population raises CorpusError, never an empty list: an empty list
 is what a fail-open caller reads as "nothing to check".
 """
+import json
 import os
 import re
 import subprocess
@@ -141,9 +142,10 @@ def owner_root(start):
     checkout, owner, _legitimate = found
     if owner is None:
         raise CorpusError(f"{checkout}/.git could not be parsed, so its owner root is unknown")
-    if not os.path.isfile(os.path.join(owner, harness_boundary.MARKER)):
-        raise CorpusError(f"owner root {owner} has no {harness_boundary.MARKER}, so it is not a "
-                          f"harness root")
+    manifest = os.path.join(owner, harness_boundary.MARKER)
+    if not os.path.isfile(manifest):
+        raise CorpusError(f"owner manifest is not readable: {manifest}, so owner root {owner} "
+                          f"is not a harness root")
     return owner
 
 
@@ -198,26 +200,155 @@ def landed_dirs(owner):
     return out
 
 
-def records(owner):
-    """One mapping per landed feature directory: segment, id, path, record (path of its
-    feature.json or None), document (parsed mapping or None) and error (why it would not parse,
-    or None). A directory without a record stays in the list — the consuming invariant decides
-    what a missing record means; this census never erases it."""
+def _entry(segment, fid, path):
+    """One feature directory as a mapping: segment, id, path, record (path of its feature.json
+    or None), document (parsed mapping or None) and error (why it would not parse, or None)."""
     import artifact_accessors
 
-    out = []
-    for segment, fid, path in landed_dirs(owner):
-        record = os.path.join(path, RECORD_FILE)
-        entry = {"segment": segment, "id": fid, "path": path, "record": None,
-                 "document": None, "error": None}
-        if os.path.isfile(record):
-            entry["record"] = record
-            try:
-                entry["document"] = artifact_accessors.load_feature_json(record)
-            except artifact_accessors.FeatureJsonError as exc:
-                entry["error"] = str(exc)
-        out.append(entry)
-    return out
+    record = os.path.join(path, RECORD_FILE)
+    entry = {"segment": segment, "id": fid, "path": path, "record": None,
+             "document": None, "error": None}
+    if os.path.isfile(record):
+        entry["record"] = record
+        try:
+            entry["document"] = artifact_accessors.load_feature_json(record)
+        except artifact_accessors.FeatureJsonError as exc:
+            entry["error"] = str(exc)
+    return entry
+
+
+def records(owner):
+    """One `_entry` per landed feature directory. A directory without a record stays in the
+    list — the consuming invariant decides what a missing record means; this census never erases
+    it."""
+    return [_entry(segment, fid, path) for segment, fid, path in landed_dirs(owner)]
+
+
+def population(root):
+    """Every feature a gate at `root` may judge, as `_entry` mappings sorted by id: the LANDED
+    records at the owner root, with each feature directory present in `root` itself in place of
+    its landed copy. In-progress features in sibling worktrees are never read.
+
+      * outside any git checkout: the directories present under `root`, nothing else exists;
+      * a main checkout or plain clone: the directories present here, after confirming every
+        tracked one is present (a missing tracked directory raises, never shrinks the set);
+      * a linked worktree: landed at the owner, plus this checkout's own.
+
+    The population is complete or CorpusError: a gate that reads a smaller set than exists
+    answers a question about features it never saw."""
+    found = harness_boundary.worktree_owner(root)
+    local = {}
+    for name in reached_feature_dirs(root):
+        segment, fid = name.split("/", 1)
+        local[fid] = _entry(segment, fid, os.path.join(root, ".harness", segment, "features", fid))
+    if found is None:
+        return [local[k] for k in sorted(local)]
+    top, owner, _legitimate = found
+    if owner is None:
+        raise CorpusError(f"{top}/.git could not be parsed, so its owner root is unknown")
+    if top == owner:
+        landed_dirs(top)                # raises when a tracked directory is missing here
+        return [local[k] for k in sorted(local)]
+    merged = {e["id"]: e for e in records(owner_root(top))}
+    merged.update(local)
+    return [merged[k] for k in sorted(merged)]
+
+
+FEATURE_PATH_RE = re.compile(r"^\.harness/[^/]+/features/[^/]+")
+
+
+def corpus_roots(root):
+    """`[root]`, or `[root, owner]` when `root` is a linked worktree: the trees a repo-wide walk
+    at `root` covers, this checkout's own first so its directories win a name clash. No git
+    subprocess — the pair comes from `.git` pointer files — and so no tracked-structure check
+    either: a caller that must refuse a missing landed directory uses `population`. Raises
+    CorpusError when a linked worktree's owner cannot be resolved."""
+    found = harness_boundary.worktree_owner(root)
+    if found is None or found[0] == found[1]:
+        return [root]
+    return [root, owner_root(found[0])]
+
+
+def corpus_path(root, rel):
+    """Where a reader at the checkout top `root` finds the repository-relative path `rel`
+    (ruling B).
+
+    A path inside a feature directory this checkout does not hold is another feature's, and a
+    linked worktree reads it at the owner root. Everything else — a non-feature path, a path in a
+    feature directory present here, any path outside a linked worktree — is `root`'s own, absent
+    or not: a file missing from this checkout's own feature is missing, never answered from a
+    stale landed copy. The path returned may not exist; the caller's read then fails naming it.
+    Raises CorpusError when the owner root that must answer cannot be resolved."""
+    local = os.path.join(root, rel)
+    match = FEATURE_PATH_RE.match(rel.replace(os.sep, "/"))
+    if match is None or os.path.lexists(os.path.join(root, match.group(0))):
+        return local
+    return os.path.join(corpus_roots(root)[-1], rel)
+
+
+# ---------------------------------------------------------------------------------------------
+# The checkout's layout, as worktree-state.py reports it
+# ---------------------------------------------------------------------------------------------
+
+STRUCTURAL = {3: "cone", 4: "skip-bits", 7: "materialisation"}
+DIRTY = 8
+
+
+def verify_report_findings(doc):
+    """`(structural, dirty, error)` from a `worktree-state.py --verify --json` report: the
+    structural findings, the dirty finding or None, and an error string when the report is not
+    one a gate can trust. Never permission to continue on an unusable report."""
+    if not isinstance(doc, dict):
+        return [], None, "worktree-state.py printed no JSON object"
+    if "error" in doc:
+        return [], None, f"worktree-state.py could not read the checkout: {doc['error']}"
+    findings = doc.get("findings")
+    if not isinstance(findings, list) or not all(isinstance(f, dict) for f in findings):
+        return [], None, "worktree-state.py report carries no findings list"
+    structural = [f for f in findings if f.get("code") in STRUCTURAL]
+    dirty = next((f for f in findings if f.get("code") == DIRTY), None)
+    unknown = [f for f in findings if f.get("code") not in STRUCTURAL and f.get("code") != DIRTY]
+    if unknown:
+        return [], None, (f"worktree-state.py reported unknown finding code(s) "
+                          f"{sorted({str(f.get('code')) for f in unknown})}")
+    return structural, dirty, None
+
+
+def verify_layout(root, bin_dir=_BIN):
+    """`(report, error)` from `worktree-state.py --verify --json --checkout root` — verify only,
+    never repair: the hook tier is repair's one caller."""
+    cli = os.path.join(bin_dir, "worktree-state.py")
+    try:
+        proc = subprocess.run([sys.executable, cli, "--verify", "--json", "--checkout", root],
+                              capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return None, f"worktree-state.py could not run: {exc}"
+    try:
+        return json.loads(proc.stdout), None
+    except json.JSONDecodeError:
+        return None, (f"worktree-state.py exited {proc.returncode} without a JSON report: "
+                      f"{(proc.stderr or proc.stdout).strip()[:200]}")
+
+
+def layout_refusal(root, bin_dir=_BIN):
+    """The reason a corpus-dependent gate at `root` must refuse before it scans, or None.
+
+    Only a linked worktree is examined; a structural finding (cone, skip-bits,
+    materialisation) or an unusable report refuses, a dirty tree alone does not — dirty is the
+    ordinary mid-task state. Every finding in the report is read, so a structural break behind
+    a dirty exit still refuses."""
+    found = harness_boundary.worktree_owner(root)
+    if found is None or found[1] is None or found[0] == found[1]:
+        return None
+    doc, error = verify_layout(found[0], bin_dir)
+    if error is None:
+        structural, _dirty, error = verify_report_findings(doc)
+        if error is None and structural:
+            labels = ", ".join(f"{f['label']} ({f['code']})" for f in structural)
+            error = (f"this checkout's sparse layout is broken ({labels}); repair it with "
+                     f"python3 .claude/skills/harness/bin/worktree-state.py --repair "
+                     f"--checkout {found[0]}")
+    return error
 
 
 # ---------------------------------------------------------------------------------------------

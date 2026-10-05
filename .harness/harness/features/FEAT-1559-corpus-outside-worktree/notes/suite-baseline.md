@@ -20,7 +20,7 @@ each T-01 test was run with the two files moved aside:
 | Command | Exit | Failure |
 |---|---|---|
 | `python3 tests/unit/test-worktree-state-rules.py` (then `tests/unit/test-worktree-state.py`) | 1 | `ModuleNotFoundError: No module named 'feature_corpus'` |
-| `python3 tests/unit/test-feature-corpus.py` | 1 | `ModuleNotFoundError: No module named 'feature_corpus'` |
+| `python3 tests/unit/test-feature-corpus-discovery.py` (then `tests/unit/test-feature-corpus.py`) | 1 | `ModuleNotFoundError: No module named 'feature_corpus'` |
 | `python3 tests/integration/test-worktree-state.py` | 1 | No JSON from a missing command; every case fails, e.g. `test_mixed_a_b_c_refuses_and_mutates_nothing`, `test_real_edit_in_the_active_feature` |
 
 As the plan states, an absent command is a bootstrap red only. It does not prove each predicate.
@@ -49,15 +49,22 @@ ahead of `materialisation` (7).
 |---|---|---|---|
 | `python3 tests/unit/test-worktree-state-rules.py` | 0 | 15 | 0.1 s |
 | `python3 tests/integration/test-worktree-state.py` | 0 | 23 | ~20 s |
-| `python3 tests/unit/test-feature-corpus.py` | 0 | 13 | 0.5 s |
+| `python3 tests/unit/test-feature-corpus-discovery.py` | 0 | 13 | 0.5 s |
 
 No host worktree is touched: every subject is a worktree of the synthetic owner in
 `tests/integration/f58_sparse_fixture.py`, under a private temporary directory, with system and
 global git config disabled.
 
-## Amendment during T-01
+## Amendments during T-01
 
-`tests/unit/test-worktree-state.py` was renamed `tests/unit/test-worktree-state-rules.py`, because
 `run-unit-tests.py` refuses a test basename that appears in both `tests/unit` and
-`tests/integration` (MISCONFIGURED). The rename went through `plan-merge.py amend` on T-01 `files`
-and `verify`, recorded as an amendment judgement with that reason.
+`tests/integration` (MISCONFIGURED), so two T-01 unit files were renamed:
+
+- `tests/unit/test-worktree-state.py` → `tests/unit/test-worktree-state-rules.py`, clashing with
+  T-01's own integration file.
+- `tests/unit/test-feature-corpus.py` → `tests/unit/test-feature-corpus-discovery.py`, clashing
+  with T-03's `tests/integration/test-feature-corpus.py`. Found when T-03 added that file. T-03's
+  intent names its file by operator amendment, so T-01's was the one renamed.
+
+Both renames went through `plan-merge.py amend` on T-01 `files` and `verify`, each recorded as
+an amendment judgement with its reason.

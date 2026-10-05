@@ -580,7 +580,7 @@ tasks:
   files:
   - .claude/skills/harness/bin/worktree-state.py
   - .claude/skills/harness/bin/feature_corpus.py
-  - tests/unit/test-feature-corpus.py
+  - tests/unit/test-feature-corpus-discovery.py
   - tests/integration/f58_sparse_fixture.py
   - tests/integration/test-worktree-state.py
   - tests/unit/test-worktree-state-rules.py
@@ -591,7 +591,9 @@ tasks:
 
     python3 tests/integration/test-worktree-state.py
 
-    python3 tests/unit/test-feature-corpus.py
+    python3 tests/unit/test-feature-corpus-discovery.py
+
+    # Expected: each exits 0 within 60 seconds, with named negative cases and no host worktree mutations.'
 
     # Expected: each exits 0 within 60 seconds, with named negative cases and no host worktree mutations.'
   intent: 'Work only in the feature worktree and execute directly in the main session under DEC-174. Record 652e70d4 as the immutable planning baseline in suite-baseline.md only. Operator ruling 3 supersedes FEAT-57 receipt/T-19 prerequisites because #1655 is closed abandoned. Run each new behavior assertion against the pre-change implementation to capture discriminating failure before the implementation; absent new command is a bootstrap red only, not proof of every predicate. Use tests/integration/f58_sparse_fixture.py as the carried archive D-11 fixture name: git init a minimal temporary repository, commit synthetic nested .harness records in harness and a fleet segment, required non-feature paths and a newly tracked top-level directory, then create real git worktrees and disposable pins. Never copy this checkout or its .git directory. A context manager removes only its owned temporary fixtures and exposes roots and creation commands.
@@ -670,14 +672,14 @@ tasks:
   depends_on:
   - T-01
   - T-02
-  status: ready
+  status: building
   files:
   - .claude/skills/harness/bin/harness_boundary.py#linked_worktrees
   - .claude/skills/harness/bin/merge-gate.py#feature_for
   - .claude/skills/harness/bin/branch-create-gate.py
   - .claude/skills/harness/bin/check-domain.py
   - .claude/skills/harness/bin/board_lifecycle.py#_feature_dirs
-  - .claude/skills/harness/bin/check-plan-routes.py#discover_plans
+  - .claude/skills/harness/bin/check-plan-routes.py
   - .claude/skills/harness/bin/validate-feature-json.py#discover_paths
   - .claude/skills/harness/bin/layout_migration.py
   - .claude/skills/harness/bin/layout_fixtures.py
@@ -686,6 +688,18 @@ tasks:
   - tests/unit/test-feature-corpus-gates.py
   - tests/integration/test-feature-corpus.py
   - tests/integration/test-feature-corpus-census.py
+  - .claude/skills/harness/bin/feature_corpus.py
+  - .claude/skills/harness/bin/check_state/corpus.py
+  - .claude/skills/harness/bin/check-decision-anchors.py#check_anchor
+  - .claude/skills/harness/bin/check-skill-refs.py#_resolves
+  - tests/unit/test-check-state-corpus-rules.py
+  - tests/integration/f58_sparse_fixture.py
+  - tests/integration/test-check-plan-routes.py
+  - tests/integration/canonical-reader-classification.json
+  - tests/unit/test-check-skill-refs.py
+  - tests/unit/test-factory-cli.py
+  - tests/unit/test-feature-json-budget.py
+  - tests/unit/test-plan-depends-on.py
   verify: 'set -e
 
     python3 tests/unit/test-feature-corpus-gates.py

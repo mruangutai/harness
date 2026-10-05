@@ -437,7 +437,8 @@ def case_19():
         # the script dies on ImportError at exit 1 before it can refuse, and both
         # assertions go red for a reason that has nothing to do with an
         # unresolvable root.
-        for module in ("harness_boundary.py", "run_identity.py", "artifact_accessors.py"):
+        for module in ("harness_boundary.py", "run_identity.py", "artifact_accessors.py",
+                       "feature_corpus.py"):
             shutil.copy(os.path.join(BIN_DIR, module), os.path.join(fake_bin, module))
         r = run(cwd=td, project_dir=td, script=copy)
         check("case_19b_unresolvable_root_exits_2_not_0", r.returncode == 2,

@@ -1454,19 +1454,6 @@
       "task": "T-03"
     },
     {
-      "artifact": "feature.json",
-      "category": "json_file",
-      "dec174_category": "hook_or_gate",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/merge-gate.py",
-      "id": ".claude/skills/harness/bin/merge-gate.py::feature_for::json_file#1",
-      "reason": "",
-      "remedy": "artifact_accessors.load_feature_json",
-      "symbol": "feature_for",
-      "task": "T-06"
-    },
-    {
       "artifact": "harness.json",
       "category": "json_file",
       "dec174_category": "hook_or_gate",
@@ -2152,11 +2139,11 @@
       "disposition": "canonical",
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/feature_corpus.py",
-      "id": ".claude/skills/harness/bin/feature_corpus.py::records::load_feature_json#1",
+      "id": ".claude/skills/harness/bin/feature_corpus.py::_entry::load_feature_json#1",
       "plan": ".harness/harness/features/FEAT-1559-corpus-outside-worktree/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
-      "symbol": "records",
+      "symbol": "_entry",
       "task": "T-01"
     },
     {
@@ -2166,11 +2153,11 @@
       "disposition": "exempt",
       "execution_route": "main-session-direct",
       "exemption": "module_internal_format",
-      "file": ".claude/skills/harness/bin/check_state/corpus.py",
-      "id": ".claude/skills/harness/bin/check_state/corpus.py::_verify::json_string#1",
-      "reason": "The layout preflight decodes the report envelope its sibling worktree-state.py prints; verify_report_findings refuses any shape it does not recognise.",
+      "file": ".claude/skills/harness/bin/feature_corpus.py",
+      "id": ".claude/skills/harness/bin/feature_corpus.py::verify_layout::json_string#1",
+      "reason": "The corpus seam decodes the report envelope its sibling worktree-state.py prints; verify_report_findings refuses any shape it does not recognise.",
       "remedy": "none",
-      "symbol": "_verify",
+      "symbol": "verify_layout",
       "task": "none"
     }
   ],

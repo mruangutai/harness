@@ -64,7 +64,6 @@ if not ROOT or not _bootstrap_os.path.isdir(ROOT):
     raise SystemExit(2)
 _bootstrap_sys.path[:] = _bootstrap_original_path
 
-import glob
 import json
 import os
 import shlex
@@ -73,6 +72,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 import artifact_accessors
+import feature_corpus
 OPS = {";", "&", "&&", "|", "||", "(", ")", "<", ">", ">>", "\n"}
 
 
@@ -192,16 +192,21 @@ def head_branch(command, cwd, repo):
 
 # Only readable JSON objects with the matching branch can own a merge. Unattributable records are
 # ignored; duplicate owners must be surfaced rather than allowing glob iteration to choose one.
+#
+# THE POPULATION IS THE MAIN CORPUS, NEVER A GLOB OF ROOT (FEAT-1559, FEAT-58 D-01). ROOT is the
+# caller's checkout; in a sparse worktree it holds one feature directory, so the more-than-one
+# owner deny below could never fire there. Landed records come from the owner root and this
+# checkout's own directory replaces its landed copy. A population that cannot be established —
+# a broken layout, an unreadable owner, a missing landed directory — raises; it never falls back.
 def feature_for(branch):
+    refusal = feature_corpus.layout_refusal(ROOT)
+    if refusal:
+        raise feature_corpus.CorpusError(refusal)
     owners = []
-    for path in glob.glob(os.path.join(
-            ROOT, ".harness", "*", "features", "*", "feature.json")):
-        try:
-            document = artifact_accessors.load_feature_json(path)
-        except artifact_accessors.FeatureJsonError:
-            continue
-        if document.get("branch") == branch:
-            owners.append((os.path.dirname(path), document))
+    for entry in feature_corpus.population(ROOT):
+        document = entry["document"]
+        if isinstance(document, dict) and document.get("branch") == branch:
+            owners.append((entry["path"], document))
     return owners
 
 def deny(reason):
@@ -271,8 +276,13 @@ def _evaluate_merge(command, github):
     import feature_schema
     branch, failure = head_branch(
         command, os.getcwd(), github.get("repo") or "")
-    _handle_owners(
-        feature_schema, github, branch, failure, feature_for(branch))
+    try:
+        owners = feature_for(branch)
+    except feature_corpus.CorpusError as exc:
+        deny(f"merge-gate: cannot establish which feature owns {branch}, so this merge is "
+             f"denied rather than attributed to a guess: {exc}")
+        return
+    _handle_owners(feature_schema, github, branch, failure, owners)
 
 
 def main():

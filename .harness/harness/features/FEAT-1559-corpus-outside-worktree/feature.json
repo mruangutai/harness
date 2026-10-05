@@ -60,6 +60,27 @@
       "kind": "amendment",
       "decision": "T-02.verify",
       "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-check-state-corpus-rules.py. Same assertions, same kinds."
+    },
+    {
+      "at": "2026-10-05T14:09:11.258025+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Basename clash with T-03's integration test-feature-corpus.py (run-unit-tests.py refuses it); unit file renamed test-feature-corpus-discovery.py."
+    },
+    {
+      "at": "2026-10-05T14:09:13.582507+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Basename clash with T-03's integration test-feature-corpus.py (run-unit-tests.py refuses it); unit file renamed test-feature-corpus-discovery.py."
+    },
+    {
+      "at": "2026-10-05T14:23:00.238719+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "Sparse worktree broke 5 suite files and 2 readers reading other features locally; they now use feature_corpus.corpus_path. Seam and T-02 verify parser shared."
     }
   ],
   "mission": "plan",
