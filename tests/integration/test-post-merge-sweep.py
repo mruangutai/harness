@@ -77,7 +77,8 @@ import subprocess
 import sys
 import tempfile
 
-from git_support import add_worktree, commit_feature, commit_files, feature_rel, init_repo
+from git_support import (add_worktree, commit_all, commit_feature, commit_files, feature_rel,
+                         init_repo, quiet_git)
 
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = _anchor_bin
@@ -162,9 +163,16 @@ def _install_fixture_bin(fixture_root):
 # T-03's original helpers — UNCHANGED, still used by case_dry_run_safety().
 # ---------------------------------------------------------------------------------------------
 
+def _template_git(args, cwd):
+    """Git for template builds only: no automatic maintenance, so no detached `git
+    maintenance` is still writing `.git/objects/maintenance.lock` while the template is
+    copied. Passed per command, never written to the template's config."""
+    return quiet_git(["-c", "maintenance.auto=false", "-c", "gc.auto=0"] + list(args), cwd)
+
+
 def _seed_repo(path):
-    init_repo(path, "main")
-    commit_files(path, {"f.txt": "x\n"}, "init")
+    init_repo(path, "main", git=_template_git)
+    commit_files(path, {"f.txt": "x\n"}, "init", git=_template_git)
     return path
 
 
@@ -286,8 +294,7 @@ def _seed_bootstrap_repo(path):
         f.write("schema: team-config/1\n")
     with open(os.path.join(path, ".harness", "harness.json"), "w") as f:
         json.dump({"github": {"sync": True, "repo": "acme/repo-x", "board": None}}, f)
-    subprocess.run(["git", "add", "-A"], cwd=path, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", "bootstrap"], cwd=path, capture_output=True)
+    commit_all(path, "bootstrap", git=_template_git)
     return path
 
 
