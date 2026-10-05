@@ -166,12 +166,11 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
   `notes/review-<persona>-<runid>-c<cycle>.md` so a parallel reviewer panel cannot collide **and a
   loop-back cannot overwrite the report that caused it** — without the cycle component, the PASS on
   cycle 2 destroys the FAIL evidence from cycle 1 (DEC-117).
-- **`## Approval` blocks are written by the MAIN SESSION** — the one carve-out to single-owner.
-  It moved off the orchestrator with DEC-120: approval requires asking you, and only the main
-  session can.
-  `BRIEF.md` / `PLAN.md` are pm-owned *except* their `## Approval` section, which only the main
-  session writes (it alone has the user channel). **pm never self-approves, and neither does the
-  orchestrator** — as a spawned agent it cannot call `AskUserQuestion`.
+- **Only the MAIN SESSION records user approval** — the one carve-out to pm's artifact ownership
+  (DEC-120). pm authors pending `BRIEF.md` approval fields and a new `plan.yaml` proposal with
+  `approval: {status: pending}`; sign-approval alone records the explicit user signature.
+  Neither pm nor the spawned orchestrator self-approves: only main has the user channel.
+  Legacy `PLAN.md` retains its main-owned `## Approval` section.
 - **Each feature's `STATE.md` is owned by that feature's orchestrator (single writer).** One
   orchestrator per feature is what keeps it single-writer under concurrent flows (DEC-120). Members
   return to the lead; the
@@ -316,8 +315,8 @@ teams:
       - name: harness-pm
         consult-when: Requirements, feature scoping, planning, task breakdown, codebase research, acceptance criteria, goal verification
         domain:
-          - { path: .harness/features/<FEAT>/BRIEF.md,  upsert: true }   # except ## Approval (orchestrator-only)
-          - { path: .harness/features/<FEAT>/PLAN.md,   upsert: true }   # except ## Approval
+          - { path: .harness/features/<FEAT>/BRIEF.md,  upsert: true }   # pm drafts pending; main records user approval
+          - { path: .harness/features/<FEAT>/PLAN.md,   upsert: true }   # legacy ## Approval remains main-owned
           - { path: .harness/notes/,    upsert: true }
           - { path: .harness/expertise/harness-pm.md, upsert: true }   # REQUIRED for §5.3 self-apply
           - { path: ".",                read: true }     # read anything, write nothing else
@@ -1888,7 +1887,7 @@ tasks:
     execution_agent: harness-backend-dev
     depends_on: []
     status: done
-    files:                         # a list of plain strings; no backticks, no annotations
+    files:                         # path, path#symbol, or {path, quote}; never path:NN (DEC-232)
       - supabase/config.toml
     verify: |                      # literal `|`, never folded `>` — a byte-exact contract
       supabase status

@@ -5,8 +5,8 @@ runs once the feature's pull request has MERGED, triggered by the main session i
 `gh-sync.py ship`. Before the merge nothing is settled enough to distill, and a feature that never
 merges should teach the org nothing.
 
-Mid-run, nobody writes Expertise; `expertise_update: []` is the normal DIGEST. This is the only
-place project Expertise changes.
+Mid-run, nobody writes Expertise; `expertise_update: []` is the normal DIGEST. This is the
+feature-close write seam; `harness-curate` also authorizes out-of-band distillation (DEC-145).
 
 1. **Dispatch each lead that ran the feature, once:** "distill — **read
    `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first and tell each

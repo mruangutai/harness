@@ -25,10 +25,7 @@ asks for a cleanup.
    Files reported `OK` are done — do not touch them.
 2. **Distill each failing file.** The contract lives in `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md`
    — **read it first; it is NOT preloaded** (DEC-158). The entry shape, the sections, the caps, the
-   ops schema and the read-modify-write rule are only in that file. Three rules are curation's own:
-   - A file that is itself a SKILL.md, or a cut that would land in one, obeys the three-part
-     rule for skill text (DEC-158, FEAT-60): *if a gate refuses on it, name the gate; if a
-     decision holds it, point; if one seam needs it, reference it.* Never put the weight back.
+   ops schema and merge-tool-only write contract are only in that file. Two rules are curation's own:
    - Entries under invented section names are still real lessons — reclassify into the four
      canonical sections, don't discard. When a section overflows, keep the entries that pass
      the six-spawns test hardest: rules that fire on every dispatch beat rules for rare shapes.

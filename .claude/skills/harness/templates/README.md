@@ -13,21 +13,23 @@ exactly one file in a product repository — that repository's own harness.json,
 | `PLAN.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/PLAN.md` | `harness-pm` | **superseded by `plan.yaml` (DEC-182)** — never instantiated for a new feature; kept because features planned before DEC-182 keep their `PLAN.md` until they ship |
 | `STATE.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/STATE.md` — **one per flow**, never a project-level file (DEC-120) | that feature's orchestrator | first run of that feature, not init |
 | `DESIGN.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/DESIGN.md` | `harness-visual-designer` | `/harness-plan` for UI projects only |
+| `MAP.md` | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/efforts/<slug>/MAP.md` in local mode; no Markdown shadow in tracker mode | main-session `harness-wayfinding` | multi-session discovery |
+| `GRILLING.md` | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/grilling-<slug>-<date>.md` | main-session `harness-grilling` | before a user-confirmed hand-off |
 
-**Everything directly in this directory is a template**, read as such by `harness-init` or
-`harness-add-repo` as applicable.
+Artifact templates load at their owning skill's named seam; they are not all instantiated at init.
 
 ## Two conventions that carry the weight
 
 **`# SEED`** — replaced from control-plane detection by `harness-init`; an unseeded glob **fails closed**
 (the full rule lives in team-config.yaml's header — never widen a domain to `**` to "fix" a block).
 
-**`"cmd": null` plus a `_reason`** — an absent test runner, a not-applicable soft skip in the qa
-gate. dev-ops fills it only with a command it has actually run (the relevant onboarding skill has the why).
+**`"cmd": null` plus a `_reason`** — an honest absent-runner record, not permission to skip.
+Required unresolved/null runners are `BLOCKED`; only an explicit excluded kind with a resolving
+signed decision soft-skips (DEC-187). dev-ops fills commands only after running them successfully.
 
 ## Versioning
 
-Every template carries `schema_version`. The template in this repository moves ahead while an
-instantiated file stays where it is; `bin/check-state.py` reports the gap and the operator runs
-`/harness-init --upgrade` against the clone that holds it, which merges new entries while preserving
-per-project values — `domain` globs and `test_kinds.*.cmd` above all. Those are never clobbered.
+Versioned control-plane templates (`harness.json`, `team-config.yaml`) carry `schema_version`.
+`bin/check-state.py` reports a gap against an instantiated copy; `/harness-init --upgrade`
+merges new entries while preserving project values, especially `domain` globs and verified
+`test_kinds.*.cmd`. Artifact templates are not all versioned or upgraded by that procedure.

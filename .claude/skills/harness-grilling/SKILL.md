@@ -11,19 +11,12 @@ subagent cannot grill anyone — and an agent that answers its own questions has
 discipline entirely. Adapted from Matt Pocock's `grilling`, `batch-grill-me` (the frontier round)
 and `wayfinder` (MIT), re-homed onto harness machinery (DEC-164/167).
 
-Why it is blocking: pm plans from what it is told. Every unstated assumption at this moment
-becomes a perspective nobody meant, an SC that cannot be verified, or a build cycle spent
-discovering the question. **Five premises briefed as fact were FALSE at HEAD** on one
-feature — the cheapest possible moment to find that is here, in conversation, before a spawn.
+**Blocking step zero of `/harness-plan`**: pm plans from what it is told, so unstated assumptions
+become perspectives nobody meant or SCs nobody can verify (DEC-164).
 
-Three ways in, and they differ only in what follows:
-
-- **A loose idea or a feature request** — grill it to clarity, write the artifact with its
-  `## Mission`, then offer `/harness-plan` or `/harness-patch` (whichever the mission names) with
-  the artifact path as pm's input. Do not start planning unasked.
-- **Inside repository registration** — `harness-add-repo` runs the technical interview.
-- **Standalone** ("stress-test this", "grill me on X") — write the artifact and stop. Nothing
-  downstream is implied.
+Run for a loose idea, feature request or bug; `harness-add-repo` also runs it as the technical
+interview inside repository registration. Standalone ("stress-test this", "grill me on X") implies
+no downstream work. The confirmed hand-off for each context is below.
 
 Skipping this step is the user's call to make explicitly, never yours to assume.
 
@@ -89,46 +82,31 @@ lane (SC-22). `/harness-plan` and `/harness-patch` refuse to start without this 
 
 ## The artifact
 
-Write `.harness/notes/grilling-<slug>-<date>.md`, and hand pm its **path** — never the transcript:
+**Before writing the artifact, MUST read the complete template**
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/GRILLING.md`.
+Write `.harness/notes/grilling-<slug>-<date>.md`, and hand pm its **path**, never the transcript.
 
-```markdown
-# Grilling — <what this is about> — <date>
+Keep every template section: `## Destination`, `## Mission`, `## Settled`, `## Not yet specified`,
+`## Out of scope`, and `## Facts I verified (so pm does not re-derive them)`. Preserve the user's
+answers verbatim in substance, and qualify every verified fact with the claim, how it was checked,
+and the SHA. `## Mission` records `mission: patch | plan`, the harness's one-line reason, and the
+user's `confirmed-by: operator` or `overridden-by: operator (<one line>)` ruling.
 
-## Destination
-<what reaching the end looks like; one or two lines>
-
-## Mission
-mission: patch | plan
-reason: <one line — the harness's own judgement, from the three-part rule above>
-confirmed-by: operator | overridden-by: operator (<one line>)
-
-## Settled
-- <question> → <the user's answer, verbatim in substance>
-
-## Not yet specified
-- <in-scope question not yet sharp enough to state — pm may sharpen it, or it waits>
-
-## Out of scope
-- <ruled out of this effort, and why>
-
-## Facts I verified (so pm does not re-derive them)
-- <claim — how I checked it — at <sha>>
-```
-
-Bounded, one screen or so. `## Destination` and `## Settled` are what BRIEF's perspectives are
-authored from; `## Mission` is the lane pm writes for; `## Facts` is what saves pm a research
-pass; the other two are what stop scope creep mid-build.
+Bounded, one screen or so. Destination and Settled seed BRIEF's perspectives; Mission names the
+lane; verified facts save pm a research pass; fog and out-of-scope stop scope creep.
 
 ## Done, and what follows
 
 Done when the frontier is empty — every branch visited, nothing silently assumed — and the user
 confirms. Then:
 
-- **Onboarding:** the answers seed `harness.json`, the domain description, and the first glossary
-  terms.
-- **A feature or a bug:** hand pm the artifact **path**, with the mission recorded and confirmed —
-  `patch` goes to `/harness-patch`, `plan` to `/harness-plan`. pm still owns the perspectives and
-  the SCs; you have removed the guesswork and judged the lane, not done its job.
+- **Onboarding:** the answers seed the repository's own `.harness/harness.json` (which must land
+  on its default branch), the domain description, and the first glossary terms.
+- **A loose idea, feature or bug:** offer `/harness-patch` for the confirmed `patch` mission or
+  `/harness-plan` for `plan`, with the artifact **path** as pm's input. Do not start planning
+  unasked. pm still owns the perspectives and SCs; you removed the guesswork and judged the lane,
+  not done its job.
+- **Standalone:** write the artifact and stop; nothing downstream is implied.
 
 ## Red flags
 

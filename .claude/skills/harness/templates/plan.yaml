@@ -1,77 +1,36 @@
-# plan.yaml — the approval-gated plan. REAL YAML, loaded with safe_load.
-#
-# WHY THIS IS NOT MARKDOWN (issue #147, DEC-182). PLAN.md was markdown that LOOKED like
-# YAML, so three scripts hand-rolled regexes against it and each invented its own rule for
-# what a value may contain. Measured: safe_load over every task block in the four live
-# plans fails on 35 of its 36 blocks — 26 because `files:` began with a backtick, which is
-# a reserved YAML indicator, and 9 because `execution_mode: <mode> — reason: ...` puts a
-# second `": "` inside a plain scalar. One of the 26 is also `execution_mode: **SPLIT`,
-# which reads as an alias.
-# A fenced ```yaml block inside markdown was considered and refused: it is the same
-# mixture with a border round it, and an author who decorates a value today decorates it
-# inside a fence tomorrow.
-#
-# So: nothing in this file is prose for a human to read. Intent for a human lives in
-# BRIEF.md. The one long field here, `intent:`, is the literal dispatch prompt an agent
-# receives — it is machine-critical, not narrative.
-#
-# NO BACKTICKS, NO **BOLD**, NO MARKDOWN ANYWHERE IN A VALUE. They are decoration in a
-# data file; the loader will either reject them or hand a resolver a path nobody wrote.
-#
-# ONE WRITER, AND IT IS CODE (FEAT-41). Nobody opens this file to change a status or a
-# signature — not pm, not the orchestrator, not the main session. Every write goes through a
-# VERB, so it happens under the shared lock and is validated before it lands:
-#
-#   plan-merge.py add-tasks           --file <plan.yaml> --proposal <path or ->
-#   plan-merge.py set-task-station    --file <plan.yaml> --task T-NN --station <name>
-#   plan-merge.py set-feature-station --file <plan.yaml> --station <name>
-#   plan-merge.py sign-approval       --file <plan.yaml> --by <name> --date <YYYY-MM-DD> [--overrule PF-ID:<reason>]...
-#   plan-merge.py set-key             --file <plan.yaml> --key <top-level key> --value-file <value.yaml>
-#   plan-merge.py revoke-approval     --file <plan.yaml> --by <name> --reason "<text>"
-#
-# A hand edit is what #628 was: two whole-file writes, the second silently losing what the
-# first added. The verbs splice text under a lock instead, and a station outside the declared
-# vocabulary is refused before the file is opened at all.
+# plan.yaml — approval-gated, real YAML (DEC-182).
+# Before drafting, MUST read
+# <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-spec-driven/SKILL.md
+# for authoring, controlled-write and signature rules. Replace placeholders.
 
 schema: plan/1
 feature: FEAT-NN-<slug>          # must match the directory name
 
-# THE FEATURE'S STATION, and the only record of it (FEAT-41). One of the six names
-# harness.json declares — backlog, plan, ready, building, review, done — or one of the two
-# terminal stations that name no board column: `abandoned` (planned, never built) or `rejected`
-# (refused at first-run intake as wrong or superseded, FEAT-1714). WRITTEN ONLY BY
-# `plan-merge.py set-feature-station` (or `gh-sync.py reject`, which calls it); no agent and no
-# human edits this line, and check-domain.py denies the write.
-status: <station>
+# backlog | plan | ready | building | review | done | abandoned | rejected
+# abandoned: planned, never built; rejected: wrong/superseded at first intake.
+# pending is an approval status, never a station.
+# Feature station is recorded only here; set-feature-station refuses unknown names before opening.
+status: plan
 
-# The GitHub issue numbers this feature was PLANNED FROM — bare integers, written by pm at
-# plan time and signed with the plan. `gh-sync.py open` mirrors them into feature.json's
-# `github.source_issues`, and `gh-sync.py ship` lands their cards at the board's done station
-# at the merge. An EMPTY LIST IS LEGAL: a feature planned from no ticket has no source.
-source_issues: [<n>, <n>]
+# Bare issue integers planned from, signed with the plan; [] means no source ticket.
+# gh-sync open mirrors these to feature.json github.source_issues; ship marks their cards done.
+source_issues: []
 
+# apply seeds only this pending mapping. Main signs/revokes on the user's explicit instruction.
 approval:
-  # Written by the MAIN SESSION only, because it is the only tier with a user channel
-  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.py denies an
-  # agent's write of this mapping. Any change to the task set resets this to pending, and
-  # revoke-approval resets it on the operator's word; reset_at/reset_reason say which.
-  # Only the main session may add approval.rulings, through sign-approval --overrule.
-  # Each ruling names a PF- id present in panel.findings and carries who: <operator>,
-  # date: YYYY-MM-DD, and a one-clause reason. check-state.py REFUSES an absent id as a
-  # stale risk acceptance: rewording creates a new content-hash id, so an old ruling stops
-  # applying and the operator is asked again.
   status: pending                # pending | approved
-  approved_by: <name>
-  date: <YYYY-MM-DD>
+  # approved_by: <name>           # sign-approval writes signed fields
+  # date: <YYYY-MM-DD>
+  # rulings: []                   # sign-approval --overrule; current PF-id, who, date, reason
+  # reset_at: <timestamp>         # reset-generated metadata
+  # reset_reason: <reason>
+  # resume_station: <station>     # transient; consumed at reapproval
 
-# Written by harness-pm and nobody else. It is outside approval because approval_guard owns
-# that entire mapping, while pm may update this sibling after the validator lead returns.
+# record-panel transcribes the lead's digest (DEC-229); no hand-authored panel.
 panel:
   last_run: <run-dir>
   cycle: 0
-  # Every reader appears here. Findings alone cannot distinguish a reader that ran cleanly
-  # from one that never ran. The external adversarial persona may normally be absent in a
-  # project receiving this doctrine; status skipped records that outcome instead of hiding it.
+  # Every reader appears, even when skipped: clean findings do not prove a reader ran.
   readers:
     - reader: should-not-exist       # should-not-exist | scope | goalcheck
       status: skipped                # ran | skipped
@@ -84,13 +43,13 @@ panel:
       kind: substance                # substance | form | proportionality
       # scope: task|mission          # proportionality findings only (DEC-228)
       summary: <one line>
-      disposition: open              # open | resolved; risk acceptance requires approval.rulings
+      disposition: open              # open | resolved; risk acceptance uses approval.rulings
       # resolved_by: T-NN            # present only when resolved
-  # unrated is gating-equivalent to high, so omitted judgment fails closed.
+  # unrated gates like high: omitted judgement fails closed.
 
 lanes:
-  # Resolved HERE against .harness/team-config.yaml at a named SHA — never at build time.
-  # A surface whose lane is a carve-out is declared once here, not re-argued per task.
+  # Resolved against <HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml.
+  # Declare a carve-out once here, not per task.
   resolved_at: <sha>
   rows:
     - surface: .claude/skills/harness/bin/**
@@ -101,9 +60,8 @@ lanes:
       reason: <why, one clause>
 
 decisions:
-  # POINTERS, not essays. The reasoning lives in .harness/harness/docs/DECISIONS.md; a plan-local
-  # choice that never becomes a DEC keeps `dec: none` and dies with the feature.
-  # DEC-158's rule applies: carry the rule and one clause of why, not the biography.
+  # Pointers to .harness/harness/docs/DECISIONS.md, not essays.
+  # A plan-local choice uses dec: none and dies with the feature.
   - id: D-01
     choice: <the decision, one sentence>
     because: <one clause>
@@ -111,48 +69,24 @@ decisions:
 
 tasks:
   - id: T-01
-    title: <imperative, one line, no markdown>
-
-    # traces: REQ-NN only. D-NN belongs in `decisions:` above; putting it here made the
-    # field mean two things and nothing read the second one.
-    traces: [REQ-01, REQ-02]
-
+    title: <imperative, one line>
+    traces: [SC-01, SC-02]       # BRIEF success criteria; D-NN belongs in decisions
     change_type: logic           # logic | api | cross_module | frontend | feature
                                  # | bugfix | ai_behavior | config | scaffolding | docs
-                                 # MANDATORY — the qa gate reads it to pick required tests.
-
-    # Exactly two legal values. A task that needs BOTH routes is TWO TASKS — there is no
-    # split mode. FEAT-08 T-04 tried to write one and the eng squad hit exit 2 on it.
     execution_mode: team         # team | main-session-direct
-    execution_agent: <agent>     # when team; the lane row above is the authority
-    execution_reason: <why>      # when main-session-direct
-
-    depends_on: []               # [T-NN, ...] — the build runner orders on this.
-                                 # File order is NOT a topological order.
-
-    # backlog | plan | ready | building | review | done | abandoned | rejected
-    # The SAME six names harness.json declares, plus the two terminal stations. `pending` is not one
-    # of them and is not a value anywhere any more (FEAT-41 T-04). An absent status reads as
-    # `ready`, the not-started station.
+    execution_agent: <agent>     # team only; remove for main-session-direct
+    # execution_reason: <why>    # main-session-direct only; omit execution_agent
+    depends_on: []               # [T-NN, ...]; runner orders by dependencies, not file order
+    # Same station vocabulary as feature status; absence defaults to ready.
     status: ready
 
-    # A LIST OF PLAIN STRINGS. Not a comma string, not backticked, no trailing
-    # annotations like "(delete)" — the resolver takes the value verbatim, so an
-    # annotation becomes part of the path and resolves to nothing.
+    # One anchor per file; choose path, path#symbol, or {path, quote}; never path:NN.
     files:
       - path/to/exact/file.py
+      # - path/to/exact/file.py#symbol
+      # - {path: path/to/exact/file.py, quote: <unique text>}
 
-    # LITERAL BLOCK `|`, NEVER FOLDED `>`. This string is carried VERBATIM by the lead to
-    # the member, which cross-checks it against this file and returns BLOCKED on mismatch
-    # (harness-zero-micro-management). Folding turns newlines into spaces, so a lead
-    # reading source text and a member loading YAML would compare different strings and
-    # block a correct task.
     verify: |
-      <path/to/command that returns pass/fail in under 60s, or MANUAL — <what must be built> if nothing is automatable (harness_yaml enforces this shape while status is pending)>
-
-    # THE DISPATCH PROMPT. The agent doing the work receives this and nothing else about
-    # the task, so it must be complete: the actual logic, types, structure and values —
-    # never "implement X" or "follow the existing pattern". Detail that only JUSTIFIES the
-    # instruction (probe transcripts, why an earlier draft was wrong) goes to notes/.
+      MANUAL — <what must be built first to make this automatable>
     intent: |
-      <what the code must do afterwards>
+      <complete literal dispatch prompt: logic, types, structure and values>

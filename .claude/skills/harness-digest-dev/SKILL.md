@@ -6,10 +6,9 @@ user-invocable: false
 
 # Dev return contract
 
-The five engineering specialists share one return contract, so they share one template. This is
-the canonical copy — the agent files deliberately do not restate it, because inline copies drifted
-apart before (DEC-126). `validate-digest.py` refuses a return that breaks it and names the field,
-the rejected pairing and the repair; read its message, never guess a value.
+This is the shared engineering contract (DEC-126). `validate-digest.py` names any rejected field,
+pairing and repair: follow its message, never guess a value. Common return fields and YieldTool
+discipline live in `harness-handoff`; the injected persona schema owns the complete field list.
 
 ## dev — frontend, backend, ai, data
 
@@ -17,67 +16,22 @@ The **main session** returns this same contract when it builds a feature directl
 (`feature-record.py run-start --agent main-session`): it wrote the diff, so it owns the same
 `task` / `task_verify` / `suite` receipt, and `close-run` validates its digest as `dev` (#1895).
 
-Return an object through YieldTool — never fenced YAML text. The field list is the schema for
-your persona, e.g. `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-backend-dev.json` (frontend,
-ai and data-engineer have their own `harness-<persona>.json` with the same fields); one complete
-example:
-
-```js
-yield({data: {
-  "VERDICT": "PASS",
-  "DIGEST": {
-    "headline": "export endpoint streams CSV and enforces the tenant filter",
-    "tests_added": 3,
-    "suite": "pass",
-    "task": "T-03",
-    "task_verify": "pass",
-    "blocked_on": "none",
-    "open_questions": [],
-    "files_touched": ["src/export.py", "tests/unit/test_export.py"],
-    "expertise_update": []
-  },
-  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-backend-dev-<runid>.md"
-}})
-```
-
-- `headline`: what now works, not what you did. `task`: `T-NN|none`; `task_verify`:
-  `pass|fail|n/a`, always present — `none` when `task: none`. `blocked_on`: text or `none`.
-- `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: work paths; exclude
-  the required `artifact` receipt. `expertise_update`: `[]` except under a distillation dispatch
-  (harness-expertise).
+Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-backend-dev.json`;
+frontend, ai and data have their own `harness-<persona>.json` with the same fields.
+**Before your first engineering return or an under-specified-task refusal, read
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/digest-dev-examples.md`.**
+- `blocked_on`: the blocking condition, or `none`; keep all common fields required by `harness-handoff`.
 
 ## dev-ops
 
-Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-dev-ops.json`; one complete example:
-
-```js
-yield({data: {
-  "VERDICT": "PASS",
-  "DIGEST": {
-    "headline": "CI runs the unit suite on every pull request",
-    "change_type": "ci",
-    "applied": [".github/workflows/ci.yml"],
-    "suite": "pass",
-    "task": "T-05",
-    "task_verify": "pass",
-    "test_kinds_written": ["unit: python3 -m pytest tests/unit"],
-    "open_questions": [],
-    "files_touched": [".github/workflows/ci.yml"],
-    "expertise_update": []
-  },
-  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-dev-ops-<runid>.md"
-}})
-```
-
-- `change_type`: `config|scaffolding|infra|ci`. `task_verify`: always present — `none` when
-  `task: none`. `test_kinds_written`: `<kind: cmd>` entries when you ran detection, else `[]`.
-- `open_questions`: `[]` if none. `files_touched`: `[]` if you changed none. `expertise_update`:
-  `[]` except under a distillation dispatch (harness-expertise).
+Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-dev-ops.json`.
+- `change_type`: `config|scaffolding|infra|ci`. `test_kinds_written`: `<kind: cmd>` entries
+  when you ran detection, else `[]`; the shared field rules below apply unchanged.
 
 ## Field rules — both schemas
 
-- **Every field is required** (DEC-121): `[]` for an empty list, `none` for an inapplicable
-  scalar. The `SubagentStop` hook rejects a return missing any of them.
+- **Every schema field is required**, on success or refusal; the OMP yield hook rejects omissions
+  (DEC-121, DEC-237). Use the common empty-value rules in `harness-handoff`.
 - **`task`** is your task's id, verbatim from your dispatch. `none` ONLY when the dispatch carries
   no PLAN task at all — a distillation, an investigation, an architecture review (DEC-175). Then
   `task_verify` is `none`: there was no command.
@@ -102,29 +56,12 @@ output itself is an audit trail a reviewer reads, not a gate.
 
 ## Refusing an under-specified task
 
-The zero-placeholder gate (`harness-tdd-enforcement`) refuses a task before executing it. The
-return, complete on purpose — a refusal digest missing any field is rejected and retried, and the
-retry is where unvalidated work ships (DEC-173/175):
+The zero-placeholder gate (`harness-tdd-enforcement`) stops execution. Return `BLOCKED` with
+every persona field: the concrete `task`, `suite: n/a`, `task_verify: n/a`, `files_touched: []`,
+and `artifact: none`. Name the missing specification in the headline and, for dev, `blocked_on`;
+a partial refusal is rejected and retried, not accepted (DEC-173/175).
 
-```js
-yield({data: {
-  "VERDICT": "BLOCKED",
-  "DIGEST": {
-    "headline": "task T-12 is under-specified and cannot be executed as written",
-    "tests_added": 0,
-    "suite": "n/a",
-    "task": "T-12",
-    "task_verify": "n/a",
-    "blocked_on": "T-12 contains a placeholder at <location>; needs pm revision",
-    "open_questions": [],
-    "files_touched": [],
-    "expertise_update": []
-  },
-  "artifact": "none"
-}})
-```
-
-dev-ops returns the same refusal in its own schema.
+Use the refusal example in the required reference above; dev-ops returns its own schema, never dev's.
 
 ## Reaching a boundary
 

@@ -23,13 +23,8 @@ manufacture one. That is a legitimate and common outcome for backend-only work.
 
 A UAT is only `ready` when every `automated` and `inspection` criterion has already passed.
 
-Check `harness-qa`'s verdict (`harness-verification-rules`) and `harness-code-reviewer`'s verdict (`harness-code-review`). If either is `FAIL`:
-
-```
-UAT status: draft — not ready.
-The qa gate is failing (component tests missing). Fixing that first;
-no point hand-testing something whose tests are red.
-```
+Check `harness-qa` and `harness-code-reviewer` verdicts through their canonical skills. If either
+is `FAIL`, report `draft — not ready` with the failing prerequisite and fix it before hand-off.
 
 **Never hand a user a UAT for a change whose tests fail.** Their time is the most expensive input in the
 system; spending it on a known-broken build wastes it.
@@ -47,12 +42,19 @@ review_sha: def5678
 
 ## Steps
 - U-01 (SC-02): Open a transcript with several authors and filter to one.
-  expect: only that author's turns remain, and the control looks like it
-          belongs to the review surface rather than bolted on.
+  expect: only that author's turns remain.
   result:
 
-- U-02 (SC-05): Clear the filter.
-  expect: all turns return, in their original order.
+- U-02 (SC-02): Compare the filter control with adjacent review controls.
+  expect: its styling matches the review surface.
+  result:
+
+- U-03 (SC-05): Clear the filter.
+  expect: every original turn is visible again.
+  result:
+
+- U-04 (SC-05): Compare the restored transcript with its pre-filter sequence.
+  expect: turn order matches the original sequence.
   result:
 ```
 
@@ -88,21 +90,9 @@ A failed UAT consumes a fix cycle. Do not argue with the result or reinterpret i
 
 ## Output
 
-```
-UAT ready — 2 steps, about 3 minutes.
-<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/FEAT-01/notes/uat.md
-
-Everything else is already green: 14 unit tests, 31 python tests,
-review passed with 2 non-blocking notes.
-
-What I need from you:
-  1. Filter a multi-author transcript to one author — do only their turns
-     remain, and does the control look like it belongs?
-  2. Clear the filter — does everything come back in the original order?
-
-Can't ship until you've run these — SC-02 and SC-05 are judgement calls
-that only you can make.
-```
+Report the script path, step count, estimated time and observed prerequisite evidence. Point the
+user to the concrete actions in the script, identify the UAT SCs, and say shipping waits for
+their result. Do not duplicate the script or invent green test counts.
 
 ## Red flags
 
