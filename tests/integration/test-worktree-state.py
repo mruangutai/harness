@@ -96,6 +96,18 @@ class RecordBearingClasses(Case):
         self.assertEqual(run("verify", wt)[0], 0)
         self.assertTrue(os.path.isfile(os.path.join(wt, "space ü 文/file.txt")))
 
+    def test_names_git_would_unquote_on_stdin_converge(self):
+        # A line opening with `"` is C-quoted input to `sparse-checkout set --stdin`, and a
+        # newline splits a `hash-object --stdin-paths` line, so every name written there is
+        # quoted (validate c4).
+        hidden = ".harness/harness/features/FEAT-2-beta/notes/line\nbreak.md"
+        self.fx.commit_owner({'"quoted/file.txt': "q\n", hidden: "h\n"}, "names git unquotes")
+        wt = self.fx.add_worktree("FEAT-1-alpha")
+        self.converged(wt)
+        self.assertEqual(run("verify", wt)[0], 0)
+        self.assertTrue(os.path.isfile(os.path.join(wt, '"quoted/file.txt')))
+        self.assertFalse(os.path.lexists(os.path.join(wt, hidden)))
+
     def test_recordless_feature_converges_before_and_after_its_record(self):
         wt = self.fx.add_worktree("FEAT-99-new")
         doc = self.converged(wt)

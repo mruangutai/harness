@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-1559-corpus-outside-worktree",
   "pr": 2103,
   "review_sha": "35587d8dfbf9178e21410c201601f7137fbfbbd6",
-  "cycles_used": 3,
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -51,8 +51,11 @@
       "id": "validate-c3-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-10-05T19:16:40+00:00"
+      "verdict": "FAIL",
+      "started_at": "2026-10-05T19:16:40+00:00",
+      "ended_at": "2026-10-05T19:43:59+00:00",
+      "cycles_used": 2,
+      "tokens": null
     }
   ],
   "judgements": [
@@ -171,9 +174,9 @@
   ],
   "mission": "plan",
   "rework": {
-    "rounds": 3,
-    "wall_clock_minutes": 180,
-    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1559-corpus-outside-worktree/.harness/harness/features/FEAT-1559-corpus-outside-worktree/notes/answers-operator-2026-10-05-rework-raise.md"
+    "rounds": 4,
+    "wall_clock_minutes": 240,
+    "decision": "notes/answers-operator-2026-10-05-rework-round-4.md"
   },
   "signed_task_hashes": {
     "T-01": "550d990962d060eb686eefeceb56437fcb33f8c3319b75cda6b804fcdb1efc6a",

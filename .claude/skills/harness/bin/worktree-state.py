@@ -137,6 +137,28 @@ def unquote(name):
     return out.decode("utf-8", errors="surrogateescape")
 
 
+_C_QUOTED = {v: k for k, v in _C_ESCAPES.items()}
+
+
+def quote(name):
+    """`name` C-quoted the way git reads a `--stdin` line, so a name opening with `"` or holding
+    a newline arrives as itself (validate c4): every byte outside printable ASCII is octal."""
+    out = []
+    for byte in os.fsencode(name):
+        if byte in _C_QUOTED:
+            out.append("\\" + _C_QUOTED[byte])
+        elif 32 <= byte < 127:
+            out.append(chr(byte))
+        else:
+            out.append(f"\\{byte:03o}")
+    return '"' + "".join(out) + '"'
+
+
+def stdin_lines(names):
+    """One C-quoted name per line: input git's `--stdin` readers decode back to `names`."""
+    return "".join(quote(n) + "\n" for n in names)
+
+
 def hidden_dirs(checkout, active):
     """Feature directories on disk other than the active paths, as relative paths. A checkout
     whose cone dropped `.harness` altogether reaches none — the cone finding reports that break."""
@@ -186,7 +208,7 @@ def present_blobs(checkout, paths, index):
             files.append(p)
     if files:
         out.update(zip(files, _hash(checkout, ["--no-filters", "--stdin-paths"],
-                                    ("\n".join(files) + "\n").encode())))
+                                    stdin_lines(files).encode())))
     for p, text in links.items():
         out[p] = _hash(checkout, ["--stdin"], text)[0]
     return out
@@ -308,7 +330,7 @@ def repair(checkout, sel):
     enabled, cone_mode, configured = current_cone(checkout)
     cone, active = target(sel, configured if enabled and cone_mode else None)
     if not (enabled and cone_mode and configured == cone):
-        _sparse(checkout, "set", "--cone", "--stdin", stdin="\n".join(cone) + "\n")
+        _sparse(checkout, "set", "--cone", "--stdin", stdin=stdin_lines(cone))
     # Exit 1 means "some path needs updating" — a stat difference, here never content (no C).
     subprocess.run(["git", "update-index", "-q", "--refresh"], cwd=checkout,
                    capture_output=True)

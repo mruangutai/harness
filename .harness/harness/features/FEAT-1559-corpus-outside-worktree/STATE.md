@@ -63,9 +63,16 @@
   (notes/answers-operator-2026-10-05-rework-raise.md).
 - Fix c3, main-session-direct (notes/receipt-main-session-fix-c3.md): seven fixes, each with a
   test that is red at 6c11ab62; T-03 files amended (factory_claim.py). Suites exit 0 (52 / 80
-  files), reader audit clean. This commit is the new seam.
-- next: pin review_sha to this seam, `status review`, re-verify as validate-c3-validator
-- cycles_used: 2 / 10, becoming 3 with this round; rework 3 rounds / 180 min
+  files), reader audit clean. Seam 35587d8d.
+- Validate c4 (run validate-c3-validator) at 35587d8d: FAIL. All seven fixes confirmed; one med
+  T-01/SC-01 must-fix: cone names went raw into `sparse-checkout set --stdin`.
+- Operator ruling: round 4, rework 4 rounds / 240 min (notes/answers-operator-2026-10-05-rework-round-4.md).
+- Fix c4, main-session-direct (notes/receipt-main-session-fix-c4.md): names written to git
+  stdin are C-quoted (sparse-checkout and hash-object --stdin-paths); test red before. Suites
+  exit 0 (52 / 80 files). This commit is the new seam.
+- next: pin review_sha to this seam, `status review`, re-verify as validate-c4-validator
+- cycles_used: 6 = 4 main-session fix rounds + 2 send-backs the lead reported in
+  validate-c3-validator; rework 4 rounds / 240 min
 - board: milestone #99, parent #2086, tasks #2088-#2093 (T-06's #2094 closed not planned)
 
 ## Open Questions
