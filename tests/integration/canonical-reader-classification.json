@@ -2144,6 +2144,20 @@
       "remedy": "none",
       "symbol": "_load_key_value",
       "task": "none"
+    },
+    {
+      "artifact": "feature.json",
+      "category": "load_feature_json",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/feature_corpus.py",
+      "id": ".claude/skills/harness/bin/feature_corpus.py::records::load_feature_json#1",
+      "plan": ".harness/harness/features/FEAT-1559-corpus-outside-worktree/plan.yaml",
+      "reason": "",
+      "remedy": "artifact_accessors.load_feature_json",
+      "symbol": "records",
+      "task": "T-01"
     }
   ],
   "scanned_files": [
@@ -2180,6 +2194,7 @@
     ".claude/skills/harness/bin/feature-json-merge.py",
     ".claude/skills/harness/bin/feature-record.py",
     ".claude/skills/harness/bin/feature-worktree.py",
+    ".claude/skills/harness/bin/feature_corpus.py",
     ".claude/skills/harness/bin/feature_json_write.py",
     ".claude/skills/harness/bin/feature_schema.py",
     ".claude/skills/harness/bin/gate_policy.py",
@@ -2219,6 +2234,7 @@
     ".claude/skills/harness/bin/validate-digest.py",
     ".claude/skills/harness/bin/validate-feature-json.py",
     ".claude/skills/harness/bin/wayfind.py",
+    ".claude/skills/harness/bin/worktree-state.py",
     ".claude/skills/harness/bin/worktree_terminal.py",
     ".claude/skills/harness/bin/check_state/__init__.py",
     ".claude/skills/harness/bin/check_state/board.py",

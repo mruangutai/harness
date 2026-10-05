@@ -4,7 +4,7 @@ approval:
   date: '2026-10-04'
   approved_by: mruangutai
   status: approved
-status: ready
+status: building
 source_issues:
 - 1559
 panel:
@@ -576,26 +576,24 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 covers the enforcement command and its tests; do not delegate execution.
   depends_on: []
-  status: ready
+  status: building
   files:
   - .claude/skills/harness/bin/worktree-state.py
   - .claude/skills/harness/bin/feature_corpus.py
   - tests/unit/test-feature-corpus.py
   - tests/integration/f58_sparse_fixture.py
   - tests/integration/test-worktree-state.py
-  - tests/unit/test-worktree-state.py
+  - tests/unit/test-worktree-state-rules.py
   - .harness/harness/features/FEAT-1559-corpus-outside-worktree/notes/suite-baseline.md
   verify: 'set -e
 
-    python3 tests/unit/test-worktree-state.py
+    python3 tests/unit/test-worktree-state-rules.py
 
     python3 tests/integration/test-worktree-state.py
 
     python3 tests/unit/test-feature-corpus.py
 
-    # Expected: each exits 0 within 60 seconds, with named negative cases and no host worktree mutations.
-
-    '
+    # Expected: each exits 0 within 60 seconds, with named negative cases and no host worktree mutations.'
   intent: 'Work only in the feature worktree and execute directly in the main session under DEC-174. Record 652e70d4 as the immutable planning baseline in suite-baseline.md only. Operator ruling 3 supersedes FEAT-57 receipt/T-19 prerequisites because #1655 is closed abandoned. Run each new behavior assertion against the pre-change implementation to capture discriminating failure before the implementation; absent new command is a bootstrap red only, not proof of every predicate. Use tests/integration/f58_sparse_fixture.py as the carried archive D-11 fixture name: git init a minimal temporary repository, commit synthetic nested .harness records in harness and a fleet segment, required non-feature paths and a newly tracked top-level directory, then create real git worktrees and disposable pins. Never copy this checkout or its .git directory. A context manager removes only its owned temporary fixtures and exposes roots and creation commands.
 
     Define REQUIRED_PATHS once in f58_sparse_fixture.py for fixture assertions, including .agents/skills, .claude/skills/harness, .harness/harness/docs, .harness/expertise, .harness/factory, .harness/domains, .harness/examples and .harness/notes. Synthetic fixture contents create these non-feature paths. Tests import this constant rather than duplicating it; production sparse derivation never uses it as an allowlist and the rejected .harness/corpus symlink is not a required path.

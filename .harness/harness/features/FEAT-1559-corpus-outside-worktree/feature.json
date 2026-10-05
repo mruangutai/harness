@@ -32,6 +32,20 @@
       "kind": "amendment",
       "decision": "T-03.intent",
       "reason": "Operator 2026-10-04: SC-02's core claim (byte-identical landed reads from inside each checkout class, with the other record absent locally) had no direct assertion; added it to T-03's integration test."
+    },
+    {
+      "at": "2026-10-05T13:32:11.935170+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-worktree-state-rules.py. Same assertions, same kinds."
+    },
+    {
+      "at": "2026-10-05T13:32:14.980196+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-worktree-state-rules.py. Same assertions, same kinds."
     }
   ],
   "mission": "plan",

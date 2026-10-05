@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+"""worktree-state.py — assert or repair a checkout's sparse feature layout (FEAT-1559, #1559).
+
+    worktree-state.py --verify [--checkout PATH] [--json]
+    worktree-state.py --repair [--checkout PATH] [--json]
+
+A record-bearing checkout — a planning worktree under `.claude/worktrees/<segment>/<id>` or a
+validator pin under `.claude/worktrees/.pins/<feature>--<run-id>--<persona>` — materialises its
+ACTIVE feature directory and no other; every other feature is read from the main corpus at the
+owner root (feature_corpus.py). A plain clone, a code-only checkout and an arbitrary worktree are
+not record-bearing: both modes report the no-op and exit 0.
+
+EXITS. Every detected category is reported, and the exit names the first present in this order:
+
+    8  dirty         class-C work in the tree (below); repair refuses and touches nothing
+    3  cone          sparse-checkout is off, not cone mode, not the derived cone, or the active
+                     feature is ambiguous
+    4  skip-bits     an index entry's skip-worktree bit disagrees with the cone
+    7  materialisation  a feature directory other than the active one is on disk
+    2  error         the checkout or its git state could not be read
+    0  converged, or a no-op subject
+
+REPAIR CLASSIFIES EVERY CHANGED PATH BEFORE IT MUTATES ANYTHING (operator ruling, 2026-10-04):
+
+    A  outside the cone, absent on disk, index entry == HEAD  → restore the skip bit; no bytes move
+    B  outside the cone, present, byte-identical to the index → remove it
+    C  real divergence: a modified file, any staged change (staged deletion included), a deletion
+       inside the cone, or any untracked or ignored file in a hidden feature directory
+
+Any C anywhere refuses with exit 8 and mutates nothing, mixed A/B/C included. An unstaged
+deletion of a hidden feature's file is A by design: writing another feature's record from this
+checkout is already forbidden, and the bytes remain in the index and HEAD. Repair does A and B
+with `git sparse-checkout set` alone, then removes hidden feature directories left EMPTY; a second
+repair finds nothing and changes nothing. Verify never mutates: every git call it makes runs with
+`--no-optional-locks`, so not even the index stat cache is refreshed.
+
+The hook tier (post-checkout, post-merge, post-rewrite) is repair's only automatic caller; gates
+call `--verify --json` and inspect every structural finding, never one exit code alone.
+"""
+import argparse
+import json
+import os
+import subprocess
+import sys
+
+_BIN = os.path.dirname(os.path.abspath(__file__))
+if _BIN not in sys.path:
+    sys.path.insert(0, _BIN)
+
+import feature_corpus as fc  # noqa: E402
+
+DIRTY, CONE, SKIP_BITS, MATERIALISATION, ERROR = 8, 3, 4, 7, 2
+PRIORITY = ((DIRTY, "dirty"), (CONE, "cone"), (SKIP_BITS, "skip-bits"),
+            (MATERIALISATION, "materialisation"))
+LABELS = dict(PRIORITY)
+SELF = os.path.join(".claude", "skills", "harness", "bin", "worktree-state.py")
+
+
+def finding(code, paths, detail):
+    return {"code": code, "label": LABELS[code], "paths": sorted(set(paths)), "detail": detail}
+
+
+def exit_code(findings):
+    present = {f["code"] for f in findings}
+    for code, _label in PRIORITY:
+        if code in present:
+            return code
+    return 0
+
+
+# ---------------------------------------------------------------------------------------------
+# Reading the tree — every call read-only
+# ---------------------------------------------------------------------------------------------
+
+def _z(text):
+    return [p for p in text.split("\0") if p]
+
+
+def index_entries(checkout):
+    """`{path: (skip_worktree, blob)}` for every index entry."""
+    tags = {}
+    for line in _z(fc.git(checkout, "ls-files", "-z", "-t")):
+        tag, path = line[0], line[2:]
+        tags[path] = tag
+    entries = {}
+    for line in _z(fc.git(checkout, "ls-files", "-z", "-s")):
+        meta, path = line.split("\t", 1)
+        blob = meta.split()[1]
+        entries[path] = (tags.get(path) == "S", blob)
+    return entries
+
+
+def status_entries(checkout):
+    """`[(X, Y, path)]` from porcelain v1, renames off, every untracked file listed."""
+    out = []
+    for item in _z(fc.git(checkout, "status", "--porcelain=v1", "-z", "--no-renames",
+                          "--untracked-files=all")):
+        out.append((item[0], item[1], item[3:]))
+    return out
+
+
+def current_cone(checkout):
+    """`(enabled, cone_mode, dirs)` — the checkout's own sparse configuration."""
+    def flag(key):
+        proc = subprocess.run(["git", "--no-optional-locks", "config", "--type=bool", "--get",
+                               key], cwd=checkout, capture_output=True, text=True)
+        return proc.returncode == 0 and proc.stdout.strip() == "true"
+    enabled, cone_mode = flag("core.sparseCheckout"), flag("core.sparseCheckoutCone")
+    if not enabled:
+        return False, cone_mode, []
+    proc = subprocess.run(["git", "--no-optional-locks", "sparse-checkout", "list"],
+                          cwd=checkout, capture_output=True, text=True)
+    dirs = sorted(line.strip() for line in proc.stdout.splitlines() if line.strip()) \
+        if proc.returncode == 0 else []
+    return True, cone_mode, dirs
+
+
+def hidden_dirs(checkout, active):
+    """Feature directories on disk other than the active paths, as relative paths. A checkout
+    whose cone dropped `.harness` altogether reaches none — the cone finding reports that break."""
+    allowed = set(active)
+    out = []
+    for name in fc.reached_feature_dirs(checkout):
+        segment, fid = name.split("/", 1)
+        rel = f".harness/{segment}/features/{fid}"
+        if rel not in allowed:
+            out.append(rel)
+    return out
+
+
+def files_under(checkout, rel):
+    out = []
+    for dirpath, _dirnames, filenames in os.walk(os.path.join(checkout, rel)):
+        for name in filenames:
+            out.append(os.path.relpath(os.path.join(dirpath, name), checkout).replace(os.sep, "/"))
+    return sorted(out)
+
+
+def present_blobs(checkout, paths):
+    """`{path: blob}` git would store for each present file, through the repository's filters."""
+    if not paths:
+        return {}
+    proc = subprocess.run(["git", "--no-optional-locks", "hash-object", "--stdin-paths"],
+                          cwd=checkout, input="\n".join(paths) + "\n", capture_output=True,
+                          text=True)
+    if proc.returncode != 0:
+        raise fc.CorpusError(f"git hash-object in {checkout}: {proc.stderr.strip()}")
+    return dict(zip(paths, proc.stdout.split()))
+
+
+# ---------------------------------------------------------------------------------------------
+# Diagnosis
+# ---------------------------------------------------------------------------------------------
+
+def classify(checkout, index, cone, active):
+    """`(class_a, class_b, class_c)` path lists against the TARGET cone."""
+    hidden = hidden_dirs(checkout, active)
+    class_a, class_c = [], []
+    for x, y, path in status_entries(checkout):
+        if x == "?" and y == "?":
+            if any(path.startswith(h + "/") for h in hidden):
+                class_c.append(path)
+            continue
+        if x not in " ?" or "U" in (x, y):
+            class_c.append(path)            # staged, or unmerged
+        elif y in "MT":
+            class_c.append(path)            # modified in the working tree
+        elif y == "D":
+            (class_c if fc.in_cone(path, cone) else class_a).append(path)
+    # Ignored files never appear in status; any non-index file in a hidden directory is C.
+    for h in hidden:
+        class_c.extend(p for p in files_under(checkout, h) if p not in index)
+    divergent = set(class_c)
+    present = [p for p in index
+               if not fc.in_cone(p, cone) and p not in divergent
+               and os.path.lexists(os.path.join(checkout, p))]
+    blobs = present_blobs(checkout, present)
+    class_b = []
+    for path in present:
+        if blobs.get(path) == index[path][1]:
+            class_b.append(path)
+        else:
+            class_c.append(path)            # a skip-worktree file someone rewrote
+    return sorted(set(class_a)), sorted(class_b), sorted(set(class_c))
+
+
+def target(sel, configured):
+    """`(cone, active_paths)` to judge the checkout against. The exact form, unless the checkout
+    still holds the every-segment form it was cut with before its record existed: that form
+    hides exactly what the exact one hides, so re-cutting it would be churn, not a repair."""
+    pre = sel["pre_record"]
+    if configured and configured == pre["cone"]:
+        return pre["cone"], pre["active_paths"]
+    return sel["cone"], sel["active_paths"]
+
+
+def diagnose(checkout, sel):
+    """Every finding for a record-bearing selection."""
+    if sel["refusal"]:
+        return [finding(CONE, sel["active_paths"], sel["refusal"])]
+    enabled, cone_mode, configured = current_cone(checkout)
+    cone, active = target(sel, configured if enabled and cone_mode else None)
+    index = index_entries(checkout)
+    findings = []
+    _a, _b, class_c = classify(checkout, index, cone, active)
+    if class_c:
+        findings.append(finding(DIRTY, class_c,
+                                f"{len(class_c)} path(s) carry work that repair must not touch"))
+    if not enabled:
+        findings.append(finding(CONE, cone, "sparse-checkout is not enabled"))
+    elif not cone_mode:
+        findings.append(finding(CONE, cone, "sparse-checkout is not in cone mode"))
+    elif configured != cone:
+        missing = sorted(set(cone) - set(configured))
+        extra = sorted(set(configured) - set(cone))
+        findings.append(finding(CONE, missing + extra,
+                                f"cone differs from the derived set: missing "
+                                f"{missing or 'none'}, unexpected {extra or 'none'}"))
+    wrong = [p for p, (skip, _blob) in index.items() if skip == fc.in_cone(p, cone)]
+    if wrong:
+        findings.append(finding(SKIP_BITS, wrong,
+                                f"{len(wrong)} index entr(y/ies) with a skip-worktree bit that "
+                                f"disagrees with the cone"))
+    hidden = hidden_dirs(checkout, active)
+    if hidden:
+        findings.append(finding(MATERIALISATION, hidden,
+                                f"{len(hidden)} feature director(y/ies) other than "
+                                f"{sel['active_feature']} on disk"))
+    return findings
+
+
+# ---------------------------------------------------------------------------------------------
+# Repair
+# ---------------------------------------------------------------------------------------------
+
+def _sparse(checkout, *args, stdin=None):
+    proc = subprocess.run(["git", "sparse-checkout", *args], cwd=checkout, input=stdin,
+                          capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise fc.CorpusError(f"git sparse-checkout {args[0]} in {checkout} exited "
+                             f"{proc.returncode}: {proc.stderr.strip()}")
+
+
+def remove_empty(checkout, rel):
+    """Remove `rel` bottom-up if — and only if — it holds no file at all."""
+    top = os.path.join(checkout, rel)
+    for dirpath, _dirnames, _files in sorted(os.walk(top), key=lambda w: -len(w[0])):
+        try:
+            os.rmdir(dirpath)
+        except OSError:
+            return
+
+
+def repair(checkout, sel):
+    """Converge A/B findings. `set` writes the cone only when it differs — git treats an
+    unchanged `set` as a no-op and re-applies nothing. The index stat cache is then refreshed:
+    git leaves a present hidden file whose stat data is stale ("not up to date … left despite
+    sparse patterns"), and every such file was already proved byte-identical (class B). `reapply`
+    then restores every skip bit and removes every class-B file against the cone in force."""
+    findings = diagnose(checkout, sel)
+    code = exit_code(findings)
+    if code in (0, DIRTY) or sel["refusal"]:
+        return findings, False
+    enabled, cone_mode, configured = current_cone(checkout)
+    cone, active = target(sel, configured if enabled and cone_mode else None)
+    if not (enabled and cone_mode and configured == cone):
+        _sparse(checkout, "set", "--cone", "--stdin", stdin="\n".join(cone) + "\n")
+    # Exit 1 means "some path needs updating" — a stat difference, here never content (no C).
+    subprocess.run(["git", "update-index", "-q", "--refresh"], cwd=checkout,
+                   capture_output=True)
+    _sparse(checkout, "reapply")
+    for rel in hidden_dirs(checkout, active):
+        remove_empty(checkout, rel)
+    return diagnose(checkout, sel), True
+
+
+# ---------------------------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------------------------
+
+def report(sel, mode, findings, repaired):
+    return {"checkout": sel["checkout"], "checkout_class": sel["checkout_class"],
+            "active_feature": sel["active_feature"], "artifact_segment": sel["artifact_segment"],
+            "mode": mode, "noop": sel["noop"], "repaired": repaired, "findings": findings}
+
+
+def render(doc, code):
+    lines = [f"worktree-state: {doc['mode']} {doc['checkout']}"]
+    if doc["noop"]:
+        lines.append(f"  no-op: {doc['noop']}")
+        return "\n".join(lines)
+    where = doc["artifact_segment"] or "every segment (no record yet)"
+    lines[0] += f" — {doc['checkout_class']}, {doc['active_feature']} in {where}"
+    if doc["repaired"]:
+        lines.append("  repaired: sparse cone re-applied")
+    for f in doc["findings"]:
+        shown = ", ".join(f["paths"][:8]) + (" …" if len(f["paths"]) > 8 else "")
+        lines.append(f"  {f['label']} ({f['code']}): {f['detail']}")
+        if shown:
+            lines.append(f"    {shown}")
+    if code == DIRTY:
+        lines.append("  remedy: commit or stash that work (untracked files included), then run "
+                     f"python3 {SELF} --repair --checkout {doc['checkout']}")
+    elif code:
+        lines.append(f"  remedy: python3 {SELF} --repair --checkout {doc['checkout']}")
+    else:
+        lines.append("  converged")
+    return "\n".join(lines)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(prog="worktree-state.py", description=__doc__.split("\n")[0])
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--verify", action="store_true", help="assert the layout; never mutates")
+    mode.add_argument("--repair", action="store_true", help="converge the layout (A/B only)")
+    parser.add_argument("--checkout", default=os.getcwd(), help="checkout to examine (cwd)")
+    parser.add_argument("--json", action="store_true", help="one JSON object on stdout")
+    args = parser.parse_args(argv)
+    mode_name = "repair" if args.repair else "verify"
+    try:
+        sel = fc.select(os.path.abspath(args.checkout))
+        if sel["noop"]:
+            findings, repaired = [], False
+        elif args.repair:
+            findings, repaired = repair(sel["checkout"], sel)
+        else:
+            findings, repaired = diagnose(sel["checkout"], sel), False
+    except fc.CorpusError as exc:
+        if args.json:
+            print(json.dumps({"checkout": os.path.abspath(args.checkout), "mode": mode_name,
+                              "error": str(exc)}))
+        else:
+            print(f"worktree-state: {mode_name}: {exc}", file=sys.stderr)
+        return ERROR
+    code = exit_code(findings)
+    doc = report(sel, mode_name, findings, repaired)
+    print(json.dumps(doc, indent=2, sort_keys=True) if args.json else render(doc, code))
+    return code
+
+
+if __name__ == "__main__":
+    sys.exit(main())
