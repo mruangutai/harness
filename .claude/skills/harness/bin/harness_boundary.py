@@ -98,16 +98,21 @@ class RepositoryBases(list):
         members = set(self._identities.values())
         for candidate in rel_candidates:
             match = _CONTROL_PLANE_SEGMENT.match(candidate)
-            if not match:
-                continue
-            segment = match.group(1)
-            if _UNMODELLED_SHELL.search(segment):
-                return segment
-            reached = sorted(m for m in members
-                             if fnmatch.fnmatchcase(m.casefold(), segment.casefold()))
-            if reached:
-                return reached[0] if len(reached) == 1 else segment
+            owner = _segment_owner(members, match.group(1)) if match else None
+            if owner:
+                return owner
         return None
+
+
+def _segment_owner(members, segment):
+    """The one fleet member `segment` reaches, the segment itself when it may reach several or
+    cannot be resolved statically (no claim carries that, so it fails closed), else None."""
+    if _UNMODELLED_SHELL.search(segment):
+        return segment
+    reached = sorted(m for m in members if fnmatch.fnmatchcase(m.casefold(), segment.casefold()))
+    if not reached:
+        return None
+    return reached[0] if len(reached) == 1 else segment
 
 
 def root_from_script(bin_dir):
