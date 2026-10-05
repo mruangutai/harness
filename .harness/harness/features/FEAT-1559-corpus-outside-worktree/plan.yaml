@@ -700,6 +700,7 @@ tasks:
   - tests/unit/test-factory-cli.py
   - tests/unit/test-feature-json-budget.py
   - tests/unit/test-plan-depends-on.py
+  - .claude/skills/harness/bin/factory_claim.py#_record_path
   verify: 'set -e
 
     python3 tests/unit/test-feature-corpus-gates.py

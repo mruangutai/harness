@@ -77,7 +77,7 @@ def _z(text):
 
 
 def index_entries(checkout):
-    """`{path: (skip_worktree, blob)}` for every index entry."""
+    """`{path: (skip_worktree, blob, mode)}` for every index entry."""
     tags = {}
     for line in _z(fc.git(checkout, "ls-files", "-z", "-t")):
         tag, path = line[0], line[2:]
@@ -85,8 +85,8 @@ def index_entries(checkout):
     entries = {}
     for line in _z(fc.git(checkout, "ls-files", "-z", "-s")):
         meta, path = line.split("\t", 1)
-        blob = meta.split()[1]
-        entries[path] = (tags.get(path) == "S", blob)
+        mode, blob = meta.split()[:2]
+        entries[path] = (tags.get(path) == "S", blob, mode)
     return entries
 
 
@@ -110,9 +110,31 @@ def current_cone(checkout):
         return False, cone_mode, []
     proc = subprocess.run(["git", "--no-optional-locks", "sparse-checkout", "list"],
                           cwd=checkout, capture_output=True, text=True)
-    dirs = sorted(line.strip() for line in proc.stdout.splitlines() if line.strip()) \
+    dirs = sorted(unquote(line.strip()) for line in proc.stdout.splitlines() if line.strip()) \
         if proc.returncode == 0 else []
     return True, cone_mode, dirs
+
+
+_C_ESCAPES = {"a": 7, "b": 8, "t": 9, "n": 10, "v": 11, "f": 12, "r": 13, '"': 34, "\\": 92}
+
+
+def unquote(name):
+    """A path as git prints it, decoded: git C-quotes a name holding non-ASCII bytes or special
+    characters (`"space \\303\\274"`), and the cone is compared with real names (#2103 panel)."""
+    if len(name) < 2 or not (name.startswith('"') and name.endswith('"')):
+        return name
+    body, out, i = name[1:-1], bytearray(), 0
+    while i < len(body):
+        if body[i] != "\\":
+            out += body[i].encode()
+            i += 1
+        elif body[i + 1] in _C_ESCAPES:
+            out.append(_C_ESCAPES[body[i + 1]])
+            i += 2
+        else:
+            out.append(int(body[i + 1:i + 4], 8))
+            i += 4
+    return out.decode("utf-8", errors="surrogateescape")
 
 
 def hidden_dirs(checkout, active):
@@ -136,16 +158,38 @@ def files_under(checkout, rel):
     return sorted(out)
 
 
-def present_blobs(checkout, paths):
-    """`{path: blob}` git would store for each present file, through the repository's filters."""
-    if not paths:
-        return {}
-    proc = subprocess.run(["git", "--no-optional-locks", "hash-object", "--stdin-paths"],
-                          cwd=checkout, input="\n".join(paths) + "\n", capture_output=True,
-                          text=True)
+SYMLINK_MODE = "120000"
+
+
+def _hash(checkout, args, data):
+    proc = subprocess.run(["git", "--no-optional-locks", "hash-object", *args], cwd=checkout,
+                          input=data, capture_output=True)
     if proc.returncode != 0:
-        raise fc.CorpusError(f"git hash-object in {checkout}: {proc.stderr.strip()}")
-    return dict(zip(paths, proc.stdout.split()))
+        raise fc.CorpusError(f"git hash-object in {checkout}: "
+                             f"{proc.stderr.decode(errors='replace').strip()}")
+    return proc.stdout.decode().split()
+
+
+def present_blobs(checkout, paths, index):
+    """`{path: blob}` of each present file's RAW working-tree content, or None when its type
+    disagrees with the index. Raw, never through the repository's filters: a clean filter can
+    make different bytes hash equal, and B must mean the bytes on disk are the index's (#2103
+    panel). A symlink is its link text, as git stores it; hash-object would follow it."""
+    files, links, out = [], {}, {}
+    for p in paths:
+        is_link = os.path.islink(os.path.join(checkout, p))
+        if is_link != (index[p][2] == SYMLINK_MODE):
+            out[p] = None
+        elif is_link:
+            links[p] = os.fsencode(os.readlink(os.path.join(checkout, p)))
+        else:
+            files.append(p)
+    if files:
+        out.update(zip(files, _hash(checkout, ["--no-filters", "--stdin-paths"],
+                                    ("\n".join(files) + "\n").encode())))
+    for p, text in links.items():
+        out[p] = _hash(checkout, ["--stdin"], text)[0]
+    return out
 
 
 # ---------------------------------------------------------------------------------------------
@@ -178,7 +222,7 @@ def divergent_paths(checkout, index, cone, active):
     present = [p for p in index
                if not fc.in_cone(p, cone) and p not in divergent
                and os.path.lexists(os.path.join(checkout, p))]
-    blobs = present_blobs(checkout, present)
+    blobs = present_blobs(checkout, present, index)
     # A present out-of-cone file is B only when byte-identical to the index.
     class_c.extend(p for p in present if blobs.get(p) != index[p][1])
     return sorted(set(class_c))
@@ -216,7 +260,7 @@ def diagnose(checkout, sel):
         findings.append(finding(CONE, missing + extra,
                                 f"cone differs from the derived set: missing "
                                 f"{missing or 'none'}, unexpected {extra or 'none'}"))
-    wrong = [p for p, (skip, _blob) in index.items() if skip == fc.in_cone(p, cone)]
+    wrong = [p for p, (skip, _blob, _mode) in index.items() if skip == fc.in_cone(p, cone)]
     if wrong:
         findings.append(finding(SKIP_BITS, wrong,
                                 f"{len(wrong)} index entr(y/ies) with a skip-worktree bit that "
@@ -322,6 +366,9 @@ def main(argv=None):
     mode.add_argument("--repair", action="store_true", help="converge the layout (A/B only)")
     parser.add_argument("--checkout", default=os.getcwd(), help="checkout to examine (cwd)")
     parser.add_argument("--json", action="store_true", help="one JSON object on stdout")
+    parser.add_argument("--quiet-dirty", action="store_true",
+                        help="print nothing when the only finding is dirty work: the converged "
+                             "mid-task state, which the hooks must not nag about (exit unchanged)")
     args = parser.parse_args(argv)
     mode_name = "repair" if args.repair else "verify"
     try:
@@ -340,6 +387,8 @@ def main(argv=None):
             print(f"worktree-state: {mode_name}: {exc}", file=sys.stderr)
         return ERROR
     code = exit_code(findings)
+    if args.quiet_dirty and findings and all(f["code"] == DIRTY for f in findings):
+        return code
     doc = report(sel, mode_name, findings, repaired)
     print(json.dumps(doc, indent=2, sort_keys=True) if args.json else render(doc, code))
     return code

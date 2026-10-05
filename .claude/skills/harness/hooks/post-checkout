@@ -18,7 +18,9 @@
 # print an error after an operation that succeeded. So every failure is SAID instead — a missing
 # implementation, a nonzero repair, a dirty tree repair refused to touch — and
 # `worktree-state.py --verify` (which check-state runs) stays the gate: a quiet hook is never
-# evidence the layout is valid.
+# evidence the layout is valid. A converged layout whose only finding is uncommitted work is the
+# ordinary mid-task state; `--quiet-dirty` keeps that silent, because an instruction to commit
+# or stash would be obeyed for nothing.
 _hook=post-checkout
 _here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 0
 _root=$(CDPATH= cd -- "$_here/../../../.." && pwd -P) || exit 0
@@ -34,9 +36,9 @@ if [ ! -x "$_state" ]; then
 fi
 
 # stdin is </dev/null: repair never reads it, and must not swallow what git hands a hook.
-_out=$("$_state" --repair --checkout "$_top" </dev/null 2>&1)
+_out=$("$_state" --repair --quiet-dirty --checkout "$_top" </dev/null 2>&1)
 _rc=$?
-if [ "$_rc" -ne 0 ]; then
+if [ "$_rc" -ne 0 ] && [ -n "$_out" ]; then
   printf '%s\n' "$_out" >&2
   if [ "$_rc" -eq 8 ]; then
     echo "$_hook: layout repair SKIPPED in $_top: it carries work repair must not touch (exit 8), so nothing was changed. Commit or stash it; the next checkout, merge or rewrite repairs the layout." >&2

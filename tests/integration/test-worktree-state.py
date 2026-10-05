@@ -88,6 +88,14 @@ class RecordBearingClasses(Case):
         self.converged(wt)
         self.assertTrue(os.path.isfile(os.path.join(wt, "newtop/x.txt")))
 
+    def test_a_non_ascii_top_level_directory_converges_and_verifies(self):
+        # git C-quotes such names in `sparse-checkout list` (#2103 panel, finding 4).
+        self.fx.commit_owner({"space ü 文/file.txt": "unicode\n"}, "a non-ASCII directory")
+        wt = self.fx.add_worktree("FEAT-1-alpha")
+        self.converged(wt)
+        self.assertEqual(run("verify", wt)[0], 0)
+        self.assertTrue(os.path.isfile(os.path.join(wt, "space ü 文/file.txt")))
+
     def test_recordless_feature_converges_before_and_after_its_record(self):
         wt = self.fx.add_worktree("FEAT-99-new")
         doc = self.converged(wt)
@@ -99,6 +107,21 @@ class RecordBearingClasses(Case):
         F.write_files(wt, {".harness/kaya/features/FEAT-99-new/BRIEF.md": "# new\n"})
         code, doc = run("verify", wt)
         self.assertEqual((code, doc["artifact_segment"], labels(doc)), (0, "kaya", []))
+
+    def test_a_branch_named_worktree_keeps_its_feature_mid_rebase(self):
+        # HEAD is detached during a rebase; git keeps the branch in rebase-merge/head-name, and
+        # the identity must come from there, not collapse to an arbitrary probe (#2103 panel 5).
+        wt = self.fx.add_worktree("scratch", branch="feat/FEAT-1-alpha")
+        self.converged(wt)
+        F.write_files(wt, {".harness/harness/features/FEAT-1-alpha/notes/w.md": "work\n"})
+        F.git(wt, "add", "-A")
+        F.git(wt, "commit", "-qm", "feature work")
+        self.fx.commit_owner({"newtop/x.txt": "x\n"}, "main moves")
+        F.git(wt, "rebase", "--exec", "false", "main", check=False)
+        self.assertEqual(F.git(wt, "symbolic-ref", "-q", "HEAD", check=False).returncode, 1)
+        code, doc = run("verify", wt)
+        self.assertEqual((doc["checkout_class"], doc["active_feature"]),
+                         ("planning-worktree", "FEAT-1-alpha"), doc)
 
 
 class NoOpSubjects(Case):
@@ -249,6 +272,41 @@ class ClassC(Case):
         F.write_files(wt, {".harness/kaya/features/FEAT-10-kaya-app/BRIEF.md": "edit\n"})    # C
         self.assert_refused(wt, ".harness/kaya/features/FEAT-10-kaya-app/BRIEF.md")
         self.assertEqual(len(F.feature_dirs_on_disk(wt)), 4)
+
+    # #2103 panel, findings 2 and 3: B means the working-tree BYTES equal the index blob. A
+    # clean filter can make different bytes hash equal, and hash-object follows a symlink to its
+    # target, so neither filtered hash proves it.
+    def test_bytes_a_clean_filter_hides_are_class_c(self):
+        rel = ".harness/harness/features/FEAT-2-beta/notes/filtered.txt"
+        F.git(self.fx.owner, "config", "filter.loss.clean", "sed s/.*/canonical/")
+        F.git(self.fx.owner, "config", "filter.loss.smudge", "cat")
+        self.fx.commit_owner({".gitattributes": f"{rel} filter=loss\n", rel: "canonical\n"},
+                             "a lossy clean filter")
+        wt = self.fx.add_worktree("FEAT-1-alpha")
+        F.write_files(wt, {rel: "SECRET123\n"})
+        self.assertEqual(F.git(wt, "status", "--porcelain").stdout, "")   # git sees no change
+        self.assert_refused(wt, rel)
+        with open(os.path.join(wt, rel), encoding="utf-8") as fh:
+            self.assertEqual(fh.read(), "SECRET123\n")
+
+    def test_an_unchanged_tracked_symlink_is_class_b(self):
+        rel = ".harness/harness/features/FEAT-2-beta/notes/link.md"
+        os.makedirs(os.path.dirname(os.path.join(self.fx.owner, rel)), exist_ok=True)
+        os.symlink("../BRIEF.md", os.path.join(self.fx.owner, rel))
+        self.fx.commit_owner({}, "a tracked symlink")
+        wt = self.fx.add_worktree("FEAT-1-alpha")
+        self.converged(wt)
+        self.assertFalse(os.path.lexists(os.path.join(wt, rel)))
+
+    def test_a_retargeted_tracked_symlink_is_class_c(self):
+        rel = ".harness/harness/features/FEAT-2-beta/notes/link.md"
+        os.makedirs(os.path.dirname(os.path.join(self.fx.owner, rel)), exist_ok=True)
+        os.symlink("../BRIEF.md", os.path.join(self.fx.owner, rel))
+        self.fx.commit_owner({}, "a tracked symlink")
+        wt = self.fx.add_worktree("FEAT-1-alpha")
+        os.remove(os.path.join(wt, rel))
+        os.symlink("../feature.json", os.path.join(wt, rel))
+        self.assert_refused(wt, rel)
 
 
 class Report(Case):

@@ -38,9 +38,9 @@ elif [ ! -x "$_state" ]; then
   echo "post-merge: $_state is missing or not executable; no layout repair ran in $_top." >&2
 else
   # stdin is </dev/null: repair never reads it, and must not swallow what git hands a hook.
-  _out=$("$_state" --repair --checkout "$_top" </dev/null 2>&1)
+  _out=$("$_state" --repair --quiet-dirty --checkout "$_top" </dev/null 2>&1)
   _rc=$?
-  if [ "$_rc" -ne 0 ]; then
+  if [ "$_rc" -ne 0 ] && [ -n "$_out" ]; then
     printf '%s\n' "$_out" >&2
     if [ "$_rc" -eq 8 ]; then
       echo "post-merge: layout repair SKIPPED in $_top: it carries work repair must not touch (exit 8), so nothing was changed. Commit or stash it; the next checkout, merge or rewrite repairs the layout." >&2

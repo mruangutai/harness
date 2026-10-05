@@ -117,6 +117,19 @@ class CrossCheckoutReads(Case):
             fc.population(wt)
         self.assertIn("harness/BUG-3-gamma", str(caught.exception))
 
+    def test_a_missing_active_directory_is_missing_not_a_landed_copy(self):
+        # The checkout's own feature is decided by identity, not by its directory existing: a
+        # deleted active directory must not be answered from stale landed bytes (#2103 panel 6).
+        # One worktree named by its directory, one only by its feat/<id> branch.
+        for wt, own, other in ((repair(self.fx.add_worktree(ACTIVE)), ACTIVE, "FEAT-2-beta"),
+                               (repair(self.fx.add_worktree("scratch", branch="feat/FEAT-2-beta")),
+                                "FEAT-2-beta", ACTIVE)):
+            rel = f".harness/harness/features/{own}/BRIEF.md"
+            shutil.rmtree(os.path.join(wt, os.path.dirname(rel)))
+            self.assertEqual(fc.corpus_path(wt, rel), os.path.join(wt, rel))
+            elsewhere = f".harness/harness/features/{other}/BRIEF.md"
+            self.assertEqual(fc.corpus_path(wt, elsewhere), os.path.join(self.fx.owner, elsewhere))
+
     def test_an_in_progress_sibling_is_never_read(self):
         wt = repair(self.fx.add_worktree(ACTIVE))
         sibling = repair(self.fx.add_worktree("FEAT-50-wip"))
@@ -327,6 +340,35 @@ class BoardStatus(Case):
         wrong = self.messages({500: "building", 501: "ready", 600: "building", 601: "ready"})
         self.assertTrue(any("card #501" in m for m in wrong), wrong)
         self.assertTrue(any("card #601" in m for m in wrong), wrong)
+
+
+class FactoryClaim(Case):
+    """The factory claim lane reads another feature's plan and issue map in the main corpus:
+    from a sparse worktree, a landed feature's plan is not 'missing' (#2103 panel, finding 1)."""
+
+    PLAN = json.dumps({"schema": "plan/1", "feature": "FEAT-2-beta",
+                       "approval": {"status": "approved"},
+                       "tasks": [{"id": "T-01", "title": "task", "change_type": "feature",
+                                  "execution_mode": "team", "files": ["src/app.py"],
+                                  "verify": "true", "intent": "test claim",
+                                  "traces": ["REQ-03"]}]}) + "\n"
+    PROBE = ("import sys; sys.path.insert(0, {bin!r}); import factory_claim as c; "
+             "cache = c._BlockerCache(); "
+             "print(repr(c._blocker_gate(cache, 'org/harness', 'FEAT-2-beta', 'T-01'))); "
+             "print(repr(cache.issue_number('org/harness', 'FEAT-2-beta', 'T-01')))")
+
+    def test_a_landed_plan_and_issue_map_are_read_from_a_sparse_worktree(self):
+        record = json.loads(F.feature_json("FEAT-2-beta", "feat/FEAT-2-beta"))
+        record["factory"] = {"repo": "org/harness", "issues": {"T-01": 77}}
+        base = ".harness/harness/features/FEAT-2-beta"
+        self.fx.commit_owner({f"{base}/plan.yaml": self.PLAN,
+                              f"{base}/feature.json": json.dumps(record) + "\n"}, "landed plan")
+        wt = repair(self.fx.add_worktree(ACTIVE))
+        self.assertFalse(os.path.exists(os.path.join(wt, base)))
+        proc = subprocess.run([sys.executable, "-c", self.PROBE.format(bin=str(BIN))],
+                              env=dict(F.ENV, HARNESS_PROJECT_DIR=wt), cwd=wt,
+                              capture_output=True, text=True)
+        self.assertEqual(proc.stdout.split("\n")[:2], ["None", "77"], proc.stdout + proc.stderr)
 
 
 class DecisionAnchors(Case):

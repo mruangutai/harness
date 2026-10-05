@@ -94,7 +94,9 @@ class Shims(Installed):
                 self.assertEqual(proc.returncode, 0, proc.stderr)
                 repair = [c for c in self.calls() if c["name"] == "worktree-state.py"]
                 self.assertEqual(len(repair), 1, self.calls())
-                self.assertEqual(repair[0]["argv"], ["--repair", "--checkout", str(self.checkout)])
+                argv = repair[0]["argv"]
+                self.assertIn("--repair", argv)
+                self.assertEqual(argv[argv.index("--checkout") + 1], str(self.checkout))
 
     def test_repair_does_not_consume_hook_stdin(self):
         proc = self.fire("post-rewrite")

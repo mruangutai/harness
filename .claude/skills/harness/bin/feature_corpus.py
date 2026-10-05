@@ -93,8 +93,14 @@ def tracks(checkout, rel, ref="HEAD"):
     return rel in out.split("\0")
 
 
+# Where git keeps the branch a detached operation started from, per worktree.
+_IN_PROGRESS_BRANCH = ("rebase-merge/head-name", "rebase-apply/head-name", "BISECT_START")
+
+
 def current_branch(checkout):
-    """The checked-out branch's short name, or None when HEAD is detached."""
+    """The checked-out branch's short name — or, while a rebase or bisect has detached HEAD,
+    the branch it started from (#2103 panel: a branch-named worktree must keep its feature
+    mid-rebase) — or None when HEAD is simply detached."""
     try:
         proc = subprocess.run(["git", "symbolic-ref", "-q", "--short", "HEAD"], cwd=checkout,
                               capture_output=True, text=True)
@@ -103,9 +109,23 @@ def current_branch(checkout):
     if proc.returncode == 0:
         return proc.stdout.strip() or None
     if proc.returncode == 1:        # detached HEAD: a fact, not an error
-        return None
+        return _in_progress_branch(checkout)
     raise CorpusError(f"git symbolic-ref in {checkout} exited {proc.returncode}: "
                       f"{proc.stderr.strip()}")
+
+
+def _in_progress_branch(checkout):
+    """The branch a rebase or bisect in `checkout` started from, or None."""
+    for rel in _IN_PROGRESS_BRANCH:
+        path = os.path.join(checkout, git(checkout, "rev-parse", "--git-path", rel).strip())
+        try:
+            with open(path, encoding="utf-8") as fh:
+                name = fh.readline().strip()
+        except OSError:
+            continue
+        if name:
+            return name.removeprefix("refs/heads/")
+    return None
 
 
 def feature_roots(dirs):
@@ -308,17 +328,46 @@ def corpus_path(root, rel):
     """Where a reader at the checkout top `root` finds the repository-relative path `rel`
     (ruling B).
 
-    A path inside a feature directory this checkout does not hold is another feature's, and a
-    linked worktree reads it at the owner root. Everything else — a non-feature path, a path in a
-    feature directory present here, any path outside a linked worktree — is `root`'s own, absent
-    or not: a file missing from this checkout's own feature is missing, never answered from a
-    stale landed copy. The path returned may not exist; the caller's read then fails naming it.
-    Raises CorpusError when the owner root that must answer cannot be resolved."""
+    A path inside another feature's directory, absent here, is read at the owner root by a
+    linked worktree. Everything else — a non-feature path, a path in a feature directory present
+    here, a path in the checkout's OWN feature (by identity, present or not), any path outside a
+    linked worktree — is `root`'s own: a file missing from this checkout's own feature is
+    missing, never answered from a stale landed copy (#2103 panel). The path returned may not
+    exist; the caller's read then fails naming it. Raises CorpusError when the owner root that
+    must answer cannot be resolved."""
     local = os.path.join(root, rel)
     match = FEATURE_PATH_RE.match(rel.replace(os.sep, "/"))
     if match is None or os.path.lexists(os.path.join(root, match.group(0))):
         return local
+    if match.group(0).rsplit("/", 1)[1] == checkout_feature(root):
+        return local
     return os.path.join(corpus_roots(root)[-1], rel)
+
+
+def worktree_slot(top, owner, legitimate):
+    """`(kind, name)` for a linked worktree at `.claude/worktrees/<segment>/<name>` — kind PIN
+    under the pins segment, else PLANNING — or None for any other checkout."""
+    if top == owner:
+        return None
+    parts = os.path.relpath(top, os.path.join(owner, harness_boundary.WORKTREES_SEGMENT)) \
+        .split(os.sep)
+    if not legitimate or len(parts) != 2:
+        return None
+    return (PIN if parts[0] == harness_boundary.PINS_SEGMENT else PLANNING), parts[1]
+
+
+def checkout_feature(root):
+    """The feature id `root`'s identity names — directory, pin name, or feat/<id> branch —
+    or None when it names none or names two. Structural only: no record need exist."""
+    found = harness_boundary.worktree_owner(root)
+    if found is None or found[1] is None:
+        return None
+    slot = worktree_slot(*found)
+    if slot is None:
+        return None
+    kind, name = slot
+    fid, refusal = identity(kind, name, current_branch(found[0]) if kind == PLANNING else None)
+    return None if refusal else fid
 
 
 # ---------------------------------------------------------------------------------------------
@@ -591,26 +640,25 @@ def select(checkout):
         out.update(checkout_class=PLAIN_CLONE,
                    noop="not a linked worktree; a plain clone keeps the full corpus")
         return out
-    rel = os.path.relpath(top, os.path.join(owner, harness_boundary.WORKTREES_SEGMENT))
-    parts = rel.split(os.sep)
-    if not legitimate or len(parts) != 2:
+    slot = worktree_slot(top, owner, legitimate)
+    if slot is None:
         out.update(checkout_class=PROBE,
                    noop=f"linked worktree outside {harness_boundary.WORKTREES_SEGMENT}/<segment>/"
                         f"<id>; not record-bearing")
         return out
-    kind = PIN if parts[0] == harness_boundary.PINS_SEGMENT else PLANNING
+    kind, name = slot
     out["checkout_class"] = kind
     if not tracks(top, harness_boundary.MARKER.replace(os.sep, "/")):
         out.update(checkout_class=PROBE,
                    noop=f"HEAD does not track {harness_boundary.MARKER}; a code-only checkout")
         return out
-    fid, refusal = identity(kind, parts[1], current_branch(top) if kind == PLANNING else None)
+    fid, refusal = identity(kind, name, current_branch(top) if kind == PLANNING else None)
     if refusal:
         out["refusal"] = refusal
         return out
     if fid is None:
         out.update(checkout_class=PROBE,
-                   noop=f"{parts[1]!r} names no feature; an arbitrary worktree is not "
+                   noop=f"{name!r} names no feature; an arbitrary worktree is not "
                         f"record-bearing")
         return out
     dirs = tracked_dirs(top)

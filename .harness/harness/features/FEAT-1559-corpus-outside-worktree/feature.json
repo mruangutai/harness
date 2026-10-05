@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-1559-corpus-outside-worktree",
   "pr": 2103,
   "review_sha": "6c11ab626ed568236978b1640928162b8cf0139f",
-  "cycles_used": 2,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -146,13 +146,20 @@
       "kind": "regate",
       "decision": "validate-c2-validator",
       "reason": "validate c2 FAIL (segment-collapsing population, SC-04) fixed direct by Main (DEC-174): receipt-main-session-fix-c2.md; re-verify at 6c11ab62"
+    },
+    {
+      "at": "2026-10-05T19:15:44.587460+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "Outside panel on #2103: factory_claim read other features' records locally; now via corpus_path."
     }
   ],
   "mission": "plan",
   "rework": {
-    "rounds": 2,
-    "wall_clock_minutes": 120,
-    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1559-corpus-outside-worktree/.harness/harness/features/FEAT-1559-corpus-outside-worktree/notes/answers-operator-2026-10-04-signature-rulings.md"
+    "rounds": 3,
+    "wall_clock_minutes": 180,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1559-corpus-outside-worktree/.harness/harness/features/FEAT-1559-corpus-outside-worktree/notes/answers-operator-2026-10-05-rework-raise.md"
   },
   "signed_task_hashes": {
     "T-01": "550d990962d060eb686eefeceb56437fcb33f8c3319b75cda6b804fcdb1efc6a",

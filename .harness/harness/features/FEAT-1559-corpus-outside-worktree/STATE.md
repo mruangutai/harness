@@ -56,8 +56,16 @@
 - Validate c3 (run validate-c2-validator) at 6c11ab62: PASS, no must-fix; all five readers pass.
   Two medium advisories (B-1, B-2) and the other residuals are in the briefing's backlog.
 - Briefing: notes/ship-review-validate-c2-validator.md. Run evidence pruned (kept the last run).
-- next: push, open the PR, wait for the operator's "merge"; post-merge, #2101 (conversion)
-- cycles_used: 2 / 10 (the two main-session fix rounds); rework 38 of 120 min, 2 of 2 rounds
+- PR #2103 opened. Outside panel (reviewer, security-reviewer, fable-advisor): correctness FAIL
+  (2 high, 4 medium, all reproduced), security PASS (2 low -> #2107, #2108), design PASS
+  (1 medium; #2101 needs a HEAD-era rule -> amended by comment).
+- Operator ruling: raise rework to 3 rounds / 180 min and fix all seven
+  (notes/answers-operator-2026-10-05-rework-raise.md).
+- Fix c3, main-session-direct (notes/receipt-main-session-fix-c3.md): seven fixes, each with a
+  test that is red at 6c11ab62; T-03 files amended (factory_claim.py). Suites exit 0 (52 / 80
+  files), reader audit clean. This commit is the new seam.
+- next: pin review_sha to this seam, `status review`, re-verify as validate-c3-validator
+- cycles_used: 2 / 10, becoming 3 with this round; rework 3 rounds / 180 min
 - board: milestone #99, parent #2086, tasks #2088-#2093 (T-06's #2094 closed not planned)
 
 ## Open Questions

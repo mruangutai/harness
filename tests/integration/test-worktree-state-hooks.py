@@ -181,6 +181,19 @@ class Operations(Hooked):
         self.assertIn(f"layout repair SKIPPED in {self.wt}", proc.stderr)
         self.assertEqual(F.snapshot(self.wt), before)
 
+    def test_ordinary_work_in_a_converged_worktree_draws_no_instruction(self):
+        # Converged layout + an uncommitted edit is the ordinary mid-task state: nothing to
+        # repair, so the hooks say nothing (#2103 panel 7). Agents obey imperative stderr.
+        F.write_files(self.wt, {".harness/harness/features/FEAT-1-alpha/notes/w.md": "more\n",
+                                "README.md": "edited\n"})
+        head = F.git(self.wt, "rev-parse", "HEAD").stdout.strip()
+        for hook, args, stdin in (("post-checkout", [head, head, "1"], ""),
+                                  ("post-rewrite", ["amend"], f"{head} {head}\n")):
+            proc = subprocess.run([os.path.join(self.hooks, hook), *args], cwd=self.wt,
+                                  env=F.ENV, input=stdin, capture_output=True, text=True)
+            self.assertEqual((proc.returncode, proc.stderr), (0, ""), hook)
+        self.assertEqual(self.state(self.wt, "--verify")[0], 8)       # still reported as dirty
+
 
 if __name__ == "__main__":
     unittest.main()
