@@ -1,0 +1,149 @@
+{
+  "feature_id": "FEAT-01-kaya-platform",
+  "branch": "feat/FEAT-01-kaya-platform",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261004-1",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T01:40:21+00:00",
+      "ended_at": "2026-10-05T01:41:27+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-04-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T01:41:31+00:00",
+      "ended_at": "2026-10-05T01:45:19+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T02:18:23+00:00",
+      "tokens": 78002,
+      "ended_at": "2026-10-05T04:55:00+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-2-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-05T04:58:58+00:00",
+      "tokens": 44838,
+      "ended_at": "2026-10-05T05:57:58+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-3-simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T05:58:18+00:00",
+      "tokens": 99568,
+      "ended_at": "2026-10-05T06:32:16+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-4-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T06:13:19+00:00",
+      "tokens": 45110,
+      "ended_at": "2026-10-05T06:17:31+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-5-simplify-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T06:17:32+00:00",
+      "tokens": 50842,
+      "ended_at": "2026-10-05T06:30:30+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-05T01:40:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "This creates a new application, server interface, and operational persistence integration; it is not a bounded known-cause patch."
+    },
+    {
+      "at": "2026-10-05T01:41:29+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "r-20261004-1 opened under an id outside the product lead's runs/*-product/** grant; closed BLOCKED at zero cycles before any dispatch, reopened as 2026-10-04-1-product"
+    },
+    {
+      "at": "2026-10-05T01:45:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "check-domain reads repository binding at owner root (.harness/.inflight-claims.json empty) while dispatch-guard claims land in the feature worktree registry; every Write to .harness/kaya/** is refused 'missing', so no plan run can land"
+    },
+    {
+      "at": "2026-10-05T02:46:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan run 2026-10-05-1-plan-product BLOCKED and unclosable: no product --root for plan-merge check, greenfield anchors, apps/web routes NOBODY, lead digest binding refused (claim cwd owner vs feature root)"
+    },
+    {
+      "at": "2026-10-05T05:36:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "plan run 2 BLOCKED only by owner-checkout harness_yaml.py drift (create anchors); owner fast-forwarded to e8d868f7, parsers identical, digest validates; resume same lead to seal scope receipt, apply, goalcheck"
+    },
+    {
+      "at": "2026-10-05T05:58:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance-applied",
+      "reason": "team FAIL is validate-digest worst-member roll-up of design reader med substance finding already applied by pm in-run (record-panel PF-86e4a4c3); plan complete pending signature; no rework routed"
+    },
+    {
+      "at": "2026-10-05T05:58:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "simplify pass, flag-only; no fix cycle",
+      "reason": "pre-signature harness-simplify four-angle read-only pass over plan draft; prior FAIL was validator worst-member roll-up of an applied med design finding, no rework owed"
+    },
+    {
+      "at": "2026-10-05T06:13:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "eng-lead typed return refused: digest_destination.LEAD_SQUADS binds harness-eng-lead to squad 'engineering' while team-config declares 'eng'; prose digest and 4 receipts landed; reopen with squad engineering to seal"
+    }
+  ],
+  "factory": {
+    "repo": "mruangutai/kaya"
+  },
+  "mission": "plan"
+}

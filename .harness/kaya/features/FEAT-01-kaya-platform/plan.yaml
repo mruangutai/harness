@@ -1,0 +1,308 @@
+schema: plan/1
+feature: FEAT-01-kaya-platform
+approval:
+  status: pending
+status: plan
+source_issues: [14]
+panel:
+  last_run: 2026-10-05-2-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: status skipped; fable-advisor unavailable on this host per dispatch.
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-86e4a4c3bab8d58a49ab058413901982
+    severity: med
+    reader: ui-reviewer
+    kind: substance
+    summary: Static landing lacks checkable semantic, theme and overflow acceptance.
+    disposition: open
+lanes:
+  resolved_at: f35d3a724f02adba6e23aa14eb92034558cfd41c
+  rows:
+  - surface: apps/web/src/server/**
+    lane: team
+    agent: harness-backend-dev
+  - surface: apps/web/src/mastra/**
+    lane: team
+    agent: harness-backend-dev
+  - surface: apps/web/src/app/api/**
+    lane: team
+    agent: harness-backend-dev
+  - surface: apps/web/src/app/*.tsx
+    lane: team
+    agent: harness-frontend-dev
+  - surface: apps/web/src/**/*.test.*
+    lane: team
+    agent: harness-qa
+  - surface: apps/web/src/**/__tests__/*.test.ts
+    lane: team
+    agent: harness-qa
+  - surface: supabase/migrations/**
+    lane: team
+    agent: harness-data-engineer
+  - surface: tests/e2e/**
+    lane: team
+    agent: harness-backend-dev
+  - surface: docs/**
+    lane: team
+    agent: harness-documentor
+  - surface: README.md
+    lane: team
+    agent: harness-documentor
+  - surface: package.json
+    lane: main-session-direct
+    reason: Shared root manifest requires serialized main-session ownership.
+  - surface: pnpm-workspace.yaml
+    lane: main-session-direct
+    reason: Workspace configuration is serialized with the shared root manifest.
+  - surface: pnpm-lock.yaml
+    lane: main-session-direct
+    reason: Shared single workspace lockfile requires serialized main-session ownership.
+  - surface: tsconfig.base.json
+    lane: main-session-direct
+    reason: Shared strictness configuration is serialized with workspace setup.
+  - surface: apps/web/package.json
+    lane: main-session-direct
+    reason: Application manifest is ungranted.
+  - surface: apps/web/tsconfig.json
+    lane: main-session-direct
+    reason: Application TypeScript configuration is ungranted.
+  - surface: apps/web/next.config.ts
+    lane: main-session-direct
+    reason: Application Next configuration is ungranted.
+  - surface: apps/web/next-env.d.ts
+    lane: main-session-direct
+    reason: Application environment type configuration is serialized with workspace setup.
+  - surface: eslint.config.mjs
+    lane: main-session-direct
+    reason: Root lint configuration requires serialized main-session ownership.
+  - surface: apps/web/vitest.config.ts
+    lane: main-session-direct
+    reason: Application runner configuration is serialized with workspace setup.
+  - surface: .node-version
+    lane: main-session-direct
+    reason: Root runtime pin requires serialized main-session ownership.
+  - surface: .npmrc
+    lane: main-session-direct
+    reason: Root package-manager configuration requires serialized main-session ownership.
+  - surface: .env.example
+    lane: main-session-direct
+    reason: Root environment example is ungranted.
+  - surface: .gitignore
+    lane: main-session-direct
+    reason: Root generated/private-file exclusions are serialized with workspace setup.
+  - surface: .harness/harness.json
+    lane: main-session-direct
+    reason: Product runner cutover is ungranted and explicitly main-session-direct after all implementation tasks.
+decisions:
+  - id: D-01
+    choice: Keep Mastra memory in schema mastra and use direct-5432 when reachable or the same Kaya project session-5432 pooler for IPv4-only local networks; no transaction-6543 mode or silent fallback.
+    because: SQL isolation and persistent connection semantics must be explicit without settling production pooling or financial storage contracts.
+    dec: none
+  - id: D-02
+    choice: Expose a localhost-only platform API protected by KAYA_API_STUB_TOKEN with a server-owned resource identity; do not treat this probe token as end-user account authorization.
+    because: Real provider billing and privileged storage require a denial boundary now without choosing the account and resource contract reserved to Kaya issue 2.
+    dec: none
+tasks:
+  - id: T-01
+    title: Materialize the exact workspace and real verification tooling
+    traces: [SC-01, SC-05, SC-06, SC-08, SC-09]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: Shared workspace manifests and ungranted root and apps/web configuration require one serialized main-session owner.
+    depends_on: []
+    status: ready
+    files:
+      - {path: package.json, create: true}
+      - {path: pnpm-workspace.yaml, create: true}
+      - {path: pnpm-lock.yaml, create: true}
+      - {path: tsconfig.base.json, create: true}
+      - {path: apps/web/package.json, create: true}
+      - {path: apps/web/tsconfig.json, create: true}
+      - {path: apps/web/next.config.ts, create: true}
+      - {path: apps/web/next-env.d.ts, create: true}
+      - {path: eslint.config.mjs, create: true}
+      - {path: apps/web/vitest.config.ts, create: true}
+      - {path: .node-version, create: true}
+      - {path: .npmrc, create: true}
+      - {path: .env.example, create: true}
+      - .gitignore
+    verify: |
+      pnpm exec eslint --version && pnpm --filter @kaya/web exec tsc --version && pnpm --filter @kaya/web exec vitest --version && pnpm --filter @kaya/web exec next --version
+    intent: |
+      Main session only; every relative product write stays inside the assigned Kaya CODE feature worktree. This task exclusively owns the listed manifests, lockfile, runtime, Next, TypeScript, lint and test configuration; later tasks must not edit them. Read binding docs/ARCHITECTURE.md Source organization and docs/DECISIONS.md. Build a private pnpm workspace root, globs apps/* and packages/*, one lockfile, private application name @kaya/web, shared strict tsconfig.base.json and app-local runtime/JSX/no-emit/module-resolution configuration. No empty packages or feature directories, Turbo/Nx, package-src aliases or duplicated configs. App-local @/* may map only apps/web/src. Configure dev/start at 127.0.0.1:3000 with apps/web as Next project root; reject remote development origins and do not export secrets through Next configuration. Load the root ignored .env.local server-side using the exact @next/env release and an explicitly located workspace root; do not assume Next loads it from apps/web.
+      Start from candidates Next and @next/env 16.3.8, @mastra/core 1.74.0, @mastra/memory 1.35.0, @mastra/pg 1.29.0, @ai-sdk/anthropic 3.0.103, @supabase/supabase-js 2.117.2, pg 8.23.1, pnpm 11.2.2 and Node 24 LTS. Before installation inspect exact-release engines, peer constraints and published types for Agent.generate memory options, Memory recall, PostgresStore schemaName/init and pg pool ownership, Anthropic provider language-model interface and selected model claude-sonnet-5-5. Choose and pin an exact Node 24 patch and compatible exact React/ReactDOM, TypeScript, Zod, server-only, ESLint/plugins, Vitest, DOM/render-test tooling, tsx and type packages; check React against the accepted Astryx peer requirement without adding unused chat/presentation packages. Pin all direct dependencies without ranges, packageManager and .node-version; engine-strict must reject unsupported runtimes. Record exact chosen metadata/API references and installation/tool-version receipts for T-10, never assert the candidate set is proven compatible. An accepted-stack incompatibility stops dependents, not authorizes substitution. Do not run latest init or add AI Elements, AI SDK UI or a parallel provider backend.
+      Supply real root scripts forwarding to @kaya/web: typecheck, lint via flat ESLint, test:unit, test:functional, test:integration, test:component, test as these four offline suites, build, dev and start. Vitest projects select colocated non-JSX *.test.ts unit files excluding __tests__, JSX *.test.tsx component files, subsystem __tests__/*.functional.test.ts functional cases and __tests__/*.integration.test.ts integration cases, mutually exclusively. Configure node versus DOM environments and server-only test resolution only in tests, never a production bypass. Every project fails on zero selection and assertion failure. Root smoke:offline, smoke:live, smoke:readback, smoke:supabase and schema:apply invoke tests/e2e/platform-live.ts delivered by T-08. verify:platform chains the four suites, typecheck, lint, build and smoke:offline; run that cumulative gate only at T-09 after its files exist. Do not create runner/wiring tests that merely assert script strings or import success. This task gate checks installed tools only and must not run absent app/tests/CLI successors. Extend .gitignore for private root/app env files, .next, node_modules, coverage and generated output. .env.example lists exactly the five approved names with empty values and no NEXT_PUBLIC setting or real credential. Do not read existing credentials while materializing configuration.
+      Root probe scripts invoke node --conditions=react-server --import tsx tests/e2e/platform-live.ts with their exact mode so standalone server imports honor server-only instead of removing its guard. Declare each actual root CLI import dependency at the root, including its loader/pg/tooling dependencies at the same exact versions as the application; application dependencies remain declared in apps/web. Unit discovery explicitly excludes subsystem __tests__ so the QA-granted functional/integration *.test.ts files are not double selected.
+  - id: T-02
+    title: Deliver behavioral red tests before any platform implementation
+    traces: [SC-01, SC-05, SC-06, SC-07, SC-08]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-qa
+    depends_on: [T-01]
+    status: ready
+    files:
+      - {path: apps/web/src/server/env.test.ts, create: true}
+      - {path: apps/web/src/server/auth/platform-token.test.ts, create: true}
+      - {path: apps/web/src/server/services/platform/request.test.ts, create: true}
+      - {path: apps/web/src/server/db/supabase.test.ts, create: true}
+      - {path: apps/web/src/server/db/schema.test.ts, create: true}
+      - {path: apps/web/src/mastra/storage.test.ts, create: true}
+      - {path: apps/web/src/mastra/agents/platform-agent.test.ts, create: true}
+      - {path: apps/web/src/app/layout.test.ts, create: true}
+      - {path: apps/web/src/app/page.test.tsx, create: true}
+      - {path: apps/web/src/app/api/platform/__tests__/route.functional.test.ts, create: true}
+      - {path: apps/web/src/mastra/__tests__/platform.integration.test.ts, create: true}
+    verify: |
+      MANUAL — The production behaviors are intentionally absent at this red-delivery boundary. Inspect and preserve actual failing behavioral assertion receipts from the runnable T-01 suites before releasing dependent production tasks; green suite verification becomes automatable at T-03 through T-07, not here.
+    intent: |
+      Work only in assigned Kaya CODE worktree. Own all listed tests once; production tasks read but never edit these files to make failures disappear. Use T-01 executable Vitest projects. Write tests before any T-03 through T-07 production edits, run each selected suite, and provide assertion-level red receipts and expected failure descriptions to those tasks. In greenfield tests, safely loading an absent subject may become an explicit failed assertion about the required behavior, but generic unresolved-import, missing-command or test-collection errors do not count. Do not supply production stubs, canned-success implementations, fake runner tests or assertions that only check wiring. After the real subject exists these same assertions must test its actual behavior with no absent-subject fallback or fake success. Use controlled collaborators only at external provider/database/network boundaries; never label them live integration or restart proof. Do not require any future task green at this task boundary.
+      env.test.ts covers every required name independently, empty/malformed URL/token settings, root env loading, and errors containing names but not input values. platform-token.test.ts covers absent/wrong/malformed bearer, constant-time equal-length comparison, and denial before full hosted-setting validation, privileged-client creation or database/provider calls; reading the configured stub token for comparison is allowed. request.test.ts covers POST object prompt length 1 through 2000, unknown keys, optional UUID threadId, GET required UUID, caller-supplied resource rejection and exact error statuses. supabase.test.ts proves server-only client configuration disables browser session behavior and failed real-client operations are classified/redacted, not accepted because construction succeeded. schema.test.ts reads the exact T-04 SQL path and checks every schema/table/sequence/default-privilege revocation independently and absence of financial DDL; this SQL inspection test does not prove hosted privileges.
+      storage.test.ts tests explicit mastra schema, one owned pool/store per server process including HMR module reload, bounded pool/connection timeout, certificate verification, init reuse and surfaced errors. platform-agent.test.ts tests Mastra and Memory are the execution path with Anthropic selected, fixed server resource identity, thread isolation, user and assistant message retention, model/output/time/retry bounds, and empty output failure. layout.test.ts tests static metadata and explicit English html language. page.test.tsx renders the real server page and checks exactly one main landmark containing exactly one descriptive h1 identifying Kaya local platform, the API/command-loop explanation and plain-text guidance to the repository README, no anchor to an unserved README URL, no chat controls or secret values. Preserve assertion-level red receipts for each semantic obligation; DOM render assertions do not establish visual contrast or overflow, which SC-01 user UAT checks in the rendered browser. route.functional.test.ts invokes actual Next GET/POST handlers with Request objects and outer I/O collaborators: authorized generation/readback, 400 JSON/input errors, 401 denied requests before external calls, 404 absent thread, 502 provider error, 503 storage/config failure and safe response bodies. platform.integration.test.ts exercises the real route composition with env/auth, Mastra orchestration and memory/resource adapters across modules while replacing only external provider/database I/O; assert persistence success before POST success, GET never generates, thread resource mismatch is denied, and failures do not become successful responses. These offline assertions prove composition, not hosted persistence. Demonstrate failed assertion and zero-selection nonzero exits in each activated test project; typecheck error demonstration belongs to the final T-09 gate. Keep receipts outside product source and never print credentials.
+  - id: T-03
+    title: Enforce server settings authorization and request contracts
+    traces: [SC-02, SC-04, SC-05, SC-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    status: ready
+    files:
+      - {path: apps/web/src/server/env.ts, create: true}
+      - {path: apps/web/src/server/auth/platform-token.ts, create: true}
+      - {path: apps/web/src/server/services/platform/request.ts, create: true}
+      - {path: apps/web/src/server/db/supabase.ts, create: true}
+    verify: |
+      pnpm --filter @kaya/web exec vitest run --project unit src/server/env.test.ts src/server/auth/platform-token.test.ts src/server/services/platform/request.test.ts src/server/db/supabase.test.ts
+    intent: |
+      Work only in assigned Kaya CODE worktree. Before edits obtain T-02 concrete red receipts for the selected tests; if absent, stop production edits and send the test gap to QA. Implement only listed files, all with server-only entry guards and named exports; services/db/auth do not import mastra. Load exactly ANTHROPIC_API_KEY, SUPABASE_PROJECT_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL and KAYA_API_STUB_TOKEN privately from the workspace-root ignored .env.local, lazily enough that missing authorization is rejected before external calls. Missing/invalid settings diagnostics contain only names, never values or connection strings. Require valid HTTPS project URL and allowed direct-5432 or session-5432 database endpoint associated with the same project reference; refuse transaction-6543, mismatched projects and ambiguous identity rather than guessing. Document any dashboard-confirmation prerequisite without recording credentials. No NEXT_PUBLIC setting, client configuration or browser import of server state.
+      platform-token.ts accepts one Authorization Bearer value, denies absent/wrong/malformed credentials with 401 and no provider/database call, and compares matching-length secret bytes with timing-safe comparison. Unavailable required server configuration is a safe 503, not a successful fallback. request.ts validates POST JSON object with only nonempty prompt of at most 2000 characters and optional UUID threadId; GET requires UUID threadId and rejects unsupported fields. Return safe structured validation results with 400 for malformed/unknown fields; never accept a caller resource identity. T-03 request.ts is the implementation authority for the fixed server-only resource identity kaya-local-platform; expose it as a named export for production consumers rather than separately hard-coding it. supabase.ts creates/reuses the privileged Supabase server client with session persistence, URL-session detection and token refresh disabled; expose a safe connectivity probe operation using the real admin API without financial records or user creation. Check operation error results explicitly. External and configuration failures use fixed safe classifications, not serialized SDK errors. Pass the targeted predecessor tests; no full typecheck/build gate here because other application files are not yet complete. Keep independent expected test literals independent of implementation exports; do not edit T-02 tests.
+  - id: T-04
+    title: Define non-public Mastra schema ownership and grants
+    traces: [SC-03, SC-04, SC-07, SC-09]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-data-engineer
+    depends_on: [T-02]
+    status: ready
+    files:
+      - {path: supabase/migrations/202610050001_platform_mastra.sql, create: true}
+    verify: |
+      pnpm --filter @kaya/web exec vitest run --project unit src/server/db/schema.test.ts
+    intent: |
+      Work only in assigned Kaya CODE worktree. Use T-02 SQL security assertions before editing. Create only operational SQL for schema mastra, never public application or financial tables. The approved Kaya database principal is the schema owner and adapter table creator; execute under that same principal so ALTER DEFAULT PRIVILEGES applies to future adapter objects. Idempotently create the schema; revoke schema access from PUBLIC, anon and authenticated; revoke those roles' privileges on all existing tables and sequences; set owner default table and sequence privileges in mastra to revoke these roles. Preserve unrelated schemas/roles/grants. Let exact @mastra/pg own its operational table DDL instead of copying guessed adapter table definitions. State in SQL comments that grants do not configure Supabase Data API exposed schemas and that the separate operator probe must verify non-exposure. This task does not execute hosted SQL during its local gate. T-08 supplies explicit project-confirmed schema application and actual catalog/Data API probes after the application exists; the targeted predecessor SQL test is the only task-local verify and does not claim live security proof.
+  - id: T-05
+    title: Compose real Anthropic Mastra execution with persistent memory
+    traces: [SC-02, SC-03, SC-05, SC-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03, T-04]
+    status: ready
+    files:
+      - {path: apps/web/src/mastra/index.ts, create: true}
+      - {path: apps/web/src/mastra/storage.ts, create: true}
+      - {path: apps/web/src/mastra/agents/platform-agent.ts, create: true}
+    verify: |
+      pnpm --filter @kaya/web exec vitest run --project unit src/mastra/storage.test.ts src/mastra/agents/platform-agent.test.ts
+    intent: |
+      Work only in assigned Kaya CODE worktree. Obtain T-02 red receipts for these behaviors before production edits; own no tests/config. Use exact installed API types from T-01, server-only guards and named exports. index.ts is the one Mastra composition home. storage.ts owns one pg pool and one PostgresStore per process, surviving Next HMR via a narrowly named global cache, initialized once with failures surfaced and without closing the pool per request. Pass schemaName mastra explicitly, never rely on public default. Bound pool size to 2, connection acquisition to 5000 ms, idle timeout to 10000 ms, and enforce certificate verification; no rejectUnauthorized false. Use direct or session 5432 selected explicitly in private configuration, never automatic alternate endpoint/project fallback; D-01 remains the connection authority. Honor installed adapter ownership/initialization semantics and expose shutdown only for the owning process/probe, not request handlers.
+      platform-agent.ts creates one tool-free Mastra Agent backed by the Anthropic provider and model claude-sonnet-5-5 with a concise harmless platform-response instruction, output limit 256 tokens, total request budget 30000 ms and no automatic provider retries. T-05 platform-agent.ts is the implementation authority for provider anthropic and model claude-sonnet-5-5; expose their selected identifiers as named exports and use those same values for agent composition and production consumers. Use real @mastra/memory Memory and @mastra/pg storage with enabled recent-message persistence for user and assistant, scoped to fixed resource kaya-local-platform from the T-03 request.ts authority and UUID thread, not a separately hard-coded resource. Provide a generation operation and a recall operation using the exact installed APIs; no direct parallel AI SDK provider call. The generation result is successful only after a nonempty provider text and persisted exchange are observed; recalled thread ownership must match the server-owned resource. Return safe text/thread identifiers or classified errors without raw SDK/database errors or secret values. Recall performs no model request, excludes another resource's threads and maps absent threads to not found. Do not create workflows/tools, financial interpretation, queue machinery, streaming or crash-recovery claims. The targeted unit gate uses controlled outer I/O collaborators, not hosted proof; live request/restart proof remains operator UAT. Preserve the T-01 installed-provider/model compatibility blocker: report incompatibility rather than substituting a model or provider. Keep independent expected test literals independent of implementation exports; do not edit T-02 tests.
+  - id: T-06
+    title: Expose authorized local generation and database readback routes
+    traces: [SC-02, SC-03, SC-05, SC-07, SC-08]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-05]
+    status: ready
+    files:
+      - {path: apps/web/src/app/api/platform/route.ts, create: true}
+    verify: |
+      pnpm --filter @kaya/web exec vitest run --project functional --project integration
+    intent: |
+      Work only in assigned Kaya CODE worktree. Obtain T-02 functional/integration red receipts before edits; do not edit tests or predecessor files. Export Next GET and POST for /api/platform with runtime nodejs and dynamic behavior, using route-level composition to connect server auth/request modules and Mastra without a server-service-to-Mastra dependency. Authorize before parsing untrusted resource inputs or initiating external calls. POST accepts only the T-03 prompt/optional UUID contract, creates a UUID when absent, and invokes the real T-05 Mastra operation with the fixed server-owned resource. Consume the resource identity from the T-03 request.ts authority and provider/model identifiers from the T-05 platform-agent.ts authority, not separately hard-coded production values. Respond 200 JSON with text, threadId, provider anthropic and model claude-sonnet-5-5 only after generation and persisted exchange succeed. GET requires threadId, recalls persisted messages for that resource without a model call, and returns safe user/assistant messages and threadId. Deny absent/wrong bearer with 401, malformed JSON/input with 400, unknown/resource-mismatched thread with 404, provider/empty-output failures with 502, and configuration/storage failures with 503. Responses and logs use fixed safe messages, no environment values, database URLs, stack traces or raw error objects. Do not return a successful answer when storage fails, add unrequested retry/fallback behavior or accept caller resource identities. Pass predecessor functional and cross-module integration cases; these are offline boundary tests, not live evidence. No cumulative application build gate before T-07 landing files exist. Independent expected test literals must not import implementation constants as their oracle.
+  - id: T-07
+    title: Render only the static local platform landing page
+    traces: [SC-01, SC-05, SC-06, SC-08]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-02]
+    status: ready
+    files:
+      - {path: apps/web/src/app/layout.tsx, create: true}
+      - {path: apps/web/src/app/page.tsx, create: true}
+    verify: |
+      pnpm --filter @kaya/web exec vitest run --project unit src/app/layout.test.ts && pnpm --filter @kaya/web exec vitest run --project component src/app/page.test.tsx
+    intent: |
+      Work only in assigned Kaya CODE worktree. Obtain T-02 static metadata/render red receipts before edits and never edit tests/config. Create framework-required default exported layout and page with explicit English html language, exactly one main landmark and one descriptive h1 inside it identifying Kaya local platform. Explain plainly that the local API/README command loop is the platform interface. Refer to the repository README as plain text, not a link to a README URL that Next does not serve; do not add a document route just to make that link work.
+      Use native/system colours and browser typography with light/dark colour-scheme support, or an existing approved-system treatment with both light and dark counterparts; do not invent a styling system. Maintain WCAG AA text contrast in both schemes (4.5:1 normal text, 3:1 large text). Content must wrap readably without horizontal document scrolling at a 320 CSS-pixel viewport and at 200 percent enlarged text; avoid fixed-width or no-wrap content that defeats this. Keep any necessary treatment inside the two owned files, with no additional presentation dependencies. SC-01 operator UAT grades these rendered outcomes; component assertions alone cannot prove contrast or overflow.
+      Keep the page server-rendered and free of credentials, client state, chat input, generative UI, login, styling-system replacement or empty feature/component scaffolds. Static metadata names Kaya local platform. No browser module imports server or mastra, directly or transitively. No speculative @kaya packages. The design panel ruled no prototype needed for this static document/API-command surface; adding a browser workflow invalidates that ruling and requires prototype/user approval. Pass targeted layout unit and page component tests; do not run unrelated cumulative verification in this task.
+  - id: T-08
+    title: Supply real offline and operator live cross-boundary probes
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-07, SC-08, SC-09]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-06, T-07]
+    status: ready
+    files:
+      - {path: tests/e2e/platform-live.ts, create: true}
+    verify: |
+      pnpm smoke:offline
+    intent: |
+      Work only in assigned Kaya CODE worktree. Own the listed cross-boundary probe file; do not add root unit/integration suites or alter T-01 scripts. Before probe logic, add and run failing assertions inside its offline scenario for the actual application HTTP outcomes and failure-exit behavior; carry those red receipts with the task. The completed probe is real, not a canned runner/wiring test. Implement command modes offline, live, readback, supabase and schema-apply with help; scripts are already declared at root. Offline starts the actual local Next process on an isolated loopback port, explicitly sets the four hosted/provider setting names to empty strings so dotenv cannot refill them from private root files, and supplies only a synthetic KAYA_API_STUB_TOKEN. Wait with a bounded deadline, verify the static landing and missing/wrong authorization yield 401 before external calls, then always stop the child. Fail on wrong status, startup failure or skipped assertions and complete within 60 seconds. Do not inject fake application responses. Use the predecessor unit/functional/integration tests for the rest of the offline matrix, not a copied platform implementation. Standalone server imports use the react-server condition declared by T-01; never strip production server-only guards.
+      Reuse T-03 server-only env loading/validation and safe Supabase connectivity probe, and T-05 storage initialization/operations with their existing TLS and pool ownership, rather than reimplementing validation, TLS configuration or pools. Consume the resource identity from the T-03 request.ts authority and provider/model identifiers from the T-05 platform-agent.ts authority wherever production probe operations need them. Keep expected contract literals in probe assertions and T-02 tests independent: assertions must still pin kaya-local-platform, anthropic and claude-sonnet-5-5 rather than merely comparing against imported implementation constants. Use existing operations/interfaces; mandate no new seam, factory or abstraction. Keep confirmation, catalog/Data API checks and transactional SQL behavior probe-local, with shutdown only for resources owned by this probe process, never request-owned shutdown. D-01 and the installed-provider/model compatibility blocker remain binding; no endpoint/project/model/provider substitution.
+      Live/readback target only http://127.0.0.1:3000 and privately load the five names from ignored workspace .env.local through the T-03 env authority. Send the bearer token internally, never as a command argument. Live uses a unique harmless nonce prompt, asserts nonempty real text, safe threadId and exact provider/model identifiers, independently GETs the thread and verifies matching stored user/assistant messages and nonce, then prints PASS, thread UUID and model, not credentials or full responses. Readback accepts only the UUID, obtains that same exchange after an operator restart and validates its saved nonce without generating; print safe summary only. Missing credentials/provider/storage/connectivity, absent exchange or response mismatch fail nonzero; no mock, canned answer or alternate provider/project counts. These modes are operator-executed UAT, not part of pnpm test or offline CI.
+      schema-apply requires explicit confirmation of the SUPABASE_PROJECT_URL project reference, uses T-03 validation to ensure it matches SUPABASE_DB_URL without printing credentials, opens the real TLS pg connection using T-05 storage operations and process-owned resources, applies T-04 SQL transactionally under the adapter-owning principal and initializes the real PostgresStore in mastra. Make reruns idempotent and close only probe-owned resources. No arbitrary project override or financial DDL. supabase invokes the T-03 safe connectivity probe for a real privileged server admin operation without creating users/data and checks success. Query real pg catalogs for schema ownership and every required schema/table/sequence/default grant denial; require adapter tables to exist so an empty schema is not proof. Separately send an authenticated Data API request with Accept-Profile mastra to a relation known from the actual adapter schema and accept only HTTP 406 with PGRST106 for the schema not being exposed, not generic 401/403/404/network/missing-relation responses. A public-profile GET /rest/v1/ control request must succeed first; it uses the API metadata root rather than requiring an invented public financial table. Database grants alone do not prove Data API non-exposure. If dashboard exposed-schema settings include mastra, fail with safe operator instructions; do not use undeclared management credentials or silently modify dashboard settings. Print only named statuses and safe IDs. Document bounded timeouts and test-mode/live-mode distinctions in help. No live smoke execution or credential inspection is required for this task's offline verify.
+  - id: T-09
+    title: Cut over product runners and run the terminal offline gate
+    traces: [SC-01, SC-05, SC-06, SC-07, SC-08]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: Product .harness/harness.json is ungranted and explicitly reserved for serialized main-session runner cutover after all implementation files exist.
+    depends_on: [T-08]
+    status: ready
+    files:
+      - .harness/harness.json
+    verify: |
+      pnpm verify:platform
+    intent: |
+      Main session only, every product write confined to assigned Kaya CODE worktree. This is the last task changing executable/configuration surfaces and owns only product .harness/harness.json. Preserve schema, product identity, board configuration, budgets, unrelated matrix requirements and attribution. Activate unit cmd pnpm test:unit with detect apps/*/src/**/*.test.ts excluding JSX, __tests__ and generated/dependency trees; functional cmd pnpm test:functional with detect apps/*/src/**/__tests__/*.functional.test.ts; integration cmd pnpm test:integration with detect apps/*/src/**/__tests__/*.integration.test.ts; component cmd pnpm test:component with detect apps/*/src/**/*.test.tsx; typecheck cmd pnpm typecheck with detect apps/*/**/*.ts and apps/*/**/*.tsx plus tsconfig.base.json using pipe-separated strings. Replace stale root tests/unit, tests/functional and tests/integration detection rather than adding parallel conventions. Match Vitest discovery exactly, show each test is selected once in its intended kind and fail on no selected tests. Reasons state actual supported behavior, not historical absence.
+      Keep ui/eval cmd null with truthful remaining gap reasons: no interactive browser-flow or semantic extraction-quality suite is delivered. Narrow ui detection to actual browser scenario filenames tests/e2e/**/*.e2e.spec.ts or equivalent existing extension without classifying the API/live operator probe as a UI runner. No fake pass commands, unsigned exclusions or broad spike closure. Verify each activated runner's nonzero assertion-failure and zero-selection behavior from QA receipts; demonstrate typecheck rejects a real temporary TypeScript error and restore the original subject without committing test scaffolds. Required null runners cannot be accepted as skipped. All production behavior must have predecessor red-first and green evidence before the terminal gate.
+      Run pnpm verify:platform only now: actual unit/functional/integration/component suites, typecheck, lint, Next build and real offline local HTTP probe, with no provider or hosted credentials. Capture exact versions, exits and elapsed time, target under 60 seconds with installs complete, and report any timeout/failure honestly. Resolve failures through the owning tasks rather than editing their files here or suppressing checks. This cumulative gate has no unfinished executable successor; T-10 changes documentation only. The runner/schema/provider/restart live outcomes still require operator UAT and must not be fabricated from this offline pass. Store implementation evidence for T-10 and QA, never credentials.
+  - id: T-10
+    title: Document one reproducible fresh-clone platform loop and evidence limits
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08, SC-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-09]
+    status: ready
+    files:
+      - README.md
+      - {path: docs/PLATFORM.md, create: true}
+      - {path: docs/platform-compatibility.md, create: true}
+    verify: |
+      git diff --check -- README.md docs/PLATFORM.md docs/platform-compatibility.md
+    intent: |
+      Work only in assigned Kaya CODE worktree. Keep existing authoritative README product-document links. README supplies one exact fresh-clone sequence with the T-01 supported Node patch and pnpm version, runtime activation, pinned pnpm installation, pnpm install --frozen-lockfile, creation of ignored workspace-root .env.local from empty .env.example, the five setting names and private dashboard/key sources, explicit Kaya project confirmation for schema:apply, pnpm typecheck/lint/test/build, pnpm dev and localhost:3000. Explain workspace filtering and apps/web ownership; do not create copies of product docs in Harness or suggest flat src, latest init, packages without behavior, Turbo/Nx or unused chat packages.
+      docs/platform-compatibility.md records exact direct runtime/tool/dependency pins, engine/peer intersections and exact-release API/source references established in T-01, installed package/model/runtime identity and the actual T-09 offline receipts. Clearly separate metadata candidates, installed APIs, exercised offline commands and live outcomes not yet observed. Do not infer Node 26 support, Anthropic account access or hosted session compatibility from package metadata. Candidate model claude-sonnet-5-5 must be actually supported by the installed provider before claiming compatibility; remain within settled Anthropic/Mastra stack and report a blocker rather than change it.
+      docs/PLATFORM.md explains server-only guards/root environment loading, localhost bearer limitation versus future account authorization, fixed server resource/thread identities, non-public operational schema and default-grant ownership, pool size/timeouts/TLS, direct/session 5432 selection with IPv6/IPv4 prerequisites and no transaction/silent fallback, hosted billing and safe credential rotation without values. Record shipped resource/provider/model values from the T-03 request.ts and T-05 platform-agent.ts authorities and actual compatibility evidence; documentation does not choose alternate values or override D-01. Give exact pnpm smoke:offline, smoke:live, stop/restart, smoke:readback UUID and smoke:supabase sequence with individual observable outcomes and nonzero failure explanations. Explain that schema grants and Data API exposure are independent, provide dashboard steps to exclude mastra, and show project-confirmed idempotent schema:apply without generic project privileges. Document 400/401/404/502/503 safe errors and offline versus live test limits. Name null ui/eval gaps retained under issue 7, future production/worker/durability/account/financial contracts under their existing tickets, and do not mark any spike closed wholesale or user UAT passed. The local gate is whitespace integrity only; SC-09 content is discharged by pinned reviewer inspection and SC-01 through SC-04 by the user's fresh-clone/live UAT, not by this documentation command. No executable files change after the T-09 terminal gate.
