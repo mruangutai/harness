@@ -102,6 +102,13 @@
       "kind": "amendment",
       "decision": "T-05.files",
       "reason": "SC-14: landed-feature reads anchor at the control plane (DEC-214 amended, classifier + one citation); shared install_hooks fixture helper."
+    },
+    {
+      "at": "2026-10-05T15:41:12.590347+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-06.intent",
+      "reason": "Operator ruling 2026-10-05: conversion runs after merge (#2101); pre-merge conversion exposes other worktrees to pre-1559 tools."
     }
   ],
   "mission": "plan",

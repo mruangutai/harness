@@ -129,9 +129,11 @@ rebases a post-FEAT-1559 `main`, `check-state` and the corpus gates refuse it fo
 
 Never force a repair, prune a worktree or erase work to get past a refusal.
 
-**Conversion and evidence.** Existing clean worktrees were converted by one explicit `--repair`
-pass (FEAT-1559 T-06); dirty ones were skipped and listed. Its manifest and migration record are
-in that feature's `notes/`.
+**Conversion and evidence.** Existing clean worktrees are converted by one explicit `--repair`
+pass that runs after FEAT-1559 is on `main` (#2101), so no worktree goes sparse while the
+control-plane tools are still pre-1559 code. Dirty ones are skipped and listed. Its manifest and
+migration record go in FEAT-1559's `notes/`. Until that pass, an existing worktree converts
+itself through the hooks the next time it merges `main`.
 
 - Savings are measured in files and feature directories, never as a `du` byte delta.
 - Before-and-after comparisons pin immutable SHAs, never a moving ref.

@@ -32,8 +32,14 @@
   plane; classifier and the harness-simplify citation follow. Guidance in AGENTS.md,
   .harness/README.md and two skills. Unit (54) and integration (86) suites pass. Receipt half
   (notes/non-regression-receipt.md) waits for review_sha.
-- next: SIMPLIFY pass over the feature diff, pin review_sha, then T-05's receipt half, then T-06
-  conversion
+- SIMPLIFY done (3dd9e02b): 4 angles, 2 applied (one layout-code table; class-C-only
+  classification), 1 skipped with reason; notes/simplify-pass.md.
+- Operator rulings 2026-10-05: (1) T-05's receipt runs at the code-final commit, then the seam
+  is committed and review_sha pinned there (seam differs only inside this feature's directory);
+  (2) T-06 runs after merge under #2101 — T-06 abandoned here, #2094 closed not planned, SC-10
+  amended in BRIEF.md, README conversion paragraph updated.
+- next: T-05 receipt half at the code-final commit, then seam (T-01..T-05 done), pin review_sha,
+  status review, validate
 - cycles_used: 0 / 10
 - board: milestone #99, parent #2086, tasks #2088-#2094
 
