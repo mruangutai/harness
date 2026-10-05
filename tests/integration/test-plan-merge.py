@@ -4307,6 +4307,70 @@ def case_b1716_approval_survives_record_amendments_and_amend():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_1985_amend_ledgers_a_signed_task_field():
+    """#1985: `amend` of a signed task's intent/files/verify writes the plan and its amendment
+    judgement together, refuses without --reason, and ledgers nothing for unsigned text."""
+    root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN)
+    try:
+        _sign(plan)
+        value = os.path.join(root, "intent.txt")
+        write(value, "narrowed\n")
+        sha, _ = _sha_of(plan, "tasks", "T-01", "intent")
+        before = (read(plan), read(fj))
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field",
+                     "intent", "--expect-sha256", sha or "x", "--value-file", value)
+        check("1985: a signed field without --reason is refused, both files untouched",
+              r.returncode == 2 and "--reason" in r.stderr and (read(plan), read(fj)) == before,
+              f"rc={r.returncode} {r.stderr!r}")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field",
+                     "intent", "--expect-sha256", sha or "x", "--value-file", value,
+                     "--reason", "scope narrowed at review")
+        ledger = _json.loads(read(fj)).get("judgements") or []
+        check("1985: the signed field lands with one amendment judgement naming it",
+              r.returncode == 0 and yaml.safe_load(read(plan))["tasks"][0]["intent"] == "narrowed"
+              and [(j["kind"], j["decision"], j["reason"]) for j in ledger]
+              == [("amendment", "T-01.intent", "scope narrowed at review")],
+              f"rc={r.returncode} {r.stderr!r} {ledger!r}")
+        title_sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        write(value, "renamed\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field",
+                     "title", "--expect-sha256", title_sha or "x", "--value-file", value)
+        check("1985: a field INV-40 does not grade needs no reason and adds no judgement",
+              r.returncode == 0 and len(_json.loads(read(fj)).get("judgements") or []) == 1,
+              f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_1985_amend_restores_the_plan_when_the_ledger_fails():
+    """#1985: plan first, ledger second — an unwritable ledger (lock mode 000) puts the plan
+    back byte for byte, the same arm record-amendments is held to."""
+    if os.geteuid() == 0:
+        return  # root ignores mode bits; the arm cannot be built
+    root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN)
+    try:
+        _sign(plan)
+        sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+        value = os.path.join(root, "verify.txt")
+        write(value, "python3 b.py\n")
+        before = (read(plan), read(fj))
+        lock = fj + ".lock"
+        write(lock, "")
+        os.chmod(lock, 0)
+        try:
+            r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field",
+                         "verify", "--expect-sha256", sha or "x", "--value-file", value,
+                         "--reason", "r")
+        finally:
+            os.chmod(lock, 0o644)
+        check("1985: a failed ledger write exits nonzero and restores the plan",
+              r.returncode != 0 and "restored byte for byte" in r.stderr
+              and (read(plan), read(fj)) == before, f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+
 def case_b1716_approval_resets_only_on_task_set_change():
     """D-04: `apply` replacing a field on an existing task keeps the signature; adding a task
     still resets it to pending with the reason recorded."""
@@ -4558,6 +4622,8 @@ CASES = (
     case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error,
     case_feat62_changed_feedback_after_a_plan_write,
     case_feat70_record_amendments_after_a_block_scalar_splice,
+    case_1985_amend_ledgers_a_signed_task_field,
+    case_1985_amend_restores_the_plan_when_the_ledger_fails,
 )
 
 
