@@ -5065,6 +5065,69 @@ def _run_groups(checks):
     return fails
 
 
+_SENTINEL_FEATURE = "BUG-1898-suite-sentinel-%d" % os.getpid()
+
+
+def _sentinel_rows(registry):
+    path = os.path.join(ROOT, registry.REGISTRY_REL)
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as stream:
+        return json.load(stream).get("claims", [])
+
+
+def _governed_personas():
+    return sorted(name[:-3] for name in os.listdir(os.path.join(ROOT, ".omp", "agents"))
+                  if name.startswith("harness-") and name.endswith(".md"))
+
+
+def _seed_sentinel(registry, persona, claim_ids):
+    """One live claim for `persona`, bound to this run's own runtime id; its id joins
+    `claim_ids` before anything else can fail, so cleanup always sees it."""
+    entry = registry.claim_with_receipt(ROOT, persona, "suite-sentinel", ROOT,
+                                        feature=_SENTINEL_FEATURE, supervisor_pid=os.getpid())
+    if entry is None:
+        return
+    claim_ids.append(entry["claim_id"])
+    registry.attach_runtime_identity(
+        ROOT, persona, _SENTINEL_FEATURE, agent_id="Suite%d.%s" % (os.getpid(), persona),
+        claim_id=entry["claim_id"], parent_agent_id="Suite%d" % os.getpid())
+
+
+def _seeded_rows(registry, claim_ids):
+    return [row for row in _sentinel_rows(registry) if row.get("claim_id") in claim_ids]
+
+
+def _sentinel_verdict(label, ok, detail):
+    print(f"ok    [sentinel] {label}" if ok else f"FAIL  [sentinel] {label}: {detail}")
+    return 0 if ok else 1
+
+
+def _run_groups_with_sentinels(checks):
+    """BUG-1898 SC-01: a real full suite run releases no unrelated live claim. One live
+    stranger per governed persona is seeded in this checkout's registry under this run's own
+    feature and runtime id (so concurrent runs never collide); after every group has run each
+    stranger must be byte-identical. Cleanup releases exactly the seeded claims. The mutant
+    half of SC-01 lives in test-suite-claim-preservation.py."""
+    import inflight_registry
+    claim_ids = []
+    try:
+        personas = _governed_personas()
+        for persona in personas:
+            _seed_sentinel(inflight_registry, persona, claim_ids)
+        sentinels = _seeded_rows(inflight_registry, claim_ids)
+        fails = _sentinel_verdict("one live sentinel per governed persona was seeded",
+                                  len(sentinels) == len(personas), len(sentinels))
+        fails += _run_groups(checks)
+        kept = _seeded_rows(inflight_registry, claim_ids)
+        return fails + _sentinel_verdict(
+            "every unrelated live claim is byte-identical after the suite", kept == sentinels,
+            sorted({r["agent"] for r in sentinels} - {r["agent"] for r in kept}))
+    finally:
+        for claim_id in claim_ids:
+            inflight_registry.release(ROOT, feature=_SENTINEL_FEATURE, claim_id=claim_id)
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     checks = (
@@ -5095,7 +5158,8 @@ def main(argv=None):
     elif argv:
         print(f"usage: {os.path.basename(__file__)} [--only <group>]", file=sys.stderr)
         return 2
-    fails = sum(check() for check in checks) if len(checks) == 1 else _run_groups(checks)
+    fails = (sum(check() for check in checks) if len(checks) == 1
+             else _run_groups_with_sentinels(checks))
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 
