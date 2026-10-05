@@ -80,12 +80,19 @@ class RepositoryBases(list):
         """The fleet member whose control-plane segment `.harness/<segment>` holds one of
         `rel_candidates`, or None. A Bash operand arrives unexpanded, so the segment is
         matched as a shell glob: one reaching a single member is that member; one reaching
-        several answers with the glob itself, which no claim carries, so it fails closed."""
+        several answers with the glob itself, which no claim carries, so it fails closed.
+
+        CASE-INSENSITIVE ON EVERY DISK (#2104 panel). On a case-insensitive filesystem
+        `.harness/KAYA/` is kaya's directory, and a case-sensitive match read it as no member
+        at all, so the write skipped the repository claim check and landed in kaya's segment.
+        Folding case everywhere is fail-closed on a case-sensitive disk too: there `.harness/
+        KAYA/` merely needs kaya's claim."""
         members = set(self._identities.values())
         for candidate in rel_candidates:
             match = _CONTROL_PLANE_SEGMENT.match(candidate)
             reached = sorted(m for m in members
-                             if match and fnmatch.fnmatchcase(m, match.group(1)))
+                             if match and fnmatch.fnmatchcase(m.casefold(),
+                                                              match.group(1).casefold()))
             if reached:
                 return reached[0] if len(reached) == 1 else match.group(1)
         return None

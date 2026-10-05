@@ -1037,6 +1037,20 @@ def case_31_repository_binding_read_from_the_feature_worktree():
               missing.returncode == 2 and "HARNESS-REPOSITORY" in missing.stderr, missing.stderr)
         check("case 31: and still refuses a locator that disagrees with it",
               mismatch.returncode == 2 and "disagrees" in mismatch.stderr, mismatch.stderr)
+        # A stale copy in the main checkout that disagrees (the planted-copy workaround this
+        # issue left behind) must not decide anything: the worktree's record still binds.
+        stale = os.path.join(main, ".harness", segment, "features", feature)
+        os.makedirs(stale)
+        with open(os.path.join(stale, "feature.json"), "w", encoding="utf-8") as fh:
+            json.dump({"feature_id": feature, "factory": {"repo": "acme/product-b"}}, fh)
+        still = dispatch(f"HARNESS-FEATURE: {feature}\n"
+                         "HARNESS-REPOSITORY: acme/product-a\nchange the product")
+        stale_wins = dispatch(f"HARNESS-FEATURE: {feature}\n"
+                              "HARNESS-REPOSITORY: acme/product-b\nchange the product")
+        check("case 31: a disagreeing main-checkout copy does not override the worktree record",
+              still.returncode == 0 and stale_wins.returncode == 2,
+              f"worktree header exit={still.returncode} {still.stderr.strip()[:160]!r}; "
+              f"stale header exit={stale_wins.returncode}")
     finally:
         shutil.rmtree(main, ignore_errors=True)
 
