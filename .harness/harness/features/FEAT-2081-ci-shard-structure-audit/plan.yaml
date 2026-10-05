@@ -46,7 +46,6 @@ panel:
     summary: T-03/T-04 omit CI provisioning of the pinned historical checker required by the differential integration test.
     disposition: resolved
     resolved_by: T-03
-    resolution: Resolved by amendment under the operator ruling; differential verification is one-time local QA evidence, permanent tests are history-independent, T-04 is unchanged. Pending operator re-signature.
 lanes:
   resolved_at: 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554
   rows:
