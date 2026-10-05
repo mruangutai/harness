@@ -1,0 +1,89 @@
+schema_version: 2
+run_id: validate-finalmerge-validator
+run_uid: 3a34bd15d7ef4704abc667d4f1fa2450
+feature: FEAT-1928-digest-object-contract
+squad: validator
+host: harness-validator-lead
+status: complete
+review_sha: 232685fb902a32795e169895fcf3c9fd154a7991
+steps:
+  - id: qa
+    persona: qa
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-qa-finalmerge.md
+    evidence:
+      receipt_verification: Original QA executed33/33 exit0
+      pool: Main120/120 owners zero nonzero exits; artifact://891; 8workers160.70s
+      source_equivalence: Clean7e2e to exact232 six feature metadata/evidence paths; seven subjects and transcript match
+      historical_fail_first: All six automated SCs retained; natural append RED22/24 then GREEN24/24
+  - id: code
+    persona: code-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    redispatches: 1
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-code-reviewer-finalmerge.md
+    note: Form-only append reconciles grade_2_reasons; initial BLOCKED and claim-loss failure preserved.
+    evidence:
+      initial_return: BLOCKED claim loss after rejected PASS; substantive review PASS unchanged
+      reconciliation: Successful original-report append; eleven existing reasons and twelve measured commits preserved; no rerun
+      canonical_grade: Original OLD grader artifact://925;240gated229bars11grade2 zero high/ungraded exit0
+      human_commits: Twelve independently enumerated current-base commits
+      seam_disposition: Placement cache and trusted destination binding independent; cold revival re-enters openRun
+  - id: security
+    persona: security-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-security-reviewer-finalmerge.md
+    evidence:
+      lifetimes: Placement cache does not grant append authority; revived persisted identity re-enters openRun
+      authorization: Original high closed; exact startup binding and open registered run remain required
+      executions: None; source and metadata inspection only
+  - id: ui
+    persona: ui-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-ui-reviewer-finalmerge.md
+    evidence:
+      visual_delta: Zero visual paths;60rename-aware entries61paths;46feature15other
+      retained_browser: Org receipt and both PNG hashes independently match; no own browser execution
+  - id: goalcheck
+    persona: pm
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/research-FEAT-1928-digest-object-contract-goalcheck-finalmerge.md
+    evidence:
+      whole_goal: All eight literal SCs and four perspectives met; SC07 unchanged closed
+      executions: None; bounded delta/source and transcript inspection only

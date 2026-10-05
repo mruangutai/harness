@@ -30,3 +30,13 @@ All21 simplify-c4 findings retained: F07 applied enum legends; F05 standalone pr
 ## UAT and terminal actions
 
 No signed UAT criterion; none invented. Next: canonical prune after inventory, commit retained reports/briefing, push/create and merge PR, run canonical ship and read back all seven issues/milestone93, record accepted backlog, distill at close and safely remove only this worktree. The unrelated BUG1016 checkout stays untouched.
+
+## Newest-main final validation and terminal record
+
+Superseding independent pin: `232685fb902a32795e169895fcf3c9fd154a7991`, base `ee6898b82f36e2ca5f7a27315d56c4785a65cef4`. All five readers PASS; all eight literal SCs/four perspectives met; zero source rework. See `runs/validate-finalmerge-validator/digest.md` and the five `*-finalmerge.md` original reports. Current Main pool120/120/160.70s, clean-source native18/18, verifier33/33, lifecycle28/28; QA independently receipt33/33; independent old-control grader240/229/11 accepted grade2/zero high or ungraded. Old counts above are historical, not additive.
+
+The latest full precommit checker failed only on a newly dirty unrelated `kaya-fleet-registration` checkout outside canonical layout. Operator explicitly selected canonical `--changed` checking, which passed before commit138a0233. No gate code was changed or failure relabelled; Kaya and BUG1016 remain untouched.
+
+Canonical backlog created B01–B07 as #2045–#2051, consolidated unstruck maintenance inventory B08 as #2052, and new outside-feature rejected-yield claim-loss/correction-path advisory B09 as #2053. B08 preserves F01/F02/F03/F04/F08/F09/F10/F11/F12/F13/F15/F16/F17/F19/F21; F20 deduplicates B03, F07 applied, F05/F06/F14/F18 intentionally LEAVE. Eleven reasoned grade2 costs stay accepted, not invented defect tickets. Backlog is not part of this milestone.
+
+Merge/ship/closure/distillation/removal still require actual receipts; required GitHub CI is being supervised by `gh pr checks --watch`, not bypassed.
