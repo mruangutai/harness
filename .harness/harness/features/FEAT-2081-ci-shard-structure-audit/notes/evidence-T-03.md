@@ -26,3 +26,16 @@ and `--consolidation-audit`: `non_identical=[]`, `suite_failures=[]`.
 ## Open issue
 SC-10: `--consolidation-audit` median 0.66 s → 0.38 s, but `test-checker-structure-locks.py` median
 3.16 s → 4.35 s after removing its test-only `_PARSED` cache as the plan requires (see the QA file).
+
+## Amendment: test-side parse cache retained (operator ruling, 2026-10-04)
+
+Restored `tests/integration/test-checker-structure-locks.py` to its pre-T-03 form (02b84d6d), keeping the content-keyed `ast.parse` memo. The single-pass traversal test (`test-structure-audit-single-pass.py`) does not install it and still exits 0.
+
+Same host, interleaved, 3 runs each, baseline = detached worktree at 8e0b9e90:
+
+| Path | Baseline runs | Current runs | Median |
+|---|---|---|---|
+| test-checker-structure-locks.py | 3.03, 3.05, 3.07 | 2.56, 2.58, 2.57 | 3.05 -> 2.57 |
+| check-plan-routes.py --consolidation-audit | 0.63, 0.64, 0.64 | 0.37, 0.36, 0.36 | 0.64 -> 0.36 |
+
+All runs exit 0. Output of the structure-locks test is stable across runs (cmp).
