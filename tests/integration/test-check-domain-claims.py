@@ -471,6 +471,13 @@ def _repository_happy_routes(results, inflight_registry, feature):
              root, os.path.join(root, ".harness", "product-b", "docs", "change.md"),
              feature, "DocumentorOne", "ProductLeadOne"),
          2, "mismatched"),
+        # A segment is a fleet member whatever its spelling: on a case-insensitive disk
+        # `.harness/PRODUCT-B/` IS product-b's directory, so it needs product-b's claim.
+        ("repository-bound child cannot reach another product's segment by changing its case",
+         _repository_fire(
+             root, os.path.join(root, ".harness", "PRODUCT-B", "docs", "change.md"),
+             feature, "DocumentorOne", "ProductLeadOne"),
+         2, "mismatched"),
     )
     for name, response, want, contains in cases:
         _record_repository_result(results, name, response, want, contains)
