@@ -170,6 +170,50 @@ class MergeGate(Case):
         self.assertEqual(verdict, "deny")
         self.assertIn("materialisation (7)", reason)
 
+    def test_one_id_claimed_from_two_segments_is_two_owners_and_denies(self):
+        # Same id, two segments, one branch: both records must reach the owner count, or the
+        # gate sees one owner and lets an unattributable merge through.
+        self.fx.commit_owner({
+            ".harness/harness/features/FEAT-2-beta/feature.json": F.feature_json("FEAT-2-beta", "feat/dup"),
+            ".harness/kaya/features/FEAT-2-beta/feature.json": F.feature_json("FEAT-2-beta", "feat/dup"),
+        }, "one id, two segments, one branch")
+        wt = repair(self.fx.add_worktree(ACTIVE))
+        verdict, reason = decision(self.merge(wt, "feat/dup"))
+        self.assertEqual(verdict, "deny", reason)
+        self.assertIn("claimed by more than one feature record (FEAT-2-beta, FEAT-2-beta)", reason)
+
+
+class SegmentIdentity(Case):
+    """A feature directory is `<segment>/<id>`: one id in two segments is two features, and this
+    checkout's copy replaces only the landed directory with the same segment AND id (SC-04)."""
+
+    def setUp(self):
+        super().setUp()
+        self.fx.commit_owner({".harness/kaya/features/FEAT-2-beta/feature.json":
+                              F.feature_json("FEAT-2-beta", "feat/kaya-beta")}, "same id in kaya")
+
+    def keyed(self, checkout):
+        return {(e["segment"], e["id"]): e for e in fc.population(checkout)}
+
+    def test_a_shared_id_is_two_entries_from_a_worktree_and_from_a_clone(self):
+        for checkout in (repair(self.fx.add_worktree(ACTIVE)), self.fx.clone()):
+            entries = fc.population(checkout)
+            keys = [(e["segment"], e["id"]) for e in entries]
+            self.assertIn(("harness", "FEAT-2-beta"), keys)
+            self.assertIn(("kaya", "FEAT-2-beta"), keys)
+            self.assertEqual(len(keys), len(set(keys)), keys)
+            self.assertEqual(len(keys), 5, keys)       # FEAT-1, FEAT-2 x2, BUG-3, FEAT-10
+
+    def test_this_checkouts_copy_replaces_only_its_own_directory(self):
+        wt = repair(self.fx.add_worktree(ACTIVE))
+        by_key = self.keyed(wt)
+        self.assertEqual(by_key[("harness", ACTIVE)]["path"],
+                         os.path.join(wt, ".harness/harness/features", ACTIVE))
+        for key in (("harness", "FEAT-2-beta"), ("kaya", "FEAT-2-beta")):
+            self.assertEqual(by_key[key]["path"],
+                             os.path.join(self.fx.owner, ".harness", key[0], "features", key[1]))
+
+
 
 class BranchCreateGate(Case):
     def setUp(self):
@@ -273,6 +317,16 @@ class BoardStatus(Case):
         found = self.messages({500: "building", 501: "building"})
         self.assertEqual(len(found), 1, found)
         self.assertIn("feature cards cannot be audited", found[0])
+
+    def test_one_id_active_in_two_segments_is_audited_in_both(self):
+        record = json.loads(F.feature_json("FEAT-2-beta", "feat/kaya-beta"))
+        record["github"] = {"issues": {"T-01": 601}, "parent": 600}
+        kaya = ".harness/kaya/features/FEAT-2-beta"
+        self.fx.commit_owner({f"{kaya}/feature.json": json.dumps(record) + "\n",
+                              f"{kaya}/plan.yaml": self.PLAN}, "kaya FEAT-2-beta is building")
+        wrong = self.messages({500: "building", 501: "ready", 600: "building", 601: "ready"})
+        self.assertTrue(any("card #501" in m for m in wrong), wrong)
+        self.assertTrue(any("card #601" in m for m in wrong), wrong)
 
 
 class DecisionAnchors(Case):

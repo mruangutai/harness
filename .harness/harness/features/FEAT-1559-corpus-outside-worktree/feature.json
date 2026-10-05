@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-1559-corpus-outside-worktree",
   "pr": null,
   "review_sha": "42856abb91a3a87b9f27ebc933cc363a900afd3d",
-  "cycles_used": 0,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -24,6 +24,16 @@
       "verdict": "BLOCKED",
       "started_at": "2026-10-05T16:39:46+00:00",
       "ended_at": "2026-10-05T16:39:48+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-05T16:40:35+00:00",
+      "ended_at": "2026-10-05T17:02:49+00:00",
       "cycles_used": 0,
       "tokens": null
     }

@@ -226,12 +226,19 @@ def records(owner):
     return [_entry(segment, fid, path) for segment, fid, path in landed_dirs(owner)]
 
 
+def _directory_key(entry):
+    """A feature directory's identity: `(segment, id)`. Two segments may hold the same id, and
+    those are two features — keying on the id alone silently drops one of them."""
+    return entry["segment"], entry["id"]
+
+
 def _local_entries(root):
-    """This checkout's own feature directories, as `_entry` mappings keyed by id."""
+    """This checkout's own feature directories, as `_entry` mappings keyed by `_directory_key`."""
     entries = {}
     for name in reached_feature_dirs(root):
         segment, fid = name.split("/", 1)
-        entries[fid] = _entry(segment, fid, os.path.join(root, ".harness", segment, "features", fid))
+        entry = _entry(segment, fid, os.path.join(root, ".harness", segment, "features", fid))
+        entries[_directory_key(entry)] = entry
     return entries
 
 
@@ -261,9 +268,10 @@ def require_landed(root):
 
 
 def population(root):
-    """Every feature a gate at `root` may judge, as `_entry` mappings sorted by id: the LANDED
-    records at the owner root, with each feature directory present in `root` itself in place of
-    its landed copy. In-progress features in sibling worktrees are never read.
+    """Every feature directory a gate at `root` may judge, as `_entry` mappings sorted by id,
+    then segment: the LANDED records at the owner root, with each feature directory present in
+    `root` itself in place of its landed copy — the same segment AND id, never merely the same
+    id. In-progress features in sibling worktrees are never read.
 
       * outside any git checkout: the directories present under `root`, nothing else exists;
       * a main checkout or plain clone: the directories present here, after confirming every
@@ -275,10 +283,10 @@ def population(root):
     merged = _local_entries(root)
     landed_root, linked = _landed_root(root)
     if linked:
-        merged = {**{e["id"]: e for e in records(landed_root)}, **merged}
+        merged = {**{_directory_key(e): e for e in records(landed_root)}, **merged}
     elif landed_root is not None:
         landed_dirs(landed_root)        # raises when a tracked directory is missing here
-    return [merged[k] for k in sorted(merged)]
+    return [merged[k] for k in sorted(merged, key=lambda k: (k[1], k[0]))]
 
 
 FEATURE_PATH_RE = re.compile(r"^\.harness/[^/]+/features/[^/]+")

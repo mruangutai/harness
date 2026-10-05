@@ -47,9 +47,15 @@
   final return; the run was opened at 2026-10-05T15:49Z and recorded late (its ledger
   started_at is the recording time), closed --refused-return BLOCKED, 0 cycles.
 - Fix c1, main-session-direct (notes/receipt-main-session-fix-c1.md): all six fixed, with red
-  or mutant evidence for each. Suites exit 0 (52 / 80 files). This commit is the new seam.
-- next: pin review_sha to this seam, then re-verify as validate-c1-validator
-- cycles_used: 0 / 10 (the fix round counts on the re-verify run)
+  or mutant evidence for each; seam 42856abb.
+- Validate c2 (run validate-c1-validator) at 42856abb: FAIL. All six c1 must-fixes confirmed
+  closed. One new high (SC-04): population keyed features by id, so one id in two segments
+  dropped a directory (board audit, merge-gate owner count).
+- Fix c2, main-session-direct (notes/receipt-main-session-fix-c2.md): population keyed by
+  (segment, id); four new tests, red at 42856abb. Suites exit 0 (52 / 80 files). This commit is
+  the new seam. Rework: round 2 of 2 (ruling: rounds=2, 120 min; 22 min spent at c2 close).
+- next: pin review_sha to this seam, `status review`, re-verify as validate-c2-validator
+- cycles_used: 0 / 10 (both re-verify reports so far: 0)
 - board: milestone #99, parent #2086, tasks #2088-#2093 (T-06's #2094 closed not planned)
 
 ## Open Questions
