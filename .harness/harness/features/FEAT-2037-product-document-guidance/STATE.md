@@ -3,25 +3,25 @@
 ## Current
 
 - feature: FEAT-2037-product-document-guidance
-- run: runs/qa-validator/digest.md (CLOSED ESCALATE, cycles 0, code_grade n_a — docs diff, no code graded; matrix_ok true, must_fix [], severity none; qa note notes/qa-c0.md) · runs/simplify-eng/digest.md (CLOSED BLOCKED --refused-return, cycles 0; four angle receipts notes/receipt-harness-{dev-ops,backend-dev}-simplify-eng-{reuse,efficiency,simplification,altitude}.md; 0 accepted findings, 0 production edits) · earlier: correction-verify-product PASS · preflight-product PASS · preflight-eng BLOCKED --refused-return · plan-product PASS
-- squad: validator (next: validate-validator)
-- status: review (plan.yaml status; T-01 done via set-task-station on main build receipt notes/receipt-main-session-T-01-c0.md + notes/verification-main-c0.md; cards moved to review at the pin boundary)
+- run: runs/validate-validator/digest.md (CLOSED ESCALATE, cycles 0; qa ESCALATE · code PASS · security PASS (scoped out) · ui PASS (scoped out) · goalcheck FAIL; must_fix [], severity none) · runs/simplify-eng (CLOSED BLOCKED --refused-return, 0 accepted findings) · runs/qa-validator (CLOSED ESCALATE, code_grade n_a) · correction-verify-product PASS · preflight-product PASS · preflight-eng BLOCKED --refused-return · plan-product PASS
+- squad: none (validate closed; operator gate)
+- status: review (plan.yaml; T-01 done; cards #2037/#2072/#2073 at review)
 - mission: patch
-- cycles_used: 0/10
-- brief: BRIEF.md (approved by operator 2026-10-05; unchanged sha256 82ec69c5…3908)
-- plan: plan.yaml (approved operator/2026-10-05; rework 1 round / 45 minutes; T-01 signed hash f5538093…671b unchanged; T-01 status done; feature status review)
-- review_sha: see feature.json (pinned to the build seam commit after this STATE write)
-- t01-verify: five static checks observed exit 0 by MAIN (notes/verification-main-c0.md; unit artifact://101, integration artifact://107 after authorized owner ff; first integration FAIL artifact://102 retained). Command receipts, not behavioural proof.
-- qa-gate: docs required kinds [] met; no verify: automated SC so fail_first []; validate-digest.py:1506-1512 refuses QA PASS with fail_first [] + matrix_ok true → lead returned ESCALATE (contract gap, harness defect Q-05), no gate failed
-- simplify: four parallel read-only angles ran; one reuse candidate (spec-driven L48-49 path list) skipped by eng-lead as settled signed intent; no unapplied source finding for MAIN
-- uat: notes/uat-product-document-guidance-c0.md (draft, NOT RUN, 27 assertions, unchanged sha256 942b2b53…cb6); operator alone records passed
-- baseline: HEAD f411f9d1 contains origin/main f35d3a72; origin/main has since advanced to e8d868f7 (5 commits; touches harness-spec-driven/SKILL.md L29-36 and L67-79, disjoint from this feature's L45-48 hunk). Merge is MAIN's, not the orchestrator's (HEAD never moved by governed agents).
-- next: validate-validator over review_sha (qa, code, security, ui, pm goalcheck in one turn; SC-04 inspection via git show <review_sha>:<path> for all four files); SC-01..SC-03 remain operator-only UAT; no ship claim.
+- cycles_used: 0/10 (rework_rounds 0 of 1; rework_minutes 12 of 45)
+- review_sha: 1e69bf14a4110c340b7dad454a84aa13eeb3c01e (build seam commit; contains the four-file +33/-3 production diff; plan bytes match)
+- brief: BRIEF.md (approved; sha256 82ec69c5…3908 unchanged)
+- plan: plan.yaml (approved operator/2026-10-05; T-01 signed hash f5538093…671b unchanged, no amendments this phase)
+- sc-04: PASS by independent inspection — notes/review-harness-code-reviewer-c0.md, four separate `git show 1e69bf14:<path>` reads, governance preservation checked, no findings
+- sc-01..03: NOT RUN — verify: uat, operator-only; notes/uat-product-document-guidance-c0.md draft, 27 assertions NOT RUN (sha256 942b2b53…cb6 unchanged); goalcheck notes/research-FEAT-2037-product-document-guidance-goalcheck-validate-c0.md grades all three perspectives unproven
+- qa: docs required kinds [] met, fail_first [] (no verify: automated SC); notes/review-harness-qa-c0.md, notes/qa-c0.md; ESCALATE token forced by validate-digest.py:1506-1512 (Q-05)
+- baseline: origin/main e8d868f7 is 5 commits past merge-base f35d3a72; upstream edits harness-spec-driven/SKILL.md at L29-36/L67-79, disjoint from this feature's L45-48 hunk; merge is MAIN's
+- next: OPERATOR runs the live UAT (U-01..U-04, 27 assertions) from the edited worktree per the draft script and records passed/failed; no squad step remains. No PR, merge, distill or ship by the orchestrator.
 
 ## Open Questions
 
-- Q-01 (nonblocking, execution-time): edited harness-principles delivery to governed subagents from the observed edited CONTROL must be shown with loaded-source evidence before SC-01..SC-03 can be graded. Preflight evidence: notes/research-preflight-product.md, notes/receipt-harness-dev-ops-preflight-eng.md.
+- Q-01 (nonblocking, execution-time): edited harness-principles delivery to governed subagents must be shown with loaded-source evidence before SC-01..SC-03 can be graded; preflight evidence notes/research-preflight-product.md, notes/receipt-harness-dev-ops-preflight-eng.md; validate readers again reported the worktree-rooted principles source present.
 - Q-02 (nonblocking, execution-time): main must capture actual nested dispatches/absolute reads and byte-restore decoys in the observed CONTROL, never staged in the main checkout.
-- Q-03 (harness defect, nonblocking): host refused harness-eng-lead's valid return on preflight-eng and again on simplify-eng ("authorization has no trusted hook-owned digest binding"); both closed --refused-return. On simplify-eng the orchestrator's dispatch carried an outputSchema the dispatch guard had refused on the first attempt but admitted on the second; the lead's schema-rejected yields released the claim before a valid return landed. INV-15 now reports runs/simplify-eng/digest.md without a fenced record; not reconstructed.
-- Q-04 (harness defect, nonblocking): plan-merge amend run by harness-pm ledgered the T-01.verify amendment judgement with `by: main-session`, not the executing persona.
-- Q-05 (harness defect, nonblocking): validate-digest.py `_qa_fail_first_errors` (L1506-1512) has no path for a QA PASS when a feature has zero `verify: automated` SCs; qa-validator closed ESCALATE rather than fabricating fail_first.
+- Q-03 (harness defect, nonblocking): host refused harness-eng-lead's valid return on preflight-eng and simplify-eng ("authorization has no trusted hook-owned digest binding"); both closed --refused-return. On simplify-eng the orchestrator's dispatch carried an outputSchema that the dispatch guard refused once then admitted; the lead's schema-rejected yields released the claim before a valid return landed. INV-15 reports runs/simplify-eng/digest.md without a fenced record; not reconstructed.
+- Q-04 (harness defect, nonblocking): plan-merge amend by harness-pm ledgered the T-01.verify amendment judgement with `by: main-session`.
+- Q-05 (harness defect, nonblocking): validate-digest.py `_qa_fail_first_errors` (L1506-1512) has no path for a QA PASS when a feature has zero `verify: automated` SCs; both qa runs closed ESCALATE rather than fabricating fail_first.
+- Q-06 (harness defect, nonblocking): code-reviewer's note still reads `code_grade: pass` while its accepted terminal return was corrected to `n_a` after a claim release before validation (validate lead Q-RECEIPT); the note is reviewer-owned and was not repaired.

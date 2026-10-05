@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2037-product-document-guidance",
   "branch": "feat/FEAT-2037-product-document-guidance",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "1e69bf14a4110c340b7dad454a84aa13eeb3c01e",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -68,6 +68,16 @@
       "tokens": 46313,
       "ended_at": "2026-10-05T05:24:50+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-10-05T05:32:19+00:00",
+      "tokens": 68762,
+      "ended_at": "2026-10-05T05:44:40+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -105,6 +115,20 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "simplify-eng: host refused eng-lead return (no trusted hook-owned digest binding, 3rd occurrence); disk shows four angle receipts, zero accepted findings, no production edits; proceed to seam on observed artifacts"
+    },
+    {
+      "at": "2026-10-05T05:32:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "same orchestrator crossing build->validate seam at handoff-build seq-6; spend 72 min, 0 rework; pin 1e69bf14 at seam commit"
+    },
+    {
+      "at": "2026-10-05T05:44:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "validate 1e69bf14: SC-04 PASS, must_fix []; qa ESCALATE = zero-automated-SC contract gap; SC-01..03 operator-only UAT NOT RUN, no fix target; stop at UAT gate"
     }
   ],
   "mission": "patch",
