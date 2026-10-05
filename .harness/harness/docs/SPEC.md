@@ -1432,6 +1432,102 @@ qualitative opinion.
   its own agents are now gated by evals its own `ai-dev` writes. That is an improvement over passing
   on judgment alone, not a resolution.
 
+### 9.2 Repository suites — sharding and the required `integration` context
+
+Run from the repository root. The first command runs integration shard 1 of 4 and records
+its execution; the second is the unchanged, complete unsharded integration command:
+
+```bash
+python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration --shard 1/4 --manifest /tmp/harness-integration-shard-1.json
+python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration
+```
+
+**A selected file is not proof of a completed test.** `--manifest` requires `--shard`, and its
+path must be outside the watched `.claude/skills/harness/bin/` tree. A crash or cancellation
+can leave no manifest; CI refuses missing evidence rather than inventing a successful run.
+
+**Selection and execution** (`.claude/skills/harness/bin/run-unit-tests.py`):
+
+- Unsharded `--kind unit`, `--kind integration`, `--kind all`, and no-argument execution
+  retain complete discovery and failure propagation; no arguments selects `all`. Discovery
+  uses the selected top-level `tests/unit/test-*.py` and/or `tests/integration/test-*.py` globs,
+  not changed files or timing-table keys. Both suite layouts are validated before execution.
+- `--shard i/n` applies to any selected kind. Both numbers must be unsigned positive decimal
+  integers with `1 <= i <= n`; options may appear in either order. Missing shard/manifest
+  values, malformed fractions, repeated options, a manifest without a shard, or combining
+  shard/manifest options with `--check-layout` produce a diagnostic and exit 2 before tests.
+- The deterministic longest-processing-time partition sorts discovered files by descending
+  effective duration, breaking ties by repository-relative path. Each file goes to the
+  least-loaded shard, breaking equal-load ties by lowest shard number. Every discovered file
+  belongs to exactly one shard; each shard prints its selected paths in lexical order.
+  An empty shard succeeds without starting the pool and can write an empty manifest; it
+  does not bypass full-suite layout validation.
+- `tests/integration/integration-durations.json` is checked-in schema-1 advisory data:
+  73 attributed integration file durations from
+  [Actions run 37264903064](https://github.com/mruangutai/harness/actions/runs/37264903064),
+  source commit `b046bdfed9fa262a25f53a41d566db2b90cd140b`. Its `default_seconds` is
+  the measured median, 6.24 seconds. Unknown discovered files use that default; stale weight
+  entries add no files. The runner validates the document and positive finite durations;
+  CI does not rewrite it or rebalance from concurrent job state.
+- Attributed worker output, completion-order reporting, worker defaults/overrides, bin-tree
+  mutation detection, and each test script's private temporary directory are unchanged
+  (`.claude/skills/harness/bin/run_pool.py`). There is no shared-checkout mutation used to
+  isolate shards.
+- A schema-1 manifest records `tested_commit` from git HEAD, kind, shard index/count,
+  `selected_files`, actual `completed_files` path/integer-return-code records from finished
+  pool futures, and `runner_exit`. It is written only after started scripts terminate and
+  mutation checking finishes. Failing completions and nonzero runner exits remain evidence.
+
+**CI and branch protection** (`.github/workflows/tests.yml`):
+
+- Four `integration-shards` matrix cells, indices 1–4 on `ubuntu-latest`, run the complete
+  integration selection partitioned four ways. `fail-fast: false` lets each reach its own
+  conclusion. Each uploads its manifest with `always()` under a run/index-specific artifact
+  name; no manifest is fabricated when execution did not finish.
+- The single non-matrix job ID `integration` remains the required check context; it has no
+  display-name override. It depends on both `checks` and `integration-shards` and uses
+  job-level `if: always()`. The `checks` job retains the Unit suite and every current gate:
+  Validate feature execution state, Plan-route gate, Canonical-reader audit, Instruction-path
+  gate, Layout gate, and Repository-state gate. Their command bodies, summary/discovery
+  guards, feature-state semantics, and exit-code propagation remain required, not advisory.
+- Aggregation checks out the same tested `github.sha`, downloads that run's shard manifests,
+  and passes the actual `needs.checks.result` and `needs.integration-shards.result` to
+  `.claude/skills/harness/bin/check-integration-shards.py`. Both must be exactly `success`;
+  failure, skipped, cancelled, missing, or unrecognized results cannot pass. Download errors
+  fail the job, and missing artifacts still reach validation.
+- The validator independently enumerates the supplied tested commit with git `ls-tree`,
+  filtering exactly top-level `tests/integration/test-*.py` paths. Neither the current
+  working tree, duration table, nor partition/selected-file union defines expected coverage.
+  It requires a nonempty expected suite and exactly one schema-1 manifest for each of the
+  four shard indices, all for that commit, integration kind, and shard count 4.
+- Within each manifest, normalized repository-relative completed paths must match selected
+  paths exactly, without duplicates; every completed return code and `runner_exit` must be
+  zero. Across manifests, every independently discovered expected file must have completed
+  exactly once, with no unexpected files. Missing/extra manifests, wrong identities,
+  malformed evidence, selected-only records, omissions, and duplicates fail closed.
+  An empty individual shard is allowed only when total coverage is exact.
+
+**Cancellation boundary:** shard-only cancellation is supported once the other dependencies
+terminate: aggregation runs and refuses a cancelled upstream result or missing completion
+evidence. This does **not** promise a conclusion after whole-workflow cancellation or
+supersession of an old PR run. The existing `tests-${{ github.ref }}` concurrency group and
+main's no-cancellation policy remain; PR re-pushes may supersede their own runs. Live Actions
+cancellation behavior and timing require UAT; this contract does not assert a measured speedup.
+The workflow cannot protect itself against a PR deleting its gates or dependencies; human
+review of workflow changes remains necessary.
+
+**Structure-audit guardrail:** the existing entry paths are the in-process public calls used
+by `tests/integration/test-checker-structure-locks.py` and the
+`.claude/skills/harness/bin/check-plan-routes.py` CLI's `--consolidation-audit` mode, not a
+`check-state.py` hook. Each production invocation creates fresh per-file state, reading and
+parsing each participating physical source at most once and indexing each physical/embedded
+AST with one parent-aware breadth-first traversal shared by applicable rules. Finding order,
+source-error behavior, and CLI verdicts remain unchanged. The structure-lock test retains
+its content/filename-keyed test-process parse cache; syntax errors are not cached. That
+test-only reuse does not permit production caches across invocations or roots.
+`tests/integration/test-structure-audit-single-pass.py` independently checks one traversal
+per parsed AST through both entry paths without installing the test-side parse cache.
+
 ---
 
 ## 10. The orchestrator

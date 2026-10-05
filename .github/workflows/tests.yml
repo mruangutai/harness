@@ -367,12 +367,11 @@ jobs:
       - name: Install PyYAML and jsonschema
         run: python3 -m pip install --upgrade pyyaml jsonschema
 
-      # Integration kind measured 2026-10-04 at 74 scripts, 83-87s wall locally (12-core arm64,
-      # run_pool's 8 workers); the single unsharded step took ~131s on ubuntu-latest, inside a
-      # 170s job. Each shard now runs the full discovered selection through run-unit-tests.py's
-      # weighted --shard partition, so a shard's wall time is roughly a quarter of that plus
-      # setup. Per-shard figures are not yet measured on Actions (SC-10 is live UAT evidence) —
-      # measure rather than trust any figure here.
+      # Before sharding (run 37264903064, 2026-10-05) the single unsharded integration step
+      # took 171s on ubuntu-latest (`pool: 4 workers, 73 files, 170.49s wall`) inside a 211s
+      # job. Each shard now runs its share of the discovered selection through
+      # run-unit-tests.py's weighted --shard partition. Per-shard figures are not yet measured
+      # on Actions (SC-10 is live UAT evidence) — measure rather than trust any figure here.
       #
       # THE MANIFEST LIVES IN runner.temp, outside the watched bin tree and the checkout. The
       # runner writes it only after every started script terminated, so a crash or a cancelled
