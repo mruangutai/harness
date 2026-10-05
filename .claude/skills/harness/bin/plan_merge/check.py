@@ -16,7 +16,6 @@ import worktree_terminal
 # selects the fleet's product base exactly as the build hook will. Resolving product paths
 # against the harness tree was the defect: false passes for paths both trees share
 # (docs/…, .harness/…) and NOBODY for every product source path.
-HARNESS_SEGMENT = "harness"
 
 # ---------------------------------------------------------------------------
 # `check` — resolve every anchor, route and trace before a plan is signed (FEAT-59 SC-07).
@@ -112,20 +111,12 @@ def _check_tasks(doc, resolved_plan):
     return tasks
 
 
-def _plan_segment(resolved_plan):
-    """(segment, feature id) from `.harness/<segment>/features/<id>/plan.yaml`. The
-    segmentless `.harness/features/<id>/` layout PLAN_TAIL still accepts is harness's own."""
-    feature_dir = os.path.dirname(resolved_plan)
-    segment_dir = os.path.dirname(os.path.dirname(feature_dir))
-    segment = os.path.basename(segment_dir)
-    return (HARNESS_SEGMENT if segment == ".harness" else segment), os.path.basename(feature_dir)
-
-
 def _code_root(args, root, resolved_plan):
     """The root anchors resolve against: --root for harness's own plan, the required
     --code-root for a served repository's — or the exit-2 refusal that says why not."""
-    segment, feature = _plan_segment(resolved_plan)
-    if segment == HARNESS_SEGMENT:
+    segment = harness_boundary.plan_segment(resolved_plan)
+    feature = os.path.basename(os.path.dirname(resolved_plan))
+    if segment == harness_boundary.HARNESS_SEGMENT:
         if args.code_root is not None:
             _die(2, f"plan-merge: {resolved_plan} is harness's own plan, so its anchors resolve "
                     "under --root; --code-root is only for a served repository's plan.")
