@@ -1832,12 +1832,29 @@ def run_bug1304_claim_set():
     return failures
 
 
+def _cases_root():
+    """A throwaway checkout for the CASES table (#1962): the live manifest, nothing else.
+
+    Run against the live checkout, the in-domain cases read its in-flight claim registry, so
+    any running feature turned five expected passes into claim-worktree refusals and a real
+    guard regression became indistinguishable from "a feature is running". This root carries
+    the real team-config.yaml (the domain rules under test) and no claim registry.
+    """
+    root = tempfile.mkdtemp(prefix="bash-guard-cases-")
+    os.makedirs(os.path.join(root, ".harness"))
+    shutil.copy(os.path.join(ROOT, ".harness", "team-config.yaml"),
+                os.path.join(root, ".harness", "team-config.yaml"))
+    subprocess.run(["git", "init", "-q", root], check=True)
+    return root
+
+
 def main():
     fails = 0
+    cases_root = _cases_root()
     for name, cmd, want, agent in CASES:
         payload = {"agent_type": agent, "tool_name": "Bash", "tool_input": {"command": cmd}}
-        r = subprocess.run([GUARD], input=json.dumps(payload),
-                           capture_output=True, text=True)
+        r = subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
+                           text=True, env=_env(cases_root), cwd=cases_root)
         if r.returncode != want:
             fails += 1
             verb = "should have BLOCKED (2)" if want == 2 else "should have PASSED (0)"
