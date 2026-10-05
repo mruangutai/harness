@@ -854,6 +854,35 @@ def case_41_t04_top_level_station_vocabulary():
                          lambda i: "VIOLATION top-level status")
 
 
+def case_2077_served_repository_plan_routes_against_its_product_base():
+    """#2077: a served repository's plan names paths in ITS repository, so the route question
+    is asked of the fleet's product base for that segment — the base the build hook classifies
+    a product write by. It was asked of the harness tree, where every product source path is
+    NOBODY. A segment the fleet does not declare cannot be answered and is a violation."""
+    import yaml
+    with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
+        _yaml_project(td)
+        shutil.rmtree(os.path.join(td, ".harness", "harness"))
+        os.makedirs(os.path.join(td, ".harness", "factory"))
+        with open(os.path.join(td, ".harness", "factory", "fleet.yaml"), "w") as fh:
+            # The workspace sits OUTSIDE the harness root, as in production: a target inside
+            # the root is the harness base, which never grants product source paths.
+            yaml.safe_dump({"schema": "factory-fleet/1", "workspace_root": ws,
+                            "repos": [{"name": "org/kaya", "default_branch": "main"}]}, fh)
+        for segment in ("kaya", "ghost"):
+            fd = os.path.join(td, ".harness", segment, "features", "FEAT-A")
+            os.makedirs(fd)
+            with open(os.path.join(fd, "plan.yaml"), "w") as fh:
+                fh.write(PLAN_YAML % "src/server/env.ts, { path: apps/web/src/app/page.tsx, create: true }")
+        r = run(project_dir=td)
+        lines = r.stdout.splitlines()
+        check("2077: a served plan's product paths are granted through the fleet product base",
+              "OK T-01 granted to harness-backend-dev, harness-frontend-dev" in lines, r.stdout)
+        check("2077: a segment the fleet does not declare is a violation, not a silent pass",
+              any(ln.startswith("VIOLATION") and "ghost" in ln for ln in lines)
+              and _reports_total(r, 1), r.stdout + r.stderr)
+
+
 def case_23():
     """(23) DEC-182: the plan.yaml path resolves routes through the loader, not regexes.
 
@@ -2308,6 +2337,7 @@ CASES = (
     case_27,
     case_41_t04_task_station_vocabulary,
     case_41_t04_top_level_station_vocabulary,
+    case_2077_served_repository_plan_routes_against_its_product_base,
     case_41_t07_is_shipped_reads_the_plan,
     case_feat64_manifest_deviation_defect_escapes,
     case_feat64_plan_is_parsed_once_per_execution,
