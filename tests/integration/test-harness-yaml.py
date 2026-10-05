@@ -978,6 +978,11 @@ def test_load_plan_verify_shape_gated_on_pending_approval():
         # A real POSIX binary, and a legitimate always-pass fixture verify: (used by
         # test-validate-digest.py's plan-review fixtures) — not prose.
         ("true", "pending"),
+        # #2067: a JS/TS product repository's runners — Kaya's draft plan was refused on
+        # `pnpm exec tsx tests/tooling-contract.ts`.
+        ("pnpm exec tsx tests/tooling-contract.ts", "pending"),
+        ("node scripts/check.mjs", "pending"),
+        ("npx vitest run", "pending"),
         # THE GATE: an approved plan is never re-checked, even carrying prose that
         # would fail this shape if it were still pending.
         ("TBD", "approved"),
@@ -991,6 +996,7 @@ def test_load_plan_verify_shape_gated_on_pending_approval():
         ("MANUAL - build the missing widget", "hyphen, not the em dash"),
         ("TBD", "not MANUAL and not a command"),
         ("by inspection", "prose with no command token"),
+        ("pnpmify the config", "a word that only starts with a runner name"),
     )
     for verify_line, label in rejected:
         with tempfile.TemporaryDirectory() as tmp:
