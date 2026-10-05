@@ -29,7 +29,19 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  integration:
+  # THREE JOBS, ONE REQUIRED CONTEXT (FEAT-2081, DEC-183 D-01). Branch protection on main
+  # requires exactly one context, `integration` — measured: `contexts: ["integration"]`,
+  # `enforce_admins: true`. That string is the ID of the AGGREGATION job at the bottom of this
+  # file, not of the job that runs the gates. `checks` runs the unit suite and every gate with
+  # its command body unchanged; `integration-shards` runs the integration suite as four matrix
+  # cells; and `integration` needs both, runs `if: always()`, and passes ONLY when `checks` and
+  # every shard concluded `success` AND check-integration-shards.py accepts all four manifests
+  # against an independent discovery of the tested commit. Neither `checks` nor a shard is a
+  # required context itself; they are required BECAUSE `integration` refuses without them.
+  # Dropping a job from `needs:` or from the results passed to the validator weakens protection
+  # silently — the same self-protection hole the Plan-route gate comment records, and nothing
+  # detects it.
+  checks:
     # NO `container:`, DELIBERATELY. GitHub-hosted runners execute as a non-root user;
     # a container job runs as root, and root IGNORES file permissions. test-check-domain.py
     # and test-gh-sync.py assert on `chmod 000` paths, so under root they would pass for
@@ -67,31 +79,25 @@ jobs:
       - name: Install PyYAML and jsonschema
         run: python3 -m pip install --upgrade pyyaml jsonschema
 
-      # TWO SEPARATE STEPS, NOT `--kind all` IN ONE. Keeping unit and integration as
-      # distinct steps gives each its own pass/fail attribution in the Actions log,
-      # which a single combined run would not.
+      # UNIT HERE, INTEGRATION IN ITS OWN SHARDED JOB. Keeping unit and integration as
+      # distinct runs gives each its own pass/fail attribution in the Actions log, which a
+      # single `--kind all` run would not; the integration kind now runs in
+      # `integration-shards` below, four ways in parallel.
       #
       # THE UNIT KIND NOW RUNS HERE TOO (FEAT-14/T-03). It used to be 3 files and 0.28s
       # and would have caught none of the defects that motivated this job; that is no
       # longer the whole story. FEAT-14's test-validate-feature-json.py is a UNIT script
       # (measured: 12 files, ~1.2s) and is the only mechanical proof that the
       # feature.json schema checker refuses when jsonschema is unavailable (SC-07) — the
-      # required `integration` context is the one CI branch protection evaluates, so
-      # without this step nothing ever runs that proof. Integration remains the reason
-      # this job exists in the first place: it is where the write-guard, digest and
-      # route-checking assertions live (#160), which the unit kind still does not cover.
+      # required `integration` context is the one CI branch protection evaluates, and it
+      # requires this job, so without this step nothing ever runs that proof. Integration
+      # remains the reason this workflow exists in the first place: it is where the
+      # write-guard, digest and route-checking assertions live (#160), which the unit kind
+      # still does not cover.
       - name: Unit suite
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: .agents/skills/harness/bin/run-unit-tests.py --kind unit
-
-      # Integration kind measured 2026-10-04 at 74 scripts, 83-87s wall locally (12-core arm64,
-      # run_pool's 8 workers); this step took ~131s on ubuntu-latest before the slowest suites
-      # ran their cases concurrently. Re-measure rather than trust these figures.
-      - name: Integration suite
-        env:
-          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
-        run: .agents/skills/harness/bin/run-unit-tests.py --kind integration
 
       # VALIDATE EVERY FEATURE'S EXECUTION STATE (FEAT-14/T-03, REQ-06/REQ-07). No
       # arguments: the CLI sweeps every .harness/*/features/*/feature.{json,yaml,yml} file
@@ -109,13 +115,13 @@ jobs:
       # planner to remember. This step is the mechanism; the sentence stays, because plan time is
       # still when a violation is cheap to fix.
       #
-      # IN THIS JOB, NOT A JOB OF ITS OWN, and this is load-bearing rather than tidy. Branch
-      # protection on main requires exactly one context, `integration` — measured:
-      # `contexts: ["integration"]`, `enforce_admins: true`. That string is this job's ID, and the
-      # job deliberately carries NO `name:` key, so the ID is what GitHub emits. Two traps follow:
-      # moving this step into a job of its own emits a context nobody requires, so a PR would merge
-      # with the route gate red or absent until someone PATCHes protection by hand; and adding a
-      # `name:` to this job renames the context and blocks every PR forever.
+      # IN THE `checks` JOB, AND THAT JOB IS REQUIRED ONLY THROUGH `integration`. Branch
+      # protection on main requires exactly one context, `integration` — the aggregation job's
+      # ID, which deliberately carries NO `name:` key, so the ID is what GitHub emits. Two traps
+      # follow: moving this step into a job that `integration` does not `need` (and whose result
+      # it does not pass to check-integration-shards.py) emits a context nobody requires, so a PR
+      # would merge with the route gate red or absent; and adding a `name:` to `integration`
+      # renames the context and blocks every PR forever.
       #
       # AND THE STEP CAN BE DELETED BY THE THING IT PROTECTS. `pull_request` runs the workflow
       # definition from the PR's own ref, so a PR removing this step still emits `integration` and
@@ -309,9 +315,9 @@ jobs:
       # nothing would say so until the next feature happened to look. This step is the
       # standing detector that criterion could not be.
       #
-      # IN THIS JOB, FOR THE REASON THE PLAN-ROUTE GATE RECORDS ABOVE: branch protection
-      # requires exactly the `integration` context, which is this job's ID. A job of its own
-      # would emit a context nobody requires and merge with this gate red or absent.
+      # IN THE `checks` JOB, FOR THE REASON THE PLAN-ROUTE GATE RECORDS ABOVE: branch protection
+      # requires exactly the `integration` context, which needs `checks` and refuses unless it
+      # concluded `success`. A job outside that chain would merge with this gate red or absent.
       #
       # EXIT CODE IS THE VERDICT, BUT SILENCE IS NOT A PASS. check-state.py prints one row per
       # finding and nothing at all when the corpus is clean, so exit 0 with no output is
@@ -339,4 +345,108 @@ jobs:
           # with note rows present and non-zero only for a refusal, so this step adds no
           # severity judgment of its own and cannot drift from the checker's.
           echo "repository-state gate examined ${features} tracked feature record(s); checker exit ${rc}"
+          exit "$rc"
+
+  integration-shards:
+    # NO `container:` here either, for the non-root reason recorded on `checks`: this is the
+    # job that actually runs test-check-domain.py and test-gh-sync.py.
+    runs-on: ubuntu-latest
+    strategy:
+      # Every shard runs to its own conclusion. A fail-fast cancel would turn one red shard
+      # into three cancelled ones and hide which files actually failed.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same runtime and dependencies as `checks`, for the reasons recorded there.
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install PyYAML and jsonschema
+        run: python3 -m pip install --upgrade pyyaml jsonschema
+
+      # Integration kind measured 2026-10-04 at 74 scripts, 83-87s wall locally (12-core arm64,
+      # run_pool's 8 workers); the single unsharded step took ~131s on ubuntu-latest, inside a
+      # 170s job. Each shard now runs the full discovered selection through run-unit-tests.py's
+      # weighted --shard partition, so a shard's wall time is roughly a quarter of that plus
+      # setup. Per-shard figures are not yet measured on Actions (SC-10 is live UAT evidence) —
+      # measure rather than trust any figure here.
+      #
+      # THE MANIFEST LIVES IN runner.temp, outside the watched bin tree and the checkout. The
+      # runner writes it only after every started script terminated, so a crash or a cancelled
+      # shard leaves no manifest, and `integration` refuses on its absence.
+      - name: Integration suite (shard ${{ matrix.shard }}/4)
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+        run: >-
+          .agents/skills/harness/bin/run-unit-tests.py --kind integration
+          --shard ${{ matrix.shard }}/4
+          --manifest "${{ runner.temp }}/integration-manifest-${{ matrix.shard }}.json"
+
+      # `always()` so a FAILING shard still ships its manifest — its failing records are
+      # evidence. Nothing is fabricated: if the runner never wrote a manifest, nothing is
+      # uploaded and the aggregator reports that shard missing. The name carries the run ID
+      # and shard index; `overwrite` lets a re-run of this cell replace its own earlier upload.
+      - name: Upload shard manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-manifest-${{ github.run_id }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/integration-manifest-${{ matrix.shard }}.json
+          if-no-files-found: warn
+          overwrite: true
+
+  # THE REQUIRED CONTEXT. The job ID is `integration` and there is NO `name:` key: the ID is
+  # what GitHub emits and what branch protection requires. Renaming either blocks every PR.
+  integration:
+    runs-on: ubuntu-latest
+    needs: [checks, integration-shards]
+    # `always()` so a failed, skipped or cancelled dependency still yields a CONCLUSION here —
+    # a FAILED one — instead of a skipped job, which branch protection would never see turn
+    # red. This covers shard-only cancellation (OQ-02). It does not claim to survive whole-
+    # workflow cancellation or supersession of an old PR run; main still never cancels.
+    if: always()
+    steps:
+      # Default ref: on pull_request that is refs/pull/N/merge, whose commit IS github.sha (the
+      # merge commit the shards checked out and recorded as tested_commit); on push to main it
+      # is the pushed commit, also github.sha. One SHA, one tree, for shards and validator.
+      - uses: actions/checkout@v4
+
+      # NO continue-on-error. If the download step errors, the job is already red; the
+      # validator still runs (`always()`) so the log says what was missing, and it fails on the
+      # download outcome explicitly. Zero matching artifacts downloads nothing and the
+      # validator reports every shard's manifest missing.
+      - name: Download shard manifests
+        id: download
+        uses: actions/download-artifact@v4
+        with:
+          pattern: integration-manifest-${{ github.run_id }}-*
+          path: ${{ runner.temp }}/integration-manifests
+          merge-multiple: true
+
+      # The prerequisite results are passed LITERALLY; the validator accepts only `success` for
+      # both and exits 0 only for exact, complete, all-passing coverage of the tested commit's
+      # independently discovered integration files. Exit 1 incomplete, 2 malformed — both red.
+      - name: Validate shard completeness
+        if: always()
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          MATRIX_RESULT: ${{ needs.integration-shards.result }}
+          DOWNLOAD_OUTCOME: ${{ steps.download.outcome }}
+          MANIFEST_DIR: ${{ runner.temp }}/integration-manifests
+          TESTED_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p "$MANIFEST_DIR"
+          rc=0
+          python3 .agents/skills/harness/bin/check-integration-shards.py \
+            --commit "$TESTED_SHA" --shards 4 \
+            --checks-result "$CHECKS_RESULT" --matrix-result "$MATRIX_RESULT" \
+            --manifest-dir "$MANIFEST_DIR" || rc=$?
+          if [ "$DOWNLOAD_OUTCOME" != "success" ]; then
+            echo "::error::downloading shard manifests concluded '${DOWNLOAD_OUTCOME}', not success. Refusing to pass on manifests that may be incomplete." >&2
+            exit 1
+          fi
           exit "$rc"
