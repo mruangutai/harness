@@ -33,7 +33,7 @@ U-01 through U-04 are exercise stages; each letter-suffixed U-step below is one 
 
 ### U-01 — planning (SC-01)
 
-Ask actual harness-product-lead → harness-pm: `Assigned PRODUCT checkout: /tmp/harness-2037-product-c0. Draft the concrete implementation task for export.py: what must empty export return, what record separator is adopted, and which components should participate? Preserve applicable read inputs through the task instructions. Do not edit fixture files.` Supply the three product-relative pointers as read inputs, not contents. Retain real injected CONTROL evidence.
+Ask actual harness-product-lead → harness-pm: `Assigned PRODUCT checkout: /tmp/harness-2037-product-c0. Draft the concrete implementation task for export.py: what must empty export return, what record separator is adopted, and which components should participate? Do not edit fixture files.` Supply the three product-relative pointers as assignment read-input facts, not contents or an explicit preservation instruction. Retain real injected CONTROL evidence.
 
 - U-01a (SC-01): Inspect the planning spec read.
   expect: the observed absolute read targets PRODUCT docs/spec.md Export behavior before the answer.

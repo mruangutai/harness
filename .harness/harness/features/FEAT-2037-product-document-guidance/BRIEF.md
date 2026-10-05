@@ -45,6 +45,6 @@ Issue #2037 identifies missing product-document paths and consultation guidance 
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-10-05

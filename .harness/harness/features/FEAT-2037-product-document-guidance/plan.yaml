@@ -1,8 +1,10 @@
 schema: plan/1
 feature: FEAT-2037-product-document-guidance
 approval:
-  status: pending
-status: plan
+  date: '2026-10-05'
+  approved_by: operator
+  status: approved
+status: review
 source_issues:
 - 2037
 lanes:
@@ -30,7 +32,7 @@ tasks:
     execution_reason: >-
       DEC-21 reserves skill-policy edits to layer 0 and settled DEC-179 ownership resolution returns NOBODY for the three skill files. SPEC.md already has the harness-documentor grant, but accompanies those skill edits in the single-task DEC-225 patch at layer 0 without revoking or extending any grant. Main edits all four paths after signature; no delegated production edits or execution-agent workaround.
     depends_on: []
-    status: ready
+    status: done
     files:
       - path: .claude/skills/harness-principles/SKILL.md
         quote: '## The rules that change your work'
@@ -41,14 +43,14 @@ tasks:
       - path: .harness/harness/docs/SPEC.md
         quote: '## 6. Two knowledge tiers — rules vs expertise'
     verify: |
-      MANUAL — After the four guidance edits and green QA/review prerequisites, operator/main executes the one focused live OMP conduct scenario in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance/.harness/harness/features/FEAT-2037-product-document-guidance/notes/uat-product-document-guidance-c0.md, U-01 through U-04. Record actual PRODUCT read paths, real task intent, real nested dispatch, implementation and reviewer response, and separate missing/unresolved/conflicting reports there. Expected: every assertion passes under distinct PRODUCT and actual CONTROL roots with conflicting same-named docs; operator records passed. Not run at intake. Conduct is not automatable with an existing runner; no new runtime probe or dataset eval is authorized.
-      Separate static checks after edits, from /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance:
+      Task build verification is the static checks below, run from /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance after the four guidance edits.
+      Expected: exit 0, no structural errors or suite FAILs; preload-weight NOTE is advisory and recorded; static results are not behavioural proof.
       python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/check-skill-weight.py /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance
       python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/check-skill-refs.py /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance
       python3 .agents/skills/harness/bin/check-instruction-paths.py
       python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit
       python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration
-      Expected: exit 0, no structural errors or suite FAILs; preload-weight NOTE is advisory and recorded. Static results are not behavioural proof. Reviewer reads all four files at review_sha for SC-04. Do not execute these checks at intake.
+      Independent reviewer reads all four files at review_sha (SC-04), and live notes/uat-product-document-guidance-c0.md U-01 through U-04 with all 27 assertions, operator alone recording passed, and not run at intake remain feature acceptance gates AFTER build and NOT prerequisites of task completion.
     intent: |
       Only main session implements after explicit operator approval. Edit only the four owned Markdown files in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance. This is guidance-only issue 2037, not an agent-role, model, tool-integration, hook, validator, gate, test, registry, configuration or schema change. Supporting SPEC.md update is the documentation update; no extra changelog file is authorized.
       In .claude/skills/harness-principles/SKILL.md add one compact shared resident consultation rule near the existing authority/rules. Name the exact lowercase product-relative paths: docs/spec.md for requirements and behavior; docs/decisions.md for adopted decisions and rationale; docs/architecture.md for architecture and component relationships. Resolve each in the assigned PRODUCT repository checkout identified by the assignment, never substitute HARNESS_CONTROL_PLANE_ROOT or HARNESS_FEATURE_TREE_ROOT. When a requirements, prior-decision or architecture question arises in planning, implementation or review, consult the corresponding relevant sections before assuming an answer or escalating. Review uses the same pointers to judge conformance; a read alone does not prove compliance. For missing documents, report the concrete product path and question; for unresolved guidance, report the question and relevant section lacking an answer; for conflicts, name both sources and the conflicting guidance. Do not invent contents, create missing documents, silently choose precedence or fall back to control-plane documents.
