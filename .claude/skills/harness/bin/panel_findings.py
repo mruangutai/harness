@@ -51,6 +51,11 @@ PROPORTIONALITY_SCOPES = ("task", "mission")
 DISPOSITIONS = ("open", "resolved")
 REQUIRED_KEYS = ("id", "severity", "reader", "kind", "summary", "disposition")
 FINDING_KEYS = REQUIRED_KEYS + ("scope", "resolved_by")
+# The plan panel's reader SLOTS (#2102): `panel.readers[].reader` names one of these, never the
+# persona that filled it (scope = code-reviewer, should-not-exist = fable-advisor, design =
+# ui-reviewer, goalcheck = pm). A FINDING's `reader` is different: it is the reporting persona,
+# as each reviewer's contract writes it, and half of the finding's id, so it is not a slot.
+PANEL_READERS = ("should-not-exist", "scope", "design", "goalcheck")
 
 
 def _enum_fault(finding, key, allowed):
