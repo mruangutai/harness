@@ -575,6 +575,32 @@ def _repository_collision_and_unreadable(
     ))
 
 
+def _repository_binding_in_feature_worktree(results, inflight_registry):
+    """#2056: a fleet feature plans in its harness planning worktree, and dispatch-guard records
+    its claims where inflight_registry.feature_root puts the feature — that worktree's registry.
+    The repository binding must be read from that same registry, not the owner root's, or every
+    product-segment write of a correctly dispatched child is refused as `missing`."""
+    feature = "FEAT-01-product-a-platform"
+    root, products = _repository_fixture()
+    worktree = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", "harness", feature), feature)
+    assert os.path.realpath(inflight_registry.feature_root(root, feature)) == os.path.realpath(worktree)
+    _repository_claim(
+        inflight_registry, worktree, "product-a", feature, "DocumentorOne", "ProductLeadOne")
+    for name, target in (
+        ("worktree-registry binding allows the planning worktree's control-plane segment",
+         os.path.join(worktree, ".harness", "product-a", "docs", "change.md")),
+        ("worktree-registry binding allows the product checkout",
+         products["product-a"]),
+    ):
+        _record_repository_result(results, name, _repository_fire(
+            root, target, feature, "DocumentorOne", "ProductLeadOne"), 0)
+    _record_repository_result(
+        results, "worktree-registry binding still refuses a stranger's lineage",
+        _repository_fire(root, products["product-a"], feature, "Stranger", "ProductLeadOne"),
+        2, "runtime repository binding")
+
+
 def _repository_binding_routes(results, inflight_registry):
     """FEAT-495: wildcard product grants never outrank exact runtime repository lineage."""
     feature = "FEAT-495-product-write"
@@ -583,6 +609,7 @@ def _repository_binding_routes(results, inflight_registry):
     _repository_stale_and_ambiguous(results, inflight_registry, feature)
     _repository_collision_and_unreadable(
         results, inflight_registry, feature, first["claim_id"])
+    _repository_binding_in_feature_worktree(results, inflight_registry)
 
 
 def run_bug1304_claim_set():

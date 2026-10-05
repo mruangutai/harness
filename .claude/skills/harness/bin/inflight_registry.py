@@ -771,11 +771,16 @@ def repository_binding(
 
     The run-start claim (BUG-1898) carries the runtime lineage; the dispatch receipt it
     bound carries the repository. A product write is allowed only when exactly one live
-    claim matches the child, its immediate parent, feature, role, and repository."""
+    claim matches the child, its immediate parent, feature, role, and repository.
+
+    `root` is the OWNER root; the registry read is the feature's own, resolved through
+    feature_root — the one resolver dispatch-guard and run-start write claims through
+    (BUG-1898: one resolver, one registry). #2056: reading the owner root's registry refused
+    every product write of a fleet feature planning in its harness worktree as `missing`."""
     if not all((agent, feature, repository, agent_id, parent_agent_id)):
         return "missing"
     try:
-        claims = _read_strict(root)
+        claims = _read_strict(feature_root(root, feature))
     except UnreadableRegistry:
         return "unreadable"
     identity_claims, exact = _repository_claim_groups(
