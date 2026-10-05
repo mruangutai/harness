@@ -170,6 +170,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "Outside panel on PR #2103 found 2 high + 5 medium after validate c3 PASS; operator raised rework to 3/180 and approved fix c3; re-verify at 35587d8d"
+    },
+    {
+      "at": "2026-10-05T22:26:26+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "validate c4 FAIL on one med must-fix (sparse-checkout stdin quoting); operator approved round 4; re-verify at f8a67546"
     }
   ],
   "mission": "plan",
