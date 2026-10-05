@@ -1,11 +1,17 @@
 #!/bin/sh
-# post-merge — FEAT-34 T-11. A SHIM AND NOTHING ELSE.
+# post-merge — FEAT-34 T-11, FEAT-1559 T-04. A SHIM AND NOTHING ELSE: two delegates, in order.
 #
-# THE WHOLE CONTENT OF THIS FILE IS A PATH. That is deliberate (D-08): the sweep body lives in
-# post-merge-sweep.py, where a real test can reach it, and SC-14 is the assertion that the path
-# here is real. A shim pointing at a file that does not exist satisfies SC-08 in full — it
-# resolves and it is executable — and would leave the automation dead. Never move sweep logic
-# into this file; there would then be two implementations of one rule and no test on this one.
+#   1. `worktree-state.py --repair` on the checkout git just merged into (FEAT-1559). A merge that
+#      brings in a new top-level directory leaves a sparse worktree's cone stale until it is
+#      re-derived. Same contract as post-checkout, which explains the two roots.
+#   2. post-merge-sweep.py, the terminal sweep (FEAT-34), whatever repair did.
+#
+# THE CONTENT OF THIS FILE IS PATHS AND REPORTING. That is deliberate (D-08): the sweep body lives
+# in post-merge-sweep.py and the layout body in worktree-state.py, where real tests reach them,
+# and SC-14 is the assertion that the sweep's path here is real. A shim pointing at a file that
+# does not exist satisfies SC-08 in full — it resolves and it is executable — and would leave the
+# automation dead. Never move sweep or layout logic into this file; there would then be two
+# implementations of one rule and no test on this one.
 #
 # core.hooksPath REPLACES the clone's hook directory ENTIRELY. Every hook git looks for is
 # resolved in this directory and .git/hooks is bypassed. Any hook this repository later wants
@@ -20,17 +26,45 @@
 _here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 0
 _root=$(CDPATH= cd -- "$_here/../../../.." && pwd -P) || exit 0
 
+_state="$_root/.claude/skills/harness/bin/worktree-state.py"
 _sweep="$_root/.claude/skills/harness/bin/post-merge-sweep.py"
 
-# EXIT 0 WHEN THE SWEEP IS MISSING, AND SAY SO ONCE. A post-merge hook that exits non-zero makes
-# git print an error after a merge that SUCCEEDED, which reads as a broken pull. A missing sweep
-# is a broken tree, not a broken merge. Nothing is silently swallowed: INV-29 is what turns the
-# resulting missed removal into a refusal at the next gate run.
+# 1. LAYOUT REPAIR, on git's checkout (its top level), never on the root this file sits in. Every
+# outcome is reported and none stops the sweep: a post hook cannot undo the merge, and
+# `worktree-state.py --verify` stays the gate.
+if ! _top=$(git rev-parse --show-toplevel 2>/dev/null); then
+  echo "post-merge: not inside a working tree; no layout repair ran." >&2
+elif [ ! -x "$_state" ]; then
+  echo "post-merge: $_state is missing or not executable; no layout repair ran in $_top." >&2
+else
+  # stdin is </dev/null: repair never reads it, and must not swallow what git hands a hook.
+  _out=$("$_state" --repair --checkout "$_top" </dev/null 2>&1)
+  _rc=$?
+  if [ "$_rc" -ne 0 ]; then
+    printf '%s\n' "$_out" >&2
+    if [ "$_rc" -eq 8 ]; then
+      echo "post-merge: layout repair SKIPPED in $_top: it carries work repair must not touch (exit 8), so nothing was changed. Commit or stash it; the next checkout, merge or rewrite repairs the layout." >&2
+    else
+      echo "post-merge: worktree-state.py --repair exited $_rc in $_top; the layout is NOT converged. Run worktree-state.py --verify there." >&2
+    fi
+  fi
+fi
+
+# 2. THE SWEEP. EXIT 0 WHEN IT IS MISSING, AND SAY SO ONCE. A post-merge hook that exits non-zero
+# makes git print an error after a merge that SUCCEEDED, which reads as a broken pull. A missing
+# sweep is a broken tree, not a broken merge. Nothing is silently swallowed: INV-29 is what turns
+# the resulting missed removal into a refusal at the next gate run.
 if [ ! -x "$_sweep" ]; then
   echo "post-merge: $_sweep is missing or not executable — no worktree sweep ran."
   exit 0
 fi
 
 # "$@" PASSES THROUGH UNCHANGED so git's squash flag reaches the sweep, which per T-03's
-# contract ignores it. exec rather than a call: there is nothing to do after this.
-exec "$_sweep" "$@"
+# contract ignores it. A call, not exec (FEAT-1559): the sweep's own failure is attributed here,
+# and the hook still exits 0.
+"$_sweep" "$@"
+_rc=$?
+if [ "$_rc" -ne 0 ]; then
+  echo "post-merge: post-merge-sweep.py exited $_rc; the worktree sweep did not finish." >&2
+fi
+exit 0

@@ -81,6 +81,20 @@
       "kind": "amendment",
       "decision": "T-03.files",
       "reason": "Sparse worktree broke 5 suite files and 2 readers reading other features locally; they now use feature_corpus.corpus_path. Seam and T-02 verify parser shared."
+    },
+    {
+      "at": "2026-10-05T14:37:44.514835+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-04.files",
+      "reason": "Basename clash with T-04's integration test-worktree-state-hooks.py (run-unit-tests.py refuses it); unit file renamed test-worktree-state-hooks-rules.py."
+    },
+    {
+      "at": "2026-10-05T14:37:47.030278+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-04.verify",
+      "reason": "Basename clash with T-04's integration test-worktree-state-hooks.py (run-unit-tests.py refuses it); unit file renamed test-worktree-state-hooks-rules.py."
     }
   ],
   "mission": "plan",

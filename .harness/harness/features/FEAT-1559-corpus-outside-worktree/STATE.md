@@ -20,7 +20,13 @@
   `harness-simplify` conflict is resolved by `check-skill-refs` reading the main corpus. Unit
   (52 files) and integration (83 files) suites pass in this sparse worktree; check-state exit
   0. Receipt in notes/receipt-T-03.md.
-- next: T-04, the post-checkout / post-merge / post-rewrite shims that run `--repair`
+- T-04: built. post-checkout and post-rewrite added and post-merge extended: each runs
+  `worktree-state.py --repair` on git's checkout, reports every failure and exits 0;
+  post-merge still sweeps. All four creators converge before any record exists; merge, rebase
+  and amend leave verify 0; class C is skipped byte-identical. On git 2.54 merges keep skip bits,
+  so class A is exercised via an index rewrite then amend (receipt-T-04.md). Unit (53) and
+  integration (84) suites pass.
+- next: T-05, real-owner evidence, OMP adapter absolute-read test, operator guidance
 - cycles_used: 0 / 10
 - board: milestone #99, parent #2086, tasks #2088-#2094
 

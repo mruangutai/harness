@@ -733,22 +733,20 @@ tasks:
   depends_on:
   - T-01
   - T-03
-  status: ready
+  status: building
   files:
   - .claude/skills/harness/hooks/post-checkout
   - .claude/skills/harness/hooks/post-merge
   - .claude/skills/harness/hooks/post-rewrite
-  - tests/unit/test-worktree-state-hooks.py
+  - tests/unit/test-worktree-state-hooks-rules.py
   - tests/integration/test-worktree-state-hooks.py
   verify: 'set -e
 
-    python3 tests/unit/test-worktree-state-hooks.py
+    python3 tests/unit/test-worktree-state-hooks-rules.py
 
     python3 tests/integration/test-worktree-state-hooks.py
 
-    # Expected: both exit 0 within 60 seconds; shims return 0 and each named Git operation preserves layout and delegate integrity.
-
-    '
+    # Expected: both exit 0 within 60 seconds; shims return 0 and each named Git operation preserves layout and delegate integrity.'
   intent: 'Execute directly under DEC-174 and capture each hook behavior failure before production edits. Install tracked executable post-checkout and post-rewrite scripts beside the existing post-merge; modify post-merge without replacing the terminal sweep or changing core.hooksPath configuration. Each shim resolves the implementation relative to the hook installation but applies worktree-state.py --repair to git''s current affected checkout, not the owner of an absolute hook script path. Do not use a helper-specific hook or change feature-worktree.py or pinned-checkout.py. In post-merge retain post-merge-sweep.py after repair; remove unconditional exec so delegate failures can be attributed and the shim still exits 0. Report absent implementations, nonzero delegate statuses and dirty skips explicitly; all shims exit 0 because post hooks cannot veto the Git operation. Preserve hook argv and post-rewrite stdin for delegates and do not let repair consume it. Repair refusing class-C state must leave files/index/config unchanged. Verify is still the authoritative gate; a fail-open post-hook exit is never evidence the layout is valid.
 
     Unit tests exercise every shim, executable mode and delegation under spaces in paths, missing/failing command and post-merge sweep preservation. Integration tests start from minimal T-01 repositories configured with the hooks and prove direct bare git worktree add, feature-worktree creation and pinned-checkout creation all converge. Fleet planning creation uses a distinct artifact segment and pins retain _pin_name naming. Reproduce a merge touching a hidden feature that previously clears skip-bits and leaves unstaged absent outside-cone paths (class A, not staged class-C deletions), and a rebase invoking post-rewrite; require clean status and verifier success after each. A class-C tree reports a skipped repair and remains byte-identical. No test installs hooks in the live owner checkout or mutates its worktree registrations.
