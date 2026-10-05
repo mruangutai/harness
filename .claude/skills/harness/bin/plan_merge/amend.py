@@ -1,10 +1,14 @@
 """`amend`: one field on one item, under a compare-and-swap hash. (FEAT-70)"""
 import hashlib
+import os
 import sys
 import yaml
+from datetime import datetime, timezone
 
+import artifact_accessors
 import harness_merge
 import harness_yaml
+from plan_merge.amendments import write_plan_and_ledger
 from plan_merge.stations import APPROVAL_RESET_LINE
 from plan_merge.text import (
     _UNPARSEABLE, _dedent_value, _expected_value, _field_block, _item_range, _parsed_value,
@@ -221,8 +225,42 @@ def _amend_preflight(args):
     return resolved
 
 
+# #1985 — the signed text changes only with its ledger entry. INV-40 (d) flags a task whose
+# intent/files/verify no longer hash to what sign-approval recorded unless judgements[] carries
+# an amendment naming that task. `record-amendments` always wrote one; `amend` wrote none, so
+# every amend of a signed field manufactured an INV-40 finding with nobody's reason on record.
+# Exactly that case is ledgered here — the same field set and the same signed_task_hashes
+# INV-40 grades — so pre-signature planning edits add no noise to the operator's audit.
+LEDGERED_FIELDS = ("intent", "files", "verify")
+
+
+def _ledgered_target(args, resolved):
+    """feature.json's path when this replace changes a signed task field, else None."""
+    if args.key != "tasks" or args.field not in LEDGERED_FIELDS:
+        return None
+    feature_json = os.path.join(os.path.dirname(resolved), "feature.json")
+    try:
+        record = artifact_accessors.load_feature_json(feature_json)
+    except artifact_accessors.FeatureJsonError as error:
+        _die(2, f"plan-merge: cannot tell whether {args.id}.{args.field} is signed text — {error}")
+    signed = record.get("signed_task_hashes") if isinstance(record, dict) else None
+    return feature_json if isinstance(signed, dict) and args.id in signed else None
+
+
+def _amend_judgement(args):
+    if not (args.reason or "").strip():
+        _die(2, f"plan-merge: {args.id}.{args.field} is signed text, so the change is ledgered "
+                "as an amendment judgement (INV-40) — supply --reason saying why it changed.")
+    return {"at": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
+            "by": os.environ.get("HARNESS_AGENT_TYPE") or "main-session",
+            "kind": "amendment", "decision": f"{args.id}.{args.field}",
+            "reason": args.reason.strip()}
+
+
 def cmd_amend(args):
     resolved = _amend_preflight(args)
+    ledger = _ledgered_target(args, resolved)
+    judgement = _amend_judgement(args) if ledger else None
     want_value, value_text = _amend_request(args)
     result = {}
 
@@ -252,11 +290,17 @@ def cmd_amend(args):
         return spliced.encode("utf-8")
 
     try:
-        _locked_plan_update(resolved, transform)
+        if ledger:
+            write_plan_and_ledger(resolved, ledger, transform, [judgement])
+        else:
+            _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
-    print(f"AMENDED {args.key}:{args.id}.{args.field}")
+    print(f"AMENDED {args.key}:{args.id}.{args.field}"
+          + (" judgement=amendment" if ledger else ""))
     if result.get("reset"):
         print(APPROVAL_RESET_LINE)
     print(f"APPLIED {resolved}")
+    if ledger:
+        print(f"APPLIED {ledger}")
     sys.exit(0)

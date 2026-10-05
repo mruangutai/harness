@@ -26,4 +26,6 @@ repos:
     # (`provision`'s create branch only fires when the declared project number does not exist,
     # and no fake can prove GitHub accepts the mutation). Its board and stations live in its own
     # `.harness/harness.json` on `main`, like every other member's.
+  - name: mruangutai/kaya
+    default_branch: main
 workspace_root: /Users/molchairuangutai/GitHub/harness-factories
