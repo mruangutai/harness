@@ -8,13 +8,18 @@ accepts the same three shapes; check-plan-routes.py strips an anchor to its path
 check-domain.py who owns it. Three readers, one grammar, so a form one of them accepts cannot be
 a form another refuses.
 
-Three legal forms:
+Four legal forms:
 
     path                         a file, existing or to be created inside an existing directory
     path#symbol                  a definition inside the file — a line whose prefix is one of
                                  SYMBOL_PREFIXES followed by the symbol, or the symbol as a
                                  whole token anywhere in the file
     {path: <p>, quote: <q>}      a line of the file that contains <q> verbatim
+    {path: <p>, create: true}    a NEW file whose directories may not exist yet (#2065) — a
+                                 greenfield tree. Resolves only while the file is absent and no
+                                 ancestor of it is a file; never a glob. The bare form keeps its
+                                 existing-directory rule, so a typo'd directory there still
+                                 fails: creating a tree has to be said, not inferred.
 
 And one REFUSED form: `path:NN`, a line number. Measured on FEAT-54 (BRIEF ## Problem): the first
 build dispatch BLOCKED on five plan paths that four goal-check cycles and three panel cycles had
@@ -32,7 +37,7 @@ import re
 LINE_NUMBER_RE = re.compile(r"^(.+):(\d+)$")
 GLOB_CHARS = ("*", "?", "[")
 SYMBOL_PREFIXES = ("def ", "class ", "function ", "const ", "export ")
-_LEGAL = "path, path#symbol, or {path, quote}"
+_LEGAL = "path, path#symbol, {path, quote}, or {path, create: true}"
 
 
 class AnchorError(ValueError):
@@ -53,12 +58,33 @@ def _parse_text(entry):
 
 
 def _parse_mapping(entry):
-    if set(entry) != {"path", "quote"}:
+    keys = set(entry)
+    if keys == {"path", "create"}:
+        return _parse_create(entry)
+    if keys != {"path", "quote"}:
         raise AnchorError(
-            f"{entry!r} is not a {{path, quote}} mapping — it carries {sorted(map(str, entry))}")
+            f"{entry!r} is not a {{path, quote}} or {{path, create: true}} mapping — it carries "
+            f"{sorted(map(str, entry))}")
     if not all(isinstance(v, str) and v.strip() for v in entry.values()):
         raise AnchorError(f"{entry!r} needs non-empty strings for both path and quote")
     return entry["path"], None, entry["quote"]
+
+
+def _parse_create(entry):
+    path = entry["path"]
+    if entry["create"] is not True:
+        raise AnchorError(f"{entry!r}: create must be exactly true — omit the mapping for an "
+                          "existing file")
+    if not isinstance(path, str) or not path.strip():
+        raise AnchorError(f"{entry!r} needs a non-empty path")
+    if is_glob(path):
+        raise AnchorError(f"{entry!r}: a create entry names one file, never a glob")
+    return path, None, None
+
+
+def is_create(entry):
+    """True for a legal `{path, create: true}` entry."""
+    return isinstance(entry, dict) and set(entry) == {"path", "create"} and entry["create"] is True
 
 
 def parse(entry):
@@ -139,6 +165,19 @@ def _resolve_absent(path, target, anchored, root):
     return f"{path} does not exist under {root} and neither does its directory"
 
 
+def _resolve_create(path, target, root):
+    """A declared new file: absent, and every ancestor that exists is a directory."""
+    if os.path.lexists(target):
+        return (f"{path} already exists under {root} — a create entry names a new file; name "
+                "an existing one as a bare path")
+    parent = os.path.dirname(target)
+    while not os.path.lexists(parent):
+        parent = os.path.dirname(parent)
+    if not os.path.isdir(parent):
+        return f"{path} cannot be created: {os.path.relpath(parent, root)} is a file"
+    return None
+
+
 def _resolve_content(path, target, symbol, quote):
     """The anchor's own test against the file's text."""
     try:
@@ -174,6 +213,8 @@ def resolve(entry, root):
         return f"{path} resolves outside {root}"
     if is_glob(path):
         return _resolve_glob(entry, path, anchored, root)
+    if is_create(entry):
+        return _resolve_create(path, target, root)
     if not os.path.isfile(target):
         return _resolve_absent(path, target, anchored, root)
     if not anchored:

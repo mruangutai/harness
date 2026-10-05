@@ -3,10 +3,20 @@ import os
 import re
 import sys
 
+import artifact_accessors
 import harness_boundary
 import harness_yaml
 import plan_anchors
 from plan_merge.guards import BIN_DIR, _die, _resolve_plan
+
+# A SERVED REPOSITORY'S PLAN HAS TWO ROOTS (#2064). Its plan lives in the harness PLANNING
+# worktree under `.harness/<segment>/features/<id>/`, but the code it names lives in the paired
+# CODE worktree (#2058). Anchors resolve against the code worktree; routes are still answered by
+# the harness manifest under --root, asked about the ABSOLUTE product path so check-domain
+# selects the fleet's product base exactly as the build hook will. Resolving product paths
+# against the harness tree was the defect: false passes for paths both trees share
+# (docs/…, .harness/…) and NOBODY for every product source path.
+HARNESS_SEGMENT = "harness"
 
 # ---------------------------------------------------------------------------
 # `check` — resolve every anchor, route and trace before a plan is signed (FEAT-59 SC-07).
@@ -42,8 +52,9 @@ class _Routes:
     is answered by its owner (the DEVIATION rule), and no environment is set here — the
     retired env chain is refused by test-no-distribution case 6."""
 
-    def __init__(self, root):
+    def __init__(self, root, code_root):
         self.root = root
+        self.code_root = code_root
         self.cpr = _check_plan_routes_module()
         try:
             self.manifest_root, self.deviation = self.cpr.resolution_manifest(root)
@@ -53,7 +64,8 @@ class _Routes:
 
     def granted(self, path):
         if path not in self._granted:
-            self._granted[path] = self.cpr.resolve_agents(path, self.root, self.manifest_root)
+            asked = os.path.join(self.code_root, path) if self.code_root else path
+            self._granted[path] = self.cpr.resolve_agents(asked, self.root, self.manifest_root)
         return self._granted[path]
 
 
@@ -100,18 +112,57 @@ def _check_tasks(doc, resolved_plan):
     return tasks
 
 
+def _plan_segment(resolved_plan):
+    """(segment, feature id) from `.harness/<segment>/features/<id>/plan.yaml`."""
+    feature_dir = os.path.dirname(resolved_plan)
+    segment_dir = os.path.dirname(os.path.dirname(feature_dir))
+    return os.path.basename(segment_dir), os.path.basename(feature_dir)
+
+
+def _fleet_repo(root, segment):
+    """The owner/repo fleet name whose segment is `segment`, for the refusal's command."""
+    try:
+        fleet = artifact_accessors.load_fleet(os.path.join(root, ".harness", "factory", "fleet.yaml"))
+    except artifact_accessors.FleetError:
+        return f"<owner>/{segment}"
+    names = [e.get("name") for e in fleet.get("repos", []) if isinstance(e, dict)]
+    return next((n for n in names if isinstance(n, str) and n.split("/", 1)[-1] == segment),
+                f"<owner>/{segment}")
+
+
+def _code_root(args, root, resolved_plan):
+    """The root anchors resolve against: --root for harness's own plan, the required
+    --code-root for a served repository's — or the exit-2 refusal that says why not."""
+    segment, feature = _plan_segment(resolved_plan)
+    if segment == HARNESS_SEGMENT:
+        if args.code_root is not None:
+            _die(2, f"plan-merge: {resolved_plan} is harness's own plan, so its anchors resolve "
+                    "under --root; --code-root is only for a served repository's plan.")
+        return None
+    if args.code_root is None:
+        _die(2, f"plan-merge: {resolved_plan} is a {segment} plan, so its anchors resolve in "
+                f"its code worktree — pass --code-root, the CODE line of: feature-worktree.py "
+                f"path --repo {_fleet_repo(root, segment)} --id {feature}")
+    code_root = os.path.abspath(args.code_root)
+    if not os.path.isdir(code_root):
+        _die(2, f"plan-merge: --code-root {code_root} is not a directory — create the paired "
+                "worktree with feature-worktree.py create first.")
+    return code_root
+
+
 def _check_inputs(args):
-    """(resolved plan path, root, tasks) — or the exit-2/exit-5 refusal that says why not."""
+    """(resolved plan path, root, code root or None, tasks) — or the exit-2/exit-5 refusal."""
     resolved_plan = _resolve_plan(args.file)
     root = os.path.abspath(args.root)
     if not os.path.isfile(os.path.join(root, harness_boundary.MARKER)):
         _die(2, f"plan-merge: {root} carries no {harness_boundary.MARKER}, so no route can be "
                 "resolved against it — --root must be a harness checkout.")
+    code_root = _code_root(args, root, resolved_plan)
     try:
         doc = harness_yaml.load_file(resolved_plan)
     except harness_yaml.YamlParseError as exc:
         _die(5, f"plan-merge: {resolved_plan} does not load: {exc}")
-    return resolved_plan, root, _check_tasks(doc, resolved_plan)
+    return resolved_plan, root, code_root, _check_tasks(doc, resolved_plan)
 
 
 def _brief_text(resolved_plan):
@@ -158,17 +209,18 @@ def _overlap_lines(tasks):
 
 
 def cmd_check(args):
-    resolved_plan, root, tasks = _check_inputs(args)
-    routes = _Routes(root)
+    resolved_plan, root, code_root, tasks = _check_inputs(args)
+    routes = _Routes(root, code_root)
+    anchor_root = code_root or root
     brief_text, brief_fault = _brief_text(resolved_plan)
     preface = [f"FAIL {routes.deviation}"] if routes.deviation else []
     preface += [brief_fault] if brief_fault else []
-    task_failures, total = _check_all(tasks, root, brief_text, routes)
+    task_failures, total = _check_all(tasks, anchor_root, brief_text, routes)
     failures = preface + task_failures
     for line in failures:
         print(line)
     for line in _overlap_lines(tasks):
         print(line)
-    print(f"CHECK {resolved_plan} against {root}: {len(tasks)} task(s), {total} anchor(s) "
-          f"resolved, {len(failures)} failure(s)")
+    print(f"CHECK {resolved_plan} against {anchor_root}: {len(tasks)} task(s), {total} "
+          f"anchor(s) resolved, {len(failures)} failure(s)")
     sys.exit(1 if failures else 0)
