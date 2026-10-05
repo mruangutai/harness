@@ -23,11 +23,14 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_tests)
 import json
 import os
 import subprocess
 import sys
 import tempfile
+
+from git_support import add_worktree, commit_feature, commit_files, init_repo
 
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = _anchor_bin
@@ -35,15 +38,8 @@ sys.path.insert(0, BIN_DIR)
 
 
 def _repo(path, branch="main"):
-    os.makedirs(path, exist_ok=True)
-    for cmd in (["git", "init", "-q", "-b", branch],
-                ["git", "config", "user.email", "t@example.com"],
-                ["git", "config", "user.name", "t"]):
-        subprocess.run(cmd, cwd=path, capture_output=True)
-    with open(os.path.join(path, "f.txt"), "w") as f:
-        f.write("x\n")
-    subprocess.run(["git", "add", "f.txt"], cwd=path, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", "init"], cwd=path, capture_output=True)
+    init_repo(path, branch)
+    commit_files(path, {"f.txt": "x\n"}, "init")
     return path
 
 
@@ -61,29 +57,12 @@ def _commit_feature(repo, feature_id, status_or_raw, repo_segment="harness",
     other's directory: a plan.yaml committed separately would be absent at the ref the
     landed-blob read uses, which is a different case from the one being built.
     """
-    rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
-    abs_path = os.path.join(repo, rel)
-    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-    with open(abs_path, "w") as f:
-        if isinstance(status_or_raw, str):
-            f.write(status_or_raw)
-        else:
-            json.dump(status_or_raw, f)
-    paths = [rel]
-    if plan_station is not None:
-        plan_rel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
-        with open(os.path.join(repo, plan_rel), "w") as f:
-            f.write(f"feature: {feature_id}\nstatus: {plan_station}\ntasks: []\n")
-        paths.append(plan_rel)
-    subprocess.run(["git", "add"] + paths, cwd=repo, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
+    commit_feature(repo, feature_id, status_or_raw, repo_segment, f"add {feature_id}",
+                   plan_station=plan_station)
 
 
 def _add_wt(repo, worktree_id, repo_segment="harness"):
-    dest = os.path.join(repo, ".claude", "worktrees", repo_segment, worktree_id)
-    subprocess.run(["git", "worktree", "add", "-q", "-b", f"wt-{worktree_id}-{repo_segment}",
-                    dest, "HEAD"], cwd=repo, capture_output=True)
-    return dest
+    return add_worktree(repo, worktree_id, repo_segment, f"wt-{worktree_id}-{repo_segment}")
 
 
 def case_classify():
