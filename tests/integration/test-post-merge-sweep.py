@@ -66,7 +66,10 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
+import concurrent.futures
+import functools
 import json
+import multiprocessing
 import os
 import re
 import shutil
@@ -159,10 +162,28 @@ def _install_fixture_bin(fixture_root):
 # T-03's original helpers — UNCHANGED, still used by case_dry_run_safety().
 # ---------------------------------------------------------------------------------------------
 
-def _repo(path, branch="main"):
-    init_repo(path, branch)
+def _seed_repo(path):
+    init_repo(path, "main")
     commit_files(path, {"f.txt": "x\n"}, "init")
     return path
+
+
+# Each process builds every seed repository once, before any worktree exists, and copies it per
+# case: the copy is the same branch, identity, files and commit messages, with no absolute path
+# inside `.git`, so every case still starts from that exact state.
+_TEMPLATES = {}
+
+
+def _from_template(path, build):
+    if build not in _TEMPLATES:
+        holder = tempfile.TemporaryDirectory()
+        _TEMPLATES[build] = (holder, build(os.path.join(holder.name, "R")))
+    shutil.copytree(_TEMPLATES[build][1], path, symlinks=True)
+    return path
+
+
+def _repo(path):
+    return _from_template(path, _seed_repo)
 
 
 def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harness"):
@@ -256,18 +277,22 @@ def case_dry_run_safety():
 # T-04 helpers.
 # ---------------------------------------------------------------------------------------------
 
-def _bootstrap_repo(path, github_repo="acme/repo-x"):
-    _repo(path)
+def _seed_bootstrap_repo(path):
+    _seed_repo(path)
     os.makedirs(os.path.join(path, ".harness", "harness", "docs"), exist_ok=True)
     with open(os.path.join(path, ".harness", "harness", "docs", "SPEC.md"), "w") as f:
         f.write("probe\n")
     with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
         f.write("schema: team-config/1\n")
     with open(os.path.join(path, ".harness", "harness.json"), "w") as f:
-        json.dump({"github": {"sync": True, "repo": github_repo, "board": None}}, f)
+        json.dump({"github": {"sync": True, "repo": "acme/repo-x", "board": None}}, f)
     subprocess.run(["git", "add", "-A"], cwd=path, capture_output=True)
     subprocess.run(["git", "commit", "-qm", "bootstrap"], cwd=path, capture_output=True)
     return path
+
+
+def _bootstrap_repo(path):
+    return _from_template(path, _seed_bootstrap_repo)
 
 
 def _sweep_env(repo, gh_env):
@@ -915,63 +940,67 @@ def case_linked_worktree_main_checkout():
                          "found and ship succeeded against the correct main-checkout copy",
                          not os.path.isdir(dest), f"dest={dest}"))
     return results
+
+
+# The T-07 retention matrix: one row per job, so the rows run concurrently and still report in
+# table order.
+_T07_NAMES = (
+    "T-07 non-era absent build_entry keeps the worktree",
+    "T-07 recovery-required keeps the worktree",
+    "T-07 opened removes the worktree",
+    "T-07 recovered-terminal removes the worktree",
+    "T-07 unparseable feature.json keeps the worktree",
+    "T-07 sync false removes the worktree",
+    "T-07 era-exempt absent build_entry is swept",
+    "T-07 era-exempt recovery-required keeps the worktree",
+    "T-13 not-applicable removes the worktree",
+)
+_T07_SHAPES = (
+    ("FEAT-9001-fixture-non-era", None, True, False),
+    ("FEAT-9001-fixture-non-era", "recovery-required", True, False),
+    ("FEAT-9001-fixture-non-era", "opened", True, True),
+    ("FEAT-9001-fixture-non-era", "recovered-terminal", True, True),
+    ("FEAT-9001-fixture-non-era", "invalid", True, False),
+    ("FEAT-9001-fixture-non-era", "opened", False, True),
+    ("BUG-1030-stale-anchor-write-hazard", None, True, True),
+    ("BUG-1030-stale-anchor-write-hazard", "recovery-required", True, False),
+    ("FEAT-9001-fixture-non-era", "not-applicable", True, True),
+)
+
+
 # GRADE-2 REASON: the table-driven test keeps all eight retention states in one visible
 # matrix, so the era pair and no-mirror contrast cannot drift apart.
-def case_t07_build_entry_receipt():
-    names = (
-        "T-07 non-era absent build_entry keeps the worktree",
-        "T-07 recovery-required keeps the worktree",
-        "T-07 opened removes the worktree",
-        "T-07 recovered-terminal removes the worktree",
-        "T-07 unparseable feature.json keeps the worktree",
-        "T-07 sync false removes the worktree",
-        "T-07 era-exempt absent build_entry is swept",
-        "T-07 era-exempt recovery-required keeps the worktree",
-        "T-13 not-applicable removes the worktree",
-    )
-    shapes = (
-        ("FEAT-9001-fixture-non-era", None, True, False),
-        ("FEAT-9001-fixture-non-era", "recovery-required", True, False),
-        ("FEAT-9001-fixture-non-era", "opened", True, True),
-        ("FEAT-9001-fixture-non-era", "recovered-terminal", True, True),
-        ("FEAT-9001-fixture-non-era", "invalid", True, False),
-        ("FEAT-9001-fixture-non-era", "opened", False, True),
-        ("BUG-1030-stale-anchor-write-hazard", None, True, True),
-        ("BUG-1030-stale-anchor-write-hazard", "recovery-required", True, False),
-        ("FEAT-9001-fixture-non-era", "not-applicable", True, True),
-    )
-    results = []
-    for name, (feature, entry, sync, removed) in zip(names, shapes):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = _bootstrap_repo(os.path.join(tmp, "R"))
-            sweep = _install_fixture_bin(repo)
-            _commit_feature(repo, feature, "Done", milestone=9)
-            feature_path = os.path.join(repo, ".harness", "harness", "features", feature, "feature.json")
-            if entry == "invalid":
-                with open(feature_path, "w") as f:
-                    f.write("{")
+def case_t07_build_entry_receipt(row):
+    name, (feature, entry, sync, removed) = _T07_NAMES[row], _T07_SHAPES[row]
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        _commit_feature(repo, feature, "Done", milestone=9)
+        feature_path = os.path.join(repo, ".harness", "harness", "features", feature, "feature.json")
+        if entry == "invalid":
+            with open(feature_path, "w") as f:
+                f.write("{")
+        else:
+            with open(feature_path) as f:
+                document = json.load(f)
+            if entry is None:
+                document["github"].pop("build_entry", None)
             else:
-                with open(feature_path) as f:
-                    document = json.load(f)
-                if entry is None:
-                    document["github"].pop("build_entry", None)
-                else:
-                    document["github"]["build_entry"] = entry
-                with open(feature_path, "w") as f:
-                    json.dump(document, f)
-            if not sync:
-                with open(os.path.join(repo, ".harness", "harness.json"), "w") as f:
-                    json.dump({"github": {"sync": False, "repo": "acme/repo-x", "board": None}}, f)
-            subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
-            subprocess.run(["git", "commit", "-qm", "set receipt"], cwd=repo, capture_output=True)
-            dest = _add_wt(repo, feature)
-            _, gh_env = _stub_gh(tmp)
-            _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
-            run = subprocess.run([sweep], cwd=repo, capture_output=True, text=True,
-                                 env=_sweep_env(repo, gh_env))
-            results.append((name, run.returncode == 0 and os.path.isdir(dest) != removed,
-                            f"stdout={run.stdout!r} dest={dest}"))
-    return results
+                document["github"]["build_entry"] = entry
+            with open(feature_path, "w") as f:
+                json.dump(document, f)
+        if not sync:
+            with open(os.path.join(repo, ".harness", "harness.json"), "w") as f:
+                json.dump({"github": {"sync": False, "repo": "acme/repo-x", "board": None}}, f)
+        subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "set receipt"], cwd=repo, capture_output=True)
+        dest = _add_wt(repo, feature)
+        _, gh_env = _stub_gh(tmp)
+        _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
+        run = subprocess.run([sweep], cwd=repo, capture_output=True, text=True,
+                             env=_sweep_env(repo, gh_env))
+        return [(name, run.returncode == 0 and os.path.isdir(dest) != removed,
+                 f"stdout={run.stdout!r} dest={dest}")]
 
 
 def _write_duplicate_artifact(repo, feature, duplicate_feature):
@@ -1082,25 +1111,39 @@ def case_prototype_node_modules():
     return results
 
 
+# Every job builds its own tempdir fixture and never touches cwd or os.environ, so jobs run in a
+# pool of fresh interpreters; map() yields them in this order, so the report is unchanged.
+JOBS = (
+    [case_feat64_unrelated_defect_escapes,
+     case_dry_run_safety,
+     case_fast_forward,
+     case_squash,
+     case_self_exclusion,
+     case_per_feature_record,
+     case_order_d04,
+     case_unresolved_left_standing,
+     case_skip_is_not_success,
+     case_unvalidated_feature_is_not_shipped,
+     case_failed_is_not_success,
+     case_cwd_outside_repo]
+    + [functools.partial(case_t07_build_entry_receipt, row) for row in range(len(_T07_NAMES))]
+    + [case_linked_worktree_main_checkout,
+       case_duplicate_receipt_inputs,
+       case_prototype_node_modules]
+)
+
+
+def _run_job(index):
+    return JOBS[index]()
+
+
 def main():
-    results = (
-        case_feat64_unrelated_defect_escapes()
-        +         case_dry_run_safety()
-        + case_fast_forward()
-        + case_squash()
-        + case_self_exclusion()
-        + case_per_feature_record()
-        + case_order_d04()
-        + case_unresolved_left_standing()
-        + case_skip_is_not_success()
-        + case_unvalidated_feature_is_not_shipped()
-        + case_failed_is_not_success()
-        + case_cwd_outside_repo()
-        + case_t07_build_entry_receipt()
-        + case_linked_worktree_main_checkout()
-        + case_duplicate_receipt_inputs()
-        + case_prototype_node_modules()
-    )
+    results = []
+    workers = min(len(JOBS), os.cpu_count() or 2)
+    with concurrent.futures.ProcessPoolExecutor(
+            workers, mp_context=multiprocessing.get_context("spawn")) as pool:
+        for job_results in pool.map(_run_job, range(len(JOBS))):
+            results.extend(job_results)
     ok = True
     for name, passed, detail in results:
         print(f"{'PASS' if passed else 'FAIL'}: {name}" + ("" if passed else f" — {detail}"))
