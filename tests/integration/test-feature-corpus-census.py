@@ -89,18 +89,27 @@ def enumerates_features(parts):
     return False
 
 
+def _module_aliases(node):
+    """Names an `import glob [as x]` binds to the glob module."""
+    if not isinstance(node, ast.Import):
+        return set()
+    return {alias.asname or "glob" for alias in node.names if alias.name == "glob"}
+
+
+def _function_aliases(node):
+    """Names a `from glob import glob|iglob [as x]` binds to a glob function."""
+    if not (isinstance(node, ast.ImportFrom) and node.module == "glob"):
+        return set()
+    return {alias.asname or alias.name for alias in node.names
+            if alias.name in ("glob", "iglob")}
+
+
 def glob_names(tree):
     """`(module aliases, function aliases)` that reach glob.glob / glob.iglob."""
     modules, functions = set(), set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                if alias.name == "glob":
-                    modules.add(alias.asname or "glob")
-        elif isinstance(node, ast.ImportFrom) and node.module == "glob":
-            for alias in node.names:
-                if alias.name in ("glob", "iglob"):
-                    functions.add(alias.asname or alias.name)
+        modules |= _module_aliases(node)
+        functions |= _function_aliases(node)
     return modules, functions
 
 

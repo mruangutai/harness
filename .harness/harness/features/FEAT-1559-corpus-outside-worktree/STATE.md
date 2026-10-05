@@ -40,10 +40,16 @@
   amended in BRIEF.md, README conversion paragraph updated.
 - T-05 receipt half done at code-final 69e3d819 (notes/non-regression-receipt.md):
   pre_change_sha e8d868f7, no other feature directory touched, main-corpus manifest identical
-  (4635), clone suites unit 54/0 integration 86/0, real-owner 6/6.
-- Seam: T-01..T-05 done, T-06 abandoned (#2101). This commit is the review_sha seam.
-- next: pin review_sha to the seam, `gh-sync.py status review`, then the validate dispatch
-- cycles_used: 0 / 10
+  (4635), clone suites exit 0 (unit 52 files, integration 80 files; the receipt's 54/86 were
+  PASS-line counts, corrected by its erratum), real-owner 6/6.
+- Validate c1 at review_sha 0e8301a5: FAIL (runs/validate-validator/digest.md). Six must-fix:
+  SC-04 discovery gap, two unbound consumers, nine grade failures. The host refused the lead's
+  final return; the run was opened at 2026-10-05T15:49Z and recorded late (its ledger
+  started_at is the recording time), closed --refused-return BLOCKED, 0 cycles.
+- Fix c1, main-session-direct (notes/receipt-main-session-fix-c1.md): all six fixed, with red
+  or mutant evidence for each. Suites exit 0 (52 / 80 files). This commit is the new seam.
+- next: pin review_sha to this seam, then re-verify as validate-c1-validator
+- cycles_used: 0 / 10 (the fix round counts on the re-verify run)
 - board: milestone #99, parent #2086, tasks #2088-#2093 (T-06's #2094 closed not planned)
 
 ## Open Questions

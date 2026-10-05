@@ -284,27 +284,34 @@ def report(sel, mode, findings, repaired):
             "mode": mode, "noop": sel["noop"], "repaired": repaired, "findings": findings}
 
 
+def _finding_lines(finding):
+    """One finding's label line, then up to eight of its paths."""
+    lines = [f"  {finding['label']} ({finding['code']}): {finding['detail']}"]
+    if finding["paths"]:
+        more = " …" if len(finding["paths"]) > 8 else ""
+        lines.append(f"    {', '.join(finding['paths'][:8])}{more}")
+    return lines
+
+
+def _outcome(code, checkout):
+    """The closing line: the remedy for a failing code, else `converged`."""
+    repair = f"python3 {SELF} --repair --checkout {checkout}"
+    if code == DIRTY:
+        return f"  remedy: commit or stash that work (untracked files included), then run {repair}"
+    return f"  remedy: {repair}" if code else "  converged"
+
+
 def render(doc, code):
-    lines = [f"worktree-state: {doc['mode']} {doc['checkout']}"]
+    head = f"worktree-state: {doc['mode']} {doc['checkout']}"
     if doc["noop"]:
-        lines.append(f"  no-op: {doc['noop']}")
-        return "\n".join(lines)
+        return f"{head}\n  no-op: {doc['noop']}"
     where = doc["artifact_segment"] or "every segment (no record yet)"
-    lines[0] += f" — {doc['checkout_class']}, {doc['active_feature']} in {where}"
+    lines = [f"{head} — {doc['checkout_class']}, {doc['active_feature']} in {where}"]
     if doc["repaired"]:
         lines.append("  repaired: sparse cone re-applied")
-    for f in doc["findings"]:
-        shown = ", ".join(f["paths"][:8]) + (" …" if len(f["paths"]) > 8 else "")
-        lines.append(f"  {f['label']} ({f['code']}): {f['detail']}")
-        if shown:
-            lines.append(f"    {shown}")
-    if code == DIRTY:
-        lines.append("  remedy: commit or stash that work (untracked files included), then run "
-                     f"python3 {SELF} --repair --checkout {doc['checkout']}")
-    elif code:
-        lines.append(f"  remedy: python3 {SELF} --repair --checkout {doc['checkout']}")
-    else:
-        lines.append("  converged")
+    for finding in doc["findings"]:
+        lines += _finding_lines(finding)
+    lines.append(_outcome(code, doc["checkout"]))
     return "\n".join(lines)
 
 

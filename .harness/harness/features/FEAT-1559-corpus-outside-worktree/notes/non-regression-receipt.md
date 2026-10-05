@@ -101,3 +101,20 @@ was removed.
 
 SC-10's conversion manifest belongs to #2101, after merge (operator ruling, 2026-10-05).
 `test-corpus-non-regression.py --conversion-manifest` validates that manifest when it exists.
+
+## Erratum (2026-10-05, validate cycle 1, QA finding L-1)
+
+The "Files passed" column above is wrong, and is left as written so the record stays honest.
+
+- **What the figures were.** 54 and 86 are counts of output lines matching `^PASS test-`, not
+  files. Some suites print their own `PASS test-…` lines as well as the runner's one per file:
+  `test-expertise-ops.py` prints two, and `test-code-grade` prints its own.
+- **What the runner counted.** Its own summary for the same runs reads `pool: 8 workers, 52
+  files` (unit) and `pool: 8 workers, 80 files` (integration), with no `FAIL test-` line in
+  either. The tree holds the same counts: 52 `tests/unit/test-*.py` and 80
+  `tests/integration/test-*.py`.
+- **The corrected claim:** unit 52 files, exit 0; integration 80 files, exit 0. QA re-ran both
+  kinds independently at `review_sha` and got the same counts.
+
+Exit codes and wall times are unaffected. The same line count appears in `receipt-T-05.md` and
+STATE.md, and the same correction applies there.

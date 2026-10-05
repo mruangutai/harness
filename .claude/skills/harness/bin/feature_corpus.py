@@ -149,29 +149,31 @@ def owner_root(start):
     return owner
 
 
+def _listdir(path):
+    """Sorted entries of the directory `path`; CorpusError when it cannot be read."""
+    try:
+        return sorted(os.listdir(path))
+    except OSError as exc:
+        raise CorpusError(f"{path}: {exc.strerror or exc}") from exc
+
+
+def _segment_dirs(harness, segment):
+    """`<segment>/<id>` for every directory under `.harness/<segment>/features`, or []."""
+    features = os.path.join(harness, segment, "features")
+    if not os.path.isdir(features):
+        return []
+    return [f"{segment}/{name}" for name in _listdir(features)
+            if os.path.isdir(os.path.join(features, name))]
+
+
 def reached_feature_dirs(root):
     """Feature directories present on disk under `root`, as sorted `<segment>/<id>` names. A root
     with no `.harness` at all reaches none — callers that EXPECT directories compare names and
     refuse the shortfall (`landed_dirs`); an unreadable `.harness` raises."""
-    found = []
     harness = os.path.join(root, ".harness")
-    try:
-        segment_names = sorted(os.listdir(harness))
-    except FileNotFoundError:
-        return found
-    except OSError as exc:
-        raise CorpusError(f"{harness}: {exc.strerror or exc}") from exc
-    for segment in segment_names:
-        features = os.path.join(harness, segment, "features")
-        if not os.path.isdir(features):
-            continue
-        try:
-            entries = sorted(os.listdir(features))
-        except OSError as exc:
-            raise CorpusError(f"{features}: {exc.strerror or exc}") from exc
-        found.extend(f"{segment}/{name}" for name in entries
-                     if os.path.isdir(os.path.join(features, name)))
-    return found
+    if not os.path.exists(harness):
+        return []
+    return [name for segment in _listdir(harness) for name in _segment_dirs(harness, segment)]
 
 
 def compare_names(expected, reached):
@@ -224,6 +226,40 @@ def records(owner):
     return [_entry(segment, fid, path) for segment, fid, path in landed_dirs(owner)]
 
 
+def _local_entries(root):
+    """This checkout's own feature directories, as `_entry` mappings keyed by id."""
+    entries = {}
+    for name in reached_feature_dirs(root):
+        segment, fid = name.split("/", 1)
+        entries[fid] = _entry(segment, fid, os.path.join(root, ".harness", segment, "features", fid))
+    return entries
+
+
+def _landed_root(root):
+    """`(landed_root, linked)`: the checkout whose tracked feature directories `root`'s
+    population must hold on disk — the checkout itself for a main checkout or plain clone, its
+    owner for a linked worktree — or `(None, False)` outside any git checkout."""
+    found = harness_boundary.worktree_owner(root)
+    if found is None:
+        return None, False
+    top, owner, _legitimate = found
+    if owner is None:
+        raise CorpusError(f"{top}/.git could not be parsed, so its owner root is unknown")
+    if top == owner:
+        return top, False
+    return owner_root(top), True
+
+
+def require_landed(root):
+    """Raise CorpusError naming every tracked feature directory missing from `root`'s landed
+    corpus — N of M and the sorted names — before a caller walks it. Outside git nothing is
+    tracked, so nothing can be missing. A walk that skips this answers for a smaller set than
+    exists and says nothing about the directories it never saw."""
+    landed_root, _linked = _landed_root(root)
+    if landed_root is not None:
+        landed_dirs(landed_root)
+
+
 def population(root):
     """Every feature a gate at `root` may judge, as `_entry` mappings sorted by id: the LANDED
     records at the owner root, with each feature directory present in `root` itself in place of
@@ -236,21 +272,12 @@ def population(root):
 
     The population is complete or CorpusError: a gate that reads a smaller set than exists
     answers a question about features it never saw."""
-    found = harness_boundary.worktree_owner(root)
-    local = {}
-    for name in reached_feature_dirs(root):
-        segment, fid = name.split("/", 1)
-        local[fid] = _entry(segment, fid, os.path.join(root, ".harness", segment, "features", fid))
-    if found is None:
-        return [local[k] for k in sorted(local)]
-    top, owner, _legitimate = found
-    if owner is None:
-        raise CorpusError(f"{top}/.git could not be parsed, so its owner root is unknown")
-    if top == owner:
-        landed_dirs(top)                # raises when a tracked directory is missing here
-        return [local[k] for k in sorted(local)]
-    merged = {e["id"]: e for e in records(owner_root(top))}
-    merged.update(local)
+    merged = _local_entries(root)
+    landed_root, linked = _landed_root(root)
+    if linked:
+        merged = {**{e["id"]: e for e in records(landed_root)}, **merged}
+    elif landed_root is not None:
+        landed_dirs(landed_root)        # raises when a tracked directory is missing here
     return [merged[k] for k in sorted(merged)]
 
 
@@ -261,8 +288,8 @@ def corpus_roots(root):
     """`[root]`, or `[root, owner]` when `root` is a linked worktree: the trees a repo-wide walk
     at `root` covers, this checkout's own first so its directories win a name clash. No git
     subprocess — the pair comes from `.git` pointer files — and so no tracked-structure check
-    either: a caller that must refuse a missing landed directory uses `population`. Raises
-    CorpusError when a linked worktree's owner cannot be resolved."""
+    either: a caller that must refuse a missing landed directory calls `require_landed` (or
+    reads `population`). Raises CorpusError when a linked worktree's owner cannot be resolved."""
     found = harness_boundary.worktree_owner(root)
     if found is None or found[0] == found[1]:
         return [root]
@@ -413,6 +440,23 @@ def parse_pin(name):
     return parts[0]
 
 
+def _pin_identity(name):
+    """`(id, refusal)` for a pin, named by its directory alone."""
+    fid = parse_pin(name)
+    if fid is None:
+        return None, (f"pin directory {name!r} is not <feature>--<run-id>--<persona> "
+                      f"around a flow id, so its active feature cannot be derived")
+    return fid, None
+
+
+def _branch_id(branch):
+    """The flow id a `feat/<id>` branch names, or None."""
+    if not branch or not branch.startswith("feat/"):
+        return None
+    fid = branch[len("feat/"):]
+    return fid if ID_RE.match(fid) else None
+
+
 def identity(kind, name, branch):
     """The active id a checkout's IDENTITY names, as `(id, refusal)`.
 
@@ -420,42 +464,44 @@ def identity(kind, name, branch):
     by a `feat/<id>` branch; when both name an id they must agree. `(None, None)` means the
     checkout names no feature at all — an arbitrary worktree, a no-op subject."""
     if kind == PIN:
-        fid = parse_pin(name)
-        if fid is None:
-            return None, (f"pin directory {name!r} is not <feature>--<run-id>--<persona> "
-                          f"around a flow id, so its active feature cannot be derived")
-        return fid, None
+        return _pin_identity(name)
     by_name = name if ID_RE.match(name) else None
-    by_branch = None
-    if branch and branch.startswith("feat/") and ID_RE.match(branch[len("feat/"):]):
-        by_branch = branch[len("feat/"):]
+    by_branch = _branch_id(branch)
     if by_name and by_branch and by_name != by_branch:
         return None, (f"directory names {by_name} but branch {branch} names {by_branch}; "
                       f"the active feature is ambiguous")
     return by_name or by_branch, None
 
 
+def _disk_segments(fid, root):
+    """Segments under `root` holding a `.harness/<segment>/features/<fid>` directory."""
+    harness = os.path.join(root, ".harness")
+    if not os.path.isdir(harness):
+        return set()
+    return {segment for segment in os.listdir(harness)
+            if os.path.isdir(os.path.join(harness, segment, "features", fid))}
+
+
 def claiming_segments(fid, dirs, roots):
     """Segments holding a `.harness/<segment>/features/<fid>` directory — tracked in `dirs`, or
     present on disk under any of `roots` (the checkout, the owner)."""
-    found = set()
-    for d in dirs:
-        parts = d.split("/")
-        if len(parts) == 4 and parts[0] == ".harness" and parts[2] == "features" \
-                and parts[3] == fid:
-            found.add(parts[1])
+    found = {name.split("/", 1)[0] for name in expected_feature_dirs(dirs)
+             if name.split("/", 1)[1] == fid}
     for root in roots:
-        harness = os.path.join(root, ".harness")
-        if not os.path.isdir(harness):
-            continue
-        for segment in os.listdir(harness):
-            if os.path.isdir(os.path.join(harness, segment, "features", fid)):
-                found.add(segment)
+        found |= _disk_segments(fid, root)
     return sorted(found)
 
 
 def _related(d, roots):
     return any(d == r or d.startswith(r + "/") or r.startswith(d + "/") for r in roots)
+
+
+def _maximal_outside_features(dirs, roots):
+    """Every MAXIMAL tracked directory under `.harness` disjoint from every features root: not
+    one, not beneath one, not above one."""
+    under = [d for d in dirs if d.startswith(".harness/") and not _related(d, roots)]
+    kept = set(under)
+    return {d for d in under if not any(p in kept for p in _ancestors(d))}
 
 
 def derive_cone(dirs, active):
@@ -468,12 +514,8 @@ def derive_cone(dirs, active):
 
     Files directly in `.harness` and `.harness/<segment>` need no entry: cone mode materialises
     the files held directly by every ancestor of a listed directory."""
-    roots = feature_roots(dirs)
     top = {d for d in dirs if "/" not in d and d != ".harness"}
-    under = [d for d in dirs if d.startswith(".harness/") and not _related(d, roots)]
-    kept = set(under)
-    maximal = {d for d in under if not any(p in kept for p in _ancestors(d))}
-    return sorted(top | maximal | set(active))
+    return sorted(top | _maximal_outside_features(dirs, feature_roots(dirs)) | set(active))
 
 
 def _ancestors(path):

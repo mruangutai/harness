@@ -96,22 +96,32 @@ def _content_lines(handle):
         yield number, line, fence_char is not None
 
 
+def _classify_control_plane(token, landed):
+    """A control-plane anchor is wrong only for the active feature's own (placeholder) path."""
+    if is_feature_path(token) and not landed:
+        return "feature-directory path anchored to the control plane"
+    return None
+
+
+def _classify_feature_tree(token, landed):
+    """A feature-tree anchor is right only for the active feature's own (placeholder) path."""
+    if not is_feature_path(token):
+        return "control-plane path anchored to the feature tree"
+    if landed:
+        return ("landed feature read anchored to the feature tree — a sparse worktree does "
+                "not hold it; anchor it at <HARNESS_CONTROL_PLANE_ROOT>/")
+    return None
+
+
 def _classify(token, prefix):
     """DEC-214's two anchors, as amended by FEAT-1559. The control plane is for reads: Harness
     files and a landed feature named by its concrete id, which a sparse worktree does not hold.
     The feature tree is for the active feature, named by placeholder, where writes go."""
     landed = bool(LANDED_FEATURE_RE.match(token))
     if prefix.endswith("<HARNESS_CONTROL_PLANE_ROOT>/"):
-        if is_feature_path(token) and not landed:
-            return "feature-directory path anchored to the control plane"
-        return None
+        return _classify_control_plane(token, landed)
     if prefix.endswith("<HARNESS_FEATURE_TREE_ROOT>/"):
-        if not is_feature_path(token):
-            return "control-plane path anchored to the feature tree"
-        if landed:
-            return ("landed feature read anchored to the feature tree — a sparse worktree does "
-                    "not hold it; anchor it at <HARNESS_CONTROL_PLANE_ROOT>/")
-        return None
+        return _classify_feature_tree(token, landed)
     return "unanchored instruction path"
 
 

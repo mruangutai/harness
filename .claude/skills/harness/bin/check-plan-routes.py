@@ -786,6 +786,11 @@ def discover_plans():
     # one. The key carries the segment because two segments may hold the same feature name
     # (#2077's fixture does). A broken sparse layout refuses first, exit 2, like every other
     # "I cannot see the tree" case below.
+    #
+    # THEN THE NAME SET, BEFORE THE WALK. The walk enumerates what is present, so a tracked
+    # feature directory missing from the landed corpus would simply not be walked and its plan
+    # never checked — a clean total over fewer plans than exist. `require_landed` compares the
+    # tracked names against the reached ones and refuses the shortfall by name.
     try:
         _refusal = feature_corpus.layout_refusal(root)
         walk_roots = feature_corpus.corpus_roots(root)
@@ -793,6 +798,13 @@ def discover_plans():
         _refusal = str(e)
     if _refusal:
         print(f"check-plan-routes: {_refusal}", file=sys.stderr)
+        sys.exit(2)
+    try:
+        feature_corpus.require_landed(root)
+    except feature_corpus.CorpusError as e:
+        print(f"check-plan-routes: {e}. A route audit over fewer plans than exist would report "
+              f"clean about the ones it never walked. Restore the directory in that checkout "
+              f"(`git checkout -- <path>`), then rerun.", file=sys.stderr)
         sys.exit(2)
     plans, unreadable = [], []
     # TWO COUNTS, BECAUSE ONE CANNOT TELL THE TWO ZEROES APART. `0 plan(s)` used to mean

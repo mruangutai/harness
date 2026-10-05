@@ -125,44 +125,72 @@ class AuditFindings(unittest.TestCase):
         self.assertEqual(sorted(BASELINE_KEYS - now), [], proc.stdout + proc.stderr)
 
 
-def manifest_findings(doc):
-    """Every internal inconsistency in a conversion manifest, as sentences; [] when sound."""
+def _converted_findings(where, entry):
+    """A converted checkout: an active feature, three zero exits, an idempotent second repair,
+    and exactly the expected directories."""
     bad = []
-    for key in ("schema", "owner", "owner_head", "pre_change_sha", "review_sha", "checkouts"):
-        if key not in doc:
-            bad.append(f"manifest lacks {key}")
+    exits = entry.get("exits", {})
+    if not entry.get("active_feature"):
+        bad.append(f"{where}: converted with no active feature")
+    if [exits.get(k) for k in ("repair", "verify", "repair_again")] != [0, 0, 0]:
+        bad.append(f"{where}: converted but exits are {exits}")
+    if entry.get("after", {}).get("digest") != entry.get("after_repair_again", {}).get("digest"):
+        bad.append(f"{where}: the second repair changed bytes (not idempotent)")
+    exact = entry.get("observed_dirs") == entry.get("expected_dirs")
+    if not exact or entry.get("missing") or entry.get("unexpected"):
+        bad.append(f"{where}: converted but observed directories differ from expected")
+    return bad
+
+
+def _dirty_findings(where, entry):
+    """A dirty skip: repair refused with 8, no byte changed, and a reason given."""
+    bad = []
+    repair = entry.get("exits", {}).get("repair")
+    if repair != 8:
+        bad.append(f"{where}: skipped as dirty but repair exited {repair}")
+    if entry.get("before", {}).get("digest") != entry.get("after", {}).get("digest"):
+        bad.append(f"{where}: skipped as dirty but its bytes changed")
+    if not entry.get("reason"):
+        bad.append(f"{where}: skipped with no reason")
+    return bad
+
+
+def _excluded_findings(where, entry):
+    return [] if entry.get("reason") else [f"{where}: excluded with no reason"]
+
+
+OUTCOME_CHECKS = {"converted": _converted_findings, "skipped-dirty": _dirty_findings,
+                  "excluded": _excluded_findings}
+
+
+def _entry_findings(entry):
+    where, outcome = entry.get("path", "?"), entry.get("outcome")
+    if outcome not in OUTCOMES:
+        return [f"{where}: outcome {outcome!r} is not one of {OUTCOMES}"]
+    return OUTCOME_CHECKS[outcome](where, entry)
+
+
+def _header_findings(doc):
+    """The manifest's own fields: present, a known schema, full SHAs."""
+    bad = [f"manifest lacks {key}" for key in
+           ("schema", "owner", "owner_head", "pre_change_sha", "review_sha", "checkouts")
+           if key not in doc]
     if doc.get("schema") != "feat-1559-conversion/1":
         bad.append(f"unknown schema {doc.get('schema')!r}")
-    for sha_key in ("owner_head", "pre_change_sha", "review_sha"):
-        if not re.fullmatch(r"[0-9a-f]{40}", str(doc.get(sha_key, ""))):
-            bad.append(f"{sha_key} is not a full 40-hex SHA")
+    bad += [f"{sha_key} is not a full 40-hex SHA"
+            for sha_key in ("owner_head", "pre_change_sha", "review_sha")
+            if not re.fullmatch(r"[0-9a-f]{40}", str(doc.get(sha_key, "")))]
+    return bad
+
+
+def manifest_findings(doc):
+    """Every internal inconsistency in a conversion manifest, as sentences; [] when sound."""
+    bad = _header_findings(doc)
     paths = [c.get("path") for c in doc.get("checkouts", [])]
     if len(paths) != len(set(paths)):
         bad.append("a checkout path is listed twice")
     for entry in doc.get("checkouts", []):
-        where, outcome = entry.get("path", "?"), entry.get("outcome")
-        exits = entry.get("exits", {})
-        if outcome not in OUTCOMES:
-            bad.append(f"{where}: outcome {outcome!r} is not one of {OUTCOMES}")
-        elif outcome == "converted":
-            if not entry.get("active_feature"):
-                bad.append(f"{where}: converted with no active feature")
-            if [exits.get(k) for k in ("repair", "verify", "repair_again")] != [0, 0, 0]:
-                bad.append(f"{where}: converted but exits are {exits}")
-            if entry.get("after", {}).get("digest") != entry.get("after_repair_again", {}).get("digest"):
-                bad.append(f"{where}: the second repair changed bytes (not idempotent)")
-            if entry.get("observed_dirs") != entry.get("expected_dirs") or \
-                    entry.get("missing") or entry.get("unexpected"):
-                bad.append(f"{where}: converted but observed directories differ from expected")
-        elif outcome == "skipped-dirty":
-            if exits.get("repair") != 8:
-                bad.append(f"{where}: skipped as dirty but repair exited {exits.get('repair')}")
-            if entry.get("before", {}).get("digest") != entry.get("after", {}).get("digest"):
-                bad.append(f"{where}: skipped as dirty but its bytes changed")
-            if not entry.get("reason"):
-                bad.append(f"{where}: skipped with no reason")
-        elif outcome == "excluded" and not entry.get("reason"):
-            bad.append(f"{where}: excluded with no reason")
+        bad += _entry_findings(entry)
     return bad
 
 

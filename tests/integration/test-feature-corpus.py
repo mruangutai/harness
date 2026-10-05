@@ -238,6 +238,74 @@ class WriteGuards(Case):
         self.assertEqual(into.returncode, 2, into.stderr)
 
 
+class BoardStatus(Case):
+    """The board audit judges the landed corpus from a sparse worktree (SC-04): a landed feature
+    with an active plan is compared against its cards even though this checkout does not hold it,
+    and a broken layout reports the corpus unreadable instead of auditing a smaller set."""
+
+    OTHER = ".harness/harness/features/FEAT-2-beta"
+    # A schema-valid plan: an invalid one reads as "no plan", which projects no card at all.
+    PLAN = ("status: building\ntasks:\n  - id: T-01\n    title: fixture task\n"
+            "    change_type: bugfix\n    execution_mode: team\n    files: [fixture.py]\n"
+            "    verify: python3 test.py\n    intent: fixture\n    status: building\n")
+
+    def setUp(self):
+        super().setUp()
+        import board_lifecycle
+        self.bl = board_lifecycle
+        record = json.loads(F.feature_json("FEAT-2-beta", "feat/FEAT-2-beta"))
+        record["github"] = {"issues": {"T-01": 501}, "parent": 500}
+        self.fx.commit_owner({f"{self.OTHER}/feature.json": json.dumps(record) + "\n",
+                              f"{self.OTHER}/plan.yaml": self.PLAN}, "FEAT-2-beta is building")
+        self.wt = repair(self.fx.add_worktree(ACTIVE))
+
+    def messages(self, stations):
+        return [f.message for f in self.bl._status_findings(self.wt, None, stations)]
+
+    def test_a_landed_feature_absent_here_is_audited_against_its_cards(self):
+        self.assertFalse(os.path.exists(os.path.join(self.wt, self.OTHER)))
+        wrong = self.messages({500: "building", 501: "ready"})
+        self.assertTrue(any("card #501" in m and "'ready'" in m for m in wrong), wrong)
+        self.assertEqual(self.messages({500: "building", 501: "building"}), [])
+
+    def test_a_broken_layout_reports_the_corpus_unreadable(self):
+        F.write_files(self.wt, {f"{self.OTHER}/BRIEF.md": "# BRIEF FEAT-2-beta\n"})
+        found = self.messages({500: "building", 501: "building"})
+        self.assertEqual(len(found), 1, found)
+        self.assertIn("feature cards cannot be audited", found[0])
+
+
+class DecisionAnchors(Case):
+    """A decision anchor citing another landed feature's file is counted in the main corpus,
+    which a sparse worktree does not hold (SC-02); an unreachable corpus exits 2, never 1."""
+
+    # history.md exists only under BUG-3-gamma, so the basename has exactly one candidate.
+    DOC = "Cited: `.harness/harness/features/BUG-3-gamma/notes/deep/history.md:1`.\n"
+
+    def anchors(self):
+        wt = repair(self.fx.add_worktree(ACTIVE))
+        self.assertFalse(os.path.exists(os.path.join(wt, ".harness/harness/features/BUG-3-gamma")))
+        doc = os.path.join(self.fx.base, "DECISIONS.md")
+        with open(doc, "w", encoding="utf-8") as fh:
+            fh.write(self.DOC)
+        return lambda: subprocess.run(
+            [sys.executable, str(BIN / "check-decision-anchors.py"), "--file", doc],
+            env=dict(F.ENV, HARNESS_PROJECT_DIR=wt), capture_output=True, text=True, cwd=wt)
+
+    def test_another_landed_features_file_is_counted_in_the_main_corpus(self):
+        proc = self.anchors()()
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("examined 1 anchor(s), 0 failed", proc.stdout)
+
+    def test_an_unreachable_main_corpus_exits_two(self):
+        run = self.anchors()
+        os.rename(os.path.join(self.fx.owner, ".harness", "team-config.yaml"),
+                  os.path.join(self.fx.owner, ".harness", "team-config.moved"))
+        proc = run()
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertIn("cannot check", proc.stderr)
+
+
 class Discovery(Case):
     """Repo-wide discovery from a sparse worktree sees the landed corpus, not one directory."""
 
@@ -257,12 +325,34 @@ class Discovery(Case):
         self.assertEqual(proc.returncode, 3, proc.stderr)
         self.assertIn("cannot establish the feature corpus", proc.stderr)
 
-    def test_check_plan_routes_examines_the_landed_corpus(self):
-        wt = repair(self.fx.add_worktree(ACTIVE))
+    def routes(self, checkout):
         proc = subprocess.run([sys.executable, str(BIN / "check-plan-routes.py")],
-                              env=dict(F.ENV, HARNESS_PROJECT_DIR=wt), capture_output=True,
-                              text=True, cwd=wt)
-        self.assertIn("examined 4 feature dir(s)", proc.stdout + proc.stderr)
+                              env=dict(F.ENV, HARNESS_PROJECT_DIR=checkout), capture_output=True,
+                              text=True, cwd=checkout)
+        return proc.returncode, proc.stdout + proc.stderr
+
+    def test_check_plan_routes_examines_the_landed_corpus(self):
+        code, out = self.routes(repair(self.fx.add_worktree(ACTIVE)))
+        self.assertIn("examined 4 feature dir(s)", out)
+        self.assertNotEqual(code, 2, out)
+
+    def test_check_plan_routes_refuses_a_missing_landed_directory_by_name(self):
+        # SC-04: one landed directory gone while the others remain must refuse by name, N of M,
+        # before any plan is walked — not route-check the survivors and report a clean total.
+        wt = repair(self.fx.add_worktree(ACTIVE))
+        shutil.rmtree(os.path.join(self.fx.owner, ".harness/harness/features/FEAT-2-beta"))
+        code, out = self.routes(wt)
+        self.assertEqual(code, 2, out)
+        self.assertIn("reaches 3 of 4 tracked feature directories; missing: harness/FEAT-2-beta",
+                      out)
+        self.assertNotIn("examined", out)
+
+    def test_check_plan_routes_refuses_a_missing_directory_in_a_full_clone(self):
+        clone = self.fx.clone()
+        shutil.rmtree(os.path.join(clone, ".harness/kaya/features/FEAT-10-kaya-app"))
+        code, out = self.routes(clone)
+        self.assertEqual(code, 2, out)
+        self.assertIn("missing: kaya/FEAT-10-kaya-app", out)
 
 
 if __name__ == "__main__":
