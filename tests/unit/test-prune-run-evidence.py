@@ -92,15 +92,14 @@ def refusal_cases(root):
     check("refuses a --keep that names no run directory", typo.returncode == 2 and "validate-c2-validatr" in typo.stderr, typo.stderr)
     absent = tool(root, "--feature", "FEAT-404")
     check("refuses an unknown feature", absent.returncode == 2, absent.stderr)
-    invalid = root / "invalid"
-    checkout(invalid)
-    invalid_feat = feature(invalid, [("build-eng", "PASS", "b" * 40)])
-    (invalid_feat / "feature.json").write_text(
-        '{"review_sha":"none","review_sha":"' + PIN + '","runs":[]}')
-    refused_invalid = tool(invalid, "--feature", "FEAT-9-thing")
-    check("duplicate feature-record keys refuse deletion",
-          refused_invalid.returncode == 2 and (invalid_feat / "runs" / "build-eng").exists(),
-          refused_invalid.stdout + refused_invalid.stderr)
+    dup_root = root / "duplicate"
+    checkout(dup_root)
+    dup = feature(dup_root, [("validate-c1-validator", "PASS", "a" * 40), ("build-eng", "PASS", "b" * 40)])
+    (dup / "feature.json").write_text('{"review_sha": "none", "review_sha": "%s", "runs": []}' % PIN)
+    refused_dup = tool(dup_root, "--feature", "FEAT-9-thing")
+    check("refuses a feature.json with a duplicate key through the canonical reader, pruning nothing (#1993)",
+          refused_dup.returncode == 2 and "feature.json" in refused_dup.stderr and (dup / "runs" / "build-eng").exists(),
+          f"rc={refused_dup.returncode} stderr={refused_dup.stderr}")
 
 
 def main():

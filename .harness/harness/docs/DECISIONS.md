@@ -7346,6 +7346,14 @@ orchestrator's wake now first sums the integer `tokens` over that task call's re
 `null` stays correct. A prose rule asking a model to copy
 a number the host already computed was a script's job (DEC-156).
 
+**Elapsed-time clause (#2034, 2026-10-04).** "Sums them" holds for tokens and no longer for
+minutes. `wall_clock_minutes` and `rework_minutes` are the union of the runs' `started_at`–`ended_at`
+intervals, so runs that overlap share their clock. Summing durations counted BUG-1016's three
+feature-close distill squads, 24 minutes side by side, as 72, and would have done the same to any
+fix runs dispatched together against the rework ruling. Tokens stay a sum: each concurrent run
+consumed its own. Nothing stores a computed figure, so every ledger reads the corrected minutes on
+its next `spend`; briefings already written keep the figures they printed.
+
 ## DEC-228 — The pre-build panel is not universal: `patch` has none, `plan` runs it inside the one plan run, and a `proportionality` finding downgrades the mission
 
 **Chose:** DEC-207's rule — a plan-phase gate on every plan, with no threshold, its findings routed

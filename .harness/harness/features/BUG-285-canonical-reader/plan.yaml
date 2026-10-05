@@ -289,27 +289,29 @@ tasks:
     depends_on: [T-04]
     status: done
     files:
-      - .claude/skills/harness/bin/check-omp-port.py
-      - .claude/skills/harness/bin/check-plan-routes.py
-      - .claude/skills/harness/bin/check-skill-weight.py
-      - .claude/skills/harness/bin/check-state.py
-      - .claude/skills/harness/bin/code-grade.py
-      - .claude/skills/harness/bin/validate-digest.py
-      - tests/integration/canonical-reader-enforcement-baselines.json
-      - tests/integration/check_state_support.py
-      - tests/integration/test-check-omp-port.py
-      - tests/integration/test-check-plan-routes.py
-      - tests/integration/test-check-skill-weight.py
-      - tests/integration/test-check-state.py
-      - tests/integration/test-check-state-entry.py
-      - tests/integration/test-check-state-plans.py
-      - tests/integration/test-check-state-records.py
-      - tests/integration/test-check-state-worktrees.py
-      - tests/integration/test-check-state-handoff.py
-      - tests/integration/test-check-state-inv26.py
-      - tests/integration/test-check-state-feat59.py
-      - tests/integration/test-code-grade-cli.py
-      - tests/integration/test-validate-digest.py
+    - .claude/skills/harness/bin/check-omp-port.py
+    - .claude/skills/harness/bin/check-plan-routes.py
+    - .claude/skills/harness/bin/check-skill-weight.py
+    - .claude/skills/harness/bin/check-state.py
+    - .claude/skills/harness/bin/check_state/ctx.py
+    - .claude/skills/harness/bin/check_state/board.py
+    - .claude/skills/harness/bin/code-grade.py
+    - .claude/skills/harness/bin/validate-digest.py
+    - tests/integration/canonical-reader-enforcement-baselines.json
+    - tests/integration/check_state_support.py
+    - tests/integration/test-check-omp-port.py
+    - tests/integration/test-check-plan-routes.py
+    - tests/integration/test-check-skill-weight.py
+    - tests/integration/test-check-state.py
+    - tests/integration/test-check-state-entry.py
+    - tests/integration/test-check-state-plans.py
+    - tests/integration/test-check-state-records.py
+    - tests/integration/test-check-state-worktrees.py
+    - tests/integration/test-check-state-handoff.py
+    - tests/integration/test-check-state-inv26.py
+    - tests/integration/test-check-state-feat59.py
+    - tests/integration/test-code-grade-cli.py
+    - tests/integration/test-validate-digest.py
     verify: |
       python3 tests/integration/test-check-plan-routes.py --classification-task T-03 && python3 tests/integration/test-check-plan-routes.py --classification-task T-04 && python3 tests/integration/test-check-plan-routes.py --verify-enforcement-bytes tests/integration/canonical-reader-enforcement-baselines.json --classification-task T-05 && python3 tests/integration/test-check-omp-port.py && python3 tests/integration/test-check-skill-weight.py && python3 tests/integration/test-code-grade-cli.py && python3 tests/integration/test-validate-digest.py && python3 tests/integration/test-check-state-entry.py && python3 tests/integration/test-check-state-plans.py && python3 tests/integration/test-check-state-records.py
     intent: |
@@ -381,7 +383,46 @@ tasks:
     execution_reason: This task changes enforcement sources, check-plan-routes.py, and their tests, all governed directly by DEC-174.
     depends_on: [T-06]
     status: done
-    files: [".claude/skills/harness/bin/artifact_accessors.py", ".claude/skills/harness/bin/bash-write-guard.py", ".claude/skills/harness/bin/check-domain.py", ".claude/skills/harness/bin/check-plan-routes.py", ".claude/skills/harness/bin/check-state.py", ".claude/skills/harness/bin/post-merge-sweep.py", ".claude/skills/harness/bin/harness_yaml.py", ".claude/skills/harness/bin/factory_c[ol][an]*.py", ".claude/skills/harness/bin/feature_json_write.py", "tests/integration/canonical-reader-classification.json", "tests/integration/canonical-reader-enforcement-baselines.json", "tests/integration/test-bash-write-guard.py", "tests/integration/test-check-domain.py", "tests/integration/test-check-domain-grant.py", "tests/integration/test-check-domain-worktree.py", "tests/integration/test-check-plan-routes.py", "tests/integration/test-check-state-[ip]*.py", "tests/integration/test-post-merge-sweep.py", ".claude/skills/harness/bin/board[-_]*.py", ".claude/skills/harness/bin/factory_[dlw]*.py", ".claude/skills/harness/bin/feature-worktree.py", ".claude/skills/harness/bin/gh[-_][sb][oy][an][rc]*.py", ".claude/skills/harness/bin/plan-merge.py", "tests/integration/test-board-*.py", "tests/integration/test-factory-decompose.py", "tests/integration/test-feature-worktree.py", "tests/integration/test-gh-sync-[or]*.py", "tests/integration/test-gh-sync-start-task.py", "tests/integration/test-harness-yaml.py", "tests/integration/test-plan-merge.py", "tests/integration/test-worktree-terminal.py", "tests/unit/test-factory-claim.py", "tests/unit/test-factory-config.py", "tests/unit/test-factory-[lw]*.py", "tests/unit/test-feature-json-reader.py", "tests/unit/test-fleet-product-config.py", "tests/unit/test-gh-board.py", "tests/unit/test-plan-depends-on.py"]
+    files:
+    - .claude/skills/harness/bin/artifact_accessors.py
+    - .claude/skills/harness/bin/bash-write-guard.py
+    - .claude/skills/harness/bin/check-domain.py
+    - .claude/skills/harness/bin/check-plan-routes.py
+    - .claude/skills/harness/bin/check-state.py
+    - .claude/skills/harness/bin/check_state/ctx.py
+    - .claude/skills/harness/bin/post-merge-sweep.py
+    - .claude/skills/harness/bin/harness_yaml.py
+    - .claude/skills/harness/bin/factory_c[ol][an]*.py
+    - .claude/skills/harness/bin/feature_json_write.py
+    - tests/integration/canonical-reader-classification.json
+    - tests/integration/canonical-reader-enforcement-baselines.json
+    - tests/integration/test-bash-write-guard.py
+    - tests/integration/test-check-domain.py
+    - tests/integration/test-check-domain-grant.py
+    - tests/integration/test-check-domain-worktree.py
+    - tests/integration/test-check-plan-routes.py
+    - tests/integration/test-check-state-[ip]*.py
+    - tests/integration/test-post-merge-sweep.py
+    - .claude/skills/harness/bin/board[-_]*.py
+    - .claude/skills/harness/bin/factory_[dlw]*.py
+    - .claude/skills/harness/bin/feature-worktree.py
+    - .claude/skills/harness/bin/gh[-_][sb][oy][an][rc]*.py
+    - .claude/skills/harness/bin/plan-merge.py
+    - tests/integration/test-board-*.py
+    - tests/integration/test-factory-decompose.py
+    - tests/integration/test-feature-worktree.py
+    - tests/integration/test-gh-sync-[or]*.py
+    - tests/integration/test-gh-sync-start-task.py
+    - tests/integration/test-harness-yaml.py
+    - tests/integration/test-plan-merge.py
+    - tests/integration/test-worktree-terminal.py
+    - tests/unit/test-factory-claim.py
+    - tests/unit/test-factory-config.py
+    - tests/unit/test-factory-[lw]*.py
+    - tests/unit/test-feature-json-reader.py
+    - tests/unit/test-fleet-product-config.py
+    - tests/unit/test-gh-board.py
+    - tests/unit/test-plan-depends-on.py
     verify: |
       test ! -e tests/integration/canonical-reader-enforcement-baselines.json && ! grep -q -- '--verify-enforcement-bytes' tests/integration/test-check-plan-routes.py && python3 tests/integration/test-check-plan-routes.py --classification-task T-07 && python3 tests/integration/test-check-plan-routes.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && python3 tests/unit/test-artifact-accessors.py && python3 tests/integration/test-board-station.py && python3 tests/integration/test-board-lifecycle.py && python3 tests/integration/test-check-state-inv26.py && python3 tests/integration/test-factory-decompose.py && python3 tests/integration/test-feature-worktree.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-gh-sync-record.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-harness-yaml.py && python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/unit/test-factory-claim.py && python3 tests/unit/test-factory-config.py && python3 tests/unit/test-factory-land.py && python3 tests/unit/test-factory-workspace.py && python3 tests/unit/test-feature-json-reader.py && python3 tests/unit/test-fleet-product-config.py && python3 tests/unit/test-gh-board.py && python3 tests/unit/test-plan-depends-on.py
     intent: |

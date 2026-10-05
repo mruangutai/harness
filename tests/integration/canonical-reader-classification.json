@@ -256,7 +256,7 @@
       "id": ".claude/skills/harness/bin/check-domain.py::domain_check::manifest_domains#1",
       "reason": "",
       "remedy": "artifact_accessors.manifest_domains",
-      "symbol": "domain_check",
+      "symbol": "_manifest_domains_or_exit",
       "task": "T-07"
     },
     {
@@ -376,7 +376,7 @@
       "id": ".claude/skills/harness/bin/check-plan-routes.py::process_plan_yaml::load_plan#1",
       "reason": "",
       "remedy": "artifact_accessors.load_plan",
-      "symbol": "process_plan_yaml",
+      "symbol": "_load_plan_once",
       "task": "T-07"
     },
     {
@@ -465,11 +465,11 @@
       "dec174_category": "enforcement_mechanical",
       "disposition": "canonical",
       "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/check-state.py",
+      "file": ".claude/skills/harness/bin/check_state/ctx.py",
       "id": ".claude/skills/harness/bin/check-state.py::<module>::load_plan#1",
       "reason": "",
       "remedy": "artifact_accessors.load_plan",
-      "symbol": "<module>",
+      "symbol": "Ctx._load_plan_docs",
       "task": "T-07"
     },
     {
@@ -563,6 +563,34 @@
       "remedy": "artifact_accessors.read_hook_payload",
       "symbol": "<module>",
       "task": "T-06"
+    },
+    {
+      "artifact": "feature.json",
+      "category": "load_feature_json",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/dispatch-guard.py",
+      "id": ".claude/skills/harness/bin/dispatch-guard.py::_repository_identity::load_feature_json#1",
+      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
+      "reason": "",
+      "remedy": "artifact_accessors.load_feature_json",
+      "symbol": "_repository_identity",
+      "task": "T-01"
+    },
+    {
+      "artifact": "fleet.yaml",
+      "category": "load_fleet",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/dispatch-guard.py",
+      "id": ".claude/skills/harness/bin/dispatch-guard.py::_repository_identity::load_fleet#1",
+      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
+      "reason": "",
+      "remedy": "artifact_accessors.load_fleet",
+      "symbol": "_repository_identity",
+      "task": "T-01"
     },
     {
       "artifact": "in-memory JSON payload",
@@ -1213,6 +1241,20 @@
     },
     {
       "artifact": "harness.json",
+      "category": "load_harness_json",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/gh-sync.py",
+      "id": ".claude/skills/harness/bin/gh-sync.py::main::load_harness_json#1",
+      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
+      "reason": "",
+      "remedy": "artifact_accessors.load_harness_json",
+      "symbol": "main",
+      "task": "T-01"
+    },
+    {
+      "artifact": "harness.json",
       "category": "json_file",
       "dec174_category": "none",
       "disposition": "canonical",
@@ -1817,6 +1859,48 @@
       "task": "T-05"
     },
     {
+      "artifact": "plan.yaml",
+      "category": "load_plan",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/validate-digest.py",
+      "id": ".claude/skills/harness/bin/validate-digest.py::_plan_task::load_plan#1",
+      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
+      "reason": "",
+      "remedy": "artifact_accessors.load_plan",
+      "symbol": "_plan_task",
+      "task": "T-02"
+    },
+    {
+      "artifact": "harness.json",
+      "category": "load_harness_json",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/validate-digest.py",
+      "id": ".claude/skills/harness/bin/validate-digest.py::_load_matrix_inputs::load_harness_json#1",
+      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
+      "reason": "",
+      "remedy": "artifact_accessors.load_harness_json",
+      "symbol": "_load_matrix_inputs",
+      "task": "T-02"
+    },
+    {
+      "artifact": "plan.yaml",
+      "category": "load_plan",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/validate-digest.py",
+      "id": ".claude/skills/harness/bin/validate-digest.py::_load_matrix_inputs::load_plan#1",
+      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
+      "reason": "",
+      "remedy": "artifact_accessors.load_plan",
+      "symbol": "_load_matrix_inputs",
+      "task": "T-02"
+    },
+    {
       "artifact": "harness.json",
       "category": "json_file",
       "dec174_category": "none",
@@ -1938,48 +2022,6 @@
       "task": "T-02"
     },
     {
-      "artifact": "feature.json",
-      "category": "load_feature_json",
-      "dec174_category": "validator",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/dispatch-guard.py",
-      "id": ".claude/skills/harness/bin/dispatch-guard.py::_repository_identity::load_feature_json#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
-      "reason": "",
-      "remedy": "artifact_accessors.load_feature_json",
-      "symbol": "_repository_identity",
-      "task": "T-01"
-    },
-    {
-      "artifact": "fleet.yaml",
-      "category": "load_fleet",
-      "dec174_category": "validator",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/dispatch-guard.py",
-      "id": ".claude/skills/harness/bin/dispatch-guard.py::_repository_identity::load_fleet#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
-      "reason": "",
-      "remedy": "artifact_accessors.load_fleet",
-      "symbol": "_repository_identity",
-      "task": "T-01"
-    },
-    {
-      "artifact": "harness.json",
-      "category": "load_harness_json",
-      "dec174_category": "validator",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/gh-sync.py",
-      "id": ".claude/skills/harness/bin/gh-sync.py::main::load_harness_json#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
-      "reason": "",
-      "remedy": "artifact_accessors.load_harness_json",
-      "symbol": "main",
-      "task": "T-01"
-    },
-    {
       "artifact": "plan.yaml",
       "category": "load_plan",
       "dec174_category": "validator",
@@ -2020,48 +2062,6 @@
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "_load_record",
       "task": "T-01"
-    },
-    {
-      "artifact": "plan.yaml",
-      "category": "load_plan",
-      "dec174_category": "validator",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/validate-digest.py",
-      "id": ".claude/skills/harness/bin/validate-digest.py::_plan_task::load_plan#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
-      "reason": "",
-      "remedy": "artifact_accessors.load_plan",
-      "symbol": "_plan_task",
-      "task": "T-02"
-    },
-    {
-      "artifact": "harness.json",
-      "category": "load_harness_json",
-      "dec174_category": "validator",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/validate-digest.py",
-      "id": ".claude/skills/harness/bin/validate-digest.py::_load_matrix_inputs::load_harness_json#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
-      "reason": "",
-      "remedy": "artifact_accessors.load_harness_json",
-      "symbol": "_load_matrix_inputs",
-      "task": "T-02"
-    },
-    {
-      "artifact": "plan.yaml",
-      "category": "load_plan",
-      "dec174_category": "validator",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/validate-digest.py",
-      "id": ".claude/skills/harness/bin/validate-digest.py::_load_matrix_inputs::load_plan#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
-      "reason": "",
-      "remedy": "artifact_accessors.load_plan",
-      "symbol": "_load_matrix_inputs",
-      "task": "T-02"
     },
     {
       "artifact": "fleet.yaml",

@@ -25,9 +25,9 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import artifact_accessors  # noqa: E402
 import harness_boundary  # noqa: E402
 import harness_yaml  # noqa: E402
-import artifact_accessors  # noqa: E402
 
 
 def _refuse(message):

@@ -35,6 +35,7 @@ VERBS
   spend         read-only: print one JSON object {runs, wall_clock_minutes, tokens, phase,
                 rework_minutes, rework_rounds} — the last two are the rework window, from
                 the first validate run; the ruling is compared to those, never the whole.
+                Minutes are elapsed time (concurrent runs counted once); tokens are a sum.
 
 THE OPERATOR'S RULINGS ARE MAIN-SESSION-ONLY. set-rework and raise-cycles are gated by
 plan-sign-gate.py the way plan-merge.py sign-approval is: an agent's call is refused before it
@@ -458,13 +459,29 @@ def _parse_iso(value):
         return None
 
 
-def _run_seconds(entry):
-    """Whole seconds a closed run took, or 0 for one still open or unstamped."""
+def _run_interval(entry):
+    """(start, end) of a closed run, or None for one still open, unstamped or inverted."""
     started = _parse_iso(entry.get("started_at"))
     ended = _parse_iso(entry.get("ended_at"))
     if started is None or ended is None or ended <= started:
-        return 0
-    return int((ended - started).total_seconds())
+        return None
+    return started, ended
+
+
+def _elapsed_seconds(entries):
+    """Whole seconds covered by at least one closed run: the union of their intervals (#2034).
+
+    Concurrent runs share their clock. Summing durations counted BUG-1016's three distill
+    squads, 24 minutes side by side, as 72."""
+    total, reach = 0, None
+    for start, end in sorted(filter(None, map(_run_interval, entries))):
+        if reach is None or start > reach:
+            total += (end - start).total_seconds()
+            reach = end
+        elif end > reach:
+            total += (end - reach).total_seconds()
+            reach = end
+    return int(total)
 
 
 # A run is a validate run when its id carries the `validate-` token at the start or after a
@@ -475,6 +492,9 @@ def _run_seconds(entry):
 # rework-ratio KPI read 0, silently. Token-bounded, not substring: `postfix-eng` is no fix.
 VALIDATE_RUN = re.compile(r"(?:^|-)validate-")
 FIX_RUN = re.compile(r"(?:^|-)fix-")
+# #2032: feature-close distillation (DEC-145) runs after the merge and is never rework. Same
+# token rule: `redistill-eng` is not a distill run.
+DISTILL_RUN = re.compile(r"(?:^|-)distill-")
 
 
 def spend_for(doc):
@@ -482,24 +502,26 @@ def spend_for(doc):
 
     `wall_clock_minutes` is the whole feature — the lagging figure the briefing reports.
     `rework_minutes` and `rework_rounds` are the REWORK WINDOW: every run from the first
-    validate run onward, and the count of fix runs in it. The operator's
+    validate run onward except feature-close distill runs, and the count of fix runs in it.
+    Minutes are elapsed time, the union of the runs' intervals; tokens are a sum. The operator's
     `rework.wall_clock_minutes` ruling is a budget for rework, so the hook compares it to
     the window, never to the whole — before this split a 60-minute plan run and a 40-minute
     build ate 100 of a 120-minute ruling before the first fix round existed.
     """
     runs = [entry for entry in _runs(doc) if isinstance(entry, dict)]
-    seconds = sum(_run_seconds(entry) for entry in runs)
+    seconds = _elapsed_seconds(runs)
     measured = [entry["tokens"] for entry in runs
                 if isinstance(entry.get("tokens"), int) and not isinstance(entry.get("tokens"), bool)]
     tokens = sum(measured) if measured else None
     first_validate = next((i for i, entry in enumerate(runs)
                            if VALIDATE_RUN.search(str(entry.get("id", "")))), None)
-    window = runs[first_validate:] if first_validate is not None else []
+    window = [entry for entry in (runs[first_validate:] if first_validate is not None else [])
+              if not DISTILL_RUN.search(str(entry.get("id", "")))]
     github = doc.get("github")
     has_build_entry = isinstance(github, dict) and "build_entry" in github
     return {"runs": len(runs), "wall_clock_minutes": seconds // 60, "tokens": tokens,
             "phase": "build" if has_build_entry else "plan",
-            "rework_minutes": sum(_run_seconds(entry) for entry in window) // 60,
+            "rework_minutes": _elapsed_seconds(window) // 60,
             "rework_rounds": sum(1 for entry in window
                                  if FIX_RUN.search(str(entry.get("id", ""))))}
 

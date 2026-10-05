@@ -22,6 +22,11 @@ place project Expertise changes.
    did-nothing spelling — qa `suite: n/a` / `matrix_ok: n/a`, code-reviewer `code_grade: n_a` /
    `reviewed: none` — instead of demanding a suite nobody ran or a diff nobody reviewed
    (#1855). Without the line, qa's honest return is refused and the code-reviewer cannot bind.
+   **Product and validator go one after the other, never together** (#2033): both put a
+   `harness-pm` to work (product's pm, validator's `goalcheck`), and `harness-pm` is single-flight
+   per feature, so the second spawn is refused and its lead returns BLOCKED. Dispatch the eng
+   lead alongside either one; dispatch the second of product and validator once the first has
+   returned.
 2. **The skim is recall, not judgment** (DEC-145). The lead relays **at most 3 candidates per
    member** as sourced observations ("your t04 digest noted X"), never pre-written entries, and
    flags stale ones. **The member is the sole judge** — it accepts, or **rejects with a reason** in
