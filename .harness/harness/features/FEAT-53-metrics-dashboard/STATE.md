@@ -2,8 +2,8 @@
 
 ## Current
 
-ABANDONED 2026-09-22 by operator ruling (notes/abandon-2026-09-22.md): the built dashboard does not resemble the approved prototype despite a 23/23 automated lane, and the collectors yield unusable data against the real fleet. Successor feature starts over from notes/prototypes/FEAT-53 as the source, branched from feat/FEAT-53. Last pinned review_sha 0ffacbf8; T-32 green bundle at runs/2026-09-22-t32-round5-eng/ui. gh-sync abandon deferred to the branch landing on main.
+ABANDONED. The operator reaffirmed on 2026-10-04 that this feature will not proceed; the original ruling is retained in notes/abandon-2026-09-22.md. GitHub reconciliation is complete: parent #1787 and tasks #1788–#1818 are closed not_planned, labelled abandoned, and returned to Backlog; all 31 task links were detached and milestone #80 closed. plan.yaml remains abandoned. Historical specifications, prototype, notes and execution ledger were recovered from feat/FEAT-53 without restoring the abandoned implementation or runs/ evidence (DEC-238). See notes/abandon-2026-10-04.md. There is no pending signature, build, ship, or GitHub handoff for this feature.
 
 ## Open Questions
 
-- Q1 (blocking): Will the operator re-sign the amended BRIEF and plan so T-32 may enter build?
+None.
