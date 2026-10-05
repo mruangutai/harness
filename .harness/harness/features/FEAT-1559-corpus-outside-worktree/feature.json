@@ -56,6 +56,13 @@
       "ended_at": "2026-10-05T19:43:59+00:00",
       "cycles_used": 2,
       "tokens": null
+    },
+    {
+      "id": "validate-c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-10-05T22:26:49+00:00"
     }
   ],
   "judgements": [
@@ -177,6 +184,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "validate c4 FAIL on one med must-fix (sparse-checkout stdin quoting); operator approved round 4; re-verify at f8a67546"
+    },
+    {
+      "at": "2026-10-05T22:26:49+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "validate cycle 5",
+      "reason": "validate c4 FAIL (sparse-checkout stdin quoting) fixed in round 4 at f8a67546; re-verify the fix delta"
     }
   ],
   "mission": "plan",
