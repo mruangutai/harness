@@ -1663,8 +1663,13 @@ def _repository_bash_segment_routes(results, root, feature):
     os.symlink(os.path.join(root, ".harness"), os.path.join(root, "node_modules", "cp"))
     for product in ("product-a", "product-b"):
         os.makedirs(os.path.join(root, ".harness", product), exist_ok=True)
+    # The shell, not Python's fnmatch, expands what reaches disk (#2104 panel): a bracket
+    # expression, brace list or case variant that the shell would resolve to product-b must
+    # need product-b's claim, never fall through as no product at all.
     for operand, want in (("product-a", 0), ("product-b", 2), ("product-a*", 0),
-                          ("product-*", 2)):
+                          ("product-*", 2), ("PRODUCT-B", 2), ("[!P]roduct-b", 2),
+                          ("[^P]roduct-b", 2), ("[[:lower:]]roduct-b", 2),
+                          ("{product-b,none}", 2)):
         _repository_bash_record(
             results, f"removing control-plane segment {operand} exits {want}",
             _bug1304_bash_fire(root, f"rm -rf node_modules/cp/{operand}", "harness-backend-dev",

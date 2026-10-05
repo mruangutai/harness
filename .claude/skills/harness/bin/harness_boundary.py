@@ -64,6 +64,9 @@ PROJECT_DIR_ENV = "HARNESS_PROJECT_DIR"
 # A product's control-plane segment in the harness base: `.harness/<segment>` itself, or
 # anything under it — removing the segment directory is a write to that product too.
 _CONTROL_PLANE_SEGMENT = re.compile(r"^\.harness/([^/]+)(?:/|$)")
+# Shell syntax whose expansion fnmatch cannot reproduce: bracket expressions (`[!K]`, `[^K]`,
+# `[[:lower:]]`, ranges whose case order flips), brace lists, escapes and substitutions.
+_UNMODELLED_SHELL = re.compile(r"[\[\]{}\\$`]")
 
 
 class RepositoryBases(list):
@@ -86,15 +89,24 @@ class RepositoryBases(list):
         `.harness/KAYA/` is kaya's directory, and a case-sensitive match read it as no member
         at all, so the write skipped the repository claim check and landed in kaya's segment.
         Folding case everywhere is fail-closed on a case-sensitive disk too: there `.harness/
-        KAYA/` merely needs kaya's claim."""
+        KAYA/` merely needs kaya's claim.
+
+        ONLY `*` AND `?` ARE MATCHED (#2104 panel). Every other piece of shell syntax expands
+        differently from fnmatch — `[!K]aya` folded to `[!k]aya` reaches nothing in fnmatch
+        while the shell writes into kaya — so a segment carrying any of it answers with itself,
+        which no claim carries: unresolvable statically, so it fails closed."""
         members = set(self._identities.values())
         for candidate in rel_candidates:
             match = _CONTROL_PLANE_SEGMENT.match(candidate)
+            if not match:
+                continue
+            segment = match.group(1)
+            if _UNMODELLED_SHELL.search(segment):
+                return segment
             reached = sorted(m for m in members
-                             if match and fnmatch.fnmatchcase(m.casefold(),
-                                                              match.group(1).casefold()))
+                             if fnmatch.fnmatchcase(m.casefold(), segment.casefold()))
             if reached:
-                return reached[0] if len(reached) == 1 else match.group(1)
+                return reached[0] if len(reached) == 1 else segment
         return None
 
 
