@@ -1953,6 +1953,19 @@
       "task": "T-04"
     },
     {
+      "artifact": "fleet.yaml",
+      "category": "load_fleet",
+      "dec174_category": "none",
+      "disposition": "canonical",
+      "execution_route": "team",
+      "file": ".claude/skills/harness/bin/worktree_terminal.py",
+      "id": ".claude/skills/harness/bin/worktree_terminal.py::_fleet_segments::load_fleet#1",
+      "reason": "",
+      "remedy": "artifact_accessors.load_fleet",
+      "symbol": "_fleet_segments",
+      "task": "none"
+    },
+    {
       "artifact": "feature.json",
       "category": "json_string",
       "dec174_category": "none",

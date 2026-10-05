@@ -490,12 +490,14 @@ def _build_probe_repo(tmp):
     return probe_root, dest_probe
 
 
-def _build_second_repo(workspace_root):
-    """The real second repository, exactly as case_second_repo (g) builds it — reused, not
-    rebuilt as a second shape."""
+def _build_second_repo(workspace_root, control_root):
+    """The real second repository, as case_second_repo (g) builds it, with ONE difference that
+    is #2056's ruling A: a fleet feature's artifacts land in the CONTROL PLANE, never in the
+    served repository, so the Done feature is committed under `control_root`'s
+    `.harness/second-repo/features/` ONLY. classify_all must read it from there."""
     repo2 = _repo(os.path.join(workspace_root, "second-repo"), branch="main")
-    _commit_feature(repo2, "FEAT-09-second-repo-done", {}, plan_station="done",
-                     repo_segment="second-repo")
+    _commit_feature(control_root, "FEAT-09-second-repo-done", {}, plan_station="done",
+                    repo_segment="second-repo")
     dest2 = _add_wt(repo2, "FEAT-09-second-repo-done", repo_segment="second-repo")
     return repo2, dest2
 
@@ -531,7 +533,7 @@ def case_classify_all_two_repos():
         probe_root, dest_probe = _build_probe_repo(tmp)
         workspace_root = os.path.join(tmp, "workspace")
         os.makedirs(workspace_root, exist_ok=True)
-        repo2, dest2 = _build_second_repo(workspace_root)
+        repo2, dest2 = _build_second_repo(workspace_root, probe_root)
         _write_fleet(probe_root, workspace_root,
                      "  - name: acme/second-repo\n    default_branch: main\n")
 
@@ -622,7 +624,7 @@ def case_classify_all_absent_vs_unenumerable():
         probe_root, dest_probe = _build_probe_repo(tmp)
         workspace_root = os.path.join(tmp, "workspace")
         os.makedirs(workspace_root, exist_ok=True)
-        repo2, dest2 = _build_second_repo(workspace_root)
+        repo2, dest2 = _build_second_repo(workspace_root, probe_root)
 
         absent_dir = os.path.join(workspace_root, "absent-repo")  # never created
 
@@ -1072,6 +1074,44 @@ def case_feat64_boundaries_are_typed():
             + _feat64_landed_json_rows(w, artifact_accessors) + _feat64_landed_yaml_rows(w))
 
 
+def case_fleet_planning_worktree_resolves_to_its_segment():
+    """#2056: a fleet feature's PLANNING worktree sits under the harness segment but its record
+    lands in `.harness/<fleet segment>/features/`. Looked up only under `.harness/harness/`, it
+    read as absent — exempt from INV-29 forever. It must classify terminal under its fleet
+    segment, and the removal command's --repo must be the owner/repo name."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        probe_root, _dest_probe = _build_probe_repo(tmp)
+        workspace_root = os.path.join(tmp, "workspace")
+        os.makedirs(workspace_root, exist_ok=True)
+        _write_fleet(probe_root, workspace_root,
+                     "  - name: acme/second-repo\n    default_branch: main\n")
+        _commit_feature(probe_root, "FEAT-11-fleet-plan", {}, plan_station="done",
+                        repo_segment="second-repo")
+        planning = _add_wt(probe_root, "FEAT-11-fleet-plan", repo_segment="harness")
+        script = (
+            "import json, sys\n"
+            f"sys.path.insert(0, {BIN_DIR!r})\n"
+            "import worktree_terminal as w\n"
+            f"recs = w.classify_all({probe_root!r})\n"
+            "print(json.dumps({'recs': recs, 'arg': w.repo_arg_for_segment('second-repo')}))\n"
+        )
+        proc = _run_classify_all_subprocess(probe_root, script)
+        detail = f"rc={proc.returncode} stdout={proc.stdout!r} stderr={proc.stderr!r}"
+        record, arg = None, None
+        if proc.returncode == 0:
+            data = json.loads(proc.stdout)
+            by_path = {r["path"]: r for r in data["recs"]}
+            record = by_path.get(os.path.realpath(planning)) or by_path.get(planning)
+            arg = data["arg"]
+        results.append(("(2056) a fleet planning worktree classifies terminal under its segment",
+                        bool(record) and record["klass"] == "terminal"
+                        and record["repo"] == "second-repo", detail + f" record={record}"))
+        results.append(("(2056) the removal --repo for a fleet segment is its owner/repo name",
+                        arg == "acme/second-repo", detail))
+    return results
+
+
 def main():
     results = (
         case_classify()
@@ -1088,6 +1128,7 @@ def main():
         + case_plan_station_scan_without_pyyaml()
         + case_direct_build_brief_is_terminal()
         + case_feat64_boundaries_are_typed()
+        + case_fleet_planning_worktree_resolves_to_its_segment()
     )
     all_ok = True
     for name, ok, detail in results:
