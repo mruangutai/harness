@@ -4,7 +4,7 @@ approval:
   date: '2026-10-04'
   approved_by: operator
   status: approved
-status: review
+status: done
 mission: plan
 source_issues: [1928]
 baseline:
