@@ -11,6 +11,7 @@ import feature_json_write
 import harness_boundary
 import harness_merge
 import harness_yaml
+import panel_findings
 from plan_merge.guards import (
     BIN_DIR, _die, _load_base_doc, _locked_plan_update, _refuse_governed_agent, _reload_or_refuse,
     _resolve_plan,
@@ -19,6 +20,7 @@ from plan_merge.stations import (
     _RESET_LINE_RE, _approval_reset_context, _approval_status, _reset_approval_lines,
     _resume_station, _splice_top_level_status, _verify_reset,
 )
+from plan_merge.panel import _task_ids
 from plan_merge.text import _approval_span, _before_trailing_comments, _field_lines
 
 def _panel_finding_ids(doc):
@@ -139,10 +141,43 @@ def _verify_signature(spliced_bytes, resolved, fields):
             )
 
 
+def _refuse_unsignable_panel(base_doc, requested):
+    """#2095: INV-32's rule applied at the signature instead of reported after it.
+
+    A plan is signed only when every panel finding has the template's shape and none still
+    gates: resolved, non-gating severity, or a risk acceptance — an existing approval.rulings
+    entry or an --overrule in this very call. Before this, check-state printed the INV-32
+    violation AFTER the signature landed, and FEAT-1559 was signed over a ruled high finding
+    whose disposition was prose. Exit 4, the overrule refusals' code: the remedy is an argument
+    to this command or a set-panel before it."""
+    panel = base_doc.get("panel")
+    findings = panel.get("findings") if isinstance(panel, dict) else None
+    if not isinstance(findings, list):
+        return
+    approval = base_doc.get("approval") if isinstance(base_doc.get("approval"), dict) else {}
+    rulings = approval.get("rulings") if isinstance(approval.get("rulings"), list) else []
+    accepted = {str(r.get("finding", "")).strip() for r in rulings if isinstance(r, dict)}
+    accepted |= {ruling["finding"] for ruling in requested}
+    task_ids, lines = _task_ids(base_doc), []
+    for finding in findings:
+        fid = (finding.get("id") if isinstance(finding, dict) else None) or "<no id>"
+        lines.extend(f"REFUSED: panel finding {fid} {fault}"
+                     for fault in panel_findings.shape_faults(finding, task_ids))
+        if isinstance(finding, dict) and panel_findings.gates_signature(finding, accepted):
+            lines.append(f"REFUSED: panel finding {fid} is {finding.get('severity') or 'unrated'} "
+                         "and open, with no risk acceptance")
+    if lines:
+        raise harness_merge.MergeRefusal(4, lines + [
+            "  resolve it through plan-merge.py set-panel (disposition: resolved, resolved_by: "
+            "T-NN), or accept the risk in this call with --overrule <finding-id>:<reason>. "
+            "Nothing was signed (INV-32, #2095)."])
+
+
 def _approval_fields(base_bytes, args):
     fields = {"status": "approved", "approved_by": args.by, "date": args.date}
     base_doc = _reload_or_refuse(base_bytes)
     requested = _requested_overrules(args.overrule, base_doc, args.by, args.date)
+    _refuse_unsignable_panel(base_doc, requested)
     if not requested:
         return fields
     approval = base_doc.get("approval") or {}
