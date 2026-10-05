@@ -20,7 +20,7 @@ import json, os, shutil, subprocess, sys, tempfile
 # the declaration the way a six-key mapping once did (FEAT-41 T-01).
 import factory_config as _fc09
 from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env, _fire_edit,
-    _legal_feature_json, drive, fire_post, fixture)
+    _legal_feature_json, drive, fire, fire_post, fixture)
 
 
 # ---------------------------------------------------------------------------
@@ -111,13 +111,6 @@ def _approval_root(manifest_text=None, rel=REL_PLAN, body=PLAN_ON_DISK):
     with open(full, "w") as f:
         f.write(body)
     return root, full
-
-
-def _fire_write(root, full, content, agent="harness-pm"):
-    payload = {"agent_type": agent, "tool_name": "Write",
-               "tool_input": {"file_path": full, "content": content}}
-    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
 
 
 def t09(name, ok, detail=""):
@@ -228,7 +221,7 @@ def _t09_binds_every_author():
 
     # ---- 3. THE WRITE ROUTE IS DENIED -----------------------------------------------------
     root3, full3 = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
-    r3 = _fire_write(root3, full3, _PLAN_LEGAL, agent="harness-orchestrator")
+    r3 = fire(root3, full3, _PLAN_LEGAL, agent="harness-orchestrator")
     t09("T-09 3: a Write of plan.yaml is DENIED", r3.returncode == 2,
         f"exit {r3.returncode}, stderr={r3.stderr.strip()[:300]!r}")
 
@@ -311,7 +304,7 @@ def _t09_spelling():
     for spelling in ("Plan.yaml", "PLAN.YAML", "plan.YAML"):
         rel8 = f".harness/harness/features/FEAT-99-fixture/{spelling}"
         root8, full8 = _approval_root(rel=rel8, body=_PLAN_LEGAL)
-        r8 = _fire_write(root8, full8, _PLAN_LEGAL, agent="harness-orchestrator")
+        r8 = fire(root8, full8, _PLAN_LEGAL, agent="harness-orchestrator")
         t09(f"T-09 8 / F-04: a Write of {spelling} is DENIED — on a case-insensitive "
             f"filesystem it lands on the same inode as plan.yaml",
             r8.returncode == 2, f"exit {r8.returncode}, stderr={r8.stderr.strip()[:300]!r}")
@@ -321,7 +314,7 @@ def _t09_spelling():
     for benign in ("plan.yaml.bak", "myplan.yaml"):
         rel8b = f".harness/harness/features/FEAT-99-fixture/{benign}"
         root8b, full8b = _approval_root(rel=rel8b, body=_PLAN_LEGAL)
-        r8b = _fire_write(root8b, full8b, _PLAN_LEGAL, agent="harness-orchestrator")
+        r8b = fire(root8b, full8b, _PLAN_LEGAL, agent="harness-orchestrator")
         t09(f"T-09 8 NEGATIVE CONTROL: {benign} is still ALLOWED — the rule is anchored, not "
             f"a substring match",
             r8b.returncode == 0, f"exit {r8b.returncode}, stderr={r8b.stderr.strip()[:300]!r}")
@@ -354,7 +347,7 @@ def _t09_symlink():
     os.makedirs(os.path.dirname(link_abs), exist_ok=True)
     os.symlink(os.path.join("..", "plan.yaml"), link_abs)
 
-    r9 = _fire_write(root9, link_abs, _PLAN_LEGAL, agent="harness-orchestrator")
+    r9 = fire(root9, link_abs, _PLAN_LEGAL, agent="harness-orchestrator")
     t09("T-09 9: a Write to a SYMLINK whose name is not plan.yaml is DENIED — the write lands "
         "in the plan, so the link is a route",
         r9.returncode == 2, f"exit {r9.returncode}, stderr={r9.stderr.strip()[:300]!r}")
@@ -383,7 +376,7 @@ def _t09_symlink():
     with open(real_abs, "w") as _f:
         _f.write("# note\n")
     os.symlink("real.md", ord_abs)
-    r9b = _fire_write(root9b, ord_abs, "# note\n", agent="harness-orchestrator")
+    r9b = fire(root9b, ord_abs, "# note\n", agent="harness-orchestrator")
     t09("T-09 9 NEGATIVE CONTROL: a symlink to a file that is not the plan is still ALLOWED — "
         "links are followed to a shape test, not refused as a class",
         r9b.returncode == 0, f"exit {r9b.returncode}, stderr={r9b.stderr.strip()[:300]!r}")
@@ -478,7 +471,7 @@ def _t09_other_routes():
                 _f.write("# BRIEF\n")
             target = os.path.join(notes, "innocent2.md")
             os.link(other, target)
-        r = _fire_write(root, target, _PLAN_LEGAL, agent="harness-orchestrator")
+        r = fire(root, target, _PLAN_LEGAL, agent="harness-orchestrator")
         verb = "DENIED" if expect == 2 else "still ALLOWED"
         t09(f"T-09 11: a Write through {label} is {verb} — identity and resolution are "
             f"different questions and the plan needs both answered",
@@ -517,7 +510,7 @@ def _t09_case_fold():
             root, full = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
             abs_p = os.path.join(root, rel)
             os.makedirs(os.path.dirname(abs_p), exist_ok=True)
-            r = _fire_write(root, abs_p, body, agent="harness-orchestrator")
+            r = fire(root, abs_p, body, agent="harness-orchestrator")
             t09(f"T-09 10: {spelling} over budget is DENIED"
                 + (" — the SPELLING is not a way past a budget" if folded_case else
                    " — the canonical control, proving the body really violates it"),
@@ -545,7 +538,7 @@ def _t09_case_fold():
         root, _full = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
         abs_p = os.path.join(root, rel)
         os.makedirs(os.path.dirname(abs_p), exist_ok=True)
-        r = _fire_write(root, abs_p, _legal_bodies[folded], agent="harness-orchestrator")
+        r = fire(root, abs_p, _legal_bodies[folded], agent="harness-orchestrator")
         t09(f"T-09 10 NEGATIVE CONTROL: {folded} within budget is still ALLOWED — the fold "
             f"widened what is measured, not what is refused",
             r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
@@ -594,7 +587,7 @@ def _t09_unresolvable():
     fresh = os.path.join(root12b, ".harness", "harness", "features", "FEAT-99-fixture",
                          "notes", "brand-new.md")
     os.makedirs(os.path.dirname(fresh), exist_ok=True)
-    r12b = _fire_write(root12b, fresh, "# new\n", agent="harness-orchestrator")
+    r12b = fire(root12b, fresh, "# new\n", agent="harness-orchestrator")
     t09("T-09 12 NEGATIVE CONTROL: a path that does not exist yet is still ALLOWED — realpath is "
         "non-strict, so absence is not unresolvable",
         r12b.returncode == 0, f"exit {r12b.returncode}, stderr={r12b.stderr.strip()[:300]!r}")
@@ -607,8 +600,8 @@ def _t09_unresolvable():
     os.makedirs(os.path.join(featc, "notes"), exist_ok=True)
     os.symlink("loop-b.md", os.path.join(featc, "notes", "loop-a.md"))
     os.symlink("loop-a.md", os.path.join(featc, "notes", "loop-b.md"))
-    r12c = _fire_write(root12c, os.path.join(featc, "notes", "loop-a.md"), "x\n",
-                       agent="harness-orchestrator")
+    r12c = fire(root12c, os.path.join(featc, "notes", "loop-a.md"), "x\n",
+                agent="harness-orchestrator")
     t09("T-09 12: a symlink LOOP is allowed, not refused — realpath resolves it rather than "
         "raising, which the old docstring had backwards",
         r12c.returncode == 0, f"exit {r12c.returncode}, stderr={r12c.stderr.strip()[:300]!r}")
@@ -635,7 +628,7 @@ def run_t14():
 
     # 1. the flip is DENIED, and the message names the fragment and the route
     root, full = _approval_root()
-    r = _fire_write(root, full, APPROVED)
+    r = fire(root, full, APPROVED, agent="harness-pm")
     t14("1: a governed agent flipping approval.status is DENIED", r.returncode == 2,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
     t14("1: the denial names the approval mapping", MARK in r.stderr and "approval:" in r.stderr,
@@ -670,7 +663,7 @@ def run_t14():
     # approval message is what distinguishes the two gates.
     root, full = _approval_root()
     added = PLAN_ON_DISK + "  - id: T-03\n    change_type: logic\n    status: pending\n"
-    r = _fire_write(root, full, added)
+    r = fire(root, full, added, agent="harness-pm")
     t14("2 (T-09): adding a task through Write is DENIED BY THE ROUTE RULE, not the approval "
         "guard — plan.yaml has one writer",
         r.returncode == 2 and MARK not in r.stderr and "set-task-station" in r.stderr,
@@ -678,7 +671,7 @@ def run_t14():
 
     # 3. the ORCHESTRATOR is governed too, and is not the signer (D-10)
     root, full = _approval_root()
-    r = _fire_write(root, full, APPROVED, agent="harness-orchestrator")
+    r = fire(root, full, APPROVED, agent="harness-orchestrator")
     t14("3: the orchestrator flipping approval is DENIED too",
         r.returncode == 2 and MARK in r.stderr,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
@@ -740,7 +733,7 @@ def run_t14():
     root = fixture(APPROVAL_MANIFEST)
     full = os.path.join(root, REL_PLAN)
     os.makedirs(os.path.dirname(full), exist_ok=True)
-    r = _fire_write(root, full, APPROVED)
+    r = fire(root, full, APPROVED, agent="harness-pm")
     # INVERTED (T-09). Creation does not go through an editor: `plan-merge.py apply` writes a
     # plan whole when the base does not exist, which was measured at execution time.
     t14("6 (T-09): a plan.yaml that does not exist yet is DENIED too — creation goes through "
@@ -751,7 +744,7 @@ def run_t14():
     # 7. an unparseable proposal is ALLOWED and SAYS SO. A silent allow and a reported
     # allow are different gates.
     root, full = _approval_root()
-    r = _fire_write(root, full, "approval:\n  status: [unclosed\n")
+    r = fire(root, full, "approval:\n  status: [unclosed\n", agent="harness-pm")
     t14("7 (T-09): an unparseable proposal is DENIED by the route rule — the shape gate never "
         "parses, so unparseable and legal are refused alike",
         r.returncode == 2, f"exit {r.returncode}")
@@ -761,7 +754,7 @@ def run_t14():
     # 8. a whitespace-only reflow loads to the same value. A text-comparing build fails here.
     root, full = _approval_root()
     reflowed = PLAN_ON_DISK.replace("  status: pending\n", "  status:   pending\n")
-    r = _fire_write(root, full, reflowed)
+    r = fire(root, full, reflowed, agent="harness-pm")
     t14("8 (T-09): a whitespace-only reflow is DENIED by the route rule, though still NOT by "
         "the approval guard",
         r.returncode == 2 and MARK not in r.stderr,
@@ -773,7 +766,7 @@ def run_t14():
         '    - ".harness/*/features/*/plan.yaml approval:"\n', "")
     assert dropped != APPROVAL_MANIFEST
     root, full = _approval_root(manifest_text=dropped)
-    r = _fire_write(root, full, APPROVED)
+    r = fire(root, full, APPROVED, agent="harness-pm")
     # INVERTED (T-09). Dropping the list entry still disarms the APPROVAL guard — that is the
     # property the intent protects by leaving the entry in place — but the ROUTE rule does not
     # read that list, so the write is refused regardless. Asserted by the message, not the code.
@@ -790,14 +783,14 @@ def run_t14():
     no_ms = _re.sub(r"main_session:\n(?:  .*\n|    .*\n)+", "", APPROVAL_MANIFEST)
     assert "main_session" not in no_ms, "the main_session stanza was not removed"
     root, full = _approval_root(manifest_text=no_ms)
-    r = _fire_write(root, full, APPROVED)
+    r = fire(root, full, APPROVED, agent="harness-pm")
     t14("10a (T-09): no main_session key at all -> still DENIED by the route rule",
         r.returncode == 2 and MARK not in r.stderr, f"exit {r.returncode}")
     t14("10a: and stderr says the exclusion list was unreadable",
         "exclusion list was unreadable" in r.stderr, r.stderr.strip()[:200])
     empty = no_ms.replace("shared:\n", "main_session:\n  writes: []\nshared:\n")
     root, full = _approval_root(manifest_text=empty)
-    r = _fire_write(root, full, APPROVED)
+    r = fire(root, full, APPROVED, agent="harness-pm")
     t14("10b (T-09): an empty writes list -> still DENIED by the route rule",
         r.returncode == 2 and MARK not in r.stderr, f"exit {r.returncode}")
     t14("10b: and stderr says the exclusion list was unreadable",
@@ -810,7 +803,7 @@ def run_t14():
     full = os.path.join(root, ".harness", "logs", "2026-01-01.md")
     os.makedirs(os.path.dirname(full), exist_ok=True)
     open(full, "w").write("# log\n")
-    r = _fire_write(root, full, "# log\nchanged\n")
+    r = fire(root, full, "# log\nchanged\n", agent="harness-pm")
     t14("11: a fragment-less entry (.harness/logs/**) contributes NO fragment denial",
         MARK not in r.stderr, r.stderr.strip()[:200])
 
@@ -818,7 +811,7 @@ def run_t14():
     # the task: team-config granted pm BRIEF.md whole and "except ## Approval" was a comment.
     root, full = _approval_root(rel=REL_BRIEF, body=BRIEF_ON_DISK)
     flipped = BRIEF_ON_DISK.replace("status: pending", "status: approved")
-    r = _fire_write(root, full, flipped)
+    r = fire(root, full, flipped, agent="harness-pm")
     t14("12: flipping BRIEF.md's ## Approval body is DENIED",
         r.returncode == 2 and MARK in r.stderr,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
@@ -826,13 +819,13 @@ def run_t14():
         r.stderr.strip()[:200])
     root, full = _approval_root(rel=REL_BRIEF, body=BRIEF_ON_DISK)
     goal_only = BRIEF_ON_DISK.replace("Do the thing.", "Do the other thing.")
-    r = _fire_write(root, full, goal_only)
+    r = fire(root, full, goal_only, agent="harness-pm")
     t14("12: changing only ## Goal, leaving ## Approval identical, is ALLOWED",
         r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
 
     # 13. THE GENERALISATION, PLAN.md. Same hole as case 12.
     root, full = _approval_root(rel=REL_PLANMD, body=BRIEF_ON_DISK)
-    r = _fire_write(root, full, BRIEF_ON_DISK.replace("status: pending", "status: approved"))
+    r = fire(root, full, BRIEF_ON_DISK.replace("status: pending", "status: approved"), agent="harness-pm")
     t14("13: flipping PLAN.md's ## Approval body is DENIED",
         r.returncode == 2 and MARK in r.stderr,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
