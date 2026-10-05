@@ -19,9 +19,9 @@ hooks, or settings.
 **Run this in the main session.** Only the main session can call `AskUserQuestion` — a subagent has no
 channel to the user. Delegate the *mechanical detection* to `dev-ops`; never delegate the interview.
 
-**The interview IS a grilling (DEC-164).** Load `harness-grilling` and run it: one question at a
-time with your recommendation, facts looked up rather than asked, destination named first, and the
-artifact written to `.harness/notes/`. Its answers seed the repository's own `harness.json`.
+**The interview IS a grilling (DEC-164).** Before interviewing, MUST read and run
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-grilling/SKILL.md`.
+Record its artifact in `.harness/notes/`; the answers seed the repository's own `harness.json`.
 
 ## Preflight — stop if any of these fails
 
@@ -78,9 +78,6 @@ config lands has no symptom except an unattributed `FleetError` mid-build.
    the owner (`factory_config.segment_of`). This is where the repository's `BRIEF.md`, `plan.yaml`,
    and expertise live; `factory_config.features_root` resolves the first path.
 
-No `team-config.yaml` exists anywhere but the control plane; no `.harness/expertise/`,
-`.harness/products/`, `bin/`, hooks, or settings are written in a product repository.
-
 ### 2. Interview — technical
 
 One batched `AskUserQuestion` call:
@@ -89,12 +86,12 @@ One batched `AskUserQuestion` call:
 - **Frontend framework** (if any) and **backend framework/language**
 - **Does this project have a user-facing UI?**
 
-Spawn `harness-dev-ops` with the answers. It follows the same dev-ops contract as harness-init's
-“Delegate detection to dev-ops” section — verify every cmd, never invent
-one, surface every null as a DECISION, keep worktree/vendor dirs excluded, report source layout —
-with one difference: it writes test_kinds into the fleet member's own harness.json in its checkout
-under workspace_root; the main session lands that file through step 1, rather than the control
-plane's own harness.json.
+Spawn `harness-dev-ops` with the answers. Before detection, MUST read and follow
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-init/SKILL.md`
+§ "4. Delegate detection to `dev-ops`" — the complete detection contract applies.
+The only difference: dev-ops writes `test_kinds` into the fleet member's own `harness.json`
+in its checkout under `workspace_root`; the main session lands that file through step 1,
+rather than writing the control plane's own `harness.json`.
 
 ### 3. GitHub Issues mirror and project board
 
@@ -113,36 +110,20 @@ outbound after your plan approval)"**
 The project board follows the mirror question because it needs the repo pinned. Skip it entirely when
 `github.sync` is false.
 
-- `python3 .agents/skills/harness/bin/board_lifecycle.py provision` — **read the exit code.**
-  `0` provisioned or already correct. `2` the declaration is unusable and the message names the
-  key — **nothing was written**. `3` a NEW project was created, linked, AND its Status field
-  made to carry every declared station — one run, not two — and its number must be written
-  into that project's `harness.json` `github.board.number` **before anything else runs**.
-  `4` a project was created but a follow-up write FAILED — either the link, or the Status field
-  after a successful link: **the project exists.** Record the number the message names before
-  retrying, or the retry creates a second board.
-- **On a NEW board, `provision` replaces the declared `station_field`'s options with exactly your
-  stations and prints what it removed** — with `station_field: "Status"` (every board here) that is
-  GitHub's default `Todo`/`In Progress`/`Done`. Any other name creates a new field and leaves
-  `Status` as an unused column. Either way it touches only a board created in that same run — no
-  items exist yet, so no card can lose its column. On an EXISTING board it only ever adds.
-- **Provisioning works only for a USER-OWNED board.** Every primitive queries `user(login:)`, and
-  an organization-owned project is refused with "organization-owned board not supported". Create
-  and configure that by hand; `provision` exits 2 saying so rather than doing something partial.
-  Both repositories in the fleet today happen to be user-owned, so nothing else would surface this.
-- `python3 .agents/skills/harness/bin/board_lifecycle.py audit` — show the operator the WORKFLOW
-  findings **verbatim**.
+Before mirror-on provisioning or auditing, MUST read and follow
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/repo-board-provisioning.md`
+(DEC-158).
 
-**The three workflows are a HARD GATE you cannot automate.** `Item closed`, `Auto-close issue` and
-`Pull request merged` cannot be enabled by any API: all 31 ProjectV2 mutations include
-`deleteProjectV2Workflow` and none that creates or enables one, and `ProjectV2Workflow` exposes
-neither its trigger nor its action. **Only a click in the project's web UI turns them on.** Ask the
-operator to do it, then re-run the audit. Registration is not finished until it reports all three
-enabled.
-
-This workflow check runs only here, never in `check-state.py` (which fires at every door and
-pre-commit). Consequence: a workflow switched off after registration is invisible until the next
-registration run.
+**Provision only USER-OWNED boards**; organization-owned boards require manual creation
+and configuration, not partial provisioning. **Record a newly created project's number in
+the repository's `harness.json` `github.board.number` BEFORE retrying or doing any other work**,
+including when a follow-up write failed: the project exists, and retrying without its number
+creates a duplicate. Land the config through step 1.
+**New-board options may be replaced only on a board created in that run; existing-board
+changes are additive only**, so no existing card loses its column.
+**Show audit WORKFLOW findings verbatim. Registration is incomplete until all three
+workflows — `Item closed`, `Auto-close issue`, `Pull request merged` — audit as enabled.**
+Only the operator's clicks in the project's web UI can enable them; no API can.
 
 ## Next: plan the first feature
 

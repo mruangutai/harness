@@ -12,7 +12,6 @@ Produce the **goal of record** for a feature. Nothing downstream may run against
 - **Done is stated once, by the people who will judge it** — `## Done when — by perspective`,
   which the goal-check grades and the handoff cites (DEC-231).
 - There is no `## Goal` and no `## Requirements`.
-- **Every success criterion declares its verification method when it is written.**
 
 ## Process
 
@@ -62,9 +61,15 @@ what it costs. The goal-check anchors "did this help?" on it.
 
 One block, and the only statement of done. Each line is a person who will judge the result,
 speaking in the first person about what they can rely on once it ships: `**<name>** — <1–3
-sentences>`. The standard names — `operator`, `code maintainer`, `end user`, `reader`,
-`orchestrator` — spelled exactly so; the template says who each one is. Add a project-specific
-name only when none fits.
+sentences>`. Use these standard names exactly; add a project-specific name only when none fits:
+
+| Name | Who judges |
+|---|---|
+| `operator` | The person who signs, rules on rework, and audits the record afterwards |
+| `code maintainer` | Whoever reads, changes or extends the code six months from now |
+| `end user` | The person the surface is for |
+| `reader` | A reviewer, qa, or panel member grading the result |
+| `orchestrator` | The agent dispatching the phases and inheriting the spend |
 
 **A perspective with nothing to say is omitted** — never written as "none"; INV-38 demands an SC
 for it. A trailing parenthetical is a gloss, not part of the name: `**reader (reviewer / qa)**`
@@ -83,14 +88,18 @@ signature.
 
 ## Verification gaps — say them out loud, at the signature (DEC-163)
 
-Before writing a single `verify: automated`, read `test_kinds` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. A kind
-with `cmd: null` has **no runner**: qa soft-skips it, so an SC resting on it is never met and
-never fails loudly.
+Before writing a single `verify: automated`, read `test_kinds` in
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. An active kind with `cmd: null` is
+**BLOCKED**, never skipped; unresolved kinds block too. Only `status: excluded` with `signed`
+naming a decision that resolves in the project's decisions file soft-skips (DEC-187).
 
-1. **Never rest an SC on a null kind.** Pin it to a kind that exists, or use `inspection`/`uat`.
-2. **Record the gap where the user signs.** `check-state.py` INV-49 flags an SC resting on a kind
-   with no runner, or `verify: manual`, that `## Verification gaps` leaves unnamed (DEC-163). A
-   standing runner gap is a **dev-ops task worth raising** — backlog it too.
+1. **Never rest an SC on a null or excluded kind.** Pin it to a runnable active kind, or use
+   `inspection`/`uat`.
+2. **Record the gap where the user signs.** For each null-runner kind covering a surface this
+   feature touches, state what is NOT proven and what carries it instead. `check-state.py`
+   INV-49 flags an SC resting on a null or excluded kind, or `verify: manual`/`MANUAL —`, that
+   `## Verification gaps` leaves unnamed (DEC-163, DEC-231). A standing runner gap is a
+   **dev-ops task worth raising** — backlog it too. `"none"` is legal; silence is not.
 
 ## Constraints
 
@@ -107,8 +116,9 @@ Copy the grilling artifact's `## Out of scope`, reasons included; do not re-liti
 
 ## Approval
 
-Always written, always `status: pending` with empty `approved-by:` and `date:` — ONLY the user sets
-it to approved. A brief without this section reads as unsigned to every gate and halts the flow.
+pm always authors `## Approval` as `status: pending` with empty `approved-by:` and `date:`.
+Only the **main session**, on the user's explicit signature, records approval; neither pm nor
+the orchestrator may approve (DEC-120). A missing section reads as unsigned and halts the flow.
 
 ### 3b. Vocabulary — reuse names, never invent them
 
@@ -128,15 +138,19 @@ not your memory of it.
 
 ### 4. Verify each SC is well-formed
 
-Every `SC-NN` carries exactly one perspective tag and exactly one `verify:` — `automated` with an
-`evidence: <test kind>` (qa requires the failing state first), `inspection` (a cited file and
-symbol), or `uat` (a step the user executes).
+When written, every `SC-NN` has the form `- SC-NN (<declared perspective>): ...`, exactly one
+perspective tag and exactly one `verify:` (DEC-73, DEC-231):
 
-**Reject your own draft and rewrite if any of these is true:**
+- `automated` also carries `evidence: <test kind>` from `harness.json test_kinds`; qa supplies
+  the test evidence.
+- `inspection` is a reviewer reading code or output and citing the file and symbol; evidence
+  comes from code-, security- or ui-reviewer.
+- `uat` is a judgement only the user can make; it becomes a user-executed step in
+  `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/notes/uat.md`.
 
-- An SC has no perspective tag, its tag names a perspective the block does not declare, or a
-  declared perspective has no SC. Write `- SC-NN (<perspective>): ...`; INV-38 refuses the rest.
-- An SC has no `verify:`, or two; or is `automated` with no `evidence:` kind.
+**Reject your own draft and rewrite if the shape above or the perspective coverage in step 3
+fails, or any of these is true:**
+
 - An SC is not falsifiable — "the code is clean", "performance is good". If you cannot say what
   observation would prove it false, it is not a criterion.
 - An SC restates its perspective instead of naming an outcome.
@@ -151,7 +165,7 @@ symbol), or `uat` (a step the user executes).
 - **An SC graded on file CONTENT does not say to read the pinned sha.** A plain read cannot tell
   committed from uncommitted work. Write `git show <review_sha>:<path>` into the criterion.
 - **An SC's test could not be shown to fail first.** If the assertion would pass before the work is
-  done, it proves nothing. Say in the criterion that the failing state must be demonstrated.
+  done, it proves nothing. Say in the criterion that qa must demonstrate the failing state first.
 
 ### 5. The perspective test — apply it to every perspective line
 
@@ -168,7 +182,6 @@ Write the file, then report in plain English, not IDs: the BRIEF path; who judge
 each was promised; how many SCs and how each will be checked ("a unit test", "you, by eye"); and
 **which SCs will need them personally** (the `uat` ones). Ask them to approve or amend.
 
-Write the `## Approval` section; never set it to `approved` yourself.
 ### 7. The patch lane — one intake run
 
 When the grilling artifact's `## Mission` reads `patch`, the whole intake is ONE product run: a

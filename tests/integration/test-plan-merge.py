@@ -37,7 +37,6 @@ CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
 # overridden PLAN_MERGE_BIN copy brings its own package, and a proof that mutates a copied
 # tree edits the owner module there.
 PACKAGE_DIR = os.path.join(os.path.dirname(os.path.realpath(CLI)), "plan_merge")
-TEMPLATE_PLAN = os.path.join(HERE, "..", "templates", "plan.yaml")
 
 # This suite shells out to plan-merge.py, whose cmd_sign_approval reads HARNESS_AGENT_TYPE
 # from the process environment at .claude/skills/harness/bin/plan-merge.py line 1188 and
@@ -638,16 +637,10 @@ def case_issue_720_duplicate_key_base_on_disk_is_refused():
 
 
 def case_comments_survive():
-    """Case 9 — COMMENTS SURVIVE: a base carrying the plan.yaml template's own leading
-    comment block still carries every one of those lines, byte identical, after a merge that
-    adds a task."""
-    with open(TEMPLATE_PLAN, encoding="utf-8") as f:
-        template_lines = f.readlines()
-    comment_block = "".join(template_lines[:19])
-    check(
-        "case9: the template's leading block is all comment lines",
-        all(line.startswith("#") for line in template_lines[:19]),
-        comment_block,
+    """Case 9 — preserve the user's leading comment block when adding a task."""
+    comment_block = (
+        "# These paths are disjoint so parallel writers cannot collide.\n"
+        "# Preserve this rationale when the declaration gains a task.\n"
     )
 
     _root, path = fixture_root()
@@ -661,8 +654,8 @@ def case_comments_survive():
     check("case9: exit 0", r.returncode == 0, r.stdout + r.stderr)
 
     result = open(path, encoding="utf-8").read()
-    for i, line in enumerate(template_lines[:19]):
-        check(f"case9: template comment line {i + 1} survives byte identical", line in result, repr(line))
+    check("case9: leading comments survive byte identical",
+          result.startswith(comment_block), result)
     check("case9: T-15 was added", "- id: T-15\n" in result, result)
 
 

@@ -9,9 +9,9 @@ user-invocable: false
 **`plan.yaml` is REAL YAML, and nothing in it is prose for a human** (DEC-182). Instantiate from
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/plan.yaml`.
 
-**Every write goes through a `plan-merge.py` verb. There is no other route** — the shape gate
-denies `Edit`, `Write` and shell redirects. `sign-approval` is **the main session's only**
-(DEC-120); the rework ruling beside it is theirs too.
+**Every write goes through a `plan-merge.py` verb. There is no other route** — updates are
+locked and validated before landing; the shape gate denies `Edit`, `Write` and shell redirects
+(DEC-182).
 
 ```bash
 python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/plan-merge.py apply \
@@ -39,9 +39,12 @@ return the gap rather than guess.
    A whole-tree `verify:` belongs to the LAST task that touches those files, or to validate.
    `plan-merge.py check` prints one `OVERLAP <path>: T-a, T-b` line per shared file; treat
    each as a question to answer, not a line to ignore (BUG-1725).
-2. **Complete intent.** Not "implement X" — the actual logic, types, structure, values. `intent:` is
-   the LITERAL DISPATCH PROMPT: the doer receives it and nothing else about the task. Detail that
-   only JUSTIFIES the instruction belongs in `notes/`.
+2. **Complete intent.** `intent:` is the LITERAL DISPATCH PROMPT: the doer receives it and nothing
+   else about the task. Specify the actual logic, types, structure and values; detail that only
+   JUSTIFIES the instruction belongs in `notes/`. Reject `TBD`, `TODO`, vague verbs without
+   targets, "similar to above", "follow the existing pattern", and "implement X" without saying
+   what X produces. If you cannot fully specify the task, the *brief* is incomplete: do not write
+   the task; raise the gap in `open_questions`, never guess.
 3. **A `verify:` command** with the expected result: under 60 seconds, unambiguous pass/fail, no
    human interpretation. If nothing automated is possible, write
    `verify: MANUAL — <what must be built first to make this automatable>` (em dash) — while the plan
@@ -82,12 +85,6 @@ panel by hand and never edit a finding's severity** (DEC-229); read
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/panel-recording.md` when the
 digest lands.
 
-## Reject placeholders
-
-`TBD`, `TODO`, vague verbs without targets, "similar to above", "follow the existing pattern",
-"implement X" without saying what X produces. If you cannot fully specify a task, the *brief* is
-incomplete — raise it in `open_questions`.
-
 ## The D-NN bar (DEC-149)
 
 A choice earns a `D-NN` (`plan.yaml decisions:`) — and the user's attention at approval — only
@@ -110,8 +107,17 @@ before it lands in a perspective, code wins over a stated meaning (DEC-149;
 
 ## Approval is not yours
 
-Only the **main session** writes `## Approval`. Any verb that changes the task set after signature
-sets `approval.status` back to `pending` on its own.
+pm authors the pending proposal; `apply` seeds a new plan's YAML `approval:` mapping with only
+`status: pending`. Only the **main session**, on the user's explicit signature, invokes
+`sign-approval` to write `approved`, `approved_by` and `date`; the rework ruling and
+`approval.rulings` risk acceptances are theirs too (DEC-120, DEC-226). Neither pm nor the
+orchestrator approves. Main alone may invoke `revoke-approval` on the operator's word (DEC-229).
+
+A task-set-changing verb after signature resets `approval.status` to `pending`, records
+`reset_at`, `reset_reason` and transient `resume_station`, and pauses the feature at Plan.
+Reapproval consumes the transient metadata and emits the `RESUME:` receipt (DEC-229).
+`approval.rulings` each name a current `panel.findings` PF-id, with `who`, `date` and a
+one-clause reason; an absent id is refused, so reworded findings require fresh risk acceptance.
 
 Capture and print stdout from every task-changing `plan-merge.py` invocation. Only when the
 captured output contains its exact `APPROVAL-RESET:` receipt, run
