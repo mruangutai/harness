@@ -325,8 +325,11 @@ LEGAL_EXECUTION_MODES = ("team", "main-session-direct")
 # exactly wide enough for what pending work already writes.
 _MANUAL_VERIFY_RE = re.compile(r"^MANUAL \u2014 ")  # em dash, exactly — a hyphen is not this
 _VERIFY_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+# #2067 added the JS/TS runners `pnpm`, `node` and `npx`: a served product repository's verify
+# opens with them as naturally as harness's opens with python3, and refusing them pushed plans
+# into `bash -c '…'` wrappers that say nothing a bare invocation does not.
 _VERIFY_BARE_COMMANDS = ("cd", "set", "python3", "bash", "git", "grep", "test", "diff",
-                         "true", "false")
+                         "true", "false", "pnpm", "node", "npx")
 
 
 def _looks_runnable(first_line):
