@@ -3,11 +3,11 @@ import os
 import re
 import sys
 
-import artifact_accessors
 import harness_boundary
 import harness_yaml
 import plan_anchors
 from plan_merge.guards import BIN_DIR, _die, _resolve_plan
+import worktree_terminal
 
 # A SERVED REPOSITORY'S PLAN HAS TWO ROOTS (#2064). Its plan lives in the harness PLANNING
 # worktree under `.harness/<segment>/features/<id>/`, but the code it names lives in the paired
@@ -119,17 +119,6 @@ def _plan_segment(resolved_plan):
     return os.path.basename(segment_dir), os.path.basename(feature_dir)
 
 
-def _fleet_repo(root, segment):
-    """The owner/repo fleet name whose segment is `segment`, for the refusal's command."""
-    try:
-        fleet = artifact_accessors.load_fleet(os.path.join(root, ".harness", "factory", "fleet.yaml"))
-    except artifact_accessors.FleetError:
-        return f"<owner>/{segment}"
-    names = [e.get("name") for e in fleet.get("repos", []) if isinstance(e, dict)]
-    return next((n for n in names if isinstance(n, str) and n.split("/", 1)[-1] == segment),
-                f"<owner>/{segment}")
-
-
 def _code_root(args, root, resolved_plan):
     """The root anchors resolve against: --root for harness's own plan, the required
     --code-root for a served repository's — or the exit-2 refusal that says why not."""
@@ -140,9 +129,10 @@ def _code_root(args, root, resolved_plan):
                     "under --root; --code-root is only for a served repository's plan.")
         return None
     if args.code_root is None:
+        repo = worktree_terminal.repo_arg_for_segment(segment) or f"<owner>/{segment}"
         _die(2, f"plan-merge: {resolved_plan} is a {segment} plan, so its anchors resolve in "
                 f"its code worktree — pass --code-root, the CODE line of: feature-worktree.py "
-                f"path --repo {_fleet_repo(root, segment)} --id {feature}")
+                f"path --repo {repo} --id {feature}")
     code_root = os.path.abspath(args.code_root)
     if not os.path.isdir(code_root):
         _die(2, f"plan-merge: --code-root {code_root} is not a directory — create the paired "

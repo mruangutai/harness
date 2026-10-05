@@ -3165,7 +3165,8 @@ def case_2064_code_root_is_required_for_a_product_plan_and_refused_for_harness()
     hroot, hplan = _check_root()
     try:
         write(plan, _product_plan([("T-01", "harness-backend-dev", "      - src/a.ts\n")]))
-        r = run_verb("check", "--file", plan, "--root", root)
+        r = run_verb("check", "--file", plan, "--root", root,
+                     env=dict(os.environ, HARNESS_PROJECT_DIR=root))
         check("2064: a product plan without --code-root exits 2 naming how to get it",
               r.returncode == 2 and "--code-root" in r.stderr
               and "feature-worktree.py path --repo org/kaya --id FEAT-99-fixture" in r.stderr,
