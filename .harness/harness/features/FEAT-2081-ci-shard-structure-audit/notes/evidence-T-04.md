@@ -18,3 +18,9 @@ missing artifact → nothing downloaded → `mkdir -p` dir → validator "no man
 - `python3 tests/integration/test-integration-shard-aggregation.py` → exit 0, "0 failed", 2.3s
 - actionlint: not installed (`which actionlint` exit 1); not run.
 - Live scheduling, shard-only cancellation conclusion, required-context identity and timing remain SC-09/SC-10 user UAT.
+
+## First live run and precompile fix (2026-10-05)
+
+Run 37324916242 (draft PR #2100, head d30bd390): checks success; shards 1, 2, 4 success, shard 3 failure; `integration` failure with `INCOMPLETE: matrix-result is failure`, `runner_exit 1`, and `tests/integration/test-check-domain-artifact.py returned 1`. Wall from first shard start 14:27:58Z to `integration` completion 14:29:31Z: 93s. The aggregator failed closed on a real shard failure.
+
+Cause: shutil.copytree of the live bin/ raced a concurrent `.pyc` temp-file write in bin/check_state/__pycache__ (ENOENT on `brief.cpython-312.pyc.<n>`). Pre-existing: about 15 tests copy bin/ without ignoring __pycache__; the shard mix surfaced it. Fix: a `Precompile harness bin` step (`python3 -m compileall -q .claude/skills/harness/bin`) in `checks` and `integration-shards`, before any test, so no test writes into the tree it copies.

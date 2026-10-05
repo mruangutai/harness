@@ -79,6 +79,15 @@ jobs:
       - name: Install PyYAML and jsonschema
         run: python3 -m pip install --upgrade pyyaml jsonschema
 
+      # PRECOMPILE bin/ BEFORE ANY TEST. A fresh checkout has no __pycache__, so the first
+      # import of each module writes a .pyc there through a temporary file. Many tests copy
+      # the live bin/ tree with shutil.copytree, and a copy that lists that temporary file and
+      # then finds it renamed fails with ENOENT — measured on run 37324916242, shard 3,
+      # test-check-domain-artifact.py. Compiling once here means no test writes into the tree
+      # it copies, and no process recompiles a module.
+      - name: Precompile harness bin
+        run: python3 -m compileall -q .claude/skills/harness/bin
+
       # UNIT HERE, INTEGRATION IN ITS OWN SHARDED JOB. Keeping unit and integration as
       # distinct runs gives each its own pass/fail attribution in the Actions log, which a
       # single `--kind all` run would not; the integration kind now runs in
@@ -366,6 +375,10 @@ jobs:
 
       - name: Install PyYAML and jsonschema
         run: python3 -m pip install --upgrade pyyaml jsonschema
+
+      # Same precompile as `checks`, for the reason recorded there.
+      - name: Precompile harness bin
+        run: python3 -m compileall -q .claude/skills/harness/bin
 
       # Before sharding (run 37264903064, 2026-10-05) the single unsharded integration step
       # took 171s on ubuntu-latest (`pool: 4 workers, 73 files, 170.49s wall`) inside a 211s
