@@ -257,6 +257,9 @@ def _register_amend(sub):
                    help="file holding the replacement value; may be multi-line")
     p.add_argument("--yaml-value", action="store_true",
                    help="read/write the value-file as a YAML list or mapping")
+    p.add_argument("--reason", default=None,
+                   help="why the field changed; required when it is a signed task's "
+                        "intent/files/verify, which is ledgered as an amendment judgement")
     p.set_defaults(func=cmd_amend)
 
 

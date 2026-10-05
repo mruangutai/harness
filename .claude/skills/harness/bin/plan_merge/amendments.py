@@ -164,6 +164,14 @@ def _record_amendment_judgements(feature_json, judgements):
 
 
 def _record_amendments_locked(resolved, feature_json, entries):
+    """record-amendments' two writes: the digest's entries spliced, one judgement each."""
+    judgements = [_amendment_judgement(e, at)
+                  for e, at in zip(entries, _distinct_instants(len(entries)))]
+    write_plan_and_ledger(resolved, feature_json,
+                          lambda base: _amended_plan_bytes(base, entries), judgements)
+
+
+def write_plan_and_ledger(resolved, feature_json, splice, judgements):
     """Both writes under the PLAN's lock, plan first, ledger second, and the plan RESTORED if
     the ledger write fails for ANY reason — a refusal or an ordinary I/O error (validate c0
     V-01, c1 V-01). Before this the ledger landed first, so a plan write that failed
@@ -176,9 +184,7 @@ def _record_amendments_locked(resolved, feature_json, entries):
     with harness_merge.acquire(resolved + ".lock"):
         with open(resolved, "rb") as fh:
             base_bytes = fh.read()
-        spliced = _amended_plan_bytes(base_bytes, entries)
-        judgements = [_amendment_judgement(e, at)
-                      for e, at in zip(entries, _distinct_instants(len(entries)))]
+        spliced = splice(base_bytes)
         _replace_bytes(resolved, spliced)
         try:
             _record_amendment_judgements(feature_json, judgements)

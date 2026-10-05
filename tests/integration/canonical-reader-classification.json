@@ -1631,6 +1631,19 @@
       "task": "none"
     },
     {
+      "artifact": "feature.json",
+      "category": "load_feature_json",
+      "dec174_category": "none",
+      "disposition": "canonical",
+      "execution_route": "team",
+      "file": ".claude/skills/harness/bin/plan_merge/amend.py",
+      "id": ".claude/skills/harness/bin/plan_merge/amend.py::_ledgered_target::load_feature_json#1",
+      "reason": "",
+      "remedy": "artifact_accessors.load_feature_json",
+      "symbol": "_ledgered_target",
+      "task": "none"
+    },
+    {
       "artifact": "plan.yaml",
       "category": "harness_yaml_string",
       "dec174_category": "none",
