@@ -22,7 +22,8 @@ Inside the run:
   ran and found nothing) and `design` (ui-reviewer, which self-scopes out on a non-UI plan).
 - pm applies: every `form` finding is fixed in place, every `substance` finding is applied, then
   pm runs `plan-merge.py record-panel --file <plan.yaml> --digest <run_dir>/panel-c<N>.md --cycle N`
-  over the lead's reader fan-in and `plan-merge.py check --file <plan.yaml> --root <worktree>`,
+  over the lead's reader fan-in and `plan-merge.py check --file <plan.yaml> --root <worktree>`
+  (`--code-root <code worktree>` too for a served repository's plan),
   which resolves every anchor, every `files:` path against the layout gate and every
   `execution_agent` route. Both verbs are pm's, inside the run; no run exists to transcribe.
 - pm's goal-check, **once, at plan exit** (SC-09): one grade per perspective against the

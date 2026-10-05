@@ -29,8 +29,10 @@ Shipped `PLAN.md` files are never rewritten; their reader stays.
 it; the four below are what those fields must CONTAIN. A task missing any is **not written**:
 return the gap rather than guess.
 
-1. **Exact file anchors**, as a YAML list, one entry per file, each one of three forms: `path`;
-   `path#symbol`; or `{path: <p>, quote: <q>}`. **Never `path:NN`** — a line number points at
+1. **Exact file anchors**, as a YAML list, one entry per file, each one of four forms: `path`;
+   `path#symbol`; `{path: <p>, quote: <q>}`; or `{path: <p>, create: true}` for a new file whose
+   directories do not exist yet (a greenfield tree — a bare `path` still needs its directory).
+   **Never `path:NN`** — a line number points at
    different code the moment `main` moves; `apply` refuses it (DEC-232). Not a comma string, not
    backticked, **no trailing annotation** like `(delete)` — the resolver takes the value verbatim.
    **A task owns its files.** Slice work across many files by file ownership — each file in
@@ -67,9 +69,11 @@ Every plan opens with a `lanes:` block, resolved against
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` at a named SHA.
 
 **Before handing a plan back, run
-`python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/plan-merge.py check --file <plan path> --root <checkout>`
+`python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/plan-merge.py check --file <plan path> --root <harness checkout>`
 and fix every FAIL line.** It resolves every `files:` anchor, `execution_agent` route and
-`traces:` id; CI re-runs the route check on `main` (DEC-183).
+`traces:` id; CI re-runs the route check on `main` (DEC-183). A served repository's plan also
+takes `--code-root <code worktree>` — the `CODE` line of `feature-worktree.py path` — and its
+anchors resolve there; `check` refuses it without one.
 
 ## `verify:` is a literal block, and this one has teeth
 

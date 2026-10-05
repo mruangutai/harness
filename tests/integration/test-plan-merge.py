@@ -3090,6 +3090,161 @@ def case_bug1725_check_names_files_shared_by_tasks():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def _product_check_roots():
+    """#2064: a harness checkout whose fleet serves org/kaya, and kaya's paired code worktree.
+    The manifest grants src/** to backend and apps/web/src/** to frontend; the code worktree
+    holds src/a.ts with a symbol, and no apps/ tree yet (a greenfield layout)."""
+    import yaml
+    base = os.path.realpath(tempfile.mkdtemp(prefix="plan-merge-product-"))
+    root, workspace = os.path.join(base, "harness"), os.path.join(base, "workspace")
+    os.makedirs(os.path.join(root, ".harness", "factory"))
+    write(os.path.join(root, ".harness", "team-config.yaml"),
+          "schema_version: 1\nteams:\n  - name: eng\n    members:\n"
+          "      - name: harness-backend-dev\n        domain:\n"
+          "          - { path: src/**, upsert: true }\n"
+          "      - name: harness-frontend-dev\n        domain:\n"
+          "          - { path: apps/web/src/**, upsert: true }\n")
+    with open(os.path.join(root, ".harness", "factory", "fleet.yaml"), "w") as fh:
+        yaml.safe_dump({"schema": "factory-fleet/1", "workspace_root": workspace,
+                        "repos": [{"name": "org/kaya", "default_branch": "main"}]}, fh)
+    code = os.path.join(workspace, "kaya", ".claude", "worktrees", "kaya", "FEAT-99-fixture")
+    # A linked worktree's `.git` pointer, as feature-worktree.py create leaves it: the
+    # resolver finds the checkout a product path stands in from this file.
+    gitdir = os.path.join(workspace, "kaya", ".git", "worktrees", "FEAT-99-fixture")
+    os.makedirs(gitdir)
+    os.makedirs(os.path.join(code, "src"))
+    write(os.path.join(code, ".git"), f"gitdir: {gitdir}\n")
+    write(os.path.join(gitdir, "gitdir"), os.path.join(code, ".git") + "\n")
+    write(os.path.join(code, "src", "a.ts"), "export function foo() {\n  return 1;\n}\n")
+    feat = os.path.join(root, ".harness", "kaya", "features", "FEAT-99-fixture")
+    os.makedirs(feat)
+    write(os.path.join(feat, "BRIEF.md"), "# BRIEF\n\n- SC-01 (operator): a\n")
+    return base, root, code, os.path.join(feat, "plan.yaml")
+
+
+def _product_plan(files_by_task):
+    tasks = "".join(_check_task(tid, files, agent=agent) for tid, agent, files in files_by_task)
+    return "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\ntasks:\n" + tasks
+
+
+def case_2064_product_plan_checks_against_its_code_worktree():
+    """#2064: a served repository's plan resolves its anchors against the paired CODE worktree
+    and its routes against the harness manifest. Before, --root <code worktree> exited 2 (no
+    manifest) and --root <harness> resolved product paths against the harness tree."""
+    base, root, code, plan = _product_check_roots()
+    try:
+        write(plan, _product_plan([
+            ("T-01", "harness-backend-dev",
+             "      - src/a.ts#foo\n      - src/new.ts\n"),
+            ("T-02", "harness-frontend-dev",
+             "      - { path: apps/web/src/app/page.tsx, create: true }\n")]))
+        # The resolver answers from HARNESS_PROJECT_DIR's manifest and fleet, as a fleet
+        # session's hook does; without it the live checkout's fleet would place the fixture's
+        # code worktree outside every product base.
+        env = dict(os.environ, HARNESS_PROJECT_DIR=root)
+        r = run_verb("check", "--file", plan, "--root", root, "--code-root", code, env=env)
+        check("2064: a product plan resolves anchors in its code worktree and routes in the "
+              "harness manifest", r.returncode == 0,
+              f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+        check("2064: the receipt names the code worktree it resolved against",
+              code in r.stdout, r.stdout)
+        write(plan, _product_plan([("T-01", "harness-frontend-dev", "      - src/a.ts\n")]))
+        r = run_verb("check", "--file", plan, "--root", root, "--code-root", code, env=env)
+        check("2064: a product route still fails for an agent the manifest does not grant",
+              r.returncode == 1 and "FAIL T-01 execution_agent: harness-frontend-dev is not "
+              "granted src/a.ts (granted: harness-backend-dev)" in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
+
+
+def case_2064_code_root_is_required_for_a_product_plan_and_refused_for_harness():
+    """The plan's own segment decides: a served segment cannot be checked without its code
+    worktree (resolving it against the harness tree is the defect), and harness's own plan
+    has no separate code worktree to take."""
+    base, root, code, plan = _product_check_roots()
+    hroot, hplan = _check_root()
+    try:
+        write(plan, _product_plan([("T-01", "harness-backend-dev", "      - src/a.ts\n")]))
+        r = run_verb("check", "--file", plan, "--root", root,
+                     env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+        check("2064: a product plan without --code-root exits 2 naming how to get it",
+              r.returncode == 2 and "--code-root" in r.stderr
+              and "feature-worktree.py path --repo org/kaya --id FEAT-99-fixture" in r.stderr,
+              f"rc={r.returncode} stderr={r.stderr!r}")
+        r = run_verb("check", "--file", plan, "--root", root, "--code-root",
+                     os.path.join(base, "nowhere"))
+        check("2064: a --code-root that is not a directory exits 2",
+              r.returncode == 2 and "nowhere" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        write(hplan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                     "tasks:\n" + _check_task("T-01", "      - .claude/skills/harness/bin/a.py\n"))
+        r = run_verb("check", "--file", hplan, "--root", hroot, "--code-root", code)
+        check("2064: harness's own plan refuses --code-root",
+              r.returncode == 2 and "--code-root" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        legacy = os.path.join(hroot, ".harness", "features", "FEAT-99-fixture")
+        os.makedirs(legacy)
+        shutil.copy(os.path.join(os.path.dirname(hplan), "BRIEF.md"), legacy)
+        shutil.copy(hplan, legacy)
+        r = run_verb("check", "--file", os.path.join(legacy, "plan.yaml"), "--root", hroot)
+        check("2064: the segmentless .harness/features/ layout is harness's own, not a product",
+              r.returncode == 0, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
+        shutil.rmtree(hroot, ignore_errors=True)
+
+
+def case_2065_create_anchor_names_a_new_tree_and_nothing_else():
+    """#2065: `{path, create: true}` declares a file whose directories do not exist yet. It
+    resolves only while the file is absent and no ancestor is a file; a bare path keeps its
+    existing-directory rule, so a typo'd directory in a bare path still fails."""
+    root, plan = _check_root()
+    bin_rel = ".claude/skills/harness/bin"
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n" + _check_task("T-01", f"      - {{ path: {bin_rel}/new/deep/m.py, create: true }}\n"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        check("2065: a create anchor under absent directories resolves",
+              r.returncode == 0, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n" + _check_task("T-01",
+                                            f"      - {{ path: {bin_rel}/a.py, create: true }}\n"
+                                            f"      - {{ path: {bin_rel}/a.py/x.py, create: true }}\n"
+                                            f"      - {bin_rel}/new/deep/m.py\n"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        lines = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL T-01 files:")]
+        check("2065: create on an existing file, under a file, and a bare path in a missing "
+              "directory each fail on their own line",
+              r.returncode == 1 and len(lines) == 3
+              and any("already exists" in ln for ln in lines)
+              and any("is a file" in ln for ln in lines)
+              and any("neither does its directory" in ln for ln in lines), r.stdout)
+        bin_abs = os.path.join(root, bin_rel)
+        os.symlink(os.path.join(bin_abs, "missing.py"), os.path.join(bin_abs, "dangling.py"))
+        os.symlink(os.path.join(bin_abs, "missingdir"), os.path.join(bin_abs, "linkdir"))
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n" + _check_task("T-01",
+                                            f"      - {{ path: {bin_rel}/dangling.py, create: true }}\n"
+                                            f"      - {{ path: {bin_rel}/linkdir/x.py, create: true }}\n"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        lines = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL T-01 files:")]
+        check("2065: a dangling link is neither absent nor a directory to create beneath",
+              r.returncode == 1 and len(lines) == 2
+              and any("dangling.py already exists" in ln for ln in lines)
+              and any("linkdir is a file or a dangling link" in ln for ln in lines), r.stdout)
+        for bad in (f"{{ path: {bin_rel}/*.py, create: true }}",
+                    f"{{ path: {bin_rel}/m.py, create: false }}",
+                    f"{{ path: {bin_rel}/m.py, create: true, quote: x }}"):
+            prop = os.path.join(root, "prop.yaml")
+            write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                        f"  - id: T-01\n    title: t\n    files:\n      - {bad}\n")
+            if os.path.exists(plan):
+                os.remove(plan)
+            r = run_verb("apply", "--file", plan, "--proposal", prop)
+            check(f"2065: {bad} is refused at write", r.returncode == 2 and not os.path.exists(plan),
+                  f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 
 def case_f59_line_number_anchor_is_refused_at_write():
     """C4: `path:NN` is refused at WRITE with exit 2 naming the entry — by apply (creating and
@@ -4588,6 +4743,9 @@ CASES = (
     case_f59_check_passes_on_every_anchor_form,
     case_f59_check_lists_each_failure_on_its_own_line,
     case_bug1725_check_names_files_shared_by_tasks,
+    case_2064_product_plan_checks_against_its_code_worktree,
+    case_2064_code_root_is_required_for_a_product_plan_and_refused_for_harness,
+    case_2065_create_anchor_names_a_new_tree_and_nothing_else,
     case_f59_line_number_anchor_is_refused_at_write,
     case_f59_set_lanes_writes_and_validates,
     case_1683_set_key_writes_any_top_level_key,
