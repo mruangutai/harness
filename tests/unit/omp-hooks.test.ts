@@ -1306,6 +1306,32 @@ describe("OMP task lifecycle adapter", () => {
     expect(lookups()).toEqual([]);
   });
 
+  // FEAT-1559 (SC-02): a sparse worktree holds only its own feature, so another feature is read
+  // at the owner root by ordinary absolute path. That read must reach the tool exactly as
+  // written — selector, quotes and list entries included — with no feature-root lookup, while
+  // a relative read still roots in the run's own worktree.
+  test("FEAT-1559: an absolute main-corpus read is untouched and looks nothing up; a relative one is rooted", async () => {
+    const { pre, lookups } = await rootedHooks();
+    const landed = "/repo/.harness/kaya/features/FEAT-10-kaya-app";
+    for (const toolName of ["read", "grep", "glob"]) {
+      for (const path of [
+        `${landed}/BRIEF.md:1-20`,
+        `"${landed}/notes/plan.md:raw"`,
+        `${landed}/BRIEF.md:1-20; /repo/.harness/harness/features/FEAT-2-beta/notes/research.md`,
+      ]) {
+        const input = { path, i: "Reading a landed feature" };
+        const original = structuredClone(input);
+        expect([toolName, path, await pre(toolName, input)]).toEqual([toolName, path, undefined]);
+        expect(input).toEqual(original);
+      }
+    }
+    expect(lookups()).toEqual([]);
+
+    const own = ".harness/harness/features/FEAT-43-long-run/BRIEF.md:1-20";
+    expect(await pre("read", { path: own })).toEqual({ input: { path: `${WT}/${own}` } });
+    expect(lookups().map((call) => call.args)).toEqual([featureRootArgs]);
+  });
+
   test("#2027: a quote-only edit section or MV destination is rooted inside its quotes", async () => {
     const { pre, domainTargets, calls } = await rootedHooks();
     const at = calls.length;

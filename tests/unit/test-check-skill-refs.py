@@ -20,6 +20,7 @@ TESTS_DIR = Path(__file__).resolve().parent
 ROOT = TESTS_DIR.parents[1]
 BIN_DIR = ROOT / ".claude" / "skills" / "harness" / "bin"
 sys.path.insert(0, str(BIN_DIR))
+import feature_corpus  # noqa: E402
 
 spec = importlib.util.spec_from_file_location("check_skill_refs", BIN_DIR / "check-skill-refs.py")
 refs = importlib.util.module_from_spec(spec)
@@ -35,10 +36,17 @@ def check(name, cond, detail=""):
 
 
 def copy_tree(dst: Path) -> None:
-    """Everything the resolver may touch, minus .git and .claude/worktrees."""
+    """Everything the resolver may touch, minus .git and .claude/worktrees. The copy is not a git
+    checkout, so it must hold the whole corpus itself: a sparse worktree's other features come
+    from the main corpus (FEAT-1559), exactly where the live scan reads them."""
     for rel in (".claude/skills", ".omp", ".harness", "docs"):
         shutil.copytree(ROOT / rel, dst / rel, symlinks=True,
                         ignore=shutil.ignore_patterns("worktrees", "__pycache__"))
+    owner = Path(feature_corpus.owner_root(str(ROOT)))
+    for segment, fid, path in feature_corpus.landed_dirs(str(owner)):
+        target = dst / ".harness" / segment / "features" / fid
+        if not target.exists():
+            shutil.copytree(path, target, symlinks=True)
     (dst / ".agents").mkdir()
     os.symlink(os.readlink(ROOT / ".agents" / "skills"), dst / ".agents" / "skills")
 

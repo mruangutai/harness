@@ -1,0 +1,49 @@
+#!/bin/sh
+# post-checkout — FEAT-1559 T-04. A SHIM AND NOTHING ELSE: it hands the checkout git just
+# touched to `worktree-state.py --repair`, which converges a linked worktree to its one active
+# feature directory (a no-op in a main checkout or plain clone). The layout logic lives in that
+# file, where a real test reaches it.
+#
+# This is the hook that sees EVERY creator: `git worktree add` runs post-checkout inside the new
+# worktree, so feature-worktree.py, pinned-checkout.py and a bare `git worktree add` all converge
+# here, and none of them needs to know about the layout.
+#
+# TWO DIFFERENT ROOTS, deliberately. The IMPLEMENTATION is found beside this file — four
+# directories up is the checkout that holds these hooks (`pwd -P` so a symlinked install
+# resolves to the real tree). The checkout REPAIRED is the one git is working in — its top level,
+# from git itself. With an absolute core.hooksPath those are different checkouts, and repairing
+# the hook's own checkout would mutate the wrong tree.
+#
+# ALWAYS EXIT 0. A post hook cannot undo the checkout it follows; a nonzero exit only makes git
+# print an error after an operation that succeeded. So every failure is SAID instead — a missing
+# implementation, a nonzero repair, a dirty tree repair refused to touch — and
+# `worktree-state.py --verify` (which check-state runs) stays the gate: a quiet hook is never
+# evidence the layout is valid. A converged layout whose only finding is uncommitted work is the
+# ordinary mid-task state; `--quiet-dirty` keeps that silent, because an instruction to commit
+# or stash would be obeyed for nothing.
+_hook=post-checkout
+_here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 0
+_root=$(CDPATH= cd -- "$_here/../../../.." && pwd -P) || exit 0
+_state="$_root/.claude/skills/harness/bin/worktree-state.py"
+
+if ! _top=$(git rev-parse --show-toplevel 2>/dev/null); then
+  echo "$_hook: not inside a working tree; no layout repair ran." >&2
+  exit 0
+fi
+if [ ! -x "$_state" ]; then
+  echo "$_hook: $_state is missing or not executable; no layout repair ran in $_top." >&2
+  exit 0
+fi
+
+# stdin is </dev/null: repair never reads it, and must not swallow what git hands a hook.
+_out=$("$_state" --repair --quiet-dirty --checkout "$_top" </dev/null 2>&1)
+_rc=$?
+if [ "$_rc" -ne 0 ] && [ -n "$_out" ]; then
+  printf '%s\n' "$_out" >&2
+  if [ "$_rc" -eq 8 ]; then
+    echo "$_hook: layout repair SKIPPED in $_top: it carries work repair must not touch (exit 8), so nothing was changed. Commit or stash it; the next checkout, merge or rewrite repairs the layout." >&2
+  else
+    echo "$_hook: worktree-state.py --repair exited $_rc in $_top; the layout is NOT converged. Run worktree-state.py --verify there." >&2
+  fi
+fi
+exit 0
