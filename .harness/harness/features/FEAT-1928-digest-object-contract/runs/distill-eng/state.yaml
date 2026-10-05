@@ -1,0 +1,81 @@
+schema_version: 2
+run_id: distill-eng
+run_uid: 93084f54a296429bac4af7c98303c920
+feature: FEAT-1928-digest-object-contract
+squad: eng
+host: harness-eng-lead
+status: blocked
+steps:
+  - id: distill-backend
+    persona: harness-backend-dev
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    dispatched_at: seq-1
+    completed_at: seq-2
+    depends_on: []
+    mutates_repo: false
+    cycles: 0
+    max_cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-backend-dev-distill-eng.md
+    evidence:
+      candidates: 2
+      accepted: 0
+      rejected: 2
+      expertise_check: pass
+      native_return: blocked
+  - id: distill-data
+    persona: harness-data-engineer
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    dispatched_at: seq-1
+    completed_at: seq-2
+    depends_on: []
+    mutates_repo: false
+    cycles: 0
+    max_cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-data-engineer-distill-eng.md
+    evidence:
+      candidates: 2
+      accepted: 1
+      rejected: 1
+      expertise_check: pass
+      native_return: blocked
+  - id: distill-ai
+    persona: harness-ai-dev
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    dispatched_at: seq-1
+    completed_at: seq-2
+    depends_on: []
+    mutates_repo: false
+    cycles: 0
+    max_cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-ai-dev-distill-eng.md
+    evidence:
+      candidates: 2
+      accepted: 1
+      rejected: 1
+      expertise_check: pass
+      native_return: blocked
+  - id: distill-devops
+    persona: harness-dev-ops
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    dispatched_at: seq-1
+    completed_at: seq-2
+    depends_on: []
+    mutates_repo: false
+    cycles: 0
+    max_cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-dev-ops-distill-eng.md
+    evidence:
+      candidates: 2
+      accepted: 2
+      rejected: 0
+      expertise_check: pass
+      lead_expertise_check: pass
+      native_return: blocked

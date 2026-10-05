@@ -38,4 +38,6 @@
 - O-4: WHEN reviewing a fix for a validation/error-reporting bug DO check whether it keys on the specific validator or keyword NAME rather than the structural cause — a name-keyed fix removes the shipped instance but leaves the same-shaped gap open for the next keyword sharing that cause.
 - O-5: WHEN a plan bounds a cost (lookups, spawns) for a pre-call handler of a paired pre/post hook DO check the post handler states its own input and root source — a bound stated for one side silently leaves the other side re-deriving it.
 - O-6: WHEN two path or field tables look like duplicate authorities DO check whether they answer different questions (e.g. gated tools versus covered tools) before proposing a merge — merging can widen a gate's scope; share only the parts that are one rule.
+- O-7: WHEN an efficiency review wants lazy loading to trim startup cost DO first check whether the eager whole-set load is what makes a missing or duplicate member fail closed for every consumer — if so, leave it and report the cost as advisory, not a defect.
+- O-8: WHEN judging a cache for redundancy DO cache only successful resolutions so refusals retry per call, and compare reset points before merging two caches — different lifetimes (per-run versus per-session) make a merge by resemblance wrong.
 ## Open (max 5)
