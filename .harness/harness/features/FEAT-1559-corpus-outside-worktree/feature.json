@@ -46,6 +46,13 @@
       "ended_at": "2026-10-05T17:28:57+00:00",
       "cycles_used": 0,
       "tokens": null
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-10-05T19:16:40+00:00"
     }
   ],
   "judgements": [
@@ -153,6 +160,13 @@
       "kind": "amendment",
       "decision": "T-03.files",
       "reason": "Outside panel on #2103: factory_claim read other features' records locally; now via corpus_path."
+    },
+    {
+      "at": "2026-10-05T19:16:52+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Outside panel on PR #2103 found 2 high + 5 medium after validate c3 PASS; operator raised rework to 3/180 and approved fix c3; re-verify at 35587d8d"
     }
   ],
   "mission": "plan",
