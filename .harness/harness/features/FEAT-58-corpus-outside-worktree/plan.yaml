@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-58-corpus-outside-worktree
-status: ready
+status: abandoned
 approval:
   date: '2026-09-10'
   approved_by: mruangutai
