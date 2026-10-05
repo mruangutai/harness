@@ -19,7 +19,6 @@ What modern git does on its own, measured on git 2.54 before these cases were wr
 """
 import json
 import os
-import shutil
 import subprocess
 import sys
 import unittest
@@ -32,7 +31,6 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
 import f58_sparse_fixture as F  # noqa: E402
 
-HOOK_NAMES = ("post-checkout", "post-merge", "post-rewrite")
 SEGMENTS = ("harness", "kaya")
 
 
@@ -42,19 +40,7 @@ class Hooked(unittest.TestCase):
         self.fx = ctx.__enter__()
         self.addCleanup(ctx.__exit__, None, None, None)
         owner = self.fx.owner
-        # Into the fixture's own (tracked) bin directory: every script there derives the root
-        # four levels above itself, so the sweep and the creators can only reach the fixture.
-        self.bin = os.path.join(owner, ".claude", "skills", "harness", "bin")
-        shutil.copytree(BIN, self.bin, dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns("__pycache__"))
-        self.hooks = os.path.join(owner, ".claude", "skills", "harness", "hooks")
-        os.makedirs(self.hooks)
-        for name in HOOK_NAMES:
-            if (ROOT / ".claude/skills/harness/hooks" / name).exists():
-                shutil.copy2(ROOT / ".claude/skills/harness/hooks" / name, self.hooks)
-        with open(os.path.join(owner, ".git", "info", "exclude"), "a") as fh:
-            fh.write("/.claude/skills/\n")
-        F.git(owner, "config", "core.hooksPath", self.hooks)
+        self.bin, self.hooks = F.install_hooks(owner, ROOT)
         self.env = dict(F.ENV, HARNESS_PROJECT_DIR=owner, GH_BIN="/nonexistent-gh")
 
     def state(self, checkout, mode="--verify"):

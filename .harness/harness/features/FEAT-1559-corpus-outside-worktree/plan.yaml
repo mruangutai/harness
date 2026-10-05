@@ -774,7 +774,7 @@ tasks:
   - T-02
   - T-03
   - T-04
-  status: ready
+  status: building
   files:
   - tests/integration/test-corpus-real-owner.py
   - tests/integration/test-corpus-non-regression.py
@@ -785,6 +785,13 @@ tasks:
   - .claude/skills/harness/SKILL.md
   - .claude/skills/harness-verification-rules/SKILL.md
   - .harness/harness/features/FEAT-1559-corpus-outside-worktree/notes/non-regression-receipt.md
+  - .claude/skills/harness/bin/check-instruction-paths.py#_classify
+  - tests/integration/test-check-instruction-paths.py
+  - .claude/skills/harness-simplify/SKILL.md
+  - .harness/harness/docs/DECISIONS.md
+  - .harness/harness/docs/DECISIONS-INDEX.md
+  - tests/integration/f58_sparse_fixture.py
+  - tests/integration/test-worktree-state-hooks.py
   verify: 'set -e
 
     python3 tests/unit/test-corpus-regression.py

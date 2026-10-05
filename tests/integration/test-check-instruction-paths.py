@@ -49,6 +49,27 @@ def case_path_directions():
     check("outside scope refuses", run(root, os.path.join(root, "nope.md")).returncode == 2)
 
 
+def case_landed_feature_reads():
+    """FEAT-1559 (amends DEC-214): a CONCRETE feature id names a landed record, so a path into it
+    is a READ of the main corpus and takes the control-plane anchor; a sparse worktree does not
+    hold it. A placeholder names the active feature, a write target, and keeps the feature tree."""
+    landed = ".harness/harness/features/FEAT-23-ship-flow-fixes/notes/source.md"
+    root, _ = make_root(f"`<HARNESS_CONTROL_PLANE_ROOT>/{landed}`\n"
+                        f"```\n<HARNESS_CONTROL_PLANE_ROOT>/.harness/kaya/features/BUG-7-x/BRIEF.md\n```\n")
+    clean = run(root)
+    check("a landed feature read at the control plane is clean",
+          clean.returncode == 0 and "0 violation(s)" in clean.stdout, clean.stdout + clean.stderr)
+    root, _ = make_root(f"`<HARNESS_FEATURE_TREE_ROOT>/{landed}`\n")
+    refused = run(root)
+    check("a landed feature read at the feature tree is refused",
+          refused.returncode == 1 and "landed feature" in refused.stdout, refused.stdout)
+    for placeholder in ("FEAT-NN-slug", "<feat>", "<FEAT>"):
+        root, _ = make_root(f"`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/features/{placeholder}/BRIEF.md`\n")
+        result = run(root)
+        check(f"a placeholder feature ({placeholder}) at the control plane is still refused",
+              result.returncode == 1 and "anchored to the control plane" in result.stdout, result.stdout)
+
+
 def case_scope_and_debug_read():
     check("empty scope refuses", run(tempfile.mkdtemp()).returncode == 2)
     listed = subprocess.run([sys.executable, CHECK, "--root", REPO_ROOT, "--list-scope"], text=True, capture_output=True)
@@ -73,7 +94,7 @@ def case_scope_and_debug_read():
 
 
 def main():
-    for case in (case_path_directions, case_scope_and_debug_read):
+    for case in (case_path_directions, case_landed_feature_reads, case_scope_and_debug_read):
         case()
     if any(not row[1] for row in RESULTS):
         raise SystemExit(1)

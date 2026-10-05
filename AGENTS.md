@@ -7,6 +7,7 @@ Harness is a provider-neutral agent-team framework for AI-assisted software deve
 - Keep context selective; never load everything at once. TDD scope lives in `.harness/harness.json` and the applicable enforcement skill, not here.
 - Harness is self-hosted with one carve-out: under DEC-174 it may plan its own enforcement-layer work but must not execute changes to its own hooks, validators, gate scripts, or their tests through the enforcement path being changed.
 - Work on Harness code only in a worktree under `.claude/worktrees/`. `main` is stale by construction while feature work is active.
+- A feature worktree holds only its own feature directory (FEAT-1559). Write there; read any other feature from the main checkout's corpus by absolute path, never from a sibling worktree. `worktree-state.py --verify` is the layout gate and `--repair` its fix; `.harness/README.md` has the rules.
 - There is no GSD dependency: no `.planning/` root, `agent_skills`, or `<files_to_read>` blocks.
 
 ## Project map

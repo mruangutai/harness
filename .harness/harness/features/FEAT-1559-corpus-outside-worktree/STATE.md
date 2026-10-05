@@ -26,7 +26,14 @@
   and amend leave verify 0; class C is skipped byte-identical. On git 2.54 merges keep skip bits,
   so class A is exercised via an index rewrite then amend (receipt-T-04.md). Unit (53) and
   integration (84) suites pass.
-- next: T-05, real-owner evidence, OMP adapter absolute-read test, operator guidance
+- T-05: build half done. OMP absolute-read case, regression locks (mutant-proven), collected
+  non-regression (retention, baseline finding subset, manifest consistency) and real-owner checks
+  (disposable pin, removed). DEC-214 amended: a concrete landed feature is read at the control
+  plane; classifier and the harness-simplify citation follow. Guidance in AGENTS.md,
+  .harness/README.md and two skills. Unit (54) and integration (86) suites pass. Receipt half
+  (notes/non-regression-receipt.md) waits for review_sha.
+- next: SIMPLIFY pass over the feature diff, pin review_sha, then T-05's receipt half, then T-06
+  conversion
 - cycles_used: 0 / 10
 - board: milestone #99, parent #2086, tasks #2088-#2094
 

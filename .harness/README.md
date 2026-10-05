@@ -48,6 +48,94 @@ Three rules explain most of the table:
   feature-wide cycle budget. Leads own one run each; the main session owns only the
   cross-flow log and your approvals.
 
+## Feature worktrees hold one feature (FEAT-1559)
+
+The feature corpus is never materialised inside a worktree. A record-bearing linked checkout —
+a feature worktree, a fleet planning worktree, or a validator pin under
+`.claude/worktrees/.pins/` — is a git sparse checkout. It holds every tracked path outside
+`.harness/*/features/`, plus `.harness/*/features/<id>/` for its ONE active feature.
+
+- **Writes** go to the active feature only. **Reads** of any other feature go to the main corpus
+  at the owner root: an ordinary absolute path under the main checkout, which is the injected
+  control-plane root (`<HARNESS_CONTROL_PLANE_ROOT>/.harness/<segment>/features/<id>/…`; DEC-214
+  as amended). A sibling worktree's in-progress feature is never read. Nothing symlinks or copies
+  the corpus in, and nothing reads it out of git objects. Repo-wide readers (gates, audits,
+  discovery) go through `bin/feature_corpus.py`. They refuse by name when the owner root or a
+  tracked feature directory is missing, rather than auditing a smaller set.
+- **A plain clone is unaffected.** It keeps the full corpus; `--verify` and `--repair` are no-ops
+  there, as they are in the main checkout and in a probe worktree outside `.claude/worktrees/`.
+
+**The active feature.** It is the one feature directory the checkout's record names, in that
+record's own artifact segment, never the worktree's segment. Before any record exists, the id
+comes from the checkout's identity: the worktree directory name, a `feat/<id>` branch, or the exact
+pin name `<id>--<run>--<persona>`. The cone then excludes every `.harness/*/features` and includes
+`.harness/*/features/<id>` in ALL segments, so the record can be created in whichever one it
+belongs to. Two segments claiming the id, or an id that cannot be derived, refuses with cone (3)
+and changes nothing. `feature-worktree.py` and `pinned-checkout.py` create checkouts exactly as
+before.
+
+**`worktree-state.py --verify | --repair [--checkout <path>] [--json]`.** Exits:
+
+| Exit | Label | Meaning |
+|---|---|---|
+| 0 | — | layout correct (or a no-op checkout class) |
+| 3 | cone | sparse cone missing or different from the derived one |
+| 4 | skip-bits | skip-worktree bits disagree with the cone |
+| 7 | materialisation | another feature's directory is on disk |
+| 8 | dirty | content repair must not touch |
+| 2 | — | the tool could not run |
+
+`--verify` never changes a file, index or config byte. `--repair` classifies every status entry
+before it mutates anything:
+
+- **A** — outside the target cone, absent on disk, index entry equal to HEAD: the skip-worktree
+  bit is set, and zero disk bytes are touched. An unstaged deletion inside a hidden feature is A by
+  operator ruling.
+- **B** — outside the cone, present and byte-identical to the index: removed.
+- **C** — any content divergence:
+  - a real edit;
+  - a staged index entry unequal to HEAD, including a staged deletion;
+  - a deletion inside the cone;
+  - an untracked file in a hidden feature directory.
+
+Any C anywhere, mixed with A or B or not, refuses with exit 8 and changes no file, index or config
+byte. The class comes from content alone: no marker, note or record of where a file came from can
+make a divergent file removable. Repair touches A and B only after the whole tree is classified,
+and running it again changes nothing. On the owner it writes one thing, git's own:
+`extensions.worktreeConfig = true`, which per-worktree sparse settings require.
+
+**Hooks.** `post-checkout`, `post-merge` and `post-rewrite` in `.claude/skills/harness/hooks/` run
+`--repair` on the checkout git just touched, whoever created it. So `git worktree add`,
+`feature-worktree.py create` and `pinned-checkout.py add` all converge, as do a merge or rebase
+that brings in a new top-level directory and an amend after an index rewrite.
+
+- Each hook always exits 0, because a post hook cannot undo the operation, and reports a missing
+  implementation, a failed repair or a dirty skip on stderr.
+- `post-merge` then runs the terminal sweep as before.
+- `core.hooksPath` is local configuration: a clone does not carry it, and the onboarding step and
+  INV-31 remain how a checkout gets and keeps it.
+- **`--verify` is the gate.** `check-state` runs it before any invariant in a record-bearing
+  checkout. A quiet hook is never evidence of a valid layout.
+
+**Dirty skips and recovery.** A class-C checkout stays on its old layout. After it merges or
+rebases a post-FEAT-1559 `main`, `check-state` and the corpus gates refuse it for a structural
+3, 4 or 7, although dirty (8) alone is only reported. To recover:
+
+1. Preserve the work by committing it or stashing it, untracked files included.
+2. Run `worktree-state.py --repair --checkout <path>`, then `--verify --checkout <path>`.
+3. Rerun the refused audit or gate.
+4. Restore the saved work and check again; if the structural debt returns, preserve and repair
+   again.
+
+Never force a repair, prune a worktree or erase work to get past a refusal.
+
+**Conversion and evidence.** Existing clean worktrees were converted by one explicit `--repair`
+pass (FEAT-1559 T-06); dirty ones were skipped and listed. Its manifest and migration record are
+in that feature's `notes/`.
+
+- Savings are measured in files and feature directories, never as a `du` byte delta.
+- Before-and-after comparisons pin immutable SHAs, never a moving ref.
+
 ## How work flows
 
 A **team** is a lead plus its members. The lead conducts a DAG of steps, dispatching only its own

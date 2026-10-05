@@ -180,6 +180,34 @@ class SparseFixture:
         self.run(self.owner, "commit", "-qm", message)
 
 
+HOOK_NAMES = ("post-checkout", "post-merge", "post-rewrite")
+
+
+def install_hooks(checkout, source_root):
+    """Give `checkout` its own copy of `source_root`'s harness bin and layout hooks, untracked
+    and git-excluded, and point its `core.hooksPath` at that copy ABSOLUTELY. Returns
+    `(bin_dir, hooks_dir)`.
+
+    The bin lands in `checkout`'s own `.claude/skills/harness/bin` (the fixture tracks one file
+    there), because every script derives its root four levels above itself: the post-merge sweep
+    and the creators can then only ever reach this checkout. A shim absent from `source_root` is
+    not copied, so a test run before the shims exist fails on behaviour, not on a copy error."""
+    harness = os.path.join(checkout, ".claude", "skills", "harness")
+    bin_dir, hooks = os.path.join(harness, "bin"), os.path.join(harness, "hooks")
+    shutil.copytree(os.path.join(source_root, ".claude", "skills", "harness", "bin"), bin_dir,
+                    dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
+    os.makedirs(hooks, exist_ok=True)
+    for name in HOOK_NAMES:
+        shim = os.path.join(source_root, ".claude", "skills", "harness", "hooks", name)
+        if os.path.exists(shim):
+            shutil.copy2(shim, hooks)
+    common = git(checkout, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip()
+    with open(os.path.join(common, "info", "exclude"), "a") as fh:
+        fh.write("/.claude/skills/\n")
+    git(checkout, "config", "core.hooksPath", hooks)
+    return bin_dir, hooks
+
+
 @contextlib.contextmanager
 def sparse_fixture():
     """Build a fresh owner under a private temporary directory and remove exactly that

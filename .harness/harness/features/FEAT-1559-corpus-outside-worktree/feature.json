@@ -95,6 +95,13 @@
       "kind": "amendment",
       "decision": "T-04.verify",
       "reason": "Basename clash with T-04's integration test-worktree-state-hooks.py (run-unit-tests.py refuses it); unit file renamed test-worktree-state-hooks-rules.py."
+    },
+    {
+      "at": "2026-10-05T14:53:54.118813+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-05.files",
+      "reason": "SC-14: landed-feature reads anchor at the control plane (DEC-214 amended, classifier + one citation); shared install_hooks fixture helper."
     }
   ],
   "mission": "plan",
