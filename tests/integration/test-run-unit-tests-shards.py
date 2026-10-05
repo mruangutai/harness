@@ -204,13 +204,15 @@ def case_checked_in_document():
         return (isinstance(value, (int, float)) and not isinstance(value, bool)
                 and math.isfinite(value) and value > 0)
 
+    # Provenance shape, not one pinned run: the document is re-measured when shards drift.
     check("checked-in duration document provenance",
-          doc.get("schema") == 1 and doc.get("source_run_url")
-          == "https://github.com/mruangutai/harness/actions/runs/37264903064"
-          and doc.get("source_commit") == "b046bdfed9fa262a25f53a41d566db2b90cd140b",
+          doc.get("schema") == 1
+          and re.fullmatch(r"https://github\.com/mruangutai/harness/actions/runs/\d+",
+                           str(doc.get("source_run_url")))
+          and re.fullmatch(r"[0-9a-f]{40}", str(doc.get("source_commit"))),
           repr({k: v for k, v in doc.items() if k != "weights"}))
-    check("checked-in weights are 73 positive finite integration records",
-          len(numbers) == 73 and all(positive(v) for v in numbers)
+    check("checked-in weights are positive finite integration records",
+          bool(numbers) and all(positive(v) for v in numbers)
           and all(re.fullmatch(r"tests/integration/test-[^/]+\.py", k) for k in weights))
     check("default_seconds is the median measured duration",
           positive(doc.get("default_seconds"))

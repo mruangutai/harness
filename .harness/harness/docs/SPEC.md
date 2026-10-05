@@ -1462,13 +1462,13 @@ can leave no manifest; CI refuses missing evidence rather than inventing a succe
   belongs to exactly one shard; each shard prints its selected paths in lexical order.
   An empty shard succeeds without starting the pool and can write an empty manifest; it
   does not bypass full-suite layout validation.
-- `tests/integration/integration-durations.json` is checked-in schema-1 advisory data:
-  73 attributed integration file durations from
-  [Actions run 37264903064](https://github.com/mruangutai/harness/actions/runs/37264903064),
-  source commit `b046bdfed9fa262a25f53a41d566db2b90cd140b`. Its `default_seconds` is
-  the measured median, 6.24 seconds. Unknown discovered files use that default; stale weight
-  entries add no files. The runner validates the document and positive finite durations;
-  CI does not rewrite it or rebalance from concurrent job state.
+- `tests/integration/integration-durations.json` is checked-in schema-1 advisory data: the
+  attributed per-file integration durations from one named Actions run (`source_run_url`,
+  `source_commit`), measured per shard so the weights reflect sharded execution. Its
+  `default_seconds` is the median of those durations. Unknown discovered files use that
+  default; stale weight entries add no files. The runner validates the document and positive
+  finite durations; CI does not rewrite it or rebalance from concurrent job state. Re-measure
+  it from a passing run's shard logs when shard wall times drift apart.
 - Attributed worker output, completion-order reporting, worker defaults/overrides, bin-tree
   mutation detection, and each test script's private temporary directory are unchanged
   (`.claude/skills/harness/bin/run_pool.py`). There is no shared-checkout mutation used to

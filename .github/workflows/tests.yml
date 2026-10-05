@@ -383,8 +383,10 @@ jobs:
       # Before sharding (run 37264903064, 2026-10-05) the single unsharded integration step
       # took 171s on ubuntu-latest (`pool: 4 workers, 73 files, 170.49s wall`) inside a 211s
       # job. Each shard now runs its share of the discovered selection through
-      # run-unit-tests.py's weighted --shard partition. Per-shard figures are not yet measured
-      # on Actions (SC-10 is live UAT evidence) — measure rather than trust any figure here.
+      # run-unit-tests.py's weighted --shard partition. First sharded runs (37324916242,
+      # 37325307899): 93s and 95s from first shard start to `integration` completion; weights
+      # were then re-measured per shard from 37325307899. SC-10's live record is the measured
+      # figure — measure rather than trust any figure here.
       #
       # THE MANIFEST LIVES IN runner.temp, outside the watched bin tree and the checkout. The
       # runner writes it only after every started script terminated, so a crash or a cancelled

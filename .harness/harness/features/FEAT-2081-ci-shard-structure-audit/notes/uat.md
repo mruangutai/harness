@@ -3,7 +3,7 @@ status: draft              # draft | ready | passed | failed — only the user s
 branch: feat/FEAT-2081-ci-shard-structure-audit
 review_sha:                # fill when pinned; authored against HEAD 0ebdaef7ed90787c25fbe2d584087c6bdfcf77ad (T-05 SPEC.md edit uncommitted)
 uat_criteria: SC-09, SC-10 (verify: uat). SC-04/SC-05 (inspection) and SC-06 (automated) are prerequisites recorded below.
-estimate: ~60 min wall clock (8 Actions runs at ~3–5 min each, plus one ≤5 min hold in U-03); ~25 min of attention.
+estimate: ~45 min wall clock (7 Actions runs at ~3–5 min each); ~20 min of attention.
 
 This is a script and evidence ledger, not a pass report. Every blank field is filled from an observed
 Actions run or a local command the reader can re-run. No local smoke run, workflow parse, synthetic
@@ -207,46 +207,13 @@ git commit -am "UAT U-02 failing test in one shard (throwaway)"; git push
 - expect: the required `integration` job concludes `failure` (not `success`, not pending), with a validator line naming `F2 returned 1`.
   result:
 
-### U-03 (SC-09) — shard-only cancellation of one running shard
-GitHub's REST API has no job-level cancel: the only cancel endpoints are run-level
-(`POST /repos/{owner}/{repo}/actions/runs/{run_id}/cancel`, `.../force-cancel`), and GitHub community
-discussion #67407 reported no per-job cancel control in the UI as of 2026-01. This case therefore holds
-shard 2 running and offers two routes; record which one produced the cancellation.
-- **Route A (UI, preferred if it exists):** on the shard-2 job page, use a per-job cancel control if
-  GitHub now offers one. Do not use "Cancel workflow".
-- **Route B (job-level timeout, fallback):** the runner terminates the shard-2 job itself when its
-  `timeout-minutes` expires, without touching the run. Route B departs from plan T-06's "job API/UI"
-  wording; it counts only if the user/Main accept it as a shard-only cancellation and the shard-2 job
-  is observed with conclusion `cancelled`.
-
-Throwaway mutation (restore F2 first), in `.github/workflows/tests.yml`:
-- under `integration-shards:`, directly after `runs-on: ubuntu-latest`, add
-  `    timeout-minutes: ${{ matrix.shard == 2 && 5 || 360 }}`
-- directly before the step `- name: Integration suite (shard ${{ matrix.shard }}/4)`, add
-  ```yaml
-        - name: UAT U-03 hold shard 2 (throwaway only)
-          if: matrix.shard == 2
-          run: sleep 600
-  ```
-```bash
-git checkout "$C1" -- "$F2"
-# apply the two workflow edits above
-git commit -am "UAT U-03 hold shard 2 for shard-only cancellation (throwaway)"; git push
-```
-While shard 2 is in the hold step: try Route A; otherwise wait for Route B (~5 min).
-- record block:
-- route used (A or B) and cancellation time (UTC):
-- shard-2 job conclusion (jobs API):
-- run status/conclusion — confirm the run itself was not cancelled (`gh run view --json status,conclusion`):
-- checks, shard 1, shard 3, shard 4 terminal conclusions and completedAt, all before `integration` startedAt:
-- validator lines (expect `no manifest for shard 2` and a non-success matrix result):
-- expect: the shard-2 job concludes `cancelled` while the run is not cancelled.
-  result:
-- expect: after the cancelled shard, the required `integration` job concludes `failure` (not `success`, not skipped, not pending).
-  result:
+### U-03 — dropped (operator ruling, 2026-10-05)
+GitHub has no per-job cancel in its UI or REST API (only whole-run cancel/force-cancel; community
+discussion #67407), so a live shard-only cancellation cannot be produced. The user dropped this case;
+a `cancelled` shard result is covered by SC-02's automated rejection in T-02 (BRIEF OQ-02, amended).
 
 ### U-04 (SC-09) — one discovered test omitted from every shard
-Restore the workflow, then delete F4 inside each shard's workspace only: the tested commit still
+Restore F2, then delete F4 inside each shard's workspace only: the tested commit still
 contains F4, so the validator's independent discovery (`git ls-tree` of the tested SHA) expects it.
 In `.github/workflows/tests.yml`, directly before `- name: Integration suite (shard ${{ matrix.shard }}/4)`, add
 ```yaml
@@ -254,7 +221,7 @@ In `.github/workflows/tests.yml`, directly before `- name: Integration suite (sh
         run: rm tests/integration/<F4 file name>
 ```
 ```bash
-git checkout "$C1" -- .github/workflows/tests.yml
+git checkout "$C1" -- "$F2"
 F4=tests/integration/<file from U-01>
 # apply the step above, naming "$F4"
 git commit -am "UAT U-04 omit one discovered test from every shard (throwaway)"; git push
