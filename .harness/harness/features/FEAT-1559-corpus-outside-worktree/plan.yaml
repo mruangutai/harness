@@ -4,7 +4,7 @@ approval:
   date: '2026-10-04'
   approved_by: mruangutai
   status: approved
-status: building
+status: review
 source_issues:
 - 1559
 panel:
