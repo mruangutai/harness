@@ -2181,7 +2181,9 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
             _hint = f" The same feature directory in the main checkout is {os.path.join(_owner[1], _tail)}."
         die(f"this feature directory resolves inside a worktree which is about to be deleted, "
             f"so a terminal station written here would not survive: {_resolved}.{_hint} "
-            f"Run ship against the main checkout's copy.")
+            f"Run ship against the main checkout's copy — or, when the main checkout is busy "
+            f"(another session, detached or dirty), against a plain `git clone` of the merged "
+            f"default branch OUTSIDE .claude/worktrees/, then commit and push the station (#1986).")
 
     # BUG-1129: SHIP IS THE WRITER OF IRREVERSIBLE TERMINAL STATE, so the validate handoff is
     # checked HERE, not only in the sweep that happens to call it. A `git pull` fires the
