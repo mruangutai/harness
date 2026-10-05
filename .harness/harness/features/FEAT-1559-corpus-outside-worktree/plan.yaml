@@ -34,27 +34,29 @@ panel:
     reader: code-reviewer
     severity: high
     summary: Dirty-input refusal prevents the mandatory hidden-feature merge repair.
-    resolution: 'Operator ruling 1 (notes/answers-operator-2026-10-04-signature-rulings.md): content classification A/B/C replaces provenance; propagated to SC-07/08, D-12, T-01, T-04, T-05.'
-  - disposition: 'addressed: T-05 full-clone full-suite subject'
+    resolved_by: T-01
+  - disposition: resolved
     id: PF-9bbc626c674d2d8dcc38f00b6629ab1f
     kind: substance
     reader: code-reviewer
     severity: med
     summary: T-05 does not specify the plain-clone subject required for existing full-suite verification.
-  - disposition: 'applied: frozen diff demoted to one-time receipt'
+    resolved_by: T-05
+  - disposition: resolved
     id: PF-8040e7147c840324547be06ba4f4fc72
     kind: proportionality
     reader: should-not-exist
     scope: task
     severity: med
     summary: SC-11's collected non-regression test (T-05 test-corpus-non-regression.py, immutable pre_change_sha↔review_sha whole-feature diff) should not exist as a permanently collected test — demote that assertion to a one-time receipt per D-13's own demotion form; keep collected only the parts whose post-side is live (fresh-synthetic-clone retention, normalized finding-set vs recorded baseline, conversion-manifest validation used by T-06).
-  - disposition: 'closed, no change: docs classifies receipt-only diff; operational execution remains main-session-direct'
+    resolved_by: T-05
+  - disposition: resolved
     id: PF-f28aa400528c2882c789d44fdaa2e020
     kind: form
     reader: should-not-exist
     severity: info
     summary: 'T-06 is change_type: docs while its intent runs worktree-state.py --repair over every clean standing record-bearing checkout on the host.'
-  - disposition: 'closed, no change: mission proportionality affirmed'
+  - disposition: resolved
     id: PF-7621c35d9eb262491836294127a33959
     kind: proportionality
     reader: should-not-exist
