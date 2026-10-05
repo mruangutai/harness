@@ -72,7 +72,16 @@ def git(checkout, *args):
 
 
 def tracked_dirs(checkout, ref="HEAD"):
-    """Every directory tracked at `ref`, as sorted repository-relative paths."""
+    """Every directory tracked at `ref`, as sorted repository-relative paths. A repository
+    whose HEAD is unborn — no commit yet — tracks nothing and has landed nothing: that is an
+    empty structure, not an unreadable one."""
+    if ref == "HEAD":
+        probe = subprocess.run(["git", "--no-optional-locks", "rev-parse", "-q", "--verify",
+                                "HEAD^{commit}"], cwd=checkout, capture_output=True, text=True)
+        if probe.returncode == 1 and subprocess.run(
+                ["git", "--no-optional-locks", "rev-parse", "--git-dir"], cwd=checkout,
+                capture_output=True).returncode == 0:
+            return []
     out = git(checkout, "ls-tree", "-d", "-r", "-t", "-z", "--name-only", ref)
     return sorted(p for p in out.split("\0") if p)
 

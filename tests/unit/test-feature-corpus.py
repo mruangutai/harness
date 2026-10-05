@@ -118,6 +118,13 @@ class LandedDiscovery(unittest.TestCase):
         with self.assertRaises(fc.CorpusError):
             fc.owner_root(broken)
 
+    def test_an_unborn_head_has_landed_nothing(self):
+        fresh = os.path.realpath(tempfile.mkdtemp(prefix="feature-corpus-unborn-"))
+        self.addCleanup(shutil.rmtree, fresh, True)
+        subprocess.run(["git", "init", "-q"], cwd=fresh, env=ENV, check=True)
+        os.makedirs(os.path.join(fresh, ".harness/harness/features/FEAT-1-a"))
+        self.assertEqual(fc.landed_dirs(fresh), [])
+
     def test_compare_names(self):
         self.assertEqual(fc.compare_names(["a/1", "a/2"], ["a/2", "a/3"]), (["a/1"], ["a/3"]))
 

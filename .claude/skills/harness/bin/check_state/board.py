@@ -1,6 +1,7 @@
 """The GitHub mirror agrees with disk: INV-13/21/24/26/28/30/37. (FEAT-69)"""
 import os, re
 import artifact_accessors
+import feature_corpus
 import harness_boundary
 from check_state.ctx import FINISHED_STATIONS
 # --- INV-21 (D-05): a mirrored feature whose task issues are recorded but whose
@@ -71,11 +72,11 @@ def inv_21(ctx, feat):
 # A feature.json with no `factory` block contributes nothing and is not a violation.
 def _inv24_factory_blocks(ctx):
     """Each feature's `factory` block, in feature order. A feature with no feature.json, an
-    unreadable one, or no block contributes nothing (a generator, so the unreadable case keeps
-    its `continue`)."""
-    for feat in ctx.features:
+    unreadable one, or no block contributes nothing. Two features claiming one issue is a
+    REPO-WIDE predicate, so the population is `ctx.population()`: in a sparse worktree that is
+    every landed record plus this checkout's own (FEAT-1559), never just the one local record."""
+    for feat, fdoc in ctx.population():
         # (FEAT-63: `None` is also an ABSENT record, which an isfile check used to skip here.)
-        fdoc = ctx.record(feat)[0]
         if fdoc is None:
             continue  # the parse failure is already a violation elsewhere; do not double-report
         fac = fdoc.get("factory")
@@ -196,7 +197,13 @@ def inv_24(ctx):
     bad, warn = [], []
     H, root = ctx.H, ctx.root
     _fac_pairs = {}
-    for feat, fac in _inv24_factory_blocks(ctx):
+    try:
+        _blocks24 = list(_inv24_factory_blocks(ctx))
+    except feature_corpus.CorpusError as _ce24:
+        bad.append(f"INV-24 CANNOT VERIFY factory claims across features: {_ce24}. A population "
+                   f"that could not be read is not one without a duplicate claim.")
+        return bad, warn
+    for feat, fac in _blocks24:
         fleet_p = os.path.join(H, "factory", "fleet.yaml")
         if not os.path.isfile(fleet_p):
             bad.append(f"INV-24 {feat}: records factory state but {os.path.relpath(fleet_p, root)} "

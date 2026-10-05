@@ -1827,6 +1827,7 @@ ROW_FAMILIES = {
     "worktrees": ("INV-25", "INV-27", "INV-29", "INV-31"),
     "board": ("INV-13", "INV-21", "INV-24", "INV-26", "INV-28", "INV-30", "INV-37"),
     "host": ("INV-19", "INV-42", "INV-45", "INV-48"),
+    "corpus": ("INV-52",),
 }
 _FAMILY_OF_ROW = {row: family for family, rows in ROW_FAMILIES.items() for row in rows}
 DECISIONS_INDEX_REL = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")

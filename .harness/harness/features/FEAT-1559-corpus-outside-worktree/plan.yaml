@@ -630,7 +630,7 @@ tasks:
   execution_reason: DEC-174 covers check_state and its tests; direct execution only.
   depends_on:
   - T-01
-  status: ready
+  status: building
   files:
   - .claude/skills/harness/bin/check_state/ctx.py#Ctx
   - .claude/skills/harness/bin/check_state/runner.py#main
@@ -639,16 +639,14 @@ tasks:
   - .claude/skills/harness/bin/check_state/worktrees.py
   - .claude/skills/harness/bin/check_state/corpus.py
   - tests/integration/test-check-state-corpus.py
-  - tests/unit/test-check-state-corpus.py
+  - tests/unit/test-check-state-corpus-rules.py
   verify: 'set -e
 
-    python3 tests/unit/test-check-state-corpus.py
+    python3 tests/unit/test-check-state-corpus-rules.py
 
     python3 tests/integration/test-check-state-corpus.py
 
-    # Expected: both exit 0 within 60 seconds; full/sparse finding equality and open-name confinement are asserted.
-
-    '
+    # Expected: both exit 0 within 60 seconds; full/sparse finding equality and open-name confinement are asserted.'
   intent: 'Execute directly under DEC-174, using the T-01 synthetic fixture and fail-first evidence before production edits. Preserve all invariant predicates and findings except new explicit subject/layout refusals. In runner.main, before Ctx construction and any invariant dispatch, call worktree-state.py --verify --json on record-bearing linked callers, never --repair. Codes 3, 4 and 7 refuse with the concrete layout diagnosis and command to repair; code 8 reports the dirty state and continues the ordinary audit. Combined dirty and structural discrepancies still refuse structurally, by inspecting every finding in the JSON report instead of masking structural findings behind the selected dirty exit. An unusable JSON report is an attributed refusal, never permission to continue. --list remains metadata-only. Plain clones retain full auditing.
 
     Determine the audit subject before any feature-file preload. A record-bearing linked checkout''s default is its one active feature; an explicit --feature must name an available checkout-local subject or refuse before Ctx. Do not silently widen to owner-root data or narrow to an empty selection. Ctx _load_features, _load_plans, _load_plan_docs and _load_states_and_abandoned iterate the selected feature directories only, including run reads reached by invariants. A plain clone with no explicit selector still loads its full corpus. Keep repo-wide invariants separate from feature-local data; route global record populations through feature_corpus supplied by T-01, while retaining host config reads locally. Do not add compatibility fallback scans; T-01''s seam exists before this task begins.

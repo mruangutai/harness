@@ -2158,6 +2158,20 @@
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "records",
       "task": "T-01"
+    },
+    {
+      "artifact": "worktree-state.py --verify --json report",
+      "category": "json_string",
+      "dec174_category": "validator",
+      "disposition": "exempt",
+      "execution_route": "main-session-direct",
+      "exemption": "module_internal_format",
+      "file": ".claude/skills/harness/bin/check_state/corpus.py",
+      "id": ".claude/skills/harness/bin/check_state/corpus.py::_verify::json_string#1",
+      "reason": "The layout preflight decodes the report envelope its sibling worktree-state.py prints; verify_report_findings refuses any shape it does not recognise.",
+      "remedy": "none",
+      "symbol": "_verify",
+      "task": "none"
     }
   ],
   "scanned_files": [
@@ -2239,6 +2253,7 @@
     ".claude/skills/harness/bin/check_state/__init__.py",
     ".claude/skills/harness/bin/check_state/board.py",
     ".claude/skills/harness/bin/check_state/brief.py",
+    ".claude/skills/harness/bin/check_state/corpus.py",
     ".claude/skills/harness/bin/check_state/ctx.py",
     ".claude/skills/harness/bin/check_state/feature_record.py",
     ".claude/skills/harness/bin/check_state/host.py",

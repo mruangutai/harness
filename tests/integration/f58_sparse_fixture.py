@@ -84,7 +84,7 @@ def _owner_files():
         ".harness/harness/docs/DECISIONS.md": "# decisions\n",
         ".harness/harness/expertise/pm.md": "expertise\n",
         ".harness/expertise/shared.md": "shared\n",
-        ".harness/factory/fleet.yaml": "repos: []\n",
+        ".harness/factory/fleet.yaml": "schema: factory-fleet/1\nrepos: []\n",
         ".harness/domains/d.md": "domain\n",
         ".harness/examples/e.md": "example\n",
         ".harness/notes/n.md": "note\n",

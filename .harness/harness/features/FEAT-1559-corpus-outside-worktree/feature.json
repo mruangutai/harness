@@ -46,6 +46,20 @@
       "kind": "amendment",
       "decision": "T-01.verify",
       "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-worktree-state-rules.py. Same assertions, same kinds."
+    },
+    {
+      "at": "2026-10-05T13:50:08.823717+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.files",
+      "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-check-state-corpus-rules.py. Same assertions, same kinds."
+    },
+    {
+      "at": "2026-10-05T13:50:09.894704+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.verify",
+      "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-check-state-corpus-rules.py. Same assertions, same kinds."
     }
   ],
   "mission": "plan",
