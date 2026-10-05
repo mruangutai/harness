@@ -94,21 +94,25 @@ def _take_value(argv, index, option):
     raise UsageError(f"{option} requires a value")
 
 
+def _take_option(argv, index, opts):
+    """Record the option at argv[index] into opts; return the index of the next option."""
+    option = argv[index]
+    if option == "--check-layout" and not opts["check_layout"]:
+        opts["check_layout"] = True
+        return index + 1
+    key = _VALUE_OPTIONS.get(option)
+    if key is None or opts[key] is not None:
+        raise UsageError(f"unsupported or repeated option '{option}'\n{USAGE}")
+    opts[key] = _take_value(argv, index, option)
+    return index + 2
+
+
 def _tokens(argv):
     """Return the raw option dict; options may appear in any order, each at most once."""
     opts = {"kind": None, "shard": None, "manifest": None, "check_layout": False}
     index = 0
     while index < len(argv):
-        option = argv[index]
-        if option == "--check-layout" and not opts["check_layout"]:
-            opts["check_layout"] = True
-            index += 1
-            continue
-        key = _VALUE_OPTIONS.get(option)
-        if key is None or opts[key] is not None:
-            raise UsageError(f"unsupported or repeated option '{option}'\n{USAGE}")
-        opts[key] = _take_value(argv, index, option)
-        index += 2
+        index = _take_option(argv, index, opts)
     return opts
 
 
@@ -123,13 +127,18 @@ def _parse_shard(raw):
     return index, count
 
 
-def _parse(argv):
-    """Return validated options or raise UsageError."""
-    opts = _tokens(argv)
+def _check_combinations(opts):
+    """Refuse option combinations that cannot run together."""
     if opts["manifest"] is not None and opts["shard"] is None:
         raise UsageError("--manifest requires --shard")
     if opts["check_layout"] and (opts["shard"] or opts["manifest"]):
         raise UsageError("--check-layout cannot be combined with --shard or --manifest")
+
+
+def _parse(argv):
+    """Return validated options or raise UsageError."""
+    opts = _tokens(argv)
+    _check_combinations(opts)
     if opts["shard"] is not None:
         opts["shard"] = _parse_shard(opts["shard"])
     opts["kind"] = opts["kind"] or "all"
@@ -152,20 +161,28 @@ def _positive(value):
             and math.isfinite(value) and value > 0)
 
 
-def _load_weights(path):
-    """Validated (default_seconds, weights) from the versioned duration document."""
-    with open(path, encoding="utf-8") as handle:
-        doc = json.load(handle)
+def _check_provenance(path, doc):
     if not isinstance(doc, dict) or doc.get("schema") != 1:
         raise ValueError(f"{path}: expected an object with schema 1")
     if not all(isinstance(doc.get(k), str) for k in ("source_run_url", "source_commit")):
         raise ValueError(f"{path}: source_run_url and source_commit must be strings")
+
+
+def _check_weights(path, doc):
     weights = doc.get("weights")
     if not _positive(doc.get("default_seconds")) or not isinstance(weights, dict):
         raise ValueError(f"{path}: default_seconds must be positive and weights an object")
     if not all(isinstance(k, str) and _positive(v) for k, v in weights.items()):
         raise ValueError(f"{path}: every weight must be a positive finite number")
-    return doc["default_seconds"], weights
+
+
+def _load_weights(path):
+    """Validated (default_seconds, weights) from the versioned duration document."""
+    with open(path, encoding="utf-8") as handle:
+        doc = json.load(handle)
+    _check_provenance(path, doc)
+    _check_weights(path, doc)
+    return doc["default_seconds"], doc["weights"]
 
 
 def _partition(paths, default, weights, count):

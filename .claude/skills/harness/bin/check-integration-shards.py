@@ -272,19 +272,27 @@ def load_manifest_dir(directory):
     return docs, []
 
 
+def _missing_options(opts):
+    required = (("--commit", opts.commit), ("--manifest-dir", opts.manifest_dir))
+    return [f"{option} was not supplied" for option, value in required if value is None]
+
+
+def _value_problems(opts):
+    problems = []
+    if opts.commit is not None and not OBJECT_ID.fullmatch(opts.commit):
+        problems.append(f"--commit must be a full hexadecimal object id, got {opts.commit!r}")
+    if opts.shards is None or not re.fullmatch(r"[1-9][0-9]*", opts.shards):
+        problems.append(f"--shards must be a positive integer, got {opts.shards!r}")
+    return problems
+
+
 def _parse(argv):
     parser = argparse.ArgumentParser(prog="check-integration-shards.py", add_help=False)
     for option in ("--commit", "--shards", "--checks-result", "--matrix-result", "--manifest-dir"):
         parser.add_argument(option)
     opts, unknown = parser.parse_known_args(argv)
     problems = [f"unrecognized argument {arg!r}" for arg in unknown]
-    for option, value in (("--commit", opts.commit), ("--manifest-dir", opts.manifest_dir)):
-        if value is None:
-            problems.append(f"{option} was not supplied")
-    if opts.commit is not None and not OBJECT_ID.fullmatch(opts.commit):
-        problems.append(f"--commit must be a full hexadecimal object id, got {opts.commit!r}")
-    if opts.shards is None or not re.fullmatch(r"[1-9][0-9]*", opts.shards):
-        problems.append(f"--shards must be a positive integer, got {opts.shards!r}")
+    problems += _missing_options(opts) + _value_problems(opts)
     return opts, [(MALFORMED, problem) for problem in problems]
 
 

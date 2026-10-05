@@ -53,7 +53,7 @@ Both medians are lower; all three samples are recorded, none selected.
 inside its own checkout, so [INFERENCE from the recorded method] each side audited its own `bin/`
 (8e0b9e90's versus d89f9b23's) — same host and Python, but not one fixed corpus, and the "current"
 side is pinned to d89f9b23's audit files, not yet to review_sha. L-00 closes the pin question;
-L-01 is the same-corpus record. Whether L-01 is required before `ready` is Main's call; until it is
+L-01 is the same-corpus record, a mandatory user-executed UAT step for SC-10; until it is
 filled, the same-corpus clause of SC-10 is not evidenced.
 
 ### L-00 — audit paths unchanged between the measured commit and review_sha
@@ -61,7 +61,7 @@ filled, the same-corpus clause of SC-10 is not evidenced.
 (Observed empty from d89f9b23 to 0ebdaef7 at authoring time.)
 - output at review_sha:
 
-### L-01 — controlled same-corpus structure timing (local; fill or waive by Main's decision)
+### L-01 — controlled same-corpus structure timing (local; user-executed, required for SC-10)
 Same host, same `python3`, one fixed private corpus (a clean detached worktree of review_sha), both
 checkers pointed at it, interleaved baseline/current, three samples each, no sample discarded.
 ```bash
@@ -307,5 +307,5 @@ git -C <feature or main checkout> worktree remove /tmp/feat2081-uat
 ## Sign-off (user only)
 - SC-09 (U-01 … U-05):
 - SC-10 live (U-06 … U-08 + baseline comparison):
-- SC-10 local structure timing (evidence-T-03 amendment, L-01 if required):
+- SC-10 local structure timing (L-01, same-corpus; the evidence-T-03 amendment is context only):
 - final status (`passed` / `failed`), user, date:
