@@ -52,10 +52,12 @@
   closed. One new high (SC-04): population keyed features by id, so one id in two segments
   dropped a directory (board audit, merge-gate owner count).
 - Fix c2, main-session-direct (notes/receipt-main-session-fix-c2.md): population keyed by
-  (segment, id); four new tests, red at 42856abb. Suites exit 0 (52 / 80 files). This commit is
-  the new seam. Rework: round 2 of 2 (ruling: rounds=2, 120 min; 22 min spent at c2 close).
-- next: pin review_sha to this seam, `status review`, re-verify as validate-c2-validator
-- cycles_used: 0 / 10 (both re-verify reports so far: 0)
+  (segment, id); four new tests, red at 42856abb; seam 6c11ab62 = review_sha.
+- Validate c3 (run validate-c2-validator) at 6c11ab62: PASS, no must-fix; all five readers pass.
+  Two medium advisories (B-1, B-2) and the other residuals are in the briefing's backlog.
+- Briefing: notes/ship-review-validate-c2-validator.md. Run evidence pruned (kept the last run).
+- next: push, open the PR, wait for the operator's "merge"; post-merge, #2101 (conversion)
+- cycles_used: 2 / 10 (the two main-session fix rounds); rework 38 of 120 min, 2 of 2 rounds
 - board: milestone #99, parent #2086, tasks #2088-#2093 (T-06's #2094 closed not planned)
 
 ## Open Questions
