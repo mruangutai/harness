@@ -65,6 +65,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_tests)
 import json
 import os
 import re
@@ -72,6 +73,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+
+from git_support import add_worktree, commit_feature, commit_files, feature_rel, init_repo
 
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = _anchor_bin
@@ -157,15 +160,8 @@ def _install_fixture_bin(fixture_root):
 # ---------------------------------------------------------------------------------------------
 
 def _repo(path, branch="main"):
-    os.makedirs(path, exist_ok=True)
-    for cmd in (["git", "init", "-q", "-b", branch],
-                ["git", "config", "user.email", "t@example.com"],
-                ["git", "config", "user.name", "t"]):
-        subprocess.run(cmd, cwd=path, capture_output=True)
-    with open(os.path.join(path, "f.txt"), "w") as f:
-        f.write("x\n")
-    subprocess.run(["git", "add", "f.txt"], cwd=path, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", "init"], cwd=path, capture_output=True)
+    init_repo(path, branch)
+    commit_files(path, {"f.txt": "x\n"}, "init")
     return path
 
 
@@ -173,40 +169,26 @@ def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harn
     """Widened from T-03's original signature by an optional `milestone` — every existing
     caller (the dry-run case) still calls this with only `status` and gets exactly the old
     behaviour (no `github:` block at all)."""
-    rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
-    abs_path = os.path.join(repo, rel)
-    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     doc = {"feature_id": feature_id}
     if milestone is not None:
         doc["github"] = {"milestone": milestone, "build_entry": "opened"}
-    with open(abs_path, "w") as f:
-        json.dump(doc, f)
     # THE STATION GOES IN A COMMITTED plan.yaml (FEAT-41 T-07). worktree_terminal reads the
     # LANDED plan at the default branch's ref, so the plan must be in the same commit — the
     # `status` argument keeps its name and its callers, and is lowercased into that file.
-    prel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
-    with open(os.path.join(repo, prel), "w") as f:
-        f.write(f"feature: {feature_id}\nstatus: {str(status).lower()}\ntasks: []\n")
     # BUG-1129: ship refuses a feature with no validate handoff; these fixtures model
     # VALIDATED features, so the note is part of the same commit.
-    nrel = os.path.join(".harness", repo_segment, "features", feature_id, "notes",
-                        "handoff-validate.md")
-    os.makedirs(os.path.dirname(os.path.join(repo, nrel)), exist_ok=True)
-    with open(os.path.join(repo, nrel), "w") as f:
-        f.write("## next\n## trust\n## dead ends\n## working set\n## done when\n")
-    subprocess.run(["git", "add", rel, prel, nrel], cwd=repo, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
-    return abs_path
+    nrel = feature_rel(repo_segment, feature_id, "notes", "handoff-validate.md")
+    return commit_feature(
+        repo, feature_id, doc, repo_segment, f"add {feature_id}",
+        plan_station=str(status).lower(),
+        extra_files={nrel: "## next\n## trust\n## dead ends\n## working set\n## done when\n"})
 
 
 def _add_wt(repo, worktree_id, repo_segment="harness", ref="HEAD", new_branch=None):
     """Widened from T-03's original signature by optional `ref`/`new_branch` — every existing
     caller keeps the old default (`-b wt-<id>-<segment>` from HEAD)."""
-    dest = os.path.join(repo, ".claude", "worktrees", repo_segment, worktree_id)
-    branch = new_branch or f"wt-{worktree_id}-{repo_segment}"
-    subprocess.run(["git", "worktree", "add", "-q", "-b", branch, dest, ref], cwd=repo,
-                    capture_output=True)
-    return dest
+    return add_worktree(repo, worktree_id, repo_segment,
+                        new_branch or f"wt-{worktree_id}-{repo_segment}", ref)
 
 
 def _stub_gh(tmp, fail_milestones=()):

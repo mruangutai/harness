@@ -14,7 +14,7 @@ _anchor_sys.path.insert(0, _anchor_tests)
 import errno, json, os, shutil, subprocess, sys, tempfile, time
 from isolated_bin import isolated_bin
 from check_domain_support import (FIXTURE_MANIFEST, HOOK, _env, _handoff_done_when_fixture,
-    _handoff_text, _legal_feature_json, drive, fire, fire_post, fixture,
+    _handoff_text, _legal_feature_json, drive, fire, fire_post, fire_write_payload, fixture,
     make_linked_worktree)
 
 
@@ -620,23 +620,16 @@ def _record_handoff_result(results, name, result, want, needles=None):
     results.append((name, ok, f"exit {result.returncode}: {result.stderr.strip()[:180]}"))
 
 
-def _invoke_handoff(root, target, content):
-    payload = {"tool_name": "Write",
-               "tool_input": {"file_path": target, "content": content}}
-    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
-
-
 def _handoff_grammar_cases(results, root, target, valid):
     missing = "\n".join(["## Next", "next", "## Trust", "trust",
                          "## Dead ends", "none", "## Working set", "set"]) + "\n"
     _record_handoff_result(
         results, "handoff Done when missing",
-        _invoke_handoff(root, target, missing), 2,
+        fire_write_payload(root, target, missing), 2,
         ("## Done when", "templates/HANDOFF.md"))
     _record_handoff_result(
         results, "handoff Done when valid",
-        _invoke_handoff(root, target, _handoff_text(valid)), 0)
+        fire_write_payload(root, target, _handoff_text(valid)), 0)
     malformed = [
         ("zero Scope", "Authority: plan-task:T-03.verify", "has 0 Scope: lines"),
         ("two Scope", "Scope: one\nScope: two\nAuthority: plan-task:T-03.verify",
@@ -658,7 +651,7 @@ def _handoff_grammar_cases(results, root, target, valid):
     for name, body, needle in malformed:
         _record_handoff_result(
             results, f"handoff {name}",
-            _invoke_handoff(root, target, _handoff_text(body)), 2, needle)
+            fire_write_payload(root, target, _handoff_text(body)), 2, needle)
 
 
 def _handoff_pointer_cases(results, root, target):
@@ -674,17 +667,17 @@ def _handoff_pointer_cases(results, root, target):
     for name, good, bad in pointers:
         _record_handoff_result(
             results, f"handoff {name} resolves",
-            _invoke_handoff(root, target, _handoff_text(
+            fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {good}")), 0)
         _record_handoff_result(
             results, f"handoff {name} unresolved",
-            _invoke_handoff(root, target, _handoff_text(
+            fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {bad}")), 2, bad)
     legal_prefixes = ("plan-task:", "brief-sc:", "finding:", "approval:")
     for value in ("docs:whatever", "check-domain.py:1523"):
         _record_handoff_result(
             results, f"handoff unknown authority {value}",
-            _invoke_handoff(root, target, _handoff_text(
+            fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {value}")), 2, legal_prefixes)
     feat = os.path.dirname(os.path.dirname(target))
     invalid_headings = {
@@ -698,7 +691,7 @@ def _handoff_pointer_cases(results, root, target):
         pointer = f"approval:{os.path.relpath(path, root)}#Approval"
         _record_handoff_result(
             results, f"handoff approval rejects invalid ATX {name}",
-            _invoke_handoff(root, target, _handoff_text(
+            fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {pointer}")), 2, pointer)
 
 
@@ -712,7 +705,7 @@ def _handoff_unsafe_cases(results, root, notes, target):
     ):
         _record_handoff_result(
             results, f"handoff unsafe authority {value!r}",
-            _invoke_handoff(root, target, _handoff_text(
+            fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {value}")), 2, "unsafe")
     outside = os.path.join(os.path.dirname(root), os.path.basename(root) + "-outside.md")
     with open(outside, "w") as f:
@@ -726,7 +719,7 @@ def _handoff_unsafe_cases(results, root, notes, target):
         for kind, suffix in (("finding", "F-02"), ("approval", "Approval")):
             _record_handoff_result(
                 results, f"handoff {kind} {name}",
-                _invoke_handoff(root, target, _handoff_text(
+                fire_write_payload(root, target, _handoff_text(
                     f"Scope: done\nAuthority: {kind}:{rel_pointer}#{suffix}")),
                 2, "unsafe")
     return outside
@@ -854,13 +847,13 @@ def _handoff_line_cap_cases(results, root, target, valid):
     assert len(sixty.splitlines()) == 60 and len(sixty_one.splitlines()) == 61
     _record_handoff_result(
         results, "handoff 60-line boundary",
-        _invoke_handoff(root, target, sixty), 0)
+        fire_write_payload(root, target, sixty), 0)
     _record_handoff_result(
         results, "handoff 61-line boundary",
-        _invoke_handoff(root, target, sixty_one), 2, "cap is 60")
+        fire_write_payload(root, target, sixty_one), 2, "cap is 60")
     _record_handoff_result(
         results, "handoff no per-section cap",
-        _invoke_handoff(root, target, sixty), 0)
+        fire_write_payload(root, target, sixty), 0)
 
 
 def _write_handoff_plan(feature_dir, task_id):
@@ -895,19 +888,19 @@ def _handoff_worktree_cases(results, root):
         not os.path.exists(main_feat), main_feat))
     _record_handoff_result(
         results, "handoff worktree-only feature dir resolves",
-        _invoke_handoff(
+        fire_write_payload(
             root, target,
             _handoff_text("Scope: build complete\nAuthority: plan-task:T-03.verify")),
         0)
     _record_handoff_result(
         results, "handoff worktree-only unresolvable pointer refused",
-        _invoke_handoff(
+        fire_write_payload(
             root, target,
             _handoff_text("Scope: build complete\nAuthority: plan-task:T-99.verify")),
         2, ("T-99",))
     _record_handoff_result(
         results, "handoff worktree-only brief-sc pointer refused",
-        _invoke_handoff(
+        fire_write_payload(
             root, target, _handoff_text("Scope: build complete\nAuthority: brief-sc:SC-99")),
         2, (
             "SC-99",

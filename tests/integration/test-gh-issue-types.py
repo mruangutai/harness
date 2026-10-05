@@ -35,6 +35,8 @@ import subprocess
 import sys
 import tempfile
 
+from gh_sync_support import install_gh
+
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
@@ -106,12 +108,6 @@ case "$1 $2" in
 esac
 exit 0
 """
-
-
-def install_gh(tmp, script=FAKE_GH_TYPES):
-    gh_path = os.path.join(tmp, "gh")
-    open(gh_path, "w").write(script)
-    os.chmod(gh_path, 0o755)
 
 
 def build_brief(feat_dir, feat_name):
@@ -233,7 +229,7 @@ def check(name, cond, detail=""):
 def case_a_b():
     """CASE A / CASE B, one run, FAKE_TYPES=available."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         run(feat_dir, tmp, {"FAKE_TYPES": "available"})
         log = calls(tmp)
@@ -264,7 +260,7 @@ def case_a_b():
 def case_c_d():
     """CASE C: FAKE_TYPES=absent, fresh fixture. CASE D: rerun, same directory."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         r1 = run(feat_dir, tmp, {"FAKE_TYPES": "absent"}, log="calls1.log")
         log1 = calls(tmp, "calls1.log")
@@ -298,7 +294,7 @@ def case_c_d():
 def case_e():
     """CASE E: FAKE_TYPES=available with a github.issue_types override on all four keys."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp, issue_types={
             "Bug": "Defect", "Task": "Maintenance", "parent": "Epic",
         })
@@ -322,7 +318,7 @@ def case_f():
     remnant (bugfix #501) so the backfill set is not empty — the run must still refuse
     on Task, before any create and before any apply, and the remnant must be untouched."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp, github={
             "milestone": None, "parent": None, "attached": [], "source_issues": [],
             "issues": {"T-01": 501}, "typed": {"T-01": "created"},
@@ -351,7 +347,7 @@ def case_g():
     """CASE G: FAKE_TYPE_APPLY=fail on the first run demotes nothing; the rerun
     backfills to True without creating, closing or deleting anything."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         run(feat_dir, tmp, {"FAKE_TYPES": "available", "FAKE_TYPE_APPLY": "fail"},
             log="calls1.log")
@@ -382,7 +378,7 @@ def case_h_h2():
     """CASE H: --parent 4242 is adopted, never typed, and its provenance reads
     'adopted'. CASE H2: a rerun without --parent must skip it forever, not once."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp, source_issues=[100, 200])
         run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls1.log",
             extra_args=["--parent", "4242"])
@@ -408,7 +404,7 @@ def case_h_h2():
 def case_i():
     """CASE I: FAKE_TYPES=failed never gates — exit 0, today's labels, one diagnostic."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         r = run(feat_dir, tmp, {"FAKE_TYPES": "failed"})
         log = calls(tmp)
@@ -430,7 +426,7 @@ def case_j():
     """CASE J: absent provenance is never typed — the legacy feature.json shape, no
     github.typed key at all, and the fail-safe direction stays true across a rerun."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp, github={
             "milestone": None, "parent": 9001, "attached": ["T-01"],
             "issues": {"T-01": 9002}, "source_issues": [],
@@ -473,7 +469,7 @@ def case_k():
     remnant (bugfix #502) needs the undeclared Bug, so refusal can only come from the
     backfill's required set, never from the creation-side check alone."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp, github={
             "milestone": None, "parent": None, "attached": [], "source_issues": [],
             "issues": {"T-01": 502}, "typed": {"T-01": "created"},

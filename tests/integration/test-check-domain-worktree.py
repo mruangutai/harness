@@ -607,19 +607,12 @@ teams:
     return root, wt
 
 
-def _bug895_fire(session_root, abs_target):
-    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-               "tool_input": {"file_path": abs_target, "content": "x"}}
-    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(session_root))
-
-
 def _bug895_wrong_checkout_case(root, wt):
     """Issue #895: a session rooted in a worktree, writing into its own main
     checkout's copy of an identically-shaped allowed path, is refused by identity —
     not waved through as 'not our problem', which is how FEAT-40's ship write-back
     (commit 3952814) landed in main from a worktree session."""
-    r = _bug895_fire(wt, os.path.join(root, ".harness", "allowed", "x.txt"))
+    r = fire(wt, os.path.join(root, ".harness", "allowed", "x.txt"), agent="harness-documentor")
     ok = (r.returncode == 2 and "BLOCKED" in r.stderr and "is rooted in" in r.stderr
           and wt in r.stderr)
     return ("wrong-checkout: worktree session writing into main is refused",
@@ -630,7 +623,7 @@ def _bug895_own_checkout_case(wt):
     """NEGATIVE CONTROL: the identical grant, written into the session's OWN
     checkout, still works — this is a checkout-identity check, not a new denial on
     the domain grant itself."""
-    r = _bug895_fire(wt, os.path.join(wt, ".harness", "allowed", "x.txt"))
+    r = fire(wt, os.path.join(wt, ".harness", "allowed", "x.txt"), agent="harness-documentor")
     return ("wrong-checkout NEGATIVE CONTROL: same session, own checkout, still allowed",
             r.returncode == 0, f"{r.returncode}: {r.stderr}")
 
@@ -640,7 +633,7 @@ def _bug895_scratch_case(wt):
     (e.g. /tmp) stays a not-a-domain-question, exit 0 — this only governs writes
     that land in a REAL checkout of the SAME repository."""
     scratch = os.path.join(tempfile.mkdtemp(), "scratch.txt")
-    r = _bug895_fire(wt, scratch)
+    r = fire(wt, scratch, agent="harness-documentor")
     return ("wrong-checkout NEGATIVE CONTROL: an unrelated scratch path is untouched",
             r.returncode == 0, f"{r.returncode}: {r.stderr}")
 
@@ -694,8 +687,8 @@ def run_bug895_wrong_checkout_cases():
         wrong,
         _bug895_own_checkout_case(wt),
         _bug895_scratch_case(wt),
-        _bug895_red_case(root, wt, _bug895_fire(
-            wt, os.path.join(root, ".harness", "allowed", "x.txt"))),
+        _bug895_red_case(root, wt, fire(
+            wt, os.path.join(root, ".harness", "allowed", "x.txt"), agent="harness-documentor")),
     ]
     fails = 0
     for name, ok, detail in results:

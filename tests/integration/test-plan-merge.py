@@ -17,6 +17,8 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+import concurrent.futures
+import multiprocessing
 import os
 import shutil
 import subprocess
@@ -4627,9 +4629,21 @@ CASES = (
 )
 
 
+def _run_case(index):
+    """One case in a pool worker: the checks it made, in order, as printable values."""
+    RESULTS.clear()
+    CASES[index]()
+    return [(name, bool(ok), str(detail)) for name, ok, detail in RESULTS]
+
+
 def main():
-    for case in CASES:
-        case()
+    # Every case builds its own tempdir fixture and the suite is spawn-bound, so cases run in a
+    # pool of fresh interpreters; map() yields them in CASES order, so the report is unchanged.
+    workers = min(len(CASES), os.cpu_count() or 2)
+    with concurrent.futures.ProcessPoolExecutor(
+            workers, mp_context=multiprocessing.get_context("spawn")) as pool:
+        for case_results in pool.map(_run_case, range(len(CASES))):
+            RESULTS.extend(case_results)
 
     fails = 0
     for name, ok, detail in RESULTS:

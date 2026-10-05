@@ -20,8 +20,11 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_tests)
 import contextlib, importlib.util, json, subprocess, sys, os, shutil, tempfile, time
+import concurrent.futures
 import copy
+import re
 import yaml
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,6 +33,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
+from check_domain_support import make_linked_worktree
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
@@ -689,13 +693,8 @@ HOOK_CASES.append(("F6 missing agent_type with string data is refused",
 # distinguish the worktree-resolution defect.
 def _linked_worktree_fixture(root, wt_id):
     worktree = os.path.join(root, ".claude", "worktrees", wt_id)
-    entry = os.path.join(root, ".git", "worktrees", wt_id)
-    os.makedirs(entry, exist_ok=True)
+    make_linked_worktree(root, worktree, wt_id)
     os.makedirs(os.path.join(worktree, ".harness"), exist_ok=True)
-    with open(os.path.join(worktree, ".git"), "w") as pointer:
-        pointer.write("gitdir: %s\n" % entry)
-    with open(os.path.join(entry, "gitdir"), "w") as pointer:
-        pointer.write("%s\n" % os.path.join(worktree, ".git"))
     return worktree
 
 
@@ -968,11 +967,19 @@ HOOK_CASES.append(("object [hook]: a wrapped {data: ...} object is exit 2",
                    2, "missing 'VERDICT'"))
 
 
+def _run_cli_case(cli_case):
+    _name, persona, obj, _want_ok, _mentions = cli_case
+    return subprocess.run([VALIDATE, persona], input=json.dumps(obj),
+                          capture_output=True, text=True)
+
+
 def run_cli_cases():
     fails = 0
-    for name, persona, obj, want_ok, mentions in CASES:
-        r = subprocess.run([VALIDATE, persona], input=json.dumps(obj),
-                           capture_output=True, text=True)
+    # Each case is one independent, read-only CLI spawn (_cli_never_writes): they spawn
+    # concurrently and are judged and printed in CASES order, so the output is unchanged.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as pool:
+        runs = list(pool.map(_run_cli_case, CASES))
+    for (name, persona, obj, want_ok, mentions), r in zip(CASES, runs):
         got_ok = r.returncode == 0
         bad = []
         if got_ok != want_ok:
@@ -1413,7 +1420,7 @@ def _append_root():
     return root, os.path.join(root, APPEND_REL)
 
 
-def _append_registration(root):
+def _append_registration(root, cwd=None, claim=True):
     os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
     with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as marker:
         yaml.safe_dump({"leads": [{"name": "harness-eng-lead", "squad": "engineering", "domain": [
@@ -1426,9 +1433,10 @@ def _append_registration(root):
         json.dump({"feature_id": HOOK_IDENTITY["harness_feature"], "runs": [{
             "id": "r1-eng", "squad": "engineering", "agent": "harness-eng-lead",
             "verdict": "PENDING", "started_at": "2026-10-04T00:00:00+00:00"}]}, record)
-    _reg_module().claim_run_start(root, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
-                                 HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
-                                 supervisor_pid=os.getpid(), cwd=root)
+    if claim:
+        _reg_module().claim_run_start(root, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
+                                     HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
+                                     supervisor_pid=os.getpid(), cwd=cwd or root)
 
 
 def _append_binding(root):
@@ -1555,6 +1563,7 @@ def run_lead_append_cases():
     cases += [_repeated_yield_appends_once(obj), _cli_never_writes()]
     cases += _append_authorization_cases()
     cases += [_hook_binding_refuses(kind) for kind in ("wrong-parent", "ambiguous-run")]
+    cases += [_hook_binding_linked_worktree_binds(), _hook_binding_other_registry_refuses()]
     fails = 0
     for name, ok, detail in cases:
         print(f"ok    [append] {name}" if ok else f"FAIL  [append] {name}\n      | {detail}")
@@ -1705,6 +1714,46 @@ def _hook_binding_refuses(kind):
         return f"startup refuses {kind} without issuing digest authority", ok, result.stdout + result.stderr
     finally:
         _remove_append_root(root)
+
+
+def _linked_worktree_bind(claim_in_feature):
+    """#2063: a feature on a linked worktree. The session (and so every claim's recorded
+    cwd) is the OWNER checkout; the claim lives in the feature worktree's registry, or —
+    when `claim_in_feature` is false — only in the owner's. Answers the startup result."""
+    owner = os.path.realpath(tempfile.mkdtemp(prefix="vd-bind-linked-"))
+    try:
+        worktree = _linked_worktree_fixture(owner, HOOK_IDENTITY["harness_feature"])
+        _append_registration(worktree, cwd=owner, claim=claim_in_feature)
+        shutil.copytree(os.path.join(worktree, ".harness"), os.path.join(owner, ".harness"),
+                        ignore=shutil.ignore_patterns("features", "inflight.json", "inflight.json.lock"))
+        if not claim_in_feature:
+            _reg_module().claim_run_start(owner, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
+                                         HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
+                                         supervisor_pid=os.getpid(), cwd=owner)
+        payload = _governed({"agent_type": "harness-eng-lead", "cwd": owner,
+                             "harness_parent_agent_id": "Test.Parent"})
+        result = subprocess.run([os.path.join(os.path.dirname(VALIDATE), "digest_destination.py")],
+                                input=json.dumps(payload), capture_output=True, text=True,
+                                env=dict(os.environ, HARNESS_PROJECT_DIR=owner))
+        return worktree, result, json.loads(result.stdout)
+    finally:
+        _remove_append_root(owner)
+
+
+def _hook_binding_linked_worktree_binds():
+    worktree, result, response = _linked_worktree_bind(True)
+    binding = response.get("binding", {})
+    ok = (result.returncode == 0 and binding.get("root") == worktree
+          and binding.get("artifact") == os.path.join(worktree, APPEND_REL))
+    return ("startup binds a linked-worktree feature whose claim cwd is the owner checkout",
+            ok, result.stdout + result.stderr)
+
+
+def _hook_binding_other_registry_refuses():
+    _worktree, result, response = _linked_worktree_bind(False)
+    ok = result.returncode == 2 and response.get("ok") is False and "binding" not in response
+    return ("startup refuses a claim held only in another checkout's registry",
+            ok, result.stdout + result.stderr)
 
 
 
@@ -4989,6 +5038,33 @@ def run_bug1898_exact_release_cases():
     return fails
 
 
+# A `--only` child's closing line; the full run prints one line of its own over every group.
+_GROUP_SUMMARY = re.compile(r"\n(?:ALL PASSED|(\d+) FAILING)\.\n\Z")
+
+
+def _run_group(check):
+    return subprocess.run([sys.executable, os.path.abspath(__file__), "--only", check.__name__],
+                          capture_output=True, text=True)
+
+
+def _run_groups(checks):
+    """Every group as its own `--only` child, concurrently, each output replayed in group
+    order without the child's closing line. The suite is spawn-bound, so this is where its
+    wall time goes; returns the summed failure count, a child that crashed counting as one."""
+    with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(len(checks), os.cpu_count() or 2)) as pool:
+        runs = list(pool.map(_run_group, checks))
+    fails = 0
+    for run in runs:
+        summary = _GROUP_SUMMARY.search(run.stdout)
+        sys.stdout.write(run.stdout[:summary.start()] if summary else run.stdout)
+        sys.stderr.write(run.stderr)
+        group_fails = int(summary.group(1) or 0) if summary else 0
+        fails += group_fails or int(run.returncode != 0)
+    sys.stdout.flush()
+    return fails
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     checks = (
@@ -5019,7 +5095,7 @@ def main(argv=None):
     elif argv:
         print(f"usage: {os.path.basename(__file__)} [--only <group>]", file=sys.stderr)
         return 2
-    fails = sum(check() for check in checks)
+    fails = sum(check() for check in checks) if len(checks) == 1 else _run_groups(checks)
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 

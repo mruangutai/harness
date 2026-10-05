@@ -49,6 +49,8 @@ COLLECT_FIXTURE = {
     "harness-backend-dev": (
         [
             "src/**",
+            "apps/*/src/**",
+            "packages/*/src/**",
             ".claude/skills/harness/bin/**",
             "tests/**",
             ".harness/*/features/*/notes/receipt-harness-backend-dev-*.md",
@@ -63,6 +65,10 @@ COLLECT_FIXTURE = {
             ".github/**",
             "Dockerfile",
             ".harness/harness.json",
+            "package.json",
+            "pnpm-workspace.yaml",
+            "pnpm-lock.yaml",
+            "tsconfig.base.json",
             ".claude/skills/harness/bin/**",
             "tests/**",
             ".harness/*/features/*/notes/receipt-harness-dev-ops-*.md",
