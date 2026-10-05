@@ -1,8 +1,10 @@
 schema: plan/1
 feature: FEAT-1559-corpus-outside-worktree
 approval:
-  status: pending
-status: plan
+  date: '2026-10-04'
+  approved_by: mruangutai
+  status: approved
+status: ready
 source_issues:
 - 1559
 panel:
@@ -26,12 +28,13 @@ panel:
     persona: harness-pm
     reason: none
   findings:
-  - disposition: 'resolved by operator ruling 1: content classification A/B/C replaces provenance'
+  - disposition: resolved
     id: PF-5e51b4e658129119f2a1e35df8588f67
     kind: substance
     reader: code-reviewer
     severity: high
     summary: Dirty-input refusal prevents the mandatory hidden-feature merge repair.
+    resolution: 'Operator ruling 1 (notes/answers-operator-2026-10-04-signature-rulings.md): content classification A/B/C replaces provenance; propagated to SC-07/08, D-12, T-01, T-04, T-05.'
   - disposition: 'addressed: T-05 full-clone full-suite subject'
     id: PF-9bbc626c674d2d8dcc38f00b6629ab1f
     kind: substance

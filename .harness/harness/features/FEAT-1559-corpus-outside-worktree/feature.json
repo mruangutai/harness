@@ -27,5 +27,42 @@
       "reason": "adds new enforcement (post-checkout hook, worktree-state.py --verify preflight in check_state/, sparse layout on every checkout) across many files; only cause-known holds"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 120,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1559-corpus-outside-worktree/.harness/harness/features/FEAT-1559-corpus-outside-worktree/notes/answers-operator-2026-10-04-signature-rulings.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "550d990962d060eb686eefeceb56437fcb33f8c3319b75cda6b804fcdb1efc6a",
+    "T-02": "a7b917bc2d913238266c6a93d52b62f5dbff22e1c666888adae80f0b417bd919",
+    "T-03": "93457099199e1e20192e718a4bdc48c9c165ea6c3f414c8c9bc1944e2af79a60",
+    "T-04": "82f0d994570ee252f5e78fa9dbdb7f92b05db8c4c84f86f7b074aa111d95751c",
+    "T-05": "aa2c2f939d8c93f73fa9902dfcfff857ed7fd988b6fcd105d00a4c162de68ea4",
+    "T-06": "3e55e343c33b7edd3d49214619f7a7b59798c4f853468fb8ca20743575f73649"
+  },
+  "github": {
+    "milestone": 99,
+    "parent": 2086,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 2088,
+      "T-02": 2089,
+      "T-03": 2091,
+      "T-04": 2092,
+      "T-05": 2093,
+      "T-06": 2094
+    },
+    "source_issues": [
+      1559
+    ],
+    "build_entry": "opened"
+  }
 }

@@ -74,6 +74,6 @@ Binding pre-signature rulings are recorded in notes/answers-operator-2026-10-04-
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: mruangutai
+date: 2026-10-04
