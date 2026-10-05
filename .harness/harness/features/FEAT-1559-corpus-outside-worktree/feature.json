@@ -25,6 +25,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "adds new enforcement (post-checkout hook, worktree-state.py --verify preflight in check_state/, sparse layout on every checkout) across many files; only cause-known holds"
+    },
+    {
+      "at": "2026-10-05T13:16:11.359779+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.intent",
+      "reason": "Operator 2026-10-04: SC-02's core claim (byte-identical landed reads from inside each checkout class, with the other record absent locally) had no direct assertion; added it to T-03's integration test."
     }
   ],
   "mission": "plan",
