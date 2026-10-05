@@ -396,14 +396,32 @@ def process_plan_yaml(path, findings, root, manifest_root):
         return None
 
     legal = legal_task_statuses()
+    base = _plan_route_base(path, findings, manifest_root)
     # FEAT-68: findings are reported in this sequence; each rule returns its violation count.
-    violations = _feature_station_rule(doc, findings, legal)
+    violations = _feature_station_rule(doc, findings, legal) + (base is False)
     for t in doc["tasks"]:
         tid = str(t["id"])
         violations += _budget_rule(t, tid, findings)
         violations += _task_status_rule(t, tid, findings, legal)
-        violations += _routing_rule(t, tid, findings, root, manifest_root)
+        if base is not False:
+            violations += _routing_rule(t, tid, findings, root, manifest_root, base)
     return violations
+
+
+def _plan_route_base(path, findings, manifest_root):
+    """Where this plan's paths are asked about: None for harness's own plan (relative to the
+    harness tree, as always), the fleet's product base for a served repository's (#2077), or
+    False — with its VIOLATION recorded — when the fleet declares no such repository, since a
+    route that cannot be asked must not read as granted or as NOBODY."""
+    segment = harness_boundary.plan_segment(path)
+    if segment == harness_boundary.HARNESS_SEGMENT:
+        return None
+    base = harness_boundary.product_base(manifest_root, segment, "check-plan-routes")
+    if base is None:
+        findings.append(f"VIOLATION {path}: served repository segment {segment!r} is not "
+                        "declared in the fleet, so its routes cannot be resolved")
+        return False
+    return base
 
 
 def _feature_station_rule(doc, findings, legal):
@@ -465,10 +483,10 @@ def _task_status_rule(t, tid, findings, legal):
     return 0
 
 
-def _routing_rule(t, tid, findings, root, manifest_root):
+def _routing_rule(t, tid, findings, root, manifest_root, base=None):
     mode = t["execution_mode"]
     literals = _literal_paths(t, tid, findings)
-    nobody, granted = _resolve_grants(literals, root, manifest_root)
+    nobody, granted = _resolve_grants(literals, root, manifest_root, base)
     if nobody:
         return _ungranted_findings(tid, mode, nobody, findings)
     if literals:
@@ -490,10 +508,10 @@ def _literal_paths(t, tid, findings):
     return literals
 
 
-def _resolve_grants(literals, root, manifest_root):
+def _resolve_grants(literals, root, manifest_root, base=None):
     nobody, granted = [], set()
     for entry in literals:
-        agents = resolve_agents(entry, root, manifest_root)
+        agents = resolve_agents(os.path.join(base, entry) if base else entry, root, manifest_root)
         if agents:
             granted.update(agents)
         else:

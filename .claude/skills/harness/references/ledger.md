@@ -17,7 +17,7 @@ the judgement land in one write. A reason for a judgement the open does not owe 
 You never write those two kinds with `judgement` after the fact; INV-43 grades a late succession
 as retrospective forever.
 After every return, ONE command:
-`feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a]`
+`feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a] [--refused-return]`
 — in order: the digest is validated against the run's recorded persona; `run-end`; the task
 station when `--task`/`--station` are paired; the judgement, recorded as you; `spend`. **The first
 refusal stops it, names its stage, and keeps every earlier durable write** — fix what the named
@@ -29,6 +29,12 @@ Tokens are the host's: the hook stamps the measured figure onto the open run on 
 (BUG-1724) and a bare close-out preserves it; only a run whose entry still carries none may take
 `run-end --tokens N` from `details.results[i].tokens`, never an estimate — `null` when unmeasured,
 so a reader can tell unmeasured from zero (SC-18).
+
+When the host **refused** the lead's final return, its `digest.md` never received a valid record
+and the digest stage can never pass. Close that run with `--refused-return --verdict BLOCKED`: the
+digest stage is inverted — it refuses if the digest *does* validate, because then the return
+landed and closes normally under its own verdict — and every later stage runs as usual (#2068).
+This is the governed path; never close such a run with a bare `run-end`.
 
 The `plan` run graded a document and no code: close it with `--code-grade n_a`. Omitting the flag
 declares the run reviewed code, and INV-6 then demands a `review_sha` that cannot exist before the

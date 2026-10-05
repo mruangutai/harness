@@ -22,7 +22,7 @@ the scope: work past it is out of scope, not fog.>
 
 <!-- type: research (agent alone) · prototype · grilling · task
      status: open · claimed · closed
-     The FRONTIER is every open ticket whose blockers are all closed — the only takeable work. -->
+     The FRONTIER is every open ticket whose blockers are all closed and which nobody has claimed — the only takeable work. -->
 
 ## Decisions so far
 

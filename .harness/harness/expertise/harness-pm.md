@@ -12,6 +12,7 @@
 - P-11: WHEN a dispatch fences a harness bin script's capability as settled DO run --help on the control-plane copy, never the worktree's: a worktree behind main is the stale witness, and the control-plane script invoked by absolute path runs fine from inside a worktree.
 - P-10: WHEN selecting `change_type` DO choose from the configured test-matrix vocabulary before signature and confirm its required test-kind floor matches the task's planned evidence; unsupported labels are malformed records, not reasons to extend or guess the matrix.
 - P-12: WHEN DEC-174 routes a build main-session-direct and the main session parallelizes task subagents DO state that all relative-path edits must remain inside the assigned feature worktree.
+- P-13: WHEN goal-checking a Harness digest append DO require the canonical historical reader to select the submitted object from the exact prospective bytes before the first write; schema acceptance alone does not prove successor readability.
 ## Gotchas (max 15)
 - G-01: WHEN a step must create, copy or move a file DO use the file tools or a Python script — `bash-write-guard.py` denies redirects, `cp`, `mv` and `rm` in Bash whatever the target, including the session scratchpad and paths with no repo-like component.
 - G-02: WHEN a Bash command names a path the guard should allow DO spell it as a literal absolute path. The guard reads the command line, not the resolved path, so the same target written through a shell variable is refused.

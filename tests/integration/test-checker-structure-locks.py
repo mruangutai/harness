@@ -13,6 +13,11 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+import ast
+import concurrent.futures
+import contextlib
+import io
+import multiprocessing
 import os
 import shutil
 import subprocess
@@ -624,9 +629,43 @@ CASES = (
 )
 
 
+_PARSE = ast.parse
+_PARSED = {}
+
+
+def _cached_parse(source, filename="<unknown>", *args, **kwargs):
+    """`ast.parse` memoised on (source, filename). The checker only reads its trees, so the
+    identical files in every tree copy parse once per worker; a mutant's text is its own key."""
+    if args or kwargs:
+        return _PARSE(source, filename, *args, **kwargs)
+    key = (source, filename)
+    if key not in _PARSED:
+        _PARSED[key] = _PARSE(source, filename)
+    return _PARSED[key]
+
+
+def _run_case(index):
+    """One case in a pool worker: what it printed and the checks it failed, for replay."""
+    failures.clear()
+    printed = io.StringIO()
+    ast.parse = _cached_parse
+    try:
+        with contextlib.redirect_stdout(printed):
+            CASES[index]()
+    finally:
+        ast.parse = _PARSE
+    return printed.getvalue(), list(failures)
+
+
 def main():
-    for case in CASES:
-        case()
+    # Every case mutates only its own tempdir copies, so cases run in a pool of fresh
+    # interpreters; map() yields them in CASES order, so the report is unchanged.
+    workers = min(len(CASES), os.cpu_count() or 2)
+    with concurrent.futures.ProcessPoolExecutor(
+            workers, mp_context=multiprocessing.get_context("spawn")) as pool:
+        for printed, case_failures in pool.map(_run_case, range(len(CASES))):
+            sys.stdout.write(printed)
+            failures.extend(case_failures)
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
         sys.exit(1)

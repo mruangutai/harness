@@ -481,6 +481,44 @@ class CloseRunTest(FeatureRecordCase):
         self.digest.write_text(json.dumps(body), encoding="utf-8")
         self.assert_ok(self.close())
 
+    def test_refused_return_closes_a_run_with_no_valid_digest_as_blocked(self):
+        """#2068: the host refused the lead's final return, so digest.md never received its
+        record and the normal close stops at the digest stage forever. --refused-return
+        closes it BLOCKED through the same composed close, later stages included."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        self.digest.write_text("# lead assessment, no record appended\n", encoding="utf-8")
+        result = self.close_refused("BLOCKED", "--task", "T-01", "--station", "ready")
+        self.assert_ok(result)
+        entry = self.load()["runs"][0]
+        self.assertEqual("BLOCKED", entry["verdict"])
+        self.assertRegex(entry["ended_at"], ISO_UTC)
+        self.assertIn("refused-return", result.stdout)
+        self.assertIn("spend=", result.stdout)
+        self.assert_clean()
+
+    def test_refused_return_is_refused_when_the_digest_validates(self):
+        """A digest that validates is a return that landed: --refused-return must not become
+        a way to close it under a verdict the digest did not report."""
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close_refused("BLOCKED")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("REFUSED at stage refused-return", result.stderr)
+        self.assertEqual(before, self.path.read_bytes(), "run-end must not have run")
+
+    def test_refused_return_takes_only_a_blocked_verdict(self):
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        self.digest.write_text("no record\n", encoding="utf-8")
+        for verdict in ("PASS", "FAIL"):
+            result = self.close_refused(verdict)
+            self.assertEqual(2, result.returncode, f"{verdict}: {result.stderr}")
+            self.assertIn("BLOCKED", result.stderr)
+            self.assertEqual(before, self.path.read_bytes(), f"{verdict} moved bytes")
+
+    def close_refused(self, verdict, *extra):
+        return self.run_cli("close-run", "--file", str(self.path), "--id", "r1",
+                            "--digest", str(self.digest), "--verdict", verdict,
+                            "--cycles-used", "0", "--refused-return", *extra)
+
     def test_unknown_run_is_refused_naming_the_run_end_stage_with_no_later_stage(self):
         before = self.write(base_doc(runs=[dict(self.OPEN)]))
         result = self.run_cli("close-run", "--file", str(self.path), "--id", "r9",
@@ -541,7 +579,8 @@ class CloseRunTest(FeatureRecordCase):
 
         args = argparse.Namespace(file=str(self.path), id="r1", digest=str(self.digest),
                                   verdict="PASS", cycles_used=0, task=None, station=None,
-                                  judgement="kind=regate,decision=x,reason=y", code_grade=None)
+                                  judgement="kind=regate,decision=x,reason=y", code_grade=None,
+                                  refused_return=False)
         out, err = io.StringIO(), io.StringIO()
         with mock.patch("subprocess.run", side_effect=run_or_refuse_spend), \
                 contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \

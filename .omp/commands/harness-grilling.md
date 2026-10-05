@@ -1,15 +1,10 @@
 # /harness-grilling — dialog to clarity before anything is built
 
-Load `harness-grilling` and run it, here in the main session (no subagent has a user channel).
+**MUST load and run**
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-grilling/SKILL.md`
+here in the **main session only** — no subagent has a user channel (DEC-120).
+Follow the canonical skill's interview, artifact requirements and confirmed hand-off routes;
+this door does not choose a mission or restate routing.
 
-- **With a loose idea or a feature request** → grill it to clarity, write the artifact, then offer
-  `/harness-plan` with the artifact path as pm's input. Do not start planning unasked.
-- **Inside repository registration** → the `harness-add-repo` skill calls this for its technical
-  interview; the answers seed the repository's own `harness.json`, which must land on its default
-  branch.
-- **Standalone** ("stress-test this", "grill me on X") → run it and write the artifact; nothing
-  downstream is implied.
-
-This is step zero of `/harness-plan` and is **blocking** — pm plans from what it is told, so unstated
-assumptions become REQs nobody meant (DEC-164). Skipping it is the
-user's call to make explicitly, never yours to assume.
+Grilling is **blocking** step zero of `/harness-plan`; only the user's **explicit** call skips it,
+never the agent's assumption, because pm plans from what it is told (DEC-164).

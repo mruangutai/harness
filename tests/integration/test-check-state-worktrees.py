@@ -22,6 +22,7 @@ import shutil
 import tempfile
 from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, copy_check_state, make_fixture, run,
     _HOOKS_REL_T, _hb, _root_env)
+from git_support import add_worktree, commit_feature, commit_files, init_repo
 
 
 def case_u():
@@ -40,15 +41,8 @@ def case_u():
     results = []
 
     def _repo(path):
-        os.makedirs(path, exist_ok=True)
-        for cmd in (["git", "init", "-q"],
-                    ["git", "config", "user.email", "t@example.com"],
-                    ["git", "config", "user.name", "t"]):
-            subprocess.run(cmd, cwd=path, capture_output=True)
-        with open(os.path.join(path, "f.txt"), "w") as f:
-            f.write("x\n")
-        subprocess.run(["git", "add", "f.txt"], cwd=path, capture_output=True)
-        subprocess.run(["git", "commit", "-qm", "init"], cwd=path, capture_output=True)
+        init_repo(path, None)
+        commit_files(path, {"f.txt": "x\n"}, "init")
         return path
 
     def _add_wt(repo, dest):
@@ -335,15 +329,8 @@ def case_x():
 # file on disk grades nothing about REQ-05.
 
 def _i29_repo(path, branch="main"):
-    os.makedirs(path, exist_ok=True)
-    for cmd in (["git", "init", "-q", "-b", branch],
-                ["git", "config", "user.email", "t@example.com"],
-                ["git", "config", "user.name", "t"]):
-        subprocess.run(cmd, cwd=path, capture_output=True)
-    with open(os.path.join(path, "f.txt"), "w") as f:
-        f.write("x\n")
-    subprocess.run(["git", "add", "f.txt"], cwd=path, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", "init"], cwd=path, capture_output=True)
+    init_repo(path, branch)
+    commit_files(path, {"f.txt": "x\n"}, "init")
     return path
 
 
@@ -358,29 +345,12 @@ def _i29_land(repo, feature_id, status_or_raw, repo_segment="harness", plan_stat
     if isinstance(status_or_raw, dict) and "status" in status_or_raw:
         status_or_raw = dict(status_or_raw)
         plan_station = str(status_or_raw.pop("status")).lower()
-    rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
-    ab = os.path.join(repo, rel)
-    os.makedirs(os.path.dirname(ab), exist_ok=True)
-    with open(ab, "w") as f:
-        if isinstance(status_or_raw, str):
-            f.write(status_or_raw)
-        else:
-            json.dump(status_or_raw, f)
-    paths = [rel]
-    if plan_station is not None:
-        prel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
-        with open(os.path.join(repo, prel), "w") as f:
-            f.write(f"feature: {feature_id}\nstatus: {plan_station}\ntasks: []\n")
-        paths.append(prel)
-    subprocess.run(["git", "add"] + paths, cwd=repo, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", "land " + feature_id], cwd=repo, capture_output=True)
+    commit_feature(repo, feature_id, status_or_raw, repo_segment, "land " + feature_id,
+                   plan_station=plan_station)
 
 
 def _i29_wt(repo, worktree_id, repo_segment="harness"):
-    dest = os.path.join(repo, ".claude", "worktrees", repo_segment, worktree_id)
-    subprocess.run(["git", "worktree", "add", "-q", "-b", "wt-" + worktree_id,
-                    dest, "HEAD"], cwd=repo, capture_output=True)
-    return dest
+    return add_worktree(repo, worktree_id, repo_segment, "wt-" + worktree_id)
 
 
 def _i29_lines(out):

@@ -6,7 +6,7 @@ user-invocable: false
 
 # TDD Enforcement
 
-Mandatory. No exceptions without explicit human approval **in the current session**.
+Mandatory for change types not exempt under § Exemptions; waiving those requires explicit human approval **in the current session**.
 
 ## The Iron Law
 
@@ -15,8 +15,8 @@ Mandatory. No exceptions without explicit human approval **in the current sessio
 Production code written before a failing test existed MUST be **deleted** — not kept as reference, not
 adapted, not "tested afterward." Delete it and restart in correct order.
 
-**The only valid exemption is explicit human approval in this session.** "The user implied it was fine",
-"the task didn't mention tests", and "the plan didn't include a test task" are **not** approvals.
+**For non-exempt changes, only explicit human approval in this session waives the Iron Law.**
+"The user implied it was fine", missing test tasks and unspecified tests are **not** approvals.
 
 ## The cycle
 
@@ -33,7 +33,7 @@ adapted, not "tested afterward." Delete it and restart in correct order.
 | "We're in a rush" | The rework loop is slower. Measured here: 0.44 escaped defects per feature |
 
 Caught yourself writing production code with no red test, or editing an existing test to make it
-pass: **stop, delete the out-of-order code, restart.**
+pass: **stop and apply the deletion-and-restart rule above.**
 
 ## Zero-placeholder gate — always applies
 

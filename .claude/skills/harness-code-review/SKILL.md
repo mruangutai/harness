@@ -42,9 +42,8 @@ amendment is a claim, not evidence; Stage 2 recomputes.
 ## Stage 2 — code quality
 
 Only after Stage 1. Judge against the conventions **already in this codebase**, not an abstract ideal.
-Stage 2 examines the pinned diff and recomputes code quality on its own — `code-grade.py` over
-every changed Python path included — and inherits nothing from an amendment's reason: a lead
-that amended `verify` "for efficiency" has asserted it, and this stage measures it.
+Stage 2 measures pinned-diff quality independently of amendment reasons (see § Grade changed Python):
+amending `verify` "for efficiency" asserts a benefit this stage must measure, never inherit.
 
 Look for: correctness bugs · unhandled errors · **silent failure paths** · missing input validation ·
 dropped async rejections · boundary and off-by-one conditions · resource leaks · dead code left behind ·
@@ -67,8 +66,8 @@ Do **not** report what a linter catches, and do not restyle to personal preferen
 Read `## Principles applied` in each dev receipt under `notes/`. Two claims are checkable; check them:
 
 - **Build the Lever** — the diff contains the script, codemod or generator. None → `form` finding.
-- **Test Behavior** — the named kept test fails when every import returns nothing. Passes →
-  `substance` finding; the test is decoration.
+- **Test Behavior** — apply § Absence, subject and mutant's undefined-return check to the named
+  kept test. Passes → `substance` finding; the test is decoration.
 
 A cited principle you cannot match to a change in the diff is a `form` finding. An absent or empty
 section is not a finding.
@@ -99,7 +98,7 @@ The one canonical copy; `harness-verification-rules` points here. Evidence is DE
 
 ### Grade changed Python
 
-A changed Python path in the pinned range → run `code-grade.py` per
+Every changed Python path in the pinned range → MUST read and run `code-grade.py` per
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/code-grade-review.md`. A record
 marked `SEVERITY: high` — below its bar and not grade 2 — is a **high** finding, reported as
 `code_grade: fail`; a gated grade-2 function is a **med** finding that never blocks, reported as
@@ -170,23 +169,19 @@ git status --porcelain
 | Modified tracked files outside `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**` | **Stop.** A tree matching no commit has no pinnable verdict — return `BLOCKED` and ask for a `[harness:human]` commit or a stash |
 | Unattributed commits that look manual | A finding — attribution is what makes review scope derivable |
 
-**Need the tree at the pin, not the attached worktree? Use the disposable pin checkout (#1994).**
-Never a bare `git worktree add --detach` into a path nobody sweeps — sixteen of those, at ~800 MB
-each with `node_modules`, leaked from one feature. From the feature worktree:
-
-```sh
-python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py add --feature <FEAT> --run-id <run-id> --persona <persona> --sha "$review_sha"   # prints the path
-python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py remove --feature <FEAT> --run-id <run-id> --persona <persona>                    # on return, always
-```
-
-It lives under `<HARNESS_CONTROL_PLANE_ROOT>/.claude/worktrees/.pins/<FEAT>--<run-id>--<persona>/` — yours alone, so returning never deletes a sibling reader's tree — refuses an abbreviated or unknown sha, and the
-control-plane post-merge sweep removes anything a dead run leaves behind after a day (a fleet repository has no hook: `remove` on return is the only cleanup there). Install and build inside it;
-copy evidence out to the feature's `runs/<run-id>/` before removing.
+**Need the tree at the pin?** MUST read
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/review-checkout.md` before creating
+it. Use only `pinned-checkout.py`, never a bare `git worktree add`; each reader gets its own
+feature/run/persona-keyed pin. Do not alter the primary checkout or its dirty changes to reach it.
+Copy evidence to the feature's `runs/<run-id>/` before removal; remove your pin on **every return**,
+including external fleet repositories — sibling isolation and cleanup cannot rely on a fleet hook
+(DEC-238, #1994).
 
 ## Before there is a SHA: plan-phase review
 
-No `review_sha` yet → the plan is the target (DEC-207): grade `BRIEF.md` and `plan.yaml` as the
-specification, never a diff, and write
+No `review_sha` yet and approval pending → the plan is the target (DEC-228): grade `BRIEF.md` and
+`plan.yaml` as the specification, never a diff. The plan must belong to the checkout branch under
+review. Write
 
 ```yaml
 reviewed: plan:<path-to-plan.yaml>

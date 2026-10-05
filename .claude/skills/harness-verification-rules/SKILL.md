@@ -55,18 +55,13 @@ A genuine `FAIL` looks like a **named** test with an assertion diff. Misconfigur
 `MODULE_NOT_FOUND`, `ImportError`, `No test files found`, a collection `ERROR`, or a "test" whose name is
 a file path.
 
-**Need the tree at the pin, not the attached worktree? Use the disposable pin checkout (#1994).**
-Never a bare `git worktree add --detach` into a path nobody sweeps — sixteen of those, at ~800 MB
-each with `node_modules`, leaked from one feature. From the feature worktree:
-
-```sh
-python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py add --feature <FEAT> --run-id <run-id> --persona <persona> --sha "$review_sha"   # prints the path
-python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py remove --feature <FEAT> --run-id <run-id> --persona <persona>                    # on return, always
-```
-
-It lives under `<HARNESS_CONTROL_PLANE_ROOT>/.claude/worktrees/.pins/<FEAT>--<run-id>--<persona>/` — yours alone, so returning never deletes a sibling reader's tree — refuses an abbreviated or unknown sha, and the
-control-plane post-merge sweep removes anything a dead run leaves behind after a day (a fleet repository has no hook: `remove` on return is the only cleanup there). Install and build inside it;
-copy evidence out to the feature's `runs/<run-id>/` before removing.
+**Need the tree at the pin?** MUST read
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/review-checkout.md` before creating
+it. Use only `pinned-checkout.py`, never a bare `git worktree add`; each reader gets its own
+feature/run/persona-keyed pin. Do not alter the primary checkout or its dirty changes to reach it.
+Copy evidence to the feature's `runs/<run-id>/` before removal; remove your pin on **every return**,
+including external fleet repositories — sibling isolation and cleanup cannot rely on a fleet hook
+(DEC-238, #1994).
 
 ## Audit test-first compliance
 
@@ -85,7 +80,7 @@ never failed constrains nothing.
 **Perturbation proofs run in a worktree, never the main checkout (DEC-153).** Proving a test
 discriminates (mutate, watch it fail, restore) is sanctioned — but the bash-write-guard denies your
 in-place source edits in the main checkout by design. Run the proof in the same pinned
-checkout as the lane (`pinned-checkout.py add`, above — never a bare `git worktree add`); verify the restore with
+checkout as the lane (the managed procedure above); verify the restore with
 `git status --porcelain <path>`, never a read-back.
 
 ## Absence, subject and mutant (DEC-169, issue #979)
@@ -93,26 +88,23 @@ checkout as the lane (`pinned-checkout.py add`, above — never a bare `git work
 An absence assertion is never a check on its own, and a criterion that excludes a specific wrong
 implementation names its mutant, which you flip. The one canonical block — the presence pairing, the
 two subject-binding questions, fixture provenance and measurement mode — is
-`harness-code-review` § Absence, subject and mutant.
-Read it in Phase 2 before you sign off any criterion or added test.
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-code-review/SKILL.md` § Absence, subject and mutant.
+MUST read it in Phase 2 before you sign off any criterion or added test.
 
 ## You supply the evidence, not the verdict on the goal
 
-`pm` goal-checks success criteria by **collecting** evidence rather than re-testing. For every SC marked
-`verify: automated`, pm needs to cite the specific test that exercises it — so your DIGEST must make that
-findable.
-
-**A passing suite is not a met SC.** If no test exercises `SC-03`, say so: the gap returns to a dev, not
-to the user.
+`pm` **collects**, never reruns, evidence: your digest must identify the specific test exercising
+each `verify: automated` SC (DEC-73). A passing suite is not a met SC: name any uncovered SC;
+the gap returns to the owning dev, not the user.
 
 ## Your DIGEST
 
-The documented contract is `<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-qa.md § Output`; `validate-digest.py` refuses a
-digest that breaks it and names the field, the rejected pairing and the repair — read its message,
-never guess a value. Your fields: `suite`, `failures`, `coverage_gaps` (every Phase 1 expectation
-with no test is one), `matrix_ok` (a bool), `fail_first` (one `{ sc, evidence }` per
-`verify: automated` SC), plus `kinds` and `sc_evidence`. `task` and `task_verify` bind the five dev
-specialists only; the validator refuses them on a qa return (SC-05).
+MUST read `<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-qa.md` § Output before returning;
+it points to the canonical schema, including `matrix_ok`'s allowed values and verdict pairings
+(DEC-237). `validate-digest.py` refuses a digest that breaks the contract and names the field,
+the rejected pairing and the repair — read its message, never guess a value.
+Every Phase 1 expectation with no test belongs in `coverage_gaps`. `task` and `task_verify` bind
+the five dev specialists only; the validator refuses them on a qa return (SC-05).
 
 ## Red flags
 

@@ -25,5 +25,6 @@ Dispositions:
 - The operator's overrule belongs in `approval.rulings`; that is the main session's write
   (`sign-approval --overrule`), never pm's.
 
-After recording, run `plan-merge.py check --file <plan.yaml> --root <checkout>` and fix every
-FAIL line before the plan goes for signature.
+After recording, run `plan-merge.py check --file <plan.yaml> --root <checkout>` (plus
+`--code-root <code worktree>` for a served repository's plan) and fix every FAIL line before the
+plan goes for signature.

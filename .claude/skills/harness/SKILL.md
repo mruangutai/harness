@@ -71,7 +71,7 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    (DEC-201).
    Never guess a figure; a reported number is a claim until disk confirms it (DEC-199).
 6. **Adjust and record — ONE command closes the run.**
-   `feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a]`
+   `feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a] [--refused-return]`
    Stages run in order and the first refusal stops the rest: fix the named stage, never re-issue
    later ones by hand (BUG-1723). The `plan` run alone closes with `--code-grade n_a`, recording
    `code_grade: n_a` so INV-6 demands no `review_sha` for it (BUG-1080). Tokens, `C`, refusals:

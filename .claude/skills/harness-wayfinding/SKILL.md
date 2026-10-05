@@ -36,13 +36,12 @@ saved, and where:
 | The **one-line gist** | the map body's `## Decisions so far` | the index entry pointing back at the ticket |
 | A substantial **asset** (research findings, a prototype, a long analysis) | a file in the repo, **linked** from the comment | never pasted into the issue, and never a second copy of the decision |
 
-The order is always **decide → record on the ticket → gist on the map**. Writing a local markdown
-copy of a decision that already lives on a ticket is the two-copies drift this org keeps finding
-(the digest.md gap, the hand-copied test-matrix table) — do not do it.
+The order is always **decide → record on the ticket → gist on the map**; never make a local
+markdown copy of a tracker decision, because two canonical copies drift (DEC-167).
 
 **Every tracker operation goes through `bin/wayfind.py`**, never hand-typed `gh`:
 `map <n>` · `round <n>` · `frontier <n>` · `chart` · `ticket <map#> <type> "<title>"` · `block <n> --by <n>` ·
-`claim <n>` · `resolve <n> <file>`. Mutations are **dry-run until `--apply`**. Three operations are
+`claim <n>` · `resolve <n> --body "<answer>" --gist "<one line>"`. Mutations are **dry-run until `--apply`**. Three operations are
 traps by hand and the script exists for them: the sub-issue API takes the child's internal `id` and
 not its `number`; the frontier is a compound query no single `gh` call expresses; and a ticket
 created without its `wayfinder:<type>` label is invisible to every later query.
@@ -60,13 +59,6 @@ map at all. Nothing here sends the user somewhere else — both answers are your
 
 Charting a map for a small idea is pure overhead — the map is for fog, and a map with three
 tickets you could have talked through was a worse conversation.
-
-## Plan, don't do
-
-Wayfinding produces **decisions, not deliverables**. The map is done when nothing is left to decide
-before someone builds — that hand-off is `/harness-plan`, with pm authoring BRIEF and PLAN from the
-map. Offer it and hand over the map path. Do not start planning unasked. The pull to just start
-building is the signal you have reached the edge of the map, not permission to carry on past it.
 
 ## The map
 
@@ -115,42 +107,18 @@ the edge of the known, and the only takeable work. Tracker mode computes it from
 **Never answer a HITL ticket yourself.** An agent that supplies the user's side of a grilling has
 produced a fabricated decision, which is worse than an open ticket.
 
-## Charting (first session)
+## Charting and working — read before either
 
-1. **Name the destination** — run `harness-grilling` on that alone. It fixes the scope, so it is
-   settled before anything else.
-2. **Map the frontier breadth-first** — grill across the whole space rather than deep on one thread,
-   surfacing the open decisions and what is takeable now. **Surfaced no fog?** The idea did not need
-   a map: stop, say so, and hand the grilling artifact to `/harness-plan`.
-3. **Create the map** — tracker: `wayfind.py chart "<destination>" --apply`, then fill its body's
-   Destination and Notes (decisions empty, the dim view in `## Not yet specified`). Markdown:
-   the same from `templates/MAP.md`.
-4. **Create the tickets you can specify now** (`wayfind.py ticket <map#> <type> "<title>" --apply`),
-   then wire blockers in a **second pass** — issues need ids before they can reference each other
-   (`wayfind.py block <n> --by <n> --apply`).
-5. **Fire the research tickets in parallel** — they need no user, so they run now while the map is
-   fresh.
-6. **Stop.** Charting resolves nothing; a session that charts and then starts resolving has spent
-   its context on both and done neither well.
+**Before charting a map or working an existing map, MUST read**
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/wayfinding-work.md`
+**in full**, then follow its walkthrough. Charting and resolving are separate sessions:
+charting resolves nothing, because combining them spends context on both and does neither well
+(DEC-165).
 
-## Working the map (each later session)
-
-1. Load the low-res view — `wayfind.py map <n>` (tracker) or `MAP.md` (markdown). Not every
-   ticket body.
-2. Take the first frontier ticket (or the one the user names) and **claim it first**, before any
-   work, so a concurrent session skips it — `wayfind.py claim <n> --apply` (the assignee IS the
-   claim; an open unassigned ticket is unclaimed).
-3. Resolve it by its type. Zoom only what this ticket needs.
-4. Record: the answer as the ticket's resolution and the ticket closed — `wayfind.py resolve <n>
-   <file> --apply` (markdown: `## Resolution` in the ticket file) — plus **one gisted line** in the
-   map's `## Decisions so far` pointing at it.
-5. **Graduate the fog the answer sharpened** into new tickets, clearing those patches from
-   `## Not yet specified`. If the answer puts something past the destination, close it into
-   `## Out of scope` with the reason — never resolve it on the route.
-6. **One THREAD per session, then stop** — even if you feel fine: the next session starts fresh and
-   cheap, and a long session writes worse answers (DEC-159). A thread is either one ticket explored
-   deeply, **or one frontier round** (below). Sessions are contexts, not calendar days: running six
-   back to back in an afternoon is the intended use, and costs only a map reload each.
+**Claim a frontier ticket before any work**, so concurrent sessions skip it (DEC-166).
+**One THREAD per session, then stop** — one ticket explored deeply, or one frontier round below;
+a long session writes worse answers (DEC-159). Sessions are contexts, not calendar days:
+back-to-back sessions cost only a map reload each.
 
 ## Clarity fast AND context-cheap — the frontier round (DEC-167)
 
@@ -192,13 +160,21 @@ nobody wired its blocker is not independent, it is mis-wired.
   never graduates: the frontier stops at the destination. Re-drawing the destination is a fresh
   effort, not a resumption.
 
+As answers sharpen fog, **graduate it into new tickets and clear those patches** from
+`## Not yet specified`. Put anything beyond the destination into `## Out of scope` with its
+reason, never resolve it on the route.
+
 ## Done — and the hand-off
 
-Done when the frontier is empty and no fog remains: nothing left to decide before building. Then
-hand `/harness-plan` the **map path**. `## Decisions so far` is what pm authors the perspectives
-from, `## Out of scope` is what keeps the BRIEF's scope honest, and every ticket's `## Resolution`
-is there to zoom when pm needs the detail. pm still owns the perspectives, SCs and tasks — you
-removed the fog, not its job.
+Wayfinding produces **decisions, not deliverables**. Done when the frontier is empty **and no fog
+remains**: nothing left to decide before building. Then offer `/harness-plan` with the **map path**;
+do not start planning unasked. The pull to start building signals the edge of the map, not
+permission to carry on past it.
+
+`## Decisions so far` is what pm authors the perspectives from; `## Out of scope` keeps the
+BRIEF's scope honest, and each ticket's resolution is there to zoom when pm needs detail
+(the resolution comment in tracker mode, `## Resolution` in markdown). pm still owns the
+perspectives, SCs and tasks — you removed the fog, not its job.
 
 ## Red flags
 

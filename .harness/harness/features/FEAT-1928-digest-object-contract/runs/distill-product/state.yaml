@@ -1,0 +1,48 @@
+schema_version: 2
+run_id: distill-product
+run_uid: a71586e291364a3c827212a8a0be262c
+feature: FEAT-1928-digest-object-contract
+squad: product
+host: harness-product-lead
+status: blocked
+steps:
+  - id: pm
+    persona: harness-pm
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    cycles: 0
+    redispatches: 1
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/research-FEAT-1928-digest-object-contract-distill-product-recovery.md
+    note: Expertise work complete; explicit object yield rejected again as data absent.
+    evidence:
+      accepted_logs: 0
+      accepted_retained: 1
+      accepted_lead_skim: 1
+      craft_before_after: 15/15/10/0 -> 15/15/10/0
+      repository_before_after: 12/15/1/0 -> 12/15/1/0
+      checker: Both PM and both lead Expertise checks exited 0 per receipts.
+  - id: documentor
+    persona: harness-documentor
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    cycles: 0
+    redispatches: 1
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-documentor-distill-product.md
+    note: Expertise work complete; explicit object yield rejected again as data absent.
+    evidence:
+      accepted_logs: 0
+      accepted_retained: 0
+      accepted_lead_skim: 1
+      craft_before_after: 15/15/10/0 -> 15/15/10/0
+      repository_before_after: 7/7/0/0 -> 7/7/0/0
+      checker: Both documentor Expertise checks exited 0 per receipt.

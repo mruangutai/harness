@@ -818,6 +818,27 @@ def resolve_fleet(root, label):
         sys.exit(2)
 
 
+HARNESS_SEGMENT = "harness"
+
+
+def plan_segment(plan_path):
+    """The repository segment a plan belongs to, from `.harness/<segment>/features/<id>/plan.*`.
+    The segmentless `.harness/features/<id>/` layout is harness's own (#2064, #2077)."""
+    segment = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(plan_path))))
+    return HARNESS_SEGMENT if segment == ".harness" else segment
+
+
+def product_base(root, segment, label):
+    """The fleet's product base for `segment` under `root`'s fleet declaration — the base
+    `select_base` classifies that repository's writes by — or None when the fleet declares
+    no such repository (or there is no fleet). A route question about a served repository's
+    plan path is asked of this base, never of the harness tree (#2077)."""
+    _workspace_root, bases, _fleet_path = resolve_fleet(root, label)
+    if not isinstance(bases, RepositoryBases):
+        return None
+    return next((base for base in bases if bases.identity_for(base) == segment), None)
+
+
 def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, label):
     """Pick the base a target resolves against, and say how to match in it.
 

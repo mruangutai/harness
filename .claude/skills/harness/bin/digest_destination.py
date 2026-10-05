@@ -75,7 +75,10 @@ def _check_runtime_claim(root, expected):
     if not all(expected.values()) or not result.get("ok") or any(
             claim.get(key) != value for key, value in expected.items()):
         raise AuthorizationError("authorization requires this exact live runtime claim and parent")
-    if os.path.realpath(claim.get("cwd") or "") != root:
+    # The claim must live in this feature checkout's own registry. Its recorded `cwd` is
+    # the dispatching session's directory, which is the owner checkout when the feature
+    # sits on a linked worktree (#2063), so it cannot name the checkout.
+    if os.path.realpath(result.get("root") or "") != root:
         raise AuthorizationError("authorization runtime claim belongs to another checkout")
 
 

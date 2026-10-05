@@ -20,6 +20,9 @@ VERBS
                 — composed as subprocesses so each keeps its own refusal; the first refusal
                 stops the sequence naming its stage, earlier durable writes stay. Prints ONE
                 line on success. Never takes --tokens: the host hook stamps those.
+                --refused-return (#2068) closes a run whose lead return the host refused:
+                verdict BLOCKED only, and the digest stage inverts — it refuses if the digest
+                validates, since that return landed and closes normally.
   judgement     append one {at, by, kind, decision, reason} to judgements[] (SC-21).
   set-rework    write the operator's one rework ruling (SC-15); --decision must be a file
                 under the feature's own directory (refuses exit 2 otherwise).
@@ -560,12 +563,19 @@ def _exit_refused(lines):
     sys.exit(REFUSAL_CODE)
 
 
-def _stage(name, argv):
+def _stage(name, argv, refuse_on_success=None):
     """Run one composed authority; on refusal print its stderr under the stage name and exit
-    with ITS code, so the orchestrator reads the same refusal it would have read by hand."""
+    with ITS code, so the orchestrator reads the same refusal it would have read by hand.
+    With `refuse_on_success`, the stage is INVERTED: the authority's success is the refusal,
+    worded by that line, and its refusal is the pass."""
     import subprocess
     proc = subprocess.run([sys.executable, *argv], stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE, text=True)
+    if refuse_on_success is not None:
+        if proc.returncode == 0:
+            _exit_refused([f"REFUSED at stage {name}: later stages were not run.",
+                           refuse_on_success])
+        return ""
     if proc.returncode != 0:
         print(f"REFUSED at stage {name}: later stages were not run.", file=sys.stderr)
         sys.stderr.write(proc.stderr or proc.stdout)
@@ -578,6 +588,10 @@ def _close_run_agent(args, judgement):
     Returns the run's recorded agent — the persona whose digest contract applies."""
     if (args.task is None) != (args.station is None):
         _exit_refused(["REFUSED: --task and --station are a pair; give both or neither."])
+    if args.refused_return and args.verdict != "BLOCKED":
+        _exit_refused([f"REFUSED: --refused-return closes a run as BLOCKED only — got "
+                       f"--verdict {args.verdict!r}. No digest was validated, so no other "
+                       "verdict has a record to rest on."])
     if args.judgement and judgement is None:
         _exit_refused([f"REFUSED: --judgement must read kind=<{'|'.join(JUDGEMENT_KINDS)}>,"
                        "decision=...,reason=... — got " + repr(args.judgement)])
@@ -593,28 +607,40 @@ def _close_run_agent(args, judgement):
 
 
 def _close_run_stages(args, agent, judgement):
-    """The ordered (name, argv, summary-fragment) plan, D-01's order: digest, run-end,
-    station, judgement, spend. Optional stages are simply absent from the list."""
+    """The ordered (name, argv, summary-fragment, refuse-on-success) plan, D-01's order:
+    digest, run-end, station, judgement, spend. Optional stages are simply absent.
+
+    --refused-return (#2068) INVERTS the digest stage: the host refused the lead's final
+    return, so its digest.md never received a valid record and the normal close could never
+    pass. The stage then demands that the digest does NOT validate — a digest that does is a
+    return that landed, and must close through the normal stage under its own verdict."""
     grade = ["--code-grade", args.code_grade] if args.code_grade else []
     plan_yaml = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
+    digest = [os.path.join(_HERE, "validate-digest.py"), agent, args.digest]
+    if args.refused_return:
+        first = ("refused-return", digest, "refused-return",
+                 f"  {args.digest} validates for {agent}: the lead's return landed, so close "
+                 "it without --refused-return under the verdict its digest reports.")
+    else:
+        first = ("digest", digest, None, None)
     stages = [
-        ("digest", [os.path.join(_HERE, "validate-digest.py"), agent, args.digest], None),
+        first,
         ("run-end", [__file__, "run-end", "--file", args.file, "--id", args.id,
                      "--verdict", args.verdict, "--cycles-used", str(args.cycles_used), *grade],
-         None),
+         None, None),
     ]
     if args.task is not None:
         stages.append(("station", [os.path.join(_HERE, "plan-merge.py"), "set-task-station",
                                    "--file", plan_yaml, "--task", args.task,
                                    "--station", args.station],
-                       f"{args.task}={args.station}"))
+                       f"{args.task}={args.station}", None))
     if judgement:
         stages.append(("judgement", [__file__, "judgement", "--file", args.file,
                                      "--by", "harness-orchestrator", "--kind", judgement["kind"],
                                      "--decision", judgement["decision"],
                                      "--reason", judgement["reason"]],
-                       f"judgement={judgement['kind']}:{judgement['decision']}"))
-    stages.append(("spend", [__file__, "spend", "--file", args.file], None))
+                       f"judgement={judgement['kind']}:{judgement['decision']}", None))
+    stages.append(("spend", [__file__, "spend", "--file", args.file], None, None))
     return stages
 
 
@@ -623,8 +649,8 @@ def cmd_close_run(args):
     agent = _close_run_agent(args, judgement)
     summary = [f"CLOSED run {args.id!r} verdict={args.verdict}"]
     spend = ""
-    for name, argv, fragment in _close_run_stages(args, agent, judgement):
-        out = _stage(name, argv)
+    for name, argv, fragment, refuse_on_success in _close_run_stages(args, agent, judgement):
+        out = _stage(name, argv, refuse_on_success)
         if fragment:
             summary.append(fragment)
         if name == "spend":
@@ -772,6 +798,9 @@ def main():
     p.add_argument("--judgement", help="kind=<kind>,decision=<d>,reason=<r>, recorded as "
                                        "harness-orchestrator")
     p.add_argument("--code-grade", choices=["n_a"], dest="code_grade")
+    p.add_argument("--refused-return", action="store_true", dest="refused_return",
+                   help="the host refused the lead's final return, so its digest carries no "
+                        "valid record: close BLOCKED, refusing if the digest does validate")
     p.set_defaults(func=cmd_close_run)
 
     p = with_file(sub.add_parser("judgement", help="append one judgement to the ledger"))

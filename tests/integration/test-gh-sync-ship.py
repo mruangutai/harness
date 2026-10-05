@@ -23,6 +23,7 @@ import tempfile
 from gh_sync_support import (
     FAKE_GH_SHIP, FAKE_GH_STATIONS, HERE, SYNC, calls, check, edits_to, install_gh,
     moved_to_done, read_feature_json, read_plan_station, report, run, ship_env, stage_ship)
+from git_support import commit_all, init_repo
 
 
 def main():
@@ -328,12 +329,8 @@ def main():
     with tempfile.TemporaryDirectory() as tmpC:
         install_gh(tmpC, FAKE_GH_STATIONS)
         featC = stage_ship(tmpC, "FEAT-50-commit-station", {"T-01": 41}, parent=40, milestone=7)
-        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmpC, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmpC,
-                       capture_output=True)
-        subprocess.run(["git", "config", "user.name", "t"], cwd=tmpC, capture_output=True)
-        subprocess.run(["git", "add", "-A"], cwd=tmpC, capture_output=True)
-        subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmpC, capture_output=True)
+        init_repo(tmpC, "main")
+        commit_all(tmpC, "fixture")
         rC = run(["ship", featC], tmpC, ship_env(tmpC, "40=Review 41=Review"))
         planC = os.path.join(featC, "plan.yaml")
         dirtyC = subprocess.run(["git", "status", "--porcelain", "--", planC], cwd=tmpC,
@@ -376,11 +373,8 @@ def main():
     with tempfile.TemporaryDirectory() as tmpR:
         install_gh(tmpR, FAKE_GH_STATIONS)
         featR = stage_ship(tmpR, "FEAT-52-relative-dir", {"T-01": 41}, parent=40, milestone=7)
-        for _cmd in (["git", "init", "-q", "-b", "main"],
-                     ["git", "config", "user.email", "t@example.com"],
-                     ["git", "config", "user.name", "t"],
-                     ["git", "add", "-A"], ["git", "commit", "-qm", "fixture"]):
-            subprocess.run(_cmd, cwd=tmpR, capture_output=True)
+        init_repo(tmpR, "main")
+        commit_all(tmpR, "fixture")
         _envR = dict(os.environ)
         _envR["FAKE_LOG"] = os.path.join(tmpR, "calls.log")
         _envR["GH_SYNC_GH"] = os.path.join(tmpR, "gh")
@@ -407,12 +401,8 @@ def main():
     with tempfile.TemporaryDirectory() as tmpD:
         install_gh(tmpD, FAKE_GH_STATIONS)
         featD = stage_ship(tmpD, "FEAT-51-only-one", {"T-01": 41}, parent=40, milestone=7)
-        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmpD, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmpD,
-                       capture_output=True)
-        subprocess.run(["git", "config", "user.name", "t"], cwd=tmpD, capture_output=True)
-        subprocess.run(["git", "add", "-A"], cwd=tmpD, capture_output=True)
-        subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmpD, capture_output=True)
+        init_repo(tmpD, "main")
+        commit_all(tmpD, "fixture")
         bystander = os.path.join(tmpD, "BYSTANDER.md")
         open(bystander, "w").write("edited by the operator, never staged by ship\n")
         subprocess.run(["git", "add", bystander], cwd=tmpD, capture_output=True)
@@ -428,12 +418,8 @@ def main():
     with tempfile.TemporaryDirectory() as tmpE:
         install_gh(tmpE, FAKE_GH_STATIONS)
         featE = stage_ship(tmpE, "FEAT-52-twice", {"T-01": 41}, parent=40, milestone=7)
-        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmpE, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmpE,
-                       capture_output=True)
-        subprocess.run(["git", "config", "user.name", "t"], cwd=tmpE, capture_output=True)
-        subprocess.run(["git", "add", "-A"], cwd=tmpE, capture_output=True)
-        subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmpE, capture_output=True)
+        init_repo(tmpE, "main")
+        commit_all(tmpE, "fixture")
         run(["ship", featE], tmpE, ship_env(tmpE, "40=Review 41=Review"))
         rE2 = run(["ship", featE], tmpE, ship_env(tmpE, "40=Review 41=Review"))
         check("T-10 defect one: a SECOND ship commits nothing and says the file is already clean",

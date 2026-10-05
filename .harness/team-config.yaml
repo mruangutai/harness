@@ -168,6 +168,7 @@ teams:
           browser behavior, responsive layout.
         domain:
           - { path: web/src/**, upsert: true }            # seeded by /harness-init
+          - { path: apps/web/src/**, upsert: true }       # pnpm workspace layout (#2066)
           - { path: .claude/skills/harness/bin/dashboard/client/**, upsert: true }   # metrics dashboard client, control-plane source under FEAT-53 D-01
           - { path: .harness/*/features/*/notes/receipt-harness-frontend-dev-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-frontend-dev.md, upsert: true }
@@ -181,6 +182,8 @@ teams:
           server-side integration, error handling at the service boundary.
         domain:
           - { path: src/**, upsert: true }               # seeded by /harness-init
+          - { path: apps/*/src/**, upsert: true }         # pnpm workspace layout (#2066)
+          - { path: packages/*/src/**, upsert: true }     # pnpm workspace layout (#2066)
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's authored harness source (FEAT-02 Q3)
           - { path: tests/**, upsert: true }              # tests/** — harness's own tests (FEAT-47)
           - { path: .harness/*/features/*/notes/receipt-harness-backend-dev-*.md, upsert: true }   # its verification receipt (B-7)
@@ -195,6 +198,8 @@ teams:
           retrieval, evals, and anything whose output is non-deterministic.
         domain:
           - { path: src/**/prompts/**, upsert: true }     # seeded by /harness-init
+          - { path: apps/*/src/**/prompts/**, upsert: true }       # pnpm workspace layout (#2066)
+          - { path: packages/*/src/**/prompts/**, upsert: true }   # pnpm workspace layout (#2066)
           - { path: evals/**, upsert: true }
           - { path: .harness/*/features/*/notes/receipt-harness-ai-dev-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-ai-dev.md, upsert: true }
@@ -209,6 +214,8 @@ teams:
         domain:
           - { path: supabase/migrations/**, upsert: true }
           - { path: src/**/schema*, upsert: true }        # seeded by /harness-init
+          - { path: apps/*/src/**/schema*, upsert: true }          # pnpm workspace layout (#2066)
+          - { path: packages/*/src/**/schema*, upsert: true }      # pnpm workspace layout (#2066)
           - { path: .harness/*/features/*/notes/receipt-harness-data-engineer-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-data-engineer.md, upsert: true }
           - { path: .harness/*/expertise/harness-data-engineer.md, upsert: true }  # repository tier, 40-line budget
@@ -223,6 +230,13 @@ teams:
           - { path: .github/**, upsert: true }
           - { path: Dockerfile, upsert: true }
           - { path: .harness/harness.json, upsert: true }
+          # Root workspace files (#2066). package.json and pnpm-lock.yaml stay in `shared:`
+          # too, so a routed specialist may still serialize a dependency change; dev-ops is
+          # the owner a task touching them routes to.
+          - { path: package.json, upsert: true }
+          - { path: pnpm-workspace.yaml, upsert: true }
+          - { path: pnpm-lock.yaml, upsert: true }
+          - { path: tsconfig.base.json, upsert: true }
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's authored harness source (FEAT-02 Q3)
           - { path: tests/**, upsert: true }              # tests/** — harness's own tests (FEAT-47)
           - { path: .harness/*/features/*/notes/receipt-harness-dev-ops-*.md, upsert: true }   # its verification receipt (B-7)
@@ -246,6 +260,8 @@ teams:
         domain:
           - { path: tests/**, upsert: true }              # seeded by /harness-init
           - { path: web/src/**/*.test.*, upsert: true }
+          - { path: apps/*/src/**/*.test.*, upsert: true }         # pnpm workspace layout (#2066)
+          - { path: packages/*/src/**/*.test.*, upsert: true }     # pnpm workspace layout (#2066)
           # Both spellings, because the panel's dispatch names the reviewer-style one
           # (Q6): the other three members write notes/review-harness-<persona>-c0.md,
           # so a lead composing a review run reasonably asks qa for the same shape and

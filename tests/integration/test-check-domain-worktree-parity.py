@@ -80,17 +80,8 @@ def run_worktree_grant_parity():
     # these cases would pass now and go red the moment T-04 lands — sixteen false
     # failures attributed to T-04 instead of to the fixture.
     wt_id = "wt1"
-    owner_entry = os.path.join(root, ".git", "worktrees", wt_id)
-    os.makedirs(owner_entry)
+    wt_path = make_linked_worktree(root, os.path.join(root, ".claude", "worktrees", wt_id), wt_id)
     os.makedirs(os.path.join(root, ".git", "refs"), exist_ok=True)
-    wt_path = os.path.join(root, ".claude", "worktrees", wt_id)
-    os.makedirs(wt_path)
-    # the worktree side
-    with open(os.path.join(wt_path, ".git"), "w") as f:
-        f.write("gitdir: %s\n" % owner_entry)
-    # the owner side, naming the worktree's own .git file
-    with open(os.path.join(owner_entry, "gitdir"), "w") as f:
-        f.write("%s\n" % os.path.join(wt_path, ".git"))
     # NO .harness/team-config.yaml inside wt1, deliberately: these cases root the session
     # at the fixture root, and a nearer manifest would move the base out from under the
     # assertion.

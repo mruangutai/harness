@@ -11,28 +11,12 @@ durable artifact, compact signal.
 
 ## Your return — three parts, always
 
-Return one object through YieldTool — `yield({data: {VERDICT, DIGEST, artifact}})` — never a
-fenced YAML block and never text: a string, `null` or absent `data` is rejected with an instruction
-to return the object. Your persona's field list is its schema,
-`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-<persona>.json` (shared definitions in
-`common.json`). One complete example, for `harness-documentor`
-(`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-documentor.json`):
-
-```js
-yield({data: {
-  "VERDICT": "PASS",
-  "DIGEST": {
-    "headline": "CLI reference now documents the --dry-run flag",
-    "docs_updated": ["docs/cli.md"],
-    "gaps": [],
-    "stale_found": [],
-    "open_questions": [{"id": "Q1", "question": "Document the deprecated --force alias?", "blocking": false}],
-    "files_touched": ["docs/cli.md"],
-    "expertise_update": []
-  },
-  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-documentor-<runid>.md"
-}})
-```
+Return one object through YieldTool — `yield({data: {VERDICT, DIGEST, artifact}})` — never
+fenced YAML or text; a string, `null` or absent `data` is rejected. Your injected persona schema,
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-<persona>.json`
+(shared definitions in `common.json`), owns the fields; your persona's agent file has a complete example.
+`validate-digest.py` requires exact tokens, every field, explicit `[]` or `none` for empty values,
+and valid list entries in `findings` and `fail_first`: violation → `BLOCKED (contract violation)`.
 
 Every persona carries `headline` (one line, the conclusion — not what you did), `open_questions`
 (`{id, question, blocking}`), `files_touched` (work paths; excludes the required artifact receipt;
@@ -50,10 +34,6 @@ assessment's unfinished fence and retry the object.
 | `FAIL` | a gate failed. Retrying or looping back is meaningful |
 | `BLOCKED` | cannot proceed. Looping back is futile — escalate |
 | `ESCALATE` | needs the tier above (lead → orchestrator → user) |
-
-**`bin/validate-digest.py` is the contract** — exact tokens and field names, since the runner routes
-on them; every field present, "nothing" as an explicit `[]` or `none`, never an omitted key;
-`findings` and `fail_first` checked inside the list. Violation → `BLOCKED (contract violation)`.
 
 **Never invent a verdict** — undeterminable is `BLOCKED`, with why.
 

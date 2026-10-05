@@ -1,0 +1,140 @@
+schema_version: 2
+run_id: distill-validator-validator
+feature: FEAT-1928-digest-object-contract
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: distill-qa
+    persona: harness-qa
+    task: read-only distillation from QA observations and receipts
+    seq: 1
+    depends_on: []
+    outputs: [/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-qa-distill-validator.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: distill-validator-validator
+    note: Native object accepted; three sourced candidates rejected as covered or feature-specific.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-qa-distill-validator.md
+    evidence:
+      transport: accepted
+      candidates: 3
+      proposed_ops: 0
+      suite: n/a
+      matrix_ok: n/a
+  - id: distill-code
+    persona: harness-code-reviewer
+    task: read-only distillation from code-review observations and receipts
+    seq: 2
+    depends_on: []
+    outputs: [/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-code-reviewer-distill-validator.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: distill-validator-validator
+    note: Native object accepted; two repository-pattern additions proposed without mutation.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-code-reviewer-distill-validator.md
+    evidence:
+      transport: accepted
+      candidates: 2
+      proposed_ops: 2
+      code_grade: n_a
+      reviewed: none
+  - id: distill-security
+    persona: harness-security-reviewer
+    task: read-only distillation from security-review observations and receipts
+    seq: 3
+    depends_on: []
+    outputs: [/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-security-reviewer-distill-validator.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: distill-validator-validator
+    note: Native object accepted; three repository-pattern additions proposed without mutation.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-security-reviewer-distill-validator.md
+    evidence:
+      transport: accepted
+      candidates: 3
+      proposed_ops: 3
+      review_execution: none
+  - id: distill-ui
+    persona: harness-ui-reviewer
+    task: read-only distillation from UI-review observations and receipts
+    seq: 4
+    depends_on: []
+    outputs: [/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-ui-reviewer-distill-validator.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: distill-validator-validator
+    note: Native object accepted; one Outcomes replacement proposed and two candidates rejected as covered.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-ui-reviewer-distill-validator.md
+    evidence:
+      transport: accepted
+      candidates: 3
+      proposed_ops: 1
+      review_execution: none
+  - id: distill-pm
+    persona: harness-pm
+    task: read-only validator-perspective distillation from PM observations and receipts
+    seq: 5
+    depends_on: []
+    outputs: [/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/research-FEAT-1928-digest-object-contract-distill-validator.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: distill-validator-validator
+    note: Native object accepted; one repository-pattern addition proposed without repeating prior product operations.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/research-FEAT-1928-digest-object-contract-distill-validator.md
+    evidence:
+      transport: accepted
+      candidates: 3
+      proposed_ops: 1
+      goalcheck_execution: none
+run_uid: 30c7f8663a1244d2bc9c58968986b1a3

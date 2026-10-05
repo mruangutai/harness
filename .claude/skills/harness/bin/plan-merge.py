@@ -191,8 +191,6 @@ VERBS = (
                         "reset_at and reset_reason; main session only",
      (_FILE, ("--by", "the operator withdrawing the signature"),
       ("--reason", "why, one clause; written to approval.reset_reason")), cmd_revoke_approval),
-    ("check", "resolve every files: anchor, execution_agent route and traces: id; writes nothing",
-     (_FILE, ("--root", "the checkout root anchors and routes resolve against")), cmd_check),
     ("record-amendments", "splice an engineering lead's digest amendments into the named task "
                           "fields and ledger one amendment judgement per entry — compare-and-"
                           "splice on `was`, all-or-nothing across plan.yaml and feature.json",
@@ -285,6 +283,21 @@ def _register_delete_items(sub):
     p.set_defaults(func=cmd_delete_items)
 
 
+def _register_check(sub):
+    """ITS OWN REGISTRATION, BY THE VERBS TABLE'S OWN INSTRUCTION (#2064): `--code-root` is
+    required for a served repository's plan and refused for harness's own, so it is optional
+    here and the plan's segment decides in `plan_merge.check`."""
+    p = sub.add_parser("check", help="resolve every files: anchor, execution_agent route and "
+                                     "traces: id; writes nothing")
+    p.add_argument("--file", required=True, help="path to the plan.yaml")
+    p.add_argument("--root", required=True,
+                   help="the harness checkout whose manifest answers every route")
+    p.add_argument("--code-root", default=None, dest="code_root",
+                   help="a served repository's plan only: its paired code worktree, which "
+                        "every files: anchor resolves against (feature-worktree.py path)")
+    p.set_defaults(func=cmd_check)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="plan-merge.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -297,6 +310,7 @@ def main():
     _register_sign_approval(sub)
     _register_amend(sub)
     _register_delete_items(sub)
+    _register_check(sub)
     args = parser.parse_args()
     args.func(args)
 

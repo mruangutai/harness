@@ -16,7 +16,7 @@ import io, json, os, re, subprocess, sys, tempfile, yaml
 from isolated_bin import isolated_bin
 from check_domain_support import (HERE, HOOK, _aggregation_verdict, _env, _fire_edit,
     _handoff_done_when_fixture, _handoff_text, _run_block_captured, drive, fire, fire_post,
-    fixture, fixture_fleet, make_linked_worktree)
+    fire_write_payload, fixture, fixture_fleet, make_linked_worktree)
 
 
 FEAT50_MANIFEST = """schema_version: 1
@@ -111,13 +111,6 @@ def _feat50_digest_fixture():
     return root, path
 
 
-def _feat50_digest_fire(root, path, content, *flags, hook=HOOK):
-    payload = {"tool_name": "Write",
-               "tool_input": {"file_path": path, "content": content}}
-    return subprocess.run([hook, *flags], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
-
-
 def _feat50_write_text(path, content):
     with open(path, "w", encoding="utf-8") as digest_file:
         digest_file.write(content)
@@ -125,7 +118,7 @@ def _feat50_write_text(path, content):
 
 def _feat50_digest_clobber_case(root, path, prior):
     _feat50_write_text(path, prior)
-    result = _feat50_digest_fire(root, path, "wholly different digest\n")
+    result = fire_write_payload(root, path, "wholly different digest\n")
     ok = (result.returncode == 2
           and "replace rather than extend" in result.stderr
           and "run directory of its own" in result.stderr)
@@ -133,11 +126,11 @@ def _feat50_digest_clobber_case(root, path, prior):
 
 
 def _feat50_digest_append_case(root, path, prior):
-    append = _feat50_digest_fire(root, path, prior + "and more\n")
+    append = fire_write_payload(root, path, prior + "and more\n")
     _feat50_write_text(path, " \n")
-    whitespace = _feat50_digest_fire(root, path, "first digest\n")
+    whitespace = fire_write_payload(root, path, "first digest\n")
     os.unlink(path)
-    new_file = _feat50_digest_fire(root, path, "first digest\n")
+    new_file = fire_write_payload(root, path, "first digest\n")
     ok = append.returncode == 0 and whitespace.returncode == 0 and new_file.returncode == 0
     detail = (f"append={append.returncode}, whitespace={whitespace.returncode}, "
               f"new={new_file.returncode}")
@@ -146,7 +139,7 @@ def _feat50_digest_append_case(root, path, prior):
 
 def _feat50_digest_unreadable_case(root, path):
     os.makedirs(path)
-    result = _feat50_digest_fire(root, path, "replacement\n")
+    result = fire_write_payload(root, path, "replacement\n")
     os.rmdir(path)
     ok = result.returncode == 2 and "cannot be read safely" in result.stderr
     return "digest-unreadable", ok, f"{result.returncode}: {result.stderr}"
@@ -154,7 +147,7 @@ def _feat50_digest_unreadable_case(root, path):
 
 def _feat50_digest_post_case(root, path, prior):
     _feat50_write_text(path, prior)
-    result = _feat50_digest_fire(root, path, "wholly different digest\n", "--post")
+    result = fire_write_payload(root, path, "wholly different digest\n", "--post")
     ok = result.returncode == 0 and "recorded digest" not in result.stderr
     return "digest rule is PRE-Write-only", ok, f"{result.returncode}: {result.stderr}"
 
@@ -165,7 +158,7 @@ def _feat50_digest_red_case(root, path, clobber):
         "def _rule_run_digest(rel, content, lines, shown, absolute_path):\n"
         "    if absolute_path is None:\n        return []\n    out = []\n",
         "    return out\n", iso)
-    muted = _feat50_digest_fire(root, path, "wholly different digest\n", hook=mutant)
+    muted = fire_write_payload(root, path, "wholly different digest\n", hook=mutant)
     ok = clobber.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
     return ("digest-clobber-red", ok,
             f"real={clobber.returncode}, mutant={muted.returncode}: {muted.stderr}")
@@ -193,17 +186,10 @@ def _bug1124_state_fixture():
     return root, path
 
 
-def _bug1124_state_fire(root, path, content, *flags, hook=HOOK):
-    payload = {"tool_name": "Write",
-               "tool_input": {"file_path": path, "content": content}}
-    return subprocess.run([hook, *flags], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
-
-
 def _bug1124_collision_case(root, path):
     """Issue #1124: a slug reused for a DIFFERENT run's state.yaml is refused."""
     _feat50_write_text(path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
-    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-beta\nstatus: building\n")
+    result = fire_write_payload(root, path, "schema_version: 1\nrun_id: run-beta\nstatus: building\n")
     ok = (result.returncode == 2
           and "different run's state" in result.stderr
           and "run directory of its own" in result.stderr)
@@ -213,8 +199,8 @@ def _bug1124_collision_case(root, path):
 def _bug1124_upsert_case(root, path):
     """The SAME run_id may be rewritten any number of times — the checkpoint upsert (DEC-154)."""
     _feat50_write_text(path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
-    first = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: reviewing\n")
-    second = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-alpha\ncycles_used: 3\n")
+    first = fire_write_payload(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: reviewing\n")
+    second = fire_write_payload(root, path, "schema_version: 1\nrun_id: run-alpha\ncycles_used: 3\n")
     ok = first.returncode == 0 and second.returncode == 0
     return ("state-run-id-upsert-allowed", ok,
             f"first={first.returncode}:{first.stderr}, second={second.returncode}:{second.stderr}")
@@ -226,7 +212,7 @@ def _bug1124_no_run_id_case(root, path):
     treated as "allow". Now it is refused: the identity cannot be verified, so a Write that
     could silently replace the prior checkpoint is denied."""
     _feat50_write_text(path, "schema_version: 1\nstatus: building\n")
-    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    result = fire_write_payload(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
     ok = (result.returncode == 2
           and "no run_id" in result.stderr
           and "run directory of its own" in result.stderr)
@@ -237,7 +223,7 @@ def _bug1124_no_incoming_run_id_case(root, path):
     """The symmetric case: a prior WITH run_id, and an incoming write that carries none.
     Also refused — the incoming write cannot be shown to be an upsert of that run either."""
     _feat50_write_text(path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
-    result = _bug1124_state_fire(root, path, "schema_version: 1\nstatus: reviewing\n")
+    result = fire_write_payload(root, path, "schema_version: 1\nstatus: reviewing\n")
     ok = (result.returncode == 2
           and "carries no run_id" in result.stderr
           and "run directory of its own" in result.stderr)
@@ -249,7 +235,7 @@ def _bug1124_prior_unparseable_case(root, path):
     genuinely different failure mode from an UNREADABLE prior (permission denied, a
     directory) already covered by `_bug1124_unreadable_case`. Must also refuse."""
     _feat50_write_text(path, "status: [unterminated flow seq\n")
-    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    result = fire_write_payload(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
     ok = (result.returncode == 2
           and "does not parse" in result.stderr
           and "silently replace" in result.stderr)
@@ -259,7 +245,7 @@ def _bug1124_prior_unparseable_case(root, path):
 def _bug1124_new_file_case(root, path):
     # FEAT-104 D-11: this new checkpoint must satisfy the version floor so the
     # case continues to isolate run-id collision admission.
-    result = _bug1124_state_fire(root, path, "schema_version: 2\nrun_id: run-gamma\nstatus: building\n")
+    result = fire_write_payload(root, path, "schema_version: 2\nrun_id: run-gamma\nstatus: building\n")
     ok = result.returncode == 0
     return ("state-new-file-allowed", ok, f"{result.returncode}: {result.stderr}")
 
@@ -269,7 +255,7 @@ def _bug1124_unreadable_case(root, path):
     directory sitting at the path) must deny, mirroring the sibling #1058 digest guard —
     not fail open by treating an unreadable prior as "nothing to compare"."""
     os.makedirs(path)
-    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-delta\n")
+    result = fire_write_payload(root, path, "schema_version: 1\nrun_id: run-delta\n")
     os.rmdir(path)
     ok = result.returncode == 2 and "cannot be read safely" in result.stderr
     return ("state-unreadable-prior-denied", ok, f"{result.returncode}: {result.stderr}")
@@ -281,9 +267,9 @@ def _bug1124_red_case(root, path, collision):
         "def _state_yaml_prior_refusal(doc, _version, rel, shown, absolute_path):\n"
         "    if absolute_path is None:\n        return []\n",
         "\n\ndef _state_yaml_prior_parse(", iso)
-    muted = _bug1124_state_fire(root, path,
-                                "schema_version: 1\nrun_id: run-beta\nstatus: building\n",
-                                hook=mutant)
+    muted = fire_write_payload(root, path,
+                               "schema_version: 1\nrun_id: run-beta\nstatus: building\n",
+                               hook=mutant)
     ok = collision.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
     return ("state-run-id-collision-red", ok,
             f"real={collision.returncode}, mutant={muted.returncode}: {muted.stderr}")
@@ -372,7 +358,7 @@ def run_feat50_artifact_integrity():
 
 
 def _fire_digest_edit(root, path, old_s, new_s, replace_all=False):
-    # NO agent_type, matching _feat50_digest_fire/_bug1124_state_fire's payload shape:
+    # NO agent_type, matching fire_write_payload's payload shape:
     # these cases test the SHAPE gate (DEC-180, domain-independent), not the domain
     # phase, and check-domain.py exempts a payload with no agent_type from the domain
     # phase entirely so the shape-only behaviour can be isolated.
@@ -752,7 +738,7 @@ def _bug1305_nonstate_edit_reconstruction_cases():
 def _bug1305_marker_foreign_refusals():
     root, state = _bug1124_state_fixture()
     _bug1305_write_marker(state)
-    write = _bug1124_state_fire(
+    write = fire_write_payload(
         root, state,
         "schema_version: 1\nrun_id: B\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n")
 
@@ -775,12 +761,12 @@ def _bug1305_marker_witness_precedence():
     root, state = _bug1124_state_fixture()
     _bug1305_write_marker(state)
     _feat50_write_text(state, "{")
-    unparseable = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: B\n")
+    unparseable = fire_write_payload(root, state, "schema_version: 1\nrun_id: B\n")
 
     root, state = _bug1124_state_fixture()
     _bug1305_write_marker(state)
     _feat50_write_text(state, "schema_version: 1\nrun_id: A\n")
-    legacy = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: B\n")
+    legacy = fire_write_payload(root, state, "schema_version: 1\nrun_id: B\n")
     return [
         ("witness outranks an unparseable prior", unparseable.returncode == 2
          and "Issue 1305" in unparseable.stderr
@@ -798,7 +784,7 @@ def _bug1305_marker_recovery_cases():
         _bug1305_write_marker(state)
         if prior is not None:
             _feat50_write_text(state, prior)
-        response = _bug1124_state_fire(
+        response = fire_write_payload(
             root, state,
             # "absent" creates a checkpoint and must satisfy the FEAT-104 floor;
             # "zero-byte" is an update, but sharing the value keeps the cases uniform.
@@ -810,7 +796,7 @@ def _bug1305_marker_recovery_cases():
     root, state = _bug1124_state_fixture()
     with open(_bug1305_marker_path(state), "w", encoding="utf-8") as fh:
         fh.write("{")
-    response = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: A\n")
+    response = fire_write_payload(root, state, "schema_version: 1\nrun_id: A\n")
     results.append((
         "unreadable witness fails closed", response.returncode == 2
         and "cannot be read" in response.stderr
@@ -823,16 +809,16 @@ def _bug1305_marker_file_protection():
     identity = _bug1305_marker_path(state)
     with open(identity, "w", encoding="utf-8") as fh:
         fh.write("{}\n")
-    write = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
+    write = fire_write_payload(root, identity, '{"run_id": "forged"}\n')
     edit = _fire_digest_edit(root, identity, "{}", '{"run_id": "forged"}')
     unmatched_edit = _fire_digest_edit(
         root, identity, "not present", '{"run_id": "forged"}')
     # The checkpoint is new, so satisfy the version floor while this case
     # isolates run_uid legality.
-    legal = _bug1124_state_fire(
+    legal = fire_write_payload(
         root, state, "schema_version: 2\nrun_id: A\nrun_uid: U\n")
     os.unlink(identity)
-    create = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
+    create = fire_write_payload(root, identity, '{"run_id": "forged"}\n')
     create_edit = _fire_digest_edit(
         root, identity, "not present", '{"run_id": "forged"}')
     return [

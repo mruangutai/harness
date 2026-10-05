@@ -15,10 +15,10 @@ this skill from. It is not an instruction to clone or install Harness.
 **Run this in the main session.** Only the main session can call `AskUserQuestion` — a subagent has no
 channel to the user. Delegate the *mechanical detection* to `dev-ops`; never delegate the interview.
 
-**The interview IS a grilling (DEC-164).** Load `harness-grilling` and run it: one question at a
-time with your recommendation, facts looked up rather than asked, destination named first, and the
-artifact written to `.harness/notes/`. Its answers seed the control plane's domain description and
-first `.harness/glossary.md` terms.
+**The interview IS a grilling (DEC-164).** Before interviewing, MUST read and run
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-grilling/SKILL.md`.
+Record its artifact in `.harness/notes/`; the answers seed the control plane's domain
+description and first `.harness/glossary.md` terms.
 
 ## Preflight — stop if any of these fails
 
@@ -69,13 +69,16 @@ Spawn `harness-dev-ops` with the answers from step 3. It must:
   exactly like a failing suite.
 - **Never invent a plausible command.** A kind with no runner keeps `cmd: null`, and its placeholder
   `_reason` is **replaced with the real one** ("no Playwright in this project", "no eval harness yet").
-  `qa` treats null as a not-applicable soft skip; an invented command turns a hard gate into a silent
-  no-op, which is strictly worse than no gate.
+  `qa` treats an active kind with null or unrunnable `cmd` as `BLOCKED`, never a skip
+  (DEC-187); an invented command turns a hard gate into a silent no-op.
 - **Surface every remaining `cmd: null` to the user as a DECISION, not a footnote (DEC-163).**
   Cross-reference each against what the project actually has: a null `ui` runner in a project with a
   real UI, a null `eval` with real LLM code, a null `integration` with a real database. For each,
   `AskUserQuestion`: stand the runner up now (a dev-ops task), or accept the gap knowing SCs can
-  never rest on that kind. Record the answer; an accepted gap belongs in the backlog. A null kind
+  never rest on that kind. Record the answer; an accepted gap belongs in the backlog and
+  skips only with explicit `status: excluded`, `excluded_because`, and `signed` naming a
+  decision that resolves in the project's decisions file (DEC-187). Retain the kind's key;
+  unresolved kinds block, and active kinds require a command run and seen pass. A null kind
   that reaches the first feature unspoken becomes a permanent blind spot nobody chose.
 - **Delete the `_reason` on any kind whose `cmd` it fills.** Every kind ships with
   `_reason: "unset — dev-ops has not run detection yet"`. Leaving that next to a command dev-ops has
@@ -134,32 +137,18 @@ else. Telling a user their harness is inert when it is not is its own kind of wr
 
 ## `--upgrade`
 
-For a harness checkout that is already initialised, after a newer harness has been deployed; for a
-fleet member, run it in that member's checkout and land its merged `harness.json` through
-`harness-add-repo`.
+Before `--upgrade`, MUST read and follow
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/checkout-upgrade.md`
+(DEC-158/222). Run in the already-initialised checkout; for a fleet member, land the merged
+`harness.json` on its default branch through `harness-add-repo`.
 
-```bash
-.agents/skills/harness/bin/upgrade-config.py .
-.agents/skills/harness/bin/merge-gitignore.py .
-```
-
-- `harness.json` is **merged** — new template entries added, every project value kept. `test_kinds.*.cmd`
-  above all: dev-ops verified those by running them, and re-imposing the template's `null` would turn a
-  working gate back into a soft skip.
-- `team-config.yaml` is **reported, never rewritten.** It belongs only to the control plane; a product
-  repository has none to report. It is now READ with a real parser (DEC-171), but writing it stays
-  refused for a reason a parser does not fix: `safe_dump` does not preserve comments, and the manifest
-  is more comment than data — every `domain` glob is justified in prose beside it. Round-tripping it
-  would silently delete the reasoning that makes the harness's only write-scope guarantee auditable.
-  `upgrade-config.py` prints the exact new entries and **exits 1** — relay them and add them by hand.
-- **An existing checkout that pulls the PyYAML change must re-run `merge-gitignore.py .`** (it is in the
-  block above). The snippet gained `.harness/.pyyaml-bootstrap`, and `merge-gitignore.py --check` reads
-  its rule list from that snippet — so `--check` correctly goes **red on every already-initialised
-  project** until it is re-run. The script is idempotent and preserves the project's own rules. Skipping
-  it means the write hooks' bootstrap marker lands untracked, dirtying the tree, and a dirty tree halts
-  the next team run with `BLOCKED` on the harness's own artifact.
-- **`BRIEF.md`, `PLAN.md` and `DESIGN.md` are never touched by an upgrade.** They are the project's
-  content, not its schema.
+**Preserve every project value, especially verified `test_kinds.*.cmd`.** Resetting a working
+active runner to null makes it `BLOCKED`, not a soft skip (DEC-187).
+**`team-config.yaml` is report-only, never rewritten**: it belongs only to the control plane,
+and `safe_dump` cannot preserve the comments justifying its write-scope globs (DEC-171).
+Relay reported new entries and add them by hand, preserving the globs and comments.
+**Never change `BRIEF.md`, `PLAN.md` or `DESIGN.md` in an upgrade**: they are content, not
+schema. First BRIEF, approval and design work route to `/harness-plan`.
 
 ## Red flags
 
@@ -171,4 +160,4 @@ fleet member, run it in that member's checkout and land its merged `harness.json
 | "The project has no `evals/`, I'll point ai-dev at `src/**`" | Now two devs share a writable path. Drop the glob instead |
 | "The agent got blocked, I'll widen its domain" | Fail-closed is the design working. Fix the glob to the real path, never to `**` |
 | "I'll copy the new team-config over theirs" | Their `domain` globs are real and the template's are placeholders. Merge by hand |
-| "They can run a team now" | Not until they restart. Agent definitions are not live-reloaded |
+| "They can run a team now" | If agent definitions were installed or updated this session, restart first: definitions are not live-reloaded. Definitions installed before session start are spawnable now |

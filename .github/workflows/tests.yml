@@ -85,7 +85,9 @@ jobs:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: .agents/skills/harness/bin/run-unit-tests.py --kind unit
 
-      # Integration kind measured at 12 scripts, ~15s.
+      # Integration kind measured 2026-10-04 at 74 scripts, 83-87s wall locally (12-core arm64,
+      # run_pool's 8 workers); this step took ~131s on ubuntu-latest before the slowest suites
+      # ran their cases concurrently. Re-measure rather than trust these figures.
       - name: Integration suite
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}

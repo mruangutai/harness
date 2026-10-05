@@ -41,6 +41,8 @@ import subprocess
 import sys
 import tempfile
 
+from gh_sync_support import install_gh
+
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
@@ -89,12 +91,6 @@ case "$1 $2" in
 esac
 exit 0
 """
-
-
-def install_gh(tmp, script=FAKE_GH_TYPES):
-    gh_path = os.path.join(tmp, "gh")
-    open(gh_path, "w").write(script)
-    os.chmod(gh_path, 0o755)
 
 
 def build_harness_json(tmp, repo, issue_types):
@@ -171,7 +167,7 @@ def check(name, cond, detail=""):
 def case_a_b():
     """CASE A / CASE B, one run, FAKE_TYPES=available."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         run(feat_dir, tmp, {"FAKE_TYPES": "available"})
         log = calls(tmp)
@@ -200,7 +196,7 @@ def case_c():
     """CASE C: FAKE_TYPES=absent, fresh fixture — today's labels, no updateIssue, one
     diagnostic line, and no backlog-issues.json at all."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         r = run(feat_dir, tmp, {"FAKE_TYPES": "absent"})
         log = calls(tmp)
@@ -226,7 +222,7 @@ def case_d():
     """CASE D: receipt after a successful available run, then a rerun that creates
     nothing but still queries capability exactly once and prints no diagnostic."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls1.log")
         rec = read_receipt(feat_dir)
@@ -258,7 +254,7 @@ def case_e():
     missing); a later successful rerun backfills every recorded number, with no
     create/close/delete."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         run(feat_dir, tmp, {"FAKE_TYPES": "available", "FAKE_TYPE_APPLY": "fail"},
             log="calls1.log")
@@ -293,7 +289,7 @@ def case_f():
     """CASE F: compatibility mode is byte-identical to today — the identical command run
     twice creates three MORE issues each time and never writes backlog-issues.json."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         run(feat_dir, tmp, {"FAKE_TYPES": "absent"}, log="calls1.log")
         r2 = run(feat_dir, tmp, {"FAKE_TYPES": "absent"}, log="calls2.log")
@@ -316,7 +312,7 @@ def case_g():
     item still resolves to Task, which is not declared, so the run must refuse before ANY
     create or apply, leaving the remnant untouched."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         seed_receipt(feat_dir, {"bug:a defect": {"number": 601, "typed": False}})
         r = run(feat_dir, tmp, {"FAKE_TYPES": "partial"})
@@ -349,7 +345,7 @@ def case_h():
     nothing; only the pre-seeded remnant's backfill need for the undeclared Bug can
     refuse."""
     with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp)
+        install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         seed_receipt(feat_dir, {"bug:a defect": {"number": 602, "typed": False}})
         r = run(feat_dir, tmp, {"FAKE_TYPES": "nobug"})

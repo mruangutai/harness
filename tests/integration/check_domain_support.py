@@ -115,6 +115,16 @@ def fire(root, path, content="x", agent="harness-documentor", hook=HOOK):
                           text=True, env=_env(root))
 
 
+def fire_write_payload(root, path, content, *flags, hook=HOOK):
+    """A Write payload with NO agent_type key, `path` passed through as given. Agentless is
+    the point: `fire` always names an agent, which routes the hook through a different
+    domain phase than the one these callers exercise."""
+    payload = {"tool_name": "Write",
+               "tool_input": {"file_path": path, "content": content}}
+    return subprocess.run([hook, *flags], input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root))
+
+
 def fire_post(root, payload, flag="--post"):
     argv = [HOOK] + ([flag] if flag else [])
     return subprocess.run(argv, input=json.dumps(payload), capture_output=True,

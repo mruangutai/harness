@@ -325,8 +325,11 @@ LEGAL_EXECUTION_MODES = ("team", "main-session-direct")
 # exactly wide enough for what pending work already writes.
 _MANUAL_VERIFY_RE = re.compile(r"^MANUAL \u2014 ")  # em dash, exactly — a hyphen is not this
 _VERIFY_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+# #2067 added the JS/TS runners `pnpm`, `node` and `npx`: a served product repository's verify
+# opens with them as naturally as harness's opens with python3, and refusing them pushed plans
+# into `bash -c '…'` wrappers that say nothing a bare invocation does not.
 _VERIFY_BARE_COMMANDS = ("cd", "set", "python3", "bash", "git", "grep", "test", "diff",
-                         "true", "false")
+                         "true", "false", "pnpm", "node", "npx")
 
 
 def _looks_runnable(first_line):
@@ -432,7 +435,7 @@ def _validate_plan_tasks(tasks, path):
             # reader and plan-merge.py's writer agree on what a legal plan carries.
             raise PlanSchemaError(
                 path, f"{where} ({tid}) `files:` must be a list of paths, path#symbol anchors, "
-                      "or {path, quote} mappings")
+                      "{path, quote} or {path, create: true} mappings")
 
         mode = t["execution_mode"]
         if mode not in LEGAL_EXECUTION_MODES:
@@ -447,14 +450,17 @@ def _validate_plan_tasks(tasks, path):
 
 
 def _is_files_entry(entry):
-    """One `files:` entry in plan_anchors.py's grammar: a string (`path` or `path#symbol`), or
-    a `{path, quote}` mapping of two strings. The line-number form `path:NN` is a string too
-    and is refused by the WRITER (plan-merge.py), not here — a reader that refused it would
-    make every plan carrying one unloadable rather than uncorrectable."""
+    """One `files:` entry in plan_anchors.py's grammar: a string (`path` or `path#symbol`), a
+    `{path, quote}` mapping of two strings, or a `{path, create: true}` mapping (#2065). The
+    line-number form `path:NN` is a string too and is refused by the WRITER (plan-merge.py), not
+    here — a reader that refused it would make every plan carrying one unloadable rather than
+    uncorrectable."""
     if isinstance(entry, str):
         return True
-    return (isinstance(entry, dict) and set(entry) == {"path", "quote"}
-            and all(isinstance(v, str) for v in entry.values()))
+    if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+        return False
+    return ((set(entry) == {"path", "quote"} and isinstance(entry["quote"], str))
+            or (set(entry) == {"path", "create"} and entry["create"] is True))
 
 
 def _depends_on_entries(t, path):
