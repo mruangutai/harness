@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" data-astryx-theme="neutral" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kaya local chat — interactive design review</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@astryxdesign/core@0.6.5/src/reset.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@astryxdesign/core@0.6.5/dist/astryx.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@astryxdesign/theme-neutral@0.6.5/dist/theme.css">
+<script type="importmap">{"imports":{"react":"https://esm.sh/react@19.3.0","react/jsx-runtime":"https://esm.sh/react@19.3.0/jsx-runtime","react-dom":"https://esm.sh/react-dom@19.3.0","react-dom/client":"https://esm.sh/react-dom@19.3.0/client","@astryxdesign/core/":"https://esm.sh/@astryxdesign/core@0.6.5/","@astryxdesign/theme-neutral/built":"https://esm.sh/@astryxdesign/theme-neutral@0.6.5/built?external=react,react-dom"}}</script>
+<style>
+:root { --k-bg:light-dark(#f1f1f1,#1b1b1b); --k-surface:light-dark(#ffffff,#262626); --k-text:light-dark(#000000,#ffffff); --k-muted:light-dark(#474747,#9e9e9e); --k-accent:light-dark(#1b1b1b,#f1f1f1); --k-on-accent:light-dark(#ffffff,#111111); --k-line:light-dark(#d4d4d4,#525252); --k-control:light-dark(#767676,#9e9e9e); --k-danger:light-dark(#76000c,#ffc4be); --k-error-bg:light-dark(#fff0ee,#5b2b28); --k-success:light-dark(#00490b,#a4d6a3); --k-focus:light-dark(#00458c,#a1caff); --font-family-body:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; --font-family-heading:var(--font-family-body); }
+* { box-sizing:border-box; } body { margin:0; background:var(--k-bg); color:var(--k-text); font-family:var(--font-family-body); font-size:1rem; line-height:1.5; }
+[data-astryx-theme="neutral"] { --font-family-body:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; --font-family-heading:var(--font-family-body); }
+button,textarea,select,input { font:inherit; } a { color:var(--k-focus); text-underline-offset:3px; } :focus-visible { outline:3px solid var(--k-focus)!important; outline-offset:3px; }
+p,h1,h2 { margin:0; } p { font:inherit; } h1 { font:600 1.5rem/1.25 var(--font-family-body); letter-spacing:-.025em; } h2 { font:600 1.25rem/1.4 var(--font-family-body); } small,.small { font-size:.875rem; } .muted { color:var(--k-muted); } .eyebrow { font-size:.875rem; font-weight:600; letter-spacing:.04em; }
+.review-bar { padding:12px 24px; background:var(--k-accent); color:var(--k-on-accent); font-size:.875rem; } .review-bar strong { margin-right:8px; } .skip { position:absolute; top:-100px; left:16px; padding:12px; background:var(--k-surface); z-index:10; } .skip:focus { top:12px; }
+.shell { width:min(100% - 48px,768px); margin:32px auto; } .heading { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:24px; } .heading p { margin-top:8px; } .local { border:1px solid var(--k-line); border-radius:9999px; padding:4px 12px; font-size:.875rem; white-space:nowrap; }
+.thread { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; padding:16px 20px; background:var(--k-surface); border:1px solid var(--k-line); border-radius:12px 12px 0 0; } .thread small { flex:1 1 240px; overflow-wrap:anywhere; } .thread a { font-size:.875rem; }
+.conversation { background:var(--k-surface); border:1px solid var(--k-line); border-top:0; border-radius:0 0 12px 12px; } .transcript { padding:24px; min-height:240px; } ol { list-style:none; padding:0; margin:0; display:grid; gap:24px; } li { min-width:0; } .message { border-left:3px solid var(--k-line); padding-left:16px; } .message.user { border-left-color:var(--k-accent); } .message .role { font-weight:600; margin-bottom:8px; } .message .body { white-space:pre-wrap; overflow-wrap:anywhere; } .message .note { margin-top:8px; color:var(--k-muted); font-size:.875rem; }
+.empty { padding:16px 0 24px; max-width:480px; } .empty p { margin-top:12px; color:var(--k-muted); } .empty .symbol { width:44px;height:44px;display:grid;place-items:center;border:1px solid var(--k-line);border-radius:12px;margin-bottom:20px;font-weight:600; }
+.state { padding:0 24px 20px; } .status { display:flex; align-items:center; gap:8px; font-size:.875rem; color:var(--k-muted); } .dot { width:8px;height:8px;flex-shrink:0;border-radius:50%;background:currentColor; } .status.saved { color:var(--k-success); } .error { border:1px solid var(--k-danger); background:var(--k-error-bg); color:var(--k-danger); padding:16px; border-radius:8px; margin-top:12px; } .error p { color:inherit; } .error .astryx-button { margin-top:12px; }
+.composer { padding:20px 24px 24px; border-top:1px solid var(--k-line); } .composer textarea { width:100%; min-height:96px; padding:12px; border:1px solid var(--k-control)!important; border-radius:8px; background:var(--k-surface); color:var(--k-text); line-height:1.5; resize:vertical; font:inherit; } .composer .astryx-field { width:100%; } .composer label { font-size:1rem; color:var(--k-text); font-weight:600; } .composer-footer { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-top:12px; } .composer-footer small { flex:1 1 260px; color:var(--k-muted); }
+.astryx-button { min-height:44px!important; height:auto!important; padding:10px 16px!important; font:500 1rem/1.5 var(--font-family-body)!important; border-radius:8px!important; white-space:normal!important; } .astryx-button[data-variant="primary"] { background:var(--k-accent)!important; color:var(--k-on-accent)!important; } .astryx-button[data-variant="secondary"] { background:var(--k-surface)!important; color:var(--k-text)!important; border:1px solid var(--k-control)!important; }
+.footer { margin-top:16px; font-size:.875rem; color:var(--k-muted); } details { margin-top:32px; border-top:1px solid var(--k-line); padding-top:16px; } summary { cursor:pointer; min-height:44px; font-weight:600; } .review-tools { display:grid; gap:16px; padding-top:8px; } .review-tools label { display:grid; gap:8px; } select { max-width:100%; width:100%; min-height:44px; padding:8px; color:var(--k-text); background:var(--k-surface); border:1px solid var(--k-control); border-radius:8px; } .tool-actions { display:flex; flex-wrap:wrap; gap:12px; } .tool-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:599px) { .shell { width:calc(100% - 32px); margin:24px auto; } .review-bar { padding:12px 16px; } .heading { flex-direction:column; } .thread { padding:16px; } .transcript { padding:20px 16px; min-height:200px; } .state { padding:0 16px 16px; } .composer { padding:20px 16px; } .tool-grid { grid-template-columns:1fr; } }
+@media(prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to chat</a>
+<div class="review-bar"><strong>Interactive design prototype</strong>Simulated replies and browser-only saved fixtures. No Anthropic, Mastra or database connection.</div>
+<div id="root"><p style="padding:24px" role="status">Loading pinned Astryx review controls…</p></div>
+<script type="module">
+try {
+const [React, ReactDOM, buttons, areas, themes, neutral] = await Promise.all([
+ import('react'), import('react-dom/client'),
+ import('https://esm.sh/@astryxdesign/core@0.6.5/Button?external=react,react-dom'),
+ import('https://esm.sh/@astryxdesign/core@0.6.5/TextArea?external=react,react-dom'),
+ import('https://esm.sh/@astryxdesign/core@0.6.5/theme?external=react,react-dom'),
+ import('@astryxdesign/theme-neutral/built')
+]);
+const {useState,useEffect,useRef}=React, e=React.createElement, {Button}=buttons, {TextArea}=areas;
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const key=id=>'kaya-design-fixture:'+id;
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const failure={provider:['Reply unavailable','The provider could not answer. Your message is not confirmed saved. Check local provider settings before sending again.'],database:['Save not confirmed','The reply is visible, but database readback failed. It may not survive a restart. Check storage, then check saved messages without asking the model again.'],auth:['Local access expired','Renew local access to continue. This does not resend your message.'],network:['Connection interrupted','This exchange is incomplete. Check the local app, then check saved messages. No automatic resend.'],missing:['Conversation unavailable','This URL did not match a saved conversation. Check the original URL. No replacement conversation was created.'],restore:['Could not restore conversation','Database readback failed. Check local storage settings, then retry restoration. No model request is needed.'],invalid:['Invalid conversation URL','The thread value must be a UUID. Reopen the original conversation URL.']};
+function App(){
+ const [mode,setMode]=useState(sessionStorage.getItem('kaya-review-theme')||'system');
+ const [thread,setThread]=useState(new URL(location.href).searchParams.get('thread'));
+ const [messages,setMessages]=useState([]),[draft,setDraft]=useState(''),[phase,setPhase]=useState('boot'),[error,setError]=useState(null);
+ const [scenario,setScenario]=useState('success'),[restoreScenario,setRestoreScenario]=useState(sessionStorage.getItem('kaya-review-restore')||'success');
+ const input=useRef(null), recovery=useRef(null), currentTurn=useRef(null), recoveryBusy=useRef(false);
+ const [recoveryResult,setRecoveryResult]=useState('stored');
+ const busy=['boot','restore','pending','stream','save'].includes(phase);
+ // Astryx 0.6.5 overwrites forwarded aria-disabled; set it through the real Button's DOM ref.
+ useEffect(()=>{recovery.current?.setAttribute('aria-disabled',String(busy));},[busy,error]);
+ function focusContinuation(){if(document.activeElement?.id==='recovery-action')input.current?.focus();}
+ function confirmed(saved){
+  const turn=currentTurn.current;if(!turn?.completed||!Array.isArray(saved))return false;
+  const u=saved.findIndex(m=>m.id===turn.user.id&&m.role==='user');
+  const a=saved.findIndex(m=>m.id===turn.assistant.id&&m.role==='assistant');
+  return u>=0&&a===u+1&&a===saved.length-1&&JSON.stringify(saved[u].parts)===JSON.stringify(turn.user.parts)&&JSON.stringify(saved[a].parts)===JSON.stringify(turn.assistant.parts);
+ }
+ function adopt(saved){focusContinuation();setMessages(saved);setDraft('');setError(null);setPhase('saved');currentTurn.current=null;}
+ const locked=['boot','restore','pending','stream','save'].includes(phase)||['missing','invalid','restore','auth'].includes(error);
+ useEffect(()=>{ restore(); },[]);
+ useEffect(()=>{ sessionStorage.setItem('kaya-review-theme',mode); },[mode]);
+ async function restore(){
+  if(recoveryBusy.current)return;recoveryBusy.current=true;
+  setPhase(thread?'restore':'boot'); await wait(800);recoveryBusy.current=false;
+  if(!thread){focusContinuation();setError(null);setPhase('ready');return;}
+  if(!uuid.test(thread)){setError('invalid');setPhase('error');return;}
+  const choice=sessionStorage.getItem('kaya-review-restore')||'success';
+  if(choice==='auth'){setError('auth');setPhase('error');return;}
+  if(choice==='database'){setError('restore');setPhase('error');return;}
+  const saved=localStorage.getItem(key(thread));
+  if(!saved||choice==='missing'){setError(error==='restore'?'restore':'missing');setPhase('error');return;}
+  if(currentTurn.current){if(confirmed(JSON.parse(saved)))adopt(JSON.parse(saved));else{setError('database');setPhase('error');}return;}
+  focusContinuation();setError(null);setMessages(JSON.parse(saved));setPhase('restored');
+ }
+ async function send(){
+  if(locked||!draft.trim()||draft.length>2000)return;
+  const text=draft.trim();currentTurn.current=null;
+  let id=thread;if(!id){id=crypto.randomUUID();setThread(id);history.replaceState(null,'','?thread='+id);}
+  setError(null);setPhase('pending');
+  const user={id:crypto.randomUUID(),role:'user',parts:[{type:'text',text}],saved:false};
+  const base=[...messages,user];setMessages(base);input.current?.focus();await wait(1100);
+  if(['provider','auth'].includes(scenario)){setError(scenario);setPhase('error');return;}
+  setPhase('stream');
+  const reply='This is a simulated design-review reply. Your message was: “'+text+'”. In the real local app, Mastra will return an Anthropic answer and confirm the exchange through database readback.';
+  const assistant={id:crypto.randomUUID(),role:'assistant',parts:[{type:'text',text:''}],saved:false};
+  currentTurn.current={user,assistant,completed:false,full:null};
+  for(let n=0;n<reply.length;n+=24){assistant.parts[0].text=reply.slice(0,n+24);setMessages([...base,{...assistant,parts:[{type:'text',text:assistant.parts[0].text}]}]);await wait(80);if(scenario==='network'&&n>48){setError('network');setPhase('error');return;}}
+  currentTurn.current.completed=true;
+  const complete=[...base,assistant].map(message=>({...message,saved:true}));
+  currentTurn.current.full=complete;setPhase('save'); await wait(1000);
+  if(scenario==='database'){setError('database');setPhase('error');return;}
+  let saved=complete;
+  if(scenario==='stale')saved=complete.slice(0,-1);
+  if(scenario==='partial')saved=[...complete.slice(0,-1),{...assistant,saved:true,parts:[{type:'text',text:reply.slice(0,40)}]}];
+  if(scenario==='mismatch')saved=[...complete.slice(0,-1),{...assistant,id:crypto.randomUUID(),saved:true}];
+  if(scenario==='order')saved=[...complete.slice(0,-2),complete.at(-1),complete.at(-2)];
+  localStorage.setItem(key(id),JSON.stringify(saved));
+  if(!confirmed(saved)){setError('database');setPhase('error');return;}
+  adopt(saved);
+  if(document.activeElement===input.current||document.activeElement?.textContent==='Sending…')input.current?.focus();
+ }
+ async function checkSaved(){
+  if(recoveryBusy.current)return;recoveryBusy.current=true;setPhase('restore');await wait(900);recoveryBusy.current=false;
+  if(recoveryResult==='failure'){setError('database');setPhase('error');return;}
+  // Review-only: a later GET fixture may now contain the already-streamed completed exchange; no generation.
+  if(recoveryResult==='complete'&&currentTurn.current?.completed)localStorage.setItem(key(thread),JSON.stringify(currentTurn.current.full));
+  const saved=thread&&localStorage.getItem(key(thread));
+  if(saved&&confirmed(JSON.parse(saved)))adopt(JSON.parse(saved));
+  else{setError('database');setPhase('error');}
+ }
+ async function renew(){
+  if(recoveryBusy.current)return;recoveryBusy.current=true;setPhase('boot');await wait(800);recoveryBusy.current=false;
+  if(recoveryResult==='failure'){setError('auth');setPhase('error');return;}
+  sessionStorage.setItem('kaya-review-restore','success');setRestoreScenario('success');
+  if(currentTurn.current){await checkSaved();}else if(messages.length){focusContinuation();setError(null);setPhase('ready');}else{await restore();}
+ }
+ const statuses={boot:'Preparing local access…',ready:'Ready to send',pending:'Waiting for reply…',stream:'Receiving reply…',save:'Checking saved messages…',saved:'Exchange saved · simulated fixture',restore:'Restoring saved conversation…',restored:'Conversation restored · no model requested · simulated fixture',error:'Exchange not complete'};
+ const actionLabel=error==='auth'?'Renew local access':error==='restore'?'Retry restoration':['database','network'].includes(error)?'Check saved messages':null;
+ const action=actionLabel?e(Button,{id:'recovery-action',ref:recovery,label:actionLabel,variant:'secondary',onClick:()=>{if(!busy)(error==='auth'?renew:error==='restore'?restore:checkSaved)();}}):null;
+ return e(themes.Theme,{theme:neutral.neutralTheme,mode},e('div',{className:'shell'},
+ e('main',{id:'main',tabIndex:-1},
+  e('header',{className:'heading'},e('div',null,e('p',{className:'eyebrow muted'},'KAYA / LOCAL PLATFORM'),e('h1',null,'Kaya local chat'),e('p',{className:'muted'},'One conversation. A real reply, then a saved exchange.')),e('span',{className:'local'},'Local operator')),
+  e('div',{className:'thread'},e('small',{className:'muted'},thread?'Conversation · '+thread:'A conversation URL is created when you send.'),thread?e('a',{href:location.href},'Conversation URL'):null),
+  e('div',{className:'conversation'},
+   e('section',{className:'transcript','aria-label':'Conversation transcript','aria-busy':['restore','pending','stream'].includes(phase)},
+    messages.length?e('ol',null,...messages.map(m=>e('li',{key:m.id},e('article',{className:'message '+m.role,'aria-label':m.role==='user'?'Your message':'Assistant message'},e('p',{className:'role'},m.role==='user'?'You':'Kaya'),e('p',{className:'body'},m.parts[0].text),!m.saved?e('p',{className:'note'},m.role==='assistant'?'Incomplete until saved messages are confirmed':'Not yet confirmed saved'):null)))):e('div',{className:'empty'},e('div',{className:'symbol','aria-hidden':'true'},'K'),e('h2',null,thread?'Reopening this conversation':'Start with a simple message'),e('p',null,thread?'Saved messages will appear here. Restoration reads stored messages; it does not ask the model again.':'Send a harmless message to check the local platform. Keep the conversation URL to reopen this same exchange after restarting the app.'))),
+   e('div',{className:'state'},e('p',{className:'status '+(['saved','restored'].includes(phase)?'saved':''),role:'status','aria-live':'polite','aria-atomic':'true'},e('span',{className:'dot','aria-hidden':'true'}),statuses[phase]),error?e('div',{className:'error'},e('div',{role:'alert'},e('strong',null,failure[error][0]),e('p',null,failure[error][1])),action):null),
+   e('form',{className:'composer',onSubmit:event=>{event.preventDefault();send();}},
+    e(TextArea,{label:'Message',value:draft,onChange:setDraft,rows:3,width:'100%',ref:input,isReadOnly:locked,autoComplete:'off','aria-invalid':draft.length>2000,'aria-describedby':'composer-help length-help',onKeyDown:event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing&&event.keyCode!==229){event.preventDefault();send();}}}),
+    e('div',{className:'composer-footer'},e('small',{id:'composer-help'},'Enter to send · Shift+Enter for a new line'),e(Button,{type:'submit',label:['pending','stream','save'].includes(phase)?'Sending…':'Send',variant:'primary',isDisabled:locked||!draft.trim()||draft.length>2000})),
+    e('p',{id:'length-help',className:'small muted',style:{marginTop:8}},draft.length>2000?'Message is too long. Keep it to 2,000 characters.':draft.length+' / 2,000 characters')
+   )
+  ),e('p',{className:'footer'},'Local machine access only. No account sign-in. Keep keys in server settings, never in a message.')
+ ),
+ e('aside',{'aria-label':'Prototype review controls'},e('details',null,e('summary',null,'Prototype controls · simulated states'),e('div',{className:'review-tools'},
+  e('p',{className:'small muted'},'These controls are review-only, not product scope. The fixture uses localStorage only to demonstrate reopening; the product must use hosted Postgres and AI SDK UI state.'),
+  e('div',{className:'tool-grid'},
+   e('label',null,'Next send result',e('select',{id:'send-scenario',value:scenario,onChange:event=>setScenario(event.target.value)},...Object.entries({success:'Reply + confirmed save',stale:'New user saved / current assistant missing',partial:'Current assistant parts partial',mismatch:'Current assistant identity mismatched',order:'Current turn order mismatched',provider:'Provider failure',database:'Database confirmation failure',auth:'Local access expired',network:'Interrupted partial stream'}).map(([value,label])=>e('option',{value,key:value},label)))),
+   e('label',null,'Recovery fixture result · no generation',e('select',{id:'recovery-result',value:recoveryResult,onChange:event=>setRecoveryResult(event.target.value)},...Object.entries({stored:'Read unchanged saved fixture',complete:'Read now-complete current exchange / renew succeeds',failure:'Readback / renewal fails'}).map(([value,label])=>e('option',{value,key:value},label)))),
+   e('label',null,'Next reopen result',e('select',{id:'restore-scenario',value:restoreScenario,onChange:event=>{setRestoreScenario(event.target.value);sessionStorage.setItem('kaya-review-restore',event.target.value);}},...Object.entries({success:'Restore browser fixture',database:'Database restore failure',auth:'Expired local access',missing:'Missing / mismatched thread'}).map(([value,label])=>e('option',{value,key:value},label)))),
+   e('label',null,'Review theme',e('select',{id:'review-theme',value:mode,onChange:event=>setMode(event.target.value)},...['system','light','dark'].map(value=>e('option',{value,key:value},value)))),
+   e('label',null,'Review text size',e('select',{id:'review-text',defaultValue:'100',onChange:event=>document.documentElement.style.fontSize=event.target.value==='200'?'32px':'16px'},e('option',{value:'100'},'100%'),e('option',{value:'200'},'200%')))),
+  e('div',{className:'tool-actions'},e(Button,{label:'Reopen same URL',variant:'secondary',isDisabled:!thread||locked,onClick:()=>location.reload()}),e(Button,{label:'Reset demo fixture',variant:'secondary',onClick:()=>{if(thread)localStorage.removeItem(key(thread));sessionStorage.setItem('kaya-review-restore','success');location.href=location.pathname;}}))
+ )))
+ ));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+window.kayaPrototype={substrate:'@astryxdesign/core@0.6.5 CDN',simulation:true};
+} catch(error) {
+ document.getElementById('root').textContent='Prototype controls could not load from the pinned CDN. Check network access to esm.sh and cdn.jsdelivr.net, then reload. No app or database was contacted.';
+ window.kayaPrototype={loadError:String(error)};
+}
+</script>
+</body>
+</html>
