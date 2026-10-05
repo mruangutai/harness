@@ -285,11 +285,26 @@ def _inv15_run(ctx, rundir, sdoc):
                 f"missing — the lead's report artifact never landed (DEC-156)."]
     return _inv15_validate(ctx, dg)
 
+def _refused_closed_run(doc, rundir, sdoc):
+    if not isinstance(doc, dict):
+        return False
+    entries = [entry for entry in doc.get("runs") or []
+               if isinstance(entry, dict) and entry.get("id") == os.path.basename(rundir)]
+    if len(entries) != 1:
+        return False
+    entry = entries[0]
+    identity = (entry.get("return_disposition"), entry.get("verdict"), entry.get("agent"))
+    return identity == ("refused", "BLOCKED", sdoc.get("host")) and bool(entry.get("ended_at"))
+
+
 def inv_15(ctx, feat):
     bad, warn = [], []
     H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    doc, _runs, _crr, _errors = ctx.record(feat)
     for sy, rel, rundir, sdoc, _error in ctx.run_states(feat):
         if sdoc is None:
+            continue
+        if _refused_closed_run(doc, rundir, sdoc):
             continue
         bad.extend(_inv15_run(ctx, rundir, sdoc))
     return bad, warn

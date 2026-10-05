@@ -36,6 +36,7 @@ import digest_record
 import digest_schema
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
+from check_state.brief import SC_LINE_RE
 
 SEV = ["none", "low", "med", "high", "critical"]
 
@@ -586,7 +587,6 @@ def _grade_2_reasons_error(reasons, qualnames):
             f"return code_grade: fail.")
 
 
-SC_LINE_RE = re.compile(r"^\s*-\s*(SC-\d+)\s*:", re.M)
 VERIFY_LINE_RE = re.compile(r"^\s*verify:\s*(\S+)", re.M)
 CITATION_RE = re.compile(r"[\w./-]+\.\w+:\d+")
 
@@ -605,7 +605,7 @@ def _read_or_none(path):
     try:
         with open(path, encoding="utf-8") as fh:
             return fh.read()
-    except OSError:
+    except (OSError, UnicodeError):
         return None
 
 
@@ -1295,10 +1295,11 @@ def _missing_message(canonical, family, parts, field):
 # "write `[]`", which its own pattern rejects. Most specific first.
 _TASK_HINT = ("your task's `T-NN` id exactly as your dispatch carries it (T-05), or `none` "
               "if this dispatch carries no PLAN task")
-# FEAT-59 SC-17. `[]` is REJECTED alongside PASS + matrix_ok: true.
+# FEAT-59 SC-17 applies to automated criteria; unknown feature context is fail-closed.
 _FAIL_FIRST_HINT = ("one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: "
                     "automated` SC showing the test FAILED before the fix; `[]` only when "
-                    "matrix_ok is n/a or the verdict is not PASS")
+                    "matrix_ok is n/a, the verdict is not PASS, or the readable feature BRIEF "
+                    "explicitly marks every SC inspection or uat")
 
 
 def _missing_field_hint(canonical, family, field):
@@ -1484,7 +1485,7 @@ def _dev_receipt_errors(seen, verdict, artifact, feature_dir):
 # same triple #919 re-verifies — VERDICT PASS + matrix_ok true — so `matrix_ok: n/a` and
 # every non-PASS verdict may truthfully carry `[]`. Entry shape is the schema's.
 def _qa_errors(seen, verdict, feature_dir):
-    return (_qa_fail_first_errors(seen, verdict == "PASS")
+    return (_qa_fail_first_errors(seen, verdict == "PASS", feature_dir)
             + _qa_kinds_errors(seen, verdict, feature_dir)
             + _qa_unearned_fail_errors(seen, verdict))
 
@@ -1503,9 +1504,29 @@ def _qa_unearned_fail_errors(seen, verdict):
             "verdict; return PASS with it recorded, or name the gate that failed."]
 
 
-def _qa_fail_first_errors(seen, passing):
+def _known_nonautomated_criteria(feature_dir):
+    """Only explicit, bounded inspection/UAT criteria exempt fail-first evidence."""
+    if not feature_dir:
+        return False
+    brief = _read_or_none(os.path.join(feature_dir, "BRIEF.md"))
+    if brief is None:
+        return False
+    criteria = list(SC_LINE_RE.finditer(brief))
+    if not criteria:
+        return False
+    ends = [match.start() for match in criteria[1:]] + [len(brief)]
+    for criterion, end in zip(criteria, ends):
+        modes = VERIFY_LINE_RE.findall(brief[criterion.end():end])
+        if len(modes) != 1 or modes[0] not in ("inspection", "uat"):
+            return False
+    return True
+
+
+def _qa_fail_first_errors(seen, passing, feature_dir=None):
     fail_first = seen.get("fail_first")
     if fail_first == [] and passing and seen.get("matrix_ok") is True:
+        if _known_nonautomated_criteria(feature_dir):
+            return []
         return ["fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a "
                 "green suite with no fail-first evidence is not a pass. For each "
                 "`verify: automated` SC name the test and the evidence it FAILED "
@@ -2088,7 +2109,7 @@ def _unreadable_registry(agent, root, error, verdict):
     return None
 
 
-def _registry_errand(reg, d, agent, verdict):
+def _registry_errand(reg, d, agent, verdict, release=True):
     """T-09 (#551) and BUG-1898: release this run's claim, or refuse the return while it
     holds a live child. Returns an exit code to return, or None to go on validating.
 
@@ -2105,10 +2126,10 @@ def _registry_errand(reg, d, agent, verdict):
               "neither released nor checked.", file=sys.stderr)
         return None
     return _settle_in(reg, verdict, agent, reg.feature_root(owner_root, feature), feature,
-                      agent_id)
+                      agent_id, release=release)
 
 
-def _settle_in(reg, verdict, agent, root, feature, agent_id):
+def _settle_in(reg, verdict, agent, root, feature, agent_id, release=True):
     """Settle this exact run in `root`'s registry: refuse while it holds a live child, else
     release its own claim. Strict reads come before any write: the locked writer parses a
     corrupt file as empty, so releasing into an unreadable registry would erase every claim
@@ -2120,7 +2141,7 @@ def _settle_in(reg, verdict, agent, root, feature, agent_id):
         return _unreadable_registry(agent, root, error, verdict)
     if children:
         return _children_refusal(reg, root, agent, children)
-    if own:
+    if own and release:
         _release_own(reg, root, agent, feature, agent_id)
     return None
 
@@ -2170,14 +2191,19 @@ def hook_mode():
     passed = _pass_through(d, agent, obj)
     if passed is not None:
         return passed
-    # T-09 (#551): release first, then the return contract. Reversed, an agent refused at
-    # step two would never have its own claim released and would leak it until the TTL.
-    refused = _settle_claim(d, agent, obj.get("VERDICT") if isinstance(obj, dict) else None)
+    # Refuse live children before recording a return, but retain the claim while
+    # a retryable contract or artifact rejection keeps this same job alive.
+    refused = _settle_claim(d, agent, obj.get("VERDICT") if isinstance(obj, dict) else None,
+                            release=False)
     if refused is not None:
         return refused
     if not isinstance(obj, dict):
         return _object_refusal(agent, obj)
-    return _validate_hook_object(d, agent, obj)
+    result = _validate_hook_object(d, agent, obj)
+    if result != 0:
+        return result
+    settled = _settle_claim(d, agent, obj.get("VERDICT"))
+    return settled if settled is not None else 0
 
 
 def _governed_agent(agent):
@@ -2199,7 +2225,7 @@ def _pass_through(d, agent, obj):
     return 0
 
 
-def _settle_claim(d, agent, verdict):
+def _settle_claim(d, agent, verdict, release=True):
     """The registry side errand: refuses only for a live child or an unreadable registry
     under a dispatching parent, and never changes the digest verdict."""
     try:
@@ -2209,7 +2235,7 @@ def _settle_claim(d, agent, verdict):
         print(f"check-digest: inflight_registry unavailable ({error!r}) — the #551 claim was "
               f"neither released nor checked. This is our gap, not theirs.", file=sys.stderr)
         return None
-    return _registry_errand(inflight_registry, d, agent, verdict)
+    return _registry_errand(inflight_registry, d, agent, verdict, release=release)
 
 
 def _hook_options(d):

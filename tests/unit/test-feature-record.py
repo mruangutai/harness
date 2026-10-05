@@ -66,6 +66,21 @@ class FeatureRecordCase(unittest.TestCase):
 
 
 class RunStartEndTest(FeatureRecordCase):
+    def test_run_start_requires_the_leads_registered_squad(self):
+        before = self.write(base_doc())
+        result = self.run_cli("run-start", "--file", str(self.path), "--id", "r1",
+                              "--squad", "eng", "--agent", "harness-eng-lead")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+        self.assert_ok(self.run_cli("run-start", "--file", str(self.path), "--id", "r1",
+                                    "--squad", "engineering", "--agent", "harness-eng-lead"))
+
+    def test_schema_rejects_a_refused_disposition_with_a_passing_verdict(self):
+        doc = base_doc(runs=[{"id": "r1", "squad": "engineering",
+                             "agent": "harness-eng-lead", "verdict": "PASS",
+                             "return_disposition": "refused"}])
+        self.assertTrue(feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+
     def test_run_start_appends_a_pending_entry_stamped_started_at(self):
         self.write(base_doc())
         self.assert_ok(self.run_cli("run-start", "--file", str(self.path), "--id", "r1",
@@ -263,7 +278,7 @@ class RunStartEndTest(FeatureRecordCase):
 
     def test_missing_file_is_refused_not_created(self):
         result = self.run_cli("run-start", "--file", str(self.path), "--id", "r1",
-                              "--squad", "eng", "--agent", "harness-eng-lead")
+                              "--squad", "engineering", "--agent", "harness-eng-lead")
         self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
         self.assertFalse(self.path.exists())
 
@@ -491,10 +506,40 @@ class CloseRunTest(FeatureRecordCase):
         self.assert_ok(result)
         entry = self.load()["runs"][0]
         self.assertEqual("BLOCKED", entry["verdict"])
+        self.assertEqual("refused", entry["return_disposition"])
         self.assertRegex(entry["ended_at"], ISO_UTC)
         self.assertIn("refused-return", result.stdout)
         self.assertIn("spend=", result.stdout)
         self.assert_clean()
+
+    def test_refused_closure_marks_an_existing_blocked_run_without_retiming_it(self):
+        entry = dict(self.OPEN, verdict="BLOCKED", ended_at="2026-10-05T10:00:00+00:00",
+                     cycles_used=0, tokens=21)
+        self.write(base_doc(runs=[entry]))
+        self.digest.write_text("the original return was refused\n", encoding="utf-8")
+        self.assert_ok(self.close_refused("BLOCKED"))
+        self.assertEqual(dict(entry, return_disposition="refused"), self.load()["runs"][0])
+
+    def test_refused_closure_cannot_rewrite_an_existing_passing_result(self):
+        entry = dict(self.OPEN, verdict="PASS", ended_at="2026-10-05T10:00:00+00:00",
+                     cycles_used=0)
+        before = self.write(base_doc(runs=[entry]))
+        self.digest.write_text("missing accepted record\n", encoding="utf-8")
+        self.assertEqual(2, self.close_refused("BLOCKED").returncode)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_end_cannot_erase_a_refused_terminal_disposition(self):
+        entry = dict(self.OPEN, verdict="BLOCKED", return_disposition="refused",
+                     ended_at="2026-10-05T10:00:00+00:00", cycles_used=0)
+        self.write(base_doc(runs=[entry]))
+        self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                                    "--verdict", "BLOCKED", "--cycles-used", "0"))
+        self.assertEqual("refused", self.load()["runs"][0]["return_disposition"])
+        before = self.path.read_bytes()
+        result = self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                              "--verdict", "PASS", "--cycles-used", "0")
+        self.assertNotEqual(0, result.returncode)
+        self.assertEqual(before, self.path.read_bytes())
 
     def test_refused_return_is_refused_when_the_digest_validates(self):
         """A digest that validates is a return that landed: --refused-return must not become

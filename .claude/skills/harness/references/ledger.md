@@ -10,6 +10,9 @@ Every write goes through `feature-record.py`; you never edit `feature.json` by h
 
 Before every dispatch:
 `feature-record.py run-start --file <feature.json> --id <run-id> --squad <squad> --agent <lead> [--by harness-orchestrator --reason <one line> --regate <decision>] [--by harness-orchestrator --reason <one line> --succession continue|downgrade|stop]`.
+For lead runs, `<squad>` is the canonical identity: `engineering` for `harness-eng-lead`,
+`product` for `harness-product-lead`, and `validator` for `harness-validator-lead`. A mismatched
+registration is refused before dispatch; an `eng` label cannot obtain the engineering digest binding.
 The open is composed like the close (#1881): `run-start` derives what the new run owes from the
 record — a FAIL run it follows owes a `regate`; a handoff note at `seq-N` it succeeds owes a
 `succession` — and **refuses** unless you supply the matching decision and reason, in which case the run and
@@ -35,6 +38,13 @@ and the digest stage can never pass. Close that run with `--refused-return --ver
 digest stage is inverted — it refuses if the digest *does* validate, because then the return
 landed and closes normally under its own verdict — and every later stage runs as usual (#2068).
 This is the governed path; never close such a run with a bare `run-end`.
+The closure records `return_disposition: refused` with the terminal BLOCKED entry. INV-15
+recognizes only that exact closed run and matching lead; it does not accept the prose as a digest
+or turn the refused result into PASS. Ordinary completed runs still require their durable record.
+Reapplying that refused closure to an already BLOCKED run preserves its original `ended_at`;
+it cannot rewrite an existing terminal verdict, and ordinary run-end cannot erase the disposition.
+Retryable yield refusals retain the same live job's claim until its corrected return is accepted;
+host terminal cleanup still releases jobs that actually end without an accepted return.
 
 The `plan` run graded a document and no code: close it with `--code-grade n_a`. Omitting the flag
 declares the run reviewed code, and INV-6 then demands a `review_sha` that cannot exist before the

@@ -192,6 +192,11 @@ def _reconcile_owed(kind, owed_to, decision):
 
 
 def cmd_run_start(args):
+    from digest_destination import LEAD_SQUADS
+    expected_squad = LEAD_SQUADS.get(args.agent)
+    if expected_squad is not None and args.squad != expected_squad:
+        _exit_refused([f"REFUSED: {args.agent} requires --squad {expected_squad!r}; "
+                       f"got {args.squad!r}."])
     # THE RUN AND WHAT ITS OPEN OWES ARE ONE WRITE (#1881), the posture set-mission takes for
     # the mission and close-run takes for the close. What the open owes is DERIVED from the
     # record — a FAIL run this one follows owes a regate (INV-40 b); a handoff note this one
@@ -237,7 +242,18 @@ def cmd_run_start(args):
     sys.exit(0)
 
 
+def _run_end_time(entry, refused_return):
+    if not refused_return:
+        return now_iso()
+    ended = entry.get("ended_at")
+    if ended and entry.get("verdict") != "BLOCKED":
+        _refuse(["REFUSED: a refused closure cannot rewrite an existing terminal verdict."])
+    return ended or now_iso()
+
+
 def cmd_run_end(args):
+    if args.refused_return and args.verdict != "BLOCKED":
+        _exit_refused(["REFUSED: a refused return can close only as BLOCKED."])
     def mutate(doc):
         runs = _runs(doc)
         entry = _find_run(runs, args.id)
@@ -253,9 +269,12 @@ def cmd_run_end(args):
                 "  repair the inconsistent ledger before recording another run result.",
             ])
         previous_cycles = entry.get("cycles_used", 0)
+        ended_at = _run_end_time(entry, args.refused_return)
         entry["verdict"] = args.verdict
-        entry["ended_at"] = now_iso()
+        entry["ended_at"] = ended_at
         entry["cycles_used"] = args.cycles_used
+        if args.refused_return:
+            entry["return_disposition"] = "refused"
         # A measured figure is never overwritten with null; null is written only when
         # the entry has no figure at all, so "unmeasured" is recorded rather than implied.
         if args.tokens is not None or "tokens" not in entry:
@@ -615,6 +634,7 @@ def _close_run_stages(args, agent, judgement):
     pass. The stage then demands that the digest does NOT validate — a digest that does is a
     return that landed, and must close through the normal stage under its own verdict."""
     grade = ["--code-grade", args.code_grade] if args.code_grade else []
+    disposition = ["--refused-return"] if args.refused_return else []
     plan_yaml = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
     digest = [os.path.join(_HERE, "validate-digest.py"), agent, args.digest]
     if args.refused_return:
@@ -626,7 +646,8 @@ def _close_run_stages(args, agent, judgement):
     stages = [
         first,
         ("run-end", [__file__, "run-end", "--file", args.file, "--id", args.id,
-                     "--verdict", args.verdict, "--cycles-used", str(args.cycles_used), *grade],
+                     "--verdict", args.verdict, "--cycles-used", str(args.cycles_used),
+                     *grade, *disposition],
          None, None),
     ]
     if args.task is not None:
@@ -778,6 +799,8 @@ def main():
     p.add_argument("--tokens", type=_int_at_least(0),
                    help="tokens MEASURED from the transcript; omit when unmeasured (null)")
     p.add_argument("--code-grade", choices=["n_a"], dest="code_grade")
+    p.add_argument("--refused-return", action="store_true",
+                   help="record the refused terminal disposition; requires BLOCKED")
     p.set_defaults(func=cmd_run_end)
 
     p = with_file(sub.add_parser("stamp-tokens",

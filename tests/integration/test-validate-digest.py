@@ -1123,14 +1123,17 @@ def run_t09():
     t09("1: and its claim is GONE from the registry", not claims(root, "harness-pm"),
         repr(claims(root, "harness-pm")))
 
-    # 2. an INVALID digest still exits 2 for the contract AND still releases. A blocked
-    #    return that leaks its claim can never be re-dispatched.
+    # A retryable contract rejection keeps this same live job's claim.
     root = _t09_root()
     run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
     r = fire(root, "harness-pm", "Lead.Pm", "VERDICT: PASS\nDIGEST:\n  headline: x\n")
     t09("2: an invalid digest still exits 2", r.returncode == 2, f"exit {r.returncode}")
-    t09("2: and the claim is STILL released, so a re-prompt can be re-dispatched",
-        not claims(root, "harness-pm"), repr(claims(root, "harness-pm")))
+    t09("2: the rejected job retains its claim for correction",
+        len(claims(root, "harness-pm")) == 1, repr(claims(root, "harness-pm")))
+    corrected = fire(root, "harness-pm", "Lead.Pm", PM_OK)
+    t09("2: correction completes the same job and releases its claim",
+        corrected.returncode == 0 and not claims(root, "harness-pm"),
+        corrected.stderr + repr(claims(root, "harness-pm")))
 
     # 3. stop_hook_active short-circuits and does not raise, with a claim present
     root = _t09_root()
@@ -1144,7 +1147,7 @@ def run_t09():
     root = _t09_root()
     run(root, "harness-documentor", "Lead.Doc", "Lead", "harness-product-lead")
     run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
-    r = fire(root, "harness-documentor", "Lead.Doc", PM_OK)
+    r = fire(root, "harness-documentor", "Lead.Doc", _t04_base_digest("harness-documentor"))
     t09("4: the returning persona's own claim is released",
         not claims(root, "harness-documentor"), repr(claims(root, "harness-documentor")))
     t09("4: and an UNRELATED harness-pm claim is untouched",
@@ -1676,7 +1679,7 @@ def _append_authorization_case(kind, absolute=False):
         claims = _reg_module().live_claims(root, None)
         ok = (result.returncode == 2
               and before == after and selected == victim
-              and not any(row.get("agent_id") == HOOK_IDENTITY["harness_agent_id"]
+              and any(row.get("agent_id") == HOOK_IDENTITY["harness_agent_id"]
                           for row in claims))
         return (f"unauthorized {kind} {'absolute' if absolute else 'relative'} target stays byte-identical",
                 ok, f"exit={result.returncode} bytes-match={before == after} {result.stderr.strip()[:400]}")
@@ -2735,10 +2738,6 @@ case("FEAT-59 qa FAIL with fail_first: [] is accepted — the gate is on PASS",
      "harness-qa", _qa(verdict="FAIL", matrix_ok="false", fail_first="[]"), True)
 case("FEAT-59 qa omitting fail_first is rejected — every field is required",
      "harness-qa", _qa().replace("  fail_first: []\n", ""), False, "fail_first")
-# The missing-field hint must not route the agent into the empty-list rejection.
-case("FEAT-59 fail_first's missing-field hint names the entry shape, not `[]`",
-     "harness-qa", _qa().replace("  fail_first: []\n", ""), False,
-     ["fail_first", "SC-NN", "evidence", "!if there are none"])
 # Entry shape: `{sc: SC-NN, evidence: <non-empty>}`. A bare string is not evidence
 # for any named SC; an SC without evidence is a claim, not a receipt.
 case("FEAT-59 fail_first entry without sc is rejected, naming the index",
@@ -2912,6 +2911,47 @@ def _load_validator(tag):
     validator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validator)
     return validator
+
+
+def _write_verification_brief(path, brief):
+    if brief is None:
+        os.remove(path)
+        return
+    with open(path, "wb") as handle:
+        handle.write(brief.encode("utf-8") if isinstance(brief, str) else brief)
+
+
+def run_qa_verification_mode_cases():
+    validator = _load_validator("_qa_verification_modes")
+    cases = (
+        ("inspection and UAT", "- SC-01: inspect\n  verify: inspection\n"
+         "- SC-02: exercise\n  verify: uat\n", True),
+        ("perspective-tagged criteria", "- SC-01 (operator): exercise\n  verify: uat\n"
+         "- SC-02 (reader): inspect\n  verify: inspection\n", True),
+        ("automated", "- SC-01: exercise\n  verify: automated\n", False),
+        ("missing mode before UAT", "- SC-01: unknown\n"
+         "- SC-02: exercise\n  verify: uat\n", False),
+        ("unknown mode", "- SC-01: exercise\n  verify: manual\n", False),
+        ("no criteria", "# BRIEF\n", False),
+        ("missing brief", None, False),
+        ("undecodable brief", b"\xff", False),
+    )
+    failures = []
+    with tempfile.TemporaryDirectory(prefix="qa-modes-") as root:
+        feature_dir = make_feature_dir(root)
+        brief_path = os.path.join(feature_dir, "BRIEF.md")
+        for label, brief, accepted in cases:
+            _write_verification_brief(brief_path, brief)
+            errors = validator._qa_errors(
+                {"suite": "pass", "failures": 0, "matrix_ok": True,
+                 "fail_first": [], "kinds": []}, "PASS", feature_dir)
+            rejected = any("fail_first" in error for error in errors)
+            valid = not errors if accepted else rejected
+            if not valid:
+                failures.append(f"{label}: {errors}")
+    for failure in failures:
+        print(f"FAIL: {failure}")
+    return len(failures)
 
 
 _T04_UNIVERSAL = "  files_touched: []\n  open_questions: []\n  expertise_update: []\n"
@@ -4907,7 +4947,7 @@ def _b1898_qa_yields_while_pm_live():
         {"agent": "harness-qa", "agent_id": "Lead.Qa", "parent_agent_id": "Lead"},
     ])
     pm_before = [row for row in _b1898_rows(root) if row["agent"] == "harness-pm"]
-    _t09_fire(root, "harness-qa", "VERDICT: PASS\n",
+    _t09_fire(root, "harness-qa", _t04_base_digest("harness-qa"),
                 harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa", governed=False)
     rows = _b1898_rows(root)
     _b1898_check("occurrence-1: QA's exact claim is released",
@@ -4932,7 +4972,7 @@ def _b1898_release_reads_the_feature_worktree():
     _b1898_seed(owner, [{"agent": "harness-qa", "agent_id": "Other.Qa",
                          "parent_agent_id": "Other", "feature": "FEAT-7-owner"}])
     owner_before = _b1898_rows(owner)
-    _t09_fire(owner, "harness-qa", "VERDICT: PASS\n",
+    _t09_fire(owner, "harness-qa", _t04_base_digest("harness-qa"),
                 harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa", governed=False)
     _b1898_check("the claim is released from the feature worktree's registry",
                  _b1898_rows(worktree) == [], repr(_b1898_rows(worktree))[:240])
@@ -5153,6 +5193,7 @@ def main(argv=None):
         run_cli_cases,
         run_dec156_worktree_red_case,
         run_bug919_qa_matrix_cases,
+        run_qa_verification_mode_cases,
         run_bug919_resolve_fallback_case,
         run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,

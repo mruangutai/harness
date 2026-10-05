@@ -20,6 +20,7 @@ import re
 # Retroactive grading of existing BRIEFs, plans and notes is out of scope by the brief.
 _BY_PERSPECTIVE_HEADING = re.compile(r"^##\s+Done when\s*[—–-]+\s*by perspective\s*$", re.M | re.I)
 _FEAT59_KEYS = ("mission", "judgements", "budget_decisions", "rework")
+SC_LINE_RE = re.compile(r"^\s*-\s*(SC-\d+)\s*(?:\(([^)]*)\))?\s*:(.*)$", re.M)
 
 
 def _brief_is_by_perspective(txt):
@@ -48,7 +49,7 @@ def _brief_scs(txt):
     the text carrying the indented continuation lines that follow the bullet."""
     out, lines, i = [], txt.splitlines(), 0
     while i < len(lines):
-        m = re.match(r"^\s*-\s*(SC-\d+)\s*(?:\(([^)]*)\))?\s*:(.*)$", lines[i])
+        m = SC_LINE_RE.match(lines[i])
         i += 1
         if not m:
             continue
