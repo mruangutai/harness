@@ -1,0 +1,38 @@
+{
+ "accept": false,
+ "case": "rejected: an extra key is refused",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0063",
+ "input_sha256": "f7d36c24b03d2749",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "briefing": "none",
+   "cycles_used": 0,
+   "expertise_update": [],
+   "feature": "BUG-285-yaml-loader-pin",
+   "files_touched": [],
+   "headline": "superseded by the canonical-reader ticket",
+   "judgement": {
+    "by": "me",
+    "kind": "reject",
+    "reason": "x",
+    "superseded_by": 1594
+   },
+   "open_questions": [],
+   "runs": [
+    "plan-product"
+   ],
+   "status": "rejected"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/BUG-285-yaml-loader-pin/feature.json"
+ },
+ "persona": "harness-orchestrator",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement carries ['by'] \u2014 the reject mapping has exactly the keys ['kind', 'superseded_by', 'reason']; `by` and `at` are the ledger's to write.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: superseded by the canonical-reader ticket\n  feature: BUG-285-yaml-loader-pin\n  status: rejected\n  runs: [plan-product]\n  cycles_used: 0\n  briefing: none\n  judgement: { kind: reject, superseded_by: 1594, reason: \"x\", by: me }\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/features/BUG-285-yaml-loader-pin/feature.json\n",
+ "why_no_object": ""
+}

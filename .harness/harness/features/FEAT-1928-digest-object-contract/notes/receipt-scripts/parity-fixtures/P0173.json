@@ -1,0 +1,37 @@
+{
+ "accept": false,
+ "case": "#1855: qa on a distill dispatch may not decorate the return with a suite it did not run",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0173",
+ "input_sha256": "f9900295e1dd660a",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [
+    {
+     "file": "/abs/.harness/expertise/harness-qa.md",
+     "ops": 3
+    }
+   ],
+   "fail_first": [],
+   "failures": 0,
+   "files_touched": [
+    "/abs/.harness/expertise/harness-qa.md"
+   ],
+   "headline": "accepted three lessons, displaced two weaker craft entries",
+   "matrix_ok": "n/a",
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/FEAT-01/runs/distill-validator/digest.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - suite='pass' on a distill dispatch \u2014 this mission reviews no diff and runs no suite, so a gate value here is decoration rather than evidence. Write `suite: n/a`.",
+ "source": "hook",
+ "syntax_only": false,
+ "text": "\nVERDICT: PASS\nDIGEST:\n  headline: accepted three lessons, displaced two weaker craft entries\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: n/a\n  fail_first: []\n  open_questions: []\n  files_touched: [/abs/.harness/expertise/harness-qa.md]\n  expertise_update: [{file: /abs/.harness/expertise/harness-qa.md, ops: 3}]\nartifact: .harness/features/FEAT-01/runs/distill-validator/digest.md\n",
+ "why_no_object": ""
+}

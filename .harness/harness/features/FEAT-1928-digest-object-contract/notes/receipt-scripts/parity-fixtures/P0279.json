@@ -1,0 +1,36 @@
+{
+ "accept": false,
+ "case": "case_qa_unearned_fail#00",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0279",
+ "input_sha256": "ada1d0221677ddbb",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/fail.txt",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "qa result",
+   "kinds": [],
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "VERDICT: FAIL with suite: pass, matrix_ok: true, failures: 0 and fail_first evidence present \u2014 no gate failed. A test-first violation or a coverage concern is a finding in the artifact (and a coverage_gaps entry), not a verdict; return PASS with it recorded, or name the gate that failed.",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: qa result\n  matrix_ok: true\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  fail_first: [{ sc: SC-01, evidence: notes/fail.txt }]\n  kinds: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/qa.md\n",
+ "why_no_object": ""
+}

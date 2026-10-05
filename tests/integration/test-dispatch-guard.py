@@ -992,6 +992,37 @@ def case_30_repository_header_binds_exact_factory_claim():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_30_schema_controls_are_not_the_guards():
+    """FEAT-1928: harness-hooks.ts is the one schema authority — it refuses a dispatcher's
+    outputSchema/schemaMode and injects the persona's strict schema BEFORE this guard runs.
+    The guard stays the governed preflight and claim boundary for an otherwise accepted
+    dispatch: the same dispatch, with or without schema controls in its tool_input, gets the
+    same allow and records the same claim. A guard that refused them too would be a second,
+    divergent copy of the hook's rule; one that skipped the claim would leak a slot."""
+    outcomes = {}
+    for label, extra in (("plain", {}),
+                         ("with controls", {"outputSchema": {"type": "object"},
+                                            "schemaMode": "strict"})):
+        root = _checkout()
+        try:
+            r = fire({"agent_type": "harness-eng-lead", "hook_event_name": "PreToolUse",
+                      "tool_name": "Task", "cwd": root,
+                      "tool_input": {"agent": "harness-backend-dev",
+                                     "task": "HARNESS-FEATURE: FEAT-43-alpha\nbuild", **extra}},
+                     env={"HARNESS_PROJECT_DIR": root})
+            claims = _claims_for(_read_registry(root, _load_registry_module()),
+                                 "harness-backend-dev", "FEAT-43-alpha")
+            outcomes[label] = (r.returncode, len(claims), "harness_claim" in r.stdout)
+            check(f"case 30: {label}: allowed with one claim and a receipt",
+                  outcomes[label] == (0, 1, True), f"{outcomes[label]} stderr={r.stderr.strip()[:300]!r}")
+            check(f"case 30: {label}: the guard says nothing about schema controls",
+                  "outputSchema" not in r.stderr and "schemaMode" not in r.stderr, r.stderr.strip()[:300])
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+    check("case 30: schema controls do not change the guard's decision or claim",
+          outcomes.get("plain") == outcomes.get("with controls"), repr(outcomes))
+
+
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
     #
@@ -1052,6 +1083,7 @@ def main():
     case_27_spawns_allowlist()
     case_28_missing_dispatcher_file_passes_through_loudly()
     case_29_name_parameter_refused()
+    case_30_schema_controls_are_not_the_guards()
     case_30_repository_header_binds_exact_factory_claim()
 
     failed = 0

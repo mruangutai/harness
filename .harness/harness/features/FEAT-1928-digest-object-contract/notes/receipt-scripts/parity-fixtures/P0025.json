@@ -1,0 +1,16 @@
+{
+ "accept": false,
+ "case": "three fields on one line loses two",
+ "counterpart": "missing",
+ "exit": 1,
+ "id": "P0025",
+ "input_sha256": "cca44c26a8aeb279",
+ "mode": "cli",
+ "object": null,
+ "persona": "harness-eng-lead",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'steps_run' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'cycles_used' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.",
+ "source": "cli",
+ "syntax_only": true,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: done\n  team: build            steps_run: 3   cycles_used: 0\n  members: []\n  must_fix: []\n  branch: none\n  files_touched: []\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: x.md\n",
+ "why_no_object": "yaml: mapping values are not allowed here"
+}

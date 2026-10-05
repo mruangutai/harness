@@ -1,0 +1,31 @@
+{
+ "accept": false,
+ "case": "run_code_grade_cases#000",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0149",
+ "input_sha256": "6dea0cdcd8aabf55",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "code_grade": "pass",
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [],
+   "grade_2_reasons": [],
+   "headline": "reviewer result",
+   "must_fix": [],
+   "open_questions": [],
+   "reviewed": "ebf424fd9c41389be2f70957420a12f4f10bf97a..1aaa0aa618df2c7881dfd6802a0450276245ccce",
+   "severity_max": "low"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-HOOK-BLOCKING/notes/review.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - code_grade='pass' disagrees with the mechanical result this repository computes over ebf424fd9c41389be2f70957420a12f4f10bf97a..1aaa0aa618df2c7881dfd6802a0450276245ccce: expected 'fail'. The reviewer's enum is an audit claim, not evidence of itself \u2014 rerun code-grade.py over the canonical range and report what it reports.",
+ "source": "cli-group:run_code_grade_cases",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: reviewer result\n  severity_max: low\n  findings: []\n  must_fix: []\n  code_grade: pass\n  reviewed: \"ebf424fd9c41389be2f70957420a12f4f10bf97a..1aaa0aa618df2c7881dfd6802a0450276245ccce\"\n  grade_2_reasons: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-HOOK-BLOCKING/notes/review.md\n",
+ "why_no_object": ""
+}

@@ -1,0 +1,44 @@
+{
+ "accept": false,
+ "case": "fail-open crash: list-valued enum is a reported violation, not a crash",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0156",
+ "input_sha256": "11710c24f631f310",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [
+    {
+     "kind": "form",
+     "reader": "code-reviewer",
+     "severity": "low",
+     "summary": "a"
+    },
+    {
+     "kind": "substance",
+     "reader": "code-reviewer",
+     "severity": "med",
+     "summary": "b"
+    }
+   ],
+   "headline": "two findings",
+   "must_fix": [],
+   "open_questions": [],
+   "severity_max": [
+    "low",
+    "med"
+   ]
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/notes/review-code.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - severity_max=['low', 'med'] must be a single value from ['critical', 'high', 'low', 'med', 'none'], not a list.\n  - missing 'code_grade' \u2014 every field is required; write one of ['fail', 'grade_2', 'n_a', 'pass'] \u2014 a single enum value, never a list. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'reviewed' \u2014 every field is required; write ",
+ "source": "hook",
+ "syntax_only": false,
+ "text": "\nVERDICT: FAIL\nDIGEST:\n  headline: two findings\n  severity_max: [low, med]\n  findings: [{ kind: form, severity: low, reader: code-reviewer, summary: \"a\" }, { kind: substance, severity: med, reader: code-reviewer, summary: \"b\" }]\n  must_fix: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/notes/review-code.md\n",
+ "why_no_object": ""
+}

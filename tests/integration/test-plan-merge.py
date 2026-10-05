@@ -2887,6 +2887,12 @@ def case_f59_record_panel_carries_existing_findings_byte_for_byte():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def _record_panel_refusal(plan, digest, name, needles):
+    result = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+    check(name, result.returncode == 5 and all(needle in result.stderr for needle in needles),
+          f"rc={result.returncode} {result.stderr!r}")
+
+
 def case_f59_record_panel_refuses_a_finding_without_kind():
     """C2: a finding with no `kind`, or a kind outside substance|form|proportionality, is a
     contract violation — refused before the lock, naming the index, file byte-identical. A
@@ -2897,37 +2903,38 @@ def case_f59_record_panel_refuses_a_finding_without_kind():
         digest = os.path.join(root, "digest.md")
         write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
                                  [{"severity": "high", "reader": "scope", "summary": "no kind"}]))
-        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
-        check("record-panel refuses a finding without kind (exit 5) and names it",
-              r.returncode == 5 and "kind" in r.stderr and "findings[0]" in r.stderr,
-              f"rc={r.returncode} {r.stderr!r}")
+        _record_panel_refusal(plan, digest,
+                              "record-panel refuses a finding without kind (exit 5) and names it",
+                              ("kind", "findings[0]"))
         write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
                                  [{"kind": "style", "severity": "high", "reader": "scope",
                                    "summary": "bad kind"}]))
-        r2 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
-        check("record-panel refuses a kind outside the enum", r2.returncode == 5 and "style" in r2.stderr,
-              f"rc={r2.returncode} {r2.stderr!r}")
+        _record_panel_refusal(plan, digest, "record-panel refuses a kind outside the enum", ("style",))
         write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
                                  [{"kind": "proportionality", "severity": "med", "reader": "scope",
                                    "summary": "no scope"}]))
-        r2b = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
-        check("record-panel refuses a proportionality finding without scope (DEC-228)",
-              r2b.returncode == 5 and "scope" in r2b.stderr and "findings[0]" in r2b.stderr,
-              f"rc={r2b.returncode} {r2b.stderr!r}")
+        _record_panel_refusal(plan, digest,
+                              "record-panel refuses a proportionality finding without scope (DEC-228)",
+                              ("scope", "findings[0]"))
         write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
                                  [{"kind": "proportionality", "scope": "whole", "severity": "med",
                                    "reader": "scope", "summary": "bad scope"}]))
-        r2c = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
-        check("record-panel refuses a proportionality scope outside task|mission",
-              r2c.returncode == 5 and "whole" in r2c.stderr, f"rc={r2c.returncode} {r2c.stderr!r}")
+        _record_panel_refusal(plan, digest,
+                              "record-panel refuses a proportionality scope outside task|mission", ("whole",))
         write(digest, _digest_md([{"reader": "should-not-exist", "status": "skipped"}], []))
-        r3 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
-        check("record-panel refuses a skipped reader without persona and reason",
-              r3.returncode == 5 and "readers[0]" in r3.stderr, f"rc={r3.returncode} {r3.stderr!r}")
+        _record_panel_refusal(plan, digest, "record-panel refuses a skipped reader without persona and reason",
+                              ("readers[0]",))
         write(digest, "no fenced block here\n")
-        r4 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
-        check("record-panel refuses a digest with no DIGEST block", r4.returncode == 5,
-              f"rc={r4.returncode} {r4.stderr!r}")
+        _record_panel_refusal(plan, digest, "record-panel refuses a digest with no DIGEST block", ())
+        # FEAT-1928 SC-07: the durable record is the LAST fenced mapping, never bare text.
+        bare = yaml.safe_dump({"VERDICT": "PASS", "DIGEST": {"readers": _READERS, "findings": []}})
+        write(digest, bare)
+        _record_panel_refusal(plan, digest, "record-panel refuses an unfenced digest (no bare-text fallback)",
+                              ("fenced",))
+        write(digest, _digest_md(_READERS, []) + "```yaml\nVERDICT: PASS\nDIGEST: corrected\n```\n")
+        _record_panel_refusal(plan, digest,
+                              "record-panel reads the last fenced mapping and refuses its non-mapping DIGEST",
+                              ("DIGEST",))
         check("every record-panel refusal leaves the plan byte-identical", read(plan) == before)
     finally:
         shutil.rmtree(root, ignore_errors=True)

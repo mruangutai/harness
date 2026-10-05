@@ -1,0 +1,58 @@
+{
+ "accept": false,
+ "case": "dec156-worktree-narrative: worktree narrative digest is rejected",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0166",
+ "input_sha256": "74a7e948f0d41970",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "feat/auth",
+   "cycles_used": 1,
+   "escalations": null,
+   "expertise_update": [],
+   "files_touched": [
+    "src/auth.ts",
+    "test/auth.spec.ts"
+   ],
+   "headline": "auth endpoints built; qa found a missing refresh-token path",
+   "members": [
+    {
+     "files_touched": [
+      "src/auth.ts"
+     ],
+     "headline": "jwt mw",
+     "persona": "backend-dev",
+     "step": "build",
+     "verdict": "PASS"
+    },
+    {
+     "must_fix": [
+      "refresh path untested"
+     ],
+     "persona": "qa",
+     "severity_max": "high",
+     "step": "qa",
+     "verdict": "FAIL"
+    }
+   ],
+   "must_fix": [
+    "refresh path untested"
+   ],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 3,
+   "team": "build"
+  },
+  "VERDICT": "FAIL",
+  "artifact": "runs/r1/digest.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "Your return is valid, but the digest FILE you wrote (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-worktree-x_etgcmh/.claude/worktrees/FEAT-X/runs/r1/digest.md) in resolved run directory /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-worktree-x_etgcmh/.claude/worktrees/FEAT-X/runs/r1 does not carry the same contract block \u2014 and the file is what a successor context reads (DEC-156). Rewrite it as the \u00a710.4 return (VERDICT / DIGEST / artifact), prose assessment below the block:\n  - no VERDICT: line \u2014 this is a contract violation, not a verdict of any kind.",
+ "source": "hook",
+ "syntax_only": false,
+ "text": "\nVERDICT: FAIL\nDIGEST:\n  headline: auth endpoints built; qa found a missing refresh-token path\n  team: build\n  steps_run: 3\n  cycles_used: 1\n  members:\n    - { step: build, persona: backend-dev, verdict: PASS, headline: \"jwt mw\", files_touched: [src/auth.ts] }\n    - { step: qa, persona: qa, verdict: FAIL, severity_max: high, must_fix: [\"refresh path untested\"] }\n  must_fix: [\"refresh path untested\"]\n  branch: feat/auth\n  files_touched: [src/auth.ts, test/auth.spec.ts]\n  open_questions: []\n  escalations:\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: runs/r1/digest.md\n",
+ "why_no_object": ""
+}

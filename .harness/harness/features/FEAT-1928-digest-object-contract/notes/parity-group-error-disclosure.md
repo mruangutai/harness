@@ -1,0 +1,5 @@
+# FEAT-1928 historical parity capture qualifications
+
+The immutable object-results.json retains three group-level capture exceptions: run_reviewer_severity_enum_cases (removed NULLABLE), run_documented_contract_cases (removed SCHEMAS), and run_t08_revision_proof (removed fixture file). They were not successful group executions and must not be reported as such. The retained per-row capture still contains exactly 291 rows and 14 accept/reject deltas; those counts were checked directly against the JSON. Existing validator-parity.md identifies the T-08 recorded-fixture replay and other bridges. No rows, results, fixtures or intentional-delta declarations were changed.
+
+This is historical comparison evidence, not proof that those three old owning groups ran successfully on the current source. Current behavior is separately covered by the complete final unit/integration runs recorded in notes/build-qa-closure-c4.md. Final independent QA must assess adequacy under the explicitly approved 291/14 SC-06; this qualification does not assert its goal-check verdict.

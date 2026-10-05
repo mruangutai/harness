@@ -1,0 +1,29 @@
+{
+ "accept": false,
+ "case": "FEAT-59 qa omitting fail_first is rejected \u2014 every field is required",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0126",
+ "input_sha256": "35222bec26dfe538",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "suite green",
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'fail_first' \u2014 every field is required; write one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: automated` SC showing the test FAILED before the fix; `[]` only when matrix_ok is n/a or the verdict is not PASS. An absent field is ambiguous; an explicit empty one asserts you looked.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: suite green\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: true\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/qa.md\n",
+ "why_no_object": ""
+}

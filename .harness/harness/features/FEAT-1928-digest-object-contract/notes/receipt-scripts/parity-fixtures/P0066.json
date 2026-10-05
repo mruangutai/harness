@@ -1,0 +1,32 @@
+{
+ "accept": true,
+ "case": "echo shadow: valid real FAIL after a template echo still validates",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0066",
+ "input_sha256": "ed3e35cdff091f13",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [
+    "refresh path"
+   ],
+   "expertise_update": [],
+   "fail_first": [],
+   "failures": 2,
+   "files_touched": [],
+   "headline": "refresh path fails under load",
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "fail"
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS | FAIL | BLOCKED | ESCALATE\nDIGEST:\n  headline: example headline copied from the contract\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: true\n  fail_first: [{ sc: SC-01, evidence: \"notes/qa-r1/fail-first-SC-01.txt\" }]\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/notes/example.md\n\nVERDICT: FAIL\nDIGEST:\n  headline: refresh path fails under load\n  suite: fail\n  failures: 2\n  coverage_gaps: [\"refresh path\"]\n  matrix_ok: true\n  fail_first: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/notes/qa.md\n",
+ "why_no_object": ""
+}

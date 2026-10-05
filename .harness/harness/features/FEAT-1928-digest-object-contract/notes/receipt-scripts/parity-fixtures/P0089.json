@@ -1,0 +1,30 @@
+{
+ "accept": true,
+ "case": "dev-ops task_verify: n/a + BLOCKED is accepted \u2014 refusal, not the carve-out",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0089",
+ "input_sha256": "6b7f28d08113a610",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "applied": [],
+   "change_type": "config",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "x",
+   "open_questions": [],
+   "suite": "n/a",
+   "task": "T-01",
+   "task_verify": "n/a"
+  },
+  "VERDICT": "BLOCKED",
+  "artifact": "a.md"
+ },
+ "persona": "harness-dev-ops",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: BLOCKED\nDIGEST:\n  headline: x\n  change_type: config\n  applied: []\n  suite: n/a\n  task: T-01\n  task_verify: n/a\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

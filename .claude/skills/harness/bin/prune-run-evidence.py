@@ -92,6 +92,11 @@ def _build_parser():
     return parser
 
 
+def _has_review_pin(record):
+    pin = record.get("review_sha")
+    return isinstance(pin, str) and bool(pin.strip()) and pin.strip().lower() not in harness_yaml.PLACEHOLDER_UNSET
+
+
 def _load_record(args):
     """(feature_dir, record) or a refusal string."""
     root = args.root or harness_boundary.root_above(os.getcwd())
@@ -103,11 +108,8 @@ def _load_record(args):
     try:
         record = artifact_accessors.load_feature_json(os.path.join(feature_dir, "feature.json"))
     except artifact_accessors.FeatureJsonError as error:
-        return str(error)
-    if record is None:
-        return f"{args.feature} has no feature.json under {feature_dir}"
-    pin = record.get("review_sha")
-    if not isinstance(pin, str) or not pin.strip() or pin.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
+        return f"{args.feature} has an invalid feature record: {error}"
+    if not _has_review_pin(record):
         return f"{args.feature} has no review_sha — nothing is shipped, so nothing is pruned"
     return feature_dir, record
 

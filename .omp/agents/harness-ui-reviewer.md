@@ -94,31 +94,40 @@ false all-clear.
 
 ## Output
 
-````
-```yaml
-VERDICT: PASS | FAIL
-DIGEST:
-  headline: <one line>
-  mode: A|B                          # ONE KEY PER LINE — two on a line is not YAML,
-  in_scope: <bool>                   # and the trailing one vanishes silently
-  severity_max: none|low|med|high|critical|n/a
-                              # n/a = scoped OUT; nothing in this diff for this
-                              # role to judge. PASS with n/a is legitimate (DEC-173)
-  findings: [{ kind: substance|form|proportionality, scope: task|mission, severity: <sev>, reader: ui-reviewer, summary: "<one line>", why: "<optional>" }]
-                              # kind is REQUIRED (FEAT-59 SC-06): substance = would change shipped
-                              # code; form = document/digest/record shape only, fixed in-run and
-                              # never re-gates; proportionality = more is planned than the change
-                              # needs, and REQUIRES scope: task (one task over-builds — trimmed at
-                              # apply, never a downgrade) or mission (the plan lane exceeds the
-                              # work — the only finding that downgrades, DEC-228). [] if none
-  must_fix: [<item>]
-  states_unspecified: [<state>]      # mode A
-  contract_violations: [{ path: ..., actual: ..., specified: ... }]   # mode B
-  a11y: [<finding>]
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-ui-reviewer-<runid>.md
+Return an object through YieldTool — never fenced YAML text. The field list is the schema,
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/digest-schemas/harness-ui-reviewer.json`; one complete example:
+
+```js
+yield({data: {
+  "VERDICT": "FAIL",
+  "DIGEST": {
+    "headline": "export dialog ships without the empty and error states DESIGN.md specifies",
+    "mode": "B",
+    "in_scope": true,
+    "severity_max": "med",
+    "findings": [{"kind": "substance", "scope": "none", "severity": "med", "reader": "ui-reviewer", "summary": "error state missing from ExportDialog", "why": "DESIGN.md §States requires it"}],
+    "must_fix": ["add ExportDialog error state (ExportDialog.tsx:30)"],
+    "states_unspecified": [],
+    "contract_violations": [{"path": "src/ExportDialog.tsx", "actual": "no error state", "specified": "inline error with retry"}],
+    "a11y": ["close button lacks an accessible name"],
+    "open_questions": [],
+    "files_touched": [],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-ui-reviewer-<runid>.md"
+}})
 ```
-````
+
+- `VERDICT`: `PASS` or `FAIL` only. `mode`: `A|B`; `in_scope`: boolean.
+- `severity_max`: `none|low|med|high|critical|n/a`. `n/a` = scoped OUT; nothing in this diff for
+  this role to judge. PASS with `n/a` is legitimate (DEC-173).
+- `findings`: `[]` if none; every entry carries all of `{kind, scope, severity, reader, summary,
+  why}`. `kind` is REQUIRED (FEAT-59 SC-06): `substance` = would change shipped code; `form` =
+  document/digest/record shape only, fixed in-run and never re-gates; `proportionality` = more is
+  planned than the change needs, and REQUIRES `scope: task` (one task over-builds — trimmed at
+  apply, never a downgrade) or `mission` (the plan lane exceeds the work — the only finding that
+  downgrades, DEC-228). `scope` is always present: `none` for substance and form.
+- `states_unspecified` (mode A) and `contract_violations` (mode B, `{path, actual, specified}`):
+  both always present; `[]` in the other mode.
+- `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
+  none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).

@@ -1,0 +1,29 @@
+{
+ "accept": false,
+ "case": "task_verify's missing-field hint names its real values, not the none wording",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0105",
+ "input_sha256": "c7def2bbcd794fef",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "x",
+   "open_questions": [],
+   "suite": "pass",
+   "task": "T-01",
+   "tests_added": 1
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'task_verify' \u2014 every field is required; write one of ['fail', 'pass'] \u2014 what gets rejected for this role is a placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder itself (`n/a` with FAIL or BLOCKED is the honest refusal), or omit this field entirely if this dispatch carries no PLAN task and you wrote `task: none`. An absent field is ambiguous; an explicit empty one asserts you looked.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: x\n  tests_added: 1\n  suite: pass\n  blocked_on: none\n  task: T-01\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

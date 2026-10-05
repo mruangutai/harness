@@ -1,0 +1,30 @@
+{
+ "accept": false,
+ "case": "FEAT-59 qa PASS + matrix_ok: true + fail_first: [] is REJECTED \u2014 a green suite with no fail-first evidence is not a pass",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0122",
+ "input_sha256": "79e47ea0e513fd61",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "suite green",
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS \u2014 a green suite with no fail-first evidence is not a pass. For each `verify: automated` SC name the test and the evidence it FAILED before the fix ({ sc: SC-NN, evidence: <path or receipt line> }), or return FAIL.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: suite green\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: true\n  fail_first: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/qa.md\n",
+ "why_no_object": ""
+}

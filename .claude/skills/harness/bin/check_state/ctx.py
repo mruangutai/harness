@@ -1,6 +1,7 @@
 """The parse-once runner context and the primitives every family shares. (FEAT-69)"""
 import glob, os, re, subprocess, sys
 import artifact_accessors
+import digest_record
 import harness_boundary
 import harness_yaml
 def read(p):
@@ -351,7 +352,6 @@ class Ctx:
         # verdict cross-check) and the run checkpoints (INV-16/36/15).
         self._records = {}
         self._run_states = {}
-        self._vd = None
         self._gh_ok = {}
         self.spawn_error = None
         self._record_errors = {}
@@ -509,44 +509,14 @@ class Ctx:
         self._run_states[feat] = out
         return out
 
-    def validate_digest(self):
-        """(path, module, import_error) for validate-digest.py, loaded ONCE (INV-15)."""
-        if self._vd is None:
-            vd = os.path.join(self.root, ".agents/skills/harness/bin/validate-digest.py")
-            # INV-15 used to fork one interpreter per completed lead run. Measured on this tree: 103
-            # spawns costing 3.02s of a 3.45s run — 87% of the time the operator waits at every
-            # /harness entry, and it grows with run history because historical digests are re-validated
-            # forever. Load the module ONCE instead. `validate()` is a pure function of (persona, text)
-            # and the CLI lives behind `if __name__ == "__main__":`, so importing runs nothing.
-            # _vd_mod is None when the file is absent or will not import; the loop below then reports
-            # digests as UNCHECKED rather than passing them silently.
-            _vd_mod, _vd_import_err = None, None
-            if os.path.isfile(vd):
-                try:
-                    _vd_mod = harness_boundary.load_repo_module("harness_validate_digest", vd)
-                    if not callable(getattr(_vd_mod, "validate", None)):
-                        _vd_mod, _vd_import_err = None, "it defines no validate() function"
-                except harness_boundary.RepoModuleError as _e:
-                    _vd_mod, _vd_import_err = None, str(_e.cause)
-            self._vd = (vd, _vd_mod, _vd_import_err)
-        return self._vd
-
     def lead_digest(self, dg):
-        """(text, errors) of one lead digest against the lead contract, validated ONCE and
-        shared by INV-15 (the contract) and INV-46 (the verdict cross-check, which only a
-        contract-clean digest can carry). `errors` is None when the validator is unavailable."""
+        """(mapping, error) of one durable lead digest: digest_record's final fenced mapping,
+        read ONCE and shared by INV-15 (the record exists and carries the required keys) and
+        INV-46 (the verdict cross-check). Never validated against the live persona schema — a
+        historical record may carry keys today's closed contract refuses (FEAT-1928 SC-07)."""
         if dg not in self._digests:
-            _vd, _vd_mod, _vd_import_err = self.validate_digest()
-            self._digests[dg] = (None, None) if _vd_mod is None else self._validate_lead(_vd_mod, dg)
+            try:
+                self._digests[dg] = (digest_record.load_record(dg), None)
+            except digest_record.DigestRecordError as _e:
+                self._digests[dg] = (None, str(_e))
         return self._digests[dg]
-
-    @staticmethod
-    def _validate_lead(_vd_mod, dg):
-        """(text, errors) for one digest: the read and the sibling call are the two boundaries."""
-        try:
-            _dtext = open(dg, encoding="utf-8", errors="replace").read()
-            return _dtext, harness_boundary.call_repo_module(_vd_mod, "validate", "lead", _dtext)
-        except OSError as _e:
-            return None, [f"validate() raised: {_e}"]
-        except harness_boundary.RepoModuleError as _e:
-            return None, [f"validate() raised: {_e.cause}"]

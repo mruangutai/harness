@@ -1,0 +1,30 @@
+{
+ "accept": true,
+ "case": "S1/S2/S3 orchestrator child DIGEST",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0282",
+ "input_sha256": "1297cf22aab5ce5d",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "briefing": "none",
+   "cycles_used": 0,
+   "expertise_update": [],
+   "feature": "BUG-1898-inflight-claim-lifecycle",
+   "files_touched": [],
+   "headline": "BUG-1898 live probe child settled",
+   "open_questions": [],
+   "runs": [],
+   "status": "in_progress"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/BUG-1898-inflight-claim-lifecycle/feature.json"
+ },
+ "persona": "harness-orchestrator",
+ "reasons": "digest ok",
+ "source": "claim-lifecycle",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: BUG-1898 live probe child settled\n  feature: BUG-1898-inflight-claim-lifecycle\n  status: in_progress\n  runs: []\n  cycles_used: 0\n  briefing: none\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/BUG-1898-inflight-claim-lifecycle/feature.json",
+ "why_no_object": ""
+}

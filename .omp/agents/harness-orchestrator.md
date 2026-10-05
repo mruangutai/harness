@@ -102,27 +102,37 @@ feature and never stops one.
 
 ## Output
 
-Your return contract (validated by the `SubagentStop` hook — every field required, `[]` for empty,
-`none` for inapplicable):
+Your return contract — an object through YieldTool, never fenced YAML text; every field required,
+`[]` for empty, `none` for inapplicable. The field list is the schema,
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/digest-schemas/harness-orchestrator.json`; one complete example:
 
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line — where the feature stands, not what you did>
-  feature: <FEAT-NN>
-  status: in_progress|in_review|shipped|blocked|awaiting_user
-  runs: [{ id, squad, verdict }]
-  cycles_used: <n>
-  briefing: <path|none>           # <HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md when written
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none — non-empty means the
-                                                             # main session must ask the user
-  files_touched: [<paths>]        # [] if none
-  expertise_update: [<ops>]       # [] if nothing durable
-artifact: <HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/feature.json
+```js
+yield({data: {
+  "VERDICT": "ESCALATE",
+  "DIGEST": {
+    "headline": "FEAT-12 plan is ready; the user must choose the storage backend before build",
+    "feature": "FEAT-12",
+    "status": "awaiting_user",
+    "runs": [{"id": "r-20260929-1", "squad": "plan", "verdict": "PASS"}],
+    "cycles_used": 1,
+    "briefing": "none",
+    "judgement": "none",
+    "open_questions": [{"id": "Q1", "question": "SQLite or Postgres for the job store?", "blocking": true}],
+    "files_touched": [],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/feature.json"
+}})
 ```
-````
+
+- `headline`: where the feature stands, not what you did.
+- `status`: load the legal values from the canonical orchestrator schema, including `rejected` for a rejection. `runs`: `{id, squad, verdict}`.
+- `briefing`: `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md`
+  when written, else `none`.
+- `judgement`: always present; `none`, or `{kind: reject, superseded_by: <n>|none, reason: "<one
+  line, ≤240>"}` when you reject the feature.
+- `open_questions`: `[]` if none — non-empty means the main session must ask the user.
+  `files_touched`: `[]` if none. `expertise_update`: `[]` if nothing durable.
 
 `status: awaiting_user` + non-empty `open_questions` is the question round-trip: the main session
 asks, writes `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/answers-<runid>.md`, and re-delegates you with

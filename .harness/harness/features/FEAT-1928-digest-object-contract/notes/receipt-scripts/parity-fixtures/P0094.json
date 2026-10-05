@@ -1,0 +1,30 @@
+{
+ "accept": false,
+ "case": "dev task: bogus is rejected \u2014 the field is constrained",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0094",
+ "input_sha256": "58e5d30c8e779486",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "x",
+   "open_questions": [],
+   "suite": "pass",
+   "task": "bogus",
+   "task_verify": "pass",
+   "tests_added": 1
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - task='bogus' is not a task id \u2014 write your task's `T-NN` id exactly as your dispatch carries it (T-05), or `none` if this dispatch carries no PLAN task.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: x\n  tests_added: 1\n  suite: pass\n  blocked_on: none\n  task: bogus\n  task_verify: pass\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

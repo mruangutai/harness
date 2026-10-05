@@ -1,0 +1,28 @@
+{
+ "accept": true,
+ "case": "visual-designer deciding no DESIGN.md is needed may say contract: n/a",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0077",
+ "input_sha256": "80842c1faf075d84",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "contract": "n/a",
+   "direction_choices": [],
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "surface is bin/ scripts and config; no end-user visual surface",
+   "mockups": [],
+   "open_questions": []
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/FEAT-01/notes/design-scope.md"
+ },
+ "persona": "harness-visual-designer",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: surface is bin/ scripts and config; no end-user visual surface\n  contract: n/a\n  mockups: []\n  direction_choices: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: .harness/features/FEAT-01/notes/design-scope.md\n",
+ "why_no_object": ""
+}

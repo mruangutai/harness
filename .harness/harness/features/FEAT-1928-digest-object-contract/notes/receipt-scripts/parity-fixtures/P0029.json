@@ -1,0 +1,43 @@
+{
+ "accept": false,
+ "case": "drifted key spelling is caught",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0029",
+ "input_sha256": "10c68d57dacf9118",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [
+    {
+     "kind": "substance",
+     "reader": "code-reviewer",
+     "severity": "high",
+     "summary": "fail-open branch in auth"
+    },
+    {
+     "kind": "substance",
+     "reader": "code-reviewer",
+     "severity": "high",
+     "summary": "unhandled rejection"
+    }
+   ],
+   "headline": "two blocking findings",
+   "must-fix": [
+    "fail-open branch in auth"
+   ],
+   "open_questions": [],
+   "severity_max": "high"
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/notes/review-code.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - key 'must-fix' is drifted spelling of 'must_fix' \u2014 the runner routes on the exact name and will not see it.\n  - missing 'must_fix' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'code_grade' \u2014 every field is required; write one of ['fail', 'grade_2', 'n_a', 'pass'] \u2014 a single enum value, never a list. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'reviewed' \u2014 every field is required; write `[]` if there are none. An absent",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: two blocking findings\n  severity_max: high\n  findings: [{ kind: substance, severity: high, reader: code-reviewer, summary: \"fail-open branch in auth\" }, { kind: substance, severity: high, reader: code-reviewer, summary: \"unhandled rejection\" }]\n  must-fix: [\"fail-open branch in auth\"]\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/notes/review-code.md\n",
+ "why_no_object": ""
+}

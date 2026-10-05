@@ -1,0 +1,30 @@
+{
+ "accept": true,
+ "case": "dev task_verify: n/a + BLOCKED is the honest refusal, accepted",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0087",
+ "input_sha256": "848bb379eba3c96f",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "x",
+   "open_questions": [],
+   "suite": "pass",
+   "task": "T-01",
+   "task_verify": "n/a",
+   "tests_added": 1
+  },
+  "VERDICT": "BLOCKED",
+  "artifact": "a.md"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: BLOCKED\nDIGEST:\n  headline: x\n  tests_added: 1\n  suite: pass\n  blocked_on: none\n  task: T-01\n  task_verify: n/a\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

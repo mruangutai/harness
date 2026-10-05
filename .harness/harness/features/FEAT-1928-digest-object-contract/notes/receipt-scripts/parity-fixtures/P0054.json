@@ -1,0 +1,32 @@
+{
+ "accept": false,
+ "case": "rejected: no judgement mapping is refused naming it",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0054",
+ "input_sha256": "2cd6923e0e63b726",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "briefing": "none",
+   "cycles_used": 0,
+   "expertise_update": [],
+   "feature": "BUG-285-yaml-loader-pin",
+   "files_touched": [],
+   "headline": "superseded by the canonical-reader ticket",
+   "open_questions": [],
+   "runs": [
+    "plan-product"
+   ],
+   "status": "rejected"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/BUG-285-yaml-loader-pin/feature.json"
+ },
+ "persona": "harness-orchestrator",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - status: rejected needs one inline `judgement:` mapping {kind: reject, superseded_by: <issue number or none>, reason: <one line>} \u2014 a reject with no recorded judgement is an unrecorded judgement (DEC-230).",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: superseded by the canonical-reader ticket\n  feature: BUG-285-yaml-loader-pin\n  status: rejected\n  runs: [plan-product]\n  cycles_used: 0\n  briefing: none\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/features/BUG-285-yaml-loader-pin/feature.json\n",
+ "why_no_object": ""
+}

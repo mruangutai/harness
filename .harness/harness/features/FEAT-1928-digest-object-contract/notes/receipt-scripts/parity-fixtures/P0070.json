@@ -1,0 +1,30 @@
+{
+ "accept": false,
+ "case": "suite: n/a with VERDICT PASS is a fail-open and is REJECTED",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0070",
+ "input_sha256": "e2c0c726c56324ae",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "T-01 contains a placeholder at line 4; needs pm revision",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "T-01 is under-specified and was not executed",
+   "open_questions": [],
+   "suite": "n/a",
+   "task": "T-01",
+   "task_verify": "n/a",
+   "tests_added": 0
+  },
+  "VERDICT": "PASS",
+  "artifact": "none"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - suite='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.\n  - task_verify='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: T-01 is under-specified and was not executed\n  tests_added: 0\n  suite: n/a\n  blocked_on: \"T-01 contains a placeholder at line 4; needs pm revision\"\n  task: T-01\n  task_verify: n/a\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: none\n",
+ "why_no_object": ""
+}

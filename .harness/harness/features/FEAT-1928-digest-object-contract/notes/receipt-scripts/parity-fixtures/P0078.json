@@ -1,0 +1,34 @@
+{
+ "accept": true,
+ "case": "pm blocked before sizing may say surface: n/a and risk: n/a",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0078",
+ "input_sha256": "3941e16ff3bff369",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "decisions": 0,
+   "expertise_update": [],
+   "feasibility": "blocked",
+   "files_touched": [],
+   "flags": [],
+   "headline": "cannot scope \u2014 the brief's destination contradicts the codebase map",
+   "needs_approval": false,
+   "open_questions": [],
+   "recommend": "halt",
+   "risk": "n/a",
+   "sc_status": [],
+   "surface": "n/a",
+   "tasks": 0
+  },
+  "VERDICT": "BLOCKED",
+  "artifact": ".harness/features/FEAT-01/notes/pm-block.md"
+ },
+ "persona": "harness-pm",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: BLOCKED\nDIGEST:\n  headline: cannot scope \u2014 the brief's destination contradicts the codebase map\n  feasibility: blocked\n  surface: n/a\n  recommend: halt\n  risk: n/a\n  tasks: 0\n  decisions: 0\n  needs_approval: false\n  flags: []\n  sc_status: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: .harness/features/FEAT-01/notes/pm-block.md\n",
+ "why_no_object": ""
+}

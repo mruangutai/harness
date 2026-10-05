@@ -324,6 +324,13 @@
       "status": "locally_run",
       "runner_note": "requires the pinned omp binary on PATH, live model credentials, and execution from the feature's own linked worktree (cwd = that worktree, whose registry must hold no rows); it starts a real OMP session, so it can never run in CI. It is BUG-1898's merge gate (SC-07): run it live before merging a change to the inflight-claim lifecycle and keep the receipt it appends to the feature's notes/live-omp-probe.md. --dry-run only checks prerequisites and is never a receipt."
     },
+    "digest_object_contract_live": {
+      "detect": "tests/manual/probe-digest-object-contract.py",
+      "exclude": ".claude/worktrees/**",
+      "cmd": "tests/manual/probe-digest-object-contract.py",
+      "status": "locally_run",
+      "runner_note": "requires the pinned omp binary on PATH, bun, live credentials for the chosen provider overlay (--provider anthropic|openai), and execution from the feature's own linked worktree with no live claim for it; it starts one disposable OMP RPC session that dispatches harness-documentor, so it can never run in CI. It is FEAT-1928's SC-04/SC-05 gate: the child must yield explicit null data, receive a retryable tool error, then complete the same job with a valid object under the hook-injected strict schema. It writes notes/live-digest-object-probe.md and its sanitized transcript; --verify re-derives the receipt from that transcript and refuses dry-run, failed or edited receipts. --dry-run only checks prerequisites and is never a receipt."
+    },
     "integration": {
       "detect": "tests/integration/**",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",

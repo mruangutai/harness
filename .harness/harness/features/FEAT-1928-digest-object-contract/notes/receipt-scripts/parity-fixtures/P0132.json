@@ -1,0 +1,39 @@
+{
+ "accept": true,
+ "case": "FEAT-59 fail_first block-mapping entries are accepted",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0132",
+ "input_sha256": "86a1fe5fdac4bc43",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/qa-r1/fail-first-SC-01.txt",
+     "sc": "SC-01"
+    },
+    {
+     "evidence": "receipt: 2 failed, 0 passed at 3f2a9c1~1",
+     "sc": "SC-02"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "suite green",
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: suite green\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: true\n  fail_first:\n    - sc: SC-01\n      evidence: notes/qa-r1/fail-first-SC-01.txt\n    - sc: SC-02\n      evidence: \"receipt: 2 failed, 0 passed at 3f2a9c1~1\"\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/qa.md\n",
+ "why_no_object": ""
+}

@@ -1,0 +1,463 @@
+{
+  "feature_id": "FEAT-1928-digest-object-contract",
+  "branch": "feat/FEAT-1928-digest-object-contract",
+  "pr": 2041,
+  "review_sha": "232685fb902a32795e169895fcf3c9fd154a7991",
+  "cycles_used": 19,
+  "max_total_cycles": 20,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-28T20:07:55+00:00",
+      "tokens": 120966,
+      "ended_at": "2026-09-28T20:57:58+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-product-c1",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-28T20:58:22+00:00",
+      "ended_at": "2026-09-28T20:59:11+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-c1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-28T20:59:20+00:00",
+      "tokens": 125582,
+      "ended_at": "2026-09-28T21:15:09+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-reconcile-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-29T01:34:13+00:00",
+      "tokens": 111225,
+      "ended_at": "2026-09-29T02:03:05+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-reanchor-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-29T19:46:11+00:00",
+      "tokens": 96647,
+      "ended_at": "2026-09-29T20:04:45+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-reanchor-assess-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-29T20:04:56+00:00",
+      "tokens": 56316,
+      "ended_at": "2026-09-29T20:07:49+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "engineering",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-29T20:59:28+00:00",
+      "ended_at": "2026-09-30T00:09:44+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "build-docs-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-30T00:11:23+00:00",
+      "tokens": 74140,
+      "ended_at": "2026-09-30T00:17:48+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "plan-amend-T03-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-30T06:01:22+00:00",
+      "tokens": 110075,
+      "ended_at": "2026-09-30T06:23:20+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "build-docs-product-resume",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-30T13:40:38+00:00",
+      "tokens": 53556,
+      "ended_at": "2026-09-30T13:49:08+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "build-docs-resume-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-30T13:49:22+00:00",
+      "tokens": 50981,
+      "ended_at": "2026-09-30T14:43:20+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "plan-reconcile-T02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-04T03:31:03+00:00",
+      "tokens": 58727,
+      "ended_at": "2026-10-04T03:42:41+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-reconcile-T02b-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-04T03:43:03+00:00",
+      "tokens": 57475,
+      "ended_at": "2026-10-04T03:50:04+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-04T03:49:35+00:00",
+      "tokens": 88183,
+      "ended_at": "2026-10-04T04:17:27+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-04T05:04:14+00:00",
+      "tokens": 148803,
+      "ended_at": "2026-10-04T05:22:39+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "probe-inflight-claim-20261004T155514Z-5782-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-04T15:55:14+00:00",
+      "tokens": 42933,
+      "ended_at": "2026-10-04T16:21:56+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "probe-inflight-claim-20261004T160324Z-16199-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-04T16:03:24+00:00",
+      "tokens": 40374,
+      "ended_at": "2026-10-04T16:21:58+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "probe-inflight-claim-20261004T161135Z-20503-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T16:11:35+00:00",
+      "tokens": 20136,
+      "ended_at": "2026-10-04T16:14:08+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "probe-inflight-claim-20261004T164505Z-64038-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T16:45:05+00:00",
+      "tokens": 20186,
+      "ended_at": "2026-10-04T16:47:53+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "simplify-c4-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-10-04T17:13:43+00:00",
+      "ended_at": "2026-10-04T18:56:09+00:00",
+      "cycles_used": 10,
+      "tokens": null
+    },
+    {
+      "id": "native-proof-rework-main",
+      "squad": "engineering",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T19:04:06+00:00",
+      "ended_at": "2026-10-04T19:20:40+00:00",
+      "cycles_used": 2,
+      "tokens": null
+    },
+    {
+      "id": "risk-grade-final-main",
+      "squad": "engineering",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T19:20:42+00:00",
+      "ended_at": "2026-10-04T19:26:48+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-final-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T19:31:47+00:00",
+      "ended_at": "2026-10-04T21:57:02+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "simplify-upstream-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:03:42+00:00",
+      "ended_at": "2026-10-04T22:08:20+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "probe-inflight-claim-20261004T221050Z-2292-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:10:51+00:00",
+      "tokens": 20168,
+      "ended_at": "2026-10-04T22:14:11+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-upstream-validator",
+      "squad": "validation",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:13:33+00:00",
+      "ended_at": "2026-10-04T22:41:02+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "append-visibility-main",
+      "squad": "engineering",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:42:32+00:00",
+      "ended_at": "2026-10-04T22:44:55+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "simplify-append-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:44:57+00:00",
+      "ended_at": "2026-10-04T22:49:47+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "probe-inflight-claim-20261004T225156Z-23660-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:51:56+00:00",
+      "tokens": 13590,
+      "ended_at": "2026-10-04T22:55:36+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-append-validator",
+      "squad": "validation",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:58:55+00:00",
+      "ended_at": "2026-10-05T00:13:44+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "simplify-finalmerge-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T00:20:28+00:00",
+      "ended_at": "2026-10-05T00:28:17+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "probe-inflight-claim-20261005T002939Z-27904-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T00:29:39+00:00",
+      "tokens": 20264,
+      "ended_at": "2026-10-05T00:32:30+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-finalmerge-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T00:33:58+00:00",
+      "ended_at": "2026-10-05T01:02:02+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-28T20:07:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "new enforcement surfaces (schema files + drift invariant, dispatch refusal, hook write into run dirs); diff spans 8 agent files, 3 skills, ~26 test files; DEC-174 main-session-direct."
+    },
+    {
+      "at": "2026-09-28T20:58:11+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "The signable plan omits dispatch-guard.py and tests/integration/test-dispatch-guard.py despite the operator's explicit DEC-174 enforcement-layer constraint, so shipped coverage would change."
+    },
+    {
+      "at": "2026-09-29T01:34:13+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Operator requested reconciliation of the signed plan against merged main; stale anchors and FEAT-70 ordering require a pending re-signature plan."
+    },
+    {
+      "at": "2026-10-04T03:43:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan-reconcile T-02 receipt path",
+      "reason": "Prior run FAIL only awaits main-session re-signature; main now moves the fresh live receipt to notes/live-digest-object-probe-current.md so T-02 verify/files must name it before signing"
+    },
+    {
+      "at": "2026-10-04T03:49:35+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "simplify read-only four angles",
+      "reason": "Both plan-reconcile FAILs await only main-session re-signature; simplify is the read-only last build step before the pin and does not depend on the signature"
+    },
+    {
+      "at": "2026-10-04T05:04:14+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-build seq-14 names validate as the next step; pin 828b3605 is an ancestor of HEAD and the pin-to-HEAD diff touches only STATE.md and feature.json; cycles 3/10 and rework ruling unspent, so the validate panel proceeds"
+    },
+    {
+      "at": "2026-10-04T05:22:55+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "validate BLOCKED: touched locally_run gate unrun, signed canonical-reader verify exits 1, four more high must-fix; plus T-02 DEC-182 budget 53/50 and origin/main moved past the pin"
+    },
+    {
+      "at": "2026-10-04T16:03:24+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "live inflight lifecycle after trusted binding root repair",
+      "reason": "Native lead failed because authorization CLI passed cwd to a script-directory root resolver; fixed resolver input and corrected the missing-feature fixture."
+    },
+    {
+      "at": "2026-10-04T16:11:35+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "live lifecycle after direct-executable authorization repair",
+      "reason": "The native runner invokes policy executables directly; actual startup failed with EACCES because the new authorization module lacked executable mode and a shebang. Corrected both."
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/approval-2026-10-04.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "c564ab16822f529ecfe97db75ab8f0e029f7971155a736e23983452378d7ae44",
+    "T-02": "dd9f16ff6b09f6d770193661202dc656db2385e3476b42726e7679ac101182ca",
+    "T-03": "950b29b5fd94947144db6e68370b34a9ad246f0302948c11880fb0b4d99fbda2",
+    "T-04": "f264f37b51bab8701e834a414d61e534074d9d86582d7f72a8f178739f65f90d",
+    "T-05": "2a6889c0075ef11fb1d826fa2bb711db200879cbafce9fa1240b8c5a14b6176f"
+  },
+  "github": {
+    "milestone": 93,
+    "parent": 1977,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1978,
+      "T-02": 1979,
+      "T-03": 1980,
+      "T-04": 1992,
+      "T-05": 2021
+    },
+    "source_issues": [
+      1928
+    ],
+    "build_entry": "opened"
+  },
+  "budget_decisions": [
+    {
+      "at": "2026-10-04T18:56:07+00:00",
+      "max_total_cycles": 20,
+      "decision": ".harness/harness/features/FEAT-1928-digest-object-contract/notes/cycle-budget-20-approval.md"
+    }
+  ]
+}

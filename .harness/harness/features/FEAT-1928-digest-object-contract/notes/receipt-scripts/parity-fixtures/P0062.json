@@ -1,0 +1,36 @@
+{
+ "accept": false,
+ "case": "rejected: a missing key is refused",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0062",
+ "input_sha256": "fc6086916ccafeae",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "briefing": "none",
+   "cycles_used": 0,
+   "expertise_update": [],
+   "feature": "BUG-285-yaml-loader-pin",
+   "files_touched": [],
+   "headline": "superseded by the canonical-reader ticket",
+   "judgement": {
+    "kind": "reject",
+    "reason": "x"
+   },
+   "open_questions": [],
+   "runs": [
+    "plan-product"
+   ],
+   "status": "rejected"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/BUG-285-yaml-loader-pin/feature.json"
+ },
+ "persona": "harness-orchestrator",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement is missing ['superseded_by'] \u2014 the reject mapping has exactly the keys ['kind', 'superseded_by', 'reason'].",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: superseded by the canonical-reader ticket\n  feature: BUG-285-yaml-loader-pin\n  status: rejected\n  runs: [plan-product]\n  cycles_used: 0\n  briefing: none\n  judgement: { kind: reject, reason: \"x\" }\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/features/BUG-285-yaml-loader-pin/feature.json\n",
+ "why_no_object": ""
+}

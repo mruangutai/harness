@@ -1,0 +1,41 @@
+{
+ "accept": false,
+ "case": "case_qa_kinds#07",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0268",
+ "input_sha256": "5998f41d04db2c58",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/fail.txt",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "qa result",
+   "kinds": [
+    {
+     "kind": "e2e",
+     "state": "satisfied"
+    }
+   ],
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "kinds[0] names 'e2e', which harness.json test_kinds does not declare.",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: qa result\n  matrix_ok: true\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  fail_first: [{ sc: SC-01, evidence: notes/fail.txt }]\n  kinds: [{ kind: e2e, state: satisfied }]\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/qa.md\n",
+ "why_no_object": ""
+}

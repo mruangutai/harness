@@ -24,7 +24,11 @@ CHECKPOINT_KEYS = {
 # --- INV-15 (DEC-156): a complete lead-hosted run's digest.md is the durable copy a
 # successor reads — it must exist and satisfy the lead digest contract. The SubagentStop
 # hook checks it at source but fails open when it cannot resolve the path (worktrees,
-# cwd drift); this sweep runs from repo root and cannot be fooled.
+# cwd drift); this sweep runs from repo root and cannot be fooled. FEAT-1928 SC-07: the
+# record is digest_record's final fenced mapping; "satisfies the contract" means that mapping
+# exists and carries the required top-level keys — never a live-schema re-validation, since a
+# historical record may hold keys today's closed contract refuses.
+_REQUIRED_RECORD_KEYS = ("VERDICT", "DIGEST", "artifact")
 # --- INV-16 (DEC-154, mechanized): state.yaml is a checkpoint — identifiers, enums,
 # counters, paths, sequence markers. Top-level keys come from this whitelist, and no key
 # repeats (the FEAT-02 audit found `cost:` written twice in 12 of 15 files — the second
@@ -227,14 +231,12 @@ def inv_36(ctx, feat):
         bad.extend(_inv36_run(H, rundir, sdoc))
     return bad, warn
 
-def _inv15_digest_verdict(_dtext):
-    """The digest's VERDICT match, tail-anchored, or None."""
-    # Keep validate-digest.py:1155-1160's tail-anchor semantics byte-for-byte.
-    _anchors = list(re.finditer(r"^\s*VERDICT:", _dtext, re.M))
-    _tail = _dtext[_anchors[-1].start():] if _anchors else _dtext
-    return re.search(r"^\s*VERDICT:\s*(\S+)", _tail, re.M)
+def _inv15_digest_verdict(_record):
+    """The durable record mapping's VERDICT as a stripped string, or None when it has none."""
+    _verdict = _record.get("VERDICT")
+    return None if _verdict is None or isinstance(_verdict, (dict, list)) else str(_verdict).strip()
 
-def _inv46_verdict_cross_check(ctx, feat, rundir, dg, _dtext):
+def _inv46_verdict_cross_check(ctx, feat, rundir, dg, _record):
     """INV-46: the digest verdict against every verdict feature.json records for the run
     (BUG-440; printed under INV-37's number until the 2026-09-21 ruling gave it a row)."""
     bad = []
@@ -244,67 +246,57 @@ def _inv46_verdict_cross_check(ctx, feat, rundir, dg, _dtext):
     _recorded = ctx.run_verdicts(feat)
     if _rid not in _recorded:
         return bad
-    _dm = _inv15_digest_verdict(_dtext)
+    _dm = _inv15_digest_verdict(_record)
     if not _dm:
         return bad
     for _rv in dict.fromkeys(_recorded[_rid]):
-        if _dm.group(1) != _rv:
+        if _dm != _rv:
             bad.append(
                 f"INV-46: {os.path.basename(_feat_dir)} run {_rid}: "
-                f"digest verdict {_dm.group(1)!r} in "
+                f"digest verdict {_dm!r} in "
                 f"{os.path.relpath(dg, H)} differs from feature.json verdict "
                 f"{_rv!r} in {os.path.relpath(os.path.join(_feat_dir, 'feature.json'), H)}; "
                 "the gate does not decide which record is wrong.")
     return bad
 
-def _inv15_validate(ctx, feat, rundir, dg, _vd_mod):
-    bad = []
-    H = ctx.H
-    _dtext, _errs = ctx.lead_digest(dg)
-    if _errs:
-        bad.append(f"{os.path.relpath(dg, H)}: does not satisfy the lead digest "
-                   f"contract — a successor reads this file, not the transcript "
-                   f"(DEC-156). Run bin/validate-digest.py lead on it for reasons.")
-    return bad
+def _inv15_missing_keys(_record):
+    return [_k for _k in _REQUIRED_RECORD_KEYS if _k not in _record]
 
-def _inv15_validator_unavailable(ctx, vd, _vd_import_err):
-    root = ctx.root
-    return (f"INV-15 could not run: {os.path.relpath(vd, root)} "
-            f"{'is missing' if not os.path.isfile(vd) else 'will not import (' + str(_vd_import_err) + ')'}. "
-            f"Digest files are UNCHECKED — likely a partial deploy.")
-
-def _inv15_run(ctx, feat, rundir, sdoc, _vd):
-    bad = []
+def _inv15_validate(ctx, dg):
     H = ctx.H
-    vd, _vd_mod, _vd_import_err = _vd
+    _record, _error = ctx.lead_digest(dg)
+    _missing = _inv15_missing_keys(_record) if _record is not None else []
+    if _record is not None and not _missing:
+        return []
+    _why = _error if _record is None else f"its final fenced mapping lacks {_missing}"
+    return [f"{os.path.relpath(dg, H)}: does not satisfy the lead digest contract — a "
+            f"successor reads this file, not the transcript (DEC-156): {_why}."]
+
+def _inv15_run(ctx, rundir, sdoc):
+    H = ctx.H
     complete = str(sdoc.get("status", "")).strip() == "complete"
     # INV-15: the durable digest.
     _host = str(sdoc.get("host", "")).strip()
     if not (complete and _host in LEADS):
-        return bad
+        return []
     dg = os.path.join(rundir, "digest.md")
     if not os.path.isfile(dg):
-        bad.append(f"{os.path.relpath(rundir, H)}: run is complete but digest.md is "
-                   f"missing — the lead's report artifact never landed (DEC-156).")
-    elif _vd_mod is None:
-        bad.append(_inv15_validator_unavailable(ctx, vd, _vd_import_err))
-    else:
-        bad.extend(_inv15_validate(ctx, feat, rundir, dg, _vd_mod))
-    return bad
+        return [f"{os.path.relpath(rundir, H)}: run is complete but digest.md is "
+                f"missing — the lead's report artifact never landed (DEC-156)."]
+    return _inv15_validate(ctx, dg)
 
 def inv_15(ctx, feat):
     bad, warn = [], []
     H, root, fpath = ctx.H, ctx.root, ctx.fpath
-    _vd = ctx.validate_digest()
     for sy, rel, rundir, sdoc, _error in ctx.run_states(feat):
         if sdoc is None:
             continue
-        bad.extend(_inv15_run(ctx, feat, rundir, sdoc, _vd))
+        bad.extend(_inv15_run(ctx, rundir, sdoc))
     return bad, warn
 
 def _inv46_digest(ctx, sdoc, rundir):
-    """The contract-clean digest of a complete lead-hosted run, or None: INV-15 owns every
-    other outcome (missing digest, unavailable validator, contract failure)."""
+    """(path, record) of a complete lead-hosted run's contract-clean durable digest, or None:
+    INV-15 owns every other outcome (missing digest, no fenced mapping, missing keys)."""
     complete = str(sdoc.get("status", "")).strip() == "complete"
     _host = str(sdoc.get("host", "")).strip()
     if not (complete and _host in LEADS):
@@ -312,8 +304,10 @@ def _inv46_digest(ctx, sdoc, rundir):
     dg = os.path.join(rundir, "digest.md")
     if not os.path.isfile(dg):
         return None
-    _dtext, _errs = ctx.lead_digest(dg)
-    return (dg, _dtext) if _dtext is not None and not _errs else None
+    _record, _error = ctx.lead_digest(dg)
+    if _record is None or _inv15_missing_keys(_record):
+        return None
+    return dg, _record
 
 def inv_46(ctx, feat):
     bad, warn = [], []

@@ -1,0 +1,29 @@
+{
+ "accept": true,
+ "case": "a documentor digest carries neither new field and is still accepted",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0102",
+ "input_sha256": "f2b5da57c27b80fe",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "docs_updated": [
+    ".harness/harness/docs/SPEC.md"
+   ],
+   "expertise_update": [],
+   "files_touched": [],
+   "gaps": [],
+   "headline": "x",
+   "open_questions": []
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-documentor",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: x\n  docs_updated: [.harness/harness/docs/SPEC.md]\n  gaps: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

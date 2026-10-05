@@ -1,0 +1,79 @@
+schema_version: 2
+run_id: validate-final-validator
+run_uid: cfef9c92237f457c9aa30256a603f2d8
+feature: FEAT-1928-digest-object-contract
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: qa
+    persona: qa
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-qa-final.md
+    note: Recovered the completed original reader; no redispatch or new verification.
+    evidence:
+      review_sha: 83746a425d692f2096f53d343594f1ee9ed8890c
+      matrix_ok: true
+      unit_files: 46
+      integration_files: 74
+      parity_cases: 291
+      approved_deltas: 14
+      unplanned_deltas: 0
+      receipt_checks: 33
+  - id: code
+    persona: code-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-code-reviewer-final.md
+    note: Original medium fence advisory and eleven accepted grade-2 costs retained.
+    evidence:
+      review_sha: 83746a425d692f2096f53d343594f1ee9ed8890c
+      review_base: af2a958ab06c0d6fc026b363b59fc3147e3982f1
+      current_merge_base: 5a2657371d5641a3022a800947c7c9ab0f863164
+      code_grade: grade_2
+      grade_2_functions: 11
+      severity_max: med
+  - id: security
+    persona: security-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-security-reviewer-final.md
+    note: Original high unauthorized-append finding closed, not downgraded.
+    evidence:
+      review_sha: 83746a425d692f2096f53d343594f1ee9ed8890c
+      severity_max: none
+  - id: ui
+    persona: ui-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-ui-reviewer-final.md
+    note: Original high contrast finding closed; source-only limits and low wording advisory retained.
+    evidence:
+      review_sha: 83746a425d692f2096f53d343594f1ee9ed8890c
+      severity_max: low
+  - id: goalcheck
+    persona: pm
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/research-FEAT-1928-digest-object-contract-goalcheck-validate-final.md
+    note: All eight approved SCs and four perspectives pass; not ship authorization.
+    evidence:
+      review_sha: 83746a425d692f2096f53d343594f1ee9ed8890c
+      sc_met: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08]
+      perspectives_pass: [operator, orchestrator, code_maintainer, reader]

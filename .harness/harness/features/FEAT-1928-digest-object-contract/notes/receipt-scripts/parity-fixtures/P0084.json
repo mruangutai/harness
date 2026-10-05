@@ -1,0 +1,30 @@
+{
+ "accept": false,
+ "case": "dev task_verify: n/a + PASS is rejected",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0084",
+ "input_sha256": "cfa326bf970febad",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "x",
+   "open_questions": [],
+   "suite": "pass",
+   "task": "T-01",
+   "task_verify": "n/a",
+   "tests_added": 1
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: x\n  tests_added: 1\n  suite: pass\n  blocked_on: none\n  task: T-01\n  task_verify: n/a\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

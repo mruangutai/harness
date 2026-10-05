@@ -1,0 +1,16 @@
+{
+ "accept": true,
+ "case": "F6 missing agent_type key is loud, not silent",
+ "counterpart": "wrong-type",
+ "exit": 0,
+ "id": "P0169",
+ "input_sha256": "85738f8f9a7f1b04",
+ "mode": "hook",
+ "object": null,
+ "persona": null,
+ "reasons": "check-digest: hook payload has no agent_type \u2014 passing through. If this is unexpected, the payload key may have been renamed and this hook is silently no-oping project-wide.",
+ "source": "hook",
+ "syntax_only": true,
+ "text": "whatever",
+ "why_no_object": "not a mapping (str)"
+}

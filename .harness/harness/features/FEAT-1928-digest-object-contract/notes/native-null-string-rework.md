@@ -1,0 +1,5 @@
+# FEAT-1928 fresh native scenario rework
+
+The clean-source invocation at HEAD 8513e3ff completed 17/18 checks, not PASS. Its first raw arguments were {"type":"result","data":"null"}: the string, not the required bare JSON null token. Native OMP rejected it, and the same job accepted a subsequent valid object and completed. This does not exercise the explicit-null acceptance criterion. The original failing receipt/transcript are preserved as live-digest-object-probe-null-string-fail.md and .transcript.jsonl; their original internal current-transcript pointer identifies the original capture name, while the preserved transcript retains its bytes/hash.
+
+The existing task prompt already explicitly requires an unquoted null token. No production code or assertion is changed, no failed check is suppressed, and the failed run is not called a passing null test. A separate fresh credentialled scenario must actually exercise explicit null before ship. Main records this as one real proof-rework cycle, independently from quality inspection.

@@ -1,8 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  DIGEST_PERSONAS,
+  DIGEST_PERSONA_ALIASES,
+  DigestSchemaBundleError,
+  canonicalDigestPersona,
+  loadDigestSchemaBundle,
+} from "../../.omp/extensions/digest-schema.ts";
 import {
   DEFAULT_CONTEXT_WARN_TOKENS,
   DEFAULT_PLAN_PHASE_WARN_MINUTES,
@@ -11,7 +18,6 @@ import {
   featureJsonPath,
   gatePath,
   extractEditPaths,
-  normalizeYieldInput,
   normalizeTaskDispatches,
   readContextAnchor,
   registerHarnessHooks,
@@ -20,7 +26,6 @@ import {
   resolveSessionFile,
   spendAdvisoryFor,
   spendAdvisoryText,
-  yieldContractText,
 } from "../../.omp/extensions/harness-hooks.ts";
 
 function ompContext(cwd: string, id: string, parentId?: string, sessionId = `session-${id}`) {
@@ -36,6 +41,12 @@ function ompContext(cwd: string, id: string, parentId?: string, sessionId = `ses
     sessionManager: { getSessionId: () => sessionId },
   };
 }
+
+// FEAT-1928: a yield's `data` IS the digest object; the validator receives it unmodified.
+const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
+const RETURN_THE_OBJECT = "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}})";
+// The canonical schema directory the hook loads from: the gate tree this extension ships in.
+const DIGEST_SCHEMA_DIR = gatePath("digest-schemas");
 
 describe("detectHarnessAgent", () => {
   test("finds the canonical machine-readable marker", () => {
@@ -75,74 +86,6 @@ describe("extractEditPaths", () => {
 
   test("returns no paths for a non-patch input", () => {
     expect(extractEditPaths("not a patch")).toEqual([]);
-  });
-});
-
-describe("yieldContractText", () => {
-  test("unwraps text content", () => {
-    expect(yieldContractText({ data: { content: "VERDICT: PASS" } })).toBe("VERDICT: PASS");
-  });
-
-  test("passes string data through as multi-line digest text (#1960)", () => {
-    const digest = "VERDICT: PASS\nDIGEST:\n  headline: x\nartifact: a.md\n";
-    expect(yieldContractText({ type: null, data: digest })).toBe(digest);
-    expect(yieldContractText({ type: null, data: "" }, "VERDICT: FAIL")).toBe("VERDICT: FAIL");
-  });
-
-  test("renders a structured digest for the validator", () => {
-    const rendered = yieldContractText({
-      data: {
-        VERDICT: "PASS",
-        DIGEST: {
-          headline: "No changes.",
-          files_touched: [],
-          open_questions: [],
-        },
-        artifact: "none",
-      },
-    });
-    expect(rendered).toContain("VERDICT: PASS");
-    expect(rendered).toContain("DIGEST:");
-    expect(rendered).toContain("  files_touched: []");
-    expect(rendered).toContain("artifact: none");
-  });
-
-  test("uses the last assistant message for an omitted yield payload", () => {
-    expect(yieldContractText({}, "VERDICT: PASS")).toBe("VERDICT: PASS");
-  });
-
-  test("rewrites an empty yield to explicit last-turn data", () => {
-    expect(normalizeYieldInput({ result: {} }, "VERDICT: PASS")).toEqual({
-      result: { data: { content: "VERDICT: PASS" } },
-    });
-  });
-
-  test("keeps explicit yield data unchanged", () => {
-    const input = { result: { data: { VERDICT: "PASS" } } };
-    expect(normalizeYieldInput(input, "ignored")).toEqual(input);
-  });
-
-  test("keeps the current top-level yield envelope unchanged", () => {
-    const input = { data: { VERDICT: "PASS" } };
-    expect(normalizeYieldInput(input, "ignored")).toEqual(input);
-  });
-
-  // #1676: the five "yield with null data" exits. The digest was complete in the assistant
-  // text; the envelope named `data` and carried nothing under it, and the repair keyed on the
-  // key rather than the value, so the host settled a finished run as failed.
-  test("repairs a yield whose data or error key is present but hollow", () => {
-    const repaired = { result: { data: { content: "VERDICT: PASS" } } };
-    for (const envelope of [{ data: null }, { data: "" }, { data: {} }, { data: [] },
-                            { error: null }, { data: null, error: "  " }]) {
-      expect(normalizeYieldInput({ result: envelope }, "VERDICT: PASS")).toEqual(repaired);
-    }
-  });
-
-  test("keeps a real error envelope, and leaves a hollow one alone with nothing to repair from", () => {
-    const failed = { result: { error: "tool crashed" } };
-    expect(normalizeYieldInput(failed, "VERDICT: PASS")).toEqual(failed);
-    const hollow = { result: { data: null } };
-    expect(normalizeYieldInput(hollow, "   ")).toEqual(hollow);
   });
 });
 
@@ -486,7 +429,7 @@ describe("OMP task lifecycle adapter", () => {
         task: "HARNESS-FEATURE: FEAT-43-long-run\nrun the feature",
       },
     }, mainCtx);
-    expect(dispatched).toBeUndefined();
+    expect(dispatched?.block).toBeUndefined();
     const dispatchCall = calls.find((call) => call.script === "dispatch-guard.py");
     expect(dispatchCall?.payload.agent_type).toBe("Main");
     expect(dispatchCall?.payload.harness_agent_id).toBe("Main");
@@ -529,7 +472,7 @@ describe("OMP task lifecycle adapter", () => {
         task: "HARNESS-FEATURE: FEAT-43-long-run\nimplement it",
       },
     }, parentCtx);
-    expect(dispatched).toBeUndefined();
+    expect(dispatched?.block).toBeUndefined();
     const parentAttach = calls.find((call) =>
       call.script === "inflight_registry.py"
       && call.args[0] === "attach"
@@ -674,7 +617,7 @@ describe("OMP task lifecycle adapter", () => {
       toolName: "yield", input: { result: {} },
     }, ctx);
     expect(result?.block).toBe(true);
-    expect(result?.reason).toContain("VERDICT");
+    expect(result?.reason).toContain(RETURN_THE_OBJECT);
     expect(calls.filter((call) => call.script === "validate-digest.py")).toHaveLength(0);
   });
 
@@ -820,7 +763,7 @@ describe("OMP task lifecycle adapter", () => {
       call.script === "inflight_registry.py" && call.args[0] === "attach"
     )).toHaveLength(2);
     expect(await handlers.get("tool_call")?.({
-      toolName: "yield", input: { data: { content: "VERDICT: PASS" } },
+      toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx)).toBeUndefined();
   });
 
@@ -842,7 +785,7 @@ describe("OMP task lifecycle adapter", () => {
       message: { role: "user", content: [{ type: "text", text: "HARNESS-REVIEW-PIN: deadbeef" }] },
     }, ctx);
     await handlers.get("tool_call")?.({
-      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+      toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
     expect(validation?.payload.harness_review_pin).toBe("ab0c9987");
@@ -854,7 +797,7 @@ describe("OMP task lifecycle adapter", () => {
     const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
     await start(handlers);
     await handlers.get("tool_call")?.({
-      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+      toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
     expect(validation?.payload.harness_review_pin).toBeUndefined();
@@ -878,7 +821,7 @@ describe("OMP task lifecycle adapter", () => {
       message: { role: "user", content: [{ type: "text", text: "HARNESS-MISSION: build" }] },
     }, ctx);
     await handlers.get("tool_call")?.({
-      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+      toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
     expect(validation?.payload.harness_mission).toBe("distill");
@@ -890,7 +833,7 @@ describe("OMP task lifecycle adapter", () => {
     const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
     await start(handlers);
     await handlers.get("tool_call")?.({
-      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+      toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
     expect(validation?.payload.harness_mission).toBeUndefined();
@@ -913,7 +856,7 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
-    expect(await handlers.get("tool_call")?.({
+    expect((await handlers.get("tool_call")?.({
       toolName: "task",
       toolCallId: "call-mixed",
       input: {
@@ -923,7 +866,7 @@ describe("OMP task lifecycle adapter", () => {
           { agent: "scout", task: "passthrough" },
         ],
       },
-    }, ctx)).toBeUndefined();
+    }, ctx))?.block).toBeUndefined();
     expect(calls.filter((call) =>
       call.script === "inflight_registry.py" && call.args[0] === "release"
     )).toHaveLength(0);
@@ -1611,6 +1554,293 @@ describe("OMP task lifecycle adapter", () => {
     const { post } = await rootedHooks();
     expect(await post("write", { path: "notes/a.md", content: "x" })).toBeUndefined();
     expect(await post("edit", { input: "[notes/a.md#1A2B]\nPUT 1:\n+x" })).toBeUndefined();
+  });
+
+  // --- FEAT-1928: the hook is the one schema authority for a harness dispatch, and a yield's
+  // `data` object is the digest the validator receives.
+  const leadCtx = () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
+  const mainCtx = () => ompContext("/repo", "Main", undefined, "main-session");
+  const guardCalls = (calls: Array<{ script: string }>) =>
+    calls.filter((call) => call.script === "dispatch-guard.py");
+  const digestCalls = (calls: Array<{ script: string }>) =>
+    calls.filter((call) => call.script === "validate-digest.py");
+  const ASSIGNMENT = "HARNESS-FEATURE: FEAT-43-long-run\nbuild it";
+
+  test("refuses outputSchema or schemaMode at the top level and in any item, naming it, the main session included", async () => {
+    for (const dispatcher of ["lead", "main"]) {
+      const { handlers, calls } = fixture();
+      const ctx = dispatcher === "main" ? mainCtx() : leadCtx();
+      if (dispatcher === "main") {
+        await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, ctx);
+      } else {
+        await start(handlers, ctx);
+      }
+      const flat = await handlers.get("tool_call")?.({
+        toolName: "task", toolCallId: "flat",
+        input: { agent: "harness-backend-dev", task: ASSIGNMENT, outputSchema: { type: "object" } },
+      }, ctx);
+      expect(flat?.block).toBe(true);
+      expect(flat?.reason).toContain("never carry outputSchema:");
+      const batch = await handlers.get("tool_call")?.({
+        toolName: "task", toolCallId: "batch",
+        input: {
+          context: "shared",
+          schemaMode: "strict",
+          tasks: [
+            { agent: "harness-backend-dev", task: ASSIGNMENT },
+            { agent: "scout", task: "look", schemaMode: "permissive" },
+          ],
+        },
+      }, ctx);
+      expect(batch?.block).toBe(true);
+      expect(batch?.reason).toContain("never carry schemaMode, tasks[1].schemaMode:");
+      expect(guardCalls(calls)).toEqual([]);
+    }
+  });
+
+  test("injects every one of the 16 personas' own strict bundle, leaving other targets and fields alone", async () => {
+    const { handlers, calls } = fixture();
+    await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    const scout = { agent: "scout", name: "Look", task: "look" };
+    const tasks = [
+      ...DIGEST_PERSONAS.map((agent) => ({ agent, task: ASSIGNMENT, tools: ["read"] })),
+      scout,
+    ];
+    const result = await handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "all", input: { context: "shared", tasks },
+    }, mainCtx());
+    expect(result?.block).toBeUndefined();
+    const revised = result?.input as { context: string; tasks: Array<Record<string, unknown>> };
+    expect(revised.context).toBe("shared");
+    expect(revised.tasks).toHaveLength(17);
+    DIGEST_PERSONAS.forEach((persona, index) => {
+      const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona);
+      expect(revised.tasks[index]).toEqual({ ...tasks[index], outputSchema: bundle, schemaMode: "strict" });
+      expect(revised.tasks[index].outputSchema).toBe(bundle);
+    });
+    expect(revised.tasks[16]).toBe(scout);
+    // The governed preflight still judges every harness target of the accepted call.
+    expect(guardCalls(calls)).toHaveLength(17);
+  });
+
+  test("injects into a flat governed dispatch and keeps its other fields", async () => {
+    const { handlers } = fixture();
+    await start(handlers);
+    const input = { agent: "harness-qa", name: "Check", task: ASSIGNMENT, context: "ctx" };
+    const result = await handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "flat", input,
+    }, leadCtx());
+    expect(result).toEqual({
+      input: { ...input, outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa"), schemaMode: "strict" },
+    });
+  });
+
+  test("refuses a harness dispatch whose schema cannot load, before any claim, with no loose fallback", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const result = await handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "nobody",
+      input: {
+        context: "shared",
+        tasks: [
+          { agent: "harness-backend-dev", task: ASSIGNMENT },
+          { agent: "harness-nobody", task: ASSIGNMENT },
+        ],
+      },
+    }, leadCtx());
+    expect(result).toEqual({
+      block: true,
+      reason: expect.stringContaining('unknown persona "harness-nobody"'),
+    });
+    expect(guardCalls(calls)).toEqual([]);
+  });
+
+  test("hands the yield's data to validate-digest.py unmodified as digest_object", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const data = {
+      VERDICT: "FAIL",
+      DIGEST: { headline: "x", findings: [{ kind: "form", note: "a: b" }], empty: {} },
+      artifact: "notes/x.md",
+    };
+    await handlers.get("tool_call")?.({ toolName: "yield", input: { data } }, leadCtx());
+    const [validation] = digestCalls(calls);
+    expect(validation.payload.digest_object).toEqual(data);
+    expect(validation.payload).not.toHaveProperty("last_assistant_message");
+  });
+
+  test("blocks a yield whose data is not one object, even with a digest in the last assistant message", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const digestText = "VERDICT: PASS\nDIGEST:\n  headline: x\nartifact: none\n";
+    await handlers.get("message_end")?.({
+      message: { role: "assistant", content: [{ type: "text", text: digestText }] },
+    }, leadCtx());
+    for (const input of [
+      { data: digestText }, { data: null }, { data: [PASS_DIGEST] }, {},
+      { result: { data: PASS_DIGEST } }, { error: "gave up" },
+    ]) {
+      expect(await handlers.get("tool_call")?.({ toolName: "yield", input }, leadCtx())).toEqual({
+        block: true, reason: expect.stringContaining(RETURN_THE_OBJECT),
+      });
+    }
+    expect(digestCalls(calls)).toEqual([]);
+  });
+
+  test("agent_end validates nothing: the yield is the one digest gate", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    await handlers.get("agent_end")?.({
+      messages: [{ role: "assistant", content: "VERDICT: PASS\nDIGEST:\n  headline: x\n" }],
+    }, leadCtx());
+    expect(digestCalls(calls)).toEqual([]);
+  });
+});
+
+// FEAT-1928: the in-process provider adapter over bin/digest-schemas/.
+describe("loadDigestSchemaBundle", () => {
+  const STRUCTURAL = new Set(["type", "properties", "required", "additionalProperties", "items", "enum", "anyOf"]);
+  const TYPES = new Set(["object", "array", "string", "integer", "number", "boolean", "null"]);
+
+  // Every keyword anywhere in a bundle must be structural, `additionalProperties` only ever
+  // false, every type one of the seven, and every enum non-empty; a `$ref` is off the whitelist
+  // like any other. The OpenAI strict rules the bundle itself must meet ride the same walk:
+  // every array declares `items`, and every property, element and anyOf alternative declares
+  // a type, an enum or an anyOf (so `items: {}` and `items: true` are violations).
+  function offWhitelist(node: unknown, at: string): string[] {
+    if (!node || typeof node !== "object" || Array.isArray(node)) return [`${at}: not a schema`];
+    const schema = node as Record<string, unknown>;
+    const types = schema.type === undefined ? [] : Array.isArray(schema.type) ? schema.type : [schema.type];
+    const own = types.includes("array") && !("items" in schema) ? [`${at}: array without items`] : [];
+    const typedChild = (child: unknown, where: string): string[] => {
+      const shaped = !!child && typeof child === "object" && !Array.isArray(child)
+        && ["type", "enum", "anyOf"].some((keyword) => keyword in child);
+      return [...(shaped ? [] : [`${where}: untyped`]), ...offWhitelist(child, where)];
+    };
+    return [...own, ...Object.entries(schema).flatMap(([keyword, value]) => {
+      const where = `${at}/${keyword}`;
+      if (!STRUCTURAL.has(keyword)) return [where];
+      if (keyword === "additionalProperties") return value === false ? [] : [where];
+      if (keyword === "type") {
+        return (Array.isArray(value) ? value : [value]).every((name) => TYPES.has(name as string)) ? [] : [where];
+      }
+      if (keyword === "enum") return Array.isArray(value) && value.length ? [] : [where];
+      if (keyword === "properties") {
+        return Object.entries(value as Record<string, unknown>)
+          .flatMap(([name, child]) => typedChild(child, `${where}/${name}`));
+      }
+      if (keyword === "items") return typedChild(value, where);
+      if (keyword === "anyOf") return (value as unknown[]).flatMap((branch, index) => typedChild(branch, `${where}/${index}`));
+      return [];
+    })];
+  }
+
+  function schemaDir(files: Record<string, unknown>): string {
+    const dir = mkdtempSync(join(tmpdir(), "feat1928-schemas-"));
+    for (const [name, content] of Object.entries(files)) {
+      writeFileSync(join(dir, name), typeof content === "string" ? content : JSON.stringify(content));
+    }
+    return dir;
+  }
+
+  const load = (files: Record<string, unknown>) => () => loadDigestSchemaBundle(schemaDir(files), "harness-qa");
+
+  test("loads all 16 personas as ref-free bundles over the structural whitelist only", () => {
+    expect(DIGEST_PERSONAS).toHaveLength(16);
+    expect(DIGEST_PERSONAS.flatMap((persona) =>
+      offWhitelist(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona), persona))).toEqual([]);
+    for (const persona of DIGEST_PERSONAS) {
+      expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona).type).toBe("object");
+    }
+  });
+
+  test("takes every field and required set from the persona's JSON file", () => {
+    for (const persona of DIGEST_PERSONAS) {
+      const file = JSON.parse(readFileSync(join(DIGEST_SCHEMA_DIR, `${persona}.json`), "utf8"));
+      // Every persona file is a closed {VERDICT, DIGEST, artifact} object schema.
+      type PersonaShape = {
+        required: string[];
+        additionalProperties?: boolean;
+        properties: { DIGEST: { required: string[]; properties: Record<string, unknown> } };
+      };
+      const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona) as unknown as PersonaShape;
+      expect(bundle.required).toEqual(file.required);
+      expect(bundle.additionalProperties).toBe(false);
+      expect(bundle.properties.DIGEST.required).toEqual(file.properties.DIGEST.required);
+      expect(Object.keys(bundle.properties.DIGEST.properties)).toEqual(Object.keys(file.properties.DIGEST.properties));
+    }
+  });
+
+  test("a repeat load, an alias and another path to the same directory return the cached bundle", () => {
+    const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev");
+    expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev")).toBe(bundle);
+    expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "main-session")).toBe(bundle);
+    expect(loadDigestSchemaBundle(join(DIGEST_SCHEMA_DIR, "..", "digest-schemas"), "backend-dev")).toBe(bundle);
+  });
+
+  test("canonicalises personas with digest_schema.py's own table", () => {
+    const bin = join(DIGEST_SCHEMA_DIR, "..");
+    const proc = spawnSync("python3", ["-c", [
+      "import json, sys",
+      `sys.path.insert(0, ${JSON.stringify(bin)})`,
+      "import digest_schema",
+      "print(json.dumps({'personas': list(digest_schema.PERSONAS), 'aliases': digest_schema.ALIASES}))",
+    ].join("\n")], { encoding: "utf8" });
+    expect(proc.stderr).toBe("");
+    expect(JSON.parse(proc.stdout)).toEqual({ personas: [...DIGEST_PERSONAS], aliases: { ...DIGEST_PERSONA_ALIASES } });
+    expect(canonicalDigestPersona("qa")).toBe("harness-qa");
+    expect(canonicalDigestPersona("lead")).toBe("harness-eng-lead");
+    expect(() => canonicalDigestPersona("harness-nobody")).toThrow(DigestSchemaBundleError);
+  });
+
+  test("names the file and pointer of malformed JSON, an unresolved or missing reference, and an unsupported keyword", () => {
+    expect(load({ "harness-qa.json": "{not json" }))
+      .toThrow(/^digest schema harness-qa\.json#: malformed JSON/);
+    expect(load({
+      "harness-qa.json": { type: "object", properties: { x: { $ref: "common.json#/$defs/missing" } } },
+      "common.json": { $defs: {} },
+    })).toThrow('digest schema harness-qa.json#/properties/x: unresolved reference "common.json#/$defs/missing"');
+    expect(load({ "harness-qa.json": { type: "object", properties: { x: { $ref: "absent.json#/x" } } } }))
+      .toThrow(/^digest schema harness-qa\.json#\/properties\/x: cannot read .*absent\.json \(ENOENT\)/);
+    expect(load({
+      "harness-qa.json": { type: "object", properties: { x: { type: "string", oneOf: [{ type: "string" }] } } },
+    })).toThrow('digest schema harness-qa.json#/properties/x/oneOf: unsupported keyword "oneOf"');
+    expect(load({ "harness-qa.json": { type: "object", additionalProperties: true } }))
+      .toThrow("unsupported additionalProperties true");
+    expect(load({ "harness-qa.json": { type: "object", properties: { x: { $ref: "https://example.com/s.json#/a" } } } }))
+      .toThrow(/unsupported reference/);
+    // OpenAI strict rejects the whole yield tool on one array without items ("array schema
+    // missing items", measured live on Codex), so the file is refused before it can ship.
+    expect(load({ "harness-qa.json": { type: "object", properties: { x: { type: "array" } } } }))
+      .toThrow("digest schema harness-qa.json#/properties/x: array schema without items");
+    expect(load({
+      "harness-qa.json": { type: "object", properties: { x: { $ref: "common.json#/$defs/list" } } },
+      "common.json": { $defs: { list: { type: ["string", "array"] } } },
+    })).toThrow("digest schema common.json#/$defs/list: array schema without items");
+    expect(load({ "harness-qa.json": { type: "object", properties: { x: { type: "array", items: {} } } } }))
+      .toThrow("digest schema harness-qa.json#/properties/x/items: array items admits any value");
+    expect(load({ "harness-qa.json": { type: "object", properties: { x: { type: "array", items: true } } } }))
+      .toThrow("digest schema harness-qa.json#/properties/x/items: array items must be a typed schema, got true");
+    expect(load({ "harness-qa.json": { type: "object", properties: { x: { pattern: "\\S" } } } }))
+      .toThrow("digest schema harness-qa.json#/properties/x: a property admits any value");
+  });
+
+  test("refuses a reference cycle and a reference that escapes the schema directory", () => {
+    expect(load({
+      "harness-qa.json": { type: "object", properties: { x: { $ref: "common.json#/$defs/a" } } },
+      "common.json": { $defs: { a: { $ref: "#/$defs/b" }, b: { $ref: "#/$defs/a" } } },
+    })).toThrow(/reference cycle/);
+    const outside = mkdtempSync(join(tmpdir(), "feat1928-outside-"));
+    writeFileSync(join(outside, "shared.json"), JSON.stringify({ $defs: { a: { type: "string" } } }));
+    const dir = schemaDir({
+      "harness-qa.json": { type: "object", properties: { x: { $ref: `../${outside.split("/").pop()}/shared.json#/$defs/a` } } },
+    });
+    expect(() => loadDigestSchemaBundle(dir, "harness-qa")).toThrow(/escapes the schema directory/);
+    const linked = schemaDir({
+      "harness-qa.json": { type: "object", properties: { x: { $ref: "common.json#/$defs/a" } } },
+    });
+    symlinkSync(join(outside, "shared.json"), join(linked, "common.json"));
+    expect(() => loadDigestSchemaBundle(linked, "harness-qa")).toThrow(/escapes the schema directory/);
   });
 });
 
@@ -2344,7 +2574,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
   const write = (path = "src/x.ts") => ({
     toolName: "write", toolCallId: `w-${path}`, input: { path, content: "x" },
   });
-  const blockedDigest = "VERDICT: BLOCKED\nDIGEST: cannot claim this run\nARTIFACT: none";
+  const blockedDigest = { VERDICT: "BLOCKED", DIGEST: { headline: "cannot claim this run" }, artifact: "none" };
 
   async function lead(w: ReturnType<typeof world>) {
     const s = session(w.runner);
@@ -2360,10 +2590,10 @@ describe("BUG-1898 run-start claims on the real registry", () => {
   test("a first run binds its parent's receipt to its exact id before its first write", async () => {
     const w = world();
     const parent = await lead(w);
-    expect(await parent.s.handlers.get("tool_call")?.({
+    expect((await parent.s.handlers.get("tool_call")?.({
       toolName: "task", toolCallId: "t1",
       input: { agent: "harness-backend-dev", name: "Dev", task: ASSIGN },
-    }, parent.ctx)).toBeUndefined();
+    }, parent.ctx))?.block).toBeUndefined();
     expect(governed(w.root).map((row) => row.agent_id)).toEqual([undefined]);
 
     const child = session(w.runner);
@@ -2405,6 +2635,25 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     const held = await child.handlers.get("tool_call")?.(write(), childCtx) as
       { block?: boolean } | undefined;
     expect(held?.block).toBe(true);
+  });
+
+  // FEAT-1928: schema refusal and schema loading finish before dispatch-guard.py runs, so a
+  // schema-refused dispatch leaves the real registry exactly as it found it.
+  test("a schema-refused dispatch records no claim", async () => {
+    const w = world();
+    const parent = await lead(w);
+    for (const input of [
+      { agent: "harness-qa", name: "Check", task: ASSIGN, outputSchema: { type: "object" } },
+      { context: "shared", tasks: [{ agent: "harness-qa", name: "Check", task: ASSIGN, schemaMode: "permissive" }] },
+      { agent: "harness-nobody", name: "Nobody", task: ASSIGN },
+    ]) {
+      const verdict = await parent.s.handlers.get("tool_call")?.({
+        toolName: "task", toolCallId: "refused", input,
+      }, parent.ctx);
+      expect(verdict?.block).toBe(true);
+    }
+    expect(w.calls.filter((call) => call.script === "dispatch-guard.py")).toEqual([]);
+    expect(governed(w.root)).toEqual([]);
   });
 
   // #1908: a parked agent is revived cold — OMP builds a NEW session from its session file,
@@ -2471,7 +2720,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     await begin(revived, ctx, "harness-qa", "continue where you left off");
     expect(await revived.handlers.get("tool_call")?.(write(), ctx)).toBeUndefined();
     await revived.handlers.get("tool_call")?.({
-      toolName: "yield", input: { data: { content: "VERDICT: PASS" } },
+      toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = w.calls.find((call) => call.script === "validate-digest.py");
     expect(validation?.payload.harness_feature).toBe(FEATURE);
@@ -2486,14 +2735,14 @@ describe("BUG-1898 run-start claims on the real registry", () => {
       { toolName: "read", input: { path: "src/x.ts" } },
       { toolName: "bash", input: { command: "true" } },
       { toolName: "task", toolCallId: "t", input: { agent: "scout", task: "look" } },
-      { toolName: "yield", input: { data: { content: "VERDICT: PASS\nDIGEST: done" } } },
+      { toolName: "yield", input: { data: PASS_DIGEST } },
     ]) {
       const verdict = await s.handlers.get("tool_call")?.(call, ctx);
       expect(verdict?.block).toBe(true);
       expect(verdict?.reason).toMatch(cause);
     }
     expect(await s.handlers.get("tool_call")?.({
-      toolName: "yield", input: { data: { content: blockedDigest } },
+      toolName: "yield", input: { data: blockedDigest },
     }, ctx)).toBeUndefined();
   }
 
@@ -2546,10 +2795,10 @@ describe("BUG-1898 run-start claims on the real registry", () => {
   test("a DEC-100 receiptless dispatch still claims the child's exact id at run start", async () => {
     const w = world();
     const parent = await lead(w);
-    expect(await parent.s.handlers.get("tool_call")?.({
+    expect((await parent.s.handlers.get("tool_call")?.({
       toolName: "task", toolCallId: "t1",
       input: { agent: "harness-backend-dev", name: "Dev", task: "passthrough" },
-    }, parent.ctx)).toBeUndefined();
+    }, parent.ctx))?.block).toBeUndefined();
     expect(governed(w.root)).toEqual([]);
     const child = session(w.runner);
     const ctx = ctxFor(w.root, "Lead.Dev", "Lead");
@@ -2570,9 +2819,9 @@ describe("BUG-1898 run-start claims on the real registry", () => {
         { agent: "harness-qa", name: "Check", task: ASSIGN },
       ],
     };
-    expect(await parent.s.handlers.get("tool_call")?.({
+    expect((await parent.s.handlers.get("tool_call")?.({
       toolName: "task", toolCallId: "batch", input,
-    }, parent.ctx)).toBeUndefined();
+    }, parent.ctx))?.block).toBeUndefined();
     expect(governed(w.root).every((row) => row.agent_id === undefined)).toBe(true);
 
     // Children start in reverse order and write before any result is delivered.

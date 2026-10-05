@@ -1,0 +1,58 @@
+{
+ "accept": true,
+ "case": "run_bug1305_artifact_resolution_cases#001",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0179",
+ "input_sha256": "74a7e948f0d41970",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "feat/auth",
+   "cycles_used": 1,
+   "escalations": null,
+   "expertise_update": [],
+   "files_touched": [
+    "src/auth.ts",
+    "test/auth.spec.ts"
+   ],
+   "headline": "auth endpoints built; qa found a missing refresh-token path",
+   "members": [
+    {
+     "files_touched": [
+      "src/auth.ts"
+     ],
+     "headline": "jwt mw",
+     "persona": "backend-dev",
+     "step": "build",
+     "verdict": "PASS"
+    },
+    {
+     "must_fix": [
+      "refresh path untested"
+     ],
+     "persona": "qa",
+     "severity_max": "high",
+     "step": "qa",
+     "verdict": "FAIL"
+    }
+   ],
+   "must_fix": [
+    "refresh path untested"
+   ],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 3,
+   "team": "build"
+  },
+  "VERDICT": "FAIL",
+  "artifact": "runs/r1/digest.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "",
+ "source": "hook-group:run_bug1305_artifact_resolution_cases",
+ "syntax_only": false,
+ "text": "\nVERDICT: FAIL\nDIGEST:\n  headline: auth endpoints built; qa found a missing refresh-token path\n  team: build\n  steps_run: 3\n  cycles_used: 1\n  members:\n    - { step: build, persona: backend-dev, verdict: PASS, headline: \"jwt mw\", files_touched: [src/auth.ts] }\n    - { step: qa, persona: qa, verdict: FAIL, severity_max: high, must_fix: [\"refresh path untested\"] }\n  must_fix: [\"refresh path untested\"]\n  branch: feat/auth\n  files_touched: [src/auth.ts, test/auth.spec.ts]\n  open_questions: []\n  escalations:\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: runs/r1/digest.md\n",
+ "why_no_object": ""
+}

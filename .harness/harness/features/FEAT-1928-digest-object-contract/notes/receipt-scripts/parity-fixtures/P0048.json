@@ -1,0 +1,41 @@
+{
+ "accept": true,
+ "case": "a nested open_questions count must not trip the top-level check",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0048",
+ "input_sha256": "9647c7b393a7528c",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 0,
+   "escalations": [],
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "clean",
+   "members": [
+    {
+     "open_questions": 0,
+     "persona": "backend-dev",
+     "step": "s1",
+     "verdict": "PASS"
+    }
+   ],
+   "must_fix": [],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 1,
+   "team": "build"
+  },
+  "VERDICT": "PASS",
+  "artifact": "r/digest.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: clean\n  team: build\n  steps_run: 1\n  cycles_used: 0\n  members:\n    - step: s1\n      persona: backend-dev\n      verdict: PASS\n      open_questions: 0\n  must_fix: []\n  branch: none\n  files_touched: []\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: r/digest.md\n",
+ "why_no_object": ""
+}

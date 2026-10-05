@@ -1,0 +1,20 @@
+{
+ "accept": true,
+ "case": "pass-through: non-harness agent_type is not governed",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0160",
+ "input_sha256": "5e311561c476c6b7",
+ "mode": "hook",
+ "object": {
+  "DIGEST": null,
+  "VERDICT": "PASS",
+  "artifact": "x.md"
+ },
+ "persona": "Explore",
+ "reasons": "",
+ "source": "hook",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\nartifact: x.md\n",
+ "why_no_object": ""
+}

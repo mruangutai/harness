@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.invalid/digest-schemas/harness-qa.json",
+  "title": "harness-qa digest return",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "VERDICT",
+    "DIGEST",
+    "artifact"
+  ],
+  "properties": {
+    "VERDICT": {
+      "$ref": "common.json#/$defs/verdict"
+    },
+    "DIGEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "open_questions",
+        "files_touched",
+        "expertise_update",
+        "suite",
+        "failures",
+        "coverage_gaps",
+        "matrix_ok",
+        "fail_first",
+        "kinds",
+        "sc_evidence"
+      ],
+      "properties": {
+        "headline": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "open_questions": {
+          "$ref": "common.json#/$defs/open_questions"
+        },
+        "files_touched": {
+          "$ref": "common.json#/$defs/string_list"
+        },
+        "expertise_update": {
+          "$ref": "common.json#/$defs/expertise_update"
+        },
+        "suite": {
+          "$ref": "common.json#/$defs/pass_fail_nullable"
+        },
+        "failures": {
+          "$ref": "common.json#/$defs/integer"
+        },
+        "coverage_gaps": {
+          "$ref": "common.json#/$defs/coverage_gaps"
+        },
+        "matrix_ok": {
+          "$ref": "common.json#/$defs/boolean_nullable"
+        },
+        "fail_first": {
+          "$ref": "common.json#/$defs/fail_first"
+        },
+        "kinds": {
+          "$ref": "common.json#/$defs/kinds"
+        },
+        "sc_evidence": {
+          "$ref": "common.json#/$defs/sc_evidence"
+        }
+      }
+    },
+    "artifact": {
+      "$ref": "common.json#/$defs/artifact"
+    }
+  }
+}

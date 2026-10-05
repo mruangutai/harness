@@ -1,0 +1,16 @@
+{
+ "accept": true,
+ "case": "pass-through: stop_hook_active avoids the infinite-block loop",
+ "counterpart": "wrong-type",
+ "exit": 0,
+ "id": "P0161",
+ "input_sha256": "a4c3ed04a95a3da1",
+ "mode": "hook",
+ "object": null,
+ "persona": "harness-qa",
+ "reasons": "",
+ "source": "hook",
+ "syntax_only": true,
+ "text": "done",
+ "why_no_object": "not a mapping (str)"
+}

@@ -1,0 +1,16 @@
+{
+ "accept": false,
+ "case": "empty-string: a present but blank final message is the persona's violation",
+ "counterpart": "missing",
+ "exit": 2,
+ "id": "P0157",
+ "input_sha256": "2106c36011520fe7",
+ "mode": "hook",
+ "object": null,
+ "persona": "harness-qa",
+ "reasons": "check-digest: harness-qa returned an empty final message. A harness persona owes a structured return, and an empty one satisfies no field of the digest contract, so it cannot be accepted. Return again with the three-part VERDICT/DIGEST/artifact block.",
+ "source": "hook",
+ "syntax_only": true,
+ "text": "   \n",
+ "why_no_object": "not a mapping (NoneType)"
+}

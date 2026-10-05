@@ -1,0 +1,30 @@
+{
+ "accept": true,
+ "case": "dev-ops suite: fail + PASS stays accepted \u2014 D-03 ruling, not a claim it is right",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0101",
+ "input_sha256": "b7a36fa3efbabd78",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "applied": [],
+   "change_type": "config",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "x",
+   "open_questions": [],
+   "suite": "fail",
+   "task": "T-01",
+   "task_verify": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-dev-ops",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: x\n  change_type: config\n  applied: []\n  suite: fail\n  task: T-01\n  task_verify: pass\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

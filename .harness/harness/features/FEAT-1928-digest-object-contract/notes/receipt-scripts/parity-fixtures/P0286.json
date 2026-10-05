@@ -1,0 +1,18 @@
+{
+ "accept": false,
+ "case": "INV-15 BUG-440 run X bare 'VERDICT: FAIL'",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0286",
+ "input_sha256": "3850e61d61f32ea1",
+ "mode": "validate('lead') + _inv15_digest_verdict",
+ "object": {
+  "VERDICT": "FAIL"
+ },
+ "persona": "lead",
+ "reasons": "no DIGEST: block.; no artifact: path.; DIGEST has no headline: \u2014 the orchestrator routes on this.; missing 'team' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.; missing 'steps_run' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.; missing 'cycles_used' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.; missing 'members' \u2014 every field is required; write `[]",
+ "source": "reader",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\n",
+ "why_no_object": ""
+}

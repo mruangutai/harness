@@ -1,0 +1,42 @@
+{
+ "accept": false,
+ "case": "FEAT-59 the error names the offending entry's index, not the first",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0111",
+ "input_sha256": "761bd6af09c8a1b6",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [
+    {
+     "kind": "substance",
+     "reader": "ui-reviewer",
+     "severity": "high",
+     "summary": "a"
+    },
+    {
+     "reader": "ui-reviewer",
+     "severity": "low",
+     "summary": "b"
+    }
+   ],
+   "headline": "one blocking finding",
+   "must_fix": [
+    "fail-open branch in auth"
+   ],
+   "open_questions": [],
+   "severity_max": "high"
+  },
+  "VERDICT": "FAIL",
+  "artifact": "notes/ui-review.md"
+ },
+ "persona": "harness-ui-reviewer",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[1] has no kind: \u2014 '{ severity: low, reader: ui-reviewer, summary: \"b\" }'. Every finding carries kind: one of ['form', 'proportionality', 'substance']; without it the orchestrator cannot tell a code defect from a document nit and cannot route.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: one blocking finding\n  severity_max: high\n  findings:\n    - { kind: substance, severity: high, reader: ui-reviewer, summary: \"a\" }\n    - { severity: low, reader: ui-reviewer, summary: \"b\" }\n  must_fix: [\"fail-open branch in auth\"]\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/ui-review.md\n",
+ "why_no_object": ""
+}

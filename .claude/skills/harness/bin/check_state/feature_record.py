@@ -1,5 +1,6 @@
 """feature.json is internally consistent and matches disk: INV-1/2/6/7/8/12/18/22/23/33 and the ledger INV-39/40/43/47. (FEAT-69)"""
 import glob, os, re
+import digest_record
 import harness_boundary
 import harness_yaml
 from check_state.brief import _FEAT59_KEYS, _brief_is_by_perspective
@@ -459,9 +460,14 @@ def _note_cycle(name):
 
 
 def _note_verdict(path):
-    """The note's tail VERDICT, upper-cased, or None when it carries none."""
-    _vm = _inv15_digest_verdict(read(path) or "")
-    return _vm.group(1).strip().upper() if _vm else None
+    """The VERDICT of the note's final fenced mapping (digest_record), upper-cased, or None
+    when the note is unreadable, carries no fenced mapping, or that mapping has no VERDICT."""
+    try:
+        _record = digest_record.last_fenced_mapping(read(path) or "", path)
+    except digest_record.DigestRecordError:
+        return None
+    _verdict = _inv15_digest_verdict(_record)
+    return _verdict.upper() if _verdict else None
 
 
 def _inv47_member_notes(ctx, feat, cycle):

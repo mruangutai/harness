@@ -88,11 +88,11 @@ suggestion to continue other work does not override this (DEC-201).
 `completed_at`. A repeated delivery after resume is an idempotent no-op, never a second dispatch or
 GitHub transition (DEC-204).
 
-**The digest contract is enforced for you** — `validate-digest.py --hook` on `SubagentStop`
-(DEC-122). Route *on* the fields, never re-adjudicate them: charitable normalization is how drift
-stays invisible (DEC-101). The hook fails open, so a return can be well-formed yet substantively
-wrong; on a missing or contradictory `VERDICT`, re-prompt **once**, then record
-`BLOCKED (contract violation)` — never infer.
+**The digest contract is enforced for you** — the OMP hook injects your persona's strict schema
+and `validate-digest.py --hook` checks every yielded object (DEC-237). Route *on* the fields, never
+re-adjudicate them: charitable normalization is how drift stays invisible (DEC-101). A return can
+be well-formed yet substantively wrong; on a missing or contradictory `VERDICT`, re-prompt
+**once**, then record `BLOCKED (contract violation)` — never infer.
 
 **f. Apply `on_fail`.** Only on `FAIL`; `BLOCKED` and `ESCALATE` always stop the branch and go up —
 the agent could not proceed, so retrying is wrong. `halt` stops the run; `continue` records the
@@ -131,39 +131,69 @@ only when a decision of *yours* turns on it.
 
 ### 5. Close out
 
-Set `status: complete` (or `failed` / `blocked`), then **write your team digest to
-`<run_dir>/digest.md`** and report it as your `artifact:` — the hook validates the **file** at that
-path against the same schema (DEC-156); the file, not your transcript, is what a successor reads.
-The digest-of-digests shape: `team-run-state.md` §Close out.
+Set `status: complete` (or `failed` / `blocked`), then **write your team report to
+`<run_dir>/digest.md`** and report it as your `artifact:`. After your yielded object passes every
+check, validate-digest.py appends it to that file as a fenced YAML block unless the file's last
+block is already identical (DEC-156) — the file, not your transcript, is what a successor reads.
+Never write that fenced block yourself. The digest-of-digests shape: `team-run-state.md` §Close out.
 
 ## Reporting up
 
 **Every field is required** (DEC-121) — `[]` for an empty list, `none` for an inapplicable scalar;
-the `SubagentStop` hook will not let you stop without them.
+the yield will not complete without them. Return an object through YieldTool — never fenced YAML
+text. The field list is your lead persona's schema, e.g.
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-eng-lead.json` (product-lead and validator-lead
+have their own `harness-<persona>.json` with the same fields); one complete example:
 
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE     # worst member verdict: BLOCKED > ESCALATE > FAIL > PASS
-DIGEST:
-  headline: <one line — what the team achieved, not what it did>
-  team: <name>                               # ONE KEY PER LINE — three on one line is not YAML,
-  steps_run: <n>                             # and the two trailing ones vanish silently
-  cycles_used: <n>
-  members:                                   # per-member roll-up — NOT optional
-    - { step: <id>, persona: <p>, verdict: <v>, headline: "...", files_touched: [...] }
-    - { step: should-not-exist, persona: fable-advisor, status: skipped, reason: "<host reason>" } # only optional external member
-  must_fix: [<union of blocking findings>]
-  files_touched: [<union across members>]    # universal — required of you too; [] if none
-  branch: <branch | none>                    # `none` if the team mutated no repo
-  open_questions: [...]                      # non-empty → the orchestrator surfaces it to the
-                                             # MAIN SESSION, the only tier that can ask the user
-  escalations: [{ id, raised_by, question, domain, routed_to, resolution, decided_by, recorded_as }]
-  expertise_update: [<ops>]                  # [] except on a distillation dispatch
-  adequacy_notes: [<what this PASS does not cover>]     # [] when nothing; required, NEVER omitted
-  # Optional passthroughs from a member roll-up: sc_status, needs_approval, severity_max, matrix_ok, coverage_gaps, findings (each with kind), readers (plan: ran | skipped). Any other field is rejected; put qualifications in adequacy_notes or run-state evidence.
-artifact: <run_dir>/digest.md                # your collated report — NOT state.yaml
+```js
+yield({data: {
+  "VERDICT": "FAIL",
+  "DIGEST": {
+    "headline": "export build lands but QA found no fail-first evidence for SC-02",
+    "team": "build",
+    "steps_run": 3,
+    "cycles_used": 1,
+    "members": [
+      {"step": "implement", "persona": "harness-backend-dev", "verdict": "PASS", "headline": "export endpoint streams CSV", "files_touched": ["src/export.py"]},
+      {"step": "qa", "persona": "harness-qa", "verdict": "FAIL", "headline": "SC-02 lacks fail-first evidence", "files_touched": []},
+      {"step": "advise", "persona": "fable-advisor", "status": "skipped", "reason": "agent not resolvable on this host"}
+    ],
+    "must_fix": ["record fail-first evidence for SC-02"],
+    "files_touched": ["src/export.py"],
+    "branch": "feat/export",
+    "open_questions": [],
+    "escalations": [],
+    "expertise_update": [],
+    "adequacy_notes": [],
+    "sc_status": [],
+    "needs_approval": "none",
+    "severity_max": "none",
+    "matrix_ok": false,
+    "coverage_gaps": ["SC-02 has no fail-first evidence"],
+    "findings": [],
+    "readers": [],
+    "amendments": []
+  },
+  "artifact": "<run_dir>/digest.md"
+}})
 ```
-````
+
+- `VERDICT`: the worst member verdict — `BLOCKED` > `ESCALATE` > `FAIL` > `PASS`.
+- `headline`: what the team achieved, not what it did.
+- `members`: per-member roll-up — NOT optional — `{step, persona, verdict, headline,
+  files_touched}`; `fable-advisor` is the only optional external member and may appear as
+  `{step, persona, status: skipped, reason: "<host reason>"}`.
+- `must_fix`: union of blocking findings. `files_touched`: union across members — universal,
+  required of you too; `[]` if none. `branch`: `none` if the team mutated no repo.
+- `open_questions`: non-empty → the orchestrator surfaces it to the MAIN SESSION, the only tier
+  that can ask the user. `escalations`: `{id, raised_by, question, domain, routed_to, resolution,
+  decided_by, recorded_as}`. `expertise_update`: `[]` except on a distillation dispatch.
+- `adequacy_notes`: what this PASS does not cover; `[]` when nothing; required, NEVER omitted.
+- Roll-up fields, always present — `none` / `[]` when no member produced them: `sc_status`,
+  `needs_approval`, `severity_max`, `matrix_ok`, `coverage_gaps`, `findings` (each with `kind`),
+  `readers` (plan: `ran | skipped`), `amendments` (eng-lead build corrections). Any other field is
+  rejected; put qualifications in `adequacy_notes` or run-state evidence.
+- `artifact`: `<run_dir>/digest.md`, your collated report — NOT state.yaml.
 
 `adequacy_notes` qualifies a PASS — act on nothing, read the verdict no wider than the list; it is
 neither `must_fix` (gates) nor `open_questions` (reaches the user). A specific question a dispatch

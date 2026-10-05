@@ -1,0 +1,10 @@
+# Observations — harness-orchestrator — FEAT-1928-digest-object-contract
+
+- 2026-10-03: The pre-cutover hook releases a lead claim before the validator-owned append of its fenced block, so a lead whose return object was accepted leaves a prose-only digest.md that close-run refuses at stage digest; preserve the returned object as runs/<run>/return-object.json for main to render, never hand-author the fence.
+- 2026-10-03: check-state refuses cycles_used < count of FAIL runs; a lead FAIL that only awaits a main-session signature still forces the regate run after it to carry one cycle.
+- 2026-10-03: check-domain refuses orchestrator/lead writes to agent://Main and xd://report_issue, so every main-session instruction must ride the return and the handoff note.
+- 2026-10-03: dispatch-guard reads the HARNESS-FEATURE line from the task field, not the shared context field of a batched task call.
+- 2026-10-03: close-run's judgement stage refuses a reason over the schema length cap AFTER digest validation and run-end have landed; the recovery is the standalone `judgement` verb with a one-line reason, not a re-run of close-run. Keep continue/regate reasons short.
+- 2026-10-03: a 120-file unit pool and a green test_matrix did not exercise the real-corpus `check-plan-routes.py` DEC-182 budget (T-02 53/50) nor the signed `--canonical-reader-self-test` clause; both are CLI gates on the real plan/inventory, so run the plan route gate and every signed `verify:` clause literally at the pin before dispatching validate.
+- 2026-10-03: a diff that touches a `locally_run` test_kind's detect path (`tests/manual/probe-inflight-claim-lifecycle.py`) obligates that live receipt even when the touch is a refactor; check harness.json `test_kinds` detect globs against the diff name list before the panel.
+- 2026-10-03: a validate run over a pin that origin/main overtakes mid-run is still a truthful review of that pin but can never be the ship verdict; main's freshness gate catches it, so compare the pin against the remote tip before dispatch, not after.

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.invalid/digest-schemas/harness-ui-reviewer.json",
+  "title": "harness-ui-reviewer digest return",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "VERDICT",
+    "DIGEST",
+    "artifact"
+  ],
+  "properties": {
+    "VERDICT": {
+      "$ref": "common.json#/$defs/verdict"
+    },
+    "DIGEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "open_questions",
+        "files_touched",
+        "expertise_update",
+        "severity_max",
+        "findings",
+        "must_fix",
+        "mode",
+        "in_scope",
+        "states_unspecified",
+        "contract_violations",
+        "a11y"
+      ],
+      "properties": {
+        "headline": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "open_questions": {
+          "$ref": "common.json#/$defs/open_questions"
+        },
+        "files_touched": {
+          "$ref": "common.json#/$defs/string_list"
+        },
+        "expertise_update": {
+          "$ref": "common.json#/$defs/expertise_update"
+        },
+        "severity_max": {
+          "$ref": "common.json#/$defs/severity_nullable"
+        },
+        "findings": {
+          "$ref": "common.json#/$defs/findings"
+        },
+        "must_fix": {
+          "$ref": "common.json#/$defs/must_fix"
+        },
+        "mode": {
+          "$ref": "common.json#/$defs/mode_nullable"
+        },
+        "in_scope": {
+          "$ref": "common.json#/$defs/boolean_nullable"
+        },
+        "states_unspecified": {
+          "$ref": "common.json#/$defs/string_list"
+        },
+        "contract_violations": {
+          "$ref": "common.json#/$defs/contract_violations"
+        },
+        "a11y": {
+          "$ref": "common.json#/$defs/string_list"
+        }
+      }
+    },
+    "artifact": {
+      "$ref": "common.json#/$defs/artifact"
+    }
+  }
+}

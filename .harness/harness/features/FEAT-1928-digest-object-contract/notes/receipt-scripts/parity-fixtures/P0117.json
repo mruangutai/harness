@@ -1,0 +1,38 @@
+{
+ "accept": false,
+ "case": "DEC-228 kind: proportionality with a scope outside task|mission is rejected",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0117",
+ "input_sha256": "f65ffa0c4fdb9d96",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [
+    {
+     "kind": "proportionality",
+     "reader": "ui-reviewer",
+     "scope": "whole",
+     "severity": "high",
+     "summary": "a plan for a five-line fix"
+    }
+   ],
+   "headline": "one blocking finding",
+   "must_fix": [
+    "fail-open branch in auth"
+   ],
+   "open_questions": [],
+   "severity_max": "high"
+  },
+  "VERDICT": "FAIL",
+  "artifact": "notes/ui-review.md"
+ },
+ "persona": "harness-ui-reviewer",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[0] is proportionality with scope='whole'; it must say scope: task (one task over-builds \u2014 pm trims it at apply, never a downgrade) or scope: mission (the plan lane exceeds the work \u2014 the only finding that can downgrade the mission, DEC-228).",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: one blocking finding\n  severity_max: high\n  findings:\n    - { kind: proportionality, scope: whole, severity: high, reader: ui-reviewer, summary: \"a plan for a five-line fix\" }\n  must_fix: [\"fail-open branch in auth\"]\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/ui-review.md\n",
+ "why_no_object": ""
+}

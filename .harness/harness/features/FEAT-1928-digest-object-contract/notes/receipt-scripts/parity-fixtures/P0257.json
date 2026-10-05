@@ -1,0 +1,32 @@
+{
+ "accept": false,
+ "case": "case_dirty_tree#01",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0257",
+ "input_sha256": "8510d4cc0582fb94",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "code_grade": "n_a",
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [],
+   "grade_2_reasons": [],
+   "headline": "reviewer result",
+   "human_commits_in_scope": [],
+   "must_fix": [],
+   "open_questions": [],
+   "reviewed": "origin/main..6aefabddf90bb85cebd2912c59b54b981e1afaba",
+   "severity_max": "low"
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/review.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "the working tree carries uncommitted changes outside .harness/ (readme.txt); a tree matching no commit has no pinnable verdict. Return BLOCKED and ask for a [harness:human] commit or a stash, then review the pin.",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: reviewer result\n  severity_max: low\n  findings: []\n  must_fix: []\n  code_grade: n_a\n  reviewed: \"origin/main..6aefabddf90bb85cebd2912c59b54b981e1afaba\"\n  grade_2_reasons: []\n  human_commits_in_scope: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/review.md\n",
+ "why_no_object": ""
+}

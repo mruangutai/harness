@@ -1,0 +1,32 @@
+{
+ "accept": false,
+ "case": "task: none but files WERE touched -- suite: n/a with PASS is still REJECTED, because `task: none` is a claim and the edit is the fact",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0072",
+ "input_sha256": "fd55624eb56370d6",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [
+    "gh-sync.py"
+   ],
+   "headline": "censused 84 path-returning functions; harness_boundary.py is the candidate",
+   "open_questions": [],
+   "suite": "n/a",
+   "task": "none",
+   "task_verify": "n/a",
+   "tests_added": 0
+  },
+  "VERDICT": "PASS",
+  "artifact": "none"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - suite='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: censused 84 path-returning functions; harness_boundary.py is the candidate\n  tests_added: 0\n  suite: n/a\n  blocked_on: none\n  task: none\n  task_verify: n/a\n  open_questions: []\n  files_touched: [gh-sync.py]\n  expertise_update: []\nartifact: none\n",
+ "why_no_object": ""
+}

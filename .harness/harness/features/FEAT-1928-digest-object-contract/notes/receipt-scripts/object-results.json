@@ -1,0 +1,4962 @@
+{
+ "baseline_sha": "70c3377679b0c28aa969044453e3454a33c059cb",
+ "group_errors": [
+  [
+   "group-error",
+   "run_reviewer_severity_enum_cases",
+   "AttributeError(\"module '_validator_severity_guard' has no attribute 'NULLABLE'\")"
+  ],
+  [
+   "group-error",
+   "run_documented_contract_cases",
+   "AttributeError(\"module '_validator_contract_guard' has no attribute 'SCHEMAS'\")"
+  ],
+  [
+   "group-error",
+   "run_t08_revision_proof",
+   "FileNotFoundError(2, 'No such file or directory')"
+  ]
+ ],
+ "head": "6512eedab9439af3df475b97aabf30db17925548",
+ "rows": {
+  "P0000": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_canonical_reader_strictness_cases#000",
+   "counterpart": {
+    "counterpart": "extra key",
+    "reasons": "undeclared digest key(s): 'agent_type'. The digest contract is closed: .claude/skills/harness/bin/digest-schemas/harness-qa.json declares every DIGEST key. A per-dispatch answer is not a digest key: put a PASS qualification in adequacy_notes or a per-step fact in the run state steps evidence contain",
+    "reject": true
+   },
+   "group": "run_canonical_reader_strictness_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "Explore",
+   "reasons": "",
+   "ruling_spelled": [],
+   "source": "cli-group:run_canonical_reader_strictness_cases"
+  },
+  "P0001": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "lead, block-style members + bare empty key",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0002": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "amendments: the three BUG-285 recommendations are accepted eng-lead amendments",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0003": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "amendments: absent is legal",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0004": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "amendments: empty list is legal",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0005": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "amendments: inline mappings for all three fields",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0006": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "amendments: block mapping entry",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0007": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: unknown key is refused naming index and key",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0]: Additional properties are not allowed ('by' was unexpected)\n  - amendments[0] carries unknown key(s) ['by'] \u2014 an entry is exactly ['task', 'field', 'was', 'now', 'reason'].",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0008": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: missing key is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0]: 'now' is a required property\n  - amendments[0] is missing ['now'] \u2014 an entry is exactly ['task', 'field', 'was', 'now', 'reason'].",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0009": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: not a list is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments: 'none' is not of type 'array'",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0010": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: entry that is not a mapping is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0]: 'T-01.intent' is not of type 'object'",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0011": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: SC id as task is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0].task: 'SC-01' does not match '^T-[0-9]{2,}$'\n  - amendments[0].task='SC-01' \u2014 an amendment targets one PLAN task (T-NN); a success criterion or decision is never amended by a lead (that is BLOCKED with a recommendation).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0012": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: decision id as task is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0].task: 'D-01' does not match '^T-[0-9]{2,}$'\n  - amendments[0].task='D-01' \u2014 an amendment targets one PLAN task (T-NN); a success criterion or decision is never amended by a lead (that is BLOCKED with a recommendation).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0013": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: field outside intent/files/verify is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0].field: 'title' is not one of ['intent', 'files', 'verify']\n  - amendments[0].field='title' \u2014 only ['intent', 'files', 'verify'] are a task's HOW; anything else changes what was signed.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0014": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: empty reason is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0].reason: '' does not match '^[^\\\\n]*\\\\S[^\\\\n]*\\\\n?$'\n  - amendments[0].reason must be one non-empty line of at most 240 characters \u2014 it becomes the ledger entry's reason (DEC-230).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0015": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: reason over 240 is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0].reason: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' is too long\n  - amendments[0].reason must be one non-empty line of at most 240 characters \u2014 it becomes the ledger entry's reason (DEC-230).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0016": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: intent with a list value is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0].was: ['a'] is not of type 'string'\n  - amendments[0].was: a intent amendment carries the text as a string, not list.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0017": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: files with a string value is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0].now: 'b.py' is not of type 'array'\n  - amendments[0].now: a files amendment carries a LIST of plan file entries, not str.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0018": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: files with a line-number anchor is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0].now: 'a.py:12' is a line-number anchor \u2014 a line number does not survive main moving. Anchor to a symbol (path#symbol) or to content ({path, quote}).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0019": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: files with a bad mapping entry is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[0].now: [{'path': 'a.py', 'line': 3}] is not valid under any of the given schemas\n  - amendments[0].now[0]: {'path': 'a.py', 'line': 3} is not valid under any of the given schemas\n  - amendments[0].now: {'path': 'a.py', 'line': 3} is not a {path, quote} mapping \u2014 it carries ['line', 'path']",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0020": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: second entry's fault is reported at its index",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - amendments[1]: 'reason' is a required property\n  - amendments[1] is missing ['reason'] \u2014 an entry is exactly ['task', 'field', 'was', 'now', 'reason'].",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0021": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: a product lead may not carry the field",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-product-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - undeclared digest key(s): 'amendments'. The digest contract is closed: .claude/skills/harness/bin/digest-schemas/harness-product-lead.json declares every DIGEST key. A per-dispatch answer is not a digest key: put a PASS qualification in adequacy_notes or a per-step fact in the run state steps evidence container.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0022": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "amendments: a validator lead may not carry the field",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-validator-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - undeclared digest key(s): 'amendments'. The digest contract is closed: .claude/skills/harness/bin/digest-schemas/harness-validator-lead.json declares every DIGEST key. A per-dispatch answer is not a digest key: put a PASS qualification in adequacy_notes or a per-step fact in the run state steps evidence container.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0023": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "lead, fully inline lists",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-validator-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[0]",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0024": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "nested must_fix must NOT satisfy the top-level one",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'must_fix' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0025": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "three fields on one line loses two",
+   "counterpart": {
+    "counterpart": "missing steps_run, cycles_used",
+    "reasons": "missing 'steps_run' \u2014 every field is required; write an integer. An absent field is ambiguous; an explicit empty one asserts you looked.; missing 'cycles_used' \u2014 every field is required; write an integer. An absent field is ambiguous; an explicit empty one asserts you looked.; missing 'needs_approva",
+    "reject": true
+   },
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'steps_run' \u2014 every field is required; write an integer. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'cycles_used' \u2014 every field is required; write an integer. An absent field is ambiguous; an explicit empty one asserts you looked.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0026": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "doer, inline \u2014 unchanged behaviour",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0027": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "main-session (DEC-174 direct build) validates as dev",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "main-session",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0028": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "main-session with task_verify fail and VERDICT PASS is refused like any dev",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "main-session",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='fail' reports a gate as FAILED, but VERDICT is PASS \u2014 a gate that failed cannot have passed. Fix until it passes, or return FAIL or BLOCKED.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0029": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "drifted key spelling is caught",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-code-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - key 'must-fix' is drifted spelling of 'must_fix' \u2014 the runner routes on the exact name and will not see it.\n  - missing 'must_fix' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'code_grade' \u2014 every field is required; write one of ['fail', 'grade_2', 'n_a', 'pass'] \u2014 a single enum value, never a list. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'reviewed' \u2014 every field is required; write a non-empty string (the literal `",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "findings[0]",
+    "findings[1]",
+    "as-written schema errors: 11"
+   ],
+   "source": "cli"
+  },
+  "P0030": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "enum near-miss is caught, not normalized",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-code-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'code_grade' \u2014 every field is required; write one of ['fail', 'grade_2', 'n_a', 'pass'] \u2014 a single enum value, never a list. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'reviewed' \u2014 every field is required; write a non-empty string (the literal `none` if genuinely not applicable). An absent field is ambiguous; an explicit empty one asserts you looked.\n  - severity_max='medium' is not in ['critical', 'high', 'low', 'med', 'none'] (or `none`/`n/a` where it genuinely does not apply) (did you mean 'med'?).\n  ",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "findings[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0031": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "open_questions as a count, not a list",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'fail_first' \u2014 every field is required; write one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: automated` SC showing the test FAILED before the fix; `[]` only when matrix_ok is n/a or the verdict is not PASS. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - open_questions: 0 is not of type 'array'",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 4"
+   ],
+   "source": "cli"
+  },
+  "P0032": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "bare key followed by nothing is an empty list",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0033": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "inline # comments are stripped, not parsed",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0034": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "# inside a quoted value survives",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0035": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "no VERDICT at all",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'VERDICT' \u2014 the returned object carries exactly VERDICT, DIGEST and artifact at its top level; return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.\n  - missing 'open_questions' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'files_touched' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.\n  -",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 11"
+   ],
+   "source": "cli"
+  },
+  "P0036": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "PASS over a failing member is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - VERDICT is PASS but a member returned FAIL (\"{'step': 's2', 'persona': 'qa', 'verdict': 'FAIL', 'headline\"). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting PASS here hides the FAIL.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "members[1]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0037": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FAIL over an escalating member is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-validator-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - VERDICT is FAIL but a member returned ESCALATE (\"{'step': 's2', 'persona': 'security-reviewer', 'verdict': 'E\"). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting FAIL here hides the ESCALATE.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[0]",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0038": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "lead may report worse than its members",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0039": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "a members entry with no verdict is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - members[0]: {'step': 's1', 'persona': 'backend-dev', 'headline': 'did the thing', 'files_touched': []} is not valid under any of the given schemas\n  - a members entry has no verdict: \u2014 \"{'step': 's1', 'persona': 'backend-dev', 'headline': 'did th\". Every member entry needs one; the team verdict is the worst of them and cannot be computed otherwise.\n  - members records no member actually ran \u2014 a lead verdict cannot claim an outcome for an entirely skipped team.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0040": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "a skipped member is explicit and excluded from worst-wins",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-product-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[0]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0041": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "all skipped members cannot support a lead verdict",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-product-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - members records no member actually ran \u2014 a lead verdict cannot claim an outcome for an entirely skipped team.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 6"
+   ],
+   "source": "cli"
+  },
+  "P0042": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "mandatory member cannot be laundered as skipped",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-validator-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - only the optional fable-advisor may be recorded as skipped; mandatory members must carry their verdict.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[0]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0043": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "DIGEST: with a trailing comment is still recognized",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0044": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "block-mapping member entries spanning lines are accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "members[1]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0045": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "a member's nested headline does not satisfy the top-level one",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'headline' \u2014 every field is required; write a non-empty string (the literal `none` if genuinely not applicable). An absent field is ambiguous; an explicit empty one asserts you looked.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0046": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "an int does not satisfy a str-typed field",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - team: 7 is not of type 'string'",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0047": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "a bare NULLABLE scalar key must not silently become an empty list",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - branch: [] is not of type 'string'",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0048": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "a nested open_questions count must not trip the top-level check",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0049": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "drift in a UNIVERSAL field is caught, not just schema fields",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - key 'files-touched' is drifted spelling of 'files_touched' \u2014 the runner routes on the exact name and will not see it.\n  - missing 'files_touched' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0050": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "orchestrator digest with the reconciled schema",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-orchestrator",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "judgement",
+    "runs[0]",
+    "runs[1]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0051": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "orchestrator briefing is NULLABLE \u2014 `none` when nothing was written",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-orchestrator",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "judgement",
+    "runs[0]",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0052": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "rejected: reject judgement with a superseding issue is accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-orchestrator",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0053": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "rejected: superseded_by none (should not be planned) is accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-orchestrator",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0054": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: no judgement mapping is refused naming it",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement='none' on status: rejected \u2014 a rejection carries one mapping {kind: reject, superseded_by: <positive int or none>, reason: <one line, at most 240 characters>}.",
+   "ruling_spelled": [
+    "judgement",
+    "runs[0]",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0055": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: kind other than reject is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement: {'kind': 'succession', 'superseded_by': 1594, 'reason': 'x'} is not valid under any of the given schemas\n  - judgement.kind: 'reject' was expected",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0056": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: superseded_by zero is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement: {'kind': 'reject', 'superseded_by': 0, 'reason': 'x'} is not valid under any of the given schemas\n  - judgement.superseded_by: 0 is not valid under any of the given schemas",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0057": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: superseded_by negative is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement: {'kind': 'reject', 'superseded_by': -3, 'reason': 'x'} is not valid under any of the given schemas\n  - judgement.superseded_by: -3 is not valid under any of the given schemas",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0058": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: superseded_by boolean is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement: {'kind': 'reject', 'superseded_by': True, 'reason': 'x'} is not valid under any of the given schemas\n  - judgement.superseded_by: True is not valid under any of the given schemas",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0059": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: empty reason is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement: {'kind': 'reject', 'superseded_by': 1594, 'reason': ''} is not valid under any of the given schemas\n  - judgement.reason: '' does not match '^[^\\\\n]*\\\\S[^\\\\n]*\\\\n?$'",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0060": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: reason over 240 characters is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement: {'kind': 'reject', 'superseded_by': 1594, 'reason': 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'} is not valid under any of the given schemas\n  - judgement.reason: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0061": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: multiline reason is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement: {'kind': 'reject', 'superseded_by': 1594, 'reason': 'one\\ntwo\\n'} is not valid under any of the given schemas\n  - judgement.reason: 'one\\ntwo\\n' does not match '^[^\\\\n]*\\\\S[^\\\\n]*\\\\n?$'",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0062": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: a missing key is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement: {'kind': 'reject', 'reason': 'x'} is not valid under any of the given schemas\n  - judgement: 'superseded_by' is a required property",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0063": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: an extra key is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement: {'kind': 'reject', 'superseded_by': 1594, 'reason': 'x', 'by': 'me'} is not valid under any of the given schemas\n  - judgement: Additional properties are not allowed ('by' was unexpected)",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0064": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "rejected: cycles_used must be integer zero",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - cycles_used=1 on status: rejected \u2014 a first-run rejection spends no cycle; write 0.",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0065": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "a judgement mapping on any other status is refused",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-orchestrator",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - judgement={'kind': 'reject', 'superseded_by': 1594, 'reason': 'x'} on status: shipped \u2014 judgement is `none` unless status is rejected.",
+   "ruling_spelled": [
+    "runs[0]",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0066": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "echo shadow: valid real FAIL after a template echo still validates",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0067": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "echo shadow: missing matrix_ok in the real block is not masked by the echo",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'matrix_ok' \u2014 every field is required; write true or false, or `none` if it does not apply. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'fail_first' \u2014 every field is required; write one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: automated` SC showing the test FAILED before the fix; `[]` only when matrix_ok is n/a or the verdict is not PASS. An absent field is ambiguous; an explicit empty one asserts you looked.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 4"
+   ],
+   "source": "cli"
+  },
+  "P0068": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "echo shadow: lead roll-up must read the real members, not the echo",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-eng-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - VERDICT is PASS but a member returned FAIL (\"{'step': 'qa', 'persona': 'qa', 'verdict': 'FAIL', 'headline\"). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting PASS here hides the FAIL.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "members[1]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0069": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev refusing an under-specified task can say suite: n/a",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0070": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "suite: n/a with VERDICT PASS is a fail-open and is REJECTED",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - suite='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.\n  - task_verify='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0071": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "an analysis dev -- task: none AND files_touched: [] -- may say suite: n/a with PASS",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0072": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "task: none but files WERE touched -- suite: n/a with PASS is still REJECTED, because `task: none` is a claim and the edit is the fact",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - suite='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0073": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "a REAL task whose verify passed still owes a suite result -- suite: n/a with PASS is REJECTED even with nothing touched",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - suite='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0074": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "qa that cannot run the suite can say matrix_ok: n/a",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0075": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "matrix_ok: n/a with VERDICT PASS is REJECTED \u2014 the gate did not run",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - suite='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.\n  - matrix_ok='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0076": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "reviewer scoping out of a non-UI diff may PASS with severity_max: n/a",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-ui-reviewer",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "as-written schema errors: 5"
+   ],
+   "source": "cli"
+  },
+  "P0077": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "visual-designer deciding no DESIGN.md is needed may say contract: n/a",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-visual-designer",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_prototype",
+    "why",
+    "prototype",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0078": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "pm blocked before sizing may say surface: n/a and risk: n/a",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-pm",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0079": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "matrix_ok: mostly is STILL rejected after n/a became legal",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - matrix_ok='mostly' must be a bool, true or false (or `none`/`n/a` where it genuinely does not apply).",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0080": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "severity_max: medium is STILL rejected after n/a became legal",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-ui-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - severity_max='medium' is not in ['critical', 'high', 'low', 'med', 'none'] (or `none`/`n/a` where it genuinely does not apply) (did you mean 'med'?).",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0081": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev-ops suite: n/a still accepted (it had the value before DEC-173)",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-dev-ops",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "test_kinds_written",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0082": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "dev missing task_verify under a real task is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0083": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "dev task_verify: fail + PASS is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='fail' reports a gate as FAILED, but VERDICT is PASS \u2014 a gate that failed cannot have passed. Fix until it passes, or return FAIL or BLOCKED.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0084": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "dev task_verify: n/a + PASS is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0085": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "dev-ops task_verify: fail + PASS is rejected \u2014 no carve-out on this value either",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-dev-ops",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='fail' reports a gate as FAILED, but VERDICT is PASS \u2014 a gate that failed cannot have passed. Fix until it passes, or return FAIL or BLOCKED.",
+   "ruling_spelled": [
+    "test_kinds_written",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0086": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "dev-ops task_verify: n/a + PASS is rejected \u2014 no carve-out",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-dev-ops",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+   "ruling_spelled": [
+    "test_kinds_written",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0087": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev task_verify: n/a + BLOCKED is the honest refusal, accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0088": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev task_verify: n/a + FAIL is accepted \u2014 the same refusal, other verdict",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0089": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev-ops task_verify: n/a + BLOCKED is accepted \u2014 refusal, not the carve-out",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-dev-ops",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "test_kinds_written",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0090": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev-ops task_verify: n/a + FAIL is accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-dev-ops",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "test_kinds_written",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0091": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "qa carries neither new field and is still accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0092": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev task: none with task_verify omitted is accepted \u2014 D-07's escape hatch",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0093": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev-ops task: none with task_verify omitted is accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-dev-ops",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "task_verify",
+    "test_kinds_written",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0094": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "dev task: bogus is rejected \u2014 the field is constrained",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - task='bogus' is not a task id \u2014 write your task's `T-NN` id exactly as your dispatch carries it (T-05), or `none` if this dispatch carries no PLAN task.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0095": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "dev omitting task entirely is rejected \u2014 the field is required",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'task' \u2014 every field is required; write your task's `T-NN` id exactly as your dispatch carries it (T-05), or `none` if this dispatch carries no PLAN task. An absent field is ambiguous; an explicit empty one asserts you looked.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0096": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "dev task: none + task_verify: fail is rejected as a contradiction",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='fail' but task=none \u2014 a dispatch carrying no PLAN task has no verify: command to report on. Write `task_verify: n/a`, or name the task's T-NN id in `task`.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0097": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev task: none + task_verify: n/a is accepted \u2014 the honest DEC-121 spelling",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0098": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "dev suite: fail + PASS is rejected \u2014 the fail-value gate",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - suite='fail' reports a gate as FAILED, but VERDICT is PASS \u2014 a gate that failed cannot have passed. Fix until it passes, or return FAIL or BLOCKED.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0099": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "qa suite: fail + PASS is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - suite='fail' reports a gate as FAILED, but VERDICT is PASS \u2014 a gate that failed cannot have passed. Fix until it passes, or return FAIL or BLOCKED.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0100": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "qa matrix_ok: false + PASS is rejected \u2014 the BOOLEAN half",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - matrix_ok=False reports a gate as FAILED, but VERDICT is PASS \u2014 a gate that failed cannot have passed. Fix until it passes, or return FAIL or BLOCKED.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0101": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dev-ops suite: fail + PASS stays accepted \u2014 D-03 ruling, not a claim it is right",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-dev-ops",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "test_kinds_written",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0102": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "a documentor digest carries neither new field and is still accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-documentor",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "stale_found",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0103": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "code reviewer omission of code_grade is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-code-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'code_grade' \u2014 every field is required; write one of ['fail', 'grade_2', 'n_a', 'pass'] \u2014 a single enum value, never a list. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'reviewed' \u2014 every field is required; write a non-empty string (the literal `none` if genuinely not applicable). An absent field is ambiguous; an explicit empty one asserts you looked.\n  - code_grade cannot be bound to review_sha: artifact 'a.md' does not name a .harness/<repo>/features/<FEAT>/ location \u2014 write your review under that featu",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "as-written schema errors: 5"
+   ],
+   "source": "cli"
+  },
+  "P0104": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "code_grade's missing-field hint names the four legal values, not the list wording",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-code-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'code_grade' \u2014 every field is required; write one of ['fail', 'grade_2', 'n_a', 'pass'] \u2014 a single enum value, never a list. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - code_grade cannot be bound to review_sha: artifact 'a.md' does not name a .harness/<repo>/features/<FEAT>/ location \u2014 write your review under that feature's notes/.",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "as-written schema errors: 4"
+   ],
+   "source": "cli"
+  },
+  "P0105": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "task_verify's missing-field hint names its real values, not the none wording",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli"
+  },
+  "P0106": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "task's missing-field hint names a task id, not the list wording",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'task' \u2014 every field is required; write your task's `T-NN` id exactly as your dispatch carries it (T-05), or `none` if this dispatch carries no PLAN task. An absent field is ambiguous; an explicit empty one asserts you looked.",
+   "ruling_spelled": [],
+   "source": "cli"
+  },
+  "P0107": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 finding without kind is rejected, naming the entry and the enum",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-ui-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[0]: 'kind' is a required property",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0108": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 finding with a kind outside the enum is rejected, naming the value",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-ui-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[0].kind: 'style' is not one of ['substance', 'form', 'proportionality']",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0109": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 kind: substantive (near-miss) is rejected, not normalised",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-ui-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[0].kind: 'substantive' is not one of ['substance', 'form', 'proportionality']",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0110": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 a bare-string finding has no kind and is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-ui-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[0]: 'fail-open branch in auth' is not of type 'object'",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "as-written schema errors: 6"
+   ],
+   "source": "cli"
+  },
+  "P0111": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 the error names the offending entry's index, not the first",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-ui-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[1]: 'kind' is a required property",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "findings[1]",
+    "as-written schema errors: 10"
+   ],
+   "source": "cli"
+  },
+  "P0112": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "FEAT-59 kind: substance is accepted (inline entry)",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-ui-reviewer",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0113": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "FEAT-59 kind: form is accepted (block-mapping entry)",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-ui-reviewer",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0114": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "FEAT-59 kind: proportionality with scope: mission is accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-ui-reviewer",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "as-written schema errors: 5"
+   ],
+   "source": "cli"
+  },
+  "P0115": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "DEC-228 kind: proportionality with scope: task is accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-ui-reviewer",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "as-written schema errors: 6"
+   ],
+   "source": "cli"
+  },
+  "P0116": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "DEC-228 kind: proportionality without scope is rejected, naming both scopes",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-ui-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[0]: 'scope' is a required property",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0117": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "DEC-228 kind: proportionality with a scope outside task|mission is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-ui-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[0].scope: 'whole' is not valid under any of the given schemas\n  - findings[0].scope: 'whole' is not one of ['task', 'mission']",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "findings[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0118": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "FEAT-59 findings: [] is accepted \u2014 an explicit empty list asserts you looked",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-security-reviewer",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "in_scope",
+    "scope_reason",
+    "threat_model",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0119": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 findings as an INT count is rejected \u2014 it is a list of kinded entries",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-security-reviewer",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings: 0 is not of type 'array'",
+   "ruling_spelled": [
+    "in_scope",
+    "scope_reason",
+    "threat_model",
+    "as-written schema errors: 4"
+   ],
+   "source": "cli"
+  },
+  "P0120": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "FEAT-59 lead findings passthrough: kinded entries are accepted alongside readers:",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-validator-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "members[1]",
+    "findings[0]",
+    "readers[0]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0121": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 lead findings passthrough: an entry without kind is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-validator-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings[0]: 'kind' is a required property",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "readers",
+    "members[1]",
+    "findings[0]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli"
+  },
+  "P0122": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 qa PASS + matrix_ok: true + fail_first: [] is REJECTED \u2014 a green suite with no fail-first evidence is not a pass",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS \u2014 a green suite with no fail-first evidence is not a pass. For each `verify: automated` SC name the test and the evidence it FAILED before the fix ({ sc: SC-NN, evidence: <path or receipt line> }), or return FAIL.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0123": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "FEAT-59 qa PASS with populated fail_first is accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0124": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "FEAT-59 qa matrix_ok: n/a with fail_first: [] is accepted \u2014 no gate ran",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0125": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "FEAT-59 qa FAIL with fail_first: [] is accepted \u2014 the gate is on PASS",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0126": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 qa omitting fail_first is rejected \u2014 every field is required",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'fail_first' \u2014 every field is required; write one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: automated` SC showing the test FAILED before the fix; `[]` only when matrix_ok is n/a or the verdict is not PASS. An absent field is ambiguous; an explicit empty one asserts you looked.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0127": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 fail_first's missing-field hint names the entry shape, not `[]`",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'fail_first' \u2014 every field is required; write one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: automated` SC showing the test FAILED before the fix; `[]` only when matrix_ok is n/a or the verdict is not PASS. An absent field is ambiguous; an explicit empty one asserts you looked.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0128": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 fail_first entry without sc is rejected, naming the index",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - fail_first[0]: 'sc' is a required property",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0129": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 fail_first entry with empty evidence is rejected, naming the index",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - fail_first[0].evidence: '' does not match '\\\\S'",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0130": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 fail_first bare-string entry is rejected",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - fail_first[0]: 'SC-01 failed first' is not of type 'object'",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0131": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "FEAT-59 fail_first sc must be an SC-NN id",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - fail_first[0].sc: 'T-01' does not match '^SC-[0-9]+$'",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "cli"
+  },
+  "P0132": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "FEAT-59 fail_first block-mapping entries are accepted",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli"
+  },
+  "P0133": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "#1854: a member's nested block list stays inside that member",
+   "group": "run_cli_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-validator-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "sc_status",
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0134": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "#1854: a nested list does not hide a member that genuinely lacks a verdict",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-validator-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - members[1]: {'step': 'ui-reviewer', 'persona': 'harness-ui-reviewer', 'headline': 'accepted no entry', 'files_touched': []} is not valid under any of the given schemas\n  - a members entry has no verdict: \u2014 \"{'step': 'ui-reviewer', 'persona': 'harness-ui-reviewer', 'h\". Every member entry needs one; the team verdict is the worst of them and cannot be computed otherwise.",
+   "ruling_spelled": [
+    "sc_status",
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli"
+  },
+  "P0135": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "#1854: a nested member verdict still rolls up worst-wins",
+   "group": "run_cli_cases",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-validator-lead",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - VERDICT is PASS but a member returned FAIL (\"{'step': 'ui-reviewer', 'persona': 'harness-ui-reviewer', 'v\"). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting PASS here hides the FAIL.",
+   "ruling_spelled": [
+    "sc_status",
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 7"
+   ],
+   "source": "cli"
+  },
+  "P0136": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_empty_red_case#000",
+   "counterpart": {
+    "counterpart": "missing (absent data)",
+    "reasons": "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+    "reject": true
+   },
+   "group": "run_empty_red_case",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: harness-qa's yield carried no digest object (`data` was absent); return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+   "ruling_spelled": [],
+   "source": "hook-group:run_empty_red_case"
+  },
+  "P0137": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_dec156_worktree_red_case#000",
+   "group": "run_dec156_worktree_red_case",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: appended the validated digest to /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-worktree-b0mw4qej/.claude/worktrees/FEAT-X/runs/r1/digest.md.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_dec156_worktree_red_case"
+  },
+  "P0138": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_bug919_qa_matrix_cases#000",
+   "group": "run_bug919_qa_matrix_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug919_qa_matrix_cases"
+  },
+  "P0139": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug919_qa_matrix_cases#001",
+   "group": "run_bug919_qa_matrix_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "harness-qa reported VERDICT: PASS with suite: pass and matrix_ok: true, but an independent re-run of run-unit-tests.py at this checkout exited 1 \u2014 the gate reported evidence it did not have (issue #919). Re-run the suite yourself, fix what fails, and return again once it is genuinely green. Tail of the independent run:\n  STUB_RAN",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug919_qa_matrix_cases"
+  },
+  "P0140": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_bug919_qa_matrix_cases#002",
+   "group": "run_bug919_qa_matrix_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug919_qa_matrix_cases"
+  },
+  "P0141": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_bug919_qa_matrix_cases#003",
+   "group": "run_bug919_qa_matrix_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "check-digest: could not independently re-run the suite at '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-bug919-01rsvvnz/does-not-exist.sh' \u2014 harness-qa's matrix_ok: true / suite: pass claim was NOT verified; this is our gap, not theirs.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug919_qa_matrix_cases"
+  },
+  "P0142": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug919_qa_matrix_cases#004",
+   "group": "run_bug919_qa_matrix_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "harness-qa reported VERDICT: PASS with suite: pass and matrix_ok: true, but an independent re-run of run-unit-tests.py at this checkout exited 1 \u2014 the gate reported evidence it did not have (issue #919). Re-run the suite yourself, fix what fails, and return again once it is genuinely green. Tail of the independent run:\n  STUB_RAN",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug919_qa_matrix_cases"
+  },
+  "P0143": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_bug919_qa_matrix_cases#005",
+   "group": "run_bug919_qa_matrix_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug919_qa_matrix_cases"
+  },
+  "P0144": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_bug919_qa_matrix_cases#006",
+   "group": "run_bug919_qa_matrix_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "as-written schema errors: 1"
+   ],
+   "source": "hook-group:run_bug919_qa_matrix_cases"
+  },
+  "P0145": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug919_qa_matrix_cases#007",
+   "group": "run_bug919_qa_matrix_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "harness-qa reported VERDICT: PASS with suite: pass and matrix_ok: true, but an independent re-run of run-unit-tests.py at this checkout exited 1 \u2014 the gate reported evidence it did not have (issue #919). Re-run the suite yourself, fix what fails, and return again once it is genuinely green. Tail of the independent run:\n  UNIT_TAIL_LINE",
+   "ruling_spelled": [
+    "sc_evidence",
+    "as-written schema errors: 1"
+   ],
+   "source": "hook-group:run_bug919_qa_matrix_cases"
+  },
+  "P0146": {
+   "baseline_accept": false,
+   "baseline_exit": 1,
+   "case": "run_joint_hint_case#000",
+   "group": "run_joint_hint_case",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - missing 'task' \u2014 every field is required; write your task's `T-NN` id exactly as your dispatch carries it (T-05), or `none` if this dispatch carries no PLAN task. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - task_verify='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli-group:run_joint_hint_case"
+  },
+  "P0147": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_joint_hint_case#001",
+   "group": "run_joint_hint_case",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 1"
+   ],
+   "source": "cli-group:run_joint_hint_case"
+  },
+  "P0148": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_joint_hint_case#002",
+   "group": "run_joint_hint_case",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "digest ok",
+   "ruling_spelled": [],
+   "source": "cli-group:run_joint_hint_case"
+  },
+  "P0149": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_code_grade_cases#000",
+   "group": "run_code_grade_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - code_grade='pass' disagrees with the mechanical result this repository computes over c39aaa055437d0bb37910bcda8b00942cb413997..6df4e5cb0039156cb0dc033742199695657edc81: expected 'fail'. The reviewer's enum is an audit claim, not evidence of itself \u2014 rerun code-grade.py over the canonical range and report what it reports.",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli-group:run_code_grade_cases"
+  },
+  "P0150": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_code_grade_cases#001",
+   "group": "run_code_grade_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli-group:run_code_grade_cases"
+  },
+  "P0151": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_code_grade_cases#002",
+   "group": "run_code_grade_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - code_grade cannot be verified: committed Python in 6abaee7e1ce6..7fd37711a175 does not parse (invalid syntax, line 1) \u2014 fix the committed syntax error and rerun.",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli-group:run_code_grade_cases"
+  },
+  "P0152": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "F1.1 quoted headline text must not satisfy the verdict lookup",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - VERDICT is PASS but a member returned FAIL (\"{'step': 'qa', 'persona': 'qa', 'verdict': 'FAIL', 'headline\"). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting PASS here hides the FAIL.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook"
+  },
+  "P0153": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "F1.2 multi-line inline members list is followed to its close",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - VERDICT is PASS but a member returned FAIL (\"{'step': 'qa', 'persona': 'qa', 'verdict': 'FAIL', 'headline\"). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting PASS here hides the FAIL.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[0]",
+    "members[1]",
+    "as-written schema errors: 9"
+   ],
+   "source": "hook"
+  },
+  "P0154": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "F1.3 unquoted apostrophe must not fuse list entries",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-validator-lead",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - VERDICT is PASS but a member returned FAIL (\"{'step': 's3', 'persona': 'security-reviewer', 'verdict': 'F\"). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting PASS here hides the FAIL.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "members[0]",
+    "members[1]",
+    "members[2]",
+    "as-written schema errors: 9"
+   ],
+   "source": "hook"
+  },
+  "P0155": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "F1.4 empty members against a nonzero steps_run is rejected",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - members: [] but steps_run=3 \u2014 a team that ran 3 step(s) reported zero members; that is never legitimate (SPEC 10.4: members is NOT optional).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "as-written schema errors: 7"
+   ],
+   "source": "hook"
+  },
+  "P0156": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "fail-open crash: list-valued enum is a reported violation, not a crash",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - missing 'code_grade' \u2014 every field is required; write one of ['fail', 'grade_2', 'n_a', 'pass'] \u2014 a single enum value, never a list. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'reviewed' \u2014 every field is required; write a non-empty string (the literal `none` if genuinely not applicable). An absent field is ambiguous; an explicit empty",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "findings[0]",
+    "findings[1]",
+    "as-written schema errors: 10"
+   ],
+   "source": "hook"
+  },
+  "P0157": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "empty-string: a present but blank final message is the persona's violation",
+   "counterpart": {
+    "counterpart": "missing (absent data)",
+    "reasons": "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+    "reject": true
+   },
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: harness-qa's yield carried no digest object (`data` was absent); return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+   "ruling_spelled": [],
+   "source": "hook"
+  },
+  "P0158": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "absent-key: nothing supplied to validate is OUR gap, and is said so",
+   "counterpart": {
+    "counterpart": "missing (absent data)",
+    "reasons": "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+    "reject": true
+   },
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: harness-qa's yield carried no digest object (`data` was absent); return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+   "ruling_spelled": [],
+   "source": "hook"
+  },
+  "P0159": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "null-passthrough: an explicitly null final message is the same our-gap branch",
+   "counterpart": {
+    "counterpart": "missing (null data)",
+    "reasons": "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+    "reject": true
+   },
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: harness-qa's yield carried no digest object (`data` was a NoneType); return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+   "ruling_spelled": [],
+   "source": "hook"
+  },
+  "P0160": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "pass-through: non-harness agent_type is not governed",
+   "group": "run_hook_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "Explore",
+   "reasons": "",
+   "ruling_spelled": [],
+   "source": "hook"
+  },
+  "P0161": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "pass-through: stop_hook_active avoids the infinite-block loop",
+   "counterpart": {
+    "counterpart": "wrong-type (string data)",
+    "reasons": "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+    "reject": true
+   },
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: harness-qa's yield carried no digest object (`data` was a str); return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+   "ruling_spelled": [],
+   "source": "hook"
+  },
+  "P0162": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "DEC-156: narrative digest.md with no contract block is exit 2",
+   "group": "run_hook_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: appended the validated digest to /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-umtrct43/tmpl9r72kgx/runs/r1/digest.md.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook"
+  },
+  "P0163": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "DEC-156: digest.md carrying the same valid block is exit 0",
+   "group": "run_hook_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: appended the validated digest to /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-umtrct43/tmp85zyp1yd/runs/r1/digest.md.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook"
+  },
+  "P0164": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "DEC-156: missing digest in a resolved run directory is refused",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: REFUSED harness-eng-lead's return: its durable digest is missing from resolved run directory /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-umtrct43/tmpyi_r9mkl/runs/r1. Write your human assessment at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-umtrct43/tmpyi_r9mkl/runs/r1/digest.md; the validated object is appended under it. Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook"
+  },
+  "P0165": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "DEC-156: file check governs leads only \u2014 a dev's artifact is not read",
+   "group": "run_hook_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "",
+   "ruling_spelled": [],
+   "source": "hook"
+  },
+  "P0166": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "dec156-worktree-narrative: worktree narrative digest is rejected",
+   "group": "run_hook_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: appended the validated digest to /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-worktree-428s6q45/.claude/worktrees/FEAT-X/runs/r1/digest.md.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook"
+  },
+  "P0167": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dec156-worktree-valid: valid worktree digest passes",
+   "group": "run_hook_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: appended the validated digest to /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-worktree-ih1pbflf/.claude/worktrees/FEAT-X/runs/r1/digest.md.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook"
+  },
+  "P0168": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "dec156-worktree-nofeature: absent feature preserves fail-open fallback",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: REFUSED harness-eng-lead's return: its artifact runs/r1/digest.md resolves to no run directory from the hook's vantage (tried /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-dec156-worktree-uwc77yqi/runs/r1/digest.md, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/runs/r1/digest.md). Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook"
+  },
+  "P0169": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "F6 missing agent_type key is loud, not silent",
+   "counterpart": {
+    "counterpart": "wrong-type (string data)",
+    "reasons": "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+    "reject": true
+   },
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": null,
+   "reasons": "check-digest: this agent's yield carried no digest object (`data` was a str); return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.",
+   "ruling_spelled": [],
+   "source": "hook"
+  },
+  "P0170": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "echo shadow [hook]: missing matrix_ok behind an echo is exit 2",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - missing 'matrix_ok' \u2014 every field is required; write true or false, or `none` if it does not apply. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'fail_first' \u2014 every field is required; write one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: automated` SC showing the test FAILED before the fix; `[]` only when matrix_ok i",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 4"
+   ],
+   "source": "hook"
+  },
+  "P0171": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "#1855: qa on a distill dispatch may PASS with suite/matrix_ok n/a",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - expertise_update[0]: {'file': '/abs/.harness/expertise/harness-qa.md', 'ops': 3} is not valid under any of the given schemas",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "hook"
+  },
+  "P0172": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "#1855: the same qa return outside distill is still the fail-open it always was",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - expertise_update[0]: {'file': '/abs/.harness/expertise/harness-qa.md', 'ops': 3} is not valid under any of the given schemas\n  - suite='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.\n  - matrix_ok='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "hook"
+  },
+  "P0173": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "#1855: qa on a distill dispatch may not decorate the return with a suite it did not run",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - expertise_update[0]: {'file': '/abs/.harness/expertise/harness-qa.md', 'ops': 3} is not valid under any of the given schemas\n  - suite='pass' on a distill dispatch \u2014 this mission reviews no diff and runs no suite, so a gate value here is decoration rather than evidence. Write `suite: n/a`.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "hook"
+  },
+  "P0174": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "#1855: code-reviewer on a distill dispatch may PASS with code_grade n_a and no range",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - expertise_update[0]: {'file': '/abs/.harness/expertise/harness-code-reviewer.md', 'ops': 3} is not valid under any of the given schemas",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "as-written schema errors: 4"
+   ],
+   "source": "hook"
+  },
+  "P0175": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "#1855: the same reviewer return outside distill is refused at the binding",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - expertise_update[0]: {'file': '/abs/.harness/expertise/harness-code-reviewer.md', 'ops': 3} is not valid under any of the given schemas\n  - code_grade cannot be bound to review_sha: artifact '.harness/features/FEAT-01/runs/distill-validator/digest.md' does not name a .harness/<repo>/features/<FEAT>/ location \u2014 write your review under that feature's notes/.\n  - code_grade can",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "as-written schema errors: 4"
+   ],
+   "source": "hook"
+  },
+  "P0176": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "#1855: a distill reviewer claiming a grade is refused \u2014 there is no diff to grade",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - expertise_update[0]: {'file': '/abs/.harness/expertise/harness-code-reviewer.md', 'ops': 3} is not valid under any of the given schemas\n  - code_grade='pass' on a distill dispatch \u2014 this mission reviews no diff and runs no suite, so a gate value here is decoration rather than evidence. Write `code_grade: n_a`.",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "as-written schema errors: 4"
+   ],
+   "source": "hook"
+  },
+  "P0177": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "#1855: an unknown mission changes nothing",
+   "group": "run_hook_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - expertise_update[0]: {'file': '/abs/.harness/expertise/harness-qa.md', 'ops': 3} is not valid under any of the given schemas\n  - suite='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.\n  - matrix_ok='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 3"
+   ],
+   "source": "hook"
+  },
+  "P0178": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1305_artifact_resolution_cases#000",
+   "group": "run_bug1305_artifact_resolution_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: appended the validated digest to /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-bug1305-w0d5t5yo/.claude/worktrees/FEAT-X/runs/r1/digest.md.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_bug1305_artifact_resolution_cases"
+  },
+  "P0179": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_bug1305_artifact_resolution_cases#001",
+   "group": "run_bug1305_artifact_resolution_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: appended the validated digest to /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-bug1305-w0d5t5yo/.claude/worktrees/FEAT-X/runs/r1/digest.md.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_bug1305_artifact_resolution_cases"
+  },
+  "P0180": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1305_artifact_resolution_cases#002",
+   "group": "run_bug1305_artifact_resolution_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: REFUSED harness-eng-lead's return: its durable digest is missing from resolved run directory /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-bug1305-w0d5t5yo/.claude/worktrees/FEAT-X/runs/r1. Write your human assessment at /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-bug1305-w0d5t5yo/.claude/worktrees/FEAT-X/runs/r1/digest.md; the validated object is appended under it. Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_bug1305_artifact_resolution_cases"
+  },
+  "P0181": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1305_artifact_resolution_cases#003",
+   "group": "run_bug1305_artifact_resolution_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: appended the validated digest to /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-bug1305-w0d5t5yo/absolute/digest.md.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_bug1305_artifact_resolution_cases"
+  },
+  "P0182": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_bug1305_artifact_resolution_cases#004",
+   "group": "run_bug1305_artifact_resolution_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: REFUSED harness-eng-lead's return: a lead's artifact is its run's digest.md, and 'runs/r1/notes.md' is not one. Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_bug1305_artifact_resolution_cases"
+  },
+  "P0183": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_t09#000",
+   "group": "run_t09",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-pm",
+   "reasons": "check-digest: released harness-pm's claim Lead.Pm for FEAT-09-exact-claims.",
+   "ruling_spelled": [],
+   "source": "hook-group:run_t09"
+  },
+  "P0184": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t09#001",
+   "group": "run_t09",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-pm",
+   "reasons": "check-digest: released harness-pm's claim Lead.Pm for FEAT-09-exact-claims.\nYour return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - missing 'artifact' \u2014 the returned object carries exactly VERDICT, DIGEST and artifact at its top level; return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.\n  - missing 'open_questions' \u2014 every field is required; writ",
+   "ruling_spelled": [],
+   "source": "hook-group:run_t09"
+  },
+  "P0185": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_t09#002",
+   "group": "run_t09",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-pm",
+   "reasons": "",
+   "ruling_spelled": [],
+   "source": "hook-group:run_t09"
+  },
+  "P0186": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t09#003",
+   "group": "run_t09",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-documentor",
+   "reasons": "check-digest: released harness-documentor's claim Lead.Doc for FEAT-09-exact-claims.\nYour return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - undeclared digest key(s): 'decisions', 'feasibility', 'flags', 'needs_approval', 'recommend', 'risk', 'sc_status', 'surface', 'tasks'. The digest contract is closed: .claude/skills/harness/bin/digest-schemas/harness-documentor.json declares every DIGEST key. A per-dispatch answer is not a di",
+   "ruling_spelled": [
+    "stale_found",
+    "as-written schema errors: 4"
+   ],
+   "source": "hook-group:run_t09"
+  },
+  "P0187": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t09#004",
+   "group": "run_t09",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: BLOCKED - returned with children in flight (harness-eng-lead)\n  - harness-backend-dev [FEAT-09-exact-claims] started 2026-09-30T00:00:48.903947+00:00\n  - harness-dev-ops [FEAT-09-exact-claims] started 2026-09-30T00:00:48.904393+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  ",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_t09"
+  },
+  "P0188": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_t09#005",
+   "group": "run_t09",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: released harness-eng-lead's claim Orch.Lead for FEAT-09-exact-claims.\ncheck-digest: REFUSED harness-eng-lead's return: its artifact .harness/features/FEAT-01/runs/r1/digest.md resolves to no run directory from the hook's vantage (tried /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp1utl88ta/.harness/features/FEAT-01/runs/r1/digest.md, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/features/FEAT-01/runs/r1/digest.md). Your return is valid; the durable digest is what a successor reads, so it must be written before you",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_t09"
+  },
+  "P0189": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_t09#006",
+   "group": "run_t09",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-pm",
+   "reasons": "check-digest: released harness-pm's claim Lead.Pm for FEAT-09-exact-claims.",
+   "ruling_spelled": [],
+   "source": "hook-group:run_t09"
+  },
+  "P0190": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_t09#007",
+   "group": "run_t09",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_t09"
+  },
+  "P0191": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t09#008",
+   "group": "run_t09",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: BLOCKED - returned with children in flight (harness-eng-lead)\n  - harness-backend-dev [FEAT-09-exact-claims] started 2026-09-30T00:00:49.397155+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmprzkcw24_/.agents/skills/",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_t09"
+  },
+  "P0192": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t51_suspension_cases#000",
+   "group": "run_t51_suspension_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-product-lead",
+   "reasons": "check-digest: BLOCKED - returned with children in flight (harness-product-lead)\n  - harness-pm [FEAT-09-exact-claims] started 2026-09-30T00:00:49.498699+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp5znn1u1d/.agents/skills/harne",
+   "ruling_spelled": [
+    "adequacy_notes",
+    "sc_status",
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 22"
+   ],
+   "source": "hook-group:run_t51_suspension_cases"
+  },
+  "P0193": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t51_suspension_cases#001",
+   "group": "run_t51_suspension_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-product-lead",
+   "reasons": "check-digest: BLOCKED - returned with children in flight (harness-product-lead)\n  - harness-pm [FEAT-09-exact-claims] started 2026-09-30T00:00:49.595157+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpf7abz33f/.agents/skills/harne",
+   "ruling_spelled": [
+    "adequacy_notes",
+    "sc_status",
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 19"
+   ],
+   "source": "hook-group:run_t51_suspension_cases"
+  },
+  "P0194": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t51_suspension_cases#002",
+   "counterpart": {
+    "counterpart": "missing field (suite)",
+    "reasons": "missing 'suite' \u2014 every field is required; write one of ['fail', 'pass'] \u2014 what gets rejected for this role is a placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder itself (`n/a` with FAIL or BLOCKED is the honest refusal). An absent field is ambiguous; an explicit empty one asserts you loo",
+    "reject": true
+   },
+   "group": "run_t51_suspension_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-product-lead",
+   "reasons": "check-digest: BLOCKED - returned with children in flight (harness-product-lead)\n  - harness-pm [FEAT-09-exact-claims] started 2026-09-30T00:00:49.691709+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpwf85qm08/.agents/skills/harne",
+   "ruling_spelled": [],
+   "source": "hook-group:run_t51_suspension_cases"
+  },
+  "P0195": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t51_suspension_cases#003",
+   "counterpart": {
+    "counterpart": "missing field (suite)",
+    "reasons": "missing 'suite' \u2014 every field is required; write one of ['fail', 'pass'] \u2014 what gets rejected for this role is a placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder itself (`n/a` with FAIL or BLOCKED is the honest refusal). An absent field is ambiguous; an explicit empty one asserts you loo",
+    "reject": true
+   },
+   "group": "run_t51_suspension_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-product-lead",
+   "reasons": "check-digest: BLOCKED - returned with children in flight (harness-product-lead)\n  - harness-pm [FEAT-09-exact-claims] started 2026-09-30T00:00:49.788240+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp7m4vlizj/.agents/skills/harne",
+   "ruling_spelled": [],
+   "source": "hook-group:run_t51_suspension_cases"
+  },
+  "P0196": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#000",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-ai-dev",
+   "reasons": "check-digest: REFUSED harness-ai-dev's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 6"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0197": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#001",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-ai-dev",
+   "reasons": "check-digest: REFUSED harness-ai-dev's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 6"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0198": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#002",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-backend-dev",
+   "reasons": "check-digest: REFUSED harness-backend-dev's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 6"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0199": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#003",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-backend-dev",
+   "reasons": "check-digest: REFUSED harness-backend-dev's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 6"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0200": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#004",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "check-digest: REFUSED harness-code-reviewer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "as-written schema errors: 9"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0201": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#005",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "check-digest: REFUSED harness-code-reviewer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "grade_2_reasons",
+    "as-written schema errors: 9"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0202": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#006",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-data-engineer",
+   "reasons": "check-digest: REFUSED harness-data-engineer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 6"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0203": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#007",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-data-engineer",
+   "reasons": "check-digest: REFUSED harness-data-engineer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 6"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0204": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#008",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-dev-ops",
+   "reasons": "check-digest: REFUSED harness-dev-ops's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "test_kinds_written",
+    "as-written schema errors: 7"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0205": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#009",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-dev-ops",
+   "reasons": "check-digest: REFUSED harness-dev-ops's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "test_kinds_written",
+    "as-written schema errors: 7"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0206": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#010",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-documentor",
+   "reasons": "check-digest: REFUSED harness-documentor's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "stale_found",
+    "as-written schema errors: 4"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0207": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#011",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-documentor",
+   "reasons": "check-digest: REFUSED harness-documentor's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "stale_found",
+    "as-written schema errors: 4"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0208": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#012",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: REFUSED harness-eng-lead's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "adequacy_notes",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "as-written schema errors: 15"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0209": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#013",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "check-digest: REFUSED harness-eng-lead's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "adequacy_notes",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "as-written schema errors: 15"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0210": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#014",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-frontend-dev",
+   "reasons": "check-digest: REFUSED harness-frontend-dev's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 6"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0211": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#015",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-frontend-dev",
+   "reasons": "check-digest: REFUSED harness-frontend-dev's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "task_verify",
+    "as-written schema errors: 6"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0212": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#016",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-orchestrator",
+   "reasons": "check-digest: REFUSED harness-orchestrator's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "judgement",
+    "as-written schema errors: 7"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0213": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#017",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-orchestrator",
+   "reasons": "check-digest: REFUSED harness-orchestrator's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "judgement",
+    "as-written schema errors: 7"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0214": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#018",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-pm",
+   "reasons": "check-digest: REFUSED harness-pm's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0215": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#019",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-pm",
+   "reasons": "check-digest: REFUSED harness-pm's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0216": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#020",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-product-lead",
+   "reasons": "check-digest: REFUSED harness-product-lead's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "adequacy_notes",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 14"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0217": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#021",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-product-lead",
+   "reasons": "check-digest: REFUSED harness-product-lead's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "adequacy_notes",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 14"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0218": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#022",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: REFUSED harness-qa's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0219": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#023",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: REFUSED harness-qa's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 8"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0220": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#024",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-security-reviewer",
+   "reasons": "check-digest: REFUSED harness-security-reviewer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "in_scope",
+    "scope_reason",
+    "threat_model",
+    "as-written schema errors: 7"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0221": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#025",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-security-reviewer",
+   "reasons": "check-digest: REFUSED harness-security-reviewer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "in_scope",
+    "scope_reason",
+    "threat_model",
+    "as-written schema errors: 7"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0222": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#026",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-ui-reviewer",
+   "reasons": "check-digest: REFUSED harness-ui-reviewer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "as-written schema errors: 9"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0223": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#027",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-ui-reviewer",
+   "reasons": "check-digest: REFUSED harness-ui-reviewer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "mode",
+    "in_scope",
+    "states_unspecified",
+    "contract_violations",
+    "a11y",
+    "as-written schema errors: 9"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0224": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#028",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-validator-lead",
+   "reasons": "check-digest: REFUSED harness-validator-lead's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "adequacy_notes",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 14"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0225": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#029",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-validator-lead",
+   "reasons": "check-digest: REFUSED harness-validator-lead's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "adequacy_notes",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "as-written schema errors: 14"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0226": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#030",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-visual-designer",
+   "reasons": "check-digest: REFUSED harness-visual-designer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "needs_prototype",
+    "why",
+    "prototype",
+    "as-written schema errors: 7"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0227": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#031",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-visual-designer",
+   "reasons": "check-digest: REFUSED harness-visual-designer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+   "ruling_spelled": [
+    "needs_prototype",
+    "why",
+    "prototype",
+    "as-written schema errors: 7"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0228": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#032",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: harness-qa's BLOCKED return names no exact feature and runtime id; no claim was looked up or released.\nYour return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - missing 'artifact' \u2014 the returned object carries exactly VERDICT, DIGEST and artifact at its top level; return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.\n  - missing 'open_q",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 11"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0229": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#033",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: released harness-qa's claim Lead.Qa for BUG-98-exact-release.\nYour return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - missing 'DIGEST' \u2014 the returned object carries exactly VERDICT, DIGEST and artifact at its top level; return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.\n  - missing 'artifact' \u2014 the returned object carries exactly V",
+   "ruling_spelled": [],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0230": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#034",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: released harness-qa's claim Lead.Qa for BUG-98-exact-release.\nYour return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - missing 'DIGEST' \u2014 the returned object carries exactly VERDICT, DIGEST and artifact at its top level; return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) \u2014 a string, null, absent or wrapped `data` carries no digest.\n  - missing 'artifact' \u2014 the returned object carries exactly V",
+   "ruling_spelled": [],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0231": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#035",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-orchestrator",
+   "reasons": "check-digest: BLOCKED - returned with children in flight (harness-orchestrator)\n  - harness-eng-lead [BUG-98-exact-release] started 2026-09-29T23:59:54.295799+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp933l737e/.claud",
+   "ruling_spelled": [
+    "judgement",
+    "runs[0]",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0232": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#036",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-orchestrator",
+   "reasons": "check-digest: BLOCKED - returned with children in flight (harness-orchestrator)\n  - harness-eng-lead [BUG-98-exact-release] started 2026-09-29T23:59:54.395502+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpysdsh2i8/.claud",
+   "ruling_spelled": [
+    "judgement",
+    "runs[0]",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0233": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_bug1898_exact_release_cases#037",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-orchestrator",
+   "reasons": "check-digest: released harness-orchestrator's claim Main.Orch for BUG-98-exact-release.",
+   "ruling_spelled": [
+    "judgement",
+    "runs[0]",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0234": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#038",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-orchestrator",
+   "reasons": "check-digest: REFUSED harness-orchestrator's return: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpjw0t52xk/.claude/worktrees/BUG-98's claim registry is unreadable (UnreadableRegistry('unreadable in-flight claim registries: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpjw0t52xk/.claude/worktrees/BUG-98/.harness/.inflight-claims.json')), so this run cannot tell whether it holds a live child. Nothing was released. A retry cannot succeed until the operator repairs the registry; yield a BLOCKED digest naming this cause.",
+   "ruling_spelled": [
+    "judgement",
+    "runs[0]",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0235": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_bug1898_exact_release_cases#039",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-orchestrator",
+   "reasons": "check-digest: could not read /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpjw0t52xk/.claude/worktrees/BUG-98's claim registry (UnreadableRegistry('unreadable in-flight claim registries: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpjw0t52xk/.claude/worktrees/BUG-98/.harness/.inflight-claims.json')); nothing was released and the registry was left as found.",
+   "ruling_spelled": [
+    "judgement",
+    "runs[0]",
+    "as-written schema errors: 2"
+   ],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0236": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_bug1898_exact_release_cases#040",
+   "group": "run_bug1898_exact_release_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "check-digest: could not read /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpjw0t52xk/.claude/worktrees/BUG-98's claim registry (UnreadableRegistry('unreadable in-flight claim registries: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpjw0t52xk/.claude/worktrees/BUG-98/.harness/.inflight-claims.json')); nothing was released and the registry was left as found.\nYour return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not ap",
+   "ruling_spelled": [],
+   "source": "hook-group:run_bug1898_exact_release_cases"
+  },
+  "P0237": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_template_cases#000",
+   "group": "run_template_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "sc_status",
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli-group:run_template_cases"
+  },
+  "P0238": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_template_cases#001",
+   "group": "run_template_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "sc_status",
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "as-written schema errors: 8"
+   ],
+   "source": "cli-group:run_template_cases"
+  },
+  "P0239": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t04_unknown_key_cases#000",
+   "group": "run_t04_unknown_key_cases",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-eng-lead",
+   "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - undeclared digest key(s): 'rogue_alpha', 'rogue_beta', 'rogue_gamma'. The digest contract is closed: .claude/skills/harness/bin/digest-schemas/harness-eng-lead.json declares every DIGEST key. A per-dispatch answer is not a digest key: put a PASS qualification in adequacy_notes or a per-step fact in the run state steps evidence container.",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli-group:run_t04_unknown_key_cases"
+  },
+  "P0240": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "run_t04_unknown_key_cases#001",
+   "group": "run_t04_unknown_key_cases",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "",
+   "ruling_spelled": [
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "members[1]",
+    "as-written schema errors: 9"
+   ],
+   "source": "cli-group:run_t04_unknown_key_cases"
+  },
+  "P0241": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t08_revision_proof#000",
+   "group": "run_t08_revision_proof (fixture replay)",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-pm",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - undeclared digest key(s): 'rogue_revision_probe'. The digest contract is closed: .claude/skills/harness/bin/digest-schemas/harness-pm.json declares every DIGEST key. A per-dispatch answer is not a digest key: put a PASS qualification in adequacy_notes or a per-step fact in the run state steps evidence container.",
+   "ruling_spelled": [],
+   "source": "cli-group:run_t08_revision_proof"
+  },
+  "P0242": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t08_revision_proof#001",
+   "group": "run_t08_revision_proof (fixture replay)",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-backend-dev",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - undeclared digest key(s): 'rogue_revision_probe'. The digest contract is closed: .claude/skills/harness/bin/digest-schemas/harness-backend-dev.json declares every DIGEST key. A per-dispatch answer is not a digest key: put a PASS qualification in adequacy_notes or a per-step fact in the run state steps evidence container.",
+   "ruling_spelled": [],
+   "source": "cli-group:run_t08_revision_proof"
+  },
+  "P0243": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "run_t08_revision_proof#002",
+   "group": "run_t08_revision_proof (fixture replay)",
+   "new_accept": false,
+   "new_exit": 1,
+   "persona": "harness-documentor",
+   "reasons": "VERDICT: BLOCKED (contract violation)\n  - undeclared digest key(s): 'rogue_revision_probe'. The digest contract is closed: .claude/skills/harness/bin/digest-schemas/harness-documentor.json declares every DIGEST key. A per-dispatch answer is not a digest key: put a PASS qualification in adequacy_notes or a per-step fact in the run state steps evidence container.",
+   "ruling_spelled": [
+    "stale_found",
+    "as-written schema errors: 2"
+   ],
+   "source": "cli-group:run_t08_revision_proof"
+  },
+  "P0244": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_matrix_floor#00",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "shadow"
+  },
+  "P0245": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_matrix_floor#01",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "matrix_ok: true but the matrix floor requires unit (test_matrix.<change_type>.always for this plan's tasks) and kinds: does not report it satisfied. The floor is never lowered: run the kind, or return FAIL with it missing.",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "shadow"
+  },
+  "P0246": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_matrix_floor#02",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "matrix_ok: true but kinds: [] reports no kind \u2014 the matrix floor for this plan is unit; report each with its state, or the claim is unverifiable.",
+   "ruling_spelled": [
+    "kinds",
+    "sc_evidence",
+    "as-written schema errors: 2"
+   ],
+   "source": "shadow"
+  },
+  "P0247": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_matrix_floor#03",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "shadow"
+  },
+  "P0248": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_matrix_floor#04",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "shadow"
+  },
+  "P0249": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_matrix_floor#05",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0250": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_human_commits#00",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0251": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_human_commits#01",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0252": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_human_commits#02",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "human_commits_in_scope disagrees with the reviewed range (unreported 3c4d46e4c802). Every [harness:human] commit in c59bcb5fa15b..4d8d228079ea is in scope and inherits no earlier review; report exactly that set.",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0253": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_human_commits#03",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "human_commits_in_scope disagrees with the reviewed range (unreported 3c4d46e4c802). Every [harness:human] commit in c59bcb5fa15b..4d8d228079ea is in scope and inherits no earlier review; report exactly that set.",
+   "ruling_spelled": [
+    "spec_violations",
+    "human_commits_in_scope",
+    "as-written schema errors: 2"
+   ],
+   "source": "shadow"
+  },
+  "P0254": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_human_commits#04",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "human_commits_in_scope disagrees with the reviewed range (not in the range 47e8112405). Every [harness:human] commit in c59bcb5fa15b..4d8d228079ea is in scope and inherits no earlier review; report exactly that set.",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0255": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_human_commits#05",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0256": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_dirty_tree#00",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "the working tree carries uncommitted changes outside .harness/ (readme.txt); a tree matching no commit has no pinnable verdict. Return BLOCKED and ask for a [harness:human] commit or a stash, then review the pin.",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0257": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_dirty_tree#01",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "the working tree carries uncommitted changes outside .harness/ (readme.txt); a tree matching no commit has no pinnable verdict. Return BLOCKED and ask for a [harness:human] commit or a stash, then review the pin.",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0258": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_dirty_tree#02",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0259": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_dirty_tree#03",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0260": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_dirty_tree#04",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0261": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_qa_kinds#00",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "kinds[1]",
+    "as-written schema errors: 4"
+   ],
+   "source": "shadow"
+  },
+  "P0262": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_qa_kinds#01",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "kinds[1]",
+    "as-written schema errors: 4"
+   ],
+   "source": "shadow"
+  },
+  "P0263": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_qa_kinds#02",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "kinds[0].state: 'green' is not one of ['satisfied', 'missing', 'not_applicable', 'locally_run', 'misconfigured']",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 4"
+   ],
+   "source": "shadow"
+  },
+  "P0264": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_qa_kinds#03",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "kinds[0] (unit) is misconfigured but VERDICT is FAIL \u2014 a kind that cannot run is BLOCKED, never a verdict on the code.",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "shadow"
+  },
+  "P0265": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_qa_kinds#04",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "shadow"
+  },
+  "P0266": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_qa_kinds#05",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "kinds[0] (unit) claims not_applicable but harness.json carries a runnable cmd for it \u2014 a kind that ran is satisfied or missing; one that could not run is misconfigured (BLOCKED).",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "shadow"
+  },
+  "P0267": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_qa_kinds#06",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "kinds[0] (functional) claims satisfied but harness.json has no cmd for it \u2014 nothing could have run.",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "shadow"
+  },
+  "P0268": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_qa_kinds#07",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "kinds[0] names 'e2e', which harness.json test_kinds does not declare.",
+   "ruling_spelled": [
+    "sc_evidence",
+    "kinds[0]",
+    "as-written schema errors: 3"
+   ],
+   "source": "shadow"
+  },
+  "P0269": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_receipt#00",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-backend-dev",
+   "reasons": "task_verify: pass but the receipt .harness/harness/features/FEAT-77-shadow/notes/receipt-harness-backend-dev-T-01.md is not on disk. The receipt holds the verify command and its verbatim output; write it before returning.",
+   "ruling_spelled": [],
+   "source": "shadow"
+  },
+  "P0270": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_receipt#01",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-backend-dev",
+   "reasons": "task_verify: pass but the receipt .harness/harness/features/FEAT-77-shadow/notes/receipt-harness-backend-dev-T-01.md does not carry the task's verify command verbatim ('python3 tests/unit/test-x.py --strict'). Paste the command as plan.yaml spells it, then its output.",
+   "ruling_spelled": [],
+   "source": "shadow"
+  },
+  "P0271": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_receipt#02",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "",
+   "ruling_spelled": [],
+   "source": "shadow"
+  },
+  "P0272": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_receipt#03",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-backend-dev",
+   "reasons": "",
+   "ruling_spelled": [],
+   "source": "shadow"
+  },
+  "P0273": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_inspection_citations#00",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "BRIEF marks SC-03 `verify: inspection` and the review artifact cites no file:line for them. Inspection SCs are checked here and nowhere else: for each, one line naming the SC and the path:line that satisfies it.",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0274": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_inspection_citations#01",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0275": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_inspection_citations#02",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0276": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_findings_order#00",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "findings are not ranked: a lower severity precedes a higher one. An unread list gates nothing \u2014 order by severity, highest first.",
+   "ruling_spelled": [
+    "spec_violations",
+    "findings[0]",
+    "findings[1]",
+    "as-written schema errors: 7"
+   ],
+   "source": "shadow"
+  },
+  "P0277": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_findings_order#01",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-code-reviewer",
+   "reasons": "",
+   "ruling_spelled": [
+    "spec_violations",
+    "findings[0]",
+    "findings[1]",
+    "as-written schema errors: 7"
+   ],
+   "source": "shadow"
+  },
+  "P0278": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_grade_2_names#00",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-code-reviewer",
+   "reasons": "code_grade='grade_2' disagrees with the mechanical result this repository computes over 2a44abf54c770a074fe30d780ec1f39fa8cacb08..f5bc8e2e1b90dfd5ac40e1e7e2796c2ba01c5ae1: expected 'pass'. The reviewer's enum is an audit claim, not evidence of itself \u2014 rerun code-grade.py over the canonical range and report what it reports.",
+   "ruling_spelled": [
+    "spec_violations",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0279": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "case_qa_unearned_fail#00",
+   "group": "shadow",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "harness-qa",
+   "reasons": "VERDICT: FAIL with suite: pass, matrix_ok: true, failures: 0 and fail_first evidence present \u2014 no gate failed. A test-first violation or a coverage concern is a finding in the artifact (and a coverage_gaps entry), not a verdict; return PASS with it recorded, or name the gate that failed.",
+   "ruling_spelled": [
+    "sc_evidence",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0280": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_qa_unearned_fail#01",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0281": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "case_qa_unearned_fail#02",
+   "group": "shadow",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-qa",
+   "reasons": "",
+   "ruling_spelled": [
+    "sc_evidence",
+    "as-written schema errors: 1"
+   ],
+   "source": "shadow"
+  },
+  "P0282": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "S1/S2/S3 orchestrator child DIGEST",
+   "group": "claim-lifecycle",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-orchestrator",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "judgement",
+    "as-written schema errors: 1"
+   ],
+   "source": "claim-lifecycle"
+  },
+  "P0283": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "S3 nested lead LEAD_DIGEST",
+   "group": "claim-lifecycle",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "harness-eng-lead",
+   "reasons": "digest ok",
+   "ruling_spelled": [
+    "sc_status",
+    "needs_approval",
+    "severity_max",
+    "matrix_ok",
+    "coverage_gaps",
+    "findings",
+    "readers",
+    "amendments",
+    "as-written schema errors: 8"
+   ],
+   "source": "claim-lifecycle"
+  },
+  "P0284": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "INV-15/46 BUG-440 lead digest FAIL",
+   "group": "reader",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "lead",
+   "reasons": "record complete",
+   "ruling_spelled": [],
+   "source": "reader"
+  },
+  "P0285": {
+   "baseline_accept": true,
+   "baseline_exit": 0,
+   "case": "INV-15/46 BUG-440 lead digest PASS",
+   "group": "reader",
+   "new_accept": true,
+   "new_exit": 0,
+   "persona": "lead",
+   "reasons": "record complete",
+   "ruling_spelled": [],
+   "source": "reader"
+  },
+  "P0286": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "INV-15 BUG-440 run X bare 'VERDICT: FAIL'",
+   "group": "reader",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "lead",
+   "reasons": "record keys missing ['DIGEST', 'artifact']",
+   "ruling_spelled": [],
+   "source": "reader"
+  },
+  "P0287": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "INV-15 feat59 _digest_run 'VERDICT: PASS'",
+   "group": "reader",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "lead",
+   "reasons": "record keys missing ['DIGEST', 'artifact']",
+   "ruling_spelled": [],
+   "source": "reader"
+  },
+  "P0288": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "INV-47 _QA_BLOCKED note",
+   "group": "reader",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "lead",
+   "reasons": "record keys missing ['artifact']; INV-47 verdict 'BLOCKED' (== baseline tail 'BLOCKED')",
+   "ruling_spelled": [],
+   "source": "reader"
+  },
+  "P0289": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "INV-47 _QA_PASS note",
+   "group": "reader",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "lead",
+   "reasons": "record keys missing ['artifact']; INV-47 verdict 'PASS' (== baseline tail 'PASS')",
+   "ruling_spelled": [],
+   "source": "reader"
+  },
+  "P0290": {
+   "baseline_accept": false,
+   "baseline_exit": 2,
+   "case": "INV-47 _UI_NA note",
+   "group": "reader",
+   "new_accept": false,
+   "new_exit": 2,
+   "persona": "lead",
+   "reasons": "record keys missing ['artifact']; INV-47 verdict 'n/a' (== baseline tail 'n/a')",
+   "ruling_spelled": [],
+   "source": "reader"
+  }
+ },
+ "validator_sha256": "490e67224e0386431a4a087889db54068b903994276d75983a04f76aa28f2de9"
+}

@@ -1,0 +1,32 @@
+{
+ "accept": true,
+ "case": "case_receipt#02",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0271",
+ "input_sha256": "2c97da5bcae8c35e",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [
+    "src/x.py"
+   ],
+   "headline": "dev result",
+   "open_questions": [],
+   "suite": "pass",
+   "task": "T-01",
+   "task_verify": "pass",
+   "tests_added": 1
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/receipt-harness-backend-dev-T-01.md"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: dev result\n  tests_added: 1\n  suite: pass\n  blocked_on: none\n  task: T-01\n  task_verify: pass\n  files_touched: [src/x.py]\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/receipt-harness-backend-dev-T-01.md\n",
+ "why_no_object": ""
+}

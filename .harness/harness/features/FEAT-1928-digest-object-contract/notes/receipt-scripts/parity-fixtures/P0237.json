@@ -1,0 +1,65 @@
+{
+ "accept": true,
+ "case": "run_template_cases#000",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0237",
+ "input_sha256": "91ffd9b3952ab748",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 1,
+   "escalations": [
+    {
+     "decided_by": "harness-product-lead",
+     "domain": "product",
+     "id": "E1",
+     "question": "is partial SSO acceptable for v1?",
+     "raised_by": "harness-eng-lead",
+     "recorded_as": "D-07",
+     "resolution": "yes, Google only for v1",
+     "routed_to": "harness-product-lead"
+    }
+   ],
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "example",
+   "members": [
+    {
+     "files_touched": [],
+     "headline": "example",
+     "persona": "backend-dev",
+     "step": "build",
+     "verdict": "PASS"
+    },
+    {
+     "must_fix": [],
+     "persona": "qa",
+     "severity_max": "high",
+     "step": "qa",
+     "verdict": "FAIL"
+    },
+    {
+     "persona": "fable-advisor",
+     "reason": "persona unavailable",
+     "status": "skipped",
+     "step": "advisor"
+    }
+   ],
+   "must_fix": [],
+   "open_questions": [],
+   "steps_run": 1,
+   "team": "example"
+  },
+  "VERDICT": "FAIL",
+  "artifact": "r/digest.md"
+ },
+ "persona": "lead",
+ "reasons": "digest ok",
+ "source": "cli-group:run_template_cases",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL                  # worst member verdict: BLOCKED > ESCALATE > FAIL > PASS\n                                    #   ESCALATE outranks FAIL so a needed user\n                                    #   decision is never masked by a fixable failure\nDIGEST:\n  headline: example\n  team: example                        # one key per line \u2014 see the note below\n  steps_run: 1\n  cycles_used: 1\n  members:                            # per-member roll-up \u2192 orchestrator appends these to STATE.md\n    - { step: build, persona: backend-dev, verdict: PASS, headline: \"example\", files_touched: [] }\n    - { step: qa,    persona: qa,          verdict: FAIL, severity_max: high, must_fix: [] }\n    - { step: advisor, persona: fable-advisor, status: skipped, reason: \"persona unavailable\" }\n  must_fix: []\n  files_touched: []\n                                      # universal (\u00a78) \u2014 required of leads too, `[]` if none\n  branch: none               # `none` if the team mutated no repo\n  open_questions: []\n  escalations:                        # \u00a710.5 \u2014 routing AND resolution are both recorded\n    - { id: E1, raised_by: harness-eng-lead, question: \"is partial SSO acceptable for v1?\",\n        domain: product, routed_to: harness-product-lead,\n        resolution: \"yes, Google only for v1\", decided_by: harness-product-lead,\n        recorded_as: D-07 }\n  expertise_update: []\n  adequacy_notes: []  # `[]` when nothing; never omitted\n  # Optional passthroughs when produced by a member: sc_status, needs_approval,\n  # severity_max, matrix_ok, coverage_gaps.\nartifact: r/digest.md         # the collated report, written for a HUMAN \u2014 see below\n",
+ "why_no_object": ""
+}

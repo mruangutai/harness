@@ -353,6 +353,14 @@ DIGEST:
   escalations: []
   expertise_update: []
   adequacy_notes: []
+  sc_status: []
+  needs_approval: none
+  severity_max: none
+  matrix_ok: none
+  coverage_gaps: []
+  findings: []
+  readers: []
+  amendments: []
 artifact: /tmp/x/digest.md
 ```
 """
@@ -447,6 +455,31 @@ class CloseRunTest(FeatureRecordCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn("digest", result.stderr)
         self.assertEqual(before, self.path.read_bytes(), "run-end must not have run")
+
+    def test_the_last_fenced_block_is_the_digest_validated(self):
+        """FEAT-1928 SC-07: a run digest.md is prose plus appended fenced blocks and the LAST
+        fenced mapping is the record, so a later invalid block refuses the close even over an
+        earlier valid one, and a valid correction after an invalid block closes."""
+        invalid = LEAD_DIGEST.replace("VERDICT: PASS", "VERDICT: MAYBE")
+        for text, closes in ((LEAD_DIGEST + "\n" + invalid, False),
+                             (invalid + "\n" + LEAD_DIGEST, True)):
+            before = self.write(base_doc(runs=[dict(self.OPEN)]))
+            self.digest.write_text("# lead assessment\n\n" + text, encoding="utf-8")
+            result = self.close()
+            if closes:
+                self.assert_ok(result)
+            else:
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("MAYBE", result.stderr)
+                self.assertEqual(before, self.path.read_bytes(), "run-end must not have run")
+
+    def test_a_json_digest_object_file_closes_the_run(self):
+        """The same stage accepts the live shape: one JSON object is the digest."""
+        import yaml
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        body = yaml.safe_load(LEAD_DIGEST.split("```yaml\n", 1)[1].rsplit("```", 1)[0])
+        self.digest.write_text(json.dumps(body), encoding="utf-8")
+        self.assert_ok(self.close())
 
     def test_unknown_run_is_refused_naming_the_run_end_stage_with_no_later_stage(self):
         before = self.write(base_doc(runs=[dict(self.OPEN)]))

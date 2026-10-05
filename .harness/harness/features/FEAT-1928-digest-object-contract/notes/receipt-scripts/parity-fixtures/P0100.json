@@ -1,0 +1,35 @@
+{
+ "accept": false,
+ "case": "qa matrix_ok: false + PASS is rejected \u2014 the BOOLEAN half",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0100",
+ "input_sha256": "e36a2a36bcd9b43f",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/qa-r1/fail-first-SC-01.txt",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "x",
+   "matrix_ok": false,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - matrix_ok=False reports a gate as FAILED, but VERDICT is PASS \u2014 a gate that failed cannot have passed. Fix until it passes, or return FAIL or BLOCKED.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: x\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: false\n  fail_first: [{ sc: SC-01, evidence: \"notes/qa-r1/fail-first-SC-01.txt\" }]\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

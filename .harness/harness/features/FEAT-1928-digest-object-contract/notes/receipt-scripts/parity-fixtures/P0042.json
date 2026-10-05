@@ -1,0 +1,46 @@
+{
+ "accept": false,
+ "case": "mandatory member cannot be laundered as skipped",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0042",
+ "input_sha256": "8722bb378cf325ae",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 0,
+   "escalations": [],
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "qa was omitted",
+   "members": [
+    {
+     "persona": "code-reviewer",
+     "step": "code",
+     "verdict": "PASS"
+    },
+    {
+     "persona": "qa",
+     "reason": "environment unavailable",
+     "status": "skipped",
+     "step": "qa"
+    }
+   ],
+   "must_fix": [],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 2,
+   "team": "validate"
+  },
+  "VERDICT": "PASS",
+  "artifact": "r/digest.md"
+ },
+ "persona": "harness-validator-lead",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - only the optional fable-advisor may be recorded as skipped; mandatory members must carry their verdict.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: qa was omitted\n  team: validate\n  steps_run: 2\n  cycles_used: 0\n  members:\n    - { step: code, persona: code-reviewer, verdict: PASS }\n    - { step: qa, persona: qa, status: skipped, reason: environment unavailable }\n  must_fix: []\n  branch: none\n  files_touched: []\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: r/digest.md\n",
+ "why_no_object": ""
+}

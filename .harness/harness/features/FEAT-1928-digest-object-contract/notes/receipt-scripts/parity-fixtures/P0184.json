@@ -1,0 +1,21 @@
+{
+ "accept": false,
+ "case": "run_t09#001",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0184",
+ "input_sha256": "4e70b35256c0617f",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "headline": "x"
+  },
+  "VERDICT": "PASS"
+ },
+ "persona": "harness-pm",
+ "reasons": "check-digest: released harness-pm's claim Lead.Pm for FEAT-09-exact-claims.\nYour return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - no artifact: path.\n  - missing 'feasibility' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'surface' \u2014 every field is required; write `none` if genuinely not applicable. An absent field is ambiguous; an exp",
+ "source": "hook-group:run_t09",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: x\n",
+ "why_no_object": ""
+}

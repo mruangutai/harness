@@ -1,0 +1,30 @@
+{
+ "accept": false,
+ "case": "dev-ops task_verify: n/a + PASS is rejected \u2014 no carve-out",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0086",
+ "input_sha256": "c560abc9c603aeea",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "applied": [],
+   "change_type": "config",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "x",
+   "open_questions": [],
+   "suite": "n/a",
+   "task": "T-01",
+   "task_verify": "n/a"
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-dev-ops",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - task_verify='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: x\n  change_type: config\n  applied: []\n  suite: n/a\n  task: T-01\n  task_verify: n/a\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

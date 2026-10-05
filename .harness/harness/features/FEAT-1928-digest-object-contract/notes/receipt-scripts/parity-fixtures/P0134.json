@@ -1,0 +1,52 @@
+{
+ "accept": false,
+ "case": "#1854: a nested list does not hide a member that genuinely lacks a verdict",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0134",
+ "input_sha256": "b7d4e9796838fea0",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 1,
+   "escalations": [],
+   "expertise_update": [],
+   "files_touched": [
+    "/abs/.harness/expertise/harness-qa.md"
+   ],
+   "headline": "distillation complete",
+   "members": [
+    {
+     "files_touched": [
+      "/abs/.harness/expertise/harness-qa.md",
+      "/abs/.harness/harness/expertise/harness-qa.md"
+     ],
+     "headline": "accepted three lessons",
+     "persona": "harness-qa",
+     "step": "qa",
+     "verdict": "PASS"
+    },
+    {
+     "files_touched": [],
+     "headline": "accepted no entry",
+     "persona": "harness-ui-reviewer",
+     "step": "ui-reviewer"
+    }
+   ],
+   "must_fix": [],
+   "open_questions": [],
+   "steps_run": 2,
+   "team": "validate"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/FEAT-01/runs/distill-validator/digest.md"
+ },
+ "persona": "harness-validator-lead",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - a members entry has no verdict: \u2014 'step: ui-reviewer, persona: harness-ui-reviewer, headline: \"'. Every member entry needs one; the team verdict is the worst of them and cannot be computed otherwise.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: distillation complete\n  team: validate\n  steps_run: 2\n  cycles_used: 1\n  members:\n    - step: qa\n      persona: harness-qa\n      verdict: PASS\n      headline: \"accepted three lessons\"\n      files_touched:\n        - /abs/.harness/expertise/harness-qa.md\n        - /abs/.harness/harness/expertise/harness-qa.md\n    - step: ui-reviewer\n      persona: harness-ui-reviewer\n      headline: \"accepted no entry\"\n      files_touched: []\n  must_fix: []\n  branch: none\n  files_touched: [/abs/.harness/expertise/harness-qa.md]\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  adequacy_notes: []\nartifact: .harness/features/FEAT-01/runs/distill-validator/digest.md\n",
+ "why_no_object": ""
+}

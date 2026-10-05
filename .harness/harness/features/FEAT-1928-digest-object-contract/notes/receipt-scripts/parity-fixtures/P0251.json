@@ -1,0 +1,34 @@
+{
+ "accept": true,
+ "case": "case_human_commits#01",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0251",
+ "input_sha256": "f009eead6acac368",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "code_grade": "n_a",
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [],
+   "grade_2_reasons": [],
+   "headline": "reviewer result",
+   "human_commits_in_scope": [
+    "2c22c16d43"
+   ],
+   "must_fix": [],
+   "open_questions": [],
+   "reviewed": "origin/main..05598ed20a29474a4ce2b4cf6fe0989832d84a3d",
+   "severity_max": "low"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/review.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: reviewer result\n  severity_max: low\n  findings: []\n  must_fix: []\n  code_grade: n_a\n  reviewed: \"origin/main..05598ed20a29474a4ce2b4cf6fe0989832d84a3d\"\n  grade_2_reasons: []\n  human_commits_in_scope: [2c22c16d43]\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/review.md\n",
+ "why_no_object": ""
+}

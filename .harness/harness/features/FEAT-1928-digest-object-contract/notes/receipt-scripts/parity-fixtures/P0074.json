@@ -1,0 +1,30 @@
+{
+ "accept": true,
+ "case": "qa that cannot run the suite can say matrix_ok: n/a",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0074",
+ "input_sha256": "bc1d94aa07ecc2ca",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "the suite could not be run; no runner resolves in this project",
+   "matrix_ok": "n/a",
+   "open_questions": [],
+   "suite": "n/a"
+  },
+  "VERDICT": "BLOCKED",
+  "artifact": ".harness/features/FEAT-01/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: BLOCKED\nDIGEST:\n  headline: the suite could not be run; no runner resolves in this project\n  suite: n/a\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: n/a\n  fail_first: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: .harness/features/FEAT-01/notes/qa.md\n",
+ "why_no_object": ""
+}

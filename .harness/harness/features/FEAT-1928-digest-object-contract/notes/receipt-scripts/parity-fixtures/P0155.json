@@ -1,0 +1,34 @@
+{
+ "accept": false,
+ "case": "F1.4 empty members against a nonzero steps_run is rejected",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0155",
+ "input_sha256": "8604ef8ebd8c612a",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 0,
+   "escalations": [],
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "nothing to report, apparently",
+   "members": [],
+   "must_fix": [],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 3,
+   "team": "build"
+  },
+  "VERDICT": "PASS",
+  "artifact": "r/digest.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - members: [] but steps_run=3 \u2014 a team that ran 3 step(s) reported zero members; that is never legitimate (SPEC 10.4: members is NOT optional).",
+ "source": "hook",
+ "syntax_only": false,
+ "text": "\nVERDICT: PASS\nDIGEST:\n  headline: nothing to report, apparently\n  team: build\n  steps_run: 3\n  cycles_used: 0\n  members: []\n  must_fix: []\n  branch: none\n  files_touched: []\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: r/digest.md\n",
+ "why_no_object": ""
+}

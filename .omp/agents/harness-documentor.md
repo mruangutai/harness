@@ -51,18 +51,27 @@ matches the code, **fix it or flag it** — do not write around it.
 
 ## Output
 
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line>
-  docs_updated: [<paths>]
-  gaps: [<what still lacks documentation, and who would need it>]
-  stale_found: [<paths where prose contradicts code>]
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/<doc-or-path-written>>
+Return an object through YieldTool — never fenced YAML text. The field list is the schema,
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/digest-schemas/harness-documentor.json`; one complete example:
+
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "README install section now matches the uv-based setup",
+    "docs_updated": ["README.md"],
+    "gaps": ["no upgrade guide for users on the pip install — existing installers need it"],
+    "stale_found": ["docs/cli.md"],
+    "open_questions": [],
+    "files_touched": ["README.md"],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-documentor-<runid>.md"
+}})
 ```
-````
+
+- `docs_updated`: paths. `gaps`: what still lacks documentation, and who would need it.
+  `stale_found`: paths where prose contradicts code.
+- `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
+  none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).
+- `artifact`: the doc or path you wrote.

@@ -1,0 +1,32 @@
+{
+ "accept": false,
+ "case": "run_bug1898_exact_release_cases#036",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0232",
+ "input_sha256": "2793ae8a266904bc",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "briefing": "none",
+   "cycles_used": 1,
+   "expertise_update": [],
+   "feature": "BUG-98-exact-release",
+   "files_touched": [],
+   "headline": "BUG-98-exact-release shipped",
+   "open_questions": [],
+   "runs": [
+    "r1"
+   ],
+   "status": "shipped"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/BUG-98-exact-release/feature.json"
+ },
+ "persona": "harness-orchestrator",
+ "reasons": "check-digest: BLOCKED - returned with children in flight (harness-orchestrator)\n  - harness-eng-lead [BUG-98-exact-release] started 2026-09-29T21:04:12.605487+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp0ky_loa9/.claud",
+ "source": "hook-group:run_bug1898_exact_release_cases",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: BUG-98-exact-release shipped\n  feature: BUG-98-exact-release\n  status: shipped\n  runs: [r1]\n  cycles_used: 1\n  briefing: none\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/features/BUG-98-exact-release/feature.json\n",
+ "why_no_object": ""
+}

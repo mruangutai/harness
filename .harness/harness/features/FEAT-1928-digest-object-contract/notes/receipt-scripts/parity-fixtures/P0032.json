@@ -1,0 +1,40 @@
+{
+ "accept": true,
+ "case": "bare key followed by nothing is an empty list",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0032",
+ "input_sha256": "13106b159b7f0961",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 0,
+   "escalations": null,
+   "expertise_update": null,
+   "files_touched": [],
+   "headline": "clean run",
+   "members": [
+    {
+     "persona": "backend-dev",
+     "step": "build",
+     "verdict": "PASS"
+    }
+   ],
+   "must_fix": null,
+   "open_questions": null,
+   "sc_status": null,
+   "steps_run": 1,
+   "team": "build"
+  },
+  "VERDICT": "PASS",
+  "artifact": "x.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: clean run\n  team: build\n  steps_run: 1\n  cycles_used: 0\n  members:\n    - { step: build, persona: backend-dev, verdict: PASS }\n  must_fix:\n  branch: none\n  files_touched: []\n  open_questions:\n  escalations:\n  expertise_update:\n  sc_status:\n  adequacy_notes: []\nartifact: x.md\n",
+ "why_no_object": ""
+}

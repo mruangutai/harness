@@ -1,0 +1,41 @@
+{
+ "accept": false,
+ "case": "case_qa_kinds#05",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0266",
+ "input_sha256": "29b439909f337af4",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/fail.txt",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "qa result",
+   "kinds": [
+    {
+     "kind": "unit",
+     "state": "not_applicable"
+    }
+   ],
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "kinds[0] (unit) claims not_applicable but harness.json carries a runnable cmd for it \u2014 a kind that ran is satisfied or missing; one that could not run is misconfigured (BLOCKED).",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: qa result\n  matrix_ok: true\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  fail_first: [{ sc: SC-01, evidence: notes/fail.txt }]\n  kinds: [{ kind: unit, state: not_applicable }]\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/qa.md\n",
+ "why_no_object": ""
+}

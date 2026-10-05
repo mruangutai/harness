@@ -41,31 +41,46 @@ for what changed.
 
 ## Output
 
-````
-```yaml
-VERDICT: PASS | FAIL
-DIGEST:
-  headline: <one line>
-  severity_max: none|low|med|high|critical|n/a
-                              # n/a = scoped OUT; nothing in this diff for this
-                              # role to judge. PASS with n/a is legitimate (DEC-173)
-  findings: [{ kind: substance|form|proportionality, scope: task|mission, severity: <sev>, reader: code-reviewer, summary: "<one line>", why: "<optional>" }]
-                              # kind is REQUIRED (FEAT-59 SC-06): substance = would change shipped
-                              # code; form = document/digest/record shape only, fixed in-run and
-                              # never re-gates; proportionality = more is planned than the change
-                              # needs, and REQUIRES scope: task (one task over-builds — trimmed at
-                              # apply, never a downgrade) or mission (the plan lane exceeds the
-                              # work — the only finding that downgrades, DEC-228). [] if none
-  must_fix: [<item>]
-  spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: SC-NN|D-NN }]
-  code_grade: pass|fail|grade_2|n_a  # REQUIRED audit claim; validate-digest.py independently recomputes merge-base(default branch, review_sha)..review_sha and refuses disagreement (DEC-209)
-  reviewed: "base..<review_sha>"
-  # reviewed: plan:<path-to-plan.yaml>  # PLAN phase with code_grade: n_a (DEC-207); only this feature's pending plan, while feature.json has no pinned review_sha
-  human_commits_in_scope: [<sha>]
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/review-harness-code-reviewer-<runid>.md
+Return an object through YieldTool — never fenced YAML text. The field list is the schema,
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/digest-schemas/harness-code-reviewer.json`; one complete example:
+
+```js
+yield({data: {
+  "VERDICT": "FAIL",
+  "DIGEST": {
+    "headline": "retry loop in fetch_page never terminates on a 429; one must-fix",
+    "severity_max": "high",
+    "findings": [{"kind": "substance", "scope": "none", "severity": "high", "reader": "code-reviewer", "summary": "fetch_page retries 429 forever", "why": "no max_attempts bound (client.py:88)"}],
+    "must_fix": ["bound fetch_page retries (client.py:88)"],
+    "spec_violations": [{"kind": "omission", "path": "client.py", "ref": "SC-03"}],
+    "code_grade": "fail",
+    "grade_2_reasons": [],
+    "reviewed": "base..4f2c9e1",
+    "human_commits_in_scope": [],
+    "open_questions": [{"id": "Q1", "question": "Should 429 honour Retry-After?", "blocking": false}],
+    "files_touched": [],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/review-harness-code-reviewer-<runid>.md"
+}})
 ```
-````
+
+- `VERDICT`: load the legal values from the canonical reviewer schema; report `BLOCKED` when review prerequisites are unavailable and `ESCALATE` when a user decision is required.
+- `severity_max`: `none|low|med|high|critical|n/a`. `n/a` = scoped OUT; nothing in this diff for
+  this role to judge. PASS with `n/a` is legitimate (DEC-173).
+- `findings`: `[]` if none; every entry carries all of `{kind, scope, severity, reader, summary,
+  why}`. `kind` is REQUIRED (FEAT-59 SC-06): `substance` = would change shipped code; `form` =
+  document/digest/record shape only, fixed in-run and never re-gates; `proportionality` = more is
+  planned than the change needs, and REQUIRES `scope: task` (one task over-builds — trimmed at
+  apply, never a downgrade) or `mission` (the plan lane exceeds the work — the only finding that
+  downgrades, DEC-228). `scope` is always present: `none` for substance and form.
+- `spec_violations`: `{kind: scope_creep|omission|mismatch, path, ref: SC-NN|D-NN}`.
+- `code_grade`: `pass|fail|grade_2|n_a` — REQUIRED audit claim; validate-digest.py independently
+  recomputes merge-base(default branch, review_sha)..review_sha and refuses disagreement (DEC-209).
+- `grade_2_reasons`: always present; the reasons for `code_grade: grade_2`, `[]` otherwise.
+- `reviewed`: `"base..<review_sha>"`, or `"plan:<path-to-plan.yaml>"` in the PLAN phase with
+  `code_grade: n_a` (DEC-207); only this feature's pending plan, while feature.json has no pinned
+  review_sha.
+- `spec_violations`, `human_commits_in_scope`: always present; `[]` when none.
+- `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
+  none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).

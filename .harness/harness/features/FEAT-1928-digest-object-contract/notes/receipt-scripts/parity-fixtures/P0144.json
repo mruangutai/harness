@@ -1,0 +1,49 @@
+{
+ "accept": true,
+ "case": "run_bug919_qa_matrix_cases#006",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0144",
+ "input_sha256": "161ffa701f86279f",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/qa-r1/fail-first-SC-01.txt",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "suite green",
+   "kinds": [
+    {
+     "cmd": "python3 x --kind unit",
+     "kind": "unit",
+     "named_tests": 40,
+     "state": "satisfied"
+    },
+    {
+     "cmd": "python3 x --kind integration",
+     "kind": "integration",
+     "named_tests": 72,
+     "state": "satisfied"
+    }
+   ],
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "",
+ "source": "hook-group:run_bug919_qa_matrix_cases",
+ "syntax_only": false,
+ "text": "\nVERDICT: PASS\nDIGEST:\n  headline: suite green\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: true\n  kinds:\n    - { kind: unit, state: satisfied, cmd: \"python3 x --kind unit\", named_tests: 40 }\n    - { kind: integration, state: satisfied, cmd: \"python3 x --kind integration\", named_tests: 72 }\n  fail_first: [{ sc: SC-01, evidence: \"notes/qa-r1/fail-first-SC-01.txt\" }]\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

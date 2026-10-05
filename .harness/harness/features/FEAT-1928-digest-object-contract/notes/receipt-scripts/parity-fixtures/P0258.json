@@ -1,0 +1,32 @@
+{
+ "accept": true,
+ "case": "case_dirty_tree#02",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0258",
+ "input_sha256": "0e0dbafea967ffb1",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "code_grade": "n_a",
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [],
+   "grade_2_reasons": [],
+   "headline": "reviewer result",
+   "human_commits_in_scope": [],
+   "must_fix": [],
+   "open_questions": [],
+   "reviewed": "origin/main..6aefabddf90bb85cebd2912c59b54b981e1afaba",
+   "severity_max": "low"
+  },
+  "VERDICT": "BLOCKED",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/review.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: BLOCKED\nDIGEST:\n  headline: reviewer result\n  severity_max: low\n  findings: []\n  must_fix: []\n  code_grade: n_a\n  reviewed: \"origin/main..6aefabddf90bb85cebd2912c59b54b981e1afaba\"\n  grade_2_reasons: []\n  human_commits_in_scope: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/review.md\n",
+ "why_no_object": ""
+}
