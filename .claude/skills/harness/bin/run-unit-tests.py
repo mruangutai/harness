@@ -67,23 +67,124 @@ if not ROOT or not _bootstrap_os.path.isdir(ROOT):
 _bootstrap_sys.path[:] = _bootstrap_original_path
 
 import glob
+import json
+import math
 import os
+import re
+import subprocess
 import sys
 import traceback
 
 BIN_DIR = ".claude/skills/harness/bin"
-USAGE = "usage: run-unit-tests.py [--kind unit|integration|all] [--check-layout]"
+DURATIONS = "tests/integration/integration-durations.json"
+USAGE = ("usage: run-unit-tests.py [--kind unit|integration|all] "
+         "[--shard i/n [--manifest PATH]] | --check-layout")
+_VALUE_OPTIONS = {"--kind": "kind", "--shard": "shard", "--manifest": "manifest"}
 
 
-def _selection(argv):
-    """Return (kind, check_layout_only), or None for unsupported syntax."""
-    if not argv:
-        return "all", False
-    if argv[0] == "--kind":
-        return (argv[1] if len(argv) > 1 else "all"), False
-    if argv[0] == "--check-layout":
-        return "all", True
-    return None
+class UsageError(ValueError):
+    """An unusable invocation; reported before any test runs (exit 2)."""
+
+
+def _take_value(argv, index, option):
+    if index + 1 < len(argv):
+        return argv[index + 1]
+    if option == "--kind":
+        return "all"
+    raise UsageError(f"{option} requires a value")
+
+
+def _tokens(argv):
+    """Return the raw option dict; options may appear in any order, each at most once."""
+    opts = {"kind": None, "shard": None, "manifest": None, "check_layout": False}
+    index = 0
+    while index < len(argv):
+        option = argv[index]
+        if option == "--check-layout" and not opts["check_layout"]:
+            opts["check_layout"] = True
+            index += 1
+            continue
+        key = _VALUE_OPTIONS.get(option)
+        if key is None or opts[key] is not None:
+            raise UsageError(f"unsupported or repeated option '{option}'\n{USAGE}")
+        opts[key] = _take_value(argv, index, option)
+        index += 2
+    return opts
+
+
+def _parse_shard(raw):
+    """Two unsigned decimal positive integers i/n with 1 <= i <= n."""
+    match = re.fullmatch(r"([0-9]+)/([0-9]+)", raw, re.ASCII)
+    if match is None:
+        raise UsageError(f"--shard must be i/n with unsigned decimal integers, got '{raw}'")
+    index, count = int(match.group(1)), int(match.group(2))
+    if not 1 <= index <= count:
+        raise UsageError(f"--shard {raw}: need 1 <= i <= n")
+    return index, count
+
+
+def _parse(argv):
+    """Return validated options or raise UsageError."""
+    opts = _tokens(argv)
+    if opts["manifest"] is not None and opts["shard"] is None:
+        raise UsageError("--manifest requires --shard")
+    if opts["check_layout"] and (opts["shard"] or opts["manifest"]):
+        raise UsageError("--check-layout cannot be combined with --shard or --manifest")
+    if opts["shard"] is not None:
+        opts["shard"] = _parse_shard(opts["shard"])
+    opts["kind"] = opts["kind"] or "all"
+    return opts
+
+
+def _manifest_target(raw):
+    """Absolute manifest path, refused inside the watched bin tree."""
+    if raw is None:
+        return None
+    target = os.path.realpath(os.path.abspath(raw))
+    watched = os.path.realpath(os.path.join(ROOT, BIN_DIR))
+    if target == watched or target.startswith(watched + os.sep):
+        raise UsageError(f"--manifest {raw} is inside the watched bin tree {watched}")
+    return target
+
+
+def _positive(value):
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and math.isfinite(value) and value > 0)
+
+
+def _load_weights(path):
+    """Validated (default_seconds, weights) from the versioned duration document."""
+    with open(path, encoding="utf-8") as handle:
+        doc = json.load(handle)
+    if not isinstance(doc, dict) or doc.get("schema") != 1:
+        raise ValueError(f"{path}: expected an object with schema 1")
+    if not all(isinstance(doc.get(k), str) for k in ("source_run_url", "source_commit")):
+        raise ValueError(f"{path}: source_run_url and source_commit must be strings")
+    weights = doc.get("weights")
+    if not _positive(doc.get("default_seconds")) or not isinstance(weights, dict):
+        raise ValueError(f"{path}: default_seconds must be positive and weights an object")
+    if not all(isinstance(k, str) and _positive(v) for k, v in weights.items()):
+        raise ValueError(f"{path}: every weight must be a positive finite number")
+    return doc["default_seconds"], weights
+
+
+def _partition(paths, default, weights, count):
+    """Longest-processing-time: heaviest first (path tie break) onto the least loaded shard."""
+    loads = [0.0] * count
+    shards = [[] for _ in range(count)]
+    for path in sorted(paths, key=lambda p: (-weights.get(p, default), p)):
+        target = min(range(count), key=lambda k: (loads[k], k))
+        loads[target] += weights.get(path, default)
+        shards[target].append(path)
+    return [sorted(shard) for shard in shards]
+
+
+def _tested_commit():
+    proc = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
+                          text=True, check=False)
+    if proc.returncode != 0:
+        raise UsageError(f"--manifest needs a git HEAD: {proc.stderr.strip()}")
+    return proc.stdout.strip()
 
 
 def _patterns(kind):
@@ -131,17 +232,52 @@ def _validate_layout(suite_layout):
     return True
 
 
+def _write_manifest(target, identity, chosen, completed, runner_exit):
+    """Written only after every started script terminated and mutation checking finished."""
+    if target is None:
+        return
+    doc = dict(identity, schema=1, selected_files=chosen, runner_exit=runner_exit,
+               completed_files=[{"path": os.path.normpath(path).replace(os.sep, "/"),
+                                 "returncode": rc} for path, rc in completed])
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with open(target + ".tmp", "w", encoding="utf-8") as handle:
+        json.dump(doc, handle, indent=2)
+        handle.write("\n")
+    os.replace(target + ".tmp", target)
+
+
+def _run_shard(run_pool, opts, target, scripts):
+    index, count = opts["shard"]
+    identity = {"tested_commit": _tested_commit() if target else None,
+                "kind": opts["kind"], "shard_index": index, "shard_count": count}
+    try:
+        default, weights = _load_weights(os.path.join(ROOT, DURATIONS))
+    except (OSError, ValueError) as exc:
+        print(f"run-unit-tests.py: unusable duration document: {exc}", file=sys.stderr)
+        return 2
+    chosen = _partition(scripts, default, weights, count)[index - 1]
+    print(f"shard {index}/{count}: {len(chosen)} selected files")
+    for path in chosen:
+        print(f"selected {path}")
+    completed = []
+    runner_exit = run_pool.main([
+        "--mutation-check", BIN_DIR, "--", *chosen], completed=completed) if chosen else 0
+    _write_manifest(target, identity, chosen, completed, runner_exit)
+    return runner_exit
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
-    selection = _selection(argv)
-    if selection is None:
-        print(USAGE, file=sys.stderr)
+    try:
+        opts = _parse(argv)
+        target = _manifest_target(opts["manifest"])
+    except UsageError as exc:
+        print(f"run-unit-tests.py: {exc}", file=sys.stderr)
         return 2
-    kind, check_layout_only = selection
-    patterns = _patterns(kind)
+    patterns = _patterns(opts["kind"])
     if patterns is None:
         print(
-            f"run-unit-tests.py: unknown kind '{kind}' — use unit, integration or all",
+            f"run-unit-tests.py: unknown kind '{opts['kind']}' — use unit, integration or all",
             file=sys.stderr,
         )
         return 2
@@ -153,11 +289,17 @@ def main(argv=None):
 
     if not _validate_layout(suite_layout):
         return 2
-    if check_layout_only:
+    if opts["check_layout"]:
         return 0
-    return run_pool.main([
-        "--mutation-check", BIN_DIR, "--", *_scripts(patterns)
-    ])
+    if opts["shard"] is None:
+        return run_pool.main([
+            "--mutation-check", BIN_DIR, "--", *_scripts(patterns)
+        ])
+    try:
+        return _run_shard(run_pool, opts, target, _scripts(patterns))
+    except UsageError as exc:
+        print(f"run-unit-tests.py: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
