@@ -71,9 +71,9 @@ Every plan opens with a `lanes:` block, resolved against
 **Before handing a plan back, run
 `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/plan-merge.py check --file <plan path> --root <harness checkout>`
 and fix every FAIL line.** It resolves every `files:` anchor, `execution_agent` route and
-`traces:` id; CI re-runs the route check on `main` (DEC-183). A served repository's plan
-(`.harness/<repo>/features/`) also takes `--code-root <code worktree>` — the `CODE` line of
-`feature-worktree.py path` — and its anchors resolve there; `check` refuses it without one.
+`traces:` id; CI re-runs the route check on `main` (DEC-183). A served repository's plan also
+takes `--code-root <code worktree>` — the `CODE` line of `feature-worktree.py path` — and its
+anchors resolve there; `check` refuses it without one.
 
 ## `verify:` is a literal block, and this one has teeth
 
