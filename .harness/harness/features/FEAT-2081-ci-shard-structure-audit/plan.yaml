@@ -4,8 +4,43 @@ approval:
   status: approved
   approved_by: operator (Mike Ruangutai), via main session
   date: "2026-10-04"
+  amendments:
+    - date: "2026-10-04"
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: T-03 per panel F1 (PF-5bfc6ea843dcdddb994445126b398fb1) — old-vs-new equivalence is one-time local QA evidence; permanent tests carry no git-history dependency; T-04 unchanged
 status: building
 source_issues: [2081]
+panel:
+  last_run: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2081-ci-shard-structure-audit/.harness/harness/features/FEAT-2081-ci-shard-structure-audit/runs/2026-10-05-01-validator
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: Pinned scope assessment and F1 endorsement are durable; native signed-plan
+      receipt refused after one recovery.
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: fable-advisor is not available in this session's agent registry.
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: Six-task, 19-file census found no graphical UI surface; Mode A self-scoped
+      out.
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: Both signed perspectives partial; historical baseline provisioning missing.
+  findings:
+  - id: PF-5bfc6ea843dcdddb994445126b398fb1
+    severity: high
+    reader: goalcheck
+    kind: substance
+    summary: T-03/T-04 omit CI provisioning of the pinned historical checker required by the differential integration test.
+    disposition: resolved
+    resolved_by: T-03
+    resolution: Resolved by amendment under the operator ruling; differential verification is one-time local QA evidence, permanent tests are history-independent, T-04 is unchanged. Pending operator re-signature.
 lanes:
   resolved_at: 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554
   rows:
@@ -104,10 +139,11 @@ tasks:
       python3 tests/integration/test-structure-audit-single-pass.py
       python3 tests/integration/test-checker-structure-locks.py
     intent: |
-      Work only in the FEAT-2081 worktree. Each command must independently exit 0 within 60 seconds. Baseline is 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554, never an unpinned HEAD parent. Keep feat62_findings(root), consolidation_findings(root), broad_catch_findings(root), and --consolidation-audit observable contracts intact. Each top-level invocation creates fresh per-file state; do not retain global AST caches across invocations or roots. Preserve all rule applicability, source error behavior, existing loader and station exceptions, call-resolution authority, CANNOTRUN distinctions, broad-catch ceilings, embedded-program behavior, finding ordering, and CLI prefixes/summaries/exits.
+      Work only in the FEAT-2081 worktree. Each command must independently exit 0 within 60 seconds. Baseline 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554 is solely for one-time local QA evidence, never a permanent test dependency or an unpinned HEAD parent. Keep feat62_findings(root), consolidation_findings(root), broad_catch_findings(root), and --consolidation-audit observable contracts intact. Each top-level invocation creates fresh per-file state; do not retain global AST caches across invocations or roots. Preserve all rule applicability, source error behavior, existing loader and station exceptions, call-resolution authority, CANNOTRUN distinctions, broad-catch ceilings, embedded-program behavior, finding ordering, and CLI prefixes/summaries/exits.
       Reuse the existing ordered reader-source census. Read and parse each participating physical source file at most once per invocation. Build one index by a single breadth-first parent-aware traversal using ast.iter_child_nodes, dispatching each visited node to every applicable existing rule. Index references rather than copied AST subtrees: ordered nodes, parent and enclosing-function associations, module definitions/import aliases, call edges and argument facts, resource/input literals, Inv declarations, station candidate containers, loader calls, and broad handlers. Replace repeated ast.walk calls in module-body, reparse, shared-text, read-family, authority/call-graph, station literal, symbol attribution, loader, and broad-catch logic with indexed facts. Replay findings in their baseline order; rule order is independent of scanner event order. Parse each embedded string program at most once and visit its AST once, preserving the current one-level embedded-program census rather than expanding the rules recursively. Retain early-return and diagnostic differences between the three public entry points even though source/index work is shared within one invocation.
-      Remove the test-only _PARSED/_cached_parse cache from test-checker-structure-locks.py once production indexing owns the reduction. Preserve its independent private-tree mutation cases, process-pool parallelism, CASES report order, CHECK_PLAN_ROUTES_BIN override, and existing failure aggregation. Do not suppress slow or violating cases and do not reduce the BUG-1898 persona loop.
-      New integration evidence extracts the pinned baseline checker from git into a private complete fixture and compares baseline/current public findings plus subprocess exit, stdout, and stderr for clean fixtures, parser failures, embedded programs, cross-module calls, and an independent violation for every existing rule family. For SC-06 and SC-10, instrument actual child-node visits and parsed trees through both existing entry paths: test-checker-structure-locks.py's in-process calls and the check-plan-routes.py --consolidation-audit CLI; count exactly one visit per node in each parsed physical or embedded AST in one invocation, including overlapping check-state source/package and census inputs, which are audited files rather than an execution entry path. A count merely around the outer caller is insufficient. Demonstrate that the baseline violates the visit bound and that mutation of each rule witness changes its expected finding. Preserve the existing structure regressions alongside these differential cases.
+      Remove the test-only _PARSED/_cached_parse cache from test-checker-structure-locks.py once production indexing owns the reduction. Leave all existing clean-tree and per-mutant findings assertions and independent private-tree mutation cases intact. Preserve process-pool parallelism, CASES report order, CHECK_PLAN_ROUTES_BIN override, and existing failure aggregation. Do not suppress slow or violating cases and do not reduce the BUG-1898 persona loop.
+      During the build, QA must produce a one-time local equivalence proof using the pre-change checker from 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554 and the post-change checker over the real source tree and every existing structure-lock mutant/fixture. Exercise both entry paths for every input: the in-process public calls made by test-checker-structure-locks.py and check-plan-routes.py --consolidation-audit. Record checker pins, corpus and case identities, commands/instrumentation, identical findings and ordering, exit status, stdout and stderr, and pre/post traversal counts in a feature-scoped notes/qa-structure-audit-equivalence.md evidence file. Treat this one-time proof and the pre-change traversal failure as SC-06 evidence and its red-first step; missing historical source is an explicit local QA evidence failure, never a skipped case or a substituted baseline. Historical extraction and differential execution belong only to this build-time proof, not to any permanent test, suite helper, or CI step.
+      Permanent protection consists of the existing test-checker-structure-locks.py cases left intact and one instrumented single-pass check in test-structure-audit-single-pass.py that each file's AST is traversed once per audit invocation. Through both entry paths, count actual child-node visits and parsed trees: exactly one visit per node in each parsed physical or embedded AST, including overlapping check-state source/package and census inputs. Those inputs are audited files, not another execution entry path; counting only the outer caller is insufficient. Show this same permanent check failing first against the locally extracted pre-change checker during the build, then passing against the current checker, and record both receipts in the one-time QA evidence file. Permanent tests must run using the checked-out source and isolated fixtures only, with no extraction of any historical commit and no dependency on git history. Retain test-structure-audit-index.py coverage of the fresh index's facts and invocation isolation. SC-10's existing timing record remains separate from instrumented traversal evidence. No baseline provisioning or history fetching is to be added to T-04 or CI.
       OQ-03 is settled: optimize and measure both existing entry paths named above. Wiring audits into check-state.py, adding a hook or flag there, or changing its default enforcement behavior is out of scope. Neither SC-06 nor SC-10 requires a check-state invocation.
   - id: T-04
     title: Parallelize integration jobs without weakening the required context
