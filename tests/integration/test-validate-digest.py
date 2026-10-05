@@ -1413,7 +1413,7 @@ def _append_root():
     return root, os.path.join(root, APPEND_REL)
 
 
-def _append_registration(root):
+def _append_registration(root, cwd=None, claim=True):
     os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
     with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as marker:
         yaml.safe_dump({"leads": [{"name": "harness-eng-lead", "squad": "engineering", "domain": [
@@ -1426,9 +1426,10 @@ def _append_registration(root):
         json.dump({"feature_id": HOOK_IDENTITY["harness_feature"], "runs": [{
             "id": "r1-eng", "squad": "engineering", "agent": "harness-eng-lead",
             "verdict": "PENDING", "started_at": "2026-10-04T00:00:00+00:00"}]}, record)
-    _reg_module().claim_run_start(root, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
-                                 HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
-                                 supervisor_pid=os.getpid(), cwd=root)
+    if claim:
+        _reg_module().claim_run_start(root, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
+                                     HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
+                                     supervisor_pid=os.getpid(), cwd=cwd or root)
 
 
 def _append_binding(root):
@@ -1555,6 +1556,7 @@ def run_lead_append_cases():
     cases += [_repeated_yield_appends_once(obj), _cli_never_writes()]
     cases += _append_authorization_cases()
     cases += [_hook_binding_refuses(kind) for kind in ("wrong-parent", "ambiguous-run")]
+    cases += [_hook_binding_linked_worktree(registry) for registry in ("feature", "owner")]
     fails = 0
     for name, ok, detail in cases:
         print(f"ok    [append] {name}" if ok else f"FAIL  [append] {name}\n      | {detail}")
@@ -1705,6 +1707,39 @@ def _hook_binding_refuses(kind):
         return f"startup refuses {kind} without issuing digest authority", ok, result.stdout + result.stderr
     finally:
         _remove_append_root(root)
+
+
+def _hook_binding_linked_worktree(registry):
+    """#2063: a feature on a linked worktree. The session (and so every claim's recorded
+    cwd) is the OWNER checkout, while the claim lives in the feature worktree's registry.
+    Startup must issue the binding for that claim, and still refuse one held only in
+    another checkout's registry."""
+    owner = os.path.realpath(tempfile.mkdtemp(prefix="vd-bind-linked-"))
+    try:
+        worktree = _linked_worktree_fixture(owner, HOOK_IDENTITY["harness_feature"])
+        _append_registration(worktree, cwd=owner, claim=registry == "feature")
+        shutil.copytree(os.path.join(worktree, ".harness"), os.path.join(owner, ".harness"),
+                        ignore=shutil.ignore_patterns("features", "inflight.json", "inflight.json.lock"))
+        if registry == "owner":
+            _reg_module().claim_run_start(owner, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
+                                         HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
+                                         supervisor_pid=os.getpid(), cwd=owner)
+        payload = _governed({"agent_type": "harness-eng-lead", "cwd": owner,
+                             "harness_parent_agent_id": "Test.Parent"})
+        result = subprocess.run([os.path.join(os.path.dirname(VALIDATE), "digest_destination.py")],
+                                input=json.dumps(payload), capture_output=True, text=True,
+                                env=dict(os.environ, HARNESS_PROJECT_DIR=owner))
+        response = json.loads(result.stdout)
+        if registry == "feature":
+            ok = (result.returncode == 0 and response.get("binding", {}).get("root") == worktree
+                  and response["binding"].get("artifact") == os.path.join(worktree, APPEND_REL))
+            name = "startup binds a linked-worktree feature whose claim cwd is the owner checkout"
+        else:
+            ok = result.returncode == 2 and response.get("ok") is False and "binding" not in response
+            name = "startup refuses a claim held only in another checkout's registry"
+        return name, ok, result.stdout + result.stderr
+    finally:
+        _remove_append_root(owner)
 
 
 
