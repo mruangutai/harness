@@ -854,7 +854,8 @@ def case_set_panel_replaces_mapping_and_validates_shape():
             "last_run": "runs/c5-validator",
             "cycle": 5,
             "readers": [{"reader": "scope", "persona": "harness-code-reviewer", "status": "ran"}],
-            "findings": [{"id": "PF-1", "severity": "low", "kind": "form", "disposition": "open"}],
+            "findings": [{"id": "PF-1", "severity": "low", "reader": "scope", "kind": "form",
+                          "summary": "fixture", "disposition": "open"}],
         }
         write(plan, original + yaml.safe_dump({"panel": panel_one}, sort_keys=False))
         value_file = os.path.join(root, "panel.yaml")
@@ -1022,9 +1023,15 @@ def case_1157_sign_approval_records_validated_overrules():
             "  findings:\n"
             "    - id: PF-deadbeef\n"
             "      severity: high\n"
+            "      reader: scope\n"
+            "      kind: substance\n"
+            "      summary: fixture high\n"
             "      disposition: open\n"
             "    - id: PF-cafebabe\n"
             "      severity: critical\n"
+            "      reader: scope\n"
+            "      kind: substance\n"
+            "      summary: fixture critical\n"
             "      disposition: open\n"
             "  readers: []\n\n"
         )
@@ -4663,6 +4670,127 @@ def case_feat70_record_amendments_after_a_block_scalar_splice():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+
+# #2095 — a panel finding has ONE shape, templates/plan.yaml's, and every writer holds it: a
+# prose disposition left a ruled high finding open past signature on FEAT-1559, and a free key
+# then rode in on the repair. `set-panel` and `record-panel` refuse a departure (exit 5);
+# `sign-approval` refuses an open gating finding the call does not overrule (exit 4).
+_TEMPLATE_FINDING = {"id": "PF-2095", "severity": "high", "reader": "scope", "kind": "substance",
+                     "summary": "fixture finding", "disposition": "open"}
+
+
+def _panel_value(*findings):
+    return {"last_run": "runs/plan-product", "cycle": 1,
+            "readers": [{"reader": "scope", "status": "ran"}], "findings": list(findings)}
+
+
+def _panel_plan(*findings, approval=None):
+    panel = yaml.safe_dump({"panel": _panel_value(*findings)}, sort_keys=False)
+    return render_plan(ids(1, 2), approval=approval).replace("tasks:\n", panel + "tasks:\n")
+
+
+def case_2095_set_panel_refuses_off_template_findings():
+    """Every departure from the template's finding shape refuses before anything is written,
+    naming the finding and what departs; the template shape itself is accepted."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))
+        value_file = os.path.join(root, "panel.yaml")
+        departures = (
+            ("a prose disposition", {"disposition": "resolved by operator ruling 1"},
+             "disposition"),
+            ("a free key", {"disposition": "resolved", "resolution": "ruling 1"}, "resolution"),
+            ("resolved_by on an open finding", {"resolved_by": "T-01"}, "resolved_by"),
+            ("resolved_by naming no task in the plan",
+             {"disposition": "resolved", "resolved_by": "T-09"}, "T-09"),
+            ("a severity outside the enum", {"severity": "severe"}, "severe"),
+            ("a missing summary", {"summary": ""}, "summary"),
+        )
+        for label, change, needle in departures:
+            write(value_file, yaml.safe_dump(_panel_value({**_TEMPLATE_FINDING, **change}),
+                                             sort_keys=False))
+            r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+            check(f"2095: set-panel refuses {label} (exit 5), naming the finding and {needle}",
+                  r.returncode == 5 and needle in r.stderr and "PF-2095" in r.stderr,
+                  f"rc={r.returncode} {r.stderr!r}")
+            check(f"2095: set-panel writes nothing on {label}", read(plan) == before)
+        resolved = {**_TEMPLATE_FINDING, "disposition": "resolved", "resolved_by": "T-02"}
+        write(value_file, yaml.safe_dump(_panel_value(resolved), sort_keys=False))
+        r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        check("2095: set-panel accepts a resolved finding whose resolved_by names a plan task",
+              r.returncode == 0
+              and yaml.safe_load(read(plan))["panel"]["findings"] == [resolved],
+              f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2095_record_panel_refuses_an_off_template_base_finding():
+    """record-panel carries the base's findings byte for byte, so it must not carry one the
+    template does not allow: the refusal names the finding, and set-panel is the repair."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _panel_plan({**_TEMPLATE_FINDING, "severity": "low",
+                                          "note": "a free key"}))
+        digest = os.path.join(root, "digest.md")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"kind": "form", "severity": "low", "reader": "scope",
+                                   "summary": "a new finding"}]))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "2")
+        check("2095: record-panel refuses to carry an off-template base finding (exit 5)",
+              r.returncode == 5 and "PF-2095" in r.stderr and "note" in r.stderr,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("2095: record-panel writes nothing when it refuses", read(plan) == before)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2095_sign_approval_refuses_an_open_gating_finding():
+    """INV-32's rule applied at the signature: an open high, critical or unrated finding with
+    no risk acceptance refuses the signature; resolving it, overruling it in the same call, an
+    existing ruling for it, or a non-gating severity each lets the signature through."""
+    root, plan = fixture_root()
+    try:
+        for severity in ("high", "critical", "unrated"):
+            before = write(plan, _panel_plan({**_TEMPLATE_FINDING, "severity": severity}))
+            r = run_verb("sign-approval", "--file", plan, "--by", "operator",
+                         "--date", "2026-10-04")
+            check(f"2095: sign-approval refuses an open {severity} finding (exit 4), naming it "
+                  "and both remedies",
+                  r.returncode == 4 and all(n in r.stderr for n in
+                                            ("PF-2095", severity, "--overrule", "set-panel")),
+                  f"rc={r.returncode} {r.stderr!r}")
+            check(f"2095: sign-approval writes nothing over an open {severity} finding",
+                  read(plan) == before)
+        before = write(plan, _panel_plan({**_TEMPLATE_FINDING, "severity": "low",
+                                          "note": "a free key"}))
+        r = run_verb("sign-approval", "--file", plan, "--by", "operator", "--date", "2026-10-04")
+        check("2095: sign-approval refuses an off-template finding even when it does not gate",
+              r.returncode == 4 and "PF-2095" in r.stderr and "note" in r.stderr
+              and read(plan) == before, f"rc={r.returncode} {r.stderr!r}")
+        ruled = ("approval:\n  status: pending\n  rulings:\n    - finding: PF-2095\n"
+                 "      who: operator\n      date: '2026-10-01'\n      reason: accepted\n")
+        signable = (
+            ("an open high finding overruled in the same call", _panel_plan(_TEMPLATE_FINDING),
+             ["--overrule", "PF-2095:accepted for launch"]),
+            ("an open high finding already ruled", _panel_plan(_TEMPLATE_FINDING, approval=ruled),
+             []),
+            ("a resolved high finding",
+             _panel_plan({**_TEMPLATE_FINDING, "disposition": "resolved", "resolved_by": "T-01"}),
+             []),
+            ("an open med finding", _panel_plan({**_TEMPLATE_FINDING, "severity": "med"}), []),
+        )
+        for label, text, extra in signable:
+            write(plan, text)
+            r = run_verb("sign-approval", "--file", plan, "--by", "operator",
+                         "--date", "2026-10-04", *extra)
+            check(f"2095: sign-approval signs {label}",
+                  r.returncode == 0
+                  and yaml.safe_load(read(plan))["approval"]["status"] == "approved",
+                  f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -4784,6 +4912,9 @@ CASES = (
     case_feat70_record_amendments_after_a_block_scalar_splice,
     case_1985_amend_ledgers_a_signed_task_field,
     case_1985_amend_restores_the_plan_when_the_ledger_fails,
+    case_2095_set_panel_refuses_off_template_findings,
+    case_2095_record_panel_refuses_an_off_template_base_finding,
+    case_2095_sign_approval_refuses_an_open_gating_finding,
 )
 
 

@@ -36,6 +36,10 @@ panel:
       status: skipped                # ran | skipped
       persona: fable-advisor         # required when skipped
       reason: <host refusal>         # required when skipped
+  # The finding shape is enforced, not advisory (#2095): bin/panel_findings.py holds it;
+  # set-panel and record-panel refuse a departure, sign-approval refuses one and refuses an
+  # open gating finding without --overrule, and check-state's INV-32 reports one on any plan
+  # not yet done, abandoned or rejected. No other key; no other disposition.
   findings:
     - id: PF-0123abcd
       severity: unrated              # info | low | med | high | critical | unrated
@@ -43,8 +47,8 @@ panel:
       kind: substance                # substance | form | proportionality
       # scope: task|mission          # proportionality findings only (DEC-228)
       summary: <one line>
-      disposition: open              # open | resolved; risk acceptance uses approval.rulings
-      # resolved_by: T-NN            # present only when resolved
+      disposition: open              # open | resolved; risk acceptance is --overrule, never this
+      # resolved_by: T-NN            # resolved findings only; must name a task in this plan
   # unrated gates like high: omitted judgement fails closed.
 
 lanes:
