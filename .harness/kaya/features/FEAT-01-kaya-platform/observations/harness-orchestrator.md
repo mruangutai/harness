@@ -11,3 +11,6 @@
 - 2026-10-05: validate-digest's worst-member rule forces a plan-team run to FAIL when the design reader returned FAIL even though pm applied the finding in-run; check-state then flags cycles_used=0 against the FAIL run. Recorded honestly with a finding_kind judgement; not a rework cycle.
 - 2026-10-05: The plan-team goalcheck grades the BRIEF's perspectives against the intake's intent; a legacy intake without perspective headings is not a blocker — the perspective list is pm's, the basis is the whole intake.
 - 2026-10-05: `task` dispatches to harness leads must not carry outputSchema/schemaMode; the hook injects the persona schema and refuses the field.
+- 2026-10-05: Harness task dispatch refused outputSchema/schemaMode on the third governed dispatch of the run after accepting identical fields on the first two; the hook injects persona schemas itself, so omit them always.
+- 2026-10-05: A plan-team run with a designer step inserted between draft and the reader wave let ui-reviewer judge a real DESIGN.md in Mode A; the designer send-back on reader FAIL was the only rework cycle (1) while pm apply stayed at zero.
+- 2026-10-05: check-state.py invoked from the worktree still resolved the main checkout feature dir (no plan.yaml there) and reported INV-34; the --changed hook on feature-record writes is the per-feature read that sees the worktree.
