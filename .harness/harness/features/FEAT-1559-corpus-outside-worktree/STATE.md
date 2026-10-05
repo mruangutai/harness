@@ -55,7 +55,7 @@
   (segment, id); four new tests, red at 42856abb; seam 6c11ab62 = review_sha.
 - Validate c3 (run validate-c2-validator) at 6c11ab62: PASS, no must-fix; all five readers pass.
   Two medium advisories (B-1, B-2) and the other residuals are in the briefing's backlog.
-- Briefing: notes/ship-review-validate-c2-validator.md. Run evidence pruned (kept the last run).
+- Briefing at c3 superseded by the c5 briefing below.
 - PR #2103 opened. Outside panel (reviewer, security-reviewer, fable-advisor): correctness FAIL
   (2 high, 4 medium, all reproduced), security PASS (2 low -> #2107, #2108), design PASS
   (1 medium; #2101 needs a HEAD-era rule -> amended by comment).
@@ -69,10 +69,15 @@
 - Operator ruling: round 4, rework 4 rounds / 240 min (notes/answers-operator-2026-10-05-rework-round-4.md).
 - Fix c4, main-session-direct (notes/receipt-main-session-fix-c4.md): names written to git
   stdin are C-quoted (sparse-checkout and hash-object --stdin-paths); test red before. Suites
-  exit 0 (52 / 80 files). This commit is the new seam.
-- next: pin review_sha to this seam, `status review`, re-verify as validate-c4-validator
-- cycles_used: 6 = 4 main-session fix rounds + 2 send-backs the lead reported in
-  validate-c3-validator; rework 4 rounds / 240 min
+  exit 0 (52 / 80 files). Seam f8a67546 = review_sha.
+- Validate c5 (run validate-c4-validator) at f8a67546: PASS, no must-fix; all five readers pass.
+  Three non-blocking advisories became backlog B-10..B-12.
+- Briefing: notes/ship-review-validate-c4-validator.md. Run evidence pruned (kept
+  validate-c2-validator and validate-c4-validator; validate-c3-validator's digest was pruned
+  without a dry run; its record is notes/*-c4.md and receipt-main-session-fix-c4.md).
+- next: push, update PR #2103, wait for the operator's "merge"; post-merge, #2101 (conversion)
+- cycles_used: 7 = 4 main-session fix rounds + 3 send-backs leads reported; rework 84 of 240
+  min, 4 of 4 rounds
 - board: milestone #99, parent #2086, tasks #2088-#2093 (T-06's #2094 closed not planned)
 
 ## Open Questions
