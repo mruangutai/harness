@@ -38,10 +38,13 @@
   is committed and review_sha pinned there (seam differs only inside this feature's directory);
   (2) T-06 runs after merge under #2101 — T-06 abandoned here, #2094 closed not planned, SC-10
   amended in BRIEF.md, README conversion paragraph updated.
-- next: T-05 receipt half at the code-final commit, then seam (T-01..T-05 done), pin review_sha,
-  status review, validate
+- T-05 receipt half done at code-final 69e3d819 (notes/non-regression-receipt.md):
+  pre_change_sha e8d868f7, no other feature directory touched, main-corpus manifest identical
+  (4635), clone suites unit 54/0 integration 86/0, real-owner 6/6.
+- Seam: T-01..T-05 done, T-06 abandoned (#2101). This commit is the review_sha seam.
+- next: pin review_sha to the seam, `gh-sync.py status review`, then the validate dispatch
 - cycles_used: 0 / 10
-- board: milestone #99, parent #2086, tasks #2088-#2094
+- board: milestone #99, parent #2086, tasks #2088-#2093 (T-06's #2094 closed not planned)
 
 ## Open Questions
 

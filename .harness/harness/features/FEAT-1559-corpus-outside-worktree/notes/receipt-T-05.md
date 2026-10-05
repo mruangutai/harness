@@ -1,19 +1,17 @@
-# Receipt — FEAT-1559 T-05, build half (2026-10-05)
+# Receipt — FEAT-1559 T-05 (2026-10-05)
 
 Executed directly in the main session under DEC-174.
 
-T-05 has two halves. This receipt covers the **build half**: the standing tests, the OMP adapter
-case, the DEC-214 amendment and the guidance. The **receipt half** is not done yet. It needs the
-pinned `review_sha`, and it will be recorded in `notes/non-regression-receipt.md` when it runs.
-It comprises:
+T-05 has two halves. This file is the **build half**: the standing tests, the OMP adapter case,
+the DEC-214 amendment and the guidance. The **receipt half** is done and recorded in
+`notes/non-regression-receipt.md`. It ran at the code-final commit `69e3d819` (operator ruling,
+2026-10-05) and covers:
 
-- merge-base(`review_sha`, main) as `pre_change_sha`;
-- the whole-feature diff against other features' directories;
-- the main-corpus byte comparison;
-- the full suites in a disposable full clone at `review_sha`;
-- the non-skipped real-owner run.
-
-T-05 stays at `building` until that receipt exists.
+- merge-base as `pre_change_sha` (`e8d868f7`);
+- the whole-feature diff: no path under any other feature directory;
+- the main-corpus manifest bytes: identical, 4635 entries;
+- the full suites in a disposable full clone: unit 54/0, integration 86/0;
+- the non-skipped real-owner run: 6 tests OK, probe pin removed.
 
 ## What changed
 

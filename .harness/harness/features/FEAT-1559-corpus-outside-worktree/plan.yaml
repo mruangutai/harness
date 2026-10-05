@@ -576,7 +576,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 covers the enforcement command and its tests; do not delegate execution.
   depends_on: []
-  status: building
+  status: done
   files:
   - .claude/skills/harness/bin/worktree-state.py
   - .claude/skills/harness/bin/feature_corpus.py
@@ -632,7 +632,7 @@ tasks:
   execution_reason: DEC-174 covers check_state and its tests; direct execution only.
   depends_on:
   - T-01
-  status: building
+  status: done
   files:
   - .claude/skills/harness/bin/check_state/ctx.py#Ctx
   - .claude/skills/harness/bin/check_state/runner.py#main
@@ -672,7 +672,7 @@ tasks:
   depends_on:
   - T-01
   - T-02
-  status: building
+  status: done
   files:
   - .claude/skills/harness/bin/harness_boundary.py#linked_worktrees
   - .claude/skills/harness/bin/merge-gate.py#feature_for
@@ -733,7 +733,7 @@ tasks:
   depends_on:
   - T-01
   - T-03
-  status: building
+  status: done
   files:
   - .claude/skills/harness/hooks/post-checkout
   - .claude/skills/harness/hooks/post-merge
@@ -774,7 +774,7 @@ tasks:
   - T-02
   - T-03
   - T-04
-  status: building
+  status: done
   files:
   - tests/integration/test-corpus-real-owner.py
   - tests/integration/test-corpus-non-regression.py
