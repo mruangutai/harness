@@ -1,0 +1,126 @@
+schema_version: 2
+run_id: distill-eng-recovery
+feature: FEAT-1928-digest-object-contract
+squad: eng
+host: harness-eng-lead
+status: complete
+steps:
+  - id: reconcile-backend
+    persona: harness-backend-dev
+    task: read-only reconciliation of completed backend distillation receipt and relocated Expertise
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-backend-dev-distill-eng-recovery.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: distill-eng-recovery
+    note: Prior 0 accepted and 2 rejected judgment preserved; native recovery object accepted.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-backend-dev-distill-eng-recovery.md
+    evidence:
+      accepted: 0
+      rejected: 2
+      prior_native_return: blocked
+      recovery_native_return: accepted
+      expertise_update: none
+  - id: reconcile-data
+    persona: harness-data-engineer
+    task: read-only reconciliation of completed data distillation receipt and relocated Expertise
+    seq: 2
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-data-engineer-distill-eng-recovery.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: distill-eng-recovery
+    note: Prior 1 accepted and 1 rejected judgment plus relocated G-15 preserved; native recovery object accepted.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-data-engineer-distill-eng-recovery.md
+    evidence:
+      accepted: 1
+      rejected: 1
+      prior_native_return: blocked
+      recovery_native_return: accepted
+      canonical_entry: G-15
+      expertise_update: none
+  - id: reconcile-ai
+    persona: harness-ai-dev
+    task: read-only reconciliation of completed AI distillation receipt and relocated Expertise
+    seq: 3
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-ai-dev-distill-eng-recovery.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: distill-eng-recovery
+    note: Prior 1 accepted and 1 rejected judgment plus trimmed relocated P-12 preserved; native recovery object accepted.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-ai-dev-distill-eng-recovery.md
+    evidence:
+      accepted: 1
+      rejected: 1
+      prior_native_return: blocked
+      recovery_native_return: accepted
+      canonical_entry: P-12
+      expertise_update: none
+  - id: reconcile-devops
+    persona: harness-dev-ops
+    task: read-only reconciliation of completed devops distillation receipt and canonical Expertise check evidence
+    seq: 4
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-dev-ops-distill-eng-recovery.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: distill-eng-recovery
+    note: Prior 2 accepted and 0 rejected judgment plus relocated O-7 and O-8 preserved; five canonical checks pass and native recovery object accepted.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-harness-dev-ops-distill-eng-recovery.md
+    evidence:
+      accepted: 2
+      rejected: 0
+      prior_native_return: blocked
+      recovery_native_return: accepted
+      canonical_entries:
+        - O-7
+        - O-8
+      canonical_check: pass_all_five
+      expertise_update: none
+run_uid: 683c690f862348e2a28e3ee8800a28fc
