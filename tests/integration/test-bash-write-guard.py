@@ -16,6 +16,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_tests)
 import json, os, shutil, subprocess, sys, tempfile
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,25 +25,11 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
+# _env sets BOTH root names to one value (FEAT-42 T-11): the guard resolves its root via
+# harness_boundary.resolve_root, the same contract check_domain_support documents.
+from check_domain_support import _env, fixture, make_linked_worktree
 GUARD = os.environ.get("BASH_WRITE_GUARD_BIN") or os.path.join(HERE, "bash-write-guard.py")
 
-
-def _env(root, **kw):
-    """The guard's environment for a fixture rooted at `root` — BOTH names, one value.
-
-    FEAT-42 T-11. bash-write-guard.py resolves its root through
-    harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name. The
-    reverted sha-3952814 copy this suite is diffed against reads HARNESS_PROJECT_DIR first
-    and CLAUDE_PROJECT_DIR second. Setting both to the same value is the ONE spelling under
-    which the two copies resolve the same root, which is what makes the
-    identical-violation-set proof mean anything. Setting only the host-owned name points the
-    new copy at the live checkout instead.
-
-    resolve_root honours the override only when `.harness/team-config.yaml` is readable
-    underneath it. A fixture without that marker gets the override discarded and falls back
-    to the derived root — the same answer the deleted chain gave it.
-    """
-    return dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root, **kw)
 
 CASES = []
 
@@ -200,14 +187,6 @@ teams:
 T14 = []
 
 
-def fixture(text):
-    d = tempfile.mkdtemp()
-    os.makedirs(os.path.join(d, ".harness"))
-    with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
-        f.write(text)
-    return d
-
-
 def fire(root, cmd, agent="harness-backend-dev"):
     payload = {"agent_type": agent, "tool_name": "Bash", "tool_input": {"command": cmd}}
     return subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
@@ -343,13 +322,8 @@ def _linked_worktree(path, owner_root, wt_id, manifest_text):
     falls to the DEC-151 fail-open — which exits 0 for a reason that has nothing to do
     with worktrees.
     """
-    entry = os.path.join(owner_root, ".git", "worktrees", wt_id)
-    os.makedirs(entry, exist_ok=True)
+    make_linked_worktree(owner_root, path, wt_id)
     os.makedirs(os.path.join(path, ".harness"), exist_ok=True)
-    with open(os.path.join(path, ".git"), "w") as f:
-        f.write("gitdir: %s\n" % entry)
-    with open(os.path.join(entry, "gitdir"), "w") as f:
-        f.write("%s\n" % os.path.join(path, ".git"))
     with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
         f.write(manifest_text)
 

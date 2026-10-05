@@ -139,56 +139,18 @@ Never write that fenced block yourself. The digest-of-digests shape: `team-run-s
 
 ## Reporting up
 
-**Every field is required** (DEC-121) — `[]` for an empty list, `none` for an inapplicable scalar;
-the yield will not complete without them. Return an object through YieldTool — never fenced YAML
-text. The field list is your lead persona's schema, e.g.
-`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-eng-lead.json` (product-lead and validator-lead
-have their own `harness-<persona>.json` with the same fields); one complete example:
-
-```js
-yield({data: {
-  "VERDICT": "FAIL",
-  "DIGEST": {
-    "headline": "export build lands but QA found no fail-first evidence for SC-02",
-    "team": "build",
-    "steps_run": 3,
-    "cycles_used": 1,
-    "members": [
-      {"step": "implement", "persona": "harness-backend-dev", "verdict": "PASS", "headline": "export endpoint streams CSV", "files_touched": ["src/export.py"]},
-      {"step": "qa", "persona": "harness-qa", "verdict": "FAIL", "headline": "SC-02 lacks fail-first evidence", "files_touched": []},
-      {"step": "advise", "persona": "fable-advisor", "status": "skipped", "reason": "agent not resolvable on this host"}
-    ],
-    "must_fix": ["record fail-first evidence for SC-02"],
-    "files_touched": ["src/export.py"],
-    "branch": "feat/export",
-    "open_questions": [],
-    "escalations": [],
-    "expertise_update": [],
-    "adequacy_notes": [],
-    "sc_status": [],
-    "needs_approval": "none",
-    "severity_max": "none",
-    "matrix_ok": false,
-    "coverage_gaps": ["SC-02 has no fail-first evidence"],
-    "findings": [],
-    "readers": [],
-    "amendments": []
-  },
-  "artifact": "<run_dir>/digest.md"
-}})
-```
-
-- `VERDICT`: the worst member verdict — `BLOCKED` > `ESCALATE` > `FAIL` > `PASS`.
-- `headline`: what the team achieved, not what it did.
-- `members`: per-member roll-up — NOT optional — `{step, persona, verdict, headline,
-  files_touched}`; `fable-advisor` is the only optional external member and may appear as
-  `{step, persona, status: skipped, reason: "<host reason>"}`.
-- `must_fix`: union of blocking findings. `files_touched`: union across members — universal,
-  required of you too; `[]` if none. `branch`: `none` if the team mutated no repo.
+Return an object through YieldTool, never fenced YAML text (`harness-handoff`). Your injected lead
+schema owns the required fields (DEC-121, DEC-237), e.g.
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-eng-lead.json`;
+product-lead and validator-lead have their own `harness-<persona>.json` with the same fields.
+**Before your first lead return, read
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/team-digest-example.md`.**
+- `members`: `{step, persona, verdict, headline, files_touched}` for every member that ran;
+  only `fable-advisor` may use `{step, persona, status: skipped, reason: "<host reason>"}`.
+  Apply the roll-up and unions in §4; `branch` is `none` if the team mutated no repo.
 - `open_questions`: non-empty → the orchestrator surfaces it to the MAIN SESSION, the only tier
   that can ask the user. `escalations`: `{id, raised_by, question, domain, routed_to, resolution,
   decided_by, recorded_as}`. `expertise_update`: `[]` except on a distillation dispatch.
-- `adequacy_notes`: what this PASS does not cover; `[]` when nothing; required, NEVER omitted.
 - Roll-up fields, always present — `none` / `[]` when no member produced them: `sc_status`,
   `needs_approval`, `severity_max`, `matrix_ok`, `coverage_gaps`, `findings` (each with `kind`),
   `readers` (plan: `ran | skipped`), `amendments` (eng-lead build corrections). Any other field is

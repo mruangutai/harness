@@ -25,10 +25,9 @@ Mid-run you only *observe*; distillation happens later, cold (DEC-145).
 
 ## Mid-run: append an observation
 
-APPEND what you learn to your observations log — one dated bullet, as granular as you like; it is
-never injected, so detail is free. **Do not Read-then-Write the log** — `check-domain` blocks a
-whole-file Write/Edit to it (issue #606). Append through the merge tool, which merges under a lock
-and replaces atomically:
+APPEND one dated observation bullet, as granular as you need; logs are never injected.
+**Never Read-then-Write the log** — `check-domain` blocks whole-file Write/Edit (issue #606).
+Use the merge tool below: a lock and atomic replacement preserve concurrent appends.
 
 ```bash
 python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/observations-merge.py apply \
@@ -53,11 +52,7 @@ When unsure: if a human would want to *sign off* on it, it is a decision.
 
 ## Distillation — not here, and not now
 
-Writing your Expertise file happens **only under a dispatch that says "distill"**, once per feature.
-The procedure, the entry format, the ops schema and the caps are **not preloaded** (DEC-158): most
-spawns never write the file.
-
-**When your dispatch says "distill", read
-`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first** — writing from your
-new entries alone deletes every earlier one (DEC-125). Until then, do not touch
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md`.
+**Only an explicit distill dispatch authorizes Expertise writes** (DEC-145). Then read
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first: its merge-tool-only
+contract preserves earlier entries (DEC-125). Format, ops and caps load at that seam, never on
+ordinary spawns (DEC-158); until then, leave both injected Expertise layers untouched.

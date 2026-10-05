@@ -20,8 +20,11 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_tests)
 import contextlib, importlib.util, json, subprocess, sys, os, shutil, tempfile, time
+import concurrent.futures
 import copy
+import re
 import yaml
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,6 +33,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
+from check_domain_support import make_linked_worktree
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
@@ -689,13 +693,8 @@ HOOK_CASES.append(("F6 missing agent_type with string data is refused",
 # distinguish the worktree-resolution defect.
 def _linked_worktree_fixture(root, wt_id):
     worktree = os.path.join(root, ".claude", "worktrees", wt_id)
-    entry = os.path.join(root, ".git", "worktrees", wt_id)
-    os.makedirs(entry, exist_ok=True)
+    make_linked_worktree(root, worktree, wt_id)
     os.makedirs(os.path.join(worktree, ".harness"), exist_ok=True)
-    with open(os.path.join(worktree, ".git"), "w") as pointer:
-        pointer.write("gitdir: %s\n" % entry)
-    with open(os.path.join(entry, "gitdir"), "w") as pointer:
-        pointer.write("%s\n" % os.path.join(worktree, ".git"))
     return worktree
 
 
@@ -968,11 +967,19 @@ HOOK_CASES.append(("object [hook]: a wrapped {data: ...} object is exit 2",
                    2, "missing 'VERDICT'"))
 
 
+def _run_cli_case(cli_case):
+    _name, persona, obj, _want_ok, _mentions = cli_case
+    return subprocess.run([VALIDATE, persona], input=json.dumps(obj),
+                          capture_output=True, text=True)
+
+
 def run_cli_cases():
     fails = 0
-    for name, persona, obj, want_ok, mentions in CASES:
-        r = subprocess.run([VALIDATE, persona], input=json.dumps(obj),
-                           capture_output=True, text=True)
+    # Each case is one independent, read-only CLI spawn (_cli_never_writes): they spawn
+    # concurrently and are judged and printed in CASES order, so the output is unchanged.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as pool:
+        runs = list(pool.map(_run_cli_case, CASES))
+    for (name, persona, obj, want_ok, mentions), r in zip(CASES, runs):
         got_ok = r.returncode == 0
         bad = []
         if got_ok != want_ok:
@@ -1413,7 +1420,7 @@ def _append_root():
     return root, os.path.join(root, APPEND_REL)
 
 
-def _append_registration(root):
+def _append_registration(root, cwd=None, claim=True):
     os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
     with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as marker:
         yaml.safe_dump({"leads": [{"name": "harness-eng-lead", "squad": "engineering", "domain": [
@@ -1426,9 +1433,10 @@ def _append_registration(root):
         json.dump({"feature_id": HOOK_IDENTITY["harness_feature"], "runs": [{
             "id": "r1-eng", "squad": "engineering", "agent": "harness-eng-lead",
             "verdict": "PENDING", "started_at": "2026-10-04T00:00:00+00:00"}]}, record)
-    _reg_module().claim_run_start(root, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
-                                 HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
-                                 supervisor_pid=os.getpid(), cwd=root)
+    if claim:
+        _reg_module().claim_run_start(root, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
+                                     HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
+                                     supervisor_pid=os.getpid(), cwd=cwd or root)
 
 
 def _append_binding(root):
@@ -1555,6 +1563,7 @@ def run_lead_append_cases():
     cases += [_repeated_yield_appends_once(obj), _cli_never_writes()]
     cases += _append_authorization_cases()
     cases += [_hook_binding_refuses(kind) for kind in ("wrong-parent", "ambiguous-run")]
+    cases += [_hook_binding_linked_worktree_binds(), _hook_binding_other_registry_refuses()]
     fails = 0
     for name, ok, detail in cases:
         print(f"ok    [append] {name}" if ok else f"FAIL  [append] {name}\n      | {detail}")
@@ -1705,6 +1714,46 @@ def _hook_binding_refuses(kind):
         return f"startup refuses {kind} without issuing digest authority", ok, result.stdout + result.stderr
     finally:
         _remove_append_root(root)
+
+
+def _linked_worktree_bind(claim_in_feature):
+    """#2063: a feature on a linked worktree. The session (and so every claim's recorded
+    cwd) is the OWNER checkout; the claim lives in the feature worktree's registry, or —
+    when `claim_in_feature` is false — only in the owner's. Answers the startup result."""
+    owner = os.path.realpath(tempfile.mkdtemp(prefix="vd-bind-linked-"))
+    try:
+        worktree = _linked_worktree_fixture(owner, HOOK_IDENTITY["harness_feature"])
+        _append_registration(worktree, cwd=owner, claim=claim_in_feature)
+        shutil.copytree(os.path.join(worktree, ".harness"), os.path.join(owner, ".harness"),
+                        ignore=shutil.ignore_patterns("features", "inflight.json", "inflight.json.lock"))
+        if not claim_in_feature:
+            _reg_module().claim_run_start(owner, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
+                                         HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
+                                         supervisor_pid=os.getpid(), cwd=owner)
+        payload = _governed({"agent_type": "harness-eng-lead", "cwd": owner,
+                             "harness_parent_agent_id": "Test.Parent"})
+        result = subprocess.run([os.path.join(os.path.dirname(VALIDATE), "digest_destination.py")],
+                                input=json.dumps(payload), capture_output=True, text=True,
+                                env=dict(os.environ, HARNESS_PROJECT_DIR=owner))
+        return worktree, result, json.loads(result.stdout)
+    finally:
+        _remove_append_root(owner)
+
+
+def _hook_binding_linked_worktree_binds():
+    worktree, result, response = _linked_worktree_bind(True)
+    binding = response.get("binding", {})
+    ok = (result.returncode == 0 and binding.get("root") == worktree
+          and binding.get("artifact") == os.path.join(worktree, APPEND_REL))
+    return ("startup binds a linked-worktree feature whose claim cwd is the owner checkout",
+            ok, result.stdout + result.stderr)
+
+
+def _hook_binding_other_registry_refuses():
+    _worktree, result, response = _linked_worktree_bind(False)
+    ok = result.returncode == 2 and response.get("ok") is False and "binding" not in response
+    return ("startup refuses a claim held only in another checkout's registry",
+            ok, result.stdout + result.stderr)
 
 
 
@@ -3704,7 +3753,7 @@ def check_plan_review_never_grades(validator, config, td, failures):
         failures.append(f"a plan review must never invoke the grading seam: {calls}")
 
 
-def _check_bug1081_enforcement(validator, config, td, failures):
+def _check_bug1081_enforcement(validator, config, _feature_dir, td, failures):
     check_mechanical_result_discrimination(td, failures)
     check_hook_rejects_false_pass(td, failures)
     check_committed_syntax_error(td, failures)
@@ -4276,7 +4325,7 @@ def _hermetic_review_sha_repo(td):
     `make_review_sha_repo`'s purpose-built repo, re-points both module-level
     names at it, and `chdir`s into it for the `with` block's duration —
     restoring both on exit. Isolated here, not inlined into
-    `run_code_grade_cases`, so that function keeps its own flat shape: the
+    `_run_code_grade_group`, so that function keeps its own flat shape: the
     ambient-repo swap is orthogonal to what each `check_*` call asserts.
 
     BUG-1081 dropped the `chdir`: every git operation is addressed at the checkout that
@@ -4353,7 +4402,7 @@ def _check_review_bindings(validator, config, feature_dir, td, failures):
     check_branch_corroboration(validator, config, td, failures)
 
 
-def _check_review_repository(td, failures):
+def _check_review_repository(_validator, _config, _feature_dir, td, failures):
     check_derived_base_range(td, failures)
     check_unresolvable_default_branch(td, failures)
     check_no_merge_base(td, failures)
@@ -4365,7 +4414,11 @@ def _check_review_policy_cases(validator, config, feature_dir, td, failures):
     check_prior_validator(td, guarded, failures)
 
 
-def run_code_grade_cases():
+def _run_code_grade_group(label, check):
+    """One code-grade checker against its own fixture: a fresh validator module, hermetic
+    review_sha repo, `advisory_unless_high` config and feature dir, exactly as the single
+    group that used to run all four checkers serially built them once. No checker reads
+    state another leaves behind, so each runs as its own concurrent `--only` group."""
     spec = importlib.util.spec_from_file_location("_validator_under_test", VALIDATE)
     validator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validator)
@@ -4374,17 +4427,30 @@ def run_code_grade_cases():
         config = os.path.join(td, "harness.json")
         write_review_config(config, "advisory_unless_high")
         feature_dir = make_feature_dir(repo)
-        _check_review_bindings(validator, config, feature_dir, td, failures)
-        _check_review_repository(td, failures)
-        _check_bug1081_enforcement(validator, config, td, failures)
-        _check_review_policy_cases(validator, config, feature_dir, td, failures)
+        check(validator, config, feature_dir, td, failures)
     if failures:
-        print("FAIL  code-grade and review-policy gates")
+        print(f"FAIL  code-grade and review-policy gates: {label}")
         for failure in failures:
             print(f"        {failure}")
         return 1
-    print("ok    code-grade and review-policy gates")
+    print(f"ok    code-grade and review-policy gates: {label}")
     return 0
+
+
+def run_code_grade_bindings_cases():
+    return _run_code_grade_group("review bindings", _check_review_bindings)
+
+
+def run_code_grade_repository_cases():
+    return _run_code_grade_group("review repository", _check_review_repository)
+
+
+def run_code_grade_bug1081_cases():
+    return _run_code_grade_group("BUG-1081 enforcement", _check_bug1081_enforcement)
+
+
+def run_code_grade_policy_cases():
+    return _run_code_grade_group("review policy", _check_review_policy_cases)
 
 
 def _red_failure(label, detail):
@@ -4989,6 +5055,96 @@ def run_bug1898_exact_release_cases():
     return fails
 
 
+# A `--only` child's closing line; the full run prints one line of its own over every group.
+_GROUP_SUMMARY = re.compile(r"\n(?:ALL PASSED|(\d+) FAILING)\.\n\Z")
+
+
+def _run_group(check):
+    return subprocess.run([sys.executable, os.path.abspath(__file__), "--only", check.__name__],
+                          capture_output=True, text=True)
+
+
+def _run_groups(checks):
+    """Every group as its own `--only` child, concurrently, each output replayed in group
+    order without the child's closing line. The suite is spawn-bound, so this is where its
+    wall time goes; returns the summed failure count, a child that crashed counting as one."""
+    with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(len(checks), os.cpu_count() or 2)) as pool:
+        runs = list(pool.map(_run_group, checks))
+    fails = 0
+    for run in runs:
+        summary = _GROUP_SUMMARY.search(run.stdout)
+        sys.stdout.write(run.stdout[:summary.start()] if summary else run.stdout)
+        sys.stderr.write(run.stderr)
+        group_fails = int(summary.group(1) or 0) if summary else 0
+        fails += group_fails or int(run.returncode != 0)
+    sys.stdout.flush()
+    return fails
+
+
+_SENTINEL_FEATURE = "BUG-1898-suite-sentinel-%d" % os.getpid()
+
+
+def _sentinel_rows(registry):
+    path = os.path.join(ROOT, registry.REGISTRY_REL)
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as stream:
+        return json.load(stream).get("claims", [])
+
+
+def _governed_personas():
+    return sorted(name[:-3] for name in os.listdir(os.path.join(ROOT, ".omp", "agents"))
+                  if name.startswith("harness-") and name.endswith(".md"))
+
+
+def _seed_sentinel(registry, persona, claim_ids):
+    """One live claim for `persona`, bound to this run's own runtime id; its id joins
+    `claim_ids` before anything else can fail, so cleanup always sees it."""
+    entry = registry.claim_with_receipt(ROOT, persona, "suite-sentinel", ROOT,
+                                        feature=_SENTINEL_FEATURE, supervisor_pid=os.getpid())
+    if entry is None:
+        return
+    claim_ids.append(entry["claim_id"])
+    registry.attach_runtime_identity(
+        ROOT, persona, _SENTINEL_FEATURE, agent_id="Suite%d.%s" % (os.getpid(), persona),
+        claim_id=entry["claim_id"], parent_agent_id="Suite%d" % os.getpid())
+
+
+def _seeded_rows(registry, claim_ids):
+    return [row for row in _sentinel_rows(registry) if row.get("claim_id") in claim_ids]
+
+
+def _sentinel_verdict(label, ok, detail):
+    print(f"ok    [sentinel] {label}" if ok else f"FAIL  [sentinel] {label}: {detail}")
+    return 0 if ok else 1
+
+
+def _run_groups_with_sentinels(checks):
+    """BUG-1898 SC-01: a real full suite run releases no unrelated live claim. One live
+    stranger per governed persona is seeded in this checkout's registry under this run's own
+    feature and runtime id (so concurrent runs never collide); after every group has run each
+    stranger must be byte-identical. Cleanup releases exactly the seeded claims. The mutant
+    half of SC-01 lives in test-suite-claim-preservation.py."""
+    import inflight_registry
+    claim_ids = []
+    try:
+        personas = _governed_personas()
+        for persona in personas:
+            _seed_sentinel(inflight_registry, persona, claim_ids)
+        sentinels = _seeded_rows(inflight_registry, claim_ids)
+        fails = _sentinel_verdict("one live sentinel per governed persona was seeded",
+                                  len(sentinels) == len(personas), len(sentinels))
+        fails += _run_groups(checks)
+        kept = _seeded_rows(inflight_registry, claim_ids)
+        return fails + _sentinel_verdict(
+            "every unrelated live claim is byte-identical after the suite", kept == sentinels,
+            sorted({r["agent"] for r in sentinels} - {r["agent"] for r in kept}))
+    finally:
+        for claim_id in claim_ids:
+            inflight_registry.release(ROOT, feature=_SENTINEL_FEATURE, claim_id=claim_id)
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     checks = (
@@ -5000,7 +5156,10 @@ def main(argv=None):
         run_bug919_resolve_fallback_case,
         run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,
-        run_code_grade_cases,
+        run_code_grade_bindings_cases,
+        run_code_grade_repository_cases,
+        run_code_grade_bug1081_cases,
+        run_code_grade_policy_cases,
         run_hook_cases,
         run_lead_append_cases,
         run_t09,
@@ -5019,7 +5178,8 @@ def main(argv=None):
     elif argv:
         print(f"usage: {os.path.basename(__file__)} [--only <group>]", file=sys.stderr)
         return 2
-    fails = sum(check() for check in checks)
+    fails = (sum(check() for check in checks) if len(checks) == 1
+             else _run_groups_with_sentinels(checks))
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 

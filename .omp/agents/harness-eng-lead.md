@@ -104,7 +104,7 @@ and report each changed field in your digest's optional `amendments` list, exact
 
 `task` is a plan task id only — never an SC or decision id. `was`/`now` are strings for
 `intent` and `verify`, and lists of legal plan file entries (`path`, `path#symbol`,
-`{path, quote}`) for `files`. The orchestrator records each entry as an `amendment` judgement
+`{path, quote}`, `{path, create: true}`) for `files`. The orchestrator records each entry as an `amendment` judgement
 against the task's signed hash; the validator refuses any other shape.
 
 When any condition fails — an SC must be added, removed or reworded; a task must be added or
