@@ -4,7 +4,7 @@
 
 The pending plan is ready for reader review: six main-session-direct tasks, sixteen decisions (D-04 deliberately absent), fourteen falsifiable SCs across operator, reader and code maintainer. This is an enforcement-layer cutover, not a storage-only optimisation. No production code, test, CI, hook config, feature.json or STATE.md was changed. No build/test/lint/formatter was run. The required plan structural check exited 0; research probes below exited 0. The plan writer itself automatically emitted an unsigned-BRIEF and absent Build-entry diagnostic; these are not silently represented as green feature-state verification.
 
-Feasibility: clear with high enforcement risk; surface L. Proceed to review and user approval, not execution. Execution still requires the issue's FEAT-57 replay-freeze/spot-check receipt and audit-edit serialization; no durable discharge of that precondition was found in the supplied source set. This is an operator evidence question, not a reason to stop drafting.
+Feasibility: clear with high enforcement risk; surface L. Proceed to review and user approval, not execution. The former FEAT-57 execution prerequisite is superseded by operator ruling 3 (#1655 closed abandoned); no replay receipt or T-19 serialization remains required.
 
 ## One exact reader source set
 
@@ -55,7 +55,7 @@ Probe imported the current feature-worktree.py from WORKTREE and called targets(
 Segment resolution: use exact .harness/*/features/<active-id> directory paths, not worktree segment harness; current tracked population has only harness, so no live kaya record to probe.
 ```
 
-The first tuple's root is the existing helper's script-resolved checkout in this probe, not evidence it is the ultimate owner. The segment contrast is the relevant measured fact. The new command uses harness_boundary owner resolution, not this tuple's root as a substitute. Active-segment discovery must inspect exact active-id paths across tracked structural metadata and existing owner/checkout entries, including record-less active directories. No candidates and multiple candidates are named cone failures, never a guessed harness segment. T-01's synthetic fleet case establishes algorithmic discrimination; T-06 records actual host subjects available at conversion. No helper-creation bug is silently added to this feature.
+The first tuple's root is the existing helper's script-resolved checkout in this probe, not evidence it is the ultimate owner. Existing active records select exact artifact segments, not worktree segments. Operator ruling 2 supersedes the original zero-candidate refusal: recordless ids use checkout identity and include that id across all segments. Multiple segment claims and underivable identities still refuse. T-01/T-04 cover first creation and ambiguity; T-06 records actual conversion subjects.
 
 ### BUG-1016 root-hook interaction
 
@@ -83,7 +83,7 @@ Ran gh issue list --repo mruangutai/harness --state open --limit 100, exit 0, af
 | D-04 | Drop: only existed to ignore the rejected .harness/corpus symlink. |
 | D-05 | Carry exact choice/because/dec: falsifiable behavior, not reproducing a disputed old exit. |
 | D-06 | Carry exact choice/because/dec: era-exempt exact FEAT-02/FEAT-03 pair, nonempty reason, supersets collide, historical records untouched. |
-| D-07 | Re-anchor DEC-174 to current hooks/validators/tests and retained pre-build receipt. |
+| D-07 | Re-anchor DEC-174 to current hooks/validators/tests; FEAT-57 prerequisite superseded by ruling 3 (#1655 abandoned). |
 | D-08 | Re-decide every .harness/*/features exclusion and exact active artifact-segment addition; no top-level allowlist. |
 | D-09 | Re-decide B, no symlink and no git-content provider, no in-progress siblings. |
 | D-10 | Re-anchor common Git hook seam and verify-only gates; creator implementations unchanged. |
@@ -96,6 +96,23 @@ Ran gh issue list --repo mruangutai/harness --state open --limit 100, exit 0, af
 | D-17 | Carry exact choice/because/dec: registered branch/merge decisions assessed by payload, not exit. |
 
 The apply pipeline parses the archive plan, selects the eight mandated decision objects without changing their values, joins them with the current proposal decisions, sorts by id and passes the resulting proposal to plan-merge.py apply on stdin. There is no direct plan writer. Historical N-NN references bind by obligation: fixture/state-command -> T-01; local audit/preflight -> T-02; branch population, gates and census -> T-03 (branch predicate itself -> T-01); hook integrity -> T-04; plain-clone/immutable-endpoint/real-data assertions -> T-05; file-count/conversion receipt -> T-06. No old N-NN task is scheduled and no stale .sh path is an anchor.
+
+### Complete archived task mapping for carried D-13/D-14/D-15
+
+| Archived id | Current task and obligation |
+| --- | --- |
+| N-01 | T-01: fixture/state command and immutable planning baseline. |
+| N-03 | T-03: both registered Write/Edit and Bash denial routes; no symlink provider. |
+| N-06 | T-02: audit verify preflight; T-03: linked_worktrees owner normalization and comment-only checkout-local hardlink census marker. PART 3(c) red proof is a one-time receipt, not collected; PART 2 receives no undetectable marker. |
+| N-07 | T-03: merge-gate population and permissionDecision allow/deny proof. |
+| N-08 | T-01: exact historical branch exemption; T-02/T-03: invariant/gate consumption. |
+| N-09 | T-05: live clone/audit regression assertions and one-time immutable diff receipt; T-06: conversion measurement. PART 1(b) remains receipt-only; PART 3(3) is demoted to a one-time receipt under PF-8040e714, with execution-time merge-base frozen and recorded. |
+| N-10 | T-01: owner seam; T-03: owner population consumers and surviving branch-gate widening/marker/payload controls. |
+| N-11 | Retired; surviving N-10 PART 6/3/7 obligations map to T-03; hardlink behavior and denial tests stay struck. |
+| N-12 | T-03: detected-site census, marker vocabulary, injected scratch discrimination and declared blind class. |
+| N-13 | T-05: read-only actual-owner name-set assertions and disposable pin at current owner HEAD. |
+
+Every N-NN cited in D-13/D-14/D-15 choice or because is covered above, including N-03 and references through historical receipt filenames. Historical .sh anchors and obsolete symlink wording are provenance, not current dispatch instructions.
 
 ## Verification, dependencies and acceptance coverage
 
@@ -151,6 +168,6 @@ CHECK /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1559
 
 This proves anchor/route/trace structure, not implementation or goal completion. All SC outcomes remain not_met at draft time; their planned commands are not exercised verification.
 
-## Operator question for execution, not drafting
+## Operator execution prerequisite — superseded
 
-Q-01: Where is the durable FEAT-57 replay manifest/dataset frozen-and-spot-checked receipt, and who owns serialized T-19/check_state edits? The older issue/grilling preserves this pre-build condition; no discharge was supplied or located. If obsolete, the operator must explicitly supersede it rather than the planner silently dropping it. No provider, checkout-class, enforcement-route or measurement-mode choice remains open.
+Q-01 is closed by operator ruling 3 in notes/answers-operator-2026-10-04-signature-rulings.md: FEAT-57-review-latency was abandoned (#1655 closed, label abandoned). No replay receipt or T-19 serialization is required. Earlier receipts above describe historical draft state, not current prerequisites.
