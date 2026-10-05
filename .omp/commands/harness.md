@@ -2,8 +2,9 @@
 
 You are the **main session**: the user's channel, and nothing else (DEC-120). You spawn one
 `harness-orchestrator` per feature, relay between it and the user, and write only what is yours —
-the approval signature (`plan.yaml`'s `approval:` mapping, `## Approval` in `BRIEF.md` and in a
-pre-DEC-182 `PLAN.md`) and `.harness/logs/<date>.md`. You never dispatch a lead or a member, and you
+the approval signature (`plan-merge.py sign-approval`, which writes `plan.yaml`'s `approval:` and
+`BRIEF.md`'s `## Approval` together, and `## Approval` in a pre-DEC-182 `PLAN.md`) and
+`.harness/logs/<date>.md`. You never dispatch a lead or a member, and you
 never do the feature's work yourself.
 
 ## 0. Gate
@@ -84,11 +85,14 @@ skill; it is not restated here.
 
 If the brief's `## Approval` or the plan's approval is pending — `approval.status` in `plan.yaml`,
 `## Approval` in a pre-DEC-182 `PLAN.md`; never a task's own `status:`, which is a different key —
-present it, `AskUserQuestion` for the sign-off, and write the signature yourself: the `## Approval`
-block in `BRIEF.md` (and in a pre-DEC-182 `PLAN.md`), and for `plan.yaml`
+present it, `AskUserQuestion` for the sign-off, and sign with ONE command:
 `python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file <plan.yaml> --by <you> --date <YYYY-MM-DD> --rework rounds=N,minutes=M --decision <path>`
-— the only route that writes `approval.status: approved`, and the same act records the operator's
-**one rework ruling** as `feature.json` `rework` (SC-15). A `pending` intake that carries a
+— the only route that writes `approval.status: approved`. The same act signs the `## Approval`
+block in the `BRIEF.md` beside the plan while it is pending (an approved one is left as signed;
+no BRIEF block means nothing is signed, #2096), refuses while a high, critical or unrated panel
+finding is open without `--overrule PF-ID:<reason>` (#2095), and records the operator's
+**one rework ruling** as `feature.json` `rework` (SC-15). Only a pre-DEC-182 `PLAN.md` block is
+still yours to write by hand. A `pending` intake that carries a
 `mission: patch` downgrade in the orchestrator's return is signed the same way; the downgrade is
 something you see at signature, never a question you were asked (SC-03). pm never self-approves;
 the orchestrator cannot ask (DEC-120). No spawn until what the mission needs is approved.
