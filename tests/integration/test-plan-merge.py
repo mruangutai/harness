@@ -3180,6 +3180,13 @@ def case_2064_code_root_is_required_for_a_product_plan_and_refused_for_harness()
         r = run_verb("check", "--file", hplan, "--root", hroot, "--code-root", code)
         check("2064: harness's own plan refuses --code-root",
               r.returncode == 2 and "--code-root" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        legacy = os.path.join(hroot, ".harness", "features", "FEAT-99-fixture")
+        os.makedirs(legacy)
+        shutil.copy(os.path.join(os.path.dirname(hplan), "BRIEF.md"), legacy)
+        shutil.copy(hplan, legacy)
+        r = run_verb("check", "--file", os.path.join(legacy, "plan.yaml"), "--root", hroot)
+        check("2064: the segmentless .harness/features/ layout is harness's own, not a product",
+              r.returncode == 0, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
     finally:
         shutil.rmtree(base, ignore_errors=True)
         shutil.rmtree(hroot, ignore_errors=True)
@@ -3210,6 +3217,19 @@ def case_2065_create_anchor_names_a_new_tree_and_nothing_else():
               and any("already exists" in ln for ln in lines)
               and any("is a file" in ln for ln in lines)
               and any("neither does its directory" in ln for ln in lines), r.stdout)
+        bin_abs = os.path.join(root, bin_rel)
+        os.symlink(os.path.join(bin_abs, "missing.py"), os.path.join(bin_abs, "dangling.py"))
+        os.symlink(os.path.join(bin_abs, "missingdir"), os.path.join(bin_abs, "linkdir"))
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n" + _check_task("T-01",
+                                            f"      - {{ path: {bin_rel}/dangling.py, create: true }}\n"
+                                            f"      - {{ path: {bin_rel}/linkdir/x.py, create: true }}\n"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        lines = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL T-01 files:")]
+        check("2065: a dangling link is neither absent nor a directory to create beneath",
+              r.returncode == 1 and len(lines) == 2
+              and any("dangling.py already exists" in ln for ln in lines)
+              and any("linkdir is a file or a dangling link" in ln for ln in lines), r.stdout)
         for bad in (f"{{ path: {bin_rel}/*.py, create: true }}",
                     f"{{ path: {bin_rel}/m.py, create: false }}",
                     f"{{ path: {bin_rel}/m.py, create: true, quote: x }}"):

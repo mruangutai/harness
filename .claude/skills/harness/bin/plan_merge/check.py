@@ -113,10 +113,12 @@ def _check_tasks(doc, resolved_plan):
 
 
 def _plan_segment(resolved_plan):
-    """(segment, feature id) from `.harness/<segment>/features/<id>/plan.yaml`."""
+    """(segment, feature id) from `.harness/<segment>/features/<id>/plan.yaml`. The
+    segmentless `.harness/features/<id>/` layout PLAN_TAIL still accepts is harness's own."""
     feature_dir = os.path.dirname(resolved_plan)
     segment_dir = os.path.dirname(os.path.dirname(feature_dir))
-    return os.path.basename(segment_dir), os.path.basename(feature_dir)
+    segment = os.path.basename(segment_dir)
+    return (HARNESS_SEGMENT if segment == ".harness" else segment), os.path.basename(feature_dir)
 
 
 def _code_root(args, root, resolved_plan):

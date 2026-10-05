@@ -358,12 +358,14 @@ class PersonaSchemas(unittest.TestCase):
     def test_amendment_entry_shapes(self):
         lead = "harness-eng-lead"
         files = {"task": "T-01", "field": "files", "was": ["a.py", {"path": "b.py", "quote": "x"}],
-                 "now": ["a.py"], "reason": "r"}
+                 "now": ["a.py", {"path": "new/c.py", "create": True}], "reason": "r"}
         self.assertEqual(errors(lead, make(lead, amendments=[files])), [])
         for entry in ({"task": "SC-01", "field": "intent", "was": "a", "now": "b", "reason": "r"},
                       {"task": "T-01", "field": "title", "was": "a", "now": "b", "reason": "r"},
                       {"task": "T-01", "field": "files", "was": "a", "now": "b", "reason": "r"},
                       {**files, "was": [{"path": "b.py"}]},
+                      {**files, "now": [{"path": "c.py", "create": False}]},
+                      {**files, "now": [{"path": "c.py", "create": True, "quote": "x"}]},
                       {"task": "T-01", "field": "intent", "was": "a", "now": "b",
                        "reason": "two\nlines"},
                       {"task": "T-01", "field": "intent", "was": "a", "now": "b", "reason": "r",

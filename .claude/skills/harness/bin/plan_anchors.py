@@ -165,16 +165,20 @@ def _resolve_absent(path, target, anchored, root):
     return f"{path} does not exist under {root} and neither does its directory"
 
 
-def _resolve_create(path, target, root):
-    """A declared new file: absent, and every ancestor that exists is a directory."""
-    if os.path.lexists(target):
+def _resolve_create(path, root):
+    """A declared new file: absent, and the nearest existing ancestor a directory. Walked on
+    the LEXICAL path, never the realpath: realpath erases a dangling symlink, which exists and
+    cannot be created over, nor created beneath."""
+    lexical = os.path.normpath(os.path.join(root, path))
+    if os.path.lexists(lexical):
         return (f"{path} already exists under {root} — a create entry names a new file; name "
                 "an existing one as a bare path")
-    parent = os.path.dirname(target)
+    parent = os.path.dirname(lexical)
     while not os.path.lexists(parent):
         parent = os.path.dirname(parent)
     if not os.path.isdir(parent):
-        return f"{path} cannot be created: {os.path.relpath(parent, root)} is a file"
+        return (f"{path} cannot be created: {os.path.relpath(parent, root)} is a file or a "
+                "dangling link, not a directory")
     return None
 
 
@@ -214,7 +218,7 @@ def resolve(entry, root):
     if is_glob(path):
         return _resolve_glob(entry, path, anchored, root)
     if is_create(entry):
-        return _resolve_create(path, target, root)
+        return _resolve_create(path, root)
     if not os.path.isfile(target):
         return _resolve_absent(path, target, anchored, root)
     if not anchored:

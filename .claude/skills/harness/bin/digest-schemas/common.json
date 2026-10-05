@@ -722,6 +722,22 @@
               "$ref": "common.json#/$defs/text"
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "create"
+          ],
+          "properties": {
+            "path": {
+              "$ref": "common.json#/$defs/text"
+            },
+            "create": {
+              "const": true
+            }
+          }
         }
       ]
     },
