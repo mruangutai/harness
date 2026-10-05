@@ -91,21 +91,17 @@ class Malformed:
         self.error = error
 
 
-def _defect(status, message):
-    return (status, message)
-
-
 def exit_status(defects):
     return max((status for status, _message in defects), default=0)
 
 
 def _conclusion_defect(field, value):
     if value is None:
-        return [_defect(MALFORMED, f"{field}-result was not supplied")]
+        return [(MALFORMED, f"{field}-result was not supplied")]
     if value not in RESULTS:
-        return [_defect(MALFORMED, f"{field}-result {value!r} is not one of {', '.join(RESULTS)}")]
+        return [(MALFORMED, f"{field}-result {value!r} is not one of {', '.join(RESULTS)}")]
     if value != "success":
-        return [_defect(INCOMPLETE, f"{field}-result is {value}, not success")]
+        return [(INCOMPLETE, f"{field}-result is {value}, not success")]
     return []
 
 
@@ -200,9 +196,8 @@ def _record_defects(name, doc):
     selected = Counter(doc["selected_files"])
     completed = Counter(record["path"] for record in doc["completed_files"])
     problems = [] if doc["runner_exit"] == 0 else [f"{name}: runner_exit {doc['runner_exit']}"]
-    problems += [f"{name}: {path} returned {record_rc}" for path, record_rc in
-                 ((record["path"], record["returncode"]) for record in doc["completed_files"])
-                 if record_rc != 0]
+    problems += [f"{name}: {record['path']} returned {record['returncode']}"
+                 for record in doc["completed_files"] if record["returncode"] != 0]
     problems += [f"{name}: {path} duplicated within shard {index}"
                  for path, count in sorted((selected | completed).items()) if count > 1]
     problems += [f"{name}: {path} selected but has no completed record"
@@ -234,7 +229,7 @@ def evidence_defects(docs, tested_commit, shards, expected):
     defects, manifests = [], []
     for name in sorted(docs):
         problems = _shape_defects(name, docs[name])
-        defects += [_defect(MALFORMED, problem) for problem in problems]
+        defects += [(MALFORMED, problem) for problem in problems]
         if not problems:
             manifests.append((name, docs[name]))
     incomplete = _shard_set_defects(manifests, shards)
@@ -242,7 +237,7 @@ def evidence_defects(docs, tested_commit, shards, expected):
         incomplete += _identity_defects(name, doc, tested_commit, shards)
         incomplete += _record_defects(name, doc)
     incomplete += coverage_defects(manifests, expected)
-    return defects + [_defect(INCOMPLETE, problem) for problem in incomplete]
+    return defects + [(INCOMPLETE, problem) for problem in incomplete]
 
 
 def discover_expected(root, tested_commit):
@@ -251,8 +246,8 @@ def discover_expected(root, tested_commit):
         ["git", "-C", root, "ls-tree", "-r", "-z", "--full-tree", "--name-only", tested_commit],
         capture_output=True, text=True)
     if proc.returncode != 0:
-        return None, _defect(MALFORMED, f"cannot list tested commit {tested_commit}: "
-                                        f"{proc.stderr.strip()}")
+        return None, (MALFORMED, f"cannot list tested commit {tested_commit}: "
+                                 f"{proc.stderr.strip()}")
     return integration_paths(proc.stdout.split("\0")), None
 
 
@@ -267,7 +262,7 @@ def _read_manifest(path):
 def load_manifest_dir(directory):
     """Every regular file under the directory is a manifest; none may be ignored."""
     if not os.path.isdir(directory):
-        return {}, [_defect(MALFORMED, f"--manifest-dir {directory} is not a directory")]
+        return {}, [(MALFORMED, f"--manifest-dir {directory} is not a directory")]
     docs = {}
     for current, dirs, files in os.walk(directory):
         dirs.sort()
@@ -290,7 +285,7 @@ def _parse(argv):
         problems.append(f"--commit must be a full hexadecimal object id, got {opts.commit!r}")
     if opts.shards is None or not re.fullmatch(r"[1-9][0-9]*", opts.shards):
         problems.append(f"--shards must be a positive integer, got {opts.shards!r}")
-    return opts, [_defect(MALFORMED, problem) for problem in problems]
+    return opts, [(MALFORMED, problem) for problem in problems]
 
 
 def _validate(opts):

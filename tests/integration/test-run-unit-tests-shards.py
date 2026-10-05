@@ -16,6 +16,8 @@ import statistics
 import subprocess
 import tempfile
 
+from git_support import MAINTENANCE_OFF, commit_all, init_repo
+
 ROOT = Path(__file__).resolve().parents[2]
 BIN = ".claude/skills/harness/bin"
 DURATIONS = "tests/integration/integration-durations.json"
@@ -33,6 +35,10 @@ def check(name, condition, detail=""):
 def git(root, *args):
     return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True,
                           text=True).stdout.strip()
+
+
+def _git(args, cwd):
+    git(cwd, *args)
 
 
 def fixture(integration, weights, unit=("test-u1.py",), default=1.0, failing=()):
@@ -55,11 +61,8 @@ def fixture(integration, weights, unit=("test-u1.py",), default=1.0, failing=())
            "source_commit": "0" * 40, "default_seconds": default,
            "weights": {f"tests/integration/{k}": v for k, v in weights.items()}}
     (root / DURATIONS).write_text(json.dumps(doc))
-    git(root, "init", "-b", "main", "-q")
-    git(root, "config", "--local", "maintenance.auto", "false")
-    git(root, "config", "--local", "gc.auto", "0")
-    git(root, "add", "-A")
-    git(root, "-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-q", "-m", "f")
+    init_repo(root, "main", identity=("t@example.com", "t"), config=MAINTENANCE_OFF, git=_git)
+    commit_all(root, "f", git=_git)
     return root
 
 

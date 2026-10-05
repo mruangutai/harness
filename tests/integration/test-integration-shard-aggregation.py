@@ -13,6 +13,8 @@ import shutil
 import subprocess
 import tempfile
 
+from git_support import commit_all, init_repo
+
 ROOT = Path(__file__).resolve().parents[2]
 BIN = ".claude/skills/harness/bin"
 BIN_FILES = ("check-integration-shards.py", "harness_boundary.py", "run_identity.py",
@@ -35,9 +37,12 @@ def git(root, *args):
                           check=True).stdout.strip()
 
 
+def _git(args, cwd):
+    git(cwd, *args)
+
+
 def commit(root, message):
-    git(root, "add", "-A")
-    git(root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", message)
+    commit_all(root, message, git=_git)
     return git(root, "rev-parse", "HEAD")
 
 
@@ -48,7 +53,7 @@ def write(root, rel, text="pass\n"):
 
 def repository():
     root = Path(tempfile.mkdtemp())
-    git(root, "init", "-q")
+    init_repo(root, None, identity=("t@t", "t"), git=_git)
     write(root, ".harness/team-config.yaml", "teams: []\n")
     for name in BIN_FILES:
         (root / BIN).mkdir(parents=True, exist_ok=True)
