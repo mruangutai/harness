@@ -3753,7 +3753,7 @@ def check_plan_review_never_grades(validator, config, td, failures):
         failures.append(f"a plan review must never invoke the grading seam: {calls}")
 
 
-def _check_bug1081_enforcement(validator, config, td, failures):
+def _check_bug1081_enforcement(validator, config, _feature_dir, td, failures):
     check_mechanical_result_discrimination(td, failures)
     check_hook_rejects_false_pass(td, failures)
     check_committed_syntax_error(td, failures)
@@ -4325,7 +4325,7 @@ def _hermetic_review_sha_repo(td):
     `make_review_sha_repo`'s purpose-built repo, re-points both module-level
     names at it, and `chdir`s into it for the `with` block's duration —
     restoring both on exit. Isolated here, not inlined into
-    `run_code_grade_cases`, so that function keeps its own flat shape: the
+    `_run_code_grade_group`, so that function keeps its own flat shape: the
     ambient-repo swap is orthogonal to what each `check_*` call asserts.
 
     BUG-1081 dropped the `chdir`: every git operation is addressed at the checkout that
@@ -4402,7 +4402,7 @@ def _check_review_bindings(validator, config, feature_dir, td, failures):
     check_branch_corroboration(validator, config, td, failures)
 
 
-def _check_review_repository(td, failures):
+def _check_review_repository(_validator, _config, _feature_dir, td, failures):
     check_derived_base_range(td, failures)
     check_unresolvable_default_branch(td, failures)
     check_no_merge_base(td, failures)
@@ -4414,7 +4414,11 @@ def _check_review_policy_cases(validator, config, feature_dir, td, failures):
     check_prior_validator(td, guarded, failures)
 
 
-def run_code_grade_cases():
+def _run_code_grade_group(label, check):
+    """One code-grade checker against its own fixture: a fresh validator module, hermetic
+    review_sha repo, `advisory_unless_high` config and feature dir, exactly as the single
+    group that used to run all four checkers serially built them once. No checker reads
+    state another leaves behind, so each runs as its own concurrent `--only` group."""
     spec = importlib.util.spec_from_file_location("_validator_under_test", VALIDATE)
     validator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validator)
@@ -4423,17 +4427,30 @@ def run_code_grade_cases():
         config = os.path.join(td, "harness.json")
         write_review_config(config, "advisory_unless_high")
         feature_dir = make_feature_dir(repo)
-        _check_review_bindings(validator, config, feature_dir, td, failures)
-        _check_review_repository(td, failures)
-        _check_bug1081_enforcement(validator, config, td, failures)
-        _check_review_policy_cases(validator, config, feature_dir, td, failures)
+        check(validator, config, feature_dir, td, failures)
     if failures:
-        print("FAIL  code-grade and review-policy gates")
+        print(f"FAIL  code-grade and review-policy gates: {label}")
         for failure in failures:
             print(f"        {failure}")
         return 1
-    print("ok    code-grade and review-policy gates")
+    print(f"ok    code-grade and review-policy gates: {label}")
     return 0
+
+
+def run_code_grade_bindings_cases():
+    return _run_code_grade_group("review bindings", _check_review_bindings)
+
+
+def run_code_grade_repository_cases():
+    return _run_code_grade_group("review repository", _check_review_repository)
+
+
+def run_code_grade_bug1081_cases():
+    return _run_code_grade_group("BUG-1081 enforcement", _check_bug1081_enforcement)
+
+
+def run_code_grade_policy_cases():
+    return _run_code_grade_group("review policy", _check_review_policy_cases)
 
 
 def _red_failure(label, detail):
@@ -5139,7 +5156,10 @@ def main(argv=None):
         run_bug919_resolve_fallback_case,
         run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,
-        run_code_grade_cases,
+        run_code_grade_bindings_cases,
+        run_code_grade_repository_cases,
+        run_code_grade_bug1081_cases,
+        run_code_grade_policy_cases,
         run_hook_cases,
         run_lead_append_cases,
         run_t09,
