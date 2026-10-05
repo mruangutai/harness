@@ -41,12 +41,16 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_tests)
 import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+
+from git_support import (MAINTENANCE_OFF, add_worktree, commit_feature, commit_files,
+                         feature_rel, init_repo)
 
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = _anchor_bin
@@ -102,17 +106,8 @@ def _assert_resolved_root_in_fixture(results, label, text, fixture_root):
 # ---------------------------------------------------------------------------------------------
 
 def _repo(path, branch="main"):
-    os.makedirs(path, exist_ok=True)
-    for cmd in (["git", "init", "-q", "-b", branch],
-                ["git", "config", "user.email", "t@example.com"],
-                ["git", "config", "user.name", "t"],
-                ["git", "config", "maintenance.auto", "false"],
-                ["git", "config", "gc.auto", "0"]):
-        subprocess.run(cmd, cwd=path, capture_output=True)
-    with open(os.path.join(path, "f.txt"), "w") as f:
-        f.write("x\n")
-    subprocess.run(["git", "add", "f.txt"], cwd=path, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", "init"], cwd=path, capture_output=True)
+    init_repo(path, branch, config=MAINTENANCE_OFF)
+    commit_files(path, {"f.txt": "x\n"}, "init")
     return path
 
 
@@ -186,10 +181,6 @@ def _clone(origin, dest):
 
 
 def _commit_feature(repo, feature_id, status, milestone=None, build_entry=None, repo_segment="harness"):
-    import json
-    rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
-    abs_path = os.path.join(repo, rel)
-    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     doc = {"feature_id": feature_id}
     if milestone is not None or build_entry is not None:
         doc["github"] = {}
@@ -197,31 +188,22 @@ def _commit_feature(repo, feature_id, status, milestone=None, build_entry=None, 
         doc["github"]["milestone"] = milestone
     if build_entry is not None:
         doc["github"]["build_entry"] = build_entry
-    with open(abs_path, "w") as f:
-        json.dump(doc, f)
     # THE STATION GOES IN A COMMITTED plan.yaml (FEAT-41 T-07). worktree_terminal reads the LANDED
     # plan at the default branch's ref, so it must be in the SAME commit — the `status` argument
     # keeps its name and every caller, and is lowercased into that file.
-    prel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
-    with open(os.path.join(repo, prel), "w") as f:
-        f.write(f"feature: {feature_id}\nstatus: {str(status).lower()}\ntasks: []\n")
     # BUG-1129: ship refuses a feature with no validate handoff; this fixture models a VALIDATED
     # terminal feature, so the note lands in the same commit.
-    nrel = os.path.join(".harness", repo_segment, "features", feature_id, "notes",
-                        "handoff-validate.md")
-    os.makedirs(os.path.dirname(os.path.join(repo, nrel)), exist_ok=True)
-    with open(os.path.join(repo, nrel), "w") as f:
-        f.write("## next\n## trust\n## dead ends\n## working set\n## done when\n")
-    _git(["add", rel, prel, nrel], cwd=repo)
-    _git(["commit", "-qm", f"add {feature_id}"], cwd=repo)
-    return abs_path
+    nrel = feature_rel(repo_segment, feature_id, "notes", "handoff-validate.md")
+    return commit_feature(
+        repo, feature_id, doc, repo_segment, f"add {feature_id}",
+        plan_station=str(status).lower(),
+        extra_files={nrel: "## next\n## trust\n## dead ends\n## working set\n## done when\n"},
+        git=_git)
 
 
 def _add_wt(repo, worktree_id, repo_segment="harness", ref="HEAD", new_branch=None):
-    dest = os.path.join(repo, ".claude", "worktrees", repo_segment, worktree_id)
-    branch = new_branch or f"wt-{worktree_id}-{repo_segment}"
-    _git(["worktree", "add", "-q", "-b", branch, dest, ref], cwd=repo)
-    return dest
+    return add_worktree(repo, worktree_id, repo_segment,
+                        new_branch or f"wt-{worktree_id}-{repo_segment}", ref, git=_git)
 
 
 def _stub_gh(tmp):
