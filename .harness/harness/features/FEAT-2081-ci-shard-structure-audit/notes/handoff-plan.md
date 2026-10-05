@@ -1,4 +1,4 @@
-# Handoff — FEAT-2081-ci-shard-structure-audit, plan → build — written at 7ea60c88
+# Handoff — FEAT-2081-ci-shard-structure-audit, plan → build — written at 7ea60c88, seq-0
 
 ## Next
 
