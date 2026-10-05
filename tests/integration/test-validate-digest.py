@@ -1556,7 +1556,7 @@ def run_lead_append_cases():
     cases += [_repeated_yield_appends_once(obj), _cli_never_writes()]
     cases += _append_authorization_cases()
     cases += [_hook_binding_refuses(kind) for kind in ("wrong-parent", "ambiguous-run")]
-    cases += [_hook_binding_linked_worktree(registry) for registry in ("feature", "owner")]
+    cases += [_hook_binding_linked_worktree_binds(), _hook_binding_other_registry_refuses()]
     fails = 0
     for name, ok, detail in cases:
         print(f"ok    [append] {name}" if ok else f"FAIL  [append] {name}\n      | {detail}")
@@ -1709,18 +1709,17 @@ def _hook_binding_refuses(kind):
         _remove_append_root(root)
 
 
-def _hook_binding_linked_worktree(registry):
+def _linked_worktree_bind(claim_in_feature):
     """#2063: a feature on a linked worktree. The session (and so every claim's recorded
-    cwd) is the OWNER checkout, while the claim lives in the feature worktree's registry.
-    Startup must issue the binding for that claim, and still refuse one held only in
-    another checkout's registry."""
+    cwd) is the OWNER checkout; the claim lives in the feature worktree's registry, or —
+    when `claim_in_feature` is false — only in the owner's. Answers the startup result."""
     owner = os.path.realpath(tempfile.mkdtemp(prefix="vd-bind-linked-"))
     try:
         worktree = _linked_worktree_fixture(owner, HOOK_IDENTITY["harness_feature"])
-        _append_registration(worktree, cwd=owner, claim=registry == "feature")
+        _append_registration(worktree, cwd=owner, claim=claim_in_feature)
         shutil.copytree(os.path.join(worktree, ".harness"), os.path.join(owner, ".harness"),
                         ignore=shutil.ignore_patterns("features", "inflight.json", "inflight.json.lock"))
-        if registry == "owner":
+        if not claim_in_feature:
             _reg_module().claim_run_start(owner, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
                                          HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
                                          supervisor_pid=os.getpid(), cwd=owner)
@@ -1729,17 +1728,25 @@ def _hook_binding_linked_worktree(registry):
         result = subprocess.run([os.path.join(os.path.dirname(VALIDATE), "digest_destination.py")],
                                 input=json.dumps(payload), capture_output=True, text=True,
                                 env=dict(os.environ, HARNESS_PROJECT_DIR=owner))
-        response = json.loads(result.stdout)
-        if registry == "feature":
-            ok = (result.returncode == 0 and response.get("binding", {}).get("root") == worktree
-                  and response["binding"].get("artifact") == os.path.join(worktree, APPEND_REL))
-            name = "startup binds a linked-worktree feature whose claim cwd is the owner checkout"
-        else:
-            ok = result.returncode == 2 and response.get("ok") is False and "binding" not in response
-            name = "startup refuses a claim held only in another checkout's registry"
-        return name, ok, result.stdout + result.stderr
+        return worktree, result, json.loads(result.stdout)
     finally:
         _remove_append_root(owner)
+
+
+def _hook_binding_linked_worktree_binds():
+    worktree, result, response = _linked_worktree_bind(True)
+    binding = response.get("binding", {})
+    ok = (result.returncode == 0 and binding.get("root") == worktree
+          and binding.get("artifact") == os.path.join(worktree, APPEND_REL))
+    return ("startup binds a linked-worktree feature whose claim cwd is the owner checkout",
+            ok, result.stdout + result.stderr)
+
+
+def _hook_binding_other_registry_refuses():
+    _worktree, result, response = _linked_worktree_bind(False)
+    ok = result.returncode == 2 and response.get("ok") is False and "binding" not in response
+    return ("startup refuses a claim held only in another checkout's registry",
+            ok, result.stdout + result.stderr)
 
 
 
