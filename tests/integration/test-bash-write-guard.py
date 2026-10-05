@@ -1669,12 +1669,26 @@ def _repository_bash_segment_routes(results, root, feature):
     for operand, want in (("product-a", 0), ("product-b", 2), ("product-a*", 0),
                           ("product-*", 2), ("PRODUCT-B", 2), ("[!P]roduct-b", 2),
                           ("[^P]roduct-b", 2), ("[[:lower:]]roduct-b", 2),
-                          ("{product-b,none}", 2)):
+                          ("{product-b,none}", 2), ("@(product-b)", 2), ("(product-b)", 2)):
         _repository_bash_record(
             results, f"removing control-plane segment {operand} exits {want}",
             _bug1304_bash_fire(root, f"rm -rf node_modules/cp/{operand}", "harness-backend-dev",
                                agent_id="BackendOne", parent_agent_id="EngLeadOne",
                                feature=feature),
+            want, None if want == 0 else "mismatched")
+    # The `.harness` component is shell text too: any spelling that may expand to it puts the
+    # next component under the segment rule, while one that cannot leaves the path alone.
+    os.symlink(root, os.path.join(root, "node_modules", "top"))
+    for head, segment, want in ((".harness", "product-a", 0), (".HARNESS", "product-a", 0),
+                                (".HARNESS", "product-b", 2), (".harnes?", "product-b", 2),
+                                (".h*", "product-b", 2), ("$D", "product-b", 2),
+                                ("{.harness,x}", "product-b", 2), ("$D", "notes.md", 0),
+                                ("docs", "product-b", 0)):
+        _repository_bash_record(
+            results, f"writing {head}/{segment} through a carve-out exits {want}",
+            _bug1304_bash_fire(root, f"rm -rf node_modules/top/{head}/{segment}",
+                               "harness-backend-dev", agent_id="BackendOne",
+                               parent_agent_id="EngLeadOne", feature=feature),
             want, None if want == 0 else "mismatched")
 
 
