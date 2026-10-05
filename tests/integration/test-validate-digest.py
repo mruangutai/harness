@@ -20,6 +20,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_tests)
 import contextlib, importlib.util, json, subprocess, sys, os, shutil, tempfile, time
 import copy
 import yaml
@@ -30,6 +31,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
+from check_domain_support import make_linked_worktree
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
@@ -689,13 +691,8 @@ HOOK_CASES.append(("F6 missing agent_type with string data is refused",
 # distinguish the worktree-resolution defect.
 def _linked_worktree_fixture(root, wt_id):
     worktree = os.path.join(root, ".claude", "worktrees", wt_id)
-    entry = os.path.join(root, ".git", "worktrees", wt_id)
-    os.makedirs(entry, exist_ok=True)
+    make_linked_worktree(root, worktree, wt_id)
     os.makedirs(os.path.join(worktree, ".harness"), exist_ok=True)
-    with open(os.path.join(worktree, ".git"), "w") as pointer:
-        pointer.write("gitdir: %s\n" % entry)
-    with open(os.path.join(entry, "gitdir"), "w") as pointer:
-        pointer.write("%s\n" % os.path.join(worktree, ".git"))
     return worktree
 
 

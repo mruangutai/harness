@@ -16,6 +16,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_tests)
 import json, os, shutil, subprocess, sys, tempfile
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +25,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
+from check_domain_support import make_linked_worktree
 GUARD = os.environ.get("BASH_WRITE_GUARD_BIN") or os.path.join(HERE, "bash-write-guard.py")
 
 
@@ -343,13 +345,8 @@ def _linked_worktree(path, owner_root, wt_id, manifest_text):
     falls to the DEC-151 fail-open — which exits 0 for a reason that has nothing to do
     with worktrees.
     """
-    entry = os.path.join(owner_root, ".git", "worktrees", wt_id)
-    os.makedirs(entry, exist_ok=True)
+    make_linked_worktree(owner_root, path, wt_id)
     os.makedirs(os.path.join(path, ".harness"), exist_ok=True)
-    with open(os.path.join(path, ".git"), "w") as f:
-        f.write("gitdir: %s\n" % entry)
-    with open(os.path.join(entry, "gitdir"), "w") as f:
-        f.write("%s\n" % os.path.join(path, ".git"))
     with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
         f.write(manifest_text)
 
