@@ -4,7 +4,7 @@ approval:
   status: approved
   approved_by: operator (Mike Ruangutai), via main session
   date: "2026-10-04"
-status: plan
+status: building
 source_issues: [2081]
 lanes:
   resolved_at: 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554
@@ -40,7 +40,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 excludes the changing runner, pool, and their gate tests from governed execution.
     depends_on: []
-    status: ready
+    status: building
     files:
       - .agents/skills/harness/bin/run-unit-tests.py
       - .agents/skills/harness/bin/run_pool.py
@@ -93,7 +93,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 excludes check-plan-routes.py and checker-structure gate tests from governed execution.
     depends_on: []
-    status: ready
+    status: building
     files:
       - .agents/skills/harness/bin/check-plan-routes.py
       - tests/integration/test-checker-structure-locks.py
