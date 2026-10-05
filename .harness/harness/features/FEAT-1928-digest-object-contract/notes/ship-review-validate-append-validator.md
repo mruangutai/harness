@@ -1,0 +1,32 @@
+# FEAT-1928 final ship review
+
+**Ship authorized by the operator; independently complete at f9c9f1e21d05ae1d64f3f1fed38465be89059dc1.** All five readers PASS, all eight signed SCs and four perspectives met. No must-fix, blocking question or escalation remains. Actual merge and canonical ship are still required; this document does not claim they happened.
+
+## Approved done and evidence
+
+| Perspective | Signed outcome | Independent disposition / evidence |
+|---|---|---|
+| operator | I can rely on every Harness dispatch using its persona's closed object contract, including main-session dispatches, and on malformed text, null data, or dispatcher-owned schema controls being rejected instead of repaired or silently accepted. I have live host evidence that the native retry path works before the old repair is removed. | met: SC01/04/05, hook tests and actual native18/18, independent receipt33/33 |
+| orchestrator | I receive the same typed VERDICT, DIGEST, and artifact object from every Harness persona, with exact required and optional fields, so routing never depends on parsing prose or guessing an omitted field. | met: SC02, object-only validator and persona census |
+| maintainer | I can change one canonical per-persona schema and know that dispatch injection and canonical validation consume it, while provider-facing bundles contain no unresolved references. The old text parser, renderer, fallback paths, duplicate contract tables, and fenced live-return instructions are gone. | met: SC03/08, canonical schemas, provider111/0 prior source proof and retirement inspection |
+| reader | I can open a run digest and see the lead's human assessment followed by deterministic validated YAML, including append-only corrections, and existing run digests remain readable and byte-unchanged by state and plan readers. | met: SC06/07; 291 retained cases, exact14 enumerated intentional deltas,277 unchanged,zero unplanned; append RED22/24→GREEN24/24 and actual refusal→human-fence closure→retry→exact readback |
+
+The final independent PM report is `notes/research-FEAT-1928-digest-object-contract-goalcheck-append.md`; all eight SCs are met individually in `runs/validate-append-validator/digest.md`. Source ee39d887→review pin changes only eight metadata/evidence paths. Full pool120/120,142.13s; installed OMP18.6.1 native18/18 and lifecycle28/28 are Main executions. QA independently executed receipt33/33. Canonical grader241 functions:230 meet bars,11 accepted grade2 costs,zero high/ungraded. Main's actual light/dark screenshots and measured source binding are in `notes/browser-guidance-proof.md`; no full accessibility/UAT claim.
+
+## Lead summaries and ledger
+
+Planning/reconciliation signed the approved T01–05 plan. Earlier blocked/failed planning and build attempts remain historical, not retroactively PASS. Main-direct implementation and doc-resume delivered the clean object cutover; initial simplify/validation found real authorization/native-proof/reader/contrast blockers, subsequently fixed. Final prior validation PASS was superseded by integrated validation identifying SC07 partial. The append rework fixed that actual partial; four-angle append quality PASS applied nothing; final five-reader validation independently closed the whole outcome. Primary summaries: `runs/validate-validator/digest.md`, `runs/simplify-c4-eng/digest.md`, `runs/validate-final-validator/digest.md`, `runs/simplify-upstream-eng/digest.md`, `runs/validate-upstream-validator/digest.md`, `runs/simplify-append-eng/digest.md`, `runs/validate-append-validator/digest.md`. Main-direct absent run directories are honestly represented by ledger and evidence notes, not fabricated digests.
+
+Canonical close-run spend:30 runs,882 wall-clock minutes,1,310,063 measured tokens,rework438 minutes/0 ledger rounds. Actual source cycles19/20. Final validation's two form-only redispatches are not source cycles. No amendment judgements; overrule rate0/0. Operator-approved SC06 clarification and cycle raise remain in approved feature artifacts. No report-assembly team was spawned.
+
+## Residual dispositions (none silently dropped)
+
+Backlog proposals: B01 bug: native terminal-null CI regression guard; B02 chore: prose enum legend drift guard; B03 chore: stale SubagentStop attribution; B04 chore: comprehension runner_note versus untouched detect scope; B05 enhancement: wider provider native raw-null proof; B06 bug: independent QA rerun policy forwards locally_run/excluded kinds to CI; B07 bug: control-plane agent/device URI routing concern. Native proof is OpenAI-only; both Anthropic string-null17/18 FAIL receipts remain failures. Three historical parity generator failures remain disclosed, not waived. Source-level inherited loud fail-open policies remain unchanged, not claimed closed.
+
+Eleven grade2 costs are accepted with explicit coupled-boundary/lifetime/provenance reasons in `notes/code-risk-current.md`; no cosmetic split is requested. Original fence B1 resolved by this source fix, parity disclosure B2 resolved by retained disclosure, historical upstream-bookkeeping B4 is upstream provenance, browser-pointer question resolved by actual durable screenshots.
+
+All21 simplify-c4 findings retained: F07 applied enum legends; F05 standalone probe-local checks, F06 distinct lookup uniqueness semantics, F14 unmeasured eager validation and F18 independent test fixtures intentionally LEAVE. Remaining advisory proposals: F01 typed-error regex coupling; F02 roster/README policy wording; F03 repeated family/persona rosters; F04 feature-ID regex oracle gap; F08 unused structured_keys/interface; F09 family/persona naming; F10 refusal wording; F11 private historical semantic helper repetition; F12 provider projection keyword/type-array extensibility; F13 oracle walker duplication without weakening assertions; F15 gate pairing duplication; F16 enum constants/ranking; F17 doctrine/example fanout; F19 numeric source references; F20 stale attribution (deduplicated B03); F21 data persona family equality coverage. These are non-gating maintainability backlog, not fresh correctness defects or permission for scope expansion.
+
+## UAT and terminal actions
+
+No signed UAT criterion; none invented. Next: canonical prune after inventory, commit retained reports/briefing, push/create and merge PR, run canonical ship and read back all seven issues/milestone93, record accepted backlog, distill at close and safely remove only this worktree. The unrelated BUG1016 checkout stays untouched.

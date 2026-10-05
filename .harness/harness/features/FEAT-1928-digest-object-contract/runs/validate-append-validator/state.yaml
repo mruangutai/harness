@@ -1,0 +1,94 @@
+schema_version: 2
+run_id: validate-append-validator
+run_uid: 158ec76b4b354384b62fb22f0d28efb4
+feature: FEAT-1928-digest-object-contract
+squad: validation
+host: harness-validator-lead
+status: complete
+review_sha: f9c9f1e21d05ae1d64f3f1fed38465be89059dc1
+steps:
+  - id: qa
+    persona: qa
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    redispatches: 1
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-qa-append.md
+    note: Form-only artifact-return reconciliation; no source rework or evidence rerun requested.
+    evidence:
+      receipt_verification: 33/33 exit0 executed by original QA
+      main_pool: 120 files; eight workers; 142.13s; artifact://803
+      append_red_green: Main 22/24 RED then 24/24 GREEN
+      source_equivalence: ee39d8876cde56e06561266ba02dfc174176559f to exact pin; eight feature-only paths
+      hashes: Seven source hashes and transcript match pin
+  - id: code
+    persona: code-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-code-reviewer-append.md
+    evidence:
+      canonical_grade: OLD absolute grader; canonical91e88653 to exactf9; artifact://864; exit0
+      grade_results: 230 bar passes; eleven justified grade2; zero high or ungraded
+      fence_disposition: Original T-02 F2 resolved without severity or criterion change
+      human_commits: Nine independently enumerated in original report
+  - id: security
+    persona: security-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-security-reviewer-append.md
+    evidence:
+      authorization: Prior high closed; prospective guard does not grant permission
+      executions: None; static review and metadata/evidence inspection
+  - id: ui
+    persona: ui-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-ui-reviewer-append.md
+    evidence:
+      visual_delta: No visual implementation changes in 28-path prior-pin inventory
+      browser_pointer: Main browser proof and both saved images independently hash-bound
+      own_browser_run: None
+  - id: goalcheck
+    persona: pm
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    redispatches: 1
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/research-FEAT-1928-digest-object-contract-goalcheck-append.md
+    note: Form-only durable fenced record appended; original whole-goal judgement preserved.
+    evidence:
+      whole_goal: All eight SCs and four approved perspectives met with task traces
+      sc07: Refusal before write and human-fence close/retry; original partial resolved
+      own_executions: No tests or probes; evidence and metadata inspection only
