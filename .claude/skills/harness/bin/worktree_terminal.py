@@ -130,6 +130,37 @@ def _repo_arg_for_segment(repo_segment, factory_config):
     return None
 
 
+def repo_arg_for_segment(repo_segment):
+    """The `--repo` argument feature-worktree.py accepts for a record's repo segment, or None.
+    INV-29's removal command needs the owner/repo form for a fleet member: `--repo kaya` is
+    refused by resolve_repo (#2056)."""
+    return _repo_arg_for_segment(repo_segment, _import_factory_config())
+
+
+def _fleet_segments(factory_config):
+    try:
+        fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
+    except artifact_accessors.FleetError:
+        return []
+    return [name.split("/", 1)[-1] for name in
+            (entry.get("name") for entry in fleet.get("repos", [])) if name]
+
+
+def _planning_segment(control_root, default_branch, wt_id, factory_config):
+    """The fleet segment whose landed features directory names this harness worktree, or None.
+
+    A fleet feature's PLANNING worktree sits under the harness segment but holds
+    `.harness/<fleet segment>/features/<id>/` (#2056), so a lookup confined to
+    `.harness/harness/features/` reports it absent forever — exempt, never removed."""
+    hits = []
+    for segment in _fleet_segments(factory_config):
+        names = _landed_dir_names(control_root, default_branch,
+                                  os.path.join(".harness", segment, "features"))
+        if names and _match_landed_id(wt_id, names)[0] is not None:
+            hits.append(segment)
+    return hits[0] if len(hits) == 1 else None
+
+
 def _resolve_default_branch(repo_segment, feature_worktree_mod, factory_config):
     """The repository's default_branch, via feature-worktree.py's own resolve_repo — never
     re-derived here. None on any failure to resolve."""
@@ -286,7 +317,7 @@ def _match_landed_id(wt_id, names):
                   f"feature directories")
 
 
-def _resolve_landed(path, dirty, hb, factory_config, feature_worktree_mod):
+def _resolve_landed(path, dirty, hb, factory_config, feature_worktree_mod, control_root=None):
     """Resolve one standing worktree to the landed feature directory it corresponds to.
 
     Returns `(resolved, record)`, and EXACTLY ONE IS None. `resolved` is
@@ -316,8 +347,19 @@ def _resolve_landed(path, dirty, hb, factory_config, feature_worktree_mod):
             "repo": repo_segment,
         }
 
+    # #2056: a fleet feature's artifacts live in the CONTROL PLANE, not in the served repository,
+    # so a CODE worktree's terminal state is read from the harness default branch.
+    if repo_segment != "harness" and control_root is not None:
+        owner_root = control_root
+        default_branch = _resolve_default_branch("harness", feature_worktree_mod, factory_config)
     features_rel = os.path.join(".harness", repo_segment, "features")
     names = _landed_dir_names(owner_root, default_branch, features_rel)
+    if repo_segment == "harness" and names is not None and _match_landed_id(wt_id, names)[1] == "absent":
+        planning = _planning_segment(owner_root, default_branch, wt_id, factory_config)
+        if planning is not None:
+            repo_segment = planning
+            features_rel = os.path.join(".harness", planning, "features")
+            names = _landed_dir_names(owner_root, default_branch, features_rel)
     if names is None:
         return None, {
             "path": path, "feature_id": wt_id, "klass": "unresolved", "dirty": dirty,
@@ -443,9 +485,11 @@ def _is_pin(path, hb):
     return split is not None and split[1] == hb.PINS_SEGMENT
 
 
-def classify(root):
+def classify(root, control_root=None):
     """Classify every standing worktree of the repository at `root`. See the module docstring
-    and FEAT-34 T-01's intent for the full contract."""
+    and FEAT-34 T-01's intent for the full contract. `control_root` is the harness checkout
+    whose default branch holds a served repository's feature artifacts (#2056); classify_all
+    passes it for every fleet repository."""
     hb = _import_harness_boundary()
     factory_config = _import_factory_config()
     feature_worktree_mod = _import_feature_worktree()
@@ -469,7 +513,7 @@ def classify(root):
 
         dirty = _is_dirty(path)
         resolved, record = _resolve_landed(path, dirty, hb, factory_config,
-                                           feature_worktree_mod)
+                                           feature_worktree_mod, control_root)
         if record is None:
             record = _landed_station_record(path, dirty, resolved)
         if record is not None:
@@ -533,7 +577,7 @@ def classify_all(root):
             })
             continue
 
-        records.extend(classify(owner_root))
+        records.extend(classify(owner_root, control_root=root))
 
     records.sort(key=lambda r: r["path"])
     return records

@@ -1214,6 +1214,34 @@ _VERDICT_HANDLERS = {
 if _run_domain and not _no_parser:
     domain_check()
 
+
+def ungoverned_feature_checkout_guard():
+    """#2056: a feature artifact belongs in its feature's worktree for the MAIN SESSION too.
+
+    feature_checkout_guard binds governed writes only (it runs on the domain ALLOW path), so the
+    main session wrote FEAT-01-kaya-platform's feature.json into the main checkout while its
+    planning worktree held the live copy — a second record that silently drifted from the one
+    every reader resolves to. Same rule, same refusal, every writer. The import ABSORBS a missing
+    module, as the shape phase's does: the main session is the one tier that must still be able
+    to repair a broken harness_boundary.py."""
+    if _governed or _post or _tool not in ("Write", "Edit", "NotebookEdit") or not target:
+        return
+    # feature_checkout_guard reads the module-level name the domain phase binds; this phase
+    # runs without the domain phase, so it binds the same name.
+    global harness_boundary
+    try:
+        import harness_boundary
+    except ImportError:
+        return
+    destination = harness_boundary.real(_claimed_abs(target))
+    base = harness_boundary.real(root)
+    if not harness_boundary.inside(destination, base):
+        return
+    feature_checkout_guard(os.path.relpath(destination, base).replace(os.sep, "/"), destination)
+
+
+ungoverned_feature_checkout_guard()
+
 # ---------------------------------------------------------------------------
 # THE SHAPE PHASE (DEC-150/154/159) — issue #132.
 #

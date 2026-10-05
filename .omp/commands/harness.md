@@ -27,13 +27,28 @@ python3 .claude/skills/harness/bin/feature-worktree.py create --repo <repo> --id
 
 It prints an absolute path. **Pass that path to the orchestrator in its dispatch.** The worktree
 sits at `owner_root` / `WORKTREES_SEGMENT` / `<repo>` / `<id>` — for harness, that is
-`harness_root/.claude/worktrees/harness/<id>`; for a served repository, the same shape under that
-repository's own checkout. `workspace_root` holds served repository checkouts and is never the
-parent of a worktree.
+`harness_root/.claude/worktrees/harness/<id>`. `workspace_root` holds served repository checkouts
+and is never the parent of a worktree.
 
-The worktree is cut from **the repository's default branch** — `main` for harness, and for a served
-repository whatever its `fleet.yaml` entry declares as `default_branch`, which is read before the
-checkout happens.
+**A served repository's feature gets TWO worktrees** (#2056), and `create --repo <owner>/<repo>`
+cuts both, printing each by role before the last line:
+
+| role | path | holds |
+|---|---|---|
+| `PLANNING` | `harness_root/.claude/worktrees/harness/<id>` | the feature's BRIEF, `plan.yaml` and `feature.json` under `.harness/<segment>/features/<id>/`, on harness branch `feat/<id>`, landed by harness PR |
+| `CODE` (last line) | `<workspace_root>/<segment>/.claude/worktrees/<segment>/<id>` | the repository's own code, on its `feat/<id>`, landed by that repository's PR |
+
+Pass **both** to the orchestrator. The planning worktree is where the feature's artifacts live:
+every resolver (`inflight_registry.py feature-root`) places the feature there, and a write of a
+feature artifact into the main checkout while it stands is refused — the main session's included.
+`path`, `behind` and `remove` answer for both; `remove` checks every gate on both before removing
+either.
+
+Each worktree is cut from **its repository's default branch as `origin` holds it** — `main` for
+harness, and for a served repository whatever its `fleet.yaml` entry declares as `default_branch`,
+read before the checkout happens. A local default branch can carry unpushed commits, so the cut is
+from `origin/<default>` after one fetch; an unreachable origin falls back to the local branch and
+says so.
 
 Removal is also yours, at a terminal state, from outside the tree. The lifecycle is in the `harness`
 skill; it is not restated here.
