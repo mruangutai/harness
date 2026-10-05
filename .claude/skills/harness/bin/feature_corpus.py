@@ -290,8 +290,11 @@ def corpus_path(root, rel):
 # The checkout's layout, as worktree-state.py reports it
 # ---------------------------------------------------------------------------------------------
 
-STRUCTURAL = {3: "cone", 4: "skip-bits", 7: "materialisation"}
-DIRTY = 8
+# The one table of layout finding codes: worktree-state.py reports with it, and every gate parses
+# that report with it.
+CONE, SKIP_BITS, MATERIALISATION, DIRTY = 3, 4, 7, 8
+STRUCTURAL = {CONE: "cone", SKIP_BITS: "skip-bits", MATERIALISATION: "materialisation"}
+LABELS = {**STRUCTURAL, DIRTY: "dirty"}
 
 
 def verify_report_findings(doc):

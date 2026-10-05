@@ -49,10 +49,10 @@ if _BIN not in sys.path:
 
 import feature_corpus as fc  # noqa: E402
 
-DIRTY, CONE, SKIP_BITS, MATERIALISATION, ERROR = 8, 3, 4, 7, 2
-PRIORITY = ((DIRTY, "dirty"), (CONE, "cone"), (SKIP_BITS, "skip-bits"),
-            (MATERIALISATION, "materialisation"))
-LABELS = dict(PRIORITY)
+from feature_corpus import CONE, DIRTY, LABELS, MATERIALISATION, SKIP_BITS  # noqa: E402
+
+ERROR = 2
+PRIORITY = tuple((code, LABELS[code]) for code in (DIRTY, CONE, SKIP_BITS, MATERIALISATION))
 SELF = os.path.join(".claude", "skills", "harness", "bin", "worktree-state.py")
 
 
@@ -152,10 +152,14 @@ def present_blobs(checkout, paths):
 # Diagnosis
 # ---------------------------------------------------------------------------------------------
 
-def classify(checkout, index, cone, active):
-    """`(class_a, class_b, class_c)` path lists against the TARGET cone."""
+def divergent_paths(checkout, index, cone, active):
+    """Every class-C path against the TARGET cone, sorted.
+
+    Everything else outside the cone is A (absent, index equal to HEAD) or B (present and
+    byte-identical to the index), and git's own sparse reapply settles both. They need no list:
+    only a C path changes what repair may do."""
     hidden = hidden_dirs(checkout, active)
-    class_a, class_c = [], []
+    class_c = []
     for x, y, path in status_entries(checkout):
         if x == "?" and y == "?":
             if any(path.startswith(h + "/") for h in hidden):
@@ -165,8 +169,8 @@ def classify(checkout, index, cone, active):
             class_c.append(path)            # staged, or unmerged
         elif y in "MT":
             class_c.append(path)            # modified in the working tree
-        elif y == "D":
-            (class_c if fc.in_cone(path, cone) else class_a).append(path)
+        elif y == "D" and fc.in_cone(path, cone):
+            class_c.append(path)            # a deletion inside the cone; outside it is A
     # Ignored files never appear in status; any non-index file in a hidden directory is C.
     for h in hidden:
         class_c.extend(p for p in files_under(checkout, h) if p not in index)
@@ -175,13 +179,9 @@ def classify(checkout, index, cone, active):
                if not fc.in_cone(p, cone) and p not in divergent
                and os.path.lexists(os.path.join(checkout, p))]
     blobs = present_blobs(checkout, present)
-    class_b = []
-    for path in present:
-        if blobs.get(path) == index[path][1]:
-            class_b.append(path)
-        else:
-            class_c.append(path)            # a skip-worktree file someone rewrote
-    return sorted(set(class_a)), sorted(class_b), sorted(set(class_c))
+    # A present out-of-cone file is B only when byte-identical to the index.
+    class_c.extend(p for p in present if blobs.get(p) != index[p][1])
+    return sorted(set(class_c))
 
 
 def target(sel, configured):
@@ -202,7 +202,7 @@ def diagnose(checkout, sel):
     cone, active = target(sel, configured if enabled and cone_mode else None)
     index = index_entries(checkout)
     findings = []
-    _a, _b, class_c = classify(checkout, index, cone, active)
+    class_c = divergent_paths(checkout, index, cone, active)
     if class_c:
         findings.append(finding(DIRTY, class_c,
                                 f"{len(class_c)} path(s) carry work that repair must not touch"))
