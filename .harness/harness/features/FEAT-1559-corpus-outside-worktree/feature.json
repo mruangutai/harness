@@ -1,0 +1,28 @@
+{
+  "feature_id": "FEAT-1559-corpus-outside-worktree",
+  "branch": "feat/FEAT-1559-corpus-outside-worktree",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-10-05T02:55:53+00:00",
+      "tokens": 69357
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-05T02:55:41+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "adds new enforcement (post-checkout hook, worktree-state.py --verify preflight in check_state/, sparse layout on every checkout) across many files; only cause-known holds"
+    }
+  ],
+  "mission": "plan"
+}
