@@ -4896,6 +4896,36 @@ def case_2096_a_line_break_in_the_signer_stays_on_one_brief_line():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_2102_panel_readers_hold_the_four_slots():
+    """#2102: panel.readers names the four plan-panel slots INV-32 keys on, never a persona;
+    set-panel and record-panel refuse anything else (exit 5) and write nothing. All four slots,
+    design included, are accepted."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))
+        value_file = os.path.join(root, "panel.yaml")
+        bad = {**_panel_value(), "readers": [{"reader": "code-reviewer", "status": "ran"}]}
+        write(value_file, yaml.safe_dump(bad, sort_keys=False))
+        r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        check("2102: set-panel refuses a persona as a panel reader (exit 5), naming it",
+              r.returncode == 5 and "code-reviewer" in r.stderr and read(plan) == before,
+              f"rc={r.returncode} {r.stderr!r}")
+        digest = os.path.join(root, "digest.md")
+        write(digest, _digest_md([{"reader": "fable-advisor", "status": "ran"}], []))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("2102: record-panel refuses a persona as a panel reader (exit 5), naming it",
+              r.returncode == 5 and "fable-advisor" in r.stderr and read(plan) == before,
+              f"rc={r.returncode} {r.stderr!r}")
+        good = {**_panel_value(), "readers": [{"reader": slot, "status": "ran"} for slot in
+                                              ("should-not-exist", "scope", "design", "goalcheck")]}
+        write(value_file, yaml.safe_dump(good, sort_keys=False))
+        r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        check("2102: set-panel accepts all four slots, design included", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -5024,6 +5054,7 @@ CASES = (
     case_2096_an_approved_brief_is_left_as_signed,
     case_2096_no_brief_signature_means_no_plan_signature,
     case_2096_a_line_break_in_the_signer_stays_on_one_brief_line,
+    case_2102_panel_readers_hold_the_four_slots,
 )
 
 
