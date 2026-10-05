@@ -21,7 +21,9 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 import contextlib, importlib.util, json, subprocess, sys, os, shutil, tempfile, time
+import concurrent.futures
 import copy
+import re
 import yaml
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -968,11 +970,19 @@ HOOK_CASES.append(("object [hook]: a wrapped {data: ...} object is exit 2",
                    2, "missing 'VERDICT'"))
 
 
+def _run_cli_case(cli_case):
+    _name, persona, obj, _want_ok, _mentions = cli_case
+    return subprocess.run([VALIDATE, persona], input=json.dumps(obj),
+                          capture_output=True, text=True)
+
+
 def run_cli_cases():
     fails = 0
-    for name, persona, obj, want_ok, mentions in CASES:
-        r = subprocess.run([VALIDATE, persona], input=json.dumps(obj),
-                           capture_output=True, text=True)
+    # Each case is one independent, read-only CLI spawn (_cli_never_writes): they spawn
+    # concurrently and are judged and printed in CASES order, so the output is unchanged.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as pool:
+        runs = list(pool.map(_run_cli_case, CASES))
+    for (name, persona, obj, want_ok, mentions), r in zip(CASES, runs):
         got_ok = r.returncode == 0
         bad = []
         if got_ok != want_ok:
@@ -4989,6 +4999,33 @@ def run_bug1898_exact_release_cases():
     return fails
 
 
+# A `--only` child's closing line; the full run prints one line of its own over every group.
+_GROUP_SUMMARY = re.compile(r"\n(?:ALL PASSED|(\d+) FAILING)\.\n\Z")
+
+
+def _run_group(check):
+    return subprocess.run([sys.executable, os.path.abspath(__file__), "--only", check.__name__],
+                          capture_output=True, text=True)
+
+
+def _run_groups(checks):
+    """Every group as its own `--only` child, concurrently, each output replayed in group
+    order without the child's closing line. The suite is spawn-bound, so this is where its
+    wall time goes; returns the summed failure count, a child that crashed counting as one."""
+    with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(len(checks), os.cpu_count() or 2)) as pool:
+        runs = list(pool.map(_run_group, checks))
+    fails = 0
+    for run in runs:
+        summary = _GROUP_SUMMARY.search(run.stdout)
+        sys.stdout.write(run.stdout[:summary.start()] if summary else run.stdout)
+        sys.stderr.write(run.stderr)
+        group_fails = int(summary.group(1) or 0) if summary else 0
+        fails += group_fails or int(run.returncode != 0)
+    sys.stdout.flush()
+    return fails
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     checks = (
@@ -5019,7 +5056,7 @@ def main(argv=None):
     elif argv:
         print(f"usage: {os.path.basename(__file__)} [--only <group>]", file=sys.stderr)
         return 2
-    fails = sum(check() for check in checks)
+    fails = sum(check() for check in checks) if len(checks) == 1 else _run_groups(checks)
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 
