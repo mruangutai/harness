@@ -3,18 +3,18 @@
 Written by `tests/manual/probe-digest-object-contract.py` from a real, disposable OMP RPC process. `--verify` checks transcript-derived behavior and recorded runtime identity.
 
 - Verdict: **PASS** (18/18 checks)
-- Run: 2026-10-04T22:51:28+00:00 → 2026-10-04T22:51:54+00:00
+- Run: 2026-10-05T00:29:13+00:00 → 2026-10-05T00:29:38+00:00
 - Command: `omp --config <worktree>/.omp/providers/openai.yml --mode rpc --model openai-codex/gpt-5.6-terra --cwd <worktree>` (cwd `<worktree>`)
 - OMP runtime: `omp/18.6.1`, launcher `~/.bun/bin/omp` sha256 `348d0987f05eab2f56b6f543933ca6bbb964d8d069cca9a55be3a5efffad041a`
 - OMP source: `2a2c6dcbbb558c0f8145f67f28b3370984f2bf60` (release-tag metadata provenance, not binary identity)
-- Harness: HEAD `ee39d8876cde56e06561266ba02dfc174176559f` + 0 uncommitted paths; files under test are pinned by sha256 in the record
+- Harness: HEAD `7e2e671304cd3e174989624fc11e8472b5e3b84b` + 0 uncommitted paths; files under test are pinned by sha256 in the record
 - Provider `openai`: Main `openai-codex/gpt-5.6-terra`, child `openai-codex/gpt-5.6-sol:medium` (openai-codex/gpt-5.6-sol)
-- Ids: main session `01a1091d-7bd6-7000-a196-3bf9d952740c`, task call `call_XXL0svfXsWLMprD6TJiO8AiV|fc_0c228bed17d06874016ac2d87797e887d0acba9debb04c382b`, job `DigestObjectProbe`, child session `01a1091d-b14b-7000-be69-45d4b46752d2`
+- Ids: main session `01a10976-fa02-7000-9b23-aea60632f301`, task call `call_fj9xktTnq1mb2TiyjNMgwIum|fc_078ca9e09be622a1016ac2ef611b5487d083c026e6fc4609a6`, job `DigestObjectProbe`, child session `01a10977-2d4f-7000-ba93-6bdd02913002`
 - Injected schema: executed dispatch schemaMode ['strict'], outputSchema sha256 ['efb2e75f9f2781722b6422a31acf01a43a78830ec2caaf36427d9851543da6d2'] (hook bundle `efb2e75f9f2781722b6422a31acf01a43a78830ec2caaf36427d9851543da6d2`); job structured output source `caller`, mode `strict`
 - Null yield: `{"data": null, "error": null, "type": "result"}` → tool error by **omp-yield-tool (YieldTool.execute)**: 'This task requires structured output matching the declared schema; a last-turn result cannot satisfy it. Submit the full object: {"data":<object matching the schema>}.'
-- Retry: 2 yields in child session `01a1091d-b14b-7000-be69-45d4b46752d2` of job `DigestObjectProbe`; results ['error', 'Result submitted.']
+- Retry: 2 yields in child session `01a10977-2d4f-7000-ba93-6bdd02913002` of job `DigestObjectProbe`; results ['error', 'Result submitted.']
 - Completion: lifecycle ['started', 'completed'], job exit 0, structured output `valid`
-- Transcript: `.harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.transcript.jsonl` sha256 `6babd8856af0f81c49ed7b9ff1dec2b265e267e6ca47c093cc56b8c9dc75c5d9` (43 records)
+- Transcript: `.harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.transcript.jsonl` sha256 `ba1fcf4179323573037b1c2e1373f1f090a22dcd1a5387fb70f8defdc6d2fe29` (43 records)
 
 Checks:
 - PASS: the RPC session became ready
@@ -132,8 +132,8 @@ Record:
       "providers_models": [
         "openai-codex/gpt-5.6-sol"
       ],
-      "session_file": "~/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-51-29-622Z_01a1091d-7bd6-7000-a196-3bf9d952740c/DigestObjectProbe.jsonl",
-      "session_id": "01a1091d-b14b-7000-be69-45d4b46752d2"
+      "session_file": "~/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-05T00-29-14-626Z_01a10976-fa02-7000-9b23-aea60632f301/DigestObjectProbe.jsonl",
+      "session_id": "01a10977-2d4f-7000-ba93-6bdd02913002"
     },
     "dispatch": {
       "agents": [
@@ -169,7 +169,7 @@ Record:
             "stale_found": []
           },
           "VERDICT": "PASS",
-          "artifact": ".harness/harness/features/FEAT-1928-digest-object-contract/runs/probe-digest-object-20261004T225128Z-product/probe-artifact.md"
+          "artifact": ".harness/harness/features/FEAT-1928-digest-object-contract/runs/probe-digest-object-20261005T002913Z-product/probe-artifact.md"
         },
         "error": null,
         "mode": "strict",
@@ -177,7 +177,7 @@ Record:
         "status": "valid"
       }
     },
-    "main_session_id": "01a1091d-7bd6-7000-a196-3bf9d952740c",
+    "main_session_id": "01a10976-fa02-7000-9b23-aea60632f301",
     "null_rejection": {
       "native_execution_started": true,
       "rejected_by": "omp-yield-tool (YieldTool.execute)",
@@ -188,7 +188,7 @@ Record:
       "schema_control_refusals": 0,
       "task_calls": 1
     },
-    "task_tool_call_id": "call_XXL0svfXsWLMprD6TJiO8AiV|fc_0c228bed17d06874016ac2d87797e887d0acba9debb04c382b",
+    "task_tool_call_id": "call_fj9xktTnq1mb2TiyjNMgwIum|fc_078ca9e09be622a1016ac2ef611b5487d083c026e6fc4609a6",
     "yields": [
       {
         "arguments": {
@@ -199,7 +199,7 @@ Record:
         "data_key_present": true,
         "is_error": true,
         "result_text": "This task requires structured output matching the declared schema; a last-turn result cannot satisfy it. Submit the full object: {\"data\":<object matching the schema>}.",
-        "tool_call_id": "call_6huDDGRW4AyDSUEWpvF2Dz9P|fc_0a04d1c4d3c883f0016ac2d882229c87d09e6491b54750d86d"
+        "tool_call_id": "call_pcUO2aP4RJTgQVBhrFzZ7vvj|fc_07bd726872c5aa5d016ac2ef6b1bd487d0b73c62a95acac866"
       },
       {
         "arguments": {
@@ -214,7 +214,7 @@ Record:
               "stale_found": []
             },
             "VERDICT": "PASS",
-            "artifact": ".harness/harness/features/FEAT-1928-digest-object-contract/runs/probe-digest-object-20261004T225128Z-product/probe-artifact.md"
+            "artifact": ".harness/harness/features/FEAT-1928-digest-object-contract/runs/probe-digest-object-20261005T002913Z-product/probe-artifact.md"
           },
           "error": null,
           "type": null
@@ -222,7 +222,7 @@ Record:
         "data_key_present": true,
         "is_error": false,
         "result_text": "Result submitted.",
-        "tool_call_id": "call_PBFZWOqgTexSmq4vFTsBh3VW|fc_0a04d1c4d3c883f0016ac2d8854e8c87d09548145d0b510036"
+        "tool_call_id": "call_3nseDVeDvSlsaF0re4fa6jDK|fc_07bd726872c5aa5d016ac2ef6d677887d08aea106637cf39aa"
       }
     ]
   },
@@ -232,9 +232,9 @@ Record:
     "probe_exit": 0
   },
   "failed": [],
-  "finished_at": "2026-10-04T22:51:54+00:00",
+  "finished_at": "2026-10-05T00:29:38+00:00",
   "harness": {
-    "head": "ee39d8876cde56e06561266ba02dfc174176559f",
+    "head": "7e2e671304cd3e174989624fc11e8472b5e3b84b",
     "uncommitted_paths": 0,
     "under_test_sha256": {
       ".claude/skills/harness/bin/digest-schemas/common.json": "004ec08b92582727d30469796dc953950ddd93c18669395fbddabece53a1e735",
@@ -242,15 +242,15 @@ Record:
       ".claude/skills/harness/bin/digest_schema.py": "d44b6b2e4a99d534b6619b56c4bde6de35cdb81f589b404cb9762b74621208ef",
       ".claude/skills/harness/bin/validate-digest.py": "ee10a77da9dfdf55b021099d5862efc2448b40d575cef5ccc272feede96d5f93",
       ".omp/extensions/digest-schema.ts": "0ed3f1813c98a748327f92c9fd6ba9f3a82098fbcc7f8de8911a370f951c9a0f",
-      ".omp/extensions/harness-hooks.ts": "456c9af765b8c25351e1a473076a9b2253594671863c2a7e60199090ca850436",
+      ".omp/extensions/harness-hooks.ts": "7dc70535cd75d7d6cb886ef2633275044750a0f93ef6a51e4265076ec89d043b",
       "tests/manual/probe-digest-object-contract.py": "d5769a3aa016a6d285ab523b24ef9386b7c4ffbca79171f598173b9b3bb8df59"
     }
   },
   "ids": {
-    "child_session": "01a1091d-b14b-7000-be69-45d4b46752d2",
+    "child_session": "01a10977-2d4f-7000-ba93-6bdd02913002",
     "job": "DigestObjectProbe",
-    "main_session": "01a1091d-7bd6-7000-a196-3bf9d952740c",
-    "task_tool_call": "call_XXL0svfXsWLMprD6TJiO8AiV|fc_0c228bed17d06874016ac2d87797e887d0acba9debb04c382b"
+    "main_session": "01a10976-fa02-7000-9b23-aea60632f301",
+    "task_tool_call": "call_fj9xktTnq1mb2TiyjNMgwIum|fc_078ca9e09be622a1016ac2ef611b5487d083c026e6fc4609a6"
   },
   "injected_bundle_sha256": "efb2e75f9f2781722b6422a31acf01a43a78830ec2caaf36427d9851543da6d2",
   "main_model": "openai-codex/gpt-5.6-terra",
@@ -266,11 +266,11 @@ Record:
   "persona": "harness-documentor",
   "probe": "digest-object-contract-live",
   "provider": "openai",
-  "started_at": "2026-10-04T22:51:28+00:00",
+  "started_at": "2026-10-05T00:29:13+00:00",
   "transcript": {
     "path": ".harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.transcript.jsonl",
     "records": 43,
-    "sha256": "6babd8856af0f81c49ed7b9ff1dec2b265e267e6ca47c093cc56b8c9dc75c5d9"
+    "sha256": "ba1fcf4179323573037b1c2e1373f1f090a22dcd1a5387fb70f8defdc6d2fe29"
   },
   "valid_object": {
     "DIGEST": {
@@ -283,7 +283,7 @@ Record:
       "stale_found": []
     },
     "VERDICT": "PASS",
-    "artifact": ".harness/harness/features/FEAT-1928-digest-object-contract/runs/probe-digest-object-20261004T225128Z-product/probe-artifact.md"
+    "artifact": ".harness/harness/features/FEAT-1928-digest-object-contract/runs/probe-digest-object-20261005T002913Z-product/probe-artifact.md"
   },
   "verdict": "PASS"
 }
