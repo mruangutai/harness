@@ -22,6 +22,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
 import f58_sparse_fixture as F  # noqa: E402
 import feature_corpus as fc  # noqa: E402
+import layout_migration  # noqa: E402
 
 ACTIVE = "FEAT-1-alpha"
 MANIFEST = """schema_version: 1
@@ -449,6 +450,20 @@ class Discovery(Case):
         code, out = self.routes(clone)
         self.assertEqual(code, 2, out)
         self.assertIn("missing: kaya/FEAT-10-kaya-app", out)
+
+    def test_layout_evidence_reads_this_checkouts_tree_not_its_disk(self):
+        # A fresh worktree whose id has no record holds no feature directory on disk, yet
+        # its tree carries every landed record: INV-27 must judge that tree (#2114).
+        self.fx.commit_owner({".harness/factory/fleet.yaml":
+                              "schema: factory-fleet/1\nworkspace_root: /tmp/f2114-ws\n"
+                              "repos:\n  - name: o/kaya\n    default_branch: main\n",
+                              ".harness/harness.json": '{"github": {"repo": "o/harness"}}\n'},
+                             "declare the segments")
+        wt = repair(self.fx.add_worktree("FEAT-99-new"))
+        self.assertEqual(F.feature_dirs_on_disk(wt), [])
+        result = layout_migration.scan(wt)
+        self.assertGreater(result.feature_dirs, 0)
+        self.assertEqual(result.surfaces["features"].evidence, {"migrated"})
 
 
 if __name__ == "__main__":

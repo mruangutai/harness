@@ -121,7 +121,9 @@ class RealOwner(unittest.TestCase):
                 out = check_state(caller)
                 for refusal in REFUSED:
                     self.assertNotIn(refusal, out)
-                self.assertRegex(out, r"INV-\d+|all state invariants hold")
+                # Any report line proves the invariants ran: a run that passes with notes (a
+                # caller carrying uncommitted work is noted dirty) prints only those (#2114).
+                self.assertRegex(out, r"(?m)INV-\d+|all state invariants hold|^  note  ")
 
 
 class TheEqualityRejectsMutants(unittest.TestCase):
