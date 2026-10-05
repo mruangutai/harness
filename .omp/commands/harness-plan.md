@@ -35,10 +35,11 @@ Read `.omp/commands/harness.md` and follow it with **mission: plan**. The differ
 - **Terminus:** ONE approval, taken by you — the user signs PLAN **and** the prototype (if the
   feature needs one) together, and **the same signature carries the rework ruling**:
   `plan-merge.py sign-approval --file <plan.yaml> --by <you> --date <YYYY-MM-DD> --rework rounds=N,minutes=M --decision <path>`
-  writes `approval.status: approved` and `feature.json` `rework` in one act (SC-15); the
-  orchestrator's build-phase fix loop runs inside that ruling and does not ask again. Findings the
-  user accepts ride as `--overrule PF-ID:<reason>` on the same command. Completing plan is NOT a
-  briefing (§10.3).
+  writes `approval.status: approved`, the BRIEF's `## Approval`, and `feature.json` `rework` in
+  one act (SC-15, #2096) — there is no separate BRIEF write. The orchestrator's build-phase fix
+  loop runs inside that ruling and does not ask again. Findings the user accepts ride as
+  `--overrule PF-ID:<reason>` on the same command; a high, critical or unrated finding left open
+  without one refuses the signature (#2095). Completing plan is NOT a briefing (§10.3).
   **The signature is immediately followed by** this receipt-driven transaction:
   ```bash
   approval_receipt="$(

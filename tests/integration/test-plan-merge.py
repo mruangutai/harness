@@ -133,12 +133,18 @@ def render_plan(task_ids, titles=None, decision_ids=None, approval=DEFAULT_APPRO
     return "".join(out)
 
 
+PENDING_BRIEF = ("# BRIEF — FEAT-99-fixture\n\n## Goal\n\nA fixture.\n\n## Approval\n\n"
+                 "status: pending\napproved-by:\ndate:\n\n## Notes\n\nAfter the block.\n")
+
+
 def fixture_root(prefix="plan-merge-test-"):
     """A fresh tempfile.mkdtemp(), with a nested .harness/harness/features/FEAT-99-fixture/
-    directory so require_destination accepts a plan.yaml written inside it."""
+    directory so require_destination accepts a plan.yaml written inside it, and a BRIEF.md
+    whose ## Approval is pending beside it, which sign-approval signs with the plan (#2096)."""
     root = tempfile.mkdtemp(prefix=prefix)
     d = os.path.join(root, ".harness", "harness", "features", "FEAT-99-fixture")
     os.makedirs(d, exist_ok=True)
+    write(os.path.join(d, "BRIEF.md"), PENDING_BRIEF)
     return root, os.path.join(d, "plan.yaml")
 
 
@@ -761,11 +767,12 @@ def case_create_path_approval():
     )
     # As in case5, harness_merge's flock lock (D-02) is deliberately never removed, so its mere
     # presence proves nothing about a refusal's cleanup; what matters is no stray mkstemp()
-    # tempfile and, per this assertion's own name, no plan.yaml itself.
+    # tempfile and, per this assertion's own name, no plan.yaml itself. BRIEF.md is the
+    # fixture's own (#2096), written before the refusal under test.
     plan_dir = os.path.dirname(path_b)
     stray = [
         n for n in (os.listdir(plan_dir) if os.path.isdir(plan_dir) else [])
-        if n not in ("plan.yaml.lock",)
+        if n not in ("plan.yaml.lock", "BRIEF.md")
     ]
     check("case11b: no stray tempfile/plan.yaml left behind after the refusal", not stray, stray)
 
@@ -4791,6 +4798,104 @@ def case_2095_sign_approval_refuses_an_open_gating_finding():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+# #2096 — the signature has two homes, plan.yaml's approval and BRIEF.md's ## Approval, and one
+# writer: sign-approval writes both in one act, or neither. FEAT-1559 was signed with the BRIEF
+# left pending because the documented transaction named only the plan's half.
+def _brief_path(plan):
+    return os.path.join(os.path.dirname(plan), "BRIEF.md")
+
+
+def _brief_approval(text):
+    """The ## Approval block's body, the region check-state's approved() reads."""
+    import re
+    match = re.search(r"^##\s+Approval\s*$(.*?)(?=^##\s|\Z)", text, re.M | re.S)
+    return match.group(1) if match else None
+
+
+def case_2096_sign_approval_signs_the_brief():
+    """A pending BRIEF is signed with the plan: its ## Approval reads approved with the same
+    signer and date, and every byte outside that block is unchanged."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                     "--date", "2026-10-04")
+        brief = read(_brief_path(plan))
+        block = _brief_approval(brief) or ""
+        check("2096: sign-approval signs the BRIEF's ## Approval with the plan",
+              r.returncode == 0 and "status: approved" in block
+              and "approved-by: Mike Ruangutai" in block and "date: 2026-10-04" in block
+              and "pending" not in block, f"rc={r.returncode} {r.stderr!r} {brief!r}")
+        before, _, _ = PENDING_BRIEF.partition("## Approval")
+        check("2096: the BRIEF outside its ## Approval block is byte-identical",
+              brief.startswith(before + "## Approval")
+              and brief.endswith("## Notes\n\nAfter the block.\n"), repr(brief))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2096_an_approved_brief_is_left_as_signed():
+    """A BRIEF already approved is the goal's standing signature: re-signing the plan after an
+    approval reset leaves it byte-identical rather than restamping it."""
+    root, plan = fixture_root()
+    try:
+        signed = PENDING_BRIEF.replace("status: pending\napproved-by:\ndate:\n",
+                                       "status: approved\napproved-by: Operator\ndate: 2026-09-01\n")
+        write(_brief_path(plan), signed)
+        write(plan, render_plan(ids(1, 2)))
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                     "--date", "2026-10-04")
+        check("2096: re-signing leaves an approved BRIEF byte-identical",
+              r.returncode == 0 and read(_brief_path(plan)) == signed,
+              f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2096_no_brief_signature_means_no_plan_signature():
+    """A BRIEF with no ## Approval block, or none at all, refuses the signature (exit 5) and
+    writes neither file; so does a plan-side refusal, which must leave the BRIEF pending."""
+    root, plan = fixture_root()
+    try:
+        brief = _brief_path(plan)
+        no_block = PENDING_BRIEF.split("## Approval")[0]
+        for label, prepare in (("no ## Approval block", lambda: write(brief, no_block)),
+                               ("no BRIEF.md", lambda: os.remove(brief))):
+            prepare()
+            before = write(plan, render_plan(ids(1, 2)))
+            brief_before = read(brief) if os.path.exists(brief) else None
+            r = run_verb("sign-approval", "--file", plan, "--by", "operator",
+                         "--date", "2026-10-04")
+            check(f"2096: sign-approval refuses a BRIEF with {label} (exit 5), naming BRIEF.md",
+                  r.returncode == 5 and "BRIEF.md" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+            check(f"2096: with {label}, neither file is written",
+                  read(plan) == before
+                  and (read(brief) if os.path.exists(brief) else None) == brief_before)
+        write(brief, PENDING_BRIEF)
+        write(plan, _panel_plan(_TEMPLATE_FINDING))
+        r = run_verb("sign-approval", "--file", plan, "--by", "operator", "--date", "2026-10-04")
+        check("2096: a plan-side refusal leaves the BRIEF pending",
+              r.returncode == 4 and read(brief) == PENDING_BRIEF, f"rc={r.returncode}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2096_a_line_break_in_the_signer_stays_on_one_brief_line():
+    """`--by` is free-form (FEAT-41 F-02), and a line break in it would otherwise start a new
+    line inside ## Approval. It is written JSON-quoted on its own line instead."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike\nstatus: pending",
+                     "--date", "2026-10-04")
+        block = _brief_approval(read(_brief_path(plan))) or ""
+        check("2096: a signer with a line break is one quoted BRIEF line",
+              r.returncode == 0 and 'approved-by: "Mike\\nstatus: pending"' in block
+              and "\nstatus: pending" not in block, f"rc={r.returncode} {block!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -4915,6 +5020,10 @@ CASES = (
     case_2095_set_panel_refuses_off_template_findings,
     case_2095_record_panel_refuses_an_off_template_base_finding,
     case_2095_sign_approval_refuses_an_open_gating_finding,
+    case_2096_sign_approval_signs_the_brief,
+    case_2096_an_approved_brief_is_left_as_signed,
+    case_2096_no_brief_signature_means_no_plan_signature,
+    case_2096_a_line_break_in_the_signer_stays_on_one_brief_line,
 )
 
 
