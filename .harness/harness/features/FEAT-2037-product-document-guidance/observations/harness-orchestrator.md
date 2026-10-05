@@ -1,0 +1,5 @@
+# Observations — harness-orchestrator — FEAT-2037-product-document-guidance
+
+- 2026-10-05: Two consecutive harness-product-lead spawns on an open run returned schema-valid objects that the host refused with "no trusted hook-owned digest binding"; the bind happens at SubagentStart (harness-hooks.ts openRun -> digest_destination.py bind) and its refusal message is discarded, so neither the lead nor the orchestrator can see which check failed. The open PENDING run condition held; the claim-cwd-equals-feature-root condition is the unverified suspect.
+- 2026-10-05: close-run refuses at stage digest when digest.md has no fenced mapping; with a host-side binding defect there is no orchestrator-tier fix, so the run stays PENDING and the honest closeout is a continue/stop judgement plus a blocker note.
+- 2026-10-05: check-domain --resolve on a mixed task (three NOBODY skill files + SPEC.md granted to documentor) still yields an OK route line for main-session-direct; check-plan-routes returns on the ungranted branch before emitting the DEVIATION line.

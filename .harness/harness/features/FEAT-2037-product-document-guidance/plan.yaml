@@ -1,0 +1,59 @@
+schema: plan/1
+feature: FEAT-2037-product-document-guidance
+approval:
+  status: pending
+status: plan
+source_issues:
+- 2037
+lanes:
+  resolved_at: 73bd63eeac1c5614411839436996b7025f8b507d
+  rows:
+  - surface: .claude/skills/harness-principles/SKILL.md
+    lane: main-session-direct
+    reason: DEC-21 policy file; settled owner resolution NOBODY under DEC-179.
+  - surface: .claude/skills/harness-spec-driven/SKILL.md
+    lane: main-session-direct
+    reason: DEC-21 policy file; settled owner resolution NOBODY under DEC-179.
+  - surface: .claude/skills/harness-zero-micro-management/SKILL.md
+    lane: main-session-direct
+    reason: DEC-21 policy file; settled owner resolution NOBODY under DEC-179.
+  - surface: .harness/harness/docs/SPEC.md
+    lane: main-session-direct
+    reason: Existing harness-documentor grant retained; supporting doc accompanies layer-0 policy edits in the single-task patch.
+decisions: []
+tasks:
+  - id: T-01
+    title: Encode product consultation and preserve real dispatch inputs
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-21 reserves skill-policy edits to layer 0 and settled DEC-179 ownership resolution returns NOBODY for the three skill files. SPEC.md already has the harness-documentor grant, but accompanies those skill edits in the single-task DEC-225 patch at layer 0 without revoking or extending any grant. Main edits all four paths after signature; no delegated production edits or execution-agent workaround.
+    depends_on: []
+    status: ready
+    files:
+      - path: .claude/skills/harness-principles/SKILL.md
+        quote: '## The rules that change your work'
+      - path: .claude/skills/harness-spec-driven/SKILL.md
+        quote: '## Every task needs four things'
+      - path: .claude/skills/harness-zero-micro-management/SKILL.md
+        quote: '## Your loop'
+      - path: .harness/harness/docs/SPEC.md
+        quote: '## 6. Two knowledge tiers — rules vs expertise'
+    verify: |
+      MANUAL — After the four guidance edits and green QA/review prerequisites, operator/main executes the one focused live OMP conduct scenario in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance/.harness/harness/features/FEAT-2037-product-document-guidance/notes/uat-product-document-guidance-c0.md, U-01 through U-04. Record actual PRODUCT read paths, real task intent, real nested dispatch, implementation and reviewer response, and separate missing/unresolved/conflicting reports there. Expected: every assertion passes under distinct PRODUCT and actual CONTROL roots with conflicting same-named docs; operator records passed. Not run at intake. Conduct is not automatable with an existing runner; no new runtime probe or dataset eval is authorized.
+      Separate static checks after edits, from /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance:
+      python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/check-skill-weight.py /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance
+      python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/check-skill-refs.py /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance
+      python3 .agents/skills/harness/bin/check-instruction-paths.py
+      python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit
+      python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration
+      Expected: exit 0, no structural errors or suite FAILs; preload-weight NOTE is advisory and recorded. Static results are not behavioural proof. Reviewer reads all four files at review_sha for SC-04. Do not execute these checks at intake.
+    intent: |
+      Only main session implements after explicit operator approval. Edit only the four owned Markdown files in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance. This is guidance-only issue 2037, not an agent-role, model, tool-integration, hook, validator, gate, test, registry, configuration or schema change. Supporting SPEC.md update is the documentation update; no extra changelog file is authorized.
+      In .claude/skills/harness-principles/SKILL.md add one compact shared resident consultation rule near the existing authority/rules. Name the exact lowercase product-relative paths: docs/spec.md for requirements and behavior; docs/decisions.md for adopted decisions and rationale; docs/architecture.md for architecture and component relationships. Resolve each in the assigned PRODUCT repository checkout identified by the assignment, never substitute HARNESS_CONTROL_PLANE_ROOT or HARNESS_FEATURE_TREE_ROOT. When a requirements, prior-decision or architecture question arises in planning, implementation or review, consult the corresponding relevant sections before assuming an answer or escalating. Review uses the same pointers to judge conformance; a read alone does not prove compliance. For missing documents, report the concrete product path and question; for unresolved guidance, report the question and relevant section lacking an answer; for conflicts, name both sources and the conflicting guidance. Do not invent contents, create missing documents, silently choose precedence or fall back to control-plane documents.
+      In .claude/skills/harness-spec-driven/SKILL.md extend the complete-intent instruction in Every task needs four things. Applicable product-checkout identity and the three document pointers must be carried in the REAL task intent delivered to the implementer, not only BRIEF, planning notes or parent context. They are read inputs, not task-owned files unless that task actually changes those documents. Keep exact file-anchor, literal verify, traceability, approval and routing rules unchanged.
+      In .claude/skills/harness-zero-micro-management/SKILL.md extend Your loop step 2 to preserve assigned PRODUCT checkout identity and applicable product-document pointers from actual task intent into the REAL nested member task dispatch. Keep task id, verify string, feature marker, supplied feature-tree root, ownership and escalation rules unchanged. Do not rely on conversation inheritance or put unchanged reference docs into files. Refer to the shared consultation rule rather than copying a large policy here.
+      In .harness/harness/docs/SPEC.md add concise supporting product-consultation guidance in section 6, next to uniform rule guidance. Describe the exact three lowercase paths as assigned-PRODUCT read inputs, on-demand consultation before assumption/escalation, concrete gap reporting, actual task-intent and nested-dispatch preservation, and review conformance. Do not clean up unrelated legacy prose or expand into a new interface.
+      Keep Harness governance distinct and intact: harness-brief still searches control-plane .harness/harness/docs/DECISIONS-INDEX.md and consults relevant .harness/harness/docs/DECISIONS.md entries; Harness .harness/harness/docs/SPEC.md is not product docs/spec.md. Keep the principles authority and existing full constitution read rule intact; the new product rule does not mandate full product reads or a citation ceremony. Encode pointers, not product contents. All 16 canonical roles already preload harness-principles; planning and lead-specific skills preserve their respective real handoffs without agent-definition edits or automatic injection.
+      docs change_type is deliberate: configured docs has no required kinds, bugfix uses runtime/contract-doc predicates, and ai_behavior forces eval for prompt/model/tool integration changes. DEC-70 instead grades these preloaded Markdown playbooks by observed conduct. Execute the separately specified focused UAT after edits through operator/main with actual reads and dispatches; leave not observed assertions unmet and report concrete infrastructure gaps. No new dataset eval or runtime machinery. If boundedness or a public interface changes, escalate for mission/scope ruling rather than silently narrow or expand.

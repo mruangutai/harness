@@ -1,0 +1,35 @@
+{
+  "feature_id": "FEAT-2037-product-document-guidance",
+  "branch": "feat/FEAT-2037-product-document-guidance",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-10-05T03:08:31+00:00",
+      "tokens": 101495
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-05T03:08:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Grilling 2026-10-05: missing document pointers and handoff guidance are known, the proposed diff is four existing Markdown files, no public interface, schema or enforcement surface is introduced; operator confirmed patch"
+    },
+    {
+      "at": "2026-10-05T03:41:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan-product intake complete and pending, but host refused the lead digest binding twice (no trusted hook-owned digest binding); close-run refused at stage digest; see notes/blocker-plan-product-2026-10-05.md"
+    }
+  ],
+  "mission": "patch"
+}
