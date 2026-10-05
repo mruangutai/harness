@@ -22,6 +22,14 @@ checkout. WORKTREES_SEGMENT is never joined to workspace_root directly — only 
 owner_root — or every served repository's worktrees would land in one directory, destroying the
 per-repository isolation this CLI exists to build.
 
+A FLEET FEATURE HAS TWO WORKTREES (#2056, operator ruling A). Its planning artifacts — BRIEF,
+plan.yaml, feature.json under `.harness/<segment>/features/<id>/` — live in the HARNESS repository
+and are written on a harness branch reviewed by PR, so `--repo owner/repo` manages a PLANNING
+worktree at `<harness>/.claude/worktrees/harness/<id>` beside the repository's CODE worktree at
+`<owner_root>/.claude/worktrees/<segment>/<id>`. inflight_registry.feature_root resolves the
+feature to the planning worktree by basename, which is where every governed write and claim goes.
+`--repo harness` has one worktree, which is both.
+
 The segment string itself (".claude/worktrees") is read from harness_boundary.WORKTREES_SEGMENT,
 imported lazily, and is not spelled a second time anywhere in this file.
 """
@@ -88,6 +96,19 @@ def resolve_repo(repo):
     return owner_root, segment, entry["default_branch"]
 
 
+def targets(repo):
+    """[(role, owner_root, worktree_segment, artifact_segment, default_branch)] for --repo, in
+    creation order. `artifact_segment` names the `.harness/<segment>/features/` directory the
+    worktree holds, or None for a code worktree, which holds no harness artifacts."""
+    if repo == "harness":
+        owner_root, segment, branch = resolve_repo(repo)
+        return [("harness", owner_root, segment, segment, branch)]
+    control_root, control_segment, control_branch = resolve_repo("harness")
+    owner_root, segment, branch = resolve_repo(repo)
+    return [("planning", control_root, control_segment, segment, control_branch),
+            ("code", owner_root, segment, None, branch)]
+
+
 def _run_git(args, cwd):
     return subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True)
 
@@ -97,16 +118,43 @@ def _branch_exists(owner_root, branch):
     return r.returncode == 0
 
 
+def _cut_point(owner_root, default_branch):
+    """The ref a NEW feature branch is cut from: `origin/<default>` after one fetch (#2056).
+
+    A local default branch can carry commits nobody has pushed — FEAT-01-kaya-platform's planning
+    branch was cut from a local `main` holding an unpushed ship commit. A repository with no
+    reachable origin falls back to the local branch and SAYS SO, the same named-fallback voice
+    `behind` uses (#1850)."""
+    fetch = _run_git(["fetch", "-q", "origin", default_branch], owner_root)
+    if fetch.returncode == 0:
+        remote = f"refs/remotes/origin/{default_branch}"
+        if _run_git(["rev-parse", "--verify", "--quiet", remote], owner_root).returncode == 0:
+            return f"origin/{default_branch}"
+        return "FETCH_HEAD"
+    print(f"feature-worktree: COULD NOT FETCH origin/{default_branch} in {owner_root}; cutting "
+          f"from LOCAL {default_branch} instead (#2056).", file=sys.stderr)
+    return default_branch
+
+
+def _add_worktree(owner_root, dest, branch, default_branch):
+    """(result, branch_was_new). A reused branch keeps its own history; a new one is cut from
+    _cut_point."""
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    if _branch_exists(owner_root, branch):
+        return _run_git(["worktree", "add", dest, branch], owner_root), False
+    base = _cut_point(owner_root, default_branch)
+    return _run_git(["worktree", "add", "-b", branch, dest, base], owner_root), True
+
+
+def _undo_worktree(owner_root, dest, branch, branch_was_new):
+    """Roll back a worktree this invocation just added, so a half-made pair is never left."""
+    _run_git(["worktree", "remove", "--force", dest], owner_root)
+    if branch_was_new:
+        _run_git(["branch", "-D", branch], owner_root)
+
+
 def cmd_create(args):
-    owner_root, segment, default_branch = resolve_repo(args.repo)
-    dest = dest_for(owner_root, segment, args.id)
-
-    # 1. Refuse when the destination already exists.
-    if os.path.exists(dest):
-        sys.stderr.write(f"feature-worktree: create: destination already exists: {dest}\n")
-        sys.exit(3)
-
-    # 2. Refuse when --id does not match the flow-id form.
+    # Refuse a malformed id before touching anything.
     if not _ID_RE.match(args.id):
         sys.stderr.write(
             f"feature-worktree: create: --id {args.id!r} does not match the flow-id form "
@@ -114,26 +162,34 @@ def cmd_create(args):
         )
         sys.exit(2)
 
-    # 3. Create the parent directory of the destination.
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    plan = [(role, owner_root, default_branch, dest_for(owner_root, wt_segment, args.id))
+            for role, owner_root, wt_segment, _artifact, default_branch in targets(args.repo)]
 
-    # 4. Branch new or reused.
+    # Refuse when ANY destination already exists: the pair is made whole or not at all.
+    for _role, _owner_root, _default_branch, dest in plan:
+        if os.path.exists(dest):
+            sys.stderr.write(f"feature-worktree: create: destination already exists: {dest}\n")
+            sys.exit(3)
+
     branch = f"feat/{args.id}"
-    reused = _branch_exists(owner_root, branch)
-    if reused:
-        r = _run_git(["worktree", "add", dest, branch], owner_root)
-    else:
-        r = _run_git(["worktree", "add", "-b", branch, dest, default_branch], owner_root)
+    made = []
+    for role, owner_root, default_branch, dest in plan:
+        r, branch_was_new = _add_worktree(owner_root, dest, branch, default_branch)
+        if r.returncode != 0:
+            sys.stderr.write(r.stderr)
+            for owner, made_dest, was_new in reversed(made):
+                _undo_worktree(owner, made_dest, branch, was_new)
+            sys.exit(4)
+        made.append((owner_root, dest, branch_was_new))
+        if not branch_was_new:
+            print(f"REUSED BRANCH {branch}" if len(plan) == 1 else f"REUSED BRANCH {branch} ({role})")
 
-    # 5. Non-zero git exit passes stderr through.
-    if r.returncode != 0:
-        sys.stderr.write(r.stderr)
-        sys.exit(4)
-
-    if reused:
-        print(f"REUSED BRANCH {branch}")
-    # 6. The LAST line of stdout is the absolute destination path and nothing else on that line.
-    print(dest)
+    # A fleet feature names both trees by role. The LAST line of stdout is still the one
+    # absolute destination callers have always parsed: the repository's own worktree.
+    if len(plan) > 1:
+        for role, _owner_root, _default_branch, dest in plan:
+            print(f"{role.upper()} {dest}")
+    print(plan[-1][3])
 
 
 def _parse_worktree_porcelain(text):
@@ -180,8 +236,14 @@ def cmd_list(args):
 
 
 def cmd_path(args):
-    owner_root, segment, _default_branch = resolve_repo(args.repo)
-    print(dest_for(owner_root, segment, args.id))
+    """The worktree path(s). A fleet feature prints `PLANNING <path>` first; the LAST line is
+    always the repository's own worktree, the line callers have always parsed."""
+    plan = targets(args.repo)
+    if len(plan) > 1:
+        for role, owner_root, wt_segment, _artifact, _branch in plan:
+            print(f"{role.upper()} {dest_for(owner_root, wt_segment, args.id)}")
+    _role, owner_root, wt_segment, _artifact, _branch = plan[-1]
+    print(dest_for(owner_root, wt_segment, args.id))
 
 
 def _linked_worktree_paths(owner_root):
@@ -206,8 +268,21 @@ def _status_paths(text):
 
 
 def cmd_remove(args):
-    owner_root, segment, default_branch = resolve_repo(args.repo)
-    dest = dest_for(owner_root, segment, args.id)
+    """Every gate for every worktree of the feature runs before ANY is removed, so a fleet
+    feature is never left with one half of its pair. The landed-artifact gate applies to the
+    worktree that HOLDS the artifacts (the planning worktree for a fleet feature); a code
+    worktree is gated on being linked and clean."""
+    plan = [(owner_root, artifact_segment, default_branch, dest_for(owner_root, wt_segment, args.id))
+            for _role, owner_root, wt_segment, artifact_segment, default_branch
+            in targets(args.repo)]
+    for owner_root, artifact_segment, default_branch, dest in plan:
+        _gate_removal(args.id, owner_root, artifact_segment, default_branch, dest)
+    for owner_root, _artifact_segment, _default_branch, dest in plan:
+        _remove_worktree(owner_root, dest)
+
+
+def _gate_removal(fid, owner_root, segment, default_branch, dest):
+    """Exit with the gate's code unless `dest` may be removed."""
 
     # GATE 1 - the destination exists and is a linked worktree of owner_root.
     if not os.path.exists(dest) or os.path.realpath(dest) not in _linked_worktree_paths(owner_root):
@@ -230,7 +305,7 @@ def cmd_remove(args):
             sys.exit(4)
 
     # GATE 3 - ARTIFACTS LANDED, guarded by REQUIRE_LANDED.
-    if REQUIRE_LANDED:
+    if REQUIRE_LANDED and segment is not None:
         # ISSUE #727 - ONE --id FEEDS TWO PATHS AND THEY DISAGREE ON EVERY REAL WORKTREE.
         # dest_for() above named the WORKTREE `<id>`; this names the ARTIFACT directory. Measured
         # 2026-08-23: all four live worktrees are `FEAT-32` while every feature directory is
@@ -240,15 +315,15 @@ def cmd_remove(args):
         #
         # REFUSE ON AMBIGUITY, never guess. Two candidates have no right answer and this deletes a
         # checkout; a coin flip is strictly worse than a refusal the operator can act on.
-        artifact_id = args.id
+        artifact_id = fid
         features_abs = os.path.join(dest, ".harness", segment, "features")
         if not os.path.isdir(os.path.join(features_abs, artifact_id)) and os.path.isdir(features_abs):
             cands = sorted(
                 d for d in os.listdir(features_abs)
-                if d.startswith(args.id + "-") and os.path.isdir(os.path.join(features_abs, d))
+                if d.startswith(fid + "-") and os.path.isdir(os.path.join(features_abs, d))
             )
             if len(cands) > 1:
-                print(f"AMBIGUOUS FLOW ID {args.id} matches {len(cands)} feature directories:")
+                print(f"AMBIGUOUS FLOW ID {fid} matches {len(cands)} feature directories:")
                 for c in cands:
                     print(f"  {c}")
                 print("Pass the full flow id. Nothing was removed.")
@@ -303,7 +378,9 @@ def cmd_remove(args):
         if landed_fail:
             sys.exit(5)
 
-    # THE REMOVAL.
+
+def _remove_worktree(owner_root, dest):
+    """THE REMOVAL, once every gate of every worktree has passed."""
     r = _run_git(["worktree", "remove", dest], owner_root)
     if r.returncode != 0:
         sys.stderr.write(r.stderr)
@@ -353,11 +430,18 @@ def cmd_behind(args):
     WHAT THIS DOES NOT CATCH, said rather than discovered: a build that starts current and
     drifts behind while it runs. The check fires at the door, not mid-flight.
     """
-    owner_root, segment, default_branch = resolve_repo(args.repo)
-    dest = dest_for(owner_root, segment, args.id)
+    codes = [_behind_one(owner_root, dest_for(owner_root, wt_segment, args.id), default_branch)
+             for _role, owner_root, wt_segment, _artifact, default_branch in targets(args.repo)]
+    sys.exit(max(codes))
+
+
+def _behind_one(owner_root, dest, default_branch):
+    """The exit code for one worktree: 0 current (or not comparable, said loudly), 3 absent,
+    6 behind. A fleet feature's planning and code worktrees are each held to their own
+    repository's default branch, and the worst answer is the command's."""
     if not os.path.isdir(dest):
         print(f"feature-worktree: no worktree at {dest}", file=sys.stderr)
-        sys.exit(3)
+        return 3
 
     fetch = _run_git(["fetch", "-q", "origin", default_branch], dest)
     if fetch.returncode == 0:
@@ -380,12 +464,12 @@ def cmd_behind(args):
               f"failed in {dest}", file=sys.stderr)
         print(f"  {r.stderr.strip()}", file=sys.stderr)
         print("  This is not a pass. Nothing was compared.", file=sys.stderr)
-        sys.exit(0)
+        return 0
 
     behind = int(r.stdout.strip() or "0")
     if behind == 0:
         print(f"current with {label}: {dest}")
-        sys.exit(0)
+        return 0
 
     print(f"feature-worktree: REFUSED — {dest} is {behind} commit(s) behind "
           f"{label}.", file=sys.stderr)
@@ -398,7 +482,7 @@ def cmd_behind(args):
     print(f"    {remedy}", file=sys.stderr)
     print(f"  Compared against {label}. If that ref is itself stale this "
           f"count is a floor, never a ceiling.", file=sys.stderr)
-    sys.exit(6)
+    return 6
 
 
 def _build_parser():

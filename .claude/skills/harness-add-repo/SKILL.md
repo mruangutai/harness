@@ -76,7 +76,10 @@ config lands has no symptom except an unattributed `FleetError` mid-build.
    `<control-plane>/.harness/<segment>/features/` and
    `<control-plane>/.harness/<segment>/expertise/`, where `segment` is the portion of the name after
    the owner (`factory_config.segment_of`). This is where the repository's `BRIEF.md`, `plan.yaml`,
-   and expertise live; `factory_config.features_root` resolves the first path.
+   and expertise live; `factory_config.features_root` resolves the first path. A feature's own
+   directory under it is written in that feature's harness PLANNING worktree, never in the main
+   checkout: `feature-worktree.py create --repo <owner>/<repo>` cuts it beside the repository's
+   code worktree (#2056, `.omp/commands/harness.md` §0b).
 
 No `team-config.yaml` exists anywhere but the control plane; no `.harness/expertise/`,
 `.harness/products/`, `bin/`, hooks, or settings are written in a product repository.

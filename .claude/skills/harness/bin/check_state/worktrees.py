@@ -261,7 +261,7 @@ def _inv29_head(r29):
                     "committed, landed or discarded.")
     return _head29
 
-def _inv29_guidance(r29, head29, real_root):
+def _inv29_guidance(r29, head29, real_root, repo_arg=None):
     if _inv29_root_is_inside(real_root, r29["path"]):
         # INV-25's precedent at :1173, for the same mechanical reason: `git worktree
         # remove` exits 0 from inside the tree it deletes, so handing this session that
@@ -281,10 +281,12 @@ def _inv29_guidance(r29, head29, real_root):
         # feature_id there gives a command that exits "not a linked worktree" for a directory
         # plainly sitting in front of the reader. post-merge-sweep.py:150 already derives it
         # this way; this is the same derivation, not a second rule.
+        # #2056: --repo takes `harness` or a fleet member's owner/repo name, never the bare
+        # segment the record carries — `--repo kaya` is refused by resolve_repo.
         return (head29 + " Remove it with `python3 "
                          ".agents/skills/harness/bin/feature-worktree.py remove "
                          "--repo %s --id %s` (path: %s)."
-                         % (r29["repo"],
+                         % (repo_arg or r29["repo"],
                             os.path.basename(r29["path"].rstrip(os.sep)),
                             r29["path"]))
     else:
@@ -294,7 +296,7 @@ def _inv29_guidance(r29, head29, real_root):
         return (head29 + " Its path did not resolve to a repository and id, so no "
                          "removal command can be composed for it.")
 
-def _inv29_record(r29, fleet_path, real_root):
+def _inv29_record(r29, fleet_path, real_root, wt29=None):
     bad = []
     if r29["klass"] == "exempt_absent":
         # The feature directory is genuinely absent from the default branch. Nothing to
@@ -308,7 +310,8 @@ def _inv29_record(r29, fleet_path, real_root):
         return bad
 
     _head29 = _inv29_head(r29)
-    bad.append(_inv29_guidance(r29, _head29, real_root))
+    repo_arg = wt29.repo_arg_for_segment(r29["repo"]) if wt29 and r29["repo"] else None
+    bad.append(_inv29_guidance(r29, _head29, real_root, repo_arg))
     return bad
 
 def inv_29(ctx):
@@ -327,7 +330,7 @@ def inv_29(ctx):
         _real_root29 = os.path.realpath(root)
 
         for _r29 in _recs29:
-            bad.extend(_inv29_record(_r29, _fleet_path29, _real_root29))
+            bad.extend(_inv29_record(_r29, _fleet_path29, _real_root29, _wt29))
     return bad, warn
 
 # --- INV-27 (FEAT-20): every layout surface speaks one language. The detector is

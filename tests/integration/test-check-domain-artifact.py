@@ -1060,6 +1060,42 @@ def run_bug1305_identity_cases():
     return failures
 
 
+def run_2056_main_session_feature_checkout():
+    """#2056: the MAIN SESSION's feature-artifact write is bound to the feature's worktree too.
+    FEAT-01-kaya-platform's feature.json was written into the main checkout by the main session
+    while its planning worktree held the live copy; the governed-only guard never saw it."""
+    feature = "FEAT-9-fleet-thing"
+    rel = f".harness/product-a/features/{feature}/BRIEF.md"
+    root = fixture("schema_version: 1\nteams: []\n")
+    worktree = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", "harness", feature), feature)
+
+    def main_write(path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        payload = {"tool_name": "Write", "tool_input": {"file_path": path, "content": "{}"}}
+        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                              text=True, env=_env(root))
+
+    in_main = main_write(os.path.join(root, rel))
+    in_worktree = main_write(os.path.join(worktree, rel))
+    other = main_write(os.path.join(root, ".harness", "harness", "docs", "note.md"))
+    results = [
+        ("main session: a feature artifact in the main checkout is refused, naming the worktree",
+         in_main.returncode == 2 and worktree in in_main.stderr, in_main.stderr),
+        ("main session: the same artifact inside the feature's worktree is allowed",
+         in_worktree.returncode == 0, in_worktree.stderr),
+        ("main session: a non-feature path in the main checkout is untouched",
+         other.returncode == 0, other.stderr),
+    ]
+    fails = 0
+    for name, ok, detail in results:
+        print(("ok    " if ok else "FAIL  ") + f"[2056] {name}")
+        if not ok:
+            fails += 1
+            print(f"      | {detail[:240]}")
+    return fails
+
+
 def run_bug151_selfcheck_cases():
     """BUG-151: the aggregation safeguard must fire exactly on a zeroness disagreement
     between printed column-0 FAIL lines and a block's returned total (D-01), and must

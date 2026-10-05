@@ -294,10 +294,13 @@ def case_refuse_existing(fx, created):
 
 
 def case_list(fx, created):
+    # #2056: a fleet feature's planning worktree is a harness worktree, so org/repoB's
+    # FEAT-92 and FEAT-93 are listed under repoA beside the two harness features.
     r = run_cli(["list", "--repo", "harness"], fx)
     lines = [l for l in r.stdout.splitlines() if l.strip()]
     check("list: repoA exits 0", r.returncode == 0, f"rc={r.returncode} stderr={r.stderr!r}")
-    check("list: repoA prints exactly two lines", len(lines) == 2, f"lines={lines!r}")
+    check("list: repoA prints its two features and two fleet planning worktrees",
+          len(lines) == 4, f"lines={lines!r}")
     parsed = {}
     for line in lines:
         parts = line.split(" ", 2)
@@ -1156,6 +1159,91 @@ def case_behind_sees_origin(fx):
     _git(fx["repoA"], ["remote", "remove", "origin"])
 
 
+def case_fleet_feature_has_two_worktrees(fx):
+    """#2056 (ruling A): `create --repo owner/repo` cuts the harness PLANNING worktree beside
+    the repository's CODE worktree, names both by role, and keeps the code path as the last
+    line callers parse; `path`, `behind` and `remove` answer for both."""
+    fid = "FEAT-71-fleet-pair"
+    r = run_cli(["create", "--repo", "org/repoB", "--id", fid], fx)
+    planning = os.path.join(fx["repoA"], harness_boundary.WORKTREES_SEGMENT, "harness", fid)
+    code = os.path.join(fx["repoB"], harness_boundary.WORKTREES_SEGMENT, "repoB", fid)
+    lines = r.stdout.strip().splitlines()
+    check("2056 create: both worktrees exist, labelled by role, code path last",
+          r.returncode == 0 and os.path.isdir(planning) and os.path.isdir(code)
+          and f"PLANNING {planning}" in lines and f"CODE {code}" in lines and lines[-1] == code,
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    if not os.path.isdir(planning):
+        check("2056 create: the planning worktree exists", False, f"stdout={r.stdout!r}")
+        return
+    check("2056 create: the planning worktree is a harness checkout on feat/<id>",
+          _git(planning, ["rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip() == f"feat/{fid}"
+          and os.path.realpath(_git(planning, ["rev-parse", "--git-common-dir"]).stdout.strip())
+          == os.path.realpath(os.path.join(fx["repoA"], ".git")), planning)
+    p = run_cli(["path", "--repo", "org/repoB", "--id", fid], fx)
+    check("2056 path: names the planning worktree and ends with the code worktree",
+          p.stdout.strip().splitlines() == [f"PLANNING {planning}", f"CODE {code}", code],
+          p.stdout)
+    b = run_cli(["behind", "--repo", "org/repoB", "--id", fid], fx)
+    check("2056 behind: checks both worktrees", b.returncode == 0
+          and b.stdout.count("current with") == 2, f"rc={b.returncode} {b.stdout!r} {b.stderr!r}")
+
+    # The planning worktree holds the artifacts; until they land on harness main, NOTHING is
+    # removed — not even the code worktree, which has no artifact gate of its own.
+    rel = _commit_artifact(planning, "repoB", fid, "brief\n", "plan")
+    refused = run_cli(["remove", "--repo", "org/repoB", "--id", fid], fx)
+    check("2056 remove: unlanded planning artifacts refuse, and both worktrees stay",
+          refused.returncode == 5 and f"MISSING {rel}" in refused.stdout
+          and os.path.isdir(planning) and os.path.isdir(code),
+          f"rc={refused.returncode} {refused.stdout!r} {refused.stderr!r}")
+    _merge_into_default(fx["repoA"], fid)
+    removed = run_cli(["remove", "--repo", "org/repoB", "--id", fid], fx)
+    check("2056 remove: once landed, both worktrees are removed",
+          removed.returncode == 0 and not os.path.exists(planning) and not os.path.exists(code),
+          f"rc={removed.returncode} {removed.stdout!r} {removed.stderr!r}")
+
+
+def case_fleet_create_is_all_or_nothing(fx):
+    """#2056: when the code worktree cannot be cut, the planning worktree just made is rolled
+    back with its new branch — never a planning half without its code half."""
+    fid = "FEAT-72-half-pair"
+    blocker = os.path.join(fx["repoB"], harness_boundary.WORKTREES_SEGMENT, "repoB")
+    os.makedirs(blocker, exist_ok=True)
+    os.chmod(blocker, 0o500)
+    try:
+        r = run_cli(["create", "--repo", "org/repoB", "--id", fid], fx)
+    finally:
+        os.chmod(blocker, 0o755)
+    planning = os.path.join(fx["repoA"], harness_boundary.WORKTREES_SEGMENT, "harness", fid)
+    branch = _git(fx["repoA"], ["rev-parse", "--verify", "--quiet", f"refs/heads/feat/{fid}"],
+                  check_ok=False)
+    check("2056 create: a failed code worktree rolls back the planning worktree and branch",
+          r.returncode != 0 and not os.path.exists(planning) and branch.returncode != 0,
+          f"rc={r.returncode} {r.stderr!r} planning_exists={os.path.exists(planning)}")
+
+
+def case_create_cuts_from_origin(fx):
+    """#2056: a new branch is cut from origin/<default>, not from a local default branch
+    carrying an unpushed commit (FEAT-01-kaya-platform's planning branch was)."""
+    origin = os.path.join(os.path.dirname(fx["repoA"]), "origin-cut.git")
+    _git(fx["repoA"], ["init", "-q", "--bare", origin])
+    _git(fx["repoA"], ["remote", "add", "origin", origin])
+    _git(fx["repoA"], ["push", "-q", "origin", "main"])
+    pushed = _git(fx["repoA"], ["rev-parse", "main"]).stdout.strip()
+    with open(os.path.join(fx["repoA"], "unpushed.txt"), "w") as f:
+        f.write("local only\n")
+    _git(fx["repoA"], ["add", "-A"])
+    _git(fx["repoA"], ["commit", "-q", "-m", "unpushed"])
+    try:
+        info, r = create_one(fx, "harness", "FEAT-73-cut")
+        head = _git(info["dest"], ["rev-parse", "HEAD"]).stdout.strip() if info["dest"] else ""
+        check("2056 create: the branch is cut from origin/main, without the unpushed commit",
+              r.returncode == 0 and head == pushed,
+              f"rc={r.returncode} head={head} pushed={pushed} {r.stderr!r}")
+    finally:
+        _git(fx["repoA"], ["reset", "-q", "--hard", pushed])
+        _git(fx["repoA"], ["remote", "remove", "origin"])
+
+
 
 def main():
     root = tempfile.mkdtemp(prefix="feature-worktree-test-")
@@ -1190,6 +1278,9 @@ def main():
             case_short_id_ambiguous_refuses(fx)
             case_behind_default_branch(fx)
             case_behind_sees_origin(fx)
+            case_fleet_feature_has_two_worktrees(fx)
+            case_fleet_create_is_all_or_nothing(fx)
+            case_create_cuts_from_origin(fx)
         else:
             print("GUARD FAILED — refusing to create anything; skipping remaining cases")
     finally:
