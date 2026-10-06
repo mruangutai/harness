@@ -223,15 +223,45 @@ def checkout_relative(abs_path):
     return checkout_dir, os.path.relpath(real(abs_path), checkout_dir)
 
 
-def _linked_checkout(pointer):
+def _checkout_pointer_text(pointer):
+    if not os.path.isfile(pointer):
+        raise OSError(f"linked-worktree Git entry is unavailable or not a file: {pointer}")
     with open(pointer, "r", encoding="utf-8", errors="strict") as handle:
-        named = handle.read().strip()
+        return handle.read().strip()
+
+
+def _strict_linked_caller(found):
+    if found is None or found[0] == found[1]:
+        return
+    if found[1] is None:
+        raise OSError(f"linked caller checkout ownership is unknown: {found[0]}")
+    checkout = found[0]
+    entry = _worktree_pointer_entry(checkout, _checkout_pointer_text(os.path.join(checkout, ".git")))
+    if entry is None or _linked_checkout(os.path.join(entry, "gitdir"), strict=True) != checkout:
+        raise OSError(f"linked caller metadata does not resolve reciprocally: {checkout}")
+
+
+def _strict_checkout_pointer(checkout, pointer):
+    entry = _worktree_pointer_entry(checkout, _checkout_pointer_text(os.path.join(checkout, ".git")))
+    if (entry is None or not os.path.isdir(entry)
+            or real(entry) != real(os.path.dirname(pointer))):
+        raise OSError(f"linked-worktree metadata does not resolve reciprocally: {checkout}")
+
+
+def _linked_checkout(pointer, *, strict=False):
+    if strict:
+        named = _checkout_pointer_text(pointer)
+    else:
+        with open(pointer, "r", encoding="utf-8", errors="strict") as handle:
+            named = handle.read().strip()
     if not named:
         raise OSError(f"empty linked-worktree pointer: {pointer}")
     named = os.path.normpath(os.path.join(os.path.dirname(pointer), named))
     checkout = os.path.dirname(named) if os.path.basename(named) == ".git" else named
     if not os.path.isdir(checkout):
         raise OSError(f"linked-worktree checkout is unavailable: {checkout}")
+    if strict:
+        _strict_checkout_pointer(checkout, pointer)
     return real(checkout)
 
 
@@ -261,7 +291,7 @@ def linked_worktrees(owner_root, *, strict=False):
     `gitdir` pointer file, take the directory it names, drop a trailing `.git` component,
     and keep the realpath if it exists. A missing `.git/worktrees` returns `[]`.
     Authorization callers use `strict=True`: unreadable metadata, undecodable or empty
-    pointers, and unavailable named checkouts raise rather than hiding possible matches.
+    pointers, unavailable checkouts and unresolved/nonreciprocal checkout pointers raise.
     Report callers retain the default best-effort sweep.
 
     NO GIT SUBPROCESS: DEC-193 forbids one on the governed-write path, and a hook that
@@ -284,6 +314,8 @@ def linked_worktrees(owner_root, *, strict=False):
     exactly as before.
     """
     found = worktree_owner(owner_root)
+    if strict:
+        _strict_linked_caller(found)
     if found is not None and found[1] is not None:
         owner_root = found[1]
     wt_dir = os.path.join(owner_root, ".git", "worktrees")
@@ -292,7 +324,7 @@ def linked_worktrees(owner_root, *, strict=False):
     for name in entries:
         pointer = os.path.join(wt_dir, name, "gitdir")
         try:
-            checkout = _linked_checkout(pointer)
+            checkout = _linked_checkout(pointer, strict=strict)
         except (OSError, UnicodeError):
             if strict:
                 raise
@@ -1174,7 +1206,7 @@ def _harness_advertise(applicable_globs, applicable_shared):
     return _advertise, _shared_advertise
 
 
-def _worktree_pointer_root(checkout, line):
+def _worktree_pointer_entry(checkout, line):
     # MULTILINE preserves the existing pointer-reader contract for trailing lines.
     match = re.match(r"^gitdir:\s*(.+?)\s*$", line, re.MULTILINE)
     if not match:
@@ -1182,7 +1214,14 @@ def _worktree_pointer_root(checkout, line):
     entry = match.group(1).strip()
     if not os.path.isabs(entry):
         entry = os.path.join(checkout, entry)
-    worktrees_dir = os.path.dirname(os.path.normpath(entry))
+    return os.path.normpath(entry)
+
+
+def _worktree_pointer_root(checkout, line):
+    entry = _worktree_pointer_entry(checkout, line)
+    if entry is None:
+        return None
+    worktrees_dir = os.path.dirname(entry)
     git_dir = os.path.dirname(worktrees_dir)
     if os.path.basename(worktrees_dir) != "worktrees" or os.path.basename(git_dir) != ".git":
         return None
@@ -1190,11 +1229,8 @@ def _worktree_pointer_root(checkout, line):
 
 
 def _worktree_pointer_owner(checkout, pointer):
-    if not os.path.isfile(pointer):
-        return (checkout, None, False)
     try:
-        with open(pointer, "r", encoding="utf-8", errors="strict") as handle:
-            owner = _worktree_pointer_root(checkout, handle.read().strip())
+        owner = _worktree_pointer_root(checkout, _checkout_pointer_text(pointer))
     except (OSError, UnicodeError):
         return (checkout, None, False)
     if owner is None:

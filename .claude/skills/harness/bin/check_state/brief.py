@@ -20,7 +20,9 @@ import re
 # Retroactive grading of existing BRIEFs, plans and notes is out of scope by the brief.
 _BY_PERSPECTIVE_HEADING = re.compile(r"^##\s+Done when\s*[—–-]+\s*by perspective\s*$", re.M | re.I)
 _FEAT59_KEYS = ("mission", "judgements", "budget_decisions", "rework")
-SC_LINE_RE = re.compile(r"^\s*-\s*(SC-\d+)\s*(?:\(([^)]*)\))?\s*:(.*)$", re.M)
+SC_LINE_RE = re.compile(
+    r"^[^\S\r\n]*-[^\S\r\n]*(SC-\d+)(?:[^\S\r\n]*\(([^)\r\n]*)\))?"
+    r"[^\S\r\n]*:(.*)$", re.M)
 
 
 def _brief_is_by_perspective(txt):

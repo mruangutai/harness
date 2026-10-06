@@ -731,6 +731,9 @@ def case_refused_terminal_digest():
     v, out, same = _digest_run(prose, [refused])
     results.append(("a recorded refused BLOCKED closure preserves prose without INV-15",
                     v == [] and same, out[:600]))
+    v, out, same = _digest_run(prose, [refused, dict(refused, ended_at="2026-10-05T11:00:00+00:00")])
+    results.append(("duplicate run IDs cannot exempt a refused closure",
+                    len(v) == 1 and "does not satisfy" in v[0] and same, out[:600]))
     for verdict in ("PASS", "PENDING"):
         v, out, same = _digest_run(prose, [dict(refused, verdict=verdict)])
         results.append((f"a refused marker cannot exempt {verdict}",

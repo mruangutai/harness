@@ -37,6 +37,7 @@ import digest_schema
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 from check_state.brief import SC_LINE_RE, brief_scs_with_lines
+from digest_destination import authorization_descriptor
 
 SEV = ["none", "low", "med", "high", "critical"]
 
@@ -587,24 +588,25 @@ def _grade_2_reasons_error(reasons, qualnames):
             f"return code_grade: fail.")
 
 
-VERIFY_LINE_RE = re.compile(r"^\s*verify:\s*(\S+)", re.M)
 VERIFY_ANNOTATION_RE = re.compile(r"^[ \t]*verify:([^\n]*)", re.M)
+SC_DECLARATION_RE = re.compile(
+    r"^(?:[\W_]*(?:\d+[.)][\W_]*)?SC-|\s*(?:[-*+<>#]|\d+[.)])[^\n]*[\W_]SC-)", re.I)
 CITATION_RE = re.compile(r"[\w./-]+\.\w+:\d+")
 
 
+def _criterion_annotations(body):
+    return VERIFY_ANNOTATION_RE.findall("\n".join(body[1:]))
+
+
 def _inspection_sc_ids(brief_text):
-    """SC ids whose next `verify:` line reads `inspection`."""
-    ids = []
-    for match in SC_LINE_RE.finditer(brief_text):
-        verify = VERIFY_LINE_RE.search(brief_text, match.end())
-        if verify and verify.group(1) == "inspection":
-            ids.append(match.group(1))
-    return ids
+    """SC ids carrying inspection annotations in their own canonical bodies."""
+    return [sid for sid, _tag, body in brief_scs_with_lines(brief_text)
+            if any(mode.strip() == "inspection" for mode in _criterion_annotations(body))]
 
 
-def _read_or_none(path):
+def _read_or_none(path, *, opener=None):
     try:
-        with open(path, encoding="utf-8") as fh:
+        with open(path, encoding="utf-8", opener=opener) as fh:
             return fh.read()
     except (OSError, UnicodeError):
         return None
@@ -626,7 +628,8 @@ def _inspection_citation_error(feature_dir, root, artifact):
         artifact if os.path.isabs(artifact) else os.path.join(root, artifact))
     if not body:
         return None
-    missing = [sc for sc in wanted if sc not in _cited_sc_ids(body)]
+    cited = _cited_sc_ids(body)
+    missing = [sc for sc in wanted if sc not in cited]
     if not missing:
         return None
     return (f"BRIEF marks {', '.join(missing)} `verify: inspection` and the review artifact "
@@ -1505,19 +1508,25 @@ def _qa_unearned_fail_errors(seen, verdict):
             "verdict; return PASS with it recorded, or name the gate that failed."]
 
 
+def _malformed_sc_declarations(brief):
+    return any(not SC_LINE_RE.match(line) for line in brief.splitlines()
+               if SC_DECLARATION_RE.match(line))
+
+
 def _known_nonautomated_criteria(feature_dir):
     """Only explicit, bounded inspection/UAT criteria exempt fail-first evidence."""
     if not feature_dir:
         return False
-    brief = _read_or_none(os.path.join(feature_dir, "BRIEF.md"))
-    if brief is None:
+    brief = _read_or_none(os.path.join(feature_dir, "BRIEF.md"), opener=authorization_descriptor)
+    if brief is None or _malformed_sc_declarations(brief):
         return False
     criteria = brief_scs_with_lines(brief)
-    return bool(criteria) and all(_nonautomated_mode(body) for _sid, _tag, body in criteria)
+    return (bool(criteria) and len(VERIFY_ANNOTATION_RE.findall(brief)) == len(criteria)
+            and all(_nonautomated_mode(body) for _sid, _tag, body in criteria))
 
 
 def _nonautomated_mode(body):
-    modes = VERIFY_ANNOTATION_RE.findall("\n".join(body[1:]))
+    modes = _criterion_annotations(body)
     return len(modes) == 1 and modes[0].strip() in ("inspection", "uat")
 
 

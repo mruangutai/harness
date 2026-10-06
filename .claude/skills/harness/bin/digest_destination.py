@@ -11,7 +11,6 @@ from contextlib import contextmanager
 import artifact_accessors
 import harness_boundary
 import harness_yaml
-import inflight_registry
 
 LEAD_SQUADS = {"harness-eng-lead": "engineering", "harness-product-lead": "product",
                "harness-validator-lead": "validator"}
@@ -19,6 +18,19 @@ LEAD_SQUADS = {"harness-eng-lead": "engineering", "harness-product-lead": "produ
 
 class AuthorizationError(ValueError):
     pass
+
+
+def authorization_descriptor(path, flags):
+    """Open a regular authorization source without following its final symlink or blocking."""
+    descriptor = os.open(path, flags | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise OSError("authorization source is not a regular file")
+    except OSError:
+        os.close(descriptor)
+        raise
+    return descriptor
+
 
 
 def authorization_root(root, feature):
@@ -40,13 +52,17 @@ def _registered_record_location(root, feature):
     records = glob.glob(os.path.join(root, ".harness", "*", "features", feature, "feature.json"))
     if len(records) != 1:
         raise AuthorizationError("authorization requires exactly one registered feature record")
-    record_path = os.path.realpath(records[0])
-    if os.path.commonpath((root, record_path)) != root:
+    record_path = records[0]
+    resolved_path = os.path.realpath(record_path)
+    feature_dir = os.path.dirname(records[0])
+    if os.path.dirname(resolved_path) != os.path.realpath(feature_dir):
+        raise AuthorizationError("authorization feature record is not local to its feature directory")
+    if os.path.commonpath((root, resolved_path)) != root:
         raise AuthorizationError("authorization feature record belongs to another checkout")
-    checkout = harness_boundary.worktree_owner(record_path)
+    checkout = harness_boundary.worktree_owner(resolved_path)
     if checkout is not None and (checkout[0] != root or checkout[1] is None):
         raise AuthorizationError("authorization feature record has foreign or unknown checkout ownership")
-    return record_path, os.path.dirname(records[0])
+    return record_path, feature_dir
 
 
 def registered_feature(root, feature):
@@ -56,8 +72,10 @@ def registered_feature(root, feature):
         raise AuthorizationError("authorization requires an exact feature identity")
     record_path, feature_dir = _registered_record_location(root, feature)
     try:
-        record = artifact_accessors.load_feature_json(record_path)
-    except artifact_accessors.FeatureJsonError as error:
+        with open(record_path, "rb", opener=authorization_descriptor) as source:
+            record = artifact_accessors.load_feature_json(
+                text=source.read().decode("utf-8"), context=record_path)
+    except (artifact_accessors.FeatureJsonError, OSError, UnicodeError) as error:
         raise AuthorizationError(str(error)) from error
     if not isinstance(record, dict) or record.get("feature_id") != feature:
         raise AuthorizationError("authorization feature record identity does not match")
@@ -106,6 +124,8 @@ def _runtime_identity(agent, payload):
 
 
 def _check_runtime_claim(root, expected):
+    import inflight_registry
+
     result = inflight_registry.find_run_claim(root, expected["agent_id"])
     claim = result.get("claim", {})
     if not all(expected.values()) or not result.get("ok") or any(

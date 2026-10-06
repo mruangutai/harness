@@ -88,9 +88,15 @@ Where the fix and its test landed together, the capture you cite is your own rep
 with no fail-first evidence is `FAIL`, not `PASS`, unless the trusted runtime feature's readable
 BRIEF explicitly marks every SC `inspection` or `uat` in its own continuation block. Missing,
 ambiguous or mismatched feature context and unknown/missing modes do not earn that exemption.
-Each SC must have exactly one `verify:` annotation whose entire value is `inspection` or `uat`.
-Its canonical registration must physically belong to the selected checkout; a nested linked
-checkout is still foreign. Unreadable checkout metadata grants no waiver (DEC-95, DEC-208).
+Every SC declaration must parse completely and carry exactly one `verify:` annotation whose
+entire value is `inspection` or `uat`; every annotation must belong to a parsed criterion.
+Noncanonical SC-bearing list items or headings, including checkbox and decorated labels,
+are ambiguous and never grant a waiver; unstructured prose references remain permitted.
+BRIEF must be a regular feature-local file, not a symlink borrowing another feature's criteria.
+Its canonical registration must be a regular file, reside in that same
+physical feature directory and belong to the selected checkout; a nested linked checkout is
+still foreign. Unreadable or unresolved/nonreciprocal checkout metadata grants no
+waiver, including when dispatch starts inside a linked checkout (DEC-95, DEC-208).
 For automated criteria, passing today does not prove the test ever failed.
 
 **Perturbation proofs run in a worktree, never the main checkout (DEC-153).** Proving a test
