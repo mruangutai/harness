@@ -44,6 +44,10 @@ or turn the refused result into PASS. Ordinary completed runs still require thei
 Reapplying that refused closure to an already BLOCKED run preserves its original `ended_at`;
 ordinary run-end also preserves that timestamp once refusal is recorded. Neither path can
 rewrite the refused terminal verdict or erase its disposition.
+Historical refused annotation and replay also preserve the recorded cycle attribution, feature
+cycle total, and measured tokens; conflicting explicit accounting is refused without writing.
+A prior non-BLOCKED terminal verdict cannot be annotated as refused even when a legacy record
+has no timing fields.
 Retryable yield refusals retain the same live job's claim until its corrected return is accepted;
 host terminal cleanup still releases jobs that actually end without an accepted return.
 

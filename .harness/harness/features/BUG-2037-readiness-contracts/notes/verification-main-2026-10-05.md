@@ -77,3 +77,30 @@ Operator authorized the immediate next step only: reconcile the separate repair 
 - Four fresh parallel read-only angles completed: RepairReuseFresh, RepairSimpleFresh and RepairEfficientFresh have no findings. RepairAltitudeFresh identifies the pre-existing unbounded _inspection_sc_ids interpretation as a briefing-row: defer migrating that separate citation consumer to the bounded parser because it changes behavior outside this repair. No assertion was weakened and no code apply followed the pass.
 
 Fresh pinned code/security review is still required; the initial pin 2880a614 remains unapproved. This section does not convert any historical refusal or #2037 UAT criterion to PASS.
+
+## Fresh pinned review failures and corrective round — 2026-10-06
+
+The fresh code and security readers both returned FAIL against 81d0ddafd9326c71ca0209ed0f3f8e4e8d17c378, base 2d28b79e3e7b5ae5623bd47dd87eab53a4a0c724. Their receipts are RepairCodeReviewFresh and RepairSecurityReviewFresh. That pin remains unapproved:
+
+- High: malformed, nonmapping or undecodable registered feature records escaped the readiness lookup as FeatureJsonError; a disappeared record could escape as AttributeError. The outer hook guard then returned success without validating the QA object.
+- Medium: historical refused annotation/replay could replace positive cycle attribution, feature totals and measured tokens.
+- Medium: legacy PASS without timing fields could be rewritten as a refused BLOCKED closure.
+
+MAIN observed each defect through the real CLI and wrote permanent regressions before production edits. The attributed two-file RED run had three failing feature-record cases and four failing hook cases; the same run passed after the narrow repairs. A subsequent legacy BLOCKED/no-timing accounting boundary also failed before its correction and passed in the full suite.
+
+The correction catches the canonical typed read error at the readiness lookup, refuses a nullable registered record, protects terminal verdicts independently of timing availability, and preserves historical refused accounting or atomically refuses conflicting explicit values. Open-run accounting still records the supplied result. The ledger reference documents these boundaries.
+
+The first expanded history predicate failed the production grade bar (cognitive 10, grade 3). Replacing timing-based history detection with the BLOCKED terminal identity removes that extra branch: all 25 new/worsened functions now meet the worktree differential bars, production at least 4 and tests at least 3.
+
+Fresh standalone accounting smoke observed exit 2 with unchanged bytes for conflicting cycles, conflicting measured tokens and legacy PASS; matching replay and legacy BLOCKED annotation exited 0 with preserved accounting. Its first invocation used a non-feature temporary path and was correctly refused with exit 9; the corrected disposable fixture used the supported features-directory layout.
+
+Fresh hook smoke used the real registry run-start CLI with a live supervisor PID. A corrupt registered record returned exit 2 with the process-owned claim and artifact byte-identical. Repairing that record and resubmitting the same runtime/object returned exit 0 and released the claim. Disposable roots were removed. This remains CLI smoke, not live OMP UAT.
+
+Settled-source verification after the terminal-status simplification:
+
+- Full unit suite: exit 0, 52 files, 30.24 seconds wall; artifact://275. Includes 92 feature-record tests and 138 OMP hook tests, 768 assertions.
+- Full integration suite: exit 0, 80 files, 91.38 seconds wall; artifact://276. Exact-claim 81/81, undeclared-key 37/37, unrelated-claim sentinel byte-identical.
+- Static trio passed: 54,123 words across 16 roles, 73 referenced files, 68 instruction files and zero violations.
+- Final real run-end smoke exercised legacy BLOCKED without timing: conflicting cycles exited 2 atomically; matching cycles exited 0 with totals and tokens preserved. A genuine PENDING closure exited 0 and recorded supplied cycle 1 and token 7. The disposable root was removed.
+- Four final parallel read-only angles (RepairReuseSettled, RepairSimpleSettled, RepairEfficientSettled, RepairAltitudeSettled) returned no findings. No source/test apply followed this pass.
+- Canonical check-state.py exited 0 before the replacement commit, with only the expected seven-path dirty-layout advisory. Fresh review must assess the replacement immutable pin; these results do not approve 81d0ddaf or the original #2037 feature.

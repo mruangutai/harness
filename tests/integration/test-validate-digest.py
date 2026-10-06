@@ -2981,6 +2981,43 @@ def run_qa_foreign_brief_case():
     finally:
         shutil.rmtree(root)
 
+def _qa_record_read_failure_case(label, contents):
+    root = _t09_root()
+    try:
+        current = make_feature_dir(root, feat=HOOK_IDENTITY["harness_feature"])
+        record = os.path.join(current, "feature.json")
+        if contents is None:
+            os.remove(record)
+            os.symlink("missing-feature.json", record)
+        else:
+            _write_verification_brief(record, contents)
+        obj = fixture("harness-qa", _t04_base_digest("harness-qa"))
+        obj["VERDICT"], obj["artifact"] = "PASS", os.path.join(current, "qa.md")
+        obj["DIGEST"].update(suite="pass", failures=0, matrix_ok=True, kinds=[], fail_first=[])
+        reg = _reg_module()
+        reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
+                            HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
+        claim_before = reg.live_claims(root, "harness-qa")
+        result = _t09_fire(root, "harness-qa", obj)
+        ok = (result.returncode == 2 and "fail_first" in result.stderr
+              and reg.live_claims(root, "harness-qa") == claim_before)
+        print(f"{'ok' if ok else 'FAIL'} {label} record cannot bypass QA: "
+              f"exit={result.returncode} {result.stderr.strip()[:300]}")
+        return int(not ok)
+    finally:
+        shutil.rmtree(root)
+
+
+def run_qa_record_read_failure_cases():
+    return sum(_qa_record_read_failure_case(label, contents) for label, contents in (
+        ("invalid JSON", b"{broken"),
+        ("nonmapping JSON", b"[]"),
+        ("undecodable", b"\xff"),
+        ("disappeared", None),
+    ))
+
+
+
 
 _T04_UNIVERSAL = "  files_touched: []\n  open_questions: []\n  expertise_update: []\n"
 _T04_BASES = {
@@ -5196,6 +5233,7 @@ def main(argv=None):
         run_bug919_qa_matrix_cases,
         run_qa_verification_mode_cases,
         run_qa_foreign_brief_case,
+        run_qa_record_read_failure_cases,
         run_bug919_resolve_fallback_case,
         run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,

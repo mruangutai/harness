@@ -1824,7 +1824,7 @@ def _hook_feature_dir(artifact, feature):
         if error or os.path.realpath(feature_dir) != os.path.realpath(registered_dir):
             return None
         return feature_dir
-    except (ImportError, OSError, ValueError):
+    except (ImportError, OSError, ValueError, artifact_accessors.FeatureJsonError):
         return None
 
 

@@ -246,9 +246,33 @@ def _run_end_time(entry, refused_return):
     if not refused_return and entry.get("return_disposition") != "refused":
         return now_iso()
     ended = entry.get("ended_at")
-    if ended and entry.get("verdict") != "BLOCKED":
+    verdict = entry.get("verdict")
+    if verdict not in ("PENDING", "BLOCKED") or (ended and verdict != "BLOCKED"):
         _refuse(["REFUSED: a refused closure cannot rewrite an existing terminal verdict."])
     return ended or now_iso()
+
+
+def _preserve_refused_accounting(entry, args):
+    if entry.get("verdict") != "BLOCKED":
+        return False
+    if not args.refused_return and entry.get("return_disposition") != "refused":
+        return False
+    if args.cycles_used != entry.get("cycles_used", 0):
+        _refuse(["REFUSED: historical refused cycles_used cannot be rewritten."])
+    if args.tokens is not None and args.tokens != entry.get("tokens"):
+        _refuse(["REFUSED: historical refused measured tokens cannot be rewritten."])
+    return True
+
+
+def _record_run_accounting(doc, entry, args, feature_cycles):
+    if _preserve_refused_accounting(entry, args):
+        return
+    previous_cycles = entry.get("cycles_used", 0)
+    entry["cycles_used"] = args.cycles_used
+    # A measured figure is never overwritten with null; null records an unmeasured open run.
+    if args.tokens is not None or "tokens" not in entry:
+        entry["tokens"] = args.tokens
+    doc["cycles_used"] = feature_cycles - previous_cycles + args.cycles_used
 
 
 def cmd_run_end(args):
@@ -268,20 +292,14 @@ def cmd_run_end(args):
                 f"feature cycles_used={feature_cycles}.",
                 "  repair the inconsistent ledger before recording another run result.",
             ])
-        previous_cycles = entry.get("cycles_used", 0)
         ended_at = _run_end_time(entry, args.refused_return)
+        _record_run_accounting(doc, entry, args, feature_cycles)
         entry["verdict"] = args.verdict
         entry["ended_at"] = ended_at
-        entry["cycles_used"] = args.cycles_used
         if args.refused_return:
             entry["return_disposition"] = "refused"
-        # A measured figure is never overwritten with null; null is written only when
-        # the entry has no figure at all, so "unmeasured" is recorded rather than implied.
-        if args.tokens is not None or "tokens" not in entry:
-            entry["tokens"] = args.tokens
         if args.code_grade:
             entry["code_grade"] = args.code_grade
-        doc["cycles_used"] = feature_cycles - previous_cycles + args.cycles_used
         doc["runs"] = runs
         return doc
 

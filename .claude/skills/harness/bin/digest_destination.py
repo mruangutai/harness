@@ -32,7 +32,7 @@ def registered_feature(root, feature):
     if len(records) != 1:
         raise AuthorizationError("authorization requires exactly one registered feature record")
     record = artifact_accessors.load_feature_json(records[0])
-    if record.get("feature_id") != feature:
+    if not isinstance(record, dict) or record.get("feature_id") != feature:
         raise AuthorizationError("authorization feature record identity does not match")
     return record, os.path.dirname(records[0])
 

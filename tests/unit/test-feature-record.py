@@ -528,6 +528,53 @@ class CloseRunTest(FeatureRecordCase):
         self.assertEqual(2, self.close_refused("BLOCKED").returncode)
         self.assertEqual(before, self.path.read_bytes())
 
+    def test_refused_closure_cannot_rewrite_a_legacy_pass_without_timing(self):
+        entry = {"id": "r1", "squad": "eng", "agent": "harness-eng-lead",
+                 "verdict": "PASS", "cycles_used": 0}
+        before = self.write(base_doc(runs=[entry]))
+        self.digest.write_text("missing accepted record\n", encoding="utf-8")
+        self.assertEqual(2, self.close_refused("BLOCKED").returncode)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_refused_annotation_preserves_positive_historical_accounting(self):
+        entry = dict(self.OPEN, verdict="BLOCKED", ended_at="2026-10-05T10:00:00+00:00",
+                     cycles_used=2, tokens=21)
+        before = self.write(base_doc(cycles_used=2, runs=[entry]))
+        self.digest.write_text("the original return was refused\n", encoding="utf-8")
+        self.assertEqual(2, self.close_refused("BLOCKED").returncode)
+        self.assertEqual(before, self.path.read_bytes())
+        self.assert_ok(self.close_refused("BLOCKED", "--cycles-used", "2"))
+        self.assertEqual(dict(entry, return_disposition="refused"), self.load()["runs"][0])
+        self.assertEqual(2, self.load()["cycles_used"])
+
+    def test_refused_replay_rejects_changed_cycles_or_measured_tokens(self):
+        entry = dict(self.OPEN, verdict="BLOCKED", return_disposition="refused",
+                     ended_at="2026-10-05T10:00:00+00:00", cycles_used=2, tokens=21)
+        before = self.write(base_doc(cycles_used=2, runs=[entry]))
+        for extra in (("--cycles-used", "0"), ("--cycles-used", "2", "--tokens", "99")):
+            result = self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                                  "--verdict", "BLOCKED", *extra)
+            self.assertEqual(2, result.returncode, result.stderr)
+            self.assertEqual(before, self.path.read_bytes())
+        self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                                    "--verdict", "BLOCKED", "--cycles-used", "2", "--tokens", "21"))
+        self.assertEqual(entry, self.load()["runs"][0])
+        self.assertEqual(2, self.load()["cycles_used"])
+
+    def test_refused_annotation_preserves_legacy_blocked_accounting_without_timing(self):
+        entry = {"id": "r1", "squad": "eng", "agent": "harness-eng-lead",
+                 "verdict": "BLOCKED", "cycles_used": 2, "tokens": 21}
+        before = self.write(base_doc(cycles_used=2, runs=[entry]))
+        self.digest.write_text("the original return was refused\n", encoding="utf-8")
+        self.assertEqual(2, self.close_refused("BLOCKED").returncode)
+        self.assertEqual(before, self.path.read_bytes())
+        self.assert_ok(self.close_refused("BLOCKED", "--cycles-used", "2"))
+        recorded = self.load()
+        self.assertEqual((2, 21, 2), (recorded["runs"][0]["cycles_used"],
+                                     recorded["runs"][0]["tokens"], recorded["cycles_used"]))
+        self.assertEqual("refused", recorded["runs"][0]["return_disposition"])
+        self.assert_clean()
+
     def test_run_end_cannot_erase_a_refused_terminal_disposition(self):
         entry = dict(self.OPEN, verdict="BLOCKED", return_disposition="refused",
                      ended_at="2026-10-05T10:00:00+00:00", cycles_used=0)
