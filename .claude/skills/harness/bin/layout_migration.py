@@ -49,6 +49,7 @@ The feature-claiming tool's features row landed with the unit that fixed its roo
 import glob
 import os
 import re
+import subprocess
 import sys
 from collections import namedtuple
 
@@ -188,11 +189,13 @@ def _evidence(root, surface, segments):
     no reader edit could clear."""
     if surface == "features":
         # Layout evidence is the shape of THIS checkout's tree, never the main corpus's: the
-        # migration under audit is the one this checkout carries (FEAT-1559).
+        # migration under audit is the one this checkout carries (FEAT-1559). Its tree is
+        # what it tracks plus what is on disk — a sparse worktree tracks every landed record
+        # it does not materialise, so the disk alone read as no evidence at all (#2114).
         # corpus-scope: checkout-local
-        legacy = glob.glob(os.path.join(root, ".harness", "features", "*", "feature.json"))
+        legacy = _tracked_or_present(root, ".harness/features/*/feature.json")
         # corpus-scope: checkout-local
-        candidates = glob.glob(os.path.join(root, ".harness", "*", "features", "*", "feature.json"))
+        candidates = _tracked_or_present(root, ".harness/*/features/*/feature.json")
     else:
         legacy = [p for p in [os.path.join(root, "docs", "harness", "SPEC.md")]
                   if os.path.isfile(p)]
@@ -207,6 +210,19 @@ def _evidence(root, surface, segments):
     if migrated:
         shapes.add("migrated")
     return shapes, len(legacy) + len(migrated), undeclared
+
+
+def _tracked_or_present(root, pattern):
+    """Absolute paths matching the `/`-separated glob `pattern` that `root`'s index tracks
+    (sparse-hidden entries included) or that exist on disk. Outside a git checkout top, only
+    the disk answers."""
+    found = set(glob.glob(os.path.join(root, *pattern.split("/"))))
+    if os.path.exists(os.path.join(root, ".git")):
+        proc = subprocess.run(["git", "--no-optional-locks", "ls-files", "-z", "--",
+                               f":(glob){pattern}"], cwd=root, capture_output=True, text=True)
+        if proc.returncode == 0:
+            found.update(os.path.join(root, *p.split("/")) for p in proc.stdout.split("\0") if p)
+    return sorted(found)
 
 
 def _reader_formset(root, row):
