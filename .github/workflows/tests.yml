@@ -391,6 +391,9 @@ jobs:
       # THE MANIFEST LIVES IN runner.temp, outside the watched bin tree and the checkout. The
       # runner writes it only after every started script terminated, so a crash or a cancelled
       # shard leaves no manifest, and `integration` refuses on its absence.
+      - name: UAT U-04 omit one discovered file (throwaway only)
+        run: rm tests/integration/test-bash-write-guard.py
+
       - name: Integration suite (shard ${{ matrix.shard }}/4)
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
