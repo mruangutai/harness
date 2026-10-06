@@ -88,6 +88,7 @@ Where the fix and its test landed together, the capture you cite is your own rep
 with no fail-first evidence is `FAIL`, not `PASS`, unless the trusted runtime feature's readable
 BRIEF explicitly marks every SC `inspection` or `uat` in its own continuation block. Missing,
 ambiguous or mismatched feature context and unknown/missing modes do not earn that exemption.
+Each SC must have exactly one `verify:` annotation whose entire value is `inspection` or `uat`.
 For automated criteria, passing today does not prove the test ever failed.
 
 **Perturbation proofs run in a worktree, never the main checkout (DEC-153).** Proving a test

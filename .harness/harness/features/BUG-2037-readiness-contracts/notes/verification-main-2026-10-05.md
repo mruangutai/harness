@@ -104,3 +104,28 @@ Settled-source verification after the terminal-status simplification:
 - Final real run-end smoke exercised legacy BLOCKED without timing: conflicting cycles exited 2 atomically; matching cycles exited 0 with totals and tokens preserved. A genuine PENDING closure exited 0 and recorded supplied cycle 1 and token 7. The disposable root was removed.
 - Four final parallel read-only angles (RepairReuseSettled, RepairSimpleSettled, RepairEfficientSettled, RepairAltitudeSettled) returned no findings. No source/test apply followed this pass.
 - Canonical check-state.py exited 0 before the replacement commit, with only the expected seven-path dirty-layout advisory. Fresh review must assess the replacement immutable pin; these results do not approve 81d0ddaf or the original #2037 feature.
+
+## Replacement-pin review findings — 2026-10-06
+
+RepairCodeReview7429 and RepairSecurityReview7429 both returned FAIL for 7429b89aff0f7baf5119bba5f5d4a5a0304d92d5 against the same immutable main base. They independently confirmed the prior corrections, but found additional readiness and durable-evidence gaps. This pin is not approved.
+
+Hypotheses before production edits:
+
+- Checkout ambiguity: readiness calls the registry's intentional owner fallback, so a stale inspection-only owner BRIEF can waive evidence when two feature worktrees match. A real two-worktree hook fixture with automated worktree criteria and an owner artifact should expose acceptance; refusal without changing production would falsify this trace.
+- Annotation counting: the existing citation-oriented regex ignores empty verification labels and reads only the first value token. A bounded inspection criterion with a trailing empty verify label should incorrectly waive evidence; existing rejection would falsify the hypothesis.
+- Durable lead evidence: canonical record read errors remain untranslated in shared registration, so authorization's second read escapes its expected refusal handler after genuine binding issuance. Corrupting the record after startup should return success without a durable digest; ordinary exit-2 refusal with unchanged claim/artifact would falsify this trace.
+
+## Second corrective round verification — 2026-10-06
+
+- Before production changes, all four new cases failed against 7429b89a: trailing empty verification label, extra-valued mode, ambiguous linked checkouts, and canonical record corruption after genuine lead binding issuance. The attributed validate-digest run exited 1 in 11.46 seconds. The first ambiguity fixture had a missing harness marker and was falsely green; correcting only that disposable fixture reproduced the fourth failure before production edits.
+- Shared registration now translates canonical FeatureJsonError into AuthorizationError for all authorization callers. Readiness uses the strict boundary resolver rather than the registry's ambiguity-suppressing owner fallback. A dedicated annotation pattern counts empty labels and validates the entire sole value; the separate citation-oriented consumer is unchanged.
+- Focused attributed validate-digest run: exit 0, 11.32 seconds wall. All new cases pass; unrelated live-claim sentinel remained byte-identical.
+- Worktree differential grading against immutable main base: 29 gated functions, all pass their production/test bars.
+- Full canonical unit suite: exit 0, 52 files, 28.78 seconds wall; artifact://297. Includes 92 feature-record tests and 138 OMP hook tests with 768 assertions.
+- Full canonical integration suite: exit 0, 80 files, 88.24 seconds wall; artifact://298. Exact-claim 81/81, undeclared-key 37/37, unrelated-claim sentinel byte-identical.
+- Static trio after documenting exact annotation values: pass; 54,138 words across 16 roles, 73 referenced files, 68 instruction files, zero violations.
+- Disposable real QA hook smoke: ambiguous checkouts, empty duplicate annotation, and extra-valued mode each exit 2 with the exact claim and artifact unchanged. Removing the disposable linked checkouts and supplying one complete inspection annotation allows the same job to exit 0 and releases its exact claim; artifact remains unchanged.
+- Disposable real lead startup/yield smoke: a genuine binding is issued while the canonical record is valid; corrupting that record makes the yield exit 2 without changing claim or artifact. Restoring the record permits the identical object to exit 0, preserves the original artifact prefix, durably writes the complete parsed object, and releases its exact claim. The fixture's valid verdict is FAIL, not PASS: an initial throwaway assertion incorrectly expected PASS; the corrected smoke compares the parsed durable object to the actual fixture, with no production change.
+- Disposable smoke roots were removed. This is CLI enforcement evidence, not live OMP UAT. The original #2037 integration and UAT remain outside this authorization.
+- Final four parallel read-only quality angles (RepairReuseSecond, RepairSimplifySecond, RepairEfficientSecond, RepairAltitudeSecond) returned no findings. No source/test apply followed this pass.
+- Canonical check-state.py exited 0 before pinning, with only the expected five-path dirty-layout advisory. Fresh code/security approval must refer to the replacement immutable pin, not either failed prior pin.

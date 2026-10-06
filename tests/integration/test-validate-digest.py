@@ -2934,6 +2934,8 @@ def run_qa_verification_mode_cases():
         ("mode in later section", "- SC-01 (operator): unknown\n\n"
          "## Verification\n  verify: uat\n", False),
         ("unknown mode", "- SC-01: exercise\n  verify: manual\n", False),
+        ("empty duplicate annotation", "- SC-01: inspect\n  verify: inspection\n  verify:\n", False),
+        ("invalid mode suffix", "- SC-01: inspect\n  verify: inspection plus automated\n", False),
         ("no criteria", "# BRIEF\n", False),
         ("missing brief", None, False),
         ("undecodable brief", b"\xff", False),
@@ -3015,6 +3017,73 @@ def run_qa_record_read_failure_cases():
         ("undecodable", b"\xff"),
         ("disappeared", None),
     ))
+
+def _ambiguous_qa_fixture(td):
+    root = os.path.join(td, "owner")
+    _init_test_repo(root)
+    _write_verification_brief(os.path.join(root, ".harness", "team-config.yaml"),
+                              "schema_version: 1\nteams: []\n")
+    feature_dir = make_feature_dir(root, feat=HOOK_IDENTITY["harness_feature"])
+    brief_rel = os.path.relpath(os.path.join(feature_dir, "BRIEF.md"), root)
+    _write_verification_brief(os.path.join(root, brief_rel), "- SC-01: inspect\n  verify: inspection\n")
+    _commit_file(root, "fixture.txt", "worktree fixture\n", "fixture")
+    for basename in ("FEAT-01", "FEAT-01-hook"):
+        checkout = os.path.join(td, basename)
+        _git_quiet(root, "worktree", "add", "-q", "--detach", checkout, "HEAD")
+        _write_verification_brief(os.path.join(checkout, brief_rel),
+                                  "- SC-01: automated evidence\n  verify: integration\n")
+    return root, feature_dir
+
+
+def run_qa_ambiguous_checkout_case():
+    with tempfile.TemporaryDirectory(prefix="qa-ambiguous-") as td:
+        root, feature_dir = _ambiguous_qa_fixture(td)
+        obj = fixture("harness-qa", _t04_base_digest("harness-qa"))
+        obj["VERDICT"], obj["artifact"] = "PASS", os.path.join(feature_dir, "qa.md")
+        obj["DIGEST"].update(suite="pass", failures=0, matrix_ok=True, kinds=[], fail_first=[])
+        _write_verification_brief(obj["artifact"], "owner assessment\n")
+        reg = _reg_module()
+        reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
+                            HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
+        before = reg.live_claims(root, "harness-qa")
+        result = _t09_fire(root, "harness-qa", obj)
+        ok = (result.returncode == 2 and reg.live_claims(root, "harness-qa") == before
+              and _read_bytes(obj["artifact"]) == b"owner assessment\n")
+        print(f"{'ok' if ok else 'FAIL'} ambiguous checkout cannot waive QA evidence: "
+              f"exit={result.returncode} {result.stderr.strip()[:300]}")
+        return int(not ok)
+
+
+def _issued_lead_binding(root):
+    payload = _governed({"agent_type": "harness-eng-lead", "cwd": root,
+                         "harness_parent_agent_id": "Test.Parent"})
+    result = subprocess.run([os.path.join(os.path.dirname(VALIDATE), "digest_destination.py")],
+                            input=json.dumps(payload), capture_output=True, text=True,
+                            env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+    result.check_returncode()
+    return json.loads(result.stdout)["binding"]
+
+
+def run_lead_record_read_failure_case():
+    root, path = _append_root()
+    try:
+        _write_verification_brief(path, "original assessment\n")
+        binding = _issued_lead_binding(root)
+        reg = _reg_module()
+        before = reg.live_claims(root, "harness-eng-lead")
+        record = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))), "feature.json")
+        _write_verification_brief(record, b"{broken")
+        result = _t09_fire(root, "harness-eng-lead", _append_lead_object(),
+                          harness_parent_agent_id="Test.Parent", harness_digest_binding=binding)
+        ok = (result.returncode == 2 and reg.live_claims(root, "harness-eng-lead") == before
+              and _read_bytes(path) == b"original assessment\n")
+        print(f"{'ok' if ok else 'FAIL'} corrupt record cannot bypass durable lead evidence: "
+              f"exit={result.returncode} {result.stderr.strip()[:300]}")
+        return int(not ok)
+    finally:
+        _remove_append_root(root)
+
+
 
 
 
@@ -5234,6 +5303,7 @@ def main(argv=None):
         run_qa_verification_mode_cases,
         run_qa_foreign_brief_case,
         run_qa_record_read_failure_cases,
+        run_qa_ambiguous_checkout_case,
         run_bug919_resolve_fallback_case,
         run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,
@@ -5243,6 +5313,7 @@ def main(argv=None):
         run_code_grade_policy_cases,
         run_hook_cases,
         run_lead_append_cases,
+        run_lead_record_read_failure_case,
         run_t09,
         run_t51_suspension_cases,
         run_bug1898_exact_release_cases,

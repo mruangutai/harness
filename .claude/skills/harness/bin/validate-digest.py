@@ -588,6 +588,7 @@ def _grade_2_reasons_error(reasons, qualnames):
 
 
 VERIFY_LINE_RE = re.compile(r"^\s*verify:\s*(\S+)", re.M)
+VERIFY_ANNOTATION_RE = re.compile(r"^[ \t]*verify:([^\n]*)", re.M)
 CITATION_RE = re.compile(r"[\w./-]+\.\w+:\d+")
 
 
@@ -1516,8 +1517,8 @@ def _known_nonautomated_criteria(feature_dir):
 
 
 def _nonautomated_mode(body):
-    modes = VERIFY_LINE_RE.findall("\n".join(body[1:]))
-    return len(modes) == 1 and modes[0] in ("inspection", "uat")
+    modes = VERIFY_ANNOTATION_RE.findall("\n".join(body[1:]))
+    return len(modes) == 1 and modes[0].strip() in ("inspection", "uat")
 
 
 def _qa_fail_first_errors(seen, passing, feature_dir=None):
@@ -1816,15 +1817,14 @@ def _hook_feature_dir(artifact, feature):
         return None
     try:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-        import inflight_registry
         from digest_destination import registered_feature
-        checkout_root = inflight_registry.feature_root(owner_root, feature)
+        checkout_root = harness_boundary.worktree_for_feature(owner_root, feature) or owner_root
         feature_dir, error = _feature_dir_from_artifact(artifact, checkout_root)
         _record, registered_dir = registered_feature(checkout_root, feature)
         if error or os.path.realpath(feature_dir) != os.path.realpath(registered_dir):
             return None
         return feature_dir
-    except (ImportError, OSError, ValueError, artifact_accessors.FeatureJsonError):
+    except (ImportError, OSError, ValueError, harness_boundary.AmbiguousWorktree):
         return None
 
 

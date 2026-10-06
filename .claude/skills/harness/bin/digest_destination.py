@@ -31,7 +31,10 @@ def registered_feature(root, feature):
     records = glob.glob(os.path.join(root, ".harness", "*", "features", feature, "feature.json"))
     if len(records) != 1:
         raise AuthorizationError("authorization requires exactly one registered feature record")
-    record = artifact_accessors.load_feature_json(records[0])
+    try:
+        record = artifact_accessors.load_feature_json(records[0])
+    except artifact_accessors.FeatureJsonError as error:
+        raise AuthorizationError(str(error)) from error
     if not isinstance(record, dict) or record.get("feature_id") != feature:
         raise AuthorizationError("authorization feature record identity does not match")
     return record, os.path.dirname(records[0])
