@@ -89,6 +89,8 @@ with no fail-first evidence is `FAIL`, not `PASS`, unless the trusted runtime fe
 BRIEF explicitly marks every SC `inspection` or `uat` in its own continuation block. Missing,
 ambiguous or mismatched feature context and unknown/missing modes do not earn that exemption.
 Each SC must have exactly one `verify:` annotation whose entire value is `inspection` or `uat`.
+Its canonical registration must physically belong to the selected checkout; a nested linked
+checkout is still foreign. Unreadable checkout metadata grants no waiver (DEC-95, DEC-208).
 For automated criteria, passing today does not prove the test ever failed.
 
 **Perturbation proofs run in a worktree, never the main checkout (DEC-153).** Proving a test

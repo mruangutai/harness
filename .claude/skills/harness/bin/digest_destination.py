@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 import artifact_accessors
 import harness_boundary
+import harness_yaml
 import inflight_registry
 
 LEAD_SQUADS = {"harness-eng-lead": "engineering", "harness-product-lead": "product",
@@ -20,24 +21,47 @@ class AuthorizationError(ValueError):
     pass
 
 
-def registered_feature(root, feature):
-    """Resolve the unique registered feature named by trusted runtime identity."""
-    if not isinstance(feature, str) or not re.fullmatch(
-            r"(?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+", feature):
+def authorization_root(root, feature):
+    """Resolve an authorization checkout without report-mode topology fallbacks."""
+    if not isinstance(feature, str):
         raise AuthorizationError("authorization requires an exact feature identity")
+    try:
+        checkout = harness_boundary.worktree_for_feature(root, feature, strict=True)
+    except (harness_boundary.AmbiguousWorktree, OSError, UnicodeError) as error:
+        raise AuthorizationError(f"authorization cannot resolve the feature checkout: {error}") from error
+    return os.path.realpath(checkout or root)
+
+
+def _registered_record_location(root, feature):
+    root = os.path.realpath(root)
     # The selected feature's own record, bound to this checkout: authorization never reads
     # another checkout's copy (FEAT-1559).
     # corpus-scope: checkout-local
     records = glob.glob(os.path.join(root, ".harness", "*", "features", feature, "feature.json"))
     if len(records) != 1:
         raise AuthorizationError("authorization requires exactly one registered feature record")
+    record_path = os.path.realpath(records[0])
+    if os.path.commonpath((root, record_path)) != root:
+        raise AuthorizationError("authorization feature record belongs to another checkout")
+    checkout = harness_boundary.worktree_owner(record_path)
+    if checkout is not None and (checkout[0] != root or checkout[1] is None):
+        raise AuthorizationError("authorization feature record has foreign or unknown checkout ownership")
+    return record_path, os.path.dirname(records[0])
+
+
+def registered_feature(root, feature):
+    """Resolve the unique registered feature named by trusted runtime identity."""
+    if not isinstance(feature, str) or not re.fullmatch(
+            r"(?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+", feature):
+        raise AuthorizationError("authorization requires an exact feature identity")
+    record_path, feature_dir = _registered_record_location(root, feature)
     try:
-        record = artifact_accessors.load_feature_json(records[0])
+        record = artifact_accessors.load_feature_json(record_path)
     except artifact_accessors.FeatureJsonError as error:
         raise AuthorizationError(str(error)) from error
     if not isinstance(record, dict) or record.get("feature_id") != feature:
         raise AuthorizationError("authorization feature record identity does not match")
-    return record, os.path.dirname(records[0])
+    return record, feature_dir
 
 
 def _registered_run(record, agent, run_id):
@@ -57,8 +81,11 @@ def _registered_digest(root, feature_dir, selected, agent):
     if not isinstance(selected, str) or selected in ("", ".", "..") or "/" in selected or "\\" in selected:
         raise AuthorizationError("authorization run identity is not a single directory name")
     path = os.path.join(feature_dir, "runs", selected, "digest.md")
-    grants, _shared = artifact_accessors.manifest_domains(
-        os.path.join(root, ".harness", "team-config.yaml"), agent)
+    try:
+        grants, _shared = artifact_accessors.manifest_domains(
+            os.path.join(root, ".harness", "team-config.yaml"), agent)
+    except harness_yaml.YamlParseError as error:
+        raise AuthorizationError(f"authorization cannot read writable grants: {error}") from error
     if not any(harness_boundary.matches(os.path.relpath(path, root), grant) for grant in grants):
         raise AuthorizationError("authorization registered run is outside this lead's writable grants")
     return path
@@ -93,7 +120,7 @@ def _check_runtime_claim(root, expected):
 
 def bind(root, payload):
     expected = _runtime_identity(payload.get("agent_type"), payload)
-    root = os.path.realpath(inflight_registry.feature_root(root, expected["feature"]))
+    root = authorization_root(root, expected["feature"])
     _check_runtime_claim(root, expected)
     run_id, path = registered_destination(root, expected["feature"], expected["agent"])
     return {"root": root, **expected, "run_id": run_id, "artifact": path}
@@ -106,7 +133,7 @@ def authorized_destination(root, agent, payload, artifact):
     expected = _runtime_identity(agent, payload)
     if not all(expected.values()) or any(binding.get(key) != value for key, value in expected.items()):
         raise AuthorizationError("authorization digest binding does not match the runtime identity")
-    root = os.path.realpath(inflight_registry.feature_root(root, expected["feature"]))
+    root = authorization_root(root, expected["feature"])
     if binding.get("root") != root or not binding.get("run_id"):
         raise AuthorizationError("authorization digest binding belongs to another checkout or run")
     _run_id, path = registered_destination(root, expected["feature"], agent, binding["run_id"])

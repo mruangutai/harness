@@ -17,12 +17,13 @@ VERBS
                 run-end, then plan-merge.py set-task-station when --task/--station are given,
                 then judgement (as harness-orchestrator) when --judgement is given, then spend;
                 --cycles-used is forwarded to run-end
-                — composed as subprocesses so each keeps its own refusal; the first refusal
-                stops the sequence naming its stage, earlier durable writes stay. Prints ONE
+                — existing subprocess authorities plus the shared atomic run-end transaction;
+                the first refusal stops the sequence naming its stage, earlier durable writes stay. Prints ONE
                 line on success. Never takes --tokens: the host hook stamps those.
                 --refused-return (#2068) closes a run whose lead return the host refused:
                 verdict BLOCKED only, and the digest stage inverts — it refuses if the digest
-                validates, since that return landed and closes normally.
+                validates, since that return landed and closes normally. Only close-run can
+                create this disposition; run-end can replay an already refused historical run.
   judgement     append one {at, by, kind, decision, reason} to judgements[] (SC-21).
   set-rework    write the operator's one rework ruling (SC-15); --decision must be a file
                 under the feature's own directory (refuses exit 2 otherwise).
@@ -75,6 +76,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import feature_json_write  # noqa: E402  (local import, after sys.path fix-up)
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 import harness_yaml  # noqa: E402  (local import, after sys.path fix-up)
+from harness_boundary import CONTRACT_REFUSAL_CODE  # noqa: E402
 
 JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject")
 MISSIONS = ("patch", "plan")
@@ -275,7 +277,7 @@ def _record_run_accounting(doc, entry, args, feature_cycles):
     doc["cycles_used"] = feature_cycles - previous_cycles + args.cycles_used
 
 
-def cmd_run_end(args):
+def _record_run_end(args):
     if args.refused_return and args.verdict != "BLOCKED":
         _exit_refused(["REFUSED: a refused return can close only as BLOCKED."])
     def mutate(doc):
@@ -304,6 +306,10 @@ def cmd_run_end(args):
         return doc
 
     _apply(args.file, mutate)
+
+
+def cmd_run_end(args):
+    _record_run_end(args)
     print(f"ENDED run {args.id!r} verdict={args.verdict} "
           f"cycles_used={args.cycles_used} tokens={json.dumps(args.tokens)}")
     print(f"APPLIED {args.file}")
@@ -572,9 +578,9 @@ def cmd_spend(args):
 
 
 # close-run (BUG-1723 T-01, D-01): ONE command for the close-out the orchestrator used to spend
-# ~11 model calls on. It COMPOSES the existing authorities as subprocesses — validate-digest.py,
-# this file's run-end and judgement, plan-merge.py set-task-station, this file's spend — so each
-# keeps its own validation, lock and refusal text. Stages run in that order; the first refusal
+# ~11 model calls on. It COMPOSES the existing authorities — validate-digest.py, the shared
+# atomic run-end transaction, plan-merge.py set-task-station, this file's judgement and spend —
+# so each keeps its own validation, lock and refusal text. The first refusal
 # stops the sequence, names its stage, and leaves every earlier durable write in place (no
 # rollback: a closed run is a fact, and hiding it would be worse than a half-finished close-out).
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -608,16 +614,16 @@ def _stage(name, argv, refuse_on_success=None):
     import subprocess
     proc = subprocess.run([sys.executable, *argv], stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE, text=True)
-    if refuse_on_success is not None:
-        if proc.returncode == 0:
-            _exit_refused([f"REFUSED at stage {name}: later stages were not run.",
-                           refuse_on_success])
-        return ""
-    if proc.returncode != 0:
+    inverted = refuse_on_success is not None
+    expected = CONTRACT_REFUSAL_CODE if inverted else 0
+    if inverted and proc.returncode == 0:
+        _exit_refused([f"REFUSED at stage {name}: later stages were not run.",
+                       refuse_on_success])
+    if proc.returncode != expected:
         print(f"REFUSED at stage {name}: later stages were not run.", file=sys.stderr)
         sys.stderr.write(proc.stderr or proc.stdout)
-        sys.exit(proc.returncode or REFUSAL_CODE)
-    return proc.stdout
+        sys.exit(proc.returncode)
+    return "" if inverted else proc.stdout
 
 
 def _close_run_agent(args, judgement):
@@ -651,10 +657,11 @@ def _close_run_stages(args, agent, judgement):
     return, so its digest.md never received a valid record and the normal close could never
     pass. The stage then demands that the digest does NOT validate — a digest that does is a
     return that landed, and must close through the normal stage under its own verdict."""
-    grade = ["--code-grade", args.code_grade] if args.code_grade else []
-    disposition = ["--refused-return"] if args.refused_return else []
     plan_yaml = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
-    digest = [os.path.join(_HERE, "validate-digest.py"), agent, args.digest]
+    digest = [os.path.join(_HERE, "validate-digest.py")]
+    if args.refused_return:
+        digest.extend(["--contract-refusal-code", str(CONTRACT_REFUSAL_CODE)])
+    digest.extend(["--", agent, args.digest])
     if args.refused_return:
         first = ("refused-return", digest, "refused-return",
                  f"  {args.digest} validates for {agent}: the lead's return landed, so close "
@@ -663,10 +670,8 @@ def _close_run_stages(args, agent, judgement):
         first = ("digest", digest, None, None)
     stages = [
         first,
-        ("run-end", [__file__, "run-end", "--file", args.file, "--id", args.id,
-                     "--verdict", args.verdict, "--cycles-used", str(args.cycles_used),
-                     *grade, *disposition],
-         None, None),
+        # Only this validated close-out can pass the refused disposition into the transaction.
+        ("run-end", None, None, None),
     ]
     if args.task is not None:
         stages.append(("station", [os.path.join(_HERE, "plan-merge.py"), "set-task-station",
@@ -683,13 +688,24 @@ def _close_run_stages(args, agent, judgement):
     return stages
 
 
+def _close_run_stage(name, argv, args, refuse_on_success):
+    if name != "run-end":
+        return _stage(name, argv, refuse_on_success)
+    try:
+        _record_run_end(args)
+    except SystemExit:
+        print("REFUSED at stage run-end: later stages were not run.", file=sys.stderr)
+        raise
+    return ""
+
+
 def cmd_close_run(args):
     judgement = _parse_judgement(args.judgement) if args.judgement else None
     agent = _close_run_agent(args, judgement)
     summary = [f"CLOSED run {args.id!r} verdict={args.verdict}"]
     spend = ""
     for name, argv, fragment, refuse_on_success in _close_run_stages(args, agent, judgement):
-        out = _stage(name, argv, refuse_on_success)
+        out = _close_run_stage(name, argv, args, refuse_on_success)
         if fragment:
             summary.append(fragment)
         if name == "spend":
@@ -817,9 +833,7 @@ def main():
     p.add_argument("--tokens", type=_int_at_least(0),
                    help="tokens MEASURED from the transcript; omit when unmeasured (null)")
     p.add_argument("--code-grade", choices=["n_a"], dest="code_grade")
-    p.add_argument("--refused-return", action="store_true",
-                   help="record the refused terminal disposition; requires BLOCKED")
-    p.set_defaults(func=cmd_run_end)
+    p.set_defaults(func=cmd_run_end, refused_return=False)
 
     p = with_file(sub.add_parser("stamp-tokens",
                                  help="write the host-measured tokens onto the ONE open run"))
@@ -842,7 +856,7 @@ def main():
     p.add_argument("--refused-return", action="store_true", dest="refused_return",
                    help="the host refused the lead's final return, so its digest carries no "
                         "valid record: close BLOCKED, refusing if the digest does validate")
-    p.set_defaults(func=cmd_close_run)
+    p.set_defaults(func=cmd_close_run, tokens=None)
 
     p = with_file(sub.add_parser("judgement", help="append one judgement to the ledger"))
     p.add_argument("--by", required=True)

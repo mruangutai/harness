@@ -1817,14 +1817,14 @@ def _hook_feature_dir(artifact, feature):
         return None
     try:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-        from digest_destination import registered_feature
-        checkout_root = harness_boundary.worktree_for_feature(owner_root, feature) or owner_root
+        from digest_destination import authorization_root, registered_feature
+        checkout_root = authorization_root(owner_root, feature)
         feature_dir, error = _feature_dir_from_artifact(artifact, checkout_root)
         _record, registered_dir = registered_feature(checkout_root, feature)
         if error or os.path.realpath(feature_dir) != os.path.realpath(registered_dir):
             return None
         return feature_dir
-    except (ImportError, OSError, ValueError, harness_boundary.AmbiguousWorktree):
+    except (ImportError, OSError, ValueError):
         return None
 
 
@@ -2307,17 +2307,23 @@ if __name__ == "__main__":
         sys.stdout.reconfigure(errors="backslashreplace")
     except (AttributeError, OSError, ValueError):
         pass
-    if len(sys.argv) < 2:
-        print("usage: validate-digest.py <persona> [file]   |   --hook"); sys.exit(2)
-    if len(sys.argv) > 2:
-        with open(sys.argv[2], encoding="utf-8") as source:
-            text, where = source.read(), sys.argv[2]
+    import argparse
+    parser = argparse.ArgumentParser(description="Validate one persona's digest object or durable record.")
+    parser.add_argument("persona")
+    parser.add_argument("file", nargs="?")
+    parser.add_argument("--contract-refusal-code", type=int,
+                        choices=(1, harness_boundary.CONTRACT_REFUSAL_CODE), default=1,
+                        help="deliberate contract-refusal status; distinct from usage and Python failures")
+    args = parser.parse_args()
+    if args.file:
+        with open(args.file, encoding="utf-8") as source:
+            text, where = source.read(), args.file
     else:
         text, where = sys.stdin.read(), "stdin"
     obj, error = cli_object(text, where)
-    errs = [error] if error else validate(sys.argv[1], obj)
+    errs = [error] if error else validate(args.persona, obj)
     if errs:
         print("VERDICT: BLOCKED (contract violation)")
         for e in errs: print(f"  - {e}")
-        sys.exit(1)
+        sys.exit(args.contract_refusal_code)
     print("digest ok")

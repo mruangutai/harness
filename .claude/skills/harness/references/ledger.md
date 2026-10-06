@@ -37,8 +37,12 @@ When the host **refused** the lead's final return, its `digest.md` never receive
 and the digest stage can never pass. Close that run with `--refused-return --verdict BLOCKED`: the
 digest stage is inverted — it refuses if the digest *does* validate, because then the return
 landed and closes normally under its own verdict — and every later stage runs as usual (#2068).
-This is the governed path; never close such a run with a bare `run-end`.
-The closure records `return_disposition: refused` with the terminal BLOCKED entry. INV-15
+Only this validated close-out creates `return_disposition: refused`; `run-end` has no
+`--refused-return` option and can only replay a disposition already recorded. The inverted
+stage requests deliberate contract-refusal status 65 from the validator: argument-parser
+errors (2), input-read errors and internal failures (1) stop closure rather than providing
+refusal evidence. Positional inputs follow `--`, including dash-leading digest filenames.
+The closure records that disposition with the terminal BLOCKED entry. INV-15
 recognizes only that exact closed run and matching lead; it does not accept the prose as a digest
 or turn the refused result into PASS. Ordinary completed runs still require their durable record.
 Reapplying that refused closure to an already BLOCKED run preserves its original `ended_at`;

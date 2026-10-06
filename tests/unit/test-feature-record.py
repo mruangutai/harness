@@ -76,9 +76,12 @@ class RunStartEndTest(FeatureRecordCase):
                                     "--squad", "engineering", "--agent", "harness-eng-lead"))
 
     def test_schema_rejects_a_refused_disposition_with_a_passing_verdict(self):
-        doc = base_doc(runs=[{"id": "r1", "squad": "engineering",
-                             "agent": "harness-eng-lead", "verdict": "PASS",
-                             "return_disposition": "refused"}])
+        entry = {"id": "r1", "squad": "engineering", "agent": "harness-eng-lead",
+                 "verdict": "BLOCKED", "return_disposition": "refused",
+                 "ended_at": "2026-10-05T10:00:00+00:00"}
+        doc = base_doc(runs=[entry])
+        self.assertEqual([], feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+        entry["verdict"] = "PASS"
         self.assertTrue(feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
 
     def test_run_start_appends_a_pending_entry_stamped_started_at(self):
@@ -512,6 +515,34 @@ class CloseRunTest(FeatureRecordCase):
         self.assertIn("spend=", result.stdout)
         self.assert_clean()
 
+    def test_bare_run_end_cannot_create_an_unvalidated_refusal_marker(self):
+        entry = dict(self.OPEN, verdict="BLOCKED", ended_at="2026-10-05T10:00:00+00:00",
+                     cycles_used=2, tokens=21)
+        before = self.write(base_doc(cycles_used=2, runs=[entry]))
+        self.digest.write_text("ordinary invalid lead assessment\n", encoding="utf-8")
+        result = self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                              "--verdict", "BLOCKED", "--cycles-used", "2", "--refused-return")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_refused_digest_stage_does_not_accept_an_internal_validator_failure(self):
+        import runpy
+        broken = self.tmp / "broken-validator.py"
+        broken.write_text("raise RuntimeError('validator internal failure')\n", encoding="utf-8")
+        stage = runpy.run_path(str(CLI))["_stage"]
+        with self.assertRaises(SystemExit) as refused:
+            stage("refused-return", [str(broken)], refuse_on_success="accepted digest")
+        self.assertEqual(1, refused.exception.code)
+
+    def test_refused_digest_stage_does_not_accept_validator_usage_failure(self):
+        import runpy
+        validator = CLI.with_name("validate-digest.py")
+        stage = runpy.run_path(str(CLI))["_stage"]
+        with self.assertRaises(SystemExit) as refused:
+            stage("refused-return", [str(validator), "--not-a-validator-option"],
+                  refuse_on_success="accepted digest")
+        self.assertEqual(2, refused.exception.code)
+
     def test_refused_closure_marks_an_existing_blocked_run_without_retiming_it(self):
         entry = dict(self.OPEN, verdict="BLOCKED", ended_at="2026-10-05T10:00:00+00:00",
                      cycles_used=0, tokens=21)
@@ -673,7 +704,7 @@ class CloseRunTest(FeatureRecordCase):
         args = argparse.Namespace(file=str(self.path), id="r1", digest=str(self.digest),
                                   verdict="PASS", cycles_used=0, task=None, station=None,
                                   judgement="kind=regate,decision=x,reason=y", code_grade=None,
-                                  refused_return=False)
+                                  refused_return=False, tokens=None)
         out, err = io.StringIO(), io.StringIO()
         with mock.patch("subprocess.run", side_effect=run_or_refuse_spend), \
                 contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
