@@ -13,6 +13,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / ".claude/skills/harness/bin"))
+import feature_corpus
 import feature_schema
 
 
@@ -47,8 +48,9 @@ class JournalLinesTest(unittest.TestCase):
 
     def test_real_feature_54_record(self):
         """The record that motivated this: 336 lines, all but ~40 of them ledger."""
-        text = (ROOT / ".harness/harness/features/FEAT-54-handoff-done-when"
-                / "feature.json").read_text()
+        text = Path(feature_corpus.corpus_path(
+            str(ROOT), ".harness/harness/features/FEAT-54-handoff-done-when/feature.json")
+        ).read_text()
         self.assertGreater(len(text.splitlines()), 300)
         self.assertLess(feature_schema.journal_lines(text), 100)
 

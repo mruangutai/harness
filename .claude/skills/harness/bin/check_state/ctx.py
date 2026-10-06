@@ -155,6 +155,7 @@ class Ctx:
         # silently skips every feature), but a finding that names a PATH carries the DISCOVERED
         # segment-qualified path, so a reader can open exactly what the label names.
         H, root = self.H, self.root
+        # corpus-scope: checkout-local
         self.feat_dirs = {os.path.basename(_d): os.path.relpath(_d, root)
                           for _d in glob.glob(os.path.join(H, "*", "features", "*"))
                           if os.path.isdir(_d)}
@@ -162,14 +163,22 @@ class Ctx:
         if keep is not None:
             self.features = [f for f in self.features if f in keep]
 
+    def _selected(self, tail):
+        """`{feature: path}` of `tail` inside each SELECTED feature directory that has it.
+        The per-feature loads below read the audit's subject and nothing else (FEAT-1559): a
+        narrowed or sparse run never opens another feature's BRIEF, plan or STATE.md."""
+        out = {}
+        for feat in self.features:
+            path = os.path.join(self.root, self.feat_dirs[feat], tail)
+            if os.path.isfile(path):
+                out[feat] = path
+        return out
+
     def _load_plans(self):
         # BRIEF/PLAN are PER-FEATURE since DEC-129 — .harness/<repo>/features/<FEAT>/{BRIEF,PLAN}.md.
         # Root-level singletons collided the moment a second feature existed.
-        H = self.H
-        self.briefs = {os.path.basename(os.path.dirname(p)): read(p)
-                       for p in glob.glob(os.path.join(H, "*", "features", "*", "BRIEF.md"))}
-        self.plans = {os.path.basename(os.path.dirname(p)): read(p)
-                      for p in glob.glob(os.path.join(H, "*", "features", "*", "PLAN.md"))}
+        self.briefs = {f: read(p) for f, p in self._selected("BRIEF.md").items()}
+        self.plans = {f: read(p) for f, p in self._selected("PLAN.md").items()}
 
     def _load_plan_docs(self):
         # plan.yaml (DEC-182) is loaded, never read as text. Kept in a SEPARATE dict rather than
@@ -177,10 +186,9 @@ class Ctx:
         # dict holding both shapes is how a regex ends up running over a dict repr. A feature with
         # both files is refused by check-plan-routes; here the yaml simply wins, because a feature
         # mid-migration should be judged by the artifact its author is maintaining.
-        H, bad = self.H, self.bad
+        bad = self.bad
         self.plan_docs = {}
-        for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
-            _feat = os.path.basename(os.path.dirname(_p))
+        for _feat, _p in self._selected("plan.yaml").items():
             try:
                 self.plan_docs[_feat] = artifact_accessors.load_plan(_p)
                 self.plans.pop(_feat, None)
@@ -192,9 +200,8 @@ class Ctx:
 
     def _load_states_and_abandoned(self):
         H, bad = self.H, self.bad
-        # STATE.md is per-feature since DEC-120; read them all.
-        self.states = {os.path.basename(os.path.dirname(p)): read(p)
-                       for p in glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))}
+        # STATE.md is per-feature since DEC-120; read the selected ones.
+        self.states = {f: read(p) for f, p in self._selected("STATE.md").items()}
 
         # Onboarding itself is signalled by harness.json + team-config.yaml (DEC-129), not a BRIEF:
         # a freshly-onboarded project legitimately has zero features yet.
@@ -206,12 +213,7 @@ class Ctx:
         # which is the failure a gate exists to prevent. Read from plan.yaml's station (FEAT-41 T-07),
         # never inferred — and the try/except that guarded the old json.load is gone with it, because
         # `station_of` already returns "" for every unreadable and unparseable shape.
-        self.abandoned = set()
-        for _fd in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
-            if not os.path.isdir(_fd):
-                continue
-            if self.station(os.path.basename(_fd)) in TERMINAL_STATIONS:
-                self.abandoned.add(os.path.basename(_fd))
+        self.abandoned = {f for f in self.features if self.station(f) in TERMINAL_STATIONS}
 
     def _load_eras(self):
         # INV-32 / INV-43 era boundaries, resolved ONCE (BUG-1071; see _era_start_for).
@@ -331,10 +333,14 @@ class Ctx:
                        f"({type(_pme40.cause).__name__}: {_pme40.cause}), so an unledgered task-text change would go "
                        "unreported. The module ships with this repository.")
 
-    def __init__(self, root, keep=None):
+    def __init__(self, root, keep=None, scoped=False, owner=None):
         self.root = root
         self.H = os.path.join(root, ".harness")
         self.bad, self.warn = [], []
+        # FEAT-1559: `scoped` is a sparse record-bearing worktree auditing its one active
+        # feature; `owner` is its main checkout, where every landed record lives.
+        self.scoped, self.owner = scoped, owner
+        self._population = None
         self._load_features(keep)
         self._load_plans()
         self._load_plan_docs()
@@ -356,6 +362,25 @@ class Ctx:
         self.spawn_error = None
         self._record_errors = {}
         self._digests = {}
+
+    def population(self):
+        """`[(feature, feature.json mapping or None)]` for a REPO-WIDE record predicate.
+
+        Unscoped (a plain clone, or any run outside a sparse worktree): the selected features,
+        exactly as before — `--feature` narrows it, as the table's scope rule says. Scoped: every
+        LANDED record from the main corpus, with this checkout's own active record in place of
+        its landed copy, so a predicate across features still sees all of them. In-progress
+        siblings are never read (operator ruling, 2026-10-04). A main corpus that cannot be read
+        raises feature_corpus.CorpusError; the caller reports it."""
+        if not self.scoped:
+            return [(f, self.record(f)[0]) for f in self.features]
+        if self._population is None:
+            import feature_corpus
+            local = {f: self.record(f)[0] for f in self.features}
+            landed = [(e["id"], e["document"]) for e in feature_corpus.records(self.owner)
+                      if e["id"] not in local]
+            self._population = sorted(landed + list(local.items()), key=lambda p: p[0])
+        return self._population
 
     def fpath(self, feat, tail=""):
         _b = self.feat_dirs.get(feat) or os.path.join(".harness", "?", "features", feat)

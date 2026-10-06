@@ -36,6 +36,7 @@ BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BIN_DIR)
 import harness_boundary  # noqa: E402  (the path insert above has to come first)
 import artifact_accessors  # noqa: E402
+import feature_corpus  # noqa: E402
 CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.py")
 
 # Copied from check-state.py:93-94 (D-08) — a duplicated task-BLOCK parser,
@@ -778,7 +779,33 @@ def discover_plans():
     # because the filename below is a literal: switch it to a pattern like `PLAN*.md` and
     # listing becomes necessary again — measured, `PLAN*.md` at 0311 silently loses a
     # feature. If you ever generalise that name, R_OK comes back with it.
-    feats = os.path.join(root, ".harness", "*", "features")
+    # THE WALK COVERS THE MAIN CORPUS TOO (FEAT-1559). A sparse worktree holds one feature
+    # directory, so a walk of `root` alone would route-check that one plan and call it the tree.
+    # From a linked worktree the owner root's corpus is walked after this checkout's own, and a
+    # `<segment>/<name>` already seen here is not walked again there: the local copy is the live
+    # one. The key carries the segment because two segments may hold the same feature name
+    # (#2077's fixture does). A broken sparse layout refuses first, exit 2, like every other
+    # "I cannot see the tree" case below.
+    #
+    # THEN THE NAME SET, BEFORE THE WALK. The walk enumerates what is present, so a tracked
+    # feature directory missing from the landed corpus would simply not be walked and its plan
+    # never checked — a clean total over fewer plans than exist. `require_landed` compares the
+    # tracked names against the reached ones and refuses the shortfall by name.
+    try:
+        _refusal = feature_corpus.layout_refusal(root)
+        walk_roots = feature_corpus.corpus_roots(root)
+    except feature_corpus.CorpusError as e:
+        _refusal = str(e)
+    if _refusal:
+        print(f"check-plan-routes: {_refusal}", file=sys.stderr)
+        sys.exit(2)
+    try:
+        feature_corpus.require_landed(root)
+    except feature_corpus.CorpusError as e:
+        print(f"check-plan-routes: {e}. A route audit over fewer plans than exist would report "
+              f"clean about the ones it never walked. Restore the directory in that checkout "
+              f"(`git checkout -- <path>`), then rerun.", file=sys.stderr)
+        sys.exit(2)
     plans, unreadable = [], []
     # TWO COUNTS, BECAUSE ONE CANNOT TELL THE TWO ZEROES APART. `0 plan(s)` used to mean
     # either "discovery is broken" or "every feature has shipped", and the CI gate had to
@@ -791,15 +818,24 @@ def discover_plans():
     # ONE SEGMENT LEVEL, then features. glob's `*` never matches a leading dot, so the
     # dot-exclusion the comment below demands at the feature level holds at the segment
     # level too, by the same mechanism rather than a second rule.
-    seg_dirs = sorted(d for d in glob.glob(feats) if os.path.isdir(d))
+    seg_dirs = []
+    for walk_root in walk_roots:
+        feats = os.path.join(walk_root, ".harness", "*", "features")
+        # corpus-scope: owner-root
+        seg_dirs.extend((walk_root, d) for d in sorted(glob.glob(feats)) if os.path.isdir(d))
     if seg_dirs:
-        entries = []
-        for _fd in seg_dirs:
+        entries, _seen = [], set()
+        for _walk_root, _fd in seg_dirs:
             try:
-                entries.extend(sorted(os.scandir(_fd), key=lambda e: e.path))
+                _listed = sorted(os.scandir(_fd), key=lambda e: e.path)
             except OSError as e:
                 print(f"check-plan-routes: cannot list {_fd}: {e}", file=sys.stderr)
                 sys.exit(2)
+            for _e in _listed:
+                _key = os.path.relpath(_e.path, _walk_root)
+                if _key not in _seen:
+                    _seen.add(_key)
+                    entries.append(_e)
         for entry in entries:
             # DOTTED ENTRIES ARE NOT FEATURES, and this restores glob's semantics rather
             # than reinterpreting them. `glob`'s `*` never matched a leading dot; `scandir`
@@ -1223,7 +1259,9 @@ def _expanded_task_paths(root, path):
 
 
 def _task_files(root, plan_relative):
-    plan = artifact_accessors.load_plan(os.path.join(root, plan_relative))
+    # A classification row names the plan of the feature that owns a migration — usually another
+    # feature, which a sparse worktree reads at the owner root (FEAT-1559).
+    plan = artifact_accessors.load_plan(feature_corpus.corpus_path(root, plan_relative))
     task_files = {}
     for task in plan["tasks"]:
         paths = []
@@ -1570,7 +1608,8 @@ def _classification_task_files(root, document):
             if not isinstance(plan, str) or not plan:
                 raise ValueError("ownership plan must be a nonempty path")
             task_files[plan] = _task_files(root, plan)
-        except (harness_yaml.YamlParseError, OSError, ValueError, KeyError, TypeError) as error:
+        except (harness_yaml.YamlParseError, OSError, ValueError, KeyError, TypeError,
+                feature_corpus.CorpusError) as error:
             findings.append(f"{plan}: plan cannot be read: {error}")
     return task_files, findings
 
@@ -1927,6 +1966,7 @@ ROW_FAMILIES = {
     "worktrees": ("INV-25", "INV-27", "INV-29", "INV-31"),
     "board": ("INV-13", "INV-21", "INV-24", "INV-26", "INV-28", "INV-30", "INV-37"),
     "host": ("INV-19", "INV-42", "INV-45", "INV-48"),
+    "corpus": ("INV-52",),
 }
 _FAMILY_OF_ROW = {row: family for family, rows in ROW_FAMILIES.items() for row in rows}
 DECISIONS_INDEX_REL = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")

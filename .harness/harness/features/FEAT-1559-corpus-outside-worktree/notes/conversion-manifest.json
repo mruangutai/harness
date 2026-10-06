@@ -1,0 +1,232 @@
+{
+  "checkouts": [
+    {
+      "active_feature": "BUG-2037-readiness-contracts",
+      "branch": "refs/heads/feat/BUG-2037-readiness-contracts",
+      "checkout_class": "planning-worktree",
+      "head": "2880a6148559e442fd0b8a30d51c2147d5e5f101",
+      "outcome": "excluded",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2037-readiness-contracts",
+      "reason": "pre-1559 HEAD: merge main first (HEAD does not track feature_corpus.py)",
+      "verify_exit": 8,
+      "verify_labels": [
+        "cone",
+        "dirty",
+        "materialisation",
+        "skip-bits"
+      ]
+    },
+    {
+      "active_feature": "BUG-2102-panel-reader-slots",
+      "after": {
+        "digest": "70c6ebd4490bb4298977a7cd58ba6abbe63f786e20ebbb7951b88cdcfc413423",
+        "feature_dirs": [],
+        "feature_file_count": 0,
+        "file_count": 665,
+        "files_digest": "1c11f1dd4d3fc0bc73c8e5567edd556e547d3826ce4680afa3305ad2dcaf4172",
+        "index_digest": "30e0cdc1cb2fedc029df79cd6b7274379f0c68ae1c73c998ab0f37cb7abc0f16",
+        "sparse_config_digest": "ac5bffd8fbdbcfbcde15125744cc73457d3e75a0af3dabfd8c00e0917982934a",
+        "worktree_config": [
+          "core.sparsecheckout=true",
+          "core.sparsecheckoutcone=true"
+        ]
+      },
+      "artifact_segment": null,
+      "before": {
+        "digest": "70c6ebd4490bb4298977a7cd58ba6abbe63f786e20ebbb7951b88cdcfc413423",
+        "feature_dirs": [],
+        "feature_file_count": 0,
+        "file_count": 665,
+        "files_digest": "1c11f1dd4d3fc0bc73c8e5567edd556e547d3826ce4680afa3305ad2dcaf4172",
+        "index_digest": "30e0cdc1cb2fedc029df79cd6b7274379f0c68ae1c73c998ab0f37cb7abc0f16",
+        "sparse_config_digest": "ac5bffd8fbdbcfbcde15125744cc73457d3e75a0af3dabfd8c00e0917982934a",
+        "worktree_config": [
+          "core.sparsecheckout=true",
+          "core.sparsecheckoutcone=true"
+        ]
+      },
+      "branch": "refs/heads/feat/BUG-2102-panel-reader-slots",
+      "checkout_class": "planning-worktree",
+      "exits": {
+        "repair": 8
+      },
+      "head": "6866c3ee6f05b6f314d3bdf09a530600783ef088",
+      "outcome": "skipped-dirty",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2102-panel-reader-slots",
+      "reason": "C: uncommitted work repair must not touch: .claude/skills/harness/bin/panel_findings.py, .claude/skills/harness/bin/plan_merge/panel.py, .claude/skills/harness/templates/plan.yaml, tests/integration/test-plan-merge.py"
+    },
+    {
+      "active_feature": "BUG-2104-guard-repo-binding",
+      "branch": "refs/heads/feat/BUG-2104-guard-repo-binding",
+      "checkout_class": "planning-worktree",
+      "head": "c4d2be6e83c0227a9f46ae4f669ebb33e6f26437",
+      "outcome": "excluded",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2104-guard-repo-binding",
+      "reason": "pre-1559 HEAD: merge main first (HEAD does not track feature_corpus.py)",
+      "verify_exit": 3,
+      "verify_labels": [
+        "cone",
+        "materialisation",
+        "skip-bits"
+      ]
+    },
+    {
+      "active_feature": null,
+      "branch": "refs/heads/feat/BUG-brief-approval-wording",
+      "checkout_class": "probe",
+      "head": "9f06d31f5ec5b8e4dddab7886ba1e0327b7f262f",
+      "outcome": "excluded",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-brief-approval-wording",
+      "reason": "code-only probe ('BUG-brief-approval-wording' names no feature; an arbitrary worktree is not record-bearing); not record-bearing"
+    },
+    {
+      "active_feature": "FEAT-01-kaya-platform",
+      "branch": "refs/heads/feat/FEAT-01-kaya-platform",
+      "checkout_class": "planning-worktree",
+      "head": "47cc48693e4c7fcdcf14439b25aa785650d24461",
+      "outcome": "excluded",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-01-kaya-platform",
+      "reason": "pre-1559 HEAD: merge main first (HEAD does not track feature_corpus.py)",
+      "verify_exit": 3,
+      "verify_labels": [
+        "cone",
+        "materialisation",
+        "skip-bits"
+      ]
+    },
+    {
+      "active_feature": "FEAT-1559-corpus-outside-worktree",
+      "after": {
+        "digest": "81a32e68e3f70c9ea784eab744c3755de97ba87f39aefc393fc138ad18b013da",
+        "feature_dirs": [
+          "harness/FEAT-1559-corpus-outside-worktree"
+        ],
+        "feature_file_count": 67,
+        "file_count": 737,
+        "files_digest": "370b92f7accc6732263e6f30af99346b03ad8170b9dc37e44c00578770fc0cf2",
+        "index_digest": "40a65b12d1b37613d7cef8833944158f088b641c32342a40a6650f331e9a3fcc",
+        "sparse_config_digest": "7d5f48333fbcd618bebaefbdb1d452c69041fa7b1444d8a7a4a6b6ad939c4c1c",
+        "worktree_config": [
+          "core.sparsecheckout=true",
+          "core.sparsecheckoutcone=true"
+        ]
+      },
+      "after_repair_again": {
+        "digest": "81a32e68e3f70c9ea784eab744c3755de97ba87f39aefc393fc138ad18b013da",
+        "feature_dirs": [
+          "harness/FEAT-1559-corpus-outside-worktree"
+        ],
+        "feature_file_count": 67,
+        "file_count": 737,
+        "files_digest": "370b92f7accc6732263e6f30af99346b03ad8170b9dc37e44c00578770fc0cf2",
+        "index_digest": "40a65b12d1b37613d7cef8833944158f088b641c32342a40a6650f331e9a3fcc",
+        "sparse_config_digest": "7d5f48333fbcd618bebaefbdb1d452c69041fa7b1444d8a7a4a6b6ad939c4c1c",
+        "worktree_config": [
+          "core.sparsecheckout=true",
+          "core.sparsecheckoutcone=true"
+        ]
+      },
+      "artifact_segment": "harness",
+      "before": {
+        "digest": "81a32e68e3f70c9ea784eab744c3755de97ba87f39aefc393fc138ad18b013da",
+        "feature_dirs": [
+          "harness/FEAT-1559-corpus-outside-worktree"
+        ],
+        "feature_file_count": 67,
+        "file_count": 737,
+        "files_digest": "370b92f7accc6732263e6f30af99346b03ad8170b9dc37e44c00578770fc0cf2",
+        "index_digest": "40a65b12d1b37613d7cef8833944158f088b641c32342a40a6650f331e9a3fcc",
+        "sparse_config_digest": "7d5f48333fbcd618bebaefbdb1d452c69041fa7b1444d8a7a4a6b6ad939c4c1c",
+        "worktree_config": [
+          "core.sparsecheckout=true",
+          "core.sparsecheckoutcone=true"
+        ]
+      },
+      "branch": "refs/heads/feat/FEAT-1559-corpus-outside-worktree",
+      "checkout_class": "planning-worktree",
+      "exits": {
+        "repair": 0,
+        "repair_again": 0,
+        "verify": 0
+      },
+      "expected_dirs": [
+        "harness/FEAT-1559-corpus-outside-worktree"
+      ],
+      "head": "8a0d83442f7ff81c35d436a1e4172826f5b6e7db",
+      "missing": [],
+      "observed_dirs": [
+        "harness/FEAT-1559-corpus-outside-worktree"
+      ],
+      "outcome": "converted",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1559-corpus-outside-worktree",
+      "unexpected": []
+    },
+    {
+      "active_feature": "FEAT-1774-observations-hindsight",
+      "branch": "refs/heads/feat/FEAT-1774-observations-hindsight",
+      "checkout_class": "planning-worktree",
+      "head": "502dd5457f665aa40c0756a9f752509b82ac931a",
+      "outcome": "excluded",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1774-observations-hindsight",
+      "reason": "pre-1559 HEAD: merge main first (HEAD does not track feature_corpus.py)",
+      "verify_exit": 8,
+      "verify_labels": [
+        "cone",
+        "dirty",
+        "materialisation",
+        "skip-bits"
+      ]
+    },
+    {
+      "active_feature": "FEAT-2037-product-document-guidance",
+      "branch": "refs/heads/feat/FEAT-2037-product-document-guidance",
+      "checkout_class": "planning-worktree",
+      "head": "df22ac7d193030b963dac11c76d57b5f522f9e68",
+      "outcome": "excluded",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance",
+      "reason": "pre-1559 HEAD: merge main first (HEAD does not track feature_corpus.py)",
+      "verify_exit": 8,
+      "verify_labels": [
+        "cone",
+        "dirty",
+        "materialisation",
+        "skip-bits"
+      ]
+    },
+    {
+      "active_feature": "FEAT-2081-ci-shard-structure-audit",
+      "branch": "refs/heads/feat/FEAT-2081-ci-shard-structure-audit",
+      "checkout_class": "planning-worktree",
+      "head": "ccb1732d4c7d06bf9ebe9dc5bfb9e2c983b35de2",
+      "outcome": "excluded",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2081-ci-shard-structure-audit",
+      "reason": "pre-1559 HEAD: merge main first (HEAD does not track feature_corpus.py)",
+      "verify_exit": 3,
+      "verify_labels": [
+        "cone",
+        "materialisation",
+        "skip-bits"
+      ]
+    },
+    {
+      "active_feature": "FEAT-46-decision-standard",
+      "branch": "refs/heads/feat/FEAT-46-decision-standard",
+      "checkout_class": "planning-worktree",
+      "head": "ba21f0322118dabb53bd35d794a73a09baa45390",
+      "outcome": "excluded",
+      "path": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-46-decision-standard",
+      "reason": "pre-1559 HEAD: merge main first (HEAD does not track feature_corpus.py)",
+      "verify_exit": 3,
+      "verify_labels": [
+        "cone",
+        "materialisation",
+        "skip-bits"
+      ]
+    }
+  ],
+  "owner": "/Users/molchairuangutai/GitHub/harness",
+  "owner_head": "6866c3ee6f05b6f314d3bdf09a530600783ef088",
+  "pre_change_sha": "e8d868f78a6ec43880598af5c5873f5daa8ba985",
+  "review_sha": "f8a67546bcb42b6a5fd4327398615a4cfc07ae4d",
+  "schema": "feat-1559-conversion/1"
+}

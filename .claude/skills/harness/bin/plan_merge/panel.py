@@ -75,6 +75,11 @@ def _named_mapping(entry, key, where):
 
 def _validate_reader(reader, where):
     _named_mapping(reader, "reader", where)
+    if reader.get("reader") not in panel_findings.PANEL_READERS:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} reader {reader.get('reader')!r} is not one of "
+                f"{' | '.join(panel_findings.PANEL_READERS)} — a panel reader is the slot INV-32 "
+                "grades, never the persona that filled it (#2102)."])
     status = reader.get("status")
     if status not in READER_STATUSES:
         raise harness_merge.MergeRefusal(

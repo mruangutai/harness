@@ -63,6 +63,17 @@ Copy evidence to the feature's `runs/<run-id>/` before removal; remove your pin 
 including external fleet repositories — sibling isolation and cleanup cannot rely on a fleet hook
 (DEC-238, #1994).
 
+**A pin holds only the feature it is keyed on (FEAT-1559).** Read any other feature by absolute
+path under the control-plane root, by its concrete id — for example
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/features/FEAT-23-ship-flow-fixes/BRIEF.md`; it is
+not in the pin, and an in-progress sibling worktree is never evidence. Layout evidence is
+`worktree-state.py --verify --checkout <pin>` exiting 0. A post-checkout, post-merge or post-rewrite
+hook that ran quietly proves nothing: those hooks always exit 0, and `core.hooksPath` is local
+configuration that a fresh clone does not carry. Structural `cone (3)`, `skip-bits (4)` and
+`materialisation (7)` refuse an audit; `dirty (8)` alone is reported and does not. Pre-change
+evidence names an immutable SHA, never a moving ref such as `main` or a merge-base taken later.
+Layout savings are counted in files and feature directories, never as a `du` byte delta.
+
 ## Audit test-first compliance
 
 Beyond presence: for each behavioural change in the diff, confirm a test covers it, and where git history
