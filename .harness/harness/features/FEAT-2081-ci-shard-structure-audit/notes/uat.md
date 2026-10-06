@@ -309,3 +309,92 @@ git -C <feature or main checkout> worktree remove /tmp/feat2081-uat
 - SC-10 live (U-06 … U-08 + baseline comparison):
 - SC-10 local structure timing (L-01, same-corpus; the evidence-T-03 amendment is context only):
 - final status (`passed` / `failed`), user, date:
+
+
+## Recorded evidence — executed by the main session at the user's request (2026-10-06)
+
+The user asked the main session to run the UAT and monitor it. Everything below is observed output; sign-off stays with the user. Throwaway PR #2128 (closed unmerged after recording). Branch base: review_sha `b886dbcf53777cb3139c04e5b973ed77244f8dcf`.
+
+Void attempt: PR #2111 / run 37385539005 at the earlier pin failed in `checks` on this feature's own plan.yaml (main's new INV-32 finding shape); the pin was fixed and re-pinned (notes/evidence-T-04.md).
+
+### U-01 positive control — expect PASS
+- head commit: `b8a6fc1baf078c2a078cf760ec0defe35261e5c6`; tested SHA: `068e2e4ffd61f454d15274734bc4e5b44fbf987f`
+- Actions: https://github.com/mruangutai/harness/actions/runs/37406852209 (attempt 1)
+- created 2026-10-06T02:59:52Z / integration completed 2026-10-06T03:01:22Z; first shard start -> integration done: **87s**
+- jobs: checks=success, integration-shards (1)=success, integration-shards (2)=success, integration-shards (3)=success, integration-shards (4)=success, integration=success
+- runner labels: ubuntu-latest
+- manifests: shard 1: exit 0, 20/20 completed, nonzero none; shard 2: exit 0, 21/21 completed, nonzero none; shard 3: exit 0, 21/21 completed, nonzero none; shard 4: exit 0, 21/21 completed, nonzero none
+- validator: `^[[36;1m  echo "::error::downloading shard manifests concluded '${DOWNLOAD_OUTCOME}', not success. Refusing to pass on manifests that may be incomplete." >&2^[[0m` | `PASS integration: 83 expected files completed exactly once across 4 shards at 068e2e4ffd61f454d15274734bc4e5b44fbf987f`
+- required check: `pass`
+- result: **as expected** (PASS integration, 83 files).
+
+### U-02 one failing test in one shard (F2 `tests/integration/test-check-domain-claims.py`, shard 4) — expect FAIL
+- head commit: `49f9b0210d8d2051fc01ae2430a62a00929b59a8`; tested SHA: `645a14f97a484374473efc95130f815d6d3f89d0`
+- Actions: https://github.com/mruangutai/harness/actions/runs/37407033442 (attempt 1)
+- created 2026-10-06T03:01:57Z / integration completed 2026-10-06T03:03:47Z; first shard start -> integration done: **108s**
+- jobs: checks=success, integration-shards (3)=success, integration-shards (4)=failure, integration-shards (2)=success, integration-shards (1)=success, integration=failure
+- runner labels: ubuntu-latest
+- manifests: shard 1: exit 0, 20/20 completed, nonzero none; shard 2: exit 0, 21/21 completed, nonzero none; shard 3: exit 0, 21/21 completed, nonzero none; shard 4: exit 1, 21/21 completed, nonzero ['tests/integration/test-check-domain-claims.py']
+- validator: `^[[36;1m  echo "::error::downloading shard manifests concluded '${DOWNLOAD_OUTCOME}', not success. Refusing to pass on manifests that may be incomplete." >&2^[[0m` | `INCOMPLETE: matrix-result is failure, not success` | `INCOMPLETE: integration-manifest-4.json: runner_exit 1` | `INCOMPLETE: integration-manifest-4.json: tests/integration/test-check-domain-claims.py returned 1` | `FAIL integration: 3 defect(s), exit 1`
+- required check: `fail`
+- result: **as expected** (integration failed, naming F2).
+
+### U-03 — dropped (operator ruling; see above)
+
+### U-04 one discovered test omitted from every shard (F4 `tests/integration/test-bash-write-guard.py`) — expect FAIL
+- head commit: `fc3cf13687eaedbd829ac455365f746b3a7cfae3`; tested SHA: `c6d3b7153673bd563bb7bec8098418b8748fd45b`
+- Actions: https://github.com/mruangutai/harness/actions/runs/37407217209 (attempt 1)
+- created 2026-10-06T03:04:11Z / integration completed 2026-10-06T03:05:41Z; first shard start -> integration done: **88s**
+- jobs: checks=success, integration-shards (4)=success, integration-shards (3)=success, integration-shards (2)=success, integration-shards (1)=success, integration=failure
+- runner labels: ubuntu-latest
+- manifests: shard 1: exit 0, 20/20 completed, nonzero none; shard 2: exit 0, 20/20 completed, nonzero none; shard 3: exit 0, 21/21 completed, nonzero none; shard 4: exit 0, 21/21 completed, nonzero none
+- validator: `^[[36;1m  echo "::error::downloading shard manifests concluded '${DOWNLOAD_OUTCOME}', not success. Refusing to pass on manifests that may be incomplete." >&2^[[0m` | `INCOMPLETE: tests/integration/test-bash-write-guard.py: omitted (no completed record in any shard)` | `FAIL integration: 1 defect(s), exit 1`
+- required check: `fail`
+- tested SHA contains F4 (`gh api contents?ref=`): `tests/integration/test-bash-write-guard.py`
+- result: **as expected** — every shard green, `integration` failed on the omission alone.
+
+### U-05 restore exact coverage (= SC-10 P1) — expect PASS
+`git diff --exit-code C1 HEAD`: no difference.
+- head commit: `bc1b35ac14fe682860ed1f2d02a63757072054f9`; tested SHA: `56492a0e67dee3abbfc10ffd8e5b5f60a215b926`
+- Actions: https://github.com/mruangutai/harness/actions/runs/37407385008 (attempt 1)
+- created 2026-10-06T03:06:09Z / integration completed 2026-10-06T03:08:00Z; first shard start -> integration done: **108s**
+- jobs: checks=success, integration-shards (2)=success, integration-shards (4)=success, integration-shards (3)=success, integration-shards (1)=success, integration=success
+- runner labels: ubuntu-latest
+- manifests: shard 1: exit 0, 20/20 completed, nonzero none; shard 2: exit 0, 21/21 completed, nonzero none; shard 3: exit 0, 21/21 completed, nonzero none; shard 4: exit 0, 21/21 completed, nonzero none
+- validator: `^[[36;1m  echo "::error::downloading shard manifests concluded '${DOWNLOAD_OUTCOME}', not success. Refusing to pass on manifests that may be incomplete." >&2^[[0m` | `PASS integration: 83 expected files completed exactly once across 4 shards at 56492a0e67dee3abbfc10ffd8e5b5f60a215b926`
+- required check: `pass`
+- result: **PASS integration**, but critical path **108s (over 100s)**.
+
+### U-06 (SC-10 P2)
+- head commit: `1dd69d23034c12cc2fc3287a08a5a8b0dc547eb7`; tested SHA: `83ceed81c7aec2cf5c1a42e27f5f827afac0fe2d`
+- Actions: https://github.com/mruangutai/harness/actions/runs/37407566634 (attempt 1)
+- created 2026-10-06T03:08:26Z / integration completed 2026-10-06T03:09:54Z; first shard start -> integration done: **85s**
+- jobs: checks=success, integration-shards (3)=success, integration-shards (4)=success, integration-shards (2)=success, integration-shards (1)=success, integration=success
+- runner labels: ubuntu-latest
+- manifests: shard 1: exit 0, 20/20 completed, nonzero none; shard 2: exit 0, 21/21 completed, nonzero none; shard 3: exit 0, 21/21 completed, nonzero none; shard 4: exit 0, 21/21 completed, nonzero none
+- validator: `^[[36;1m  echo "::error::downloading shard manifests concluded '${DOWNLOAD_OUTCOME}', not success. Refusing to pass on manifests that may be incomplete." >&2^[[0m` | `PASS integration: 83 expected files completed exactly once across 4 shards at 83ceed81c7aec2cf5c1a42e27f5f827afac0fe2d`
+- required check: `pass`
+
+### U-07 (SC-10 P3)
+- head commit: `ddc428148cb68c6d21773456b74aae55332f4779`; tested SHA: `7b85720f1ac2f729de5a52fb9cac61cfa6e8a433`
+- Actions: https://github.com/mruangutai/harness/actions/runs/37407705092 (attempt 1)
+- created 2026-10-06T03:10:13Z / integration completed 2026-10-06T03:11:29Z; first shard start -> integration done: **74s**
+- jobs: checks=success, integration-shards (3)=success, integration-shards (2)=success, integration-shards (1)=success, integration-shards (4)=success, integration=success
+- runner labels: ubuntu-latest
+- manifests: shard 1: exit 0, 20/20 completed, nonzero none; shard 2: exit 0, 21/21 completed, nonzero none; shard 3: exit 0, 21/21 completed, nonzero none; shard 4: exit 0, 21/21 completed, nonzero none
+- validator: `^[[36;1m  echo "::error::downloading shard manifests concluded '${DOWNLOAD_OUTCOME}', not success. Refusing to pass on manifests that may be incomplete." >&2^[[0m` | `PASS integration: 83 expected files completed exactly once across 4 shards at 7b85720f1ac2f729de5a52fb9cac61cfa6e8a433`
+- required check: `pass`
+
+### SC-10 live summary
+Three consecutive passing runs, none discarded: **108s, 85s, 74s**. Threshold (OQ-01): all three below 100s → **not met** (P1 is 108s). Per-shard job durations P1: shard 1 78s, 2 61s, 3 42s, 4 63s; the aggregator ran 8s and started 2s after the last shard; the remaining ~18s is a late runner pickup for one shard. Shard 1 is the longest in all six runs (63–78s); the 7 integration files main added since the weights were measured have no recorded duration and take the median default.
+
+### L-01 same-corpus structure timing (local)
+- host / python3: macOS-27.0.1-arm64-arm-64bit-Mach-O / Python 3.14.5
+- corpus: detached worktree of `b886dbcf53777cb3139c04e5b973ed77244f8dcf`; baseline checker 8e0b9e90 vs current, interleaved, 3 samples each, none discarded
+- locks test baseline: [3.19, 3.27, 3.18] median **3.19**
+- locks test current: [2.63, 2.65, 2.68] median **2.65**
+- CLI baseline: [0.65, 0.64, 0.65] median **0.65**
+- CLI current: [0.36, 0.35, 0.36] median **0.36**
+- exits: current 0 on all 6 samples; baseline **1** on all 6.
+- CLI output identical: **no** — the baseline checker predates INV-52 (added on main after 8e0b9e90) and reports one extra finding: `CONSOLIDATION .claude/skills/harness/bin/check_state/table.py::INVARIANTS:160 INV-52 belongs to no family in ROW_FAMILIES`; current reports 0 findings. Both audit the same corpus.
+- result: both current medians lower than baseline; the output-identity clause does not hold on this corpus for the reason above.
