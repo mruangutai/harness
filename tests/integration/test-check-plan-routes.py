@@ -437,7 +437,8 @@ def case_19():
         # the script dies on ImportError at exit 1 before it can refuse, and both
         # assertions go red for a reason that has nothing to do with an
         # unresolvable root.
-        for module in ("harness_boundary.py", "run_identity.py", "artifact_accessors.py"):
+        for module in ("harness_boundary.py", "run_identity.py", "artifact_accessors.py",
+                       "feature_corpus.py"):
             shutil.copy(os.path.join(BIN_DIR, module), os.path.join(fake_bin, module))
         r = run(cwd=td, project_dir=td, script=copy)
         check("case_19b_unresolvable_root_exits_2_not_0", r.returncode == 2,
@@ -1533,6 +1534,12 @@ def _owner_branch(directory):
     owner = os.path.join(directory, "owner")
     branch = os.path.join(owner, ".claude", "worktrees", "feature")
     gitdir = os.path.join(owner, ".git", "worktrees", "feature")
+    # A REAL, UNBORN OWNER REPOSITORY. Discovery from a linked worktree asks the owner which
+    # feature directories it tracks before walking (FEAT-1559 SC-04) and refuses when it cannot
+    # tell; an owner checkout is always a repository. Unborn, it tracks none, so routing is all
+    # this case still exercises.
+    subprocess.run(["git", "init", "-q", owner], check=True, capture_output=True,
+                   env=dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull))
     os.makedirs(gitdir, exist_ok=True)
     os.makedirs(branch, exist_ok=True)
     with open(os.path.join(branch, ".git"), "w") as stream:

@@ -6917,6 +6917,18 @@ reports `HARNESS_PATH_DRIFT` in the injected block, still exiting 0 on every bra
 the `bin/` to `src/` source-location question — is neither upstream nor downstream of this: it fixes
 the code half and leaves this half untouched.
 
+**Amended by FEAT-1559-corpus-outside-worktree — a landed feature is READ at the control plane.**
+A feature worktree now holds only its own feature directory; every other feature is read from the
+main corpus at the owner root, which is the injected control-plane root (operator ruling B,
+2026-10-04). So the anchor follows the feature NAME, not merely the `features/` segment. A path
+naming a CONCRETE feature id (`FEAT-23-ship-flow-fixes`, `BUG-7-x`) is a read of one landed record
+and takes `<HARNESS_CONTROL_PLANE_ROOT>/`; anchored at the feature tree it names a file a sparse
+worktree does not hold. A path naming the feature by PLACEHOLDER (`<feat>`, `FEAT-NN-slug`) is
+the active feature, where writes go, and keeps `<HARNESS_FEATURE_TREE_ROOT>/` — the write half of
+this decision is unchanged, and a placeholder anchored at the control plane is still a violation.
+`check-instruction-paths.py` enforces both directions; the one citation the narrower rule had
+misplaced, `harness-simplify/SKILL.md`'s FEAT-23 source note, moved to the control-plane anchor.
+
 ## DEC-215 — Handoff completion boundaries are explicit, resolved when written, and stable afterwards
 
 **Chose:** FEAT-54 adds `## Done when` as the fifth required handoff section. It describes the

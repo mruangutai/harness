@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import yaml
 
 import factory_config
@@ -11,6 +12,7 @@ import feature_json_write
 import harness_boundary
 import harness_merge
 import harness_yaml
+import panel_findings
 from plan_merge.guards import (
     BIN_DIR, _die, _load_base_doc, _locked_plan_update, _refuse_governed_agent, _reload_or_refuse,
     _resolve_plan,
@@ -19,6 +21,7 @@ from plan_merge.stations import (
     _RESET_LINE_RE, _approval_reset_context, _approval_status, _reset_approval_lines,
     _resume_station, _splice_top_level_status, _verify_reset,
 )
+from plan_merge.panel import _task_ids
 from plan_merge.text import _approval_span, _before_trailing_comments, _field_lines
 
 def _panel_finding_ids(doc):
@@ -139,10 +142,43 @@ def _verify_signature(spliced_bytes, resolved, fields):
             )
 
 
+def _refuse_unsignable_panel(base_doc, requested):
+    """#2095: INV-32's rule applied at the signature instead of reported after it.
+
+    A plan is signed only when every panel finding has the template's shape and none still
+    gates: resolved, non-gating severity, or a risk acceptance — an existing approval.rulings
+    entry or an --overrule in this very call. Before this, check-state printed the INV-32
+    violation AFTER the signature landed, and FEAT-1559 was signed over a ruled high finding
+    whose disposition was prose. Exit 4, the overrule refusals' code: the remedy is an argument
+    to this command or a set-panel before it."""
+    panel = base_doc.get("panel")
+    findings = panel.get("findings") if isinstance(panel, dict) else None
+    if not isinstance(findings, list):
+        return
+    approval = base_doc.get("approval") if isinstance(base_doc.get("approval"), dict) else {}
+    rulings = approval.get("rulings") if isinstance(approval.get("rulings"), list) else []
+    accepted = {str(r.get("finding", "")).strip() for r in rulings if isinstance(r, dict)}
+    accepted |= {ruling["finding"] for ruling in requested}
+    task_ids, lines = _task_ids(base_doc), []
+    for finding in findings:
+        fid = (finding.get("id") if isinstance(finding, dict) else None) or "<no id>"
+        lines.extend(f"REFUSED: panel finding {fid} {fault}"
+                     for fault in panel_findings.shape_faults(finding, task_ids))
+        if isinstance(finding, dict) and panel_findings.gates_signature(finding, accepted):
+            lines.append(f"REFUSED: panel finding {fid} is {finding.get('severity') or 'unrated'} "
+                         "and open, with no risk acceptance")
+    if lines:
+        raise harness_merge.MergeRefusal(4, lines + [
+            "  resolve it through plan-merge.py set-panel (disposition: resolved, resolved_by: "
+            "T-NN), or accept the risk in this call with --overrule <finding-id>:<reason>. "
+            "Nothing was signed (INV-32, #2095)."])
+
+
 def _approval_fields(base_bytes, args):
     fields = {"status": "approved", "approved_by": args.by, "date": args.date}
     base_doc = _reload_or_refuse(base_bytes)
     requested = _requested_overrules(args.overrule, base_doc, args.by, args.date)
+    _refuse_unsignable_panel(base_doc, requested)
     if not requested:
         return fields
     approval = base_doc.get("approval") or {}
@@ -261,6 +297,13 @@ def cmd_sign_approval(args):
     # surfaces; it does not claim to close deliberate sabotage of its own identity signal.
     _refuse_governed_agent("sign", "cmd_sign_approval")
     resolved = _resolve_plan(args.file)
+    brief_path = os.path.join(os.path.dirname(resolved), "BRIEF.md")
+    try:
+        # Refused before the rework ruling is recorded: a BRIEF that cannot be signed means
+        # nothing is signed, and nothing else is written either (#2096).
+        _signed_brief_text(brief_path, args)
+    except harness_merge.MergeRefusal as refusal:
+        _die(refusal.code, *refusal.lines)
     ruling, feature_json = _rework_ruling(args, resolved)
     # THE RULING IS RECORDED BEFORE THE SIGNATURE (review F4). feature_json_write can still
     # refuse past the existence check — invalid JSON, a schema regression, a lock timeout —
@@ -281,6 +324,10 @@ def cmd_sign_approval(args):
         # here aborts the signature, so a signed plan never exists without the hashes INV-40
         # grades its task text against. Hashes without a signature are harmless (re-sign).
         _record_signed_task_hashes(resolved, _reload_or_refuse(signed))
+        # THE BRIEF IS SIGNED LAST BEFORE THE PLAN, after every plan-side refusal has passed
+        # (#2096). A BRIEF signed over a plan whose write then fails is the harmless half: the
+        # goal is signed, the plan is re-signed, and the BRIEF is left as it is.
+        resume["brief"] = _write_brief_signature(brief_path, args)
         return signed
 
     try:
@@ -292,9 +339,81 @@ def cmd_sign_approval(args):
                          "without a signature is harmless — re-run sign-approval to sign.")
         _die(refusal.code, *lines)
     print(f"RESUME: {resume['station']}")
+    print(f"BRIEF {brief_path} {resume['brief']}")
     print(f"SIGNED {resolved} by {args.by} on {args.date}")
     print(f"APPLIED {resolved}")
     sys.exit(0)
+
+
+# ---------------------------------------------------------------------------
+# BRIEF.md's `## Approval` — the signature's second home, written by the same verb (#2096).
+#
+# harness.md told the main session to write this block by hand beside sign-approval, and the
+# scripted transaction in harness-plan.md named only sign-approval, so following the script left
+# the BRIEF pending, as on FEAT-1559. One writer now.
+# The block is the GOAL's signature, which no plan change resets, so a BRIEF that already reads
+# approved is left byte-identical rather than restamped by every re-signature of the plan.
+_APPROVAL_HEADING_RE = re.compile(r"^##\s+Approval\s*$\n?", re.M)
+_NEXT_SECTION_RE = re.compile(r"^##\s", re.M)
+_BRIEF_KEY_RE = re.compile(r"^(status|approved-by|date):", re.I)
+
+
+def _brief_value(value):
+    """One line, always: a value carrying a line break is JSON-quoted, so it cannot open a new
+    `status:` line inside the block (`--by` is free-form, FEAT-41 F-02)."""
+    text = str(value)
+    return json.dumps(text, ensure_ascii=False) if ("\n" in text or "\r" in text) else text
+
+
+def _signed_brief_text(brief_path, args):
+    """The BRIEF with its ## Approval signed, None when it already reads approved; refuses (5)
+    when there is no BRIEF.md or no ## Approval block to sign."""
+    try:
+        with open(brief_path, encoding="utf-8") as fh:
+            text = fh.read()
+    except FileNotFoundError:
+        raise harness_merge.MergeRefusal(
+            5, [f"REFUSED: {brief_path} does not exist; the BRIEF's ## Approval is signed with "
+                "the plan or nothing is signed (#2096)."])
+    heading = _APPROVAL_HEADING_RE.search(text)
+    if heading is None:
+        raise harness_merge.MergeRefusal(
+            5, [f"REFUSED: {brief_path} has no '## Approval' block to sign; add the template's "
+                "block (status: pending) and re-run. Nothing was signed (#2096)."])
+    rest = text[heading.end():]
+    following = _NEXT_SECTION_RE.search(rest)
+    body, tail = (rest[:following.start()], rest[following.start():]) if following else (rest, "")
+    if re.search(r"status:\s*approved", body, re.I):
+        return None
+    # The signature replaces the block's own key lines in place, at the first one; any other
+    # line in the block (a note, a blank) is kept. With no key line, it goes before the first
+    # non-blank line, so the blank under the heading stays where it was.
+    lines = body.splitlines(keepends=True)
+    keyed = [i for i, line in enumerate(lines) if _BRIEF_KEY_RE.match(line)]
+    kept = [line for i, line in enumerate(lines) if i not in keyed]
+    at = keyed[0] if keyed else next((i for i, line in enumerate(kept) if line.strip()),
+                                     len(kept))
+    signature = ["status: approved\n", f"approved-by: {_brief_value(args.by)}\n",
+                 f"date: {_brief_value(args.date)}\n"]
+    return text[:heading.end()] + "".join(kept[:at] + signature + kept[at:]) + tail
+
+
+def _write_brief_signature(brief_path, args):
+    """Write the signed BRIEF through a same-directory tempfile and os.replace, so a reader sees
+    the whole old file or the whole new one. Returns the receipt word."""
+    signed = _signed_brief_text(brief_path, args)
+    if signed is None:
+        return "already approved"
+    fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(brief_path))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(signed)
+        os.replace(tmp_path, brief_path)
+    except BaseException:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        raise
+    return "approved"
 
 
 # ---------------------------------------------------------------------------

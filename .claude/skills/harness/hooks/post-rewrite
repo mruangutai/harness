@@ -1,0 +1,36 @@
+#!/bin/sh
+# post-rewrite — FEAT-1559 T-04. A SHIM AND NOTHING ELSE, the same one as post-checkout: it
+# hands the checkout git just rewrote to `worktree-state.py --repair`. See post-checkout for why
+# the implementation and the repaired checkout are found from two different roots, and why every
+# outcome exits 0 and is reported instead.
+#
+# Git runs this after `git rebase` and `git commit --amend`, with the rewritten-commit list on
+# stdin. A rebase that brings in a new top-level directory leaves the cone stale until the cone
+# is re-derived, and an amend is the first hook after an index rewrite that cleared skip bits
+# (`git read-tree`); both are measured cases in tests/integration/test-worktree-state-hooks.py.
+_hook=post-rewrite
+_here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 0
+_root=$(CDPATH= cd -- "$_here/../../../.." && pwd -P) || exit 0
+_state="$_root/.claude/skills/harness/bin/worktree-state.py"
+
+if ! _top=$(git rev-parse --show-toplevel 2>/dev/null); then
+  echo "$_hook: not inside a working tree; no layout repair ran." >&2
+  exit 0
+fi
+if [ ! -x "$_state" ]; then
+  echo "$_hook: $_state is missing or not executable; no layout repair ran in $_top." >&2
+  exit 0
+fi
+
+# stdin is </dev/null: the rewritten-commit list git passes on stdin stays unread by repair.
+_out=$("$_state" --repair --quiet-dirty --checkout "$_top" </dev/null 2>&1)
+_rc=$?
+if [ "$_rc" -ne 0 ] && [ -n "$_out" ]; then
+  printf '%s\n' "$_out" >&2
+  if [ "$_rc" -eq 8 ]; then
+    echo "$_hook: layout repair SKIPPED in $_top: it carries work repair must not touch (exit 8), so nothing was changed. Commit or stash it; the next checkout, merge or rewrite repairs the layout." >&2
+  else
+    echo "$_hook: worktree-state.py --repair exited $_rc in $_top; the layout is NOT converged. Run worktree-state.py --verify there." >&2
+  fi
+fi
+exit 0

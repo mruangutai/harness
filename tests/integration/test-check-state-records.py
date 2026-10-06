@@ -83,6 +83,41 @@ def _inv32_run(doc, script=SCRIPT, era=_NO_CONFIG):
         return proc.returncode, proc.stdout, proc.stderr
 
 
+def case_2095_off_template_finding_is_a_violation():
+    """#2095: a non-terminal plan's finding outside templates/plan.yaml's shape is an INV-32
+    violation naming the finding and each departure, on a pending plan as well as a signed one.
+    A terminal plan is era-exempt: it is never rewritten, so its record stands as it landed.
+    The terminal fixture also carries a resolved finding, whose INV-32 note proves that plan
+    loaded and was graded, so the exemption cannot pass by reading nothing."""
+    good = {"id": "PF-shape", "severity": "low", "reader": "scope", "kind": "form",
+            "summary": "x", "disposition": "open"}
+    off = {**good, "disposition": "addressed: in T-01", "resolution": "x"}
+    marker = {**good, "id": "PF-graded", "disposition": "resolved", "resolved_by": "T-01"}
+
+    def shape_violations(out):
+        return [line for line in out.splitlines()
+                if "VIOLATION" in line and "PF-shape" in line]
+
+    _, signed, _ = _inv32_run(_inv32_plan(finding=[off]))
+    pending_doc = _inv32_plan(finding=[off])
+    pending_doc["approval"] = {"status": "pending"}
+    _, pending, _ = _inv32_run(pending_doc)
+    _, clean, _ = _inv32_run(_inv32_plan(finding=[good]))
+    done_doc = _inv32_plan(finding=[off, marker])
+    done_doc["status"] = "done"
+    _, done, _ = _inv32_run(done_doc)
+    checks = [
+        any("disposition" in line and "resolution" in line for line in shape_violations(signed)),
+        any("disposition" in line for line in shape_violations(pending)),
+        not shape_violations(clean),
+        not shape_violations(done) and "PF-graded" in done,
+    ]
+    ok = all(checks)
+    print(f"{'ok' if ok else 'FAIL'} - #2095 off-template panel findings are INV-32 violations "
+          f"on non-terminal plans only" + ("" if ok else f" {checks}\n      {signed}\n      {done}"))
+    return ok
+
+
 def case_inv32_unrated_severity_fails_closed():
     """Unrated, absent, and null severities all withhold approval."""
     findings = [
@@ -133,7 +168,9 @@ def _inv32_ruling_checks(open_finding, resolved, fid):
     stale = [{**ruling[0], "finding": "PF-cafebabe"}]
     _, stale_out, _ = _inv32_run(_inv32_plan(finding=resolved, rulings=stale))
     every_gating_severity_accepted = True
-    for severity in ("high", "critical", "unrated", None):
+    # The template's gating severities. An ABSENT severity is a shape departure since #2095, so
+    # a ruling cannot make it clean; that it still fails closed is case_inv32_unrated_severity's.
+    for severity in ("high", "critical", "unrated"):
         finding = [{**open_finding[0], "severity": severity}]
         _, output, _ = _inv32_run(_inv32_plan(finding=finding, rulings=ruling))
         lines = [line for line in output.splitlines() if "FEAT-INV32" in line]
@@ -212,7 +249,7 @@ def _inv32_mutant_is_discriminating(missing):
 def case_inv32():
     """Panel, ruling, reader, and mutation directions for INV-32."""
     fid = "PF-deadbeef"
-    open_finding = [{"id": fid, "severity": "high", "reader": "scope",
+    open_finding = [{"id": fid, "severity": "high", "reader": "scope", "kind": "substance",
                      "summary": "x", "disposition": "open"}]
     resolved = [{**open_finding[0], "disposition": "resolved", "resolved_by": "T-01"}]
     valid_readers = [{"reader": reader, "status": "ran"}
@@ -962,6 +999,7 @@ def main():
     results = []
     results.append(case_inv32())
     results.append(case_inv32_unrated_severity_fails_closed())
+    results.append(case_2095_off_template_finding_is_a_violation())
     results.append(case_inv32_pre_era_is_exempt())
     results.append(case_inv32_era_boundary_is_exact())
     results.append(case_inv32_patch_mission_has_no_panel())

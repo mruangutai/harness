@@ -238,7 +238,6 @@ as what" — a question with no destructive answer, and one this module cannot a
 """
 import argparse
 import collections
-import glob
 import os
 import re
 import subprocess
@@ -247,6 +246,7 @@ import sys
 import artifact_accessors
 import factory_cli
 import factory_config
+import feature_corpus
 import factory_gh
 import gh_board
 import harness_boundary
@@ -449,11 +449,14 @@ def _plan_doc(feat_dir):
 
 
 def _feature_dirs(root):
-    """Every feature directory under the harness root, `<root>/.harness/*/features/*` — the SAME
-    glob shape `check-state.py`'s own INV-24/INV-26 invariants read, so a feature this audit sees
-    is the same set those invariants see (T-15)."""
-    pattern = os.path.join(root, ".harness", "*", "features", "*", "feature.json")
-    return sorted(os.path.dirname(p) for p in glob.glob(pattern))
+    """Every feature directory with a record that the board audit at `root` judges: the landed
+    records of the main corpus plus this checkout's own (feature_corpus.population, FEAT-1559).
+    A glob of `root` saw one feature in a sparse worktree. A broken layout or an unreadable
+    corpus raises feature_corpus.CorpusError; it never shrinks the set."""
+    refusal = feature_corpus.layout_refusal(root)
+    if refusal:
+        raise feature_corpus.CorpusError(refusal)
+    return sorted(e["path"] for e in feature_corpus.population(root) if e["record"])
 
 
 def _invalid_status_finding(feat_dir, station):
@@ -515,7 +518,12 @@ def _projection_findings(feat_dir, board, stations, projection):
 def _status_findings(root, board, stations):
     """Compare active feature cards using the one supplied board snapshot and shared policy."""
     findings = []
-    for feat_dir in _feature_dirs(root):
+    try:
+        feat_dirs = _feature_dirs(root)
+    except feature_corpus.CorpusError as exc:
+        return [_finding("STATUS", f"STATUS: the feature cards cannot be audited, because the "
+                                   f"feature corpus could not be read: {exc}")]
+    for feat_dir in feat_dirs:
         try:
             feature_doc = artifact_accessors.load_feature_json(
                 os.path.join(feat_dir, "feature.json"))

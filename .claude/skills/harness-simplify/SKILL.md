@@ -30,7 +30,7 @@ The angle file carries the finding shape (five parts: file, line, summary, concr
 alternative) and the rule that an empty return is a real result; you do not restate either.
 
 Source prompts (eight, verbatim):
-`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-simplify-angles-source.md`.
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-simplify-angles-source.md`.
 
 ## The four angles, in one line each
 

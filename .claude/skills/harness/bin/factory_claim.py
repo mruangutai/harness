@@ -32,6 +32,7 @@ import artifact_accessors
 import factory_cli
 import factory_config
 import factory_gh
+import feature_corpus
 import harness_yaml
 
 TOOL = "claim"
@@ -80,6 +81,17 @@ def _repo_name_of(item):
     return normalised
 
 
+def _record_path(repo, feature, name):
+    """Where `name` in (repo, feature)'s directory is read (FEAT-1559 ruling B). A sparse feature
+    worktree holds only its own feature directory, so another feature's record is read in the
+    main corpus at the owner root; a directory this checkout holds is read here. Raises
+    feature_corpus.CorpusError when the owner root that must answer cannot be resolved."""
+    features = factory_config.features_root(repo)
+    top = os.path.dirname(os.path.dirname(os.path.dirname(features)))
+    rel = os.path.relpath(os.path.join(features, feature, name), top)
+    return os.path.abspath(feature_corpus.corpus_path(top, rel))
+
+
 class _BlockerCache:
     """Caches each (repo, feature) pair's plan.yaml and feature.json so a single poll reads each
     file once — the cost model is per-blocker `issue_view` reads, not per-file reads (DESIGN.md
@@ -94,8 +106,7 @@ class _BlockerCache:
     def plan_path(self, repo, feature):
         """The absolute path to (repo, feature)'s plan.yaml under repo's own features root — the
         only place absoluteness is established (REQ-02, SC-04)."""
-        root = factory_config.features_root(repo)
-        return os.path.abspath(os.path.join(root, feature, "plan.yaml"))
+        return _record_path(repo, feature, "plan.yaml")
 
     def _plan(self, repo, feature):
         """The cached plan dict for (repo, feature), or None when it cannot be read. The sole
@@ -148,8 +159,7 @@ class _BlockerCache:
         or None when it is unresolvable."""
         key = (repo, feature)
         if key not in self._issue_maps:
-            root = factory_config.features_root(repo)
-            path = os.path.join(root, feature, "feature.json")
+            path = _record_path(repo, feature, "feature.json")
             try:
                 doc = artifact_accessors.load_feature_json(path)
             except artifact_accessors.ArtifactAccessError:

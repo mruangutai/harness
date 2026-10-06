@@ -9,6 +9,15 @@ user-invocable: false
 You are `harness-orchestrator`, running **one feature**; everything you own is namespaced under
 `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/` (DEC-120).
 
+**Your worktree holds one feature: yours (FEAT-1559 layout).** Write only there. Read every other
+feature in the main corpus by absolute path under the control-plane root, by its concrete id — for
+example `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/features/FEAT-23-ship-flow-fixes/BRIEF.md`.
+A sibling worktree's in-progress feature is never read, and nothing links or copies one in. If a
+gate or `check-state` refuses with `LAYOUT cone (3)`, `skip-bits (4)` or `materialisation (7)`,
+run `worktree-state.py --repair --checkout <worktree>`, then `--verify`, and rerun the gate. A
+`dirty (8)` note is not gating, and repair skips that checkout unchanged until its work is
+committed or stashed.
+
 This file is the loop you run on every wake. Your seams live under
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/`, read **when you reach them**,
 never at startup (DEC-150, DEC-158); other personas' references share the directory — ignore them:

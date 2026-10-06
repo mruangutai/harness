@@ -37,7 +37,6 @@ _bootstrap_sys.path[:] = [
 ]
 
 import contextlib
-import glob
 import io
 import json
 import re
@@ -73,6 +72,7 @@ if not root or not _bootstrap_os.path.isdir(root):
     raise SystemExit(2)
 
 import artifact_accessors as _artifact_accessors
+import feature_corpus as _feature_corpus
 
 GH = _bootstrap_os.environ.get("GH_BIN") or "gh"
 input_text = _bootstrap_sys.stdin.read().rstrip("\n")
@@ -193,13 +193,26 @@ leaf = name.split("/", 1)[1] if "/" in name else name
 flow_match = re.match(r"^((FEAT|BUG)-[0-9]+[a-z0-9-]*).*", leaf)
 flow = flow_match.group(1) if flow_match else ""
 if flow:
-    matches = glob.glob(_bootstrap_os.path.join(
-        root, ".harness", "harness", "features", flow + "*"))
-    if not matches:
+    # THE FLOW EXISTS WHERE THE CORPUS HOLDS IT (FEAT-1559). A sparse worktree holds only its own
+    # feature directory, so the old glob of `root/.harness/harness/features` refused a legal flow
+    # that had landed at the owner root, and never looked in a fleet segment at all. A flow now
+    # exists when this checkout holds its directory (its own, possibly unlanded, record) or the
+    # owner root has landed it, in any segment; in-progress siblings are never consulted.
+    _refusal = _feature_corpus.layout_refusal(root)
+    if _refusal:
+        deny(f'Branch "{name}" cannot be checked against the flows: {_refusal}')
+        raise SystemExit(0)
+    try:
+        _flows = [e["id"] for e in _feature_corpus.population(root)]
+    except _feature_corpus.CorpusError as _ce:
+        deny(f'Branch "{name}" cannot be checked against the flows, because the feature '
+             f"corpus could not be read: {_ce}")
+        raise SystemExit(0)
+    if not any(f.startswith(flow) for f in _flows):
         deny(
             f'Branch "{name}" names flow {flow}, but no '
-            f".harness/harness/features/{flow}* exists. Flows are created by "
-            "/harness-plan — plan first, then branch."
+            f".harness/*/features/{flow}* exists here or in the main corpus. Flows are created "
+            "by /harness-plan — plan first, then branch."
         )
         raise SystemExit(0)
     print(json.dumps({

@@ -1,6 +1,7 @@
 """THE INVARIANT TABLE: the one place a row is declared and the one place discretion lives. (FEAT-69)"""
 from check_state.board import inv_13, inv_21, inv_24, inv_26, inv_28, inv_30, inv_37
 from check_state.brief import inv_38, inv_41, inv_49
+from check_state.corpus import inv_52
 from check_state.feature_record import (
     collate_feat59,
     inv_1,
@@ -154,6 +155,10 @@ INVARIANTS = (
     Group("factory-claims", (
         Inv("INV-24", inv_24, "repo", (_FEATURE_JSON, "path:.harness/factory/fleet.yaml"),
             "a factory block names a fleet repository and no two features claim one issue", "DEC-203"),
+    )),
+    Group("branch-claims", (
+        Inv("INV-52", inv_52, "repo", (_FEATURE_JSON, "git:ls-tree"),
+            "no two landed features claim one branch, read from the main corpus on demand", "DEC-95"),
     )),
     Group("shipped-pr", (
         Inv("INV-28", inv_28, "feature", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON),

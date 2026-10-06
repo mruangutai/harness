@@ -992,6 +992,69 @@ def case_30_repository_header_binds_exact_factory_claim():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_31_repository_binding_read_from_the_feature_worktree():
+    """#2104: a new fleet feature's record exists only in its own worktree until it merges.
+    The guard resolves the claim to that worktree, so it must read the repository binding
+    there too — not from the main checkout, which has no copy and refused every first
+    dispatch with 'names no repository-tier feature artifact'."""
+    feature = "FEAT-31-fleet-first"
+    main, segment = _factory_checkout(feature=feature)
+    shutil.rmtree(os.path.join(main, ".harness", segment, "features", feature))
+    for cmd in (["git", "init", "-q", "-b", "main", main],
+                ["git", "-C", main, "config", "user.email", "t@example.com"],
+                ["git", "-C", main, "config", "user.name", "t"],
+                ["git", "-C", main, "commit", "-q", "--allow-empty", "-m", "init"]):
+        subprocess.run(cmd, capture_output=True, check=True)
+    wt = os.path.join(main, ".claude", "worktrees", "harness", feature)
+    subprocess.run(["git", "-C", main, "worktree", "add", "-q", "-b", "feat/" + feature, wt,
+                    "HEAD"], capture_output=True, check=True)
+    record = os.path.join(wt, ".harness", segment, "features", feature)
+    os.makedirs(record)
+    with open(os.path.join(record, "feature.json"), "w", encoding="utf-8") as fh:
+        json.dump({"feature_id": feature, "factory": {"repo": "acme/product-a"}}, fh)
+    env = {"CLAUDE_PROJECT_DIR": main, "HARNESS_PROJECT_DIR": main}
+
+    def dispatch(task):
+        return fire({"agent_type": "harness-eng-lead", "harness_agent_id": "LeadOne",
+                     "harness_parent_agent_id": "OrchestratorOne", "cwd": main,
+                     "tool_input": {"agent": "harness-backend-dev", "task": task}}, env=env)
+
+    try:
+        bound = dispatch(f"HARNESS-FEATURE: {feature}\n"
+                         "HARNESS-REPOSITORY: acme/product-a\nchange the product")
+        claims = _claims_for(_read_registry(wt, _load_registry_module()),
+                             "harness-backend-dev", feature)
+        check("case 31: a binding held only by the feature worktree is accepted",
+              bound.returncode == 0, bound.stderr)
+        check("case 31: the claim lands in the worktree with the fleet segment",
+              len(claims) == 1 and claims[0].get("repository") == segment, claims)
+        check("case 31: the main checkout holds no copy of the record",
+              not os.path.exists(os.path.join(main, ".harness", segment, "features", feature)))
+        missing = dispatch(f"HARNESS-FEATURE: {feature}\nchange the product")
+        mismatch = dispatch(f"HARNESS-FEATURE: {feature}\n"
+                            "HARNESS-REPOSITORY: acme/product-b\nchange the product")
+        check("case 31: the worktree's binding still demands its locator",
+              missing.returncode == 2 and "HARNESS-REPOSITORY" in missing.stderr, missing.stderr)
+        check("case 31: and still refuses a locator that disagrees with it",
+              mismatch.returncode == 2 and "disagrees" in mismatch.stderr, mismatch.stderr)
+        # A stale copy in the main checkout that disagrees (the planted-copy workaround this
+        # issue left behind) must not decide anything: the worktree's record still binds.
+        stale = os.path.join(main, ".harness", segment, "features", feature)
+        os.makedirs(stale)
+        with open(os.path.join(stale, "feature.json"), "w", encoding="utf-8") as fh:
+            json.dump({"feature_id": feature, "factory": {"repo": "acme/product-b"}}, fh)
+        still = dispatch(f"HARNESS-FEATURE: {feature}\n"
+                         "HARNESS-REPOSITORY: acme/product-a\nchange the product")
+        stale_wins = dispatch(f"HARNESS-FEATURE: {feature}\n"
+                              "HARNESS-REPOSITORY: acme/product-b\nchange the product")
+        check("case 31: a disagreeing main-checkout copy does not override the worktree record",
+              still.returncode == 0 and stale_wins.returncode == 2,
+              f"worktree header exit={still.returncode} {still.stderr.strip()[:160]!r}; "
+              f"stale header exit={stale_wins.returncode}")
+    finally:
+        shutil.rmtree(main, ignore_errors=True)
+
+
 def case_30_schema_controls_are_not_the_guards():
     """FEAT-1928: harness-hooks.ts is the one schema authority — it refuses a dispatcher's
     outputSchema/schemaMode and injects the persona's strict schema BEFORE this guard runs.
@@ -1085,6 +1148,7 @@ def main():
     case_29_name_parameter_refused()
     case_30_schema_controls_are_not_the_guards()
     case_30_repository_header_binds_exact_factory_claim()
+    case_31_repository_binding_read_from_the_feature_worktree()
 
     failed = 0
     for name, ok, detail in RESULTS:

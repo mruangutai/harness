@@ -2477,6 +2477,9 @@ def _hardlink_plan(path):
     if st.st_nlink < 2:
         return None
     import glob as _glob
+    # Hardlink aliasing is out of FEAT-1559's scope (FEAT-58 D-14, #1638); this scan is left as
+    # it was and stays local to the checkout being written.
+    # corpus-scope: checkout-local
     for cand in _glob.glob(os.path.join(root, ".harness", "*", "features", "*", "plan.yaml")):
         try:
             cs = os.stat(cand)
@@ -2697,7 +2700,11 @@ else:
                 _worktrees = [_own] if _own else []
             except _hb_sweep.AmbiguousWorktree:
                 pass
+        # A worktree root lists its owner's peers (FEAT-1559), itself among them; the root is
+        # already swept above, so it is dropped here rather than swept twice.
         for _wt_root in _worktrees:
+            if os.path.realpath(_wt_root) == os.path.realpath(root):
+                continue
             _sweep.extend((_wt_root, os.path.join(_wt_root, _p)) for _p in SWEEP_GLOBS)
     except (ImportError, OSError, ValueError):
         pass

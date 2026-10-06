@@ -24,6 +24,9 @@ def _registered_feature(root, feature, agent):
     if agent not in LEAD_SQUADS or not isinstance(feature, str) or not re.fullmatch(
             r"(?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+", feature):
         raise AuthorizationError("authorization requires an exact lead and feature identity")
+    # The selected feature's own record, bound to this checkout: authorization never reads
+    # another checkout's copy (FEAT-1559).
+    # corpus-scope: checkout-local
     records = glob.glob(os.path.join(root, ".harness", "*", "features", feature, "feature.json"))
     if len(records) != 1:
         raise AuthorizationError("authorization requires exactly one registered feature record")

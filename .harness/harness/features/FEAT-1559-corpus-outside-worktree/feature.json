@@ -1,0 +1,236 @@
+{
+  "feature_id": "FEAT-1559-corpus-outside-worktree",
+  "branch": "feat/FEAT-1559-corpus-outside-worktree",
+  "pr": 2103,
+  "review_sha": "f8a67546bcb42b6a5fd4327398615a4cfc07ae4d",
+  "cycles_used": 7,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-10-05T02:55:53+00:00",
+      "tokens": 126518,
+      "ended_at": "2026-10-05T05:36:34+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T16:39:46+00:00",
+      "ended_at": "2026-10-05T16:39:48+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-05T16:40:35+00:00",
+      "ended_at": "2026-10-05T17:02:49+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T17:12:21+00:00",
+      "ended_at": "2026-10-05T17:28:57+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-05T19:16:40+00:00",
+      "ended_at": "2026-10-05T19:43:59+00:00",
+      "cycles_used": 2,
+      "tokens": null
+    },
+    {
+      "id": "validate-c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T22:26:49+00:00",
+      "ended_at": "2026-10-05T22:45:33+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-05T02:55:41+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "adds new enforcement (post-checkout hook, worktree-state.py --verify preflight in check_state/, sparse layout on every checkout) across many files; only cause-known holds"
+    },
+    {
+      "at": "2026-10-05T13:16:11.359779+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.intent",
+      "reason": "Operator 2026-10-04: SC-02's core claim (byte-identical landed reads from inside each checkout class, with the other record absent locally) had no direct assertion; added it to T-03's integration test."
+    },
+    {
+      "at": "2026-10-05T13:32:11.935170+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-worktree-state-rules.py. Same assertions, same kinds."
+    },
+    {
+      "at": "2026-10-05T13:32:14.980196+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-worktree-state-rules.py. Same assertions, same kinds."
+    },
+    {
+      "at": "2026-10-05T13:50:08.823717+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.files",
+      "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-check-state-corpus-rules.py. Same assertions, same kinds."
+    },
+    {
+      "at": "2026-10-05T13:50:09.894704+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.verify",
+      "reason": "run-unit-tests.py refuses a test basename present in both tests/unit and tests/integration (MISCONFIGURED); the unit file is renamed test-check-state-corpus-rules.py. Same assertions, same kinds."
+    },
+    {
+      "at": "2026-10-05T14:09:11.258025+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Basename clash with T-03's integration test-feature-corpus.py (run-unit-tests.py refuses it); unit file renamed test-feature-corpus-discovery.py."
+    },
+    {
+      "at": "2026-10-05T14:09:13.582507+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Basename clash with T-03's integration test-feature-corpus.py (run-unit-tests.py refuses it); unit file renamed test-feature-corpus-discovery.py."
+    },
+    {
+      "at": "2026-10-05T14:23:00.238719+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "Sparse worktree broke 5 suite files and 2 readers reading other features locally; they now use feature_corpus.corpus_path. Seam and T-02 verify parser shared."
+    },
+    {
+      "at": "2026-10-05T14:37:44.514835+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-04.files",
+      "reason": "Basename clash with T-04's integration test-worktree-state-hooks.py (run-unit-tests.py refuses it); unit file renamed test-worktree-state-hooks-rules.py."
+    },
+    {
+      "at": "2026-10-05T14:37:47.030278+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-04.verify",
+      "reason": "Basename clash with T-04's integration test-worktree-state-hooks.py (run-unit-tests.py refuses it); unit file renamed test-worktree-state-hooks-rules.py."
+    },
+    {
+      "at": "2026-10-05T14:53:54.118813+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-05.files",
+      "reason": "SC-14: landed-feature reads anchor at the control plane (DEC-214 amended, classifier + one citation); shared install_hooks fixture helper."
+    },
+    {
+      "at": "2026-10-05T15:41:12.590347+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-06.intent",
+      "reason": "Operator ruling 2026-10-05: conversion runs after merge (#2101); pre-merge conversion exposes other worktrees to pre-1559 tools."
+    },
+    {
+      "at": "2026-10-05T17:12:21+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "validate-c2-validator",
+      "reason": "validate c2 FAIL (segment-collapsing population, SC-04) fixed direct by Main (DEC-174): receipt-main-session-fix-c2.md; re-verify at 6c11ab62"
+    },
+    {
+      "at": "2026-10-05T19:15:44.587460+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "Outside panel on #2103: factory_claim read other features' records locally; now via corpus_path."
+    },
+    {
+      "at": "2026-10-05T19:16:52+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Outside panel on PR #2103 found 2 high + 5 medium after validate c3 PASS; operator raised rework to 3/180 and approved fix c3; re-verify at 35587d8d"
+    },
+    {
+      "at": "2026-10-05T22:26:26+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "validate c4 FAIL on one med must-fix (sparse-checkout stdin quoting); operator approved round 4; re-verify at f8a67546"
+    },
+    {
+      "at": "2026-10-05T22:26:49+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "validate cycle 5",
+      "reason": "validate c4 FAIL (sparse-checkout stdin quoting) fixed in round 4 at f8a67546; re-verify the fix delta"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 4,
+    "wall_clock_minutes": 240,
+    "decision": "notes/answers-operator-2026-10-05-rework-round-4.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "550d990962d060eb686eefeceb56437fcb33f8c3319b75cda6b804fcdb1efc6a",
+    "T-02": "a7b917bc2d913238266c6a93d52b62f5dbff22e1c666888adae80f0b417bd919",
+    "T-03": "93457099199e1e20192e718a4bdc48c9c165ea6c3f414c8c9bc1944e2af79a60",
+    "T-04": "82f0d994570ee252f5e78fa9dbdb7f92b05db8c4c84f86f7b074aa111d95751c",
+    "T-05": "aa2c2f939d8c93f73fa9902dfcfff857ed7fd988b6fcd105d00a4c162de68ea4",
+    "T-06": "3e55e343c33b7edd3d49214619f7a7b59798c4f853468fb8ca20743575f73649"
+  },
+  "github": {
+    "milestone": 99,
+    "parent": 2086,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 2088,
+      "T-02": 2089,
+      "T-03": 2091,
+      "T-04": 2092,
+      "T-05": 2093
+    },
+    "source_issues": [
+      1559
+    ],
+    "build_entry": "opened"
+  }
+}
