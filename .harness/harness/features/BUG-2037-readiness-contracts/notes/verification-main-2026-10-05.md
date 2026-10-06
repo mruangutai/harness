@@ -38,3 +38,42 @@ Four concurrent read-only angles: RepairReuse, RepairSimplicity, RepairEfficienc
 ## Historical migration provenance
 
 The actual preflight orchestrator SuccessfulCougar.jsonl line 130 invoked close-run for preflight-eng with --refused-return --verdict BLOCKED; the following real tool result reported successful CLOSED refused-return at 2026-10-05T04:38:10.205Z. The actual review orchestrator IrrelevantPigeon.jsonl line 154 did the same for simplify-eng; result at 2026-10-05T05:24:54.778Z reported successful CLOSED refused-return and exit=0. Those existing records may receive only the missing disposition through the repaired CLI, retaining timing, tokens, verdict, old squad labels and every prior judgment. Neither prose PASS nor historical ESCALATE is accepted retroactively.
+
+## Pinned review corrections
+
+Independent code/security review of 2880a6148559e442fd0b8a30d51c2147d5e5f101 found a foreign-BRIEF exemption bypass; code review also found an unrelated-section verification-mode bypass and ordinary replay retiming refused history. MAIN reproduced all three before production changes:
+
+- Real validate-digest.py --hook, with a genuine QA claim on an automated feature and an artifact under a sibling UAT-only feature: incorrectly accepted exit 0 and released the claim. It now rejects exit 2 for missing fail_first. Context uses the unique registered feature selected by trusted runtime identity and corroborates the artifact directory; lookup uncertainty cannot waive evidence.
+- An SC with no verification mode followed by a separate section containing verify: uat: incorrectly produced no errors. Mode lookup now reuses check_state.brief's actual continuation-block parser; the unrelated-section case is rejected.
+- Ordinary run-end replay of an already refused BLOCKED entry: incorrectly changed ended_at from 2026-10-05T10:00:00+00:00 to 2026-10-05T13:23:50+00:00. The regression now passes with the original timestamp preserved; attempted PASS still leaves bytes unchanged.
+
+The three focused regressions pass. Canonical accessor classification follows the renamed registered_feature lookup; lead authorization remains required by registered_destination. New production functions grade 4/5 and the foreign-BRIEF integration case grades 3 against its test bar of 3. Full-suite and fresh pinned review evidence follow below when observed; the initial pin is not approved.
+
+## Latest verification and external blocker
+
+- Updated unit suite: exit 0, 46 files, 35.94 seconds wall; artifact://206. Includes 88 feature-record tests and 137 OMP hook tests.
+- Updated integration suite: exit 0, 73 files, 138.03 seconds wall; artifact://215. The previous run, artifact://207, failed only a mocked forwarding test that supplied no registered feature record; that wiring-only test was removed, not repinned to pretend unknown context is authoritative. The real cross-feature hook rejection regression remains.
+- Updated static trio: exit 0, 53,895 words across 16 roles, 73 referenced files, 68 instruction files, zero violations.
+- Fresh-process smoke of the actual approved #2037 artifact/runtime feature pair resolves the exact original feature directory, recognizes its explicit nonautomated criteria, and returns no QA mode errors. This does not claim a live QA PASS or UAT conduct.
+- Canonical checker: exit 1, artifact://217, only INV-25 and INV-29 violations for the unrelated standing detached worktree /private/tmp/feat2081-base. Actual git worktree registration confirms that path. MAIN did not create, remove, move or alter it.
+
+No next commit was made after this checker failure. Corrections remain in the separate repair worktree; 2880a614 remains the initial unapproved pin. Fresh pinned review, original-feature dependency integration, historical disposition annotation and live #2037 UAT await owner-authorized cleanup of the external worktree. No gate was weakened or bypassed.
+
+Operator selected “Leave it for its owner.” The unrelated worktree is preserved; no removal or relocation is authorized. Resumption requires that owner's cleanup and a passing canonical checker.
+
+## Authorized finalization — 2026-10-06
+
+Operator authorized the immediate next step only: reconcile the separate repair with current main, verify, commit, and obtain fresh pinned code/security reviews. Original #2037 integration, historical annotation, live UAT, PR and merge remain outside this step.
+
+- Reconciled immutable main 2d28b79e3e7b5ae5623bd47dd87eab53a4a0c724. Preserved all corrections in exact stash 01bfa65d14ab56f30e30487adf59cd1d3af49a3f; applied that object, not a mutable stash index. The safety copy is retained.
+- Adopted main's supported sparse conversion with worktree-state.py --repair while the repair checkout was clean, then replayed the uncommitted merge and restored corrections. The sole resolver conflict retains both exact feature-identity validation and upstream checkout-local corpus semantics. Layout verification reports only dirty (8), never structural 3/4/7.
+- Unit suite: exit 0, 52 files, 26.66 seconds wall; artifact://231. Includes 88 feature-record tests and 138 OMP hook tests, 768 assertions.
+- Integration suite: exit 0, 80 files, 92.59 seconds wall; artifact://232. Includes 81/81 exact-claim checks, 37/37 undeclared-key checks, and byte-identical unrelated-claim sentinel.
+- Static trio: exit 0, 54,123 words across 16 roles; 73 referenced files; 68 instruction files, zero violations.
+- Canonical check-state.py: exit 0 before commit, with only the expected dirty-layout advisory. The former external-worktree blocker no longer prevents this checker; MAIN did not remove or relocate that checkout.
+- Canonical worktree differential grading: all 17 new/worsened functions meet their bars. Production grades are 4/5; the foreign-BRIEF regression is grade 3 against test bar 3. Pinned CLI differential grading follows the commit.
+- Fresh real CLI smoke: eng registration rejects atomically; engineering registers; historical BLOCKED refusal annotation and ordinary replay preserve the original timestamp and bytes. Attempted PASS exits 11 through schema refusal and leaves bytes unchanged. The first smoke expected argument-refusal exit 2 incorrectly; the corrected smoke observed the actual schema exit 11 without changing production behavior. Disposable roots were removed.
+- Fresh retry lifecycle smoke: real registry run-start CLI creates one process-owned claim; real validator --hook rejects an incomplete object with exit 2 and retains that exact claim; a corrected object on the same runtime job exits 0 and releases it. Disposable root was removed. This is CLI smoke, not live OMP UAT.
+- Four fresh parallel read-only angles completed: RepairReuseFresh, RepairSimpleFresh and RepairEfficientFresh have no findings. RepairAltitudeFresh identifies the pre-existing unbounded _inspection_sc_ids interpretation as a briefing-row: defer migrating that separate citation consumer to the bounded parser because it changes behavior outside this repair. No assertion was weakened and no code apply followed the pass.
+
+Fresh pinned code/security review is still required; the initial pin 2880a614 remains unapproved. This section does not convert any historical refusal or #2037 UAT criterion to PASS.

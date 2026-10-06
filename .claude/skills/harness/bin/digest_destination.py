@@ -20,10 +20,14 @@ class AuthorizationError(ValueError):
     pass
 
 
-def _registered_feature(root, feature, agent):
-    if agent not in LEAD_SQUADS or not isinstance(feature, str) or not re.fullmatch(
+def registered_feature(root, feature):
+    """Resolve the unique registered feature named by trusted runtime identity."""
+    if not isinstance(feature, str) or not re.fullmatch(
             r"(?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+", feature):
-        raise AuthorizationError("authorization requires an exact lead and feature identity")
+        raise AuthorizationError("authorization requires an exact feature identity")
+    # The selected feature's own record, bound to this checkout: authorization never reads
+    # another checkout's copy (FEAT-1559).
+    # corpus-scope: checkout-local
     records = glob.glob(os.path.join(root, ".harness", "*", "features", feature, "feature.json"))
     if len(records) != 1:
         raise AuthorizationError("authorization requires exactly one registered feature record")
@@ -58,7 +62,9 @@ def _registered_digest(root, feature_dir, selected, agent):
 
 
 def registered_destination(root, feature, agent, run_id=None):
-    record, feature_dir = _registered_feature(root, feature, agent)
+    if agent not in LEAD_SQUADS:
+        raise AuthorizationError("authorization requires an exact lead and feature identity")
+    record, feature_dir = registered_feature(root, feature)
     selected = _registered_run(record, agent, run_id)
     return selected, _registered_digest(root, feature_dir, selected, agent)
 

@@ -243,7 +243,7 @@ def cmd_run_start(args):
 
 
 def _run_end_time(entry, refused_return):
-    if not refused_return:
+    if not refused_return and entry.get("return_disposition") != "refused":
         return now_iso()
     ended = entry.get("ended_at")
     if ended and entry.get("verdict") != "BLOCKED":

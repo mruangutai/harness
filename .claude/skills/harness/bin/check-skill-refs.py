@@ -27,6 +27,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import feature_corpus  # noqa: E402
+
 SKILLS_REL = Path(".claude") / "skills"
 DECISIONS_REL = ".harness/harness/docs/DECISIONS.md"
 CHECK_STATE_REL = SKILLS_REL / "harness" / "bin" / "check-state.py"
@@ -83,8 +86,10 @@ def _resolves(root: Path, citing: Path, ref: str) -> bool:
     if "." not in os.path.basename(ref):
         return True  # a directory or a bare name, not a file claim
     skill_dir = citing.parent.parent if citing.parent.name == "references" else citing.parent
-    candidates = (root / ref, root / SKILLS_REL / ref, root / SKILLS_REL / "harness" / ref,
-                  citing.parent / ref, skill_dir / ref)
+    # Another feature's path is read where it lives: at the owner root when this checkout is a
+    # sparse worktree (FEAT-1559 ruling B). Raises feature_corpus.CorpusError when it cannot be.
+    candidates = (Path(feature_corpus.corpus_path(str(root), ref)), root / SKILLS_REL / ref,
+                  root / SKILLS_REL / "harness" / ref, citing.parent / ref, skill_dir / ref)
     return any(c.exists() for c in candidates)
 
 
@@ -114,7 +119,12 @@ def scan(root: Path) -> list[str]:
         for inv in sorted(set(INV_RE.findall(text)) - inv_ids):
             flag(f"cites {inv}, which check-state.py does not implement")
         for ref in sorted(set(PATH_RE.findall(text))):
-            if not _resolves(root, path, ref):
+            try:
+                resolved = _resolves(root, path, ref)
+            except feature_corpus.CorpusError as exc:
+                flag(f"path cannot be checked: {ref}: {exc}")
+                continue
+            if not resolved:
                 flag(f"path does not exist: {ref}")
         for name, heading in sorted(set(SECTION_RE.findall(text))):
             if re.fullmatch(r"[\d\s–-]+", heading.strip()):

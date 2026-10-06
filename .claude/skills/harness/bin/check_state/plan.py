@@ -1,5 +1,7 @@
 """plan.yaml is a well-formed, approved record: INV-35/3/4/5/34/32/44. (FEAT-69)"""
 import os, re
+import factory_config
+import panel_findings
 from check_state.ctx import approved, has_approval_block, read
 # --- INV-35 (issue #251): a plan.yaml plain scalar carrying a space then a `#` immediately
 # followed by a digit truncates SILENTLY under YAML's plain-scalar comment rule -- `#217`
@@ -500,7 +502,8 @@ def _inv32_rulings(feat, approval, findings):
 
 
 def _inv32_finding(feat, item, accepted_risks):
-    """One panel finding's disposition against the accepted risks: its findings."""
+    """One panel finding's disposition against the accepted risks: its findings. Whether it
+    gates is panel_findings.gates_signature, the rule sign-approval refuses by (#2095)."""
     bad, warn = [], []
     if not isinstance(item, dict):
         bad.append(f"INV-32: {feat} has a malformed panel finding.")
@@ -512,7 +515,7 @@ def _inv32_finding(feat, item, accepted_risks):
         warn.append(f"INV-32: {feat} finding {fid} disposition resolved.")
     elif fid in accepted_risks:
         warn.append(f"INV-32: {feat} operator accepted risk for finding {fid}.")
-    elif severity not in {"info", "low", "med"}:
+    elif panel_findings.gates_signature(item, accepted_risks):
         bad.append(f"INV-32: {feat} finding {fid} is {severity or 'unrated'} and remains "
                    "open without operator risk acceptance.")
     return bad, warn
@@ -580,7 +583,38 @@ def _inv32_panel_record(feat, approval, panel):
     return r_bad + f_bad + rd_bad, f_warn + rd_warn
 
 
+def _inv32_shape(ctx, feat):
+    """#2095: every panel finding of a NON-FINISHED plan has templates/plan.yaml's shape, signed
+    or not. The writers refuse a departure; this catches one written any other way. A finished
+    plan (done, abandoned, rejected) is era-exempt: it is never rewritten, and 20 of the 47 that
+    had landed with findings predate any enforcement of the shape."""
+    doc = ctx.plan_docs.get(feat)
+    if not isinstance(doc, dict) or ctx.station(feat) in factory_config.FINISHED_STATIONS:
+        return []
+    panel = doc.get("panel")
+    findings = panel.get("findings") if isinstance(panel, dict) else None
+    if not isinstance(findings, list):
+        return []
+    task_ids = {str(t.get("id")) for t in doc.get("tasks") or [] if isinstance(t, dict)}
+    bad = []
+    for item in findings:
+        faults = panel_findings.shape_faults(item, task_ids)
+        if faults:
+            fid = (item.get("id") if isinstance(item, dict) else None) or "<no id>"
+            bad.append(f"INV-32: {feat} finding {fid} departs from templates/plan.yaml's finding "
+                       f"shape: {'; '.join(faults)}. Rewrite the panel through plan-merge.py "
+                       f"set-panel, which refuses the same departures.")
+    return bad
+
+
 def inv_32(ctx, feat):
+    bad, warn = _inv32_graded(ctx, feat)
+    return _inv32_shape(ctx, feat) + bad, warn
+
+
+def _inv32_graded(ctx, feat):
+    """The signed-plan grading: patch exemption, era placement, panel presence, then the
+    rulings, findings and readers passes."""
     doc, approval = _inv32_signed_plan(ctx, feat)
     if doc is None:
         return [], []

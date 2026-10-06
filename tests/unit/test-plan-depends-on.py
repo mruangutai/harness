@@ -20,6 +20,7 @@ import tempfile
 
 try:
     import artifact_accessors
+    import feature_corpus
     import harness_yaml
 except ModuleNotFoundError:
     print("test-plan-depends-on: harness_yaml is not importable from this interpreter "
@@ -164,8 +165,15 @@ check("6c: integer ids with a genuinely absent integer dependency (3) is rejecte
 # --- walk(root): shared by case A (the live corpus) and case B (the paired
 # detector). Returns (files_found, failures) where failures is a list of
 # (path, message) for every plan.yaml that raised under artifact_accessors.load_plan.
+# The live corpus of a sparse worktree is its own feature plus the main corpus
+# (FEAT-1559); a name present here is not walked again at the owner.
 def walk(root):
-    paths = glob.glob(os.path.join(root, ".harness", "harness", "features", "*", "plan.yaml"))
+    by_name = {}
+    for corpus_root in feature_corpus.corpus_roots(root):
+        for path in glob.glob(os.path.join(corpus_root, ".harness", "harness", "features", "*",
+                                           "plan.yaml")):
+            by_name.setdefault(os.path.basename(os.path.dirname(path)), path)
+    paths = sorted(by_name.values())
     failures = []
     for path in paths:
         try:

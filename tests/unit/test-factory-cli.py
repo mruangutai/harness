@@ -20,6 +20,7 @@ import os
 import sys
 
 import factory_cli as cli
+import feature_corpus
 
 FAILS = 0
 RAN = 0
@@ -157,8 +158,9 @@ _TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(_anchor_tests, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
-_PLAN = os.path.join(ROOT, ".harness", "harness", "features",
-                     "FEAT-10-software-factory", "plan.yaml")
+# Another feature's plan: a sparse worktree reads it in the main corpus (FEAT-1559).
+_PLAN = feature_corpus.corpus_path(
+    ROOT, os.path.join(".harness", "harness", "features", "FEAT-10-software-factory", "plan.yaml"))
 with open(_PLAN, encoding="utf-8") as _f:
     _plan_text = _f.read()
 _plan_dash_idx = _plan_text.find("with an em")

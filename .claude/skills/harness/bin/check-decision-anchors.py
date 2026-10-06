@@ -30,6 +30,7 @@ import re
 import subprocess
 import sys
 
+import feature_corpus
 import harness_boundary
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -127,13 +128,17 @@ def count_lines(path):
 
 def check_anchor(cited_path, line, basenames):
     """None if the anchor is clean, else a short reason string naming which of the
-    two checks failed."""
+    two checks failed.
+
+    A candidate inside another feature's directory is tracked here but, in a sparse
+    worktree, present only in the main corpus; it is counted there (FEAT-1559 ruling B).
+    Raises feature_corpus.CorpusError when that corpus cannot be reached."""
     candidates = basenames.get(os.path.basename(cited_path))
     if not candidates:
         return "file not found in the tree"
     for candidate in candidates:
         try:
-            total = count_lines(candidate)
+            total = count_lines(feature_corpus.corpus_path(os.getcwd(), candidate))
         except OSError:
             continue
         if line <= total:
@@ -190,7 +195,11 @@ def main(argv=None):
 
     failed = 0
     for raw, cited_path, line in anchors:
-        reason = check_anchor(cited_path, line, basenames)
+        try:
+            reason = check_anchor(cited_path, line, basenames)
+        except feature_corpus.CorpusError as exc:
+            print(f"check-decision-anchors: cannot check {raw}: {exc}", file=sys.stderr)
+            sys.exit(2)
         if reason is not None:
             print(f"{raw}: {reason}")
             failed += 1

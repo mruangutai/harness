@@ -42,7 +42,8 @@ The closure records `return_disposition: refused` with the terminal BLOCKED entr
 recognizes only that exact closed run and matching lead; it does not accept the prose as a digest
 or turn the refused result into PASS. Ordinary completed runs still require their durable record.
 Reapplying that refused closure to an already BLOCKED run preserves its original `ended_at`;
-it cannot rewrite an existing terminal verdict, and ordinary run-end cannot erase the disposition.
+ordinary run-end also preserves that timestamp once refusal is recorded. Neither path can
+rewrite the refused terminal verdict or erase its disposition.
 Retryable yield refusals retain the same live job's claim until its corrected return is accepted;
 host terminal cleanup still releases jobs that actually end without an accepted return.
 

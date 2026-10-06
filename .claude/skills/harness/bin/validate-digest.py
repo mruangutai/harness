@@ -36,7 +36,7 @@ import digest_record
 import digest_schema
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
-from check_state.brief import SC_LINE_RE
+from check_state.brief import SC_LINE_RE, brief_scs_with_lines
 
 SEV = ["none", "low", "med", "high", "critical"]
 
@@ -1511,15 +1511,13 @@ def _known_nonautomated_criteria(feature_dir):
     brief = _read_or_none(os.path.join(feature_dir, "BRIEF.md"))
     if brief is None:
         return False
-    criteria = list(SC_LINE_RE.finditer(brief))
-    if not criteria:
-        return False
-    ends = [match.start() for match in criteria[1:]] + [len(brief)]
-    for criterion, end in zip(criteria, ends):
-        modes = VERIFY_LINE_RE.findall(brief[criterion.end():end])
-        if len(modes) != 1 or modes[0] not in ("inspection", "uat"):
-            return False
-    return True
+    criteria = brief_scs_with_lines(brief)
+    return bool(criteria) and all(_nonautomated_mode(body) for _sid, _tag, body in criteria)
+
+
+def _nonautomated_mode(body):
+    modes = VERIFY_LINE_RE.findall("\n".join(body[1:]))
+    return len(modes) == 1 and modes[0] in ("inspection", "uat")
 
 
 def _qa_fail_first_errors(seen, passing, feature_dir=None):
@@ -1819,9 +1817,13 @@ def _hook_feature_dir(artifact, feature):
     try:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
         import inflight_registry
+        from digest_destination import registered_feature
         checkout_root = inflight_registry.feature_root(owner_root, feature)
         feature_dir, error = _feature_dir_from_artifact(artifact, checkout_root)
-        return None if error else feature_dir
+        _record, registered_dir = registered_feature(checkout_root, feature)
+        if error or os.path.realpath(feature_dir) != os.path.realpath(registered_dir):
+            return None
+        return feature_dir
     except (ImportError, OSError, ValueError):
         return None
 

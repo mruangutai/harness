@@ -535,6 +535,7 @@ class CloseRunTest(FeatureRecordCase):
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
                                     "--verdict", "BLOCKED", "--cycles-used", "0"))
         self.assertEqual("refused", self.load()["runs"][0]["return_disposition"])
+        self.assertEqual(entry["ended_at"], self.load()["runs"][0]["ended_at"])
         before = self.path.read_bytes()
         result = self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
                               "--verdict", "PASS", "--cycles-used", "0")

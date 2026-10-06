@@ -2931,6 +2931,8 @@ def run_qa_verification_mode_cases():
         ("automated", "- SC-01: exercise\n  verify: automated\n", False),
         ("missing mode before UAT", "- SC-01: unknown\n"
          "- SC-02: exercise\n  verify: uat\n", False),
+        ("mode in later section", "- SC-01 (operator): unknown\n\n"
+         "## Verification\n  verify: uat\n", False),
         ("unknown mode", "- SC-01: exercise\n  verify: manual\n", False),
         ("no criteria", "# BRIEF\n", False),
         ("missing brief", None, False),
@@ -2952,6 +2954,32 @@ def run_qa_verification_mode_cases():
     for failure in failures:
         print(f"FAIL: {failure}")
     return len(failures)
+
+
+def run_qa_foreign_brief_case():
+    root = _t09_root()
+    try:
+        current = make_feature_dir(root, feat=HOOK_IDENTITY["harness_feature"])
+        foreign = make_feature_dir(root, feat="FEAT-02-nonautomated")
+        _write_verification_brief(os.path.join(current, "BRIEF.md"),
+                                  "- SC-01: prove behavior\n  verify: automated\n")
+        _write_verification_brief(os.path.join(foreign, "BRIEF.md"),
+                                  "- SC-01: inspect\n  verify: uat\n")
+        artifact = os.path.join(foreign, "notes", "qa.md")
+        os.makedirs(os.path.dirname(artifact))
+        _write_verification_brief(artifact, "unrelated feature evidence\n")
+        _reg_module().claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
+                                     HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
+        obj = fixture("harness-qa", _t04_base_digest("harness-qa"))
+        obj["VERDICT"], obj["artifact"] = "PASS", artifact
+        obj["DIGEST"].update(suite="pass", failures=0, matrix_ok=True, kinds=[], fail_first=[])
+        result = _t09_fire(root, "harness-qa", obj)
+        ok = result.returncode == 2 and "fail_first" in result.stderr
+        print(f"{'ok' if ok else 'FAIL'} foreign BRIEF cannot waive automated evidence: "
+              f"exit={result.returncode} {result.stderr.strip()[:300]}")
+        return int(not ok)
+    finally:
+        shutil.rmtree(root)
 
 
 _T04_UNIVERSAL = "  files_touched: []\n  open_questions: []\n  expertise_update: []\n"
@@ -4382,32 +4410,6 @@ def _hermetic_review_sha_repo(td):
         PRE_FEATURE_REVISION, REVIEW_SHA = saved
 
 
-def check_hook_feature_dir(validator, td, failures):
-    """An installed validator resolves an unmerged feature in its linked worktree."""
-    if HERE not in sys.path:
-        sys.path.insert(0, HERE)
-    import inflight_registry
-    owner_root = os.path.join(td, "owner")
-    feature_root = os.path.join(td, "worktrees", "FEAT-INSTALLED")
-    expected = os.path.join(
-        feature_root, ".harness", "harness", "features", "FEAT-INSTALLED"
-    )
-    artifact = ".harness/harness/features/FEAT-INSTALLED/notes/review.md"
-    os.makedirs(expected, exist_ok=True)
-
-    original_root = validator._root_or_none
-    original_feature_root = inflight_registry.feature_root
-    validator._root_or_none = lambda: owner_root
-    inflight_registry.feature_root = lambda root, feature: feature_root
-    try:
-        actual = validator._hook_feature_dir(f"artifact: {artifact}", "FEAT-INSTALLED")
-        if actual != expected:
-            failures.append(
-                f"installed validator must bind to linked feature worktree: {actual!r}"
-            )
-    finally:
-        validator._root_or_none = original_root
-        inflight_registry.feature_root = original_feature_root
 
 
 def check_skipped_member_errors(validator, failures):
@@ -4437,7 +4439,6 @@ def _check_review_bindings(validator, config, feature_dir, td, failures):
     check_resolve_review_sha_artifact_path(validator, td, failures)
     check_resolve_review_sha_feature_json(validator, td, failures)
     check_pending_plan_review(validator, config, td, failures)
-    check_hook_feature_dir(validator, td, failures)
     check_skipped_member_errors(validator, failures)
     check_branch_corroboration(validator, config, td, failures)
 
@@ -5194,6 +5195,7 @@ def main(argv=None):
         run_dec156_worktree_red_case,
         run_bug919_qa_matrix_cases,
         run_qa_verification_mode_cases,
+        run_qa_foreign_brief_case,
         run_bug919_resolve_fallback_case,
         run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,

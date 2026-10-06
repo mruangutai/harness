@@ -63,7 +63,11 @@ PROJECT_DIR_ENV = "HARNESS_PROJECT_DIR"
 
 # A product's control-plane segment in the harness base: `.harness/<segment>` itself, or
 # anything under it — removing the segment directory is a write to that product too.
-_CONTROL_PLANE_SEGMENT = re.compile(r"^\.harness/([^/]+)(?:/|$)")
+CONTROL_PLANE_DIR = ".harness"
+# The only shell text matched statically: literal name characters and the `*`/`?` globs.
+# Anything else — brackets, braces, extglob groups, escapes, quotes, substitutions — expands
+# in ways fnmatch does not reproduce, so it is never read as naming nothing (#2104 panel).
+_GLOB_SAFE = re.compile(r"[A-Za-z0-9._*?-]+")
 
 
 class RepositoryBases(list):
@@ -78,17 +82,48 @@ class RepositoryBases(list):
 
     def control_segment(self, rel_candidates):
         """The fleet member whose control-plane segment `.harness/<segment>` holds one of
-        `rel_candidates`, or None. A Bash operand arrives unexpanded, so the segment is
-        matched as a shell glob: one reaching a single member is that member; one reaching
-        several answers with the glob itself, which no claim carries, so it fails closed."""
+        `rel_candidates`, or None. A Bash operand arrives unexpanded, so both components are
+        shell text: a first component that MAY expand to `.harness` puts the second under the
+        segment rule, and a segment reaching one member is that member; one reaching several,
+        or carrying syntax outside `_GLOB_SAFE`, answers with itself, which no claim carries,
+        so it fails closed.
+
+        CASE-INSENSITIVE ON EVERY DISK (#2104 panel). On a case-insensitive filesystem
+        `.HARNESS/KAYA/` is kaya's directory, and a case-sensitive match read it as no member
+        at all, so the write skipped the repository claim check and landed in kaya's segment.
+        Folding case everywhere is fail-closed on a case-sensitive disk too: there it merely
+        needs kaya's claim.
+
+        AN ALLOWLIST, NOT A LIST OF DANGERS (#2104 panel). Each enumerated piece of shell
+        syntax (`[!K]aya`, `{kaya,x}`, `@(kaya)`, `$D/kaya`) was another way to name a member
+        that fnmatch read as naming none. BEST-EFFORT ONLY: a nested `bash -c` payload is not
+        parsed at all (#2109), so this models the shell, it does not bound it."""
         members = set(self._identities.values())
         for candidate in rel_candidates:
-            match = _CONTROL_PLANE_SEGMENT.match(candidate)
-            reached = sorted(m for m in members
-                             if match and fnmatch.fnmatchcase(m, match.group(1)))
-            if reached:
-                return reached[0] if len(reached) == 1 else match.group(1)
+            parts = candidate.replace(os.sep, "/").split("/")
+            if len(parts) < 2 or not _may_be_control_plane(parts[0]):
+                continue
+            owner = _segment_owner(members, parts[1])
+            if owner:
+                return owner
         return None
+
+
+def _may_be_control_plane(head):
+    """Could the shell expand the first path component `head` to `.harness`?"""
+    return not _GLOB_SAFE.fullmatch(head) or fnmatch.fnmatchcase(CONTROL_PLANE_DIR,
+                                                                 head.casefold())
+
+
+def _segment_owner(members, segment):
+    """The one fleet member `segment` reaches, the segment itself when it may reach several or
+    cannot be resolved statically (no claim carries that, so it fails closed), else None."""
+    if not _GLOB_SAFE.fullmatch(segment):
+        return segment
+    reached = sorted(m for m in members if fnmatch.fnmatchcase(m.casefold(), segment.casefold()))
+    if not reached:
+        return None
+    return reached[0] if len(reached) == 1 else segment
 
 
 def root_from_script(bin_dir):
@@ -203,7 +238,17 @@ def linked_worktrees(owner_root):
     Cost, measured on a fixture with five linked worktrees over 2000 iterations: 0.371 ms
     per call against 0.147 ms before, so +0.22 ms per governed write, scaling linearly
     with worktree count, against the ~38 ms of interpreter start-up the hook already pays.
+
+    A LINKED CALLER RESOLVES TO ITS OWNER FIRST (FEAT-1559, FEAT-58 D-02). Called with a
+    worktree's root, `<root>/.git` is a FILE, so listing `<root>/.git/worktrees` raised
+    NotADirectoryError, caught below, and returned [] as an ordinary value — every sweep run
+    from a worktree silently saw no peer at all. `worktree_owner` parses the pointer with no
+    subprocess; an unparseable one leaves `owner_root` unchanged and the listing finds nothing,
+    exactly as before.
     """
+    found = worktree_owner(owner_root)
+    if found is not None and found[1] is not None:
+        owner_root = found[1]
     wt_dir = os.path.join(owner_root, ".git", "worktrees")
     try:
         entries = sorted(os.listdir(wt_dir))
