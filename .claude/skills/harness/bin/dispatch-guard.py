@@ -563,17 +563,17 @@ def _destinations():
                                 artifact_accessors.FeatureJsonError)
 
 
-def _feature_record(destinations, lead, errors):
+def _feature_record(destinations, errors):
     try:
-        return os.path.join(destinations._registered_feature(root, declared, lead)[1],
-                            "feature.json")
+        checkout = destinations.authorization_root(root, declared)
+        return os.path.join(destinations.registered_feature(checkout, declared)[1], "feature.json")
     except errors:
         return "<the feature.json of %s>" % (declared,)
 
 
 def _run_refusal(destinations, lead, exc, errors):
     squad = destinations.LEAD_SQUADS[lead]
-    record = _feature_record(destinations, lead, errors)
+    record = _feature_record(destinations, errors)
     _refuse(
         "dispatch-guard: BLOCKED — %s cannot start for %s: %s." % (lead, declared, exc),
         "  Its return could never be authorized: the hook binds a lead's digest only to exactly",
@@ -591,7 +591,8 @@ def _run_refusal(destinations, lead, exc, errors):
 def _registered_digest(destinations, lead, errors):
     """The lead's registered run digest, or exit 2 with the failure and its remedy."""
     try:
-        return destinations.registered_destination(root, declared, lead)[1]
+        checkout = destinations.authorization_root(root, declared)
+        return destinations.registered_destination(checkout, declared, lead)[1]
     except destinations.AuthorizationError as exc:
         _run_refusal(destinations, lead, exc, errors)
     except errors as exc:
