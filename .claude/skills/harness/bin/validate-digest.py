@@ -37,7 +37,6 @@ import digest_schema
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 from check_state.brief import SC_LINE_RE, brief_scs_with_lines
-from digest_destination import authorization_descriptor
 
 SEV = ["none", "low", "med", "high", "critical"]
 
@@ -1517,7 +1516,8 @@ def _known_nonautomated_criteria(feature_dir):
     """Only explicit, bounded inspection/UAT criteria exempt fail-first evidence."""
     if not feature_dir:
         return False
-    brief = _read_or_none(os.path.join(feature_dir, "BRIEF.md"), opener=authorization_descriptor)
+    brief = _read_or_none(os.path.join(feature_dir, "BRIEF.md"),
+                          opener=harness_boundary.authorization_descriptor)
     if brief is None or _malformed_sc_declarations(brief):
         return False
     criteria = brief_scs_with_lines(brief)

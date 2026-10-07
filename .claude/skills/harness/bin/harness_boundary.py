@@ -19,6 +19,7 @@ the agent sees.
 import fnmatch
 import os
 import re
+import stat
 import subprocess
 import sys
 import artifact_accessors
@@ -223,10 +224,21 @@ def checkout_relative(abs_path):
     return checkout_dir, os.path.relpath(real(abs_path), checkout_dir)
 
 
+def authorization_descriptor(path, flags):
+    """Open a regular authorization source without following its final symlink or blocking."""
+    descriptor = os.open(path, flags | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise OSError("authorization source is not a regular file")
+    except OSError:
+        os.close(descriptor)
+        raise
+    return descriptor
+
+
 def _checkout_pointer_text(pointer):
-    if not os.path.isfile(pointer):
-        raise OSError(f"linked-worktree Git entry is unavailable or not a file: {pointer}")
-    with open(pointer, "r", encoding="utf-8", errors="strict") as handle:
+    with open(pointer, "r", encoding="utf-8", errors="strict",
+              opener=authorization_descriptor) as handle:
         return handle.read().strip()
 
 

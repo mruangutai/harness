@@ -20,19 +20,6 @@ class AuthorizationError(ValueError):
     pass
 
 
-def authorization_descriptor(path, flags):
-    """Open a regular authorization source without following its final symlink or blocking."""
-    descriptor = os.open(path, flags | os.O_NOFOLLOW | os.O_NONBLOCK)
-    try:
-        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
-            raise OSError("authorization source is not a regular file")
-    except OSError:
-        os.close(descriptor)
-        raise
-    return descriptor
-
-
-
 def authorization_root(root, feature):
     """Resolve an authorization checkout without report-mode topology fallbacks."""
     if not isinstance(feature, str):
@@ -72,7 +59,7 @@ def registered_feature(root, feature):
         raise AuthorizationError("authorization requires an exact feature identity")
     record_path, feature_dir = _registered_record_location(root, feature)
     try:
-        with open(record_path, "rb", opener=authorization_descriptor) as source:
+        with open(record_path, "rb", opener=harness_boundary.authorization_descriptor) as source:
             record = artifact_accessors.load_feature_json(
                 text=source.read().decode("utf-8"), context=record_path)
     except (artifact_accessors.FeatureJsonError, OSError, UnicodeError) as error:

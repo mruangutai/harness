@@ -3073,8 +3073,36 @@ def _replace_feature_registration(record, contents):
     elif contents is None:
         os.remove(record)
         os.symlink("missing-feature.json", record)
+    elif contents == "deep-json":
+        original = _read_bytes(record).decode("utf-8").rstrip()
+        nested = "[" * 10000 + "0" + "]" * 10000
+        _write_verification_brief(record, original[:-1] + ',"nested":' + nested + "}")
     else:
         _write_verification_brief(record, contents)
+
+
+def _restored_registration_return(root, record, original, agent, obj, **kwargs):
+    os.remove(record)
+    _write_verification_brief(record, original)
+    result = _t09_fire(root, agent, obj, timeout=3, **kwargs)
+    return result.returncode == 0 and _reg_module().live_claims(root, agent) == []
+
+
+@contextlib.contextmanager
+def _stdlib_python_json_decoder():
+    """Exercise the real stdlib fallback decoder's depth failure, not a mocked exception."""
+    with tempfile.TemporaryDirectory(prefix="python-json-decoder-") as directory:
+        _write_verification_brief(os.path.join(directory, "sitecustomize.py"),
+                                  "import json\njson.scanner.make_scanner = json.scanner.py_make_scanner\n")
+        original = os.environ.get("PYTHONPATH")
+        os.environ["PYTHONPATH"] = directory + os.pathsep + (original or "")
+        try:
+            yield
+        finally:
+            if original is None:
+                os.environ.pop("PYTHONPATH", None)
+            else:
+                os.environ["PYTHONPATH"] = original
 
 
 def _qa_record_read_failure_case(label, contents):
@@ -3083,6 +3111,7 @@ def _qa_record_read_failure_case(label, contents):
         record, obj = _qa_registered_inspection_return(root)
         control = _t09_fire(root, "harness-qa", obj)
         assert control.returncode == 0, control.stderr
+        original_record = _read_bytes(record)
         _replace_feature_registration(record, contents)
         reg = _reg_module()
         reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
@@ -3092,6 +3121,8 @@ def _qa_record_read_failure_case(label, contents):
         ok = (result.returncode == 2 and "fail_first" in result.stderr
               and reg.live_claims(root, "harness-qa") == claim_before
               and _read_bytes(obj["artifact"]) == b"inspection assessment\n")
+        assert _restored_registration_return(root, record, original_record, "harness-qa", obj), \
+            "same QA job must accept and release after registration restoration"
         print(f"{'ok' if ok else 'FAIL'} {label} record cannot bypass QA: "
               f"exit={result.returncode} {result.stderr.strip()[:300]}")
         return int(not ok)
@@ -3108,6 +3139,12 @@ def run_qa_record_read_failure_cases():
         ("FIFO", "fifo"),
         ("same-directory symlink", "symlink"),
     ))
+
+
+def run_registration_decoder_depth_cases():
+    with _stdlib_python_json_decoder():
+        return (_qa_record_read_failure_case("excessive decoder depth", "deep-json")
+                + _lead_authorization_read_failure_case("deep-json"))
 
 
 def _corrupt_feature_directory(root, record):
@@ -3312,6 +3349,42 @@ def _unknown_checkout_identity_case(agent, contents):
         _remove_append_root(owner)
 
 
+def _symlinked_git_pointer(checkout, source):
+    pointer = (os.path.join(checkout, ".git") if source == "caller" else
+               os.path.join(_git_quiet(checkout, "rev-parse", "--absolute-git-dir").strip(), "gitdir"))
+    original = _read_bytes(pointer)
+    saved = pointer + ".saved"
+    os.rename(pointer, saved)
+    os.symlink(os.path.basename(saved), pointer)
+    return pointer, original
+
+
+def _symlinked_checkout_identity_case(agent, source):
+    owner, _ = _append_root()
+    try:
+        with tempfile.TemporaryDirectory(prefix="symlinked-checkout-") as td:
+            checkout, feature_dir = _single_registered_checkout(owner, td)
+            before, obj, artifact, kwargs, original_git = _claimed_checkout_return(agent, checkout, feature_dir, owner)
+            pointer, original = _symlinked_git_pointer(checkout, source)
+            result = _t09_fire(checkout, agent, obj, timeout=3, **kwargs)
+            startup_ok = agent != "harness-eng-lead" or _lead_binding_result(checkout, timeout=3).returncode == 2
+            ok = (startup_ok and result.returncode == 2 and _reg_module().live_claims(checkout, agent) == before
+                  and _read_bytes(artifact) == b"checkout assessment\n")
+            os.remove(pointer)
+            _write_verification_brief(pointer, original)
+            assert _restored_checkout_return(checkout, checkout, agent, original_git, obj, kwargs), \
+                "same job must accept after regular metadata restoration"
+            print(f"{'ok' if ok else 'FAIL'} {source} pointer symlink refuses {agent}: exit={result.returncode}")
+            return int(not ok)
+    finally:
+        _remove_append_root(owner)
+
+
+def run_symlinked_checkout_identity_cases():
+    return sum(_symlinked_checkout_identity_case(agent, source)
+               for agent in ("harness-qa", "harness-eng-lead") for source in ("caller", "admin"))
+
+
 def run_unknown_checkout_identity_cases():
     return sum(_unknown_checkout_identity_case(agent, contents)
                for agent, contents in (("harness-qa", b"\xff"),
@@ -3407,8 +3480,8 @@ def _corrupt_lead_authorization_input(root, path, source):
         _write_verification_brief(os.path.join(root, ".harness", "team-config.yaml"), "teams: []\nteams: []\n")
     elif source == "nested-directory":
         _corrupt_feature_directory(root, record)
-    elif source == "symlink":
-        _replace_feature_registration(record, "symlink")
+    elif source in ("symlink", "deep-json"):
+        _replace_feature_registration(record, source)
     elif source in ("foreign", "nested"):
         if source == "nested":
             foreign = _nested_registration_source(root, record)
@@ -3422,6 +3495,16 @@ def _corrupt_lead_authorization_input(root, path, source):
         _write_verification_brief(record, b"{broken")
 
 
+def _lead_authorization_refusal(root, path, binding, before, obj):
+    startup = _lead_binding_result(root)
+    result = _t09_fire(root, "harness-eng-lead", obj,
+                      harness_parent_agent_id="Test.Parent", harness_digest_binding=binding)
+    held = (startup.returncode == 2 and result.returncode == 2
+            and _reg_module().live_claims(root, "harness-eng-lead") == before
+            and _read_bytes(path) == b"original assessment\n")
+    return held, startup.returncode, result
+
+
 def _lead_authorization_read_failure_case(source):
     root, path = _append_root()
     try:
@@ -3431,15 +3514,18 @@ def _lead_authorization_read_failure_case(source):
         binding = _issued_lead_binding(root)
         reg = _reg_module()
         before = reg.live_claims(root, "harness-eng-lead")
+        record = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))), "feature.json")
+        original_record = _read_bytes(record)
+        obj = _append_lead_object()
         _corrupt_lead_authorization_input(root, path, source)
-        startup = _lead_binding_result(root)
-        result = _t09_fire(root, "harness-eng-lead", _append_lead_object(),
-                          harness_parent_agent_id="Test.Parent", harness_digest_binding=binding)
-        ok = (startup.returncode == 2 and result.returncode == 2
-              and reg.live_claims(root, "harness-eng-lead") == before
-              and _read_bytes(path) == b"original assessment\n")
+        ok, startup_code, result = _lead_authorization_refusal(root, path, binding, before, obj)
+        if source == "deep-json":
+            assert _restored_registration_return(
+                root, record, original_record, "harness-eng-lead", obj,
+                harness_parent_agent_id="Test.Parent", harness_digest_binding=binding), \
+                "same lead binding must accept and release after registration restoration"
         print(f"{'ok' if ok else 'FAIL'} corrupt {source} cannot bypass durable lead evidence: "
-              f"startup={startup.returncode} yield={result.returncode} {result.stderr.strip()[:300]}")
+              f"startup={startup_code} yield={result.returncode} {result.stderr.strip()[:300]}")
         return int(not ok)
     finally:
         if os.path.lexists(root + "-foreign.json"):
@@ -5699,10 +5785,12 @@ def main(argv=None):
         run_brief_citation_boundary_cases,
         run_qa_foreign_brief_case,
         run_qa_record_read_failure_cases,
+        run_registration_decoder_depth_cases,
         run_qa_brief_authority_cases,
         run_qa_ambiguous_checkout_case,
         run_qa_unknown_authorization_cases,
         run_unknown_checkout_identity_cases,
+        run_symlinked_checkout_identity_cases,
         run_bug919_resolve_fallback_case,
         run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,
