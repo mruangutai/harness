@@ -90,7 +90,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires direct authoring and execution of enforcement tests in this feature worktree.
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/unit/test-lead-start-preflight.py
       - tests/integration/test-lead-start-return.py
