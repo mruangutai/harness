@@ -4,7 +4,7 @@ approval:
   date: '2026-10-07'
   approved_by: Mike Ruangutai
   status: approved
-status: plan
+status: done
 source_issues: [2110, 2097]
 panel:
   last_run: 2026-10-07-01-product
