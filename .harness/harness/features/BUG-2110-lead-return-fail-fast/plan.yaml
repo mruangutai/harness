@@ -111,7 +111,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 excludes dispatch-guard and digest validator enforcement changes from governed execution.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/dispatch-guard.py
     verify: |
