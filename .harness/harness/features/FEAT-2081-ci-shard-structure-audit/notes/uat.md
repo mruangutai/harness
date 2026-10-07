@@ -411,3 +411,10 @@ Weights re-measured from U-01, U-05, U-06, U-07 (per-file medians, 83 files); re
 Result against OQ-01 (all three below 100s): **not met** — 71s, 83s, 120s.
 
 R-P3 breakdown (jobs API): all four shards started within 1s and the last finished at +74s; the `integration` job was assigned a runner at +76s (`started_at` 00:47:18Z) but its first step ran at 00:47:55Z — **37s of runner provisioning** — and its steps took 6s. The overrun is GitHub-hosted runner start-up latency on the aggregator, not test or shard time. Shard jobs across the three runs: 39–74s.
+
+## SC-10 live result under the amended threshold (BRIEF OQ-01, amended 2026-10-07)
+
+Rule: median critical path of three consecutive passing runs below 100s; all three recorded.
+- Rerun set (current weights, PR #2129): 71s, 83s, 120s → median **83s** — **meets**.
+- UAT set (previous weights, PR #2128): 108s, 85s, 74s → median **85s** (context; also below 100s).
+Re-pinned to `7e03ba2c5a5c437d9c39e60d12ece1530186e5cf` for the brief/plan text change only; no code, workflow or weights change since `6ccff7f1b9301526fa8bf8ff788408b376b7f96f`.
