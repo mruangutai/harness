@@ -11,15 +11,19 @@ panel:
   - reader: scope
     status: ran
     persona: harness-code-reviewer
-    reason: Scope and architecture review passed; notes/review-harness-code-reviewer-plan-c1.md.
+    reason: none
   - reader: should-not-exist
     status: ran
     persona: fable-advisor
-    reason: Independent unnecessary-work review completed.
+    reason: none
   - reader: design
     status: ran
     persona: harness-ui-reviewer
-    reason: Self-scoped out of nonvisual enforcement/tests/documentation; notes/review-harness-ui-reviewer-plan-c1.md.
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
   findings:
   - disposition: resolved
     id: PF-9f6bd1eb181229102dc35c6c563de45e
