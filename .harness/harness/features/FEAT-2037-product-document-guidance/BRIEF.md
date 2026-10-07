@@ -25,7 +25,7 @@ Issue #2037 identifies missing product-document paths and consultation guidance 
 
 ## Verification gaps
 
-- SC-01–SC-03 are NOT RUN YET. DEC-70 requires conduct observed through real agent reads and dispatches, not source greps or a new dataset eval. Operator/main executes the draft scenario only after edits and green QA/review inspection, then records their judgment; PM does not mark it passed.
+- The first three Success criteria have NOT RUN YET. DEC-70 requires conduct observed through real agent reads and dispatches, not source greps or a new dataset eval. Operator/main executes the draft scenario only after edits and green QA/review inspection, then records their judgment; PM does not mark it passed.
 - docs has no required kinds in this worktree's test_matrix. Unit/integration runners exist; static checks are supplemental structural/regression evidence, not conduct proof. eval is excluded with cmd: null and is not relied upon. functional/component/ui/typecheck null runners do not cover these four Markdown edits.
 - Live OMP credentials, updated-skill delivery, raw transcript visibility and the disposable fixture roots are not exercised at intake. Inability to observe real reads or actual nested dispatch leaves the affected SC unmet; no runtime instrumentation is added to work around it. Backlog #1865 notes UAT is not automatically dispatched: main must execute this explicit script.
 
