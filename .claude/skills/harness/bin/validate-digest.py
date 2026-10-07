@@ -36,6 +36,7 @@ import digest_record
 import digest_schema
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
+from check_state.brief import SC_LINE_RE, brief_scs_with_lines
 
 SEV = ["none", "low", "med", "high", "critical"]
 
@@ -586,26 +587,27 @@ def _grade_2_reasons_error(reasons, qualnames):
             f"return code_grade: fail.")
 
 
-SC_LINE_RE = re.compile(r"^\s*-\s*(SC-\d+)\s*:", re.M)
-VERIFY_LINE_RE = re.compile(r"^\s*verify:\s*(\S+)", re.M)
+VERIFY_ANNOTATION_RE = re.compile(r"^[ \t]*verify:([^\n]*)", re.M)
+SC_DECLARATION_RE = re.compile(
+    r"^(?:[\W_]*(?:\d+[.)][\W_]*)?SC-|\s*(?:[-*+<>#]|\d+[.)])[^\n]*[\W_]SC-)", re.I)
 CITATION_RE = re.compile(r"[\w./-]+\.\w+:\d+")
 
 
+def _criterion_annotations(body):
+    return VERIFY_ANNOTATION_RE.findall("\n".join(body[1:]))
+
+
 def _inspection_sc_ids(brief_text):
-    """SC ids whose next `verify:` line reads `inspection`."""
-    ids = []
-    for match in SC_LINE_RE.finditer(brief_text):
-        verify = VERIFY_LINE_RE.search(brief_text, match.end())
-        if verify and verify.group(1) == "inspection":
-            ids.append(match.group(1))
-    return ids
+    """SC ids carrying inspection annotations in their own canonical bodies."""
+    return [sid for sid, _tag, body in brief_scs_with_lines(brief_text)
+            if any(mode.strip() == "inspection" for mode in _criterion_annotations(body))]
 
 
-def _read_or_none(path):
+def _read_or_none(path, *, opener=None):
     try:
-        with open(path, encoding="utf-8") as fh:
+        with open(path, encoding="utf-8", opener=opener) as fh:
             return fh.read()
-    except OSError:
+    except (OSError, UnicodeError):
         return None
 
 
@@ -625,7 +627,8 @@ def _inspection_citation_error(feature_dir, root, artifact):
         artifact if os.path.isabs(artifact) else os.path.join(root, artifact))
     if not body:
         return None
-    missing = [sc for sc in wanted if sc not in _cited_sc_ids(body)]
+    cited = _cited_sc_ids(body)
+    missing = [sc for sc in wanted if sc not in cited]
     if not missing:
         return None
     return (f"BRIEF marks {', '.join(missing)} `verify: inspection` and the review artifact "
@@ -1295,10 +1298,11 @@ def _missing_message(canonical, family, parts, field):
 # "write `[]`", which its own pattern rejects. Most specific first.
 _TASK_HINT = ("your task's `T-NN` id exactly as your dispatch carries it (T-05), or `none` "
               "if this dispatch carries no PLAN task")
-# FEAT-59 SC-17. `[]` is REJECTED alongside PASS + matrix_ok: true.
+# FEAT-59 SC-17 applies to automated criteria; unknown feature context is fail-closed.
 _FAIL_FIRST_HINT = ("one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: "
                     "automated` SC showing the test FAILED before the fix; `[]` only when "
-                    "matrix_ok is n/a or the verdict is not PASS")
+                    "matrix_ok is n/a, the verdict is not PASS, or the readable feature BRIEF "
+                    "explicitly marks every SC inspection or uat")
 
 
 def _missing_field_hint(canonical, family, field):
@@ -1484,7 +1488,7 @@ def _dev_receipt_errors(seen, verdict, artifact, feature_dir):
 # same triple #919 re-verifies — VERDICT PASS + matrix_ok true — so `matrix_ok: n/a` and
 # every non-PASS verdict may truthfully carry `[]`. Entry shape is the schema's.
 def _qa_errors(seen, verdict, feature_dir):
-    return (_qa_fail_first_errors(seen, verdict == "PASS")
+    return (_qa_fail_first_errors(seen, verdict == "PASS", feature_dir)
             + _qa_kinds_errors(seen, verdict, feature_dir)
             + _qa_unearned_fail_errors(seen, verdict))
 
@@ -1503,9 +1507,34 @@ def _qa_unearned_fail_errors(seen, verdict):
             "verdict; return PASS with it recorded, or name the gate that failed."]
 
 
-def _qa_fail_first_errors(seen, passing):
+def _malformed_sc_declarations(brief):
+    return any(not SC_LINE_RE.match(line) for line in brief.splitlines()
+               if SC_DECLARATION_RE.match(line))
+
+
+def _known_nonautomated_criteria(feature_dir):
+    """Only explicit, bounded inspection/UAT criteria exempt fail-first evidence."""
+    if not feature_dir:
+        return False
+    brief = _read_or_none(os.path.join(feature_dir, "BRIEF.md"),
+                          opener=harness_boundary.authorization_descriptor)
+    if brief is None or _malformed_sc_declarations(brief):
+        return False
+    criteria = brief_scs_with_lines(brief)
+    return (bool(criteria) and len(VERIFY_ANNOTATION_RE.findall(brief)) == len(criteria)
+            and all(_nonautomated_mode(body) for _sid, _tag, body in criteria))
+
+
+def _nonautomated_mode(body):
+    modes = _criterion_annotations(body)
+    return len(modes) == 1 and modes[0].strip() in ("inspection", "uat")
+
+
+def _qa_fail_first_errors(seen, passing, feature_dir=None):
     fail_first = seen.get("fail_first")
     if fail_first == [] and passing and seen.get("matrix_ok") is True:
+        if _known_nonautomated_criteria(feature_dir):
+            return []
         return ["fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a "
                 "green suite with no fail-first evidence is not a pass. For each "
                 "`verify: automated` SC name the test and the evidence it FAILED "
@@ -1797,10 +1826,13 @@ def _hook_feature_dir(artifact, feature):
         return None
     try:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-        import inflight_registry
-        checkout_root = inflight_registry.feature_root(owner_root, feature)
+        from digest_destination import authorization_root, registered_feature
+        checkout_root = authorization_root(owner_root, feature)
         feature_dir, error = _feature_dir_from_artifact(artifact, checkout_root)
-        return None if error else feature_dir
+        _record, registered_dir = registered_feature(checkout_root, feature)
+        if error or os.path.realpath(feature_dir) != os.path.realpath(registered_dir):
+            return None
+        return feature_dir
     except (ImportError, OSError, ValueError):
         return None
 
@@ -2088,7 +2120,7 @@ def _unreadable_registry(agent, root, error, verdict):
     return None
 
 
-def _registry_errand(reg, d, agent, verdict):
+def _registry_errand(reg, d, agent, verdict, release=True):
     """T-09 (#551) and BUG-1898: release this run's claim, or refuse the return while it
     holds a live child. Returns an exit code to return, or None to go on validating.
 
@@ -2105,10 +2137,10 @@ def _registry_errand(reg, d, agent, verdict):
               "neither released nor checked.", file=sys.stderr)
         return None
     return _settle_in(reg, verdict, agent, reg.feature_root(owner_root, feature), feature,
-                      agent_id)
+                      agent_id, release=release)
 
 
-def _settle_in(reg, verdict, agent, root, feature, agent_id):
+def _settle_in(reg, verdict, agent, root, feature, agent_id, release=True):
     """Settle this exact run in `root`'s registry: refuse while it holds a live child, else
     release its own claim. Strict reads come before any write: the locked writer parses a
     corrupt file as empty, so releasing into an unreadable registry would erase every claim
@@ -2120,7 +2152,7 @@ def _settle_in(reg, verdict, agent, root, feature, agent_id):
         return _unreadable_registry(agent, root, error, verdict)
     if children:
         return _children_refusal(reg, root, agent, children)
-    if own:
+    if own and release:
         _release_own(reg, root, agent, feature, agent_id)
     return None
 
@@ -2170,14 +2202,19 @@ def hook_mode():
     passed = _pass_through(d, agent, obj)
     if passed is not None:
         return passed
-    # T-09 (#551): release first, then the return contract. Reversed, an agent refused at
-    # step two would never have its own claim released and would leak it until the TTL.
-    refused = _settle_claim(d, agent, obj.get("VERDICT") if isinstance(obj, dict) else None)
+    # Refuse live children before recording a return, but retain the claim while
+    # a retryable contract or artifact rejection keeps this same job alive.
+    refused = _settle_claim(d, agent, obj.get("VERDICT") if isinstance(obj, dict) else None,
+                            release=False)
     if refused is not None:
         return refused
     if not isinstance(obj, dict):
         return _object_refusal(agent, obj)
-    return _validate_hook_object(d, agent, obj)
+    result = _validate_hook_object(d, agent, obj)
+    if result != 0:
+        return result
+    settled = _settle_claim(d, agent, obj.get("VERDICT"))
+    return settled if settled is not None else 0
 
 
 def _governed_agent(agent):
@@ -2199,7 +2236,7 @@ def _pass_through(d, agent, obj):
     return 0
 
 
-def _settle_claim(d, agent, verdict):
+def _settle_claim(d, agent, verdict, release=True):
     """The registry side errand: refuses only for a live child or an unreadable registry
     under a dispatching parent, and never changes the digest verdict."""
     try:
@@ -2209,7 +2246,7 @@ def _settle_claim(d, agent, verdict):
         print(f"check-digest: inflight_registry unavailable ({error!r}) — the #551 claim was "
               f"neither released nor checked. This is our gap, not theirs.", file=sys.stderr)
         return None
-    return _registry_errand(inflight_registry, d, agent, verdict)
+    return _registry_errand(inflight_registry, d, agent, verdict, release=release)
 
 
 def _hook_options(d):
@@ -2279,17 +2316,23 @@ if __name__ == "__main__":
         sys.stdout.reconfigure(errors="backslashreplace")
     except (AttributeError, OSError, ValueError):
         pass
-    if len(sys.argv) < 2:
-        print("usage: validate-digest.py <persona> [file]   |   --hook"); sys.exit(2)
-    if len(sys.argv) > 2:
-        with open(sys.argv[2], encoding="utf-8") as source:
-            text, where = source.read(), sys.argv[2]
+    import argparse
+    parser = argparse.ArgumentParser(description="Validate one persona's digest object or durable record.")
+    parser.add_argument("persona")
+    parser.add_argument("file", nargs="?")
+    parser.add_argument("--contract-refusal-code", type=int,
+                        choices=(1, harness_boundary.CONTRACT_REFUSAL_CODE), default=1,
+                        help="deliberate contract-refusal status; distinct from usage and Python failures")
+    args = parser.parse_args()
+    if args.file:
+        with open(args.file, encoding="utf-8") as source:
+            text, where = source.read(), args.file
     else:
         text, where = sys.stdin.read(), "stdin"
     obj, error = cli_object(text, where)
-    errs = [error] if error else validate(sys.argv[1], obj)
+    errs = [error] if error else validate(args.persona, obj)
     if errs:
         print("VERDICT: BLOCKED (contract violation)")
         for e in errs: print(f"  - {e}")
-        sys.exit(1)
+        sys.exit(args.contract_refusal_code)
     print("digest ok")

@@ -2013,11 +2013,11 @@
       "disposition": "canonical",
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/digest_destination.py",
-      "id": ".claude/skills/harness/bin/digest_destination.py::_registered_feature::load_feature_json#1",
+      "id": ".claude/skills/harness/bin/digest_destination.py::registered_feature::load_feature_json#1",
       "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
-      "symbol": "_registered_feature",
+      "symbol": "registered_feature",
       "task": "T-02"
     },
     {

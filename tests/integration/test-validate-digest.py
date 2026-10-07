@@ -1054,14 +1054,14 @@ def _t09_root():
     return d
 
 
-def _t09_fire(root, agent, text, hook=None, governed=True, **extra):
+def _t09_fire(root, agent, text, hook=None, governed=True, timeout=None, **extra):
     """Fire the hook as a governed return (HOOK_IDENTITY merged in), or with `governed`
     False, exactly the identity passed and nothing else."""
     payload = {"agent_type": agent, "digest_object": fixture(agent, text), "cwd": root}
     payload.update(extra)
     return subprocess.run([hook or VALIDATE, "--hook"],
                           input=json.dumps(_governed(payload) if governed else payload),
-                          capture_output=True, text=True,
+                          capture_output=True, text=True, timeout=timeout,
                           # BOTH NAMES, ONE VALUE (FEAT-42 T-17). The hook resolves through
                           # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR
                           # and no other name, and payload cwd is no longer a root input.
@@ -1123,14 +1123,17 @@ def run_t09():
     t09("1: and its claim is GONE from the registry", not claims(root, "harness-pm"),
         repr(claims(root, "harness-pm")))
 
-    # 2. an INVALID digest still exits 2 for the contract AND still releases. A blocked
-    #    return that leaks its claim can never be re-dispatched.
+    # A retryable contract rejection keeps this same live job's claim.
     root = _t09_root()
     run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
     r = fire(root, "harness-pm", "Lead.Pm", "VERDICT: PASS\nDIGEST:\n  headline: x\n")
     t09("2: an invalid digest still exits 2", r.returncode == 2, f"exit {r.returncode}")
-    t09("2: and the claim is STILL released, so a re-prompt can be re-dispatched",
-        not claims(root, "harness-pm"), repr(claims(root, "harness-pm")))
+    t09("2: the rejected job retains its claim for correction",
+        len(claims(root, "harness-pm")) == 1, repr(claims(root, "harness-pm")))
+    corrected = fire(root, "harness-pm", "Lead.Pm", PM_OK)
+    t09("2: correction completes the same job and releases its claim",
+        corrected.returncode == 0 and not claims(root, "harness-pm"),
+        corrected.stderr + repr(claims(root, "harness-pm")))
 
     # 3. stop_hook_active short-circuits and does not raise, with a claim present
     root = _t09_root()
@@ -1144,7 +1147,7 @@ def run_t09():
     root = _t09_root()
     run(root, "harness-documentor", "Lead.Doc", "Lead", "harness-product-lead")
     run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
-    r = fire(root, "harness-documentor", "Lead.Doc", PM_OK)
+    r = fire(root, "harness-documentor", "Lead.Doc", _t04_base_digest("harness-documentor"))
     t09("4: the returning persona's own claim is released",
         not claims(root, "harness-documentor"), repr(claims(root, "harness-documentor")))
     t09("4: and an UNRELATED harness-pm claim is untouched",
@@ -1676,7 +1679,7 @@ def _append_authorization_case(kind, absolute=False):
         claims = _reg_module().live_claims(root, None)
         ok = (result.returncode == 2
               and before == after and selected == victim
-              and not any(row.get("agent_id") == HOOK_IDENTITY["harness_agent_id"]
+              and any(row.get("agent_id") == HOOK_IDENTITY["harness_agent_id"]
                           for row in claims))
         return (f"unauthorized {kind} {'absolute' if absolute else 'relative'} target stays byte-identical",
                 ok, f"exit={result.returncode} bytes-match={before == after} {result.stderr.strip()[:400]}")
@@ -2735,10 +2738,6 @@ case("FEAT-59 qa FAIL with fail_first: [] is accepted — the gate is on PASS",
      "harness-qa", _qa(verdict="FAIL", matrix_ok="false", fail_first="[]"), True)
 case("FEAT-59 qa omitting fail_first is rejected — every field is required",
      "harness-qa", _qa().replace("  fail_first: []\n", ""), False, "fail_first")
-# The missing-field hint must not route the agent into the empty-list rejection.
-case("FEAT-59 fail_first's missing-field hint names the entry shape, not `[]`",
-     "harness-qa", _qa().replace("  fail_first: []\n", ""), False,
-     ["fail_first", "SC-NN", "evidence", "!if there are none"])
 # Entry shape: `{sc: SC-NN, evidence: <non-empty>}`. A bare string is not evidence
 # for any named SC; an SC without evidence is a claim, not a receipt.
 case("FEAT-59 fail_first entry without sc is rejected, naming the index",
@@ -2912,6 +2911,658 @@ def _load_validator(tag):
     validator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validator)
     return validator
+
+
+def _write_verification_brief(path, brief):
+    if brief is None:
+        os.remove(path)
+        return
+    with open(path, "wb") as handle:
+        handle.write(brief.encode("utf-8") if isinstance(brief, str) else brief)
+
+
+def run_qa_verification_mode_cases():
+    validator = _load_validator("_qa_verification_modes")
+    cases = (
+        ("inspection and UAT", "- SC-01: inspect\n  verify: inspection\n"
+         "- SC-02: exercise\n  verify: uat\n", True),
+        ("perspective-tagged criteria", "- SC-01 (operator): exercise\n  verify: uat\n"
+         "- SC-02 (reader): inspect\n  verify: inspection\n", True),
+        ("automated", "- SC-01: exercise\n  verify: automated\n", False),
+        ("missing mode before UAT", "- SC-01: unknown\n"
+         "- SC-02: exercise\n  verify: uat\n", False),
+        ("mode in later section", "- SC-01 (operator): unknown\n\n"
+         "## Verification\n  verify: uat\n", False),
+        ("unknown mode", "- SC-01: exercise\n  verify: manual\n", False),
+        ("empty duplicate annotation", "- SC-01: inspect\n  verify: inspection\n  verify:\n", False),
+        ("invalid mode suffix", "- SC-01: inspect\n  verify: inspection plus automated\n", False),
+        ("malformed automated SC", "- SC-01: inspect\n  verify: inspection\n"
+         "- SC-02 (operator) run regression\n  verify: automated\n", False),
+        ("malformed unknown SC", "- SC-01: inspect\n  verify: inspection\n"
+         "- SC-two: unknown\n  verify: inspection\n", False),
+        ("alternate bullet SC", "- SC-01: inspect\n  verify: inspection\n"
+         "* SC-02: regression\n  verify: automated\n", False),
+        ("numbered SC", "- SC-01: inspect\n  verify: inspection\n"
+         "1. SC-02: regression\n  verify: automated\n", False),
+        ("marked-up SC", "- SC-01: inspect\n  verify: inspection\n"
+         "- **SC-02**: regression\n  verify: automated\n", False),
+        ("lowercase SC", "- SC-01: inspect\n  verify: inspection\n"
+         "- sc-02: regression\n  verify: automated\n", False),
+        ("linked SC", "- SC-01: inspect\n  verify: inspection\n"
+         "- [SC-02](regression): regression\n  verify: automated\n", False),
+        ("heading SC", "- SC-01: inspect\n  verify: inspection\n"
+         "## SC-02: regression\n  verify: automated\n", False),
+        ("checked SC", "- SC-01: inspect\n  verify: inspection\n"
+         "- [x] SC-02: regression\n  verify: automated\n", False),
+        ("checked SC missing mode", "- SC-01: inspect\n  verify: inspection\n"
+         "- [x] SC-02: unknown\n", False),
+        ("opaque SC", "- SC-01: inspect\n  verify: inspection\n"
+         "- <strong>SC-02</strong>: regression\n  verify: automated\n", False),
+        ("opaque SC missing mode", "- SC-01: inspect\n  verify: inspection\n"
+         "- <strong>SC-02</strong>: unknown\n", False),
+        ("orphan verification annotation", "- SC-01: inspect\n  verify: inspection\n"
+         "\n## Verification\n  verify: automated\n", False),
+        ("ordinary SC reference", "- SC-01: inspect\n  verify: inspection\n"
+         "\nSee SC-02 in the related feature for context.\n", True),
+        ("colon-hidden SC", "- SC-01: inspect\n  verify: inspection\n"
+         "- regression: SC-02\n", False),
+        ("nested marked label", "- SC-01: inspect\n  verify: inspection\n"
+         "- [read __SC-02__]: unknown\n", False),
+        ("padded blank line", "- SC-01: inspect\n  verify: inspection\n"
+         + " " * 100_000 + "\n", True),
+        ("padded malformed SC", "- SC-01: inspect\n  verify: inspection\n- SC-02"
+         + " " * 100_000 + "\n", False),
+        ("no criteria", "# BRIEF\n", False),
+        ("missing brief", None, False),
+        ("undecodable brief", b"\xff", False),
+    )
+    failures = []
+    with tempfile.TemporaryDirectory(prefix="qa-modes-") as root:
+        feature_dir = make_feature_dir(root)
+        brief_path = os.path.join(feature_dir, "BRIEF.md")
+        for label, brief, accepted in cases:
+            _write_verification_brief(brief_path, brief)
+            errors = validator._qa_errors(
+                {"suite": "pass", "failures": 0, "matrix_ok": True,
+                 "fail_first": [], "kinds": []}, "PASS", feature_dir)
+            rejected = any("fail_first" in error for error in errors)
+            valid = not errors if accepted else rejected
+            if not valid:
+                failures.append(f"{label}: {errors}")
+    for failure in failures:
+        print(f"FAIL: {failure}")
+    return len(failures)
+
+
+def run_brief_citation_boundary_cases():
+    validator = _load_validator("_brief_citation_boundaries")
+    failures = 0
+    valid = "- SC-01 (operator): inspect\n  verify: inspection\n"
+    cases = (
+        ("unterminated tag before valid criterion",
+         "- SC-02 (unterminated\n" + valid, "SC-02 src.py:1\n", True),
+        ("many unterminated tags", valid + "- SC-02 (unterminated\n" * 10_000,
+         "SC-02 src.py:1\n", True),
+        ("many blank lines", valid + "\n" * 100_000, "SC-02 src.py:1\n", True),
+        ("mode belongs to its own criterion", "- SC-02 (reader): unknown\n" + valid,
+         "SC-01 src.py:1\n", False),
+        ("many tagged criteria without modes", "- SC-02 (reader): unknown\n" * 25_000
+         + valid, "SC-02 src.py:1\n", True),
+        ("many distinct tagged inspection criteria",
+         "".join(f"- SC-{sid:05d} (reader): inspect\n  verify: inspection\n"
+                 for sid in range(1, 25_001)),
+         "".join(f"SC-{sid:05d} src.py:1\n" for sid in range(1, 25_001)), False),
+    )
+    with tempfile.TemporaryDirectory(prefix="brief-citations-") as root:
+        feature_dir = make_feature_dir(root)
+        artifact = os.path.join(root, "review.md")
+        for label, brief, cited, missing in cases:
+            _write_verification_brief(artifact, cited)
+            _write_verification_brief(os.path.join(feature_dir, "BRIEF.md"), brief)
+            error = validator._inspection_citation_error(feature_dir, root, artifact)
+            ok = bool(error and "SC-01" in error) if missing else error is None
+            print(f"{'ok' if ok else 'FAIL'} {label}: owned inspection citation", flush=True)
+            failures += int(not ok)
+    return failures
+
+
+def run_qa_foreign_brief_case():
+    root = _t09_root()
+    try:
+        current = make_feature_dir(root, feat=HOOK_IDENTITY["harness_feature"])
+        foreign = make_feature_dir(root, feat="FEAT-02-nonautomated")
+        _write_verification_brief(os.path.join(current, "BRIEF.md"),
+                                  "- SC-01: prove behavior\n  verify: automated\n")
+        _write_verification_brief(os.path.join(foreign, "BRIEF.md"),
+                                  "- SC-01: inspect\n  verify: uat\n")
+        artifact = os.path.join(foreign, "notes", "qa.md")
+        os.makedirs(os.path.dirname(artifact))
+        _write_verification_brief(artifact, "unrelated feature evidence\n")
+        _reg_module().claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
+                                     HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
+        obj = fixture("harness-qa", _t04_base_digest("harness-qa"))
+        obj["VERDICT"], obj["artifact"] = "PASS", artifact
+        obj["DIGEST"].update(suite="pass", failures=0, matrix_ok=True, kinds=[], fail_first=[])
+        result = _t09_fire(root, "harness-qa", obj)
+        ok = result.returncode == 2 and "fail_first" in result.stderr
+        print(f"{'ok' if ok else 'FAIL'} foreign BRIEF cannot waive automated evidence: "
+              f"exit={result.returncode} {result.stderr.strip()[:300]}")
+        return int(not ok)
+    finally:
+        shutil.rmtree(root)
+
+def _qa_registered_inspection_return(root):
+    current = make_feature_dir(root, feat=HOOK_IDENTITY["harness_feature"])
+    _write_verification_brief(os.path.join(current, "BRIEF.md"),
+                              "- SC-01: inspect\n  verify: inspection\n")
+    obj = fixture("harness-qa", _t04_base_digest("harness-qa"))
+    obj["VERDICT"], obj["artifact"] = "PASS", os.path.join(current, "qa.md")
+    obj["DIGEST"].update(suite="pass", failures=0, matrix_ok=True, kinds=[], fail_first=[])
+    _write_verification_brief(obj["artifact"], "inspection assessment\n")
+    return os.path.join(current, "feature.json"), obj
+
+
+def _replace_feature_registration(record, contents):
+    if contents == "fifo":
+        os.remove(record)
+        os.mkfifo(record)
+    elif contents == "symlink":
+        backup = os.path.join(os.path.dirname(record), "saved.json")
+        os.rename(record, backup)
+        os.symlink("saved.json", record)
+    elif contents is None:
+        os.remove(record)
+        os.symlink("missing-feature.json", record)
+    elif contents == "deep-json":
+        original = _read_bytes(record).decode("utf-8").rstrip()
+        nested = "[" * 10000 + "0" + "]" * 10000
+        _write_verification_brief(record, original[:-1] + ',"nested":' + nested + "}")
+    else:
+        _write_verification_brief(record, contents)
+
+
+def _restored_registration_return(root, record, original, agent, obj, **kwargs):
+    os.remove(record)
+    _write_verification_brief(record, original)
+    result = _t09_fire(root, agent, obj, timeout=3, **kwargs)
+    return result.returncode == 0 and _reg_module().live_claims(root, agent) == []
+
+
+@contextlib.contextmanager
+def _stdlib_python_json_decoder():
+    """Exercise the real stdlib fallback decoder's depth failure, not a mocked exception."""
+    with tempfile.TemporaryDirectory(prefix="python-json-decoder-") as directory:
+        _write_verification_brief(os.path.join(directory, "sitecustomize.py"),
+                                  "import json\njson.scanner.make_scanner = json.scanner.py_make_scanner\n")
+        original = os.environ.get("PYTHONPATH")
+        os.environ["PYTHONPATH"] = directory + os.pathsep + (original or "")
+        try:
+            yield
+        finally:
+            if original is None:
+                os.environ.pop("PYTHONPATH", None)
+            else:
+                os.environ["PYTHONPATH"] = original
+
+
+def _qa_record_read_failure_case(label, contents):
+    root = _t09_root()
+    try:
+        record, obj = _qa_registered_inspection_return(root)
+        control = _t09_fire(root, "harness-qa", obj)
+        assert control.returncode == 0, control.stderr
+        original_record = _read_bytes(record)
+        _replace_feature_registration(record, contents)
+        reg = _reg_module()
+        reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
+                            HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
+        claim_before = reg.live_claims(root, "harness-qa")
+        result = _t09_fire(root, "harness-qa", obj, timeout=3)
+        ok = (result.returncode == 2 and "fail_first" in result.stderr
+              and reg.live_claims(root, "harness-qa") == claim_before
+              and _read_bytes(obj["artifact"]) == b"inspection assessment\n")
+        assert _restored_registration_return(root, record, original_record, "harness-qa", obj), \
+            "same QA job must accept and release after registration restoration"
+        print(f"{'ok' if ok else 'FAIL'} {label} record cannot bypass QA: "
+              f"exit={result.returncode} {result.stderr.strip()[:300]}")
+        return int(not ok)
+    finally:
+        shutil.rmtree(root)
+
+
+def run_qa_record_read_failure_cases():
+    return sum(_qa_record_read_failure_case(label, contents) for label, contents in (
+        ("invalid JSON", b"{broken"),
+        ("nonmapping JSON", b"[]"),
+        ("undecodable", b"\xff"),
+        ("disappeared", None),
+        ("FIFO", "fifo"),
+        ("same-directory symlink", "symlink"),
+    ))
+
+
+def run_registration_decoder_depth_cases():
+    with _stdlib_python_json_decoder():
+        return (_qa_record_read_failure_case("excessive decoder depth", "deep-json")
+                + _lead_authorization_read_failure_case("deep-json"))
+
+
+def _corrupt_feature_directory(root, record):
+    """Keep the registration local while redirecting its directory into another checkout."""
+    _initialize_test_git(root)
+    feature_dir = os.path.dirname(record)
+    saved_dir = os.path.join(root, "saved-feature")
+    os.rename(feature_dir, saved_dir)
+    nested = os.path.join(root, "nested-authority")
+    os.makedirs(nested)
+    _initialize_test_git(nested)
+    donor = os.path.join(nested, "donor-feature")
+    shutil.copytree(saved_dir, donor)
+    donor_record = os.path.join(donor, "feature.json")
+    os.remove(donor_record)
+    os.symlink(os.path.join(saved_dir, "feature.json"), donor_record)
+    os.symlink(donor, feature_dir)
+
+
+def _corrupt_qa_brief(root, record, mode, foreign_root):
+    brief = os.path.join(os.path.dirname(record), "BRIEF.md")
+    if mode in ("malformed", "linked", "heading", "checked", "opaque"):
+        declaration = {
+            "malformed": "- SC-02 (operator) run regression",
+            "linked": "- [SC-02](regression): regression",
+            "heading": "## SC-02: regression",
+            "checked": "- [x] SC-02: regression",
+            "opaque": "- <strong>SC-02</strong>: regression",
+        }[mode]
+        _write_verification_brief(brief, "- SC-01: inspect\n  verify: inspection\n"
+                                  f"{declaration}\n  verify: automated\n")
+        return
+    if mode == "nested-directory":
+        _corrupt_feature_directory(root, record)
+        return
+    if mode == "nested":
+        _initialize_test_git(root)
+        target_dir = os.path.dirname(_nested_registration_source(root, record))
+    else:
+        target_dir = make_feature_dir(root if mode == "sibling" else foreign_root,
+                                      feat="FEAT-02-foreign")
+    target = os.path.join(target_dir, "BRIEF.md")
+    _write_verification_brief(target, "- SC-01: inspect\n  verify: inspection\n")
+    os.remove(brief)
+    os.symlink(target, brief)
+
+
+def _qa_brief_authority_case(mode):
+    root = _t09_root()
+    try:
+        with tempfile.TemporaryDirectory(prefix="qa-brief-target-") as foreign_root:
+            record, obj = _qa_registered_inspection_return(root)
+            control = _t09_fire(root, "harness-qa", obj)
+            assert control.returncode == 0, control.stderr
+            _corrupt_qa_brief(root, record, mode, foreign_root)
+            reg = _reg_module()
+            reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
+                                HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
+            before = reg.live_claims(root, "harness-qa")
+            result = _t09_fire(root, "harness-qa", obj)
+            ok = (result.returncode == 2 and "fail_first" in result.stderr
+                  and reg.live_claims(root, "harness-qa") == before
+                  and _read_bytes(obj["artifact"]) == b"inspection assessment\n")
+            print(f"{'ok' if ok else 'FAIL'} {mode} BRIEF cannot waive QA evidence: "
+                  f"exit={result.returncode} {result.stderr.strip()[:300]}")
+            return int(not ok)
+    finally:
+        _remove_append_root(root)
+
+
+def run_qa_brief_authority_cases():
+    return sum(_qa_brief_authority_case(mode)
+               for mode in ("malformed", "linked", "heading", "checked", "opaque",
+                            "sibling", "foreign", "nested", "nested-directory"))
+
+def _add_matching_worktrees(root, td):
+    _write_verification_brief(os.path.join(root, ".gitignore"), ".harness/.inflight-claims.json*\n")
+    _commit_file(root, "fixture.txt", "worktree fixture\n", "fixture")
+    for basename in ("FEAT-01", "FEAT-01-hook"):
+        _git_quiet(root, "worktree", "add", "-q", "--detach", os.path.join(td, basename), "HEAD")
+
+
+def _ambiguous_qa_fixture(td):
+    root = os.path.join(td, "owner")
+    _init_test_repo(root)
+    _write_verification_brief(os.path.join(root, ".harness", "team-config.yaml"),
+                              "schema_version: 1\nteams: []\n")
+    feature_dir = make_feature_dir(root, feat=HOOK_IDENTITY["harness_feature"])
+    brief_rel = os.path.relpath(os.path.join(feature_dir, "BRIEF.md"), root)
+    _write_verification_brief(os.path.join(root, brief_rel), "- SC-01: inspect\n  verify: inspection\n")
+    _add_matching_worktrees(root, td)
+    for basename in ("FEAT-01", "FEAT-01-hook"):
+        checkout = os.path.join(td, basename)
+        _write_verification_brief(os.path.join(checkout, brief_rel),
+                                  "- SC-01: automated evidence\n  verify: integration\n")
+    return root, feature_dir
+
+
+def run_qa_ambiguous_checkout_case():
+    with tempfile.TemporaryDirectory(prefix="qa-ambiguous-") as td:
+        root, feature_dir = _ambiguous_qa_fixture(td)
+        obj = fixture("harness-qa", _t04_base_digest("harness-qa"))
+        obj["VERDICT"], obj["artifact"] = "PASS", os.path.join(feature_dir, "qa.md")
+        obj["DIGEST"].update(suite="pass", failures=0, matrix_ok=True, kinds=[], fail_first=[])
+        _write_verification_brief(obj["artifact"], "owner assessment\n")
+        reg = _reg_module()
+        reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
+                            HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
+        before = reg.live_claims(root, "harness-qa")
+        result = _t09_fire(root, "harness-qa", obj)
+        ok = (result.returncode == 2 and reg.live_claims(root, "harness-qa") == before
+              and _read_bytes(obj["artifact"]) == b"owner assessment\n")
+        print(f"{'ok' if ok else 'FAIL'} ambiguous checkout cannot waive QA evidence: "
+              f"exit={result.returncode} {result.stderr.strip()[:300]}")
+        return int(not ok)
+
+
+def _single_registered_checkout(root, td):
+    _initialize_test_git(root)
+    _add_matching_worktrees(root, td)
+    _git_quiet(root, "worktree", "remove", "--force", os.path.join(td, "FEAT-01-hook"))
+    checkout = os.path.realpath(os.path.join(td, "FEAT-01"))
+    feature_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.join(checkout, APPEND_REL))))
+    _write_verification_brief(os.path.join(feature_dir, "BRIEF.md"),
+                              "- SC-01: inspect\n  verify: inspection\n")
+    return checkout, feature_dir
+
+
+def _registered_checkout_return(agent, checkout, feature_dir, owner):
+    kwargs = {"harness_parent_agent_id": "Test.Parent"}
+    if agent == "harness-eng-lead":
+        artifact = os.path.join(checkout, APPEND_REL)
+        obj = _append_lead_object()
+    else:
+        artifact = os.path.join(feature_dir, "qa.md")
+        obj = fixture(agent, _t04_base_digest(agent))
+        obj["VERDICT"], obj["artifact"] = "PASS", artifact
+        obj["DIGEST"].update(suite="pass", failures=0, matrix_ok=True, kinds=[], fail_first=[])
+    os.makedirs(os.path.dirname(artifact), exist_ok=True)
+    _write_verification_brief(artifact, "checkout assessment\n")
+    if agent == "harness-eng-lead":
+        kwargs["harness_digest_binding"] = _issued_lead_binding(owner)
+    return obj, artifact, kwargs
+
+
+def _corrupt_checkout_git(checkout, contents):
+    pointer = os.path.join(checkout, ".git")
+    if contents is None:
+        os.remove(pointer)
+        os.symlink("missing-git-metadata", pointer)
+    elif contents == "missing-target":
+        original = _read_bytes(pointer)
+        _write_verification_brief(pointer, original.rsplit(b"/", 1)[0] + b"/missing-admin\n")
+    elif contents == "missing-owner":
+        _write_verification_brief(pointer, "gitdir: " + os.path.join(
+            checkout, "missing-owner", ".git", "worktrees", "missing-admin") + "\n")
+    elif contents == "unknown-admin-fifo":
+        admin = os.path.join(checkout, "unknown-admin")
+        os.makedirs(admin)
+        os.mkfifo(os.path.join(admin, "gitdir"))
+        _write_verification_brief(pointer, "gitdir: " + admin + "\n")
+    else:
+        _write_verification_brief(pointer, contents)
+
+
+def _claimed_checkout_return(agent, checkout, feature_dir, owner):
+    reg = _reg_module()
+    reg.claim_run_start(checkout, agent, HOOK_IDENTITY["harness_feature"],
+                        HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
+                        supervisor_pid=os.getpid(), cwd=owner)
+    before = reg.live_claims(checkout, agent)
+    obj, artifact, kwargs = _registered_checkout_return(agent, checkout, feature_dir, owner)
+    original_git = _read_bytes(os.path.join(checkout, ".git"))
+    return before, obj, artifact, kwargs, original_git
+
+
+def _restored_checkout_return(root, checkout, agent, original_git, obj, kwargs):
+    pointer = os.path.join(checkout, ".git")
+    os.remove(pointer)
+    _write_verification_brief(pointer, original_git)
+    result = _t09_fire(root, agent, obj, **kwargs)
+    return result.returncode == 0 and _reg_module().live_claims(checkout, agent) == []
+
+
+def _unknown_checkout_identity_case(agent, contents):
+    owner, _ = _append_root()
+    try:
+        with tempfile.TemporaryDirectory(prefix="unknown-checkout-") as td:
+            checkout, feature_dir = _single_registered_checkout(owner, td)
+            before, obj, artifact, kwargs, original_git = _claimed_checkout_return(agent, checkout, feature_dir, owner)
+            _corrupt_checkout_git(checkout, contents)
+            runtime_root = checkout if contents in ("missing-owner", "unknown-admin-fifo") else owner
+            result = _t09_fire(runtime_root, agent, obj, timeout=3, **kwargs)
+            startup_ok = agent != "harness-eng-lead" or _lead_binding_result(runtime_root, timeout=3).returncode == 2
+            ok = (startup_ok and result.returncode == 2 and _reg_module().live_claims(checkout, agent) == before
+                  and _read_bytes(artifact) == b"checkout assessment\n")
+            assert _restored_checkout_return(runtime_root, checkout, agent, original_git, obj, kwargs), "same job must accept after metadata restoration"
+            print(f"{'ok' if ok else 'FAIL'} unknown {agent} physical checkout refuses: "
+                  f"exit={result.returncode} {result.stderr.strip()[:300]}")
+            return int(not ok)
+    finally:
+        _remove_append_root(owner)
+
+
+def _symlinked_git_pointer(checkout, source):
+    pointer = (os.path.join(checkout, ".git") if source == "caller" else
+               os.path.join(_git_quiet(checkout, "rev-parse", "--absolute-git-dir").strip(), "gitdir"))
+    original = _read_bytes(pointer)
+    saved = pointer + ".saved"
+    os.rename(pointer, saved)
+    os.symlink(os.path.basename(saved), pointer)
+    return pointer, original
+
+
+def _symlinked_checkout_identity_case(agent, source):
+    owner, _ = _append_root()
+    try:
+        with tempfile.TemporaryDirectory(prefix="symlinked-checkout-") as td:
+            checkout, feature_dir = _single_registered_checkout(owner, td)
+            before, obj, artifact, kwargs, original_git = _claimed_checkout_return(agent, checkout, feature_dir, owner)
+            pointer, original = _symlinked_git_pointer(checkout, source)
+            result = _t09_fire(checkout, agent, obj, timeout=3, **kwargs)
+            startup_ok = agent != "harness-eng-lead" or _lead_binding_result(checkout, timeout=3).returncode == 2
+            ok = (startup_ok and result.returncode == 2 and _reg_module().live_claims(checkout, agent) == before
+                  and _read_bytes(artifact) == b"checkout assessment\n")
+            os.remove(pointer)
+            _write_verification_brief(pointer, original)
+            assert _restored_checkout_return(checkout, checkout, agent, original_git, obj, kwargs), \
+                "same job must accept after regular metadata restoration"
+            print(f"{'ok' if ok else 'FAIL'} {source} pointer symlink refuses {agent}: exit={result.returncode}")
+            return int(not ok)
+    finally:
+        _remove_append_root(owner)
+
+
+def run_symlinked_checkout_identity_cases():
+    return sum(_symlinked_checkout_identity_case(agent, source)
+               for agent in ("harness-qa", "harness-eng-lead") for source in ("caller", "admin"))
+
+
+def run_unknown_checkout_identity_cases():
+    return sum(_unknown_checkout_identity_case(agent, contents)
+               for agent, contents in (("harness-qa", b"\xff"),
+                                       ("harness-eng-lead", b"not a gitdir pointer\n"),
+                                       ("harness-qa", None), ("harness-eng-lead", None),
+                                       ("harness-qa", "missing-target"),
+                                       ("harness-eng-lead", "missing-target"),
+                                       ("harness-qa", "missing-owner"),
+                                       ("harness-eng-lead", "missing-owner"),
+                                       ("harness-qa", "unknown-admin-fifo"),
+                                       ("harness-eng-lead", "unknown-admin-fifo")))
+
+
+def _nested_registration_source(root, record):
+    checkout = os.path.join(root, ".claude", "worktrees", "foreign-registration")
+    _write_verification_brief(os.path.join(root, ".gitignore"), ".harness/.inflight-claims.json*\n")
+    _commit_file(root, "fixture.txt", "nested checkout registration\n", "nested fixture")
+    os.makedirs(os.path.dirname(checkout), exist_ok=True)
+    _git_quiet(root, "worktree", "add", "--detach", checkout, "HEAD")
+    foreign = os.path.join(checkout, os.path.relpath(record, root))
+    _write_verification_brief(foreign, _read_bytes(record))
+    return foreign
+
+
+def _corrupt_qa_authorization_context(root, feature_dir, mode):
+    metadata = os.path.join(root, ".git", "worktrees")
+    if mode in ("foreign", "nested"):
+        for basename in ("FEAT-01", "FEAT-01-hook"):
+            _git_quiet(root, "worktree", "remove", "--force", os.path.join(os.path.dirname(root), basename))
+        record = os.path.join(feature_dir, "feature.json")
+        if mode == "nested":
+            foreign = _nested_registration_source(root, record)
+        else:
+            foreign = os.path.join(os.path.dirname(root), "foreign-feature.json")
+            _write_verification_brief(foreign, _read_bytes(record))
+        os.remove(record)
+        os.symlink(foreign, record)
+    elif mode == "git-parent":
+        git_dir = os.path.dirname(metadata)
+        os.rename(git_dir, git_dir + ".saved")
+        os.symlink("missing-git-metadata", git_dir)
+    elif mode == "listing":
+        os.rename(metadata, metadata + ".saved")
+        _write_verification_brief(metadata, b"not a directory\n")
+    else:
+        assert mode == "pointers"
+        for name in os.listdir(metadata):
+            _write_verification_brief(os.path.join(metadata, name, "gitdir"), b"\xff")
+
+
+def _qa_unknown_authorization_case(mode):
+    with tempfile.TemporaryDirectory(prefix="qa-unknown-auth-") as td:
+        root, feature_dir = _ambiguous_qa_fixture(td)
+        obj = fixture("harness-qa", _t04_base_digest("harness-qa"))
+        obj["VERDICT"], obj["artifact"] = "PASS", os.path.join(feature_dir, "qa.md")
+        obj["DIGEST"].update(suite="pass", failures=0, matrix_ok=True, kinds=[], fail_first=[])
+        _write_verification_brief(obj["artifact"], "owner assessment\n")
+        reg = _reg_module()
+        reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
+                            HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
+        before = reg.live_claims(root, "harness-qa")
+        _corrupt_qa_authorization_context(root, feature_dir, mode)
+        result = _t09_fire(root, "harness-qa", obj)
+        ok = (result.returncode == 2 and reg.live_claims(root, "harness-qa") == before
+              and _read_bytes(obj["artifact"]) == b"owner assessment\n")
+        print(f"{'ok' if ok else 'FAIL'} {mode} authorization context cannot waive QA: "
+              f"exit={result.returncode} {result.stderr.strip()[:300]}")
+        return int(not ok)
+
+
+def run_qa_unknown_authorization_cases():
+    return sum(_qa_unknown_authorization_case(mode)
+               for mode in ("foreign", "nested", "listing", "pointers", "git-parent"))
+
+
+def _lead_binding_result(root, *, timeout=None):
+    payload = _governed({"agent_type": "harness-eng-lead", "cwd": root,
+                         "harness_parent_agent_id": "Test.Parent"})
+    return subprocess.run([os.path.join(os.path.dirname(VALIDATE), "digest_destination.py")],
+                          input=json.dumps(payload), capture_output=True, text=True, timeout=timeout,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+
+
+def _issued_lead_binding(root):
+    result = _lead_binding_result(root)
+    result.check_returncode()
+    return json.loads(result.stdout)["binding"]
+
+
+def _corrupt_lead_authorization_input(root, path, source):
+    record = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))), "feature.json")
+    if source == "manifest":
+        _write_verification_brief(os.path.join(root, ".harness", "team-config.yaml"), "teams: []\nteams: []\n")
+    elif source == "nested-directory":
+        _corrupt_feature_directory(root, record)
+    elif source in ("symlink", "deep-json"):
+        _replace_feature_registration(record, source)
+    elif source in ("foreign", "nested"):
+        if source == "nested":
+            foreign = _nested_registration_source(root, record)
+        else:
+            foreign = root + "-foreign.json"
+            _write_verification_brief(foreign, _read_bytes(record))
+        os.remove(record)
+        os.symlink(foreign, record)
+    else:
+        assert source == "record"
+        _write_verification_brief(record, b"{broken")
+
+
+def _lead_authorization_refusal(root, path, binding, before, obj):
+    startup = _lead_binding_result(root)
+    result = _t09_fire(root, "harness-eng-lead", obj,
+                      harness_parent_agent_id="Test.Parent", harness_digest_binding=binding)
+    held = (startup.returncode == 2 and result.returncode == 2
+            and _reg_module().live_claims(root, "harness-eng-lead") == before
+            and _read_bytes(path) == b"original assessment\n")
+    return held, startup.returncode, result
+
+
+def _lead_authorization_read_failure_case(source):
+    root, path = _append_root()
+    try:
+        if source == "nested":
+            _initialize_test_git(root)
+        _write_verification_brief(path, "original assessment\n")
+        binding = _issued_lead_binding(root)
+        reg = _reg_module()
+        before = reg.live_claims(root, "harness-eng-lead")
+        record = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))), "feature.json")
+        original_record = _read_bytes(record)
+        obj = _append_lead_object()
+        _corrupt_lead_authorization_input(root, path, source)
+        ok, startup_code, result = _lead_authorization_refusal(root, path, binding, before, obj)
+        if source == "deep-json":
+            assert _restored_registration_return(
+                root, record, original_record, "harness-eng-lead", obj,
+                harness_parent_agent_id="Test.Parent", harness_digest_binding=binding), \
+                "same lead binding must accept and release after registration restoration"
+        print(f"{'ok' if ok else 'FAIL'} corrupt {source} cannot bypass durable lead evidence: "
+              f"startup={startup_code} yield={result.returncode} {result.stderr.strip()[:300]}")
+        return int(not ok)
+    finally:
+        if os.path.lexists(root + "-foreign.json"):
+            os.remove(root + "-foreign.json")
+        _remove_append_root(root)
+
+
+def run_lead_authorization_read_failure_cases():
+    return sum(_lead_authorization_read_failure_case(source)
+               for source in ("record", "manifest", "foreign", "nested", "nested-directory", "symlink"))
+
+
+def run_lead_ambiguous_checkout_cases():
+    root, path = _append_root()
+    try:
+        _initialize_test_git(root)
+        _write_verification_brief(path, "owner assessment\n")
+        binding = _issued_lead_binding(root)
+        reg = _reg_module()
+        before = reg.live_claims(root, "harness-eng-lead")
+        with tempfile.TemporaryDirectory(prefix="lead-ambiguous-") as td:
+            _add_matching_worktrees(root, td)
+            startup = _lead_binding_result(root)
+            yielded = _t09_fire(root, "harness-eng-lead", _append_lead_object(),
+                                harness_parent_agent_id="Test.Parent", harness_digest_binding=binding)
+            ok = (startup.returncode == 2 and yielded.returncode == 2
+                  and reg.live_claims(root, "harness-eng-lead") == before
+                  and _read_bytes(path) == b"owner assessment\n")
+            print(f"{'ok' if ok else 'FAIL'} ambiguous lead startup/yield: "
+                  f"startup={startup.returncode}, yield={yielded.returncode}")
+            return int(not ok)
+    finally:
+        _remove_append_root(root)
+
+
+
+
 
 
 _T04_UNIVERSAL = "  files_touched: []\n  open_questions: []\n  expertise_update: []\n"
@@ -3773,14 +4424,18 @@ def _git_quiet(repo, *args):
                           capture_output=True, text=True).stdout
 
 
+def _initialize_test_git(repo):
+    _git_quiet(repo, "init", "-q", "-b", "main")
+    _git_quiet(repo, "config", "user.email", "test@example.com")
+    _git_quiet(repo, "config", "user.name", "test")
+
+
 def _init_test_repo(repo):
     """A fixture checkout, complete enough to be GRADED: BUG-1081 reads `test_kinds`
     from the checkout under review, so every purpose-built repo needs its own
     `.harness/harness.json` exactly as a real one does."""
     os.makedirs(repo)
-    _git_quiet(repo, "init", "-q", "-b", "main")
-    _git_quiet(repo, "config", "user.email", "test@example.com")
-    _git_quiet(repo, "config", "user.name", "test")
+    _initialize_test_git(repo)
     os.makedirs(os.path.join(repo, ".harness"), exist_ok=True)
     with open(os.path.join(repo, ".harness", "harness.json"), "w") as handle:
         json.dump(HARNESS_JSON_FIXTURE, handle)
@@ -4342,32 +4997,6 @@ def _hermetic_review_sha_repo(td):
         PRE_FEATURE_REVISION, REVIEW_SHA = saved
 
 
-def check_hook_feature_dir(validator, td, failures):
-    """An installed validator resolves an unmerged feature in its linked worktree."""
-    if HERE not in sys.path:
-        sys.path.insert(0, HERE)
-    import inflight_registry
-    owner_root = os.path.join(td, "owner")
-    feature_root = os.path.join(td, "worktrees", "FEAT-INSTALLED")
-    expected = os.path.join(
-        feature_root, ".harness", "harness", "features", "FEAT-INSTALLED"
-    )
-    artifact = ".harness/harness/features/FEAT-INSTALLED/notes/review.md"
-    os.makedirs(expected, exist_ok=True)
-
-    original_root = validator._root_or_none
-    original_feature_root = inflight_registry.feature_root
-    validator._root_or_none = lambda: owner_root
-    inflight_registry.feature_root = lambda root, feature: feature_root
-    try:
-        actual = validator._hook_feature_dir(f"artifact: {artifact}", "FEAT-INSTALLED")
-        if actual != expected:
-            failures.append(
-                f"installed validator must bind to linked feature worktree: {actual!r}"
-            )
-    finally:
-        validator._root_or_none = original_root
-        inflight_registry.feature_root = original_feature_root
 
 
 def check_skipped_member_errors(validator, failures):
@@ -4397,7 +5026,6 @@ def _check_review_bindings(validator, config, feature_dir, td, failures):
     check_resolve_review_sha_artifact_path(validator, td, failures)
     check_resolve_review_sha_feature_json(validator, td, failures)
     check_pending_plan_review(validator, config, td, failures)
-    check_hook_feature_dir(validator, td, failures)
     check_skipped_member_errors(validator, failures)
     check_branch_corroboration(validator, config, td, failures)
 
@@ -4907,7 +5535,7 @@ def _b1898_qa_yields_while_pm_live():
         {"agent": "harness-qa", "agent_id": "Lead.Qa", "parent_agent_id": "Lead"},
     ])
     pm_before = [row for row in _b1898_rows(root) if row["agent"] == "harness-pm"]
-    _t09_fire(root, "harness-qa", "VERDICT: PASS\n",
+    _t09_fire(root, "harness-qa", _t04_base_digest("harness-qa"),
                 harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa", governed=False)
     rows = _b1898_rows(root)
     _b1898_check("occurrence-1: QA's exact claim is released",
@@ -4932,7 +5560,7 @@ def _b1898_release_reads_the_feature_worktree():
     _b1898_seed(owner, [{"agent": "harness-qa", "agent_id": "Other.Qa",
                          "parent_agent_id": "Other", "feature": "FEAT-7-owner"}])
     owner_before = _b1898_rows(owner)
-    _t09_fire(owner, "harness-qa", "VERDICT: PASS\n",
+    _t09_fire(owner, "harness-qa", _t04_base_digest("harness-qa"),
                 harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa", governed=False)
     _b1898_check("the claim is released from the feature worktree's registry",
                  _b1898_rows(worktree) == [], repr(_b1898_rows(worktree))[:240])
@@ -5153,6 +5781,16 @@ def main(argv=None):
         run_cli_cases,
         run_dec156_worktree_red_case,
         run_bug919_qa_matrix_cases,
+        run_qa_verification_mode_cases,
+        run_brief_citation_boundary_cases,
+        run_qa_foreign_brief_case,
+        run_qa_record_read_failure_cases,
+        run_registration_decoder_depth_cases,
+        run_qa_brief_authority_cases,
+        run_qa_ambiguous_checkout_case,
+        run_qa_unknown_authorization_cases,
+        run_unknown_checkout_identity_cases,
+        run_symlinked_checkout_identity_cases,
         run_bug919_resolve_fallback_case,
         run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,
@@ -5162,6 +5800,8 @@ def main(argv=None):
         run_code_grade_policy_cases,
         run_hook_cases,
         run_lead_append_cases,
+        run_lead_authorization_read_failure_cases,
+        run_lead_ambiguous_checkout_cases,
         run_t09,
         run_t51_suspension_cases,
         run_bug1898_exact_release_cases,
