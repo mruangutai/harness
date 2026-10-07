@@ -1,0 +1,1 @@
+PASS — Mode A scoped out: plan.yaml T-01–T-03 and BRIEF.md specify dispatch/return enforcement, automated tests, and dispatch-contract documentation, not a user-facing visual or interactive UI; DESIGN.md, accessibility/theme/layout review, and an interactive high-fidelity prototype are not needed for this change. Open questions: none.

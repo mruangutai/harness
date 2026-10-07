@@ -10,7 +10,24 @@ ONE dispatch of the `plan` team to `harness-product-lead` — resolve it
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/plan.yaml`, as `harness-team` requires.
 Pass the grilling artifact's path (its `## Mission` block reads `mission: plan`) and the BRIEF's.
 The whole plan phase happens inside that run; you sequence nothing between its steps. Run-dir
-slug: `plan-product`.
+slug: `plan-product`. Register the run first — `feature-record.py run-start --file <feature.json>
+--id <run-id> --squad product --agent harness-product-lead` — and put `HARNESS-MISSION: plan` on
+the line after `HARNESS-FEATURE` (`harness-zero-micro-management`'s dispatch header).
+
+**The plan target is canonical and checked before the lead spawns.** With `plan`,
+`dispatch-guard.py` reads the `plan.yaml` beside the feature's registered `feature.json` in the
+assigned checkout — never the owner corpus or a similarly named feature. A product draft with
+no `plan.yaml` yet may start; an existing plan whose `approval.status` is not `pending`, a
+missing status included, is refused at exit 2 with the target and the status it records. A
+standalone validator plan panel (`harness-validator-lead`, `HARNESS-MISSION: plan`) needs an
+existing pending plan. The lead's scope reader carries `HARNESS-MISSION: plan` too, so a plan
+signed while the lead runs stops that reader before it works. Before this, a free-form validator
+prompt alone did not reliably identify a plan panel at dispatch time: its first authoritative
+plan signal was the scope reader's `reviewed` field at yield, after the panel's work. The
+explicit marker now supplies that signal before the lead spawns. Plan panels run before
+signature: a signed plan that genuinely needs changes takes the DEC-229 task-set amendment, whose
+`APPROVAL-RESET:` receipt returns it to `pending` for a renewed signature — then the panel.
+Nothing else reopens a signed plan, and a signed plan that needs no change needs no panel.
 
 Inside the run:
 
@@ -69,4 +86,6 @@ that same act and never by you or pm.
 
 `mission: patch` in the grilling artifact is the same single dispatch with a smaller deliverable
 and no readers; the deliverable's shape is pm's — `patch-lane.md`. No panel, no goal-check run
-(DEC-225). After signature it runs exactly build → validate → ship.
+(DEC-225). After signature it runs exactly build → validate → ship. Its dispatch to
+`harness-product-lead`, after the same `run-start` registration, declares `HARNESS-MISSION: patch`
+explicitly — never `plan` inherited from the intake — so no plan-panel check applies to it.

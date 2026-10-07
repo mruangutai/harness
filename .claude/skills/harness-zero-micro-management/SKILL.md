@@ -44,6 +44,21 @@ without it at exit 2: your process working directory does not follow your assign
 line is what tells the guard which checkout you were assigned to. In a batched `task` call it
 opens **each task's own `task` text**; the guard never sees the shared `context` block.
 
+**This paragraph is the one statement of mission applicability** (DEC-228). An explicit
+`HARNESS-MISSION: <phase>` line is mandatory only for `harness-product-lead` and
+`harness-validator-lead` starts and the plan team's scope reader, whose line is
+`HARNESS-MISSION: plan`: exactly one line, in each task's own text after the first line, naming
+the actual phase being dispatched (`plan`, `patch`, `validate`, `fix`, `distill`), never the
+feature's intake mission or a phase guessed from prose. A `harness-eng-lead` start needs no
+`HARNESS-MISSION` line and is never refused for lacking one; mission forwarding and `distill`
+behave as before. Separately, the guard requires for all three leads exactly one open
+registered run — the `feature-record.py run-start --file <feature.json> --id <run-id> --squad
+<squad> --agent <lead>` entry made before the dispatch — because the lead's return can bind its
+digest to nothing else. Both refuse at exit 2 before any claim: register the missing run, or
+close surplus open runs with their real outcome so exactly one remains. A `plan` start is
+refused unless the feature's `plan.yaml` is `pending`; panels run before signature
+(`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/plan-phase.md`).
+
 3. **Assess what comes back** — not "did they return?" but did the work meet the goal. Read their
    artifact and DIGEST and check it against what you asked for. A member's `PASS` is their
    judgment; your consolidated verdict is yours, and you may return `FAIL` on work a member called
