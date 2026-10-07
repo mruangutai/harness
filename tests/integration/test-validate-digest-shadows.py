@@ -411,8 +411,53 @@ def case_matrix_floor():
               not errs, str(errs))
 
 
+_DECLINED = "declines to report a gate"
+_NO_SUITE = _with(_qa([]), suite="n/a")
+
+
+def _qa_floor_errors(td, change_types, obj=_NO_SUITE):
+    """#2139: the qa errors for `obj` over a plan of `change_types`; None writes no plan."""
+    repo, fd, _head, _ = _checkout(td)
+    _write(os.path.join(repo, ".harness", "harness.json"), json.dumps(MATRIX_JSON))
+    if change_types is not None:
+        _write(os.path.join(fd, "plan.yaml"), _plan_with(change_types))
+    return _errors(_validator(), "harness-qa", obj, fd, _config(td))
+
+
+def _declined(errs, field):
+    return any(_DECLINED in e and field in e for e in errs)
+
+
+def case_qa_empty_floor_suite():
+    """#2139: qa `suite: n/a` + PASS is honest only where the computed matrix floor is empty."""
+    docs = [("docs", "done")]
+    with tempfile.TemporaryDirectory() as td:
+        errs = _qa_floor_errors(td, docs)
+        check("empty floor: suite n/a with kinds [] and matrix_ok true is accepted", not errs, str(errs))
+    with tempfile.TemporaryDirectory() as td:
+        errs = _qa_floor_errors(td, docs, _with(_NO_SUITE, kinds=[UNIT_SATISFIED]))
+        check("empty floor: suite n/a beside a reported kind still declines a gate",
+              _declined(errs, "suite"), str(errs))
+    with tempfile.TemporaryDirectory() as td:
+        errs = _qa_floor_errors(td, docs, _with(_NO_SUITE, matrix_ok="n/a"))
+        check("empty floor: matrix_ok n/a with PASS is still refused",
+              _declined(errs, "matrix_ok"), str(errs))
+
+
+def case_qa_floor_still_binds_suite():
+    """#2139: a required kind, or a floor that cannot be derived, keeps `suite` gated."""
+    with tempfile.TemporaryDirectory() as td:
+        errs = _qa_floor_errors(td, [("docs", "done"), ("logic", "done")])
+        check("non-empty floor: suite n/a with PASS is refused", _declined(errs, "suite"), str(errs))
+    with tempfile.TemporaryDirectory() as td:
+        errs = _qa_floor_errors(td, None)
+        check("unresolvable floor: suite n/a with PASS is refused", _declined(errs, "suite"), str(errs))
+
+
 def main():
     case_matrix_floor()
+    case_qa_empty_floor_suite()
+    case_qa_floor_still_binds_suite()
     case_human_commits()
     case_dirty_tree()
     case_qa_kinds()
