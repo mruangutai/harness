@@ -85,8 +85,19 @@ whose suite, matrix and failure count are all green.
 `verify: automated`, your digest names the test and the evidence that it **failed before the fix** —
 the path of the captured failing run, or the receipt line that records it (`1 failed before 3f2a9c1`).
 Where the fix and its test landed together, the capture you cite is your own reproduction. A green suite
-with no fail-first evidence is `FAIL`, not `PASS`: passing proves the tests pass today, and a test that
-never failed constrains nothing.
+with no fail-first evidence is `FAIL`, not `PASS`, unless the trusted runtime feature's readable
+BRIEF explicitly marks every SC `inspection` or `uat` in its own continuation block. Missing,
+ambiguous or mismatched feature context and unknown/missing modes do not earn that exemption.
+Every SC declaration must parse completely and carry exactly one `verify:` annotation whose
+entire value is `inspection` or `uat`; every annotation must belong to a parsed criterion.
+Noncanonical SC-bearing list items or headings, including checkbox and decorated labels,
+are ambiguous and never grant a waiver; unstructured prose references remain permitted.
+BRIEF must be a regular feature-local file, not a symlink borrowing another feature's criteria.
+Its canonical registration must be a regular file, reside in that same
+physical feature directory and belong to the selected checkout; a nested linked checkout is
+still foreign. Unreadable or unresolved/nonreciprocal checkout metadata grants no
+waiver, including when dispatch starts inside a linked checkout (DEC-95, DEC-208).
+For automated criteria, passing today does not prove the test ever failed.
 
 **Perturbation proofs run in a worktree, never the main checkout (DEC-153).** Proving a test
 discriminates (mutate, watch it fail, restore) is sanctioned — but the bash-write-guard denies your

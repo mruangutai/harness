@@ -81,7 +81,9 @@ yield({data: {
 - `kinds`: `{kind, state: satisfied|missing|not_applicable|locally_run|misconfigured, cmd, named_tests}`.
 - `coverage_gaps`: include Phase 1 expectations with no test. `sc_evidence`: `{id, test: "<path:line>"}`.
 - `fail_first`: `{sc, evidence}` per `verify: automated` SC — the evidence the test FAILED before
-  the fix. PASS + `matrix_ok: true` + `[]` is rejected — a green suite with no fail-first evidence
-  is not a pass (FEAT-59 SC-17). `[]` only with `matrix_ok: n/a` or a non-PASS verdict.
+  the fix. PASS + `matrix_ok: true` + `[]` is rejected unless the trusted runtime feature's
+  readable BRIEF explicitly marks every SC `inspection` or `uat` in its own continuation block.
+  Missing, ambiguous or mismatched feature context and unknown/missing modes do not earn that
+  exemption. `[]` also applies with `matrix_ok: n/a` or a non-PASS verdict.
 - `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
   none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).
