@@ -398,3 +398,16 @@ Three consecutive passing runs, none discarded: **108s, 85s, 74s**. Threshold (O
 - exits: current 0 on all 6 samples; baseline **1** on all 6.
 - CLI output identical: **no** — the baseline checker predates INV-52 (added on main after 8e0b9e90) and reports one extra finding: `CONSOLIDATION .claude/skills/harness/bin/check_state/table.py::INVARIANTS:160 INV-52 belongs to no family in ROW_FAMILIES`; current reports 0 findings. Both audit the same corpus.
 - result: both current medians lower than baseline; the output-identity clause does not hold on this corpus for the reason above.
+
+
+## SC-10 rerun after weight re-measure (operator ruling, 2026-10-06/07)
+
+Weights re-measured from U-01, U-05, U-06, U-07 (per-file medians, 83 files); review_sha `6ccff7f1b9301526fa8bf8ff788408b376b7f96f` (no code or workflow change since `b886dbcf`). Throwaway PR #2129, three consecutive runs, none discarded:
+
+- R-P1: https://github.com/mruangutai/harness/actions/runs/37553390940 — `integration` success; shard jobs [('1', 50), ('2', 47), ('3', 60), ('4', 62)]; first shard start → integration done **71s**; `PASS integration: 83 expected files completed exactly once across 4 shards at ba97009f0e6e78382f09113f23d9d373b921ef77`
+- R-P2: https://github.com/mruangutai/harness/actions/runs/37553524562 — `integration` success; shard jobs [('1', 73), ('2', 61), ('3', 39), ('4', 64)]; first shard start → integration done **83s**; `PASS integration: 83 expected files completed exactly once across 4 shards at 92c42aaac752936e5285a6e40aff282005535d18`
+- R-P3: https://github.com/mruangutai/harness/actions/runs/37553675498 — `integration` success; shard jobs [('1', 74), ('2', 57), ('3', 40), ('4', 65)]; first shard start → integration done **120s**; `PASS integration: 83 expected files completed exactly once across 4 shards at 19b86de9ca626fdf46db5afe6a0c97d5e76d0c4d`
+
+Result against OQ-01 (all three below 100s): **not met** — 71s, 83s, 120s.
+
+R-P3 breakdown (jobs API): all four shards started within 1s and the last finished at +74s; the `integration` job was assigned a runner at +76s (`started_at` 00:47:18Z) but its first step ran at 00:47:55Z — **37s of runner provisioning** — and its steps took 6s. The overrun is GitHub-hosted runner start-up latency on the aggregator, not test or shard time. Shard jobs across the three runs: 39–74s.
