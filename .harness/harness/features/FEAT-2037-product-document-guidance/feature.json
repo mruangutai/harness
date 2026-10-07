@@ -89,6 +89,16 @@
       "tokens": 56372,
       "cycles_used": 0,
       "ended_at": "2026-10-07T12:41:32+00:00"
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-10-07T13:20:18+00:00",
+      "tokens": 63558,
+      "cycles_used": 0,
+      "ended_at": "2026-10-07T13:31:15+00:00"
     }
   ],
   "judgements": [
@@ -161,6 +171,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "validate rerun withheld: host gates come from main checkout 2d28b79e (pre-#2131) and the #2131 QA exemption fails closed on the approved BRIEF's SC-01\u2013SC-03 gaps bullet (Q-08, Q-09); awaiting main/operator"
+    },
+    {
+      "at": "2026-10-07T13:31:17+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "validate-c1 at 17c3cd5b: qa/code/security/ui PASS, must_fix [], severity_max none, SC-04 met; pm ESCALATE because SC-01..03 are operator-only UAT NOT RUN; no fix target, stop at UAT gate; QA-SUITE-NONE is a host contract defect outside T-01"
     }
   ],
   "mission": "patch",
