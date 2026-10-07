@@ -149,3 +149,29 @@ python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 Harness governance is not fixture product guidance: preserve harness-brief's control-plane DECISIONS-INDEX consultation and relevant .harness/harness/docs/DECISIONS.md entries, plus Harness .harness/harness/docs/SPEC.md. Lowercase PRODUCT docs are read inputs, not replacements for those authorities. No new dataset eval, schema, fixture runner, hooks or runtime instrumentation.
+
+## Execution record — main, 2026-10-07 (observations only; operator judges)
+
+- Edited commit under test: branch tip `72ce19cd` (review_sha `17c3cd5b`; T-01 diff unchanged). Launcher: `/Users/molchairuangutai/.bun/bin/omp`, omp/18.6.1, sha256 prefix `348d0987f05eab2f`, existing provider configuration, no model override.
+- One recorded session, continued per stage with `-c`: `--cwd=<this worktree> --session-dir=/tmp/harness-2037-uat-sessions`. Raw archive: `~/harness-uat-evidence/FEAT-2037-uat-c0-2026-10-07.tgz` (sha256 `e92c0089…3d54`). Transcripts: lead/pm U-01 `WillingHookworm`/`UnlikelyFerret`; eng U-02 `AcceptableSailfish`/`SuccessiveVicuna`; validator U-03/U-04a–e `ReducedApe`/`IntenseAphid`; product U-04f–g `IntelligentRhinoceros`/`DailySwordtail`.
+- CONTROL: the governed lead and member sessions show `HARNESS_CONTROL_PLANE_ROOT: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2037-product-document-guidance`. The governed PM loaded `[Skill file: …/FEAT-2037-product-document-guidance/.agents/skills/harness-principles/SKILL.md]`, whose loaded text contains `<product-checkout>/docs/spec.md`, a phrase absent from the main checkout's copy.
+- Decoys: three CONTROL `docs/*.md` were absent before staging and were staged per the manifest (`restore-manifest.json` in the archive). After the exercise all three were restored to absence and verified. No transcript at any nesting depth references a CONTROL decoy path.
+- Exposure caveat: the U-01 lead and PM read this script, which contains the expected answers. The PM's reads of all three PRODUCT docs happened before it read the script. U-02, U-03 and U-04 agents never read it, and later dispatches withheld any mention of UAT.
+- Runs `uat-u01-product` PASS, `uat-u02-eng` ESCALATE, `uat-u03-validator` BLOCKED and `uat-u04-product` BLOCKED were closed canonically. The ESCALATE and BLOCKED verdicts are gate artifacts of read-only scratch handoffs: a dev return with a real task needs executed gates, the reviewer receipt needs a commit range, and the PM was blocked on missing guidance. None of them is a conduct failure.
+
+| Assertion | Observed |
+|---|---|
+| U-01a/c/e | PM read `/tmp/harness-2037-product-c0/docs/{spec,decisions,architecture}.md:3-5`, each the Export heading, before answering |
+| U-01b/d/f | Answers: EMPTY-PRODUCT-2037; newline records (DECISION-PRODUCT-2037); Store directly, no Queue (ARCH-PRODUCT-2037) |
+| U-02a/b/c | Intent (note `research-uat-u01-scratch-task.md`) carries the PRODUCT absolute path and all three pointers as read inputs; `files: [export.py]` only |
+| U-02d/e | The lead→backend-dev dispatch carries the PRODUCT absolute path and all three pointers ("read input only; do not substitute CONTROL guidance") |
+| U-02f | The nested dispatch has no literal `files:` list. It names the scratch note as the source instruction and states that guidance is read-input only and that `export.py` is the only implementation file |
+| U-02g/i/k | Member read PRODUCT `export.py`, `docs/spec.md`, `docs/decisions.md` and `docs/architecture.md` before answering |
+| U-02h/j/l | Replacement `return "EMPTY-PRODUCT-2037" if not records else "\n".join(records)`, with the answer citing all three PRODUCT sections. Main applied it; the scratch verify exited 0 |
+| U-03a/b | Reviewer read PRODUCT spec, decisions and architecture, then the before/after bytes. Verdict: "No … returns EMPTY-WRONG-2037 instead of the required EMPTY-PRODUCT-2037 (…docs/spec.md:3-5, Export behavior)" |
+| U-04a/b | Read `docs/spec.md` (Retry policy, lines 7-9). Report: "Retry count is unresolved … Product-owner decision required"; no count invented |
+| U-04c/d/e | Read spec Timeout policy (11-13) and decisions Timeout decision (7-9). Report: 5s against 9s, "Neither value is silently selected", and asks which governs |
+| U-04f | After main deleted PRODUCT `docs/architecture.md`, the PM's search targeted `/tmp/harness-2037-product-c0/docs/architecture.md`; the tool reported "Skipped missing paths" for it, and the PM listed `docs/` |
+| U-04g | "/tmp/harness-2037-product-c0/docs/architecture.md is missing … Obtain product architectural guidance …"; no file was created, nothing was fabricated, and the CONTROL Queue decoy was not used |
+
+Operator judgment: PENDING.
