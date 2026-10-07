@@ -1,22 +1,21 @@
-# Handoff — FEAT-2037-product-document-guidance, build → validate — written at f411f9d1 (pre-seam-commit), seq-6
+# Handoff — FEAT-2037-product-document-guidance, build → validate — written at 50ab19ab (pin commit 17c3cd5b), seq-7
 
 ## Next
 
-Dispatch ONE `validate` team to `harness-validator-lead` (run `validate-validator`) over the `review_sha` pinned to the build seam commit, inputs `feat=FEAT-2037-product-document-guidance`, `review_sha=<feature.json review_sha>`: qa (gate-only), code, security, ui (self-scopes out), pm goalcheck in one turn. SC-04 (BRIEF `verify: inspection`) is discharged by the independent reviewer reading `git show <review_sha>:<path>` for all four T-01 `files:`. SC-01..SC-03 are `verify: uat`, operator-only, NOT RUN — the goalcheck grades them as unproven, never as met.
+Once STATE.md Q-08 (main checkout fast-forwarded past 37cfcfd4 and hooks reloaded) and Q-09 (BRIEF `## Verification gaps` bullet reworded under an operator ruling) are closed, re-pin if the BRIEF commit moved plan bytes (it does not; BRIEF is not plan.yaml, so the pin 17c3cd5b stands unless the four production paths move) and dispatch ONE `validate` team to `harness-validator-lead` (run id `validate-c1-validator`, `--squad validator`) over `review_sha` 17c3cd5b: qa (gate-only; under #2131 QA may PASS with fail_first [] because every SC is uat/inspection), code, security, ui (self-scopes out), pm goalcheck (`notes/research-FEAT-2037-product-document-guidance-goalcheck-validate-c1.md`). SC-04 is re-inspected at 17c3cd5b: upstream edits to harness-spec-driven/SKILL.md and SPEC.md merged in since the c0 inspection at 1e69bf14. SC-01..SC-03 are operator-only UAT, NOT RUN, graded unproven.
 
 ## Trust
 
-- T-01 build verify (five static checks) observed exit 0 by MAIN — notes/verification-main-c0.md, notes/receipt-main-session-T-01-c0.md — verified-at f411f9d1 working tree
-- qa gate: docs required kinds [] met, must_fix [], severity none — runs/qa-validator/digest.md, notes/qa-c0.md — verified-at f411f9d1 working tree
-- simplify: zero accepted findings, zero production edits, production diff still +33/-3 over four files — notes/receipt-harness-dev-ops-simplify-eng-reuse.md, notes/receipt-harness-backend-dev-simplify-eng-simplification.md, notes/receipt-harness-dev-ops-simplify-eng-efficiency.md, notes/receipt-harness-backend-dev-simplify-eng-altitude.md — verified-at f411f9d1 working tree
-- BRIEF bytes sha256 82ec69c5…3908 and UAT draft sha256 942b2b53…cb6 unchanged — STATE.md `## Current` — verified-at f411f9d1 working tree
-- T-01 signed hash f5538093…671b unchanged; plan approval approved — feature.json signed_task_hashes, plan.yaml approval — verified-at f411f9d1 working tree
+- simplify-c1-eng PASS, zero accepted findings, no production edits — runs/simplify-c1-eng/digest.md, notes/receipt-harness-ai-dev-simplify-c1-eng-{reuse,simplification,altitude}.md, notes/receipt-harness-dev-ops-simplify-c1-eng-efficiency.md — verified-at 17c3cd5b
+- T-01 diff 37cfcfd4..17c3cd5b on the four paths is 4 files +33/-3, unchanged since 1e69bf14 — `git diff --stat 37cfcfd4 17c3cd5b -- <four paths>` — verified-at 17c3cd5b
+- eng-lead binding needs run `squad: engineering` (digest_destination.LEAD_SQUADS); `eng` yields the "no trusted hook-owned digest binding" refusal — feature.json runs simplify-eng vs simplify-c1-eng — verified-at 17c3cd5b
+- T-01 signed hash f5538093…671b unchanged; plan approval approved; plan.yaml status review — feature.json, plan.yaml — verified-at 17c3cd5b
 
 ## Dead ends
 
-- No fix run can edit the four production paths: all resolve NOBODY/main-session-direct; findings return to MAIN as exact alternatives — plan.yaml lanes rows — verified-at f411f9d1
-- No QA PASS token is expressible with zero automated SCs; do not fabricate fail_first — validate-digest.py:1506-1512, STATE.md Q-05 — verified-at f411f9d1
-- Do not re-run suites, UAT, goalchecks or stage CONTROL decoys in this phase — operator dispatch 2026-10-05 — source: orchestrator dispatch text
+- Any must_fix routes to MAIN: all four production paths resolve NOBODY/main-session-direct; no fix run can edit them — plan.yaml T-01 execution_mode — verified-at 17c3cd5b
+- Dispatching validate before Q-08/Q-09 reproduces QA ESCALATE: host validate-digest.py (main checkout, pre-#2131) refuses PASS + fail_first []; the #2131 copy fails closed on the BRIEF's `- SC-01–SC-03 are NOT RUN YET.` bullet — STATE.md Q-08, Q-09 — verified 2026-10-07 by probe against the worktree copy
+- check-state --feature exits 1 only on INV-29 (standing worktree BUG-2037-readiness-contracts, main-session removal) — not feature-local — verified-at 50ab19ab
 
 ## Working set
 
@@ -24,10 +23,9 @@ Dispatch ONE `validate` team to `harness-validator-lead` (run `validate-validato
 - .harness/harness/features/FEAT-2037-product-document-guidance/feature.json
 - .harness/harness/features/FEAT-2037-product-document-guidance/plan.yaml
 - .harness/harness/features/FEAT-2037-product-document-guidance/BRIEF.md
-- .harness/harness/features/FEAT-2037-product-document-guidance/notes/qa-c0.md
 
 ## Done when
 
-Scope: validate-validator dispatched over the pinned seam review_sha and its consolidated digest closed
+Scope: validate-c1-validator dispatched over review_sha 17c3cd5b and its consolidated digest closed
 Authority: brief-perspective:.harness/harness/features/FEAT-2037-product-document-guidance/BRIEF.md#reader
 Authority: brief-perspective:.harness/harness/features/FEAT-2037-product-document-guidance/BRIEF.md#orchestrator
