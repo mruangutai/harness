@@ -2,7 +2,7 @@
   "feature_id": "BUG-2110-lead-return-fail-fast",
   "branch": "feat/BUG-2110-lead-return-fail-fast",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "a83198b1740c4d5f92905495695ec94ebe42779a",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
