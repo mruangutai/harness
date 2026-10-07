@@ -4,6 +4,40 @@ approval:
   status: pending
 status: plan
 source_issues: [2110, 2097]
+panel:
+  last_run: 2026-10-07-01-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: Scope and architecture review passed; notes/review-harness-code-reviewer-plan-c1.md.
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: Independent unnecessary-work review completed.
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: Self-scoped out of nonvisual enforcement/tests/documentation; notes/review-harness-ui-reviewer-plan-c1.md.
+  findings:
+  - disposition: resolved
+    id: PF-9f6bd1eb181229102dc35c6c563de45e
+    kind: proportionality
+    reader: should-not-exist
+    resolved_by: T-01
+    scope: task
+    severity: med
+    summary: T-01's --prove-baseline SHA mode — in-test git-show provisioning of historical bin subjects plus sibling imports in private trees, with per-case red-validity rules — should not be committed as a permanent dual-mode feature of both new test files.
+  - id: PF-e3c978efcc531b970d4700a2a00f005c
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-01 bundles four files and three execution modes (normal, --prove-baseline,
+      --check-producers) plus mutant tooling into one task; keep, but expect it to
+      dominate the schedule.
+    disposition: open
+    scope: task
 lanes:
   resolved_at: 2d28b79e3e7b5ae5623bd47dd87eab53a4a0c724
   rows:
@@ -57,13 +91,13 @@ tasks:
       - tests/integration/test-dispatch-guard.py
       - tests/integration/test-validate-digest.py
     verify: |
-      python3 tests/unit/test-lead-start-preflight.py --prove-baseline 63cac11a && python3 tests/integration/test-lead-start-return.py --prove-baseline 63cac11a
+      python3 /tmp/BUG-2110-fail-first-evidence.py --baseline 63cac11a
     intent: |
       Work only in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2110-lead-return-fail-fast. Write tests before T-02 production edits. Add the two named executable Python test files under their configured unit/integration directories, using private copied bin trees and disposable registered feature checkouts, never live feature records or claims. Reuse existing isolated_bin, dispatch payload, registered-run and hook-yield fixture patterns. Update existing lead-dispatch positive fixtures to register their actual agent/squad PENDING run and supply HARNESS-MISSION only for product/validator starts and the plan scope-reader route, without weakening their assertions or registering invalid negative cases. Preserve non-lead and non-Harness passthrough controls.
       For SC-01 parameterize all three lead personas, exercising zero and two matching open runs, exactly one matching run, and irrelevant closed, ended, wrong-squad and other-agent runs. Invoke the real dispatch guard, assert exit 2 and the actual authorization failure on zero/two, and prove refusal precedes claim_with_receipt by checking an unchanged empty private registry alongside a valid-start positive control. Test the shared registered_destination behavior rather than reproducing its run predicate. For SC-03 unit diagnostic assertions must name the feature, target lead, original binding error, exactly-one-open-run remedy, and feature-record.py run-start --file FEATURE_JSON --id RUN_ID --squad SQUAD --agent LEAD for a missing run. Ambiguous runs require inspecting and legitimately closing surplus open runs, not deleting records or releasing runtime claims as a substitute.
       For SC-02 integration cases invoke dispatch-guard.py with HARNESS-MISSION: plan for product and standalone validator leads. Existing approved plans and existing plans with absent approval/status must refuse before assessment, reader dispatch or a claim receipt, naming the exact canonical target and observed status. Assert pending-plan success; product-lead initial drafting with no plan file succeeds; validator standalone plan-panel with no plan file refuses. Include normal validator validate/fix and product patch dispatches against an approved plan as positive controls. Product patch must declare patch explicitly rather than inherit plan. Test missing/conflicting mission refusal for product-lead and validator-lead and missing plan mission on the plan scope-reader route. A registered engineering-lead build or standalone SIMPLIFY start without HARNESS-MISSION must succeed against an approved plan; prove its zero/two-run cases still refuse independently of mission. Preserve existing mission forwarding and distill behavior with regression controls; do not introduce an engineering mission prerequisite. Unit SC-03 cases assert the plan diagnostic says panels run before signature and directs callers to the pending-plan phase; it must not recommend toggling approval or relabelling the review. Cover plan scope-reader dispatch after approval changes while the plan-team lead is already running.
       For SC-04 integration cases drive dispatch, runtime claim registration, digest_destination.bind and validate-digest.py --hook in sequence for each lead using a regular human-assessment digest file and schema-complete valid objects. Assert successful authorized append to exactly the registered destination, and a pending-plan scope review accepted normally. Assert missing trusted binding still refuses without append and a plan accepted at startup then changed to approved is refused at reader return. Retain existing wrong-child, wrong-parent, wrong-feature, wrong-checkout and wrong-artifact authorization assertions. Prove missing-binding and pending-only return refusals discriminate with separate temporary gate-loosening mutants, each mutant making its own retained refusal assertions fail. Never alter the real gates during this task.
-      Implement --prove-baseline SHA only in these new test files as a one-time local evidence mode: use git show at the explicit SHA to provision the historical production bin subjects and their sibling imports in private trees, keeping current tests and current fixture data. This mode must exit 0 only when each named new startup refusal/diagnostic case fails for the intended missing behavior, each new SC-04 startup-to-return witness demonstrates the old startup gap, and the unchanged return controls and positive fixture controls execute successfully. Print per-SC/per-case baseline pin, subject, exit and diagnostic evidence; import failure, missing historical bytes, fixture failure or an earlier unrelated guard is not a valid red result. Both commands must finish independently within 60 seconds. Normal no-argument mode runs current runtime behavior with no historical dependency and exits nonzero on any failed assertion. Add --check-producers to the integration test to additionally inspect every T-03 producer file individually across the dispatch-contract authority chain. Assert that the existing zero-micro-management header section is the sole authority for mission applicability, harness-team points to it, and the orchestrator persona and harness lead headers reference or comply with it. Assert plan-phase plan leads and scope-reader use plan, product patch uses explicit patch, and build-phase validator validate/fix dispatches use validate/fix. Assert all-three-lead registration/remedy clauses and that engineering recipes do not require a new mission marker. Reject competing blanket all-lead mission requirements; a file-global match or matching-file count is insufficient; do not enable this future-document check in T-02's no-argument verification. T-01 owns all test edits, including these assertions for T-03. Keep behavioral tests as SC evidence; text assertions alone are not refusal proof. Preserve baseline output for QA; do not claim PM ran these tests.
+      Do not add --prove-baseline or any historical provisioning mode to committed tests. Before T-02, create the disposable external procedure /tmp/BUG-2110-fail-first-evidence.py and run it once with --baseline 63cac11a. It must provision historical production bin subjects and required sibling imports from that exact pin in private temporary trees, and execute the current test assertions and current fixtures against those subjects using disposable copies, adapting only their subject paths outside the committed tree. Preserve a durable QA receipt in this feature notes directory with the baseline pin, subject and per-SC/per-case exit, diagnostic and assertion output. The procedure must exit 0 only when each named new startup refusal/diagnostic case fails for the intended missing behavior, each new SC-04 startup-to-return witness demonstrates the old startup gap, and unchanged return controls and positive fixture controls execute successfully. Import failure, unavailable historical bytes, fixture failure or an earlier unrelated guard invalidates the receipt and must exit nonzero. Independently exercise the retained missing-binding and pending-only refusal assertions against separate temporary gate-loosening mutants, recording which assertions each mutant makes fail. Complete each focused suite invocation within 60 seconds. Remove the disposable procedure and private subject trees after QA consumes the receipt; never commit them or require historical git objects in normal tests or CI. Normal no-argument mode runs current runtime behavior with no historical dependency and exits nonzero on any failed assertion. Add --check-producers to the integration test to additionally inspect every T-03 producer file individually across the dispatch-contract authority chain. Assert that the existing zero-micro-management header section is the sole authority for mission applicability, harness-team points to it, and the orchestrator persona and harness lead headers reference or comply with it. Assert plan-phase plan leads and scope-reader use plan, product patch uses explicit patch, and build-phase validator validate/fix dispatches use validate/fix. Assert all-three-lead registration/remedy clauses and that engineering recipes do not require a new mission marker. Reject competing blanket all-lead mission requirements; a file-global match or matching-file count is insufficient; do not enable this future-document check in T-02's no-argument verification. T-01 owns all test edits, including these assertions for T-03. Keep behavioral tests as SC evidence; text assertions alone are not refusal proof. Preserve baseline output for QA; do not claim PM ran these tests.
   - id: T-02
     title: Refuse impossible lead and plan-panel starts before claiming
     traces: [SC-01, SC-02, SC-03, SC-04]
