@@ -362,11 +362,16 @@ def case_qa_unearned_fail():
         check("qa: FAIL with a failing suite is accepted", not any("no gate failed" in e for e in errs), str(errs))
 
 
-MATRIX_JSON = dict(HARNESS_JSON, test_matrix={
+MATRIX_JSON = dict(HARNESS_JSON, test_kinds=dict(
+    HARNESS_JSON["test_kinds"],
+    component={"detect": "tests/component/**", "exclude": "", "cmd": None, "status": "active"},
+), test_matrix={
     "logic": {"always": ["unit"]},
     "cross_module": {"always": ["unit", "functional"]},
     "docs": {"always": []},
     "bugfix": {"always": [], "when": [{"kind": "unit", "if": "touches_runtime_code"}]},
+    "service": {"always": ["functional"]},
+    "widget": {"always": ["component"]},
 })
 
 
@@ -432,9 +437,10 @@ def _declined(errs, field):
 def case_qa_empty_floor_suite():
     """#2139: qa `suite: n/a` + PASS is honest only where the computed matrix floor is empty."""
     docs = [("docs", "done")]
-    with tempfile.TemporaryDirectory() as td:
-        errs = _qa_floor_errors(td, docs)
-        check("empty floor: suite n/a with kinds [] and matrix_ok true is accepted", not errs, str(errs))
+    for label, plan in (("empty floor", docs), ("explicitly excluded kind", [("service", "done")])):
+        with tempfile.TemporaryDirectory() as td:
+            errs = _qa_floor_errors(td, plan)
+            check(f"{label}: suite n/a with kinds [] and matrix_ok true is accepted", not errs, str(errs))
     with tempfile.TemporaryDirectory() as td:
         errs = _qa_floor_errors(td, docs, _with(_NO_SUITE, kinds=[UNIT_SATISFIED]))
         check("empty floor: suite n/a beside a reported kind still declines a gate",
@@ -450,6 +456,7 @@ _STILL_GATED = (
     ("conditional bugfix row", [("bugfix", "done")]),
     ("unknown change_type", [("doc", "done")]),
     ("no started task", [("docs", "todo")]),
+    ("active kind with null cmd", [("widget", "done")]),
     ("unresolvable floor", None),
 )
 

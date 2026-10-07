@@ -1467,19 +1467,29 @@ def _qa_floor_requires_nothing(field, persona, seen, feature_dir):
 
 def _matrix_requires_no_kind(root, feature_dir, test_kinds):
     """True only when the plan has started work and every started task names a known row whose
-    `always` AND `when:` kinds are all policy-excluded. Unlike `_matrix_floor`, the conditional
-    half counts: a `when:` kind is qa's judgement (DEC-212), so it can never be ruled out here."""
+    `always` AND `when:` kinds are all explicitly `status: excluded`. Unlike `_matrix_floor`, the
+    conditional half counts (a `when:` kind is qa's judgement, DEC-212), and a null `cmd` on an
+    active kind is misconfigured, never an inferred skip (DEC-187)."""
     matrix, tasks = _load_matrix_inputs(root, feature_dir)
     if matrix is None:
         return False
-    started = [t for t in tasks if not (isinstance(t, dict) and t.get("status") in _MATRIX_UNSTARTED)]
-    excluded = _excluded_kinds(test_kinds)
-    return bool(started) and all(
-        isinstance(t, dict) and _row_requires_no_kind(matrix.get(t.get("change_type")), excluded)
-        for t in started)
+    started = _started_tasks(tasks)
+    excluded = _explicitly_excluded_kinds(test_kinds)
+    return bool(started) and all(_row_requires_no_kind(matrix, task, excluded) for task in started)
 
 
-def _row_requires_no_kind(row, excluded):
+def _started_tasks(tasks):
+    """Every task not provably unstarted; a non-mapping entry counts as started and fails closed."""
+    return [t for t in tasks if not (isinstance(t, dict) and t.get("status") in _MATRIX_UNSTARTED)]
+
+
+def _explicitly_excluded_kinds(test_kinds):
+    return {k for k, p in (test_kinds or {}).items()
+            if isinstance(p, dict) and p.get("status") == "excluded"}
+
+
+def _row_requires_no_kind(matrix, task, excluded):
+    row = matrix.get(task.get("change_type")) if isinstance(task, dict) else None
     if not isinstance(row, dict) or not isinstance(row.get("always"), list):
         return False
     when = row.get("when", [])
