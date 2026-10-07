@@ -154,6 +154,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "simplify-c1-eng PASS with engineering squad binding: four angles ran, zero accepted findings, no production edits; proceed to seam commit and re-pin"
+    },
+    {
+      "at": "2026-10-07T12:44:52+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "validate rerun withheld: host gates come from main checkout 2d28b79e (pre-#2131) and the #2131 QA exemption fails closed on the approved BRIEF's SC-01\u2013SC-03 gaps bullet (Q-08, Q-09); awaiting main/operator"
     }
   ],
   "mission": "patch",
