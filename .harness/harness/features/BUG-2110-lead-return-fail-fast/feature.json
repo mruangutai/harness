@@ -17,7 +17,15 @@
       "tokens": null
     }
   ],
-  "judgements": [],
+  "judgements": [
+    {
+      "at": "2026-10-07T12:27:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Operator settled plan lane: enforcement-layer bug spanning dispatch-guard, playbooks and tests (DEC-174)."
+    }
+  ],
   "github": {
     "milestone": 101,
     "parent": 2132,
@@ -36,5 +44,11 @@
       2097
     ],
     "build_entry": "opened"
-  }
+  },
+  "signed_task_hashes": {
+    "T-01": "dae6bd67a1f0275de6a253aa71b93bd61a60a949c8d6647f0f7f74b78b4a6e7b",
+    "T-02": "3fabfe503e4430d89fee900286ae807d3da7f268d7bdf70beabfc80004312642",
+    "T-03": "18e3a1d6704589c10402f4074407d58b2eda7c027e6335cee29b4994e6d9f666"
+  },
+  "mission": "plan"
 }

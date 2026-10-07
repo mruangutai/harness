@@ -1,7 +1,9 @@
 schema: plan/1
 feature: BUG-2110-lead-return-fail-fast
 approval:
-  status: pending
+  date: '2026-10-07'
+  approved_by: Mike Ruangutai
+  status: approved
 status: plan
 source_issues: [2110, 2097]
 panel:
