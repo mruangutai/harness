@@ -35,6 +35,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "Operator settled plan lane: enforcement-layer bug spanning dispatch-guard, playbooks and tests (DEC-174)."
+    },
+    {
+      "at": "2026-10-07T13:07:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Recorded late: build handoff written after the validate run started; validation continued at review_sha a83198b1 and passed."
     }
   ],
   "github": {

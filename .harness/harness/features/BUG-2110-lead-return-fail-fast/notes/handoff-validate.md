@@ -1,4 +1,4 @@
-# Handoff — BUG-2110-lead-return-fail-fast, validate → ship — written at a83198b1, seq-0
+# Handoff — BUG-2110-lead-return-fail-fast, validate → ship — written at a83198b1, seq-2
 
 ## Next
 
