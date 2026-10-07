@@ -346,11 +346,16 @@ if not root:
     sys.exit(0)
 
 
-def _repository_identity(control_root):
-    """Validate a repository dispatch against its one fleet-owned feature artifact."""
+def _repository_identity(feature_root, control_root):
+    """Validate a repository dispatch against its one fleet-owned feature artifact.
+
+    The artifact is read in `feature_root`, the checkout this dispatch's claim resolves to: a
+    new fleet feature's record exists only in its own worktree until it merges, so reading it
+    in the main checkout refused every first dispatch (#2104). The fleet declaration is
+    control-plane configuration and is read in `control_root`."""
     # GRADE-2 REASON: one preflight keeps the artifact, header and fleet correspondence in
     # one place; splitting it would hide which of the three disagreed.
-    harness_dir = os.path.join(control_root, ".harness")
+    harness_dir = os.path.join(feature_root, ".harness")
     artifacts = []
     try:
         segments = os.listdir(harness_dir)
@@ -393,7 +398,7 @@ def _repository_identity(control_root):
             % (declared_repository, artifact_repository))
 
     import factory_config
-    fleet_path = os.path.join(harness_dir, "factory", "fleet.yaml")
+    fleet_path = os.path.join(control_root, ".harness", "factory", "fleet.yaml")
     fleet = artifact_accessors.load_fleet(fleet_path)
     factory_config.repo_entry(fleet, declared_repository)
     if factory_config.segment_of(declared_repository) != segment:
@@ -404,9 +409,7 @@ def _repository_identity(control_root):
 
 
 try:
-    repository = _repository_identity(
-        hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
-                        strict=False))
+    repository = _repository_identity(root, owner_root)
 except (ValueError, OSError, artifact_accessors.FeatureJsonError,
         artifact_accessors.FleetError) as exc:
     print(

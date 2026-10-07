@@ -64,6 +64,9 @@ def tree():
         directory = root / "tests" / kind
         directory.mkdir(parents=True)
         (directory / f"test-{kind}.py").write_text(f'print("PASS test-{kind}.py")\n')
+    # FEAT-2081: the runner's sharding data dependency travels with the copied tree.
+    durations = "tests/integration/integration-durations.json"
+    shutil.copy2(ROOT / durations, root / durations)
     for probe in LIVE_KINDS.values():
         manual = root / probe
         manual.parent.mkdir(parents=True, exist_ok=True)

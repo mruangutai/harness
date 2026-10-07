@@ -1,5 +1,6 @@
 """Row selection, the repo and feature passes, collation, reporting and the CLI. (FEAT-69)"""
 import os, re, sys
+from check_state.corpus import preflight
 from check_state.ctx import Ctx
 from check_state.table import INVARIANTS, RETIRED
 _INV_NAME = re.compile(r"^(?:INV-\d+|[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)$")
@@ -288,13 +289,22 @@ def main(root, argv):
     if not os.path.isdir(H):
         print("harness: no .harness/ here — this clone is not an onboarded harness control plane. Run /harness-init in the control-plane clone.")
         return 1
-    keep = None if feature is None else {feature}
+    # FEAT-1559: the layout and the subject are settled BEFORE the context is built, so a broken
+    # sparse layout or a selector naming nothing refuses before any invariant runs or any
+    # feature file is read. `--list` above stays metadata-only.
+    pre = preflight(root, feature, sys.argv[2])
+    if pre.refusal:
+        for m in pre.refusal:
+            print(f"  VIOLATION  {m}")
+        for m in pre.notes:
+            print(f"  note       {m}")
+        return 1
     # The context is built BEFORE the selection is resolved (FEAT-63 T-01): `--changed` reads
     # the dirty tree through the context's one process boundary and its one git top level.
     # Building it prints nothing, so a selector error still exits before any finding.
-    ctx = Ctx(root, keep=keep)
+    ctx = Ctx(root, keep=pre.keep, scoped=pre.scoped, owner=pre.owner)
     selection, code = _main_selection(ctx, only, changed)
     if code is not None:
         return code
     bad, warn = run_table(ctx, selection)
-    return _main_report(bad, warn, changed)
+    return _main_report(bad, warn + pre.notes, changed)

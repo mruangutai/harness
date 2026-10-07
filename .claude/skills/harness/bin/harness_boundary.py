@@ -19,6 +19,7 @@ the agent sees.
 import fnmatch
 import os
 import re
+import stat
 import subprocess
 import sys
 import artifact_accessors
@@ -59,11 +60,18 @@ RE_RUN_IDENTITY = re.compile(
 # tarballs and no team-config.yaml, so the bare-directory probe resolved $HOME as a root.
 MARKER = os.path.join(".harness", "team-config.yaml")
 PROJECT_DIR_ENV = "HARNESS_PROJECT_DIR"
+# Composed closure must distinguish deliberate data refusal from argparse (2) and
+# unhandled Python failures (1). Ordinary validator CLI callers retain their status 1.
+CONTRACT_REFUSAL_CODE = 65
 
 
 # A product's control-plane segment in the harness base: `.harness/<segment>` itself, or
 # anything under it — removing the segment directory is a write to that product too.
-_CONTROL_PLANE_SEGMENT = re.compile(r"^\.harness/([^/]+)(?:/|$)")
+CONTROL_PLANE_DIR = ".harness"
+# The only shell text matched statically: literal name characters and the `*`/`?` globs.
+# Anything else — brackets, braces, extglob groups, escapes, quotes, substitutions — expands
+# in ways fnmatch does not reproduce, so it is never read as naming nothing (#2104 panel).
+_GLOB_SAFE = re.compile(r"[A-Za-z0-9._*?-]+")
 
 
 class RepositoryBases(list):
@@ -78,17 +86,48 @@ class RepositoryBases(list):
 
     def control_segment(self, rel_candidates):
         """The fleet member whose control-plane segment `.harness/<segment>` holds one of
-        `rel_candidates`, or None. A Bash operand arrives unexpanded, so the segment is
-        matched as a shell glob: one reaching a single member is that member; one reaching
-        several answers with the glob itself, which no claim carries, so it fails closed."""
+        `rel_candidates`, or None. A Bash operand arrives unexpanded, so both components are
+        shell text: a first component that MAY expand to `.harness` puts the second under the
+        segment rule, and a segment reaching one member is that member; one reaching several,
+        or carrying syntax outside `_GLOB_SAFE`, answers with itself, which no claim carries,
+        so it fails closed.
+
+        CASE-INSENSITIVE ON EVERY DISK (#2104 panel). On a case-insensitive filesystem
+        `.HARNESS/KAYA/` is kaya's directory, and a case-sensitive match read it as no member
+        at all, so the write skipped the repository claim check and landed in kaya's segment.
+        Folding case everywhere is fail-closed on a case-sensitive disk too: there it merely
+        needs kaya's claim.
+
+        AN ALLOWLIST, NOT A LIST OF DANGERS (#2104 panel). Each enumerated piece of shell
+        syntax (`[!K]aya`, `{kaya,x}`, `@(kaya)`, `$D/kaya`) was another way to name a member
+        that fnmatch read as naming none. BEST-EFFORT ONLY: a nested `bash -c` payload is not
+        parsed at all (#2109), so this models the shell, it does not bound it."""
         members = set(self._identities.values())
         for candidate in rel_candidates:
-            match = _CONTROL_PLANE_SEGMENT.match(candidate)
-            reached = sorted(m for m in members
-                             if match and fnmatch.fnmatchcase(m, match.group(1)))
-            if reached:
-                return reached[0] if len(reached) == 1 else match.group(1)
+            parts = candidate.replace(os.sep, "/").split("/")
+            if len(parts) < 2 or not _may_be_control_plane(parts[0]):
+                continue
+            owner = _segment_owner(members, parts[1])
+            if owner:
+                return owner
         return None
+
+
+def _may_be_control_plane(head):
+    """Could the shell expand the first path component `head` to `.harness`?"""
+    return not _GLOB_SAFE.fullmatch(head) or fnmatch.fnmatchcase(CONTROL_PLANE_DIR,
+                                                                 head.casefold())
+
+
+def _segment_owner(members, segment):
+    """The one fleet member `segment` reaches, the segment itself when it may reach several or
+    cannot be resolved statically (no claim carries that, so it fails closed), else None."""
+    if not _GLOB_SAFE.fullmatch(segment):
+        return segment
+    reached = sorted(m for m in members if fnmatch.fnmatchcase(m.casefold(), segment.casefold()))
+    if not reached:
+        return None
+    return reached[0] if len(reached) == 1 else segment
 
 
 def root_from_script(bin_dir):
@@ -185,12 +224,87 @@ def checkout_relative(abs_path):
     return checkout_dir, os.path.relpath(real(abs_path), checkout_dir)
 
 
-def linked_worktrees(owner_root):
+def authorization_descriptor(path, flags):
+    """Open a regular authorization source without following its final symlink or blocking."""
+    descriptor = os.open(path, flags | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise OSError("authorization source is not a regular file")
+    except OSError:
+        os.close(descriptor)
+        raise
+    return descriptor
+
+
+def _checkout_pointer_text(pointer):
+    with open(pointer, "r", encoding="utf-8", errors="strict",
+              opener=authorization_descriptor) as handle:
+        return handle.read().strip()
+
+
+def _strict_linked_caller(found):
+    if found is None or found[0] == found[1]:
+        return
+    if found[1] is None:
+        raise OSError(f"linked caller checkout ownership is unknown: {found[0]}")
+    checkout = found[0]
+    entry = _worktree_pointer_entry(checkout, _checkout_pointer_text(os.path.join(checkout, ".git")))
+    if entry is None or _linked_checkout(os.path.join(entry, "gitdir"), strict=True) != checkout:
+        raise OSError(f"linked caller metadata does not resolve reciprocally: {checkout}")
+
+
+def _strict_checkout_pointer(checkout, pointer):
+    entry = _worktree_pointer_entry(checkout, _checkout_pointer_text(os.path.join(checkout, ".git")))
+    if (entry is None or not os.path.isdir(entry)
+            or real(entry) != real(os.path.dirname(pointer))):
+        raise OSError(f"linked-worktree metadata does not resolve reciprocally: {checkout}")
+
+
+def _linked_checkout(pointer, *, strict=False):
+    if strict:
+        named = _checkout_pointer_text(pointer)
+    else:
+        with open(pointer, "r", encoding="utf-8", errors="strict") as handle:
+            named = handle.read().strip()
+    if not named:
+        raise OSError(f"empty linked-worktree pointer: {pointer}")
+    named = os.path.normpath(os.path.join(os.path.dirname(pointer), named))
+    checkout = os.path.dirname(named) if os.path.basename(named) == ".git" else named
+    if not os.path.isdir(checkout):
+        raise OSError(f"linked-worktree checkout is unavailable: {checkout}")
+    if strict:
+        _strict_checkout_pointer(checkout, pointer)
+    return real(checkout)
+
+
+def _unresolved_worktree_registry(wt_dir):
+    git_dir = os.path.dirname(wt_dir)
+    return (os.path.lexists(wt_dir)
+            or (os.path.lexists(git_dir) and not os.path.isdir(git_dir)))
+
+
+def _linked_worktree_entries(wt_dir, strict):
+    try:
+        return sorted(os.listdir(wt_dir))
+    except FileNotFoundError:
+        if strict and _unresolved_worktree_registry(wt_dir):
+            raise
+        return []
+    except OSError:
+        if strict:
+            raise
+        return []
+
+
+def linked_worktrees(owner_root, *, strict=False):
     """Absolute checkout directories of `owner_root`'s linked worktrees, sorted.
 
     Standard library only. For each directory under `owner_root/.git/worktrees`, read its
     `gitdir` pointer file, take the directory it names, drop a trailing `.git` component,
     and keep the realpath if it exists. A missing `.git/worktrees` returns `[]`.
+    Authorization callers use `strict=True`: unreadable metadata, undecodable or empty
+    pointers, unavailable checkouts and unresolved/nonreciprocal checkout pointers raise.
+    Report callers retain the default best-effort sweep.
 
     NO GIT SUBPROCESS: DEC-193 forbids one on the governed-write path, and a hook that
     shells out is both slow and a new failure surface.
@@ -203,32 +317,32 @@ def linked_worktrees(owner_root):
     Cost, measured on a fixture with five linked worktrees over 2000 iterations: 0.371 ms
     per call against 0.147 ms before, so +0.22 ms per governed write, scaling linearly
     with worktree count, against the ~38 ms of interpreter start-up the hook already pays.
+
+    A LINKED CALLER RESOLVES TO ITS OWNER FIRST (FEAT-1559, FEAT-58 D-02). Called with a
+    worktree's root, `<root>/.git` is a FILE, so listing `<root>/.git/worktrees` raised
+    NotADirectoryError, caught below, and returned [] as an ordinary value — every sweep run
+    from a worktree silently saw no peer at all. `worktree_owner` parses the pointer with no
+    subprocess; an unparseable one leaves `owner_root` unchanged and the listing finds nothing,
+    exactly as before.
     """
+    found = worktree_owner(owner_root)
+    if strict:
+        _strict_linked_caller(found)
+    if found is not None and found[1] is not None:
+        owner_root = found[1]
     wt_dir = os.path.join(owner_root, ".git", "worktrees")
-    try:
-        entries = sorted(os.listdir(wt_dir))
-    except OSError:
-        return []
+    entries = _linked_worktree_entries(wt_dir, strict)
     out = []
     for name in entries:
         pointer = os.path.join(wt_dir, name, "gitdir")
         try:
-            with open(pointer, "r", encoding="utf-8", errors="strict") as fh:
-                named = fh.read().strip()
+            checkout = _linked_checkout(pointer, strict=strict)
         except (OSError, UnicodeError):
-            # An unreadable or non-UTF-8 pointer is skipped, not guessed at. The sweep is
-            # a REPORT, so a checkout it cannot place is one it cannot honestly name.
+            if strict:
+                raise
+            # A report cannot honestly name a checkout it cannot place.
             continue
-        if not named:
-            continue
-        if not os.path.isabs(named):
-            named = os.path.join(wt_dir, name, named)
-        # The pointer names the worktree's own `.git` FILE; the checkout is its parent.
-        if os.path.basename(named) == ".git":
-            named = os.path.dirname(named)
-        named = os.path.normpath(named)
-        if os.path.isdir(named):
-            out.append(real(named))
+        out.append(checkout)
     return sorted(set(out))
 
 
@@ -240,7 +354,7 @@ class AmbiguousWorktree(Exception):
     """
 
 
-def worktree_for_feature(owner_root, feature_id):
+def worktree_for_feature(owner_root, feature_id, *, strict=False):
     """Which of `owner_root`'s linked worktrees belongs to `feature_id`?
 
     Enumerates `linked_worktrees(owner_root)` and keeps every checkout whose basename
@@ -264,7 +378,7 @@ def worktree_for_feature(owner_root, feature_id):
     floor.
     """
     candidates = [
-        checkout for checkout in linked_worktrees(owner_root)
+        checkout for checkout in linked_worktrees(owner_root, strict=strict)
         if os.path.basename(checkout) == feature_id
         or feature_id.startswith(os.path.basename(checkout) + "-")
     ]
@@ -818,6 +932,27 @@ def resolve_fleet(root, label):
         sys.exit(2)
 
 
+HARNESS_SEGMENT = "harness"
+
+
+def plan_segment(plan_path):
+    """The repository segment a plan belongs to, from `.harness/<segment>/features/<id>/plan.*`.
+    The segmentless `.harness/features/<id>/` layout is harness's own (#2064, #2077)."""
+    segment = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(plan_path))))
+    return HARNESS_SEGMENT if segment == ".harness" else segment
+
+
+def product_base(root, segment, label):
+    """The fleet's product base for `segment` under `root`'s fleet declaration — the base
+    `select_base` classifies that repository's writes by — or None when the fleet declares
+    no such repository (or there is no fleet). A route question about a served repository's
+    plan path is asked of this base, never of the harness tree (#2077)."""
+    _workspace_root, bases, _fleet_path = resolve_fleet(root, label)
+    if not isinstance(bases, RepositoryBases):
+        return None
+    return next((base for base in bases if bases.identity_for(base) == segment), None)
+
+
 def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, label):
     """Pick the base a target resolves against, and say how to match in it.
 
@@ -1083,6 +1218,43 @@ def _harness_advertise(applicable_globs, applicable_shared):
     return _advertise, _shared_advertise
 
 
+def _worktree_pointer_entry(checkout, line):
+    # MULTILINE preserves the existing pointer-reader contract for trailing lines.
+    match = re.match(r"^gitdir:\s*(.+?)\s*$", line, re.MULTILINE)
+    if not match:
+        return None
+    entry = match.group(1).strip()
+    if not os.path.isabs(entry):
+        entry = os.path.join(checkout, entry)
+    return os.path.normpath(entry)
+
+
+def _worktree_pointer_root(checkout, line):
+    entry = _worktree_pointer_entry(checkout, line)
+    if entry is None:
+        return None
+    worktrees_dir = os.path.dirname(entry)
+    git_dir = os.path.dirname(worktrees_dir)
+    if os.path.basename(worktrees_dir) != "worktrees" or os.path.basename(git_dir) != ".git":
+        return None
+    return real(os.path.dirname(git_dir))
+
+
+def _worktree_pointer_owner(checkout, pointer):
+    try:
+        owner = _worktree_pointer_root(checkout, _checkout_pointer_text(pointer))
+    except (OSError, UnicodeError):
+        return (checkout, None, False)
+    if owner is None:
+        return (checkout, None, False)
+    legal_home = real(os.path.join(owner, WORKTREES_SEGMENT))
+    try:
+        legitimate = os.path.commonpath([real(checkout), legal_home]) == legal_home
+    except ValueError:
+        legitimate = False
+    return (checkout, owner, legitimate)
+
+
 def worktree_owner(path):
     """Which checkout does `path` stand in, and is that checkout in a legal place?
 
@@ -1101,7 +1273,7 @@ def worktree_owner(path):
                                worktree — /tmp, an unrelated directory. Callers ALLOW.
       (dir, root, True/False)  A pointer was found AND parsed. `legitimate` says whether
                                the checkout sits under the owner's WORKTREES_SEGMENT.
-      (dir, None, False)       A `.git` FILE was found and could NOT be parsed. UNKNOWN,
+      (dir, None, False)       A `.git` entry exists but cannot be read or parsed. UNKNOWN,
                                and `owner_root is None` is how a caller tells it apart.
                                Callers must REFUSE: something claims to be a linked
                                worktree and this code cannot say where it belongs.
@@ -1122,46 +1294,16 @@ def worktree_owner(path):
     cur = real(path)
     if not os.path.isdir(cur):
         cur = os.path.dirname(cur)
-    seen_root = None
     while True:
         dot = os.path.join(cur, ".git")
         if os.path.isdir(dot):
             return (cur, cur, True)
-        if os.path.isfile(dot):
-            try:
-                with open(dot, "r", encoding="utf-8", errors="strict") as fh:
-                    line = fh.read().strip()
-            except (OSError, UnicodeError):
-                # Unreadable, or not UTF-8. UNKNOWN, never "not a worktree".
-                return (cur, None, False)
-            # MULTILINE, because a pointer carrying any second line is still a pointer
-            # this code can read. Before the fix `$` anchored at end-of-string, so one
-            # trailing line failed the whole match and the write was allowed.
-            m = re.match(r"^gitdir:\s*(.+?)\s*$", line, re.MULTILINE)
-            if not m:
-                return (cur, None, False)
-            entry = m.group(1).strip()
-            if not os.path.isabs(entry):
-                # A relative pointer is legal git, but it resolves against the checkout
-                # rather than against this process's cwd — which is what makes writing
-                # `os.path.abspath` here a bug rather than a shortcut.
-                entry = os.path.join(cur, entry)
-            entry = os.path.normpath(entry)
-            worktrees_dir = os.path.dirname(entry)          # <abs>/.git/worktrees
-            git_dir = os.path.dirname(worktrees_dir)        # <abs>/.git
-            if os.path.basename(worktrees_dir) != "worktrees" or os.path.basename(git_dir) != ".git":
-                return (cur, None, False)
-            owner_root = real(os.path.dirname(git_dir))     # <abs>
-            legal_home = real(os.path.join(owner_root, WORKTREES_SEGMENT))
-            try:
-                legitimate = os.path.commonpath([real(cur), legal_home]) == legal_home
-            except ValueError:      # different drives / unrelated roots
-                legitimate = False
-            return (cur, owner_root, legitimate)
+        if os.path.lexists(dot):
+            return _worktree_pointer_owner(cur, dot)
         parent = os.path.dirname(cur)
-        if parent == cur or parent == seen_root:
+        if parent == cur:
             return None
-        seen_root, cur = cur, parent
+        cur = parent
 
 
 def worktree_refusal_location(owner_root):

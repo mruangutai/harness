@@ -32,10 +32,11 @@ from plan_merge.guards import (
 # PF- id (it holds no Bash); pm used to run the helper by hand and transcribe. record-panel
 # computes it from the digest's reader and summary, once, in the one place check-state.py's
 # INV-32 and approval.rulings agree on.
-FINDING_KINDS = ("substance", "form", "proportionality")
-
-
-PROPORTIONALITY_SCOPES = ("task", "mission")
+# THE FINDING SHAPE IS panel_findings's TOO (#2095): set-panel validated id and kind only, so the
+# template's closed key set and two-value disposition held on record-panel's new findings and
+# nowhere else. Every finding a panel verb writes now passes panel_findings.shape_faults.
+FINDING_KINDS = panel_findings.FINDING_KINDS
+PROPORTIONALITY_SCOPES = panel_findings.PROPORTIONALITY_SCOPES
 
 
 READER_STATUSES = ("ran", "skipped")
@@ -74,6 +75,11 @@ def _named_mapping(entry, key, where):
 
 def _validate_reader(reader, where):
     _named_mapping(reader, "reader", where)
+    if reader.get("reader") not in panel_findings.PANEL_READERS:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} reader {reader.get('reader')!r} is not one of "
+                f"{' | '.join(panel_findings.PANEL_READERS)} — a panel reader is the slot INV-32 "
+                "grades, never the persona that filled it (#2102)."])
     status = reader.get("status")
     if status not in READER_STATUSES:
         raise harness_merge.MergeRefusal(
@@ -104,16 +110,32 @@ def _validate_finding_kind(finding, where):
                 "is the only finding that can downgrade the mission (DEC-228)."])
 
 
-def _validate_panel(panel, what):
-    """The shape both panel verbs hold a mapping to before the lock is taken."""
+def _validate_panel(panel, what, task_ids=None):
+    """The shape both panel verbs hold a mapping to: before the lock with `task_ids` None, and
+    again under it against the plan's own task ids, which is where `resolved_by` resolves.
+    Every faulty finding is named with every fault, so one refusal says all that must change."""
     _require_shape(panel, {"last_run": str, "cycle": int, "readers": list, "findings": list},
                    what)
     _validate_readers(panel["readers"], what)
+    lines = []
     for index, finding in enumerate(panel["findings"]):
-        where = f"{what} findings[{index}]"
-        _named_mapping(finding, "id", where)
-        _validate_finding_kind(finding, where)
+        faults = panel_findings.shape_faults(finding, task_ids)
+        if faults:
+            fid = finding.get("id") if isinstance(finding, dict) else None
+            lines.extend(f"plan-merge: {what} findings[{index}] {fid or '<no id>'} {fault}"
+                         for fault in faults)
+    if lines:
+        raise harness_merge.MergeRefusal(
+            5, lines + ["  a finding carries templates/plan.yaml's keys and nothing else; "
+                        "disposition is open or resolved, and risk acceptance is "
+                        "sign-approval --overrule, never a disposition (#2095)."])
     return panel
+
+
+def _task_ids(doc):
+    """The plan's task ids, the set a finding's `resolved_by` must name one of."""
+    tasks = doc.get("tasks") if isinstance(doc, dict) else None
+    return {str(task.get("id")) for task in tasks or [] if isinstance(task, dict)}
 
 
 def _validate_lanes(lanes, what):
@@ -263,6 +285,8 @@ def _write_top_mapping(resolved, key, value, splice):
         if reloaded.get(key) != value:
             raise harness_merge.MergeRefusal(
                 5, [f"plan-merge: {key} does not reload as the value supplied"])
+        if key == "panel":
+            _validate_panel(value, key, _task_ids(reloaded))
         # Valid before, invalid after is the test — the same do-no-harm rule apply, amend and
         # delete-items hold to, so a key write cannot turn a legal plan illegal.
         if _schema_error(_load_base_doc(base_text)) is None:
@@ -485,7 +509,10 @@ def _recorded_panel(base_text, digest, cycle, last_run):
     added = _first_by_id([f for f in incoming if f["id"] not in present])
     findings.extend(added)
     panel = {"last_run": last_run, "cycle": cycle, "readers": readers, "findings": findings}
-    return _validate_panel(panel, what), carried, [f["id"] for f in added]
+    # The base's findings are carried byte for byte, so they are held to the template too: a
+    # carried departure would otherwise ride every later cycle into the signed plan (#2095).
+    task_ids = _task_ids(_load_base_doc(base_text)) if base_text else None
+    return _validate_panel(panel, what, task_ids), carried, [f["id"] for f in added]
 
 
 def _first_by_id(findings):

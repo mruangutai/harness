@@ -684,11 +684,11 @@ def case_feat61_run_schema_natural_errors():
     return results
 
 
-def _digest_run(digest_text):
+def _digest_run(digest_text, runs=None):
     """The findings naming run r1 (INV-15's lines carry the path, not the tag) for a complete lead run whose durable digest.md holds `digest_text`,
     and whether INV-15 left the file byte-identical."""
     with tempfile.TemporaryDirectory() as tmp:
-        fdir = _fixture(tmp, _in_era(), BRIEF_NEW)
+        fdir = _fixture(tmp, _in_era(**({"runs": runs} if runs is not None else {})), BRIEF_NEW)
         _write(os.path.join(fdir, "runs", "r1", "state.yaml"),
                "run_id: r1\nstatus: complete\nhost: harness-eng-lead\n")
         dg = os.path.join(fdir, "runs", "r1", "digest.md")
@@ -719,6 +719,25 @@ def case_feat1928_durable_digest_record():
         "artifact: a.md\nhistorical_extra: [1, 2]\n```\n")
     results.append(("(1928.c) a historical final mapping with out-of-schema keys is accepted",
                     v == [] and same, out[:600]))
+    return results
+
+
+def case_refused_terminal_digest():
+    results = []
+    refused = {"id": "r1", "squad": "engineering", "agent": "harness-eng-lead",
+               "verdict": "BLOCKED", "ended_at": "2026-10-05T10:00:00+00:00",
+               "return_disposition": "refused"}
+    prose = "# assessment whose live return was refused\n"
+    v, out, same = _digest_run(prose, [refused])
+    results.append(("a recorded refused BLOCKED closure preserves prose without INV-15",
+                    v == [] and same, out[:600]))
+    v, out, same = _digest_run(prose, [refused, dict(refused, ended_at="2026-10-05T11:00:00+00:00")])
+    results.append(("duplicate run IDs cannot exempt a refused closure",
+                    len(v) == 1 and "does not satisfy" in v[0] and same, out[:600]))
+    for verdict in ("PASS", "PENDING"):
+        v, out, same = _digest_run(prose, [dict(refused, verdict=verdict)])
+        results.append((f"a refused marker cannot exempt {verdict}",
+                        bool(v) and same, out[:600]))
     return results
 
 # ----------------------------------------------------------------------------- INV-43 ---
@@ -1222,7 +1241,7 @@ def main():
     return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
                         + case_feat61_module_loading() + case_feat61_module_loading_spec_and_registration()
                         + case_feat61_run_schema() + case_feat61_run_schema_natural_errors()
-                        + case_feat1928_durable_digest_record()
+                        + case_feat1928_durable_digest_record() + case_refused_terminal_digest()
                         + case_inv41() + case_inv49() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
                         + case_inv43_era_config() + case_inv44()

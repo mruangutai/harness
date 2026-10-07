@@ -133,12 +133,18 @@ def render_plan(task_ids, titles=None, decision_ids=None, approval=DEFAULT_APPRO
     return "".join(out)
 
 
+PENDING_BRIEF = ("# BRIEF — FEAT-99-fixture\n\n## Goal\n\nA fixture.\n\n## Approval\n\n"
+                 "status: pending\napproved-by:\ndate:\n\n## Notes\n\nAfter the block.\n")
+
+
 def fixture_root(prefix="plan-merge-test-"):
     """A fresh tempfile.mkdtemp(), with a nested .harness/harness/features/FEAT-99-fixture/
-    directory so require_destination accepts a plan.yaml written inside it."""
+    directory so require_destination accepts a plan.yaml written inside it, and a BRIEF.md
+    whose ## Approval is pending beside it, which sign-approval signs with the plan (#2096)."""
     root = tempfile.mkdtemp(prefix=prefix)
     d = os.path.join(root, ".harness", "harness", "features", "FEAT-99-fixture")
     os.makedirs(d, exist_ok=True)
+    write(os.path.join(d, "BRIEF.md"), PENDING_BRIEF)
     return root, os.path.join(d, "plan.yaml")
 
 
@@ -761,11 +767,12 @@ def case_create_path_approval():
     )
     # As in case5, harness_merge's flock lock (D-02) is deliberately never removed, so its mere
     # presence proves nothing about a refusal's cleanup; what matters is no stray mkstemp()
-    # tempfile and, per this assertion's own name, no plan.yaml itself.
+    # tempfile and, per this assertion's own name, no plan.yaml itself. BRIEF.md is the
+    # fixture's own (#2096), written before the refusal under test.
     plan_dir = os.path.dirname(path_b)
     stray = [
         n for n in (os.listdir(plan_dir) if os.path.isdir(plan_dir) else [])
-        if n not in ("plan.yaml.lock",)
+        if n not in ("plan.yaml.lock", "BRIEF.md")
     ]
     check("case11b: no stray tempfile/plan.yaml left behind after the refusal", not stray, stray)
 
@@ -854,7 +861,8 @@ def case_set_panel_replaces_mapping_and_validates_shape():
             "last_run": "runs/c5-validator",
             "cycle": 5,
             "readers": [{"reader": "scope", "persona": "harness-code-reviewer", "status": "ran"}],
-            "findings": [{"id": "PF-1", "severity": "low", "kind": "form", "disposition": "open"}],
+            "findings": [{"id": "PF-1", "severity": "low", "reader": "scope", "kind": "form",
+                          "summary": "fixture", "disposition": "open"}],
         }
         write(plan, original + yaml.safe_dump({"panel": panel_one}, sort_keys=False))
         value_file = os.path.join(root, "panel.yaml")
@@ -1022,9 +1030,15 @@ def case_1157_sign_approval_records_validated_overrules():
             "  findings:\n"
             "    - id: PF-deadbeef\n"
             "      severity: high\n"
+            "      reader: scope\n"
+            "      kind: substance\n"
+            "      summary: fixture high\n"
             "      disposition: open\n"
             "    - id: PF-cafebabe\n"
             "      severity: critical\n"
+            "      reader: scope\n"
+            "      kind: substance\n"
+            "      summary: fixture critical\n"
             "      disposition: open\n"
             "  readers: []\n\n"
         )
@@ -3090,6 +3104,161 @@ def case_bug1725_check_names_files_shared_by_tasks():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def _product_check_roots():
+    """#2064: a harness checkout whose fleet serves org/kaya, and kaya's paired code worktree.
+    The manifest grants src/** to backend and apps/web/src/** to frontend; the code worktree
+    holds src/a.ts with a symbol, and no apps/ tree yet (a greenfield layout)."""
+    import yaml
+    base = os.path.realpath(tempfile.mkdtemp(prefix="plan-merge-product-"))
+    root, workspace = os.path.join(base, "harness"), os.path.join(base, "workspace")
+    os.makedirs(os.path.join(root, ".harness", "factory"))
+    write(os.path.join(root, ".harness", "team-config.yaml"),
+          "schema_version: 1\nteams:\n  - name: eng\n    members:\n"
+          "      - name: harness-backend-dev\n        domain:\n"
+          "          - { path: src/**, upsert: true }\n"
+          "      - name: harness-frontend-dev\n        domain:\n"
+          "          - { path: apps/web/src/**, upsert: true }\n")
+    with open(os.path.join(root, ".harness", "factory", "fleet.yaml"), "w") as fh:
+        yaml.safe_dump({"schema": "factory-fleet/1", "workspace_root": workspace,
+                        "repos": [{"name": "org/kaya", "default_branch": "main"}]}, fh)
+    code = os.path.join(workspace, "kaya", ".claude", "worktrees", "kaya", "FEAT-99-fixture")
+    # A linked worktree's `.git` pointer, as feature-worktree.py create leaves it: the
+    # resolver finds the checkout a product path stands in from this file.
+    gitdir = os.path.join(workspace, "kaya", ".git", "worktrees", "FEAT-99-fixture")
+    os.makedirs(gitdir)
+    os.makedirs(os.path.join(code, "src"))
+    write(os.path.join(code, ".git"), f"gitdir: {gitdir}\n")
+    write(os.path.join(gitdir, "gitdir"), os.path.join(code, ".git") + "\n")
+    write(os.path.join(code, "src", "a.ts"), "export function foo() {\n  return 1;\n}\n")
+    feat = os.path.join(root, ".harness", "kaya", "features", "FEAT-99-fixture")
+    os.makedirs(feat)
+    write(os.path.join(feat, "BRIEF.md"), "# BRIEF\n\n- SC-01 (operator): a\n")
+    return base, root, code, os.path.join(feat, "plan.yaml")
+
+
+def _product_plan(files_by_task):
+    tasks = "".join(_check_task(tid, files, agent=agent) for tid, agent, files in files_by_task)
+    return "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\ntasks:\n" + tasks
+
+
+def case_2064_product_plan_checks_against_its_code_worktree():
+    """#2064: a served repository's plan resolves its anchors against the paired CODE worktree
+    and its routes against the harness manifest. Before, --root <code worktree> exited 2 (no
+    manifest) and --root <harness> resolved product paths against the harness tree."""
+    base, root, code, plan = _product_check_roots()
+    try:
+        write(plan, _product_plan([
+            ("T-01", "harness-backend-dev",
+             "      - src/a.ts#foo\n      - src/new.ts\n"),
+            ("T-02", "harness-frontend-dev",
+             "      - { path: apps/web/src/app/page.tsx, create: true }\n")]))
+        # The resolver answers from HARNESS_PROJECT_DIR's manifest and fleet, as a fleet
+        # session's hook does; without it the live checkout's fleet would place the fixture's
+        # code worktree outside every product base.
+        env = dict(os.environ, HARNESS_PROJECT_DIR=root)
+        r = run_verb("check", "--file", plan, "--root", root, "--code-root", code, env=env)
+        check("2064: a product plan resolves anchors in its code worktree and routes in the "
+              "harness manifest", r.returncode == 0,
+              f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+        check("2064: the receipt names the code worktree it resolved against",
+              code in r.stdout, r.stdout)
+        write(plan, _product_plan([("T-01", "harness-frontend-dev", "      - src/a.ts\n")]))
+        r = run_verb("check", "--file", plan, "--root", root, "--code-root", code, env=env)
+        check("2064: a product route still fails for an agent the manifest does not grant",
+              r.returncode == 1 and "FAIL T-01 execution_agent: harness-frontend-dev is not "
+              "granted src/a.ts (granted: harness-backend-dev)" in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
+
+
+def case_2064_code_root_is_required_for_a_product_plan_and_refused_for_harness():
+    """The plan's own segment decides: a served segment cannot be checked without its code
+    worktree (resolving it against the harness tree is the defect), and harness's own plan
+    has no separate code worktree to take."""
+    base, root, code, plan = _product_check_roots()
+    hroot, hplan = _check_root()
+    try:
+        write(plan, _product_plan([("T-01", "harness-backend-dev", "      - src/a.ts\n")]))
+        r = run_verb("check", "--file", plan, "--root", root,
+                     env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+        check("2064: a product plan without --code-root exits 2 naming how to get it",
+              r.returncode == 2 and "--code-root" in r.stderr
+              and "feature-worktree.py path --repo org/kaya --id FEAT-99-fixture" in r.stderr,
+              f"rc={r.returncode} stderr={r.stderr!r}")
+        r = run_verb("check", "--file", plan, "--root", root, "--code-root",
+                     os.path.join(base, "nowhere"))
+        check("2064: a --code-root that is not a directory exits 2",
+              r.returncode == 2 and "nowhere" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        write(hplan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                     "tasks:\n" + _check_task("T-01", "      - .claude/skills/harness/bin/a.py\n"))
+        r = run_verb("check", "--file", hplan, "--root", hroot, "--code-root", code)
+        check("2064: harness's own plan refuses --code-root",
+              r.returncode == 2 and "--code-root" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        legacy = os.path.join(hroot, ".harness", "features", "FEAT-99-fixture")
+        os.makedirs(legacy)
+        shutil.copy(os.path.join(os.path.dirname(hplan), "BRIEF.md"), legacy)
+        shutil.copy(hplan, legacy)
+        r = run_verb("check", "--file", os.path.join(legacy, "plan.yaml"), "--root", hroot)
+        check("2064: the segmentless .harness/features/ layout is harness's own, not a product",
+              r.returncode == 0, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
+        shutil.rmtree(hroot, ignore_errors=True)
+
+
+def case_2065_create_anchor_names_a_new_tree_and_nothing_else():
+    """#2065: `{path, create: true}` declares a file whose directories do not exist yet. It
+    resolves only while the file is absent and no ancestor is a file; a bare path keeps its
+    existing-directory rule, so a typo'd directory in a bare path still fails."""
+    root, plan = _check_root()
+    bin_rel = ".claude/skills/harness/bin"
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n" + _check_task("T-01", f"      - {{ path: {bin_rel}/new/deep/m.py, create: true }}\n"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        check("2065: a create anchor under absent directories resolves",
+              r.returncode == 0, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n" + _check_task("T-01",
+                                            f"      - {{ path: {bin_rel}/a.py, create: true }}\n"
+                                            f"      - {{ path: {bin_rel}/a.py/x.py, create: true }}\n"
+                                            f"      - {bin_rel}/new/deep/m.py\n"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        lines = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL T-01 files:")]
+        check("2065: create on an existing file, under a file, and a bare path in a missing "
+              "directory each fail on their own line",
+              r.returncode == 1 and len(lines) == 3
+              and any("already exists" in ln for ln in lines)
+              and any("is a file" in ln for ln in lines)
+              and any("neither does its directory" in ln for ln in lines), r.stdout)
+        bin_abs = os.path.join(root, bin_rel)
+        os.symlink(os.path.join(bin_abs, "missing.py"), os.path.join(bin_abs, "dangling.py"))
+        os.symlink(os.path.join(bin_abs, "missingdir"), os.path.join(bin_abs, "linkdir"))
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n" + _check_task("T-01",
+                                            f"      - {{ path: {bin_rel}/dangling.py, create: true }}\n"
+                                            f"      - {{ path: {bin_rel}/linkdir/x.py, create: true }}\n"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        lines = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL T-01 files:")]
+        check("2065: a dangling link is neither absent nor a directory to create beneath",
+              r.returncode == 1 and len(lines) == 2
+              and any("dangling.py already exists" in ln for ln in lines)
+              and any("linkdir is a file or a dangling link" in ln for ln in lines), r.stdout)
+        for bad in (f"{{ path: {bin_rel}/*.py, create: true }}",
+                    f"{{ path: {bin_rel}/m.py, create: false }}",
+                    f"{{ path: {bin_rel}/m.py, create: true, quote: x }}"):
+            prop = os.path.join(root, "prop.yaml")
+            write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                        f"  - id: T-01\n    title: t\n    files:\n      - {bad}\n")
+            if os.path.exists(plan):
+                os.remove(plan)
+            r = run_verb("apply", "--file", plan, "--proposal", prop)
+            check(f"2065: {bad} is refused at write", r.returncode == 2 and not os.path.exists(plan),
+                  f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 
 def case_f59_line_number_anchor_is_refused_at_write():
     """C4: `path:NN` is refused at WRITE with exit 2 naming the entry — by apply (creating and
@@ -4508,6 +4677,255 @@ def case_feat70_record_amendments_after_a_block_scalar_splice():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+
+# #2095 — a panel finding has ONE shape, templates/plan.yaml's, and every writer holds it: a
+# prose disposition left a ruled high finding open past signature on FEAT-1559, and a free key
+# then rode in on the repair. `set-panel` and `record-panel` refuse a departure (exit 5);
+# `sign-approval` refuses an open gating finding the call does not overrule (exit 4).
+_TEMPLATE_FINDING = {"id": "PF-2095", "severity": "high", "reader": "scope", "kind": "substance",
+                     "summary": "fixture finding", "disposition": "open"}
+
+
+def _panel_value(*findings):
+    return {"last_run": "runs/plan-product", "cycle": 1,
+            "readers": [{"reader": "scope", "status": "ran"}], "findings": list(findings)}
+
+
+def _panel_plan(*findings, approval=None):
+    panel = yaml.safe_dump({"panel": _panel_value(*findings)}, sort_keys=False)
+    return render_plan(ids(1, 2), approval=approval).replace("tasks:\n", panel + "tasks:\n")
+
+
+def case_2095_set_panel_refuses_off_template_findings():
+    """Every departure from the template's finding shape refuses before anything is written,
+    naming the finding and what departs; the template shape itself is accepted."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))
+        value_file = os.path.join(root, "panel.yaml")
+        departures = (
+            ("a prose disposition", {"disposition": "resolved by operator ruling 1"},
+             "disposition"),
+            ("a free key", {"disposition": "resolved", "resolution": "ruling 1"}, "resolution"),
+            ("resolved_by on an open finding", {"resolved_by": "T-01"}, "resolved_by"),
+            ("resolved_by naming no task in the plan",
+             {"disposition": "resolved", "resolved_by": "T-09"}, "T-09"),
+            ("a severity outside the enum", {"severity": "severe"}, "severe"),
+            ("a missing summary", {"summary": ""}, "summary"),
+        )
+        for label, change, needle in departures:
+            write(value_file, yaml.safe_dump(_panel_value({**_TEMPLATE_FINDING, **change}),
+                                             sort_keys=False))
+            r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+            check(f"2095: set-panel refuses {label} (exit 5), naming the finding and {needle}",
+                  r.returncode == 5 and needle in r.stderr and "PF-2095" in r.stderr,
+                  f"rc={r.returncode} {r.stderr!r}")
+            check(f"2095: set-panel writes nothing on {label}", read(plan) == before)
+        resolved = {**_TEMPLATE_FINDING, "disposition": "resolved", "resolved_by": "T-02"}
+        write(value_file, yaml.safe_dump(_panel_value(resolved), sort_keys=False))
+        r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        check("2095: set-panel accepts a resolved finding whose resolved_by names a plan task",
+              r.returncode == 0
+              and yaml.safe_load(read(plan))["panel"]["findings"] == [resolved],
+              f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2095_record_panel_refuses_an_off_template_base_finding():
+    """record-panel carries the base's findings byte for byte, so it must not carry one the
+    template does not allow: the refusal names the finding, and set-panel is the repair."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _panel_plan({**_TEMPLATE_FINDING, "severity": "low",
+                                          "note": "a free key"}))
+        digest = os.path.join(root, "digest.md")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"kind": "form", "severity": "low", "reader": "scope",
+                                   "summary": "a new finding"}]))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "2")
+        check("2095: record-panel refuses to carry an off-template base finding (exit 5)",
+              r.returncode == 5 and "PF-2095" in r.stderr and "note" in r.stderr,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("2095: record-panel writes nothing when it refuses", read(plan) == before)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2095_sign_approval_refuses_an_open_gating_finding():
+    """INV-32's rule applied at the signature: an open high, critical or unrated finding with
+    no risk acceptance refuses the signature; resolving it, overruling it in the same call, an
+    existing ruling for it, or a non-gating severity each lets the signature through."""
+    root, plan = fixture_root()
+    try:
+        for severity in ("high", "critical", "unrated"):
+            before = write(plan, _panel_plan({**_TEMPLATE_FINDING, "severity": severity}))
+            r = run_verb("sign-approval", "--file", plan, "--by", "operator",
+                         "--date", "2026-10-04")
+            check(f"2095: sign-approval refuses an open {severity} finding (exit 4), naming it "
+                  "and both remedies",
+                  r.returncode == 4 and all(n in r.stderr for n in
+                                            ("PF-2095", severity, "--overrule", "set-panel")),
+                  f"rc={r.returncode} {r.stderr!r}")
+            check(f"2095: sign-approval writes nothing over an open {severity} finding",
+                  read(plan) == before)
+        before = write(plan, _panel_plan({**_TEMPLATE_FINDING, "severity": "low",
+                                          "note": "a free key"}))
+        r = run_verb("sign-approval", "--file", plan, "--by", "operator", "--date", "2026-10-04")
+        check("2095: sign-approval refuses an off-template finding even when it does not gate",
+              r.returncode == 4 and "PF-2095" in r.stderr and "note" in r.stderr
+              and read(plan) == before, f"rc={r.returncode} {r.stderr!r}")
+        ruled = ("approval:\n  status: pending\n  rulings:\n    - finding: PF-2095\n"
+                 "      who: operator\n      date: '2026-10-01'\n      reason: accepted\n")
+        signable = (
+            ("an open high finding overruled in the same call", _panel_plan(_TEMPLATE_FINDING),
+             ["--overrule", "PF-2095:accepted for launch"]),
+            ("an open high finding already ruled", _panel_plan(_TEMPLATE_FINDING, approval=ruled),
+             []),
+            ("a resolved high finding",
+             _panel_plan({**_TEMPLATE_FINDING, "disposition": "resolved", "resolved_by": "T-01"}),
+             []),
+            ("an open med finding", _panel_plan({**_TEMPLATE_FINDING, "severity": "med"}), []),
+        )
+        for label, text, extra in signable:
+            write(plan, text)
+            r = run_verb("sign-approval", "--file", plan, "--by", "operator",
+                         "--date", "2026-10-04", *extra)
+            check(f"2095: sign-approval signs {label}",
+                  r.returncode == 0
+                  and yaml.safe_load(read(plan))["approval"]["status"] == "approved",
+                  f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+# #2096 — the signature has two homes, plan.yaml's approval and BRIEF.md's ## Approval, and one
+# writer: sign-approval writes both in one act, or neither. FEAT-1559 was signed with the BRIEF
+# left pending because the documented transaction named only the plan's half.
+def _brief_path(plan):
+    return os.path.join(os.path.dirname(plan), "BRIEF.md")
+
+
+def _brief_approval(text):
+    """The ## Approval block's body, the region check-state's approved() reads."""
+    import re
+    match = re.search(r"^##\s+Approval\s*$(.*?)(?=^##\s|\Z)", text, re.M | re.S)
+    return match.group(1) if match else None
+
+
+def case_2096_sign_approval_signs_the_brief():
+    """A pending BRIEF is signed with the plan: its ## Approval reads approved with the same
+    signer and date, and every byte outside that block is unchanged."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                     "--date", "2026-10-04")
+        brief = read(_brief_path(plan))
+        block = _brief_approval(brief) or ""
+        check("2096: sign-approval signs the BRIEF's ## Approval with the plan",
+              r.returncode == 0 and "status: approved" in block
+              and "approved-by: Mike Ruangutai" in block and "date: 2026-10-04" in block
+              and "pending" not in block, f"rc={r.returncode} {r.stderr!r} {brief!r}")
+        before, _, _ = PENDING_BRIEF.partition("## Approval")
+        check("2096: the BRIEF outside its ## Approval block is byte-identical",
+              brief.startswith(before + "## Approval")
+              and brief.endswith("## Notes\n\nAfter the block.\n"), repr(brief))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2096_an_approved_brief_is_left_as_signed():
+    """A BRIEF already approved is the goal's standing signature: re-signing the plan after an
+    approval reset leaves it byte-identical rather than restamping it."""
+    root, plan = fixture_root()
+    try:
+        signed = PENDING_BRIEF.replace("status: pending\napproved-by:\ndate:\n",
+                                       "status: approved\napproved-by: Operator\ndate: 2026-09-01\n")
+        write(_brief_path(plan), signed)
+        write(plan, render_plan(ids(1, 2)))
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                     "--date", "2026-10-04")
+        check("2096: re-signing leaves an approved BRIEF byte-identical",
+              r.returncode == 0 and read(_brief_path(plan)) == signed,
+              f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2096_no_brief_signature_means_no_plan_signature():
+    """A BRIEF with no ## Approval block, or none at all, refuses the signature (exit 5) and
+    writes neither file; so does a plan-side refusal, which must leave the BRIEF pending."""
+    root, plan = fixture_root()
+    try:
+        brief = _brief_path(plan)
+        no_block = PENDING_BRIEF.split("## Approval")[0]
+        for label, prepare in (("no ## Approval block", lambda: write(brief, no_block)),
+                               ("no BRIEF.md", lambda: os.remove(brief))):
+            prepare()
+            before = write(plan, render_plan(ids(1, 2)))
+            brief_before = read(brief) if os.path.exists(brief) else None
+            r = run_verb("sign-approval", "--file", plan, "--by", "operator",
+                         "--date", "2026-10-04")
+            check(f"2096: sign-approval refuses a BRIEF with {label} (exit 5), naming BRIEF.md",
+                  r.returncode == 5 and "BRIEF.md" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+            check(f"2096: with {label}, neither file is written",
+                  read(plan) == before
+                  and (read(brief) if os.path.exists(brief) else None) == brief_before)
+        write(brief, PENDING_BRIEF)
+        write(plan, _panel_plan(_TEMPLATE_FINDING))
+        r = run_verb("sign-approval", "--file", plan, "--by", "operator", "--date", "2026-10-04")
+        check("2096: a plan-side refusal leaves the BRIEF pending",
+              r.returncode == 4 and read(brief) == PENDING_BRIEF, f"rc={r.returncode}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2096_a_line_break_in_the_signer_stays_on_one_brief_line():
+    """`--by` is free-form (FEAT-41 F-02), and a line break in it would otherwise start a new
+    line inside ## Approval. It is written JSON-quoted on its own line instead."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike\nstatus: pending",
+                     "--date", "2026-10-04")
+        block = _brief_approval(read(_brief_path(plan))) or ""
+        check("2096: a signer with a line break is one quoted BRIEF line",
+              r.returncode == 0 and 'approved-by: "Mike\\nstatus: pending"' in block
+              and "\nstatus: pending" not in block, f"rc={r.returncode} {block!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2102_panel_readers_hold_the_four_slots():
+    """#2102: panel.readers names the four plan-panel slots INV-32 keys on, never a persona;
+    set-panel and record-panel refuse anything else (exit 5) and write nothing. All four slots,
+    design included, are accepted."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))
+        value_file = os.path.join(root, "panel.yaml")
+        bad = {**_panel_value(), "readers": [{"reader": "code-reviewer", "status": "ran"}]}
+        write(value_file, yaml.safe_dump(bad, sort_keys=False))
+        r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        check("2102: set-panel refuses a persona as a panel reader (exit 5), naming it",
+              r.returncode == 5 and "code-reviewer" in r.stderr and read(plan) == before,
+              f"rc={r.returncode} {r.stderr!r}")
+        digest = os.path.join(root, "digest.md")
+        write(digest, _digest_md([{"reader": "fable-advisor", "status": "ran"}], []))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("2102: record-panel refuses a persona as a panel reader (exit 5), naming it",
+              r.returncode == 5 and "fable-advisor" in r.stderr and read(plan) == before,
+              f"rc={r.returncode} {r.stderr!r}")
+        good = {**_panel_value(), "readers": [{"reader": slot, "status": "ran"} for slot in
+                                              ("should-not-exist", "scope", "design", "goalcheck")]}
+        write(value_file, yaml.safe_dump(good, sort_keys=False))
+        r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        check("2102: set-panel accepts all four slots, design included", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -4588,6 +5006,9 @@ CASES = (
     case_f59_check_passes_on_every_anchor_form,
     case_f59_check_lists_each_failure_on_its_own_line,
     case_bug1725_check_names_files_shared_by_tasks,
+    case_2064_product_plan_checks_against_its_code_worktree,
+    case_2064_code_root_is_required_for_a_product_plan_and_refused_for_harness,
+    case_2065_create_anchor_names_a_new_tree_and_nothing_else,
     case_f59_line_number_anchor_is_refused_at_write,
     case_f59_set_lanes_writes_and_validates,
     case_1683_set_key_writes_any_top_level_key,
@@ -4626,6 +5047,14 @@ CASES = (
     case_feat70_record_amendments_after_a_block_scalar_splice,
     case_1985_amend_ledgers_a_signed_task_field,
     case_1985_amend_restores_the_plan_when_the_ledger_fails,
+    case_2095_set_panel_refuses_off_template_findings,
+    case_2095_record_panel_refuses_an_off_template_base_finding,
+    case_2095_sign_approval_refuses_an_open_gating_finding,
+    case_2096_sign_approval_signs_the_brief,
+    case_2096_an_approved_brief_is_left_as_signed,
+    case_2096_no_brief_signature_means_no_plan_signature,
+    case_2096_a_line_break_in_the_signer_stays_on_one_brief_line,
+    case_2102_panel_readers_hold_the_four_slots,
 )
 
 

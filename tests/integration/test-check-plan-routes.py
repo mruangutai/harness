@@ -437,7 +437,8 @@ def case_19():
         # the script dies on ImportError at exit 1 before it can refuse, and both
         # assertions go red for a reason that has nothing to do with an
         # unresolvable root.
-        for module in ("harness_boundary.py", "run_identity.py", "artifact_accessors.py"):
+        for module in ("harness_boundary.py", "run_identity.py", "artifact_accessors.py",
+                       "feature_corpus.py"):
             shutil.copy(os.path.join(BIN_DIR, module), os.path.join(fake_bin, module))
         r = run(cwd=td, project_dir=td, script=copy)
         check("case_19b_unresolvable_root_exits_2_not_0", r.returncode == 2,
@@ -852,6 +853,35 @@ def case_41_t04_top_level_station_vocabulary():
     bad = ("pending", "Done", "nonsense")
     _check_each_rejected("case_41f_top_level_status", bad, _run_with_top_level_statuses(bad),
                          lambda i: "VIOLATION top-level status")
+
+
+def case_2077_served_repository_plan_routes_against_its_product_base():
+    """#2077: a served repository's plan names paths in ITS repository, so the route question
+    is asked of the fleet's product base for that segment — the base the build hook classifies
+    a product write by. It was asked of the harness tree, where every product source path is
+    NOBODY. A segment the fleet does not declare cannot be answered and is a violation."""
+    import yaml
+    with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
+        _yaml_project(td)
+        shutil.rmtree(os.path.join(td, ".harness", "harness"))
+        os.makedirs(os.path.join(td, ".harness", "factory"))
+        with open(os.path.join(td, ".harness", "factory", "fleet.yaml"), "w") as fh:
+            # The workspace sits OUTSIDE the harness root, as in production: a target inside
+            # the root is the harness base, which never grants product source paths.
+            yaml.safe_dump({"schema": "factory-fleet/1", "workspace_root": ws,
+                            "repos": [{"name": "org/kaya", "default_branch": "main"}]}, fh)
+        for segment in ("kaya", "ghost"):
+            fd = os.path.join(td, ".harness", segment, "features", "FEAT-A")
+            os.makedirs(fd)
+            with open(os.path.join(fd, "plan.yaml"), "w") as fh:
+                fh.write(PLAN_YAML % "src/server/env.ts, { path: apps/web/src/app/page.tsx, create: true }")
+        r = run(project_dir=td)
+        lines = r.stdout.splitlines()
+        check("2077: a served plan's product paths are granted through the fleet product base",
+              "OK T-01 granted to harness-backend-dev, harness-frontend-dev" in lines, r.stdout)
+        check("2077: a segment the fleet does not declare is a violation, not a silent pass",
+              any(ln.startswith("VIOLATION") and "ghost" in ln for ln in lines)
+              and _reports_total(r, 1), r.stdout + r.stderr)
 
 
 def case_23():
@@ -1504,6 +1534,12 @@ def _owner_branch(directory):
     owner = os.path.join(directory, "owner")
     branch = os.path.join(owner, ".claude", "worktrees", "feature")
     gitdir = os.path.join(owner, ".git", "worktrees", "feature")
+    # A REAL, UNBORN OWNER REPOSITORY. Discovery from a linked worktree asks the owner which
+    # feature directories it tracks before walking (FEAT-1559 SC-04) and refuses when it cannot
+    # tell; an owner checkout is always a repository. Unborn, it tracks none, so routing is all
+    # this case still exercises.
+    subprocess.run(["git", "init", "-q", owner], check=True, capture_output=True,
+                   env=dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull))
     os.makedirs(gitdir, exist_ok=True)
     os.makedirs(branch, exist_ok=True)
     with open(os.path.join(branch, ".git"), "w") as stream:
@@ -2308,6 +2344,7 @@ CASES = (
     case_27,
     case_41_t04_task_station_vocabulary,
     case_41_t04_top_level_station_vocabulary,
+    case_2077_served_repository_plan_routes_against_its_product_base,
     case_41_t07_is_shipped_reads_the_plan,
     case_feat64_manifest_deviation_defect_escapes,
     case_feat64_plan_is_parsed_once_per_execution,
