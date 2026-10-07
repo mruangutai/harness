@@ -1,5 +1,5 @@
 # UAT — FEAT-2081 CI shard structure audit
-status: draft              # draft | ready | passed | failed — only the user sets passed/failed
+status: passed             # draft | ready | passed | failed — only the user sets passed/failed
 branch: feat/FEAT-2081-ci-shard-structure-audit
 review_sha:                # fill when pinned; authored against HEAD 0ebdaef7ed90787c25fbe2d584087c6bdfcf77ad (T-05 SPEC.md edit uncommitted)
 uat_criteria: SC-09, SC-10 (verify: uat). SC-04/SC-05 (inspection) and SC-06 (automated) are prerequisites recorded below.
@@ -305,10 +305,10 @@ git -C <feature or main checkout> worktree remove /tmp/feat2081-uat
 - PR closed unmerged (URL):
 
 ## Sign-off (user only)
-- SC-09 (U-01 … U-05):
-- SC-10 live (U-06 … U-08 + baseline comparison):
-- SC-10 local structure timing (L-01, same-corpus; the evidence-T-03 amendment is context only):
-- final status (`passed` / `failed`), user, date:
+- SC-09 (U-01 … U-05): passed — Mike Ruangutai, 2026-10-07 (U-03 dropped by ruling)
+- SC-10 live (U-06 … U-08 + baseline comparison): passed under amended OQ-01 (median 83s; runs 71/83/120s) — Mike Ruangutai, 2026-10-07
+- SC-10 local structure timing (L-01, same-corpus; the evidence-T-03 amendment is context only): passed (both medians lower; base output differs only by INV-52) — Mike Ruangutai, 2026-10-07
+- final status (`passed` / `failed`), user, date: passed — Mike Ruangutai, 2026-10-07 (signed in conversation; recorded by the main session)
 
 
 ## Recorded evidence — executed by the main session at the user's request (2026-10-06)
