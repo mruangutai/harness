@@ -353,25 +353,35 @@ def yield_return(root, agent, obj, binding=None, **identity):
     return run_script("validate-digest.py", root, payload, "--hook")
 
 
-def retained_refusals(root, lead, binding, artifact_rel):
-    """Return-time refusals that must stand after a valid start; none may write anything."""
-    ids = runtime(lead)
+def victim_digest(binding, lead):
+    """Another run's digest in the same feature, which no refused return may touch."""
     sibling = os.path.join(os.path.dirname(os.path.dirname(binding["artifact"])),
                            "victim-" + LEADS[lead][1], "digest.md")
     os.makedirs(os.path.dirname(sibling))
     with open(sibling, "w") as handle:
         handle.write(HUMAN_ASSESSMENT)
-    variants = {
+    return sibling
+
+
+def refusal_variants(root, lead, binding, artifact_rel):
+    """label -> (binding, runtime identity, artifact) for each retained return refusal."""
+    ids = runtime(lead)
+    return {
         "missing-binding": (None, ids, artifact_rel),
         "wrong-child": (binding, dict(ids, harness_agent_id="Other.Child"), artifact_rel),
         "wrong-parent": (binding, dict(ids, harness_parent_agent_id="Other.Parent"),
                          artifact_rel),
         "wrong-feature": (dict(binding, feature="BUG-1-other-feature"), ids, artifact_rel),
         "wrong-checkout": (dict(binding, root=os.path.dirname(root)), ids, artifact_rel),
-        "wrong-artifact": (binding, ids, os.path.relpath(sibling, root)),
+        "wrong-artifact": (binding, ids, os.path.relpath(victim_digest(binding, lead), root)),
     }
+
+
+def retained_refusals(root, lead, binding, artifact_rel):
+    """Return-time refusals that must stand after a valid start; none may write anything."""
     short = lead.split("-")[1]
-    for label, (bound, identity, artifact) in variants.items():
+    for label, (bound, identity, artifact) in refusal_variants(
+            root, lead, binding, artifact_rel).items():
         before = snapshot(feature_dir(root))
         attempt = lead_object(lead, artifact, headline=f"refused {label} attempt")
         result = yield_return(root, lead, attempt, bound, **identity)
@@ -382,41 +392,49 @@ def retained_refusals(root, lead, binding, artifact_rel):
               f"exit={result.returncode} unchanged={unchanged} {result.stderr.strip()[:400]!r}")
 
 
+def prepared_start(root, lead):
+    """Dispatch, runtime claim registration and bind: (binding or None, the digest path)."""
+    mission = START_MISSION[lead]
+    start = dispatch(root, lead, prompt(root, *([mission] if mission else [])))
+    start_ok, start_detail = started(start, root, lead), outcome(start, root, lead)
+    registered, bind_exit, answer = register_and_bind(root, lead)
+    binding = answer.get("binding") or {}
+    expected = os.path.join(feature_dir(root), "runs", f"r1-{LEADS[lead][1]}", "digest.md")
+    prepared = (start_ok and registered.get("ok") and bind_exit == 0
+                and binding.get("artifact") == expected)
+    check("control", f"SC-04/{lead.split('-')[1]}/start-bind",
+          f"{lead} with one registered run starts, registers its runtime claim and binds",
+          prepared, f"{start_detail} registered={registered} answer={answer}")
+    return (binding if prepared else None), expected
+
+
+def authorized_append(root, lead, binding, expected):
+    before = snapshot(feature_dir(root))
+    obj = lead_object(lead, os.path.relpath(expected, root))
+    result = yield_return(root, lead, obj, binding, **runtime(lead))
+    after = snapshot(feature_dir(root))
+    changed = sorted(path for path in set(before) | set(after)
+                     if before.get(path) != after.get(path))
+    # Relative to the bytes just before this return, so a refusal that wrongly appended
+    # fails its own case rather than this one.
+    appended = after.get(expected) == before.get(expected, b"") + fenced(obj).encode()
+    check("control", f"SC-04/{lead.split('-')[1]}/authorized-append",
+          f"{lead} return appends to exactly its registered destination",
+          result.returncode == 0 and changed == [expected] and appended,
+          f"exit={result.returncode} changed={changed} {result.stderr.strip()[:400]!r}")
+
+
 def sc04_lead(lead):
-    short = lead.split("-")[1]
     root = make_root([lead_run(lead)], "approved")
     try:
-        mission = START_MISSION[lead]
-        start = dispatch(root, lead, prompt(root, *([mission] if mission else [])))
-        start_ok, start_detail = started(start, root, lead), outcome(start, root, lead)
-        registered, bind_exit, answer = register_and_bind(root, lead)
-        binding = answer.get("binding") or {}
-        expected = os.path.join(feature_dir(root), "runs", f"r1-{LEADS[lead][1]}", "digest.md")
-        prepared = (start_ok and registered.get("ok") and bind_exit == 0
-                    and binding.get("artifact") == expected)
-        check("control", f"SC-04/{short}/start-bind",
-              f"{lead} with one registered run starts, registers its runtime claim and binds",
-              prepared, f"{start_detail} registered={registered} answer={answer}")
-        if not prepared:
+        binding, expected = prepared_start(root, lead)
+        if binding is None:
             return
         os.makedirs(os.path.dirname(expected), exist_ok=True)
         with open(expected, "w") as handle:
             handle.write(HUMAN_ASSESSMENT)
-        artifact_rel = os.path.relpath(expected, root)
-        retained_refusals(root, lead, binding, artifact_rel)
-        before = snapshot(feature_dir(root))
-        obj = lead_object(lead, artifact_rel)
-        result = yield_return(root, lead, obj, binding, **runtime(lead))
-        after = snapshot(feature_dir(root))
-        changed = sorted(path for path in set(before) | set(after)
-                         if before.get(path) != after.get(path))
-        # Relative to the bytes just before this return, so a refusal that wrongly appended
-        # fails its own case rather than this one.
-        appended = after.get(expected) == before.get(expected, b"") + fenced(obj).encode()
-        check("control", f"SC-04/{short}/authorized-append",
-              f"{lead} return appends to exactly its registered destination",
-              result.returncode == 0 and changed == [expected] and appended,
-              f"exit={result.returncode} changed={changed} {result.stderr.strip()[:400]!r}")
+        retained_refusals(root, lead, binding, os.path.relpath(expected, root))
+        authorized_append(root, lead, binding, expected)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -550,34 +568,44 @@ def blanket_requirements(text):
             and not re.search(r"\bonly\b", s, re.I)]
 
 
-def producer_check(rel, label, ok, detail=""):
-    check("producer", f"producers/{os.path.basename(rel)}/{label}", f"{rel}: {label}", ok, detail)
+def producer_check(rel, label, missing):
+    check("producer", f"producers/{rel}/{label}", f"{rel}: {label}",
+          not missing, f"missing={missing}")
+
+
+def missing_needles(text, needles):
+    """The labels of `needles` ({label: substrings}) whose substrings are not all in `text`."""
+    return [label for label, subs in needles.items() if not all(sub in text for sub in subs)]
+
+
+AUTHORITY_NEEDS = {"mission applicability": ("mission applicability",),
+                   "product and validator": (PRODUCT, VALIDATOR),
+                   "scope reader": ("scope reader", f"{MISSION}: plan"),
+                   "all three leads registered": ("all three leads", "run-start", "exactly one"),
+                   "phase actually dispatched": ("actual", "phase"),
+                   "distill unchanged": ("distill",)}
+
+
+def engineering_exempt(text):
+    """Some sentence naming eng-lead and the marker says it needs none."""
+    return any(re.search(r"\b(no|not|never|without)\b", s) for s in sentences(text)
+               if ENG in s and MISSION in s)
 
 
 def check_authority():
     text = section(read_doc(AUTHORITY), "**Every dispatch you make opens with the feature",
                    "\n3. **Assess")
-    eng = [s for s in sentences(text) if "harness-eng-lead" in s and MISSION in s]
-    wanted = {"mission applicability": "mission applicability" in text,
-              "product and validator": all(lead in text for lead in (PRODUCT, VALIDATOR)),
-              "scope reader": "scope reader" in text and f"{MISSION}: plan" in text,
-              "eng needs no mission": any(re.search(r"\b(no|not|never|without)\b", s) for s in eng),
-              "all three leads registered": "all three leads" in text and "run-start" in text
-              and "exactly one" in text,
-              "phase actually dispatched": "actual" in text and "phase" in text,
-              "distill unchanged": "distill" in text}
-    producer_check(AUTHORITY, "header is the one mission authority", all(wanted.values()),
-                   f"missing={[k for k, v in wanted.items() if not v]}")
+    missing = missing_needles(text, AUTHORITY_NEEDS)
+    missing += [] if engineering_exempt(text) else ["eng needs no mission"]
+    producer_check(AUTHORITY, "header is the one mission authority", missing)
 
 
 def check_team_skill():
     rel = ".claude/skills/harness-team/SKILL.md"
     header = section(read_doc(rel), "After the dispatch header", "**Never wait for a member.**")
-    wanted = {"points to authority": "harness-zero-micro-management" in header,
-              "mission named": MISSION in header,
-              "plan scope declaration": f"{MISSION}: plan" in header and "scope" in header}
-    producer_check(rel, "dispatch header defers to the authority", all(wanted.values()),
-                   f"missing={[k for k, v in wanted.items() if not v]}")
+    producer_check(rel, "dispatch header defers to the authority", missing_needles(header, {
+        "points to authority": ("harness-zero-micro-management",),
+        "plan scope declaration": (f"{MISSION}: plan", "scope")}))
 
 
 def check_lead_headers():
@@ -586,31 +614,31 @@ def check_lead_headers():
              "**Every dispatch you make opens with the feature", "`status: awaiting_user`"),
             (".claude/skills/harness/SKILL.md", "3. **Delegate to a lead, never a member.**",
              "4. **Let the host")):
-        text = section(read_doc(rel), start, end)
-        wanted = {"points to authority": "harness-zero-micro-management" in text,
-                  "mission named": MISSION in text, "registration": "run-start" in text}
-        producer_check(rel, "lead header complies with the authority", all(wanted.values()),
-                       f"missing={[k for k, v in wanted.items() if not v]}")
+        producer_check(rel, "lead header complies with the authority", missing_needles(
+            section(read_doc(rel), start, end), {
+                "points to authority": ("harness-zero-micro-management",),
+                "mission named": (MISSION,), "registration": ("run-start",)}))
+
+
+PLAN_RECIPE_NEEDS = {"product plan": (PRODUCT, f"{MISSION}: plan"),
+                     "standalone validator plan": (VALIDATOR, "standalone"),
+                     "scope reader plan": ("scope reader",),
+                     "canonical target": ("plan.yaml", "feature.json"),
+                     "draft exception": ("no `plan.yaml`",),
+                     "nonpending refusal": ("pending", "refuse"),
+                     "reviewed field history": ("`reviewed`", "yield"),
+                     "DEC-229 route": ("DEC-229",),
+                     "registration remedy": ("run-start",)}
 
 
 def check_plan_phase():
     rel = ".claude/skills/harness/references/plan-phase.md"
     text = read_doc(rel)
-    plan = section(text, "## Mission plan", "\n## ")
-    patch = section(text, "## Mission patch", "\n## ")
-    wanted = {"product plan": PRODUCT in plan and f"{MISSION}: plan" in plan,
-              "standalone validator plan": VALIDATOR in plan and "standalone" in plan,
-              "scope reader plan": "scope" in plan and "reader" in plan,
-              "canonical target": "plan.yaml" in plan and "feature.json" in plan,
-              "draft exception": "no `plan.yaml`" in plan or "no plan.yaml" in plan,
-              "nonpending refusal": "pending" in plan and "refuse" in plan,
-              "reviewed field history": "`reviewed`" in plan and "yield" in plan,
-              "DEC-229 route": "DEC-229" in plan,
-              "registration remedy": "run-start" in plan,
-              "patch explicit": f"{MISSION}: patch" in patch,
-              "no forbidden remedy": not any(bad in text.lower() for bad in ("toggle", "relabel"))}
-    producer_check(rel, "plan and patch recipes carry their missions", all(wanted.values()),
-                   f"missing={[k for k, v in wanted.items() if not v]}")
+    missing = missing_needles(section(text, "## Mission plan", "\n## "), PLAN_RECIPE_NEEDS)
+    missing += missing_needles(section(text, "## Mission patch", "\n## "),
+                               {"patch explicit": (f"{MISSION}: patch",)})
+    missing += [bad for bad in ("toggle", "relabel") if bad in text.lower()]
+    producer_check(rel, "plan and patch recipes carry their missions", missing)
 
 
 def check_build_phase():
@@ -620,20 +648,19 @@ def check_build_phase():
     eng = section(text, "2. **The eng segment.**", "\n4. **Entering validate**")
     validate = section(text, "5. **ONE `validate` dispatch**", "\n6. **The fix loop.**")
     fix = section(text, "6. **The fix loop.**", "\n7. ")
-    wanted = {"validate mission": f"{MISSION}: validate" in validate,
-              "fix mission": f"{MISSION}: fix" in fix,
-              "engineering recipes unchanged": MISSION not in eng,
-              "registration remedy": "run-start" in preamble and ENG in preamble
-              and VALIDATOR in preamble}
-    producer_check(rel, "validate/fix carry their missions; eng needs none", all(wanted.values()),
-                   f"missing={[k for k, v in wanted.items() if not v]}")
+    missing = missing_needles(preamble, {"registration remedy": ("run-start", ENG, VALIDATOR)})
+    missing += missing_needles(validate, {"validate mission": (f"{MISSION}: validate",)})
+    missing += missing_needles(fix, {"fix mission": (f"{MISSION}: fix",)})
+    missing += ["engineering recipes unchanged"] if MISSION in eng else []
+    producer_check(rel, "validate/fix carry their missions; eng needs none", missing)
 
 
 def check_plan_team():
     rel = ".claude/skills/harness/teams/plan.yaml"
     steps = {step.get("id"): step for step in yaml.safe_load(read_doc(rel)).get("steps", [])}
     scope = (steps.get("scope") or {}).get("prompt", "")
-    producer_check(rel, "scope reader prompt declares plan", f"{MISSION}: plan" in scope, scope[:200])
+    producer_check(rel, "scope reader prompt declares plan",
+                   missing_needles(scope, {"scope prompt": (f"{MISSION}: plan",)}))
 
 
 def check_producers():
@@ -644,8 +671,8 @@ def check_producers():
     check_build_phase()
     check_plan_team()
     for rel in PRODUCERS:
-        found = blanket_requirements(read_doc(rel))
-        producer_check(rel, "no competing blanket mission requirement", not found, repr(found[:2]))
+        producer_check(rel, "no competing blanket mission requirement",
+                       blanket_requirements(read_doc(rel))[:2])
 
 
 def report():
