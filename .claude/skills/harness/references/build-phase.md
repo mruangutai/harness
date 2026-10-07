@@ -10,6 +10,13 @@ and `fix` each host every reader in one run. In this order.
 order and refusals in `ledger.md`). Every `gh-sync.py status` boundary below is yours; owner and
 station per boundary are `github-mirror.md`'s table.
 
+**Every lead run here opens with `feature-record.py run-start`** before its dispatch —
+`--squad engineering --agent harness-eng-lead` for build and SIMPLIFY, `--squad validator --agent
+harness-validator-lead` for validate and fix — because the lead's return binds its digest to that
+one open registered run. `dispatch-guard.py` refuses at exit 2, before any claim, a lead with no
+or several matching open runs; register the missing run, or close surplus ones with their real
+outcome. Header declarations follow `harness-zero-micro-management`'s dispatch header.
+
 1. **Build entry.** Require the signature-created `feature.json` `github.build_entry` receipt.
    Ordinary Build never creates the mirror. If the receipt is absent, stop for recovery and run
    `gh-sync.py open <feature-dir>` idempotently; `recovery-required` may proceed as before but
@@ -50,11 +57,13 @@ station per boundary are `github-mirror.md`'s table.
    pm's `goalcheck` — the second and last goal-check of the feature, one grade per perspective
    against the diff, written to `notes/research-<FEAT>-goalcheck-validate-c<cycle>.md`. The lead
    fans in to ONE consolidated must-fix list, `kind` on every finding, `severity_max`. No two
-   consecutive reader runs over one sha (SC-13).
+   consecutive reader runs over one sha (SC-13). The dispatch declares `HARNESS-MISSION: validate`
+   after its `HARNESS-FEATURE` line.
 6. **The fix loop.** On `must_fix`, pin nothing. Run
    `gh-sync.py status <feature-dir> building` for the complete card set, then dispatch `fix` to
    `harness-validator-lead` (`<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/fix.yaml`, then the
-   skills copy; slug `fix-c<N>-validator`) with inputs `feat`, `review_sha` and the must-fix path,
+   skills copy; slug `fix-c<N>-validator`; `HARNESS-MISSION: fix` after its `HARNESS-FEATURE`
+   line) with inputs `feat`, `review_sha` and the must-fix path,
    **naming the owning dev** — the `execution_agent` of the task each must-fix finding cites, read
    from `plan.yaml`; that is the one derivation, and `files_touched` in a build digest is only its
    echo. Two devs in one list is two `fix` runs in dependency order. **A finding that cites no

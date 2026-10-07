@@ -75,7 +75,11 @@ concurrent, 200 per session, nested counting to both.
 
 After the dispatch header, each item prompt's next line is the title
 `<flow-id> · <step or task id> · <what, 3–6 words>` (DEC-142), then goal, resolved **input paths**
-and **output paths**.
+and **output paths**. Which declarations the header carries is
+`harness-zero-micro-management`'s dispatch header, the one statement of mission applicability; for
+the `plan` team it means the `scope` step's prompt carries `HARNESS-MISSION: plan` after its
+`HARNESS-FEATURE` line, so a plan signed while you run stops that reader before any substantive
+work.
 
 **Never wait for a member.** Every member is `blocking: true`; the `task` call holds in the host
 until the member is terminal and your model is inactive. No `hub wait`, polling, sleeps,
