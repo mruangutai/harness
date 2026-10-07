@@ -17,7 +17,7 @@ approval:
     - date: "2026-10-07"
       approved_by: operator (Mike Ruangutai), via main session
       changed: BRIEF OQ-01 SC-10 live threshold amended from all three consecutive runs below 100s to the median of three below 100s (runner start-up latency); no task text changed
-status: building
+status: done
 source_issues: [2081]
 panel:
   last_run: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2081-ci-shard-structure-audit/.harness/harness/features/FEAT-2081-ci-shard-structure-audit/runs/2026-10-05-01-validator
