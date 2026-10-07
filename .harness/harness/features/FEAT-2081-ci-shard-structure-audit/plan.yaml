@@ -1,0 +1,207 @@
+schema: plan/1
+feature: FEAT-2081-ci-shard-structure-audit
+approval:
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: "2026-10-04"
+  amendments:
+    - date: "2026-10-04"
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: T-03 per panel F1 (PF-5bfc6ea843dcdddb994445126b398fb1) — old-vs-new equivalence is one-time local QA evidence; permanent tests carry no git-history dependency; T-04 unchanged
+    - date: "2026-10-04"
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: T-03 keeps test-checker-structure-locks.py's test-side parse cache (built at 3cdd3f19 the test median rose 3.16s -> 4.35s without it); production per-invocation freshness unchanged; single-pass traversal test runs without the cache
+    - date: "2026-10-05"
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: SC-09 live shard-cancellation case dropped (GitHub has no per-job cancel); T-04/T-06 amended and BRIEF SC-09/OQ-02 amended to match; cancelled shard results stay covered by SC-02's automated rejection. Also integration-durations.json re-measured per shard from run 37325307899 under T-01, its shard test checking provenance shape instead of one pinned run
+    - date: "2026-10-07"
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: BRIEF OQ-01 SC-10 live threshold amended from all three consecutive runs below 100s to the median of three below 100s (runner start-up latency); no task text changed
+status: building
+source_issues: [2081]
+panel:
+  last_run: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2081-ci-shard-structure-audit/.harness/harness/features/FEAT-2081-ci-shard-structure-audit/runs/2026-10-05-01-validator
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: Pinned scope assessment and F1 endorsement are durable; native signed-plan
+      receipt refused after one recovery.
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: fable-advisor is not available in this session's agent registry.
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: Six-task, 19-file census found no graphical UI surface; Mode A self-scoped
+      out.
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: Both signed perspectives partial; historical baseline provisioning missing.
+  findings:
+  - id: PF-5bfc6ea843dcdddb994445126b398fb1
+    severity: high
+    reader: goalcheck
+    kind: substance
+    summary: T-03/T-04 omit CI provisioning of the pinned historical checker required by the differential integration test.
+    disposition: resolved
+    resolved_by: T-03
+lanes:
+  resolved_at: 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554
+  rows:
+    - surface: .agents/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 prohibits changing the runner and enforcement path through that same path.
+    - surface: tests/integration/**
+      lane: main-session-direct
+      reason: DEC-174 covers gate regressions and their independent evidence in this worktree.
+    - surface: tests/unit/**
+      lane: main-session-direct
+      reason: Runner and gate tests must be authored and verified outside their changing enforcement path.
+    - surface: .github/workflows/tests.yml
+      lane: main-session-direct
+      reason: DEC-174 and DEC-183 require direct implementation and pinned human inspection.
+    - surface: .harness/harness/docs/SPEC.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/features/FEAT-2081-ci-shard-structure-audit/notes/uat.md
+      lane: main-session-direct
+      reason: The exact feature-scoped uat.md path has no PM grant and records the direct execution contract.
+decisions:
+  - id: D-01
+    choice: Keep the required integration context on a fail-closed aggregation job that depends on a separate unchanged-gates job and four integration matrix jobs.
+    because: Moving the context without explicitly requiring every existing gate would weaken branch protection; manifests add a second independent completeness check instead of trusting partition output.
+    dec: DEC-183
+tasks:
+  - id: T-01
+    title: Add deterministic weighted suite sharding and completed-file manifests
+    traces: [SC-01, SC-07, SC-08]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 excludes the changing runner, pool, and their gate tests from governed execution.
+    depends_on: []
+    status: building
+    files:
+      - .agents/skills/harness/bin/run-unit-tests.py
+      - .agents/skills/harness/bin/run_pool.py
+      - tests/integration/integration-durations.json
+      - tests/integration/test-run-unit-tests-shards.py
+      - tests/integration/test-run-unit-tests-kinds.py
+      - tests/integration/test-run-unit-tests-layout.py
+      - tests/integration/test-run-pool.py
+      - tests/unit/test-runner-unsharded.py
+    verify: |
+      python3 tests/unit/test-runner-unsharded.py
+      python3 tests/integration/test-run-unit-tests-shards.py
+      python3 tests/integration/test-run-unit-tests-kinds.py
+      python3 tests/integration/test-run-unit-tests-layout.py
+      python3 tests/integration/test-run-pool.py
+    intent: |
+      Work only in the FEAT-2081 feature worktree. Each listed command must exit 0 within 60 seconds independently. Preserve the trusted-root bootstrap, suite_layout validation of both suites, attributed output blocks, per-script private temporary directories, mutation detection, completion-order reporting, worker override precedence, and no-argument/--kind unit/integration/all unsharded discovery and exit behavior. Do not add change-based selection or shared-checkout mutation.
+      Add --shard i/n and --manifest PATH to run-unit-tests.py. Accept --kind and the new options in either order; default kind remains all. A shard is two unsigned decimal positive integers with 1 <= i <= n; reject missing values, malformed fractions, zero, negative values, i > n, and repeated shard/manifest options with a diagnostic and exit 2 before tests run. A manifest requires --shard. Preserve the existing accepted unsharded forms and --check-layout behavior; reject combining --check-layout with execution-only shard/manifest options. Allow sharding whichever suite was selected, not just integration. Empty selected shards succeed and emit an empty completed-file manifest without invoking the pool; they must not weaken nonempty full-suite layout validation.
+      Commit a versioned duration document at tests/integration/integration-durations.json with schema 1, source_run_url https://github.com/mruangutai/harness/actions/runs/37264903064, source_commit b046bdfed9fa262a25f53a41d566db2b90cd140b, default_seconds equal to the median of that run's 73 attributed integration file durations, and weights mapping repository-relative integration test paths to those positive measured seconds. Extract all 73 records from the existing Actions log, not a rerun. Validate the checked-in document's shape and positive finite numbers explicitly. It is advisory weight data, never the discovery authority, and must never rewrite itself during CI. Tests use an isolated versioned weight document; update existing temporary-tree copy helpers to include the new data dependency. Unit files without integration history also receive default_seconds.
+      Discover using the existing selected-suite globs, then longest-processing-time partition: sort files by descending effective duration with repository-relative path as tie breaker; assign each file to the least loaded shard with lowest shard number as tie breaker; print that shard's selected paths in lexical order before running. Stale history entries do not add files. Unknown newly discovered files use default_seconds. Every discovered file belongs to exactly one shard. Never hash-randomize, select from timing keys, or rebalance using concurrent job state.
+      Add a narrow optional result-output seam to run_pool.py that records every completed script and its return code from actual futures, not from the requested script list. Keep default CLI output and exits unchanged. The runner writes manifest schema 1 containing tested_commit from git rev-parse HEAD, kind, shard_index, shard_count, selected_files, completed_files as path/returncode records, and runner_exit. Write only after all started scripts terminate and mutation checking finishes; startup crashes or cancellation may leave no manifest, which the aggregator must reject. Use repository-relative normalized paths and write outside the watched bin tree. Preserve failing test records and a nonzero runner_exit. Do not invent successful completion for an unstarted file.
+      QA must record pre-fix failures for independent deterministic-completeness, weighted-versus-round-robin, equal-weight tie breaking, unknown-file inclusion, empty-shard, malformed-argument, and completed-versus-selected manifest witnesses in the new integration test. Include a positive control and execute shard fixtures in private copied repositories, not the checkout. For SC-07 record a targeted runner mutation that drops a discovered unit file, destroys attribution, or masks a child failure; the new unit regression must fail for each mutation. For SC-08 similarly prove an omitted integration file and masked failure are detected. Keep existing runner/layout/pool cases and their complete-discovery assertions; a previously green test alone is not red-first evidence.
+  - id: T-02
+    title: Validate shard conclusions against independent tested-commit discovery
+    traces: [SC-02, SC-03, SC-05]
+    change_type: feature
+    execution_mode: main-session-direct
+    execution_reason: This new required-context gate and gate tests cannot be implemented through their own enforcement path under DEC-174.
+    depends_on: [T-01, T-03]
+    status: ready
+    files:
+      - .agents/skills/harness/bin/check-integration-shards.py
+      - tests/unit/test-integration-shard-validation.py
+      - tests/integration/test-integration-shard-aggregation.py
+      - tests/integration/canonical-reader-classification.json
+    verify: |
+      python3 tests/unit/test-integration-shard-validation.py
+      python3 tests/integration/test-integration-shard-aggregation.py
+      python3 .agents/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+    intent: |
+      Work only in the FEAT-2081 worktree. Each listed command must exit 0 within 60 seconds; the canonical-reader command must retain its existing nonempty summary and report zero unresolved sites. Reuse the trusted-root bootstrap used by the suite runner, keep validation functions importable for unit cases, and expose CLI --commit SHA --shards 4 --checks-result VALUE --matrix-result VALUE --manifest-dir PATH. Accept result values success, failure, skipped, cancelled, or missing; any absent or unrecognized conclusion fails explicitly. The production caller passes GitHub needs results, not a default success value. Exit 0 only on exact success, 1 for a valid but incomplete/failed execution, and 2 for unusable invocation or malformed evidence; report each defect clearly and print a final PASS or FAIL aggregation summary.
+      Require checks-result and matrix-result both equal success. Require exactly one schema-1 manifest for every shard index 1..4, all with shard_count 4, kind integration, and tested_commit equal the supplied tested SHA; reject duplicate shard IDs, missing files, malformed JSON, foreign commits, foreign suite kinds, and extra manifests. Independently enumerate the tested commit using git ls-tree -r --name-only SHA and filter exactly top-level tests/integration/test-*.py paths. Fail on an empty expected integration set. Never use the duration table, selected_files union, current working-tree glob, or matrix partition function as expected coverage.
+      Validate selected_files and completed_files for each manifest, including normalized repository-relative paths, exact equality of completed path multiset to selected path multiset, integer return codes, runner_exit 0, and every completed return code 0. Across all manifests require each independently discovered expected path exactly once and no unexpected paths. A completed record is the coverage evidence; merely selecting a file does not establish that it ran. Reject within-shard duplicates, cross-shard duplicates, omitted files, unknown files, missing completed records, and selected-only artifacts independently. Empty individual shards may pass if the complete nonempty expected suite is still covered exactly once.
+      QA records pre-fix failures for failure, skipped, cancelled, missing checks/matrix conclusions individually and for every missing/duplicate/unexpected/omitted coverage defect, plus wrong-commit and selected-without-completion witnesses. Keep an all-success exact-coverage positive control. Integration fixtures must create two real git commits and leave a conflicting working tree so a validator using either partition output or current HEAD instead of the supplied tested commit demonstrably fails. Unit cases cover the pure validation branches; integration cases invoke the CLI and assert diagnostic, exit status, and final conclusion.
+      Update canonical-reader-classification.json from the actual final reader scan after T-01 and T-03. Classify the new duration/result/manifest JSON readers as non-canonical suite evidence with concrete reasons; include the new Python gate in scanned_files. Do not exempt harness state readers or loosen the audit to make the new sites green.
+  - id: T-03
+    title: Dispatch all structure rules from one fresh per-file AST index
+    traces: [SC-06, SC-08, SC-10]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 excludes check-plan-routes.py and checker-structure gate tests from governed execution.
+    depends_on: []
+    status: building
+    files:
+      - .agents/skills/harness/bin/check-plan-routes.py
+      - tests/integration/test-checker-structure-locks.py
+      - tests/integration/test-structure-audit-single-pass.py
+      - tests/unit/test-structure-audit-index.py
+    verify: |
+      python3 tests/unit/test-structure-audit-index.py
+      python3 tests/integration/test-structure-audit-single-pass.py
+      python3 tests/integration/test-checker-structure-locks.py
+    intent: |
+      Work only in the FEAT-2081 worktree. Each command must independently exit 0 within 60 seconds. Baseline 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554 is solely for one-time local QA evidence, never a permanent test dependency or an unpinned HEAD parent. Keep feat62_findings(root), consolidation_findings(root), broad_catch_findings(root), and --consolidation-audit observable contracts intact. Each top-level invocation creates fresh per-file state; do not retain global AST caches across invocations or roots. Preserve all rule applicability, source error behavior, existing loader and station exceptions, call-resolution authority, CANNOTRUN distinctions, broad-catch ceilings, embedded-program behavior, finding ordering, and CLI prefixes/summaries/exits.
+      Reuse the existing ordered reader-source census. Read and parse each participating physical source file at most once per invocation. Build one index by a single breadth-first parent-aware traversal using ast.iter_child_nodes, dispatching each visited node to every applicable existing rule. Index references rather than copied AST subtrees: ordered nodes, parent and enclosing-function associations, module definitions/import aliases, call edges and argument facts, resource/input literals, Inv declarations, station candidate containers, loader calls, and broad handlers. Replace repeated ast.walk calls in module-body, reparse, shared-text, read-family, authority/call-graph, station literal, symbol attribution, loader, and broad-catch logic with indexed facts. Replay findings in their baseline order; rule order is independent of scanner event order. Parse each embedded string program at most once and visit its AST once, preserving the current one-level embedded-program census rather than expanding the rules recursively. Retain early-return and diagnostic differences between the three public entry points even though source/index work is shared within one invocation.
+      Restore and keep the test-only _PARSED/_cached_parse cache in test-checker-structure-locks.py as it was at 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554: content-keyed ast.parse memoization installed only within the test process, with SyntaxError never cached. This test-side reuse across mutant tree copies and separate audit invocations does not permit production caches across invocations or roots; production per-invocation freshness remains unchanged. Leave all existing clean-tree and per-mutant findings assertions and independent private-tree mutation cases intact. Preserve process-pool parallelism, CASES report order, CHECK_PLAN_ROUTES_BIN override, and existing failure aggregation. Do not suppress slow or violating cases and do not reduce the BUG-1898 persona loop.
+      During the build, QA must produce a one-time local equivalence proof using the pre-change checker from 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554 and the post-change checker over the real source tree and every existing structure-lock mutant/fixture. Exercise both entry paths for every input: the in-process public calls made by test-checker-structure-locks.py and check-plan-routes.py --consolidation-audit. Record checker pins, corpus and case identities, commands/instrumentation, identical findings and ordering, exit status, stdout and stderr, and pre/post traversal counts in a feature-scoped notes/qa-structure-audit-equivalence.md evidence file. Treat this one-time proof and the pre-change traversal failure as SC-06 evidence and its red-first step; missing historical source is an explicit local QA evidence failure, never a skipped case or a substituted baseline. Historical extraction and differential execution belong only to this build-time proof, not to any permanent test, suite helper, or CI step.
+      Permanent protection consists of the existing test-checker-structure-locks.py cases left intact and one instrumented single-pass check in test-structure-audit-single-pass.py that each file's AST is traversed once per audit invocation. The single-pass test must remain independent of the test-side _PARSED/_cached_parse memo and must not run with that cache installed. Through both entry paths, count actual child-node visits and parsed trees: exactly one visit per node in each parsed physical or embedded AST, including overlapping check-state source/package and census inputs. Those inputs are audited files, not another execution entry path; counting only the outer caller is insufficient. Show this same permanent check failing first against the locally extracted pre-change checker during the build, then passing against the current checker, and record both receipts in the one-time QA evidence file. Permanent tests must run using the checked-out source and isolated fixtures only, with no extraction of any historical commit and no dependency on git history. Retain test-structure-audit-index.py coverage of the fresh index's facts and invocation isolation. SC-10's existing timing record remains separate from instrumented traversal evidence. No baseline provisioning or history fetching is to be added to T-04 or CI.
+      OQ-03 is settled: optimize and measure both existing entry paths named above. Wiring audits into check-state.py, adding a hook or flag there, or changing its default enforcement behavior is out of scope. Neither SC-06 nor SC-10 requires a check-state invocation.
+  - id: T-04
+    title: Parallelize integration jobs without weakening the required context
+    traces: [SC-02, SC-03, SC-04, SC-05, SC-09, SC-10]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 and DEC-183 require direct workflow changes and review at a pinned commit.
+    depends_on: [T-01, T-02, T-03]
+    status: ready
+    files:
+      - .github/workflows/tests.yml
+    verify: |
+      python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/tests.yml", encoding="utf-8"))'
+      python3 tests/integration/test-integration-shard-aggregation.py
+    intent: |
+      Work only in this feature worktree. Both verification commands must exit 0 within 60 seconds; syntax validation and local aggregation evidence do not prove live Actions scheduling or self-protection. Reviewer must inspect git show REVIEW_SHA:.github/workflows/tests.yml and cite the actual dependency and gate locations for SC-04/SC-05.
+      Preserve on.push.branches main, unrestricted pull_request, the existing tests-ref concurrency group, and cancel-in-progress false on main. Use standard ubuntu-latest for all jobs, preserve the existing checkout/Bun/Python dependency setup, and introduce four integration matrix cells with shard indices [1, 2, 3, 4] and fail-fast false. Each runs the full integration selection for --shard index/4 and writes its manifest outside watched bin. Keep attributed pool output and existing worker default/override behavior; do not tune the suite's selection or isolate by shared-checkout mutation.
+      Move the Unit suite and all six existing gate steps into a checks job: Validate feature execution state, Plan-route gate, Canonical-reader audit, Instruction-path gate, Layout gate, Repository-state gate. Preserve their command bodies and their summary parsing, nonempty discovery checks, explicit exit-code propagation, and feature-state semantics. None becomes optional or advisory. Keep setup needed by those gates in that job. A skipped or failed checks job must prevent required success, even if every shard passes.
+      Upload each shard manifest using a unique artifact name including its index and run identity; the upload step runs with always() after the runner and does not fabricate an artifact if execution never completed. Add exactly one non-matrix aggregation job with job id and display name integration, needs [checks, integration-shards], and job-level if: always(). Its checkout must be the same tested GitHub commit as the shards. Download all matching manifests; missing artifacts must still reach the validator and fail, not make the job silently skip. Pass the literal needs.checks.result and needs.integration-shards.result into check-integration-shards.py, along with github.sha, expected count 4, and the downloaded directory. A download error, missing manifest, failed/skipped/cancelled prerequisite, or validator rejection must produce a failed required context. There is no continue-on-error on any required step.
+      The always condition promises conclusion when dependencies terminate, including non-success results, not after whole-workflow cancellation or old-PR supersession. A cancelled shard result remains covered by SC-02 automated rejection; GitHub offers no per-job cancel, so no live shard-cancellation case is required. Preserve main's no-cancellation policy. Do not add a workflow-text regression presented as deletion-proof protection, and do not change branch-protection admin settings. Live required-context identity, completion, complete coverage, and critical-path performance remain user UAT evidence, not local claims.
+  - id: T-05
+    title: Document the shipped sharding and required-check contract
+    traces: [SC-01, SC-04, SC-05, SC-07, SC-08]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-02, T-03, T-04]
+    status: ready
+    files:
+      - .harness/harness/docs/SPEC.md
+    verify: |
+      python3 -c 'from pathlib import Path; s=Path(".harness/harness/docs/SPEC.md").read_text(); assert all(x in s for x in ("--shard i/n", "integration-durations.json", "check-integration-shards.py", "shard-only cancellation"))'
+    intent: |
+      Update only SPEC.md section 9 Test guardrails to describe shipped behavior, not feature history or unapproved work. Verification must exit 0 within 60 seconds; reviewer still checks the prose against the implemented command contracts. Document --shard i/n, deterministic longest-processing-time partition and tie breaks, checked-in integration-durations.json provenance/default handling, independent tested-commit manifest validation, actual completed-file evidence, four parallel integration shards, and the single required integration aggregation context depending on unit and every current gate. State shard-only cancellation as the supported boundary, preserve main no-cancellation, and expressly exclude whole-workflow cancellation. State that unsharded unit/integration/all execution, attributed worker output, complete selection, and private test temporary directories are unchanged. Give a concrete integration shard invocation and the unchanged unsharded command. Do not claim live timing success, workflow deletion protection, or a real check-state audit hook that has not been explicitly approved and delivered.
+  - id: T-06
+    title: Prepare the throwaway-PR UAT and pinned performance record
+    traces: [SC-04, SC-05, SC-06, SC-09, SC-10]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The requested notes/uat.md is outside the PM note grant and must record the DEC-174 direct-work evidence for both existing structure-audit entry paths.
+    depends_on: [T-01, T-02, T-03, T-04, T-05]
+    status: ready
+    files:
+      - .harness/harness/features/FEAT-2081-ci-shard-structure-audit/notes/uat.md
+    verify: |
+      python3 -c 'from pathlib import Path; s=Path(".harness/harness/features/FEAT-2081-ci-shard-structure-audit/notes/uat.md").read_text(); assert all(x in s for x in ("SC-09", "SC-10", "37264903064", "100 seconds", "three consecutive", "tested SHA", "Actions URL"))'
+      python3 .agents/skills/harness/bin/check-plan-routes.py .harness/harness/features/FEAT-2081-ci-shard-structure-audit/plan.yaml
+    intent: |
+      Author the exact feature-scoped UAT artifact using the harness-uat protocol; both automated preparation checks must exit 0 within 60 seconds. It starts draft and may be marked ready only after automated and pinned-inspection prerequisites are actually met. Only the user may mark live cases passed. No local smoke, workflow parse, synthetic result, or inferred timing substitutes for SC-09/SC-10.
+      Provide a throwaway-PR procedure with four separately pinned commits and Actions URLs: passing positive control, a failing test assigned to one shard, omission of one discovered test from every shard while independent tested-commit discovery still sees it, and restored exact passing coverage. For omission record the independent expected file and missing completed manifests. Each negative case expects required integration to complete with failure, never success or indefinite pending. Keep mutations on the throwaway branch, not the feature worktree, and return to restored code before performance measurements. Do not intentionally cancel main or claim whole-workflow cancellation coverage.
+      Include fields for tested SHA, Actions URL, per-job result, manifest identity and file lists, required integration conclusion, and timestamps for each live case. After restored success, record three consecutive passing ubuntu-latest runs of four shards, with the median of all three critical-path durations below 100 seconds; record all three durations and discard none. Measure the integration critical path from the earliest integration-shard job start through integration aggregation completion, including runner setup, queue/dependency wait on that path, and aggregation; record checks-job timing separately so an unchanged gate bottleneck is visible. Compare against supplied run 37264903064 at b046bdfed9fa262a25f53a41d566db2b90cd140b, pool integration wall 170.49 seconds rounded to the brief's 170; identify that baseline as pool time, not an invented full-job setup measurement.
+      Specify same-host, same-Python, same fixed private source corpus, clean temporary roots, and interleaved baseline/current runs for structure timing. Pin baseline 8e0b9e900986d4e0e07414ffedb1c09a2a6a7554 and the shipped review SHA. For SC-06 traversal evidence and SC-10 timing evidence, record all three samples and medians separately for tests/integration/test-checker-structure-locks.py's in-process calls and the check-plan-routes.py --consolidation-audit CLI, with instrumentation runs reporting physical/embedded AST and node visit counts separately from uninstrumented wall time. Require lower medians in both existing paths, no selected fastest sample, and unchanged findings/output controls. Cite T-03's independent rule witnesses and red-first traversal evidence for both paths. OQ-03 is settled: check-state.py is not an audit entry path and wiring it is out of scope; no real-entry prerequisite remains.
+      Add the reviewer evidence fields for git show REVIEW_SHA:.github/workflows/tests.yml and individual required gate dependency locations. Main performs final whole-suite validation once after all changes land; task-level focused evidence must already carry red-first witnesses. This document is a script and evidence ledger, not a manufactured pass report.

@@ -302,6 +302,20 @@
       "task": "none"
     },
     {
+      "artifact": "integration shard manifest (CI suite evidence)",
+      "category": "json_string",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "main-session-direct",
+      "exemption": "module_internal_format",
+      "file": ".claude/skills/harness/bin/check-integration-shards.py",
+      "id": ".claude/skills/harness/bin/check-integration-shards.py::_read_manifest::json_string#1",
+      "reason": "Non-canonical suite evidence: the aggregation gate decodes the completed-file manifests that run-unit-tests.py --shard --manifest writes into CI artifacts; it is not harness state and malformed JSON is reported as defect exit 2.",
+      "remedy": "none",
+      "symbol": "_read_manifest",
+      "task": "none"
+    },
+    {
       "artifact": "agent frontmatter",
       "category": "pyyaml",
       "dec174_category": "validator",
@@ -2133,6 +2147,20 @@
       "task": "none"
     },
     {
+      "artifact": "integration duration weights (tests/integration/integration-durations.json)",
+      "category": "json_file",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "main-session-direct",
+      "exemption": "module_internal_format",
+      "file": ".claude/skills/harness/bin/run-unit-tests.py",
+      "id": ".claude/skills/harness/bin/run-unit-tests.py::_load_weights::json_file#1",
+      "reason": "Non-canonical suite evidence: the suite runner owns its checked-in duration document used only to weight --shard partitions; it is not harness state and a non-schema-1 document is refused.",
+      "remedy": "none",
+      "symbol": "_load_weights",
+      "task": "none"
+    },
+    {
       "artifact": "feature.json",
       "category": "load_feature_json",
       "dec174_category": "validator",
@@ -2173,6 +2201,7 @@
     ".claude/skills/harness/bin/check-expertise.py",
     ".claude/skills/harness/bin/check-fixture-secrets.py",
     ".claude/skills/harness/bin/check-instruction-paths.py",
+    ".claude/skills/harness/bin/check-integration-shards.py",
     ".claude/skills/harness/bin/check-omp-port.py",
     ".claude/skills/harness/bin/check-plan-routes.py",
     ".claude/skills/harness/bin/check-skill-refs.py",

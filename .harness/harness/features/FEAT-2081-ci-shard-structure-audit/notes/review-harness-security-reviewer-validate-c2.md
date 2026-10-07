@@ -1,0 +1,24 @@
+# Security validation — FEAT-2081 — validate-c2
+
+**PASS: helper extraction introduces no identified exploitable security regression; security does not block UAT-ready at `f2791446c294abb5b26e6bcf663b25ee86b6dcce`.** SC-09/SC-10 remain pending user UAT, not ship approval. Assurance is pinned reasoning only; no suites, builds, linters, formatters, live Actions checks, or dynamic security probes were run.
+
+## Pinned scope and measured census
+Canonical authority: `e8d868f78a6ec43880598af5c5873f5daa8ba985..f2791446c294abb5b26e6bcf663b25ee86b6dcce`. Reviewed remediation: `fc942ec4ebb0783f61e9809e3fc329b7f53be3e6..f2791446c294abb5b26e6bcf663b25ee86b6dcce`, literal git-object diff, **10 paths, +283/-31**; production subset **3 paths, +57/-27**. Current feature.json agrees with the dispatch pin; its committed old review_sha is historical ledger data, not authority for this review.
+
+Every delta path scoped:
+- **IN, T-01:** `.claude/skills/harness/bin/run-unit-tests.py` (+35/-18), CLI/weight validation and manifest consumer; `run_pool.py` (+7/-2), completion evidence/publication.
+- **IN, T-02:** `.claude/skills/harness/bin/check-integration-shards.py` (+15/-7), malformed input refusal and required verdict.
+- **Record-only, no executable surface:** feature.json (+1/-1); five added cycle-1 notes (PM goalcheck +37, code +52, QA +91, security +25, UI +17), preserving prior assessments rather than adding runtime authority.
+- **IN, T-06 evidence integrity:** notes/uat.md (+3/-3), removal of SC-10 waiver; no new execution command.
+Full delta credential-pattern sweep found no credential additions; matches were identifier names and explanatory prose. No new dependency, application auth/tenant boundary, interpreted export, network destination, or shell execution surface.
+
+## Boundary closure
+- **argv/weights → execution (T/E):** `_take_option` moves the original branches without changing option recognition, duplicate refusal, missing-value handling or index advancement. `_check_combinations` runs before shard parsing with identical predicates. `_check_provenance` precedes `_check_weights`: object/schema/source-string checks, nonboolean positive finite default/weights and string keys remain required. Discovery still determines scripts, never duration keys. See `run-unit-tests.py` named helpers, `_partition`, and `_run_shard`; underlying subprocess remains list-form (`run_pool.py:run_one`). No new input-to-code or credential sink.
+- **completed futures → published evidence (T):** `_record_completed` contains exactly the prior conditional generator extension; `_run_scripts` still obtains actual `future.result()` values. Ordering remains run all children → record completions → mutation check → nonzero-on-mutation/child-failure verdict. Runner `_run_shard` writes only after pool return and preserves runner_exit; exceptions do not fabricate success. See `run_pool.py:_run_scripts/_record_completed/main`, `run-unit-tests.py:_run_shard/_write_manifest`.
+- **CLI/artifacts → required verdict (T/S):** `_missing_options` and `_value_problems` retain the same required-field, full-object-ID and positive-shard checks, in the same diagnostic order after unknown arguments. `_parse` still wraps every problem as MALFORMED; `main` does not validate through parse defects and `_report` returns their nonzero status. Exact-success upstream conclusions, independent tested-commit discovery and exact completion coverage are unchanged (`check-integration-shards.py:_parse/main/evidence_defects`).
+- **UAT evidence → acceptance (T):** T-06 now makes L-01 mandatory user-executed SC-10 and removes Main's waiver from prose, heading and sign-off. No changed security/spec blocker; ordinary pin/inspection/readiness receipt updates remain Main's responsibility.
+
+## Retained cycle-1 assurance and limits
+Carry `notes/review-harness-security-reviewer-validate-c0.md`'s security PASS: workflow/AST/cache boundaries are untouched by this delta, so SC-04/05 inspection and accepted test-only cache conclusions stand, not newly measured here. Manifests are runner-reported evidence, not cryptographic attestation against malicious test code already holding shard execution/workflow-edit capability. Existing mutation-detector limitations, workflow self-deletion resistance, branch-protection administration and whole-workflow cancellation remain accepted/out of scope; no new reachability is introduced. No live scheduling/performance assurance is claimed. Only the user can discharge SC-09/10, including mandatory lower same-corpus medians for both structure paths; L-01 need not execute before UAT-ready.
+
+Findings: none. Must fix: none. Open questions: none. Security blocks UAT-ready: **no**. Mechanical complexity closure belongs to the code panel; its reported grading is not dynamic security evidence.

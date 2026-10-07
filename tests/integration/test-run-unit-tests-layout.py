@@ -22,6 +22,8 @@ def tree():
         shutil.copy2(ROOT/".claude/skills/harness/bin"/name, b/name)
     for kind in ("unit", "integration"):
         d=r/"tests"/kind; d.mkdir(parents=True); (d/f"test-{kind}.py").write_text(f'print("PASS test-{kind}.py")\n')
+    # FEAT-2081: the runner's sharding data dependency travels with the copied tree.
+    shutil.copy2(ROOT/"tests/integration/integration-durations.json", r/"tests/integration/integration-durations.json")
     return r
 
 def git_tree():
