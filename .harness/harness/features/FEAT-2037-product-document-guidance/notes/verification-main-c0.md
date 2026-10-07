@@ -20,3 +20,16 @@ These are structural/regression receipts only. No live UAT assertion has been ju
 
 ## Runtime launcher identity
 Actual executable `/Users/molchairuangutai/.bun/bin/omp`, version `omp/18.6.1`, SHA-256 `348d0987f05eab2f56b6f543933ca6bbb964d8d069cca9a55be3a5efffad041a`. A worktree-rooted CLI preflight uses `/tmp/harness-2037-build-preflight` for its disposable session. Delivery/conduct evidence remains pending; identity alone proves neither.
+
+## Governed review and unresolved readiness
+The verifier-only correction was signed under the actual operator ruling; receipt: `notes/receipt-verification-order-main-2026-10-05.md`. Build/review session: `/tmp/harness-2037-build-review/2026-10-05T05-06-50-447Z_01a10a75-1fcf-7000-a018-d142355b1d3b/`.
+
+Independent code inspection at `1e69bf14a4110c340b7dad454a84aa13eeb3c01e` passed SC-04 after separately reading all four pinned production files. No source findings; `notes/review-harness-code-reviewer-c0.md`. Security/UI scoped out. The four SIMPLIFY readers reported PASS, but the lead return was refused and the run closed BLOCKED; its prose PASS is not an accepted segment verdict.
+
+Both QA segments escalated: the configured docs floor is met and there are zero automated SCs, but the live validator rejects PASS with the honest empty `fail_first`. No fake evidence or matrix waiver was supplied. Final panel: ESCALATE, no production must-fix, SC-01..SC-03 still NOT RUN; `runs/validate-validator/digest.md`.
+
+The orchestrator advanced and committed despite QA ESCALATE, the refused SIMPLIFY receipt and check-state exit 1. MAIN does not certify that advancement. STATE retains the actual history, unresolved INV-15, canonical terminal closeouts and reported NO CLAIMS; final closeout corrections remain uncommitted. No UAT or fixture staging was performed, and no PR or merge was authorized.
+
+MAIN checked the five newer origin/main commits through e8d868f7. `git diff f35d3a72 origin/main -- .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-state.py .omp/agents/harness-qa.md` produced no output: these blocked contracts are unchanged upstream. Merely updating that baseline cannot resolve the zero-automated-SC QA predicate.
+
+Readiness remains blocked; resolving enforcement/receipt contracts is outside this four-Markdown task and requires separate authorization. The unchanged 27-assertion UAT cannot be conducted as ready without its actual green-QA prerequisite.
