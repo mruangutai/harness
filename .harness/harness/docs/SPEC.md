@@ -1463,9 +1463,9 @@ can leave no manifest; CI refuses missing evidence rather than inventing a succe
   An empty shard succeeds without starting the pool and can write an empty manifest; it
   does not bypass full-suite layout validation.
 - `tests/integration/integration-durations.json` is checked-in schema-1 advisory data: the
-  attributed per-file integration durations from one named Actions run (`source_run_url`,
-  `source_commit`), measured per shard so the weights reflect sharded execution. Its
-  `default_seconds` is the median of those durations. Unknown discovered files use that
+  attributed per-file integration durations measured on sharded Actions runs: `source_run_url`
+  and `source_commit` name the latest run, and an optional `source_runs` list names every run
+  whose per-file median a weight is. Its `default_seconds` is the median of the weights. Unknown discovered files use that
   default; stale weight entries add no files. The runner validates the document and positive
   finite durations; CI does not rewrite it or rebalance from concurrent job state. Re-measure
   it from a passing run's shard logs when shard wall times drift apart.

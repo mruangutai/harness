@@ -32,3 +32,7 @@ Main gained #2095 (panel findings hold the template shape; INV-32), so the UAT t
 ## Re-pin ccb1732d -> b886dbcf53777cb3139c04e5b973ed77244f8dcf (2026-10-06)
 
 The throwaway UAT PR conflicted with main (canonical-reader-classification.json: both sides appended rows), so GitHub created no pull_request run. b886dbcf53777cb3139c04e5b973ed77244f8dcf merges origin/main 2d28b79e and keeps both sides' rows; `--canonical-reader-audit` reports 0 unresolved across 100 files. The merge also brought FEAT-1559's sparse feature worktrees; this worktree was repaired with `worktree-state.py --repair`. Over the feature's code, workflow, weights and plan.yaml the diff ccb1732d..b886dbcf53777cb3139c04e5b973ed77244f8dcf is shown in the commit message's check as merge-only (check-plan-routes.py auto-merged main's change). Unit and integration (83 files) exit 0 at b886dbcf53777cb3139c04e5b973ed77244f8dcf.
+
+## Weights re-measured after UAT SC-10 miss (operator ruling, 2026-10-06)
+
+UAT P1 took 108s; shard 1 was longest in all six UAT runs, and 7 files added on main (test-check-state-corpus.py, test-corpus-non-regression.py, test-corpus-real-owner.py, test-feature-corpus-census.py, test-feature-corpus.py, test-worktree-state-hooks.py, test-worktree-state.py) had no weight. integration-durations.json now holds the per-file median over UAT runs U-01, U-05, U-06, U-07 (83 files). Predicted LPT shard sums: [157.5, 157.5, 157.6, 157.7]. SPEC §9 describes the optional `source_runs` list.
