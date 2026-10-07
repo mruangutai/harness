@@ -128,7 +128,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: These skill and team dispatch-contract surfaces have no specialist write grant; direct implementation keeps the producer cutover with its gate.
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/SKILL.md
     - .claude/skills/harness/references/plan-phase.md
