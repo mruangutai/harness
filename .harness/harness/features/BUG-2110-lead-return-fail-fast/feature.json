@@ -5,6 +5,33 @@
   "review_sha": "none",
   "cycles_used": 0,
   "max_total_cycles": 10,
-  "runs": [],
-  "judgements": []
+  "runs": [
+    {
+      "id": "2026-10-07-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-10-07T03:36:21+00:00"
+    }
+  ],
+  "judgements": [],
+  "github": {
+    "milestone": 101,
+    "parent": 2132,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2133,
+      "T-02": 2134,
+      "T-03": 2135
+    },
+    "source_issues": [
+      2110,
+      2097
+    ],
+    "build_entry": "opened"
+  }
 }
