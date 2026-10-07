@@ -1453,16 +1453,40 @@ def _declined_gate_errors(field, val, seen, persona, passing, feature_dir=None):
 
 
 def _qa_floor_requires_nothing(field, persona, seen, feature_dir):
-    """#2139: qa's `suite` has nothing to gate when the plan's computed matrix floor is empty
-    and the return says so (`matrix_ok: true`, `kinds: []`) — DEC-173's dev-ops case for qa.
-    Fails closed: any other field or persona, a reported kind, or a floor that cannot be
-    derived leaves the gate binding."""
+    """#2139: qa's `suite` has nothing to gate when no started task's matrix row can require a
+    kind and the return says so (`matrix_ok: true`, `kinds: []`) — DEC-173's dev-ops case for
+    qa. Fails closed: any other field or persona, a reported kind, or a matrix/plan that cannot
+    prove "nothing required" leaves the gate binding."""
     if persona != "qa" or field != "suite" or not feature_dir:
         return False
     if seen.get("matrix_ok") is not True or seen.get("kinds") != []:
         return False
     root = _repo_root_for_feature(feature_dir)
-    return _matrix_floor(root, feature_dir, _load_test_kinds(root)[0]) == []
+    return _matrix_requires_no_kind(root, feature_dir, _load_test_kinds(root)[0])
+
+
+def _matrix_requires_no_kind(root, feature_dir, test_kinds):
+    """True only when the plan has started work and every started task names a known row whose
+    `always` AND `when:` kinds are all policy-excluded. Unlike `_matrix_floor`, the conditional
+    half counts: a `when:` kind is qa's judgement (DEC-212), so it can never be ruled out here."""
+    matrix, tasks = _load_matrix_inputs(root, feature_dir)
+    if matrix is None:
+        return False
+    started = [t for t in tasks if not (isinstance(t, dict) and t.get("status") in _MATRIX_UNSTARTED)]
+    excluded = _excluded_kinds(test_kinds)
+    return bool(started) and all(
+        isinstance(t, dict) and _row_requires_no_kind(matrix.get(t.get("change_type")), excluded)
+        for t in started)
+
+
+def _row_requires_no_kind(row, excluded):
+    if not isinstance(row, dict) or not isinstance(row.get("always"), list):
+        return False
+    when = row.get("when", [])
+    if not isinstance(when, list):
+        return False
+    kinds = row["always"] + [w.get("kind") if isinstance(w, dict) else None for w in when]
+    return all(isinstance(k, str) and k in excluded for k in kinds)
 
 
 # THE FAIL-VALUE GATE. Deliberately OUTSIDE the placeholder branch — nesting it inside is

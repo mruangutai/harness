@@ -366,6 +366,7 @@ MATRIX_JSON = dict(HARNESS_JSON, test_matrix={
     "logic": {"always": ["unit"]},
     "cross_module": {"always": ["unit", "functional"]},
     "docs": {"always": []},
+    "bugfix": {"always": [], "when": [{"kind": "unit", "if": "touches_runtime_code"}]},
 })
 
 
@@ -444,14 +445,22 @@ def case_qa_empty_floor_suite():
               _declined(errs, "matrix_ok"), str(errs))
 
 
+_STILL_GATED = (
+    ("non-empty floor", [("docs", "done"), ("logic", "done")]),
+    ("conditional bugfix row", [("bugfix", "done")]),
+    ("unknown change_type", [("doc", "done")]),
+    ("no started task", [("docs", "todo")]),
+    ("unresolvable floor", None),
+)
+
+
 def case_qa_floor_still_binds_suite():
-    """#2139: a required kind, or a floor that cannot be derived, keeps `suite` gated."""
-    with tempfile.TemporaryDirectory() as td:
-        errs = _qa_floor_errors(td, [("docs", "done"), ("logic", "done")])
-        check("non-empty floor: suite n/a with PASS is refused", _declined(errs, "suite"), str(errs))
-    with tempfile.TemporaryDirectory() as td:
-        errs = _qa_floor_errors(td, None)
-        check("unresolvable floor: suite n/a with PASS is refused", _declined(errs, "suite"), str(errs))
+    """#2139: a required, conditional or unknown row, no started work, or a floor that cannot
+    be derived keeps `suite` gated."""
+    for label, change_types in _STILL_GATED:
+        with tempfile.TemporaryDirectory() as td:
+            errs = _qa_floor_errors(td, change_types)
+            check(f"{label}: suite n/a with PASS is refused", _declined(errs, "suite"), str(errs))
 
 
 def main():

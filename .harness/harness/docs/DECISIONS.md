@@ -4344,12 +4344,14 @@ are bound by it. A `reviewer` scoping out of a diff with nothing for its role to
 `severity_max: n/a`, legitimately.
 
 **qa's `suite` has the same "no tests apply" case, and it is computed, never claimed (#2139).** When the
-plan's matrix floor — `test_matrix.<change_type>.always` over its started tasks, minus excluded kinds —
-resolves to exactly `[]`, qa may return `suite: n/a` with `VERDICT: PASS`, `matrix_ok: true` and
+plan has started work and every started task names a known `test_matrix` row whose `always` AND `when:`
+kinds are all policy-excluded, qa may return `suite: n/a` with `VERDICT: PASS`, `matrix_ok: true` and
 `kinds: []`. Without this, a docs-only feature's honest qa return was refused and qa ran an unrequired
-suite to write `pass`: the fabricated-record shape this decision exists to prevent. It fails closed:
-any reported kind, `matrix_ok` other than `true`, or a floor that cannot be derived keeps the gate
-binding, and `matrix_ok: n/a` with PASS stays refused.
+suite to write `pass`: the fabricated-record shape this decision exists to prevent. `when:` kinds count
+because their applicability is qa's judgement (DEC-212) and cannot be ruled out mechanically, so
+`bugfix` and `config` never qualify. It fails closed: a reported kind, `matrix_ok` other than `true`,
+an unknown row, no started task, or an unreadable plan or matrix keeps the gate binding, and
+`matrix_ok: n/a` with PASS stays refused.
 
 **What triggered the audit.** `harness-tdd-enforcement`'s under-specified-task refusal was written
 with two DIGEST fields and no `artifact:`. The `SubagentStop` hook rejected it with **exit 2**, so the
