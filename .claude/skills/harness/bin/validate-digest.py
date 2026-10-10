@@ -1448,8 +1448,17 @@ def _declined_gate_errors(field, val, seen, persona, passing, feature_dir=None):
             and not _qa_floor_requires_nothing(field, persona, seen, feature_dir):
         return [f"{field}={val!r} declines to report a gate, but VERDICT is "
                 f"PASS — a gate that did not run cannot have passed. Return "
-                f"BLOCKED or FAIL, or report the real result."]
+                f"BLOCKED or FAIL, or report the real result." + _task_none_hint(field, persona, seen)]
     return []
+
+
+def _task_none_hint(field, persona, seen):
+    """#2145: a dev that touched nothing on a dispatch carrying no plan.yaml task has an honest
+    PASS already — `task: none` (NOTHING_TO_GATE). Name it; the gate itself is unchanged."""
+    if field not in NOTHING_TO_GATE.get(persona, ()) or seen.get("files_touched") != []:
+        return ""
+    return (" If your dispatch carries no plan.yaml task (analysis, review or a scratch task "
+            "the dispatch says is not in the plan), return `task: none` with `task_verify: none`.")
 
 
 def _qa_floor_requires_nothing(field, persona, seen, feature_dir):
