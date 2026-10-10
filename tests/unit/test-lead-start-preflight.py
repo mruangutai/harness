@@ -136,11 +136,14 @@ def prompt(root, mission=None, extra=()):
 
 
 def dispatch(root, dispatched, dispatcher="harness-orchestrator", text=None):
-    """Fire the guard with the measured OMP dispatch payload shape."""
+    """Fire the guard with the measured OMP dispatch payload shape. The dispatcher "Main" is
+    the existing top-level OMP main-session identity the guard already recognises."""
     payload = {"agent_type": dispatcher, "tool_name": "Task", "hook_event_name": "PreToolUse",
                "cwd": root, "harness_runtime": "omp", "supervisor_pid": os.getpid(),
                "tool_input": {"agent": dispatched,
                               "task": text if text is not None else prompt(root)}}
+    if dispatcher == "Main":
+        payload["harness_agent_id"] = "Main"
     env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
     return subprocess.run([sys.executable, guard()], input=json.dumps(payload),
                           capture_output=True, text=True, env=env, timeout=30)
@@ -290,6 +293,98 @@ def sc03_plan_diagnostic(lead, status):
         shutil.rmtree(root, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------------------
+# BUG-2141 (DEC-174): on an entirely main-session-direct plan the main session IS the
+# orchestrator; its dispatch of harness-eng-lead is refused before any claim. Every other
+# plan shape, dispatcher and lead keeps its prior outcome.
+# ---------------------------------------------------------------------------------------
+
+def plan_text(*modes, status="pending"):
+    """A plan.yaml whose tasks carry `modes` (None: no execution_mode key at all)."""
+    body = f"schema: plan/1\nfeature: {FEATURE}\napproval:\n  status: {status}\ntasks:\n"
+    for index, mode in enumerate(modes, 1):
+        body += (f"  - id: T-{index:02d}\n    title: fixture task\n    change_type: test\n"
+                 + (f"    execution_mode: {mode}\n" if mode else "")
+                 + "    files: [fixture.py]\n    verify: \"true\"\n    intent: x\n")
+    return body
+
+
+DIRECT = "main-session-direct"
+QUALIFYING_PLANS = {"single-direct": plan_text(DIRECT), "multi-direct": plan_text(DIRECT, DIRECT)}
+NONQUALIFYING_PLANS = {
+    "mixed": plan_text(DIRECT, "team"), "team": plan_text("team", "team"),
+    "missing-mode": plan_text(DIRECT, None), "empty": plan_text(),
+    "invalid": "tasks: [unclosed\n  - : :\n", "absent": None,
+}
+
+
+def registry_bytes(root):
+    path = os.path.join(root, REGISTRY_REL)
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as handle:
+        return handle.read()
+
+
+def planned_start(plan, dispatcher, lead, mission=None):
+    """Dispatch `lead` from `dispatcher` with one open run for it and `plan` on disk."""
+    root = make_root([lead_run(lead)])
+    try:
+        if plan is not None:
+            with open(plan_path(root), "w") as handle:
+                handle.write(plan)
+        before = registry_bytes(root)
+        result = dispatch(root, lead, dispatcher, prompt(root, mission))
+        unchanged = registry_bytes(root) == before
+        return result, claims(root, lead), unchanged, outcome(result, root, lead)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def dec174_main_eng_lead_refused():
+    for label, plan in QUALIFYING_PLANS.items():
+        result, held, unchanged, detail = planned_start(plan, "Main", "harness-eng-lead")
+        check("dec174", f"BUG-2141/main-eng/{label}",
+              f"Main -> harness-eng-lead on a {label} plan is refused, registry unchanged",
+              refused_before_claim(result, held) and unchanged, detail)
+        check("dec174", f"BUG-2141/main-eng/{label}/diagnostic",
+              f"{label}: the refusal names DEC-174 and the build-directly remedy",
+              "DEC-174" in result.stderr and "build" in result.stderr
+              and "directly" in result.stderr, detail)
+
+
+def dec174_nonqualifying_unchanged():
+    for label, plan in NONQUALIFYING_PLANS.items():
+        result, held, _unchanged, detail = planned_start(plan, "Main", "harness-eng-lead")
+        check("control", f"BUG-2141/main-eng/{label}",
+              f"Main -> harness-eng-lead on a {label} plan keeps its prior start and claim",
+              result.returncode == 0 and len(held) == 1 and "DEC-174" not in result.stderr,
+              detail)
+
+
+def dec174_controls():
+    plan = QUALIFYING_PLANS["multi-direct"]
+    for lead, mission in (("harness-product-lead", "plan"), ("harness-product-lead", "patch"),
+                          ("harness-validator-lead", "validate"),
+                          ("harness-validator-lead", "fix")):
+        result, held, _unchanged, detail = planned_start(plan, "Main", lead, mission)
+        check("control", f"BUG-2141/main-{lead.split('-')[1]}/{mission}",
+              f"Main -> {lead} ({mission}) on an all-direct plan still starts and claims",
+              result.returncode == 0 and len(held) == 1, detail)
+    result, held, _unchanged, detail = planned_start(plan, "harness-orchestrator",
+                                                     "harness-eng-lead")
+    check("control", "BUG-2141/orchestrator-eng",
+          "orchestrator -> harness-eng-lead on an all-direct plan keeps its prior outcome",
+          result.returncode == 0 and len(held) == 1 and "DEC-174" not in result.stderr, detail)
+    result, held, _unchanged, detail = planned_start(plan, "harness-product-lead",
+                                                     "harness-eng-lead")
+    check("control", "BUG-2141/lead-eng",
+          "lead -> harness-eng-lead keeps its existing spawns allowlist refusal",
+          refused_before_claim(result, held) and "spawns: list" in result.stderr
+          and "DEC-174" not in result.stderr, detail)
+
+
+
 def report():
     failed = 0
     for kind, case_id, name, ok, detail in RESULTS:
@@ -313,6 +408,9 @@ def main():
         for lead in ("harness-product-lead", "harness-validator-lead"):
             for status in ("approved", None):
                 sc03_plan_diagnostic(lead, status)
+        dec174_main_eng_lead_refused()
+        dec174_nonqualifying_unchanged()
+        dec174_controls()
     finally:
         shutil.rmtree(_PRIVATE.get("holder", ""), ignore_errors=True)
     return report()

@@ -2356,6 +2356,10 @@ test runs had orchestration hand-written into the prompt.
 Whether the multi-squad lifecycles (`plan-feature`, `ship-feature`, DEC-118) are playbooks the
 orchestrator *reads*, or a DAG format it *executes* like a team. Deferred until one exists.
 
+The thin layer-0 default above holds for ordinary spawned organization. Its one exception is a plan
+whose every task is `execution_mode: main-session-direct`: there the main session is the feature
+orchestrator — see DEC-174's 2026-10-10 amendment (#2141).
+
 ---
 
 ## DEC-121 — Every digest field is required; `[]` is how you say nothing
@@ -4501,6 +4505,19 @@ missing. That cost **zero item writes** against the 118 finished issues of the 2
 renaming a Projects v2 option keeps its id, so no card moved. `Ready` is deliberately empty — on that
 board `Backlog` means filed-and-untriaged and `Ready` means promoted for the factory, so a claim run
 that finds nothing has found the truth.
+
+**Amended 2026-10-10 (#2141) — on an entirely main-session-direct plan the main session IS the
+feature orchestrator.** When every task of a feature's canonical `plan.yaml` is
+`execution_mode: main-session-direct` (the same plan-keyed answer `handoff_policy.exempt_reason`
+gives), the main session holds ALL orchestrator duties itself: the `run-start`/`close-run` ledger
+(`.claude/skills/harness/references/ledger.md`), the judgements, the review pin, the commit pen and
+ship. It may dispatch `harness-product-lead` for the plan team, a panel or a patch, and
+`harness-validator-lead` for validate or fix — never `harness-eng-lead`; it builds directly. Every
+such prompt obeys the harness-zero-micro-management dispatch headers. The existing handoff_policy
+exemption still means no handoff notes are owed. `dispatch-guard.py` enforces the one refusal: the
+OMP main session dispatching `harness-eng-lead` for a qualifying feature exits 2 before any lead
+preflight or claim, naming DEC-174 and the build-directly remedy. Mixed, team, absent, unreadable
+or empty plans keep their prior outcomes, as do every other dispatcher and lead.
 
 ## DEC-175 — The engineering return declares which task it is answering: `task: T-NN|none` gates `task_verify`, and a self-reported gate FAILURE stops being a pass
 
