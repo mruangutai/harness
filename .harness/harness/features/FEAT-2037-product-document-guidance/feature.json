@@ -1,0 +1,246 @@
+{
+  "feature_id": "FEAT-2037-product-document-guidance",
+  "branch": "feat/FEAT-2037-product-document-guidance",
+  "pr": null,
+  "review_sha": "17c3cd5b4cb7375355f1939f56577c6505abf603",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T03:08:31+00:00",
+      "tokens": 32114,
+      "ended_at": "2026-10-05T03:49:13+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "preflight-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T04:25:24+00:00",
+      "ended_at": "2026-10-05T04:38:04+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "preflight-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T04:25:26+00:00",
+      "ended_at": "2026-10-05T04:38:07+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "correction-verify-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T04:50:19+00:00",
+      "tokens": 36449,
+      "ended_at": "2026-10-05T04:57:43+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "qa-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-10-05T05:13:02+00:00",
+      "tokens": 37400,
+      "ended_at": "2026-10-05T05:17:53+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T05:18:09+00:00",
+      "tokens": 46313,
+      "ended_at": "2026-10-05T05:24:50+00:00",
+      "cycles_used": 0,
+      "return_disposition": "refused"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-10-05T05:32:19+00:00",
+      "tokens": 68762,
+      "ended_at": "2026-10-05T05:49:23+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "simplify-c1-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-07T12:36:51+00:00",
+      "tokens": 56372,
+      "cycles_used": 0,
+      "ended_at": "2026-10-07T12:41:32+00:00"
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-10-07T13:20:18+00:00",
+      "tokens": 63558,
+      "cycles_used": 0,
+      "ended_at": "2026-10-07T13:31:15+00:00"
+    },
+    {
+      "id": "uat-u01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-07T15:06:35+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-10-07T15:11:53+00:00"
+    },
+    {
+      "id": "uat-u02-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-10-07T15:13:51+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-10-07T15:16:34+00:00"
+    },
+    {
+      "id": "uat-u03-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-07T15:18:18+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-10-07T15:25:07+00:00"
+    },
+    {
+      "id": "uat-u04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-07T15:26:04+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-10-07T15:28:53+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-05T03:08:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Grilling 2026-10-05: missing document pointers and handoff guidance are known, the proposed diff is four existing Markdown files, no public interface, schema or enforcement surface is introduced; operator confirmed patch"
+    },
+    {
+      "at": "2026-10-05T03:41:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan-product intake complete and pending, but host refused the lead digest binding twice (no trusted hook-owned digest binding); close-run refused at stage digest; see notes/blocker-plan-product-2026-10-05.md"
+    },
+    {
+      "at": "2026-10-05T04:53:24.630940+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Operator 2026-10-05 verification-order ruling: build verify is the five static checks; SC-04 review and 27-assertion UAT stay post-build feature gates"
+    },
+    {
+      "at": "2026-10-05T05:17:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "qa gate: docs matrix floor met, must_fix empty, no gate failed; ESCALATE is validate-digest.py:1506 refusing PASS with zero automated SCs (OQ-1 up as harness defect); diff is Markdown only so code_grade n_a; proceed to SIMPLIFY"
+    },
+    {
+      "at": "2026-10-05T05:24:52+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "simplify-eng: host refused eng-lead return (no trusted hook-owned digest binding, 3rd occurrence); disk shows four angle receipts, zero accepted findings, no production edits; proceed to seam on observed artifacts"
+    },
+    {
+      "at": "2026-10-05T05:32:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "same orchestrator crossing build->validate seam at handoff-build seq-6; spend 72 min, 0 rework; pin 1e69bf14 at seam commit"
+    },
+    {
+      "at": "2026-10-05T05:44:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "validate 1e69bf14: SC-04 PASS, must_fix []; qa ESCALATE = zero-automated-SC contract gap; SC-01..03 operator-only UAT NOT RUN, no fix target; stop at UAT gate"
+    },
+    {
+      "at": "2026-10-05T05:49:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "MAIN retains QA ESCALATE and refused SIMPLIFY; normal readiness blocked. SC-04 inspection PASS; operator UAT NOT RUN. No repair or waiver authorized."
+    },
+    {
+      "at": "2026-10-07T12:41:34+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "simplify-c1-eng PASS with engineering squad binding: four angles ran, zero accepted findings, no production edits; proceed to seam commit and re-pin"
+    },
+    {
+      "at": "2026-10-07T12:44:52+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "validate rerun withheld: host gates come from main checkout 2d28b79e (pre-#2131) and the #2131 QA exemption fails closed on the approved BRIEF's SC-01\u2013SC-03 gaps bullet (Q-08, Q-09); awaiting main/operator"
+    },
+    {
+      "at": "2026-10-07T13:31:17+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "validate-c1 at 17c3cd5b: qa/code/security/ui PASS, must_fix [], severity_max none, SC-04 met; pm ESCALATE because SC-01..03 are operator-only UAT NOT RUN; no fix target, stop at UAT gate; QA-SUITE-NONE is a host contract defect outside T-01"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/FEAT-2037-product-document-guidance/notes/answers-verification-order-2026-10-05.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "f5538093b3474dbed71f36428e1ebfdcc7ed487127d549522b830f96f9d7671b"
+  },
+  "github": {
+    "milestone": 97,
+    "parent": 2072,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2073
+    },
+    "source_issues": [
+      2037
+    ],
+    "build_entry": "opened"
+  }
+}

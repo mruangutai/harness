@@ -1119,6 +1119,17 @@ earlier count said "seven" and omitted `systematic-debugging`, which §3.4 has a
 **Rules are uniform across all projects — there is no per-project rule overlay.** Project-specific
 *values* still vary (`domain` globs, `test_kinds`, §3); project-specific *behavior* does not.
 
+**Product guidance is read input, not a Harness rule overlay.** In the assigned PRODUCT checkout,
+`docs/spec.md` describes requirements and behavior, `docs/decisions.md` adopted decisions and
+rationale, and `docs/architecture.md` architecture and component relationships. Planning,
+implementation and review consult relevant sections on demand before assumptions or escalation;
+review judges conformance. Report missing paths and questions, unresolved sections and questions,
+or both conflicting sources without inventing guidance or choosing precedence silently. Preserve
+product-checkout identity and applicable pointers in actual task intent and nested member dispatch;
+unchanged reference documents are not task-owned files. Neither Harness root supplies these product
+paths by default. Harness governance, including its DECISIONS-INDEX/DECISIONS and SPEC, is unchanged
+(DEC-70, DEC-158, DEC-214).
+
 **How a rule improves:** an agent notices a recurring problem → records it in its Expertise →
 surfaces at a CEO briefing → **you** decide → you edit the rule in this repository, and every run
 after that commit reads the new rule. There is nothing to push: the harness is read from this
