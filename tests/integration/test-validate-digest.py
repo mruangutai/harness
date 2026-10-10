@@ -2170,6 +2170,8 @@ artifact: none
 case("a REAL task whose verify passed still owes a suite result -- suite: n/a with "
      "PASS is REJECTED even with nothing touched",
      "harness-backend-dev", DEV_REAL_TASK_NO_SUITE, False, "pass")
+case("#2145: the dev nothing-touched refusal names the task: none route for a non-plan dispatch",
+     "harness-backend-dev", DEV_REAL_TASK_NO_SUITE, False, "task: none")
 
 QA_NA = """
 VERDICT: BLOCKED
