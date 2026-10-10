@@ -1,0 +1,27 @@
+{
+  "feature_id": "BUG-2141-dec174-main-orchestrator",
+  "branch": "feat/BUG-2141-dec174-main-orchestrator",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-10-10-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-10-10T14:04:44+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-10T14:04:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Operator chose the patch lane: one DEC-174 amendment plus docs and one dispatch-guard refusal."
+    }
+  ],
+  "mission": "patch"
+}
