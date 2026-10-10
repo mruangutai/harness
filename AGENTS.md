@@ -36,6 +36,8 @@ main session (layer 0, only user channel)
 
 Host-specific agent discovery, skill delivery, model routing, and lifecycle hooks must preserve this organization without putting those mechanics into shared guidance.
 
+Exception (DEC-174, #2141): when every task of a feature's plan is `execution_mode: main-session-direct`, the main session is that feature's orchestrator and builds directly; it may dispatch only `harness-product-lead` and `harness-validator-lead`, never `harness-eng-lead`. Ledger duties: `.claude/skills/harness/references/ledger.md`; dispatch headers: the harness-zero-micro-management skill.
+
 ## Decision discipline
 
 Before changing a Harness document, search `.harness/harness/docs/DECISIONS-INDEX.md` for the affected surface and open the relevant entries in `DECISIONS.md`. Never read the authority in full when the index can scope the question. Cited entries are a floor; follow their references when they expose another governing decision.

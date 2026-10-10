@@ -1,0 +1,45 @@
+schema: plan/1
+feature: BUG-2141-dec174-main-orchestrator
+approval:
+  date: '2026-10-10'
+  approved_by: Mike Ruangutai
+  status: approved
+status: plan
+source_issues: [2141]
+lanes:
+  resolved_at: 0b17e9bbf7ef4baafa0eb0844ec0edbb753dd86f
+  rows:
+    - {surface: .claude/skills/harness/bin/**, lane: main-session-direct, reason: DEC-174 enforcement cutover is direct.}
+    - {surface: tests/unit/**, lane: main-session-direct, reason: DEC-174 includes gate tests.}
+    - {surface: tests/integration/**, lane: main-session-direct, reason: DEC-174 includes gate tests.}
+    - {surface: .harness/harness/docs/**, lane: main-session-direct, reason: Authority amendment accompanies direct enforcement.}
+    - {surface: AGENTS.md, lane: main-session-direct, reason: Organization guidance accompanies direct enforcement.}
+    - {surface: .omp/commands/harness.md, lane: main-session-direct, reason: Main entry guidance accompanies direct enforcement.}
+decisions: []
+tasks:
+  - id: T-01
+    title: Document direct orchestration and refuse its engineering-lead detour
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires direct enforcement changes and regression tests in this feature worktree.
+    depends_on: []
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+      - AGENTS.md
+      - .omp/commands/harness.md
+      - .claude/skills/harness/bin/dispatch-guard.py
+      - tests/unit/test-lead-start-preflight.py
+      - tests/integration/test-dispatch-guard.py
+    verify: |
+      python3 tests/unit/test-lead-start-preflight.py && python3 tests/integration/test-dispatch-guard.py && (python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md)
+    intent: |
+      Work only inside /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2141-dec174-main-orchestrator after explicit signature of both artifacts. Main implements directly and retains ALL orchestrator duties; never dispatch harness-eng-lead. Complete SC-01 through SC-04 in this single task. Each focused command must finish within 60 seconds, exit 0 and print no FAIL assertions; index diff must be empty. Main runs configured unit/integration suites at final validation.
+      Tests first: extend tests/unit/test-lead-start-preflight.py and tests/integration/test-dispatch-guard.py using existing isolated bin, disposable registered feature checkout, dispatch payload and registry assertions. Supply valid open lead runs and applicable mission headers so setup succeeds. Use existing omp_main identity rather than inventing a MAIN-SESSION payload spelling. Assert main-to-eng-lead on single-task and multi-task nonempty all-direct plans exits 2, names DEC-174 and build-directly remedy, and leaves the registry unchanged. Exercise mixed/team plans, absent/invalid/empty plans and missing execution_mode according to existing handoff_policy classification: nonqualifying shapes must not trigger the new refusal and must retain prior outcomes. Add valid main-to-product plan/patch and main-to-validator validate/fix controls; preserve orchestrator-originated and lead-originated outcomes, including existing allowlist refusals rather than granting lead-to-lead permissions.
+      Before production edits pin origin/main to its full SHA and preserve fail-first evidence in this feature notes directory: commands, baseline pin, subject files, exits, stdout/stderr and named assertions. Execute new assertions against historical dispatch-guard.py and required historical sibling imports in private copied bin trees with current fixtures. Prove prohibited-dispatch assertions fail because baseline accepts the detour, not because imports, mission, registration or fixtures fail. Preserve positive-control baseline and final results. Do not commit a historical runner or temporary provisioning script.
+      Amend DEC-174 in DECISIONS.md: for entirely main-session-direct plans main is the feature orchestrator holding ALL duties, including run-start/close-run ledger, judgements, review pin, commit pen and ship. It may dispatch harness-product-lead for plan team/panel/patch and harness-validator-lead for validate/fix, never harness-eng-lead. Prompts obey harness-zero-micro-management dispatch headers. Existing handoff_policy exemption means no handoff notes owed. Reconcile DEC-120 thin layer-0 default using a short DEC-174 cross-reference, preserving ordinary spawned organization. Regenerate DECISIONS-INDEX.md with gen-decisions-index.py, never hand-maintain line numbers.
+      Under Organization in AGENTS.md add a short exception pointer to DEC-174, .claude/skills/harness/references/ledger.md and harness-zero-micro-management header authority, not copied procedures. Add matching note in .omp/commands/harness.md, qualifying unconditional no-direct-work/no-lead-dispatch opening for this exception. Leave unrelated guidance unchanged.
+      In dispatch-guard.py refuse only existing omp_main origin dispatching harness-eng-lead when the declared feature canonical plan qualifies via handoff_policy.exempt_reason. Locate the feature directory through existing root/repository resolution. Reuse that helper and its existing all-direct answer, never duplicate its task predicate or widen classification; leave handoff_policy.py unchanged. Refuse after feature identity resolution but before lead preflight and live_claim/claim_with_receipt mutations. Diagnostic names DEC-174 and instructs main to build directly. Preserve all other origin, non-direct, runtime, model/name, repository, header, run registration, claim and return checks and existing errors.
+      Review committed content at review_sha using git show for SC-01/SC-02; inspect shared-helper consumption for SC-04 alongside its integration evidence. No new public interface, schema, handoff procedure, retries or telemetry. Main owns review pin, commit pen and ship. This patch has no panel or goal-check.

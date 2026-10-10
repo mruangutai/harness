@@ -687,6 +687,31 @@ def _start_preflight():
     (_reader_preflight if reader else _lead_preflight)(destinations, errors, mission)
 
 
+def _direct_orchestration_refusal():
+    """BUG-2141 (DEC-174): on a plan whose every task is main-session-direct the main session
+    IS the feature orchestrator, so its harness-eng-lead dispatch is refused before any lead
+    preflight or claim. The qualifying answer is handoff_policy.exempt_reason's, never a
+    copy; a feature or plan that cannot be resolved keeps every prior outcome."""
+    if not (omp_main and dispatched == "harness-eng-lead"):
+        return
+    destinations, errors = _destinations()
+    try:
+        checkout = destinations.authorization_root(root, declared)
+        feature_dir = destinations.registered_feature(checkout, declared)[1]
+    except errors:
+        return
+    import handoff_policy
+    if handoff_policy.exempt_reason(feature_dir)[0]:
+        _refuse(
+            "dispatch-guard: BLOCKED — Main may not dispatch harness-eng-lead for %s: every task"
+            % (declared,),
+            "  in its plan.yaml is execution_mode main-session-direct (DEC-174), so the main",
+            "  session is the feature orchestrator holding ALL its duties: build directly in the",
+            "  feature worktree. The main session may dispatch only harness-product-lead (plan",
+            "  team, panel, patch) and harness-validator-lead (validate, fix).")
+
+
+_direct_orchestration_refusal()
 _start_preflight()
 
 try:
