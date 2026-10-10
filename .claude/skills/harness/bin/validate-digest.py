@@ -1386,7 +1386,8 @@ def _semantic_errors(canonical, family, verdict, seen, artifact, mission, *,
                      config_path, feature_dir, branch_override, review_pin):
     passing = verdict == "PASS"
     err = [error for field in _GATED if field in seen
-           for error in _gate_field_errors(field, seen[field], seen, family, mission, passing)]
+           for error in _gate_field_errors(field, seen[field], seen, family, mission, passing,
+                                           feature_dir)]
     err += _family_errors(family, verdict, seen, artifact, feature_dir)
     if canonical == "harness-code-reviewer":
         err += _reviewer_errors(seen, artifact, verdict, family, mission,
@@ -1407,7 +1408,7 @@ def _family_errors(family, verdict, seen, artifact, feature_dir):
     return []
 
 
-def _gate_field_errors(field, val, seen, persona, mission, passing):
+def _gate_field_errors(field, val, seen, persona, mission, passing, feature_dir=None):
     """One gate field's errors: pinned by the mission, lifted by `task: none`, declined
     beside PASS, or reported FAILED beside PASS — each a return, most specific first."""
     # #1855: on a mission with no gate subject the field is PINNED to its did-nothing
@@ -1423,7 +1424,7 @@ def _gate_field_errors(field, val, seen, persona, mission, passing):
     if _unbound(field, seen):
         return _unbound_field_errors(field, val)
     if _placeholder(val):
-        return _declined_gate_errors(field, val, seen, persona, passing)
+        return _declined_gate_errors(field, val, seen, persona, passing, feature_dir)
     return _fail_value_errors(field, val, persona, passing)
 
 
@@ -1439,15 +1440,63 @@ def _unbound_field_errors(field, val):
             f"`{CONDITIONAL[field]}`."]
 
 
-def _declined_gate_errors(field, val, seen, persona, passing):
+def _declined_gate_errors(field, val, seen, persona, passing, feature_dir=None):
     # DEC-173: declining a GATE while claiming PASS is the fail-open the did-nothing
     # spelling would otherwise have created.
     if field in GATE_FIELDS.get(persona, ()) and passing \
-            and not _nothing_to_gate(field, persona, seen):
+            and not _nothing_to_gate(field, persona, seen) \
+            and not _qa_floor_requires_nothing(field, persona, seen, feature_dir):
         return [f"{field}={val!r} declines to report a gate, but VERDICT is "
                 f"PASS — a gate that did not run cannot have passed. Return "
                 f"BLOCKED or FAIL, or report the real result."]
     return []
+
+
+def _qa_floor_requires_nothing(field, persona, seen, feature_dir):
+    """#2139: qa's `suite` has nothing to gate when no started task's matrix row can require a
+    kind and the return says so (`matrix_ok: true`, `kinds: []`) — DEC-173's dev-ops case for
+    qa. Fails closed: any other field or persona, a reported kind, or a matrix/plan that cannot
+    prove "nothing required" leaves the gate binding."""
+    if persona != "qa" or field != "suite" or not feature_dir:
+        return False
+    if seen.get("matrix_ok") is not True or seen.get("kinds") != []:
+        return False
+    root = _repo_root_for_feature(feature_dir)
+    return _matrix_requires_no_kind(root, feature_dir, _load_test_kinds(root)[0])
+
+
+def _matrix_requires_no_kind(root, feature_dir, test_kinds):
+    """True only when the plan has started work and every started task names a known row whose
+    `always` AND `when:` kinds are all explicitly `status: excluded`. Unlike `_matrix_floor`, the
+    conditional half counts (a `when:` kind is qa's judgement, DEC-212), and a null `cmd` on an
+    active kind is misconfigured, never an inferred skip (DEC-187)."""
+    matrix, tasks = _load_matrix_inputs(root, feature_dir)
+    if matrix is None:
+        return False
+    started = _started_tasks(tasks)
+    excluded = _explicitly_excluded_kinds(test_kinds)
+    return bool(started) and all(_row_requires_no_kind(matrix, task, excluded) for task in started)
+
+
+def _started_tasks(tasks):
+    """Every task not provably unstarted; a non-mapping entry counts as started and fails closed."""
+    return [t for t in tasks if not (isinstance(t, dict) and t.get("status") in _MATRIX_UNSTARTED)]
+
+
+def _explicitly_excluded_kinds(test_kinds):
+    return {k for k, p in (test_kinds or {}).items()
+            if isinstance(p, dict) and p.get("status") == "excluded"}
+
+
+def _row_requires_no_kind(matrix, task, excluded):
+    row = matrix.get(task.get("change_type")) if isinstance(task, dict) else None
+    if not isinstance(row, dict) or not isinstance(row.get("always"), list):
+        return False
+    when = row.get("when", [])
+    if not isinstance(when, list):
+        return False
+    kinds = row["always"] + [w.get("kind") if isinstance(w, dict) else None for w in when]
+    return all(isinstance(k, str) and k in excluded for k in kinds)
 
 
 # THE FAIL-VALUE GATE. Deliberately OUTSIDE the placeholder branch — nesting it inside is

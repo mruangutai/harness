@@ -478,6 +478,217 @@ if not isinstance(supervisor_pid, int) or isinstance(supervisor_pid, bool) or su
           "could never be verified live (DEC-204).", file=sys.stderr)
     sys.exit(2)
 
+# ---------------------------------------------------------------------------
+# BUG-2110 (#2110, #2097) — A START WHOSE RETURN CANNOT SUCCEED IS REFUSED HERE, BEFORE ANY
+# CLAIM. A lead's digest is bound at run start to exactly one open registered run, and a plan
+# reader's review is accepted only while its plan is pending; both used to fail first at the
+# return, after the whole run's work. This block asks the SAME questions the return asks —
+# digest_destination.registered_destination and validate-digest.py's
+# _pending_plan_status_error — never a copy of either. It cannot see runtime identities that
+# do not exist yet, and it is not race-free: a run closed or a plan signed after this check
+# is still refused at the return, which stays authoritative.
+#
+# Mission applicability (DEC-228, D-01): a product-lead or validator-lead start, and the plan
+# team's scope reader, declares exactly one `HARNESS-MISSION:` line in its own task text — the
+# host's marker spelling. An engineering-lead start needs none; its registered run does.
+# ---------------------------------------------------------------------------
+MISSION_PREFIX = "HARNESS-MISSION:"
+MISSION_LINE_RE = re.compile(r"HARNESS-MISSION: ([a-z]+)")
+MISSION_LEADS = ("harness-product-lead", "harness-validator-lead")
+PLAN_READER = "harness-code-reviewer"
+PLAN_TEAM_LEAD = "harness-product-lead"
+
+
+def _refuse(*lines):
+    for line in lines:
+        print(line, file=sys.stderr)
+    sys.exit(2)
+
+
+def _declared_mission():
+    """This task's own mission declaration as (value, problem)."""
+    lines = [line for line in prompt.splitlines() if line.startswith(MISSION_PREFIX)]
+    if not lines:
+        return None, "has no HARNESS-MISSION line"
+    match = MISSION_LINE_RE.fullmatch(lines[0])
+    if len(lines) > 1 or match is None:
+        return None, ("has conflicting or malformed HARNESS-MISSION lines (%s)"
+                      % "; ".join(repr(line) for line in lines))
+    return match.group(1), None
+
+
+def _mission_refusal(problem):
+    _refuse(
+        "dispatch-guard: BLOCKED — the %s dispatch for %s %s." % (dispatched, declared, problem),
+        "  A harness-product-lead or harness-validator-lead start, and the plan team's scope",
+        "  reader, carries exactly one line in its own task text, spelled",
+        "    HARNESS-MISSION: <phase>",
+        "  naming the phase actually dispatched (plan, patch, validate, fix, distill, ...): never a",
+        "  phase guessed from the prompt, never a review relabelled to pass. Engineering-lead",
+        "  starts need none. Authority: harness-zero-micro-management, the dispatch header.")
+
+
+def _mission_scope():
+    """(must this start declare a mission, is it the plan team's scope-reader route). A code
+    reviewer outside that route is held to a mission line only when it carries one."""
+    plan_route = dispatched == PLAN_READER and agent == PLAN_TEAM_LEAD
+    declares = dispatched == PLAN_READER and any(
+        line.startswith(MISSION_PREFIX) for line in prompt.splitlines())
+    return dispatched in MISSION_LEADS or plan_route or declares, plan_route
+
+
+def _start_mission():
+    """The declared mission where this start must (or does) declare one, else None."""
+    applies, plan_route = _mission_scope()
+    if not applies:
+        return None
+    mission, problem = _declared_mission()
+    if problem:
+        _mission_refusal(problem)
+    if plan_route and mission != "plan":
+        _mission_refusal("declares %r; the plan team's scope reader declares plan" % (mission,))
+    return mission
+
+
+def _destinations():
+    """digest_destination and the read failures its preflight can raise, or exit 2."""
+    try:
+        import digest_destination
+        import harness_yaml
+    except ImportError as exc:
+        _refuse("dispatch-guard: BLOCKED — %s cannot start for %s: digest_destination.py, which "
+                "establishes its registered run, is unavailable (%s)." % (dispatched, declared, exc))
+    return digest_destination, (OSError, ValueError, TypeError, harness_yaml.YamlParseError,
+                                artifact_accessors.ArtifactAccessError,
+                                artifact_accessors.FeatureJsonError)
+
+
+def _feature_record(destinations, errors):
+    try:
+        checkout = destinations.authorization_root(root, declared)
+        return os.path.join(destinations.registered_feature(checkout, declared)[1], "feature.json")
+    except errors:
+        return "<the feature.json of %s>" % (declared,)
+
+
+def _run_refusal(destinations, lead, exc, errors):
+    squad = destinations.LEAD_SQUADS[lead]
+    record = _feature_record(destinations, errors)
+    _refuse(
+        "dispatch-guard: BLOCKED — %s cannot start for %s: %s." % (lead, declared, exc),
+        "  Its return could never be authorized: the hook binds a lead's digest only to exactly",
+        "  one matching open registered run (agent %s, squad %s, verdict PENDING, no ended_at)."
+        % (lead, squad),
+        "  No matching open run: register it before dispatching, with a run id the lead's run-dir",
+        "  grant covers —",
+        "    feature-record.py run-start --file %s --id <run-id> --squad %s --agent %s"
+        % (record, squad, lead),
+        "  More than one: inspect runs[] in %s and close each surplus open run with" % (record,),
+        "  its real outcome (feature-record.py close-run, or run-end) so exactly one matching",
+        "  open run remains. Deleting runs[] entries or freeing in-flight claims is no substitute.")
+
+
+def _registered_digest(destinations, lead, errors):
+    """The lead's registered run digest, or exit 2 with the failure and its remedy."""
+    try:
+        checkout = destinations.authorization_root(root, declared)
+        return destinations.registered_destination(checkout, declared, lead)[1]
+    except destinations.AuthorizationError as exc:
+        _run_refusal(destinations, lead, exc, errors)
+    except errors as exc:
+        _refuse("dispatch-guard: BLOCKED — %s cannot start for %s: its registered run could not "
+                "be established (%s: %s)." % (lead, declared, type(exc).__name__, exc),
+                "  The feature.json record and the team-config.yaml grants must be readable "
+                "before a lead starts; repair the named file, then re-dispatch.")
+
+
+def _validator_path():
+    """sys.path for loading validate-digest.py: the policy path plus user-site entries LAST.
+
+    The policy phase drops user-site entries (the former `python3 -I`) so nothing there can
+    shadow a trusted module, but validate-digest.py imports digest_schema, whose jsonschema
+    may be installed only in user site — where the hook that runs validate-digest.py finds it.
+    Appended after every trusted entry, a user-site package can only supply a module nothing
+    earlier provides; the caller restores the policy path afterwards."""
+    import site
+    sites = site.getusersitepackages() if site.ENABLE_USER_SITE else []
+    sites = [sites] if isinstance(sites, str) else list(sites)
+    return list(sys.path) + [entry for entry in sites if entry not in sys.path]
+
+
+def _plan_status_error(target):
+    """validate-digest.py's own pending-plan answer for `target`, loaded once, or exit 2."""
+    script = os.path.join(os.environ.get("HARNESS_GUARD_BIN_DIR") or ".", "validate-digest.py")
+    policy_path = list(sys.path)
+    sys.path[:] = _validator_path()
+    try:
+        validator = hb.load_repo_module("validate_digest", script, register=True)
+        return validator._pending_plan_status_error(target)
+    except (hb.RepoModuleError, OSError, ValueError) as exc:
+        _refuse("dispatch-guard: BLOCKED — the approval status of %s could not be established: "
+                "validate-digest.py is unavailable or failed (%s)." % (target, exc))
+    finally:
+        sys.path[:] = policy_path
+
+
+def _plan_preflight(destination):
+    """Refuse a plan panel whose canonical plan.yaml (beside the registered feature.json) is
+    not pending; only the product plan team may start before the plan exists, to draft it."""
+    feature_dir = os.path.dirname(os.path.dirname(os.path.dirname(destination)))
+    target = os.path.realpath(os.path.join(feature_dir, "plan.yaml"))
+    if not os.path.exists(target):
+        if dispatched == PLAN_TEAM_LEAD:
+            return
+        _refuse("dispatch-guard: BLOCKED — %s plan-panel start for %s: no plan exists at %s."
+                % (dispatched, declared, target),
+                "  A standalone plan panel or scope reader reviews an existing pending plan; the "
+                "product plan team drafts it first.")
+    error = _plan_status_error(target)
+    if error:
+        _refuse(
+            "dispatch-guard: BLOCKED — %s plan-panel start for %s refused before any work: %s"
+            % (dispatched, declared, error),
+            "  Target: %s, the canonical plan.yaml beside the registered feature.json." % (target,),
+            "  Plan panels run before signature: a plan review is accepted only while its plan is",
+            "  pending, so every return of this panel would be refused at yield. Return to the",
+            "  legitimate pending-plan phase: a signed plan that genuinely needs changes takes the",
+            "  DEC-229 task-set amendment, whose plan-merge.py receipt returns approval to pending,",
+            "  and the panel runs before the renewed signature.")
+
+
+def _reader_preflight(destinations, errors, _mission):
+    """A plan scope reader's target is named by its dispatching lead's registered run."""
+    if agent not in destinations.LEAD_SQUADS:
+        _refuse("dispatch-guard: BLOCKED — a plan scope reader for %s is dispatched by the "
+                "lead hosting the panel, whose registered run names the plan; %s is not one."
+                % (declared, agent))
+    _plan_preflight(_registered_digest(destinations, agent, errors))
+
+
+def _lead_preflight(destinations, errors, mission):
+    """Every lead needs its registered run; a product or validator plan panel, a pending plan."""
+    if dispatched not in destinations.LEAD_SQUADS:
+        return
+    destination = _registered_digest(destinations, dispatched, errors)
+    if mission == "plan" and dispatched in MISSION_LEADS:
+        _plan_preflight(destination)
+
+
+def _start_preflight():
+    """BUG-2110: refuse, before any claim, a lead or plan-reader start whose return the
+    return-time gates would refuse for a reason already true now."""
+    reader = dispatched == PLAN_READER
+    if not (dispatched.endswith("-lead") or reader):
+        return
+    mission = _start_mission()
+    if reader and mission != "plan":
+        return
+    destinations, errors = _destinations()
+    (_reader_preflight if reader else _lead_preflight)(destinations, errors, mission)
+
+
+_start_preflight()
+
 try:
     existing, expired = reg.live_claim(root, dispatched, feature=declared)
     if expired:

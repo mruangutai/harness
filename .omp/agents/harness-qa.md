@@ -71,8 +71,11 @@ yield({data: {
 }})
 ```
 
-- `suite`: `pass|fail|n/a` — `n/a` ONLY if the suite could not be run at all. `suite: fail` with
-  `VERDICT: PASS` is rejected — a gate that FAILED cannot have passed, and reporting the failure
+- `suite`: `pass|fail|n/a` — `n/a` if the suite could not be run at all, or if no started task's
+  test_matrix row can require a kind, `always` or `when:` (report `matrix_ok: true`, `kinds: []`);
+  never run an unrequired suite just to write `pass`. `n/a` with `VERDICT: PASS` is otherwise
+  rejected, as is `suite: fail`
+  with `VERDICT: PASS` — a gate that FAILED cannot have passed, and reporting the failure
   honestly while claiming PASS is the same fail-open as declining it.
 - `matrix_ok`: a BOOLEAN, or `n/a`. "mostly" is a contract violation. `n/a` ONLY if the matrix
   could not be evaluated; `n/a` with `VERDICT: PASS` is rejected — DEC-173. `false` with
