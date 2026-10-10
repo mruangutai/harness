@@ -4343,6 +4343,17 @@ to `[]` (DEC-100) and "no tests apply" is the correct outcome. So `GATE_FIELDS` 
 are bound by it. A `reviewer` scoping out of a diff with nothing for its role to judge passes with
 `severity_max: n/a`, legitimately.
 
+**qa's `suite` has the same "no tests apply" case, and it is computed, never claimed (#2139).** When the
+plan has started work and every started task names a known `test_matrix` row whose `always` AND `when:`
+kinds are all explicitly `status: excluded` (a null `cmd` on an active kind is misconfigured, never an
+exclusion — DEC-187), qa may return `suite: n/a` with `VERDICT: PASS`, `matrix_ok: true` and
+`kinds: []`. Without this, a docs-only feature's honest qa return was refused and qa ran an unrequired
+suite to write `pass`: the fabricated-record shape this decision exists to prevent. `when:` kinds count
+because their applicability is qa's judgement (DEC-212) and cannot be ruled out mechanically, so
+`bugfix` and `config` never qualify. It fails closed: a reported kind, `matrix_ok` other than `true`,
+an unknown row, no started task, or an unreadable plan or matrix keeps the gate binding, and
+`matrix_ok: n/a` with PASS stays refused.
+
 **What triggered the audit.** `harness-tdd-enforcement`'s under-specified-task refusal was written
 with two DIGEST fields and no `artifact:`. The `SubagentStop` hook rejected it with **exit 2**, so the
 guard against under-specified tasks was told it had committed a contract violation at the moment it
