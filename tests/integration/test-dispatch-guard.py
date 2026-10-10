@@ -714,6 +714,69 @@ def case_15c_omp_main_eng_lead_on_all_direct_plan_refused():
             shutil.rmtree(root, ignore_errors=True)
 
 
+def _pending_plan(feature, *modes):
+    """A pending plan.yaml whose tasks carry `modes`; None omits the execution_mode key."""
+    return ("schema: plan/1\nfeature: %s\napproval:\n  status: pending\ntasks:\n" % feature
+            ) + "".join(
+        "  - id: T-%02d\n    title: t\n    change_type: test\n%s"
+        "    files: [x.py]\n    verify: \"true\"\n    intent: x\n"
+        % (i, "    execution_mode: %s\n" % mode if mode else "")
+        for i, mode in enumerate(modes, 1))
+
+
+def _main_start(plan, lead, mission=None):
+    """OMP Main dispatches `lead` (one open run registered) with `plan` on disk (None: no
+    plan). Returns (result, claims for the lead)."""
+    feature = "FEAT-42-one-root-resolver"
+    root = _checkout()
+    try:
+        shutil.copyfile(os.path.join(FEATURE_TREE_ROOT, ".omp", "agents",
+                                     "harness-validator-lead.md"),
+                        os.path.join(root, ".omp", "agents", "harness-validator-lead.md"))
+        _register_lead_run(root, lead, feature)
+        if plan is not None:
+            with open(os.path.join(root, ".harness", "harness", "features", feature,
+                                   "plan.yaml"), "w") as fh:
+                fh.write(plan)
+        payload = _task(lead, "Main", root)
+        payload["harness_agent_id"] = "Main"
+        payload["tool_input"]["prompt"] = "\n".join(
+            [FEATURE_LINE, "HARNESS-FEATURE-TREE-ROOT: " + root]
+            + (["HARNESS-MISSION: " + mission] if mission else []) + ["x"])
+        result = fire(payload, env={"HARNESS_PROJECT_DIR": root, "CLAUDE_PROJECT_DIR": root})
+        return result, _claims_for(_read_registry(root, _load_registry_module()), lead, feature)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _starts_and_claims(result, claims):
+    return (result.returncode == 0 and len(claims) == 1 and "harness_claim" in result.stdout
+            and "DEC-174" not in result.stderr)
+
+
+def case_15d_dec174_controls_keep_prior_outcomes():
+    """BUG-2141 SC-04: the DEC-174 refusal is the only new outcome. Main's product-lead and
+    validator-lead starts on an all-direct plan, and Main's eng-lead start on every
+    nonqualifying plan shape, still start and claim."""
+    feature = "FEAT-42-one-root-resolver"
+    direct = _pending_plan(feature, "main-session-direct", "main-session-direct")
+    for lead, mission in (("harness-product-lead", "plan"), ("harness-product-lead", "patch"),
+                          ("harness-validator-lead", "validate"),
+                          ("harness-validator-lead", "fix")):
+        result, claims = _main_start(direct, lead, mission)
+        check("case 15d: OMP Main -> %s (%s) on an all-direct plan starts and claims"
+              % (lead, mission), _starts_and_claims(result, claims), result.stderr)
+    for label, plan in (("team-only", _pending_plan(feature, "team", "team")),
+                        ("missing execution_mode",
+                         _pending_plan(feature, "main-session-direct", None)),
+                        ("empty tasks", _pending_plan(feature)),
+                        ("invalid", "tasks: [unclosed\n  - : :\n"),
+                        ("absent", None)):
+        result, claims = _main_start(plan, "harness-eng-lead")
+        check("case 15d: OMP Main -> eng-lead on a %s plan starts and claims" % label,
+              _starts_and_claims(result, claims), result.stderr)
+
+
 def case_25_non_omp_dispatch_refused():
     """DEC-233: there is one host. A dispatch payload that does not identify itself as
     OMP-supervised is refused, not passed through unclaimed — a pass-through would leave
@@ -1230,6 +1293,7 @@ def main():
     case_15_omp_dispatch_records_supervisor_and_receipt()
     case_15b_omp_main_dispatch_records_top_level_claim()
     case_15c_omp_main_eng_lead_on_all_direct_plan_refused()
+    case_15d_dec174_controls_keep_prior_outcomes()
     case_25_non_omp_dispatch_refused()
     case_26_omp_dispatch_without_supervisor_pid_refused()
     case_16_system_python_compatibility()
