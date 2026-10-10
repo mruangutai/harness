@@ -1,7 +1,9 @@
 schema: plan/1
 feature: BUG-2141-dec174-main-orchestrator
 approval:
-  status: pending
+  date: '2026-10-10'
+  approved_by: Mike Ruangutai
+  status: approved
 status: plan
 source_issues: [2141]
 lanes:

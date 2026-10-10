@@ -26,5 +26,27 @@
       "reason": "Operator chose the patch lane: one DEC-174 amendment plus docs and one dispatch-guard refusal."
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "github": {
+    "milestone": 102,
+    "parent": 2142,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2143
+    },
+    "source_issues": [
+      2141
+    ],
+    "build_entry": "opened"
+  },
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2141-dec174-main-orchestrator/notes/rework-ruling.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "c529fc20939ea8e950188fbf3659220fe45b11ce347608d9253524417802f687"
+  }
 }
