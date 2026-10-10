@@ -2,8 +2,8 @@
   "feature_id": "BUG-2141-dec174-main-orchestrator",
   "branch": "feat/BUG-2141-dec174-main-orchestrator",
   "pr": null,
-  "review_sha": "423049fe49c122ee2ec790c53cdc6ce19f1ec791",
-  "cycles_used": 0,
+  "review_sha": "cc0c16bd31035152857c07036fce6094715e596e",
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -22,9 +22,16 @@
       "agent": "harness-validator-lead",
       "verdict": "FAIL",
       "started_at": "2026-10-10T15:07:25+00:00",
-      "cycles_used": 0,
+      "cycles_used": 1,
       "tokens": null,
-      "ended_at": "2026-10-10T15:16:38+00:00"
+      "ended_at": "2026-10-10T15:19:24+00:00"
+    },
+    {
+      "id": "2026-10-10-03-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-10-10T15:19:09+00:00"
     }
   ],
   "judgements": [
@@ -34,6 +41,13 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "Operator chose the patch lane: one DEC-174 amendment plus docs and one dispatch-guard refusal."
+    },
+    {
+      "at": "2026-10-10T15:19:09+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 1",
+      "reason": "Validate c0 must_fix (SC-04 integration controls) fixed directly in cc0c16bd; re-validate within the 1-round rework budget."
     }
   ],
   "mission": "patch",
