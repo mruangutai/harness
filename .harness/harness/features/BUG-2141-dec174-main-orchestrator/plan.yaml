@@ -24,7 +24,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires direct enforcement changes and regression tests in this feature worktree.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
