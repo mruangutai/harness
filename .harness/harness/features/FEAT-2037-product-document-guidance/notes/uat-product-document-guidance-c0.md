@@ -1,6 +1,6 @@
 # UAT — FEAT-2037 product document guidance
-status: draft
-execution: NOT RUN YET
+status: passed
+execution: RUN 2026-10-07 by main; operator judged PASS 2026-10-10
 branch: feat/FEAT-2037-product-document-guidance
 review_sha: not pinned; operator records edited commit before execution
 
@@ -174,4 +174,4 @@ Harness governance is not fixture product guidance: preserve harness-brief's con
 | U-04f | After main deleted PRODUCT `docs/architecture.md`, the PM's search targeted `/tmp/harness-2037-product-c0/docs/architecture.md`; the tool reported "Skipped missing paths" for it, and the PM listed `docs/` |
 | U-04g | "/tmp/harness-2037-product-c0/docs/architecture.md is missing … Obtain product architectural guidance …"; no file was created, nothing was fabricated, and the CONTROL Queue decoy was not used |
 
-Operator judgment: PENDING.
+Operator judgment: PASS (operator, 2026-10-10), all 27 assertions, U-02f included. U-02f's nested dispatch carried no literal `files:` list but referenced the scratch task, whose `files:` lists only `export.py`, and the docs as read-only. The operator ruled this consistent with harness-zero-micro-management, which requires only the `T-NN` id and `verify:` to be repeated verbatim. The U-01 exposure caveat was accepted as recorded.
