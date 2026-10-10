@@ -20,8 +20,11 @@
       "id": "2026-10-10-02-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-10-10T15:07:25+00:00"
+      "verdict": "FAIL",
+      "started_at": "2026-10-10T15:07:25+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-10-10T15:16:38+00:00"
     }
   ],
   "judgements": [
