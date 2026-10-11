@@ -1008,6 +1008,7 @@ for label, github in (("a padded recorded number", {"issues": {"T-01": " 33 "}})
                       ("a false-valued non-list source_issues", {"source_issues": 0}),
                       ("a non-mapping github block", [33]),
                       ("a non-mapping issues block", {"issues": [33]}),
+                      ("an isdigit source number int() rejects", {"source_issues": ["²"]}),
                       ("an unparseable feature.json", None)):
     with tempfile.TemporaryDirectory() as base:
         root = os.path.join(base, "root")

@@ -954,7 +954,10 @@ def _github_numbers(doc):
     if sources is None or issues is None:
         return None
     values = [github.get("parent"), *sources, *issues.values()]
-    return {n for n in map(feature_json_write.opt_int, values) if n is not None}
+    try:
+        return {n for n in map(feature_json_write.opt_int, values) if n is not None}
+    except ValueError:  # an `isdigit` string int() cannot parse, e.g. "²"
+        return None
 
 
 def _shaped(value, kind):
