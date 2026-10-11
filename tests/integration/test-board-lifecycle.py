@@ -993,13 +993,30 @@ with tempfile.TemporaryDirectory() as base:
     r3, log3 = run(root, ["audit"], issues=issues_bug)
     check("audit LABEL (#2151): a not_planned issue no feature records is NOT a finding",
           "LABEL" not in r3.stdout, repr(r3.stdout))
-
     # a sibling not_planned issue that DOES carry the label produces no LABEL finding.
     issues_ok = json.dumps([{"number": 31, "stateReason": "NOT_PLANNED",
                               "labels": [{"name": "abandoned"}]}])
     r2, log2 = run(root, ["audit"], issues=issues_ok)
     check("audit LABEL: a not_planned issue carrying the abandoned label is NOT a finding",
           r2.returncode == 0 and "LABEL" not in r2.stdout, repr(r2.stdout))
+
+
+# #2151 review: a padded recorded number still counts; a malformed record falls back to the
+# broad rule rather than aborting the audit (ship runs it).
+for label, github in (("a padded recorded number", {"issues": {"T-01": " 33 "}}),
+                      ("a non-list source_issues", {"source_issues": 99})):
+    with tempfile.TemporaryDirectory() as base:
+        root = os.path.join(base, "root")
+        write_root(root, default_github())
+        fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-ODD")
+        os.makedirs(fdir)
+        with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
+            json.dump({"github": github}, f)
+        r, _log = run(root, ["audit"],
+                      issues=json.dumps([{"number": 33, "stateReason": "NOT_PLANNED", "labels": []}]))
+        check(f"audit LABEL (#2151): {label} still yields the finding, without a crash",
+              "LABEL: issue #33" in r.stdout and "Traceback" not in r.stderr,
+              repr(r.stdout + r.stderr))
 
 # ---------------- audit case 6: WORKFLOW -- renamed/absent reports MISSING ---------------
 

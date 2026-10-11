@@ -250,6 +250,7 @@ import artifact_accessors
 import factory_cli
 import factory_config
 import feature_corpus
+import feature_json_write
 import factory_gh
 import gh_board
 import harness_boundary
@@ -931,18 +932,26 @@ def _recorded_issue_numbers(root):
             doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json"))
         except artifact_accessors.ArtifactAccessError:
             return None
-        numbers.update(_github_numbers(doc))
+        recorded = _github_numbers(doc)
+        if recorded is None:
+            return None
+        numbers.update(recorded)
     return numbers
 
 
 def _github_numbers(doc):
+    """The ticket numbers one record names, coerced as gh-sync reads them (`opt_int`), or None
+    when `source_issues` is not a list -- an unreadable record keeps the broad LABEL rule."""
     github = doc.get("github") if isinstance(doc, dict) else None
     if not isinstance(github, dict):
         return set()
+    sources = github.get("source_issues") or []
+    if not isinstance(sources, list):
+        return None
     issues = github.get("issues")
-    values = [github.get("parent"), *(github.get("source_issues") or []),
+    values = [github.get("parent"), *sources,
               *(issues.values() if isinstance(issues, dict) else [])]
-    return {int(v) for v in values if str(v).isdigit()}
+    return {n for n in map(feature_json_write.opt_int, values) if n is not None}
 
 
 def _label_findings(issues, recorded=None):
