@@ -777,6 +777,53 @@ def case_15d_dec174_controls_keep_prior_outcomes():
               _starts_and_claims(result, claims), result.stderr)
 
 
+def _unresolvable_record(root, feature, how):
+    """Break `feature`'s registered record so digest_destination cannot resolve it."""
+    record = os.path.join(root, ".harness", "harness", "features", feature, "feature.json")
+    if how == "missing":
+        os.remove(record)
+    elif how == "mismatched":
+        with open(record, "w") as fh:
+            json.dump({"feature_id": "FEAT-43-someone-else", "runs": []}, fh)
+    else:  # "unparseable"
+        with open(record, "w") as fh:
+            fh.write("{not json\n")
+
+
+def case_15e_dec174_unresolvable_feature_keeps_prior_refusal():
+    """BUG-2141 fallback: when Main's declared feature cannot be resolved, the DEC-174 check
+    yields to the prior outcome. That outcome is the BUG-2110 registered-run refusal, so an
+    all-direct plan on disk can never turn an unresolvable feature into an eng-lead claim."""
+    feature = "FEAT-42-one-root-resolver"
+    reg = _load_registry_module()
+    for how in ("missing", "mismatched", "unparseable"):
+        root = _checkout()
+        try:
+            _register_lead_run(root, "harness-eng-lead", feature)
+            with open(os.path.join(root, ".harness", "harness", "features", feature,
+                                   "plan.yaml"), "w") as fh:
+                fh.write(_pending_plan(feature, "main-session-direct", "main-session-direct"))
+            _unresolvable_record(root, feature, how)
+            payload = _task("harness-eng-lead", "Main", root)
+            payload["harness_agent_id"] = "Main"
+            payload["tool_input"]["prompt"] = "%s\nHARNESS-FEATURE-TREE-ROOT: %s\nx" % (
+                FEATURE_LINE, root)
+            before = _read_registry(root, reg)
+            result = fire(payload, env={"HARNESS_PROJECT_DIR": root,
+                                        "CLAUDE_PROJECT_DIR": root})
+            after = _read_registry(root, reg)
+            check("case 15e: Main -> eng-lead with a %s feature record is refused (exit 2)"
+                  % how, result.returncode == 2, result.stderr)
+            check("case 15e: %s record: the refusal is the registered-run preflight's, not"
+                  " DEC-174's" % how,
+                  "harness-eng-lead cannot start for %s" % feature in result.stderr
+                  and "DEC-174" not in result.stderr, result.stderr)
+            check("case 15e: %s record: the refused dispatch leaves the registry unchanged"
+                  % how, after == before and "harness_claim" not in result.stdout, after)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+
 def case_25_non_omp_dispatch_refused():
     """DEC-233: there is one host. A dispatch payload that does not identify itself as
     OMP-supervised is refused, not passed through unclaimed — a pass-through would leave
@@ -1294,6 +1341,7 @@ def main():
     case_15b_omp_main_dispatch_records_top_level_claim()
     case_15c_omp_main_eng_lead_on_all_direct_plan_refused()
     case_15d_dec174_controls_keep_prior_outcomes()
+    case_15e_dec174_unresolvable_feature_keeps_prior_refusal()
     case_25_non_omp_dispatch_refused()
     case_26_omp_dispatch_without_supervisor_pid_refused()
     case_16_system_python_compatibility()
