@@ -1078,8 +1078,9 @@ _ABANDONED_LABEL_COLOR = "b60205"  # MUST match gh-sync.py's own colour for this
 
 
 def _fixable(finding):
-    """Return whether reconcile has a safe write for this finding class."""
-    return finding.kind in _FIXABLE_KINDS
+    """Return whether reconcile has a safe write for this finding: its class has one and it
+    names an issue -- a report-only finding (an unreadable corpus or record) is a residual."""
+    return finding.kind in _FIXABLE_KINDS and "issue_number" in finding.data
 
 
 def _ensure_abandoned_label(repo_name):

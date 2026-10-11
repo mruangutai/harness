@@ -1020,6 +1020,20 @@ for label, github in (("a padded recorded number", {"issues": {"T-01": " 33 "}})
               "LABEL: issue #33" in r.stdout and "Traceback" not in r.stderr,
               repr(r.stdout + r.stderr))
 
+# #2151 review: an unparseable record is a report-only STATUS residual -- reconcile never
+# dispatches a write for it, and does not crash.
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-ODD")
+    os.makedirs(fdir)
+    with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
+        f.write("{not json")
+    r, _log = run(root, ["reconcile", "--apply"])
+    check("reconcile (#2151): an unparseable record survives as a STATUS residual, no crash",
+          "card cannot be audited" in r.stdout and "unexpected failure" not in r.stderr,
+          repr(r.stdout + r.stderr))
+
 # ---------------- audit case 6: WORKFLOW -- renamed/absent reports MISSING ---------------
 
 with tempfile.TemporaryDirectory() as base:
