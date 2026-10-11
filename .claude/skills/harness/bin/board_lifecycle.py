@@ -125,8 +125,11 @@ never that repo's.
 
 The six finding classes are closed (T-05/T-15 intent): DECLARATION (a declared station value the
 board's Status field does not carry — via `_missing_options`, the SAME helper `provision` calls,
-never re-authored), STATION (a closed board issue not at the declared done station), REASON (a
-closed issue with a null close reason), LABEL (a `not_planned` issue with no `abandoned` label),
+never re-authored), STATION (a closed board issue not at the declared done station, except an
+abandoned one — not_planned and labelled `abandoned` — which DEC-203 §8 returns to Backlog), REASON
+(a closed issue with a null close reason), LABEL (a `not_planned` ticket recorded by one of this
+checkout's features with no `abandoned` label — for another repo, or an unreadable corpus, any
+`not_planned` issue; #2151),
 WORKFLOW (one of "Item closed", "Auto-close issue", "Pull request merged" absent or disabled),
 STATUS (a feature's recorded `feature.json` status, mapped through the board's declared stations
 exactly as T-13 maps it, disagreeing with its parent card's actual station — feature.json is the
@@ -836,8 +839,11 @@ def _audit_findings(root, board, repo_name):
     findings.extend(_station_findings(issues, stations, done_station))
     # Class 3 -- REASON.
     findings.extend(_reason_findings(issues))
-    # Class 4 -- LABEL.
-    findings.extend(_label_findings(issues))
+    # Class 4 -- LABEL. Scoped to this checkout's recorded tickets for its own repo only, the same
+    # #783 rule STATUS follows; any other repo, or an unreadable corpus, keeps the broad rule.
+    own_repo = _own_repo(root)
+    findings.extend(_label_findings(
+        issues, _recorded_issue_numbers(root) if repo_name == own_repo else None))
 
     # Class 5 -- WORKFLOW. Call 4/4.
     notes.append(_WORKFLOW_HEADER)
@@ -848,7 +854,7 @@ def _audit_findings(root, board, repo_name):
     # checkout's on-disk `.harness/*/features/*` is never a served fleet repo's feature set --
     # that repo's config is read remotely and no feature.json records a `github.repo` to filter
     # by, so scoping instead of skipping would mean inventing a field that does not exist.
-    own_repo = _own_repo(root)
+    # (own_repo was resolved above for class 4.)
     if repo_name == own_repo:
         findings.extend(_status_findings(root, board, stations))
     else:
@@ -875,11 +881,18 @@ def _declaration_findings(board, owner, number, field):
     ) for value in _missing_options(declared, options)]
 
 
+def _abandoned(issue):
+    """DEC-203 §8: `abandon` closes not_planned, labels `abandoned` and returns the card to
+    Backlog, so such a card is correct off the done station."""
+    return ((issue.get("stateReason") or "").upper() == "NOT_PLANNED"
+            and "abandoned" in _issue_label_names(issue))
+
+
 def _station_findings(issues, stations, done_station):
     findings = []
     for issue in issues:
         num = issue.get("number")
-        if num in stations and stations[num] != done_station:
+        if num in stations and stations[num] != done_station and not _abandoned(issue):
             findings.append(_finding(
                 "STATION",
                 f"STATION: issue #{num} reads {stations[num]!r}, expected {done_station!r}",
@@ -905,19 +918,48 @@ def _reason_findings(issues):
     return findings
 
 
-def _label_findings(issues):
+def _recorded_issue_numbers(root):
+    """Every ticket a feature record names (source, parent, task) -- the only tickets
+    `abandon` labels. None when the corpus cannot be read, so the caller keeps the broad rule."""
+    try:
+        feat_dirs = _feature_dirs(root)
+    except feature_corpus.CorpusError:
+        return None
+    numbers = set()
+    for feat_dir in feat_dirs:
+        try:
+            doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json"))
+        except artifact_accessors.ArtifactAccessError:
+            return None
+        numbers.update(_github_numbers(doc))
+    return numbers
+
+
+def _github_numbers(doc):
+    github = doc.get("github") if isinstance(doc, dict) else None
+    if not isinstance(github, dict):
+        return set()
+    issues = github.get("issues")
+    values = [github.get("parent"), *(github.get("source_issues") or []),
+              *(issues.values() if isinstance(issues, dict) else [])]
+    return {int(v) for v in values if str(v).isdigit()}
+
+
+def _label_findings(issues, recorded=None):
+    """LABEL: a not_planned close missing `abandoned`, among recorded tickets when `recorded`
+    is known (#2151 -- a closed bug report or a misplaced card was never abandoned)."""
     findings = []
     for issue in issues:
+        num = issue.get("number")
         reason = (issue.get("stateReason") or "").upper()
-        if reason == "NOT_PLANNED":
-            names = _issue_label_names(issue)
-            if "abandoned" not in names:
-                num = issue.get("number")
-                findings.append(_finding(
-                    "LABEL",
-                    f"LABEL: issue #{num} is not_planned and carries no 'abandoned' label",
-                    issue_number=num,
-                ))
+        if reason != "NOT_PLANNED" or "abandoned" in _issue_label_names(issue):
+            continue
+        if recorded is None or num in recorded:
+            findings.append(_finding(
+                "LABEL",
+                f"LABEL: issue #{num} is not_planned and carries no 'abandoned' label",
+                issue_number=num,
+            ))
     return findings
 
 
