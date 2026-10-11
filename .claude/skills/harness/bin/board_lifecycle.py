@@ -943,20 +943,25 @@ def _recorded_issue_numbers(root):
 
 
 def _github_numbers(doc):
-    """The ticket numbers one record names, coerced as gh-sync reads them (`opt_int`), or None
-    when `source_issues` is not a list -- an unreadable record keeps the broad LABEL rule."""
-    github = doc.get("github") if isinstance(doc, dict) else None
-    if not isinstance(github, dict):
-        return set()
-    sources = github.get("source_issues")
-    if sources is None:
-        sources = []
-    elif not isinstance(sources, list):
+    """The ticket numbers one record names, coerced as gh-sync reads them (`opt_int`). Absent
+    or null containers record nothing; any other wrong shape returns None -- an unreadable
+    record keeps the broad LABEL rule."""
+    github = _shaped(doc.get("github") if isinstance(doc, dict) else None, dict)
+    if github is None:
         return None
-    issues = github.get("issues")
-    values = [github.get("parent"), *sources,
-              *(issues.values() if isinstance(issues, dict) else [])]
+    sources = _shaped(github.get("source_issues"), list)
+    issues = _shaped(github.get("issues"), dict)
+    if sources is None or issues is None:
+        return None
+    values = [github.get("parent"), *sources, *issues.values()]
     return {n for n in map(feature_json_write.opt_int, values) if n is not None}
+
+
+def _shaped(value, kind):
+    """`value` if it is a `kind`, an empty `kind` when absent or null, else None."""
+    if value is None:
+        return kind()
+    return value if isinstance(value, kind) else None
 
 
 def _label_findings(issues, recorded=None):

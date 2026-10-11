@@ -1006,6 +1006,8 @@ with tempfile.TemporaryDirectory() as base:
 for label, github in (("a padded recorded number", {"issues": {"T-01": " 33 "}}),
                       ("a non-list source_issues", {"source_issues": 99}),
                       ("a false-valued non-list source_issues", {"source_issues": 0}),
+                      ("a non-mapping github block", [33]),
+                      ("a non-mapping issues block", {"issues": [33]}),
                       ("an unparseable feature.json", None)):
     with tempfile.TemporaryDirectory() as base:
         root = os.path.join(base, "root")
