@@ -1004,14 +1004,16 @@ with tempfile.TemporaryDirectory() as base:
 # #2151 review: a padded recorded number still counts; a malformed record falls back to the
 # broad rule rather than aborting the audit (ship runs it).
 for label, github in (("a padded recorded number", {"issues": {"T-01": " 33 "}}),
-                      ("a non-list source_issues", {"source_issues": 99})):
+                      ("a non-list source_issues", {"source_issues": 99}),
+                      ("a false-valued non-list source_issues", {"source_issues": 0}),
+                      ("an unparseable feature.json", None)):
     with tempfile.TemporaryDirectory() as base:
         root = os.path.join(base, "root")
         write_root(root, default_github())
         fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-ODD")
         os.makedirs(fdir)
         with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
-            json.dump({"github": github}, f)
+            f.write("{not json" if github is None else json.dumps({"github": github}))
         r, _log = run(root, ["audit"],
                       issues=json.dumps([{"number": 33, "stateReason": "NOT_PLANNED", "labels": []}]))
         check(f"audit LABEL (#2151): {label} still yields the finding, without a crash",

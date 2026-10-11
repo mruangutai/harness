@@ -533,6 +533,9 @@ def _status_findings(root, board, stations):
                 os.path.join(feat_dir, "feature.json"))
         except artifact_accessors.ArtifactAccessError:
             continue
+        except artifact_accessors.FeatureJsonError as exc:
+            findings.append(_finding("STATUS", f"STATUS: {feat_dir}'s card cannot be audited: {exc}"))
+            continue
         projection, invalid = _feature_projection(feat_dir, feature_doc)
         if invalid is not None:
             findings.append(invalid)
@@ -930,7 +933,7 @@ def _recorded_issue_numbers(root):
     for feat_dir in feat_dirs:
         try:
             doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json"))
-        except artifact_accessors.ArtifactAccessError:
+        except (artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError):
             return None
         recorded = _github_numbers(doc)
         if recorded is None:
@@ -945,8 +948,10 @@ def _github_numbers(doc):
     github = doc.get("github") if isinstance(doc, dict) else None
     if not isinstance(github, dict):
         return set()
-    sources = github.get("source_issues") or []
-    if not isinstance(sources, list):
+    sources = github.get("source_issues")
+    if sources is None:
+        sources = []
+    elif not isinstance(sources, list):
         return None
     issues = github.get("issues")
     values = [github.get("parent"), *sources,
