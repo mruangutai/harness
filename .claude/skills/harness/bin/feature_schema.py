@@ -31,6 +31,8 @@ import json
 import os
 import re
 import sys
+import hashlib
+import stat
 
 try:
     import jsonschema
@@ -327,8 +329,10 @@ def _feature_dir_name(display):
     return parts[i + 1] if i + 1 < len(parts) else None
 
 
-def recovery_command_for(feat_dir):
-    """The safe receipt command for a feature that has no Build-entry outcome."""
+def recovery_command_for(feat_dir, feature_doc=None, bound_repo=None, *, replacement=False):
+    """Select replacement versus compatible receipt recovery, sharing work-started rules."""
+    if feature_doc is not None and not replacement and mirror_provenance_problem(feature_doc, bound_repo):
+        return "recover-mirror"
     if os.path.basename(feat_dir.rstrip("/")) in BUILD_ENTRY_ERA_EXEMPT:
         return "recover-terminal"
     import artifact_accessors
@@ -339,10 +343,25 @@ def recovery_command_for(feat_dir):
         return "recover-terminal"
     if plan.get("status") in {"review", "done"}:
         return "recover-terminal"
-    if any(task.get("status") == "done" for task in plan.get("tasks") or []
-           if isinstance(task, dict)):
+    if feature_doc is not None and any(
+            isinstance(run, dict) and (run.get("squad") == "engineering" or run.get("code_reviewing"))
+            for run in feature_doc.get("runs") or []):
+        return "recover-terminal"
+    if any(task.get("status") in ({"building", "done"} if feature_doc is not None else {"done"})
+           for task in plan.get("tasks") or [] if isinstance(task, dict)):
         return "recover-terminal"
     return "open"
+
+
+def recovery_command_line(feat_dir, feature_doc=None, bound_repo=None):
+    """Render every gate's recovery instruction from the same selection."""
+    command = recovery_command_for(feat_dir, feature_doc, bound_repo)
+    line = f"python3 .claude/skills/harness/bin/gh-sync.py {command} {os.path.realpath(feat_dir)}"
+    if command != "recover-mirror":
+        return line + (" --yes" if command == "recover-terminal" else "")
+    github = (feature_doc or {}).get("github") or {}
+    previous = (github.get("recovery") or {}).get("from_repo") or github.get("repo") or "<previous-owner/name>"
+    return f"{line} --previous-repo {previous} --evidence <target-local-authorization> --yes"
 
 
 def _runs_agent_problems(doc, display):
@@ -380,6 +399,8 @@ def _problems_for_doc(doc, display, for_path=None):
         if error.validator == "additionalProperties":
             for key in _undeclared_keys(error):
                 problems.append(f"{display}: undeclared key {key!r} at {pointer}. {_REDIRECT}")
+        elif error.validator == "unevaluatedProperties":
+            problems.append(f"{display}: {pointer}: {error.message}. {_REDIRECT}")
         elif error.validator == "required":
             for key in _missing_keys(error):
                 problems.append(
@@ -525,3 +546,243 @@ def problems_for_file(path):
     except harness_yaml.YamlParseError as e:
         return [f"{path}: not valid YAML: {e}"]
     return _problems_for_doc(doc, path, for_path=path)
+
+
+def resolve_evidence_ref(feature_dir, operand):
+    """Normalize a regular, feature-local immutable artifact to its hash-bound reference."""
+    root = os.path.realpath(feature_dir)
+    raw = os.fspath(operand)
+    if ".." in raw.replace("\\", "/").split("/"):
+        raise ValueError("evidence must not contain parent traversal")
+    path = os.path.abspath(os.path.join(root, raw))
+    resolved = os.path.realpath(path)
+    if os.path.commonpath((root, resolved)) != root or resolved == root:
+        raise ValueError("evidence must stay inside the target feature")
+    if not stat.S_ISREG(os.stat(resolved).st_mode):
+        raise ValueError("evidence must be a regular file")
+    with open(resolved, "rb") as source:
+        digest = hashlib.file_digest(source, "sha256").hexdigest()
+    return {"path": os.path.relpath(resolved, root), "sha256": digest}
+
+
+def verify_evidence_ref(feature_dir, ref, subject=None):
+    """Verify bytes and, for operator notes, the explicitly authorized subject/effect."""
+    if not isinstance(ref, dict) or set(ref) != {"path", "sha256"}:
+        raise ValueError("evidence reference requires only path and sha256")
+    actual = resolve_evidence_ref(feature_dir, ref["path"])
+    if actual != ref:
+        raise ValueError("evidence hash does not match the recorded artifact")
+    path = os.path.join(feature_dir, actual["path"])
+    if subject is None:
+        return path
+    from artifact_accessors import strict_json_loads
+    with open(path, encoding="utf-8") as source:
+        note = strict_json_loads(source.read())
+    if not isinstance(note, dict) or note.get("feature_id") != subject.get("feature_id"):
+        raise ValueError("authorization evidence has a different feature identity")
+    effects = note.get("effects")
+    matches = [effect for effect in effects if isinstance(effect, dict) and all(
+        type(effect.get(key)) is type(value) and effect.get(key) == value
+        for key, value in subject.items() if key != "feature_id")
+    ] if isinstance(effects, list) else []
+    if len(matches) != 1:
+        raise ValueError("authorization evidence requires one exact subject/effect")
+    return matches[0]
+
+
+def verify_historical_cycle_count(path, count):
+    """An operator note may support missing history, but cannot contradict an explicit count."""
+    import digest_record
+    try:
+        record = digest_record.load_record(path)
+    except digest_record.DigestRecordError:
+        return
+    digest = record.get("DIGEST")
+    reported = digest.get("cycles_used") if isinstance(digest, dict) else None
+    if type(reported) is int and reported >= 0 and reported != count:
+        raise ValueError("historical cycle attribution contradicts the authentic digest count")
+
+
+def run_evidence_problems(feature_dir, feature_id, run):
+    """Historical evidence is never a live persona return or inferred from its verdict."""
+    import digest_record
+    problems = []
+    try:
+        evidence = run.get("cycle_evidence")
+        if evidence:
+            if type(run.get("cycles_used")) is not int or run["cycles_used"] < 0:
+                raise ValueError("cycle evidence requires a nonnegative integer attribution")
+            path = verify_evidence_ref(feature_dir, {
+                "path": evidence["path"], "sha256": evidence["sha256"]})
+            if evidence["source"] == "lead-digest":
+                record = digest_record.load_record(path)
+                digest = record.get("DIGEST")
+                count = digest.get("cycles_used") if isinstance(digest, dict) else None
+                if isinstance(count, bool) or not isinstance(count, int) or count != run.get("cycles_used"):
+                    raise ValueError("cycle attribution disagrees with digest evidence")
+            else:
+                verify_evidence_ref(feature_dir, evidence["authorization"], {
+                    "feature_id": feature_id, "run_id": run["id"],
+                    "digest": {"path": evidence["path"], "sha256": evidence["sha256"]},
+                    "cycles_used": run.get("cycles_used"), "effect": "record-cycle-evidence"})
+                verify_historical_cycle_count(path, run.get("cycles_used"))
+        refusal = run.get("refusal")
+        if refusal:
+            if run.get("verdict") != "BLOCKED" or refusal["run_id"] != run["id"]:
+                raise ValueError("refusal requires the same BLOCKED run")
+            verify_evidence_ref(feature_dir, refusal["digest"])
+            if refusal["source"] == "operator-history":
+                verify_evidence_ref(feature_dir, refusal["authorization"], {
+                    "feature_id": feature_id, "run_id": run["id"],
+                    "digest": refusal["digest"], "effect": "record-refusal"})
+    except (OSError, ValueError, TypeError, KeyError, digest_record.DigestRecordError) as error:
+        problems.append(str(error))
+    return problems
+
+
+_REPOSITORY = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*/(?!\.{1,2}$)[A-Za-z0-9_.-]+")
+
+
+def has_repository_binding(feature_doc):
+    """Invalid factory shapes are bound too: no consumer may fall back to the owner."""
+    factory = feature_doc.get("factory")
+    return factory is not None and (not isinstance(factory, dict) or factory.get("repo") is not None)
+
+
+def resolve_binding(feature_doc, root):
+    """Resolve one feature's repository, board and issue types without owner fallback."""
+    import artifact_accessors
+    factory = feature_doc.get("factory")
+    if factory is not None and not isinstance(factory, dict):
+        raise artifact_accessors.FleetError("invalid feature binding", "factory", "expected a mapping")
+    bound = factory.get("repo") if factory else None
+    if bound is not None:
+        return _bound_mirror_binding(bound, root)
+    return _owner_mirror_binding(root)
+
+
+def _bound_mirror_binding(bound, root):
+    import artifact_accessors
+    import factory_config
+    import gh_issue_types
+    if not isinstance(bound, str) or not _REPOSITORY.fullmatch(bound):
+        raise artifact_accessors.FleetError("invalid feature binding", "factory.repo",
+                                          "expected a declared owner/name")
+    fleet = artifact_accessors.load_fleet(os.path.join(root, ".harness", "factory", "fleet.yaml"))
+    factory_config.repo_entry(fleet, bound)
+    config = factory_config.product_config(fleet, bound)
+    github = config.get("github")
+    if not isinstance(github, dict) or github.get("repo") != bound or not github.get("sync"):
+        raise artifact_accessors.FleetError("invalid product mirror", bound,
+                                          "github.sync must be enabled and github.repo must match factory.repo")
+    return bound, factory_config.board_for(fleet, bound), gh_issue_types.overrides_from_config(config)
+
+
+def _owner_mirror_binding(root):
+    import artifact_accessors
+    import gh_board
+    import gh_issue_types
+    path = os.path.join(root, ".harness", "harness.json")
+    try:
+        config = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError as error:
+        raise artifact_accessors.FleetError("owner config unreadable", path, str(error)) from error
+    github = config.get("github") or {}
+    if not isinstance(github, dict):
+        raise artifact_accessors.FleetError("invalid owner mirror", path, "github must be a mapping")
+    repo = github.get("repo")
+    if not github.get("sync"):
+        return repo, None, gh_issue_types.overrides_from_config(config)
+    if not isinstance(repo, str) or not _REPOSITORY.fullmatch(repo):
+        raise artifact_accessors.FleetError("invalid owner mirror", path, "github.repo must be owner/name")
+    return repo, gh_board.load_board(root), gh_issue_types.overrides_from_config(config)
+
+
+def mirror_provenance_problem(doc, bound_repo):
+    """A readable legacy mapping is not permission to reuse its unproven numbers."""
+    github = doc.get("github") or {}
+    recorded_repo = github.get("repo")
+    active = any(github.get(key) for key in ("milestone", "parent", "issues", "attached", "typed"))
+    if recorded_repo is not None and recorded_repo != bound_repo and (
+            bound_repo is not None or active or github.get("build_entry") in {"opened", "recovered-terminal"}
+            or (doc.get("factory") or {}).get("repo") is not None):
+        return f"recorded github.repo {recorded_repo!r} conflicts with bound repository {bound_repo!r}"
+    if active and (not bound_repo or recorded_repo != bound_repo):
+        return "nonempty mirror has no matching github.repo provenance"
+    recovery = github.get("recovery") or {}
+    if recovery and (recovery.get("state") != "complete" or recovery.get("pending_create")):
+        return "mirror replacement is in progress or has an uncertain pending create"
+    if recovery and recovery.get("to_repo") != bound_repo:
+        return "mirror replacement targets a different bound repository"
+    return None
+
+
+def receipt_allows_merge(doc, bound_repo, *, era_requires_absent=False):
+    """Shared provenance gate; destructive sweep preserves its stricter era exemption."""
+    if mirror_provenance_problem(doc, bound_repo):
+        return False
+    github = doc.get("github") or {}
+    entry = github.get("build_entry")
+    if entry == "not-applicable":
+        return not has_repository_binding(doc)
+    if entry in {"opened", "recovered-terminal"}:
+        return bool(bound_repo) and github.get("repo") == bound_repo
+    return (doc.get("feature_id") in BUILD_ENTRY_ERA_EXEMPT
+            and (not era_requires_absent or entry is None))
+
+
+def mirror_receipt_for_role(github, role):
+    if role in {"milestone", "parent"}:
+        return github.get(role)
+    if isinstance(role, str) and re.fullmatch(r"task:T-[0-9]{2,}", role):
+        return (github.get("issues") or {}).get(role[5:])
+    raise ValueError(f"invalid mirror object role: {role!r}")
+
+
+def _verify_archived_mirror(feature_dir, feature_id, item):
+    effect = verify_evidence_ref(feature_dir, item["evidence"], {
+        "feature_id": feature_id, "effect": "recover-mirror",
+        "from_repo": item["repo"], "reason": item["reason"]})
+    if not all(isinstance(effect.get(key), str) and effect[key].strip() for key in ("by", "reason")):
+        raise ValueError("mirror authorization requires an operator identity and reason")
+    previous_repo = item["previous"].get("repo")
+    if previous_repo is not None and previous_repo != item["repo"]:
+        raise ValueError("archived mapping conflicts with its previous repository")
+
+
+def _verify_recovery_generation(feature_dir, feature_id, history, recovery):
+    matches = [item for item in history if item["recovery_id"] == recovery["id"]]
+    if len(matches) != 1 or matches[0]["repo"] != recovery["from_repo"]:
+        raise ValueError("recovery requires exactly one matching archived generation")
+    verify_evidence_ref(feature_dir, matches[0]["evidence"], {
+        "feature_id": feature_id, "effect": "recover-mirror",
+        "from_repo": recovery["from_repo"], "to_repo": recovery["to_repo"],
+        "mode": recovery["mode"], "plan_sha256": recovery["plan_sha256"]})
+
+
+def _verify_reconciled_receipt(feature_dir, feature_id, github, recovery, ref):
+    effect = verify_evidence_ref(feature_dir, ref, {
+        "feature_id": feature_id, "effect": "adopt-receipt", "recovery_id": recovery["id"],
+        "repo": recovery["to_repo"], "plan_sha256": recovery["plan_sha256"]})
+    number = effect.get("number")
+    if type(number) is not int or number <= 0 or mirror_receipt_for_role(github, effect.get("role")) != number:
+        raise ValueError("adoption proof does not match its recorded object")
+    if not all(isinstance(effect.get(key), str) and effect[key].strip() for key in ("by", "ownership_evidence")):
+        raise ValueError("adoption requires operator identity and ownership evidence")
+
+
+def mirror_evidence_problems(feature_dir, doc):
+    """Check immutable replacement authorizations without consulting remote objects."""
+    github = doc.get("github") or {}
+    history = github.get("history") or []
+    recovery = github.get("recovery") or {}
+    try:
+        for item in history:
+            _verify_archived_mirror(feature_dir, doc["feature_id"], item)
+        if recovery:
+            _verify_recovery_generation(feature_dir, doc["feature_id"], history, recovery)
+            for ref in recovery.get("reconciliation", []):
+                _verify_reconciled_receipt(feature_dir, doc["feature_id"], github, recovery, ref)
+    except (OSError, ValueError, TypeError, KeyError) as error:
+        return [f"mirror evidence: {error}"]
+    return []

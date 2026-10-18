@@ -157,4 +157,38 @@ with tempfile.TemporaryDirectory() as tmp:
     check("FEAT-64 BE-12 an unrelated RuntimeError in the plan loader escapes recovery_command_for",
           escaped)
 
+allows = getattr(feature_schema, "receipt_allows_merge", None)
+check("opened alone is not repository provenance",
+      callable(allows) and not allows({"github": {"parent": 7, "build_entry": "opened"}}, "org/product"))
+if callable(allows):
+    for name, receipt, expected in (
+        ("matching opened generation", {"repo": "org/product", "parent": 7, "build_entry": "opened"}, True),
+        ("wrong repository", {"repo": "org/owner", "parent": 7, "build_entry": "opened"}, False),
+        ("replacement in progress", {"repo": "org/product", "build_entry": "opened",
+                                     "recovery": {"state": "in-progress"}}, False),
+        ("uncertain create", {"repo": "org/product", "build_entry": "recovered-terminal",
+                              "recovery": {"state": "complete", "pending_create": {"role": "parent"}}}, False),
+        ("legacy unbound sync-off", {"build_entry": "not-applicable"}, True),
+    ):
+        check(f"repository-aware merge receipt: {name}",
+              allows({"github": receipt}, "org/product") is expected)
+
+resolve = getattr(feature_schema, "resolve_binding", None)
+check("the shared binding resolver exists", callable(resolve))
+if callable(resolve):
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp, ".harness")
+        directory.mkdir()
+        Path(directory, "harness.json").write_text(
+            json.dumps({"github": {"sync": False, "repo": None, "board": None}}), encoding="utf-8")
+        check("unbound sync-off retains legal null board", resolve({}, tmp) == (None, None, {}))
+        for malformed in ("", "owner", "../owner/product", 12, False):
+            try:
+                resolve({"factory": {"repo": malformed}}, tmp)
+            except artifact_accessors.FleetError:
+                refused = True
+            else:
+                refused = False
+            check(f"invalid authoritative binding refuses before owner fallback: {malformed!r}", refused)
+
 sys.exit(1 if failures else 0)

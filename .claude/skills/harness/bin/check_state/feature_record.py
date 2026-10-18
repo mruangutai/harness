@@ -167,24 +167,36 @@ def inv_33(ctx, feat):
     return bad, warn
 
 def inv_7(ctx, feat):
+    """Count attributed send-backs, not FAIL verdicts; leave legacy residuals honest."""
     bad, warn = [], []
-    H, root, fpath = ctx.H, ctx.root, ctx.fpath
-    doc, runs, code_reviewing_runs, _errors = ctx.record(feat)
+    doc, _, _, _errors = ctx.record(feat)
     if doc is None:
         return bad, warn
-    fy = ctx.path(feat, 'feature.json')
-    def val(k):
-        """A scalar field as a string, or None. JSON returns typed values, so
-        consumers that compare textual placeholders normalize them here."""
-        v = doc.get(k)
-        return None if v is None else str(v)
-
-    # INV-7: the fix-loop bound must actually count the failures it bounds.
-    fails = sum(1 for _, _, v in runs if v.upper() == "FAIL")
-    cu = val("cycles_used")
-    if cu is not None and cu.isdigit() and int(cu) < fails:
-        bad.append(f"{feat}: cycles_used={cu} but {fails} FAIL run(s) recorded "
-                   f"— the fix loop is no longer bounded.")
+    try:
+        feature_schema = harness_boundary.load_repo_module("feature_schema")
+    except harness_boundary.RepoModuleError as error:
+        return [f"INV-7 CANNOT RUN for {feat}: {error}"], warn
+    directory = os.path.dirname(ctx.path(feat, "feature.json"))
+    total = doc.get("cycles_used")
+    if isinstance(total, bool) or not isinstance(total, int) or total < 0:
+        return [f"{feat}: cycle attribution requires a nonnegative integer total."], warn
+    attributed = 0
+    for run in doc.get("runs", []):
+        bad.extend(f"{feat}: run {run['id']} cycle/refusal evidence: {problem}"
+                   for problem in feature_schema.run_evidence_problems(
+                       directory, doc.get("feature_id", feat), run))
+        count = run.get("cycles_used")
+        if count is None:
+            warn.append(f"{feat}: run {run['id']} has unknown historical cycle attribution.")
+            continue
+        if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+            bad.append(f"{feat}: run {run['id']} has invalid cycle attribution.")
+            continue
+        attributed += count
+        if not run.get("cycle_evidence"):
+            warn.append(f"{feat}: run {run['id']} has historical cycle attribution without evidence.")
+    if attributed > total:
+        bad.append(f"{feat}: per-run cycle attribution {attributed} exceeds total {total}.")
     return bad, warn
 
 # A BUDGET THIS INVARIANT CANNOT RESOLVE IS REPORTED, NEVER SILENTLY DROPPED.

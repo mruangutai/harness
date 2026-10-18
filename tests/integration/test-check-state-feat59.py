@@ -1218,8 +1218,32 @@ def case_inv47_silences():
     return [b, d, e]
 
 
+def case_inv37_binding():
+    results = []
+    for shape in ("claims", "opened", "wrong-repo", "bound-owner-off"):
+        with tempfile.TemporaryDirectory() as tmp:
+            github = {} if shape == "claims" else {
+                "repo": "elsewhere/wrong" if shape == "wrong-repo" else "acme/product",
+                "build_entry": "opened"}
+            factory = {"repo": "unknown/product"} if shape == "bound-owner-off" else {}
+            factory["issues"] = {"T-01": 51}
+            config = json.dumps({"panel_era_start": None, "seam_era_start": None,
+                                 "github": {"repo": "acme/product",
+                                            "sync": shape != "bound-owner-off", "board": None}})
+            _fixture(tmp, _in_era(factory=factory, github=github),
+                     harness_json=config, station="ready")
+            observed = subprocess.run([os.path.join(_anchor_bin, "check-state.py"), "--only", "INV-37"],
+                                      cwd=tmp, env=_root_env(tmp), capture_output=True, text=True)
+            findings = _violations(observed.stdout, "INV-37")
+            results.append((f"INV-37 uses binding/provenance, never factory claims ({shape})",
+                            bool(findings) is (shape != "opened")
+                            and observed.returncode == (0 if shape == "opened" else 1),
+                            observed.stdout + observed.stderr))
+    return results
+
+
 def main():
-    return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
+    return 0 if _report(case_inv37_binding() + case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
                         + case_feat61_module_loading() + case_feat61_module_loading_spec_and_registration()
                         + case_feat61_run_schema() + case_feat61_run_schema_natural_errors()
                         + case_feat1928_durable_digest_record()

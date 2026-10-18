@@ -200,7 +200,7 @@ def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harn
     behaviour (no `github:` block at all)."""
     doc = {"feature_id": feature_id}
     if milestone is not None:
-        doc["github"] = {"milestone": milestone, "build_entry": "opened"}
+        doc["github"] = {"repo": "acme/repo-x", "milestone": milestone, "build_entry": "opened"}
     # THE STATION GOES IN A COMMITTED plan.yaml (FEAT-41 T-07). worktree_terminal reads the
     # LANDED plan at the default branch's ref, so the plan must be in the same commit — the
     # `status` argument keeps its name and its callers, and is lowercased into that file.
@@ -1009,6 +1009,36 @@ def case_t07_build_entry_receipt(row):
         return [(name, run.returncode == 0 and os.path.isdir(dest) != removed,
                  f"stdout={run.stdout!r} dest={dest}")]
 
+def case_unproven_mirror_retention():
+    results = []
+    for provenance in (None, "elsewhere/wrong"):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = _bootstrap_repo(os.path.join(tmp, "R"))
+            sweep = _install_fixture_bin(repo)
+            feature = "FEAT-9002-unproven"
+            _commit_feature(repo, feature, "Done", milestone=9)
+            record = os.path.join(repo, ".harness", "harness", "features", feature, "feature.json")
+            with open(record) as source:
+                document = json.load(source)
+            if provenance is None:
+                document["github"].pop("repo")
+            else:
+                document["github"]["repo"] = provenance
+            with open(record, "w") as target:
+                json.dump(document, target)
+            commit_all(repo, "unproven receipt")
+            dest = _add_wt(repo, feature)
+            _, gh_env = _stub_gh(tmp)
+            _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
+            observed = subprocess.run([sweep], cwd=repo, capture_output=True, text=True,
+                                      env=_sweep_env(repo, gh_env))
+            results.append(("opened cannot remove wrong-repository or unproven mirror evidence",
+                            observed.returncode == 0 and os.path.isdir(dest)
+                            and "recover-mirror" in observed.stdout,
+                            f"provenance={provenance} stdout={observed.stdout!r}"))
+    return results
+
+
 
 def _write_duplicate_artifact(repo, feature, duplicate_feature):
     if duplicate_feature:
@@ -1136,6 +1166,7 @@ JOBS = (
     + [functools.partial(case_t07_build_entry_receipt, row) for row in range(len(_T07_NAMES))]
     + [case_linked_worktree_main_checkout,
        case_duplicate_receipt_inputs,
+       case_unproven_mirror_retention,
        case_prototype_node_modules]
 )
 

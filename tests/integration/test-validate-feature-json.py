@@ -103,7 +103,7 @@ def full_doc():
             "milestone": 1, "parent": 2,             "attached": ["a"], "issues": {"T-01": 10},
         },
         "factory": {
-            "repo": "r", "parent": 1,             "issues": {}, "items": {}, "edges": {"parent": [], "blocked_by": {}},
+            "repo": "acme/r", "parent": 1,             "issues": {}, "items": {}, "edges": {"parent": [], "blocked_by": {}},
         },
     }
 
@@ -739,7 +739,7 @@ def _tree_with_schema(root, extra_github_key=None):
     os.makedirs(binp, exist_ok=True)
     sch = json.loads(open(feature_schema.SCHEMA_PATH, encoding="utf-8").read())
     if extra_github_key:
-        sch["properties"]["github"]["properties"][extra_github_key] = {
+        sch["$defs"]["github"]["properties"][extra_github_key] = {
             "type": "array", "items": {"type": "integer"}}
     with open(os.path.join(binp, "feature-schema.json"), "w") as f:
         json.dump(sch, f)
@@ -764,13 +764,13 @@ def case_749_schema_comes_from_the_written_tree():
     this. FEAT-26 survived only because --post reports AFTER the write lands; a --pre route
     on the same rule blocks it outright."""
     with tempfile.TemporaryDirectory() as tmp:
-        target = _tree_with_schema(tmp, extra_github_key="source_issues")
+        target = _tree_with_schema(tmp, extra_github_key="fixture_receipts")
         doc = full_doc()
-        doc["github"]["source_issues"] = [492]
+        doc["github"]["fixture_receipts"] = [492]
         text = json.dumps(doc)
         probs = feature_schema.problems_for_text(text, "feature.json", for_path=target)
         check("case_749a: a key declared in the WRITTEN tree's schema is accepted",
-              probs == [], repr(probs[:2]))
+              probs == [] and clean(doc) != [], repr(probs[:2]))
 
 
 def case_749_guard_still_rejects_a_truly_undeclared_key():

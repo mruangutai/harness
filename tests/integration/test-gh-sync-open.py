@@ -18,11 +18,14 @@ import os
 import re
 import sys
 import tempfile
+import contextlib
+import io
+from unittest.mock import patch
 
 from gh_sync_support import (
-    FAKE_GH, FAKE_GH_ATTACH_FAILS, SYNC, calls, check, install_gh, load_gh_sync,
+    FAKE_GH, FAKE_GH_ATTACH_FAILS, FAKE_GH_STATIONS, SYNC, calls, check, install_gh, load_gh_sync,
     nested_feature_dir, read_feature_json, report, run, stage, write_feature_json,
-    write_plan_yaml)
+    write_plan_yaml, stage_fleet)
 
 
 def stage_recover(tmp, feat_name, milestone=None, parent=None, issues=None, source_issues=None):
@@ -83,7 +86,464 @@ exit 1
 """
 
 
+def _check_completed_replay(tmp, feat, command, created, label):
+    path = os.path.join(feat, "feature.json")
+    with open(path, "rb") as source:
+        before = source.read()
+    result = run(command, tmp)
+    with open(path, "rb") as source:
+        unchanged = source.read() == before
+    check(f"{label} completed recovery is a byte-identical no-op without duplicate creates",
+          result.returncode == 0 and unchanged and create_calls(calls(tmp)) == created,
+          f"rc={result.returncode} out={result.stdout} err={result.stderr}")
+
+
+def _begin_fixture_recovery(tmp):
+    feat = stage_fleet(tmp)
+    note, _previous = replacement_authority(feat)
+    module = load_gh_sync()
+    doc = read_feature_json(os.path.join(feat, "feature.json"))
+    ref = module.feature_schema.resolve_evidence_ref(feat, note)
+    plan_hash = module._replacement_plan(feat, doc)
+    effect = module._replacement_authority(feat, doc, ref, "owner/harness", "product/app", "full", plan_hash)
+    rec = module._begin_replacement(feat, doc, "owner/harness", "product/app", "full", plan_hash, ref, effect)
+    return feat, note, module, rec
+
+
+def _check_parent_adoption_rejections(tmp, feat, effect):
+    path = os.path.join(feat, "feature.json")
+    with open(path, "rb") as source:
+        before = source.read()
+    created = create_calls(calls(tmp))
+    for name, changes in (
+        ("feature", {}), ("role", {"role": "milestone"}), ("number", {"number": 89}),
+        ("numeric-type", {"number": 88.0}), ("recovery", {"recovery_id": "another-generation"}),
+        ("plan", {"plan_sha256": "0" * 64}), ("operator", {"by": ""}),
+        ("ownership", {"ownership_evidence": ""}), ("duplicate-effect", {}),
+    ):
+        invalid_effect = {**effect, **changes}
+        invalid = {"feature_id": "another-feature" if name == "feature" else "FEAT-9000-fleet",
+                   "effects": [invalid_effect]}
+        if name == "duplicate-effect":
+            invalid["effects"].append(dict(invalid_effect))
+        note = os.path.join(feat, f"adoption-rejected-{name}.json")
+        with open(note, "w", encoding="utf-8") as target:
+            json.dump(invalid, target)
+        result = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
+                      "--evidence", note, "--adopt-receipt", "parent=88", "--yes"], tmp)
+        with open(path, "rb") as source:
+            unchanged = source.read() == before
+        check(f"adoption rejects mismatched {name} without changing pending evidence or creating objects",
+              result.returncode == 2 and unchanged and create_calls(calls(tmp)) == created,
+              f"rc={result.returncode} out={result.stdout} err={result.stderr}")
+
+
+def _check_parent_adoption(tmp, feat, recovery, previous):
+    adoption = os.path.join(feat, "adoption-authorization.json")
+    effect = {"effect": "adopt-receipt", "recovery_id": recovery["id"], "role": "parent",
+              "repo": "product/app", "number": 88, "plan_sha256": recovery["plan_sha256"],
+              "by": "operator", "ownership_evidence": "authenticated creation receipt for product/app#88"}
+    _check_parent_adoption_rejections(tmp, feat, effect)
+    with open(adoption, "w", encoding="utf-8") as target:
+        json.dump({"feature_id": "FEAT-9000-fleet", "effects": [effect]}, target)
+    created = create_calls(calls(tmp))
+    result = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
+                  "--evidence", adoption, "--adopt-receipt", "parent=88", "--yes"], tmp)
+    resumed = read_feature_json(os.path.join(feat, "feature.json"))["github"]
+    check("separately evidenced adoption clears only its pending role and resumes the same generation",
+          result.returncode == 0 and resumed.get("parent") == 88
+          and resumed.get("recovery", {}).get("id") == recovery["id"]
+          and resumed.get("recovery", {}).get("state") == "complete"
+          and not resumed.get("recovery", {}).get("pending_create")
+          and resumed.get("recovery", {}).get("reconciliation")
+          and resumed.get("history", [])[0]["previous"] == previous
+          and len(create_calls(calls(tmp))) == len(created) + 1,
+          f"rc={result.returncode} github={resumed} out={result.stdout} err={result.stderr}")
+
+
+def _invalid_replacement_operand(tmp, feat, note, failure):
+    with open(note) as source:
+        authority = json.load(source)
+    operand = note
+    if failure == "wrong-feature":
+        authority["feature_id"] = "FEAT-OTHER"
+    elif failure == "wrong-repo":
+        authority["effects"][0]["to_repo"] = "elsewhere/wrong"
+    elif failure == "wrong-plan":
+        authority["effects"][0]["plan_sha256"] = "0" * 64
+    elif failure == "duplicate-effect":
+        authority["effects"] *= 2
+    elif failure == "changed-plan":
+        with open(os.path.join(feat, "plan.yaml"), "a") as target:
+            target.write("\n")
+    elif failure == "unsigned":
+        path = os.path.join(feat, "feature.json")
+        doc = read_feature_json(path)
+        doc.pop("signed_task_hashes")
+        with open(path, "w") as target:
+            json.dump(doc, target)
+    elif failure == "traversal":
+        operand = os.path.join(feat, "notes", "..", os.path.basename(note))
+    with open(note, "w") as target:
+        json.dump(authority, target)
+    if failure in {"outside", "symlink"}:
+        operand = os.path.join(tmp, "external-authority.json")
+        with open(operand, "w") as target:
+            json.dump(authority, target)
+        if failure == "symlink":
+            link = os.path.join(feat, "escaping-authority.json")
+            os.symlink(operand, link)
+            operand = link
+    return operand
+
+
+def _check_duplicate_issue_adoption(tmp, feat, doc, effect):
+    path = os.path.join(feat, "feature.json")
+    note = os.path.join(feat, "duplicate-issue-adoption.json")
+    duplicate = {**effect, "number": doc["github"]["parent"]}
+    with open(note, "w") as target:
+        json.dump({"feature_id": doc["feature_id"], "effects": [duplicate]}, target)
+    with open(path, "rb") as source:
+        before = source.read()
+    created = create_calls(calls(tmp))
+    result = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
+                  "--evidence", note, "--adopt-receipt",
+                  f"{effect['role']}={duplicate['number']}", "--yes"], tmp)
+    with open(path, "rb") as source:
+        unchanged = source.read() == before
+    check("task adoption rejects an already-owned parent ISSUE number without changing any receipt",
+          result.returncode == 2 and unchanged and create_calls(calls(tmp)) == created,
+          f"rc={result.returncode} out={result.stdout} err={result.stderr}")
+
+
+def fleet_binding_cases():
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = stage_fleet(tmp)
+        result = run(["open", feat], tmp)
+        receipt = read_feature_json(os.path.join(feat, "feature.json"))["github"]
+        log = calls(tmp)
+        check("fleet open uses remote default-branch product config and records target provenance",
+              result.returncode == 0 and receipt.get("repo") == "product/app"
+              and any("repos/product/app/contents/.harness/harness.json?ref=release" in call for call in log)
+              and create_calls(log) and all("owner/harness" not in call for call in log)
+              and receipt.get("source_issues") == [901]
+              and receipt.get("issues", {}).get("T-01") != 501,
+              f"rc={result.returncode} receipt={receipt} log={log} err={result.stderr}")
+        try:
+            run(["open", feat], tmp, env_extra={"FACTORY_GH": "/usr/bin/gh"})
+        except ValueError:
+            guarded = True
+        else:
+            guarded = False
+        check("fleet fixtures cannot escape the shared fake through env_extra", guarded)
+
+
+def fleet_unproven_command_cases():
+
+    commands = [
+        ["open"], ["start-task", "T-01"], ["status", "building"], ["record-pr", "--pr", "1"],
+        ["ship"], ["abandon", "--yes"], ["reject", "--yes"],
+        ["backlog", "bug:fixture"], ["recover-terminal", "--yes"]]
+    for command in commands:
+        with tempfile.TemporaryDirectory() as tmp:
+            feat = stage_fleet(tmp)
+            path = os.path.join(feat, "feature.json")
+            doc = read_feature_json(path)
+            doc["github"] = {"parent": 12, "build_entry": "opened"}
+            with open(path, "w", encoding="utf-8") as target:
+                json.dump(doc, target, indent=2)
+            with open(path, "rb") as source:
+                before = source.read()
+            with open(os.path.join(feat, "plan.yaml"), "rb") as source:
+                plan_before = source.read()
+            result = run([command[0], feat] + command[1:], tmp)
+            with open(path, "rb") as source:
+                same_ledger = source.read() == before
+            with open(os.path.join(feat, "plan.yaml"), "rb") as source:
+                same_plan = source.read() == plan_before
+            mutations = [call for call in calls(tmp) if any(token in call for token in (
+                "issue create", "issue close", "issue edit", "label create", "project item-",
+                "api -X POST", "api -X PATCH", "api -X DELETE"))]
+            check(f"{command[0]} refuses unproven active fleet receipts before any mutation",
+                  result.returncode == 2 and same_ledger and same_plan and not mutations
+                  and "provenance" in result.stdout + result.stderr,
+                  f"rc={result.returncode} out={result.stdout} err={result.stderr} calls={calls(tmp)}")
+
+
+def replacement_authority(feat, started=False):
+    import artifact_accessors
+    import feature_schema
+    from plan_merge.approval import signed_task_hashes
+    path = os.path.join(feat, "feature.json")
+    doc = read_feature_json(path)
+    write_plan_yaml(feat, doc["feature_id"], [("T-01", "done" if started else "ready")],
+                    source_issues=[901], plan_station="review" if started else "ready",
+                    approval={"status": "approved", "approved_by": "operator", "date": "2026-10-01"})
+    doc["signed_task_hashes"] = signed_task_hashes(
+        artifact_accessors.load_plan(os.path.join(feat, "plan.yaml")))
+    previous = {"milestone": 100, "parent": 12, "issues": {"T-01": 90},
+                "attached": ["T-01"], "typed": {"T-01": True}, "source_issues": [777],
+                "build_entry": "opened"}
+    doc["github"] = previous
+    with open(path, "w", encoding="utf-8") as target:
+        json.dump(doc, target, indent=2)
+    plan_hash = feature_schema.resolve_evidence_ref(feat, "plan.yaml")["sha256"]
+    note = os.path.join(feat, "replacement-authorization.json")
+    effect = {"effect": "recover-mirror", "from_repo": "owner/harness", "to_repo": "product/app",
+              "plan_sha256": plan_hash, "mode": "terminal" if started else "full",
+              "by": "operator", "reason": "replace authenticated wrong-repository mapping"}
+    with open(note, "w", encoding="utf-8") as target:
+        json.dump({"feature_id": doc["feature_id"], "effects": [effect]}, target)
+    return note, previous
+
+
+def replacement_cases():
+    for started in (False, True):
+        with tempfile.TemporaryDirectory() as tmp:
+            feat = stage_fleet(tmp)
+            note, previous = replacement_authority(feat, started)
+            command = ["recover-mirror", feat, "--previous-repo", "owner/harness",
+                       "--evidence", note, "--yes"]
+            result = run(command, tmp)
+            path = os.path.join(feat, "feature.json")
+            github = read_feature_json(path)["github"]
+            recovery = github.get("recovery") or {}
+            history = github.get("history") or []
+            log = calls(tmp)
+            check(f"replacement {'terminal' if started else 'full'} archives verbatim and creates only target roles",
+                  result.returncode == 0 and len(history) == 1
+                  and history[0]["previous"] == previous and "repo" not in history[0]["previous"]
+                  and recovery.get("state") == "complete"
+                  and github.get("build_entry") == ("recovered-terminal" if started else "opened")
+                  and github.get("repo") == "product/app" and github.get("source_issues") == [901]
+                  and bool(github.get("issues")) is (not started)
+                  and all("owner/harness" not in call for call in log)
+                  and len(create_calls(log)) == (2 if started else 3),
+                  f"rc={result.returncode} github={github} out={result.stdout} err={result.stderr} log={log}")
+            _check_completed_replay(tmp, feat, command, create_calls(log),
+                                    "terminal replacement" if started else "full replacement")
+
+
+def replacement_parent_uncertainty_case():
+
+    uncertain = FAKE_GH_STATIONS.replace(
+        '  "issue create")', '  "issue create")\n'
+        '    if [[ "$*" != *"T-01"* ]]; then echo "response lost" >&2; exit 1; fi')
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = stage_fleet(tmp, script=uncertain)
+        note, previous = replacement_authority(feat)
+        command = ["recover-mirror", feat, "--previous-repo", "owner/harness", "--evidence", note, "--yes"]
+        result = run(command, tmp)
+        path = os.path.join(feat, "feature.json")
+        github = read_feature_json(path)["github"]
+        recovery = github.get("recovery") or {}
+        pending = recovery.get("pending_create") or {}
+        check("uncertain parent creation retains its exact durable intent and confirmed milestone",
+              result.returncode == 2 and pending.get("role") == "parent"
+              and github.get("milestone") == 7 and github.get("parent") is None
+              and len(github.get("history") or []) == 1,
+              f"rc={result.returncode} github={github} out={result.stdout} err={result.stderr}")
+        with open(path, "rb") as source:
+            before = source.read()
+        created = create_calls(calls(tmp))
+        again = run(command, tmp)
+        with open(path, "rb") as source:
+            unchanged = source.read() == before
+        check("uncertain restart refuses without retry, lookup, adoption or metadata rewrite",
+              again.returncode == 2 and unchanged and create_calls(calls(tmp)) == created
+              and not any("select(.title" in call or "issue view" in call for call in calls(tmp)),
+              f"rc={again.returncode} out={again.stdout} err={again.stderr} calls={calls(tmp)}")
+        if pending.get("role") == "parent":
+            _check_parent_adoption(tmp, feat, recovery, previous)
+
+
+def replacement_failure_cases():
+    for failure in ("missing-yes", "wrong-feature", "wrong-repo", "wrong-plan", "duplicate-effect",
+                    "changed-plan", "unsigned", "traversal", "outside", "symlink"):
+        with tempfile.TemporaryDirectory() as tmp:
+            feat = stage_fleet(tmp)
+            note, _previous = replacement_authority(feat)
+            operand = _invalid_replacement_operand(tmp, feat, note, failure)
+            path = os.path.join(feat, "feature.json")
+            with open(path, "rb") as source:
+                before = source.read()
+            command = ["recover-mirror", feat, "--previous-repo", "owner/harness", "--evidence", operand]
+            if failure != "missing-yes":
+                command.append("--yes")
+            result = run(command, tmp)
+            with open(path, "rb") as source:
+                unchanged = source.read() == before
+            check(f"replacement refuses {failure} before archive or remote mutation",
+                  result.returncode == 2 and unchanged and not create_calls(calls(tmp)),
+                  f"rc={result.returncode} out={result.stdout} err={result.stderr}")
+
+
+def replacement_same_repository_case():
+
+    # GitHub rejects an existing milestone title even when its old mapping is unproven.
+    duplicate_title = FAKE_GH_STATIONS.replace(
+        'echo \'{"number": 7}\'',
+        'for arg in "$@"; do if [[ "$arg" == "title=FEAT-9000-fleet" ]]; then '
+        'echo "duplicate milestone title" >&2; exit 1; fi; done; echo \'{"number": 7}\'')
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = stage_fleet(tmp, script=duplicate_title)
+        note, previous = replacement_authority(feat)
+        with open(note) as source:
+            authority = json.load(source)
+        authority["effects"][0]["from_repo"] = "product/app"
+        with open(note, "w") as target:
+            json.dump(authority, target)
+        result = run(["recover-mirror", feat, "--previous-repo", "product/app",
+                      "--evidence", note, "--yes"], tmp)
+        rec = read_feature_json(os.path.join(feat, "feature.json"))["github"]
+        check("explicit recovery can replace unproven same-repository receipts without retroactive ownership claims",
+              result.returncode == 0 and rec.get("history", [{}])[0].get("previous") == previous
+              and rec["history"][0]["repo"] == "product/app"
+              and len(create_calls(calls(tmp))) == 3,
+              f"rc={result.returncode} out={result.stdout} err={result.stderr} rec={rec}")
+
+
+def replacement_milestone_uncertainty_case():
+
+    uncertain = FAKE_GH_STATIONS.replace('echo \'{"number": 7}\'', "echo 'response lost'")
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = stage_fleet(tmp, script=uncertain)
+        note, _previous = replacement_authority(feat)
+        command = ["recover-mirror", feat, "--previous-repo", "owner/harness", "--evidence", note, "--yes"]
+        first = run(command, tmp)
+        path = os.path.join(feat, "feature.json")
+        rec = read_feature_json(path)["github"]
+        with open(path, "rb") as source:
+            before = source.read()
+        again = run(command, tmp)
+        with open(path, "rb") as source:
+            unchanged = source.read() == before
+        check("uncertain milestone never falls back to title lookup or another create",
+              first.returncode == again.returncode == 2 and unchanged
+              and rec.get("recovery", {}).get("pending_create", {}).get("role") == "milestone"
+              and rec.get("milestone") is None and len(create_calls(calls(tmp))) == 1
+              and not any("select(.title" in call for call in calls(tmp)),
+              f"first={first.stdout} again={again.stdout} rec={rec} calls={calls(tmp)}")
+
+
+def replacement_undispatched_case():
+
+    with tempfile.TemporaryDirectory() as tmp:
+        feat, note, module, rec = _begin_fixture_recovery(tmp)
+        code = None
+        with patch.object(module, "GH", os.path.join(tmp, "not-installed-gh")), \
+                contextlib.redirect_stdout(io.StringIO()):
+            try:
+                module._replacement_create(feat, rec, "milestone",
+                    ["api", "-X", "POST", "repos/product/app/milestones", "-f", "title=fixture"], json_number=True)
+            except SystemExit as error:
+                code = error.code
+        durable = read_feature_json(os.path.join(feat, "feature.json"))["github"]
+        check("provably undispatched create clears only its intent and retains the recovery generation",
+              code == 2 and durable.get("milestone") is None
+              and not durable.get("recovery", {}).get("pending_create") and create_calls(calls(tmp)) == [],
+              f"code={code} durable={durable} calls={calls(tmp)}")
+        resumed = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
+                       "--evidence", note, "--yes"], tmp)
+        completed = read_feature_json(os.path.join(feat, "feature.json"))["github"]
+        check("known undispatched recovery resumes normally without a second archive",
+              resumed.returncode == 0 and len(create_calls(calls(tmp))) == 3
+              and len(completed.get("history", [])) == 1
+              and completed.get("recovery", {}).get("id") == rec["recovery"]["id"],
+              f"rc={resumed.returncode} out={resumed.stdout} err={resumed.stderr} completed={completed}")
+
+
+def replacement_confirmed_save_failure_cases():
+
+    for save_error in (OSError("injected disk-full after confirmed create"), SystemExit(2)):
+        with tempfile.TemporaryDirectory() as tmp:
+            feat, note, module, rec = _begin_fixture_recovery(tmp)
+            real_save = module.save_recorded
+            def fail_confirmation(directory, record):
+                if record.get("milestone") is not None:
+                    raise save_error
+                real_save(directory, record)
+            out, code = io.StringIO(), None
+            with patch.object(module, "GH", os.path.join(tmp, "gh")), \
+                    patch.object(module, "save_recorded", fail_confirmation), \
+                    patch.dict(os.environ, {"FAKE_LOG": os.path.join(tmp, "calls.log")}), \
+                    contextlib.redirect_stdout(out):
+                try:
+                    module._replacement_create(feat, rec, "milestone",
+                        ["api", "-X", "POST", "repos/product/app/milestones", "-f", "title=fixture"], json_number=True)
+                except SystemExit as error:
+                    code = error.code
+            durable = read_feature_json(os.path.join(feat, "feature.json"))["github"]
+            resumed = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
+                           "--evidence", note, "--yes"], tmp)
+            check(f"confirmed receipt {type(save_error).__name__} preserves named pending intent and prohibits restart creation",
+                  code == resumed.returncode == 2 and all(
+                      value in out.getvalue() for value in ("uncertain", rec["recovery"]["id"], "milestone", "#7"))
+                  and durable.get("milestone") is None
+                  and durable.get("recovery", {}).get("pending_create", {}).get("role") == "milestone"
+                  and len(create_calls(calls(tmp))) == 1,
+                  f"code={code} out={out.getvalue()} resumed={resumed.stdout} durable={durable} calls={calls(tmp)}")
+
+
+def replacement_role_adoptions():
+    scripts = {
+        "milestone": FAKE_GH_STATIONS.replace('echo \'{"number": 7}\'', "echo 'response lost'"),
+        "task:T-01": FAKE_GH_STATIONS.replace(
+            '  "issue create")', '  "issue create")\n'
+            '    if [[ "$*" == *"T-01"* ]]; then echo "response lost" >&2; exit 1; fi'),
+    }
+    for role, script in scripts.items():
+        with tempfile.TemporaryDirectory() as tmp:
+            feat = stage_fleet(tmp, script=script)
+            note, previous = replacement_authority(feat)
+            _replacement_role_adoption_case(tmp, feat, note, previous, role)
+
+
+def _replacement_role_adoption_case(tmp, feat, note, previous, role):
+    command = ["recover-mirror", feat, "--previous-repo", "owner/harness",
+               "--evidence", note, "--yes"]
+    first = run(command, tmp)
+    path = os.path.join(feat, "feature.json")
+    doc = read_feature_json(path)
+    recovery = doc["github"].get("recovery", {})
+    if first.returncode != 2 or recovery.get("pending_create", {}).get("role") != role:
+        check(f"{role} produces an exact pending intent before adoption", False,
+              f"rc={first.returncode} out={first.stdout} err={first.stderr} doc={doc}")
+        return
+    adoption = os.path.join(feat, "role-adoption.json")
+    effect = {"effect": "adopt-receipt", "recovery_id": recovery["id"], "role": role,
+              "repo": "product/app", "number": 88, "plan_sha256": recovery["plan_sha256"],
+              "by": "operator", "ownership_evidence": "authenticated object creation receipt"}
+    if role.startswith("task:"):
+        _check_duplicate_issue_adoption(tmp, feat, doc, effect)
+    with open(adoption, "w") as target:
+        json.dump({"feature_id": doc["feature_id"], "effects": [effect]}, target)
+    adopted = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
+                   "--evidence", adoption, "--adopt-receipt", f"{role}=88", "--yes"], tmp)
+    github = read_feature_json(path)["github"]
+    number = github.get("issues", {}).get("T-01") if role.startswith("task:") else github.get(role)
+    check(f"{role} adoption resumes the same generation without recreating its uncertain role",
+          adopted.returncode == 0 and number == 88 and len(create_calls(calls(tmp))) == 3
+          and len(github.get("history", [])) == 1 and github["history"][0]["previous"] == previous
+          and github.get("recovery", {}).get("id") == recovery["id"]
+          and github["recovery"].get("state") == "complete"
+          and not github["recovery"].get("pending_create")
+          and github.get("build_entry") == "opened",
+          f"rc={adopted.returncode} out={adopted.stdout} err={adopted.stderr} github={github}")
+    _check_completed_replay(tmp, feat, command, create_calls(calls(tmp)), f"{role} adoption")
+
+
 def main():
+    fleet_binding_cases()
+    fleet_unproven_command_cases()
+    replacement_cases()
+    replacement_parent_uncertainty_case()
+    replacement_failure_cases()
+    replacement_same_repository_case()
+    replacement_milestone_uncertainty_case()
+    replacement_undispatched_case()
+    replacement_confirmed_save_failure_cases()
+    replacement_role_adoptions()
     with tempfile.TemporaryDirectory() as tmp:
         gh_path = os.path.join(tmp, "gh")
         open(gh_path, "w").write(FAKE_GH)
@@ -683,9 +1143,6 @@ def main():
               "carrying one",
               _CLOSES_LITERAL not in (r.stdout + r.stderr), repr(r.stdout + r.stderr))
 
-    # No function anywhere in gh-sync.py emits that line any more.
-    check("no function in gh-sync.py emits a closing-keyword line",
-          _CLOSES_LITERAL not in open(SYNC).read(), "the literal survives in gh-sync.py")
 
     # --- source_issues itself STAYS: only the rendering went ---------------------------------------
     # `cmd_open` still mirrors plan.yaml's own top-level list into feature.json, and T-04's ship

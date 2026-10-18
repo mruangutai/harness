@@ -70,6 +70,9 @@ _STATE_MD = "path:.harness/*/features/*/STATE.md"
 _HARNESS_JSON = "path:.harness/harness.json"
 _RUN_STATE = "path:.harness/*/features/*/runs/*/state.yaml"
 _HANDOFF = "path:.harness/*/features/*/notes/handoff-*.md"
+# Evidence operands may name any regular file inside their feature, regardless of suffix.
+_FEATURE_EVIDENCE = "path:.harness/*/features/*/**"
+_EVIDENCE_READER = "path:.claude/skills/harness/bin/feature_schema.py"
 
 INVARIANTS = (
     Group("plan-scalar", (
@@ -103,8 +106,9 @@ INVARIANTS = (
             "a validator run that reviewed code has a pinned review_sha", "DEC-50"),
         Inv("INV-33", inv_33, "feature", (_FEATURE_JSON, _PLAN_YAML, _PLAN_MD, "git:show", "git:log"),
             "a pinned review_sha still matches the plan bytes at a non-terminal station", "DEC-121"),
-        Inv("INV-7", inv_7, "feature", (_FEATURE_JSON,),
-            "cycles_used counts at least the FAIL runs recorded", "DEC-157"),
+        Inv("INV-7", inv_7, "feature", (_FEATURE_JSON, _FEATURE_EVIDENCE, _EVIDENCE_READER,
+                                      "path:.claude/skills/harness/bin/digest_record.py"),
+            "nonnegative cycle attribution preserves the feature total and agrees with immutable evidence; unknown history is noted", "DEC-157"),
         Inv("INV-22", inv_22, "feature", (_FEATURE_JSON, _HARNESS_JSON),
             "recorded runs are counted against budgets.max_total_runs (a note)", "DEC-178"),
         Inv("INV-8", inv_8, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/runs/*"),
@@ -137,12 +141,12 @@ INVARIANTS = (
             "state.yaml is a checkpoint: whitelisted keys, declared step shape", "DEC-154"),
         Inv("INV-36", inv_36, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/.run-identity"),
             "a run directory's checkpoint carries the identity recorded when it was first written", "DEC-154"),
-        Inv("INV-15", inv_15, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/digest.md", _FEATURE_JSON,
-                                          "path:.claude/skills/harness/bin/digest_record.py"),
-            "a complete lead-hosted run's digest.md exists and its final fenced mapping carries VERDICT, DIGEST and artifact", "DEC-156"),
-        Inv("INV-46", inv_46, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/digest.md", _FEATURE_JSON,
-                                          "path:.claude/skills/harness/bin/digest_record.py"),
-            "a contract-clean lead digest's VERDICT agrees with every verdict feature.json records for that run", "DEC-156"),
+        Inv("INV-15", inv_15, "feature", (_RUN_STATE, _FEATURE_EVIDENCE, _FEATURE_JSON,
+                                          _EVIDENCE_READER, "path:.claude/skills/harness/bin/digest_record.py"),
+            "a complete lead execution has an accepted durable record or evidenced BLOCKED refusal", "DEC-156"),
+        Inv("INV-46", inv_46, "feature", (_RUN_STATE, _FEATURE_EVIDENCE, _FEATURE_JSON,
+                                          _EVIDENCE_READER, "path:.claude/skills/harness/bin/digest_record.py"),
+            "an accepted lead digest agrees with every recorded verdict; evidenced refusals are not accepted returns", "DEC-156"),
     )),
     Group("glossary", (
         Inv("INV-19", inv_19, "repo", ("path:.harness/glossary.md",),
@@ -173,8 +177,10 @@ INVARIANTS = (
             "no worktree survives its feature reaching a terminal state", "DEC-203"),
     )),
     Group("build-entry", (
-        Inv("INV-37", inv_37, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON),
-            "an enabled mirror left a Build-entry receipt on every planned feature", "DEC-203"),
+        Inv("INV-37", inv_37, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON,
+                                      _FEATURE_EVIDENCE, _EVIDENCE_READER,
+                                      "path:.harness/factory/fleet.yaml"),
+            "each enabled feature has a provenance-bound Build-entry receipt and intact recovery evidence", "DEC-220"),
     )),
     Group("board", (
         Inv("INV-26", inv_26, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON, "gh:auth", "gh:board"),

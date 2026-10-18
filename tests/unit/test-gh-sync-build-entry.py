@@ -144,30 +144,6 @@ with tempfile.TemporaryDirectory() as tmp:
           f"raised={cap.raised} exit={cap.exit_code} exists={exists}")
 
 # ---------------------------------------------------------------------------
-# The Build refusal (T-04) — _build_entry_preflight called directly.
-
-# BE-23: an era-exempt feature directory carrying a TRAILING SLASH and a recorded
-# recovery-required continues (no SystemExit), stderr carries "is not refused" and never
-# "gh-sync.py open". Depends on T-12's rstrip fix at gh-sync.py:1360, already landed.
-with tempfile.TemporaryDirectory() as tmp:
-    era_dir = feat_dir(tmp, "BUG-1030-stale-anchor-write-hazard")
-    with _Captured() as cap:
-        gh_sync._build_entry_preflight(era_dir + "/", {"build_entry": "recovery-required"})
-    check("BE-23 an era-exempt feature with a trailing slash and recovery-required is not "
-          "refused",
-          not cap.raised and "is not refused" in cap.err and "gh-sync.py open" not in cap.err,
-          f"raised={cap.raised} stderr={cap.err!r}")
-
-# BE-24: a recorded opened — no SystemExit and nothing printed at all.
-with tempfile.TemporaryDirectory() as tmp:
-    non_era_dir = feat_dir(tmp, "FEAT-9105-fixture-non-era")
-    with _Captured() as cap:
-        gh_sync._build_entry_preflight(non_era_dir, {"build_entry": "opened"})
-    check("BE-24 a recorded opened continues with no SystemExit and nothing printed",
-          not cap.raised and cap.out == "" and cap.err == "",
-          f"raised={cap.raised} out={cap.out!r} err={cap.err!r}")
-
-# ---------------------------------------------------------------------------
 # recover-terminal (T-03).
 
 # BE-25: _recover_terminal_conflict is None when --parent (a STRING, as main() passes it)
@@ -213,5 +189,41 @@ check("BE-30 milestone recorded plus --parent 9 given adopts by number, and no a
       "state ever mentions a task or a sub-issue",
       creates == ["adopt parent #9 (given via --parent)"] and no_mentions,
       f"creates={creates!r} no_mentions={no_mentions}")
+
+# A signed plan can acquire a ledgered amendment without rewriting its original hashes.
+# Recovery must recognize that approval, but neither an unrelated amendment nor a missing
+# original signature may bless changed task text.
+with tempfile.TemporaryDirectory() as tmp:
+    from plan_merge.approval import signed_task_hashes
+
+    d = feat_dir(tmp, "FEAT-9110-fixture")
+    plan = {"approval": {"status": "approved"}, "tasks": [
+        {"id": "T-01", "title": "Recovery approval", "change_type": "cross_module",
+         "execution_mode": "main-session-direct", "files": ["original.py"],
+         "intent": "fix", "verify": "unit"}]}
+    doc = base_doc("FEAT-9110-fixture")
+    doc["signed_task_hashes"] = signed_task_hashes(plan)
+    plan["tasks"][0]["files"].append("approved-regression.py")
+    Path(d, "plan.yaml").write_text(json.dumps(plan), encoding="utf-8")
+    for label, judgements, accepted in (
+        ("ledgered amendment", [{"kind": "amendment", "decision": "T-01.files"}], True),
+        ("unrelated amendment", [{"kind": "amendment", "decision": "T-02.files"}], False),
+        ("unledgered edit", [], False),
+    ):
+        doc["judgements"] = judgements
+        try:
+            gh_sync._replacement_plan(d, doc)
+            allowed = True
+        except ValueError:
+            allowed = False
+        check(f"mirror replacement approval: {label}", allowed == accepted)
+    doc["signed_task_hashes"] = {}
+    doc["judgements"] = [{"kind": "amendment", "decision": "T-01.files"}]
+    try:
+        gh_sync._replacement_plan(d, doc)
+        allowed = True
+    except ValueError:
+        allowed = False
+    check("mirror replacement refuses missing original task signatures", not allowed)
 
 sys.exit(1 if failures else 0)

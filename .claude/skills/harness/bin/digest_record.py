@@ -20,6 +20,7 @@ BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 import harness_yaml  # noqa: E402
+from artifact_accessors import strict_json_loads  # noqa: E402
 
 # An opening fence and its info string; only YAML-labelled or unlabelled fences are records.
 _FENCE_RE = re.compile(r"^```([^`\s]*)[^`]*$")
@@ -67,12 +68,20 @@ def last_fenced_mapping(text, where="digest record"):
 
 
 def load_record(path):
-    """The last fenced mapping of the digest file at `path`, read-only."""
+    """Read a direct object or the last historical fenced mapping, without live judging."""
     try:
         with open(path, encoding="utf-8") as source:
             text = source.read()
     except (OSError, UnicodeDecodeError) as error:
         raise DigestRecordError(f"{path}: digest record cannot be read: {error}") from error
+    if text.lstrip().startswith("{"):
+        try:
+            loaded = strict_json_loads(text)
+        except ValueError:
+            pass
+        else:
+            if isinstance(loaded, dict):
+                return loaded
     return last_fenced_mapping(text, str(path))
 
 

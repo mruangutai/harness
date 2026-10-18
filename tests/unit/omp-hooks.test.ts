@@ -2464,9 +2464,14 @@ describe("host-stamped tokens", () => {
     await handlers.get("tool_result")?.(wakeWith({ results: [{ index: 0, exitCode: 0 }] }), ctx);
     expect(JSON.parse(readFileSync(featureJson, "utf8")).runs[0]).not.toHaveProperty("tokens");
     expect(calls.some((c) => c.script === "feature-record.py" && c.args[0] === "stamp-tokens")).toBe(false);
-    // A bare run-end then records null: the host reported nothing, and nothing was invented.
-    spawnSync("python3", [gatePath("feature-record.py"), "run-end", "--file", featureJson,
-      "--id", "r1", "--verdict", "PASS", "--cycles-used", "0"], { encoding: "utf8" });
+    // Closing without a host measurement preserves null, with an explicit evidenced count.
+    const digest = join(root, ".harness", "harness", "features", FEATURE, "lead.json");
+    writeFileSync(digest, JSON.stringify({
+      VERDICT: "PASS", DIGEST: { cycles_used: 0 }, artifact: "lead.json",
+    }));
+    const closed = spawnSync("python3", [gatePath("feature-record.py"), "run-end", "--file", featureJson,
+      "--id", "r1", "--verdict", "PASS", "--cycles-used", "0", "--digest", digest], { encoding: "utf8" });
+    expect(closed.status).toBe(0);
     expect(tokensOf(featureJson)).toBeNull();
   });
 

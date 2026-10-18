@@ -31,6 +31,10 @@
         "headline": {
           "$ref": "common.json#/$defs/text"
         },
+        "cycles_used": {
+          "$ref": "common.json#/$defs/integer",
+          "description": "Explicit send-backs reported by a main-session-direct run; required by the run ledger when assigning or changing that run's count, including zero."
+        },
         "open_questions": {
           "$ref": "common.json#/$defs/open_questions"
         },
