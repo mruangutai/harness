@@ -21,6 +21,7 @@ import tempfile
 import contextlib
 import io
 from unittest.mock import patch
+import harness_merge
 
 from gh_sync_support import (
     FAKE_GH, FAKE_GH_ATTACH_FAILS, FAKE_GH_STATIONS, SYNC, calls, check, install_gh, load_gh_sync,
@@ -455,7 +456,8 @@ def replacement_undispatched_case():
 
 def replacement_confirmed_save_failure_cases():
 
-    for save_error in (OSError("injected disk-full after confirmed create"), SystemExit(2)):
+    for save_error in (OSError("injected disk-full after confirmed create"), SystemExit(2),
+                       harness_merge.MergeRefusal(11, ["injected schema refusal after confirmed create"])):
         with tempfile.TemporaryDirectory() as tmp:
             feat, note, module, rec = _begin_fixture_recovery(tmp)
             real_save = module.save_recorded

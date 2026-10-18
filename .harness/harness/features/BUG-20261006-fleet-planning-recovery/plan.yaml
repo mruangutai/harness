@@ -155,10 +155,15 @@ tasks:
     - tests/integration/test-check-state-table.py#two_feature_tree
     - tests/integration/test-check-state-feat59.py#_in_era
     - tests/integration/test-validate-feature-json.py#full_doc
-    - tests/integration/test-validate-digest.py#run_cli_cases
+    - tests/integration/test-validate-digest.py
     - .claude/skills/harness/bin/digest-schemas/harness-backend-dev.json
     - tests/unit/omp-hooks.test.ts
     - tests/manual/probe-inflight-claim-lifecycle.py
+    - tests/unit/test-digest-schemas.py
+    - tests/integration/test-feature-corpus.py
+    - tests/integration/test-hooks-install.py
+    - tests/integration/test-factory-integration.py
+    - tests/integration/test-station-argument-spelling.py
     verify: |
       python3 tests/unit/test-feature-record.py && python3 tests/unit/test-digest-record.py && python3 tests/unit/test-gh-sync-build-entry.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-check-state-records.py
       # Expect exit 0 and all assertions passing, including fleet cases with BOTH FACTORY_GH and GH_SYNC_GH bound to the shared fake, shared contents responses, and a complete call log proving no Harness mutation or real-gh escape. The 60-second focused ceiling is unmeasured; record first-green wall time and move the slowest case to the full matrix if exceeded, rather than inflate the claim. Full matrix runs exactly once at pinned review_sha after T-02 and before T-03 activation.

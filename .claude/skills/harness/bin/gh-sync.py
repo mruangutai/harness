@@ -1134,7 +1134,7 @@ def _replacement_create(feat_dir, rec, role, args, *, json_number=False, typed=F
         recovery.pop("pending_create")
         save_recorded(feat_dir, rec)
         refuse(f"create {role} was not dispatched: {error}; the recorded intent was cleared")
-    except Exception as error:
+    except (OSError, UnicodeError, subprocess.SubprocessError) as error:
         refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
                "the durable pending intent must be explicitly reconciled")
     _BUILD_ENTRY["remote_written"] = True
@@ -1150,7 +1150,7 @@ def _replacement_create(feat_dir, rec, role, args, *, json_number=False, typed=F
             number = int(match[1]) if match else None
         if isinstance(number, bool) or not isinstance(number, int) or number <= 0:
             raise ValueError("create returned no positive object number")
-    except Exception as error:
+    except (artifact_accessors.ArtifactAccessError, KeyError, TypeError, ValueError) as error:
         refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
                "the durable pending intent must be explicitly reconciled")
     if role.startswith("task:"):
@@ -1162,7 +1162,7 @@ def _replacement_create(feat_dir, rec, role, args, *, json_number=False, typed=F
     recovery.pop("pending_create")
     try:
         save_recorded(feat_dir, rec)
-    except (Exception, SystemExit) as error:
+    except (OSError, ValueError, harness_merge.MergeRefusal, SystemExit) as error:
         refuse(f"uncertain create in recovery {recovery['id']} for {role}: returned #{number}, "
                f"but its confirmed receipt could not be saved ({error}); "
                "reconcile the durable pending intent before any further create")

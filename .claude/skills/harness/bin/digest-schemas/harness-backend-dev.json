@@ -14,52 +14,102 @@
       "$ref": "common.json#/$defs/verdict"
     },
     "DIGEST": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "headline",
-        "open_questions",
-        "files_touched",
-        "expertise_update",
-        "tests_added",
-        "suite",
-        "blocked_on",
-        "task",
-        "task_verify"
-      ],
-      "properties": {
-        "headline": {
-          "$ref": "common.json#/$defs/text"
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "headline",
+            "open_questions",
+            "files_touched",
+            "expertise_update",
+            "tests_added",
+            "suite",
+            "blocked_on",
+            "task",
+            "task_verify"
+          ],
+          "properties": {
+            "headline": {
+              "$ref": "common.json#/$defs/text"
+            },
+            "open_questions": {
+              "$ref": "common.json#/$defs/open_questions"
+            },
+            "files_touched": {
+              "$ref": "common.json#/$defs/string_list"
+            },
+            "expertise_update": {
+              "$ref": "common.json#/$defs/expertise_update"
+            },
+            "tests_added": {
+              "$ref": "common.json#/$defs/integer"
+            },
+            "suite": {
+              "$ref": "common.json#/$defs/pass_fail_nullable"
+            },
+            "blocked_on": {
+              "$ref": "common.json#/$defs/text"
+            },
+            "task": {
+              "$ref": "common.json#/$defs/task_id"
+            },
+            "task_verify": {
+              "$ref": "common.json#/$defs/pass_fail_nullable"
+            }
+          }
         },
-        "cycles_used": {
-          "$ref": "common.json#/$defs/integer",
-          "description": "Explicit send-backs reported by a main-session-direct run; required by the run ledger when assigning or changing that run's count, including zero."
-        },
-        "open_questions": {
-          "$ref": "common.json#/$defs/open_questions"
-        },
-        "files_touched": {
-          "$ref": "common.json#/$defs/string_list"
-        },
-        "expertise_update": {
-          "$ref": "common.json#/$defs/expertise_update"
-        },
-        "tests_added": {
-          "$ref": "common.json#/$defs/integer"
-        },
-        "suite": {
-          "$ref": "common.json#/$defs/pass_fail_nullable"
-        },
-        "blocked_on": {
-          "$ref": "common.json#/$defs/text"
-        },
-        "task": {
-          "$ref": "common.json#/$defs/task_id"
-        },
-        "task_verify": {
-          "$ref": "common.json#/$defs/pass_fail_nullable"
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "headline",
+            "cycles_used",
+            "open_questions",
+            "files_touched",
+            "expertise_update",
+            "tests_added",
+            "suite",
+            "blocked_on",
+            "task",
+            "task_verify"
+          ],
+          "properties": {
+            "headline": {
+              "$ref": "common.json#/$defs/text"
+            },
+            "cycles_used": {
+              "$ref": "common.json#/$defs/integer",
+              "minimum": 0,
+              "description": "Explicit send-backs reported by a main-session-direct run; required by the run ledger when assigning or changing that run's count, including zero."
+            },
+            "open_questions": {
+              "$ref": "common.json#/$defs/open_questions"
+            },
+            "files_touched": {
+              "$ref": "common.json#/$defs/string_list"
+            },
+            "expertise_update": {
+              "$ref": "common.json#/$defs/expertise_update"
+            },
+            "tests_added": {
+              "$ref": "common.json#/$defs/integer"
+            },
+            "suite": {
+              "$ref": "common.json#/$defs/pass_fail_nullable"
+            },
+            "blocked_on": {
+              "$ref": "common.json#/$defs/text"
+            },
+            "task": {
+              "$ref": "common.json#/$defs/task_id"
+            },
+            "task_verify": {
+              "$ref": "common.json#/$defs/pass_fail_nullable"
+            }
+          }
         }
-      },
+      ],
       "allOf": [
         {
           "if": {

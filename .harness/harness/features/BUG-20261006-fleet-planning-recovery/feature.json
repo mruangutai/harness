@@ -2,7 +2,7 @@
   "feature_id": "BUG-20261006-fleet-planning-recovery",
   "branch": "feat/BUG-20261006-fleet-planning-recovery",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": null,
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -98,6 +98,20 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "Complete the approved evidence-aware run-end cutover in the existing host-token regression and manual lifecycle probe; no product or operational recovery scope is added."
+    },
+    {
+      "at": "2026-10-18T16:50:38.452977+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Complete T-01 binding/caller fixtures and remove obsolete shape/prose locks; retain behavioral coverage."
+    },
+    {
+      "at": "2026-10-18T17:05:29.569958+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Complete backend schema consumer cleanup: delete incidental wording locks while retaining missing-field and undeclared-key rejection coverage."
     }
   ],
   "mission": "plan",

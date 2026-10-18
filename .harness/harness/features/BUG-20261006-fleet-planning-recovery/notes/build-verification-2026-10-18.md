@@ -138,3 +138,60 @@ the active mapping is proven `mruangutai/harness`, the receipt is `recovered-ter
 and the historical task issue map was not recreated. The archived original mapping,
 signed plan bytes and original malformed digest bytes still match the captured originals.
 This resolves the own-feature lifecycle blockers only; it does not activate T-03–T-05.
+
+## Pinned matrix and corrective cutover
+
+Local review commit `e9ecbd4c4e4fc41d19402042b591f33b186b4b36` was created after
+the canonical feature-scoped checker passed. The one approved pinned matrix then
+FAILED: one unit file and five integration files. The immutable result, exact
+commands, timings and pre-edit diagnoses are recorded in `pinned-matrix-e9ecbd4c.md`.
+No passing full-matrix result is claimed.
+
+The remaining five consumer-test files were added through a canonical T-01.files
+amendment judgement; the original signatures were not re-signed. This later
+files-only amendment changes the current plan bytes, not the plan hash already
+bound to the completed historical mirror generation or its immutable authority.
+The stale review pin was cleared rather than retained as a claim over new text.
+
+Corrective verification: schema plus the original focused chain passed in 58.33s
+(session artifact 296); remaining factory/hooks/corpus/station checks passed in
+31.70s (artifact 295); final structure-lock plus recovery checks passed in 35.31s
+(artifact 300). The real digest CLI accepted ordinary omission and explicit 0/4,
+and refused negative, boolean, fractional and unknown-key inputs. The negative
+boundary first failed both that smoke and its new permanent regression before the
+schema's `minimum: 0` fix. A regression injecting the atomic writer's actual
+`MergeRefusal` class likewise went red before the narrow confirmed-save handler
+was corrected; durable pending intent and no-retry behavior then passed for that
+class, OS errors and SystemExit. These error cases used isolated fake-gh fixtures,
+not live remote failures.
+
+The corrective logical-path pre-pin grading reports zero high findings and the
+same 35 named grade-2 reasons above. Four separate read-only corrective quality
+readers (reuse, simplification, efficiency, altitude) returned no findings.
+The explicit EXACTLY ONCE matrix ruling requires operator amendment before any
+fresh-pin full-matrix rerun. T-03–T-05 and all Kaya/install/merge/deploy effects
+remain unactivated.
+
+### Final validator consumer cutover
+
+A direct-property consumer search found the diagnostic-only lookup in
+`validate-digest.py`. It remains intentionally unchanged: composed backend schema
+failures are whole-DIGEST errors and do not enter the detailed field-hint lookup.
+The actual validator integration suite confirmed rejection, but its first targeted
+run failed seven incidental wording locks (10.51s, session artifact 325), not seven
+accepted invalid returns. Removed the backend hint-only cases and joint-hint helper,
+and deleted message-substring conjuncts while retaining required-field, misspelled-key
+and undeclared-key rejection. No production validation was relaxed or wording repinned.
+
+The existing validator test anchor was extended to its whole file through a second
+canonical files-only amendment; original approval and task signatures remain unchanged.
+The suite then passed in 10.37s (artifact 332), including all 37 undeclared-key cases
+and all 81 exact-release checks. Final current-source risk grading remains grade_2,
+zero high findings and the same 35 named reasons; no unconditional raw-grader PASS
+is claimed.
+
+Final pre-pin four-angle pass covered the complete corrective source/test diff,
+including the last validator consumer cleanup. PinReuse (30.9s), PinSimplification
+(66s), PinEfficiency (31.7s) and PinAltitude (37.7s) each returned no findings,
+read-only, without executing checks. These are angle-only results, not correctness
+or shipping certification.
