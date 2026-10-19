@@ -1249,7 +1249,7 @@ def _open_task_milestone(repo, brief, rec, tasks):
     """Resolve the title of a confirmed replacement receipt, never discover an object."""
     pending = any(task.get("status") not in factory_config.TERMINAL_STATIONS
                   and task["id"] not in rec["issues"] for task in tasks)
-    if not _replacement_in_progress(rec) or not pending:
+    if not rec.get("recovery") or not pending:
         return brief["feat"]
     title = gh(["api", f"repos/{repo}/milestones/{rec['milestone']}", "--jq", ".title"])
     if not title:

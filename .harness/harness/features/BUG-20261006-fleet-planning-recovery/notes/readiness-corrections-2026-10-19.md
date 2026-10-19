@@ -98,3 +98,59 @@ Create the corrected local review pin, run the canonical pinned grading CLI and
 obtain read-only code/security re-review. A new-pin full-matrix run requires a new
 operator ruling. T-03/T-04/T-05 remain unactivated: no Kaya capture, history repair,
 installation, push, merge or deployment has been performed or authorized here.
+
+## Corrected source pin and observed smoke
+
+The canonical feature-scoped state checker exited zero before committing (only
+historical/layout notes); the signed plan checker resolved all 51 anchors with zero
+failures. Local commit `d6074f0eaad0121546d4df7d1447fd7c3aa44486` contains the
+corrections. Its actual canonical grading CLI exited zero with 81 passing,
+35 named medium reasons, zero high findings and zero ungraded Python.
+
+All 283 tracked blobs in `.claude/skills/harness/bin`, `.omp/extensions`, `tests`,
+`.harness/harness.json` and `.harness/team-config.yaml`, plus exact plan bytes,
+match that pin. A fresh-process POST-PIN smoke exited zero for BOTH corrected paths:
+
+- Task associated with confirmed milestone 7, not old-title milestone 100; exactly
+  one known-number title read; original archive unchanged; completed replay
+  byte-identical with no additional remote create.
+- Run-subject total remains 6; superseded evidence stays owned; cross-run replay
+  exits 2 with `digest evidence belongs to run 'r1', not 'r2'`; tampering exits 2
+  with an evidence-hash refusal; metadata remains byte-identical on both refusals;
+  the fresh reader reports the same evidence-hash problem.
+
+Read-only corrected-pin re-review is pending. No full matrix has run at d6074f0e.
+
+## d6074f0e re-review and completed-recovery amendment
+
+The independent security reader cleared SC-03-SC-04-CYCLE-SUBJECT, including its
+superseded-reference residual, at d6074f0e and found no new scoped security issue.
+The code reader cleared the original in-progress failure but returned one **P2**:
+ordinary `open` after completed full recovery still used the feature's old title
+when an approved amendment added a task. This is not a clean code-review verdict.
+
+A new real-CLI regression reproduced that exact case before the fix (session
+artifact 436, exit 1): local receipt remained milestone 7, while added T-02 attached
+to the old-title milestone 100. Existing recovery/archive/receipts and completed
+replay checks passed, isolating the incorrect association.
+
+The one-line guard now recognizes any recorded replacement generation, not merely
+an in-progress one, when a missing task needs creation. The existing missing-task
+guard preserves lookup-free repeats, and the ordinary-open terminal guard remains
+unchanged. Guidance now explicitly covers approved task additions after completion.
+
+Frozen corrective tree `43870903fe2d3a2fc05a2261179459550b7b3e7d` grades raw grade_2:
+83 passing, the same 35 named medium reasons, zero high. The new regression grades
+3; its amendment fixture grades 5. No source attribution/evidence code changed
+after the security clearance. Final targeted verification/pin/re-review are pending.
+
+The final whole `test-gh-sync-open.py` driver now exits zero (31.96s), including
+the new post-completion task's correct milestone association, preserved existing
+receipts/generation/archive and byte-identical no-create ordinary-open replay.
+No evidence/attribution source changed after the earlier 107-unit and checker
+integration passes. The final quality refresh, source pin and re-review remain
+pending; no full-matrix rerun was performed.
+
+Four separate final d6074f0e-delta quality readers (reuse, simplification,
+efficiency, altitude) returned no findings. No edits or checks were performed by
+those readers; source correctness still requires the final pinned re-review.

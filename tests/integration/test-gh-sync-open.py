@@ -303,11 +303,11 @@ def _seed_remote_milestone(tmp, number, title):
         json.dump({"product/app": {str(number): title}}, target)
 
 
-def _check_task_milestone(tmp, github, expected, label, previous=None):
+def _check_task_milestone(tmp, github, expected, label, previous=None, task_id="T-01"):
     state = os.path.join(tmp, "issue-state.json")
     with open(state) if os.path.exists(state) else contextlib.nullcontext(None) as source:
         assigned = json.load(source) if source else {}
-    task_number = github.get("issues", {}).get("T-01")
+    task_number = github.get("issues", {}).get(task_id)
     check(label, assigned.get(f"product/app#{task_number}", {}).get("milestone") == expected
           and expected != previous, f"github={github} remote={assigned}")
 
@@ -344,6 +344,46 @@ def replacement_cases():
                     previous["milestone"])
             _check_completed_replay(tmp, feat, command, create_calls(log),
                                     "terminal replacement" if started else "full replacement")
+
+
+def _approve_added_recovery_task(feat):
+    path = os.path.join(feat, "feature.json")
+    doc = read_feature_json(path)
+    write_plan_yaml(feat, doc["feature_id"], [("T-01", "ready"), ("T-02", "ready")],
+                    source_issues=[901], plan_station="ready",
+                    approval={"status": "approved", "approved_by": "operator", "date": "2026-10-01"})
+    doc.setdefault("judgements", []).append({
+        "at": "2026-10-19T13:00:00+00:00", "by": "harness-orchestrator", "kind": "amendment",
+        "decision": "T-02", "reason": "operator approved adding a task after completed recovery"})
+    with open(path, "w") as target:
+        json.dump(doc, target)
+
+
+def completed_replacement_amendment_case():
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = stage_fleet(tmp)
+        note, _previous = replacement_authority(feat)
+        _seed_remote_milestone(tmp, 100, "FEAT-9000-fleet")
+        recovered = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
+                         "--evidence", note, "--yes"], tmp)
+        path = os.path.join(feat, "feature.json")
+        before = read_feature_json(path)["github"]
+        _approve_added_recovery_task(feat)
+        amended = run(["open", feat], tmp)
+        after = read_feature_json(path)["github"]
+        check("approved task addition preserves the completed recovery and existing receipts",
+              recovered.returncode == 0 and amended.returncode == 0
+              and after["recovery"] == before["recovery"] and after["history"] == before["history"]
+              and after["milestone"] == before["milestone"] and after["parent"] == before["parent"]
+              and after["issues"].get("T-01") == before["issues"].get("T-01")
+              and "T-02" in after["issues"],
+              f"rc={amended.returncode} before={before} after={after} err={amended.stderr}")
+        _check_task_milestone(
+            tmp, after, before["milestone"],
+            "task added after completed recovery belongs to its confirmed replacement milestone",
+            task_id="T-02")
+        _check_completed_replay(tmp, feat, ["open", feat], create_calls(calls(tmp)),
+                                "amended completed full replacement")
 
 
 def replacement_parent_uncertainty_case():
@@ -566,6 +606,7 @@ def main():
     fleet_binding_cases()
     fleet_unproven_command_cases()
     replacement_cases()
+    completed_replacement_amendment_case()
     replacement_parent_uncertainty_case()
     replacement_failure_cases()
     replacement_same_repository_case()
