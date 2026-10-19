@@ -195,3 +195,45 @@ including the last validator consumer cleanup. PinReuse (30.9s), PinSimplificati
 (66s), PinEfficiency (31.7s) and PinAltitude (37.7s) each returned no findings,
 read-only, without executing checks. These are angle-only results, not correctness
 or shipping certification.
+
+### Corrective local review pin
+
+Canonical plan anchors (51, zero failures) and feature-scoped full state checks
+passed before the corrective commit in 1.48s. Only the ten scoped source/test
+paths and this feature directory were committed: `f9a13cacb4c554605dc5fa339f12d609d15818e1`
+(`fix: complete fleet recovery contract cutover`, 15 files, +243/-352).
+Unrelated staged work was not included; no push or merge was performed.
+
+Pinned `code-grade.py --base 63cac11a3216aa8d34792665a05fcb185f7cf73b --head f9a13cacb4c554605dc5fa339f12d609d15818e1 --json`
+exited 0: raw grade_2, 66 passing, the same 35 named grade-2 reasons, zero high
+and zero ungraded. The review pin is recorded locally; metadata recording the
+pin necessarily follows the commit it names. The original failed matrix remains
+unchanged and blocks a full-green claim pending an explicit rerun ruling.
+
+### Additional authorized matrix and OMP compatibility correction — 2026-10-19
+
+Operator selection explicitly allowed one additional matrix at f9a13cac; its
+immutable ruling is `operator-corrected-matrix-ruling-2026-10-19.md`. Exact source
+provenance checked 280 tracked tooling/test/config blobs against that pin.
+Integration passed all 83 files (100.65s pool / 100.81s command, artifact 357).
+Unit failed only `test-omp-hooks.py` (55 files, 28.84s pool / 29.01s command,
+artifact 356): OMP refuses non-annotation siblings beside a schema reference.
+The full result remains FAILED; see `pinned-matrix-f9a13cac.md`.
+
+After both halves settled, replaced the counted field's reference-plus-minimum
+with equivalent explicit `type: integer, minimum: 0`, retaining the OMP guard.
+A targeted run then exposed the predicted incidental direct-properties copy
+test TypeError (137 passing, one failing, 5.63s); deleted that complete copy test,
+not repinned it. No production TypeScript or Python changed.
+
+The OMP + canonical schema + validator chain passed in 16.78s (artifact 361):
+137 OMP and 33 schema tests, with validator's 37 undeclared-key and 81 exact-release
+checks passing. A real Bun bundle-loading smoke confirmed the main-session alias
+and both strict variants; actual canonical CLI accepted omitted/0/4 counts and
+refused negative/boolean/fractional counts. No third matrix is authorized or run,
+and no first/second failed receipt, original return or count is rewritten.
+
+Final two-file pre-pin follow-ups (same four independent read-only readers) returned
+no findings: reuse/simplification/efficiency each 11.2s, altitude 16.8s. Their scope
+was the explicit integer schema and source-copy test deletion versus f9a13cac.
+No production Python changed, and these angle-only results do not certify shipping.
