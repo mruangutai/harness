@@ -1321,6 +1321,97 @@ class SchemaTest(unittest.TestCase):
 
 
 class CycleEvidenceTest(FeatureRecordCase):
+    def _end(self, run_id, count, digest):
+        return self.run_cli("run-end", "--file", str(self.path), "--id", run_id,
+                            "--verdict", "FAIL", "--cycles-used", str(count),
+                            "--digest", str(digest))
+
+    def _two_open_runs(self):
+        self.write(base_doc(cycles_used=3, runs=[
+            {"id": "r1", "squad": "product", "verdict": "PENDING", "agent": "harness-product-lead"},
+            {"id": "r2", "squad": "product", "verdict": "PENDING", "agent": "harness-product-lead"}]))
+
+    def test_other_run_namespace_cannot_supply_an_unclaimed_digest(self):
+        self._two_open_runs()
+        foreign = self.path.parent / "runs" / "r1" / "digest.md"
+        foreign.parent.mkdir(parents=True)
+        foreign.write_text(Path(self.lead_evidence(0, "FAIL")).read_text())
+        self.assert_ok(self._end("r2", 1, self.lead_evidence(1, "FAIL")))
+        before = self.path.read_bytes()
+        result = self._end("r2", 0, foreign)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_foreign_arbitrary_digest_cannot_erase_another_runs_count(self):
+        self._two_open_runs()
+        foreign = self.lead_evidence(0, "FAIL")
+        self.assert_ok(self._end("r1", 0, foreign))
+        self.assert_ok(self._end("r2", 1, self.lead_evidence(1, "FAIL")))
+        before = self.path.read_bytes()
+        result = self._end("r2", 0, foreign)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_superseded_arbitrary_digest_keeps_its_original_run_owner(self):
+        self._two_open_runs()
+        foreign = self.lead_evidence(0, "FAIL")
+        self.assert_ok(self._end("r1", 0, foreign))
+        self.assert_ok(self._end("r1", 2, self.lead_evidence(2, "FAIL")))
+        self.assert_ok(self._end("r2", 1, self.lead_evidence(1, "FAIL")))
+        before = self.path.read_bytes()
+        result = self._end("r2", 0, foreign)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_reader_rejects_cross_run_digest_replay_with_consistent_totals(self):
+        from check_state.feature_record import inv_7
+        from types import SimpleNamespace
+        self._two_open_runs()
+        self.assert_ok(self._end("r1", 0, self.lead_evidence(0, "FAIL")))
+        doc = self.load()
+        doc["runs"][1].update(verdict="FAIL", cycles_used=0,
+                              cycle_evidence=dict(doc["runs"][0]["cycle_evidence"]))
+        ctx = SimpleNamespace(
+            path=lambda *args: str(self.path),
+            record=lambda feat: (doc, [], [], []))
+        problems, _warnings = inv_7(ctx, doc["feature_id"])
+        self.assertTrue(problems)
+
+    def test_distinct_digest_files_may_have_identical_bytes(self):
+        self._two_open_runs()
+        first = self.lead_evidence(0, "FAIL")
+        second = self.path.parent / "independent-return.md"
+        second.write_bytes(Path(first).read_bytes())
+        self.assert_ok(self._end("r1", 0, first))
+        self.assert_ok(self._end("r2", 0, second))
+        self.assertEqual(3, self.load()["cycles_used"])
+
+    def test_superseded_receipts_remain_hash_bound_for_writers_and_readers(self):
+        self._two_open_runs()
+        original = Path(self.lead_evidence(0, "FAIL"))
+        self.assert_ok(self._end("r1", 0, original))
+        current = self.lead_evidence(2, "FAIL")
+        self.assert_ok(self._end("r1", 2, current))
+        before = self.path.read_bytes()
+        original.write_text("changed historical receipt\n")
+        result = self._end("r1", 2, current)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+        doc = self.load()
+        self.assertTrue(feature_schema.run_evidence_problems(
+            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
+
+    def test_historical_authorization_does_not_claim_unattested_previous_artifacts(self):
+        ref = {"path": "notes/original.md", "sha256": "a" * 64}
+        evidence = dict(source="operator-history", **ref, by="operator",
+                        at="2026-10-19T10:00:00Z", authorization=ref)
+        doc = base_doc(runs=[{"id": "r1", "squad": "product", "verdict": "FAIL",
+                              "agent": "harness-product-lead", "cycles_used": 0,
+                              "cycle_evidence": evidence}])
+        self.assertEqual([], feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+        evidence["previous"] = [{"path": "notes/not-authorized.md", "sha256": "b" * 64}]
+        self.assertTrue(feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+
     def test_evidence_cannot_bless_boolean_float_or_absent_attribution(self):
         digest = self.lead_evidence(0)
         ref = feature_schema.resolve_evidence_ref(str(self.path.parent), digest)
@@ -1329,7 +1420,7 @@ class CycleEvidenceTest(FeatureRecordCase):
                    "cycle_evidence": dict(ref, source="lead-digest")}
             with self.subTest(count=count):
                 self.assertTrue(feature_schema.run_evidence_problems(
-                    str(self.path.parent), "FEAT-77-record", run))
+                    str(self.path.parent), "FEAT-77-record", run, [run]))
 
     def test_new_zero_attribution_requires_evidence_before_any_write(self):
         before = self.write(base_doc(runs=[{
@@ -1362,7 +1453,7 @@ class CycleEvidenceTest(FeatureRecordCase):
         doc = self.load()
         self.assertEqual(2, doc["cycles_used"])
         self.assertEqual([], feature_schema.run_evidence_problems(
-            str(self.path.parent), doc["feature_id"], doc["runs"][0]))
+            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
 
     def test_zero_sendback_fail_and_one_sendback_preserve_legacy_residual(self):
         self.write(base_doc(cycles_used=3, runs=[
@@ -1474,13 +1565,13 @@ class HistoricalRecoveryTest(FeatureRecordCase):
         self.assertEqual("2026-09-11T11:00:00+00:00", doc["runs"][0]["ended_at"])
         self.assertEqual(original, digest.read_bytes())
         self.assertEqual([], feature_schema.run_evidence_problems(
-            str(self.path.parent), doc["feature_id"], doc["runs"][0]))
+            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
         before = self.path.read_bytes()
         self.assert_ok(self.run_cli(*args))
         self.assertEqual(before, self.path.read_bytes())
         digest.write_text("changed report\n", encoding="utf-8")
         self.assertNotEqual([], feature_schema.run_evidence_problems(
-            str(self.path.parent), doc["feature_id"], doc["runs"][0]))
+            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
         result = self.run_cli(*args)
         self.assertEqual(2, result.returncode, result.stderr)
         self.assertEqual(before, self.path.read_bytes())

@@ -1245,7 +1245,19 @@ def _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state):
         print(f"gh-sync: parent #{rec['parent']} created")
 
 
-def _open_create_task(feat_dir, repo, brief, rec, task, state):
+def _open_task_milestone(repo, brief, rec, tasks):
+    """Resolve the title of a confirmed replacement receipt, never discover an object."""
+    pending = any(task.get("status") not in factory_config.TERMINAL_STATIONS
+                  and task["id"] not in rec["issues"] for task in tasks)
+    if not _replacement_in_progress(rec) or not pending:
+        return brief["feat"]
+    title = gh(["api", f"repos/{repo}/milestones/{rec['milestone']}", "--jq", ".title"])
+    if not title:
+        skip("confirmed replacement milestone has no readable title; no task was created")
+    return title
+
+
+def _open_create_task(feat_dir, repo, brief, rec, task, state, milestone_title):
     """Create TASK's sub-issue when it is not yet recorded (section 5's label rule)."""
     body = task["body"]
     if task["absorbs"]:
@@ -1256,7 +1268,7 @@ def _open_create_task(feat_dir, repo, brief, rec, task, state):
         labels = ["harness"] + ([type_label(task["change_type"])] if type_label(task["change_type"]) else [])
     args = ["issue", "create", "--repo", repo,
             "--title", f"{brief['feat']} — {task['id']} — {task['title']}", "--body", body,
-            "--milestone", brief["feat"]]
+            "--milestone", milestone_title]
     for l in labels:
         args += ["--label", l]
     if _replacement_in_progress(rec):
@@ -1285,7 +1297,7 @@ def _open_attach_task(feat_dir, repo, rec, task):
     print(f"gh-sync: {task['id']} (issue #{child_num}) attached to parent #{rec['parent']}")
 
 
-def _open_sync_task(feat_dir, repo, brief, rec, task, state):
+def _open_sync_task(feat_dir, repo, brief, rec, task, state, milestone_title):
     """One task's whole sync step: skip abandoned, create-or-skip, then attach."""
     if task.get("status") in factory_config.TERMINAL_STATIONS:
         print(f"gh-sync: {task['id']} is terminal — no sub-issue created")
@@ -1293,7 +1305,7 @@ def _open_sync_task(feat_dir, repo, brief, rec, task, state):
     if task["id"] in rec["issues"]:
         print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
     else:
-        _open_create_task(feat_dir, repo, brief, rec, task, state)
+        _open_create_task(feat_dir, repo, brief, rec, task, state, milestone_title)
         _BUILD_ENTRY["remote_written"] = True
     _open_attach_task(feat_dir, repo, rec, task)
 
@@ -1326,9 +1338,10 @@ def _open_apply(feat_dir, repo, rec, parent_arg=None, issue_types=None):
     _open_ensure_labels(repo, tasks, rec, parent_arg, issue_types, state, declared)
 
     _open_ensure_milestone(feat_dir, repo, brief, rec)
+    milestone_title = _open_task_milestone(repo, brief, rec, tasks)
     _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state)
     for task in tasks:
-        _open_sync_task(feat_dir, repo, brief, rec, task, state)
+        _open_sync_task(feat_dir, repo, brief, rec, task, state, milestone_title)
     save_recorded(feat_dir, rec)
 
     if state == "available":

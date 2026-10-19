@@ -292,7 +292,7 @@ def _refusal_completion(ctx, feat, rundir, sdoc):
         directory = os.path.dirname(ctx.path(feat, "feature.json"))
         entry = entries[0]
         problems.extend(feature_schema.run_evidence_problems(
-            directory, doc["feature_id"], entry))
+            directory, doc["feature_id"], entry, doc.get("runs", [])))
         try:
             path = feature_schema.verify_evidence_ref(directory, entry["refusal"]["digest"])
             if os.path.realpath(path) != os.path.realpath(os.path.join(rundir, "digest.md")):

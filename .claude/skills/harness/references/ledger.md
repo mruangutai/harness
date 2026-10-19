@@ -29,6 +29,11 @@ Every new or changed `run-end` count, including zero, requires `--digest`; the s
 `close-run` resolves a feature-relative or absolute `--digest` once at entry; validation,
 accounting and refused-return recording all receive that same target-local file, never a
 similarly named file in the process working directory.
+Live digest paths belong to one run: another recorded run's `runs/<id>/` namespace or
+current/prior evidence cannot supply your close. Arbitrary feature-local locations remain legal
+for a first claim. A count correction retains superseded hash-bound references in
+`cycle_evidence.previous`; they keep their original ownership and must remain immutable.
+Writers and invariant readers enforce the same ownership, including after correction.
 Repeating identical evidence is byte-idempotent. Attribution deltas preserve the legacy
 unattributed residual; historical missing counts/evidence are explicit notes, not assumed zeros.
 A first-pass FAIL can legitimately contribute zero; a genuine send-back contributes one.

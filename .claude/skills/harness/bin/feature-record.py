@@ -295,15 +295,21 @@ def cmd_record_history(args):
     sys.exit(0)
 
 
-def _run_end_digest(args, entry, changed):
-    """Verify content, immutable replay and the claimed count as one evidence boundary."""
+def _run_end_digest(args, entry, changed, runs):
+    """Verify immutable, durably run-owned evidence and the claimed count."""
     try:
         directory = os.path.dirname(args.file)
         ref = feature_schema.resolve_evidence_ref(directory, args.digest)
+        feature_schema.verify_run_digest_owner(entry["id"], ref["path"], runs)
+        previous = []
         existing = entry.get("cycle_evidence")
         if existing:
-            feature_schema.verify_evidence_ref(
-                directory, {key: existing[key] for key in ("path", "sha256")})
+            claims = [*existing.get("previous", []),
+                      {key: existing[key] for key in ("path", "sha256")}]
+            for claim in claims:
+                feature_schema.verify_evidence_ref(directory, claim)
+                feature_schema.verify_run_digest_owner(entry["id"], claim["path"], runs)
+            previous = [claim for claim in claims if claim["path"] != ref["path"]]
             if not changed and any(existing[key] != ref[key] for key in ("path", "sha256")):
                 raise ValueError("replay evidence conflicts with the recorded receipt")
         record = digest_record.load_record(os.path.join(directory, ref["path"]))
@@ -313,6 +319,8 @@ def _run_end_digest(args, entry, changed):
             raise ValueError("cycles_used disagrees with authentic digest evidence")
         if record.get("VERDICT") != args.verdict or "artifact" not in record:
             raise ValueError("digest verdict/record does not match the requested close")
+        if previous:
+            ref["previous"] = previous
         return ref
     except (OSError, ValueError, KeyError, TypeError, digest_record.DigestRecordError) as error:
         _refuse([f"REFUSED: {error}"])
@@ -340,7 +348,7 @@ def cmd_run_end(args):
         if changed and not args.digest:
             _refuse(["REFUSED: new/changed cycle attribution requires --digest evidence."])
         if args.digest:
-            ref = _run_end_digest(args, entry, changed)
+            ref = _run_end_digest(args, entry, changed, runs)
             if changed or "cycle_evidence" not in entry:
                 entry["cycle_evidence"] = dict(source="lead-digest", **ref)
         entry["verdict"] = args.verdict

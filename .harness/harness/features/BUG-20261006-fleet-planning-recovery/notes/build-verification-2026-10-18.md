@@ -237,3 +237,48 @@ Final two-file pre-pin follow-ups (same four independent read-only readers) retu
 no findings: reuse/simplification/efficiency each 11.2s, altitude 16.8s. Their scope
 was the explicit integer schema and source-copy test deletion versus f9a13cac.
 No production Python changed, and these angle-only results do not certify shipping.
+
+Canonical anchors (51, zero failures) and feature-scoped full state checks passed
+before committing in 1.66s. The two scoped source/test paths plus this feature
+directory were committed locally as `b3f5552088c271c2083025ea9e7ff815741c310f`
+(`fix: keep counted backend schema compatible with OMP`, six files, +101/-22).
+Pinned risk command against the same baseline exited 0: raw grade_2, 66 passing,
+35 unchanged named grade-2 reasons, zero high/ungraded. Review metadata records
+the new pin after its commit. No push, merge or third full matrix occurred.
+
+### Passing pinned full matrix — 2026-10-19
+
+The operator expressly authorized one new-pin matrix in
+`operator-omp-matrix-ruling-2026-10-19.md`. At b3f5552088c271c2083025ea9e7ff815741c310f,
+unit passed 55/55 files (29.44s pool / 29.59s command, artifact 374), and integration
+passed 83/83 (101.00s pool / 101.14s command, artifact 375). Both commands ran once
+in parallel without source changes. All 282 tracked tooling/test/native-extension/
+config blobs and the plan bytes match that pin. Detailed receipt:
+`pinned-matrix-b3f55520.md`. Earlier failed receipts and historical counts remain
+unchanged; this is not whole-feature operational/UAT certification.
+
+Read-only code and security readiness readers are reviewing the pinned tooling
+before operational handoff. The restricted security reader could not run git or
+grading, so main supplied an immutable git-archive source export, exact pinned
+diff, origin/main merge-base, dirty-tree reconciliation and actual pinned grader
+JSON. Only feature-local tracked metadata is dirty; unrelated untracked .harness
+log/grilling files remain untouched. No review verdict is claimed before return.
+
+### Readiness findings and corrections — 2026-10-19
+
+The b3f55520 readers returned two real findings: full-mode replacement task issues
+could attach to the old milestone title, and a live cycle artifact could be replayed
+across runs, including after its original attribution was corrected. Both are now
+corrected with confirmed-number milestone resolution and durable current/prior
+run ownership. Original counts and historical/remote records remain unchanged.
+
+Final focused runs pass: 107 feature-record tests (20.01s), GH open (33.06s),
+check-state records (11.78s), and check-state feat59 (19.12s). Real CLI ownership
+smoke passes. Complexity-driven cohesive extractions remove all four initial
+new high grades; final raw grade_2 has 81 passing / 35 named medium / zero high.
+Four separate final read-only quality refreshes have no findings.
+
+See `readiness-corrections-2026-10-19.md` for original findings, red/green evidence,
+smoke-input corrections and updated grade reasons. A fresh source pin and read-only
+re-review remain necessary; the previous matrix authorization is consumed. No
+new-pin full-matrix run or T-03–T-05 operation is implied.

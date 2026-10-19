@@ -603,7 +603,41 @@ def verify_historical_cycle_count(path, count):
         raise ValueError("historical cycle attribution contradicts the authentic digest count")
 
 
-def run_evidence_problems(feature_dir, feature_id, run):
+def _run_digest_paths(run):
+    evidence = run.get("cycle_evidence")
+    if evidence:
+        yield evidence["path"]
+        for previous in evidence.get("previous", []):
+            yield previous["path"]
+    if run.get("refusal"):
+        yield run["refusal"]["digest"]["path"]
+
+
+def verify_run_digest_owner(run_id, path, runs):
+    """A normalized artifact retains its run owner even after attribution correction."""
+    parts = path.split(os.sep)
+    owner = next((other for other in runs if other["id"] != run_id and
+                  (len(parts) > 2 and parts[:2] == ["runs", other["id"]]
+                   or path in _run_digest_paths(other))), None)
+    if owner:
+        raise ValueError(f"digest evidence belongs to run {owner['id']!r}, not {run_id!r}")
+
+
+def _verify_lead_cycle_evidence(feature_dir, run, runs, path):
+    import digest_record
+    evidence = run["cycle_evidence"]
+    verify_run_digest_owner(run["id"], evidence["path"], runs)
+    for previous in evidence.get("previous", []):
+        verify_evidence_ref(feature_dir, previous)
+        verify_run_digest_owner(run["id"], previous["path"], runs)
+    record = digest_record.load_record(path)
+    digest = record.get("DIGEST")
+    count = digest.get("cycles_used") if isinstance(digest, dict) else None
+    if type(count) is not int or count != run.get("cycles_used"):
+        raise ValueError("cycle attribution disagrees with digest evidence")
+
+
+def run_evidence_problems(feature_dir, feature_id, run, runs):
     """Historical evidence is never a live persona return or inferred from its verdict."""
     import digest_record
     problems = []
@@ -615,11 +649,7 @@ def run_evidence_problems(feature_dir, feature_id, run):
             path = verify_evidence_ref(feature_dir, {
                 "path": evidence["path"], "sha256": evidence["sha256"]})
             if evidence["source"] == "lead-digest":
-                record = digest_record.load_record(path)
-                digest = record.get("DIGEST")
-                count = digest.get("cycles_used") if isinstance(digest, dict) else None
-                if isinstance(count, bool) or not isinstance(count, int) or count != run.get("cycles_used"):
-                    raise ValueError("cycle attribution disagrees with digest evidence")
+                _verify_lead_cycle_evidence(feature_dir, run, runs, path)
             else:
                 verify_evidence_ref(feature_dir, evidence["authorization"], {
                     "feature_id": feature_id, "run_id": run["id"],

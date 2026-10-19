@@ -298,11 +298,27 @@ def replacement_authority(feat, started=False):
     return note, previous
 
 
+def _seed_remote_milestone(tmp, number, title):
+    with open(os.path.join(tmp, "milestone-state.json"), "w") as target:
+        json.dump({"product/app": {str(number): title}}, target)
+
+
+def _check_task_milestone(tmp, github, expected, label, previous=None):
+    state = os.path.join(tmp, "issue-state.json")
+    with open(state) if os.path.exists(state) else contextlib.nullcontext(None) as source:
+        assigned = json.load(source) if source else {}
+    task_number = github.get("issues", {}).get("T-01")
+    check(label, assigned.get(f"product/app#{task_number}", {}).get("milestone") == expected
+          and expected != previous, f"github={github} remote={assigned}")
+
+
 def replacement_cases():
     for started in (False, True):
         with tempfile.TemporaryDirectory() as tmp:
             feat = stage_fleet(tmp)
             note, previous = replacement_authority(feat, started)
+            if not started:
+                _seed_remote_milestone(tmp, 100, "FEAT-9000-fleet")
             command = ["recover-mirror", feat, "--previous-repo", "owner/harness",
                        "--evidence", note, "--yes"]
             result = run(command, tmp)
@@ -321,6 +337,11 @@ def replacement_cases():
                   and all("owner/harness" not in call for call in log)
                   and len(create_calls(log)) == (2 if started else 3),
                   f"rc={result.returncode} github={github} out={result.stdout} err={result.stderr} log={log}")
+            if not started:
+                _check_task_milestone(
+                    tmp, github, github.get("milestone"),
+                    "full replacement task belongs to the confirmed new milestone, not the old title",
+                    previous["milestone"])
             _check_completed_replay(tmp, feat, command, create_calls(log),
                                     "terminal replacement" if started else "full replacement")
 
@@ -520,6 +541,8 @@ def _replacement_role_adoption_case(tmp, feat, note, previous, role):
         _check_duplicate_issue_adoption(tmp, feat, doc, effect)
     with open(adoption, "w") as target:
         json.dump({"feature_id": doc["feature_id"], "effects": [effect]}, target)
+    if role == "milestone":
+        _seed_remote_milestone(tmp, 88, "authenticated adopted milestone")
     adopted = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
                    "--evidence", adoption, "--adopt-receipt", f"{role}=88", "--yes"], tmp)
     github = read_feature_json(path)["github"]
@@ -532,6 +555,10 @@ def _replacement_role_adoption_case(tmp, feat, note, previous, role):
           and not github["recovery"].get("pending_create")
           and github.get("build_entry") == "opened",
           f"rc={adopted.returncode} out={adopted.stdout} err={adopted.stderr} github={github}")
+    if role == "milestone":
+        _check_task_milestone(
+            tmp, github, 88,
+            "task creation uses the adopted milestone identity even with an unrelated title")
     _check_completed_replay(tmp, feat, command, create_calls(calls(tmp)), f"{role} adoption")
 
 

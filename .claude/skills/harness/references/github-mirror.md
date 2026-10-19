@@ -50,6 +50,10 @@ authorization still binds the exact current plan bytes throughout that recovery 
 New replacement milestones include the durable recovery ID in their title, so replacing a
 same-repository mapping does not collide with its original milestone. A prior failed attempt
 remains pending until separately evidenced adoption; a title fix never authorizes retry.
+Full-mode task creation resolves the title of the confirmed target milestone number once,
+including an explicitly adopted milestone, and uses that identity rather than the feature's old
+milestone title. This is an operand lookup for a known receipt, never discovery or reconciliation
+of an uncertain create; a completed recovery or a run with no missing task issues needs no lookup.
 `recover-terminal` remains compatible terminal adoption, not invalid-mapping replacement.
 
 Each role has a durable pending intent before dispatch and a durable confirmed save before the

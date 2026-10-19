@@ -39,12 +39,16 @@
         "source": {"enum": ["lead-digest", "operator-history"]},
         "path": {"$ref": "#/$defs/evidence_ref/properties/path"},
         "sha256": {"$ref": "#/$defs/evidence_ref/properties/sha256"},
+        "previous": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidence_ref"}
+        },
         "by": {"$ref": "#/$defs/operator_authorization/properties/by"},
         "at": {"$ref": "#/$defs/operator_authorization/properties/at"},
         "authorization": {"$ref": "#/$defs/evidence_ref"}
       },
       "if": {"properties": {"source": {"const": "operator-history"}}},
-      "then": {"required": ["by", "at", "authorization"]}
+      "then": {"required": ["by", "at", "authorization"], "not": {"required": ["previous"]}}
     },
     "refusal": {
       "type": "object", "additionalProperties": false,

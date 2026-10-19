@@ -184,7 +184,7 @@ def inv_7(ctx, feat):
     for run in doc.get("runs", []):
         bad.extend(f"{feat}: run {run['id']} cycle/refusal evidence: {problem}"
                    for problem in feature_schema.run_evidence_problems(
-                       directory, doc.get("feature_id", feat), run))
+                       directory, doc.get("feature_id", feat), run, doc.get("runs", [])))
         count = run.get("cycles_used")
         if count is None:
             warn.append(f"{feat}: run {run['id']} has unknown historical cycle attribution.")
