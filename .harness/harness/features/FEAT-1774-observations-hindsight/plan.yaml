@@ -1,8 +1,35 @@
 schema: plan/1
 feature: FEAT-1774-observations-hindsight
 approval:
-  status: pending
-status: plan
+  date: '2026-09-16'
+  approved_by: operator
+  status: approved
+  rulings:
+    - finding: PF-9d84a9dafa37dec4a2b8983ff9d9f258
+      who: operator
+      date: '2026-09-16'
+      reason: local Hindsight is an operator-run prerequisite; T-01 verify probes container, mount, /health/ready and a retain to bank omp
+    - finding: PF-3684d3f59e413cca938671fd69bfd144
+      who: operator
+      date: '2026-09-16'
+      reason: all three tasks now depends_on []
+    - finding: PF-cf1bfb0312fa2123bb424d0462328e6a
+      who: operator
+      date: '2026-09-16'
+      reason: SC-05 ordering discharged by pinned-SHA inspection, not the literal check
+    - finding: PF-0f923bd961878a9370c61d47244d05f1
+      who: operator
+      date: '2026-09-16'
+      reason: writer-only HINDSIGHT_BANK_ID removed; writer and omp share committed bank id omp
+    - finding: PF-0138b886611045d8067bb6a91660235f
+      who: operator
+      date: '2026-09-16'
+      reason: duplicate of PF-0f92; same disposition
+    - finding: PF-fd00e8929a7ec55ea26d69666ecb0e6c
+      who: operator
+      date: '2026-09-16'
+      reason: SC-05 softened to visible-and-gateable with no fixed blocking verdict
+status: abandoned
 source_issues: [1774]
 panel:
   last_run: plan-product

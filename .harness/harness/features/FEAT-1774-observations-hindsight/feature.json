@@ -27,5 +27,15 @@
       "reason": "Network dependency, new exit code, committed backend config, metadata contract, and preloaded skill text."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-1774-observations-hindsight/feature.json"
+  },
+  "signed_task_hashes": {
+    "T-01": "785ac76b409fe5dfcda18895b089528b174d9136b4de022170ba3cc325e86e42",
+    "T-02": "720f741cd22d40747b5b7ec8e94714ce92dd953d3b7bda83e9195d57df6f1b91",
+    "T-03": "d9c8ae4158f4bf55645c4a19e19db0adcf773dc9c60396b6ac34e4b9469b7147"
+  }
 }
