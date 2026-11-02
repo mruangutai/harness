@@ -1,0 +1,65 @@
+{
+  "feature_id": "BUG-2161-abandon-source-tickets",
+  "branch": "feat/BUG-2161-abandon-source-tickets",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-02-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-02T14:22:14+00:00",
+      "tokens": 64903,
+      "cycles_used": 0,
+      "ended_at": "2026-11-02T14:50:24+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-02-02-engineering",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-02T14:50:36+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-02T14:51:10+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-02-03-simplify-plan-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-02T14:51:11+00:00",
+      "tokens": 45722,
+      "cycles_used": 0,
+      "ended_at": "2026-11-02T14:55:50+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-02-04-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-02T14:56:00+00:00",
+      "tokens": 32323,
+      "cycles_used": 0,
+      "ended_at": "2026-11-02T14:59:34+00:00",
+      "return_disposition": "refused",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-02T14:22:12+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "cause known and files nameable, but --close-sources is a new public CLI interface, so the patch rule's third condition fails; it also amends DEC-203's abandonment clause."
+    }
+  ],
+  "mission": "plan"
+}
