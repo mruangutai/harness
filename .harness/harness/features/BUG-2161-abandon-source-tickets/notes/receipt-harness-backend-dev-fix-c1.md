@@ -37,3 +37,8 @@ commented once, closed once, reseated, labelled) passed pre- and post-fix.
 
 `python3 tests/unit/test-gh-sync-abandon-sources.py && python3 tests/integration/test-gh-sync-abandon.py && python3 tests/integration/test-gh-sync-ship.py`
 Result: exit 0; all three suites `ALL PASSED` / no FAIL lines (286 PASS/ok lines).
+
+## Commit SHA
+
+Fix commit (code, tests, receipt): 0474ae66ac6a9dc378da7006365e49b04eb85a52
+(a second receipt-only commit records this line; `git log` on this path shows it.)
