@@ -21,7 +21,7 @@ approval:
   date: '2026-11-03'
   approved_by: operator
   status: approved
-status: ready
+status: building
 source_issues: [2161]
 panel:
   last_run: 2026-11-02-01-product
@@ -93,7 +93,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py#cmd_abandon
       - tests/integration/test-gh-sync-abandon.py#main
@@ -117,7 +117,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - path: .harness/harness/docs/DECISIONS.md
         quote: '## DEC-203 — A ticket is open until its card reaches'

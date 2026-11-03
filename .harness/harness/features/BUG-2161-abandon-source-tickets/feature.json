@@ -3,7 +3,7 @@
   "branch": "feat/BUG-2161-abandon-source-tickets",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -50,6 +50,36 @@
       "ended_at": "2026-11-02T14:59:34+00:00",
       "return_disposition": "refused",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-03-05-build-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-03T13:05:51+00:00",
+      "tokens": 48415,
+      "cycles_used": 1,
+      "ended_at": "2026-11-03T13:18:33+00:00"
+    },
+    {
+      "id": "2026-11-03-06-t02-docs-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-03T13:18:59+00:00",
+      "tokens": 33069,
+      "cycles_used": 0,
+      "ended_at": "2026-11-03T13:23:26+00:00"
+    },
+    {
+      "id": "2026-11-03-07-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-03T13:23:34+00:00",
+      "tokens": 76581,
+      "cycles_used": 0,
+      "ended_at": "2026-11-03T13:35:34+00:00"
     }
   ],
   "judgements": [
@@ -59,6 +89,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "cause known and files nameable, but --close-sources is a new public CLI interface, so the patch rule's third condition fails; it also amends DEC-203's abandonment clause."
+    },
+    {
+      "at": "2026-11-03T13:05:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-plan seq-4 Next is build entry; plan signed, mirror opened, cycles 0/10, rework 0/2 rounds; continue into build as ship-mission successor"
     }
   ],
   "mission": "plan",
