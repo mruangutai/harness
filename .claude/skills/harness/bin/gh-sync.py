@@ -1617,10 +1617,7 @@ def _abandon_plan(rec, sources=()):
     skimming a column of issue numbers has no way to see that the epic is in the list.
 
     `sources` is the opt-in `--close-sources` list (plan.yaml's `source_issues`), empty by
-    default so every other caller is unchanged. Each source is planned LAST, labelled as a
-    source, as a reason comment and a close. A source that is also a task issue still gets its
-    own reason comment but is closed once, by the task entry; one that is the parent already
-    has the parent's comment and close and is not planned again."""
+    default so every other caller is unchanged; `_source_plan` plans each one, LAST."""
     plan = []
     if rec["parent"] is not None:
         plan.append(("comment", rec["parent"],
@@ -1640,6 +1637,17 @@ def _abandon_plan(rec, sources=()):
         plan.append(("parent", rec["parent"],
                      f"close parent #{rec['parent']} (not_planned), label it abandoned and "
                      f"return its card to the backlog"))
+    plan.extend(_source_plan(rec, sources))
+    return plan
+
+
+def _source_plan(rec, sources):
+    """The `--close-sources` entries of the abandon plan, in plan order, as (kind, number, line).
+
+    Each source is labelled as a source: a reason comment and a close. A source that is also a
+    task issue still gets its own reason comment but is closed once, by the task entry; one
+    that is the parent already has the parent's comment and close and is not planned again."""
+    plan = []
     task_issues = set(rec["issues"].values())
     for num in dict.fromkeys(sources):
         if num == rec["parent"]:
@@ -1650,6 +1658,19 @@ def _abandon_plan(rec, sources=()):
                          f"close source #{num} (not_planned), label it abandoned and "
                          f"return its card to the backlog"))
     return plan
+
+
+def _report_abandon_dry_run(feat_dir, plan, already_abandoned):
+    """Print every write `abandon` would make and make none of them."""
+    if plan:
+        print("gh-sync: would ensure the abandoned label exists")
+    for _kind, _num, line in plan:
+        print(f"gh-sync: would {line}")
+    if not already_abandoned:
+        print("gh-sync: would record the feature station abandoned")
+    _prune_abandoned_runs(feat_dir, dry_run=True)
+    print("gh-sync: abandon is a decision the operator makes — re-run with --yes to "
+          "close the issues listed above")
 
 
 def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=False):
@@ -1710,15 +1731,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
     plan = _abandon_plan(rec, parse_source_issues(feat_dir) if close_sources else ())
     already_abandoned = _feature_station(feat_dir) == "abandoned"
     if not yes:
-        if plan:
-            print("gh-sync: would ensure the abandoned label exists")
-        for _kind, _num, line in plan:
-            print(f"gh-sync: would {line}")
-        if not already_abandoned:
-            print("gh-sync: would record the feature station abandoned")
-        _prune_abandoned_runs(feat_dir, dry_run=True)
-        print("gh-sync: abandon is a decision the operator makes — re-run with --yes to "
-              "close the issues listed above")
+        _report_abandon_dry_run(feat_dir, plan, already_abandoned)
         return
 
     if plan:

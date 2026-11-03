@@ -28,18 +28,18 @@ from gh_sync_support import (
 
 
 def main():
+    def _fail_on(patterns, message):
+        """FAKE_GH_STATIONS with a failure injected for every bash `case "$*"` pattern given."""
+        return FAKE_GH_STATIONS.replace(
+            'case "$1 $2" in',
+            'case "$*" in\n  %s) echo "%s" >&2; exit 1 ;;\nesac\ncase "$1 $2" in'
+            % ("|".join(patterns), message), 1)
+
     # `issue edit ... --add-label` fails, and NOTHING ELSE does. The one write in `abandon` that is
     # purely cosmetic is the one made to fail, because that is the whole shape of the defect: a
     # cosmetic failure used to abort the run through `gh()`'s `skip()`, taking the backlog write,
     # the rest of the batch and the status write down with it.
-    FAKE_GH_STATIONS_LABEL_FAILS = FAKE_GH_STATIONS.replace(
-        'case "$1 $2" in',
-        'case "$*" in\n'
-        '  *"--add-label"*) echo "label service unavailable" >&2; exit 1 ;;\n'
-        'esac\n'
-        'case "$1 $2" in',
-        1,
-    )
+    FAKE_GH_STATIONS_LABEL_FAILS = _fail_on(['*"--add-label"*'], "label service unavailable")
 
     # --- abandon: adopted parent stays open, subs + milestone close not_planned/closed
     with tempfile.TemporaryDirectory() as tmpA:
@@ -680,7 +680,7 @@ def main():
 
     def _remote_writes(log):
         return [line for line in log if "state=closed" in line or "issue comment" in line
-                or "issue edit" in line or "item-edit" in line]
+                or "issue edit" in line or "item-edit" in line or "label create" in line]
 
     with tempfile.TemporaryDirectory() as tmpR2:
         featR2, reasonR2 = _reject_fixture(tmpR2, "FEAT-REJECT-NUMERIC")
@@ -791,9 +791,7 @@ def main():
     # QA-C1-02, the `none` arm: a required write fails (the comment — with `none` it is the whole
     # disposition) → exit 1, the later steps do not run, and the station stays as it was, so a
     # caller that obeys "only after it exits 0" never writes `rejected`.
-    FAKE_GH_STATIONS_COMMENT_FAILS = FAKE_GH_STATIONS.replace(
-        'case "$1 $2" in',
-        'case "$*" in\n  "issue comment"*) echo "comment service unavailable" >&2; exit 1 ;;\nesac\ncase "$1 $2" in', 1)
+    FAKE_GH_STATIONS_COMMENT_FAILS = _fail_on(['"issue comment"*'], "comment service unavailable")
     with tempfile.TemporaryDirectory() as tmpR7:
         featR7, reasonR7 = _reject_fixture(tmpR7, "FEAT-REJECT-NONE-COMMENT-FAILS")
         install_gh(tmpR7, FAKE_GH_STATIONS_COMMENT_FAILS)
@@ -828,13 +826,6 @@ def main():
     # =============================================================================================
     SRC_REASON = "the operator's signed source reason"
 
-    def _fail_on(patterns, message):
-        """FAKE_GH_STATIONS with a failure injected for every bash `case "$*"` pattern given."""
-        return FAKE_GH_STATIONS.replace(
-            'case "$1 $2" in',
-            'case "$*" in\n  %s) echo "%s" >&2; exit 1 ;;\nesac\ncase "$1 $2" in'
-            % ("|".join(patterns), message), 1)
-
     def _src_fixture(tmp, name, script=FAKE_GH_STATIONS, opened=True, sources=(51, 52),
                      mirror=None, plan_station="building"):
         """Feature with plan.yaml `source_issues` = `sources`. `opened=False` is the unopened record:
@@ -866,11 +857,6 @@ def main():
                 path = os.path.join(base, fname)
                 snap[os.path.relpath(path, feat)] = open(path, "rb").read()
         return snap
-
-    def _all_writes(log):
-        return [l for l in log if "state=closed" in l or l.startswith("issue edit ")
-                or l.startswith("issue comment ") or l.startswith("label create ")
-                or "item-edit" in l]
 
     def _src_ops(log, n):
         """Which of the four per-source writes landed on #n, and the log index of close/backlog."""
@@ -945,7 +931,7 @@ def main():
                   repr(wouldS2))
             check("close-sources dry run: one reason-comment line for source #%d" % nS2,
                   sum(1 for l in wouldS2 if "reason on source #%d" % nS2 in l) == 1, repr(wouldS2))
-        check("close-sources dry run: ZERO writes of any kind", _all_writes(calls(tmpS2)) == [],
+        check("close-sources dry run: ZERO writes of any kind", _remote_writes(calls(tmpS2)) == [],
               str(calls(tmpS2)))
         check("close-sources dry run: every byte of the feature directory — plan, feature.json "
               "and runs/ — is unchanged", _snapshot(featS2) == snapS2, "snapshot differs")
@@ -1029,7 +1015,7 @@ def main():
                   str(logK))
             if not anyK:
                 check("abandon [%s]: no remote write of any kind, station not recorded" % comboK,
-                      _all_writes(logK) == [] and read_plan_station(featK) == "building",
+                      _remote_writes(logK) == [] and read_plan_station(featK) == "building",
                       str(logK))
 
     # --- no sources recorded: the flag changes nothing --------------------------------------------
@@ -1087,7 +1073,7 @@ def main():
         check("unopened + --yes only: records abandoned, prunes runs/, and makes ZERO remote "
               "writes (sources untouched without --close-sources)",
               r.returncode == 0 and read_plan_station(featU2) == "abandoned"
-              and not os.path.exists(os.path.join(featU2, "runs")) and _all_writes(logU2) == [],
+              and not os.path.exists(os.path.join(featU2, "runs")) and _remote_writes(logU2) == [],
               r.stdout + r.stderr + str(logU2))
 
     with tempfile.TemporaryDirectory() as tmpU3:
@@ -1095,7 +1081,7 @@ def main():
         r = run(["abandon", featU3, "--reason-file", reasonU3, "--yes"], tmpU3, _env(tmpU3))
         check("unopened with no sources at all: still records abandoned, no remote write",
               r.returncode == 0 and read_plan_station(featU3) == "abandoned"
-              and _all_writes(calls(tmpU3)) == [], r.stdout + r.stderr)
+              and _remote_writes(calls(tmpU3)) == [], r.stdout + r.stderr)
 
     with tempfile.TemporaryDirectory() as tmpU4:
         featU4, reasonU4 = _src_fixture(tmpU4, "FEAT-2161-unopened-dry", opened=False)
@@ -1104,7 +1090,7 @@ def main():
                 _env(tmpU4))
         check("unopened dry run: lists both sources, writes nothing, preserves every byte",
               r.returncode == 0 and "source #51" in r.stdout and "source #52" in r.stdout
-              and _all_writes(calls(tmpU4)) == [] and _snapshot(featU4) == snapU4,
+              and _remote_writes(calls(tmpU4)) == [] and _snapshot(featU4) == snapU4,
               r.stdout + r.stderr)
 
     # --- already abandoned: the station is not rewritten, sources are still disposed ---------------
@@ -1138,7 +1124,7 @@ def main():
                                         plan_station="abandoned")
         r = run(["abandon", featA8, "--reason-file", reasonA8, "--yes"], tmpA8, _env(tmpA8))
         check("already abandoned, no --close-sources: a local no-op — exit 0, no remote write",
-              r.returncode == 0 and _all_writes(calls(tmpA8)) == []
+              r.returncode == 0 and _remote_writes(calls(tmpA8)) == []
               and read_plan_station(featA8) == "abandoned", r.stdout + r.stderr)
 
     # --- best effort: a failed source close never suppresses a later source or local finalization --
