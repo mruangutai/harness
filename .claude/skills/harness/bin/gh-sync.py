@@ -1660,6 +1660,34 @@ def _source_plan(rec, sources):
     return plan
 
 
+def _hold_back_sources(rec, protected):
+    """Split `rec` into the record `abandon` may act on and the (number, role) pairs it must not.
+
+    `protected` is the plan.yaml sources nobody opted in to disposing. A protected number that is
+    the parent or a task issue is dropped from the returned record, so no planner entry, detach or
+    close can name it; every other entry and its order are unchanged."""
+    protected = set(protected)
+    held = []
+    acting = dict(rec)
+    if rec["parent"] in protected:
+        held.append((rec["parent"], "parent"))
+        acting["parent"] = None
+    acting["issues"] = {}
+    for tid, num in sorted(rec["issues"].items()):
+        if num in protected:
+            held.append((num, f"task issue for {tid}"))
+        else:
+            acting["issues"][tid] = num
+    return acting, held
+
+
+def _report_held_sources(held):
+    for num, role in held:
+        print(f"gh-sync: GAP - #{num} is a plan.yaml source and also the {role}; left untouched "
+              f"(no comment, close, label or board write) — re-run with --close-sources to "
+              f"dispose it")
+
+
 def _report_abandon_dry_run(feat_dir, plan, already_abandoned):
     """Print every write `abandon` would make and make none of them."""
     if plan:
@@ -1725,10 +1753,21 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
     The ticket survives, labelled and closed, for the operator to clean up later.
 
     `_record_station(feat_dir, "abandoned")` is the last DECISION of the successful path and runs
-    only under `--yes`; the only thing it is gated on is the station already reading abandoned."""
+    only under `--yes`. It is gated on the station already reading abandoned, and `runs/` is pruned
+    only when that station reads abandoned or the write just landed (F1): a refused write reports a
+    gap and keeps the evidence.
+
+    WITHOUT `--close-sources`, A plan.yaml SOURCE GETS ZERO WRITES EVEN WHEN IT IS ALSO A TASK ISSUE
+    OR THE PARENT (GC-01): `_hold_back_sources` removes it from the acting record and the skip is
+    printed as a gap, dry run included. With the flag, the overlap handling in `_source_plan`."""
     reason_file = post_body_path(reason_file, "--reason-file")
-    rec = load_recorded(feat_dir)
-    plan = _abandon_plan(rec, parse_source_issues(feat_dir) if close_sources else ())
+    sources = parse_source_issues(feat_dir)
+    # GC-01 (BUG-2161 c1): without --close-sources a plan.yaml source gets ZERO writes, whatever
+    # else it is recorded as. A source that is also a task issue or the parent is held back from
+    # the plan entirely (comment, detach, close, label, board) and reported, dry run included.
+    rec, held = _hold_back_sources(load_recorded(feat_dir), () if close_sources else sources)
+    _report_held_sources(held)
+    plan = _abandon_plan(rec, sources if close_sources else ())
     already_abandoned = _feature_station(feat_dir) == "abandoned"
     if not yes:
         _report_abandon_dry_run(feat_dir, plan, already_abandoned)
@@ -1770,7 +1809,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
 
     _apply_abandon_plan(plan, rec, repo, reason_file, _close_and_reseat)
 
-    _report_abandon_gaps(failed, plan, rec)
+    _report_abandon_gaps(failed, plan, rec, held)
 
     # LAST DECISION of the successful path (T-01/FEAT-23) — structural, not re-gated on the
     # milestone or issues (an unopened record abandons too, BUG-2161). The only guard is a read
@@ -1778,12 +1817,17 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
     # follows is local disk only and, like cmd_ship's trailing commit, cannot undo it.
     # SPELLED, NOT DERIVED, on purpose (FEAT-1714 T-03): this is the ONE abandoned-specific write,
     # and `reject` writes its own station the same way. TERMINAL_STATIONS is for generic consumers.
-    if not already_abandoned:
-        _record_station(feat_dir, "abandoned")
-    # After the station, never before: the station is the record every reader keys on, and a
-    # prune that raises (symlinked runs/, a writer mid-flight) must not leave closed issues with
-    # no station. INV-51 catches a prune that did not happen.
-    _prune_abandoned_runs(feat_dir)
+    # F1 (BUG-2161 c1): prune ONLY when the station reads abandoned — already did, or
+    # `_record_station` just returned True. A refused write (plan.yaml absent, set-feature-station
+    # non-zero) leaves a feature whose station is not abandoned, and its evidence must survive it.
+    if already_abandoned or _record_station(feat_dir, "abandoned"):
+        # After the station, never before: the station is the record every reader keys on, and a
+        # prune that raises (symlinked runs/, a writer mid-flight) must not leave closed issues
+        # with no station. INV-51 catches a prune that did not happen.
+        _prune_abandoned_runs(feat_dir)
+    else:
+        print("gh-sync: FAILED — runs/ not pruned: the station was not recorded abandoned, "
+              "so the evidence is kept")
 
 
 def _apply_abandon_plan(plan, rec, repo, reason_file, close_and_reseat):
@@ -1817,12 +1861,13 @@ def _close_milestone(repo, num):
         print(f"gh-sync: ERROR - milestone #{num} not closed: {out}", file=sys.stderr)
 
 
-def _report_abandon_gaps(failed, plan, rec):
+def _report_abandon_gaps(failed, plan, rec, held=()):
     if failed:
         nums = ", ".join(f"#{n}" for n in failed)
         print(f"gh-sync: FAILED {len(failed)} of {len(plan)} — {nums} did not close and "
               f"nothing downstream reports it")
-    if not any(kind in _ABANDON_COMMENT_TARGET for kind, _num, _line in plan):
+    parent_held = any(role == "parent" for _num, role in held)
+    if not parent_held and not any(kind in _ABANDON_COMMENT_TARGET for kind, _num, _line in plan):
         print("gh-sync: no parent recorded — reason not posted")
     if rec["milestone"] is None:
         print("gh-sync: no milestone recorded — nothing to close")

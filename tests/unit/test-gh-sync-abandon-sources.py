@@ -17,6 +17,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -84,9 +85,10 @@ class Seams:
 
     NAMES = ("gh_try", "_place", "ensure_labels", "_record_station", "_prune_abandoned_runs")
 
-    def __init__(self, fail=()):
+    def __init__(self, fail=(), station_ok=True):
         self.events = []
         self.fail = list(fail)
+        self.station_ok = station_ok
 
     def __enter__(self):
         self._saved = {n: getattr(gh_sync, n) for n in self.NAMES}
@@ -102,7 +104,7 @@ class Seams:
             self.events.append(("place", num, station)) or True)
         gh_sync.ensure_labels = lambda repo, labels: self.events.append(("labels", sorted(labels)))
         gh_sync._record_station = lambda d, station: (
-            self.events.append(("station", station)) or True)
+            self.events.append(("station", station)) or self.station_ok)
         gh_sync._prune_abandoned_runs = lambda d, dry_run=False: self.events.append(
             ("prune", dry_run))
         return self
@@ -262,6 +264,74 @@ for label, kw, expect_sources in (
                   and not ({51, 52} & set(s.targets("edit")))
                   and not any(e[0] == "place" and e[1] in (51, 52) for e in s.events),
                   opt_note(te) or repr(s.events))
+
+# --- GC-01: a plan.yaml source that is ALSO the task issue or the parent gets ZERO writes without
+# --- --close-sources, whatever else it is recorded as; the rest of the feature is still disposed --
+def touches(s, n):
+    """True when ANY intercepted write names issue #n: a gh call, or a board placement."""
+    pat = re.compile(r"\bissues/%d\b" % n)
+    for e in s.events:
+        if e[0] == "place" and e[1] == n:
+            return True
+        if e[0] == "gh" and ((e[1][:2] in (["issue", "comment"], ["issue", "edit"])
+                              and e[1][2] == str(n)) or any(pat.search(a) for a in e[1])):
+            return True
+    return False
+
+
+for alias_label, alias, other in (("source/task alias", 41, 40), ("source/parent alias", 40, 41)):
+    for run_label, kw in (("--yes", {"yes": True}), ("dry run", {"yes": False})):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = feat_dir(tmp, "FEAT-9220-alias")
+            write_plan(d, "FEAT-9220-alias", sources=[alias, 52])
+            write_feature(d, "FEAT-9220-alias", opened_github())
+            reason = reason_file(tmp)
+            with Seams() as s:
+                out, err, code, te = call_abandon(d, reason, **kw)
+        gap = [l for l in out.splitlines() if f"#{alias}" in l and "--close-sources" in l
+               and not l.startswith("gh-sync: would ")]
+        check(f"GC-01 {alias_label}, {run_label}, no --close-sources: ZERO writes name #{alias}, "
+              "and the skip is reported as a gap naming the flag",
+              te is None and not touches(s, alias) and not touches(s, 52) and len(gap) == 1,
+              opt_note(te) or out + repr(s.events))
+        if kw["yes"]:
+            check(f"GC-01 {alias_label}, --yes: the non-aliased entry #{other} IS still disposed "
+                  "and the station is recorded",
+                  other in s.targets("close") and ("station", "abandoned") in s.events,
+                  repr(s.events))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        d = feat_dir(tmp, "FEAT-9221-alias-pos")
+        write_plan(d, "FEAT-9221-alias-pos", sources=[alias, 52])
+        write_feature(d, "FEAT-9221-alias-pos", opened_github())
+        reason = reason_file(tmp)
+        with Seams() as s:
+            out, err, code, te = call_abandon(d, reason, yes=True, close_sources=True)
+    check(f"GC-01 {alias_label}, --close-sources --yes: #{alias} is commented once, closed once "
+          "and reseated once, and no gap is reported",
+          te is None and s.targets("comment").count(alias) == 1
+          and s.targets("close").count(alias) == 1
+          and s.events.count(("place", alias, "backlog")) == 1
+          and not any(f"#{alias}" in l and "--close-sources" in l for l in out.splitlines()),
+          opt_note(te) or repr(s.events))
+
+# --- F1: a refused station write must not prune runs/ ------------------------------------------------
+for label, station_ok, plan_station, prunes in (
+        ("station write refused", False, "building", False),
+        ("station write recorded", True, "building", True),
+        ("station already abandoned", False, "abandoned", True)):
+    with tempfile.TemporaryDirectory() as tmp:
+        d = feat_dir(tmp, "FEAT-9222-prune")
+        write_plan(d, "FEAT-9222-prune", station=plan_station)
+        write_feature(d, "FEAT-9222-prune", unopened_github())
+        reason = reason_file(tmp)
+        with Seams(station_ok=station_ok) as s:
+            out, err, code, te = call_abandon(d, reason, yes=True)
+    check(f"F1 {label}: runs/ pruned = {prunes}" + ("" if prunes else
+          ", and the gap is reported"),
+          te is None and (("prune", False) in s.events) == prunes
+          and (prunes or ("runs/" in out and "not pruned" in out)),
+          opt_note(te) or out + repr(s.events))
 
 # --- a second ACTIVE feature citing the same source does not change the target set ----------------
 with tempfile.TemporaryDirectory() as tmp:

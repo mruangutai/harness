@@ -52,6 +52,9 @@ def main():
                     "attached": ["T-01", "T-02", "T-03"],
                     "issues": {"T-01": 41, "T-02": 42, "T-03": 43}},
         )
+        # F1 (BUG-2161 c1): runs/ is pruned only once the station reads abandoned, so this
+        # fixture needs the plan.yaml the station is written to.
+        add_plan_station(featA, "FEAT-06-abandon-adopted")
         reasonA = os.path.join(tmpA, "reason.txt")
         open(reasonA, "w").write("budget cut — deprioritized this quarter")
         runsA = os.path.join(featA, "runs")
@@ -1168,6 +1171,63 @@ def main():
               "is recorded",
               all(v not in (None, False, []) for v in _src_ops(logF2, 52).values())
               and read_plan_station(featF2) == "abandoned", str(logF2))
+
+    # --- GC-01: a plan.yaml source that is ALSO the task issue or the parent gets ZERO writes
+    # --- without --close-sources; the rest of the feature is still disposed ----------------------
+    def _names(log, n):
+        """Every logged gh call that names #n at all — a write, a detach, or a board item edit."""
+        return [l for l in log if re.search(r"\bissues/%d\b" % n, l)
+                or re.search(r"^issue (comment|edit) %d " % n, l) or "ITEM_%d " % n in l + " "]
+
+    for aliasG, labelG, otherG in ((41, "source/task alias", 40), (40, "source/parent alias", 41)):
+        for modeG, flagsG in (("--yes", ["--yes"]), ("dry run", [])):
+            with tempfile.TemporaryDirectory() as tmpG:
+                featG, reasonG = _src_fixture(tmpG, "FEAT-2161-alias", sources=(aliasG, 52))
+                r = run(["abandon", featG, "--reason-file", reasonG] + flagsG, tmpG, _env(tmpG))
+                logG = calls(tmpG)
+                check("%s, %s, no --close-sources: exits 0 and ZERO gh calls name #%d, 52 included"
+                      % (labelG, modeG, aliasG),
+                      r.returncode == 0 and _names(logG, aliasG) == [] and _names(logG, 52) == [],
+                      r.stdout + r.stderr + str(logG))
+                check("%s, %s: the skip is reported as a gap naming --close-sources"
+                      % (labelG, modeG),
+                      any("#%d" % aliasG in l and "--close-sources" in l
+                          and not l.startswith("gh-sync: would ") for l in r.stdout.splitlines()),
+                      r.stdout)
+                if flagsG:
+                    check("%s, --yes: the non-aliased #%d is still closed and the station recorded"
+                          % (labelG, otherG),
+                          any(re.search(r"\bissues/%d -f state=closed" % otherG, l) for l in logG)
+                          and any("milestones/7" in l and "state=closed" in l for l in logG)
+                          and read_plan_station(featG) == "abandoned", str(logG))
+
+        with tempfile.TemporaryDirectory() as tmpGP:
+            featGP, reasonGP = _src_fixture(tmpGP, "FEAT-2161-alias-pos", sources=(aliasG, 52))
+            r = run(["abandon", featGP, "--reason-file", reasonGP, "--close-sources", "--yes"],
+                    tmpGP, _env(tmpGP))
+            logGP = calls(tmpGP)
+            check("%s, --close-sources --yes: #%d is commented once, closed once, reseated and "
+                  "labelled, and source #52 is disposed" % (labelG, aliasG),
+                  r.returncode == 0 and len(_src_ops(logGP, aliasG)["comment"]) == 1
+                  and sum(1 for l in logGP if re.search(r"\bissues/%d -f state=closed" % aliasG, l)) == 1
+                  and _src_ops(logGP, aliasG)["backlog"] is not None and _src_ops(logGP, aliasG)["label"]
+                  and all(v not in (None, False, []) for v in _src_ops(logGP, 52).values()),
+                  r.stdout + r.stderr + str(logGP))
+
+    # --- F1: a refused station write must leave runs/ in place and report the gap ------------------
+    with tempfile.TemporaryDirectory() as tmpP:
+        featP, reasonP = _src_fixture(tmpP, "FEAT-2161-station-refused", opened=False, sources=())
+        os.remove(os.path.join(featP, "plan.yaml"))
+        runsP = os.path.join(featP, "runs", "validate-c1-validator")
+        os.makedirs(runsP)
+        open(os.path.join(runsP, "shot.webp"), "wb").write(b"RIFF")
+        r = run(["abandon", featP, "--reason-file", reasonP, "--yes"], tmpP, _env(tmpP))
+        check("station write refused (plan.yaml absent): runs/ is preserved, nothing is pruned, "
+              "no plan.yaml appears, and the gap is reported",
+              os.path.isfile(os.path.join(runsP, "shot.webp"))
+              and "removed runs/" not in r.stdout and "not pruned" in r.stdout
+              and "gh-sync: FAILED" in r.stdout
+              and not os.path.exists(os.path.join(featP, "plan.yaml")), r.stdout + r.stderr)
 
     # --- --close-sources belongs to abandon alone ---------------------------------------------------
     with tempfile.TemporaryDirectory() as tmpX:
