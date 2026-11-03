@@ -18,8 +18,10 @@
 schema: plan/1
 feature: BUG-2161-abandon-source-tickets
 approval:
-  status: pending
-status: plan
+  date: '2026-11-03'
+  approved_by: operator
+  status: approved
+status: ready
 source_issues: [2161]
 panel:
   last_run: 2026-11-02-01-product

@@ -61,5 +61,30 @@
       "reason": "cause known and files nameable, but --close-sources is a new public CLI interface, so the patch rule's third condition fails; it also amends DEC-203's abandonment clause."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-2161-abandon-source-tickets/notes/operator-signature-2026-11-03.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "89436fba5c33da99300653d4c9ae32ff39d63c29ceddd1dbc1844d8d37b4d9be",
+    "T-02": "be35e9bc96a76b9b7a207ce4ede0967a3ae955d0f97a8f0828bcf9980e6a4e32"
+  },
+  "github": {
+    "milestone": 104,
+    "parent": 2162,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2163,
+      "T-02": 2164
+    },
+    "source_issues": [
+      2161
+    ],
+    "build_entry": "opened"
+  }
 }
