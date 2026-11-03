@@ -822,6 +822,355 @@ def main():
         check("reject with neither parent nor source_issues: refused (exit 1) and no station write",
               r.returncode == 1 and "source_issues" in r.stdout + r.stderr
               and read_plan_station(featR6) != "rejected", f"rc={r.returncode} {r.stdout}{r.stderr}")
+    # =============================================================================================
+    # BUG-2161 T-01 — `abandon --close-sources`: explicit, confirmed disposal of plan.yaml sources,
+    # and local finalization of an unopened or already-abandoned record.
+    # =============================================================================================
+    SRC_REASON = "the operator's signed source reason"
+
+    def _fail_on(patterns, message):
+        """FAKE_GH_STATIONS with a failure injected for every bash `case "$*"` pattern given."""
+        return FAKE_GH_STATIONS.replace(
+            'case "$1 $2" in',
+            'case "$*" in\n  %s) echo "%s" >&2; exit 1 ;;\nesac\ncase "$1 $2" in'
+            % ("|".join(patterns), message), 1)
+
+    def _src_fixture(tmp, name, script=FAKE_GH_STATIONS, opened=True, sources=(51, 52),
+                     mirror=None, plan_station="building"):
+        """Feature with plan.yaml `source_issues` = `sources`. `opened=False` is the unopened record:
+        no parent, milestone or tasks. `mirror`, when given, is a feature.json source_issues mirror
+        that DISAGREES with the plan (the stale mirror)."""
+        install_gh(tmp, script)
+        feat = stage_station(tmp, name, [("T-01", "building")] if opened else [],
+                             issues={"T-01": 41} if opened else None,
+                             parent=40 if opened else None, milestone=7 if opened else None,
+                             plan_station=plan_station, source_issues=list(sources))
+        if mirror is not None:
+            write_feature_json(
+                os.path.join(feat, "feature.json"), feature_id=name, status=None,
+                github={"milestone": 7 if opened else None, "parent": 40 if opened else None,
+                        "attached": ["T-01"] if opened else [],
+                        "issues": {"T-01": 41} if opened else {},
+                        "source_issues": list(mirror)})
+        reason = os.path.join(tmp, "reason.txt")
+        open(reason, "w").write(SRC_REASON)
+        return feat, reason
+
+    def _env(tmp):
+        return {"FACTORY_GH": os.path.join(tmp, "gh")}
+
+    def _snapshot(feat):
+        snap = {}
+        for base, _dirs, files in os.walk(feat):
+            for fname in files:
+                path = os.path.join(base, fname)
+                snap[os.path.relpath(path, feat)] = open(path, "rb").read()
+        return snap
+
+    def _all_writes(log):
+        return [l for l in log if "state=closed" in l or l.startswith("issue edit ")
+                or l.startswith("issue comment ") or l.startswith("label create ")
+                or "item-edit" in l]
+
+    def _src_ops(log, n):
+        """Which of the four per-source writes landed on #n, and the log index of close/backlog."""
+        close = next((i for i, l in enumerate(log)
+                      if re.search(r"\bissues/%d -f state=closed" % n, l)
+                      and "state_reason=not_planned" in l), None)
+        backlog = next((i for i, l in enumerate(log)
+                        if "item-edit" in l and "--id ITEM_%d " % n in l + " "
+                        and "OPT_BACKLOG" in l), None)
+        label = any(l.startswith("issue edit %d " % n) and "--add-label abandoned" in l
+                    for l in log)
+        comment = [l for l in log if l.startswith("issue comment %d " % n)]
+        return {"close": close, "backlog": backlog, "label": label, "comment": comment}
+
+    def _src_touched(log, n):
+        ops = _src_ops(log, n)
+        return (ops["close"] is not None or ops["backlog"] is not None or ops["label"]
+                or bool(ops["comment"]))
+
+    # --- two distinct sources, both flags: each disposed, with its OWN assertions ----------------
+    with tempfile.TemporaryDirectory() as tmpS1:
+        featS1, reasonS1 = _src_fixture(tmpS1, "FEAT-2161-two-sources", mirror=[])
+        snapS1 = _snapshot(featS1)
+        r = run(["abandon", featS1, "--reason-file", reasonS1, "--close-sources", "--yes"],
+                tmpS1, _env(tmpS1))
+        logS1 = calls(tmpS1)
+        check("close-sources: exits 0", r.returncode == 0, r.stdout + r.stderr)
+        for nS1 in (51, 52):
+            opsS1 = _src_ops(logS1, nS1)
+            check("close-sources: source #%d is closed not_planned" % nS1,
+                  opsS1["close"] is not None, str(logS1))
+            check("close-sources: source #%d's card returns to Backlog AFTER its close" % nS1,
+                  opsS1["close"] is not None and opsS1["backlog"] is not None
+                  and opsS1["close"] < opsS1["backlog"], str(opsS1))
+            check("close-sources: source #%d is labelled abandoned" % nS1,
+                  opsS1["label"], str(logS1))
+            check("close-sources: source #%d's comment carries the ORIGINAL --reason-file path, "
+                  "never its contents" % nS1,
+                  len(opsS1["comment"]) == 1 and "--body-file %s" % reasonS1 in opsS1["comment"][0]
+                  and "--repo implentio/fake" in opsS1["comment"][0], str(opsS1["comment"]))
+        check("close-sources: the reason text itself is never composed into any gh argument",
+              not any("signed source reason" in l for l in logS1), str(logS1))
+        check("close-sources: the parent is still closed alongside the sources",
+              any(re.search(r"\bissues/40 -f state=closed", l) for l in logS1), str(logS1))
+        check("close-sources: station abandoned",
+              read_plan_station(featS1) == "abandoned", read_plan_station(featS1))
+        afterS1 = _snapshot(featS1)
+        check("close-sources: the plan differs only by its station line, and feature.json (the "
+              "mirror) is not refreshed",
+              afterS1["plan.yaml"] == snapS1["plan.yaml"].replace(b"\nstatus: building\n",
+                                                                  b"\nstatus: abandoned\n", 1)
+              and afterS1["feature.json"] == snapS1["feature.json"],
+              afterS1["plan.yaml"].decode())
+
+    # --- dry run: per-source would-lines, no writes, and the feature byte-for-byte untouched -------
+    with tempfile.TemporaryDirectory() as tmpS2:
+        featS2, reasonS2 = _src_fixture(tmpS2, "FEAT-2161-dry-run")
+        os.makedirs(os.path.join(featS2, "runs", "validate-c1-validator"))
+        open(os.path.join(featS2, "runs", "validate-c1-validator", "shot.webp"), "wb").write(b"RIFF")
+        snapS2 = _snapshot(featS2)
+        r = run(["abandon", featS2, "--reason-file", reasonS2, "--close-sources"], tmpS2,
+                _env(tmpS2))
+        wouldS2 = [l for l in r.stdout.splitlines() if l.startswith("gh-sync: would ")]
+        check("close-sources dry run: exits 0 and says how to confirm",
+              r.returncode == 0 and "re-run with --yes" in r.stdout, r.stdout + r.stderr)
+        for nS2 in (51, 52):
+            lineS2 = [l for l in wouldS2 if "source #%d" % nS2 in l and "close" in l]
+            check("close-sources dry run: one close line for source #%d naming not_planned, the "
+                  "abandoned label and the backlog" % nS2,
+                  len(lineS2) == 1 and all(w in lineS2[0] for w in
+                                           ("not_planned", "abandoned", "backlog")),
+                  repr(wouldS2))
+            check("close-sources dry run: one reason-comment line for source #%d" % nS2,
+                  sum(1 for l in wouldS2 if "reason on source #%d" % nS2 in l) == 1, repr(wouldS2))
+        check("close-sources dry run: ZERO writes of any kind", _all_writes(calls(tmpS2)) == [],
+              str(calls(tmpS2)))
+        check("close-sources dry run: every byte of the feature directory — plan, feature.json "
+              "and runs/ — is unchanged", _snapshot(featS2) == snapS2, "snapshot differs")
+        check("close-sources dry run: names the runs/ it would remove",
+              "would remove runs/validate-c1-validator" in r.stdout, r.stdout)
+
+    # --- the listed operations are the executed operations, in order ------------------------------
+    with tempfile.TemporaryDirectory() as tmpS3:
+        featS3, reasonS3 = _src_fixture(tmpS3, "FEAT-2161-dry-vs-real")
+        dryS3 = run(["abandon", featS3, "--reason-file", reasonS3, "--close-sources"], tmpS3,
+                    _env(tmpS3))
+        dry_numbers = [int(m.group(1)) for m in
+                       (re.search(r"#(\d+)", l) for l in dryS3.stdout.splitlines()
+                        if l.startswith("gh-sync: would "))
+                       if m]
+    with tempfile.TemporaryDirectory() as tmpS4:
+        featS4, reasonS4 = _src_fixture(tmpS4, "FEAT-2161-dry-vs-real")
+        r = run(["abandon", featS4, "--reason-file", reasonS4, "--close-sources", "--yes"], tmpS4,
+                _env(tmpS4))
+        real_numbers = []
+        for l in calls(tmpS4):
+            m = (re.search(r"issues/(\d+) -f state=closed", l)
+                 or re.search(r"milestones/(\d+) -f state=closed", l)
+                 or re.search(r"^issue comment (\d+) ", l))
+            if m:
+                real_numbers.append(int(m.group(1)))
+        check("close-sources: the numbers actually written, in order, equal the numbers the dry "
+              "run listed, sources included",
+              51 in real_numbers and real_numbers == dry_numbers,
+              "dry=%s real=%s" % (dry_numbers, real_numbers))
+
+    # --- all four flag combinations ---------------------------------------------------------------
+    for comboK, flagsK, sourcesK, anyK in (
+            ("neither flag", [], False, False),
+            ("--yes only", ["--yes"], False, True),
+            ("--close-sources only", ["--close-sources"], False, False),
+            ("--close-sources --yes", ["--close-sources", "--yes"], True, True)):
+        with tempfile.TemporaryDirectory() as tmpK:
+            featK, reasonK = _src_fixture(tmpK, "FEAT-2161-combo")
+            r = run(["abandon", featK, "--reason-file", reasonK] + flagsK, tmpK, _env(tmpK))
+            logK = calls(tmpK)
+            check("abandon [%s]: exits 0" % comboK, r.returncode == 0, r.stdout + r.stderr)
+            if sourcesK:
+                check("abandon [%s]: BOTH sources receive comment, close, backlog and label" % comboK,
+                      all(all(v not in (None, False, []) for v in _src_ops(logK, n).values())
+                          for n in (51, 52)), str(logK))
+            else:
+                check("abandon [%s]: ZERO source comments, closes, labels or board writes" % comboK,
+                      not _src_touched(logK, 51) and not _src_touched(logK, 52), str(logK))
+            check("abandon [%s]: the parent is closed exactly when --yes is given" % comboK,
+                  any(re.search(r"\bissues/40 -f state=closed", l) for l in logK) == anyK,
+                  str(logK))
+            if not anyK:
+                check("abandon [%s]: no remote write of any kind, station not recorded" % comboK,
+                      _all_writes(logK) == [] and read_plan_station(featK) == "building",
+                      str(logK))
+
+    # --- no sources recorded: the flag changes nothing --------------------------------------------
+    with tempfile.TemporaryDirectory() as tmpN:
+        featN, reasonN = _src_fixture(tmpN, "FEAT-2161-no-sources", sources=())
+        r = run(["abandon", featN, "--reason-file", reasonN, "--close-sources", "--yes"], tmpN,
+                _env(tmpN))
+        logN = calls(tmpN)
+        check("close-sources with NO sources: parent, task and milestone disposal is unchanged",
+              r.returncode == 0 and read_plan_station(featN) == "abandoned"
+              and all(any(re.search(r"\bissues/%d -f state=closed" % n, l) for l in logN)
+                      for n in (40, 41))
+              and any("milestones/7" in l and "state=closed" in l for l in logN),
+              r.stdout + r.stderr + str(logN))
+
+    # --- unopened record (no parent, milestone or tasks), plan-only sources, stale mirror ----------
+    with tempfile.TemporaryDirectory() as tmpU1:
+        featU1, reasonU1 = _src_fixture(tmpU1, "FEAT-2161-unopened", opened=False, mirror=[99])
+        runsU1 = os.path.join(featU1, "runs", "validate-c1-validator")
+        os.makedirs(runsU1)
+        open(os.path.join(runsU1, "shot.webp"), "wb").write(b"RIFF")
+        snapU1 = _snapshot(featU1)
+        r = run(["abandon", featU1, "--reason-file", reasonU1, "--close-sources", "--yes"], tmpU1,
+                _env(tmpU1))
+        logU1 = calls(tmpU1)
+        check("unopened + close-sources: no SKIP, exits 0",
+              r.returncode == 0 and "gh-sync: SKIP" not in r.stdout, r.stdout + r.stderr)
+        for nU1 in (51, 52):
+            opsU1 = _src_ops(logU1, nU1)
+            check("unopened + close-sources: plan-only source #%d is closed, reseated, labelled "
+                  "and commented" % nU1,
+                  all(v not in (None, False, []) for v in opsU1.values()), str(logU1))
+        check("unopened + close-sources: the stale mirror's #99 is never touched",
+              not _src_touched(logU1, 99), str(logU1))
+        check("unopened + close-sources: records abandoned and prunes runs/",
+              read_plan_station(featU1) == "abandoned" and not os.path.exists(os.path.join(featU1, "runs")),
+              read_plan_station(featU1))
+        check("unopened + close-sources: the station is recorded BEFORE runs/ is pruned",
+              "plan.yaml station -> abandoned" in r.stdout
+              and "removed runs/validate-c1-validator" in r.stdout
+              and r.stdout.index("plan.yaml station -> abandoned")
+              < r.stdout.index("removed runs/validate-c1-validator"), r.stdout)
+        afterU1 = _snapshot(featU1)
+        check("unopened + close-sources: every other artifact — feature.json and the plan's "
+              "source list — is preserved",
+              afterU1["feature.json"] == snapU1["feature.json"]
+              and yaml.safe_load(afterU1["plan.yaml"]).get("source_issues") == [51, 52],
+              afterU1["plan.yaml"].decode())
+
+    with tempfile.TemporaryDirectory() as tmpU2:
+        featU2, reasonU2 = _src_fixture(tmpU2, "FEAT-2161-unopened-bare", opened=False)
+        os.makedirs(os.path.join(featU2, "runs", "validate-c1-validator"))
+        r = run(["abandon", featU2, "--reason-file", reasonU2, "--yes"], tmpU2, _env(tmpU2))
+        logU2 = calls(tmpU2)
+        check("unopened + --yes only: records abandoned, prunes runs/, and makes ZERO remote "
+              "writes (sources untouched without --close-sources)",
+              r.returncode == 0 and read_plan_station(featU2) == "abandoned"
+              and not os.path.exists(os.path.join(featU2, "runs")) and _all_writes(logU2) == [],
+              r.stdout + r.stderr + str(logU2))
+
+    with tempfile.TemporaryDirectory() as tmpU3:
+        featU3, reasonU3 = _src_fixture(tmpU3, "FEAT-2161-unopened-nosrc", opened=False, sources=())
+        r = run(["abandon", featU3, "--reason-file", reasonU3, "--yes"], tmpU3, _env(tmpU3))
+        check("unopened with no sources at all: still records abandoned, no remote write",
+              r.returncode == 0 and read_plan_station(featU3) == "abandoned"
+              and _all_writes(calls(tmpU3)) == [], r.stdout + r.stderr)
+
+    with tempfile.TemporaryDirectory() as tmpU4:
+        featU4, reasonU4 = _src_fixture(tmpU4, "FEAT-2161-unopened-dry", opened=False)
+        snapU4 = _snapshot(featU4)
+        r = run(["abandon", featU4, "--reason-file", reasonU4, "--close-sources"], tmpU4,
+                _env(tmpU4))
+        check("unopened dry run: lists both sources, writes nothing, preserves every byte",
+              r.returncode == 0 and "source #51" in r.stdout and "source #52" in r.stdout
+              and _all_writes(calls(tmpU4)) == [] and _snapshot(featU4) == snapU4,
+              r.stdout + r.stderr)
+
+    # --- already abandoned: the station is not rewritten, sources are still disposed ---------------
+    for labelA, withRunsA in (("absent runs/", False), ("retained runs/", True)):
+        with tempfile.TemporaryDirectory() as tmpA7:
+            featA7, reasonA7 = _src_fixture(tmpA7, "FEAT-2161-reentry", opened=False,
+                                            plan_station="abandoned")
+            if withRunsA:
+                os.makedirs(os.path.join(featA7, "runs", "validate-c1-validator"))
+            planA7 = os.path.join(featA7, "plan.yaml")
+            before_bytes = open(planA7, "rb").read()
+            before_mtime = os.stat(planA7).st_mtime_ns
+            r = run(["abandon", featA7, "--reason-file", reasonA7, "--close-sources", "--yes"],
+                    tmpA7, _env(tmpA7))
+            logA7 = calls(tmpA7)
+            check("already abandoned, %s: exits 0 and disposes both sources" % labelA,
+                  r.returncode == 0 and all(_src_ops(logA7, n)["close"] is not None
+                                            for n in (51, 52)), r.stdout + r.stderr)
+            check("already abandoned, %s: the station is NOT rewritten" % labelA,
+                  open(planA7, "rb").read() == before_bytes
+                  and os.stat(planA7).st_mtime_ns == before_mtime
+                  and "plan.yaml station" not in r.stdout, r.stdout)
+            check("already abandoned, %s: runs/ is gone afterwards" % labelA,
+                  not os.path.exists(os.path.join(featA7, "runs")), r.stdout)
+            if withRunsA:
+                check("already abandoned, retained runs/: it is pruned and named",
+                      "removed runs/validate-c1-validator" in r.stdout, r.stdout)
+
+    with tempfile.TemporaryDirectory() as tmpA8:
+        featA8, reasonA8 = _src_fixture(tmpA8, "FEAT-2161-reentry-bare", opened=False,
+                                        plan_station="abandoned")
+        r = run(["abandon", featA8, "--reason-file", reasonA8, "--yes"], tmpA8, _env(tmpA8))
+        check("already abandoned, no --close-sources: a local no-op — exit 0, no remote write",
+              r.returncode == 0 and _all_writes(calls(tmpA8)) == []
+              and read_plan_station(featA8) == "abandoned", r.stdout + r.stderr)
+
+    # --- best effort: a failed source close never suppresses a later source or local finalization --
+    with tempfile.TemporaryDirectory() as tmpF1:
+        featF1, reasonF1 = _src_fixture(
+            tmpF1, "FEAT-2161-close-fails",
+            script=_fail_on(['*"issues/51 -f state=closed"*'], "close service unavailable"))
+        os.makedirs(os.path.join(featF1, "runs", "validate-c1-validator"))
+        r = run(["abandon", featF1, "--reason-file", reasonF1, "--close-sources", "--yes"], tmpF1,
+                _env(tmpF1))
+        logF1 = calls(tmpF1)
+        ops52 = _src_ops(logF1, 52)
+        check("failed source close: exits 0, names #51 on stderr and in the FAILED summary",
+              r.returncode == 0 and "could not close source #51" in r.stderr
+              and "FAILED 1 of" in r.stdout and "#51 did not close" in r.stdout,
+              r.stdout + r.stderr)
+        check("failed source close: the LATER source #52 is still fully disposed",
+              all(v not in (None, False, []) for v in ops52.values()), str(logF1))
+        check("failed source close: #51 gets no backlog or label write (the close came first)",
+              _src_ops(logF1, 51)["backlog"] is None and not _src_ops(logF1, 51)["label"],
+              str(logF1))
+        check("failed source close: the parent, station and runs/ prune still finish",
+              any(re.search(r"\bissues/40 -f state=closed", l) for l in logF1)
+              and read_plan_station(featF1) == "abandoned"
+              and not os.path.exists(os.path.join(featF1, "runs")), r.stdout)
+
+    with tempfile.TemporaryDirectory() as tmpF2:
+        featF2, reasonF2 = _src_fixture(
+            tmpF2, "FEAT-2161-label-comment-fail",
+            script=_fail_on(['"issue comment 51"*', '"issue edit 51 "*'], "service unavailable"))
+        r = run(["abandon", featF2, "--reason-file", reasonF2, "--close-sources", "--yes"], tmpF2,
+                _env(tmpF2))
+        logF2 = calls(tmpF2)
+        check("failed source comment and label: exits 0, both failures reported for #51",
+              r.returncode == 0 and "reason not posted on source #51" in r.stderr
+              and "#51 closed but not labelled" in r.stderr, r.stdout + r.stderr)
+        check("failed source comment and label: #51 is still closed and reseated",
+              _src_ops(logF2, 51)["close"] is not None
+              and _src_ops(logF2, 51)["backlog"] is not None, str(logF2))
+        check("failed source comment and label: source #52 is fully disposed and the station "
+              "is recorded",
+              all(v not in (None, False, []) for v in _src_ops(logF2, 52).values())
+              and read_plan_station(featF2) == "abandoned", str(logF2))
+
+    # --- --close-sources belongs to abandon alone ---------------------------------------------------
+    with tempfile.TemporaryDirectory() as tmpX:
+        featX, reasonX = _src_fixture(tmpX, "FEAT-2161-wrong-subcommand")
+        snapX = _snapshot(featX)
+        for argsX in (["ship", featX, "--close-sources"],
+                      ["reject", featX, "--superseded-by", "none", "--reason-file", reasonX,
+                       "--close-sources", "--yes"],
+                      ["open", featX, "--close-sources"],
+                      ["status", featX, "review", "--close-sources"],
+                      ["recover-terminal", featX, "--close-sources", "--yes"]):
+            r = run(argsX, tmpX, _env(tmpX))
+            check("--close-sources on %s exits 1 naming abandon, with no gh call and no change"
+                  % argsX[0],
+                  r.returncode == 1 and "--close-sources" in r.stdout + r.stderr
+                  and "abandon" in r.stdout + r.stderr and calls(tmpX) == []
+                  and _snapshot(featX) == snapX, "rc=%s %s%s" % (r.returncode, r.stdout, r.stderr))
+
     return report()
 
 

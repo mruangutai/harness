@@ -4,11 +4,16 @@
   gh-sync.py open  <feature-dir>          plan approved -> milestone + parent + one issue per T-NN
   gh-sync.py start-task <feature-dir> T-NN    task moved to building -> sub-issue's station
                                            -> Building, then the parent's derived station (FEAT-18)
-  gh-sync.py abandon <feature-dir> --reason-file <path> [--yes]  feature abandoned ->
-                                           WITHOUT --yes it prints every write it would make
-                                           and makes none; WITH --yes it closes every sub-issue
-                                           AND the parent not_planned, labels them abandoned,
-                                           closes the milestone and posts the reason
+  gh-sync.py abandon <feature-dir> --reason-file <path> [--close-sources] [--yes]  feature
+                                           abandoned -> WITHOUT --yes it prints every write it
+                                           would make and makes none; WITH --yes it closes every
+                                           sub-issue AND the parent not_planned, labels them
+                                           abandoned, closes the milestone and posts the reason.
+                                           Only --close-sources WITH --yes also disposes of every
+                                           plan.yaml source_issues ticket the same way (reason
+                                           comment, close not_planned, backlog, abandoned label);
+                                           sources are otherwise never touched. An unopened or
+                                           already-abandoned record still finalizes locally
   gh-sync.py ship  <feature-dir> [--body-file <path>] [--pr <n>]  shipped -> writes the
                                            board's done station on every recorded card
                                            (children first, skipping any card with an open
@@ -1594,7 +1599,11 @@ def _to_backlog(board, repo, num):
     _place(board, repo, num, "backlog", note=" (abandoned, not done)")
 
 
-def _abandon_plan(rec):
+# Plan kinds whose write is the reason comment, mapped to the target word the reporters print.
+_ABANDON_COMMENT_TARGET = {"comment": "parent", "source_comment": "source"}
+
+
+def _abandon_plan(rec, sources=()):
     """Every write `abandon` would make, in the order `cmd_abandon` performs them, as a list
     of (kind, number, line).
 
@@ -1605,7 +1614,12 @@ def _abandon_plan(rec):
 
     THE PARENT IS LABELLED AS THE PARENT, never as one more number. Under DEC-203 it closes
     UNCONDITIONALLY where it previously turned on where the parent came from, so a reader
-    skimming a column of issue numbers has no way to see that the epic is in the list."""
+    skimming a column of issue numbers has no way to see that the epic is in the list.
+
+    `sources` is the opt-in `--close-sources` list (plan.yaml's `source_issues`), empty by
+    default so every other caller is unchanged. Each source is planned LAST, labelled as a
+    source, as a reason comment and a close. A source that is already the parent or a task
+    issue is planned once, as that, never twice."""
     plan = []
     if rec["parent"] is not None:
         plan.append(("comment", rec["parent"],
@@ -1625,15 +1639,37 @@ def _abandon_plan(rec):
         plan.append(("parent", rec["parent"],
                      f"close parent #{rec['parent']} (not_planned), label it abandoned and "
                      f"return its card to the backlog"))
+    planned = {rec["parent"], *rec["issues"].values()}
+    for num in dict.fromkeys(sources):
+        if num in planned:
+            continue
+        plan.append(("source_comment", num, f"post the abandon reason on source #{num}"))
+        plan.append(("source", num,
+                     f"close source #{num} (not_planned), label it abandoned and "
+                     f"return its card to the backlog"))
     return plan
 
 
-def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
+def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=False):
     """Terminal state: closes every recorded sub-issue and the PARENT `not_planned`, closes
     the milestone, posts the signed reason, and labels everything it closed `abandoned`.
 
     ABANDON REPORTS AND ASKS. Without `--yes` it prints every write it WOULD make and makes
     none of them, and does not record the status. `--yes` is what executes it.
+
+    SOURCES ARE OPT-IN AND DOUBLY CONFIRMED (BUG-2161, D-01). Only `--close-sources` together
+    with `--yes` writes to a `source_issues` ticket; `--yes` alone leaves every source
+    untouched, and `--close-sources` alone is a dry run that lists them. They are read from
+    plan.yaml (`parse_source_issues`), the authority, never from feature.json's mirror, and
+    neither is written back. Each gets the SAME reason file the parent gets, by its original
+    path (DEC-138). There is no check that another active feature cites the same ticket: the
+    operator read the complete dry run, and that confirmation is the guard.
+
+    AN UNOPENED OR ALREADY-ABANDONED RECORD STILL FINALIZES LOCALLY (BUG-2161, D-02). With no
+    parent, milestone or tasks there is nothing to close on GitHub, but the feature is still
+    abandoned: under `--yes` the station is recorded and `runs/` pruned (INV-51). A station that
+    already reads `abandoned` is not rewritten; `runs/` is still pruned and sources are still
+    disposed when asked.
 
     THE CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No `isatty()`
     branch, no default-on-no-TTY, no stdin read. No script in this directory calls `input()`,
@@ -1665,24 +1701,24 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     refuses a hand close. Detaching is what makes the backlog station safe rather than a trap.
     The ticket survives, labelled and closed, for the operator to clean up later.
 
-    `_record_station(feat_dir, "abandoned")` stays the LAST STATEMENT of the successful path
-    and runs only under `--yes`."""
+    `_record_station(feat_dir, "abandoned")` is the last DECISION of the successful path and runs
+    only under `--yes`; the only thing it is gated on is the station already reading abandoned."""
     reason_file = post_body_path(reason_file, "--reason-file")
     rec = load_recorded(feat_dir)
-    if rec["milestone"] is None and not rec["issues"]:
-        skip("no recorded milestone or issues — nothing to abandon (was `open` run?)")
-
-    plan = _abandon_plan(rec)
-
+    plan = _abandon_plan(rec, parse_source_issues(feat_dir) if close_sources else ())
+    already_abandoned = _feature_station(feat_dir) == "abandoned"
     if not yes:
         for _kind, _num, line in plan:
             print(f"gh-sync: would {line}")
+        if not already_abandoned:
+            print("gh-sync: would record the feature station abandoned")
         _prune_abandoned_runs(feat_dir, dry_run=True)
         print("gh-sync: abandon is a decision the operator makes — re-run with --yes to "
               "close the issues listed above")
         return
 
-    ensure_labels(repo, {"abandoned"})
+    if plan:
+        ensure_labels(repo, {"abandoned"})
 
     # NOTHING IN THIS LOOP MAY EXIT, and that is the whole shape of it. Every write used to
     # go through `gh()`, which calls `skip()` -- print `gh-sync: SKIP` and `sys.exit(0)` --
@@ -1719,13 +1755,14 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
 
     _report_abandon_gaps(failed, plan, rec)
 
-    # LAST GITHUB-VISIBLE STATEMENT of the successful path (T-01/FEAT-23) — structural, not
-    # re-gated on the milestone check above (that guard is a conjunction with the issues check,
-    # not this write's business). Reaching here already proves `skip()` did not fire. The prune
-    # that follows is local disk only and, like cmd_ship's trailing commit, cannot undo it.
+    # LAST DECISION of the successful path (T-01/FEAT-23) — structural, not re-gated on the
+    # milestone or issues (an unopened record abandons too, BUG-2161). The only guard is a read
+    # of the station itself: a re-entry at abandoned must not rewrite it. The prune that
+    # follows is local disk only and, like cmd_ship's trailing commit, cannot undo it.
     # SPELLED, NOT DERIVED, on purpose (FEAT-1714 T-03): this is the ONE abandoned-specific write,
     # and `reject` writes its own station the same way. TERMINAL_STATIONS is for generic consumers.
-    _record_station(feat_dir, "abandoned")
+    if not already_abandoned:
+        _record_station(feat_dir, "abandoned")
     # After the station, never before: the station is the record every reader keys on, and a
     # prune that raises (symlinked runs/, a writer mid-flight) must not leave closed issues with
     # no station. INV-51 catches a prune that did not happen.
@@ -1735,24 +1772,24 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
 def _apply_abandon_plan(plan, rec, repo, reason_file, close_and_reseat):
     """Every write in the plan, in plan order; one failure never stops the next (see cmd_abandon)."""
     for kind, num, _line in plan:
-        if kind == "comment":
-            _post_abandon_reason(repo, num, reason_file)
+        if kind in _ABANDON_COMMENT_TARGET:
+            _post_abandon_reason(repo, num, reason_file, _ABANDON_COMMENT_TARGET[kind])
         elif kind == "issue":
             if rec["parent"] is not None:
                 _detach_from_parent(repo, rec["parent"], num)
             close_and_reseat(num, "issue")
         elif kind == "milestone":
             _close_milestone(repo, num)
-        elif kind == "parent":
-            close_and_reseat(num, "parent")
+        elif kind in ("parent", "source"):
+            close_and_reseat(num, kind)
 
 
-def _post_abandon_reason(repo, num, reason_file):
+def _post_abandon_reason(repo, num, reason_file, what="parent"):
     ok, out = gh_try(["issue", "comment", str(num), "--repo", repo, "--body-file", reason_file])
     if ok:
-        print(f"gh-sync: reason posted on parent #{num}")
+        print(f"gh-sync: reason posted on {what} #{num}")
     else:
-        print(f"gh-sync: ERROR - reason not posted on parent #{num}: {out}", file=sys.stderr)
+        print(f"gh-sync: ERROR - reason not posted on {what} #{num}: {out}", file=sys.stderr)
 
 
 def _close_milestone(repo, num):
@@ -1768,7 +1805,7 @@ def _report_abandon_gaps(failed, plan, rec):
         nums = ", ".join(f"#{n}" for n in failed)
         print(f"gh-sync: FAILED {len(failed)} of {len(plan)} — {nums} did not close and "
               f"nothing downstream reports it")
-    if rec["parent"] is None:
+    if not any(kind in _ABANDON_COMMENT_TARGET for kind, _num, _line in plan):
         print("gh-sync: no parent recorded — reason not posted")
     if rec["milestone"] is None:
         print("gh-sync: no milestone recorded — nothing to close")
@@ -2463,15 +2500,22 @@ def main():
         i = argv.index("--yes")
         yes_flag = True
         argv = argv[:i] + argv[i + 1:]
+    close_sources_flag = False
+    if "--close-sources" in argv:
+        i = argv.index("--close-sources")
+        close_sources_flag = True
+        argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
         die("usage: gh-sync.py open|start-task|abandon|reject|ship|backlog|record-pr|"
             "status|recover-terminal "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
             "[--superseded-by <positive integer|none>] [--reason-file <path>] "
-            "[--body-file <path>] [--pr <n>] [--yes]")
+            "[--body-file <path>] [--pr <n>] [--close-sources] [--yes]")
     cmd, feat_dir = argv[0], argv[1]
     if yes_flag and cmd not in ("abandon", "reject", "recover-terminal"):
         die(f"--yes is only accepted by abandon, reject and recover-terminal, not {cmd!r}")
+    if close_sources_flag and cmd != "abandon":
+        die(f"--close-sources is only accepted by abandon, not {cmd!r}")
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
     _abs = os.path.abspath(feat_dir)
@@ -2508,7 +2552,7 @@ def main():
             die("start-task needs a T-NN")
         cmd_start_task(feat_dir, argv[2], repo, board)
     elif cmd == "abandon":
-        cmd_abandon(feat_dir, repo, board, reason_file, yes_flag)
+        cmd_abandon(feat_dir, repo, board, reason_file, yes_flag, close_sources_flag)
     elif cmd == "reject":
         cmd_reject(feat_dir, repo, board, successor_arg, reason_file, yes_flag)
     elif cmd == "ship":
