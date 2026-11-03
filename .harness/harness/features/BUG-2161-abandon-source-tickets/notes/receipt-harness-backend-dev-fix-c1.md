@@ -42,3 +42,11 @@ Result: exit 0; all three suites `ALL PASSED` / no FAIL lines (286 PASS/ok lines
 
 Fix commit (code, tests, receipt): 0474ae66ac6a9dc378da7006365e49b04eb85a52
 (a second receipt-only commit records this line; `git log` on this path shows it.)
+
+## Review tip
+
+Review tip (head_sha): b5929a92e87a7792ddaa7ea99e3f849a699a82ab
+
+- Code fix commit (code, tests, receipt): 0474ae66ac6a9dc378da7006365e49b04eb85a52 — the only commit changing `gh-sync.py` and tests.
+- Receipt-only commit: b5929a92e87a7792ddaa7ea99e3f849a699a82ab — records the fix SHA above; no code or test change.
+- This annotation was added after that tip, left uncommitted to avoid a recursive SHA self-reference; no further commit was made and no checks were rerun in this form-only loopback. Signed-verify evidence above is from the code fix commit and is unchanged.

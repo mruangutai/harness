@@ -21,7 +21,7 @@ approval:
   date: '2026-11-03'
   approved_by: operator
   status: approved
-status: review
+status: building
 source_issues: [2161]
 panel:
   last_run: 2026-11-02-01-product

@@ -7,9 +7,9 @@
 - squad: none
 - status: idle
 - mission: ship
-- station: building (build seam at af83b980; T-01 done, T-02 done, simplify applied; next: pin, review, validate)
-- handoff: notes/handoff-build.md (seq-7)
-- cycles_used: 1
+- station: review (validate c0 FAIL → fix-c1 PASS at b5929a92; awaiting operator ship decision)
+- handoff: notes/handoff-validate.md (seq-9)
+- cycles_used: 2
 
 ## Open Questions
 
