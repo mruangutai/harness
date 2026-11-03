@@ -3,13 +3,14 @@
 ## Current
 
 - feature: BUG-2161-abandon-source-tickets
-- run: .harness/harness/features/BUG-2161-abandon-source-tickets/runs/2026-11-02-04-simplify-apply-product/state.yaml
+- run: none
 - squad: none
-- status: awaiting-user
+- status: idle
 - mission: plan
-- plan: pending signature (plan-merge.py sign-approval; propose-rework baseline rounds=2, minutes=90)
+- station: ready (signed 2026-11-03 at 57222856; rework 2 rounds / 90 min)
+- handoff: notes/handoff-plan.md (seq-4)
 - cycles_used: 0
 
 ## Open Questions
 
-- none — BRIEF.md and plan.yaml are pending the main session's signature.
+- none
