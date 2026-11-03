@@ -952,6 +952,35 @@ def main():
         check("close-sources dry run: names the runs/ it would remove",
               "would remove runs/validate-c1-validator" in r.stdout, r.stdout)
 
+    # --- a source that is ALSO a task issue: the reason is posted on it, and it closes once ---------
+    with tempfile.TemporaryDirectory() as tmpO:
+        featO, reasonO = _src_fixture(tmpO, "FEAT-2161-source-is-task", sources=(41, 52))
+        dryO = run(["abandon", featO, "--reason-file", reasonO, "--close-sources"], tmpO,
+                   _env(tmpO))
+        check("dry run names the label setup the real run performs, and a reason line for the "
+              "task-issue source #41",
+              "gh-sync: would ensure the abandoned label exists" in dryO.stdout
+              and "post the abandon reason on source #41" in dryO.stdout, dryO.stdout)
+        r = run(["abandon", featO, "--reason-file", reasonO, "--close-sources", "--yes"], tmpO,
+                _env(tmpO))
+        logO = calls(tmpO)
+        commentsO = [l for l in logO if l.startswith("issue comment 41 ")]
+        check("a source that is also a task issue receives the ORIGINAL reason file exactly once",
+              r.returncode == 0 and len(commentsO) == 1 and "--body-file %s" % reasonO in commentsO[0],
+              str(logO))
+        check("that same issue is closed exactly once, and source #52 is fully disposed",
+              sum(1 for l in logO if re.search(r"\bissues/41 -f state=closed", l)) == 1
+              and all(v not in (None, False, []) for v in _src_ops(logO, 52).values()),
+              str(logO))
+    with tempfile.TemporaryDirectory() as tmpO2:
+        featO2, reasonO2 = _src_fixture(tmpO2, "FEAT-2161-no-plan-no-label", opened=False,
+                                        sources=())
+        dryO2 = run(["abandon", featO2, "--reason-file", reasonO2], tmpO2, _env(tmpO2))
+        run(["abandon", featO2, "--reason-file", reasonO2, "--yes"], tmpO2, _env(tmpO2))
+        check("an empty plan has no label line in the dry run and creates no label",
+              "ensure the abandoned label" not in dryO2.stdout
+              and not any(l.startswith("label create") for l in calls(tmpO2)), dryO2.stdout)
+
     # --- the listed operations are the executed operations, in order ------------------------------
     with tempfile.TemporaryDirectory() as tmpS3:
         featS3, reasonS3 = _src_fixture(tmpS3, "FEAT-2161-dry-vs-real")

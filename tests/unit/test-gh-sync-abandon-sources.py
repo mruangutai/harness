@@ -178,14 +178,17 @@ check("AS-02 planner: each source close line names not_planned, abandoned and th
               for kind, num, line in with_sources if kind == "source"),
       opt_note(planner_err) or repr(with_sources))
 
-# A source that IS the parent or a task issue is not planned twice.
+# A source that IS a task issue still gets the reason once but closes once; one that IS the
+# parent is already commented and closed as the parent.
 try:
     overlap = gh_sync._abandon_plan(REC, [40, 41, 51])
 except TypeError as e:
     overlap = []
-check("AS-03 planner: a source already planned as the parent or a task is not duplicated",
+check("AS-03 planner: a source that is a task issue gets its own reason comment and is closed "
+      "once; a source that is the parent is not planned twice",
       [(k, n) for k, n, _l in overlap if k in ("source", "source_comment")]
-      == [("source_comment", 51), ("source", 51)]
+      == [("source_comment", 41), ("source_comment", 51), ("source", 51)]
+      and sum(1 for k, n, _l in overlap if n == 41 and k == "issue") == 1
       and sum(1 for _k, n, _l in overlap if n == 40) == 2,
       repr(overlap))
 
@@ -222,6 +225,7 @@ with tempfile.TemporaryDirectory() as tmp:
         out, err, code, te = call_abandon(d, reason, yes=False, close_sources=True)
     check("AS-06 dry run with --close-sources lists both sources and writes nothing",
           te is None and "source #51" in out and "source #52" in out
+          and "would ensure the abandoned label exists" in out
           and s.writes() == [] and ("station", "abandoned") not in s.events,
           opt_note(te) or out + repr(s.events))
 
