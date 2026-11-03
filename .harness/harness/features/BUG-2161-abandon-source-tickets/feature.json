@@ -2,7 +2,7 @@
   "feature_id": "BUG-2161-abandon-source-tickets",
   "branch": "feat/BUG-2161-abandon-source-tickets",
   "pr": null,
-  "review_sha": "c404a81d9b441f6cec033557c6e11dc22c8754cf",
+  "review_sha": "38008d4237d7148bbbf0e54181d1a1fc6bb7de88",
   "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
