@@ -6358,6 +6358,34 @@ Both writes are best-effort, like every other write the mirror makes: a failed d
 and the close still runs. An attached-but-closed ticket is a worse outcome than a detached one, and a
 far better one than a ticket that was never closed.
 
+**Source disposal is explicit opt-in: only `abandon --close-sources --yes` authorizes source
+writes.** Without `--close-sources`, even `--yes` leaves sources entirely untouched: no comments,
+closes, labels or board writes. The opted-in list comes from the authoritative `plan.yaml`
+`source_issues`, not `feature.json`'s mirror. Each opted-in source closes `not_planned`, returns
+to `Backlog` **after** its close, is labelled `abandoned`, and receives exactly the parent's
+original `--reason-file` contents. DEC-138 requires passing that original file path unchanged:
+no prefix, generated explanation or source-specific wording. Parent/task closure and task detach
+remain unchanged; source disposal adds neither source detach nor dependency discovery.
+
+Without `--yes`, the dry run shows every intended write and makes none, remotely or locally:
+reason comments, closes, detach where applicable, close-before-Backlog writes, abandoned label
+setup and application, milestone closure, and local station/pruning effects. The same abandonment
+plan drives reporting and execution; a failed source write does not suppress later sources or
+local finalization.
+
+**There is no shared-ticket corpus check or active-feature ownership refusal.** Issue #2161's
+Constraint is explicitly overruled by settled operator grilling. The complete dry run and both
+flags are the guard, even when another active feature cites the source. The accepted cost is
+real: explicit disposal can close and return to Backlog a ticket another active feature still
+needs; confirmation assigns that risk to the operator, not to an ownership-discovery gate.
+
+**An unopened mirror still abandons locally.** Under `--yes`, even with no recorded parent,
+milestone or tasks, record `abandoned` before pruning `runs/` under INV-51 and DEC-238. On
+already-abandoned re-entry the station is not rewritten; absent `runs/` is a local no-op, while
+retained `runs/` is still pruned after confirming the station. Neither local no-op prevents
+explicit source disposal. Other feature artifacts remain. `gh-close-gate.py` and `reject`'s
+source behavior are unchanged.
+
 **9. The accepted cost, and it is the largest one here.** The harness now depends on a board
 automation that only a click in the project web interface can enable. Nothing in a checkout can turn
 it on, and nothing in a build reports it off. The one reader of that dependency is the `WORKFLOW`
