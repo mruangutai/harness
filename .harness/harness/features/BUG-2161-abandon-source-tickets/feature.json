@@ -100,6 +100,40 @@
       "tokens": 53118,
       "cycles_used": 1,
       "ended_at": "2026-11-03T14:07:02+00:00"
+    },
+    {
+      "id": "2026-11-06-10-distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-06T14:58:54+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-06T15:05:19+00:00",
+      "return_disposition": "refused",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-06-11-distill-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-06T14:59:02+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-06T15:05:17+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-06-12-distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-06T15:05:27+00:00",
+      "tokens": 53747,
+      "cycles_used": 0,
+      "ended_at": "2026-11-06T15:10:11+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -137,6 +171,20 @@
       "kind": "regate",
       "decision": "fix round 1 of 2: F1 and GC-01 to harness-backend-dev (T-01), readers re-verify over the fix tip",
       "reason": "validate c0 FAIL with substance must_fix bound to T-01; rework ruling 2 rounds / 90 min, 15 min and 0 rounds spent"
+    },
+    {
+      "at": "2026-11-06T14:58:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-validate seq-9 Next was operator ship; PR merged 68c37253, so feature-close distillation starts; validator squad first (pm single-flight)"
+    },
+    {
+      "at": "2026-11-06T15:05:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "validator distill return refused for undeclared amendments key; its four member Expertise writes verified on disk and corpus check-expertise OK, so distillation proceeds"
     }
   ],
   "mission": "plan",
