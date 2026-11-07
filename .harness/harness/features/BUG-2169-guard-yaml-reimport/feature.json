@@ -33,8 +33,12 @@
       "id": "2026-11-07-3-fix-c1-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-07T14:23:44+00:00"
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:23:44+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:30:58+00:00",
+      "return_disposition": "refused"
     }
   ],
   "judgements": [
