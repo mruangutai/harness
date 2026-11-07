@@ -1,0 +1,90 @@
+schema_version: 2
+run_id: 2026-11-07-02-validate-validator
+run_uid: 834e922e573a490ca364f96d4728c933
+feature: BUG-2180-inv26-fleet-routing
+squad: validator
+host: harness-validator-lead
+status: failed
+review_sha: 556a23ffea8dafcf5110e80fe25a42ee2542ff2b
+steps:
+  - id: qa
+    persona: harness-qa
+    depends_on: []
+    outputs: [notes/review-harness-qa-c0.md, notes/review-harness-qa-c1.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 1
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    artifact: notes/review-harness-qa-c1.md
+    note: c1 retracts c0 unit-satisfied claim; required change-specific unit coverage missing.
+    evidence:
+      unit_files: 57
+      exercising_unit_tests: 0
+      integration_files: 84
+      inv26_cases: 37
+      literal_verify_seconds: 5.97
+      matrix_ok: false
+      code_pin_equivalence: confirmed
+      fail_first_scs: [SC-01, SC-02, SC-03, SC-04]
+  - id: code
+    persona: harness-code-reviewer
+    depends_on: []
+    outputs: [notes/review-harness-code-reviewer-c0.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-code-reviewer-c0.md
+    evidence:
+      complexity_grade: 1
+      severity_max: high
+  - id: security
+    persona: harness-security-reviewer
+    depends_on: []
+    outputs: [notes/review-harness-security-reviewer-c0.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-security-reviewer-c0.md
+  - id: ui
+    persona: harness-ui-reviewer
+    depends_on: []
+    outputs: [notes/review-harness-ui-reviewer-c0.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-ui-reviewer-c0.md
+    evidence:
+      scope: no_ui
+      changed_paths: 12
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: []
+    outputs: [notes/research-BUG-2180-inv26-fleet-routing-goalcheck-validate-c0.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/research-BUG-2180-inv26-fleet-routing-goalcheck-validate-c0.md
+    note: Partial SCs pending QA resolved to behavioral pass; matrix gate remains separate.

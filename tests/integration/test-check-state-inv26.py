@@ -3,7 +3,9 @@
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). Cases (v) and (w) —
 the board/plan comparison and the ABANDONED terminal state — every `gh` call answered by
-a stub on FACTORY_GH, never the network.
+a stub on FACTORY_GH, never the network. Case (x) is fleet routing (#2180): a bound
+feature's cards are read from its own repository and board, never the owner's, and a
+failed read or an unresolvable binding is CANNOT VERIFY for that feature, never a crash.
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
@@ -592,10 +594,259 @@ def case_w():
     return allok
 
 
+_STATIONS = ["backlog", "plan", "ready", "building", "review", "done"]
+
+# A python fake, unlike the bash one above, because routing is the property under test: it
+# answers the by-issue query PER REPOSITORY, logs which repository was asked for which numbers,
+# and answers a number the repository does not hold the way GitHub does — a GraphQL error and a
+# non-zero exit — so a number sent to the wrong repository fails exactly as it did live (#2180).
+_FLEET_FAKE = r'''#!%(python)s
+import base64, json, os, re, sys
+args = sys.argv[1:]
+here = os.path.dirname(os.path.abspath(__file__))
+world = json.load(open(os.path.join(here, "world.json")))
+def flag(name):
+    for i, arg in enumerate(args):
+        if arg == "-F" and args[i + 1].startswith(name + "="):
+            return args[i + 1].split("=", 1)[1]
+if args[:2] == ["auth", "status"]:
+    sys.exit(0)
+if args[:1] == ["api"] and len(args) > 1 and "/contents/" in args[1]:
+    m = re.fullmatch(r"repos/([^/]+/[^/]+)/contents/\.harness/harness\.json\?ref=(.+)", args[1])
+    doc = world["contents"].get(m[1] + "@" + m[2]) if m else None
+    if doc is None:
+        print("gh: Not Found (HTTP 404)", file=sys.stderr)
+        sys.exit(1)
+    print(base64.b64encode(json.dumps(doc).encode()).decode())
+    sys.exit(0)
+if args[:2] == ["api", "graphql"] and flag("name") is not None:
+    repo = flag("owner") + "/" + flag("name")
+    query = [a for a in args if a.startswith("query=")][0]
+    numbers = [int(n) for n in re.findall(r"i(\d+): issue\(number:", query)]
+    with open(os.path.join(here, "calls.jsonl"), "a") as log:
+        log.write(json.dumps({"repo": repo, "numbers": numbers}) + "\n")
+    if repo in world["fail"]:
+        print("gh: " + world["fail"][repo], file=sys.stderr)
+        sys.exit(1)
+    board = world["boards"].get(repo, {"project": 0, "cards": {}, "off_board": []})
+    nodes = {}
+    for n in numbers:
+        if str(n) in board["cards"]:
+            station = board["cards"][str(n)]
+            items = [{"project": {"number": board["project"]},
+                      "fieldValueByName": {"name": station} if station else None}]
+        elif n in board["off_board"]:
+            items = []
+        else:
+            print("gh: Could not resolve to an Issue with the number of %%d." %% n, file=sys.stderr)
+            sys.exit(1)
+        nodes["i%%d" %% n] = {"number": n, "projectItems": {"pageInfo": {"hasNextPage": False},
+                                                         "nodes": items}}
+    print(json.dumps({"data": {"repository": nodes}}))
+    sys.exit(0)
+print(json.dumps({"totalCount": 0, "items": []}))
+'''
+
+
+def _fleet_root(root, owner_sync=True, fleet=("org/prod", "org/broken")):
+    """Owner harness.json (org/repo on project 3) and a fleet listing the bound products."""
+    h = os.path.join(root, ".harness")
+    os.makedirs(os.path.join(h, "factory"), exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w") as f:
+        json.dump({"github": {"sync": owner_sync, "repo": "org/repo",
+                              "board": {"owner": "org", "number": 3, "station_field": "status",
+                                        "stations": _STATIONS}}}, f)
+    with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
+        f.write("schema: factory-fleet/1\nrepos:\n")
+        for name in fleet:
+            f.write("  - name: %s\n    default_branch: main\n" % name)
+        f.write("workspace_root: %s\n" % root)
+    return h
+
+
+def _fleet_feature(h, segment, feat, issues, parent, factory_repo=None, sources=()):
+    """One building feature whose every card belongs at Building."""
+    fd = os.path.join(h, segment, "features", feat)
+    os.makedirs(fd, exist_ok=True)
+    second = "building" if "T-02" in issues else None
+    _inv26_write_plan(fd, feat, "building", "building", second, list(sources))
+    doc = {"feature_id": feat, "branch": "b", "pr": None, "review_sha": "abc1234",
+           "cycles_used": 0, "max_total_cycles": 10, "runs": [],
+           "github": {"milestone": 1, "parent": parent, "issues": issues,
+                      "source_issues": list(sources)}}
+    if factory_repo:
+        doc["factory"] = {"repo": factory_repo}
+        doc["github"]["repo"] = factory_repo
+    with open(os.path.join(fd, "feature.json"), "w") as f:
+        json.dump(doc, f)
+
+
+def _fleet_fake(root, boards, fail=None):
+    """The fake gh plus its world: org/prod's remote harness.json binds it to project 9."""
+    product = {"github": {"sync": True, "repo": "org/prod",
+                          "board": {"owner": "org", "number": 9, "station_field": "status",
+                                    "stations": _STATIONS}}}
+    broken = dict(product, github=dict(product["github"], repo="org/broken"))
+    with open(os.path.join(root, "world.json"), "w") as f:
+        json.dump({"contents": {"org/prod@main": product, "org/broken@main": broken},
+                   "boards": boards, "fail": fail or {}}, f)
+    fake = os.path.join(root, "gh")
+    with open(fake, "w") as f:
+        f.write(_FLEET_FAKE % {"python": sys.executable})
+    os.chmod(fake, 0o755)
+    return fake
+
+
+def _calls(root):
+    path = os.path.join(root, "calls.jsonl")
+    if not os.path.exists(path):
+        return []
+    with open(path) as f:
+        return [json.loads(line) for line in f]
+
+
+def _board(project, cards, off_board=()):
+    return {"project": project, "cards": cards, "off_board": list(off_board)}
+
+
+def _x_run(tmp, fake):
+    """(exit, INV-26 lines, traceback seen, stderr tail) for one fixture."""
+    c, out, err = _run_with_gh_streams(tmp, fake)
+    lines = [l for l in out.splitlines() if "INV-26" in l]
+    return c, lines, "Traceback" in out + err, err[-300:]
+
+
+def _x_has(lines, *needles):
+    return any(all(n in l for n in needles) for l in lines)
+
+
+def _x_asked(tmp):
+    """{repository: every issue number it was asked about}."""
+    asked = {}
+    for call in _calls(tmp):
+        asked.setdefault(call["repo"], set()).update(call["numbers"])
+    return asked
+
+
+_PROD_OK = {"16": "Building", "17": "Building", "41": "Building", "14": "Building"}
+_OWNER_OK = {"40": "Building", "41": "Building"}
+_OWNER_MISPLACED = {"40": "Building", "41": "Backlog"}
+
+
+def _x_bound_only(prod_cards):
+    """FEAT-P bound to org/prod, its T-01 card judged against `prod_cards` on project 9."""
+    with tempfile.TemporaryDirectory() as tmp:
+        h = _fleet_root(tmp)
+        _fleet_feature(h, "prod", "FEAT-P", {"T-01": 17}, 16, "org/prod", sources=[14])
+        fake = _fleet_fake(tmp, {"org/repo": _board(3, _OWNER_OK),
+                                 "org/prod": _board(9, prod_cards)})
+        c, lines, tb, err = _x_run(tmp, fake)
+        return lines, tb, _x_asked(tmp), err
+
+
+def _x1_bound_feature_reads_its_own_repository():
+    lines, tb, asked, err = _x_bound_only(_PROD_OK)
+    ok = not tb and not lines and asked == {"org/prod": {14, 16, 17}}
+    return ("(x.1) a bound feature's cards are read from its own repository; the owner "
+            "repository is never asked for them", ok,
+            "traceback=%s asked=%r lines=%r err=%r" % (tb, asked, lines, err))
+
+
+def _x2_misplaced_bound_card_is_reported():
+    lines, tb, _asked, err = _x_bound_only(dict(_PROD_OK, **{"17": "Backlog"}))
+    ok = not tb and _x_has(lines, "FEAT-P", "T-01", "backlog")
+    return ("(x.2) a misplaced bound card is a VIOLATION naming the feature, task and column "
+            "found on the bound board", ok, "traceback=%s lines=%r err=%r" % (tb, lines, err))
+
+
+def _x3_owner_sync_off_still_checks_bound():
+    with tempfile.TemporaryDirectory() as tmp:
+        h = _fleet_root(tmp, owner_sync=False)
+        _fleet_feature(h, "prod", "FEAT-P", {"T-01": 17}, 16, "org/prod")
+        fake = _fleet_fake(tmp, {"org/prod": _board(9, {"16": "Building", "17": "Backlog"})})
+        c, lines, tb, err = _x_run(tmp, fake)
+        asked = _x_asked(tmp)
+    ok = not tb and _x_has(lines, "FEAT-P", "T-01", "backlog") and set(asked) == {"org/prod"}
+    return ("(x.3) with owner sync off, a bound feature is still checked on its own board", ok,
+            "traceback=%s lines=%r asked=%r" % (tb, lines, asked))
+
+
+def _x4_mixed_features_share_a_number():
+    # Both features record issue 41: each repository is asked only for its own numbers, and
+    # only the bound card that is wrong ON ITS OWN BOARD is reported.
+    with tempfile.TemporaryDirectory() as tmp:
+        h = _fleet_root(tmp)
+        _fleet_feature(h, "harness", "FEAT-O", {"T-01": 41}, 40)
+        _fleet_feature(h, "prod", "FEAT-P", {"T-01": 41, "T-02": 17}, 16, "org/prod")
+        prod = {"16": "Building", "17": "Building", "41": "Review"}
+        fake = _fleet_fake(tmp, {"org/repo": _board(3, _OWNER_OK), "org/prod": _board(9, prod)})
+        c, lines, tb, err = _x_run(tmp, fake)
+        asked = _x_asked(tmp)
+    ok = (not tb and asked == {"org/repo": {40, 41}, "org/prod": {16, 17, 41}}
+          and _x_has(lines, "FEAT-P", "T-01", "review") and not _x_has(lines, "FEAT-O"))
+    return ("(x.4) mixed owner and bound features: each repository is asked only for its own "
+            "numbers and each feature is judged on its own board", ok,
+            "traceback=%s asked=%r lines=%r" % (tb, asked, lines))
+
+
+def _x5_failed_read_is_cannot_verify():
+    with tempfile.TemporaryDirectory() as tmp:
+        h = _fleet_root(tmp)
+        _fleet_feature(h, "harness", "FEAT-O", {"T-01": 41}, 40)
+        _fleet_feature(h, "broken", "FEAT-B", {"T-01": 17}, 16, "org/broken")
+        fail = {"org/broken": "Could not resolve to an Issue with the number of 17."}
+        fake = _fleet_fake(tmp, {"org/repo": _board(3, _OWNER_MISPLACED)}, fail=fail)
+        c, lines, tb, err = _x_run(tmp, fake)
+    ok = (not tb and c == 1 and _x_has(lines, "CANNOT VERIFY", "FEAT-B", "Could not resolve")
+          and _x_has(lines, "FEAT-O", "T-01", "backlog"))
+    return ("(x.5) a failed board read is CANNOT VERIFY naming the feature and the error, and "
+            "the other feature is still compared", ok,
+            "exit=%s traceback=%s lines=%r err=%r" % (c, tb, lines, err))
+
+
+def _x6_unresolvable_binding_never_falls_back():
+    with tempfile.TemporaryDirectory() as tmp:
+        h = _fleet_root(tmp, fleet=("org/prod",))
+        _fleet_feature(h, "harness", "FEAT-O", {"T-01": 41}, 40)
+        _fleet_feature(h, "gone", "FEAT-M", {"T-01": 17}, 16, "org/gone")
+        fake = _fleet_fake(tmp, {"org/repo": _board(3, _OWNER_MISPLACED)})
+        c, lines, tb, err = _x_run(tmp, fake)
+        asked = _x_asked(tmp)
+    ok = (not tb and _x_has(lines, "CANNOT VERIFY", "FEAT-M", "org/gone")
+          and _x_has(lines, "FEAT-O", "T-01", "backlog") and asked == {"org/repo": {40, 41}})
+    return ("(x.6) an unresolvable binding is CANNOT VERIFY for that feature alone, never an "
+            "owner-board fallback", ok,
+            "traceback=%s lines=%r asked=%r err=%r" % (tb, lines, asked, err))
+
+
+def case_x():
+    """FLEET ROUTING (#2180): INV-26 reads each feature's cards from its own binding.
+
+    THE LIVE FAILURE IS REPRODUCED, NOT PARAPHRASED. The bound feature's numbers (16, 17) exist
+    only in org/prod. The owner repository answers them the way GitHub answered for Kaya: a
+    GraphQL "Could not resolve to an Issue" and a non-zero exit. Before the fix, that error
+    escaped INV-26 and aborted the whole checker.
+    """
+    scenarios = (_x1_bound_feature_reads_its_own_repository,
+                 _x2_misplaced_bound_card_is_reported,
+                 _x3_owner_sync_off_still_checks_bound,
+                 _x4_mixed_features_share_a_number,
+                 _x5_failed_read_is_cannot_verify,
+                 _x6_unresolvable_binding_never_falls_back)
+    allok = True
+    for name, ok, detail in (scenario() for scenario in scenarios):
+        print(f"{'ok' if ok else 'FAIL'} - {name}")
+        if not ok:
+            print("      " + detail.replace("\n", "\n      "))
+        allok = allok and ok
+    return allok
+
+
 def main():
     results = []
     results.append(case_v())
     results.append(case_w())
+    results.append(case_x())
     return 0 if all(results) else 1
 
 

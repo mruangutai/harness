@@ -355,10 +355,11 @@ def inv_37(ctx):
 # the operator's view of the factory being wrong is the condition the ticket opens with, and
 # a warning is the same silence in a quieter font.
 #
-# THE IMPORT IS A VIOLATION WHEN IT FAILS — INV-25's precedent, and for its reason: gh_board
-# ships with the repository, so being unimportable is a defect in the tree, never a property
-# of the environment. Everything else below records NOTHING, because an offline or
-# unconfigured environment must never become a red gate.
+# THE IMPORTS ARE A VIOLATION WHEN THEY FAIL — INV-25's precedent, and for its reason: gh_board
+# and feature_schema ship with the repository, so being unimportable is a defect in the tree,
+# never a property of the environment. An offline, unauthenticated or unconfigured environment
+# records NOTHING and never becomes a red gate; a board read that was ATTEMPTED and failed is a
+# different fact — the answer came back wrong — and is CANNOT VERIFY for its features (#2180).
 def _inv26_import():
     bad = []
     try:
@@ -371,7 +372,15 @@ def _inv26_import():
                    "disagrees with the plan would go unreported. The module ships with this "
                    "repository — restore .agents/skills/harness/bin/gh_board.py."
                    % (type(_gbe).__name__, _gbe))
-    return bad, _gb
+    try:
+        # feature_schema resolves a bound feature's own repository and board — INV-37's resolver,
+        # so the two invariants can never disagree about where a feature's mirror lives.
+        _fs = harness_boundary.load_repo_module("feature_schema")
+    except harness_boundary.RepoModuleError as _fse:
+        _fs, _fse = None, _fse.cause
+        bad.append("INV-26 CANNOT RUN: feature_schema.py did not import (%s: %s), so no "
+                   "feature's board binding can be resolved." % (type(_fse).__name__, _fse))
+    return bad, _gb, _fs
 
 
 def _inv26_repo(cj):
@@ -432,43 +441,6 @@ def _inv26_feature_numbers(ctx, _feat26, plan_docs):
     if not _issues26:
         return set()
     return _inv26_github_numbers(_gblk26, _issues26)
-
-
-def _inv26_numbers(ctx, plan_docs):
-    # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
-    # something to ask about. That is INV-30's posture one screen below, and it is the one this
-    # invariant was missing (issue #1541): the whole-board read downloaded every card the board
-    # has ever held — 918 items over ten sequential `gh` processes, 11.25s of this script's
-    # 14.3s — to answer questions about the handful of features actually in flight. Measured
-    # 2026-09-09, that handful was FOURTEEN features carrying ZERO mirrored issues, so the
-    # entire download was compared against nothing.
-    #
-    # The skip conditions here are a SUPERSET of the loop's below, deliberately: an extra issue
-    # number costs one alias in a batched query, while a missing one would make the loop report
-    # CANNOT VERIFY for a card that is on the board. Over-asking is cheap; under-asking lies.
-    _numbers26 = set()
-    for _feat26 in ctx.features:
-        _numbers26 |= _inv26_feature_numbers(ctx, _feat26, plan_docs)
-    return _numbers26
-
-
-def _inv26_stations(_gb, _inv26_board, _repo26, _numbers26, _gh_bin):
-    # A FAILED BOARD READ RECORDS NOTHING. board_stations_for already refuses a truncated
-    # read by raising, which is what keeps a partial read from being reported as an empty
-    # column — but the remedy here is silence, not a red gate, because the network is not
-    # the tree.
-    #
-    # AN EMPTY CANDIDATE SET IS AN EMPTY MAP, NOT None. None skips the whole comparison
-    # block below, and that block carries findings that need no board at all — the
-    # mirror-never-ran clause among them. Nothing to look up is not the same as nothing
-    # to check.
-    try:
-        os.environ["FACTORY_GH"] = _gh_bin
-        _stations = _gb.board_stations_for(_inv26_board, _repo26, _numbers26)
-    except _gb.BoardError:
-        _stations = None
-    return _stations
-
 
 
 def _inv26_task_status_entry(_tstat, _t):
@@ -657,7 +629,54 @@ def _inv26_feature(ctx, _gb, _stations, plan_docs, _feat):
     return bad
 
 
-def _inv26_compare(ctx, _gb, _stations, plan_docs):
+def _inv26_binding(ctx, _fs, _feat, _owner):
+    """`((repo, board), None)` naming the board `_feat`'s cards live on, `(None, None)` when
+    no board applies, or `(None, finding)` when its binding does not resolve.
+
+    A BOUND FEATURE RESOLVES ITS OWN BINDING (#2180) — feature_schema.resolve_binding, as
+    INV-37 does — and NEVER falls back to the owner board: its numbers are another
+    repository's, and the owner repository answering for them was the live crash. An unbound
+    feature keeps the owner declaration, so it is checked exactly where it always was."""
+    doc = ctx.record(_feat)[0] or {}
+    if not _fs.has_repository_binding(doc):
+        return _owner, None
+    try:
+        repo, board, _types = _fs.resolve_binding(doc, ctx.root)
+    except artifact_accessors.FleetError as error:
+        return None, (f"INV-26 CANNOT VERIFY {_feat}: its repository binding does not resolve "
+                      f"({error}), so no board can be read for its cards.")
+    return (repo, board), None
+
+
+def _inv26_groups(ctx, _fs, _owner, eligible):
+    """Eligible features grouped by the (repository, board) their cards are read from.
+
+    EACH GROUP CARRIES ONLY ITS OWN NUMBERS. Two repositories share issue numbers freely, so a
+    union across bindings would ask one repository about another's issues and read a stranger's
+    card as this feature's."""
+    bad, groups = [], {}
+    for _feat, _numbers in eligible:
+        target, finding = _inv26_binding(ctx, _fs, _feat, _owner)
+        if finding:
+            bad.append(finding)
+            continue
+        if target is None:
+            continue
+        repo, board = target
+        group = groups.setdefault((repo, board["owner"], board["number"]),
+                                  {"repo": repo, "board": board, "numbers": set(), "features": []})
+        group["numbers"] |= _numbers
+        group["features"].append(_feat)
+    return bad, groups
+
+
+def _inv26_group(ctx, _gb, plan_docs, group):
+    """One targeted read for the group's board, then each member compared against it.
+
+    A READ THAT FAILS IS CANNOT VERIFY FOR EVERY FEATURE IT WAS READ FOR, never silence and
+    never an abort: GhError carries GitHub's own answer (an issue that does not resolve is the
+    record or the routing being wrong), and an empty map in its place would fabricate a
+    missing-card finding for every card."""
     # THE PLACEMENT RULE IS NOT HERE ANY MORE (FEAT-41 T-06, D-11). The two lookup tables
     # that stood here are DELETED, not lowercased: the rule they encoded — which card
     # belongs at which station, and when — now lives in gh_board.project and nowhere else,
@@ -673,42 +692,59 @@ def _inv26_compare(ctx, _gb, _stations, plan_docs):
     # for both identifiers and fails on a COMMENT as readily as on code — a dead name in
     # prose is still a reader's next false lead.
     bad = []
-    for _feat in ctx.features:
+    repo, board = group["repo"], group["board"]
+    try:
+        _stations = _gb.board_stations_for(board, repo, group["numbers"])
+    except (_gb.BoardError, _gb.factory_gh.GhError) as error:
+        for _feat in group["features"]:
+            bad.append(f"INV-26 CANNOT VERIFY {_feat}: the board read from {repo} "
+                       f"({board['owner']} project {board['number']}) failed — {error}. "
+                       f"None of its cards was compared.")
+        return bad
+    for _feat in group["features"]:
         bad += _inv26_feature(ctx, _gb, _stations, plan_docs, _feat)
     return bad
 
 
-def _inv26_check(ctx, _gb, _inv26_board, _repo26, _gh_bin, plan_docs):
-    bad = []
-    _gh_ok = ctx.gh_ok(_gh_bin)
-    _numbers26 = _inv26_numbers(ctx, plan_docs)
-
-    _stations = None
-    if _gh_ok:
-        _stations = _inv26_stations(_gb, _inv26_board, _repo26, _numbers26, _gh_bin)
-
-    if _stations is not None:
-        bad += _inv26_compare(ctx, _gb, _stations, plan_docs)
+def _inv26_check(ctx, _gb, _fs, _owner, _gh_bin, plan_docs):
+    # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
+    # something to ask about. That is INV-30's posture one screen below, and it is the one this
+    # invariant was missing (issue #1541): the whole-board read downloaded every card the board
+    # has ever held — 918 items over ten sequential `gh` processes, 11.25s of this script's
+    # 14.3s — to answer questions about the handful of features actually in flight. Measured
+    # 2026-09-09, that handful was FOURTEEN features carrying ZERO mirrored issues, so the
+    # entire download was compared against nothing. A feature with no candidate number has no
+    # card to compare either, so leaving it out here loses no finding.
+    eligible = [(f, n) for f in ctx.features
+                for n in [_inv26_feature_numbers(ctx, f, plan_docs)] if n]
+    if not eligible or not ctx.gh_ok(_gh_bin):
+        return []
+    # Set before resolve_binding: a bound product's board is read from its remote harness.json.
+    os.environ["FACTORY_GH"] = _gh_bin
+    bad, groups = _inv26_groups(ctx, _fs, _owner, eligible)
+    for group in groups.values():
+        bad += _inv26_group(ctx, _gb, plan_docs, group)
     return bad
 
 
 def inv_26(ctx):
     bad, warn = [], []
-    H, root, fpath = ctx.H, ctx.root, ctx.fpath
-    cj, plan_docs = ctx.cj, ctx.plan_docs
-    _ibad, _gb = _inv26_import()
+    _ibad, _gb, _fs = _inv26_import()
     bad += _ibad
+    if _gb is None or _fs is None:
+        return bad, warn
 
     # THE BINARY IS OVERRIDABLE OR THIS CANNOT BE TESTED. FACTORY_GH is the variable factory_gh
     # already honours, so ONE fake serves both the module and this invariant. A third variable
     # name would be a third thing to get wrong.
     _gh_bin = os.environ.get("FACTORY_GH") or "gh"
 
-    _bbad, _inv26_board, _repo26 = _inv26_declared_board(_gb, cj, root)
+    # The owner declaration binds every UNBOUND feature. Absent (sync off, no board) or unusable,
+    # it removes only those: a bound feature carries its own binding and is checked regardless.
+    _bbad, _inv26_board, _repo26 = _inv26_declared_board(_gb, ctx.cj, ctx.root)
     bad += _bbad
-
-    if _inv26_board:
-        bad += _inv26_check(ctx, _gb, _inv26_board, _repo26, _gh_bin, plan_docs)
+    _owner = (_repo26, _inv26_board) if _inv26_board else None
+    bad += _inv26_check(ctx, _gb, _fs, _owner, _gh_bin, ctx.plan_docs)
     return bad, warn
 
 # --- INV-30 (FEAT-34 T-08, REQ-12): a feature recorded `Done` whose milestone is still OPEN.

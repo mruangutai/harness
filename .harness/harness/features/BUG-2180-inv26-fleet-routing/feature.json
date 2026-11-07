@@ -1,0 +1,120 @@
+{
+  "feature_id": "BUG-2180-inv26-fleet-routing",
+  "branch": "feat/BUG-2180-inv26-fleet-routing",
+  "pr": 2184,
+  "review_sha": "909798ec572ffe6ec484e89fd36f0f58ef113c45",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-07-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:39:19+00:00",
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T14:47:43+00:00",
+        "authorization": {
+          "path": "notes/refused-return-authorization-2026-11-07-01-product.md",
+          "sha256": "877fdaaa8b75a91f5d55bd86197f4577a9f574831afe05de6207f9f9e423b23b"
+        },
+        "path": "runs/2026-11-07-01-product/digest.md",
+        "sha256": "4bb8a2361fcecfea98e9eebf0f95b28a607882a298e15107f8ab3e6bb43e87cb"
+      },
+      "refusal": {
+        "source": "close-run",
+        "digest": {
+          "path": "runs/2026-11-07-01-product/digest.md",
+          "sha256": "4bb8a2361fcecfea98e9eebf0f95b28a607882a298e15107f8ab3e6bb43e87cb"
+        },
+        "run_id": "2026-11-07-01-product",
+        "reason": "validator rejected the return with deliberate contract-refusal status 65",
+        "by": "operator",
+        "at": "2026-11-07T14:47:43+00:00"
+      },
+      "ended_at": "2026-11-07T14:47:43+00:00",
+      "tokens": null,
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-07-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-07T14:55:35+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-07-02-validate-validator/digest.md",
+        "sha256": "decaf4a9c42d9b706e0c87053b8fffd2cb0f0ef33cf8bf54869ce518162ff7ce"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-07T15:07:05+00:00"
+    },
+    {
+      "id": "2026-11-07-03-fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T15:11:12+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-07-03-fix-c1-validator/digest.md",
+        "sha256": "eefba61f2bb362b549e1506f59e5b55c5fc33ecdb5946b156a4aa98f1297bc87"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T15:19:45+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-07T14:39:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "one known defect in one function family (INV-26), known fix copying INV-37's resolve_binding pattern; bounded diff, no new interface"
+    },
+    {
+      "at": "2026-11-07T15:08:32.127005+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "DEC-217 bugfix unit floor named in the signed BRIEF; validate c0 must-fix 2; advisor ruling Inv26RoutingAdvisor"
+    },
+    {
+      "at": "2026-11-07T15:11:12+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "fix c1 re-verify after validate FAIL (complexity split + DEC-217 unit floor)"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2180-inv26-fleet-routing/notes/operator-signature-2026-11-07.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "523a9898c90a3c456afcc16ac26624c54e56e6cc0baf9f4ab43642d05263e272"
+  },
+  "github": {
+    "milestone": 107,
+    "parent": 2182,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2183
+    },
+    "source_issues": [
+      2180
+    ],
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

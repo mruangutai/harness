@@ -1,0 +1,41 @@
+schema: plan/1
+feature: BUG-2180-inv26-fleet-routing
+approval:
+  date: '2026-11-07'
+  approved_by: operator
+  status: approved
+status: review
+source_issues: [2180]
+lanes:
+  resolved_at: 4a05030d401593003209f525fd06e00802eccd36
+  rows:
+    - surface: .claude/skills/harness/bin/check_state/board.py
+      lane: main-session-direct
+      reason: DEC-174 enforcement-layer gate code is implemented directly by main.
+    - surface: tests/integration/test-check-state-inv26.py
+      lane: main-session-direct
+      reason: DEC-174 includes regression tests of the changed gate.
+decisions: []
+tasks:
+  - id: T-01
+    title: Route INV-26 by feature binding and report unreadable checks
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_agent: main-session-direct
+    execution_reason: DEC-174 requires main to implement this gate and its tests directly inside the assigned feature worktree.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/check_state/board.py
+    - tests/integration/test-check-state-inv26.py
+    - tests/unit/test-check-state-inv26-routing.py
+    verify: |
+      python3 tests/integration/test-check-state-inv26.py
+    intent: |
+      Work only in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing after main signs both artifacts. Main builds directly and retains orchestrator duties under DEC-174; validation goes to harness-validator-lead, never an engineering-lead build. This is one patch task with no panel or goal-check. Read product guidance before assumptions: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing/docs/spec.md, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing/docs/decisions.md and /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing/docs/architecture.md. Those three paths are absent at intake; report missing guidance rather than inventing contents. AGENTS.md separately identifies the Harness authority locations; applicable adopted constraints are DEC-174, DEC-221 and DEC-225. The settled grilling input is /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing/.harness/notes/grilling-inv26-fleet-routing-2026-11-07.md.
+      Write tests first in the existing INV-26 integration file, reusing its disposable root, plan and feature fixtures plus FACTORY_GH fake. Extend fake argv dispatch for remote product config and repository-specific issue-station queries; log calls so assertions distinguish repository, board and requested parent/task/source numbers. No network access or live writes. Include a bound-only case proving no owner lookup, a bound feature with owner sync disabled, mixed owner and bound features with some overlapping issue numbers plus unique bound numbers, corrected and misplaced bound-card twins, unchanged owner/unbound positive and negative controls, a board query failing with the actual GhError path, and unresolvable binding beside a healthy feature. Healthy peers must still produce their expected mismatch findings when another feature fails, so continuation is nonvacuous. Assert no traceback, affected-feature diagnostic attribution and no fallback query; do not rely on global checker exit 0 because unrelated fixture invariants can fail.
+      Before production edits pin the baseline full SHA and preserve the new tests failing for wrong routing, uncaught board GhError and unresolved binding, not setup/import failures. Keep passing owner controls alongside the red fleet regression. Record baseline SHA, commands, exit codes, named failing assertions and stdout/stderr in feature evidence through the appropriate main/QA-owned notes path. Then record the same tests passing after the fix. Intake has not run these tests. The literal verify above must finish within 60 seconds, exit 0 and emit no FAIL assertions; QA supplies per-SC fail-first evidence and runs the configured unit floor plus integration validation after all changes land.
+      In board.py replace the single owner-wide candidate union and stations-map assumption with repository-and-board-scoped INV-26 checking for eligible features. Reuse feature_schema.has_repository_binding and feature_schema.resolve_binding as INV-37 already does; a bound target resolves its own repository and board even when the owner mirror is off or has no board. Use existing feature/plan records and _inv26_feature_numbers for candidate selection, retaining parent, task and source coverage. Pass each feature only the station map from its resolved repository and board. Keep issue-number sets isolated by binding; never contribute unique bound numbers to owner reads or reuse another binding map merely because numbers overlap. Avoid whole-board reads and reads for empty candidates. No second fleet/config parser, new routing abstraction or cache is required; simple per-feature reads are acceptable.
+      Preserve the current unbound owner declaration and malformed-board diagnostics, sync-off/no-board and unauthenticated skips, terminal/missing-plan/no-recorded-task eligibility, gh_board.project/read_station comparison semantics and source/parent handling. Move only the owner gating that currently prevents an independently bound feature being checked. Once a board read is attempted, catch its actual factory_gh.GhError and existing gh_board.BoardError boundary classes rather than a broad Exception. Emit an INV-26 CANNOT VERIFY finding naming the affected feature and original error, then continue with other features; do not return an empty map that fabricates missing-card findings. For artifact_accessors.FleetError from bound resolution emit INV-26 CANNOT VERIFY <feature>: invalid authoritative repository binding: <error>, skip only that feature and never fall back to the owner. If shared-module import loading is needed use the existing harness_boundary seam and retain loud CANNOT RUN behavior on import defects.
+      Remove obsolete INV-26-only owner-union plumbing and comments claiming failed attempted board reads are silent; update explanatory comments and the integration module docstring within these two owned files. Do not change INV-30 or other invariants sharing board.py, gh-sync, gh_board.set_station, public interfaces, schemas, dependencies, retries or telemetry. Do not touch the Kaya corpus or absorb issue 2181. This patch must merge before the Kaya corpus PR. If implementation requires additional production/test files or grows beyond this bounded fix, return the scope change to main before proceeding.
