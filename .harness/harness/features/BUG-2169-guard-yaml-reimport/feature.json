@@ -73,9 +73,9 @@
   ],
   "mission": "patch",
   "rework": {
-    "rounds": 1,
-    "wall_clock_minutes": 45,
-    "decision": ".harness/harness/features/BUG-2169-guard-yaml-reimport/notes/operator-signature-2026-11-07.md"
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-2169-guard-yaml-reimport/notes/operator-rework-raise-2026-11-07.md"
   },
   "signed_task_hashes": {
     "T-01": "dbfa848e65427a5b599975a2d7842e143a1e11ae689955b27a5a7f1e21ef103a"

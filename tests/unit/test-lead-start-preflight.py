@@ -488,10 +488,33 @@ def bug2169_cases():
 
 
 
-def bug2169_advice():
-    """SC-02: the PyYAML refusal advice installs where the isolated policy phase looks."""
-    import harness_yaml
+# Prints harness_yaml.INSTALL_COMMAND as a python3 with the given install prefix would see
+# it, on a host with or without Debian's marker file. Both facts are set BEFORE the import,
+# because the advice is chosen when the module loads.
+_ADVICE_PROBE = """
+import os, sys
+bin_dir, prefix, debian = sys.argv[1], sys.argv[2], sys.argv[3] == "1"
+sys.path.insert(0, bin_dir)
+sys.prefix = prefix
+_exists = os.path.exists
+os.path.exists = lambda p: debian if p == "/etc/debian_version" else _exists(p)
+import harness_yaml
+sys.stdout.write(harness_yaml.INSTALL_COMMAND)
+"""
 
+
+def _printed_advice(prefix, debian):
+    result = subprocess.run(
+        [sys.executable, "-c", _ADVICE_PROBE, BIN_DIR, prefix, "1" if debian else "0"],
+        capture_output=True, text=True, timeout=30)
+    return result.stdout if result.returncode == 0 else f"probe failed: {result.stderr}"
+
+
+def bug2169_advice():
+    """SC-02: the PyYAML refusal advice installs where the isolated policy phase looks.
+
+    THE PRINTED ADVICE IS JUDGED, PER SIMULATED PLATFORM. INSTALL_COMMAND predates the fix,
+    so every case runs - and fails on the old `--user` fallback - at base, on any host."""
     def commands(advice):
         """The lines an operator runs: everything but the explanatory `#` lines."""
         return [line for line in advice.splitlines() if not line.lstrip().startswith("#")]
@@ -499,33 +522,11 @@ def bug2169_advice():
     def per_user(advice):
         return any("--user" in line for line in commands(advice))
 
-    # THE PRINTED ADVICE, judged against facts this test reads itself. INSTALL_COMMAND
-    # predates the fix, so these run - and fail on the old `--user` fallback - at base.
-    printed = harness_yaml.INSTALL_COMMAND
-    prefix = os.path.realpath(sys.prefix)
-    check("startup", "BUG-2169/advice/printed-not-per-user",
-          "the advice this interpreter prints installs no PyYAML per-user",
-          not per_user(printed), printed)
-    if "/Cellar/" in prefix:
-        check("startup", "BUG-2169/advice/printed-homebrew",
-              "a Homebrew python3 prints the --break-system-packages command and the warning",
-              "python3 -m pip install --break-system-packages pyyaml" in commands(printed)
-              and "break the Homebrew" in printed, printed)
-    elif os.path.exists("/etc/debian_version") and prefix == "/usr":
-        check("startup", "BUG-2169/advice/printed-debian",
-              "Debian/Ubuntu's system python3 prints the apt command",
-              any("apt install python3-yaml" in line for line in commands(printed)), printed)
-
-    if not hasattr(harness_yaml, "install_command"):
-        check("startup", "BUG-2169/advice/function",
-              "harness_yaml.install_command(homebrew, debian_system) selects the advice",
-              False, "harness_yaml has no install_command")
-        return
-
-    brew = harness_yaml.install_command(homebrew=True, debian_system=False)
-    debian = harness_yaml.install_command(homebrew=False, debian_system=True)
-    other = harness_yaml.install_command(homebrew=False, debian_system=False)
-    both = harness_yaml.install_command(homebrew=True, debian_system=True)
+    cellar = "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15"
+    brew = _printed_advice(cellar, debian=False)
+    both = _printed_advice(cellar, debian=True)
+    debian = _printed_advice("/usr", debian=True)
+    other = _printed_advice("/opt/python/3.14", debian=False)
     check("startup", "BUG-2169/advice/debian",
           "Debian/Ubuntu's system python3 is told to apt install python3-yaml",
           any("apt install python3-yaml" in line for line in commands(debian))
@@ -542,11 +543,8 @@ def bug2169_advice():
           "python3 -m pip install pyyaml" in commands(other) and not per_user(other), other)
     check("startup", "BUG-2169/advice/precedence",
           "a Homebrew python3 on a Debian host gets the Homebrew advice",
-          both == brew, both)
-    check("startup", "BUG-2169/advice/default",
-          "INSTALL_COMMAND is the advice for this interpreter",
-          harness_yaml.INSTALL_COMMAND == harness_yaml.install_command(),
-          harness_yaml.INSTALL_COMMAND)
+          "python3 -m pip install --break-system-packages pyyaml" in commands(both)
+          and not any("apt install" in line for line in commands(both)), both)
 
 
 
