@@ -51,7 +51,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires main to implement this enforcement removal/refactor directly and hold all orchestration duties.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/**
       - .claude/skills/harness/templates/harness.json
