@@ -22,3 +22,9 @@ Same bypass. The lead's first return carried an undeclared `DIGEST.amendments` k
 `validate-digest.py harness-product-lead` refused it (exit 1) — the refusal the hook would have
 issued. The lead re-issued a declared-keys-only return; it validated (exit 0) and was appended by
 `validate-digest.py`'s `_append_record`, then `close-run` accepted it.
+
+## Runs validate-validator and fix-c1-validator
+
+Same bypass for both validator-lead dispatches. Each return validated with
+`validate-digest.py harness-validator-lead` (exit 0) and was appended by its `_append_record` before
+`close-run` (validate-validator BLOCKED, fix-c1-validator PASS).
