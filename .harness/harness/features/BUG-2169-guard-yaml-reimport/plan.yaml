@@ -29,7 +29,7 @@ tasks:
     execution_agent: main-session-direct
     execution_reason: DEC-174 dispatch-guard.py is a hook; category governs despite backend/devops file grants. Main implements directly, never a build team.
     depends_on: []
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/dispatch-guard.py
     - .claude/skills/harness/bin/harness_yaml.py
