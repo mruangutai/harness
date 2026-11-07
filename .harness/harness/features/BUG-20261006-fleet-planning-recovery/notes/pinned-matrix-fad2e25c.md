@@ -22,3 +22,9 @@ Both were superseded by the fixes in `fad2e25c`, and neither is evidence for thi
 Full-corpus `check-state.py` on a non-sparse checkout of this pin reports no violation except the
 two rows caused by the probe's location (INV-25 and INV-29, which say a worktree lies outside
 `.claude/worktrees/`). The same command on origin/main c4e8bbc8 gives the same result.
+
+Re-pinned to `d69cf444` after the DEC-182 T-01 amendment (`amendment-T-01-budget-2026-11-07.md`).
+`git diff fad2e25c d69cf444` outside `.harness/harness/features/` is empty: every source, test
+and runtime blob is identical, so this matrix still covers that pin. The only change is the plan
+text and its ledger. `check-plan-routes` (0 violations) and `plan-merge.py check` (44 anchors,
+0 failures) pass at d69cf444.
