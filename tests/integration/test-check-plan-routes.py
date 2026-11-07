@@ -1913,7 +1913,11 @@ def case_canonical_reader_reads_no_feature_plan():
         [candidate], ["fixture.py"], document, task_files)
     check("canonical_reader_planless_row_is_not_an_ownership_finding",
           findings == [], repr(findings))
+    _check_live_inventory_reads_no_feature_plan(mod)
 
+
+def _check_live_inventory_reads_no_feature_plan(mod):
+    """The checked-in inventory names no plan, so its audit holds with no feature corpus."""
     classification = os.path.join(TESTS_DIR, "canonical-reader-classification.json")
     with open(classification, encoding="utf-8") as source:
         live = json.load(source)

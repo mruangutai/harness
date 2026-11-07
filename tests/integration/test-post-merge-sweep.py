@@ -1014,19 +1014,13 @@ def case_t07_build_entry_receipt(row):
 
 def case_t07_no_feature_id_is_exempt():
     """FEAT-71: the receipt rule is uniform. A feature with an absent or recovery-required
-    receipt keeps its worktree whatever its id: synthetic ids, plus every feature-id-shaped
-    string feature_schema itself holds as module data — read from the module, never named
-    here, so a reintroduced per-feature exemption table is probed without this file naming
-    any real feature. Stops at the first swept worktree; one is enough to fail."""
+    receipt keeps its worktree whatever its id: synthetic ids plus
+    feature_id_probe_support.held_feature_ids(feature_schema). Stops at the first swept
+    worktree; one is enough to fail."""
     import feature_schema
-    held = set()
-    for value in vars(feature_schema).values():
-        members = value.keys() if isinstance(value, dict) else (
-            value if isinstance(value, (set, frozenset, list, tuple)) else ())
-        held.update(m for m in members
-                    if isinstance(m, str) and re.match(r"^(FEAT|BUG|PR)-[0-9]+", m))
+    from feature_id_probe_support import held_feature_ids
     probed = 0
-    for feature in ["BUG-9-x", "PR-9-fixture"] + sorted(held):
+    for feature in ["BUG-9-x", "PR-9-fixture"] + held_feature_ids(feature_schema):
         for entry in (None, "recovery-required"):
             with tempfile.TemporaryDirectory() as tmp:
                 run, dest = _t07_sweep(tmp, feature, entry)

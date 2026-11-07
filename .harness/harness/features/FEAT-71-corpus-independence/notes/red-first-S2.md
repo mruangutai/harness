@@ -156,3 +156,29 @@ leg (the clone is a plain checkout). The synthetic non-vacuity case `test_the_wa
 - `tests/integration/test-feature-worktree.py`: the temp-repo fixture id `FEAT-70` (a dead real flow id) is now `FEAT-74`.
 
 Classified, unchanged: `feature-worktree.py` (:124 FEAT-01-kaya-platform, :311-312 FEAT-32 are provenance comments), `test-gen-decisions-index.py:3` (provenance label), `test-feature-worktree.py:1042-1043` (provenance docstring), `tests/integration/fixtures/prior-check-plan-routes.py.fixture` (ids appear only in comments of the frozen copy; nothing is executed as data).
+
+## Grade fix (CR-01 self-grading floor, review 746a5056)
+
+The standalone full-suite run at 746a5056 failed only `tests/unit/test-code-grade.py`. Three S2 functions were below their bar (production ≥ 4, test ≥ 3). Each was split into cohesive helpers with no behavior change. No allowlist entry was added or edited.
+
+| Function | Before (cyc / cog / ABC → grade) | After |
+|---|---|---|
+| `check-plan-routes.py:_route_finding` | 7 / 7 / 20.4 → **3** | 3 / 3 / 5.7 → 5 |
+| `check-plan-routes.py:_classification_task_files` | 9 / 14 / 15.6 → **3** | 3 / 3 / 6.2 → 5 |
+| `test-check-plan-routes.py:case_canonical_reader_reads_no_feature_plan` | 4 / 1 / 28.4 → **2** | 1 / 0 / 13.2 → 4 |
+
+New helpers, all at or above their bar:
+- `_row_label` 5, which is the shared `file::symbol category remedy=` prefix.
+- `_ownership_finding` 4, which is the plan-scoped task-file ownership check (the FEAT-71 comment moved here).
+- `_named_plans` 4, which returns the distinct row `plan` values in first-seen order.
+- `_ownership_task_files` 5, which applies the nonempty-path guard and then calls `_task_files`.
+- `_check_live_inventory_reads_no_feature_plan` 4, which runs the live inventory check plus the audit on a tree with no feature corpus.
+
+Exits with `CLAUDE_PROJECT_DIR`/`HARNESS_PROJECT_DIR` set to the checkout. These ran in a copy of the 746a5056 standalone clone with this diff applied:
+- `python3 tests/unit/test-code-grade.py` → exit 0 — PASS test-code-grade
+- `python3 tests/integration/test-check-plan-routes.py` → exit 0 — ALL PASS
+- `python3 tests/integration/test-check-plan-routes.py --canonical-reader-self-test` → exit 0 — ALL PASS
+- `python3 .claude/skills/harness/bin/check-plan-routes.py` → exit 0 — 0 violation(s) across 2 plan(s); examined 5 feature dir(s); 3 skipped as shipped
+- `python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit` → exit 0 — 0 unresolved reader site(s) across 100 Python file(s)
+
+The same commands run in this worktree give the same result for test-code-grade, the self-test and the audit (exit 0). The two exceptions are argvless `check-plan-routes.py`, which exits 2, and `test-check-plan-routes.py`, which exits 1 (`case_19a2`/`case_19a3`, the argvless cases). Both fail on the worktree's own sparse layout: `worktree-state.py --verify` reports cone (3) with unexpected `.harness/kaya/features/FEAT-71-corpus-independence`, `.harness/logs` and `.harness/notes`, and skip-bits (4) on `.harness/kaya/features/.gitkeep`. That drift has nothing to do with this diff, and it was left unrepaired.

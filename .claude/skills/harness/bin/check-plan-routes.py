@@ -1171,26 +1171,30 @@ def _exemption_finding(row):
     return None
 
 
-def _route_finding(row, task_files):
-    route = row.get("execution_route")
-    category = row.get("dec174_category")
-    if category != "none" and route != LEGAL_MAIN_SESSION_TOKEN:
-        return (
-            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
-            f"remedy={row.get('remedy')}: DEC-174 category {category!r} requires "
-            "main-session-direct. PLAN AMENDMENT REQUIRED")
+def _row_label(row):
+    return (f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+            f"remedy={row.get('remedy')}")
+
+
+def _ownership_finding(row, task_files):
     # Ownership is checked only for a row that names the plan owning its migration. The
     # inventory names no plan of its own: a row's bare `task` is provenance, so the audit never
     # depends on a feature directory that may since have been deleted (FEAT-71).
     plan, task = row.get("plan"), row.get("task")
     if not isinstance(plan, str) or not task or task == "none":
         return None
-    if row.get("file") not in task_files.get(plan, {}).get(task, ()):
+    if row.get("file") in task_files.get(plan, {}).get(task, ()):
+        return None
+    return f"{_row_label(row)}: {task} task files omit this source. PLAN AMENDMENT REQUIRED"
+
+
+def _route_finding(row, task_files):
+    category = row.get("dec174_category")
+    if category != "none" and row.get("execution_route") != LEGAL_MAIN_SESSION_TOKEN:
         return (
-            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
-            f"remedy={row.get('remedy')}: {task} task files omit this source. "
-            "PLAN AMENDMENT REQUIRED")
-    return None
+            f"{_row_label(row)}: DEC-174 category {category!r} requires "
+            "main-session-direct. PLAN AMENDMENT REQUIRED")
+    return _ownership_finding(row, task_files)
 
 
 def _classification_shape_findings(document, scanned_files):
@@ -1599,20 +1603,29 @@ def _audit_result(scanned, candidates, findings, violations):
     }
 
 
-def _classification_task_files(root, document):
-    """`(task_files, findings)` for the plans classification rows name — `{plan: {task: files}}`.
-    Only a row whose migration a feature owns names one; there is no document-level default."""
-    import harness_yaml
+def _named_plans(document):
+    """Distinct `plan` values the classification rows name, in first-seen order."""
     plans = []
     for row in document.get("rows", []):
         if isinstance(row, dict) and "plan" in row and row["plan"] not in plans:
             plans.append(row["plan"])
+    return plans
+
+
+def _ownership_task_files(root, plan):
+    if not isinstance(plan, str) or not plan:
+        raise ValueError("ownership plan must be a nonempty path")
+    return _task_files(root, plan)
+
+
+def _classification_task_files(root, document):
+    """`(task_files, findings)` for the plans classification rows name — `{plan: {task: files}}`.
+    Only a row whose migration a feature owns names one; there is no document-level default."""
+    import harness_yaml
     task_files, findings = {}, []
-    for plan in plans:
+    for plan in _named_plans(document):
         try:
-            if not isinstance(plan, str) or not plan:
-                raise ValueError("ownership plan must be a nonempty path")
-            task_files[plan] = _task_files(root, plan)
+            task_files[plan] = _ownership_task_files(root, plan)
         except (harness_yaml.YamlParseError, OSError, ValueError, KeyError, TypeError,
                 feature_corpus.CorpusError) as error:
             findings.append(f"{plan}: plan cannot be read: {error}")

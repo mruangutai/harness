@@ -608,7 +608,6 @@ def case_accepted_github_block_without_build_entry():
 # ---------------------------------------------------------------------------
 
 T15_FEATURE = "FEAT-90-fixture"
-_FEATURE_ID = re.compile(r"^(FEAT|BUG|PR)-[0-9]+")
 
 
 def _t15_display(feature, root="/tmp/x"):
@@ -622,15 +621,11 @@ def _t15_doc(entries):
 
 
 def _t15_probe_displays():
-    """Synthetic display paths PLUS one per feature-id-shaped string feature_schema itself
-    holds as module data — read from the module, never written here, so a reintroduced
-    per-feature exemption table is probed without this file naming any real feature."""
-    held = set()
-    for value in vars(feature_schema).values():
-        members = value.keys() if isinstance(value, dict) else (
-            value if isinstance(value, (set, frozenset, list, tuple)) else ())
-        held.update(m for m in members if isinstance(m, str) and _FEATURE_ID.match(m))
-    names = [T15_FEATURE, "BUG-9-x"] + sorted(held)
+    """Synthetic display paths PLUS one per feature_id_probe_support.held_feature_ids(
+    feature_schema), so a reintroduced per-feature exemption table is probed without this
+    file naming any real feature."""
+    from feature_id_probe_support import held_feature_ids
+    names = [T15_FEATURE, "BUG-9-x"] + held_feature_ids(feature_schema)
     return [_t15_display(n) for n in names] + ["/tmp/x/no-features-segment/feature.json"]
 
 

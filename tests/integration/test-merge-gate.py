@@ -134,20 +134,12 @@ check("T-05 path-prefixed gh is still detected", d == "deny")
 r, d, _, _ = denial("bash -c 'git merge feature/test'")
 check("T-05 bash -c wrapped merge is still detected", d == "deny")
 # FEAT-71: the receipt rule is uniform. An absent or recovery-required build_entry denies for
-# EVERY feature id: synthetic ones, plus every feature-id-shaped string feature_schema itself
-# holds as module data — read from the module, never named here, so a reintroduced per-feature
-# exemption table is probed without this file naming any real feature.
+# EVERY feature id: synthetic ones plus feature_id_probe_support.held_feature_ids(feature_schema).
 sys.path.insert(0, BIN)
-import re  # noqa: E402
 import feature_schema  # noqa: E402
-_held = set()
-for _value in vars(feature_schema).values():
-    _members = _value.keys() if isinstance(_value, dict) else (
-        _value if isinstance(_value, (set, frozenset, list, tuple)) else ())
-    _held.update(m for m in _members
-                 if isinstance(m, str) and re.match(r"^(FEAT|BUG|PR)-[0-9]+", m))
+from feature_id_probe_support import held_feature_ids  # noqa: E402
 allowed = []
-for feature in ["BUG-9-x", "PR-9-fixture"] + sorted(_held):
+for feature in ["BUG-9-x", "PR-9-fixture"] + held_feature_ids(feature_schema):
     for entry in (None, "recovery-required"):
         root, _ = fixture(feature=feature, entry=entry)
         r, d, reason = gate("git merge feature/test", root)

@@ -79,13 +79,9 @@ def module_feature_id_tables(module):
     """{global name: sorted feature-id-shaped members} for each module-level collection."""
     tables = {}
     for name, value in vars(module).items():
-        if isinstance(value, dict):
-            members = value.keys()
-        elif isinstance(value, (set, frozenset, list, tuple)):
-            members = value
-        else:
+        if not isinstance(value, (dict, set, frozenset, list, tuple)):
             continue
-        ids = sorted(m for m in members if isinstance(m, str) and _FEATURE_ID.match(m))
+        ids = sorted(m for m in value if isinstance(m, str) and _FEATURE_ID.match(m))
         if ids:
             tables[name] = ids
     return tables

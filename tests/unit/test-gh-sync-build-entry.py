@@ -175,10 +175,9 @@ import re  # noqa: E402
 import feature_schema  # noqa: E402
 _held = set()
 for _value in vars(feature_schema).values():
-    _members = _value.keys() if isinstance(_value, dict) else (
-        _value if isinstance(_value, (set, frozenset, list, tuple)) else ())
-    _held.update(m for m in _members
-                 if isinstance(m, str) and re.match(r"^(FEAT|BUG|PR)-[0-9]+", m))
+    if isinstance(_value, (dict, set, frozenset, list, tuple)):
+        _held.update(m for m in _value
+                     if isinstance(m, str) and re.match(r"^(FEAT|BUG|PR)-[0-9]+", m))
 not_refused, not_noticed = [], []
 with tempfile.TemporaryDirectory() as tmp:
     for name in ["FEAT-9106-fixture", "BUG-9-x"] + sorted(_held):
