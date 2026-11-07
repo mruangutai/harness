@@ -35,5 +35,27 @@
       "reason": "intake return PASS validated via CLI but no yield hook appended the durable record under this host; BRIEF (53 lines) and plan.yaml (T-01 main-session-direct, check 0 failures) verified on disk pending; advance to signature"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2169-guard-yaml-reimport/notes/operator-signature-2026-11-07.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "dbfa848e65427a5b599975a2d7842e143a1e11ae689955b27a5a7f1e21ef103a"
+  },
+  "github": {
+    "milestone": 105,
+    "parent": 2175,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2176
+    },
+    "source_issues": [
+      2169
+    ],
+    "build_entry": "opened"
+  }
 }

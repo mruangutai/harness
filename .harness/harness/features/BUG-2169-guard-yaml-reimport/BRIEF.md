@@ -48,6 +48,6 @@ No applicable null-runner kind: unit and integration are active in .harness/harn
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-11-07

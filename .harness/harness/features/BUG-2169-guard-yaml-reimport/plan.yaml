@@ -2,8 +2,10 @@
 schema: plan/1
 feature: BUG-2169-guard-yaml-reimport
 approval:
-  status: pending
-status: plan
+  date: '2026-11-07'
+  approved_by: operator
+  status: approved
+status: ready
 source_issues: [2169]
 lanes:
   resolved_at: c4e8bbc87e858bb2a0320efd766c7036cbcebb8b
