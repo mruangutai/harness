@@ -69,6 +69,13 @@
       "kind": "amendment",
       "decision": "T-01.verify",
       "reason": "Builder-learned: a feature-branch clone has no local main, so INV-29 cannot ls-tree the control plane; create main from origin/main."
+    },
+    {
+      "at": "2026-11-07T15:07:25.276187+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Builder-learned: origin/main still holds the pruned corpus pre-merge; local main must be the feature tip to model the post-merge tree."
     }
   ],
   "mission": "patch",

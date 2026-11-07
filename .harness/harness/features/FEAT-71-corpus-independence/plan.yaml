@@ -82,7 +82,7 @@ tasks:
       clone=$(mktemp -d /private/tmp/feat71-standalone.XXXXXXXX)
       git clone --no-local --no-hardlinks . "$clone"
       git -C "$clone" config core.hooksPath .claude/skills/harness/hooks
-      git -C "$clone" branch main origin/main
+      git -C "$clone" branch main HEAD
       (cd "$clone" && test ! -f .git && test "$(pwd -P)" = "$clone" && test "$(git rev-parse HEAD)" = "$pin" && python3 -c 'from pathlib import Path; assert {p.name for p in Path(".harness/harness/features").iterdir() if p.is_dir()} == {"FEAT-71-corpus-independence", "BUG-2161-abandon-source-tickets", "BUG-2141-dec174-main-orchestrator", "FEAT-2037-product-document-guidance", "BUG-20261006-fleet-planning-recovery"}' && printf 'review_sha=%s\nstandalone=%s\n' "$pin" "$clone" && python3 .claude/skills/harness/bin/check-state.py && python3 .claude/skills/harness/bin/validate-feature-json.py && python3 .claude/skills/harness/bin/check-decision-anchors.py && python3 .claude/skills/harness/bin/check-plan-routes.py && python3 .claude/skills/harness/bin/run-unit-tests.py --kind all && python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md) 2>&1 | tee "$evidence/merge-$pin.log"
       SH
     intent: |
