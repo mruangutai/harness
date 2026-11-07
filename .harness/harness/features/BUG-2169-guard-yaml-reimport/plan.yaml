@@ -5,7 +5,7 @@ approval:
   date: '2026-11-07'
   approved_by: operator
   status: approved
-status: ready
+status: building
 source_issues: [2169]
 lanes:
   resolved_at: c4e8bbc87e858bb2a0320efd766c7036cbcebb8b
@@ -31,13 +31,14 @@ tasks:
     depends_on: []
     status: ready
     files:
-      - .claude/skills/harness/bin/dispatch-guard.py
-      - .claude/skills/harness/bin/harness_yaml.py
-      - .claude/skills/harness/bin/worktree_terminal.py
-      - .github/workflows/tests.yml
-      - tests/integration/test-dispatch-guard.py
-      - tests/unit/test-lead-start-preflight.py
-      - tests/integration/test-lead-start-return.py
+    - .claude/skills/harness/bin/dispatch-guard.py
+    - .claude/skills/harness/bin/harness_yaml.py
+    - .claude/skills/harness/bin/worktree_terminal.py
+    - .github/workflows/tests.yml
+    - tests/integration/test-dispatch-guard.py
+    - tests/unit/test-lead-start-preflight.py
+    - tests/integration/test-lead-start-return.py
+    - tests/integration/test-check-domain-grant.py
     verify: |
       python3 tests/integration/test-dispatch-guard.py && python3 tests/unit/test-lead-start-preflight.py && python3 tests/integration/test-lead-start-return.py
       # Execute inside harness-2169-repro (ubuntu:26.04 + python3-yaml) OR CI on the image's own single PyYAML, never use the Mac as the regression source.

@@ -526,18 +526,41 @@ def _validate_plan_depends_on(tasks, path):
 
 # --- PyYAML-presence policy (D-06, D-07, D-08 install command; E3 escape) ---
 
-# D-07 + Amendment 1: the plain install is attempted first, PEP 668's escape
-# hatch second. [reasoned, unverified]: the ordering assumes a pip old enough
-# to reject --break-system-packages as an unknown option might still exist
-# downstream; no such pip exists on this machine to prove it against
-# (Homebrew 26.1.1, /usr/bin 24.1.1) so this is documented pip history, not a
-# local measurement. `--user` is mandatory per Amendment 1 — Homebrew's own
-# PEP 668 message warns that omitting it can break the Homebrew installation.
-INSTALL_COMMAND = (
-    "python3 -m pip install pyyaml\n"
-    '# if that fails with "externally-managed-environment" (PEP 668, e.g. Homebrew/Debian):\n'
-    "python3 -m pip install --user --break-system-packages pyyaml"
-)
+# THE ADVICE MUST INSTALL WHERE THE GUARD LOOKS (BUG-2169). dispatch-guard.py's policy
+# phase and post-merge-sweep.py run with per-user site-packages dropped (the former
+# `python3 -I`), so a `--user` install — this constant's former fallback — could never
+# clear their refusal. Each branch installs into this interpreter's own site-packages.
+#
+# Homebrew has no PyYAML formula, so its branch is pip with PEP 668's escape hatch and
+# WITHOUT --user, and it says so plainly: Homebrew warns that installing into its Python
+# this way can break the Homebrew installation. Debian/Ubuntu's system python3 gets the
+# distro package. Anything else — a virtualenv, a python.org or pyenv build — takes a
+# plain pip install into itself.
+def install_command(homebrew=None, debian_system=None):
+    """The PyYAML install advice for this interpreter, or for the platform facts given."""
+    prefix = os.path.realpath(sys.prefix)
+    if homebrew is None:
+        homebrew = "/Cellar/" in prefix
+    if debian_system is None:
+        debian_system = os.path.exists("/etc/debian_version") and prefix == "/usr"
+    if homebrew:
+        return (
+            "python3 -m pip install --break-system-packages pyyaml\n"
+            "# Homebrew Python: install WITHOUT --user — the Harness guard ignores per-user\n"
+            "# packages. Homebrew's PEP 668 warning applies: installing into its Python this\n"
+            "# way can break the Homebrew installation, so that is a choice you make knowingly.")
+    if debian_system:
+        return (
+            "sudo apt install python3-yaml\n"
+            "# Debian/Ubuntu system python3: the distro package installs where the Harness\n"
+            "# guard looks.")
+    return (
+        "python3 -m pip install pyyaml\n"
+        "# Install it for this python3 itself, not with --user: the Harness guard ignores\n"
+        "# per-user packages.")
+
+
+INSTALL_COMMAND = install_command()
 
 # The single definition of "this field is declining to answer" (DEC-121). Every
 # consumer compares against THIS, lower-cased and stripped — a second copy is how

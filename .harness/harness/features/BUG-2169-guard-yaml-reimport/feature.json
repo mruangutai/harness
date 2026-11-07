@@ -33,6 +33,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "intake return PASS validated via CLI but no yield hook appended the durable record under this host; BRIEF (53 lines) and plan.yaml (T-01 main-session-direct, check 0 failures) verified on disk pending; advance to signature"
+    },
+    {
+      "at": "2026-11-07T13:55:24.587458+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Per-platform advice consumer: grant test pinned pip wording; assert real install_command lines. Red on 26.04 image, green after."
     }
   ],
   "mission": "patch",

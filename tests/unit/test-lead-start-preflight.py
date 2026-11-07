@@ -135,7 +135,7 @@ def prompt(root, mission=None, extra=()):
     return "\n".join([*lines, *extra, "do the assigned work"])
 
 
-def dispatch(root, dispatched, dispatcher="harness-orchestrator", text=None):
+def dispatch(root, dispatched, dispatcher="harness-orchestrator", text=None, env_extra=None):
     """Fire the guard with the measured OMP dispatch payload shape. The dispatcher "Main" is
     the existing top-level OMP main-session identity the guard already recognises."""
     payload = {"agent_type": dispatcher, "tool_name": "Task", "hook_event_name": "PreToolUse",
@@ -144,7 +144,7 @@ def dispatch(root, dispatched, dispatcher="harness-orchestrator", text=None):
                               "task": text if text is not None else prompt(root)}}
     if dispatcher == "Main":
         payload["harness_agent_id"] = "Main"
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root, **(env_extra or {}))
     return subprocess.run([sys.executable, guard()], input=json.dumps(payload),
                           capture_output=True, text=True, env=env, timeout=30)
 
@@ -166,10 +166,10 @@ def outcome(result, root, agent):
             f"stderr={result.stderr.strip()[:900]!r}")
 
 
-def lead_start(lead, runs, record=True):
+def lead_start(lead, runs, record=True, env_extra=None):
     root = make_root(runs, record)
     try:
-        result = dispatch(root, lead, text=prompt(root, MISSION[lead]))
+        result = dispatch(root, lead, text=prompt(root, MISSION[lead]), env_extra=env_extra)
         return result, claims(root, lead), outcome(result, root, lead), feature_json(root)
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -383,6 +383,152 @@ def dec174_controls():
           refused_before_claim(result, held) and "spawns: list" in result.stderr
           and "DEC-174" not in result.stderr, detail)
 
+# ---------------------------------------------------------------------------------------
+# BUG-2169: the guard's two import phases must share one system-wide PyYAML safely, and a
+# PyYAML from a location the policy phase distrusts must never decide.
+#
+# The bootstrap used to purge every yaml module between phases, then re-import. PyYAML's
+# compiled `yaml._yaml` is not re-initialized on re-import, so when both phases resolved
+# the SAME installation its C loader kept the first import's node classes and produced an
+# untagged root: "could not determine a constructor for the tag None". Disabling user site
+# makes both phases resolve the system copy, the layout that broke (CI on ubuntu-26.04).
+# On a host whose system PyYAML has no C loader this case passes before and after the fix;
+# its discriminating evidence comes from a single C-loader install (harness-2169-repro, CI).
+# ---------------------------------------------------------------------------------------
+
+PLANT_SABOTAGE = '''
+
+# BUG-2169 test plant: a working PyYAML copy that refuses once the policy phase runs.
+_bug2169_real_load = load
+
+
+def load(stream, Loader=None):
+    import os as _os
+    if _os.environ.get("HARNESS_GUARD_BIN_DIR"):
+        raise RuntimeError("PLANTED yaml reached the isolated policy phase")
+    return _bug2169_real_load(stream, Loader)
+'''
+
+
+def plant_yaml(site_dir):
+    """Copy the real PyYAML's pure-Python package into `site_dir` with a sabotaged `load`.
+
+    Phase 1 may import it and work normally; the bootstrap sets HARNESS_GUARD_BIN_DIR only
+    after phase 1, so the copy raises only if it is still in use by the policy phase."""
+    import yaml as real_yaml
+    source = os.path.dirname(real_yaml.__file__)
+    target = os.path.join(site_dir, "yaml")
+    shutil.copytree(source, target, ignore=lambda _d, names: [
+        name for name in names if not name.endswith(".py")])
+    with open(os.path.join(target, "__init__.py"), "a") as handle:
+        handle.write(PLANT_SABOTAGE)
+
+
+def user_site_for(base):
+    """The per-user site-packages directory this python3 derives from PYTHONUSERBASE=base."""
+    probe = subprocess.run([sys.executable, "-c", "import site; print(site.getusersitepackages())"],
+                           capture_output=True, text=True,
+                           env=dict(os.environ, PYTHONUSERBASE=base), check=True)
+    return probe.stdout.strip()
+
+
+def system_yaml_visible():
+    """Whether PyYAML resolves with per-user site disabled: the policy phase's own view."""
+    probe = subprocess.run([sys.executable, "-s", "-c", "import yaml"], capture_output=True)
+    return probe.returncode == 0
+
+
+def started(result, held):
+    return result.returncode == 0 and len(held) == 1 and "harness_claim" in result.stdout
+
+
+def bug2169_cases():
+    lead = "harness-eng-lead"
+    precondition = system_yaml_visible()
+    check("control", "BUG-2169/precondition",
+          "PyYAML resolves with per-user site disabled, as the policy phase requires",
+          precondition, "install PyYAML system-wide for this python3 to run BUG-2169 cases")
+    if not precondition:
+        return
+    result, held, detail, _record = lead_start(lead, [lead_run(lead)],
+                                               env_extra={"PYTHONNOUSERSITE": "1"})
+    check("startup", "BUG-2169/single-install",
+          "a lead starts when both import phases resolve one system-wide PyYAML",
+          started(result, held) and "tag None" not in result.stderr, detail)
+
+    holder = tempfile.mkdtemp(prefix="bug2169-plant-")
+    try:
+        base = os.path.join(holder, "userbase")
+        user_site = user_site_for(base)
+        plant_yaml(user_site)
+        result, held, detail, _record = lead_start(lead, [lead_run(lead)],
+                                                   env_extra={"PYTHONUSERBASE": base})
+        check("control", "BUG-2169/user-site-plant",
+              "a PyYAML planted in per-user site never reaches the policy phase",
+              started(result, held) and "PLANTED" not in result.stderr, detail)
+
+        path_dir = os.path.join(holder, "pythonpath")
+        plant_yaml(path_dir)
+        link = os.path.join(holder, "pythonpath-link")
+        os.symlink(path_dir, link)
+        spellings = (("pythonpath-plant", path_dir, "on PYTHONPATH"),
+                     ("pythonpath-symlink-plant", link, "through a symlinked PYTHONPATH entry"),
+                     ("pythonpath-dotdot-plant",
+                      os.path.join(holder, "userbase", "..", "pythonpath"),
+                      "through a `..`-spelled PYTHONPATH entry"))
+        for case_id, entry, how in spellings:
+            result, held, detail, _record = lead_start(
+                lead, [lead_run(lead)],
+                env_extra={"PYTHONPATH": entry, "PYTHONNOUSERSITE": "1"})
+            check("control", f"BUG-2169/{case_id}",
+                  f"a PyYAML planted {how} never reaches the policy phase",
+                  started(result, held) and "PLANTED" not in result.stderr, detail)
+    finally:
+        shutil.rmtree(holder, ignore_errors=True)
+
+
+
+def bug2169_advice():
+    """SC-02: the PyYAML refusal advice installs where the isolated policy phase looks."""
+    import harness_yaml
+    if not hasattr(harness_yaml, "install_command"):
+        check("startup", "BUG-2169/advice/function",
+              "harness_yaml.install_command(homebrew, debian_system) selects the advice",
+              False, "harness_yaml has no install_command")
+        return
+    def commands(advice):
+        """The lines an operator runs: everything but the explanatory `#` lines."""
+        return [line for line in advice.splitlines() if not line.lstrip().startswith("#")]
+
+    def per_user(advice):
+        return any("--user" in line for line in commands(advice))
+
+    brew = harness_yaml.install_command(homebrew=True, debian_system=False)
+    debian = harness_yaml.install_command(homebrew=False, debian_system=True)
+    other = harness_yaml.install_command(homebrew=False, debian_system=False)
+    both = harness_yaml.install_command(homebrew=True, debian_system=True)
+    check("startup", "BUG-2169/advice/debian",
+          "Debian/Ubuntu's system python3 is told to apt install python3-yaml",
+          any("apt install python3-yaml" in line for line in commands(debian))
+          and not per_user(debian), debian)
+    check("startup", "BUG-2169/advice/homebrew",
+          "Homebrew is told to pip install --break-system-packages pyyaml, without --user",
+          "python3 -m pip install --break-system-packages pyyaml" in commands(brew)
+          and not per_user(brew), brew)
+    check("startup", "BUG-2169/advice/homebrew-warning",
+          "the Homebrew advice states Homebrew's PEP 668 warning plainly",
+          "PEP 668" in brew and "break the Homebrew" in brew, brew)
+    check("startup", "BUG-2169/advice/other",
+          "any other python3 is told to pip install pyyaml into itself, not per-user",
+          "python3 -m pip install pyyaml" in commands(other) and not per_user(other), other)
+    check("startup", "BUG-2169/advice/precedence",
+          "a Homebrew python3 on a Debian host gets the Homebrew advice",
+          both == brew, both)
+    check("startup", "BUG-2169/advice/default",
+          "INSTALL_COMMAND is the advice for this interpreter",
+          harness_yaml.INSTALL_COMMAND == harness_yaml.install_command(),
+          harness_yaml.INSTALL_COMMAND)
+
 
 
 def report():
@@ -411,6 +557,8 @@ def main():
         dec174_main_eng_lead_refused()
         dec174_nonqualifying_unchanged()
         dec174_controls()
+        bug2169_cases()
+        bug2169_advice()
     finally:
         shutil.rmtree(_PRIVATE.get("holder", ""), ignore_errors=True)
     return report()
