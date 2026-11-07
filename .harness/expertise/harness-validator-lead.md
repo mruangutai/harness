@@ -1,6 +1,6 @@
 # Expertise — harness-validator-lead
 ## Patterns (max 15)
-- P-01: WHEN a member's cited anchors drift from source DO republish the lines you measured and keep its mechanism — drift of several lines coexists with exactly-correct reasoning, so re-measure rather than discount, and never promote an unverified anchor into your digest.
+- P-01: WHEN a gate requires a recorded execution DO distinguish receipt presence, execution outcome, and regression evidence before ruling — a baseline-equivalent red run can meet the recording obligation without satisfying the test, waiving a rule, or adding an unapproved green-test criterion.
 - P-02: WHEN ranking advisory findings for a backlog DO order by irreversibility before severity — a low-severity defect whose failure cannot be undone outranks a medium that is cheaply reversible, and no member can see that axis from inside its own lens.
 - P-03: WHEN a coverage gate returns green DO establish how many of the changed units it actually bound before reporting it as assurance — a gate can be correct and near-vacuous at once, and "the gate is satisfied" is not the claim "the change is tested".
 - P-04: WHEN you rate a panel's gating finding lower than the reviewer who raised it and no squad may remedy it DO escalate carrying both ratings by name, not one reconciled rating — the split is the decision the tier above must make, and reconciling it hides that it was contested.
