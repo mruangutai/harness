@@ -133,13 +133,21 @@ r, d, _ = gate("/opt/homebrew/bin/gh pr merge 7", root, fake_ok)
 check("T-05 path-prefixed gh is still detected", d == "deny")
 r, d, _, _ = denial("bash -c 'git merge feature/test'")
 check("T-05 bash -c wrapped merge is still detected", d == "deny")
-root, _ = fixture(feature="BUG-1030-stale-anchor-write-hazard")
-r, d, reason = gate("git merge feature/test", root)
-check("T-05 era-exempt absent build_entry allows", d is None and "predates" in r.stderr and "open" not in r.stderr.lower(), r.stderr)
-root, _ = fixture(feature="BUG-1030-stale-anchor-write-hazard", entry="recovery-required")
-r, d, reason = gate("git merge feature/test", root)
-check("T-05 era-exempt recovery-required allows", r.returncode == 0 and d is None
-      and "predates" in r.stderr, r.stderr or reason)
+# FEAT-71: the receipt rule is uniform. An absent or recovery-required build_entry denies for
+# EVERY feature id: synthetic ones plus feature_id_probe_support.held_feature_ids(feature_schema).
+sys.path.insert(0, BIN)
+import feature_schema  # noqa: E402
+from feature_id_probe_support import held_feature_ids  # noqa: E402
+allowed = []
+for feature in ["BUG-9-x", "PR-9-fixture"] + held_feature_ids(feature_schema):
+    for entry in (None, "recovery-required"):
+        root, _ = fixture(feature=feature, entry=entry)
+        r, d, reason = gate("git merge feature/test", root)
+        if d != "deny" or feature not in reason:
+            allowed.append((feature, entry, d))
+        shutil.rmtree(root, ignore_errors=True)
+check("T-05 absent or recovery-required build_entry denies for every feature id",
+      allowed == [], f"{len(allowed)} not denied, e.g. {allowed[:3]}")
 root, _ = fixture()
 r, d, reason = gate("gh pr merge 7", root, "/nonexistent/gh")
 check("T-05 unresolvable gh falls back and denies a locally owed receipt",
@@ -207,17 +215,6 @@ check("T-05 duplicate valid records claiming the branch deny naming both",
       and "FEAT-9001-fixture-non-era" in reason and duplicate_id in reason
       and "gh-sync.py" not in reason and reason == repeated_reason,
       f"rc={r.returncode} reason={reason!r} repeated={repeated_reason!r}")
-root, directory = fixture()
-era_id = "BUG-1030-stale-anchor-write-hazard"
-era_directory = os.path.join(root, ".harness", "harness", "features", era_id)
-os.makedirs(era_directory)
-with open(os.path.join(era_directory, "feature.json"), "w") as f:
-    json.dump({"feature_id": era_id, "branch": "feature/test",
-               "github": {"build_entry": "opened"}}, f)
-r, d, reason = gate("git merge feature/test", root)
-check("T-05 duplicate era-exempt claimant still denies before era gate",
-      r.returncode == 0 and d == "deny" and "FEAT-9001-fixture-non-era" in reason
-      and era_id in reason and "gh-sync.py" not in reason, reason)
 root, directory = fixture(entry="opened")
 bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
 os.makedirs(bad_directory)

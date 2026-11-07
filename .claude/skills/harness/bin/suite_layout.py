@@ -14,16 +14,9 @@ AGNOSTIC_NAME_PATTERNS = ("*_test.*", "*.test.*")
 SOURCE_EXTENSIONS = (".py", ".sh", ".ts", ".tsx", ".js", ".mjs", ".cjs")
 
 # Documented exceptions: exact relative path plus a written reason, never a glob.
-# The registry polices itself in violations() below.
-DOCUMENTED_EXCEPTIONS = (
-    (
-        ".harness/harness/features/FEAT-44-omp-context-advisory/evidence/"
-        "probe-session-accessors.ts",
-        "FEAT-44 evidence, the committed OMP extension that "
-        "tests/manual/probe-omp-session-accessor.py loads; classified as evidence, "
-        "not a test (BUG-1286 D-05).",
-    ),
-)
+# The registry polices itself in violations() below. It is empty: no tracked
+# test-shaped file outside tests/ currently needs one.
+DOCUMENTED_EXCEPTIONS = ()
 
 
 def is_test_shaped(path):

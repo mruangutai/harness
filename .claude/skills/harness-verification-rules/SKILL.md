@@ -65,7 +65,7 @@ including external fleet repositories — sibling isolation and cleanup cannot r
 
 **A pin holds only the feature it is keyed on (FEAT-1559).** Read any other feature by absolute
 path under the control-plane root, by its concrete id — for example
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/features/FEAT-23-ship-flow-fixes/BRIEF.md`; it is
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/features/FEAT-9-example/<file>`; it is
 not in the pin, and an in-progress sibling worktree is never evidence. Layout evidence is
 `worktree-state.py --verify --checkout <pin>` exiting 0. A post-checkout, post-merge or post-rewrite
 hook that ran quietly proves nothing: those hooks always exit 0, and `core.hooksPath` is local

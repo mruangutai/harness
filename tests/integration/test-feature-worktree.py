@@ -964,18 +964,18 @@ def case_gitignored_artifact_does_not_block(fx):
 
     The fixture reproduces exactly that shape: one TRACKED artifact that IS landed, plus one
     IGNORED run file that never can be. The pre-fix code exits 5 naming the ignored path."""
-    info, r = create_one(fx, "harness", "FEAT-70")
-    assert r.returncode == 0, f"fixture setup for FEAT-70 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info, r = create_one(fx, "harness", "FEAT-74")
+    assert r.returncode == 0, f"fixture setup for FEAT-74 failed: rc={r.returncode} stderr={r.stderr!r}"
     dest, seg = info["dest"], info["segment"]
 
     # The ignore rule, committed on the feature branch and merged, exactly as the real repo has it.
     with open(os.path.join(dest, ".gitignore"), "w") as f:
         f.write(".harness/*/features/*/runs/**\n")
-    rel = _commit_artifact(dest, seg, "FEAT-70", "v1\n", "add artifact and ignore rule")
-    _merge_into_default(info["owner_root"], "FEAT-70")
+    rel = _commit_artifact(dest, seg, "FEAT-74", "v1\n", "add artifact and ignore rule")
+    _merge_into_default(info["owner_root"], "FEAT-74")
 
     # An IGNORED run artifact, written AFTER the merge. git status is clean; the path is not on main.
-    run_rel = os.path.join(".harness", seg, "features", "FEAT-70", "runs", "r1", "digest.md")
+    run_rel = os.path.join(".harness", seg, "features", "FEAT-74", "runs", "r1", "digest.md")
     run_abs = os.path.join(dest, run_rel)
     os.makedirs(os.path.dirname(run_abs), exist_ok=True)
     with open(run_abs, "w") as f:
@@ -983,7 +983,7 @@ def case_gitignored_artifact_does_not_block(fx):
     st = _git(dest, ["status", "--porcelain"]).stdout.strip()
     check("#726 fixture: the ignored run file leaves the tree CLEAN", st == "", repr(st))
 
-    r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-70"], fx)
+    r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-74"], fx)
     check(
         "#726: an IGNORED artifact does not block remove",
         r2.returncode == 0,

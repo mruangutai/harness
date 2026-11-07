@@ -275,10 +275,10 @@ def _bug1304_domain_short_claim(results, context, inflight_registry):
     agent = context["agent"]
     root = fixture(context["manifest"])
     short = make_linked_worktree(
-        root, os.path.join(root, ".claude", "worktrees", "BUG-1304"), "SHORT")
+        root, os.path.join(root, ".claude", "worktrees", "BUG-91"), "SHORT")
     inflight_registry.claim(
         short, agent, "harness-product-lead", short,
-        feature="BUG-1304-worktree-relative-path-guard")
+        feature="BUG-91-worktree-relative-path-fixture")
     _bug1304_domain_expect(
         results, root, agent, "short-form worktree claim refuses main write",
         context["main"], 2)
@@ -587,7 +587,7 @@ def _repository_binding_in_feature_worktree(results, inflight_registry):
     its claims where inflight_registry.feature_root puts the feature — that worktree's registry.
     The repository binding must be read from that same registry, not the owner root's, or every
     product-segment write of a correctly dispatched child is refused as `missing`."""
-    feature = "FEAT-01-product-a-platform"
+    feature = "FEAT-92-product-a-platform"
     root, products = _repository_fixture()
     worktree = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "harness", feature), feature)
@@ -610,7 +610,7 @@ def _repository_binding_in_feature_worktree(results, inflight_registry):
 
 def _repository_binding_routes(results, inflight_registry):
     """FEAT-495: wildcard product grants never outrank exact runtime repository lineage."""
-    feature = "FEAT-495-product-write"
+    feature = "FEAT-93-product-write"
     first = _repository_happy_routes(results, inflight_registry, feature)
     _repository_missing_and_released(results, inflight_registry, feature)
     _repository_stale_and_ambiguous(results, inflight_registry, feature)

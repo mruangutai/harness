@@ -263,10 +263,6 @@ def _enforce_receipt(feature_schema, github, branch, failure,
         return
     problems = feature_schema.mirror_evidence_problems(feat_dir, document)
     if not problems and feature_schema.receipt_allows_merge(document, repo):
-        if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-            print(f"merge-gate: {feat} predates the build-entry receipt; "
-                  f"its explicit recovery is {feature_schema.recovery_command_line(feat_dir, document, repo)}.",
-                  file=sys.stderr)
         _print_unverified(branch, failure)
         return
     detail = "; ".join(problems) or feature_schema.mirror_provenance_problem(document, repo) or "receipt absent or incomplete"

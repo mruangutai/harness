@@ -18,9 +18,9 @@ import io
 import json
 import os
 import sys
+import unicodedata
 
 import factory_cli as cli
-import feature_corpus
 
 FAILS = 0
 RAN = 0
@@ -151,25 +151,14 @@ check("body(): builds 'what: value — next_step'", got == want, f"got={got!r}")
 
 # The dash codepoint matters on its own: an en dash or a hyphen would make body() and
 # `want` above equally wrong if authored the same way in the same sitting. Cross-check
-# against the plan's own intent text (D-08 quotes "an em dash" verbatim at two lines) as
-# an independent source of truth for which codepoint "em dash" means here, rather than
-# trusting this file's own literal.
-_TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(_anchor_tests, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-# Another feature's plan: a sparse worktree reads it in the main corpus (FEAT-1559).
-_PLAN = feature_corpus.corpus_path(
-    ROOT, os.path.join(".harness", "harness", "features", "FEAT-10-software-factory", "plan.yaml"))
-with open(_PLAN, encoding="utf-8") as _f:
-    _plan_text = _f.read()
-_plan_dash_idx = _plan_text.find("with an em")
-_plan_dash_chars = {c for c in _plan_text[max(0, _plan_dash_idx - 400):_plan_dash_idx]
-                     if ord(c) >= 0x2000}
-check("plan.yaml's D-08 intent actually uses U+2014 (source of truth for 'em dash')",
-      "—" in _plan_dash_chars, f"found={_plan_dash_chars!r}")
+# against the Unicode character database as an independent source of truth for which
+# codepoint "em dash" (D-08) means here, rather than trusting this file's own literal.
+_EM_DASH = unicodedata.lookup("EM DASH")
+check("the Unicode database names U+2014 EM DASH (source of truth for 'em dash')",
+      _EM_DASH == "\u2014", f"found={_EM_DASH!r}")
 check("body(): the dash emitted is U+2014, not a hyphen or en dash",
-      "—" in got and "–" not in got and got.count("-") == 0, f"got={got!r}")
+      _EM_DASH in got and unicodedata.lookup("EN DASH") not in got and got.count("-") == 0,
+      f"got={got!r}")
 
 
 # ---------------- payload(): the sole stdout shape ----------------

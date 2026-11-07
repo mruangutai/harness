@@ -3,14 +3,16 @@
 
 A synthetic fixture agrees with itself by construction, so it cannot show a defect that exists
 only because the real tree disagrees with itself — 89 feature directories against 79 records was
-exactly that (PL-01). These cases read the real owner root and assert, with no census literal:
+exactly that (PL-01). These cases read the real owner root and assert, with no census literal and
+no size floor (FEAT-71: the real corpus may hold any number of features):
 
-  * the names the corpus audit uses equal the feature directories HEAD tracks there, record-less
-    historical directories included, from the owner AND from an active worktree caller;
-  * more than 70 are reached (a non-vacuity floor, never an expected count);
+  * the names the corpus audit uses equal the feature directories HEAD tracks there, from the
+    owner AND from an active worktree caller;
   * check-state gets past its corpus choke point from both callers;
-  * the same equality helper REJECTS a wrong-root override and a staged missing directory, both
-    built from the T-01 fixture, so the green real-owner result is not a vacuous pass.
+  * the same equality helper, on the T-01 fixture, reaches every fixture directory by name —
+    the record-less one included — from the owner and a linked caller (the non-vacuity proof:
+    an empty or broken walk fails it), and REJECTS a wrong-root override and a staged missing
+    directory, so the green real-owner result is not a vacuous pass.
 
 The only tree written is one disposable validator pin of this repository at the owner's current
 HEAD, made and removed through pinned-checkout.py. Nothing else — no owner file, no live
@@ -31,7 +33,8 @@ sys.path.insert(0, str(BIN))
 import f58_sparse_fixture as F  # noqa: E402
 import feature_corpus as fc  # noqa: E402
 
-FLOOR = 70
+FIXTURE_DIRS = ({f"harness/{fid}" for fid in (*F.HARNESS_FEATURES, F.RECORDLESS_FEATURE)}
+                | {f"{F.FLEET_SEGMENT}/{fid}" for fid in F.FLEET_FEATURES})
 REFUSED = ("FEATURE SET: this checkout reaches", "no invariant ran")
 
 
@@ -104,13 +107,6 @@ class RealOwner(unittest.TestCase):
         return out
 
     def test_audited_names_equal_the_tracked_directories(self):
-        expected = tracked_feature_dirs(self.owner)
-        self.assertGreater(len(expected), FLOOR)
-        recordless = {f"{e['segment']}/{e['id']}" for e in fc.records(self.owner)
-                      if e["record"] is None}
-        self.assertTrue(recordless, "no record-less historical directory: the name-set "
-                                    "comparison would not be exercising one")
-        self.assertLessEqual(recordless, expected)
         for caller in self.callers():
             with self.subTest(caller=caller):
                 self.assertEqual(audit_mismatch(caller, self.owner), [])
@@ -136,6 +132,27 @@ class TheEqualityRejectsMutants(unittest.TestCase):
 
     def test_a_correct_fixture_passes(self):
         self.assertEqual(audit_mismatch(self.fx.owner, self.fx.owner), [])
+
+    def test_the_walk_reaches_every_fixture_directory(self):
+        """Non-vacuity, asserted on synthetic data and never skipped: the independent route and
+        the audit both name exactly the fixture's directories, the record-less one included,
+        from the owner and from a linked caller."""
+        self.assertEqual(tracked_feature_dirs(self.fx.owner), FIXTURE_DIRS)
+        landed = {f"{s}/{i}" for s, i, _p in fc.landed_dirs(self.fx.owner)}
+        self.assertEqual(landed, FIXTURE_DIRS)
+        recordless = {f"{e['segment']}/{e['id']}" for e in fc.records(self.fx.owner)
+                      if e["record"] is None}
+        self.assertEqual(recordless, {f"harness/{F.RECORDLESS_FEATURE}"})
+        linked = self.fx.add_worktree(F.HARNESS_FEATURES[0])
+        for caller in (self.fx.owner, linked):
+            with self.subTest(caller=caller):
+                self.assertEqual(audit_mismatch(caller, self.fx.owner), [])
+
+    def test_an_empty_walk_is_rejected(self):
+        empty = self.fx.clone("emptied")
+        F.git(empty, "rm", "-rq", ".harness/harness/features", f".harness/{F.FLEET_SEGMENT}/features")
+        F.git(empty, "commit", "-qm", "no features")
+        self.assertTrue(audit_mismatch(empty, self.fx.owner))
 
     def test_a_wrong_root_override_is_rejected(self):
         other = self.fx.clone("elsewhere")

@@ -104,28 +104,47 @@ def run_assertion_2():
 
 
 # ============ Assertion 3: ALLOW a flow that DOES exist ============
-# feat/FEAT-18-board-truth is the live branch this very feature ships under —
-# a real positive case. Without it, a gate that denies everything would pass
-# assertion 2 alone.
+# A real positive case on a fixture root that holds one synthetic flow directory (FEAT-71:
+# never a prior feature's folder). Without it, a gate that denies everything would pass
+# assertion 2 alone; the same branch against the same root minus the directory must deny,
+# so the allow is caused by the directory and nothing else.
+FIXTURE_FLOW = "FEAT-90-fixture-flow"
+
+
+def _flow_fixture(with_flow):
+    root = _fixture({"sync": True, "repo": "acme/widgets"})
+    if with_flow:
+        os.makedirs(os.path.join(root, ".harness", "harness", "features", FIXTURE_FLOW))
+    return root
+
+
 def run_assertion_3():
     # The flow-id extraction is greedy over [a-z0-9-]*, so it captures the WHOLE
-    # slug after FEAT-NN — the branch name has to match the live directory
-    # exactly, a suffixed variant would extract a flow id the ls glob can't find.
-    cmd = "git check" + "out -b feat/FEAT-18-board-truth"
-    r = fire(cmd)
+    # slug after FEAT-NN — the branch name has to match the fixture directory
+    # exactly, a suffixed variant would extract a flow id the corpus can't find.
+    cmd = "git check" + "out -b feat/" + FIXTURE_FLOW
+    r = fire(cmd, root=_flow_fixture(True))
     try:
         body = out_json(r)
         # An allow for form 1 (flow branches) carries no permissionDecision key at
         # all — it prints a systemMessage and exits 0. Absence of a deny IS the
         # allow signal for this form.
         denied = body.get("hookSpecificOutput", {}).get("permissionDecision") == "deny"
-        matched = "FEAT-18-board-truth" in json.dumps(body)
+        matched = FIXTURE_FLOW in json.dumps(body)
     except Exception as e:
         denied, matched = True, False
         body = f"<unparseable stdout: {e}: {r.stdout!r}>"
     check("ALLOW: a branch naming a flow that DOES exist on disk",
           (not denied) and matched,
           f"body={body} stderr={r.stderr!r}")
+
+    r = fire(cmd, root=_flow_fixture(False))
+    try:
+        decision = out_json(r).get("hookSpecificOutput", {}).get("permissionDecision")
+    except Exception as e:
+        decision = f"<unparseable stdout: {e}: {r.stdout!r}>"
+    check("DENY: the same branch once the fixture flow directory is absent",
+          decision == "deny", f"decision={decision!r} stderr={r.stderr!r}")
 
 
 # ============ Assertion 4: self-gating on github.sync / github.repo ============
@@ -172,7 +191,7 @@ def run_assertion_4():
 
 # ============ Assertion 5: both accepted branch-name forms parse ============
 def run_assertion_5():
-    # Form 1: the flow-id form. Reuses the live allow from assertion 3's shape —
+    # Form 1: the flow-id form. Reuses the allow from assertion 3's shape —
     # asserted independently here on parsing alone (a deny naming the RIGHT flow
     # id proves the flow-id extraction ran).
     cmd = "git check" + "out -b feat/FEAT-99-nope-parse-check"

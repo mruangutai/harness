@@ -562,7 +562,7 @@ def run_worktree():
         # The flag CONSUMES the next token, so a guard that merely skipped tokens
         # starting with "-" would read the branch name as the destination.
         ("a value-taking flag cannot hide the destination",
-         "git worktree add " + BRANCH_FLAG + " chore/FEAT-17-wt /tmp/sib-xyz HEAD", 2),
+         "git worktree add " + BRANCH_FLAG + " chore/FEAT-94-wt /tmp/sib-xyz HEAD", 2),
         # THE DISCRIMINATING FORM of the case above. `-b` CONSUMES its value, so a guard
         # that merely skipped tokens starting with "-" would read this LEGAL path as the
         # destination and permit the write to /tmp. The case above cannot catch that on
@@ -1418,11 +1418,11 @@ def _bug1304_bash_ambiguous(results, context, inflight_registry):
 def _bug1304_bash_short_claim(results, context, inflight_registry):
     agent = context["agent"]
     root = fixture(FIXTURE_MANIFEST)
-    short = os.path.join(root, ".claude", "worktrees", "BUG-1304")
+    short = os.path.join(root, ".claude", "worktrees", "BUG-91")
     _linked_worktree(short, root, "SHORT", FIXTURE_MANIFEST)
     inflight_registry.claim(
         short, agent, "harness-eng-lead", short,
-        feature="BUG-1304-worktree-relative-path-guard")
+        feature="BUG-91-worktree-relative-path-fixture")
     command = "echo x > .harness/allowed/main.md"
     _bug1304_bash_expect(
         results, root, agent, "short-form claim refuses main redirect", command, 2)
@@ -1787,7 +1787,7 @@ def _repository_bash_collision_and_unreadable(
 
 def _repository_binding_bash_routes(results, inflight_registry):
     """FEAT-495: product Bash writes require exact runtime repository lineage."""
-    feature = "FEAT-495-product-bash"
+    feature = "FEAT-93-product-bash"
     first = _repository_bash_happy_routes(results, inflight_registry, feature)
     _repository_bash_missing_and_released(results, inflight_registry, feature)
     _repository_bash_stale_and_ambiguous(results, inflight_registry, feature)
