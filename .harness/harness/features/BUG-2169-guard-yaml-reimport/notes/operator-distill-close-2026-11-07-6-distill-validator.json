@@ -1,0 +1,19 @@
+{
+  "feature_id": "BUG-2169-guard-yaml-reimport",
+  "approved_at": "2026-11-07T16:09:40.005751+00:00",
+  "operator_selection": "Record 1",
+  "question": "The validator distill lead reported cycles_used: 1 (one QA receipt send-back). What count should its close record?",
+  "effects": [
+    {
+      "effect": "record-cycle-evidence",
+      "run_id": "2026-11-07-6-distill-validator",
+      "digest": {
+        "path": "runs/2026-11-07-6-distill-validator/digest.md",
+        "sha256": "3086054e12ddcd1ea2833b166ce4c592ef5ecffec7f8308bd987148f21b21b23"
+      },
+      "cycles_used": 1,
+      "by": "operator",
+      "reason": "Lead's yielded return reported cycles_used 1 (QA receipt send-back); its record never reached digest.md (#2171)."
+    }
+  ]
+}
