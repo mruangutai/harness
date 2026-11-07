@@ -1,0 +1,94 @@
+schema: plan/1
+feature: FEAT-71-corpus-independence
+approval:
+  date: '2026-11-07'
+  approved_by: Mike Ruangutai
+  status: approved
+status: building
+source_issues: []
+lanes:
+  resolved_at: c4e8bbc87e858bb2a0320efd766c7036cbcebb8b
+  rows:
+  - surface: .claude/skills/**
+    lane: main-session-direct
+    reason: DEC-174 source and skill removal/refactor.
+  - surface: tests/**
+    lane: main-session-direct
+    reason: DEC-174 tests and manual probe relocation.
+  - surface: .harness/harness.json
+    lane: main-session-direct
+    reason: Coupled config removal.
+  - surface: .harness/harness/docs/**
+    lane: main-session-direct
+    reason: Bounded pointer repairs and probe retirement.
+  - surface: docs/**
+    lane: main-session-direct
+    reason: Deleted-folder pointer repairs only.
+  - surface: .harness/README.md
+    lane: main-session-direct
+    reason: Deleted-folder pointer repairs only.
+  - surface: .harness/expertise/**
+    lane: main-session-direct
+    reason: Deleted-folder pointer repairs only.
+  - surface: .harness/harness/expertise/**
+    lane: main-session-direct
+    reason: Deleted-folder pointer repairs only.
+  - surface: .harness/logs/**
+    lane: main-session-direct
+    reason: Authorized record pruning and pointer repairs.
+  - surface: .harness/notes/**
+    lane: main-session-direct
+    reason: Authorized record pruning and pointer repairs.
+  - surface: .harness/harness/features/**
+    lane: main-session-direct
+    reason: Corpus deletion except five survivors.
+decisions: []
+tasks:
+  - id: T-01
+    title: Remove historical corpus dependencies and prune authorized records
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires main to implement this enforcement removal/refactor directly and hold all orchestration duties.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/**
+      - .claude/skills/harness/templates/harness.json
+      - .claude/skills/harness/SKILL.md
+      - .claude/skills/harness-simplify/SKILL.md
+      - .claude/skills/harness-verification-rules/SKILL.md
+      - tests/unit/**
+      - tests/integration/**
+      - tests/manual/**
+      - .harness/harness.json
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+      - .harness/harness/docs/SPEC.md
+      - .harness/harness/docs/BUILD.md
+      - docs/**
+      - .harness/README.md
+      - .harness/expertise/**
+      - .harness/harness/expertise/**
+      - .harness/logs/*.md
+      - .harness/notes/*
+      - .harness/harness/features/**
+    verify: |
+      bash -o pipefail <<'SH'
+      set -eu
+      unset HARNESS_AGENT_TYPE
+      pin=$(git rev-parse HEAD)
+      evidence=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-71-corpus-independence/.harness/harness/features/FEAT-71-corpus-independence/notes
+      clone=$(mktemp -d /private/tmp/feat71-standalone.XXXXXXXX)
+      git clone --no-local --no-hardlinks . "$clone"
+      (cd "$clone" && test ! -f .git && test "$(pwd -P)" = "$clone" && test "$(git rev-parse HEAD)" = "$pin" && python3 -c 'from pathlib import Path; assert {p.name for p in Path(".harness/harness/features").iterdir() if p.is_dir()} == {"FEAT-71-corpus-independence", "BUG-2161-abandon-source-tickets", "BUG-2141-dec174-main-orchestrator", "FEAT-2037-product-document-guidance", "BUG-20261006-fleet-planning-recovery"}' && printf 'review_sha=%s\nstandalone=%s\n' "$pin" "$clone" && python3 .claude/skills/harness/bin/check-state.py && python3 .claude/skills/harness/bin/validate-feature-json.py && python3 .claude/skills/harness/bin/check-decision-anchors.py && python3 .claude/skills/harness/bin/check-plan-routes.py && python3 .claude/skills/harness/bin/run-unit-tests.py --kind all && python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md) 2>&1 | tee "$evidence/merge-$pin.log"
+      SH
+    intent: |
+      Work only inside PRODUCT /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-71-corpus-independence after explicit signature of both artifacts. Main session directly builds and retains ALL orchestrator duties, review pin, commit pen and ship; never dispatch harness-eng-lead. All relative-path edits stay in this worktree. This is removal/refactor under allowed change_type cross_module (unit and integration floor), not feature. Complete every SC in this single T-01; no patch panel or goal-check. Escalate if the diff becomes unbounded or needs a new public interface, schema or gate.
+      Consult PRODUCT guidance before changes. Product docs/spec.md, docs/decisions.md and docs/architecture.md are absent; AGENTS.md Project map identifies .harness/harness/docs/SPEC.md, .harness/harness/docs/DECISIONS.md and BUILD.md as existing product authorities. Consult SPEC sections 2, 8, 9, 11 and 15 and relevant indexed decisions DEC-174, DEC-179, DEC-204, DEC-213, DEC-225, DEC-228, DEC-232. No replacement architecture document is asserted. Binding /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-corpus-independence-2026-11-07.md remains read-only; reuse its verified inventory at c4e8bbc8 without re-deriving it. Files patterns are bounded inventory-defined removal surfaces, never permission for unrelated changes.
+      Tests first wherever behavior changes. Preserve baseline full SHA, subjects, commands, named assertion, exit, stdout/stderr in notes/red-first receipts before production edits. Extend synthetic fixtures and execute new assertions against baseline implementations; require failure for the intended historical-data dependency, not setup/import/argument failure. Preserve per-assertion and unit/integration final green receipts. Existing deletion-probe results are baseline evidence, not proof new tests ran. Replace BOTH real corpus-size floors in test-plan-depends-on.py and test-corpus-real-owner.py with explicitly non-vacuous synthetic fixtures.
+      Remove all real prior feature ids used as executable data/path in source, tests, skills, config, fixtures or decisions: feature_schema.py RUNS_AGENT_EXEMPT and BUILD_ENTRY_ERA_EXEMPT; check-state HANDOFF_EXEMPT_LITERAL; handoff_done_when_baseline in BOTH .harness/harness.json and .claude/skills/harness/templates/harness.json; canonical-reader-classification.json plan pointers; all real-feature fixture/live-data uses and test live-corpus reads. Do not replace old exemption lists with survivor exemptions. Keep bare ids in comments, docstrings, test labels and decision rationale. Classify the verified 55-file literal inventory, including dispatch-guard, feature-corpus-discovery, harness-boundary and validate-digest fixtures, replacing historical identities with synthetic data without altering contracts. Fix test-factory-cli.py, test-branch-create-gate.py, test-feature-json-budget.py and test-corpus-non-regression.py; conversion assertions must execute, not skip when FEAT-1559 is gone. Do not remove production corpus-discovery behavior itself.
+      Delete tests/manual/probe-inflight-claim-lifecycle.py and probe-digest-object-contract.py and their inflight_claim_lifecycle_live and digest_object_contract_live harness.json test kinds. Remove ONLY DEC-204's obsolete BUG-1898 merge-gate sentence; keep lifecycle semantics. Move FEAT-44 probe-session-accessors.ts plus README reproduction into tests/manual/, preserving executable behavior; repoint tests/manual/probe-omp-session-accessor.py and DECISIONS. Remove the evidence-folder exception in suite_layout.py. Drop FEAT-23 source-prompts pointer in harness-simplify while preserving operative angles; replace FEAT-23 example paths in harness and harness-verification-rules with placeholders. Do not add a replacement public merge gate.
+      Final .harness/harness/features/ contains EXACTLY FEAT-71-corpus-independence, BUG-2161-abandon-source-tickets, BUG-2141-dec174-main-orchestrator, FEAT-2037-product-document-guidance and BUG-20261006-fleet-planning-recovery. Delete all other Harness feature folders. Retain survivor content except strictly necessary deleted-folder pointer repairs and this feature's evidence. Rewrite ONLY file paths/line anchors into deleted folders in DECISIONS, SPEC, BUILD, docs/, .harness/README.md and both expertise tiers, apart from authorized probe edits. No new expertise lessons, decision semantics edits or .harness/kaya/ changes. Regenerate DECISIONS-INDEX through gen-decisions-index.py, not hand-edited anchors.
+      Delete .harness/logs/*.md and project .harness/notes/* dated BEFORE 2026-10-08, including explicitly authorized operator-edited logs/2026-09-28.md and logs/2026-10-04.md and untracked logs/2026-09-29.md and logs/2026-10-03.md. Preserve a deletion receipt for untracked files because git diff cannot prove them. Newer records receive ONLY deleted-folder path-pointer rewrites; preserve recent binding grilling input unchanged.
+      Execute literal verify from the committed PRODUCT checkout at intended review_sha, never from the control plane. It clones the committed subjects into a standalone real-.git canonical /private/tmp directory and asserts clone SHA and exact five-folder set, so linked-worktree owner reads cannot mask deletion. All five named gates including full run-unit-tests.py --kind all must exit zero and print no FAIL assertions. No reduced suite, suppressed assertion, skipped required kind or /tmp-symlink known-failure waiver. The final pipeline preserves combined stdout/stderr and nonzero status via pipefail; separately preserve each command's exit and all failed red/green receipts with clone path and pin in notes. Use supervised execution to completion if the full terminal suite exceeds 60 seconds, never truncate or claim partial green. Retain failed clones for diagnosis until acceptance. After worktree removal substitute the owner feature notes directory for evidence and rerun at the explicit pin. Review SC-01, SC-04 and SC-05 using git show at the same review_sha and committed deletion listing. No implementation or suite execution during this intake.

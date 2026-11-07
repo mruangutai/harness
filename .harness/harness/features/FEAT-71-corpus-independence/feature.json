@@ -1,0 +1,82 @@
+{
+  "feature_id": "FEAT-71-corpus-independence",
+  "branch": "feat/FEAT-71-corpus-independence",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-07-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T14:15:58+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:25:54+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-07-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T14:31:27+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-07-02-product/digest.md",
+        "sha256": "d066286a187300d512c2b8ecc2a704bf0b968e8b5b026780e3f0b2029a6e12cc"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:37:43+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-07T14:15:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause known (deletion probe names every dependency), diff listable, removal-only with no new interface, schema or gate; operator confirmed patch"
+    },
+    {
+      "at": "2026-11-07T14:34:19.907502+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "Operator answer notes/answers-2026-11-07-02-product.md authorizes BUG-20261006-fleet-planning-recovery as fifth survivor; update only exact survivor list and count."
+    },
+    {
+      "at": "2026-11-07T14:34:40.674514+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Operator answer notes/answers-2026-11-07-02-product.md authorizes BUG-20261006-fleet-planning-recovery as fifth survivor; add only that folder to the exact-set assertion."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-71-corpus-independence/notes/rework-ruling.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "bb271e3d26fadac88abcc570503c9871b3af24259ece24975d187a06365be234"
+  },
+  "github": {
+    "milestone": 106,
+    "parent": 2178,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2179
+    },
+    "source_issues": [],
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
