@@ -162,8 +162,8 @@ check("6c: integer ids with a genuinely absent integer dependency (3) is rejecte
       f"got {exc6c!r}" if exc6c is not None else "no exception raised")
 
 
-# --- walk(root): shared by case A (the live corpus) and case B (the paired
-# detector). Returns (files_found, failures) where failures is a list of
+# --- walk(root): shared by cases 7 and 8 (synthetic corpora) and case 9 (the live
+# corpus). Returns (files_found, failures) where failures is a list of
 # (path, message) for every plan.yaml that raised under artifact_accessors.load_plan.
 # The live corpus of a sparse worktree is its own feature plus the main corpus
 # (FEAT-1559); a name present here is not walked again at the owner.
@@ -183,27 +183,12 @@ def walk(root):
     return len(paths), failures
 
 
-# --- 7. THE LIVE CORPUS (D-04): the walk over every real plan.yaml -----------
-# The count floor is the vacuity guard: measured at af859ee8 the corpus was 67
-# files, all loading, none dangling. NEVER assert == 67 — features are added.
-_REPO = (_anchor_os.environ.get("HARNESS_PROJECT_DIR")
-         or _anchor_os.environ.get("CLAUDE_PROJECT_DIR")
-         or _anchor_os.getcwd())
-_count_a, _failures_a = walk(_REPO)
-check(f"the live plan corpus loads cleanly ({_count_a} files found, floor 67)",
-      _count_a >= 67 and not _failures_a,
-      (f"only {_count_a} files found, floor is 67\n" if _count_a < 67 else "")
-      + "\n".join(f"{p} — {m}" for p, m in _failures_a))
-
-# --- 8. THE PAIRED DETECTOR (D-04): the SAME walk must still catch a dangling -
-# depends_on. Without this case, case A reads identically to a load_plan that
-# had stopped checking anything at all.
-with tempfile.TemporaryDirectory() as _tmp:
-    _feat_dir = _anchor_os.path.join(_tmp, ".harness", "harness", "features", "FEAT-XX")
-    _anchor_os.makedirs(_feat_dir)
-    _bad_plan = _anchor_os.path.join(_feat_dir, "plan.yaml")
-    with open(_bad_plan, "w", encoding="utf-8") as _fh:
-        _fh.write(
+def _write_plan(root, fid, depends_on):
+    feat_dir = _anchor_os.path.join(root, ".harness", "harness", "features", fid)
+    _anchor_os.makedirs(feat_dir)
+    plan = _anchor_os.path.join(feat_dir, "plan.yaml")
+    with open(plan, "w", encoding="utf-8") as fh:
+        fh.write(
             "tasks:\n"
             "  - id: T-01\n"
             "    title: t\n"
@@ -212,12 +197,52 @@ with tempfile.TemporaryDirectory() as _tmp:
             "    files: [a.py]\n"
             "    verify: \"true\"\n"
             "    intent: do the thing\n"
-            "    depends_on: [T-99]\n"
+            "  - id: T-02\n"
+            "    title: t\n"
+            "    change_type: bugfix\n"
+            "    execution_mode: team\n"
+            "    files: [b.py]\n"
+            "    verify: \"true\"\n"
+            "    intent: do the next thing\n"
+            f"    depends_on: [{depends_on}]\n"
         )
+    return plan
+
+
+# --- 7. NON-VACUITY ON A SYNTHETIC CORPUS (D-04, FEAT-71) ----------------------
+# The walk must reach every plan a corpus holds, or case 9's "no failures" over the live corpus
+# reads identically to a walk that found nothing. Proven on fixture plans, never on the size of
+# the real corpus: an empty or broken walk reports fewer than the three plans written here.
+_SYNTHETIC = ("FEAT-90-fixture", "FEAT-91-fixture", "BUG-9-x")
+with tempfile.TemporaryDirectory() as _tmp:
+    for _fid in _SYNTHETIC:
+        _write_plan(_tmp, _fid, "T-01")
+    _count_s, _failures_s = walk(_tmp)
+    check(f"the walk reaches every synthetic plan ({_count_s} of {len(_SYNTHETIC)}) and all load",
+          _count_s == len(_SYNTHETIC) and not _failures_s,
+          f"count={_count_s} failures={_failures_s!r}")
+
+# --- 8. THE PAIRED DETECTOR (D-04): the SAME walk must still catch a dangling -
+# depends_on. Without this case, a clean walk reads identically to a load_plan that
+# had stopped checking anything at all.
+with tempfile.TemporaryDirectory() as _tmp:
+    _write_plan(_tmp, "FEAT-90-fixture", "T-01")
+    _bad_plan = _write_plan(_tmp, "FEAT-XX", "T-99")
     _count_b, _failures_b = walk(_tmp)
     check("the same walk reports exactly one failure naming the throwaway dangling plan",
-          _count_b == 1 and len(_failures_b) == 1 and _failures_b[0][0] == _bad_plan,
+          _count_b == 2 and len(_failures_b) == 1 and _failures_b[0][0] == _bad_plan,
           f"count={_count_b} failures={_failures_b!r}")
+
+# --- 9. THE LIVE CORPUS (D-04): every real plan.yaml loads ---------------------
+# Asserts integrity only, never a size: cases 7 and 8 carry the vacuity guard, so this holds
+# for however many features the corpus keeps.
+_REPO = (_anchor_os.environ.get("HARNESS_PROJECT_DIR")
+         or _anchor_os.environ.get("CLAUDE_PROJECT_DIR")
+         or _anchor_os.getcwd())
+_count_a, _failures_a = walk(_REPO)
+check(f"the live plan corpus loads cleanly ({_count_a} files found)",
+      not _failures_a,
+      "\n".join(f"{p} — {m}" for p, m in _failures_a))
 
 
 

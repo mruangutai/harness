@@ -164,6 +164,40 @@ with tempfile.TemporaryDirectory() as tmp:
           f"raised={cap.raised} exit={cap.exit_code} exists={exists}")
 
 # ---------------------------------------------------------------------------
+# Build-entry preflight (T-04), uniform since FEAT-71: no feature id is exempt.
+
+# A Build start with NO receipt is refused, and a recovery-required one proceeds with the
+# merge-refused notice, for EVERY feature id: synthetic ones, plus every feature-id-shaped
+# string feature_schema itself holds as module data — read from the module, never named here,
+# so a reintroduced per-feature exemption table is probed without this file naming any real
+# feature.
+import re  # noqa: E402
+import feature_schema  # noqa: E402
+_held = set()
+for _value in vars(feature_schema).values():
+    _members = _value.keys() if isinstance(_value, dict) else (
+        _value if isinstance(_value, (set, frozenset, list, tuple)) else ())
+    _held.update(m for m in _members
+                 if isinstance(m, str) and re.match(r"^(FEAT|BUG|PR)-[0-9]+", m))
+not_refused, not_noticed = [], []
+with tempfile.TemporaryDirectory() as tmp:
+    for name in ["FEAT-9106-fixture", "BUG-9-x"] + sorted(_held):
+        d = feat_dir(tmp, name)
+        write_feature_json(d, base_doc(name, {}))
+        with _Captured() as cap:
+            gh_sync._build_entry_preflight(d, {"build_entry": None})
+        if not (cap.raised and cap.exit_code == 2 and "no recorded build entry" in cap.out):
+            not_refused.append((name, cap.exit_code))
+        with _Captured() as cap:
+            gh_sync._build_entry_preflight(d + "/", {"build_entry": "recovery-required"})
+        if cap.raised or "the MERGE is refused until explicit recovery" not in cap.err:
+            not_noticed.append(name)
+check("BE-31 an absent receipt refuses the Build start for every feature id",
+      not_refused == [], f"{len(not_refused)} not refused, e.g. {not_refused[:3]}")
+check("BE-32 recovery-required warns that the merge is refused, for every feature id",
+      not_noticed == [], f"{len(not_noticed)} exempt, e.g. {not_noticed[:3]}")
+
+# ---------------------------------------------------------------------------
 # recover-terminal (T-03).
 
 # BE-25: _recover_terminal_conflict is None when --parent (a STRING, as main() passes it)

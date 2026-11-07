@@ -264,17 +264,36 @@ try:
 finally:
     shutil.rmtree(td)
 
-# Case 7: the live registry is load-bearing over the real repository root.
-live_exception_path = suite_layout.DOCUMENTED_EXCEPTIONS[0][0]
-saved_exceptions = suite_layout.DOCUMENTED_EXCEPTIONS
-suite_layout.DOCUMENTED_EXCEPTIONS = ()
+# Case 7: a registry entry is load-bearing — proved on a synthetic fixture entry, never on
+# the live tuple, which is empty since its last entry moved under tests/manual/.
+td = base_git_fixture()
 try:
-    got = suite_layout.violations(ROOT)
+    (td / ".harness/tools").mkdir(parents=True)
+    (td / ".harness/tools/probe-listed.ts").write_text("export {};\n")
+    git_commit(td)
+    listed_rel = ".harness/tools/probe-listed.ts"
+    saved_exceptions = suite_layout.DOCUMENTED_EXCEPTIONS
+    suite_layout.DOCUMENTED_EXCEPTIONS = ((listed_rel, "synthetic case 7 entry"),)
+    try:
+        got_listed = suite_layout.violations(td)
+    finally:
+        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    suite_layout.DOCUMENTED_EXCEPTIONS = ()
+    try:
+        got_cleared = suite_layout.violations(td)
+    finally:
+        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    check("case 7: fixture layout is clean with the synthetic entry listed",
+          got_listed == [], repr(got_listed))
+    check("case 7: synthetic registry entry is load-bearing when cleared",
+          got_cleared == [f"tracked test-shaped file outside tests/: {listed_rel}"],
+          repr(got_cleared))
 finally:
-    suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
-check("case 7: live registry entry is load-bearing when cleared",
-      any(live_exception_path in g for g in got), repr(got))
-check("case 7: real layout is clean with the registry restored",
+    shutil.rmtree(td)
+
+check("case 7: live registry is empty", suite_layout.DOCUMENTED_EXCEPTIONS == (),
+      repr(suite_layout.DOCUMENTED_EXCEPTIONS))
+check("case 7: real layout is clean with the live registry",
       suite_layout.violations(ROOT) == [], repr(suite_layout.violations(ROOT)))
 
 # Case 8: extension-restricted boundary — probe-shaped Markdown is legal, .py is not.
@@ -519,7 +538,6 @@ synthetic_tracked = [
     ".harness/evidence/run.test.jsonl",
     ".harness/notes/probe-something.md",
     ".claude/skills/harness/bin/suite_layout.py",
-    suite_layout.DOCUMENTED_EXCEPTIONS[0][0],
 ]
 check("case 11 behavioural: synthetic tracked set has no offenders",
       offenders(synthetic_tracked, test_kinds_cfg) == [],

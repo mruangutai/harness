@@ -261,8 +261,8 @@ def case_dry_run_safety():
         with open(os.path.join(repo, ".harness", "team-config.yaml"), "w") as f:
             f.write("schema: team-config/1\n")
         sweep = _install_fixture_bin(repo)
-        _commit_feature(repo, "FEAT-01-dry-run-thing", "Done")
-        dest = _add_wt(repo, "FEAT-01-dry-run-thing")
+        _commit_feature(repo, "FEAT-901-dry-run-thing", "Done")
+        dest = _add_wt(repo, "FEAT-901-dry-run-thing")
         gh_log, env = _stub_gh(tmp)
 
         r = subprocess.run([sweep, "--dry-run"], cwd=repo, capture_output=True,
@@ -274,7 +274,7 @@ def case_dry_run_safety():
         results.append(("--dry-run leaves the terminal worktree standing",
                          os.path.isdir(dest), f"dest={dest}"))
         results.append(("--dry-run mentions the feature id in its output",
-                         "FEAT-01-dry-run-thing" in r.stdout,
+                         "FEAT-901-dry-run-thing" in r.stdout,
                          f"stdout={r.stdout!r}"))
         results.append(("--dry-run makes no `gh` invocation",
                          not os.path.isfile(gh_log), f"gh_log exists={os.path.isfile(gh_log)}"))
@@ -376,8 +376,8 @@ def case_fast_forward():
         # branch's tip so its own tracked copy of feature.json already matches what lands on
         # `main` once the fast-forward completes (feature-worktree.py remove's GATE 3).
         subprocess.run(["git", "checkout", "-qb", "topic-ff"], cwd=repo, capture_output=True)
-        _commit_feature(repo, "FEAT-20-ff-thing", "Done", milestone=701)
-        dest = _add_wt(repo, "FEAT-20-ff-thing", ref="topic-ff", new_branch="wt-ff")
+        _commit_feature(repo, "FEAT-920-ff-thing", "Done", milestone=701)
+        dest = _add_wt(repo, "FEAT-920-ff-thing", ref="topic-ff", new_branch="wt-ff")
         subprocess.run(["git", "checkout", "-q", "main"], cwd=repo, capture_output=True)
 
         r = subprocess.run(["git", "merge", "topic-ff"], cwd=repo, capture_output=True,
@@ -417,8 +417,8 @@ def case_squash():
         # commit does NOT re-fire post-merge. A feature that only landed via THIS squash would
         # not yet be visible to classify() at hook-fire time; landing it earlier decouples the
         # squash SHAPE (all this case is testing) from that timing gap.
-        _commit_feature(repo, "FEAT-21-squash-thing", "Done", milestone=702)
-        dest = _add_wt(repo, "FEAT-21-squash-thing")
+        _commit_feature(repo, "FEAT-921-squash-thing", "Done", milestone=702)
+        dest = _add_wt(repo, "FEAT-921-squash-thing")
 
         subprocess.run(["git", "checkout", "-qb", "topic-squash"], cwd=repo, capture_output=True)
         with open(os.path.join(repo, "unrelated.txt"), "w") as f:
@@ -460,8 +460,8 @@ def case_self_exclusion():
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
-        _commit_feature(repo, "FEAT-22-self-exclude", "Done", milestone=703)
-        dest = _add_wt(repo, "FEAT-22-self-exclude")
+        _commit_feature(repo, "FEAT-922-self-exclude", "Done", milestone=703)
+        dest = _add_wt(repo, "FEAT-922-self-exclude")
 
         r = subprocess.run([sweep], cwd=dest, capture_output=True, text=True, env=env)
 
@@ -501,10 +501,10 @@ def case_per_feature_record():
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
-        _commit_feature(repo, "FEAT-30-two-a", "Done", milestone=801)
-        dest_a = _add_wt(repo, "FEAT-30-two-a")
-        _commit_feature(repo, "FEAT-31-two-b", "Done", milestone=802)
-        dest_b = _add_wt(repo, "FEAT-31-two-b")
+        _commit_feature(repo, "FEAT-930-two-a", "Done", milestone=801)
+        dest_a = _add_wt(repo, "FEAT-930-two-a")
+        _commit_feature(repo, "FEAT-931-two-b", "Done", milestone=802)
+        dest_b = _add_wt(repo, "FEAT-931-two-b")
 
         r = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
         log_text = open(log).read() if os.path.exists(log) else ""
@@ -512,12 +512,12 @@ def case_per_feature_record():
         results.append(("(d) sweep over two terminal features exits 0", r.returncode == 0,
                          f"rc={r.returncode} stderr={r.stderr!r}"))
         _assert_resolved_root_in_fixture(results, "(d)", r.stdout, repo)
-        results.append(("(d) SC-11: milestone close call logged for FEAT-30-two-a's OWN "
+        results.append(("(d) SC-11: milestone close call logged for FEAT-930-two-a's OWN "
                          "milestone (801), checked on its own",
                          _has_line_with_all(log_text, "milestones/801", "state=closed"),
                          f"log={log_text!r}"))
-        results.append(("(d) SC-11: milestone close call logged for FEAT-31-two-b's OWN "
-                         "milestone (802), checked separately from FEAT-30's",
+        results.append(("(d) SC-11: milestone close call logged for FEAT-931-two-b's OWN "
+                         "milestone (802), checked separately from FEAT-930's",
                          _has_line_with_all(log_text, "milestones/802", "state=closed"),
                          f"log={log_text!r}"))
         results.append(("(d) both worktrees removed after their own record succeeded",
@@ -538,10 +538,10 @@ def case_order_d04():
         log, gh_env = _stub_gh(tmp, fail_milestones=(901,))
         env = _sweep_env(repo, gh_env)
 
-        _commit_feature(repo, "FEAT-32-order-fails", "Done", milestone=901)
-        dest_fail = _add_wt(repo, "FEAT-32-order-fails")
-        _commit_feature(repo, "FEAT-33-order-ok", "Done", milestone=902)
-        dest_ok = _add_wt(repo, "FEAT-33-order-ok")
+        _commit_feature(repo, "FEAT-932-order-fails", "Done", milestone=901)
+        dest_fail = _add_wt(repo, "FEAT-932-order-fails")
+        _commit_feature(repo, "FEAT-933-order-ok", "Done", milestone=902)
+        dest_ok = _add_wt(repo, "FEAT-933-order-ok")
 
         r = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
 
@@ -576,9 +576,9 @@ def case_unresolved_left_standing():
         # unresolved-producing shape worktree_terminal.py's own delivered classify() ships
         # (T-02's test-worktree-terminal.py asserts it identically), and is what the sweep's
         # own contract ("A record whose klass is unresolved is printed and left alone") governs.
-        _commit_feature(repo, "FEAT-40-amb-one", "Done")
-        _commit_feature(repo, "FEAT-40-amb-two", "Done")
-        dest = _add_wt(repo, "FEAT-40")
+        _commit_feature(repo, "FEAT-940-amb-one", "Done")
+        _commit_feature(repo, "FEAT-940-amb-two", "Done")
+        dest = _add_wt(repo, "FEAT-940")
 
         r = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
 
@@ -608,14 +608,14 @@ def case_unvalidated_feature_is_not_shipped():
         sweep = _install_fixture_bin(repo)
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
-        _commit_feature(repo, "FEAT-42-unvalidated", "Done", milestone=7)
-        note = os.path.join(repo, ".harness", "harness", "features", "FEAT-42-unvalidated",
+        _commit_feature(repo, "FEAT-942-unvalidated", "Done", milestone=7)
+        note = os.path.join(repo, ".harness", "harness", "features", "FEAT-942-unvalidated",
                             "notes", "handoff-validate.md")
         subprocess.run(["git", "rm", "-q", os.path.relpath(note, repo)], cwd=repo,
                        capture_output=True)
         subprocess.run(["git", "commit", "-qm", "validate still in flight"], cwd=repo,
                        capture_output=True)
-        dest = _add_wt(repo, "FEAT-42-unvalidated")
+        dest = _add_wt(repo, "FEAT-942-unvalidated")
 
         r = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
         out = (r.stdout or "") + (r.stderr or "")
@@ -649,14 +649,14 @@ def case_skip_is_not_success():
         # "gh-sync: SKIP" printed. This is exactly the offline/unconfigured shape the D-04
         # comment in post-merge-sweep.py warns about: exit 0 alone is not proof the terminal
         # status was ever recorded.
-        _commit_feature(repo, "FEAT-41-no-milestone", "Done", milestone=None)
-        feature_path = os.path.join(repo, ".harness", "harness", "features", "FEAT-41-no-milestone", "feature.json")
+        _commit_feature(repo, "FEAT-941-no-milestone", "Done", milestone=None)
+        feature_path = os.path.join(repo, ".harness", "harness", "features", "FEAT-941-no-milestone", "feature.json")
         with open(feature_path) as f:
             document = json.load(f)
         document["github"] = {}
         with open(feature_path, "w") as f:
             json.dump(document, f)
-        dest = _add_wt(repo, "FEAT-41-no-milestone")
+        dest = _add_wt(repo, "FEAT-941-no-milestone")
 
         r = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
 
@@ -733,8 +733,8 @@ def case_failed_is_not_success():
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
-        _commit_feature(repo, "FEAT-42-failed-write", "Done", milestone=7)
-        dest = _add_wt(repo, "FEAT-42-failed-write")
+        _commit_feature(repo, "FEAT-942-failed-write", "Done", milestone=7)
+        dest = _add_wt(repo, "FEAT-942-failed-write")
 
         _stub_ship(fixture_bin,
                    "gh-sync: FAILED 1 of 3 - #55 did not reach Done and nothing "
@@ -757,8 +757,8 @@ def case_failed_is_not_success():
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
-        _commit_feature(repo, "FEAT-43-held-only", "Done", milestone=7)
-        dest2 = _add_wt(repo, "FEAT-43-held-only")
+        _commit_feature(repo, "FEAT-943-held-only", "Done", milestone=7)
+        dest2 = _add_wt(repo, "FEAT-943-held-only")
 
         _stub_ship(fixture_bin,
                    "gh-sync: HELD 1 of 3 - #60 (child #61)")
@@ -777,14 +777,14 @@ def case_failed_is_not_success():
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
-        _commit_feature(repo, "FEAT-44-red-proof", "Done", milestone=7)
-        feature_path = os.path.join(repo, ".harness", "harness", "features", "FEAT-44-red-proof", "feature.json")
+        _commit_feature(repo, "FEAT-944-red-proof", "Done", milestone=7)
+        feature_path = os.path.join(repo, ".harness", "harness", "features", "FEAT-944-red-proof", "feature.json")
         with open(feature_path) as f:
             document = json.load(f)
         document["github"].pop("build_entry", None)
         with open(feature_path, "w") as f:
             json.dump(document, f)
-        dest3 = _add_wt(repo, "FEAT-44-red-proof")
+        dest3 = _add_wt(repo, "FEAT-944-red-proof")
         _stub_ship(fixture_bin,
                    "gh-sync: FAILED 1 of 3 - #70 did not reach Done and nothing "
                    "downstream reports it")
@@ -826,8 +826,8 @@ def case_cwd_outside_repo():
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
-        _commit_feature(repo, "FEAT-50-outside-cwd", "Done", milestone=999)
-        dest = _add_wt(repo, "FEAT-50-outside-cwd")
+        _commit_feature(repo, "FEAT-950-outside-cwd", "Done", milestone=999)
+        dest = _add_wt(repo, "FEAT-950-outside-cwd")
 
         outside_cwd = os.path.join(tmp, "not-a-repo")
         os.makedirs(outside_cwd, exist_ok=True)
@@ -952,14 +952,12 @@ def case_linked_worktree_main_checkout():
 # The T-07 retention matrix: one row per job, so the rows run concurrently and still report in
 # table order.
 _T07_NAMES = (
-    "T-07 non-era absent build_entry keeps the worktree",
+    "T-07 absent build_entry keeps the worktree",
     "T-07 recovery-required keeps the worktree",
     "T-07 opened removes the worktree",
     "T-07 recovered-terminal removes the worktree",
     "T-07 unparseable feature.json keeps the worktree",
     "T-07 sync false removes the worktree",
-    "T-07 era-exempt absent build_entry is swept",
-    "T-07 era-exempt recovery-required keeps the worktree",
     "T-13 not-applicable removes the worktree",
 )
 _T07_SHAPES = (
@@ -969,45 +967,76 @@ _T07_SHAPES = (
     ("FEAT-9001-fixture-non-era", "recovered-terminal", True, True),
     ("FEAT-9001-fixture-non-era", "invalid", True, False),
     ("FEAT-9001-fixture-non-era", "opened", False, True),
-    ("BUG-1030-stale-anchor-write-hazard", None, True, True),
-    ("BUG-1030-stale-anchor-write-hazard", "recovery-required", True, False),
     ("FEAT-9001-fixture-non-era", "not-applicable", True, True),
 )
 
 
-# GRADE-2 REASON: the table-driven test keeps all eight retention states in one visible
-# matrix, so the era pair and no-mirror contrast cannot drift apart.
+def _t07_sweep(tmp, feature, entry, sync=True):
+    """Sweep one Done feature whose receipt is `entry`; return (run, its worktree path)."""
+    repo = _bootstrap_repo(os.path.join(tmp, "R"))
+    sweep = _install_fixture_bin(repo)
+    _commit_feature(repo, feature, "Done", milestone=9)
+    feature_path = os.path.join(repo, ".harness", "harness", "features", feature, "feature.json")
+    if entry == "invalid":
+        with open(feature_path, "w") as f:
+            f.write("{")
+    else:
+        with open(feature_path) as f:
+            document = json.load(f)
+        if entry is None:
+            document["github"].pop("build_entry", None)
+        else:
+            document["github"]["build_entry"] = entry
+        with open(feature_path, "w") as f:
+            json.dump(document, f)
+    if not sync:
+        with open(os.path.join(repo, ".harness", "harness.json"), "w") as f:
+            json.dump({"github": {"sync": False, "repo": "acme/repo-x", "board": None}}, f)
+    subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "set receipt"], cwd=repo, capture_output=True)
+    dest = _add_wt(repo, feature)
+    _, gh_env = _stub_gh(tmp)
+    _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
+    run = subprocess.run([sweep], cwd=repo, capture_output=True, text=True,
+                         env=_sweep_env(repo, gh_env))
+    return run, dest
+
+
+# GRADE-2 REASON: the table-driven test keeps every retention state in one visible matrix, so
+# the receipt states and the no-mirror contrast cannot drift apart.
 def case_t07_build_entry_receipt(row):
     name, (feature, entry, sync, removed) = _T07_NAMES[row], _T07_SHAPES[row]
     with tempfile.TemporaryDirectory() as tmp:
-        repo = _bootstrap_repo(os.path.join(tmp, "R"))
-        sweep = _install_fixture_bin(repo)
-        _commit_feature(repo, feature, "Done", milestone=9)
-        feature_path = os.path.join(repo, ".harness", "harness", "features", feature, "feature.json")
-        if entry == "invalid":
-            with open(feature_path, "w") as f:
-                f.write("{")
-        else:
-            with open(feature_path) as f:
-                document = json.load(f)
-            if entry is None:
-                document["github"].pop("build_entry", None)
-            else:
-                document["github"]["build_entry"] = entry
-            with open(feature_path, "w") as f:
-                json.dump(document, f)
-        if not sync:
-            with open(os.path.join(repo, ".harness", "harness.json"), "w") as f:
-                json.dump({"github": {"sync": False, "repo": "acme/repo-x", "board": None}}, f)
-        subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
-        subprocess.run(["git", "commit", "-qm", "set receipt"], cwd=repo, capture_output=True)
-        dest = _add_wt(repo, feature)
-        _, gh_env = _stub_gh(tmp)
-        _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
-        run = subprocess.run([sweep], cwd=repo, capture_output=True, text=True,
-                             env=_sweep_env(repo, gh_env))
+        run, dest = _t07_sweep(tmp, feature, entry, sync)
         return [(name, run.returncode == 0 and os.path.isdir(dest) != removed,
                  f"stdout={run.stdout!r} dest={dest}")]
+
+
+def case_t07_no_feature_id_is_exempt():
+    """FEAT-71: the receipt rule is uniform. A feature with an absent or recovery-required
+    receipt keeps its worktree whatever its id: synthetic ids, plus every feature-id-shaped
+    string feature_schema itself holds as module data — read from the module, never named
+    here, so a reintroduced per-feature exemption table is probed without this file naming
+    any real feature. Stops at the first swept worktree; one is enough to fail."""
+    import feature_schema
+    held = set()
+    for value in vars(feature_schema).values():
+        members = value.keys() if isinstance(value, dict) else (
+            value if isinstance(value, (set, frozenset, list, tuple)) else ())
+        held.update(m for m in members
+                    if isinstance(m, str) and re.match(r"^(FEAT|BUG|PR)-[0-9]+", m))
+    probed = 0
+    for feature in ["BUG-9-x", "PR-9-fixture"] + sorted(held):
+        for entry in (None, "recovery-required"):
+            with tempfile.TemporaryDirectory() as tmp:
+                run, dest = _t07_sweep(tmp, feature, entry)
+                probed += 1
+                if run.returncode != 0 or not os.path.isdir(dest):
+                    return [("T-07 no receipt keeps the worktree for every feature id", False,
+                             f"{feature} entry={entry} was swept after {probed} probes: "
+                             f"stdout={run.stdout!r}")]
+    return [("T-07 no receipt keeps the worktree for every feature id", probed >= 4,
+             f"probed={probed}")]
 
 def case_unproven_mirror_retention():
     results = []
@@ -1111,8 +1140,8 @@ def case_feat64_unrelated_defect_escapes():
         fixture_bin = os.path.dirname(sweep)
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
-        _commit_feature(repo, "FEAT-64-defect", "Done", milestone=7)
-        dest = _add_wt(repo, "FEAT-64-defect")
+        _commit_feature(repo, "FEAT-964-defect", "Done", milestone=7)
+        dest = _add_wt(repo, "FEAT-964-defect")
         wt = os.path.join(fixture_bin, "worktree_terminal.py")
         os.remove(wt)
         with open(wt, "w") as f:
@@ -1137,8 +1166,8 @@ def case_prototype_node_modules():
         with open(os.path.join(repo, ".harness", "team-config.yaml"), "w") as f:
             f.write("schema: team-config/1\n")
         sweep = _install_fixture_bin(repo)
-        leaked = os.path.join(repo, ".harness", "harness", "features", "FEAT-02-proto",
-                              "notes", "prototypes", "FEAT-02", "node_modules")
+        leaked = os.path.join(repo, ".harness", "harness", "features", "FEAT-902-proto",
+                              "notes", "prototypes", "FEAT-902", "node_modules")
         os.makedirs(os.path.join(leaked, "vite"))
         legit = os.path.join(repo, "client", "node_modules")
         os.makedirs(legit)
@@ -1146,7 +1175,7 @@ def case_prototype_node_modules():
 
         dry = subprocess.run([sweep, "--dry-run"], cwd=repo, capture_output=True, text=True, env=env)
         results.append(("--dry-run names the leaked node_modules and leaves it",
-                         "would remove .harness/harness/features/FEAT-02-proto" in dry.stdout and os.path.isdir(leaked),
+                         "would remove .harness/harness/features/FEAT-902-proto" in dry.stdout and os.path.isdir(leaked),
                          f"stdout={dry.stdout!r}"))
         wet = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
         results.append(("sweep removes node_modules under .harness/ and nothing outside it",
@@ -1171,6 +1200,7 @@ JOBS = (
      case_failed_is_not_success,
      case_cwd_outside_repo]
     + [functools.partial(case_t07_build_entry_receipt, row) for row in range(len(_T07_NAMES))]
+    + [case_t07_no_feature_id_is_exempt]
     + [case_linked_worktree_main_checkout,
        case_duplicate_receipt_inputs,
        case_unproven_mirror_retention,

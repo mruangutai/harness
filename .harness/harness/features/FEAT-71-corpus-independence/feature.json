@@ -55,6 +55,13 @@
       "kind": "amendment",
       "decision": "T-01.verify",
       "reason": "Operator answer notes/answers-2026-11-07-02-product.md authorizes BUG-20261006-fleet-planning-recovery as fifth survivor; add only that folder to the exact-set assertion."
+    },
+    {
+      "at": "2026-11-07T14:43:13.689694+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Builder-learned: a fresh standalone clone has no core.hooksPath, so check-state INV-31 refuses before any feature gate runs; set the harness hooks path in the clone exactly as harness-init does for every clone."
     }
   ],
   "mission": "patch",

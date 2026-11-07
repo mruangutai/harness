@@ -9,9 +9,9 @@ Usage:
 There is no --check: to check for drift without writing, pipe the read-only mode into
 diff — `gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md`.
 
-See FEAT-04-decisions-index PLAN.md T-02 for the full contract. Everything left
-of ' :: ' on a row is generated; everything right of it is hand-written and
-preserved verbatim across regeneration.
+The contract (FEAT-04 T-02): everything left of ' :: ' on a row is generated;
+everything right of it is hand-written and preserved verbatim across
+regeneration.
 """
 import os
 import re

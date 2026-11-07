@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Unit floor for feature_schema.recovery_command_for and BUILD_ENTRY_ERA_EXEMPT (T-11,
-BUG-1309, DEC-217's Over clause). Seven cases, each aimed at a state or observable that no
+"""Unit floor for feature_schema.recovery_command_for and the uniform Build-entry rule (T-11,
+BUG-1309, DEC-217's Over clause; FEAT-71 removed the per-feature era exemption). Each case is
+aimed at a state or observable that no
 integration bed reaches (see tests/integration/test-check-state.py:4622-4699's fixture, which
 always writes exactly one task with os.path.join'd paths — see this task's plan.yaml intent for
 the case-by-case cross-check). Mutation-based discrimination proof for these cases lives outside
@@ -15,6 +16,7 @@ python3 stdlib only. gh-sync.py's own BIN-dir resolution convention
 """
 import json
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -64,37 +66,80 @@ def write_plan(d, status, tasks):
         f.write("\n".join(lines) + "\n")
 
 
-# BE-02: an era-set member with a trailing slash on feat_dir still returns recover-terminal.
-# The plan underneath is a real "would return open" plan (building, no task done), so the era
-# short-circuit is what is actually proven, not an absent-plan except leg (that would be BE-01's
-# now-struck vacuous shape).
-with tempfile.TemporaryDirectory() as tmp:
-    d = feat_dir(tmp, "BUG-1030-stale-anchor-write-hazard", trailing_slash=True)
-    write_plan(d, "building", [{"id": "T-01"}])
-    got = feature_schema.recovery_command_for(d)
-    check("BE-02 an era-set member with a trailing slash still returns recover-terminal",
-          got == "recover-terminal", repr(got))
+# FEAT-71: NO FEATURE ID IS EXEMPT. The Build-entry rule once consulted a frozen set of feature
+# directory names; the rule is now uniform, so the module must hold no per-feature id table at
+# all, and every id behaves exactly as a fresh synthetic one. The ids probed are the synthetic
+# ones below PLUS every feature-id-shaped string the module itself holds as data — read from the
+# module, never written here, so this file names no real feature and still goes red against any
+# build that reintroduces a per-feature table.
+_FEATURE_ID = re.compile(r"^(FEAT|BUG|PR)-[0-9]+")
 
-# BE-03: a non-era feature with no plan.yaml returns recover-terminal.
+
+def module_feature_id_tables(module):
+    """{global name: sorted feature-id-shaped members} for each module-level collection."""
+    tables = {}
+    for name, value in vars(module).items():
+        if isinstance(value, dict):
+            members = value.keys()
+        elif isinstance(value, (set, frozenset, list, tuple)):
+            members = value
+        else:
+            continue
+        ids = sorted(m for m in members if isinstance(m, str) and _FEATURE_ID.match(m))
+        if ids:
+            tables[name] = ids
+    return tables
+
+
+TABLES = module_feature_id_tables(feature_schema)
+check("FEAT-71 feature_schema holds no per-feature id table", TABLES == {},
+      repr({name: f"{len(ids)} ids, e.g. {ids[:3]}" for name, ids in TABLES.items()}))
+PROBE_IDS = ["FEAT-90-fixture", "BUG-9-x", "PR-9-fixture"] + sorted(
+    {i for ids in TABLES.values() for i in ids})
+
+# BE-02: a would-be-open plan is `open` for EVERY feature id, with or without a trailing slash
+# on feat_dir — no id short-circuits to recover-terminal.
+with tempfile.TemporaryDirectory() as tmp:
+    shortcut = []
+    for name in PROBE_IDS:
+        for slash in (False, True):
+            d = feat_dir(tmp, name, trailing_slash=slash)
+            write_plan(d, "building", [{"id": "T-01"}])
+            got = feature_schema.recovery_command_for(d)
+            if got != "open":
+                shortcut.append((name, slash, got))
+    check("BE-02 a building plan with no task done is open for every feature id",
+          shortcut == [], f"{len(shortcut)} short-circuited, e.g. {shortcut[:3]}")
+
+# BE-10: a feature with no Build-entry receipt (absent, or recovery-required) never allows a
+# merge, whatever its id.
+allowed = [(name, entry) for name in PROBE_IDS for entry in (None, "recovery-required")
+           if feature_schema.receipt_allows_merge(
+               {"feature_id": name, "github": {} if entry is None else {"build_entry": entry}},
+               "org/product")]
+check("BE-10 no receipt allows no merge for any feature id", allowed == [],
+      f"{len(allowed)} allowed, e.g. {allowed[:3]}")
+
+# BE-03: a feature with no plan.yaml returns recover-terminal.
 with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9002-fixture-no-plan")
     got = feature_schema.recovery_command_for(d)
-    check("BE-03 a non-era feature with no plan.yaml returns recover-terminal",
+    check("BE-03 a feature with no plan.yaml returns recover-terminal",
           got == "recover-terminal", repr(got))
 
-# BE-04: a non-era feature whose plan.yaml does not parse returns recover-terminal.
+# BE-04: a feature whose plan.yaml does not parse returns recover-terminal.
 with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9003-fixture-bad-yaml")
     with open(os.path.join(d, "plan.yaml"), "w", encoding="utf-8") as f:
         f.write("status: building\ntasks: [\n  - unterminated flow sequence\n")
     got = feature_schema.recovery_command_for(d)
-    check("BE-04 a non-era feature whose plan.yaml does not parse returns recover-terminal",
+    check("BE-04 a feature whose plan.yaml does not parse returns recover-terminal",
           got == "recover-terminal", repr(got))
 
 # BE-06: plan status done returns recover-terminal, isolated from the any()-task-done trigger
 # by giving the one task a non-done status.
 with tempfile.TemporaryDirectory() as tmp:
-    d = feat_dir(tmp, "FEAT-9004-fixture-non-era")
+    d = feat_dir(tmp, "FEAT-9004-fixture-plan-done")
     write_plan(d, "done", [{"id": "T-01", "status": "building"}])
     got = feature_schema.recovery_command_for(d)
     check("BE-06 plan status done returns recover-terminal", got == "recover-terminal", repr(got))
@@ -135,13 +180,19 @@ with tempfile.TemporaryDirectory() as tmp:
     check("a plan-flow engineering simplify run is not started work; a code-graded one is",
           legs == ["open", "recover-terminal"], repr(legs))
 
-# BE-10: membership is exact, never a prefix and never case-insensitive.
-check("BE-10 membership is exact, never a prefix and never case-insensitive",
-      "FEAT-01" in feature_schema.BUILD_ENTRY_ERA_EXEMPT
-      and "FEAT-01-suffix" not in feature_schema.BUILD_ENTRY_ERA_EXEMPT
-      and "feat-01" not in feature_schema.BUILD_ENTRY_ERA_EXEMPT
-      and "FEAT-90-e-green-thing" not in feature_schema.BUILD_ENTRY_ERA_EXEMPT,
-      repr(sorted(x for x in feature_schema.BUILD_ENTRY_ERA_EXEMPT if x.startswith("FEAT-01"))))
+# The runs[] agent rule is uniform too: an entry without `agent` is refused at index 0 under
+# every feature directory name.
+exempted = []
+for name in PROBE_IDS:
+    doc = {"feature_id": name, "branch": "none", "pr": None, "review_sha": "none",
+           "cycles_used": 0, "max_total_cycles": 10,
+           "runs": [{"id": "r1", "squad": "eng", "verdict": "PASS"}]}
+    probs = feature_schema.problems_for_text(
+        json.dumps(doc), f"/tmp/x/.harness/harness/features/{name}/feature.json")
+    if not any("runs[0]" in p and "'agent'" in p for p in probs):
+        exempted.append(name)
+check("FEAT-71 a runs entry without agent is refused at index 0 for every feature id",
+      exempted == [], f"{len(exempted)} exempt, e.g. {exempted[:3]}")
 
 
 # FEAT-64 (SC-03): the plan read is a TYPED boundary. A plan that does not parse is

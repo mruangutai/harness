@@ -1681,30 +1681,20 @@ def _projected_for(feat_dir, rec):
 
 
 def _build_entry_preflight(feat_dir, rec):
-    """Print the allowed recovery notice or refuse an unsafe Build start."""
+    """Print the recovery-required notice or refuse a Build start with no receipt."""
     entry = rec.get("build_entry")
-    feature_id = os.path.basename(feat_dir.rstrip("/"))
     doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
     recovery = feature_schema.recovery_command_line(feat_dir, doc, _BUILD_ENTRY.get("repo"))
-    if entry is None and feature_id not in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+    if entry is None:
         refuse(f"this feature has no recorded build entry, so Build must not start. "
                f"Run {recovery} first.")
-    if entry is None:
-        print(f"gh-sync: {feature_id} predates the build-entry receipt "
-              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so Build continues. "
-              f"Explicit operator recovery: {recovery}.", file=sys.stderr)
     if entry == "recovery-required":
-        _build_entry_recovery_notice(feat_dir, feature_id)
+        _build_entry_recovery_notice(feat_dir)
 
 
-def _build_entry_recovery_notice(feat_dir, feature_id):
+def _build_entry_recovery_notice(feat_dir):
     doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
     recovery = feature_schema.recovery_command_line(feat_dir, doc, _BUILD_ENTRY.get("repo"))
-    if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-        print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
-              f"Build proceeds under the frozen era exemption. "
-              f"Explicit operator recovery: {recovery}.", file=sys.stderr)
-        return
     print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
           f"Build proceeds, the MERGE is refused until explicit recovery: {recovery}.",
           file=sys.stderr)

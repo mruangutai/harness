@@ -46,9 +46,6 @@ def fixture(integration, weights, unit=("test-u1.py",), default=1.0, failing=())
     root = Path(tempfile.mkdtemp())
     (root / ".harness").mkdir()
     (root / ".harness/team-config.yaml").write_text("teams: []\n")
-    exc = root / ".harness/harness/features/FEAT-44-omp-context-advisory/evidence"
-    exc.mkdir(parents=True)
-    (exc / "probe-session-accessors.ts").write_text("// D-05 documented exception stand-in\n")
     (root / BIN).mkdir(parents=True)
     for name in BIN_FILES:
         shutil.copy2(ROOT / BIN / name, root / BIN / name)

@@ -831,11 +831,11 @@ def case_t06_build_entry_invariant():
 
     outcomes = []
     with tempfile.TemporaryDirectory() as tmp:
-        fixture(tmp, "FEAT-9001-fixture-non-era")
+        fixture(tmp, "FEAT-9001-fixture")
         _, out = run(tmp)
         line = next((x for x in out.splitlines() if "INV-37" in x), "")
         outcomes.append(check("T-06 INV-37 fires at a done station with no task statuses",
-                              "FEAT-9001-fixture-non-era" in line and "recover-terminal" in line))
+                              "FEAT-9001-fixture" in line and "recover-terminal" in line))
     for name, entry, sync, factory, expected_violation in (
         ("T-06 INV-37 accepts a provenanced opened receipt", "opened", True, None, False),
         ("T-06 INV-37 accepts a provenanced terminal receipt", "recovered-terminal", True, None, False),
@@ -843,26 +843,28 @@ def case_t06_build_entry_invariant():
         ("T-06 INV-37 factory claims do not prove a mirror receipt", None, True, {"T-01": 9}, True),
     ):
         with tempfile.TemporaryDirectory() as tmp:
-            fixture(tmp, "FEAT-9001-fixture-non-era", build_entry=entry, sync=sync,
+            fixture(tmp, "FEAT-9001-fixture", build_entry=entry, sync=sync,
                     factory_issues=factory)
             _, out = run(tmp)
             outcomes.append(check(name, ("INV-37" in out) == expected_violation))
+    # No feature id buys silence: a feature of either kind with no build_entry owes the receipt.
     with tempfile.TemporaryDirectory() as tmp:
-        fixture(tmp, "BUG-1030-stale-anchor-write-hazard")
+        fixture(tmp, "BUG-9-x")
         _, out = run(tmp)
-        outcomes.append(check("T-06 INV-37 silent on an era-exempt feature", "INV-37" not in out))
+        line = next((x for x in out.splitlines() if "INV-37" in x), "")
+        outcomes.append(check("T-06 INV-37 fires for any feature id with no build_entry",
+                              "BUG-9-x" in line and "recover-terminal" in line))
 
     import feature_schema
     with tempfile.TemporaryDirectory() as tmp:
-        non_era = fixture(tmp, "FEAT-9001-fixture-non-era", station="building")
-        outcomes.append(check("T-06 recovery_command_for returns open for a non-era building plan",
-                              feature_schema.recovery_command_for(non_era)
+        building = fixture(tmp, "FEAT-9001-fixture", station="building")
+        outcomes.append(check("T-06 recovery_command_for returns open for a building plan with no started work",
+                              feature_schema.recovery_command_for(building)
                               == "open"))
     trigger_results = []
     for feature, station, task_status in (
-        ("BUG-1030-stale-anchor-write-hazard", "building", None),
-        ("FEAT-9001-fixture-non-era", "review", None),
-        ("FEAT-9001-fixture-non-era", "building", "done"),
+        ("FEAT-9001-fixture", "review", None),
+        ("FEAT-9001-fixture", "building", "done"),
     ):
         with tempfile.TemporaryDirectory() as tmp:
             feat_dir = fixture(tmp, feature, station=station, task_status=task_status)

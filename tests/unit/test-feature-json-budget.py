@@ -13,7 +13,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / ".claude/skills/harness/bin"))
-import feature_corpus
 import feature_schema
 
 
@@ -46,13 +45,28 @@ class JournalLinesTest(unittest.TestCase):
         self.assertGreater(feature_schema.journal_lines(record(3, prose)),
                            feature_schema.FEATURE_JSON_LINE_BUDGET)
 
-    def test_real_feature_54_record(self):
-        """The record that motivated this: 336 lines, all but ~40 of them ledger."""
-        text = Path(feature_corpus.corpus_path(
-            str(ROOT), ".harness/harness/features/FEAT-54-handoff-done-when/feature.json")
-        ).read_text()
+    def test_long_heterogeneous_ledger_before_a_nested_block(self):
+        """The shape that motivated this (FEAT-54): a 300+ line record, nearly all ledger, whose
+        run entries vary in keys and which is followed by a nested `github` block that still
+        counts. Synthetic, so the case never depends on a prior feature's folder (FEAT-71)."""
+        tasks = [f"T-{index:02d}" for index in range(1, 13)]
+        runs = []
+        for index in range(50):
+            run = {"id": f"2026-01-01-{index}-fixture", "agent": "harness-product-lead"}
+            if index % 7:
+                run.update(squad="product", verdict="PASS" if index % 3 else "FAIL")
+            if index % 5 == 0:
+                run["code_grade"] = "n_a"
+            runs.append(run)
+        doc = {"feature_id": "FEAT-90-fixture", "branch": "feat/FEAT-90-fixture", "pr": 9,
+               "review_sha": "none", "cycles_used": 22, "max_total_cycles": 30, "runs": runs,
+               "github": {"milestone": 9, "parent": 90, "attached": tasks,
+                          "issues": {task: 900 + n for n, task in enumerate(tasks)},
+                          "source_issues": []}}
+        text = json.dumps(doc, indent=2)
         self.assertGreater(len(text.splitlines()), 300)
         self.assertLess(feature_schema.journal_lines(text), 100)
+        self.assertGreater(feature_schema.journal_lines(text), 2 * len(tasks))
 
     def test_a_runs_lookalike_inside_a_string_is_not_the_key(self):
         """A value that spells the key must not be mistaken for it."""

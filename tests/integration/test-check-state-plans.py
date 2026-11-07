@@ -441,7 +441,7 @@ def case_inv6_plan_run_is_exempt():
 def case_inv6_code_run_still_fires():
     """The regression guard: a validator run that does NOT declare code_grade reviewed
     CODE, so an unpinned review_sha is still the GAP-7 failure. Absence is fail-CLOSED,
-    the opposite default from the `agent` key, which FEAT-31 made deliberately benign."""
+    the same default every run entry's `agent` key now has."""
     out = _inv6_feature(_CODE_RUN)
     ok = _PIN_MSG in out
     print(f"{'ok' if ok else 'FAIL'} - INV-6 still fires on a code run with no pin")
@@ -911,9 +911,8 @@ def case_inv35_apostrophe_before_truncation_still_fires():
     opened unquoted -- only the value's FIRST character can open a quoted scalar. An earlier
     draft toggled `in_quote` on every `'`/`"` anywhere on the line, so an odd count of
     apostrophes before the real truncation point flipped the scanner into treating the actual
-    ` #<digit>` as quoted and reporting nothing. Reproduced live against this repo's own
-    FEAT-34-worktree-act3-enforced/plan.yaml D-03 at review time -- this fixture is that
-    exact shape."""
+    ` #<digit>` as quoted and reporting nothing. Reproduced live against FEAT-34's plan
+    decision D-03 at review time -- this fixture is that exact shape."""
     with tempfile.TemporaryDirectory() as tmp:
         _i35_fixture(tmp, "notes: the operator's design note for #806 - status Done\n")
         code, out = run(tmp)

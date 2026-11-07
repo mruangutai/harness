@@ -1911,7 +1911,7 @@ turns: every counter, status and SHA is read from and written to disk, never hel
         2026-07-27-02-eng/state.yaml        ← eng-lead owned (fix cycle)
 ```
 
-**A feature has N runs, and runs are per-squad.** `ls features/FEAT-01-sso/runs/` is the complete
+**A feature has N runs, and runs are per-squad.** `ls features/<FEAT>/runs/` is the complete
 history of that feature, in order, with the squad visible in each name. This also makes every
 `state.yaml` **single-writer** — a run belongs to one squad, so one lead owns its file.
 

@@ -195,8 +195,8 @@ if authored_lineage:
 
 # ---------------------------------------------------------------------------
 # THE DISPATCH DECLARES ITS FEATURE (FEAT-42 T-18, issue #742). This is the ONE site in the
-# whole system that can see a dispatch prompt: measured in
-# FEAT-31/notes/probe-hook-payload-identity.md, a PreToolUse payload carries eleven keys and
+# whole system that can see a dispatch prompt: measured by FEAT-31's hook-payload probe,
+# a PreToolUse payload carries eleven keys and
 # tool_input.prompt exists only on the DISPATCH payload. So this field fixes this gate and
 # reaches no other hook.
 #
@@ -218,7 +218,7 @@ if not declared or not FEATURE_RE.fullmatch(declared):
     print("dispatch-guard: BLOCKED — this governed dispatch has no valid first-line feature.",
           file=sys.stderr)
     print("  The FIRST line of the prompt must be, spelled exactly:", file=sys.stderr)
-    print("    HARNESS-FEATURE: FEAT-42-one-root-resolver", file=sys.stderr)
+    print("    HARNESS-FEATURE: FEAT-NN-slug", file=sys.stderr)
     print("  BUG-NN-slug is also valid. A later line or another id form is refused.",
           file=sys.stderr)
     # #2010: OMP's task tool hands this gate each task's own `task` text; a batch's shared

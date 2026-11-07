@@ -9,13 +9,14 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 PROBE = "tests/manual/probe-handoff-comprehension.py"
-# BUG-1898 T-04: the live OMP merge gate is a locally-run, credentialled kind, never a matrix
-# (CI) claim, declared the same way as the other live probes.
-LIFECYCLE_PROBE = "tests/manual/probe-inflight-claim-lifecycle.py"
+# Every live probe is a locally-run, credentialled kind, never a matrix (CI) claim, and each is
+# declared the same way. This table is the complete set of locally_run kinds.
 LIVE_KINDS = {
     "handoff_comprehension": PROBE,
-    "inflight_claim_lifecycle_live": LIFECYCLE_PROBE,
+    "issue_types_live": "tests/manual/probe-issue-types.py",
+    "omp_session_accessor": "tests/manual/probe-omp-session-accessor.py",
 }
+ISSUE_TYPES_PROBE = LIVE_KINDS["issue_types_live"]
 failures = []
 
 
@@ -84,23 +85,25 @@ def run(root, *args):
 
 
 config = json.loads((ROOT / ".harness/harness.json").read_text())
-problems = registration_problems(config)
-check(f"registered real probe {PROBE}", problems == [], repr(problems))
-lifecycle_problems = registration_problems(config, "inflight_claim_lifecycle_live")
-check(f"registered live merge-gate probe {LIFECYCLE_PROBE}", lifecycle_problems == [],
-      repr(lifecycle_problems))
+locally_run = sorted(name for name, entry in config.get("test_kinds", {}).items()
+                     if isinstance(entry, dict) and entry.get("status") == "locally_run")
+check("the locally_run kinds are exactly the declared live probes",
+      locally_run == sorted(LIVE_KINDS), repr(locally_run))
+for kind, probe in sorted(LIVE_KINDS.items()):
+    problems = registration_problems(config, kind)
+    check(f"registered live probe {probe}", problems == [], repr(problems))
 
 in_matrix = copy.deepcopy(config)
-in_matrix.setdefault("test_matrix", {})["bugfix"] = ["inflight_claim_lifecycle_live"]
-matrix_problems = registration_problems(in_matrix, "inflight_claim_lifecycle_live")
-check("claiming the live merge gate in the automated matrix is loud",
+in_matrix.setdefault("test_matrix", {})["bugfix"] = ["issue_types_live"]
+matrix_problems = registration_problems(in_matrix, "issue_types_live")
+check("claiming a live probe in the automated matrix is loud",
       any("test_matrix" in problem for problem in matrix_problems), repr(matrix_problems))
 
-missing_lifecycle = copy.deepcopy(config)
-del missing_lifecycle["test_kinds"]["inflight_claim_lifecycle_live"]
-check("dropping the live merge-gate kind is loud",
-      any(LIFECYCLE_PROBE in problem for problem in
-          registration_problems(missing_lifecycle, "inflight_claim_lifecycle_live")))
+missing_issue_types = copy.deepcopy(config)
+del missing_issue_types["test_kinds"]["issue_types_live"]
+check("dropping a second live probe kind is loud",
+      any(ISSUE_TYPES_PROBE in problem for problem in
+          registration_problems(missing_issue_types, "issue_types_live")))
 
 empty_detect = copy.deepcopy(config)
 empty_detect["test_kinds"]["handoff_comprehension"]["detect"] = ""
@@ -119,14 +122,14 @@ check("dropping probe kind is loud",
 fixture = tree()
 try:
     all_run = run(fixture, "--kind", "all")
-    check("--kind all excludes both live probes",
+    check("--kind all excludes every live probe",
           all_run.returncode == 0
           and "PASS test-unit.py" in all_run.stdout
           and "PASS test-integration.py" in all_run.stdout
           and "LIVE-PROBE-MUST-NOT-RUN" not in all_run.stdout + all_run.stderr,
           all_run.stdout + all_run.stderr)
     layout = run(fixture, "--check-layout")
-    check("manual comprehension probe is layout-valid", layout.returncode == 0,
+    check("manual live probes are layout-valid", layout.returncode == 0,
           layout.stdout + layout.stderr)
 finally:
     shutil.rmtree(fixture)

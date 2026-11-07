@@ -490,7 +490,7 @@ def run_sweep_scoped_to_feature():
 
 def run_runs_agent_write_path():
     """FEAT-31 T-15 case F — the half that makes "the WRITE PATH refuses" true rather
-    than "the module refuses". SC-07's positional rule is enforced through the same
+    than "the module refuses". SC-07's agent rule is enforced through the same
     import check-domain.py already has, so this drives the real hook as a subprocess
     on its PRE Write route and asserts on the process, not on a function return.
 
@@ -512,13 +512,9 @@ def run_runs_agent_write_path():
         if not ok:
             fails += 1
 
-    # A feature name deliberately ABSENT from the frozen map, so its exempt count is 0
-    # and its very first runs entry must carry `agent`. Asserted, not assumed.
-    import feature_schema as _fs
-    feat = "FEAT-Z-absent-from-the-frozen-map"
-    t("SC-07 write path: the fixture feature is absent from the frozen exempt map",
-      feat not in _fs.RUNS_AGENT_EXEMPT,
-      "the fixture name is in the map, so this block would prove nothing")
+    # A synthetic feature: the agent rule is uniform, so its very first runs entry must
+    # carry `agent` exactly like any other feature's.
+    feat = "FEAT-90-fixture-agent-write"
 
     doc_bad = json.dumps({"feature_id": feat, "branch": "none", "pr": None, "review_sha": "none", "cycles_used": 0,
                           "max_total_cycles": 10,
@@ -595,7 +591,7 @@ teams:
                 n_mut = 1 if r_mut.returncode == 2 else 0
                 print(f"      red proof: original denials {n_real}, mutant {n_mut} "
                       f"(exit {r_bad.returncode} vs {r_mut.returncode})")
-                t("SC-07 write path RED: the positional rule is load-bearing at the hook",
+                t("SC-07 write path RED: the agent rule is load-bearing at the hook",
                   n_mut < n_real,
                   f"INCONCLUSIVE — original {n_real}, mutant {n_mut}")
             finally:
@@ -871,10 +867,10 @@ def _write_handoff_plan(feature_dir, task_id):
 
 def _handoff_worktree_cases(results, root):
     wt_path = os.path.join(
-        root, ".claude", "worktrees", "harness", "BUG-1480-wt")
-    make_linked_worktree(root, wt_path, "bug1480")
+        root, ".claude", "worktrees", "harness", "BUG-9-handoff-wt")
+    make_linked_worktree(root, wt_path, "bug9-handoff")
     feat = os.path.join(
-        wt_path, ".harness", "harness", "features", "BUG-1480-wt-fixture")
+        wt_path, ".harness", "harness", "features", "BUG-9-handoff-wt-fixture")
     notes = os.path.join(feat, "notes")
     os.makedirs(notes)
     _write_handoff_plan(feat, "T-03")
@@ -882,7 +878,7 @@ def _handoff_worktree_cases(results, root):
         f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
     target = os.path.join(notes, "handoff-build.md")
     main_feat = os.path.join(
-        root, ".harness", "harness", "features", "BUG-1480-wt-fixture")
+        root, ".harness", "harness", "features", "BUG-9-handoff-wt-fixture")
     results.append((
         "handoff worktree-only main root has no feature dir",
         not os.path.exists(main_feat), main_feat))
@@ -905,8 +901,8 @@ def _handoff_worktree_cases(results, root):
         2, (
             "SC-99",
             os.path.join(
-                "BUG-1480-wt", ".harness", "harness", "features",
-                "BUG-1480-wt-fixture", "BRIEF.md"),
+                "BUG-9-handoff-wt", ".harness", "harness", "features",
+                "BUG-9-handoff-wt-fixture", "BRIEF.md"),
         ))
 
 

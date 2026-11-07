@@ -25,8 +25,8 @@ from check_state.ctx import approved, has_approval_block, read
 #       it. A `.fullmatch` against the isolated value cannot be fooled by a substring.
 #   (2) The prior quote tracker toggled `in_quote` on EVERY `'`/`"` character anywhere on the
 #       line, so a plain scalar with an odd count of apostrophes before the truncation point
-#       (`the operator's design note for #806`, live in
-#       FEAT-34-worktree-act3-enforced/plan.yaml D-03 at review time) flipped the scanner into
+#       (`the operator's design note for #806`, live in FEAT-34's plan decision D-03 at
+#       review time) flipped the scanner into
 #       treating the real ` #806` as quoted and reported nothing.
 #
 # THE FIX RESTS ON ONE YAML FACT: only the FIRST character of a value can open a quoted

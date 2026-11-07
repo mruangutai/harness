@@ -442,18 +442,6 @@ def layout_refusal(root, bin_dir=_BIN):
 # Branch claims, computed on demand
 # ---------------------------------------------------------------------------------------------
 
-# FEAT-58 D-06 (operator, cycle 3): FEAT-02 and FEAT-03-subissue-mirror both record
-# feat/harness-native-foundation. That is what happened — two features shared a foundation branch
-# — and both are terminal, so correcting either record would invent a value. The exemption is the
-# EXACT id set: a third claimant on that branch still collides, and an empty reason stops the
-# entry matching, so it cannot become a habit.
-BRANCH_ERA_EXEMPT = {
-    frozenset({"FEAT-02", "FEAT-03-subissue-mirror"}):
-        "shared foundation branch of the harness-native era; both features are terminal, and "
-        "correcting either record would write a branch value that never existed",
-}
-
-
 def branch_claims(entries):
     """`{branch: sorted ids}` over parsed records. Missing, empty and literal `none` branches are
     sentinels and claim nothing."""
@@ -469,16 +457,12 @@ def branch_claims(entries):
     return {branch: sorted(ids) for branch, ids in claims.items()}
 
 
-def branch_collisions(entries, exempt=None):
-    """`[(branch, ids)]` for every branch claimed by more than one feature, sorted by branch,
-    except an exact exempt id set whose reason is non-empty."""
-    exempt = BRANCH_ERA_EXEMPT if exempt is None else exempt
+def branch_collisions(entries):
+    """`[(branch, ids)]` for every branch claimed by more than one feature, sorted by branch. The
+    rule is uniform: no id set is exempt."""
     out = []
     for branch, ids in sorted(branch_claims(entries).items()):
         if len(ids) < 2:
-            continue
-        reason = exempt.get(frozenset(ids))
-        if isinstance(reason, str) and reason.strip():
             continue
         out.append((branch, ids))
     return out
