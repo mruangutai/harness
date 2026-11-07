@@ -1,0 +1,85 @@
+schema_version: 2
+run_uid: fd12138714524a0abad3fd3f5b8bbf53
+run_id: 2026-11-07-03-fix-c1-validator
+feature: BUG-2180-inv26-fleet-routing
+squad: validator
+host: harness-validator-lead
+status: complete
+head_sha: 909798ec572ffe6ec484e89fd36f0f58ef113c45
+steps:
+  - id: fix
+    persona: main-session-direct
+    task: T-01
+    status: complete
+    verdict: PASS
+    cycles: 0
+    mutates_repo: true
+    depends_on: []
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing/.harness/harness/features/BUG-2180-inv26-fleet-routing/notes/receipt-main-session-fix-c1.md
+    note: Main supplied completed fix; no author dispatched in this run.
+  - id: qa
+    persona: harness-qa
+    task: T-01
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    depends_on: [fix]
+    cycles: 0
+    mutates_repo: false
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing/.harness/harness/features/BUG-2180-inv26-fleet-routing/notes/qa-fix-c1.md
+    evidence:
+      matrix_ok: true
+      unit_files: 58
+      integration_files: 84
+      verify_exit: 0
+      verify_assertions: 37
+      unit_base_failures: 7
+      unit_final_assertions: 9
+    note: R2 resolved; per-SC discrimination retained after integration split.
+  - id: code
+    persona: harness-code-reviewer
+    task: T-01
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    depends_on: [fix]
+    cycles: 0
+    mutates_repo: false
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing/.harness/harness/features/BUG-2180-inv26-fleet-routing/notes/review-harness-code-reviewer-fix-c1.md
+    evidence:
+      grade_exit: 0
+      passing_functions: 39
+      case_x_grade: 4
+      fix_commit_in_pin: true
+      production_blob_unchanged: true
+    note: R1 and R2 resolved; no new source finding.
+  - id: security
+    persona: harness-security-reviewer
+    task: T-01
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    depends_on: [fix]
+    cycles: 0
+    mutates_repo: false
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing/.harness/harness/features/BUG-2180-inv26-fleet-routing/notes/review-harness-security-reviewer-fix-c1.md
+    note: No exploitable security regression identified; static review only.
+  - id: ui
+    persona: harness-ui-reviewer
+    task: T-01
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    depends_on: [fix]
+    cycles: 0
+    mutates_repo: false
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2180-inv26-fleet-routing/.harness/harness/features/BUG-2180-inv26-fleet-routing/notes/review-harness-ui-reviewer-fix-c1.md
+    evidence:
+      base_paths: 25
+      remediation_paths: 16
+      ui_paths: 0
+    note: Not in scope on measured census; no visual assurance claimed.
