@@ -1,0 +1,61 @@
+{
+  "feature_id": "BUG-2180-inv26-fleet-routing",
+  "branch": "feat/BUG-2180-inv26-fleet-routing",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-07-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:39:19+00:00",
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T14:47:43+00:00",
+        "authorization": {
+          "path": "notes/refused-return-authorization-2026-11-07-01-product.md",
+          "sha256": "877fdaaa8b75a91f5d55bd86197f4577a9f574831afe05de6207f9f9e423b23b"
+        },
+        "path": "runs/2026-11-07-01-product/digest.md",
+        "sha256": "4bb8a2361fcecfea98e9eebf0f95b28a607882a298e15107f8ab3e6bb43e87cb"
+      },
+      "refusal": {
+        "source": "close-run",
+        "digest": {
+          "path": "runs/2026-11-07-01-product/digest.md",
+          "sha256": "4bb8a2361fcecfea98e9eebf0f95b28a607882a298e15107f8ab3e6bb43e87cb"
+        },
+        "run_id": "2026-11-07-01-product",
+        "reason": "validator rejected the return with deliberate contract-refusal status 65",
+        "by": "operator",
+        "at": "2026-11-07T14:47:43+00:00"
+      },
+      "ended_at": "2026-11-07T14:47:43+00:00",
+      "tokens": null,
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-07T14:39:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "one known defect in one function family (INV-26), known fix copying INV-37's resolve_binding pattern; bounded diff, no new interface"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2180-inv26-fleet-routing/notes/operator-signature-2026-11-07.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "523a9898c90a3c456afcc16ac26624c54e56e6cc0baf9f4ab43642d05263e272"
+  }
+}
