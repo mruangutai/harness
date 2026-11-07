@@ -48,7 +48,18 @@
       "tokens": 44838,
       "ended_at": "2026-10-05T05:57:58+00:00",
       "cycles_used": 0,
-      "code_grade": "n_a"
+      "code_grade": "n_a",
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T14:29:09+00:00",
+        "authorization": {
+          "path": "notes/research-fleet-planning-recovery-authorization.md",
+          "sha256": "a6ec5e0986310e1025ea2dcedfb4b7ec65205b27e72a3bac31adbe6fad3d0df2"
+        },
+        "path": "runs/2026-10-05-2-plan-product/digest.md",
+        "sha256": "94d6f194c2159f19f1b2f4c50b6617043f26c22ff029b0fe040f6a85f98ba40f"
+      }
     },
     {
       "id": "2026-10-05-3-simplify-eng",
@@ -59,7 +70,22 @@
       "tokens": 99568,
       "ended_at": "2026-10-05T06:32:16+00:00",
       "cycles_used": 0,
-      "code_grade": "n_a"
+      "code_grade": "n_a",
+      "refusal": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T14:29:01+00:00",
+        "authorization": {
+          "path": "notes/research-fleet-planning-recovery-authorization.md",
+          "sha256": "a6ec5e0986310e1025ea2dcedfb4b7ec65205b27e72a3bac31adbe6fad3d0df2"
+        },
+        "digest": {
+          "path": "runs/2026-10-05-3-simplify-eng/digest.md",
+          "sha256": "d0e28f4d9a801e073c2835ec80d692ddd4b469d84eb52a90563e8703804910de"
+        },
+        "run_id": "2026-10-05-3-simplify-eng",
+        "reason": "Ledger BLOCKED refused lead return: prose-only digest without the required structured mapping (DEC-156); bytes, verdict and count preserved (#2174)."
+      }
     },
     {
       "id": "2026-10-05-4-simplify-eng",
@@ -92,7 +118,18 @@
       "tokens": 133071,
       "ended_at": "2026-10-05T14:29:59+00:00",
       "cycles_used": 1,
-      "code_grade": "n_a"
+      "code_grade": "n_a",
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T14:29:11+00:00",
+        "authorization": {
+          "path": "notes/research-fleet-planning-recovery-authorization.md",
+          "sha256": "a6ec5e0986310e1025ea2dcedfb4b7ec65205b27e72a3bac31adbe6fad3d0df2"
+        },
+        "path": "runs/2026-10-05-6-plan-product/digest.md",
+        "sha256": "b8792f929c02fa39ce33dacd49910b74f18f57fd2f06615caf7e36bad269ae22"
+      }
     },
     {
       "id": "2026-10-05-7-simplify-eng",
@@ -232,8 +269,8 @@
     "T-10": "51356a2962d61f8e3431621aab67300167d3041ba96fa2297c588af8250dde46"
   },
   "github": {
-    "milestone": 100,
-    "parent": 2116,
+    "milestone": 1,
+    "parent": 16,
     "attached": [
       "T-01",
       "T-02",
@@ -247,20 +284,75 @@
       "T-10"
     ],
     "issues": {
-      "T-01": 2117,
-      "T-02": 2118,
-      "T-03": 2119,
-      "T-04": 2120,
-      "T-05": 2121,
-      "T-06": 2122,
-      "T-07": 2123,
-      "T-08": 2124,
-      "T-09": 2125,
-      "T-10": 2126
+      "T-01": 17,
+      "T-02": 18,
+      "T-03": 19,
+      "T-04": 20,
+      "T-05": 21,
+      "T-06": 22,
+      "T-07": 23,
+      "T-08": 24,
+      "T-09": 25,
+      "T-10": 26
     },
     "source_issues": [
       14
     ],
-    "build_entry": "opened"
+    "build_entry": "opened",
+    "repo": "mruangutai/kaya",
+    "history": [
+      {
+        "recovery_id": "25a09cc3-8755-460b-8658-71730b3a6162",
+        "at": "2026-11-07T14:29:44.614155+00:00",
+        "repo": "mruangutai/harness",
+        "reason": "Approval transaction mirrored into mruangutai/harness (milestone 100, parent 2116, tasks 2117-2126, all closed not_planned; Harness #14 unrelated and untouched). No implementation started: full replacement in mruangutai/kaya from the unchanged signed plan, projecting signed source #14 (#2172).",
+        "evidence": {
+          "path": "notes/research-fleet-planning-recovery-authorization.md",
+          "sha256": "a6ec5e0986310e1025ea2dcedfb4b7ec65205b27e72a3bac31adbe6fad3d0df2"
+        },
+        "previous": {
+          "milestone": 100,
+          "parent": 2116,
+          "attached": [
+            "T-01",
+            "T-02",
+            "T-03",
+            "T-04",
+            "T-05",
+            "T-06",
+            "T-07",
+            "T-08",
+            "T-09",
+            "T-10"
+          ],
+          "issues": {
+            "T-01": 2117,
+            "T-02": 2118,
+            "T-03": 2119,
+            "T-04": 2120,
+            "T-05": 2121,
+            "T-06": 2122,
+            "T-07": 2123,
+            "T-08": 2124,
+            "T-09": 2125,
+            "T-10": 2126
+          },
+          "source_issues": [
+            14
+          ],
+          "build_entry": "opened"
+        }
+      }
+    ],
+    "recovery": {
+      "id": "25a09cc3-8755-460b-8658-71730b3a6162",
+      "from_repo": "mruangutai/harness",
+      "to_repo": "mruangutai/kaya",
+      "mode": "full",
+      "state": "complete",
+      "plan_sha256": "1c5d6bfbace6034faebb291fa18b63a42446831b86715258f8722ae32c5fb462",
+      "started_at": "2026-11-07T14:29:44.614155+00:00",
+      "completed_at": "2026-11-07T14:34:53.529534+00:00"
+    }
   }
 }
