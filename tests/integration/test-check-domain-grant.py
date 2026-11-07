@@ -357,7 +357,7 @@ def run_t12():
     # (D-14b), stderr on a BLOCK does reach the agent, because exit 2 surfaces it
     # (DEC-100) — so this channel is the right one here and the fix is complete.
     t12("D-14a: the block SAYS WHY and carries the install command",
-        r3.stderr.strip() != "" and "pip install" in r3.stderr
+        r3.stderr.strip() != "" and any(command in r3.stderr for command in advice)
         and "EARLIER session" in r3.stderr,
         f"stderr was {len(r3.stderr)} bytes: {r3.stderr.strip()[:200]}")
 

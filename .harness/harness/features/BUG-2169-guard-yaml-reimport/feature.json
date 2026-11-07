@@ -22,8 +22,12 @@
       "id": "2026-11-07-2-validate-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-07T14:03:20+00:00"
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:03:20+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:19:37+00:00",
+      "return_disposition": "refused"
     }
   ],
   "judgements": [

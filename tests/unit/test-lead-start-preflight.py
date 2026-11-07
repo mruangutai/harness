@@ -491,17 +491,36 @@ def bug2169_cases():
 def bug2169_advice():
     """SC-02: the PyYAML refusal advice installs where the isolated policy phase looks."""
     import harness_yaml
-    if not hasattr(harness_yaml, "install_command"):
-        check("startup", "BUG-2169/advice/function",
-              "harness_yaml.install_command(homebrew, debian_system) selects the advice",
-              False, "harness_yaml has no install_command")
-        return
+
     def commands(advice):
         """The lines an operator runs: everything but the explanatory `#` lines."""
         return [line for line in advice.splitlines() if not line.lstrip().startswith("#")]
 
     def per_user(advice):
         return any("--user" in line for line in commands(advice))
+
+    # THE PRINTED ADVICE, judged against facts this test reads itself. INSTALL_COMMAND
+    # predates the fix, so these run - and fail on the old `--user` fallback - at base.
+    printed = harness_yaml.INSTALL_COMMAND
+    prefix = os.path.realpath(sys.prefix)
+    check("startup", "BUG-2169/advice/printed-not-per-user",
+          "the advice this interpreter prints installs no PyYAML per-user",
+          not per_user(printed), printed)
+    if "/Cellar/" in prefix:
+        check("startup", "BUG-2169/advice/printed-homebrew",
+              "a Homebrew python3 prints the --break-system-packages command and the warning",
+              "python3 -m pip install --break-system-packages pyyaml" in commands(printed)
+              and "break the Homebrew" in printed, printed)
+    elif os.path.exists("/etc/debian_version") and prefix == "/usr":
+        check("startup", "BUG-2169/advice/printed-debian",
+              "Debian/Ubuntu's system python3 prints the apt command",
+              any("apt install python3-yaml" in line for line in commands(printed)), printed)
+
+    if not hasattr(harness_yaml, "install_command"):
+        check("startup", "BUG-2169/advice/function",
+              "harness_yaml.install_command(homebrew, debian_system) selects the advice",
+              False, "harness_yaml has no install_command")
+        return
 
     brew = harness_yaml.install_command(homebrew=True, debian_system=False)
     debian = harness_yaml.install_command(homebrew=False, debian_system=True)
