@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-71-corpus-independence",
   "branch": "feat/FEAT-71-corpus-independence",
-  "pr": null,
+  "pr": 2192,
   "review_sha": "5a2edb72a220efd4a44cda6f512ec5697c0f37e0",
   "cycles_used": 1,
   "max_total_cycles": 10,
