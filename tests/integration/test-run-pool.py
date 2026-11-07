@@ -66,6 +66,23 @@ def case_failure(root, paths):
           and "BADTOKEN" in result.stdout and all_passed, result.stdout)
 
 
+def case_completed_seam(root, paths):
+    """FEAT-2081: the optional seam records each finished future and its real return code."""
+    import contextlib
+    import io
+    import run_pool
+    bad = script(root, "seam-bad.py", "raise SystemExit(5)\n")
+    completed = []
+    with contextlib.redirect_stdout(io.StringIO()) as out:
+        rc = run_pool.main(["--workers", "2", "--", *paths, bad], completed=completed)
+    check("completed seam records every finished script with its return code",
+          rc == 1 and sorted(completed) == sorted([(p, 0) for p in paths] + [(bad, 5)]),
+          repr(completed))
+    check("completed seam keeps default output",
+          "FAIL seam-bad.py" in out.getvalue() and "pool: 2 workers, 4 files" in out.getvalue(),
+          out.getvalue())
+
+
 def case_exactly_once(root):
     ledger = os.path.join(root, "ledger")
     paths = [script(root, f"once{i}.py", f"open({ledger!r}, 'a').write('once{i}\\n')\n")
@@ -178,6 +195,7 @@ def main():
         paths = base_scripts(root)
         case_attribution(paths)
         case_failure(root, paths)
+        case_completed_seam(root, paths)
         case_exactly_once(root)
         case_worker_selection(paths)
         case_completion_order(root, paths)

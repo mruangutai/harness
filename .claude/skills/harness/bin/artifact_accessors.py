@@ -130,7 +130,7 @@ def _read_feature_json_text(path, context):
 def _parse_feature_json_text(text, context):
     try:
         doc = strict_json_loads(text)
-    except (TypeError, ValueError) as error:
+    except (TypeError, ValueError, RecursionError) as error:
         raise FeatureJsonError(
             "feature.json invalid", context, f"does not parse: {error}"
         ) from error

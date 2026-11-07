@@ -1,0 +1,133 @@
+# BLUF: Two disjoint team tasks deliver explicit source disposal; three public-contract choices require signature.
+# This research receipt is also the machine-readable proposal consumed by plan-merge.py.
+# Input: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-abandon-source-tickets-2026-11-02.md, operator-confirmed mission plan.
+# Reused verified facts: c5233803 unopened skip and missing source plan; e817d357 DEC-203 source shipping, suites, and archived FEAT-1774 provenance. No corpus re-scan or dry-run reproduction performed.
+# PRODUCT baseline: e817d3572087c9b9052e1f673c2ee177403a5896. AGENTS.md maps SPEC.md and DECISIONS.md under .harness/harness/docs; generic docs/spec.md, docs/decisions.md, docs/architecture.md are absent.
+# Read inputs: PRODUCT DEC-138 reason provenance; DEC-203 section 8 close-before-Backlog and guard; DEC-238/INV-51 station-before-prune; .harness/harness.json unit/integration runners and bugfix/docs matrix.
+# Backlog: configured mruangutai/harness issue list and issue 2161 read. Its shared-ticket Constraint is expressly overruled by settled grilling; no corpus check is authorized. Initial read used a wrong repository spelling, failed, then was corrected from configuration.
+# Route selection: check-domain individually resolved gh-sync.py and each test to backend-dev/dev-ops (tests also qa), documents to documentor. Backend chosen because this is CLI lifecycle logic, not infrastructure. No main-session-direct code task.
+# Prototype assessment: no DESIGN/prototype. This is CLI-only with settled explicit confirmation; the useful preview is the actual command's dry run, checked by fake-gh tests, not a visual artifact.
+# Verification now: only the required plan-merge structural check; no build, test, lint, formatter or live disposal. Later QA must supply red-first unit/integration receipts; SC-07 remains operator-only post-merge acceptance.
+# ## Principles applied
+# Experience First: exact reported writes and no-op local re-entry keep the operator's confirmation meaningful.
+# Redesign From First Principles: fold source disposal into the existing plan/apply path and local finalization, not a separate command.
+# PRODUCT PRINCIPLES, No more specific than necessary: prescribe observable effects/order, not a new abstraction.
+# PRODUCT PRINCIPLES, Verification is the product: separate fake-gh evidence from real post-merge #1774 acceptance.
+# Open questions: none for drafting; D-01 through D-03 are pending recommendations, not signed rulings.
+# Plan-stage four-angle simplification and panel are parent-owned subsequent gates. No panel or approval is transcribed here.
+schema: plan/1
+feature: BUG-2161-abandon-source-tickets
+approval:
+  date: '2026-11-03'
+  approved_by: operator
+  status: approved
+status: done
+source_issues: [2161]
+panel:
+  last_run: 2026-11-02-01-product
+  cycle: 0
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: none
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: none
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: none
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: none
+  findings:
+  - id: PF-a68755d85a05e098891d2d28274a6e7a
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    scope: task
+    summary: The shipped unit case that makes "an attempted corpus lookup fail the test" (plan.yaml T-01, SC-05) guards against behavior nobody is building and cannot actually detect it
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-f3f10babb2e63d106e0d0d8db679839c
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    scope: task
+    summary: Duplicating the full post-merge FEAT-1774 acceptance runbook into the T-02 documentor receipt adds text with no future reader
+    disposition: resolved
+    resolved_by: T-02
+lanes:
+  resolved_at: e817d3572087c9b9052e1f673c2ee177403a5896
+  rows:
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/**
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/harness/docs/**
+      lane: team
+      agent: harness-documentor
+decisions:
+  - id: D-01
+    choice: Amend DEC-203 section 8 to permit source disposal only through abandon --close-sources --yes, using operator confirmation instead of any shared-ticket corpus check.
+    because: The operator overruled issue 2161's Constraint in settled grilling; a confirmed source may still be cited by another active feature, and that risk belongs to the operator rather than a new discovery gate.
+    dec: DEC-203
+  - id: D-02
+    choice: On already-abandoned re-entry, an unchanged station and absent runs/ are idempotent local no-ops while explicitly requested source disposal proceeds; retained runs/ is still pruned after confirming the abandoned station.
+    because: Refusing terminal re-entry would make archived FEAT-1774 acceptance impossible; redundant local mutation is unnecessary, but retaining runs/ would violate INV-51.
+    dec: DEC-238
+  - id: D-03
+    choice: Every opted-in source receives exactly the same reason-file text as the parent, verbatim through the original --reason-file path, with no prefix or source-specific wording.
+    because: Posting a composed explanation would break DEC-138 provenance and require a second signed artifact without adding an operator outcome.
+    dec: DEC-138
+tasks:
+  - id: T-01
+    title: Extend confirmed abandonment to sources and unopened or abandoned records
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/gh-sync.py#cmd_abandon
+      - tests/integration/test-gh-sync-abandon.py#main
+      - path: tests/unit/test-gh-sync-abandon-sources.py
+        create: true
+    verify: |
+      python3 tests/unit/test-gh-sync-abandon-sources.py && python3 tests/integration/test-gh-sync-abandon.py && python3 tests/integration/test-gh-sync-ship.py
+    intent: |
+      Work only in PRODUCT /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2161-abandon-source-tickets. Consult its AGENTS.md, .harness/harness/docs/SPEC.md sections 9 and 11, .harness/harness/docs/DECISIONS.md DEC-138, DEC-203 section 8 and DEC-238, and docs/PRINCIPLES.md. Generic docs/spec.md, docs/decisions.md and docs/architecture.md are absent; AGENTS.md maps the actual product guidance and no replacement architecture authority is assumed. Read this feature's BRIEF.md SC-01 through SC-07 and plan decisions D-01 through D-03 as acceptance inputs. No live GitHub writes or FEAT-1774 disposal in this task.
+      Add an abandon-only boolean --close-sources option and thread it through main, cmd_abandon and the existing _abandon_plan/_apply_abandon_plan path. Use a false default for existing direct callers, not a new command or shim. Refuse this flag on other subcommands before mutation. Only --close-sources together with --yes authorizes source writes. Without --close-sources, even --yes must make zero source comments, closes, labels or board writes. Without --yes report every intended operation and make no local or remote writes.
+      Resolve opted-in sources through parse_source_issues(feat_dir), the authoritative plan.yaml list, not only feature.json's mirror. Do not mutate that list or refresh the mirror as a side effect. Extend the existing abandonment plan and executor so dry run describes the same source operations the real run applies. For each opted-in source close not_planned, reseat Backlog after that close, label abandoned and comment through the original reason_file path. Reuse exactly the parent's file contents without generated wording or a reason-string option. Generalize _post_abandon_reason and _report_abandon_gaps in place to handle source targets from the existing abandonment plan/executor, rather than adding a parallel source comment or reporting path. Preserve the original reason_file argument and settled operation order. Report source comment successes and failures consistently even when no parent exists; do not claim that no reason was posted merely because the parent is absent when an opted-in source received it. No source detach, shared-ticket corpus scan or cross-feature discovery. Preserve best-effort reporting and continuation: a failed source write does not stop later sources or local finalization, and a failed close is not reported as successful. Preserve existing parent/task/milestone operations and order. Report all intended writes in dry run, including label setup, comments, closes, labels, board placement, station recording and evidence pruning.
+      Remove the unopened-mirror early skip. Under --yes, no parent, milestone or tasks still records abandoned through _record_station and then prunes runs/ through _prune_abandoned_runs, even with no sources; opt-in additionally disposes of sources present only in plan.yaml. Reuse the existing _feature_station(feat_dir) reader to guard _record_station on already-abandoned re-entry, rather than introducing another station parser. Re-entry at abandoned must not rewrite that station; absent runs/ is a no-op, retained runs/ is pruned after confirming abandoned. Do not refuse source disposal because the station is already abandoned. Preserve all other feature artifacts. Leave gh-close-gate.py and reject source behavior unchanged, and do not widen ship's direct-close behavior. Update this source file's usage and stale abandonment comments for opt-in and local finalization.
+      Before production edits add red-first integration cases in test-gh-sync-abandon.py using existing fake-gh support. Cover two distinct sources with separate per-source assertions for close reason, close-before-Backlog order, label, original body-file path and dry-run operations; all four flag combinations; no sources; unopened record with plan-only sources and stale feature.json mirror; dry-run byte preservation of plan and runs/; station-before-prune; already-abandoned station no rewrite with absent and retained runs/; failed source close and failed label/comment without suppressing later sources or local finalization. Assert --close-sources rejection on other subcommands with zero mutations. Retain and exercise existing parent/task disposal and reject source coverage in this suite. Run test-gh-sync-ship.py read-only as the existing Done-projection regression; no changes to that file are needed.
+      Add tests/unit/test-gh-sync-abandon-sources.py using the importlib loading convention in tests/unit/test-gh-sync-build-entry.py and nonzero-on-failure reporting. Exercise the actual planner/executor with intercepted external writes: opt-in source inclusion, one reported/applied operation list and every source comment using the unchanged original reason-file argument. Exercise cmd_abandon with a second active feature citing the same source; explicit confirmation must still target only this feature's authoritative plan.yaml source list. Capture named new cases failing against pre-change code; distinguish unsupported-option failures from the missing unopened/source behavior. Pair absence assertions with positive source disposal. No corpus-lookup detector or corpus-lookup perturbation gate is required; SC-06 inspection enforces the no-corpus-check contract. Keep evidence in the task receipt, not production scaffolds.
+      The focused verify block must exit 0 with no FAIL assertions in under 60 seconds. It does not waive the configured matrix: bugfix with runtime edits requires unit and this external-interaction bug also requires integration; QA separately runs the configured active kinds and cites named fail-first and regression evidence. No tests run during plan authoring. SC-07 is operator-only post-merge acceptance, never a result this task may claim passed.
+  - id: T-02
+    title: Amend DEC-203 and regenerate its index for explicit source disposal
+    traces:
+    - SC-06
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01]
+    status: done
+    files:
+      - path: .harness/harness/docs/DECISIONS.md
+        quote: '## DEC-203 — A ticket is open until its card reaches'
+      - path: .harness/harness/docs/DECISIONS-INDEX.md
+        quote: '- DEC-203 @'
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Work only in PRODUCT /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2161-abandon-source-tickets. Read its AGENTS.md, .harness/harness/docs/SPEC.md sections 9 and 11, .harness/harness/docs/DECISIONS.md DEC-138, DEC-203 section 8, DEC-205 and DEC-238, and docs/PRINCIPLES.md. Generic docs/spec.md, docs/decisions.md and docs/architecture.md are absent; use the assigned product's mapped guidance, without inventing an architecture contract. Read this feature's approved BRIEF.md and plan decisions D-01 through D-03; do not write approvals or panel.
+      Amend DEC-203 section 8 in place after T-01, not an appended supersession or new decision number. Preserve existing parent/task close, detach and close-before-Backlog rules. State that only abandon --close-sources --yes permits any source write; the no-flag path leaves sources entirely untouched. Each opted-in source closes not_planned, returns Backlog after close, is labelled abandoned and receives exactly the parent's original --reason-file contents under DEC-138. Dry run shows every intended write and makes none. No shared-ticket corpus check or active-feature ownership refusal: issue 2161's Constraint is explicitly overruled by settled operator grilling; the complete dry run and both flags are the guard even if another active feature cites the ticket. State that cost rather than imply the risk vanished.
+      Document that an unopened mirror still records abandoned before pruning runs/ under INV-51 and DEC-238. Already-abandoned station and absent runs/ are local no-ops without preventing explicit source disposal; retained runs/ is still pruned. State that gh-close-gate.py and reject source behavior are unchanged. Do not broaden this into source detach or dependency discovery. Regenerate DECISIONS-INDEX.md through the existing gen-decisions-index.py writer to refresh the generated summary and source anchors.
+      In the documentor receipt, point to BRIEF.md SC-07 for the canonical post-merge operator acceptance sequence; do not duplicate that runbook, execute live disposal or claim SC-07 passed.
+      The under-60-second verify is a read-only index consistency gate: exit 0, empty diff. It is not evidence of new content; SC-06 separately requires reviewer inspection of git show at review_sha for DEC-203, index and T-01 CLI usage. No DESIGN or prototype artifacts for this CLI-only change.

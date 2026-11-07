@@ -1,0 +1,201 @@
+{
+  "feature_id": "BUG-20261006-fleet-planning-recovery",
+  "branch": "feat/BUG-20261006-fleet-planning-recovery",
+  "pr": null,
+  "review_sha": "d69cf444cd7a8ebf8b78ddb0f0c0d1f3799cf1db",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-10-06-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-07T03:28:36+00:00",
+      "tokens": 137652,
+      "ended_at": "2026-10-07T04:00:54+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-06-2-simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-07T04:05:21+00:00",
+      "tokens": 57184,
+      "ended_at": "2026-10-07T04:20:50+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a",
+      "refusal": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-10-18T16:01:16+00:00",
+        "authorization": {
+          "path": "notes/operator-own-feature-recovery-2026-10-18.json",
+          "sha256": "b2d70e2e10bd67ad1ec308ea0b242fb55f1c94abf5373d95e050c334e05a7668"
+        },
+        "digest": {
+          "path": "runs/2026-10-06-2-simplify-eng/digest.md",
+          "sha256": "fd5656050c7dbbf9c979bd0bff9ef24805959a162341d06183f3055c844d9336"
+        },
+        "run_id": "2026-10-06-2-simplify-eng",
+        "reason": "Operator-authorized provenance for the original malformed BLOCKED return; preserve raw bytes and all historical verdicts, timestamps and cycle counts."
+      }
+    },
+    {
+      "id": "2026-10-06-3-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-07T04:27:03+00:00",
+      "tokens": 129835,
+      "ended_at": "2026-10-07T04:49:55+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-17-1-build-main",
+      "squad": "engineering",
+      "agent": "main-session",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-17T13:29:16+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-10-17-1-build-main/digest.md",
+        "sha256": "0e51a7494d84196d9bd6132d50b014a87499be14caeea5b484276c7305ab643c"
+      },
+      "ended_at": "2026-10-18T15:40:31+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-07T03:28:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "An explicit mirror-recovery operation and historical refusal/accounting contracts introduce public interface or enforcement-state changes; this is not a bounded interface-neutral patch."
+    },
+    {
+      "at": "2026-10-07T04:05:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "pre-signature four-angle simplify pass over pending plan draft",
+      "reason": "Prior FAIL is the preserved scope-reader roll-up with zero send-backs, not an open must_fix; this run is the mandatory read-only harness-simplify plan-draft pass, not a fix round."
+    },
+    {
+      "at": "2026-10-18T13:52:25.403635+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Operator selected explicit direct-run counts; add shared main-session dev schema. Authority: notes/operator-direct-run-evidence-approval-2026-10-18.md"
+    },
+    {
+      "at": "2026-10-18T14:43:33.740391+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Complete the approved evidence-aware run-end cutover in the existing host-token regression and manual lifecycle probe; no product or operational recovery scope is added."
+    },
+    {
+      "at": "2026-10-18T16:50:38.452977+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Complete T-01 binding/caller fixtures and remove obsolete shape/prose locks; retain behavioral coverage."
+    },
+    {
+      "at": "2026-10-18T17:05:29.569958+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Complete backend schema consumer cleanup: delete incidental wording locks while retaining missing-field and undeclared-key rejection coverage."
+    },
+    {
+      "at": "2026-11-07T14:21:49.822725+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "DEC-182: the comment only justifies the command; moved verbatim to notes/amendment-T-01-budget-2026-11-07.md"
+    },
+    {
+      "at": "2026-11-07T14:21:49.822877+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "DEC-182 machine-line budget (56>50); dropped surfaces stay lane-routed main-session-direct; full touched set in notes/amendment-T-01-budget-2026-11-07.md; T-01 done, no scope change"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/operator-build-approval-2026-10-17.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "f7a0d539c1e7f8e95ba2dff9fac1c7ea291d35140024b983cb2c073db9808664",
+    "T-02": "c7bab88b0b143663e9095c25284a9739d16d5b3963a96c0bfbff796f96631576",
+    "T-03": "0db03ed471a8136ff8f5c69d07175c89a981b059697d7ea7b549516465fde40c",
+    "T-04": "2d1e1c5c8fd4e9946fd37e7b5e098970d6a3d6d998eb8872dcbea51c6d51afa5",
+    "T-05": "3abe0593faa1df391399dc0086dd3456ae93a5a5c9355c200314c3623ef90c50"
+  },
+  "github": {
+    "milestone": 103,
+    "parent": 2160,
+    "attached": [],
+    "issues": {},
+    "source_issues": [],
+    "build_entry": "recovered-terminal",
+    "repo": "mruangutai/harness",
+    "history": [
+      {
+        "recovery_id": "ca38c84b-a1cf-44da-828b-9b4c1cc461b4",
+        "at": "2026-10-18T16:06:07.846838+00:00",
+        "repo": "mruangutai/harness",
+        "reason": "Operator authorizes explicit replacement of this feature\u2019s unproven active Harness mapping. GitHub read verified milestone 103 and parent 2154 belong to mruangutai/harness and name this feature. Archive the original mapping verbatim; create only the terminal replacement milestone and parent; leave old remote objects untouched.",
+        "evidence": {
+          "path": "notes/operator-own-feature-recovery-2026-10-18.json",
+          "sha256": "b2d70e2e10bd67ad1ec308ea0b242fb55f1c94abf5373d95e050c334e05a7668"
+        },
+        "previous": {
+          "milestone": 103,
+          "parent": 2154,
+          "attached": [
+            "T-01",
+            "T-02",
+            "T-03",
+            "T-04",
+            "T-05"
+          ],
+          "issues": {
+            "T-01": 2155,
+            "T-02": 2156,
+            "T-03": 2157,
+            "T-04": 2158,
+            "T-05": 2159
+          },
+          "source_issues": [],
+          "build_entry": "opened"
+        }
+      }
+    ],
+    "recovery": {
+      "id": "ca38c84b-a1cf-44da-828b-9b4c1cc461b4",
+      "from_repo": "mruangutai/harness",
+      "to_repo": "mruangutai/harness",
+      "mode": "terminal",
+      "state": "complete",
+      "plan_sha256": "77ac2d598b15d69506452542ce68ed2f3b7a821252f54e517327f17dc44f6281",
+      "started_at": "2026-10-18T16:06:07.846838+00:00",
+      "reconciliation": [
+        {
+          "path": "notes/operator-milestone-103-adoption-2026-10-18.json",
+          "sha256": "76e48d162132fff98b7f0fe789cb124a67911bf53a67f9830b1b55afec8cf294"
+        }
+      ],
+      "completed_at": "2026-10-18T16:40:49.481148+00:00"
+    }
+  }
+}

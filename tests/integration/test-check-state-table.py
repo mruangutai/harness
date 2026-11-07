@@ -16,6 +16,7 @@ import os as _anchor_os, sys as _anchor_sys
 _anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_os.path.abspath(__file__)))
 
 import json
+import hashlib
 import os
 import re
 import subprocess
@@ -215,6 +216,45 @@ with tempfile.TemporaryDirectory() as tmp:
     code, out, err = run(tmp, "--changed", "--only", "INV-19")
     check("--changed intersects with --only: a selected row that reads nothing dirty runs nothing (silent)",
           code == 0 and out == "", f"code={code} out={out!r}")
+
+with tempfile.TemporaryDirectory() as tmp:
+    two_feature_tree(tmp)
+    feature = os.path.join(tmp, ".harness", "harness", "features", "FEAT-A-first")
+    evidence = os.path.join(feature, "cycle-evidence.data")
+    raw = b"```yaml\nVERDICT: FAIL\nDIGEST: {cycles_used: 0}\nartifact: cycle-evidence.data\n```\n"
+    with open(evidence, "wb") as target:
+        target.write(raw)
+    path = os.path.join(feature, "feature.json")
+    with open(path, encoding="utf-8") as source:
+        doc = json.load(source)
+    doc["runs"] = [{"id": "R", "squad": "product", "verdict": "FAIL", "cycles_used": 0,
+                    "cycle_evidence": {"source": "lead-digest", "path": "cycle-evidence.data",
+                                       "sha256": hashlib.sha256(raw).hexdigest()}}]
+    with open(path, "w", encoding="utf-8") as target:
+        json.dump(doc, target)
+    quiet_repo(tmp)
+    with open(evidence, "ab") as target:
+        target.write(b"changed bytes\n")
+    code, out, err = run(tmp, "--changed", "--only", "INV-7")
+    check("--changed revalidates arbitrary target-local evidence without a feature.json edit",
+          code == 1 and "hash does not match" in out and "FEAT-A-first" in out
+          and "FEAT-B-second" not in out, f"code={code} {out} {err}")
+
+with tempfile.TemporaryDirectory() as tmp:
+    two_feature_tree(tmp)
+    path = os.path.join(tmp, ".harness", "harness", "features", "FEAT-A-first", "feature.json")
+    with open(path) as source:
+        doc = json.load(source)
+    doc["factory"] = {"repo": "org/missing", "issues": {}}
+    with open(path, "w") as target:
+        json.dump(doc, target)
+    quiet_repo(tmp)
+    with open(os.path.join(tmp, ".harness", "factory", "fleet.yaml"), "a") as target:
+        target.write("\n")
+    code, out, err = run(tmp, "--changed", "--only", "INV-37")
+    check("--changed fleet registry alone revalidates authoritative feature bindings",
+          code == 1 and "INV-37" in out and "org/missing" in out
+          and "FEAT-A-first" in out, f"code={code} {out} {err}")
 
 # --- repo rows still narrow through ctx.features -------------------------------------------------
 with tempfile.TemporaryDirectory() as tmp:

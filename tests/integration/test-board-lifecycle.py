@@ -87,6 +87,8 @@ def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None
     if source_issues is not None:
         github["source_issues"] = source_issues
     if github:
+        with open(os.path.join(root, ".harness", "harness.json"), encoding="utf-8") as source:
+            github["repo"] = json.load(source)["github"]["repo"]
         doc["github"] = github
     if factory_issues is not None:
         doc["factory"] = {"issues": factory_issues}
@@ -370,7 +372,7 @@ def _served_board_contents_b64(board):
     board_lifecycle.py never reads a served repo's board from disk (T-04's BOARD RESOLUTION,
     factory_config.product_config), so a cross-repo case (#783) that resolves a fleet member's
     board must feed the fake gh this, not a `stations`/`options` local fixture."""
-    doc = {"schema_version": 1, "github": {"board": board}}
+    doc = {"schema_version": 1, "github": {"sync": True, "repo": "acme/gadget", "board": board}}
     return base64.b64encode(json.dumps(doc).encode("utf-8")).decode("ascii")
 
 
@@ -949,6 +951,22 @@ with tempfile.TemporaryDirectory() as base:
           and "'Building'" not in r.stdout,
           repr(r.stdout))
 
+# ---------------- audit case 3b: STATION -- DEC-203 keeps an abandoned card at Backlog ----
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    issues = json.dumps([
+        {"number": 11, "stateReason": "NOT_PLANNED", "labels": [{"name": "abandoned"}]},
+        {"number": 12, "stateReason": "NOT_PLANNED", "labels": []},
+    ])
+    r, log = run(root, ["audit"], issues=issues,
+                 stations=_stations_json({11: "Backlog", 12: "Backlog"}))
+    check("audit STATION (#2151): an abandoned card at Backlog is not a finding",
+          "STATION: issue #11" not in r.stdout, repr(r.stdout))
+    check("audit STATION (#2151): a not_planned close without the abandoned label is still one",
+          "STATION: issue #12" in r.stdout, repr(r.stdout))
+
 # ---------------- audit case 4: REASON -- a closed issue with a null close reason --------
 
 with tempfile.TemporaryDirectory() as base:
@@ -965,18 +983,61 @@ with tempfile.TemporaryDirectory() as base:
 with tempfile.TemporaryDirectory() as base:
     root = os.path.join(base, "root")
     write_root(root, default_github())
+    write_feature(root, "widget", "FEAT-LBL", None, github_issues={"T-01": 30})
     issues = json.dumps([{"number": 30, "stateReason": "NOT_PLANNED", "labels": []}])
     r, log = run(root, ["audit"], issues=issues)
     check("audit LABEL: exits 1", r.returncode == 1, f"rc={r.returncode}")
     check("audit LABEL: names the issue",
           "LABEL" in r.stdout and "#30" in r.stdout, repr(r.stdout))
 
+    # #2151: a not_planned close no feature records (a closed bug report) was never abandoned.
+    issues_bug = json.dumps([{"number": 32, "stateReason": "NOT_PLANNED", "labels": []}])
+    r3, log3 = run(root, ["audit"], issues=issues_bug)
+    check("audit LABEL (#2151): a not_planned issue no feature records is NOT a finding",
+          "LABEL" not in r3.stdout, repr(r3.stdout))
     # a sibling not_planned issue that DOES carry the label produces no LABEL finding.
     issues_ok = json.dumps([{"number": 31, "stateReason": "NOT_PLANNED",
                               "labels": [{"name": "abandoned"}]}])
     r2, log2 = run(root, ["audit"], issues=issues_ok)
     check("audit LABEL: a not_planned issue carrying the abandoned label is NOT a finding",
           r2.returncode == 0 and "LABEL" not in r2.stdout, repr(r2.stdout))
+
+
+# #2151 review: a padded recorded number still counts; a malformed record falls back to the
+# broad rule rather than aborting the audit (ship runs it).
+for label, github in (("a padded recorded number", {"issues": {"T-01": " 33 "}}),
+                      ("a non-list source_issues", {"source_issues": 99}),
+                      ("a false-valued non-list source_issues", {"source_issues": 0}),
+                      ("a non-mapping github block", [33]),
+                      ("a non-mapping issues block", {"issues": [33]}),
+                      ("an isdigit source number int() rejects", {"source_issues": ["²"]}),
+                      ("an unparseable feature.json", None)):
+    with tempfile.TemporaryDirectory() as base:
+        root = os.path.join(base, "root")
+        write_root(root, default_github())
+        fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-ODD")
+        os.makedirs(fdir)
+        with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
+            f.write("{not json" if github is None else json.dumps({"github": github}))
+        r, _log = run(root, ["audit"],
+                      issues=json.dumps([{"number": 33, "stateReason": "NOT_PLANNED", "labels": []}]))
+        check(f"audit LABEL (#2151): {label} still yields the finding, without a crash",
+              "LABEL: issue #33" in r.stdout and "Traceback" not in r.stderr,
+              repr(r.stdout + r.stderr))
+
+# #2151 review: an unparseable record is a report-only STATUS residual -- reconcile never
+# dispatches a write for it, and does not crash.
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-ODD")
+    os.makedirs(fdir)
+    with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
+        f.write("{not json")
+    r, _log = run(root, ["reconcile", "--apply"])
+    check("reconcile (#2151): an unparseable record survives as a STATUS residual, no crash",
+          "card cannot be audited" in r.stdout and "unexpected failure" not in r.stderr,
+          repr(r.stdout + r.stderr))
 
 # ---------------- audit case 6: WORKFLOW -- renamed/absent reports MISSING ---------------
 
@@ -1092,25 +1153,16 @@ with tempfile.TemporaryDirectory() as base:
           r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
-    # Exemption 3 -- issues recorded under factory.issues, not github.issues: this feature's
-    # cards live on the PRODUCT's board, not this one. The station fixture deliberately
-    # mismatches what a non-exempt comparison would expect, so a leaky exemption would redden.
+    # Product intake claims do not exempt a separately recorded, provenanced owner mirror.
     root = os.path.join(base, "root")
     write_root(root, default_github())
     write_feature(root, "widget", "FEAT-PRODUCT", None, plan_station="building", parent=400,
                   factory_issues={"T-01": 401})
     r, log = run(root, ["audit"], stations=_stations_json({400: "Backlog"}))
-    check("audit STATUS: exemption 3 -- factory.issues (product board) is exempt, no STATUS "
-          "finding", r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
+    check("factory intake claims cannot exempt a provenanced owner mirror from station grading",
+          r.returncode == 1 and "projects card #400" in r.stdout, repr(r.stdout))
 
-# ---------------- audit case 8b: #783 regression guard -- STATUS must not compare THIS
-# checkout's own on-disk features against a DIFFERENT repo's board. `--repo` names a fleet
-# member (never this checkout's own repo); its board is resolved REMOTELY
-# (factory_config.product_config), so this checkout's own `.harness/widget/features/*` are
-# NEVER that repo's features. Before the fix this fixture produced a false STATUS finding
-# (own-repo feature.json, status Done, compared against the SERVED repo's #950 reading
-# Backlog) -- reddened against the pre-fix code (see the receipt's RED proof). After the fix,
-# STATUS self-skips for any --repo but this checkout's own, so this is exit 0, zero STATUS.
+# Cross-repository grading follows the feature binding, never its local folder or intake claims.
 
 _SERVED_BOARD = {
     "owner": "acme", "number": 42, "station_field": "Status",
@@ -1122,24 +1174,46 @@ with tempfile.TemporaryDirectory() as base:
     write_root(root, default_github(),
                fleet={"workspace_root": os.path.join(base, "ws"),
                       "repos": [{"name": "acme/gadget", "default_branch": "main"}]})
-    # This checkout's OWN feature, on disk, status Done -- would mismatch the served repo's
-    # #950 reading Backlog if STATUS wrongly compared across repos.
-    write_feature(root, "widget", "FEAT-CROSSREPO-783", None, plan_station="done", parent=950,
+    # An active owner feature must not be compared with the product repository's card numbers.
+    write_feature(root, "widget", "FEAT-CROSSREPO-783", None, plan_station="building", parent=950,
                   github_issues={"T-01": 951})
     r, log = run(
         root, ["audit", "--repo", "acme/gadget"],
         stations=_stations_json({950: "Backlog"}, repo="acme/gadget"),
         contents_b64=_served_board_contents_b64(_SERVED_BOARD),
     )
-    check("audit #783: cross-repo audit exits 0 -- STATUS never fires for a repo that is not "
-          "this checkout's own", r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r}")
-    check("audit #783: no STATUS finding at all -- only the skip line, never a "
-          "'records status' finding",
-          "records status" not in r.stdout, repr(r.stdout))
-    check("audit #783: STATUS reports itself skipped, naming both repos, rather than silently "
-          "omitting the class",
-          "STATUS" in r.stdout and "skipped" in r.stdout
-          and "acme/gadget" in r.stdout and "acme/widget" in r.stdout, repr(r.stdout))
+    check("audit does not compare an active owner feature against a different repository's cards",
+          r.returncode == 0 and "STATUS:" not in r.stdout, f"rc={r.returncode} stdout={r.stdout!r}")
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github(),
+               fleet={"workspace_root": os.path.join(base, "ws"),
+                      "repos": [{"name": "acme/gadget", "default_branch": "main"}]})
+    write_feature(root, "widget", "FEAT-FLEET-BINDING", None, plan_station="building",
+                  parent=950, github_issues={"T-01": 951}, task_statuses=["ready"])
+    path = os.path.join(root, ".harness", "widget", "features", "FEAT-FLEET-BINDING", "feature.json")
+    with open(path) as source:
+        doc = json.load(source)
+    doc["factory"] = {"repo": "acme/gadget", "issues": {"T-01": 501}}
+    doc["github"]["repo"] = "acme/gadget"
+    with open(path, "w") as target:
+        json.dump(doc, target)
+    r, log = run(root, ["audit", "--repo", "acme/gadget"],
+                 stations=_stations_json({950: "Ready", 951: "Ready"}, repo="acme/gadget"),
+                 contents_b64=_served_board_contents_b64(_SERVED_BOARD))
+    check("audit grades a bound feature's provenanced mirrors on its product board, not its claims",
+          r.returncode == 1 and "projects card #950" in r.stdout and "STATUS:" in r.stdout,
+          f"rc={r.returncode} stdout={r.stdout!r}")
+    doc["github"].pop("repo")
+    with open(path, "w") as target:
+        json.dump(doc, target)
+    r, log = run(root, ["reconcile", "--repo", "acme/gadget", "--apply"],
+                 stations=_stations_json({950: "Ready", 951: "Ready"}, repo="acme/gadget"),
+                 contents_b64=_served_board_contents_b64(_SERVED_BOARD))
+    check("unproven bound receipts require human recovery and cannot authorize automatic station writes",
+          "mirror provenance" in r.stdout and not any("updateProjectV2ItemFieldValue" in call for call in log),
+          f"rc={r.returncode} stdout={r.stdout!r} log={log}")
 
 # ---------------- audit case 9: a GhError propagates as exit 4, no findings printed ------
 # DEC-203's inverse-of-the-mirror posture (T-05 intent): an audit that could not run must
@@ -1283,6 +1357,8 @@ def _write_recon_fixture(base):
     write_root(root, default_github())
     write_feature(root, "widget", "FEAT-RECON", None, plan_station="building", parent=40,
                   github_issues={"T-01": 41})
+    # #2151: LABEL judges recorded tickets only, so the abandoned ticket #30 belongs to a feature.
+    write_feature(root, "widget", "FEAT-DROPPED", None, github_issues={"T-01": 30})
     return root
 
 

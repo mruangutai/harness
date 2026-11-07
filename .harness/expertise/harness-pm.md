@@ -1,6 +1,6 @@
 # Expertise — harness-pm
 ## Patterns (max 15)
-- P-01: WHEN a `verify:` grep would already have passed before the change DO label it non-discriminating and name a substitute command whose result only the change can produce. An absence-grep that was already empty proves nothing. Exemplar: the `## Verify receipts` section of a shipped plan under `.harness/harness/features/`.
+- P-01: WHEN a criterion protects objects selected in one role DO grade protection by identity across every role and indirect writer; require overlapping-role counterexamples, not only disjoint fixtures or inspection of the opt-in branch.
 - P-02: WHEN a criterion will cite automated evidence from a test kind DO check that kind's detect globs match files on the surface being changed: a non-null runner matching zero files here is a gate that proves nothing. Widen the runner as a task rather than downgrading the criterion to inspection.
 - P-03: WHEN a grading set is derived from the material under grading — the plan's own file lists, or whichever producers a corpus happens to contain — DO re-base it on the declared contract that material cannot define, then name the case that now fails.
 - P-04: WHEN a criterion quantifies over N items DO give each item its own assertion, in the verify you author and again when grading. A file-global search or a matching count is satisfied by the conformers alone, blind to the one item that conforms to nothing.

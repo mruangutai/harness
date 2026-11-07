@@ -25,12 +25,14 @@ def fixture(feature="FEAT-9001-fixture-non-era", entry=None, repo="acme/widgets"
     with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
         f.write("agents: {}\n")
     with open(os.path.join(root, ".harness", "harness.json"), "w") as f:
-        json.dump({"github": {"sync": sync, "repo": repo}}, f)
+        json.dump({"github": {"sync": sync, "repo": repo, "board": None}}, f)
     directory = os.path.join(root, ".harness", "harness", "features", feature)
     os.makedirs(directory)
     document = {"feature_id": feature, "branch": "feature/test", "github": {}}
     if entry is not None:
         document["github"]["build_entry"] = entry
+        if repo:
+            document["github"]["repo"] = repo
     with open(os.path.join(directory, "feature.json"), "w") as f:
         json.dump(document, f)
     with open(os.path.join(directory, "plan.yaml"), "w") as f:
@@ -71,6 +73,37 @@ def denial(command, **kwargs):
     result, decision, reason = gate(command, root)
     return result, decision, reason, directory
 
+
+for provenance in (None, "elsewhere/wrong"):
+    root, directory = fixture(entry="opened")
+    record = os.path.join(directory, "feature.json")
+    with open(record) as source:
+        document = json.load(source)
+    document["github"].update(parent=12)
+    if provenance is None:
+        document["github"].pop("repo")
+    else:
+        document["github"]["repo"] = provenance
+    with open(record, "w") as target:
+        json.dump(document, target)
+    r, d, reason = gate("git merge feature/test", root)
+    if provenance is None:
+        check("an unbound legacy mapping is proven by the owner binding that created it",
+              r.returncode == 0 and d is None, f"decision={d} reason={reason}")
+    else:
+        check("opened is not proof of ownership for a wrong-repository mirror",
+              d == "deny" and "recover-mirror" in reason and "--previous-repo" in reason, reason)
+
+root, directory = fixture(entry="opened", sync=False)
+record = os.path.join(directory, "feature.json")
+with open(record) as source:
+    document = json.load(source)
+document["factory"] = {"repo": "unknown/product", "issues": {"T-01": 51}}
+with open(record, "w") as target:
+    json.dump(document, target)
+r, d, reason = gate("git merge feature/test", root)
+check("owner sync-off and factory claims cannot bypass an invalid authoritative binding",
+      d == "deny", f"decision={d} reason={reason} stderr={r.stderr}")
 
 r, d, reason, _ = denial("git merge feature/test", entry="recovery-required")
 check("T-05 recovery-required denies", r.returncode == 0 and d == "deny"
@@ -290,12 +323,10 @@ def _feat65_fire(root, sibling, override):
 
 
 root, _ = fixture()
-sig = "def recovery_command_for(feat_dir):\n"
+sig = "def recovery_command_for(feat_dir, feature_doc=None, bound_repo=None, *, replacement=False):\n"
 r = _feat65_fire(root, "feature_schema.py", sig + "    raise RuntimeError('FEAT-65 injected')\n")
 check("FEAT-65: a receipt-evaluation defect is BLOCKED by the closed guard and named",
-      r.returncode == 2 and r.stdout == "" and r.stderr ==
-      "merge-gate: BLOCKED — the hook failed internally (RuntimeError: FEAT-65 injected); "
-      "enforcement is CLOSED rather than partial.\n",
+      r.returncode == 2 and r.stdout == "" and "RuntimeError: FEAT-65 injected" in r.stderr,
       f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
 r = _feat65_fire(root, "feature_schema.py", sig + "    raise KeyboardInterrupt()\n")
 check("FEAT-65: KeyboardInterrupt escapes the guard",

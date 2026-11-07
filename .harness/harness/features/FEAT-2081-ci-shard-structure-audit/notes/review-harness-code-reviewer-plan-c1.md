@@ -1,0 +1,20 @@
+# PLAN scope review — FEAT-2081
+
+**PASS — no material scope or architecture defect found in the signed plan at `7ea60c88`.** No remedy, signed-task/acceptance change, or operator re-signature is requested by this reader. This retrospective assessment is not implementation approval or ship evidence.
+
+## Scope and dependencies
+
+- All SC-01–SC-10 have corresponding work: T-01 runner partitions/unsharded behavior; T-02 conclusions/coverage; T-03 structure behavior/traversals; T-04 workflow/gates; T-05 shipped documentation; T-06 inspection/UAT ledger. Documentation and UAT traces are supporting evidence, not invented claims that prose implements automation.
+- Dependency graph is acyclic: `{T-01,T-03} → T-02 → T-04 → T-05 → T-06`. T-02 appearing before T-03 is presentation only; its explicit predecessor is correct (`plan.yaml:72,95,118,137,151`). Task file ownership is disjoint. T-02 intentionally reads T-03's checker and updates the classification only after both code predecessors; T-04 reruns the aggregation regression after changing its workflow subject. Final whole-suite verification is explicitly reserved for Main after all changes land (`plan.yaml:88,124,163`).
+- Issue #2081 and historical intake/correction notes support the two chosen levers. No pytest migration, selection reduction, extra check-state entry path, paid runner, or BUG-1898 reduction was introduced. Settled decisions were not reopened.
+
+## Architecture and adversarial scenarios
+
+- T-01's optional pool completion seam earns its depth: actual future results serve the runner's manifest without duplicating execution. Requested files cannot masquerade as completed files; writing waits for termination and mutation checking (`plan.yaml:64`). T-02 keeps evidence validation at the CLI seam and exposes pure validation to unit cases.
+- Omitted, extra, duplicated, selected-only, wrong-commit, malformed, or missing manifests cannot satisfy the specified multisets. Expected discovery comes independently from the supplied commit, never duration history or partition output. Two real commits plus a conflicting working tree are required falsification fixtures, directly discriminating HEAD/current-glob substitutions (`plan.yaml:85–87`). Failed/skipped/cancelled/missing prerequisites and download failures are explicitly fail-closed (`plan.yaml:84–87,129–130`).
+- T-03 concentrates scanning/index state in the existing checker, with invocation-local lifetime and unchanged public functions. Single-pass feasibility is supported by the existing breadth-first parent walker, ordered census, and separable finding replay (`.claude/skills/harness/bin/check-plan-routes.py:1080,1710,1737,2419–2448`, pinned bytes). Indexing must retain subtree facts, wrapper parents, symbol attribution, and cross-module resolution rather than silently substituting nearest-function-only semantics. The signed preservation contract and differential witnesses already require the original answers, order, parser/CANNOTRUN behavior, loader exceptions, and one-level embedded programs; baseline extraction is pinned, traversal instrumentation covers both real entry paths, and global caches are forbidden (`plan.yaml:107–110`). These are planned proofs, not measured results.
+- SC-04 inspection obligation is correctly planned at `plan.yaml:126–129`; SC-05 individually carries unit plus all six existing gates at `plan.yaml:128–129`. The current pinned workflow was inspected as the preservation baseline, not misrepresented as already sharded. Actual required-context identity, shard-only cancellation, and performance remain live user UAT (`plan.yaml:158–163`).
+
+## Evidence limits / open questions
+
+Findings: none. Open questions: none. Only read-only git/source/document inspections were performed; no builds, tests, linters, formatters, timing probes, or implementation grading ran. The ordinary pending-approval PLAN validator precondition does not describe this expressly authorized post-signature retrospective panel; `code_grade: n_a` reflects the plan-only target.

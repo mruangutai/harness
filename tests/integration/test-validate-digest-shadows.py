@@ -362,10 +362,16 @@ def case_qa_unearned_fail():
         check("qa: FAIL with a failing suite is accepted", not any("no gate failed" in e for e in errs), str(errs))
 
 
-MATRIX_JSON = dict(HARNESS_JSON, test_matrix={
+MATRIX_JSON = dict(HARNESS_JSON, test_kinds=dict(
+    HARNESS_JSON["test_kinds"],
+    component={"detect": "tests/component/**", "exclude": "", "cmd": None, "status": "active"},
+), test_matrix={
     "logic": {"always": ["unit"]},
     "cross_module": {"always": ["unit", "functional"]},
     "docs": {"always": []},
+    "bugfix": {"always": [], "when": [{"kind": "unit", "if": "touches_runtime_code"}]},
+    "service": {"always": ["functional"]},
+    "widget": {"always": ["component"]},
 })
 
 
@@ -411,8 +417,63 @@ def case_matrix_floor():
               not errs, str(errs))
 
 
+_DECLINED = "declines to report a gate"
+_NO_SUITE = _with(_qa([]), suite="n/a")
+
+
+def _qa_floor_errors(td, change_types, obj=_NO_SUITE):
+    """#2139: the qa errors for `obj` over a plan of `change_types`; None writes no plan."""
+    repo, fd, _head, _ = _checkout(td)
+    _write(os.path.join(repo, ".harness", "harness.json"), json.dumps(MATRIX_JSON))
+    if change_types is not None:
+        _write(os.path.join(fd, "plan.yaml"), _plan_with(change_types))
+    return _errors(_validator(), "harness-qa", obj, fd, _config(td))
+
+
+def _declined(errs, field):
+    return any(_DECLINED in e and field in e for e in errs)
+
+
+def case_qa_empty_floor_suite():
+    """#2139: qa `suite: n/a` + PASS is honest only where the computed matrix floor is empty."""
+    docs = [("docs", "done")]
+    for label, plan in (("empty floor", docs), ("explicitly excluded kind", [("service", "done")])):
+        with tempfile.TemporaryDirectory() as td:
+            errs = _qa_floor_errors(td, plan)
+            check(f"{label}: suite n/a with kinds [] and matrix_ok true is accepted", not errs, str(errs))
+    with tempfile.TemporaryDirectory() as td:
+        errs = _qa_floor_errors(td, docs, _with(_NO_SUITE, kinds=[UNIT_SATISFIED]))
+        check("empty floor: suite n/a beside a reported kind still declines a gate",
+              _declined(errs, "suite"), str(errs))
+    with tempfile.TemporaryDirectory() as td:
+        errs = _qa_floor_errors(td, docs, _with(_NO_SUITE, matrix_ok="n/a"))
+        check("empty floor: matrix_ok n/a with PASS is still refused",
+              _declined(errs, "matrix_ok"), str(errs))
+
+
+_STILL_GATED = (
+    ("non-empty floor", [("docs", "done"), ("logic", "done")]),
+    ("conditional bugfix row", [("bugfix", "done")]),
+    ("unknown change_type", [("doc", "done")]),
+    ("no started task", [("docs", "todo")]),
+    ("active kind with null cmd", [("widget", "done")]),
+    ("unresolvable floor", None),
+)
+
+
+def case_qa_floor_still_binds_suite():
+    """#2139: a required, conditional or unknown row, no started work, or a floor that cannot
+    be derived keeps `suite` gated."""
+    for label, change_types in _STILL_GATED:
+        with tempfile.TemporaryDirectory() as td:
+            errs = _qa_floor_errors(td, change_types)
+            check(f"{label}: suite n/a with PASS is refused", _declined(errs, "suite"), str(errs))
+
+
 def main():
     case_matrix_floor()
+    case_qa_empty_floor_suite()
+    case_qa_floor_still_binds_suite()
     case_human_commits()
     case_dirty_tree()
     case_qa_kinds()

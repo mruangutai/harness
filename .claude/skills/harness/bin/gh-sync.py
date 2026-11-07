@@ -4,11 +4,16 @@
   gh-sync.py open  <feature-dir>          plan approved -> milestone + parent + one issue per T-NN
   gh-sync.py start-task <feature-dir> T-NN    task moved to building -> sub-issue's station
                                            -> Building, then the parent's derived station (FEAT-18)
-  gh-sync.py abandon <feature-dir> --reason-file <path> [--yes]  feature abandoned ->
-                                           WITHOUT --yes it prints every write it would make
-                                           and makes none; WITH --yes it closes every sub-issue
-                                           AND the parent not_planned, labels them abandoned,
-                                           closes the milestone and posts the reason
+  gh-sync.py abandon <feature-dir> --reason-file <path> [--close-sources] [--yes]  feature
+                                           abandoned -> WITHOUT --yes it prints every write it
+                                           would make and makes none; WITH --yes it closes every
+                                           sub-issue AND the parent not_planned, labels them
+                                           abandoned, closes the milestone and posts the reason.
+                                           Only --close-sources WITH --yes also disposes of every
+                                           plan.yaml source_issues ticket the same way (reason
+                                           comment, close not_planned, backlog, abandoned label);
+                                           sources are otherwise never touched. An unopened or
+                                           already-abandoned record still finalizes locally
   gh-sync.py ship  <feature-dir> [--body-file <path>] [--pr <n>]  shipped -> writes the
                                            board's done station on every recorded card
                                            (children first, skipping any card with an open
@@ -24,11 +29,15 @@
                                            missing, mirrors source_issues from
                                            plan.yaml, creates ZERO task sub-issues, and
                                            records build_entry "recovered-terminal"
-                                           (T-03, BUG-1309). Refuses (exit 2) ONLY when
-                                           --parent contradicts an already-recorded
-                                           parent; nothing else recorded already is a
-                                           refusal. Without --yes, reports every write
-                                           it would make and makes none
+                                           (T-03, BUG-1309). Requires compatible mirror
+                                           provenance; --parent cannot contradict the
+                                           recorded parent. Without --yes, reports
+                                           every write it would make and makes none
+  gh-sync.py recover-mirror <feature-dir> --previous-repo <owner/name> --evidence <note> --yes
+                                           archives a proven wrong-repository mapping
+                                           and replaces only its active target receipts.
+                                           Uncertain creates require a separate note and
+                                           --adopt-receipt <milestone|parent|task:T-NN>=<number>
   gh-sync.py record-pr <feature-dir> [--pr <n>]  derive the pull request number from the
                                            recorded branch's exactly-one merged PR and
                                            record it, or record --pr directly (T-03,
@@ -92,6 +101,9 @@ Testable offline: GH_SYNC_GH overrides the gh binary (test-gh-sync.py points it 
 fake that logs calls and returns canned JSON).
 """
 import json
+import copy
+import uuid
+from datetime import datetime, timezone
 import os
 import re
 import shutil
@@ -273,40 +285,67 @@ def gh_try(args):
 
 # ---------- config ----------
 
-def load_config(root):
-    """Return `(repo, board, issue_types)`. `board` is `gh_board.load_board(root)` — a dict, or None when
-    `github.board` is an EXPLICIT null. An explicit null is the ONLY environmental precondition
-    left (D-02, D-07): the issue lifecycle (open, abandon, ship)
-    still runs; only station writes are skipped.
+def _provenance_preflight(doc, repo, feat_dir):
+    problem = feature_schema.mirror_provenance_problem(doc, repo)
+    if not problem:
+        problem = "; ".join(feature_schema.mirror_evidence_problems(feat_dir, doc))
+    if problem:
+        refuse(f"mirror provenance: {problem}. Run: "
+               f"{feature_schema.recovery_command_line(feat_dir, doc, repo)}")
 
-    Every OTHER unusable board shape — the `github` block absent, `board` key absent, or any
-    field `factory_config.validate_board` rejects — raises `artifact_accessors.FleetError` from
-    `gh_board.load_board`, and THIS FUNCTION does not catch it; `main()` does, exiting 2 with
-    the error on stderr. That is a loud failure of the WHOLE invocation, not a skipped station
-    write — an unusable declaration is a misconfiguration to fix, not an absence to tolerate."""
-    p = os.path.join(root, ".harness", "harness.json")
-    if not os.path.isfile(p):
+
+def _unbound_project_config(root, feat_dir, doc, local_status):
+    """Read optional owner onboarding without weakening bound-product resolution."""
+    path = os.path.join(root, ".harness", "harness.json")
+    if not os.path.isfile(path):
+        _provenance_preflight(doc, None, feat_dir)
+        if local_status:
+            return None
         skip("no .harness/harness.json — project not onboarded")
     try:
-        cfg = artifact_accessors.load_harness_json(p)
-    except artifact_accessors.ArtifactAccessError as e:
-        skip(f"harness.json unreadable ({e})")
-    g = cfg.get("github") or {}
-    if not g.get("sync"):
+        config = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError as error:
+        _provenance_preflight(doc, None, feat_dir)
+        skip(f"harness.json unreadable ({error})")
+    return config
+
+
+def load_config(root, feat_dir, command):
+    """Resolve the feature before environmental skips, remote writes or local station writes."""
+    try:
+        doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    except artifact_accessors.FeatureJsonError as error:
+        refuse(str(error))
+    bound = feature_schema.has_repository_binding(doc)
+    local_status = command == "status"
+    replacement = command == "recover-mirror"
+    if not bound:
+        config = _unbound_project_config(root, feat_dir, doc, local_status)
+        if config is None:
+            return None, None, {}
+        github = config.get("github") or {}
+        if isinstance(github, dict) and github.get("sync") and (
+                not github.get("repo") or "/" not in str(github["repo"])):
+            _provenance_preflight(doc, github.get("repo"), feat_dir)
+            skip("github.repo is not pinned in this project's harness.json; for a fleet member, "
+                 "that file lives in the member's own repository on its default branch",
+                 build_entry=_NO_RECORD)
+    repo, board, issue_types = feature_schema.resolve_binding(doc, root)
+    _BUILD_ENTRY["repo"] = repo
+    if not replacement:
+        _provenance_preflight(doc, repo, feat_dir)
+    if not bound and not github.get("sync"):
+        if local_status:
+            return repo, board, issue_types
         skip("github.sync is not enabled for this project", build_entry="not-applicable")
-    repo = g.get("repo")
-    if not repo or "/" not in str(repo):
-        skip("github.repo is not pinned in this project's harness.json; for a fleet member, "
-             "that file lives in the member's own repository on its default branch",
-             build_entry=_NO_RECORD)
+    if local_status and board is None:
+        return repo, board, issue_types
     if shutil.which(GH) is None:
         skip(f"{GH} not on PATH")
     if subprocess.run([GH, "auth", "status"], capture_output=True).returncode != 0:
         skip("gh is not authenticated")
-    board = gh_board.load_board(root)
     if board is None:
         print("gh-sync: no github.board configured — station writes are not attempted")
-    issue_types = gh_issue_types.overrides_from_config(cfg)
     return repo, board, issue_types
 
 
@@ -619,6 +658,11 @@ def load_recorded(feat_dir):
     be = gh.get("build_entry")
     rec["build_entry"] = be if be in ("opened", "recovery-required",
                                        "not-applicable", "recovered-terminal") else None
+    for key in ("repo", "history", "recovery"):
+        if key in gh:
+            rec[key] = gh[key]
+    if rec.get("recovery"):
+        rec["_snapshot"] = copy.deepcopy(gh)
     return rec
 
 
@@ -860,6 +904,23 @@ def _record_pr(feat_dir, repo, pr_arg=None):
         print(f"gh-sync: {os.path.basename(os.path.abspath(feat_dir))} pr -> #{number}")
 
 
+def _recorded_github(rec):
+    """Serialize the mirror generation independently of the locked feature update."""
+    github = {
+        "milestone": rec["milestone"], "parent": rec["parent"],
+        "attached": rec["attached"], "issues": dict(sorted(rec["issues"].items())),
+        "source_issues": list(rec["source_issues"]),
+    }
+    if rec.get("typed"):
+        github["typed"] = dict(sorted(rec["typed"].items()))
+    if rec.get("build_entry"):
+        github["build_entry"] = rec["build_entry"]
+    for key in ("repo", "history", "recovery"):
+        if key in rec:
+            github[key] = rec[key]
+    return github
+
+
 def save_recorded(feat_dir, rec):
     """Read-modify-write the `github:` key into feature.json through
     feature_json_write.write_feature_json (DEC-199): the same lock, same-directory
@@ -902,6 +963,7 @@ def save_recorded(feat_dir, rec):
     if not os.path.exists(p):
         raise SystemExit(absent_message)
 
+    committed = {}
     def transform(base):
         if base is None:
             raise SystemExit(absent_message)
@@ -911,39 +973,31 @@ def save_recorded(feat_dir, rec):
             # tolerance load_recorded applies to a non-mapping document, kept here
             # because this branch is a real file, not the absent-file path above.
             doc = {}
-        doc["github"] = {
-            "milestone": rec["milestone"],
-            "parent": rec["parent"],
-            "attached": rec["attached"],
-            "issues": dict(sorted(rec["issues"].items())),
-            "source_issues": list(rec["source_issues"]),
-        }
-        # PROVENANCE IS RECORDED POSITIVELY (D-20): an absent or empty `typed` mapping
-        # means nothing has been created under native Issue Types on this route, and
-        # the key is omitted so a compatibility-mode receipt stays byte-identical to
-        # today's — the same tolerance `load_recorded` applies on the read side.
-        typed = rec.get("typed")
-        if typed:
-            doc["github"]["typed"] = dict(sorted(typed.items()))
-        # T-02 (BUG-1309): positively recorded, same shape as `typed` above — an absent
-        # or falsy value means nothing to write, so a receipt with no Build-entry outcome
-        # stays byte-identical to today's.
-        if rec.get("build_entry"):
-            doc["github"]["build_entry"] = rec["build_entry"]
+        if rec.get("recovery") and doc.get("github") != rec.get("_snapshot"):
+            refuse("mirror recovery changed concurrently; reload its durable generation before continuing")
+        doc["github"] = _recorded_github(rec)
+        committed["github"] = copy.deepcopy(doc["github"])
         return json.dumps(doc, indent=2) + "\n"
 
     feature_json_write.write_feature_json(p, transform)
+    if rec.get("recovery"):
+        rec["_snapshot"] = committed["github"]
 
 
 def record_build_entry(feat_dir, value):
     """Persist the Build-entry outcome (D-04/D-09) through `save_recorded` — never a
     second write path to feature.json, so this inherits the lock, the same-directory
-    tempfile and the atomic replace. Never downgrades an already-"opened" record: once
-    a run has fully recorded, a later degraded outcome (e.g. a subsequent invocation's
-    early skip) must not erase it."""
+    tempfile and the atomic replace. Never downgrades an already-"opened" receipt
+    within its bound generation; archived generations cannot bless a replacement."""
     rec = load_recorded(feat_dir)
-    if rec.get("build_entry") == "opened" and value != "opened":
+    repo = _BUILD_ENTRY.get("repo") or rec.get("repo")
+    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    same_generation = feature_schema.effective_recorded_repo(doc, repo) == repo and not (
+        rec.get("recovery") or {}).get("state") == "in-progress"
+    if rec.get("build_entry") == "opened" and value != "opened" and same_generation:
         return
+    if repo:
+        rec["repo"] = repo
     rec["build_entry"] = value
     save_recorded(feat_dir, rec)
 
@@ -1068,16 +1122,84 @@ def _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared):
 
 
 
+def _replacement_create(feat_dir, rec, role, args, *, json_number=False, typed=False):
+    """Persist intent before dispatch; an uncertain outcome never permits another create."""
+    recovery = rec["recovery"]
+    if recovery.get("pending_create"):
+        refuse(f"uncertain create in recovery {recovery['id']}: "
+               f"{recovery['pending_create']['role']}; explicit evidenced --adopt-receipt is required")
+    if feature_schema.resolve_evidence_ref(feat_dir, "plan.yaml")["sha256"] != recovery["plan_sha256"]:
+        refuse("signed plan changed during mirror recovery; no create was dispatched")
+    recovery["pending_create"] = {"role": role, "started_at": datetime.now(timezone.utc).isoformat()}
+    save_recorded(feat_dir, rec)
+    try:
+        with gh_cost_log.measured(args) as cost:
+            response = subprocess.run([GH] + args, capture_output=True, text=True)
+            cost.returncode = response.returncode
+    except (FileNotFoundError, PermissionError) as error:
+        recovery.pop("pending_create")
+        save_recorded(feat_dir, rec)
+        refuse(f"create {role} was not dispatched: {error}; the recorded intent was cleared")
+    except (OSError, UnicodeError, subprocess.SubprocessError) as error:
+        refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
+               "the durable pending intent must be explicitly reconciled")
+    _BUILD_ENTRY["remote_written"] = True
+    if response.returncode != 0:
+        refuse(f"uncertain create in recovery {recovery['id']} for {role}: "
+               f"{(response.stderr or response.stdout).strip()[:200]}; "
+               "no retry or discovery is permitted; use an evidenced --adopt-receipt")
+    try:
+        if json_number:
+            number = artifact_accessors.parse_gh_json(response.stdout, "replacement create response")["number"]
+        else:
+            match = re.search(r"/issues/([1-9][0-9]*)/?$", response.stdout.strip())
+            number = int(match[1]) if match else None
+        if isinstance(number, bool) or not isinstance(number, int) or number <= 0:
+            raise ValueError("create returned no positive object number")
+    except (artifact_accessors.ArtifactAccessError, KeyError, TypeError, ValueError) as error:
+        refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
+               "the durable pending intent must be explicitly reconciled")
+    if role.startswith("task:"):
+        rec["issues"][role[5:]] = number
+    else:
+        rec[role] = number
+    if typed:
+        rec.setdefault("typed", {})["parent" if role == "parent" else role[5:]] = "created"
+    recovery.pop("pending_create")
+    try:
+        save_recorded(feat_dir, rec)
+    except (OSError, ValueError, harness_merge.MergeRefusal, SystemExit) as error:
+        refuse(f"uncertain create in recovery {recovery['id']} for {role}: returned #{number}, "
+               f"but its confirmed receipt could not be saved ({error}); "
+               "reconcile the durable pending intent before any further create")
+    return number
+
+
+def _replacement_in_progress(rec):
+    return (rec.get("recovery") or {}).get("state") == "in-progress"
+
+
+def _milestone_create_args(repo, brief, title):
+    desc = (f"{brief['problem']}\n\n**Goal:** {brief['goal']}\n\n## Definition of done\n"
+            + "\n".join(f"- [ ] {sid}: {txt}" for sid, txt in brief["scs"]))
+    return ["api", "-X", "POST", f"repos/{repo}/milestones",
+            "-f", f"title={title}", "-f", f"description={desc}"]
+
+
 def _open_ensure_milestone(feat_dir, repo, brief, rec):
     """The milestone half of `cmd_open`: create-or-recover, recording immediately."""
     if rec["milestone"] is not None:
         print(f"gh-sync: milestone #{rec['milestone']} already recorded — skipping")
         return
-    desc = (f"{brief['problem']}\n\n**Goal:** {brief['goal']}\n\n## Definition of done\n"
-            + "\n".join(f"- [ ] {sid}: {txt}" for sid, txt in brief["scs"]))
-    r = subprocess.run([GH, "api", "-X", "POST", f"repos/{repo}/milestones",
-                        "-f", f"title={brief['feat']}", "-f", f"description={desc}"],
-                       capture_output=True, text=True)
+    replacing = _replacement_in_progress(rec)
+    title = (f"{brief['feat']} (recovery {rec['recovery']['id']})"
+             if replacing else brief["feat"])
+    args = _milestone_create_args(repo, brief, title)
+    if replacing:
+        _replacement_create(feat_dir, rec, "milestone", args, json_number=True)
+        print(f"gh-sync: milestone #{rec['milestone']} recorded for replacement")
+        return
+    r = subprocess.run([GH, *args], capture_output=True, text=True)
     if r.returncode == 0:
         rec["milestone"] = artifact_accessors.parse_gh_json(
             r.stdout, "milestone create response")["number"]
@@ -1115,17 +1237,33 @@ def _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state):
     else:
         title = f"{brief['feat']} — {brief['phrase']}" if brief["phrase"] else brief["feat"]
         body = f"{brief['problem']}\n\n**Goal:** {brief['goal']}"
-        url = gh(["issue", "create", "--repo", repo, "--title", title,
-                  "--body", body, "--label", "harness"])
-        _BUILD_ENTRY["remote_written"] = True
-        rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
+        args = ["issue", "create", "--repo", repo, "--title", title,
+                "--body", body, "--label", "harness"]
+        if _replacement_in_progress(rec):
+            rec["parent"] = _replacement_create(feat_dir, rec, "parent", args, typed=state == "available")
+        else:
+            url = gh(args)
+            _BUILD_ENTRY["remote_written"] = True
+            rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
         if state == "available":
             rec["typed"]["parent"] = "created"
         save_recorded(feat_dir, rec)
         print(f"gh-sync: parent #{rec['parent']} created")
 
 
-def _open_create_task(feat_dir, repo, brief, rec, task, state):
+def _open_task_milestone(repo, brief, rec, tasks):
+    """Resolve the title of a confirmed replacement receipt, never discover an object."""
+    pending = any(task.get("status") not in factory_config.TERMINAL_STATIONS
+                  and task["id"] not in rec["issues"] for task in tasks)
+    if not rec.get("recovery") or not pending:
+        return brief["feat"]
+    title = gh(["api", f"repos/{repo}/milestones/{rec['milestone']}", "--jq", ".title"])
+    if not title:
+        skip("confirmed replacement milestone has no readable title; no task was created")
+    return title
+
+
+def _open_create_task(feat_dir, repo, brief, rec, task, state, milestone_title):
     """Create TASK's sub-issue when it is not yet recorded (section 5's label rule)."""
     body = task["body"]
     if task["absorbs"]:
@@ -1136,11 +1274,14 @@ def _open_create_task(feat_dir, repo, brief, rec, task, state):
         labels = ["harness"] + ([type_label(task["change_type"])] if type_label(task["change_type"]) else [])
     args = ["issue", "create", "--repo", repo,
             "--title", f"{brief['feat']} — {task['id']} — {task['title']}", "--body", body,
-            "--milestone", brief["feat"]]
+            "--milestone", milestone_title]
     for l in labels:
         args += ["--label", l]
-    url = gh(args)
-    num = int(url.rstrip("/").rsplit("/", 1)[-1])
+    if _replacement_in_progress(rec):
+        num = _replacement_create(feat_dir, rec, f"task:{task['id']}", args, typed=state == "available")
+    else:
+        url = gh(args)
+        num = int(url.rstrip("/").rsplit("/", 1)[-1])
     rec["issues"][task["id"]] = num
     if state == "available":
         rec["typed"][task["id"]] = "created"
@@ -1162,7 +1303,7 @@ def _open_attach_task(feat_dir, repo, rec, task):
     print(f"gh-sync: {task['id']} (issue #{child_num}) attached to parent #{rec['parent']}")
 
 
-def _open_sync_task(feat_dir, repo, brief, rec, task, state):
+def _open_sync_task(feat_dir, repo, brief, rec, task, state, milestone_title):
     """One task's whole sync step: skip abandoned, create-or-skip, then attach."""
     if task.get("status") in factory_config.TERMINAL_STATIONS:
         print(f"gh-sync: {task['id']} is terminal — no sub-issue created")
@@ -1170,7 +1311,7 @@ def _open_sync_task(feat_dir, repo, brief, rec, task, state):
     if task["id"] in rec["issues"]:
         print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
     else:
-        _open_create_task(feat_dir, repo, brief, rec, task, state)
+        _open_create_task(feat_dir, repo, brief, rec, task, state, milestone_title)
         _BUILD_ENTRY["remote_written"] = True
     _open_attach_task(feat_dir, repo, rec, task)
 
@@ -1189,10 +1330,11 @@ def _open_ensure_labels(repo, tasks, rec, parent_arg, issue_types, state, declar
         ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
 
 
-def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
+def _open_apply(feat_dir, repo, rec, parent_arg=None, issue_types=None):
     issue_types = issue_types or {}
     state, declared, _message = detect_issue_types(repo)
-    brief, tasks, rec = parse_brief(feat_dir), parse_tasks(feat_dir), load_recorded(feat_dir)
+    brief, tasks = parse_brief(feat_dir), parse_tasks(feat_dir)
+    rec["repo"] = repo
     # T-02 (FEAT-26): refreshed from the plan on EVERY run — a re-plan that changes the
     # source tickets is picked up by a re-run, because the plan is the truth and
     # feature.json's github.source_issues is only ever the mirror.
@@ -1202,13 +1344,24 @@ def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
     _open_ensure_labels(repo, tasks, rec, parent_arg, issue_types, state, declared)
 
     _open_ensure_milestone(feat_dir, repo, brief, rec)
+    milestone_title = _open_task_milestone(repo, brief, rec, tasks)
     _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state)
     for task in tasks:
-        _open_sync_task(feat_dir, repo, brief, rec, task, state)
+        _open_sync_task(feat_dir, repo, brief, rec, task, state, milestone_title)
     save_recorded(feat_dir, rec)
 
     if state == "available":
         _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared)
+
+
+def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
+    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    _provenance_preflight(doc, repo, feat_dir)
+    rec = load_recorded(feat_dir)
+    if (rec.get("recovery") or {}).get("mode") == "terminal":
+        print("gh-sync: terminal replacement is already complete — no task mirrors will be created")
+        return
+    _open_apply(feat_dir, repo, rec, parent_arg, issue_types)
 
     # T-02 (BUG-1309): the LAST statement of the successful path. Reaching it is itself
     # the proof no skip branch fired (the same structural argument cmd_ship's docstring
@@ -1217,12 +1370,7 @@ def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
 
 
 def _recover_terminal_conflict(rec, parent_arg):
-    """The ONE refusal `recover-terminal` has (T-03): `--parent <n>` naming a number
-    that CONTRADICTS an already-recorded parent. Returns the refusal message, or None
-    when there is no contradiction — an already-recorded milestone, an already-recorded
-    parent (matching --parent or not given at all), a non-empty `github.issues`, and an
-    existing `build_entry` are NOT refusals; recover-terminal exists to make them
-    recoverable, not to reject them."""
+    """Check only an explicit parent contradiction; binding/provenance gate separately."""
     if parent_arg is None or rec["parent"] is None:
         return None
     if int(parent_arg) == rec["parent"]:
@@ -1268,6 +1416,177 @@ def _recover_terminal_apply(feat_dir, repo, rec, parent_arg):
     save_recorded(feat_dir, rec)
 
 
+def _replacement_plan(feat_dir, doc):
+    from plan_merge.approval import signed_task_hashes
+    plan = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml"))
+    if (plan.get("approval") or {}).get("status") != "approved":
+        raise ValueError("mirror replacement requires an approved plan")
+    signed = doc.get("signed_task_hashes")
+    current = signed_task_hashes(plan)
+    if not isinstance(signed, dict) or set(signed) != set(current):
+        raise ValueError("mirror replacement requires original signatures for every task")
+    # DEC-229/INV-40 preserve the original hashes when a signed task is amended.
+    amended = {str(entry.get("decision", "")).split(".", 1)[0]
+               for entry in (doc.get("judgements") or [])
+               if isinstance(entry, dict) and str(entry.get("kind", "")).strip() == "amendment"}
+    changed = {tid for tid in current if current[tid] != signed[tid]}
+    if changed - amended:
+        raise ValueError("mirror replacement requires signed or ledgered task text")
+    return feature_schema.resolve_evidence_ref(feat_dir, "plan.yaml")["sha256"]
+
+
+def _replacement_authority(feat_dir, doc, ref, previous_repo, repo, mode, plan_hash):
+    effect = feature_schema.verify_evidence_ref(feat_dir, ref, {
+        "feature_id": doc["feature_id"], "effect": "recover-mirror", "from_repo": previous_repo,
+        "to_repo": repo, "mode": mode, "plan_sha256": plan_hash})
+    if not all(isinstance(effect.get(key), str) and effect[key].strip() for key in ("by", "reason")):
+        raise ValueError("replacement authorization requires an operator identity and reason")
+    return effect
+
+
+def _begin_replacement(feat_dir, doc, previous_repo, repo, mode, plan_hash, ref, effect):
+    previous = copy.deepcopy(doc.get("github") or {})
+    if previous.get("repo") is not None and previous["repo"] != previous_repo:
+        raise ValueError("--previous-repo conflicts with the recorded mirror repository")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]*/(?!\.{1,2}$)[A-Za-z0-9_.-]+", previous_repo):
+        raise ValueError("--previous-repo must be an explicit owner/name")
+    history = previous.pop("history", [])
+    previous.pop("recovery", None)
+    recovery_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    history.append({"recovery_id": recovery_id, "at": now, "repo": previous_repo,
+                    "reason": effect["reason"], "evidence": ref, "previous": previous})
+    active = {"repo": repo, "milestone": None, "parent": None, "issues": {}, "attached": [],
+              "source_issues": parse_source_issues(feat_dir), "build_entry": "recovery-required",
+              "history": history, "recovery": {
+                  "id": recovery_id, "from_repo": previous_repo, "to_repo": repo, "mode": mode,
+                  "state": "in-progress", "plan_sha256": plan_hash, "started_at": now}}
+
+    def transform(base):
+        current = json.loads(base.decode("utf-8"))
+        if current != doc or _replacement_plan(feat_dir, current) != plan_hash:
+            raise ValueError("feature or signed plan changed before replacement could be archived")
+        current["github"] = active
+        return json.dumps(current, indent=2) + "\n"
+
+    feature_json_write.write_feature_json(os.path.join(feat_dir, "feature.json"), transform)
+    return load_recorded(feat_dir)
+
+
+def _adopt_replacement_receipt(feat_dir, doc, rec, ref, operand, plan_hash):
+    recovery = rec["recovery"]
+    match = re.fullmatch(r"(milestone|parent|task:T-[0-9]{2,})=([1-9][0-9]*)", operand)
+    if not match:
+        raise ValueError("--adopt-receipt requires exactly role=positive-number")
+    role, number = match[1], int(match[2])
+    effect = feature_schema.verify_evidence_ref(feat_dir, ref, {
+        "feature_id": doc["feature_id"], "effect": "adopt-receipt", "recovery_id": recovery["id"],
+        "role": role, "repo": recovery["to_repo"], "number": number, "plan_sha256": plan_hash})
+    if not all(isinstance(effect.get(key), str) and effect[key].strip()
+               for key in ("by", "ownership_evidence")):
+        raise ValueError("adoption requires an operator identity and authenticated object ownership evidence")
+    pending = recovery.get("pending_create")
+    if not pending:
+        if ref in recovery.get("reconciliation", []) and feature_schema.mirror_receipt_for_role(rec, role) == number:
+            return
+        raise ValueError("adoption does not discharge a recorded pending create")
+    if pending["role"] != role:
+        raise ValueError("adoption role differs from the exact pending create")
+    history = next(item for item in rec["history"] if item["recovery_id"] == recovery["id"])
+    if ref == history["evidence"]:
+        raise ValueError("adoption requires separate new authorization, not the original replacement note")
+    if role.startswith("task:") and (
+            recovery["mode"] != "full" or role[5:] not in {task["id"] for task in parse_tasks(feat_dir)}):
+        raise ValueError("adoption task is outside this replacement's signed scope")
+    if feature_schema.mirror_receipt_for_role(rec, role) is not None:
+        raise ValueError("pending role already has a conflicting confirmed receipt")
+    # Milestones and issues have separate number spaces; parent/task issues do not.
+    if role != "milestone" and number in [rec.get("parent"), *rec.get("issues", {}).values()]:
+        raise ValueError("adopted issue is already assigned to a different role")
+    if role.startswith("task:"):
+        rec["issues"][role[5:]] = number
+    else:
+        rec[role] = number
+    recovery.setdefault("reconciliation", []).append(ref)
+    recovery.pop("pending_create")
+    save_recorded(feat_dir, rec)
+
+
+def _resume_replacement(feat_dir, doc, repo, previous_repo, ref, adopt, plan_hash):
+    """Check durable generation identity and discharge only its evidenced pending role."""
+    github = doc["github"]
+    recovery = github["recovery"]
+    problems = feature_schema.mirror_evidence_problems(feat_dir, doc)
+    if problems:
+        raise ValueError("; ".join(problems))
+    if (recovery["from_repo"] != previous_repo or recovery["to_repo"] != repo
+            or recovery["plan_sha256"] != plan_hash or github.get("repo") != repo):
+        raise ValueError("replacement operands differ from the durable recovery generation")
+    history = next(item for item in github["history"] if item["recovery_id"] == recovery["id"])
+    if not adopt and history["evidence"] != ref:
+        raise ValueError("resume requires the original immutable replacement authorization")
+    rec = load_recorded(feat_dir)
+    if adopt:
+        _adopt_replacement_receipt(feat_dir, doc, rec, ref, adopt, plan_hash)
+    elif recovery.get("pending_create"):
+        raise ValueError(f"uncertain create for {recovery['pending_create']['role']}; "
+                         "no retry or discovery is permitted; supply an evidenced --adopt-receipt")
+    return rec
+
+
+def _finish_replacement(feat_dir, repo, board, issue_types, rec, plan_hash):
+    """Finish creation and projection before sealing the unchanged signed-plan generation."""
+    recovery = rec["recovery"]
+    if recovery["mode"] == "full":
+        _open_apply(feat_dir, repo, rec, issue_types=issue_types)
+    else:
+        ensure_labels(repo, {"harness"})
+        _recover_terminal_apply(feat_dir, repo, rec, None)
+    for number, station in _projected_for(feat_dir, rec).items():
+        if not _place(board, repo, number, station):
+            raise ValueError(f"target projection failed for {repo}#{number}; recovery remains in progress")
+    if feature_schema.resolve_evidence_ref(feat_dir, "plan.yaml")["sha256"] != plan_hash:
+        raise ValueError("signed plan changed during recovery; no completion receipt was written")
+    recovery["state"] = "complete"
+    recovery["completed_at"] = datetime.now(timezone.utc).isoformat()
+    rec["build_entry"] = "opened" if recovery["mode"] == "full" else "recovered-terminal"
+    save_recorded(feat_dir, rec)
+    print(f"gh-sync: mirror recovery {recovery['id']} complete in {repo}")
+
+
+def cmd_recover_mirror(feat_dir, repo, board, issue_types, previous_repo, evidence, yes, adopt=None):
+    """Replace a mirror generation; only a confirmed number can discharge create intent."""
+    try:
+        if not yes or not previous_repo or not evidence:
+            raise ValueError("recover-mirror requires --previous-repo, target-local --evidence, and --yes")
+        if repo is None or board is None:
+            raise ValueError("mirror replacement requires a resolved sync-enabled target repository and board")
+        doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json"))
+        plan_hash = _replacement_plan(feat_dir, doc)
+        ref = feature_schema.resolve_evidence_ref(feat_dir, evidence)
+        github = doc.get("github") or {}
+        recovery = github.get("recovery") or {}
+        if recovery:
+            rec = _resume_replacement(feat_dir, doc, repo, previous_repo, ref, adopt, plan_hash)
+            if recovery["state"] == "complete":
+                print(f"gh-sync: mirror recovery {recovery['id']} already complete — no writes")
+                return
+        else:
+            if adopt:
+                raise ValueError("adoption requires an existing pending recovery generation")
+            mode = ("terminal" if feature_schema.recovery_command_for(
+                feat_dir, doc, repo, replacement=True) == "recover-terminal" else "full")
+            effect = _replacement_authority(feat_dir, doc, ref, previous_repo, repo, mode, plan_hash)
+            problems = feature_schema.mirror_evidence_problems(feat_dir, doc)
+            if problems:
+                raise ValueError("; ".join(problems))
+            rec = _begin_replacement(feat_dir, doc, previous_repo, repo, mode, plan_hash, ref, effect)
+        _finish_replacement(feat_dir, repo, board, issue_types, rec, plan_hash)
+    except (OSError, ValueError, TypeError, KeyError, harness_yaml.YamlParseError,
+            artifact_accessors.ArtifactAccessError) as error:
+        refuse(f"mirror recovery: {error}")
+
+
 def cmd_recover_terminal(feat_dir, repo, parent_arg=None, yes=False):
     """`recover-terminal <feature-dir> [--parent <n>] [--yes]` (T-03, BUG-1309) — the
     operator-approved recovery for an already-merged sync-enabled feature whose mirror
@@ -1296,7 +1615,10 @@ def cmd_recover_terminal(feat_dir, repo, parent_arg=None, yes=False):
     UNARMED: nothing is recorded, the field stays absent, and the feature stays
     non-terminal — the same funnel `open` uses, never special-cased for this command.
     """
+    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    _provenance_preflight(doc, repo, feat_dir)
     rec = load_recorded(feat_dir)
+    rec["repo"] = repo
     conflict = _recover_terminal_conflict(rec, parent_arg)
     if conflict is not None:
         refuse(conflict)
@@ -1362,41 +1684,29 @@ def _build_entry_preflight(feat_dir, rec):
     """Print the allowed recovery notice or refuse an unsafe Build start."""
     entry = rec.get("build_entry")
     feature_id = os.path.basename(feat_dir.rstrip("/"))
+    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    recovery = feature_schema.recovery_command_line(feat_dir, doc, _BUILD_ENTRY.get("repo"))
     if entry is None and feature_id not in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-        command = feature_schema.recovery_command_for(feat_dir)
-        if command == "open":
-            refuse(f"this feature has no recorded build entry, so Build must not start. "
-                   f"Run gh-sync.py open {os.path.realpath(feat_dir)} first.")
-        refuse(f"this feature has no recorded build entry, and its own record says the work is "
-               f"already under way or finished, so creating the mirror now would mean task "
-               f"sub-issues for completed work. Run gh-sync.py recover-terminal "
-               f"{os.path.realpath(feat_dir)} --yes.")
+        refuse(f"this feature has no recorded build entry, so Build must not start. "
+               f"Run {recovery} first.")
     if entry is None:
         print(f"gh-sync: {feature_id} predates the build-entry receipt "
-              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so Build continues. Its terminal "
-              f"receipt is created only by an explicit operator-approved gh-sync.py "
-              f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so Build continues. "
+              f"Explicit operator recovery: {recovery}.", file=sys.stderr)
     if entry == "recovery-required":
         _build_entry_recovery_notice(feat_dir, feature_id)
 
 
 def _build_entry_recovery_notice(feat_dir, feature_id):
+    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    recovery = feature_schema.recovery_command_line(feat_dir, doc, _BUILD_ENTRY.get("repo"))
     if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
         print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
-              f"Build proceeds. This feature predates the build-entry receipt "
-              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so its merge is not refused; its "
-              f"terminal receipt is created only by an explicit operator-approved gh-sync.py "
-              f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
-        return
-    command = feature_schema.recovery_command_for(feat_dir)
-    if command == "open":
-        print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
-              f"Build proceeds, the MERGE is refused until gh-sync.py open records opened",
-              file=sys.stderr)
+              f"Build proceeds under the frozen era exemption. "
+              f"Explicit operator recovery: {recovery}.", file=sys.stderr)
         return
     print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
-          f"Build proceeds, the MERGE is refused until gh-sync.py {command} "
-          f"{os.path.realpath(feat_dir)} --yes records the terminal receipt",
+          f"Build proceeds, the MERGE is refused until explicit recovery: {recovery}.",
           file=sys.stderr)
 
 
@@ -1594,7 +1904,11 @@ def _to_backlog(board, repo, num):
     _place(board, repo, num, "backlog", note=" (abandoned, not done)")
 
 
-def _abandon_plan(rec):
+# Plan kinds whose write is the reason comment, mapped to the target word the reporters print.
+_ABANDON_COMMENT_TARGET = {"comment": "parent", "source_comment": "source"}
+
+
+def _abandon_plan(rec, sources=()):
     """Every write `abandon` would make, in the order `cmd_abandon` performs them, as a list
     of (kind, number, line).
 
@@ -1605,7 +1919,10 @@ def _abandon_plan(rec):
 
     THE PARENT IS LABELLED AS THE PARENT, never as one more number. Under DEC-203 it closes
     UNCONDITIONALLY where it previously turned on where the parent came from, so a reader
-    skimming a column of issue numbers has no way to see that the epic is in the list."""
+    skimming a column of issue numbers has no way to see that the epic is in the list.
+
+    `sources` is the opt-in `--close-sources` list (plan.yaml's `source_issues`), empty by
+    default so every other caller is unchanged; `_source_plan` plans each one, LAST."""
     plan = []
     if rec["parent"] is not None:
         plan.append(("comment", rec["parent"],
@@ -1625,15 +1942,90 @@ def _abandon_plan(rec):
         plan.append(("parent", rec["parent"],
                      f"close parent #{rec['parent']} (not_planned), label it abandoned and "
                      f"return its card to the backlog"))
+    plan.extend(_source_plan(rec, sources))
     return plan
 
 
-def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
+def _source_plan(rec, sources):
+    """The `--close-sources` entries of the abandon plan, in plan order, as (kind, number, line).
+
+    Each source is labelled as a source: a reason comment and a close. A source that is also a
+    task issue still gets its own reason comment but is closed once, by the task entry; one
+    that is the parent already has the parent's comment and close and is not planned again."""
+    plan = []
+    task_issues = set(rec["issues"].values())
+    for num in dict.fromkeys(sources):
+        if num == rec["parent"]:
+            continue
+        plan.append(("source_comment", num, f"post the abandon reason on source #{num}"))
+        if num not in task_issues:
+            plan.append(("source", num,
+                         f"close source #{num} (not_planned), label it abandoned and "
+                         f"return its card to the backlog"))
+    return plan
+
+
+def _hold_back_sources(rec, protected):
+    """Split `rec` into the record `abandon` may act on and the (number, role) pairs it must not.
+
+    `protected` is the plan.yaml sources nobody opted in to disposing. A protected number that is
+    the parent or a task issue is dropped from the returned record, so no planner entry, detach or
+    close can name it; every other entry and its order are unchanged."""
+    protected = set(protected)
+    held = []
+    acting = dict(rec)
+    if rec["parent"] in protected:
+        held.append((rec["parent"], "parent"))
+        acting["parent"] = None
+    acting["issues"] = {}
+    for tid, num in sorted(rec["issues"].items()):
+        if num in protected:
+            held.append((num, f"task issue for {tid}"))
+        else:
+            acting["issues"][tid] = num
+    return acting, held
+
+
+def _report_held_sources(held):
+    for num, role in held:
+        print(f"gh-sync: GAP - #{num} is a plan.yaml source and also the {role}; left untouched "
+              f"(no comment, close, label or board write) — re-run with --close-sources to "
+              f"dispose it")
+
+
+def _report_abandon_dry_run(feat_dir, plan, already_abandoned):
+    """Print every write `abandon` would make and make none of them."""
+    if plan:
+        print("gh-sync: would ensure the abandoned label exists")
+    for _kind, _num, line in plan:
+        print(f"gh-sync: would {line}")
+    if not already_abandoned:
+        print("gh-sync: would record the feature station abandoned")
+    _prune_abandoned_runs(feat_dir, dry_run=True)
+    print("gh-sync: abandon is a decision the operator makes — re-run with --yes to "
+          "close the issues listed above")
+
+
+def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=False):
     """Terminal state: closes every recorded sub-issue and the PARENT `not_planned`, closes
     the milestone, posts the signed reason, and labels everything it closed `abandoned`.
 
     ABANDON REPORTS AND ASKS. Without `--yes` it prints every write it WOULD make and makes
     none of them, and does not record the status. `--yes` is what executes it.
+
+    SOURCES ARE OPT-IN AND DOUBLY CONFIRMED (BUG-2161, D-01). Only `--close-sources` together
+    with `--yes` writes to a `source_issues` ticket; `--yes` alone leaves every source
+    untouched, and `--close-sources` alone is a dry run that lists them. They are read from
+    plan.yaml (`parse_source_issues`), the authority, never from feature.json's mirror, and
+    neither is written back. Each gets the SAME reason file the parent gets, by its original
+    path (DEC-138). There is no check that another active feature cites the same ticket: the
+    operator read the complete dry run, and that confirmation is the guard.
+
+    AN UNOPENED OR ALREADY-ABANDONED RECORD STILL FINALIZES LOCALLY (BUG-2161, D-02). With no
+    parent, milestone or tasks there is nothing to close on GitHub, but the feature is still
+    abandoned: under `--yes` the station is recorded and `runs/` pruned (INV-51). A station that
+    already reads `abandoned` is not rewritten; `runs/` is still pruned and sources are still
+    disposed when asked.
 
     THE CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No `isatty()`
     branch, no default-on-no-TTY, no stdin read. No script in this directory calls `input()`,
@@ -1665,24 +2057,29 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     refuses a hand close. Detaching is what makes the backlog station safe rather than a trap.
     The ticket survives, labelled and closed, for the operator to clean up later.
 
-    `_record_station(feat_dir, "abandoned")` stays the LAST STATEMENT of the successful path
-    and runs only under `--yes`."""
+    `_record_station(feat_dir, "abandoned")` is the last DECISION of the successful path and runs
+    only under `--yes`. It is gated on the station already reading abandoned, and `runs/` is pruned
+    only when that station reads abandoned or the write just landed (F1): a refused write reports a
+    gap and keeps the evidence.
+
+    WITHOUT `--close-sources`, A plan.yaml SOURCE GETS ZERO WRITES EVEN WHEN IT IS ALSO A TASK ISSUE
+    OR THE PARENT (GC-01): `_hold_back_sources` removes it from the acting record and the skip is
+    printed as a gap, dry run included. With the flag, the overlap handling in `_source_plan`."""
     reason_file = post_body_path(reason_file, "--reason-file")
-    rec = load_recorded(feat_dir)
-    if rec["milestone"] is None and not rec["issues"]:
-        skip("no recorded milestone or issues — nothing to abandon (was `open` run?)")
-
-    plan = _abandon_plan(rec)
-
+    sources = parse_source_issues(feat_dir)
+    # GC-01 (BUG-2161 c1): without --close-sources a plan.yaml source gets ZERO writes, whatever
+    # else it is recorded as. A source that is also a task issue or the parent is held back from
+    # the plan entirely (comment, detach, close, label, board) and reported, dry run included.
+    rec, held = _hold_back_sources(load_recorded(feat_dir), () if close_sources else sources)
+    _report_held_sources(held)
+    plan = _abandon_plan(rec, sources if close_sources else ())
+    already_abandoned = _feature_station(feat_dir) == "abandoned"
     if not yes:
-        for _kind, _num, line in plan:
-            print(f"gh-sync: would {line}")
-        _prune_abandoned_runs(feat_dir, dry_run=True)
-        print("gh-sync: abandon is a decision the operator makes — re-run with --yes to "
-              "close the issues listed above")
+        _report_abandon_dry_run(feat_dir, plan, already_abandoned)
         return
 
-    ensure_labels(repo, {"abandoned"})
+    if plan:
+        ensure_labels(repo, {"abandoned"})
 
     # NOTHING IN THIS LOOP MAY EXIT, and that is the whole shape of it. Every write used to
     # go through `gh()`, which calls `skip()` -- print `gh-sync: SKIP` and `sys.exit(0)` --
@@ -1717,42 +2114,48 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
 
     _apply_abandon_plan(plan, rec, repo, reason_file, _close_and_reseat)
 
-    _report_abandon_gaps(failed, plan, rec)
+    _report_abandon_gaps(failed, plan, rec, held)
 
-    # LAST GITHUB-VISIBLE STATEMENT of the successful path (T-01/FEAT-23) — structural, not
-    # re-gated on the milestone check above (that guard is a conjunction with the issues check,
-    # not this write's business). Reaching here already proves `skip()` did not fire. The prune
-    # that follows is local disk only and, like cmd_ship's trailing commit, cannot undo it.
+    # LAST DECISION of the successful path (T-01/FEAT-23) — structural, not re-gated on the
+    # milestone or issues (an unopened record abandons too, BUG-2161). The only guard is a read
+    # of the station itself: a re-entry at abandoned must not rewrite it. The prune that
+    # follows is local disk only and, like cmd_ship's trailing commit, cannot undo it.
     # SPELLED, NOT DERIVED, on purpose (FEAT-1714 T-03): this is the ONE abandoned-specific write,
     # and `reject` writes its own station the same way. TERMINAL_STATIONS is for generic consumers.
-    _record_station(feat_dir, "abandoned")
-    # After the station, never before: the station is the record every reader keys on, and a
-    # prune that raises (symlinked runs/, a writer mid-flight) must not leave closed issues with
-    # no station. INV-51 catches a prune that did not happen.
-    _prune_abandoned_runs(feat_dir)
+    # F1 (BUG-2161 c1): prune ONLY when the station reads abandoned — already did, or
+    # `_record_station` just returned True. A refused write (plan.yaml absent, set-feature-station
+    # non-zero) leaves a feature whose station is not abandoned, and its evidence must survive it.
+    if already_abandoned or _record_station(feat_dir, "abandoned"):
+        # After the station, never before: the station is the record every reader keys on, and a
+        # prune that raises (symlinked runs/, a writer mid-flight) must not leave closed issues
+        # with no station. INV-51 catches a prune that did not happen.
+        _prune_abandoned_runs(feat_dir)
+    else:
+        print("gh-sync: FAILED — runs/ not pruned: the station was not recorded abandoned, "
+              "so the evidence is kept")
 
 
 def _apply_abandon_plan(plan, rec, repo, reason_file, close_and_reseat):
     """Every write in the plan, in plan order; one failure never stops the next (see cmd_abandon)."""
     for kind, num, _line in plan:
-        if kind == "comment":
-            _post_abandon_reason(repo, num, reason_file)
+        if kind in _ABANDON_COMMENT_TARGET:
+            _post_abandon_reason(repo, num, reason_file, _ABANDON_COMMENT_TARGET[kind])
         elif kind == "issue":
             if rec["parent"] is not None:
                 _detach_from_parent(repo, rec["parent"], num)
             close_and_reseat(num, "issue")
         elif kind == "milestone":
             _close_milestone(repo, num)
-        elif kind == "parent":
-            close_and_reseat(num, "parent")
+        elif kind in ("parent", "source"):
+            close_and_reseat(num, kind)
 
 
-def _post_abandon_reason(repo, num, reason_file):
+def _post_abandon_reason(repo, num, reason_file, what="parent"):
     ok, out = gh_try(["issue", "comment", str(num), "--repo", repo, "--body-file", reason_file])
     if ok:
-        print(f"gh-sync: reason posted on parent #{num}")
+        print(f"gh-sync: reason posted on {what} #{num}")
     else:
-        print(f"gh-sync: ERROR - reason not posted on parent #{num}: {out}", file=sys.stderr)
+        print(f"gh-sync: ERROR - reason not posted on {what} #{num}: {out}", file=sys.stderr)
 
 
 def _close_milestone(repo, num):
@@ -1763,12 +2166,13 @@ def _close_milestone(repo, num):
         print(f"gh-sync: ERROR - milestone #{num} not closed: {out}", file=sys.stderr)
 
 
-def _report_abandon_gaps(failed, plan, rec):
+def _report_abandon_gaps(failed, plan, rec, held=()):
     if failed:
         nums = ", ".join(f"#{n}" for n in failed)
         print(f"gh-sync: FAILED {len(failed)} of {len(plan)} — {nums} did not close and "
               f"nothing downstream reports it")
-    if rec["parent"] is None:
+    parent_held = any(role == "parent" for _num, role in held)
+    if not parent_held and not any(kind in _ABANDON_COMMENT_TARGET for kind, _num, _line in plan):
         print("gh-sync: no parent recorded — reason not posted")
     if rec["milestone"] is None:
         print("gh-sync: no milestone recorded — nothing to close")
@@ -2209,10 +2613,10 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None:
-        skip(f"no recorded milestone — this feature never completed a Build entry, so "
-             f"there is nothing to close. Run gh-sync.py recover-terminal "
-             f"{os.path.abspath(feat_dir)} --yes to create the terminal receipt, then "
-             f"ship again.")
+        doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+        recovery = feature_schema.recovery_command_line(feat_dir, doc, repo)
+        skip(f"no recorded milestone — there is nothing to close. "
+             f"Run {recovery} to create the receipt, then ship again.")
 
     # The comment is UNCONDITIONAL: posts on any recorded parent whatever its origin.
     if body_file is not None and rec["parent"] is not None:
@@ -2458,20 +2862,42 @@ def main():
             int(pr_arg)
         except ValueError:
             die(f"--pr needs an integer, got {pr_arg!r}")
+    recovery_options = {}
+    for flag in ("--previous-repo", "--evidence", "--adopt-receipt"):
+        if flag in argv:
+            i = argv.index(flag)
+            if i + 1 >= len(argv) or argv[i + 1].startswith("--"):
+                die(f"{flag} needs a value")
+            recovery_options[flag] = argv[i + 1]
+            argv = argv[:i] + argv[i + 2:]
     yes_flag = False
     if "--yes" in argv:
         i = argv.index("--yes")
         yes_flag = True
         argv = argv[:i] + argv[i + 1:]
+    close_sources_flag = False
+    if "--close-sources" in argv:
+        i = argv.index("--close-sources")
+        close_sources_flag = True
+        argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
         die("usage: gh-sync.py open|start-task|abandon|reject|ship|backlog|record-pr|"
-            "status|recover-terminal "
+            "status|recover-terminal|recover-mirror "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
             "[--superseded-by <positive integer|none>] [--reason-file <path>] "
-            "[--body-file <path>] [--pr <n>] [--yes]")
+            "[--body-file <path>] [--pr <n>] [--close-sources] [--yes] "
+            "[--previous-repo <owner/name>] [--evidence <feature-local-note>] "
+            "[--adopt-receipt <role>=<positive-number>]")
     cmd, feat_dir = argv[0], argv[1]
-    if yes_flag and cmd not in ("abandon", "reject", "recover-terminal"):
-        die(f"--yes is only accepted by abandon, reject and recover-terminal, not {cmd!r}")
+    if yes_flag and cmd not in ("abandon", "reject", "recover-terminal", "recover-mirror"):
+        die(f"--yes is only accepted by abandon, reject, recover-terminal and recover-mirror, "
+            f"not {cmd!r}")
+    if close_sources_flag and cmd != "abandon":
+        die(f"--close-sources is only accepted by abandon, not {cmd!r}")
+    if recovery_options and cmd != "recover-mirror":
+        die("mirror recovery operands are only accepted by recover-mirror")
+    if cmd == "recover-mirror" and parent_arg is not None:
+        die("recover-mirror cannot adopt an old parent; use a separately evidenced pending receipt")
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
     _abs = os.path.abspath(feat_dir)
@@ -2481,23 +2907,10 @@ def main():
         _d = os.path.dirname(_d)
     root = _d if os.path.isfile(os.path.join(_d, ".harness", "team-config.yaml")) else (
         os.path.dirname(os.path.dirname(os.path.dirname(_abs))))
-    if cmd == "status":
-        try:
-            status_config = artifact_accessors.load_harness_json(
-                os.path.join(root, ".harness", "harness.json"))
-        except artifact_accessors.ArtifactAccessError:
-            status_config = None
-        status_github = status_config.get("github") if isinstance(status_config, dict) else None
-        if (not isinstance(status_github, dict) or not status_github.get("sync")
-                or not status_github.get("board")):
-            if len(argv) < 3:
-                die("status needs a Status value")
-            cmd_status(feat_dir, argv[2], None, None)
-            return
     if cmd == "open":
         _BUILD_ENTRY["feat_dir"] = feat_dir
     try:
-        repo, board, issue_types = load_config(root)
+        repo, board, issue_types = load_config(root, feat_dir, cmd)
     except artifact_accessors.FleetError as e:
         print(f"gh-sync: {e}", file=sys.stderr)
         sys.exit(2)
@@ -2508,13 +2921,17 @@ def main():
             die("start-task needs a T-NN")
         cmd_start_task(feat_dir, argv[2], repo, board)
     elif cmd == "abandon":
-        cmd_abandon(feat_dir, repo, board, reason_file, yes_flag)
+        cmd_abandon(feat_dir, repo, board, reason_file, yes_flag, close_sources_flag)
     elif cmd == "reject":
         cmd_reject(feat_dir, repo, board, successor_arg, reason_file, yes_flag)
     elif cmd == "ship":
         cmd_ship(feat_dir, repo, board, body_file, pr_arg)
     elif cmd == "recover-terminal":
         cmd_recover_terminal(feat_dir, repo, parent_arg, yes_flag)
+    elif cmd == "recover-mirror":
+        cmd_recover_mirror(feat_dir, repo, board, issue_types, recovery_options.get("--previous-repo"),
+                           recovery_options.get("--evidence"), yes_flag,
+                           recovery_options.get("--adopt-receipt"))
     elif cmd == "backlog":
         if len(argv) < 3:
             die("backlog needs at least one nature:title item")

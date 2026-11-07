@@ -272,6 +272,43 @@ def _inv15_validate(ctx, dg):
     return [f"{os.path.relpath(dg, H)}: does not satisfy the lead digest contract — a "
             f"successor reads this file, not the transcript (DEC-156): {_why}."]
 
+def _refusal_completion(ctx, feat, rundir, sdoc):
+    """A completed execution may have an evidenced refused return, never accepted success.
+
+    Every writer records typed `refusal` provenance, verified here. A frozen legacy
+    `return_disposition: refused` entry (written by close-run before provenance existed; no
+    writer remains) is recognised by its closed BLOCKED identity alone — grandfathered data,
+    not proof (DEC-191)."""
+    if sdoc.get("status") != "complete" or sdoc.get("host") not in LEADS:
+        return False, []
+    doc, _, _, _errors = ctx.record(feat)
+    entries = [entry for entry in (doc or {}).get("runs", [])
+               if entry.get("id") == os.path.basename(rundir)]
+    if not any(entry.get("refusal") for entry in entries):
+        return _refused_closed_run(_unique_recorded_runs(doc), rundir, sdoc), []
+    try:
+        feature_schema = harness_boundary.load_repo_module("feature_schema")
+    except harness_boundary.RepoModuleError as error:
+        return False, [f"{feat} refusal evidence CANNOT be checked: {error}"]
+    problems = []
+    if len(entries) != 1:
+        problems.append("refusal run identity is ambiguous")
+    else:
+        directory = os.path.dirname(ctx.path(feat, "feature.json"))
+        entry = entries[0]
+        problems.extend(feature_schema.run_evidence_problems(
+            directory, doc["feature_id"], entry, doc.get("runs", [])))
+        try:
+            path = feature_schema.verify_evidence_ref(directory, entry["refusal"]["digest"])
+            if os.path.realpath(path) != os.path.realpath(os.path.join(rundir, "digest.md")):
+                problems.append("refusal evidence names a different run digest")
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            problems.append(str(error))
+    return not problems, [
+        f"{feat} run {os.path.basename(rundir)} refusal evidence: {problem}"
+        for problem in problems]
+
+
 def _inv15_run(ctx, rundir, sdoc):
     H = ctx.H
     complete = str(sdoc.get("status", "")).strip() == "complete"
@@ -285,11 +322,40 @@ def _inv15_run(ctx, rundir, sdoc):
                 f"missing — the lead's report artifact never landed (DEC-156)."]
     return _inv15_validate(ctx, dg)
 
+def _unique_recorded_runs(doc):
+    if not isinstance(doc, dict):
+        return {}
+    unique = {}
+    entries = doc.get("runs") or []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        rid = entry.get("id")
+        if not isinstance(rid, str):
+            continue
+        unique[rid] = entry if rid not in unique else None
+    return unique
+
+
+def _refused_closed_run(unique, rundir, sdoc):
+    entry = unique.get(os.path.basename(rundir))
+    if entry is None:
+        return False
+    identity = (entry.get("return_disposition"), entry.get("verdict"), entry.get("agent"))
+    return identity == ("refused", "BLOCKED", sdoc.get("host")) and bool(entry.get("ended_at"))
+
+
 def inv_15(ctx, feat):
     bad, warn = [], []
     H, root, fpath = ctx.H, ctx.root, ctx.fpath
     for sy, rel, rundir, sdoc, _error in ctx.run_states(feat):
         if sdoc is None:
+            continue
+        refused, problems = _refusal_completion(ctx, feat, rundir, sdoc)
+        bad.extend(problems)
+        if refused:
+            warn.append(f"{feat} run {os.path.basename(rundir)}: refused completion; "
+                        "BLOCKED, not an accepted return.")
             continue
         bad.extend(_inv15_run(ctx, rundir, sdoc))
     return bad, warn
@@ -313,6 +379,9 @@ def inv_46(ctx, feat):
     bad, warn = [], []
     for sy, rel, rundir, sdoc, _error in ctx.run_states(feat):
         if sdoc is None:
+            continue
+        refused, _problems = _refusal_completion(ctx, feat, rundir, sdoc)
+        if refused:
             continue
         found = _inv46_digest(ctx, sdoc, rundir)
         if found is not None:

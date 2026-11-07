@@ -47,6 +47,10 @@ return the gap rather than guess.
    targets, "similar to above", "follow the existing pattern", and "implement X" without saying
    what X produces. If you cannot fully specify the task, the *brief* is incomplete: do not write
    the task; raise the gap in `open_questions`, never guess.
+   Carry the assigned PRODUCT checkout identity and applicable `<product-checkout>/docs/spec.md`,
+   `<product-checkout>/docs/decisions.md` and `<product-checkout>/docs/architecture.md` pointers in
+   this actual `intent:`, not just the BRIEF, notes or parent context. `harness-principles` defines
+   product-relative consultation. These are read inputs, not owned `files:` unless the task changes them.
 3. **A `verify:` command** with the expected result: under 60 seconds, unambiguous pass/fail, no
    human interpretation. If nothing automated is possible, write
    `verify: MANUAL — <what must be built first to make this automatable>` (em dash) — while the plan

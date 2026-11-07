@@ -1746,42 +1746,143 @@ def _respelled_bucket(node, parent, buckets):
     return next((name for name, bucket in buckets.items() if values <= bucket), None)
 
 
-def _walk_with_parents(tree):
-    """`ast.walk`'s exact breadth-first order, yielding each node with its parent, so a caller
-    needing both visits every child once instead of walking and then re-listing children."""
-    todo = collections.deque([(tree, None)])
-    while todo:
-        node, parent = todo.popleft()
-        todo.extend((child, node) for child in ast.iter_child_nodes(node))
-        yield node, parent
+# FEAT-2081 SC-06: the fact lists one traversal fills, by node type. A node of several
+# kinds (a set(...) Call is a call AND a literal candidate) lands in each.
+_INDEX_KINDS = (
+    ("functions", (ast.FunctionDef, ast.AsyncFunctionDef)),
+    ("calls", (ast.Call,)),
+    ("handlers", (ast.ExceptHandler,)),
+    ("tries", (ast.Try,)),
+    ("literal_candidates", _LITERAL_CANDIDATES),
+    ("constants", (ast.Constant,)),
+)
 
 
-def _literal_candidates(tree):
-    """ONE walk: the candidate nodes in `ast.walk` order, and each one's parent with
+class _SourceIndex:
+    """FEAT-2081 SC-06: ONE breadth-first, parent-aware traversal of one parsed tree, in
+    `ast.walk`'s exact order, dispatching each node to every rule's fact list. Facts are
+    references into the tree, never copies; every structure rule reads the index and none
+    walks the tree again. Subtree questions (the calls or constants inside one function,
+    statement or call) are answered from the parent links, in the order `ast.walk(subject)`
+    would yield them -- the restriction of the tree's breadth-first order to the subtree."""
+
+    def __init__(self, tree):
+        self.tree, self.nodes, self.parent = tree, [tree], {tree: None}
+        self.facts = {kind: [] for kind, _types in _INDEX_KINDS}
+        self._members, self._lists_of_type = None, {}
+        # `nodes` is its own FIFO queue: appending children while reading forward is
+        # exactly ast.walk's breadth-first order.
+        for node in self.nodes:
+            for child in ast.iter_child_nodes(node):
+                self.parent[child] = node
+                self.nodes.append(child)
+            for bucket in self._lists_for(type(node)):
+                bucket.append(node)
+        self.program_texts = [c.value for c in self.facts["constants"] if _may_be_program(c)]
+
+    def _lists_for(self, node_type):
+        """The fact lists a node of `node_type` belongs in, resolved once per type."""
+        lists = self._lists_of_type.get(node_type)
+        if lists is None:
+            lists = self._lists_of_type[node_type] = [
+                self.facts[kind] for kind, types in _INDEX_KINDS if issubclass(node_type, types)]
+        return lists
+
+    def within(self, subject, kind):
+        """The `kind` (ast.Call or ast.Constant) nodes of `subject`'s subtree, itself
+        included, in `ast.walk(subject)` order."""
+        if self._members is None:
+            self._members = self._subtree_members()
+        return self._members.get((subject, kind), ())
+
+    def _subtree_members(self):
+        members = collections.defaultdict(list)
+        for kind, nodes in ((ast.Call, self.facts["calls"]), (ast.Constant, self.facts["constants"])):
+            for node in nodes:
+                ancestor = node
+                while ancestor is not None:
+                    members[(ancestor, kind)].append(node)
+                    ancestor = self.parent[ancestor]
+        return members
+
+
+_SOURCE_ERRORS = (OSError, SyntaxError, ValueError)
+
+
+def _cached(store, key, build):
+    """`store[key]`, built once; a source error is kept and re-raised to every asker, so
+    each rule still answers it with its own except clause and its own message."""
+    if key not in store:
+        try:
+            store[key] = build()
+        except _SOURCE_ERRORS as error:
+            store[key] = error
+    value = store[key]
+    if isinstance(value, BaseException):
+        raise value
+    return value
+
+
+def _read_source(absolute):
+    with open(absolute, encoding="utf-8") as source:
+        return source.read()
+
+
+class _AuditSession:
+    """FEAT-2081 SC-06: one audit invocation's sources. Each physical file is read, parsed and
+    indexed at most once however many rules share it -- the reader census, the
+    checker-structure surface and the broad-catch census overlap on check-state.py and
+    check_state/ -- and each embedded program likewise. Built fresh by every public entry and
+    dropped with it: nothing outlives the invocation or crosses roots. Parses keep the
+    root-relative filename every rule used before, so error text is unchanged."""
+
+    def __init__(self, root):
+        self.root, self._texts, self._indexes, self._programs = root, {}, {}, {}
+        self._census = None
+
+    def census(self):
+        """The ordered reader-source census, walked once per invocation."""
+        if self._census is None:
+            self._census = _reader_source_paths(self.root)
+        return self._census
+
+    def text(self, absolute):
+        return _cached(self._texts, os.path.normpath(absolute), lambda: _read_source(absolute))
+
+    def index(self, absolute, relative):
+        def build():
+            return _SourceIndex(ast.parse(self.text(absolute), filename=relative))
+        return _cached(self._indexes, os.path.normpath(absolute), build)
+
+    def program(self, text):
+        """The index of an embedded program, or None (see _parsed_program); once per text."""
+        if text not in self._programs:
+            self._programs[text] = _parsed_program(text)
+        return self._programs[text]
+
+
+def _literal_candidates(index):
+    """The candidate nodes in `ast.walk` order, and each one's parent with
     `set(...)`/`frozenset(...)` wrappers looked through, so the inner tuple sees the
     Compare/Return the call sits in. Only candidates need a parent, and a wrapper is itself a
     candidate (a Call), so its own parent is always recorded before it is looked through."""
-    candidates, parents = [], {}
-    for node, parent in _walk_with_parents(tree):
-        if isinstance(node, _LITERAL_CANDIDATES):
-            candidates.append(node)
-            if parent is not None:
-                parents[node] = parent
+    candidates = index.facts["literal_candidates"]
+    parents = {node: index.parent[node] for node in candidates if index.parent[node] is not None}
     for child, parent in list(parents.items()):
         if _unwrap_set_call(parent) is not parent:
             parents[child] = parents.get(parent)
     return candidates, parents
 
 
-def _feature_station_literal_findings(tree, relative, buckets):
+def _feature_station_literal_findings(index, relative, buckets):
     # Keyed by line so `frozenset(("plan", ...))` — a Call wrapping a Tuple — reports once.
-    candidates, parents = _literal_candidates(tree)
+    candidates, parents = _literal_candidates(index)
     findings = {}
     for node in candidates:
         respelled = _respelled_bucket(node, parents.get(node), buckets)
         if respelled is not None and node.lineno not in findings:
             findings[node.lineno] = (
-                f"{relative}::{_call_symbol(tree, node)}:{node.lineno} feature-station literal "
+                f"{relative}::{_call_symbol(index, node)}:{node.lineno} feature-station literal "
                 f"respells factory_config.{respelled} — read the table's export or call "
                 "is_active/is_finished (FEAT-61 D-08)")
     return [findings[line] for line in sorted(findings)]
@@ -1792,11 +1893,11 @@ def _callee_name(call):
     return func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
 
 
-def _module_loader_findings(tree, relative):
+def _module_loader_findings(index, relative):
     home_file, home_symbol = MODULE_LOADER_HOME
     loaders = [
-        (node, _call_symbol(tree, node)) for node in ast.walk(tree)
-        if isinstance(node, ast.Call) and _callee_name(node) == "spec_from_file_location"
+        (node, _call_symbol(index, node)) for node in index.facts["calls"]
+        if _callee_name(node) == "spec_from_file_location"
     ]
     return [
         f"{relative}::{symbol}:{node.lineno} second spec_from_file_location under bin/ — "
@@ -1806,12 +1907,11 @@ def _module_loader_findings(tree, relative):
     ]
 
 
-def _call_symbol(tree, node):
+def _call_symbol(index, node):
     """The innermost function enclosing `node`, or `<module>`."""
     containers = [
-        candidate for candidate in ast.walk(tree)
-        if isinstance(candidate, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and candidate.lineno <= node.lineno <= candidate.end_lineno
+        candidate for candidate in index.facts["functions"]
+        if candidate.lineno <= node.lineno <= candidate.end_lineno
     ]
     if not containers:
         return "<module>"
@@ -1884,24 +1984,13 @@ _INPUT_LITERAL = re.compile(r"^[\w.*-]+\.(?:yaml|yml|json|md|py)$")
 _READ_KINDS = ("path:", "git:", "gh:")
 
 
-def _checker_package_sources(root):
-    """(absolute, relative, text) for every check_state/*.py in name order; text is None for a
-    file that cannot be read."""
+def _checker_package_paths(root):
+    """(absolute, relative) for every check_state/*.py in name order."""
     directory = os.path.join(root, CHECKER_PACKAGE_REL)
     if not os.path.isdir(directory):
         return []
-    sources = []
-    for name in sorted(os.listdir(directory)):
-        if not name.endswith(".py"):
-            continue
-        absolute = os.path.join(directory, name)
-        try:
-            with open(absolute, encoding="utf-8") as source:
-                text = source.read()
-        except (OSError, UnicodeDecodeError):
-            text = None
-        sources.append((absolute, os.path.join(CHECKER_PACKAGE_REL, name), text))
-    return sources
+    return [(os.path.join(directory, name), os.path.join(CHECKER_PACKAGE_REL, name))
+            for name in sorted(os.listdir(directory)) if name.endswith(".py")]
 
 
 def _checker_module_name(relative):
@@ -1909,21 +1998,23 @@ def _checker_module_name(relative):
     return os.path.splitext(os.path.basename(relative))[0]
 
 
-def _checker_trees(root):
-    """[(relative, tree)] for the entry then every package file, and the parse findings for
+def _checker_trees(session):
+    """[(relative, index)] for the entry then every package file, and the parse findings for
     those that did not parse. The entry failing to parse is the one finding that stands alone."""
     trees, findings = [], []
     try:
-        with open(os.path.join(root, CHECKER_REL), encoding="utf-8") as source:
-            trees.append((CHECKER_REL, ast.parse(source.read(), filename=CHECKER_REL)))
+        trees.append((CHECKER_REL, session.index(os.path.join(session.root, CHECKER_REL), CHECKER_REL)))
     except (OSError, UnicodeDecodeError, SyntaxError) as error:
         return [], [f"{CHECKER_REL}::<module> source_parse: {error}"]
-    for _absolute, relative, text in _checker_package_sources(root):
-        if text is None:
+    sources = _checker_package_paths(session.root)
+    for absolute, relative in sources:
+        try:
+            session.text(absolute)
+        except (OSError, UnicodeDecodeError):
             findings.append(f"{relative}::<module> source_parse: unreadable")
             continue
         try:
-            trees.append((relative, ast.parse(text, filename=relative)))
+            trees.append((relative, session.index(absolute, relative)))
         except (SyntaxError, ValueError) as error:
             findings.append(f"{relative}::<module> source_parse: {error}")
     return trees, findings
@@ -1951,10 +2042,10 @@ def _is_import_guard(node):
     return isinstance(node, ast.Try) and body_ok and handlers_ok
 
 
-def _reads_in(node):
+def _reads_in(index, node):
     """Callee names in `node` that read the tree — the vocabulary in _READER_CALLEES."""
-    return sorted({_callee_name(c) for c in ast.walk(node)
-                   if isinstance(c, ast.Call) and _callee_name(c) in _READER_CALLEES})
+    return sorted({_callee_name(c) for c in index.within(node, ast.Call)
+                   if _callee_name(c) in _READER_CALLEES})
 
 
 _BLOCK_KINDS = (ast.For, ast.While, ast.With, ast.AsyncFor, ast.AsyncWith)
@@ -1972,44 +2063,44 @@ def _module_body_shape(node):
     return None
 
 
-def _module_body_finding(node, relative):
+def _module_body_finding(index, node, relative):
     what = _module_body_shape(node)
     if what is None and isinstance(node, (ast.Assign, ast.AnnAssign, ast.Expr)):
-        reads = _reads_in(node)
+        reads = _reads_in(index, node)
         what = f"reads the tree at module scope ({', '.join(reads)})" if reads else None
     return f"{relative}::<module>:{node.lineno} {what}" if what else None
 
 
-def _module_body_findings(tree, relative):
+def _module_body_findings(index, relative):
+    tree = index.tree
     after = _bootstrap_end(tree)
     findings = []
     for node in tree.body:
         if node.lineno <= after:
             continue
-        finding = _module_body_finding(node, relative)
+        finding = _module_body_finding(index, node, relative)
         if finding:
             findings.append(finding + " — an invariant lives in a function registered in INVARIANTS (FEAT-62 SC-03)")
     return findings
 
 
-def _names_shared_text(call):
-    return any(isinstance(c, ast.Constant) and isinstance(c.value, str) and c.value in _SHARED_SOURCE_TEXTS
-               for c in ast.walk(call))
+def _names_shared_text(index, call):
+    return any(isinstance(c.value, str) and c.value in _SHARED_SOURCE_TEXTS
+               for c in index.within(call, ast.Constant))
 
 
-def _reparsing_calls(fn):
+def _reparsing_calls(index, fn):
     """(callee, lineno) for every call in `fn` that parses a runner-shared source again."""
-    calls = (c for c in ast.walk(fn) if isinstance(c, ast.Call))
-    return [(_callee_name(c), c.lineno) for c in calls
+    return [(_callee_name(c), c.lineno) for c in index.within(fn, ast.Call)
             if _callee_name(c) in _SHARED_SOURCE_LOADERS
-            or (_callee_name(c) in ("read", "open") and _names_shared_text(c))]
+            or (_callee_name(c) in ("read", "open") and _names_shared_text(index, c))]
 
 
-def _reparse_findings(tree, relative):
+def _reparse_findings(index, relative):
     """A shared source parsed again inside an invariant body (module-body family)."""
     return [f"{relative}::{fn.name}:{lineno} re-parses a runner-shared source ({callee}) — read it "
             f"from ctx (FEAT-62 SC-03)"
-            for fn in _invariant_functions(tree) for callee, lineno in _reparsing_calls(fn)]
+            for fn in _invariant_functions(index.tree) for callee, lineno in _reparsing_calls(index, fn)]
 
 
 def _invariant_functions(tree):
@@ -2051,14 +2142,15 @@ class _PackageFunctions:
     module's `from check_state.<m> import` bindings -- never through an assignment alias."""
 
     def __init__(self, trees):
-        self.fns, self.module_of, self.imports = {}, {}, {}
-        for relative, tree in trees:
+        self.fns, self.module_of, self.imports, self.index_of = {}, {}, {}, {}
+        for relative, index in trees:
             module = _checker_module_name(relative)
-            self.imports[module] = _package_imports(tree)
-            for name, fn in _module_functions(tree).items():
+            self.imports[module] = _package_imports(index.tree)
+            for name, fn in _module_functions(index.tree).items():
                 key = name if name.startswith("Ctx.") else f"{module}.{name}"
                 self.fns[key] = fn
                 self.module_of[key] = module
+                self.index_of[key] = index
 
     def resolve(self, module, callee):
         """The table key `callee` names when called from `module`, or None."""
@@ -2084,12 +2176,12 @@ def _string_constants(tree):
             for t in node.targets if isinstance(t, ast.Name)}
 
 
-def _inv_rows(tree):
+def _inv_rows(index):
     """(name, run function name, reads tuple, authority, lineno) for every Inv(...) in the table."""
-    aliases = _string_constants(tree)
+    aliases = _string_constants(index.tree)
     rows = []
-    for call in ast.walk(tree):
-        if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name) and call.func.id == "Inv"):
+    for call in index.facts["calls"]:
+        if not (isinstance(call.func, ast.Name) and call.func.id == "Inv"):
             continue
         name, run, _scope, reads, _contract, authority = call.args
         declared = tuple(aliases.get(e.id) if isinstance(e, ast.Name) else e.value for e in reads.elts)
@@ -2105,16 +2197,16 @@ def _reachable(key, table, seen=None):
     if key in seen or key not in table.fns:
         return seen
     seen.add(key)
-    for callee in _called_names(table.fns[key]):
+    for callee in _called_names(table.index_of[key], table.fns[key]):
         _reachable(table.resolve(table.module_of[key], callee), table, seen)
     return seen
 
 
-def _called_names(fn):
+def _called_names(index, fn):
     """Names `fn` calls that could be check-state functions: bare names, and `ctx.<m>` as
     `Ctx.<m>`."""
     names = []
-    for call in (c for c in ast.walk(fn) if isinstance(c, ast.Call)):
+    for call in index.within(fn, ast.Call):
         f = call.func
         if isinstance(f, ast.Name):
             names.append(f.id)
@@ -2189,22 +2281,18 @@ def _spawn_resource(call):
     return None
 
 
-def _joined_parts(fn):
-    """ids of the constant parts of every f-string in `fn` — message text, not inputs."""
-    return {id(v) for node in ast.walk(fn) if isinstance(node, ast.JoinedStr) for v in node.values}
+def _input_literals(index, fn):
+    """File-name string literals in `fn`, skipping the constant parts of every f-string — its
+    message text, not an input."""
+    return {n.value for n in index.within(fn, ast.Constant)
+            if isinstance(n.value, str) and not isinstance(index.parent[n], ast.JoinedStr)
+            and _INPUT_LITERAL.match(n.value)}
 
 
-def _input_literals(fn):
-    skip = _joined_parts(fn)
-    return {n.value for n in ast.walk(fn)
-            if isinstance(n, ast.Constant) and isinstance(n.value, str)
-            and id(n) not in skip and _INPUT_LITERAL.match(n.value)}
-
-
-def _observed_inputs(fn):
+def _observed_inputs(index, fn):
     """File-name literals (outside f-strings) and git/gh resources read in one function body."""
-    resources = {_spawn_resource(n) for n in ast.walk(fn) if isinstance(n, ast.Call)} - {None}
-    return _input_literals(fn), resources
+    resources = {_spawn_resource(n) for n in index.within(fn, ast.Call)} - {None}
+    return _input_literals(index, fn), resources
 
 
 def _declared_covers(literal, declared):
@@ -2219,7 +2307,7 @@ def _row_inputs(run_key, table):
     for key in sorted(_reachable(run_key, table)):
         if key.startswith("Ctx.__init__"):
             continue
-        lits, res = _observed_inputs(table.fns[key])
+        lits, res = _observed_inputs(table.index_of[key], table.fns[key])
         literals |= lits
         resources |= res
     return literals, resources
@@ -2270,8 +2358,8 @@ def _row_reads_findings(row, table, relative):
 
 
 def _table_tree(trees):
-    """The (relative, tree) of the package's table module, or None when it is absent."""
-    return next(((rel, tree) for rel, tree in trees
+    """The (relative, index) of the package's table module, or None when it is absent."""
+    return next(((rel, index) for rel, index in trees
                  if _checker_module_name(rel) == CHECKER_TABLE_MODULE), None)
 
 
@@ -2281,8 +2369,8 @@ def _reads_findings(trees):
     if located is None:
         return [f"{CHECKER_PACKAGE_REL}/{CHECKER_TABLE_MODULE}.py is absent — the table is the one place a "
                 f"row is declared (FEAT-69 SC-03)"]
-    relative, tree = located
-    return [f for row in _inv_rows(tree) for f in _row_reads_findings(row, table, relative)]
+    relative, index = located
+    return [f for row in _inv_rows(index) for f in _row_reads_findings(row, table, relative)]
 
 
 def _decisions_index(root):
@@ -2385,12 +2473,13 @@ def _is_broad_catch(handler):
 
 
 def _parsed_program(text):
-    """`text` as a Python module when it is one and carries a try statement, else None."""
+    """The index of `text` as a Python module when it is one and carries a try statement,
+    else None. One level only: an embedded program's own strings are not programs."""
     try:
-        inner = ast.parse(text)
+        inner = _SourceIndex(ast.parse(text))
     except (SyntaxError, ValueError):
         return None
-    return inner if any(isinstance(n, ast.Try) for n in ast.walk(inner)) else None
+    return inner if inner.facts["tries"] else None
 
 
 def _may_be_program(node):
@@ -2400,31 +2489,22 @@ def _may_be_program(node):
             and "except" in node.value and "try" in node.value)
 
 
-def _broad_catches_and_programs(tree):
-    """ONE walk: the broad-catch count of `tree` itself, and the string constants that are
-    programs the script hands to another interpreter (`python3 -I -c`, `python3 -`), whose
-    handlers are as real as its own (FEAT-65 c1, CR-01). Prose and docstrings that pass
-    `_may_be_program` still do not parse into a try and are dropped by `_parsed_program`."""
-    count, strings = 0, []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ExceptHandler):
-            count += _is_broad_catch(node)
-        elif _may_be_program(node):
-            strings.append(node.value)
-    return count, [program for program in map(_parsed_program, strings) if program is not None]
+def _broad_count(index):
+    return sum(1 for handler in index.facts["handlers"] if _is_broad_catch(handler))
 
 
-def _broad_catch_count(path):
+def _broad_catch_count(path, session=None, relative=None):
     """Broad catches in one script by AST — its own handlers plus those of any executable Python
-    it embeds as a string — or None when it does not parse (its own finding)."""
+    it embeds as a string (`python3 -I -c`, `python3 -`), whose handlers are as real as its own
+    (FEAT-65 c1, CR-01) — or None when it does not parse (its own finding). Prose and
+    docstrings that pass `_may_be_program` still do not parse into a try and add nothing."""
+    session = session or _AuditSession(os.path.dirname(path))
     try:
-        with open(path, encoding="utf-8") as stream:
-            tree = ast.parse(stream.read())
+        index = session.index(path, relative or path)
     except (OSError, UnicodeDecodeError, SyntaxError):
         return None
-    count, programs = _broad_catches_and_programs(tree)
-    return count + sum(1 for program in programs for node in ast.walk(program)
-                       if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
+    programs = [program for program in map(session.program, index.program_texts) if program is not None]
+    return _broad_count(index) + sum(map(_broad_count, programs))
 
 
 def _broad_catch_finding(rel, name, count):
@@ -2438,60 +2518,74 @@ def _broad_catch_finding(rel, name, count):
             f"(FEAT-63 SC-04)")
 
 
+def _census_names(root, census):
+    bin_dir = os.path.join(root, BIN_REL)
+    return [(absolute, os.path.relpath(absolute, bin_dir), relative) for absolute, relative in census]
+
+
 def broad_catch_census_paths(root):
     """Every Python file the census scans, as (absolute, bin-relative name), in
     _reader_source_paths' walk order -- bin/*.py and every package beneath it (FEAT-69: the
     check_state/ files are ceiling-0 like the entry they came from; a ceiling is keyed by the
     bin-relative name, so a package file can never borrow a sibling's allowance)."""
-    bin_dir = os.path.join(root, BIN_REL)
-    return [(absolute, os.path.relpath(absolute, bin_dir)) for absolute, _relative in _reader_source_paths(root)]
+    return [(absolute, name) for absolute, name, _rel in _census_names(root, _reader_source_paths(root))]
+
+
+def _broad_catch_findings(session):
+    findings = []
+    for absolute, name, relative in _census_names(session.root, session.census()):
+        count = _broad_catch_count(absolute, session, relative)
+        finding = _broad_catch_finding(os.path.join(BIN_REL, name), name, count)
+        if finding:
+            findings.append(finding)
+    return findings
 
 
 def broad_catch_findings(root):
     """The census over every bin/ script and every check_state/ package file, in name order."""
-    findings = []
-    for absolute, name in broad_catch_census_paths(root):
-        finding = _broad_catch_finding(os.path.join(BIN_REL, name), name, _broad_catch_count(absolute))
-        if finding:
-            findings.append(finding)
+    return _broad_catch_findings(_AuditSession(root))
+
+
+def _feat62_findings(session):
+    trees, findings = _checker_trees(session)
+    if not trees:
+        return findings
+    for relative, index in trees:
+        findings.extend(_module_body_findings(index, relative))
+        findings.extend(_reparse_findings(index, relative))
+    findings.extend(_reads_findings(trees))
+    findings.extend(_authority_findings(trees, session.root))
+    findings.extend(_posture_findings(session.root))
+    findings.extend(_broad_catch_findings(session))
     return findings
 
 
 def feat62_findings(root):
     """The three checker-structure rule families over check-state.py and every check_state/
     package file (FEAT-69), then the posture scan and the broad-catch census."""
-    trees, findings = _checker_trees(root)
-    if not trees:
-        return findings
-    for relative, tree in trees:
-        findings.extend(_module_body_findings(tree, relative))
-        findings.extend(_reparse_findings(tree, relative))
-    findings.extend(_reads_findings(trees))
-    findings.extend(_authority_findings(trees, root))
-    findings.extend(_posture_findings(root))
-    findings.extend(broad_catch_findings(root))
-    return findings
+    return _feat62_findings(_AuditSession(root))
 
 
 def consolidation_findings(root):
-    """Every FEAT-61 lock violation under bin/, as printable lines; empty on a clean tree."""
+    """Every FEAT-61 lock violation under bin/, as printable lines; empty on a clean tree.
+    FEAT-2081: the FEAT-62 rules and the broad-catch census share this call's session, so a
+    file every rule audits is still read, parsed and traversed once."""
     buckets = _lifecycle_buckets()
+    session = _AuditSession(root)
     findings = []
-    for absolute, relative in _reader_source_paths(root):
+    for absolute, relative in session.census():
         try:
-            with open(absolute, encoding="utf-8") as source:
-                text = source.read()
-            tree = ast.parse(text, filename=relative)
+            index = session.index(absolute, relative)
         except (OSError, UnicodeDecodeError, SyntaxError) as error:
             findings.append(f"{relative}::<module> source_parse: {error}")
             continue
         if relative != STATION_TABLE_REL:
-            findings.extend(_feature_station_literal_findings(tree, relative, buckets))
+            findings.extend(_feature_station_literal_findings(index, relative, buckets))
         # The loader lock matches the callee by NAME, so a source that never spells it cannot
-        # produce a finding; skipping its walk there changes cost, not the answer.
-        if "spec_from_file_location" in text:
-            findings.extend(_module_loader_findings(tree, relative))
-    findings.extend(feat62_findings(root))
+        # produce a finding; skipping it there changes cost, not the answer.
+        if "spec_from_file_location" in session.text(absolute):
+            findings.extend(_module_loader_findings(index, relative))
+    findings.extend(_feat62_findings(session))
     return findings
 
 

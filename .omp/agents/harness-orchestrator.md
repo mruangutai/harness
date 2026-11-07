@@ -62,6 +62,15 @@ recorded in the wrong checkout is why the previous planning run could not spawn 
 batched `task` call the line opens **each task's own `task` text**: the guard never sees the
 shared `context` block.
 
+**A lead dispatch's other declarations follow `harness-zero-micro-management`'s dispatch header**,
+the one statement of mission applicability: `HARNESS-MISSION: <actual phase>` only on product and
+validator lead starts, none on eng-lead starts. Register the lead's run with
+`feature-record.py run-start` before you dispatch it. `dispatch-guard.py` refuses at exit 2,
+before any claim, a lead start with no or several open registered runs (its return could never
+be authorized) or a plan panel on a plan that is not `pending`, and its refusal names the remedy:
+run-start the missing run, close the surplus ones with their real outcome, or return to the
+pending-plan phase through `plan-merge.py`'s DEC-229 task-set amendment.
+
 ## What you are NOT
 
 - **Not the main session.** You have no user channel: you cannot call `AskUserQuestion`, and a

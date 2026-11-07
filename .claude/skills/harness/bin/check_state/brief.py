@@ -20,6 +20,9 @@ import re
 # Retroactive grading of existing BRIEFs, plans and notes is out of scope by the brief.
 _BY_PERSPECTIVE_HEADING = re.compile(r"^##\s+Done when\s*[—–-]+\s*by perspective\s*$", re.M | re.I)
 _FEAT59_KEYS = ("mission", "judgements", "budget_decisions", "rework")
+SC_LINE_RE = re.compile(
+    r"^[^\S\r\n]*-[^\S\r\n]*(SC-\d+)(?:[^\S\r\n]*\(([^)\r\n]*)\))?"
+    r"[^\S\r\n]*:(.*)$", re.M)
 
 
 def _brief_is_by_perspective(txt):
@@ -43,12 +46,11 @@ def _brief_perspectives(txt):
     return [pm.group(1).strip() for pm in re.finditer(r"^\*\*([^*\n]+?)\*\*", body, re.M)]
 
 
-def _brief_scs(txt):
-    """(id, tag or None, text) for every `- SC-NN (<name>): ...` line anywhere in the BRIEF,
-    the text carrying the indented continuation lines that follow the bullet."""
+def brief_scs_with_lines(txt):
+    """(id, tag or None, body lines) bounded by each SC's continuation block."""
     out, lines, i = [], txt.splitlines(), 0
     while i < len(lines):
-        m = re.match(r"^\s*-\s*(SC-\d+)\s*(?:\(([^)]*)\))?\s*:(.*)$", lines[i])
+        m = SC_LINE_RE.match(lines[i])
         i += 1
         if not m:
             continue
@@ -57,8 +59,14 @@ def _brief_scs(txt):
                and not re.match(r"^\s*-\s*SC-\d+", lines[i])):
             body.append(lines[i])
             i += 1
-        out.append((m.group(1), m.group(2), " ".join(s.strip() for s in body)))
+        out.append((m.group(1), m.group(2), body))
     return out
+
+
+def _brief_scs(txt):
+    """SC bodies flattened for prose invariants, using the same criterion boundaries."""
+    return [(sid, tag, " ".join(line.strip() for line in body))
+            for sid, tag, body in brief_scs_with_lines(txt)]
 
 
 # INV-41's notion of INVOKING a gate script, as distinct from naming one. A code span that

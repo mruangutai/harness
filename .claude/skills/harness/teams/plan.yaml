@@ -66,6 +66,10 @@ steps:
   # scope subsumes the eng-lead's architecture review at plan time: there is no separate
   # eng segment before signature. The reader carries `harness-codebase-design` and grades
   # depth, seams and locality alongside orphan SCs.
+  #
+  # Its dispatch header carries `HARNESS-MISSION: plan` on its own line after HARNESS-FEATURE
+  # (harness-zero-micro-management's dispatch header): dispatch-guard.py refuses this reader
+  # without it, and refuses it on a plan no longer pending, before any substantive work.
   - id: scope
     persona: code-reviewer
     depends_on: [draft]
@@ -73,8 +77,9 @@ steps:
     outputs: [".harness/harness/features/{{feat}}/notes/review-harness-code-reviewer-plan-c{{cycle}}.md"]
     mutates_repo: false
     prompt: >
-      Read the drafted plan.yaml and BRIEF for {{feat}} against the operator's stated intent
-      at {{intent_path}}. Ask: which tasks serve no live requirement, and what does the
+      This dispatch declares HARNESS-MISSION: plan in its header; this reader reviews only a
+      pending plan. Read the drafted plan.yaml and BRIEF for {{feat}} against the operator's
+      stated intent at {{intent_path}}. Ask: which tasks serve no live requirement, and what does the
       feature actually need to ship? Hunt orphan SC ids with no task tracing to them, tasks
       whose traces cite an SC that does not exist, a dependency shape that is not a
       topological order, and a verify block asserting something a predecessor task deletes.

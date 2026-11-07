@@ -144,7 +144,14 @@ def _print_summary(results, workers, wall):
         f"{os.path.basename(path)} {seconds:.2f}s" for path, _rc, _out, seconds in slowest))
 
 
-def main(argv=None):
+def _record_completed(completed, results):
+    """Append (path, returncode) per result when the caller passed a `completed` list."""
+    if completed is not None:
+        completed.extend((path, rc) for path, rc, _out, _seconds in results)
+
+
+def main(argv=None, completed=None):
+    """Run the pool; when `completed` is a list, append (path, returncode) per finished future."""
     args = _parse_args(argv)
     workers = _resolve_workers(args.workers)
     if workers is None:
@@ -155,6 +162,7 @@ def main(argv=None):
         return 2
     started = time.monotonic()
     results = _run_scripts(args.scripts, workers)
+    _record_completed(completed, results)
     mutated = _mutation_changes(root, before)
     _print_summary(results, workers, time.monotonic() - started)
     failed = mutated or any(rc != 0 for _path, rc, _out, _seconds in results)
