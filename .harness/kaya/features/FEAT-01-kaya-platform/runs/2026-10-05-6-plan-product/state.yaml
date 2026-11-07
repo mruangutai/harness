@@ -1,0 +1,97 @@
+schema_version: 2
+run_id: 2026-10-05-6-plan-product
+run_uid: 7933d9981f6e488d92abe77691a11026
+feature: FEAT-01-kaya-platform
+squad: product
+host: harness-product-lead
+status: failed
+steps:
+  - id: draft
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-01-kaya-platform/.harness/kaya/features/FEAT-01-kaya-platform/notes/research-FEAT-01-kaya-platform-draft-plan-c2.md
+  - id: design-contract
+    persona: harness-visual-designer
+    depends_on: [draft]
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-3
+    completed_at: seq-4
+    redispatched_at: seq-7
+    recompleted_at: seq-8
+    redispatches: 1
+    cycles: 1
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-01-kaya-platform/.harness/kaya/features/FEAT-01-kaya-platform/notes/mockups/design-thin-chat-c2-apply.md
+    evidence:
+      needs_prototype: true
+      served_url: http://127.0.0.1:4179/
+      contract: updated
+  - id: scope
+    persona: harness-code-reviewer
+    depends_on: [design-contract]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    dispatched_at: seq-5
+    completed_at: seq-6
+    cycles: 0
+    note: 'Original FAIL preserved; finding substance-applied in normal apply, not rereviewed.'
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-01-kaya-platform/.harness/kaya/features/FEAT-01-kaya-platform/notes/review-harness-code-reviewer-plan-c2.md
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: [design-contract]
+    mutates_repo: false
+    status: skipped
+    completed_at: seq-5
+    cycles: 0
+    note: 'status skipped; fable-advisor unavailable per orchestrator dispatch; no substitute.'
+  - id: design
+    persona: harness-ui-reviewer
+    depends_on: [design-contract]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    dispatched_at: seq-5
+    completed_at: seq-6
+    cycles: 0
+    note: 'Original FAIL preserved; findings substance-applied by owners, not rereviewed.'
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-01-kaya-platform/.harness/kaya/features/FEAT-01-kaya-platform/notes/review-harness-ui-reviewer-plan-c2.md
+  - id: apply
+    persona: harness-pm
+    depends_on: [scope, should-not-exist, design]
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-9
+    completed_at: seq-10
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-01-kaya-platform/.harness/kaya/features/FEAT-01-kaya-platform/notes/research-FEAT-01-kaya-platform-apply-plan-c2.md
+    evidence:
+      panel_cycle: 2
+      findings_resolved: 4
+      plan_check_exit: 0
+      tasks: 10
+      anchors: 55
+      overlap_lines: 0
+      approval_reset: none
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: [apply]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-11
+    completed_at: seq-12
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-01-kaya-platform/.harness/kaya/features/FEAT-01-kaya-platform/notes/research-FEAT-01-kaya-platform-goalcheck-plan.md
+    evidence:
+      operator: pass_planned_coverage
+      code_maintainer: pass_planned_coverage
+      shipped_scs: not_met

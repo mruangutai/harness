@@ -201,10 +201,66 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "SPEND advisory 4.02x plan_phase_warn_minutes weighed; revision c2 complete at the signature seam (check exit 0, panel c2, goalcheck, simplify applied); plan phase stops here pending operator review, no further dispatch"
+    },
+    {
+      "at": "2026-10-05T23:27:17+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "Approval recorded; stop before build: gh-sync routed factory.repo Kaya to Harness. Misplaced 2116-2126/milestone100 closed; github receipt is invalid for Kaya. Fleet mirror recovery required; no source implementation authorized."
     }
   ],
   "factory": {
     "repo": "mruangutai/kaya"
   },
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 4,
+    "wall_clock_minutes": 180,
+    "decision": ".harness/kaya/features/FEAT-01-kaya-platform/notes/approval-2026-10-05.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "8eed62d13d7c6cc9f12aa69d177df74db7d34b7c6f4bbbbd601115cf71054371",
+    "T-02": "d90abbaa54f4ced40c33851823518f0a9062721599befc36a503ee275420c217",
+    "T-03": "29def192c569287455d0ef6425ee373ad5d9d916a8f056eb9f466a631f81fb95",
+    "T-04": "4ede5014128a8b9081e5233130b3d0a4edb35c92348b1d3d126437b18d435db8",
+    "T-05": "2211f92d735762f824fe222ab21c07831b01c6d949d8d3722acba7486438d582",
+    "T-06": "673512cf12c2394ccb3128420e02a43e7280e84771fd6e3f96c2fb6fb881764d",
+    "T-07": "28bef43293da96ec4b336175351c4e2e32b21a5339d89ecf8f24f93004324a58",
+    "T-08": "a1ca07dbbe5589a98101412fcb752e7783a8a534384a4791155b7bd4c386096d",
+    "T-09": "ab0f28b6a4d266bc33319b78603b907ec8a2a1fb067c4f10443d7a7aa232090b",
+    "T-10": "51356a2962d61f8e3431621aab67300167d3041ba96fa2297c588af8250dde46"
+  },
+  "github": {
+    "milestone": 100,
+    "parent": 2116,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 2117,
+      "T-02": 2118,
+      "T-03": 2119,
+      "T-04": 2120,
+      "T-05": 2121,
+      "T-06": 2122,
+      "T-07": 2123,
+      "T-08": 2124,
+      "T-09": 2125,
+      "T-10": 2126
+    },
+    "source_issues": [
+      14
+    ],
+    "build_entry": "opened"
+  }
 }

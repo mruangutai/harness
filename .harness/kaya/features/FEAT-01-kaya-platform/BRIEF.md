@@ -60,6 +60,6 @@ Kaya has binding product documents but no runnable application, workspace manife
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-10-05

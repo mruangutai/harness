@@ -1,8 +1,10 @@
 schema: plan/1
 feature: FEAT-01-kaya-platform
 approval:
-  status: pending
-status: plan
+  date: '2026-10-05'
+  approved_by: operator
+  status: approved
+status: ready
 source_issues: [14]
 panel:
   last_run: 2026-10-05-6-plan-product
