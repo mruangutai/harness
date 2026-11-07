@@ -42,3 +42,21 @@ system-wide install). The Mac is a secondary check only.
    shared temp-dir lifecycle across helpers.
 2. `tests/unit/test-lead-start-preflight.py::bug2169_advice` - a straight sequence of named
    `check` calls, one per advice branch; no branching logic to extract.
+
+## Simplify pass (four read-only angles over c4e8bbc8..b9bd9558)
+
+- Efficiency: no findings.
+- Applied (`af7cc5d1`): `checkout-prereqs.md` retyped the retired `--user` PyYAML advice
+  (reuse + altitude, fold-in); it now prints `harness_yaml.INSTALL_COMMAND`, jsonschema's own
+  line unchanged. Ledgered as a second files-only amendment. Guard bootstrap: one
+  `_bootstrap_within` (resolves once) and one `_bootstrap_is_yaml` replace the duplicated
+  inline checks (reuse + simplification). Two change-narrating comments reworded.
+- Not applied: plan.yaml line-1 BLUF wording - signed plan text, not editable outside the
+  verbs; cosmetic.
+- Briefing row (out of scope, predates the patch): `feature_schema.py:59-60` jsonschema advice
+  and the bail-out messages in `test-plan-team.py:39`, `test-harness-yaml-corpus.py:59`,
+  `test-team-catalog.py:44` still say `--user`; isolated hooks importing `feature_schema`
+  likely cannot see a per-user jsonschema [INFERENCE, not measured].
+- After apply: T-01 verify green in container and on Mac (135/62/57), plant mutant red on
+  all four controls (58/62), grant, post-merge-sweep, hooks-install, instruction-paths and
+  skill-refs green. Grader at `af7cc5d1`: 8 passing, the same two grade-2 reasons above.
