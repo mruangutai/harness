@@ -1,0 +1,19 @@
+{
+  "feature_id": "BUG-2169-guard-yaml-reimport",
+  "approved_at": "2026-11-07T15:35:07.767323+00:00",
+  "operator_selection": "Authorize 0 cycles",
+  "question": "Under #2177's new rule, closing a refused return needs your authorization for its cycle count. How should I handle BUG-2169's distill runs?",
+  "effects": [
+    {
+      "effect": "record-cycle-evidence",
+      "run_id": "2026-11-07-5-distill-product",
+      "digest": {
+        "path": "runs/2026-11-07-5-distill-product/digest.md",
+        "sha256": "86a82a2032fc489f1972bf00fba3bd8b2d40d5d29d4bdb1cd012974b95544b9b"
+      },
+      "cycles_used": 0,
+      "by": "operator",
+      "reason": "Feature-close distill run; its lead's return never reached digest.md (#2171). Distill never counts as rework."
+    }
+  ]
+}
