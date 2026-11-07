@@ -991,7 +991,8 @@ def record_build_entry(feat_dir, value):
     within its bound generation; archived generations cannot bless a replacement."""
     rec = load_recorded(feat_dir)
     repo = _BUILD_ENTRY.get("repo") or rec.get("repo")
-    same_generation = rec.get("repo") == repo and not (
+    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    same_generation = feature_schema.effective_recorded_repo(doc, repo) == repo and not (
         rec.get("recovery") or {}).get("state") == "in-progress"
     if rec.get("build_entry") == "opened" and value != "opened" and same_generation:
         return

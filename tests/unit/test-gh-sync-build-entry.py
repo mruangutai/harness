@@ -129,6 +129,26 @@ with tempfile.TemporaryDirectory() as tmp:
     check("BE-14 record_build_entry upgrades a recorded recovery-required to opened",
           rec2.get("build_entry") == "opened", repr(rec2.get("build_entry")))
 
+# A legacy unbound opened mapping (no github.repo) is the owner's own generation: an
+# environmental skip on rerun must not downgrade it; a bound feature's absence is not.
+for factory, expected in ((None, "opened"), ({"repo": "org/product"}, "recovery-required")):
+    with tempfile.TemporaryDirectory() as tmp:
+        d = feat_dir(tmp, "FEAT-9105-fixture-legacy")
+        doc = base_doc("FEAT-9105-fixture-legacy", github={
+            "milestone": 3, "parent": 7, "attached": [], "issues": {},
+            "source_issues": [], "build_entry": "opened"})
+        if factory:
+            doc["factory"] = factory
+        write_feature_json(d, doc)
+        gh_sync._BUILD_ENTRY["repo"] = "acme/widgets"
+        try:
+            gh_sync.record_build_entry(d, "recovery-required")
+        finally:
+            gh_sync._BUILD_ENTRY.pop("repo", None)
+        got = gh_sync.load_recorded(d).get("build_entry")
+        check(f"legacy opened receipt, factory={factory}: rerun skip leaves {expected}",
+              got == expected, repr(got))
+
 # BE-19: skip() armed but feature.json does not exist — records nothing and creates no file.
 with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9104-fixture-absent")

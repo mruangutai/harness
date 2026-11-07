@@ -123,6 +123,18 @@ with tempfile.TemporaryDirectory() as tmp:
     check("BE-09 plan status building with an empty tasks list returns open",
           got == "open", repr(got))
 
+# A plan-flow SIMPLIFY run an engineering lead hosts before signature grades a specification
+# (code_grade n_a): replacement stays full. An engineering run that reviewed code is started work.
+with tempfile.TemporaryDirectory() as tmp:
+    d = feat_dir(tmp, "FEAT-9011-fixture-plan-simplify")
+    write_plan(d, "ready", [{"id": "T-01", "status": "ready"}])
+    plan_flow = {"id": "r1", "squad": "engineering", "verdict": "PASS", "code_grade": "n_a"}
+    built = {"id": "r2", "squad": "engineering", "verdict": "PASS"}
+    legs = [feature_schema.recovery_command_for(d, {"runs": runs}, replacement=True)
+            for runs in ([plan_flow], [plan_flow, built])]
+    check("a plan-flow engineering simplify run is not started work; a code-graded one is",
+          legs == ["open", "recover-terminal"], repr(legs))
+
 # BE-10: membership is exact, never a prefix and never case-insensitive.
 check("BE-10 membership is exact, never a prefix and never case-insensitive",
       "FEAT-01" in feature_schema.BUILD_ENTRY_ERA_EXEMPT

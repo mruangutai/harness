@@ -343,8 +343,11 @@ def recovery_command_for(feat_dir, feature_doc=None, bound_repo=None, *, replace
         return "recover-terminal"
     if plan.get("status") in {"review", "done"}:
         return "recover-terminal"
+    # A run that graded a specification and no code (`code_grade: n_a`) — the plan-flow SIMPLIFY
+    # pass an engineering lead hosts before signature (DEC-195) — is not started work.
     if feature_doc is not None and any(
-            isinstance(run, dict) and (run.get("squad") == "engineering" or run.get("code_reviewing"))
+            isinstance(run, dict) and run.get("code_grade") != "n_a"
+            and (run.get("squad") == "engineering" or run.get("code_reviewing"))
             for run in feature_doc.get("runs") or []):
         return "recover-terminal"
     if any(task.get("status") in ({"building", "done"} if feature_doc is not None else {"done"})

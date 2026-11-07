@@ -78,3 +78,22 @@ KayaBlockersAdvisor chose option (1) over a new exemption set or a 94-record bac
 Evidence-referenced run digests (`runs/2026-10-06-2-simplify-eng/digest.md` and
 `runs/2026-10-17-1-build-main/digest.md`) are force-added. `.gitignore` excludes `runs/**`, so
 without this CI could not verify the hashes that this feature's refusal and cycle evidence bind.
+
+## Post-merge delta review and fixes (2026-11-07)
+
+A read-only delta review of 4a5fb45e (MergeDeltaReview) confirmed that both rulings were applied
+correctly and that main's #2068 and BUG-2161 behaviour is preserved. It raised one P2:
+`record_build_entry` judged "same generation" by raw `github.repo`. A rerun of `open` without
+`gh` could therefore downgrade a legacy unbound `opened` receipt that the ruling had just proven.
+Fixed by routing the check through `effective_recorded_repo`, with a fail-first regression.
+
+The T-05 preflight then found a second defect. `recovery_command_for` treated any
+`squad: engineering` run as started work, which included the plan-flow SIMPLIFY passes an
+engineering lead hosts before signature (DEC-195, `code_grade: n_a`). Kaya has two such runs
+(2026-10-05-4 and -7) and no implementation, so `recover-mirror` would have chosen terminal mode
+and created no task issues. That contradicts T-05's "no work started → full replacement". Fixed
+by excluding spec-graded runs, also with a fail-first regression.
+
+Neither fix leaves T-01's signed file list. The 4a5fb45e unit matrix (57/57) is superseded, and
+its integration run was cancelled before completing. One full unit matrix and one full
+integration matrix run at the final pin instead.
