@@ -4,7 +4,7 @@ approval:
   date: '2026-11-07'
   approved_by: operator
   status: approved
-status: plan
+status: building
 source_issues: [2180]
 lanes:
   resolved_at: 4a05030d401593003209f525fd06e00802eccd36
@@ -25,7 +25,7 @@ tasks:
     execution_agent: main-session-direct
     execution_reason: DEC-174 requires main to implement this gate and its tests directly inside the assigned feature worktree.
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/check_state/board.py
       - tests/integration/test-check-state-inv26.py
