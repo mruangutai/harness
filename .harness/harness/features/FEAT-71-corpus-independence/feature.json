@@ -2,8 +2,8 @@
   "feature_id": "FEAT-71-corpus-independence",
   "branch": "feat/FEAT-71-corpus-independence",
   "pr": null,
-  "review_sha": "3e6add2af05f5b801afec1ef69440fe54e1529a4",
-  "cycles_used": 0,
+  "review_sha": "5a2edb72a220efd4a44cda6f512ec5697c0f37e0",
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -32,6 +32,21 @@
       "tokens": null,
       "ended_at": "2026-11-07T14:37:43+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T15:10:24+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-validator/digest.md",
+        "sha256": "af3e6d67df9d99ae5d8117ee664a0ddc801071346d1c8f2050cfd87c92b67483"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-07T15:21:30+00:00"
     }
   ],
   "judgements": [
