@@ -123,6 +123,18 @@ with tempfile.TemporaryDirectory() as tmp:
     check("BE-09 plan status building with an empty tasks list returns open",
           got == "open", repr(got))
 
+# A plan-flow SIMPLIFY run an engineering lead hosts before signature grades a specification
+# (code_grade n_a): replacement stays full. An engineering run that reviewed code is started work.
+with tempfile.TemporaryDirectory() as tmp:
+    d = feat_dir(tmp, "FEAT-9011-fixture-plan-simplify")
+    write_plan(d, "ready", [{"id": "T-01", "status": "ready"}])
+    plan_flow = {"id": "r1", "squad": "engineering", "verdict": "PASS", "code_grade": "n_a"}
+    built = {"id": "r2", "squad": "engineering", "verdict": "PASS"}
+    legs = [feature_schema.recovery_command_for(d, {"runs": runs}, replacement=True)
+            for runs in ([plan_flow], [plan_flow, built])]
+    check("a plan-flow engineering simplify run is not started work; a code-graded one is",
+          legs == ["open", "recover-terminal"], repr(legs))
+
 # BE-10: membership is exact, never a prefix and never case-insensitive.
 check("BE-10 membership is exact, never a prefix and never case-insensitive",
       "FEAT-01" in feature_schema.BUILD_ENTRY_ERA_EXEMPT
@@ -156,5 +168,53 @@ with tempfile.TemporaryDirectory() as tmp:
         artifact_accessors.load_plan = _real
     check("FEAT-64 BE-12 an unrelated RuntimeError in the plan loader escapes recovery_command_for",
           escaped)
+
+allows = getattr(feature_schema, "receipt_allows_merge", None)
+bound = {"repo": "org/product"}
+check("a bound feature's opened mapping without github.repo is not repository provenance",
+      callable(allows) and not allows(
+          {"factory": bound, "github": {"parent": 7, "build_entry": "opened"}}, "org/product"))
+if callable(allows):
+    for name, doc, expected in (
+        ("matching opened generation",
+         {"github": {"repo": "org/product", "parent": 7, "build_entry": "opened"}}, True),
+        ("wrong repository",
+         {"github": {"repo": "org/owner", "parent": 7, "build_entry": "opened"}}, False),
+        ("bound wrong repository",
+         {"factory": bound, "github": {"repo": "org/owner", "parent": 7, "build_entry": "opened"}},
+         False),
+        ("legacy unbound opened, created by the owner binding that still resolves it",
+         {"github": {"parent": 7, "build_entry": "opened"}}, True),
+        ("legacy unbound recovered-terminal",
+         {"github": {"milestone": 3, "parent": 7, "build_entry": "recovered-terminal"}}, True),
+        ("unresolved owner repository", {"github": {"parent": 7, "build_entry": "opened"}}, None),
+        ("replacement in progress", {"github": {"repo": "org/product", "build_entry": "opened",
+                                                "recovery": {"state": "in-progress"}}}, False),
+        ("uncertain create", {"github": {
+            "repo": "org/product", "build_entry": "recovered-terminal",
+            "recovery": {"state": "complete", "pending_create": {"role": "parent"}}}}, False),
+        ("legacy unbound sync-off", {"github": {"build_entry": "not-applicable"}}, True),
+    ):
+        repo = None if expected is None else "org/product"
+        check(f"repository-aware merge receipt: {name}",
+              allows(doc, repo) is bool(expected))
+
+resolve = getattr(feature_schema, "resolve_binding", None)
+check("the shared binding resolver exists", callable(resolve))
+if callable(resolve):
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp, ".harness")
+        directory.mkdir()
+        Path(directory, "harness.json").write_text(
+            json.dumps({"github": {"sync": False, "repo": None, "board": None}}), encoding="utf-8")
+        check("unbound sync-off retains legal null board", resolve({}, tmp) == (None, None, {}))
+        for malformed in ("", "owner", "../owner/product", 12, False):
+            try:
+                resolve({"factory": {"repo": malformed}}, tmp)
+            except artifact_accessors.FleetError:
+                refused = True
+            else:
+                refused = False
+            check(f"invalid authoritative binding refuses before owner fallback: {malformed!r}", refused)
 
 sys.exit(1 if failures else 0)

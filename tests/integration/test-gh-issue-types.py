@@ -181,6 +181,8 @@ def stage(tmp, feat_name="FEAT-77-types", repo="owner/name", issue_types=None,
     build_brief(feat_dir, feat_name)
     build_plan_yaml(feat_dir, feat_name, source_issues)
     build_harness_json(tmp, repo, issue_types)
+    if github is not None:
+        github = {"repo": repo, **github}
     build_feature_json(feat_dir, github)
     return feat_dir
 

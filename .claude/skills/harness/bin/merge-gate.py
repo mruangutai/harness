@@ -222,6 +222,9 @@ def _read_request():
     try:
         config_path = os.path.join(ROOT, ".harness", "harness.json")
         github = artifact_accessors.load_harness_json(config_path).get("github") or {}
+    except artifact_accessors.ArtifactAccessError:
+        github = {}
+    try:
         payload = artifact_accessors.read_hook_payload(
             sys.stdin.read(), "merge-gate hook payload")
         command = (payload.get("tool_input") or {}).get("command") or ""
@@ -240,20 +243,35 @@ def _enforce_receipt(feature_schema, github, branch, failure,
                      feat_dir, document):
     """Apply the receipt policy for one unambiguous feature owner."""
     feat = os.path.basename(feat_dir)
-    entry = (document.get("github") or {}).get("build_entry")
-    if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-        print(f"merge-gate: {feat} predates the build-entry receipt (feature_schema.BUILD_ENTRY_ERA_EXEMPT), so this merge is allowed. Its terminal receipt is created only by an explicit operator-approved gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+    bound = feature_schema.has_repository_binding(document)
+    if not bound and not github.get("sync"):
+        problem = feature_schema.mirror_provenance_problem(document, github.get("repo"))
+        if not problem:
+            problem = "; ".join(feature_schema.mirror_evidence_problems(feat_dir, document))
+        if not problem:
+            return
+        deny(f"merge-gate: {feat}: {problem}. Run: "
+             f"{feature_schema.recovery_command_line(feat_dir, document, github.get('repo'))}")
         return
-    if entry in {"opened", "not-applicable", "recovered-terminal"}:
+    if not bound and not repo_pinned(github.get("repo")):
+        deny(f"merge-gate: {feat} has github.sync true with github.repo NOT pinned, so the mirror records nothing here and no receipt can ever be written for it (D-09). NO COMMAND CLEARS THIS BY ITSELF. Pin github.repo in {ROOT}/.harness/harness.json to the value of gh repo view --json nameWithOwner -q .nameWithOwner, or set github.sync to false, and then re-run the Build entry.")
+        return
+    try:
+        repo, _board, _types = feature_schema.resolve_binding(document, ROOT)
+    except artifact_accessors.FleetError as error:
+        deny(f"merge-gate: {feat} has an invalid authoritative repository binding: {error}")
+        return
+    problems = feature_schema.mirror_evidence_problems(feat_dir, document)
+    if not problems and feature_schema.receipt_allows_merge(document, repo):
+        if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+            print(f"merge-gate: {feat} predates the build-entry receipt; "
+                  f"its explicit recovery is {feature_schema.recovery_command_line(feat_dir, document, repo)}.",
+                  file=sys.stderr)
         _print_unverified(branch, failure)
         return
-    value = entry or "absent"
-    if not repo_pinned(github.get("repo")):
-        deny(f"merge-gate: {feat} records github.build_entry={value}, and this project has github.sync true with github.repo NOT pinned, so the mirror records nothing here and no receipt can ever be written for it (D-09). NO COMMAND CLEARS THIS BY ITSELF. Pin github.repo in {ROOT}/.harness/harness.json to the value of gh repo view --json nameWithOwner -q .nameWithOwner, or set github.sync to false, and then re-run the Build entry.")
-        return
-    command_name = feature_schema.recovery_command_for(feat_dir)
-    command_line = (f"python3 .claude/skills/harness/bin/gh-sync.py {command_name} {os.path.realpath(feat_dir)}" + (" --yes" if command_name == "recover-terminal" else ""))
-    deny(f"merge-gate: {feat} needs its GitHub mirror recovery completed before this merge can continue. Run: {command_line}")
+    detail = "; ".join(problems) or feature_schema.mirror_provenance_problem(document, repo) or "receipt absent or incomplete"
+    deny(f"merge-gate: {feat} needs its GitHub mirror recovery completed before this merge can continue "
+         f"({detail}). Run: {feature_schema.recovery_command_line(feat_dir, document, repo)}")
 
 
 def _handle_owners(feature_schema, github, branch, failure, owners):
@@ -290,7 +308,7 @@ def main():
     if request is None:
         return
     github, command = request
-    if not github.get("sync") or not merge_ref(command):
+    if not merge_ref(command):
         return
     try:
         _evaluate_merge(command, github)

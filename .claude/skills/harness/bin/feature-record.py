@@ -76,6 +76,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import feature_json_write  # noqa: E402  (local import, after sys.path fix-up)
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 import harness_yaml  # noqa: E402  (local import, after sys.path fix-up)
+import feature_schema
+import digest_record
 from harness_boundary import CONTRACT_REFUSAL_CODE  # noqa: E402
 
 JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject")
@@ -244,42 +246,112 @@ def cmd_run_start(args):
     sys.exit(0)
 
 
-def _run_end_time(entry, refused_return):
-    if not refused_return and entry.get("return_disposition") != "refused":
-        return now_iso()
-    ended = entry.get("ended_at")
-    verdict = entry.get("verdict")
-    if verdict not in ("PENDING", "BLOCKED") or (ended and verdict != "BLOCKED"):
-        _refuse(["REFUSED: a refused closure cannot rewrite an existing terminal verdict."])
-    return ended or now_iso()
+def _history_evidence(doc, entry, args, effect):
+    """Authenticate a requested historical effect without deriving claims from prose."""
+    directory = os.path.dirname(os.path.abspath(args.file))
+    try:
+        digest = feature_schema.resolve_evidence_ref(directory, args.digest)
+        authorization = feature_schema.resolve_evidence_ref(directory, args.evidence)
+        subject = {"feature_id": doc["feature_id"], "run_id": entry["id"],
+                   "digest": digest, "effect": effect}
+        if effect == "record-cycle-evidence":
+            subject["cycles_used"] = entry["cycles_used"]
+        feature_schema.verify_evidence_ref(directory, authorization, subject)
+        if effect == "record-cycle-evidence":
+            feature_schema.verify_historical_cycle_count(
+                os.path.join(directory, digest["path"]), entry["cycles_used"])
+        if not args.yes or not args.by.strip():
+            raise ValueError("historical recovery requires --by and --yes")
+        return digest, authorization
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        _refuse([f"REFUSED: {error}"])
 
 
-def _preserve_refused_accounting(entry, args):
-    if entry.get("verdict") != "BLOCKED":
-        return False
-    if not args.refused_return and entry.get("return_disposition") != "refused":
-        return False
+def cmd_record_history(args):
+    def mutate(doc):
+        entry = _find_run(_runs(doc), args.id)
+        if entry is None or not entry.get("ended_at"):
+            _refuse(["REFUSED: historical recovery requires an existing closed run."])
+        effect = args.cmd
+        if effect == "record-refusal" and entry.get("verdict") != "BLOCKED":
+            _refuse(["REFUSED: refusal provenance requires a historical BLOCKED run."])
+        if effect == "record-refusal" and "return_disposition" in entry:
+            _refuse(["REFUSED: the run already carries the frozen legacy refused marker; "
+                     "an entry never holds both it and refusal provenance."])
+        if effect == "record-cycle-evidence":
+            _cycle_count(entry.get("cycles_used"), f"run {args.id!r}")
+        ref, authorization = _history_evidence(doc, entry, args, effect)
+        field = "refusal" if effect == "record-refusal" else "cycle_evidence"
+        existing = entry.get(field)
+        if existing:
+            expected = {"digest": ref} if field == "refusal" else ref
+            if (existing.get("source") != "operator-history"
+                    or existing.get("authorization") != authorization
+                    or existing.get("by") != args.by
+                    or any(existing.get(key) != value for key, value in expected.items())
+                    or (field == "refusal" and existing.get("reason") != args.reason)):
+                _refuse(["REFUSED: historical evidence conflicts with the recorded receipt."])
+            return doc
+        evidence = {"source": "operator-history", "by": args.by,
+                    "at": now_iso(), "authorization": authorization}
+        if field == "refusal":
+            evidence.update(digest=ref, run_id=args.id, reason=args.reason)
+        else:
+            evidence.update(ref)
+        entry[field] = evidence
+        return doc
+    _apply(args.file, mutate)
+    print(f"RECORDED {args.cmd} run {args.id!r}")
+    sys.exit(0)
+
+
+def _run_end_digest(args, entry, changed, runs):
+    """Verify immutable, durably run-owned evidence and the claimed count."""
+    try:
+        directory = os.path.dirname(args.file)
+        ref = feature_schema.resolve_evidence_ref(directory, args.digest)
+        feature_schema.verify_run_digest_owner(entry["id"], ref["path"], runs)
+        previous = []
+        existing = entry.get("cycle_evidence")
+        if existing:
+            claims = [*existing.get("previous", []),
+                      {key: existing[key] for key in ("path", "sha256")}]
+            for claim in claims:
+                feature_schema.verify_evidence_ref(directory, claim)
+                feature_schema.verify_run_digest_owner(entry["id"], claim["path"], runs)
+            previous = [claim for claim in claims if claim["path"] != ref["path"]]
+            if not changed and any(existing[key] != ref[key] for key in ("path", "sha256")):
+                raise ValueError("replay evidence conflicts with the recorded receipt")
+        record = digest_record.load_record(os.path.join(directory, ref["path"]))
+        digest = record.get("DIGEST")
+        count = digest.get("cycles_used") if isinstance(digest, dict) else None
+        if type(count) is not int or count != args.cycles_used:
+            raise ValueError("cycles_used disagrees with authentic digest evidence")
+        if record.get("VERDICT") != args.verdict or "artifact" not in record:
+            raise ValueError("digest verdict/record does not match the requested close")
+        if previous:
+            ref["previous"] = previous
+        return ref
+    except (OSError, ValueError, KeyError, TypeError, digest_record.DigestRecordError) as error:
+        _refuse([f"REFUSED: {error}"])
+
+
+def _is_refused(entry):
+    """Typed refusal provenance, or the frozen legacy marker no writer produces any more."""
+    return bool(entry.get("refusal")) or entry.get("return_disposition") == "refused"
+
+
+def _replay_refused(entry, args):
+    """An already-refused run keeps its terminal record: BLOCKED, its count and its tokens."""
+    if args.verdict != "BLOCKED":
+        _refuse(["REFUSED: a refused return cannot be upgraded to an accepted verdict."])
     if args.cycles_used != entry.get("cycles_used", 0):
-        _refuse(["REFUSED: historical refused cycles_used cannot be rewritten."])
-    if args.tokens is not None and args.tokens != entry.get("tokens"):
-        _refuse(["REFUSED: historical refused measured tokens cannot be rewritten."])
-    return True
-
-
-def _record_run_accounting(doc, entry, args, feature_cycles):
-    if _preserve_refused_accounting(entry, args):
-        return
-    previous_cycles = entry.get("cycles_used", 0)
-    entry["cycles_used"] = args.cycles_used
-    # A measured figure is never overwritten with null; null records an unmeasured open run.
-    if args.tokens is not None or "tokens" not in entry:
-        entry["tokens"] = args.tokens
-    doc["cycles_used"] = feature_cycles - previous_cycles + args.cycles_used
+        _refuse(["REFUSED: a refused run's recorded cycles_used cannot be rewritten."])
+    if getattr(args, "tokens", None) is not None and args.tokens != entry.get("tokens"):
+        _refuse(["REFUSED: a refused run's measured tokens cannot be rewritten."])
 
 
 def _record_run_end(args):
-    if args.refused_return and args.verdict != "BLOCKED":
-        _exit_refused(["REFUSED: a refused return can close only as BLOCKED."])
     def mutate(doc):
         runs = _runs(doc)
         entry = _find_run(runs, args.id)
@@ -294,14 +366,27 @@ def _record_run_end(args):
                 f"feature cycles_used={feature_cycles}.",
                 "  repair the inconsistent ledger before recording another run result.",
             ])
-        ended_at = _run_end_time(entry, args.refused_return)
-        _record_run_accounting(doc, entry, args, feature_cycles)
+        previous_cycles = entry.get("cycles_used", 0)
+        if _is_refused(entry):
+            _replay_refused(entry, args)
+        else:
+            changed = "cycles_used" not in entry or previous_cycles != args.cycles_used
+            if changed and not args.digest:
+                _refuse(["REFUSED: new/changed cycle attribution requires --digest evidence."])
+            if args.digest:
+                ref = _run_end_digest(args, entry, changed, runs)
+                if changed or "cycle_evidence" not in entry:
+                    entry["cycle_evidence"] = dict(source="lead-digest", **ref)
+            entry["cycles_used"] = args.cycles_used
+            # A measured figure is never overwritten with null; null is written only when
+            # the entry has no figure at all, so "unmeasured" is recorded rather than implied.
+            if args.tokens is not None or "tokens" not in entry:
+                entry["tokens"] = args.tokens
         entry["verdict"] = args.verdict
-        entry["ended_at"] = ended_at
-        if args.refused_return:
-            entry["return_disposition"] = "refused"
+        entry.setdefault("ended_at", now_iso())
         if args.code_grade:
             entry["code_grade"] = args.code_grade
+        doc["cycles_used"] = feature_cycles - previous_cycles + entry.get("cycles_used", 0)
         doc["runs"] = runs
         return doc
 
@@ -626,9 +711,9 @@ def _stage(name, argv, refuse_on_success=None):
     return "" if inverted else proc.stdout
 
 
-def _close_run_agent(args, judgement):
-    """Every refusal that needs no stage: argument shape, unknown run, run with no agent.
-    Returns the run's recorded agent — the persona whose digest contract applies."""
+def _close_run_options(args):
+    """Reject invalid close intent before resolving a run or touching its artifacts."""
+    judgement = _parse_judgement(args.judgement) if args.judgement else None
     if (args.task is None) != (args.station is None):
         _exit_refused(["REFUSED: --task and --station are a pair; give both or neither."])
     if args.refused_return and args.verdict != "BLOCKED":
@@ -638,6 +723,12 @@ def _close_run_agent(args, judgement):
     if args.judgement and judgement is None:
         _exit_refused([f"REFUSED: --judgement must read kind=<{'|'.join(JUDGEMENT_KINDS)}>,"
                        "decision=...,reason=... — got " + repr(args.judgement)])
+    return judgement
+
+
+def _close_run_preflight(args):
+    """Resolve argument shape, run persona, judgement and one digest before any stage."""
+    judgement = _close_run_options(args)
     entry = _find_run(_runs(_read_doc(args.file)), args.id)
     if entry is None:
         _exit_refused([f"REFUSED at stage run-end: runs[] carries no entry with id {args.id!r}.",
@@ -646,7 +737,23 @@ def _close_run_agent(args, judgement):
     if not isinstance(agent, str) or not agent:
         _exit_refused([f"REFUSED at stage digest: run {args.id!r} records no agent, so no "
                        "persona can validate its digest."])
-    return agent
+    _resolve_close_digest(args)
+    return agent, judgement
+
+
+def _resolve_close_digest(args):
+    """Validation, refusal recording and run-end must address the same target-local file."""
+    directory = os.path.dirname(os.path.abspath(args.file))
+    try:
+        ref = feature_schema.resolve_evidence_ref(directory, args.digest)
+        args.digest = feature_schema.verify_evidence_ref(directory, ref)
+        if args.refused_return:
+            with open(args.digest, encoding="utf-8") as source:
+                source.read()
+            args._refusal_digest = ref
+    except (OSError, ValueError, UnicodeError, TypeError) as error:
+        stage = "refused-return" if args.refused_return else "digest"
+        _exit_refused([f"REFUSED at stage {stage}: {error}"])
 
 
 def _close_run_stages(args, agent, judgement):
@@ -657,6 +764,7 @@ def _close_run_stages(args, agent, judgement):
     return, so its digest.md never received a valid record and the normal close could never
     pass. The stage then demands that the digest does NOT validate — a digest that does is a
     return that landed, and must close through the normal stage under its own verdict."""
+    grade = ["--code-grade", args.code_grade] if args.code_grade else []
     plan_yaml = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
     digest = [os.path.join(_HERE, "validate-digest.py")]
     if args.refused_return:
@@ -670,8 +778,10 @@ def _close_run_stages(args, agent, judgement):
         first = ("digest", digest, None, None)
     stages = [
         first,
-        # Only this validated close-out can pass the refused disposition into the transaction.
-        ("run-end", None, None, None),
+        ("run-end", [__file__, "run-end", "--file", args.file, "--id", args.id,
+                     "--verdict", args.verdict, "--cycles-used", str(args.cycles_used),
+                     "--digest", args.digest, *grade],
+         None, None),
     ]
     if args.task is not None:
         stages.append(("station", [os.path.join(_HERE, "plan-merge.py"), "set-task-station",
@@ -688,24 +798,73 @@ def _close_run_stages(args, agent, judgement):
     return stages
 
 
-def _close_run_stage(name, argv, args, refuse_on_success):
-    if name != "run-end":
-        return _stage(name, argv, refuse_on_success)
-    try:
-        _record_run_end(args)
-    except SystemExit:
-        print("REFUSED at stage run-end: later stages were not run.", file=sys.stderr)
-        raise
+def _close_refused_run(args, agent):
+    """Persist observed rejection before any later close stage, without a fake accepted record.
+
+    Only an open run takes new close-run provenance. An already-refused run (typed refusal or
+    the frozen legacy marker) replays unchanged; a closed BLOCKED run without provenance is
+    historical and takes it through record-refusal, never here."""
+    def mutate(doc):
+        runs = _runs(doc)
+        entry = _find_run(runs, args.id)
+        if entry is None:
+            _refuse(["REFUSED: the run disappeared before recording its refusal."])
+        total = _cycle_count(doc.get("cycles_used"), "feature cycles_used")
+        if _attributed_cycles(runs) > total:
+            _refuse(["REFUSED: cycle attribution exceeds the feature total."])
+        previous = _cycle_count(entry.get("cycles_used", 0), f"run {args.id!r}")
+        try:
+            directory = os.path.dirname(os.path.abspath(args.file))
+            ref = feature_schema.resolve_evidence_ref(directory, args.digest)
+            if ref != args._refusal_digest:
+                raise ValueError("digest bytes changed after the observed contract rejection")
+        except (OSError, ValueError, TypeError) as error:
+            _refuse([f"REFUSED: {error}"])
+        if entry.get("verdict") not in ("PENDING", "BLOCKED"):
+            _refuse(["REFUSED: a refused closure cannot rewrite an existing terminal verdict."])
+        existing = entry.get("refusal")
+        if existing and (existing["digest"] != ref or existing["run_id"] != args.id):
+            _refuse(["REFUSED: refusal conflicts with the recorded provenance."])
+        if _is_refused(entry):
+            _replay_refused(entry, args)
+            return doc
+        if entry.get("verdict") == "BLOCKED" or entry.get("ended_at"):
+            _refuse(["REFUSED: this run is already closed BLOCKED; record historical refusal "
+                     "provenance with record-refusal, not close-run."])
+        changed = "cycles_used" not in entry or previous != args.cycles_used
+        if changed:
+            if not args.evidence or not args.by:
+                _refuse(["REFUSED: new/changed refused attribution requires --evidence and --by."])
+            proof = argparse.Namespace(**vars(args), yes=True)
+            counted = dict(entry, cycles_used=args.cycles_used)
+            digest, authorization = _history_evidence(doc, counted, proof, "record-cycle-evidence")
+            entry["cycle_evidence"] = dict(
+                source="operator-history", by=args.by, at=now_iso(),
+                authorization=authorization, **digest)
+        entry["refusal"] = {
+            "source": "close-run", "digest": ref, "run_id": args.id,
+            "reason": "validator rejected the return with deliberate contract-refusal "
+                      f"status {CONTRACT_REFUSAL_CODE}",
+            "by": args.by or agent, "at": now_iso()}
+        entry["verdict"] = "BLOCKED"
+        entry["ended_at"] = now_iso()
+        entry.setdefault("tokens", None)
+        entry["cycles_used"] = args.cycles_used
+        if args.code_grade:
+            entry["code_grade"] = args.code_grade
+        doc["cycles_used"] = total - previous + args.cycles_used
+        return doc
+    _apply(args.file, mutate)
     return ""
 
 
 def cmd_close_run(args):
-    judgement = _parse_judgement(args.judgement) if args.judgement else None
-    agent = _close_run_agent(args, judgement)
+    agent, judgement = _close_run_preflight(args)
     summary = [f"CLOSED run {args.id!r} verdict={args.verdict}"]
     spend = ""
     for name, argv, fragment, refuse_on_success in _close_run_stages(args, agent, judgement):
-        out = _close_run_stage(name, argv, args, refuse_on_success)
+        out = (_close_refused_run(args, agent) if name == "run-end" and args.refused_return
+               else _stage(name, argv, refuse_on_success))
         if fragment:
             summary.append(fragment)
         if name == "spend":
@@ -825,6 +984,17 @@ def main():
                    help="the decision on the handoff this run succeeds (INV-40 c, INV-43)")
     p.set_defaults(func=cmd_run_start)
 
+    for verb in ("record-cycle-evidence", "record-refusal"):
+        p = with_file(sub.add_parser(verb, help="attach authorized historical provenance"))
+        p.add_argument("--id", required=True)
+        p.add_argument("--digest", required=True)
+        p.add_argument("--evidence", required=True)
+        p.add_argument("--by", required=True)
+        p.add_argument("--yes", action="store_true", required=True)
+        if verb == "record-refusal":
+            p.add_argument("--reason", required=True)
+        p.set_defaults(func=cmd_record_history)
+
     p = with_file(sub.add_parser("run-end", help="close a runs[] entry"))
     p.add_argument("--id", required=True)
     p.add_argument("--verdict", required=True)
@@ -833,7 +1003,8 @@ def main():
     p.add_argument("--tokens", type=_int_at_least(0),
                    help="tokens MEASURED from the transcript; omit when unmeasured (null)")
     p.add_argument("--code-grade", choices=["n_a"], dest="code_grade")
-    p.set_defaults(func=cmd_run_end, refused_return=False)
+    p.add_argument("--digest", help="authentic target-local evidence for new/changed attribution")
+    p.set_defaults(func=cmd_run_end)
 
     p = with_file(sub.add_parser("stamp-tokens",
                                  help="write the host-measured tokens onto the ONE open run"))
@@ -856,7 +1027,9 @@ def main():
     p.add_argument("--refused-return", action="store_true", dest="refused_return",
                    help="the host refused the lead's final return, so its digest carries no "
                         "valid record: close BLOCKED, refusing if the digest does validate")
-    p.set_defaults(func=cmd_close_run, tokens=None)
+    p.add_argument("--evidence", help="target-local authorization for new/changed refused attribution")
+    p.add_argument("--by", help="operator authorizing a refused-run attribution")
+    p.set_defaults(func=cmd_close_run)
 
     p = with_file(sub.add_parser("judgement", help="append one judgement to the ledger"))
     p.add_argument("--by", required=True)

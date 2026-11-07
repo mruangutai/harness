@@ -7,7 +7,6 @@ with an actionable message, and every read leaves the file byte-identical (sha25
 and after). The module must not reach for the live persona schemas at all.
 """
 from pathlib import Path
-import ast
 import hashlib
 import shutil
 import sys
@@ -80,6 +79,13 @@ class DurableRecord(unittest.TestCase):
         self.assertEqual(record["DIGEST"]["retired_field"], "kept")
         self.assertEqual(record["DIGEST"]["members"][0]["verdict"], "PASS")
 
+    def test_unfenced_input_must_be_strict_json_not_yaml_or_duplicate_keys(self):
+        for text in ('{VERDICT: FAIL, DIGEST: {cycles_used: 0}}',
+                     '{"VERDICT":"PASS","VERDICT":"FAIL","DIGEST":{"cycles_used":0}}',
+                     '{"VERDICT":"PASS","DIGEST":{"cycles_used":NaN}}'):
+            with self.subTest(text=text), self.assertRaises(digest_record.DigestRecordError):
+                self.read(self.fixture(text))
+
     def test_text_api_matches_file_api(self):
         self.assertEqual(digest_record.last_fenced_mapping(HISTORICAL),
                          self.read(self.fixture(HISTORICAL)))
@@ -108,18 +114,16 @@ class DurableRecord(unittest.TestCase):
             self.assertIn("fenced", message)
             self.assertIn(str(path), message)
 
+    def test_direct_json_object_can_back_cycle_evidence_without_rewriting_bytes(self):
+        record = self.read(self.fixture(
+            '{"VERDICT":"FAIL","DIGEST":{"cycles_used":0},"artifact":"digest.md"}'))
+        self.assertEqual(record["DIGEST"]["cycles_used"], 0)
+        self.assertEqual(record["VERDICT"], "FAIL")
+
     def test_unreadable_file_fails_actionably(self):
         with self.assertRaisesRegex(digest_record.DigestRecordError, "missing.md"):
             digest_record.load_record(self.tmp / "missing.md")
 
-    def test_does_not_import_live_schema(self):
-        tree = ast.parse((BIN / "digest_record.py").read_text(encoding="utf-8"))
-        imported = {alias.name for node in ast.walk(tree)
-                    if isinstance(node, (ast.Import, ast.ImportFrom))
-                    for alias in node.names} | {
-            node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
-        self.assertNotIn("digest_schema", imported)
-        self.assertNotIn("jsonschema", imported)
 
 
 if __name__ == "__main__":

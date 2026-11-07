@@ -802,8 +802,8 @@ def case_t06_build_entry_invariant():
         feat_dir = os.path.join(h, "harness", "features", feature)
         os.makedirs(feat_dir, exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w", encoding="utf-8") as f:
-            json.dump({"github": {"sync": sync, "repo": "acme/widgets"}}, f)
-        github = {} if build_entry is None else {"build_entry": build_entry}
+            json.dump({"github": {"sync": sync, "repo": "acme/widgets", "board": None}}, f)
+        github = {} if build_entry is None else {"build_entry": build_entry, "repo": "acme/widgets"}
         doc = {"feature_id": feature, "github": github}
         if factory_issues is not None:
             doc["factory"] = {"issues": factory_issues}
@@ -836,19 +836,17 @@ def case_t06_build_entry_invariant():
         line = next((x for x in out.splitlines() if "INV-37" in x), "")
         outcomes.append(check("T-06 INV-37 fires at a done station with no task statuses",
                               "FEAT-9001-fixture-non-era" in line and "recover-terminal" in line))
-        outcomes.append(check("T-06 INV-37 message discriminator names recover-terminal only",
-                              "open" not in line))
-    for name, entry, sync, factory in (
-        ("T-06 INV-37 silent on build_entry opened", "opened", True, None),
-        ("T-06 INV-37 silent on build_entry recovered-terminal", "recovered-terminal", True, None),
-        ("T-06 INV-37 silent when github.sync is false", None, False, None),
-        ("T-06 INV-37 silent on a feature with factory.issues", None, True, {"T-01": 9}),
+    for name, entry, sync, factory, expected_violation in (
+        ("T-06 INV-37 accepts a provenanced opened receipt", "opened", True, None, False),
+        ("T-06 INV-37 accepts a provenanced terminal receipt", "recovered-terminal", True, None, False),
+        ("T-06 INV-37 remains disabled for an unbound sync-off feature", None, False, None, False),
+        ("T-06 INV-37 factory claims do not prove a mirror receipt", None, True, {"T-01": 9}, True),
     ):
         with tempfile.TemporaryDirectory() as tmp:
             fixture(tmp, "FEAT-9001-fixture-non-era", build_entry=entry, sync=sync,
                     factory_issues=factory)
             _, out = run(tmp)
-            outcomes.append(check(name, "INV-37" not in out))
+            outcomes.append(check(name, ("INV-37" in out) == expected_violation))
     with tempfile.TemporaryDirectory() as tmp:
         fixture(tmp, "BUG-1030-stale-anchor-write-hazard")
         _, out = run(tmp)
@@ -858,7 +856,7 @@ def case_t06_build_entry_invariant():
     with tempfile.TemporaryDirectory() as tmp:
         non_era = fixture(tmp, "FEAT-9001-fixture-non-era", station="building")
         outcomes.append(check("T-06 recovery_command_for returns open for a non-era building plan",
-                              getattr(feature_schema, "recovery_command_for", lambda _: None)(non_era)
+                              feature_schema.recovery_command_for(non_era)
                               == "open"))
     trigger_results = []
     for feature, station, task_status in (
@@ -869,7 +867,7 @@ def case_t06_build_entry_invariant():
         with tempfile.TemporaryDirectory() as tmp:
             feat_dir = fixture(tmp, feature, station=station, task_status=task_status)
             trigger_results.append(
-                getattr(feature_schema, "recovery_command_for", lambda _: None)(feat_dir)
+                feature_schema.recovery_command_for(feat_dir)
                 == "recover-terminal"
             )
     outcomes.append(check("T-06 recovery_command_for returns recover-terminal for each trigger alone",
@@ -984,6 +982,54 @@ def case_bug440_digest_verdict_reconciliation():
     return ok
 
 
+def case_historical_refusal_completion():
+    import feature_schema
+    outcomes = []
+    with tempfile.TemporaryDirectory() as tmp:
+        original = "# assessment completed; the return was refused\n"
+        fdir = _bug440_build(tmp, ("R", "P"), [
+            ("R", "harness-eng-lead", "complete", original),
+            ("P", "harness-product-lead", "complete", _bug440_digest("PASS"))])
+        path = os.path.join(fdir, "feature.json")
+        with open(path, encoding="utf-8") as source:
+            doc = json.load(source)
+        doc.update(branch="none", pr=None, max_total_cycles=10)
+        doc["runs"][0].update(
+            verdict="BLOCKED", agent="harness-eng-lead", cycles_used=0,
+            ended_at="2026-10-01T10:00:00+00:00")
+        with open(path, "w", encoding="utf-8") as target:
+            json.dump(doc, target, indent=2)
+        _, before = run(tmp)
+        outcomes.append("runs/R/digest.md: does not satisfy" in before)
+        digest = os.path.join(fdir, "runs", "R", "digest.md")
+        ref = feature_schema.resolve_evidence_ref(fdir, digest)
+        note = os.path.join(fdir, "authorization.json")
+        with open(note, "w", encoding="utf-8") as target:
+            json.dump({"feature_id": "FEAT-TEST", "effects": [
+                {"effect": "record-refusal", "run_id": "R", "digest": ref}]}, target)
+        proc = subprocess.run([
+            sys.executable, os.path.join(_anchor_bin, "feature-record.py"), "record-refusal",
+            "--file", path, "--id", "R", "--digest", digest, "--evidence", note,
+            "--by", "operator", "--reason", "authentic historical contract rejection", "--yes"
+        ], capture_output=True, text=True, env=_root_env(tmp))
+        outcomes.append(proc.returncode == 0)
+        _, after = run(tmp)
+        outcomes.append("runs/R/digest.md: does not satisfy" not in after
+                        and "refused completion" in after and "INV-46" not in after)
+        with open(digest, encoding="utf-8") as source:
+            outcomes.append(source.read() == original)
+        with open(digest, "a", encoding="utf-8") as target:
+            target.write("changed evidence\n")
+        _, changed = run(tmp)
+        outcomes.append("refusal evidence" in changed and "hash" in changed)
+    passed = all(outcomes)
+    print(f"{'ok' if passed else 'FAIL'} - historical refused completion remains BLOCKED, "
+          "hash-bound, and distinct from a later accepted return")
+    if not passed:
+        print(proc.stdout, proc.stderr, after, changed)
+    return passed
+
+
 def _report(results):
     """The original main()'s printer for the cases that return a results LIST."""
     ok = True
@@ -1013,6 +1059,7 @@ def main():
     results.append(case_bug440_digest_verdict_reconciliation())
     results.append(case_bug1305_run_identity_invariant())
     results.append(case_t06_build_entry_invariant())
+    results.append(case_historical_refusal_completion())
     results.append(_report(
         case_inv33a_stale_is_reported()
             + case_inv33b_current_is_silent()

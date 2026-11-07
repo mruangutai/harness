@@ -301,35 +301,33 @@ def _inv37_import():
                    "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
     return bad, _fs37
 
-def _inv37_sync(ctx):
-    return bool((ctx.cj.get("github") or {}).get("sync"))
 
-def _inv37_receipted(ctx, _feat37):
-    _doc37 = ctx.record(_feat37)[0] or {}
-    return bool((_doc37.get("factory") or {}).get("issues")
-                or (_doc37.get("github") or {}).get("build_entry") is not None)
-
-def _inv37_finding(_fs37, _feat37, _fp37):
-    _cmd37 = _fs37.recovery_command_for(_fp37)
-    if _cmd37 == "open":
-        return (f"INV-37 {_feat37}: github.sync is enabled but feature.json records no "
-                f"github.build_entry, so no Build entry outcome was ever recorded and "
-                f"the board cannot be telling the truth about this feature - run "
-                f"gh-sync.py open {_fp37}.")
-    return (f"INV-37 {_feat37}: github.sync is enabled but feature.json records no "
-            f"github.build_entry, and the feature's own record says the work is "
-            f"already under way or finished, so creating the mirror now would mean "
-            f"task sub-issues for completed work - run gh-sync.py recover-terminal "
-            f"{_fp37} --yes.")
+def _inv37_finding(_fs37, _feat37, _fp37, doc, repo, detail):
+    return (f"INV-37 {_feat37}: github.sync is enabled but the feature has no usable "
+            f"Build-entry receipt ({detail}) - run "
+            f"{_fs37.recovery_command_line(_fp37, doc, repo)}.")
 
 def _inv37_feature(ctx, _fs37, plan_docs, _feat37):
     bad = []
     _fp37 = ctx.feature_dir(_feat37)
-    if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or _feat37 not in plan_docs:
+    if _feat37 not in plan_docs:
         return bad
-    if _inv37_receipted(ctx, _feat37):
+    doc = ctx.record(_feat37)[0] or {}
+    bound = _fs37.has_repository_binding(doc)
+    enabled = bound or bool((ctx.cj.get("github") or {}).get("sync"))
+    if enabled:
+        try:
+            repo, _board, _types = _fs37.resolve_binding(doc, ctx.root)
+        except artifact_accessors.FleetError as error:
+            return [f"INV-37 {_feat37}: invalid authoritative repository binding: {error}"]
+    else:
+        repo = (ctx.cj.get("github") or {}).get("repo")
+    problems = _fs37.mirror_evidence_problems(_fp37, doc)
+    provenance = _fs37.mirror_provenance_problem(doc, repo)
+    if not problems and not provenance and (not enabled or _fs37.receipt_allows_merge(doc, repo)):
         return bad
-    bad.append(_inv37_finding(_fs37, _feat37, _fp37))
+    detail = "; ".join(problems) or provenance or "receipt absent or incomplete"
+    bad.append(_inv37_finding(_fs37, _feat37, _fp37, doc, repo, detail))
     return bad
 
 def inv_37(ctx):
@@ -339,9 +337,7 @@ def inv_37(ctx):
     _import_bad37, _fs37 = _inv37_import()
     bad.extend(_import_bad37)
 
-    _sync37 = _inv37_sync(ctx)
-
-    if _fs37 is None or not _sync37:
+    if _fs37 is None:
         return bad, warn
     for _feat37 in ctx.features:
         bad.extend(_inv37_feature(ctx, _fs37, plan_docs, _feat37))

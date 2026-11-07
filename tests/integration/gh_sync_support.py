@@ -149,6 +149,17 @@ def write_feature_json(path, **fields):
     if doc["status"] is None:
         del doc["status"]
     doc.update(fields)
+    github = doc.get("github")
+    if isinstance(github, dict) and "repo" not in github:
+        directory = os.path.dirname(os.path.abspath(path))
+        while os.path.basename(directory) != ".harness" and directory != os.path.dirname(directory):
+            directory = os.path.dirname(directory)
+        config_path = os.path.join(directory, "harness.json")
+        if os.path.isfile(config_path):
+            with open(config_path, encoding="utf-8") as source:
+                configured_repo = (json.load(source).get("github") or {}).get("repo")
+            if configured_repo:
+                github["repo"] = configured_repo
     with open(path, "w", encoding="utf-8") as f:
         json.dump(doc, f, indent=2)
 
@@ -188,8 +199,20 @@ def read_feature_json(path):
 
 def run(args, tmp, env_extra=None):
     env = dict(os.environ)
+    binary = os.path.join(tmp, "gh")
     env["FAKE_LOG"] = os.path.join(tmp, "calls.log")
-    env["GH_SYNC_GH"] = os.path.join(tmp, "gh")
+    env["GH_SYNC_GH"] = env["FACTORY_GH"] = binary
+    if len(args) > 1 and os.path.isdir(args[1]):
+        path = os.path.join(args[1], "feature.json")
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as source:
+                try:
+                    factory = json.load(source).get("factory")
+                except (ValueError, AttributeError):
+                    factory = None
+            if factory and any(key in (env_extra or {}) and env_extra[key] != binary
+                               for key in ("GH_SYNC_GH", "FACTORY_GH")):
+                raise ValueError("fleet tests must bind both transports to the shared fake")
     env.update(env_extra or {})
     return subprocess.run([SYNC] + args, capture_output=True, text=True, env=env)
 
@@ -711,6 +734,33 @@ status: approved
     return feat
 
 
+def stage_fleet(tmp, feat_name="FEAT-9000-fleet", script=FAKE_GH_STATIONS):
+    feat = stage_station(tmp, feat_name, [("T-01", "pending")],
+                         repo="owner/harness", parent=None, milestone=None,
+                         plan_station="ready", source_issues=[901])
+    with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w", encoding="utf-8") as target:
+        target.write("teams: []\n")
+    fleet_dir = os.path.join(tmp, ".harness", "factory")
+    os.makedirs(fleet_dir, exist_ok=True)
+    with open(os.path.join(fleet_dir, "fleet.yaml"), "w", encoding="utf-8") as target:
+        target.write("schema: factory-fleet/1\nrepos:\n"
+                     "  - name: product/app\n    default_branch: release\n"
+                     f"workspace_root: {tmp}/members\n")
+    product = {"github": {"sync": True, "repo": "product/app",
+                         "board": {"owner": "product", "number": 9, "station_field": "Status",
+                                   "stations": list(FULL_STATIONS)},
+                         "issue_types": {"Task": "Product work"}}}
+    install_gh(tmp, script.replace('"number":3', '"number":9').replace("implentio/fake", "product/app"),
+               product_configs={"product/app@release": product})
+    path = os.path.join(feat, "feature.json")
+    doc = read_feature_json(path)
+    doc.update(branch="none", pr=None, review_sha="none", cycles_used=0, max_total_cycles=10,
+               runs=[], factory={"repo": "product/app", "issues": {"T-01": 501}}, github={})
+    with open(path, "w", encoding="utf-8") as target:
+        json.dump(doc, target, indent=2)
+    return feat
+
+
 def write_dangling_plan_yaml(feat_dir, feat_name, t2_depends_on, approval=None,
                               plan_station=None):
     """A plan.yaml with exactly two complete tasks, T-01 and T-02, where T-02's `depends_on`
@@ -777,9 +827,92 @@ def stage_depends_on(tmp, feat_name, t2_depends_on, repo="implentio/fake", board
     return feat
 
 
-def install_gh(tmp, script=FAKE_GH):
+def install_gh(tmp, script=FAKE_GH, product_configs=None):
+    """One contents endpoint handler shared by every fake; unknown reads fail loudly."""
     gh_path = os.path.join(tmp, "gh")
-    open(gh_path, "w").write(script)
+    delegate = os.path.join(tmp, "gh.delegate")
+    with open(delegate, "w", encoding="utf-8") as target:
+        target.write(script)
+    os.chmod(delegate, 0o755)
+    configs = os.path.join(tmp, "product-configs.json")
+    if product_configs is not None:
+        with open(configs, "w", encoding="utf-8") as target:
+            json.dump(product_configs, target)
+    wrapper = f"""#!{_anchor_sys.executable}
+import base64, json, os, re, subprocess, sys
+args = sys.argv[1:]
+if args and args[0] == "api" and any("/contents/" in arg for arg in args):
+    with open(os.environ["FAKE_LOG"], "a", encoding="utf-8") as log:
+        log.write(" ".join(args).replace("\\n", "\\001") + "\\n")
+    match = re.fullmatch(r"repos/([^/]+/[^/]+)/contents/\\.harness/harness\\.json\\?ref=([^?]+)", args[1])
+    try:
+        if not match or args[2:] != ["--jq", ".content"]:
+            raise ValueError("unsupported contents call")
+        with open({configs!r}, encoding="utf-8") as source:
+            values = json.load(source)
+        value = values[match[1] + "@" + match[2]]
+        text = value if isinstance(value, str) else json.dumps(value)
+    except (OSError, KeyError, ValueError) as error:
+        print("fake contents refused: " + str(error), file=sys.stderr)
+        sys.exit(67)
+    print(base64.b64encode(text.encode("utf-8")).decode("ascii"))
+    sys.exit(0)
+milestones = os.path.join(os.path.dirname({delegate!r}), "milestone-state.json")
+issues = os.path.join(os.path.dirname({delegate!r}), "issue-state.json")
+def load(path):
+    if not os.path.exists(path):
+        return {{}}
+    with open(path, encoding="utf-8") as source:
+        return json.load(source)
+def save(path, value):
+    with open(path, "w", encoding="utf-8") as target:
+        json.dump(value, target)
+if args and args[0] == "api":
+    match = re.fullmatch(r"repos/([^/]+/[^/]+)/milestones/([0-9]+)", args[1])
+    if match and args[2:] == ["--jq", ".title"]:
+        with open(os.environ["FAKE_LOG"], "a", encoding="utf-8") as log:
+            log.write(" ".join(args) + "\\n")
+        title = load(milestones).get(match[1], {{}}).get(match[2])
+        if title is None:
+            print("milestone not found", file=sys.stderr)
+            sys.exit(1)
+        print(title)
+        sys.exit(0)
+creating_milestone = args[:3] == ["api", "-X", "POST"] and args[3].endswith("/milestones")
+creating_task = args[:2] == ["issue", "create"] and "--milestone" in args
+if creating_milestone or creating_task:
+    remote = load(milestones)
+    if creating_task and remote:
+        repo = args[args.index("--repo") + 1]
+        title = args[args.index("--milestone") + 1]
+        selected = [int(number) for number, name in remote.get(repo, {{}}).items() if name == title]
+        if len(selected) != 1:
+            print("milestone title does not resolve uniquely in target repository", file=sys.stderr)
+            sys.exit(1)
+    result = subprocess.run([{delegate!r}] + args, capture_output=True, text=True)
+    sys.stdout.write(result.stdout)
+    sys.stderr.write(result.stderr)
+    if result.returncode == 0 and creating_milestone:
+        try:
+            response = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            response = {{}}
+        number = response.get("number") if isinstance(response, dict) else None
+        if type(number) is int:
+            repo = args[3][len("repos/"):-len("/milestones")]
+            title = next(arg[len("title="):] for arg in args if arg.startswith("title="))
+            remote.setdefault(repo, {{}})[str(number)] = title
+            save(milestones, remote)
+    elif result.returncode == 0 and remote:
+        issue = int(result.stdout.strip().rsplit("/", 1)[-1])
+        assigned = load(issues)
+        assigned[repo + "#" + str(issue)] = {{"milestone": selected[0]}}
+        save(issues, assigned)
+    sys.exit(result.returncode)
+os.execv({delegate!r}, [{delegate!r}] + args)
+"""
+    with open(gh_path, "w", encoding="utf-8") as target:
+        target.write(wrapper)
     os.chmod(gh_path, 0o755)
 
 

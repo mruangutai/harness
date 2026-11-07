@@ -2988,10 +2988,14 @@ signature's emitted station; an approved task-set change resets the local phase 
 validation boundary sends `Review`; a must-fix boundary sends `Building` before the fix run and
 `Review` at the next validation boundary after it returns; `start-task` reuses the shared active
 projection; Ship alone sends `Done`. Every caller records local authority before attempting the
-outbound card writes, catches a failed card write without suppressing later cards, and never lets
-GitHub gate the flow. The asymmetric boundary is unchanged: signed local artifacts decide the
-phase, and no board value writes back into them. The whole integration remains gated per project by
-`github.sync: true` in `harness.json`, the standing outward-facing consent granted once at init.
+outbound card writes and catches a failed card write without suppressing later cards. A remote
+write failure does not gate development; an invalid repository binding or unproven local mirror
+does refuse the command before any local station change or remote mutation. For a bound feature,
+non-null `factory.repo` is authoritative: resolve its declared fleet entry and default-branch
+`product_config`/`board_for`, never an ancestor or owner-checkout fallback. Active receipts must
+carry matching `github.repo` provenance; `factory.claims` proves neither routing nor ownership.
+The asymmetric boundary is unchanged: signed local artifacts decide the phase, and no board value
+writes back into them. Outward-facing consent remains the target project's `github.sync: true`.
 
 **One source document per GitHub construct.** Milestone ← BRIEF (title `FEAT-NN-<slug>`; description
 = Problem + Goal + the SC checklist, so the milestone page IS the definition of done). Issue ← the
@@ -3611,8 +3615,9 @@ boundaries, with one validator-owned durable representation:
   safe existing regular `digest.md`, and appends the validated object as fenced YAML after the
   lead's prose unless the final fenced mapping is already structurally identical. Missing, unsafe,
   unreadable or unwritable targets refuse the yield while the lead can correct them.
-- **check-state.py INV-15:** for every run with `status: complete` and a lead host, `digest.md`
-  must exist and expose a readable final fenced mapping — the deterministic backstop from repo root.
+- **check-state.py INV-15:** every complete lead run needs a readable accepted digest, or typed,
+  hash-verified refusal provenance for that exact run and unchanged raw return. Execution complete
+  is not return accepted: an evidenced refused return remains `BLOCKED`, never a fabricated fence.
 - **check-state.py INV-16 (mechanizes DEC-154):** run state.yaml top-level keys must come from
   the checkpoint whitelist (seed fields + loop fields + pins), and no key may repeat. Prose keys
   (`pre_dispatch_checks:`, `lead_assessment:` …) are named in the rejection with their routing:
@@ -3665,14 +3670,20 @@ The unit and its configured bound are:
   bound exists to kill. Raising it per-feature remains a user decision recorded in feature.yaml,
   as both pilot-host features already practiced.
 
-Accumulation is now mechanized; classification is not. `feature-record.py run-end` requires the
-lead-reported `--cycles-used`, stores it on that run, and adjusts the feature total by the delta
-from the run's prior value. Repeating the same cycle report leaves the feature total unchanged,
-correcting a report preserves legacy unattributed cycles, and historical or open runs may omit the
-optional per-run key. A checker still cannot determine whether a reported send-back was genuine
-rework, so INV-7 (`cycles_used` ≥ recorded FAIL runs) remains the independent floor. Revisit
-classification if run
-records gain a `rework_of:` marker.
+Accumulation is mechanized; classification is not. `feature-record.py run-end` requires
+`--cycles-used C` and `--digest <path>` for every new or changed attribution, including zero.
+The sole `digest_record.py` reader must find the same verdict and a non-boolean, non-negative
+integer `DIGEST.cycles_used` exactly equal to C. The writer stores `cycle_evidence` with the
+normalized feature-local path and SHA-256, and adjusts the feature total by the attribution delta.
+Repeating identical evidence is byte-idempotent; correcting an attribution preserves the existing
+unattributed legacy residual. INV-7 rejects impossible attribution above the total and invalid
+present evidence; missing historical evidence/counts remain explicit notes, not invented zeros.
+
+**Struck rule:** the former INV-7 count-of-FAILs floor contradicted this decision's unit and is
+removed from every gate. A genuine first-pass FAIL may report zero send-backs; a real internal
+send-back reports one. Verdicts alone prove neither. `record-cycle-evidence` may attach authorized,
+hash-bound historical proof to an already recorded count, never infer or change that count.
+Feature ceilings, operator-authorized raises, genuine rework and regate duties remain unchanged.
 
 **Runs are counted too, informationally — INV-22.** Counting rework alone leaves a feature's length
 unmeasured, and that gap is not theoretical: with first-pass runs contributing zero, FEAT-03 ran
@@ -5424,15 +5435,13 @@ checker is a library call over it. The dependency is the price of not having a s
 DEC-101 is the precedent for treating an unavailable tool as a stop rather than a degraded run.
 DEC-171 is the parent clause this one extends.
 
-## DEC-191 — A feature's execution state has a CLOSED key set: eleven keys, `additionalProperties: false`
+## DEC-191 — A feature's execution state has a CLOSED typed key set
 
-**The execution-state file may carry eleven top-level keys and no others.** The schema is
-`.claude/skills/harness/bin/feature-schema.json` and it sets `additionalProperties: false` at the
-top level and inside each closed sub-object: `runs` items, `github`, and `factory`.
-
-**Eight required, three optional.** Required: `feature_id`, `branch`, `pr`, `status`, `review_sha`,
-`cycles_used`, `max_total_cycles`, `runs`. Optional: `max_total_runs`, `github`, `factory` — the
-last two exist only once a feature has been mirrored to GitHub or decomposed by the factory.
+**The execution-state file admits only schema-declared keys.** The authority is
+`.claude/skills/harness/bin/feature-schema.json`, with closed objects at the top level and in
+`runs` items, `github`, `factory` and their typed metadata. Required and optional keys are declared
+there, not in a competing prose count. A feature's station belongs only to `plan.yaml`; a leftover
+`feature.json.status` is a schema error, not a tolerated duplicate.
 
 **The burden of proof is on KEEPING a key, not on removing one.** A key survives because code reads
 it, and the schema records the reader by name in each key's `description`. "Removing it feels lossy"
@@ -5464,7 +5473,17 @@ Lineage: DEC-150 (the authority is read by index, never whole — a file nobody 
 a shape a machine can check), DEC-154, DEC-160, DEC-174 (the enforcement layer is changed directly,
 never through a run whose gates are the thing changing), DEC-183, and DEC-190 for the library.
 
-**Amended by FEAT-41-one-station-vocabulary — the count, not the principle.** This entry's "Eight required, three optional" listed `status` among `feature.json`'s required keys. It is now **seven required and three optional**: `status` has moved to `plan.yaml`, so one file records a feature's station. `additionalProperties: false` and the closed-key-set principle this entry exists for are UNCHANGED — which is exactly why this is an amendment and not a strike. The closed set is what makes the migration enforceable: a leftover `status` key is now a schema error rather than a tolerated duplicate.
+**Evidence is typed state, not a notes escape hatch.** Optional `runs[].cycle_evidence` and
+`runs[].refusal`, plus `github.repo`, `history` and `recovery`, have closed shapes and named
+consumers. The shared `evidence_ref` is exactly `{path, sha256}`: a normalized feature-local
+regular file whose bytes match the hash, with no traversal or symlink escape. Operator-history
+metadata also binds an immutable authorization note, operator and timestamp. Archived `previous`
+uses the same non-recursive mirror definition as the active core; it cannot contain another
+history or recovery. `validation_exit`, `return_status` and arbitrary prose keys are not proofs.
+The frozen legacy `runs[].return_disposition: refused` marker stays readable only because named
+readers still read it: INV-15/INV-46 accept it as grandfathered data with its closed BLOCKED
+identity, and run-end/close-run replay it unchanged. No writer remains, and an entry never
+carries both it and `refusal`.
 
 
 ## DEC-193 — Code is written in exactly two locations; any other checkout of this repository is refused by one shared rule on both write routes
@@ -6227,6 +6246,13 @@ behavior in section 8.
 active features. It derives expected placements through the shared projection, compares every card
 against one bounded station snapshot per invocation, applies each finding to that finding's issue
 number, and continues after a per-card write failure so later mismatches are still attempted.
+
+Every projection, adoption and lifecycle consumer first resolves the feature's repository binding
+and verifies its active `github.repo`, recovery state and evidence (DEC-220). Invalid mappings
+produce human findings, never actionable issue numbers. Created versus adopted origin is still
+irrelevant to the child rule; repository ownership is not. Replacement recovery gains no ninth
+read-back purpose: uncertain creates require separately authorized exact receipts, not discovery.
+
 **4. The parent rule.** A card is not moved to done while its ticket has an open child. Ship skips
 it and prints one line naming the child that held it open.
 
@@ -7150,28 +7176,49 @@ proposals that rewrite or remove.
 ## DEC-220 — Signature opens the mirror and leaves a local receipt; Build requires it; Ship is post-merge terminal finalization only
 
 **Chose:** immediately after initial approval or reapproval, the signature caller runs idempotent
-`gh-sync.py open` and then projects the station emitted by `sign-approval`. Opening first creates
-every newly recorded task card before the complete-card projection. `gh-sync.py open` records the
-existing `feature.json` `github.build_entry` receipt as `opened`, `recovery-required` or
-`not-applicable`; ABSENCE is the fifth state and means the post-signature mirror transaction did
-not complete. Ordinary Build requires that receipt rather than opening the mirror routinely, sends
-`Building` to the complete card set before task dispatch, and uses idempotent `open` only as the
-explicit recovery path. `gh-sync.py start-task` refuses on absence and proceeds on
-`recovery-required`, which instead gates the merge through the registered PreToolUse Bash gate
-`merge-gate.py` (wired in `.omp/extensions/harness-hooks.ts`). A partial remote write and a caller or contract error
-record nothing (`gh-sync.py:289`), so both leave the receipt absent and block Build.
+`gh-sync.py open` and projects the station emitted by `sign-approval`. Ordinary `open` fills only
+compatible missing receipts; it never repairs an invalid mapping. `github.build_entry` records
+`opened`, `recovery-required`, `not-applicable` or `recovered-terminal`; absence means the
+post-signature transaction did not complete. Build consumes the receipt rather than routinely
+creating a mirror. Compatible absence or partial creation goes to main-owned `open`; an unproven,
+wrong-repository or in-progress mapping goes to explicit `recover-mirror`. Invalid provenance
+refuses before station changes or remote mutation, even if its old marker says `opened`.
 
-**Recovery is explicit and never retroactive.** An already-merged sync-enabled feature whose mirror
-was never opened is recovered by `gh-sync.py recover-terminal <feat> --yes`, which creates the
-milestone and the parent and source issues only — never historical task sub-issues — and records
-`recovered-terminal` (`gh-sync.py:1277-1323`). While GitHub is unavailable that recovery stays
-non-terminal and `post-merge-sweep.py` keeps the worktree (`post-merge-sweep.py:222-231`).
-`check-state.py` INV-37 reports a sync-enabled feature carrying no receipt even when its station is
-terminal and its task statuses are absent (`check_state/board.py:328-341`, INV-37; moved from check-state.py by FEAT-69). One frozen set,
-`feature_schema.BUILD_ENTRY_ERA_EXEMPT`, bounds INV-37 and both refusals to the post-receipt era.
+**One binding and receipt predicate.** `feature_schema.resolve_binding` treats non-null
+`factory.repo` as authoritative and requires a valid declared fleet entry plus the target's
+default-branch `product_config`/`board_for`, with no ancestor/disk fallback. A bound target must
+enable sync and declare the matching repository and valid board; failure never routes to Harness.
+Unbound sync-off/null-board semantics remain legal. Active object numbers need matching
+`github.repo`; archived numbers and `factory.claims` are not active provenance. An unbound feature's
+pre-provenance mapping with absent `github.repo` is proven by construction: the owner binding that
+created it is the one that resolves it, with no second destination, so
+`feature_schema.effective_recorded_repo` reads that absence as the owner repository. A bound
+feature's absence stays unproven, and an explicit mismatch is refused everywhere. Writers persist
+`github.repo`; nothing backfills history. INV-37, merge,
+sweep and lifecycle projection share this proof and the recovery command formatter. Existing frozen
+exception sets and legal `not-applicable` receipts stay unchanged; sweep retains its stricter
+absent-only era exception. `recovery-required` may continue compatible Build but still gates merge.
 
-**Over:** making the mirror a gate on GitHub itself — DEC-138 forbids it, and every refusal here
-reads the LOCAL receipt; running `open` after the merge, which would create historical task
+**Replacement recovery is main-owned, explicit and never retroactive.**
+`gh-sync.py recover-mirror <feat> --previous-repo <owner/name> --evidence <authorization> --yes`
+requires the unchanged signed plan and immutable target-local authorization naming feature,
+repositories, plan hash and full/terminal effects. It archives the prior mapping verbatim once,
+including original absence of `repo`; it starts an empty target mapping without promoting old
+numbers to source tickets or ownership proof. Full mode recreates the approved task DAG; terminal
+mode creates no historical task issues. `recover-terminal` remains compatible terminal adoption,
+not wrong-mapping replacement.
+
+Each create persists its exact pending role before dispatch and its confirmed number before the
+next create. A provably undispatched failure may clear that intent; an uncertain result or failed
+confirmed save preserves it and refuses with the recovery id and role. Restart never retries,
+polls, searches titles or scans for a match. Only `--adopt-receipt <role>=<positive-number>` with
+a distinct immutable authorization for that exact pending role, recovery, repository, plan hash,
+number, operator and ownership basis can resume the same generation. A completed repeat is a
+durable no-op. While recovery is incomplete, merge refuses and sweep retains the worktree.
+
+**Over:** making a remote mirror write failure a development gate (DEC-138); substituting an
+owner's config when an authoritative target cannot resolve; running `open` after merge, which
+would create historical task
 sub-issues for finished work; and an age-based escalation of a stale `recovery-required` receipt,
 which produces no behavior the state check does not already produce.
 
@@ -7191,12 +7238,12 @@ on its default branch, its entry in `.harness/factory/fleet.yaml`, and its centr
 at `<control-plane>/.harness/<segment>/`. Nothing else is installed into a product repository, and
 `.harness/products/` is created nowhere. The three are ordered: registration comes **after** the
 config lands, because the failure of the reverse order has no symptom but an unattributed
-`FleetError`, and `factory_config.py --check-product-configs` is what names it — a check that is
-OPERATOR-RUN, with no standing invariant behind it. `check-state.py` never reads a member's config
-from its remote, and its only network calls record nothing when the network is unavailable, because
-an offline environment must never become a red gate (`check_state/ctx.py:254`, `Ctx.gh_ok`; moved from check-state.py by FEAT-69). So nothing grades
-a fleet member's remote config on every run, and a member whose `harness.json` is deleted after
-onboarding stays invisible until the next build against it.
+`FleetError`. `factory_config.py --check-product-configs` remains an operator-run fleet check.
+Bound-feature INV-37 and mirror/merge/sweep preflight additionally resolve the target's remote
+default-branch config through the shared binding resolver; unavailable or invalid binding fails
+closed, never falls back to the owner's config. This is a routing precondition, not a remote
+station write or a new issue-discovery purpose. Other offline advisory reads retain their existing
+non-gating behavior; that does not excuse an unresolvable bound target.
 
 **Over:** issue 206 item 2's central `.harness/products/<name>/harness.json`, and the pre-existing
 per-product scaffold that copied `team-config.yaml` into a project. Also over issue 203's scoped
@@ -7837,13 +7884,15 @@ deprecation window.
 
 **Canonical schemas and the 2026-09-29 build ruling.** The sixteen closed persona schemas under
 `.claude/skills/harness/bin/digest-schemas/`, plus their external shared definitions, are the one
-structural authority for Python validation and provider projection. Every property declared by a
-live persona schema is required. `none` for an inapplicable scalar and `[]` for an empty list are
-the absence sentinels; JSON null is forbidden. A field whose relevance is conditional is still
-present with its sentinel when the condition is false. Minimal list-entry forms are closed objects:
-their required keys are all present and undeclared keys are refused. This replaces DEC-223's
-documented-optional tier; required, optional and passthrough Markdown tables no longer define a
-second contract.
+structural authority for Python validation and provider projection. Declared live properties are
+required except the backend development schema's optional non-negative integer `DIGEST.cycles_used`:
+DEC-174 main-session-direct receipts use that schema, and new/changed direct-run attribution
+requires the explicit count, including zero. Ordinary backend returns need not report a count.
+`none` for an inapplicable scalar and `[]` for an empty list remain the absence sentinels; JSON
+null is forbidden. Conditional required fields still carry their sentinel when inapplicable.
+Minimal list-entry forms remain closed objects with their required keys present and undeclared
+keys refused. This narrow optional property restores neither optional Markdown tiers nor loose
+live-return parsing.
 
 **Dispatch owns schema delivery.** Before any claim side effect, the OMP task hook refuses
 dispatcher-supplied `outputSchema` or `schemaMode` at the top level or in any `tasks[]` item and
@@ -7869,11 +7918,19 @@ read/write failure. The same opened file descriptor compares and appends determi
 An identical final mapping writes nothing; a correction only extends bytes. Agents never author
 that fence. DEC-208's append-only ruling remains unchanged.
 
-**Historical reads are deliberately weaker and read-only.** `digest_record.py` scans a durable
-record from the end and returns the last YAML-labelled or unlabelled fenced block that safely loads
-to a mapping. Historical consumers use those structured keys without applying today's live persona
-schema, rewriting bytes, selecting by a `VERDICT` token, or grandfathering by date. Historical prose
-is never accepted as a live return.
+**Historical reads are deliberately weaker and read-only.** The sole `digest_record.py` reader
+accepts a strict JSON object receipt, or scans a durable record from the end for its last safely
+loaded YAML-labelled or unlabelled fenced mapping. Consumers use those structured keys without
+retroactive live-persona validation, rewriting bytes or selecting by a `VERDICT` token.
+Historical prose is never a live return. Authorized `record-cycle-evidence` and `record-refusal`
+metadata binds unchanged original bytes and exact runs; it never appends a fake accepted fence.
+For a newly refused close of an open run, only the validator's deliberate contract-refusal
+status 65 authorizes `BLOCKED` refusal provenance. A crash, usage error, missing/unreadable
+artifact or other exit cannot; a run already closed `BLOCKED` takes provenance only through
+`record-refusal`.
+Durable refusal is saved before later station, judgement and spend stages; INV-15/INV-46 distinguish
+that evidenced execution completion from an accepted return. Live YieldTool objects, member
+roll-up, signatures, budgets and validator-owned accepted fences remain unchanged.
 
 **The deletion gate was live.** Removing the text and null-repair paths required a fresh,
 credentialled OMP job to receive an error for explicit null and then complete the same job with a

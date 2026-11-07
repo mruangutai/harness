@@ -1,0 +1,19 @@
+{
+  "feature_id": "BUG-20261006-fleet-planning-recovery",
+  "approved_at": "2026-10-18T16:40:32.035424+00:00",
+  "operator_selection": "Adopt milestone #103",
+  "scope": "Separately authorizes adoption of verified existing milestone 103 instead of creating a new milestone; resume the same generation to create only a new parent. Original remote objects remain untouched. No retry of milestone creation, Kaya writes, merge or deployment.",
+  "effects": [
+    {
+      "effect": "adopt-receipt",
+      "feature_id": "BUG-20261006-fleet-planning-recovery",
+      "recovery_id": "ca38c84b-a1cf-44da-828b-9b4c1cc461b4",
+      "role": "milestone",
+      "repo": "mruangutai/harness",
+      "number": 103,
+      "plan_sha256": "77ac2d598b15d69506452542ce68ed2f3b7a821252f54e517327f17dc44f6281",
+      "by": "operator",
+      "ownership_evidence": "Read-only gh api repos/mruangutai/harness/milestones/103 returned number 103, title BUG-20261006-fleet-planning-recovery and html_url https://github.com/mruangutai/harness/milestone/103. The operator explicitly selected adoption of that exact milestone after the pending create returned HTTP 422."
+    }
+  ]
+}

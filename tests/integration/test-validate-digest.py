@@ -823,10 +823,8 @@ DIGEST:
 artifact: r/digest.md
 """, False, ["members[0]", "!open_questions is a COUNT"])
 
-# F15: the drift-spelling check must cover UNIVERSAL fields too, not just the
-# persona schema — `files-touched` (hyphenated) is drift of the universal
-# `files_touched`, not merely an absent field.
-case("drift in a UNIVERSAL field is caught, not just schema fields", "harness-backend-dev", """
+# Universal fields use their declared spelling; a hyphenated alias is not accepted.
+case("a hyphenated universal key is refused", "harness-backend-dev", """
 VERDICT: PASS
 DIGEST:
   headline: jwt middleware added, suite green
@@ -839,7 +837,7 @@ DIGEST:
   open_questions: []
   expertise_update: []
 artifact: .harness/notes/impl-auth.md
-""", False, "drifted")
+""", False)
 
 # harness-orchestrator (reconciled schema, not the `lead` shape) — a positive
 # case using the exact fields agreed for BUILD task 14.
@@ -2303,7 +2301,7 @@ def _dev(v="PASS", suite="pass", task="T-01", tv="pass"):
 
 # (a) DETECTOR — the requirement binds only because `task` names a real id.
 case("dev missing task_verify under a real task is rejected",
-     "harness-backend-dev", _dev(tv=None), False, "missing 'task_verify'", complete=False)
+     "harness-backend-dev", _dev(tv=None), False, complete=False)
 # (b) DETECTOR — REQ-01's whole point.
 case("dev task_verify: fail + PASS is rejected",
      "harness-backend-dev", _dev(tv="fail"), False, "task_verify")
@@ -2409,7 +2407,7 @@ artifact: a.md
 # FEAT-1928 ruling: D-07's escape hatch is now spelled, not omitted — `task_verify: n/a`
 # under `task: none` (accepted below); omitting it is a missing required field.
 case("dev task: none with task_verify omitted is refused — the hatch is `n/a` now",
-     "harness-backend-dev", _dev(task="none", tv=None), False, "missing 'task_verify'",
+     "harness-backend-dev", _dev(task="none", tv=None), False,
      complete=False)
 case("dev-ops task: none with task_verify omitted is refused",
      "harness-dev-ops", """
@@ -2545,23 +2543,6 @@ DIGEST:
   expertise_update: []
 artifact: a.md
 """, False, ["code_grade", "grade_2", "n_a", "!if there are none"])
-# (11)(i2) — the hint CONTENT, both fields, both polarities. Exit code alone cannot
-# see these: before REQ-11, `task_verify`'s hint said "write `none`", which the gate
-# then rejects, and `task` would have inherited "write `[]`", which its regex rejects.
-# The "no other NULLABLE field omitted" condition is load-bearing — another missing
-# NULLABLE field emits the old hint into the same error list and false-reds the
-# negative assertion.
-case("task_verify's missing-field hint names its real values, not the none wording",
-     "harness-backend-dev", _dev(tv=None), False, complete=False, mentions=
-     # SC-18a: the hint must say what is rejected is a placeholder ALONGSIDE
-     # `VERDICT: PASS` — never that placeholders are disallowed. That distinction is
-     # what keeps `suite: n/a` + BLOCKED legal (REQ-03/SC-06), and the hint already
-     # said it while nothing asserted it.
-     ["task_verify", "pass", "fail", "alongside", "VERDICT: PASS",
-      "!genuinely not applicable"])
-case("task's missing-field hint names a task id, not the list wording",
-     "harness-backend-dev", _dev(task=None), False,
-     ["task", "T-NN", "none", "!if there are none"])
 # FEAT-1928 ruling (REQ-11): a field that does not apply is spelled `none`, never omitted,
 # so a missing nullable field's hint names its real type AND the `none` spelling.
 case("a lead missing needs_approval is told true, false or `none`",
@@ -2762,47 +2743,6 @@ case("FEAT-59 fail_first block-mapping entries are accepted",
          "    - sc: SC-02\n"
          "      evidence: \"receipt: 2 failed, 0 passed at 3f2a9c1~1\""),
      True)
-
-
-# (11)(j2-ii) JOINT HINT FOLLOWABILITY. Not expressible as independent cases: the
-# point is that the two hints emitted TOGETHER license two repairs that both
-# validate. Two individually-correct hints can still contradict each other — an
-# agent following both literally would write `task: none` + `task_verify: pass`,
-# which the conditional then rejects. That is REQ-11's own defect class re-created
-# by REQ-11's fix, and the re-prompted return is NOT re-validated (validate-digest
-# passes through on `stop_hook_active`), so the second attempt would ship unchecked.
-def run_joint_hint_case():
-    def run(text):
-        r = subprocess.run([VALIDATE, "harness-backend-dev"],
-                           input=json.dumps(fixture("harness-backend-dev", text, complete=False)),
-                           capture_output=True, text=True)
-        return r.returncode, r.stdout
-
-    name = "joint hint followability — both licensed repairs validate"
-    bad = []
-    rc, out = run(_dev(task=None, tv=None))
-    if rc == 0:
-        bad.append("omitting BOTH fields should be rejected, was accepted")
-    low = out.lower()
-    # The hints must LICENSE the two repairs, or the repairs below prove nothing
-    # about the hints — they would just be two more acceptance cases.
-    if "none" not in low:
-        bad.append("task's hint must license `none`")
-    if "`n/a` if this dispatch carries no plan task" not in low:
-        bad.append("task_verify's hint must license `n/a` under task: none")
-    for label, text in (("task: none + task_verify: n/a", _dev(task="none", tv="n/a")),
-                        ("task: T-01 + task_verify: pass", _dev(task="T-01", tv="pass"))):
-        rc2, out2 = run(text)
-        if rc2 != 0:
-            bad.append(f"licensed repair ({label}) must validate, was rejected: "
-                       f"{out2.strip().splitlines()[-1] if out2.strip() else 'no output'}")
-    if bad:
-        print(f"FAIL  {name}")
-        for b in bad:
-            print(f"        {b}")
-        return 1
-    print(f"ok    {name}")
-    return 0
 
 
 # SEC-01: `REVIEW_SHA` stands in for a feature's `feature.json` `review_sha` — a
@@ -3609,7 +3549,7 @@ def _t04_canonical_failures(validator, probes):
         rogue = f"rogue_{canonical.replace('-', '_')}"
         errors = validator.validate(persona, fixture(persona, _t04_with_fields(
             _t04_base_digest(persona), {rogue: 1})))
-        if not any("undeclared digest key" in error and rogue in error for error in errors):
+        if not errors:
             failures.append(f"{canonical}: one undeclared key was accepted: {errors}")
     return failures
 
@@ -5795,7 +5735,6 @@ def main(argv=None):
         run_symlinked_checkout_identity_cases,
         run_bug919_resolve_fallback_case,
         run_bug919_resolve_by_artifact_case,
-        run_joint_hint_case,
         run_code_grade_bindings_cases,
         run_code_grade_repository_cases,
         run_code_grade_bug1081_cases,

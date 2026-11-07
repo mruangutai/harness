@@ -465,11 +465,8 @@ def main():
     with tempfile.TemporaryDirectory() as tmpA5:
         featA5, _reasonA5 = _abandon_fixture(tmpA5, name="FEAT-40-yes-on-ship")
         r = run(["ship", featA5, "--yes"], tmpA5)
-        check("--yes on ship exits 1 with a caller-error message naming the subcommand - a flag "
-              "that silently does nothing teaches the operator it is harmless everywhere",
-              r.returncode == 1 and "--yes" in (r.stdout + r.stderr)
-              and "abandon" in (r.stdout + r.stderr), "rc=%s %r" % (r.returncode, r.stderr))
-        check("--yes on ship makes no gh call at all", calls(tmpA5) == [], str(calls(tmpA5)))
+        check("--yes on ship is a caller error before any gh call",
+              r.returncode == 1 and calls(tmpA5) == [], str(calls(tmpA5)))
 
     # --- a github block still carrying the old origin key is read, and never written back --------------
     with tempfile.TemporaryDirectory() as tmpA6:
@@ -481,7 +478,7 @@ def main():
         json.dump({"feature_id": "FEAT-40-legacy-key", "branch": None, "pr": None,
                    "status": "Review", "review_sha": None, "cycles_used": 0,
                    "max_total_cycles": 10, "runs": [],
-                   "github": {"milestone": 7, "parent": 40, "parent_origin": "adopted",
+                   "github": {"repo": "implentio/fake", "milestone": 7, "parent": 40, "parent_origin": "adopted",
                               "attached": ["T-01"], "issues": {"T-01": 41}}},
                   open(fjA6, "w"), indent=2)
         reasonA6 = os.path.join(tmpA6, "reason.txt")

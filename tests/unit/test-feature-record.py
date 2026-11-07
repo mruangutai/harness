@@ -52,6 +52,12 @@ class FeatureRecordCase(unittest.TestCase):
     def load(self):
         return json.loads(self.path.read_text(encoding="utf-8"))
 
+    def lead_evidence(self, count, verdict="PASS"):
+        path = self.path.parent / f"digest-{verdict}-{count}.md"
+        path.write_text(f"```yaml\nVERDICT: {verdict}\nDIGEST: {{cycles_used: {count}}}\n"
+                        f"artifact: {path}\n```\n", encoding="utf-8")
+        return str(path)
+
     def run_cli(self, *args):
         return subprocess.run([sys.executable, str(CLI), *args],
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -195,7 +201,8 @@ class RunStartEndTest(FeatureRecordCase):
                                    "started_at": "2026-09-11T10:00:00+00:00"}]))
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
                                     "--verdict", "PASS", "--cycles-used", "2",
-                                    "--tokens", "48213", "--code-grade", "n_a"))
+                                    "--tokens", "48213", "--code-grade", "n_a",
+                                    "--digest", self.lead_evidence(2)))
         doc = self.load()
         entry = doc["runs"][0]
         self.assertEqual("PASS", entry["verdict"])
@@ -214,7 +221,8 @@ class RunStartEndTest(FeatureRecordCase):
                                    "agent": "harness-eng-lead",
                                    "started_at": "2026-09-11T10:00:00+00:00"}]))
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
-                                    "--verdict", "FAIL", "--cycles-used", "0"))
+                                    "--verdict", "FAIL", "--cycles-used", "0",
+                                    "--digest", self.lead_evidence(0, "FAIL")))
         entry = self.load()["runs"][0]
         self.assertEqual(0, entry["cycles_used"])
         self.assertIn("tokens", entry)
@@ -229,7 +237,8 @@ class RunStartEndTest(FeatureRecordCase):
         for reported, expected_total in ((2, 5), (2, 5), (1, 4)):
             self.assert_ok(self.run_cli(
                 "run-end", "--file", str(self.path), "--id", "r1",
-                "--verdict", "PASS", "--cycles-used", str(reported)))
+                "--verdict", "PASS", "--cycles-used", str(reported),
+                "--digest", self.lead_evidence(reported)))
             doc = self.load()
             self.assertEqual(reported, doc["runs"][0]["cycles_used"])
             self.assertEqual(expected_total, doc["cycles_used"])
@@ -305,7 +314,8 @@ class StampTokensTest(FeatureRecordCase):
         self.assertNotIn("ended_at", runs[1], "stamping does not close the run")
         # SC-01: the normal close carries no --tokens and must not null the stamped figure.
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
-                                    "--verdict", "PASS", "--cycles-used", "0"))
+                                    "--verdict", "PASS", "--cycles-used", "0",
+                                    "--digest", self.lead_evidence(0)))
         self.assertEqual(135888, self.load()["runs"][1]["tokens"])
         self.assert_clean()
 
@@ -337,12 +347,14 @@ class StampTokensTest(FeatureRecordCase):
         """SC-03: a host that reported nothing leaves the orchestrator `run-end --tokens N`."""
         self.write(base_doc(runs=[dict(self.OPEN)]))
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
-                                    "--verdict", "PASS", "--cycles-used", "0", "--tokens", "42"))
+                                    "--verdict", "PASS", "--cycles-used", "0", "--tokens", "42",
+                                    "--digest", self.lead_evidence(0)))
         self.assertEqual(42, self.load()["runs"][0]["tokens"])
 MAIN_SESSION_DIGEST = """```yaml
 VERDICT: PASS
 DIGEST:
   headline: "one task built directly by the main session"
+  cycles_used: 0
   tests_added: 1
   suite: pass
   blocked_on: none
@@ -499,6 +511,12 @@ class CloseRunTest(FeatureRecordCase):
         self.digest.write_text(json.dumps(body), encoding="utf-8")
         self.assert_ok(self.close())
 
+    def test_feature_relative_digest_is_validated_and_recorded_from_the_target(self):
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close("--digest", "digest.md")
+        self.assert_ok(result)
+        self.assertEqual("digest.md", self.load()["runs"][0]["cycle_evidence"]["path"])
+
     def test_refused_return_closes_a_run_with_no_valid_digest_as_blocked(self):
         """#2068: the host refused the lead's final return, so digest.md never received its
         record and the normal close stops at the digest stage forever. --refused-return
@@ -509,7 +527,12 @@ class CloseRunTest(FeatureRecordCase):
         self.assert_ok(result)
         entry = self.load()["runs"][0]
         self.assertEqual("BLOCKED", entry["verdict"])
-        self.assertEqual("refused", entry["return_disposition"])
+        refusal = entry["refusal"]
+        self.assertEqual(("close-run", "r1"), (refusal["source"], refusal["run_id"]))
+        self.assertEqual(
+            feature_schema.resolve_evidence_ref(str(self.path.parent), str(self.digest)),
+            refusal["digest"])
+        self.assertNotIn("return_disposition", entry)
         self.assertRegex(entry["ended_at"], ISO_UTC)
         self.assertIn("refused-return", result.stdout)
         self.assertIn("spend=", result.stdout)
@@ -543,13 +566,29 @@ class CloseRunTest(FeatureRecordCase):
                   refuse_on_success="accepted digest")
         self.assertEqual(2, refused.exception.code)
 
-    def test_refused_closure_marks_an_existing_blocked_run_without_retiming_it(self):
-        entry = dict(self.OPEN, verdict="BLOCKED", ended_at="2026-10-05T10:00:00+00:00",
+    def test_refused_closure_leaves_a_closed_blocked_run_to_record_refusal(self):
+        """A run already closed BLOCKED is historical: close-run never annotates it, with or
+        without timing, so its count, tokens and times stay byte-identical."""
+        timed = dict(self.OPEN, verdict="BLOCKED", ended_at="2026-10-05T10:00:00+00:00",
                      cycles_used=0, tokens=21)
+        legacy = {"id": "r1", "squad": "eng", "agent": "harness-eng-lead",
+                  "verdict": "BLOCKED", "cycles_used": 0, "tokens": 21}
+        self.digest.write_text("the original return was refused\n", encoding="utf-8")
+        for entry in (timed, legacy):
+            with self.subTest(entry=entry):
+                before = self.write(base_doc(runs=[entry]))
+                result = self.close_refused("BLOCKED")
+                self.assertEqual(2, result.returncode, result.stderr)
+                self.assertIn("record-refusal", result.stderr)
+                self.assertEqual(before, self.path.read_bytes())
+
+    def test_refused_closure_replays_a_legacy_marker_without_adding_provenance(self):
+        entry = dict(self.OPEN, verdict="BLOCKED", return_disposition="refused",
+                     ended_at="2026-10-05T10:00:00+00:00", cycles_used=0, tokens=21)
         self.write(base_doc(runs=[entry]))
         self.digest.write_text("the original return was refused\n", encoding="utf-8")
         self.assert_ok(self.close_refused("BLOCKED"))
-        self.assertEqual(dict(entry, return_disposition="refused"), self.load()["runs"][0])
+        self.assertEqual(entry, self.load()["runs"][0])
 
     def test_refused_closure_cannot_rewrite_an_existing_passing_result(self):
         entry = dict(self.OPEN, verdict="PASS", ended_at="2026-10-05T10:00:00+00:00",
@@ -567,17 +606,6 @@ class CloseRunTest(FeatureRecordCase):
         self.assertEqual(2, self.close_refused("BLOCKED").returncode)
         self.assertEqual(before, self.path.read_bytes())
 
-    def test_refused_annotation_preserves_positive_historical_accounting(self):
-        entry = dict(self.OPEN, verdict="BLOCKED", ended_at="2026-10-05T10:00:00+00:00",
-                     cycles_used=2, tokens=21)
-        before = self.write(base_doc(cycles_used=2, runs=[entry]))
-        self.digest.write_text("the original return was refused\n", encoding="utf-8")
-        self.assertEqual(2, self.close_refused("BLOCKED").returncode)
-        self.assertEqual(before, self.path.read_bytes())
-        self.assert_ok(self.close_refused("BLOCKED", "--cycles-used", "2"))
-        self.assertEqual(dict(entry, return_disposition="refused"), self.load()["runs"][0])
-        self.assertEqual(2, self.load()["cycles_used"])
-
     def test_refused_replay_rejects_changed_cycles_or_measured_tokens(self):
         entry = dict(self.OPEN, verdict="BLOCKED", return_disposition="refused",
                      ended_at="2026-10-05T10:00:00+00:00", cycles_used=2, tokens=21)
@@ -591,20 +619,6 @@ class CloseRunTest(FeatureRecordCase):
                                     "--verdict", "BLOCKED", "--cycles-used", "2", "--tokens", "21"))
         self.assertEqual(entry, self.load()["runs"][0])
         self.assertEqual(2, self.load()["cycles_used"])
-
-    def test_refused_annotation_preserves_legacy_blocked_accounting_without_timing(self):
-        entry = {"id": "r1", "squad": "eng", "agent": "harness-eng-lead",
-                 "verdict": "BLOCKED", "cycles_used": 2, "tokens": 21}
-        before = self.write(base_doc(cycles_used=2, runs=[entry]))
-        self.digest.write_text("the original return was refused\n", encoding="utf-8")
-        self.assertEqual(2, self.close_refused("BLOCKED").returncode)
-        self.assertEqual(before, self.path.read_bytes())
-        self.assert_ok(self.close_refused("BLOCKED", "--cycles-used", "2"))
-        recorded = self.load()
-        self.assertEqual((2, 21, 2), (recorded["runs"][0]["cycles_used"],
-                                     recorded["runs"][0]["tokens"], recorded["cycles_used"]))
-        self.assertEqual("refused", recorded["runs"][0]["return_disposition"])
-        self.assert_clean()
 
     def test_run_end_cannot_erase_a_refused_terminal_disposition(self):
         entry = dict(self.OPEN, verdict="BLOCKED", return_disposition="refused",
@@ -638,10 +652,67 @@ class CloseRunTest(FeatureRecordCase):
             self.assertIn("BLOCKED", result.stderr)
             self.assertEqual(before, self.path.read_bytes(), f"{verdict} moved bytes")
 
+    def test_refused_return_cannot_replace_a_missing_or_unreadable_digest(self):
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        directory = self.path.parent / "not-a-digest"
+        directory.mkdir()
+        invalid_utf8 = self.path.parent / "unreadable-digest.md"
+        invalid_utf8.write_bytes(b"\xff")
+        for digest in (self.path.parent / "absent.md", directory, invalid_utf8):
+            with self.subTest(digest=digest):
+                result = self.run_cli(
+                    "close-run", "--file", str(self.path), "--id", "r1",
+                    "--digest", str(digest), "--verdict", "BLOCKED",
+                    "--cycles-used", "0", "--refused-return")
+                self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+                self.assertEqual(before, self.path.read_bytes())
+                self.assertIn("status: building", self.plan.read_text(encoding="utf-8"))
+
+    def test_validator_crash_or_noncontract_failure_cannot_become_refusal_evidence(self):
+        import argparse
+        import contextlib
+        import importlib.util
+        import io
+        from unittest import mock
+        spec = importlib.util.spec_from_file_location("feature_record_refusal_cli", CLI)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(self.digest))
+        note = self.path.parent / "refusal-authorization.json"
+        note.write_text(json.dumps({
+            "feature_id": "FEAT-77-record", "effects": [{
+                "effect": "record-cycle-evidence", "run_id": "r1",
+                "digest": ref, "cycles_used": 0}]
+        }), encoding="utf-8")
+        for code, stderr in ((1, "internal validator failure"), (2, "(contract violation)"), (-9, "")):
+            with self.subTest(code=code, stderr=stderr):
+                args = argparse.Namespace(
+                    file=str(self.path), id="r1", digest=str(self.digest), verdict="BLOCKED",
+                    cycles_used=0, task=None, station=None, judgement=None, code_grade=None,
+                    refused_return=True, evidence=str(note), by="operator")
+                failed = subprocess.CompletedProcess([], code, stdout="", stderr=stderr)
+                with mock.patch("subprocess.run", return_value=failed), \
+                        contextlib.redirect_stdout(io.StringIO()), \
+                        contextlib.redirect_stderr(io.StringIO()), \
+                        self.assertRaises(SystemExit) as stop:
+                    module.cmd_close_run(args)
+                self.assertNotIn(stop.exception.code, (0, None))
+                self.assertEqual(before, self.path.read_bytes())
+                self.assertIn("status: building", self.plan.read_text(encoding="utf-8"))
+
     def close_refused(self, verdict, *extra):
+        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(self.digest))
+        note = self.path.parent / "close-authorization.json"
+        note.write_text(json.dumps({
+            "feature_id": "FEAT-77-record",
+            "effects": [{"effect": "record-cycle-evidence", "run_id": "r1",
+                         "digest": ref, "cycles_used": 0}]
+        }), encoding="utf-8")
         return self.run_cli("close-run", "--file", str(self.path), "--id", "r1",
                             "--digest", str(self.digest), "--verdict", verdict,
-                            "--cycles-used", "0", "--refused-return", *extra)
+                            "--cycles-used", "0", "--refused-return",
+                            "--evidence", str(note), "--by", "operator", *extra)
 
     def test_unknown_run_is_refused_naming_the_run_end_stage_with_no_later_stage(self):
         before = self.write(base_doc(runs=[dict(self.OPEN)]))
@@ -1232,6 +1303,32 @@ class SchemaTest(unittest.TestCase):
         entry.update(overrides)
         return entry
 
+    def test_refusal_provenance_is_only_legal_for_blocked_runs(self):
+        refusal = {"source": "close-run", "digest": {"path": "digest.md", "sha256": "0" * 64},
+                   "run_id": "r1", "reason": "contract refused", "by": "operator",
+                   "at": "2026-09-11T10:00:00+00:00"}
+        for verdict in ("PASS", "FAIL", "PENDING", "BLOCKED"):
+            doc = base_doc(runs=[{"id": "r1", "squad": "engineering", "verdict": verdict,
+                                  "agent": "harness-eng-lead", "refusal": refusal}])
+            self.assertEqual(verdict != "BLOCKED", bool(self.problems(doc)), verdict)
+
+    def test_operator_cycle_evidence_has_closed_hash_bound_authorization(self):
+        ref = {"path": "history.md", "sha256": "0" * 64}
+        evidence = dict(ref, source="operator-history", by="operator",
+                        at="2026-09-11T10:00:00+00:00", authorization=ref)
+        doc = base_doc(runs=[{"id": "r1", "squad": "engineering", "verdict": "FAIL",
+                             "agent": "harness-eng-lead", "cycles_used": 0, "cycle_evidence": evidence}])
+        self.assertEqual([], self.problems(doc))
+        for target, key, value in (
+                ("authorization", "reported_cycles", 0), ("evidence", "reported_cycles", 0),
+                ("evidence", "at", "yesterday"), ("authorization", "sha256", "not-a-hash")):
+            changed = json.loads(json.dumps(doc))
+            target_doc = changed["runs"][0]["cycle_evidence"]
+            if target == "authorization":
+                target_doc = target_doc["authorization"]
+            target_doc[key] = value
+            self.assertTrue(self.problems(changed), (target, key, value))
+
     def test_old_shape_without_any_new_key_is_still_valid(self):
         self.assertEqual([], self.problems(base_doc(
             runs=[{"id": "r1", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead"}])))
@@ -1257,6 +1354,33 @@ class SchemaTest(unittest.TestCase):
     def test_judgement_unknown_kind_is_rejected(self):
         problems = self.problems(base_doc(judgements=[self.judgement(kind="hunch")]))
         self.assertTrue(problems and any("/judgements/0/kind" in p for p in problems), problems)
+
+    def test_archived_receipts_remain_closed_and_cannot_nest_recovery_history(self):
+        history = {"recovery_id": "generation-1", "at": "2026-10-18T10:00:00Z",
+                   "repo": "owner/old", "reason": "operator-authorized replacement",
+                   "evidence": {"path": "authorization.json", "sha256": "a" * 64},
+                   "previous": {"parent": 12, "issues": {"T-01": 90}}}
+        self.assertEqual([], self.problems(base_doc(github={"history": [history]})))
+        for key, value in (("unowned", True), ("history", []), ("recovery", {})):
+            with self.subTest(key=key):
+                invalid = {**history, "previous": {**history["previous"], key: value}}
+                self.assertTrue(self.problems(base_doc(github={"history": [invalid]})))
+        self.assertTrue(self.problems(base_doc(github={"history": [{**history, "unowned": True}]})))
+
+    def test_completed_recovery_requires_completion_and_forbids_pending_creates(self):
+        recovery = {"id": "generation-1", "from_repo": "owner/old", "to_repo": "product/app",
+                    "mode": "full", "state": "in-progress", "plan_sha256": "a" * 64,
+                    "started_at": "2026-10-18T10:00:00Z"}
+        self.assertEqual([], self.problems(base_doc(github={"recovery": recovery})))
+        complete = {**recovery, "state": "complete", "completed_at": "2026-10-18T10:01:00Z"}
+        self.assertEqual([], self.problems(base_doc(github={"recovery": complete})))
+        for invalid in ({**recovery, "state": "complete"},
+                        {**recovery, "completed_at": complete["completed_at"]},
+                        {**complete, "pending_create": {"role": "parent",
+                                                       "started_at": recovery["started_at"]}},
+                        {**recovery, "unowned": True}):
+            with self.subTest(recovery=invalid):
+                self.assertTrue(self.problems(base_doc(github={"recovery": invalid})))
 
     def test_judgement_reject_kind_is_accepted_by_the_strict_schema(self):
         self.assertEqual([], self.problems(base_doc(judgements=[self.judgement(kind="reject")])))
@@ -1314,6 +1438,263 @@ class SchemaTest(unittest.TestCase):
             problems = self.problems(run(bad))
             self.assertTrue(problems and any("/runs/0/tokens" in p for p in problems),
                             (bad, problems))
+
+
+class CycleEvidenceTest(FeatureRecordCase):
+    def _end(self, run_id, count, digest):
+        return self.run_cli("run-end", "--file", str(self.path), "--id", run_id,
+                            "--verdict", "FAIL", "--cycles-used", str(count),
+                            "--digest", str(digest))
+
+    def _two_open_runs(self):
+        self.write(base_doc(cycles_used=3, runs=[
+            {"id": "r1", "squad": "product", "verdict": "PENDING", "agent": "harness-product-lead"},
+            {"id": "r2", "squad": "product", "verdict": "PENDING", "agent": "harness-product-lead"}]))
+
+    def test_other_run_namespace_cannot_supply_an_unclaimed_digest(self):
+        self._two_open_runs()
+        foreign = self.path.parent / "runs" / "r1" / "digest.md"
+        foreign.parent.mkdir(parents=True)
+        foreign.write_text(Path(self.lead_evidence(0, "FAIL")).read_text())
+        self.assert_ok(self._end("r2", 1, self.lead_evidence(1, "FAIL")))
+        before = self.path.read_bytes()
+        result = self._end("r2", 0, foreign)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_foreign_arbitrary_digest_cannot_erase_another_runs_count(self):
+        self._two_open_runs()
+        foreign = self.lead_evidence(0, "FAIL")
+        self.assert_ok(self._end("r1", 0, foreign))
+        self.assert_ok(self._end("r2", 1, self.lead_evidence(1, "FAIL")))
+        before = self.path.read_bytes()
+        result = self._end("r2", 0, foreign)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_superseded_arbitrary_digest_keeps_its_original_run_owner(self):
+        self._two_open_runs()
+        foreign = self.lead_evidence(0, "FAIL")
+        self.assert_ok(self._end("r1", 0, foreign))
+        self.assert_ok(self._end("r1", 2, self.lead_evidence(2, "FAIL")))
+        self.assert_ok(self._end("r2", 1, self.lead_evidence(1, "FAIL")))
+        before = self.path.read_bytes()
+        result = self._end("r2", 0, foreign)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_reader_rejects_cross_run_digest_replay_with_consistent_totals(self):
+        from check_state.feature_record import inv_7
+        from types import SimpleNamespace
+        self._two_open_runs()
+        self.assert_ok(self._end("r1", 0, self.lead_evidence(0, "FAIL")))
+        doc = self.load()
+        doc["runs"][1].update(verdict="FAIL", cycles_used=0,
+                              cycle_evidence=dict(doc["runs"][0]["cycle_evidence"]))
+        ctx = SimpleNamespace(
+            path=lambda *args: str(self.path),
+            record=lambda feat: (doc, [], [], []))
+        problems, _warnings = inv_7(ctx, doc["feature_id"])
+        self.assertTrue(problems)
+
+    def test_distinct_digest_files_may_have_identical_bytes(self):
+        self._two_open_runs()
+        first = self.lead_evidence(0, "FAIL")
+        second = self.path.parent / "independent-return.md"
+        second.write_bytes(Path(first).read_bytes())
+        self.assert_ok(self._end("r1", 0, first))
+        self.assert_ok(self._end("r2", 0, second))
+        self.assertEqual(3, self.load()["cycles_used"])
+
+    def test_superseded_receipts_remain_hash_bound_for_writers_and_readers(self):
+        self._two_open_runs()
+        original = Path(self.lead_evidence(0, "FAIL"))
+        self.assert_ok(self._end("r1", 0, original))
+        current = self.lead_evidence(2, "FAIL")
+        self.assert_ok(self._end("r1", 2, current))
+        before = self.path.read_bytes()
+        original.write_text("changed historical receipt\n")
+        result = self._end("r1", 2, current)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+        doc = self.load()
+        self.assertTrue(feature_schema.run_evidence_problems(
+            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
+
+    def test_historical_authorization_does_not_claim_unattested_previous_artifacts(self):
+        ref = {"path": "notes/original.md", "sha256": "a" * 64}
+        evidence = dict(source="operator-history", **ref, by="operator",
+                        at="2026-10-19T10:00:00Z", authorization=ref)
+        doc = base_doc(runs=[{"id": "r1", "squad": "product", "verdict": "FAIL",
+                              "agent": "harness-product-lead", "cycles_used": 0,
+                              "cycle_evidence": evidence}])
+        self.assertEqual([], feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+        evidence["previous"] = [{"path": "notes/not-authorized.md", "sha256": "b" * 64}]
+        self.assertTrue(feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+
+    def test_evidence_cannot_bless_boolean_float_or_absent_attribution(self):
+        digest = self.lead_evidence(0)
+        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), digest)
+        for count in (False, 0.0, None):
+            run = {"id": "r1", "verdict": "PASS", "cycles_used": count,
+                   "cycle_evidence": dict(ref, source="lead-digest")}
+            with self.subTest(count=count):
+                self.assertTrue(feature_schema.run_evidence_problems(
+                    str(self.path.parent), "FEAT-77-record", run, [run]))
+
+    def test_new_zero_attribution_requires_evidence_before_any_write(self):
+        before = self.write(base_doc(runs=[{
+            "id": "r1", "squad": "product", "agent": "harness-product-lead",
+            "verdict": "PENDING", "started_at": "2026-09-11T10:00:00+00:00"}]))
+        result = self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                              "--verdict", "FAIL", "--cycles-used", "0")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_digest_count_is_an_integer_not_an_equal_float(self):
+        digest = self.path.parent / "float.md"
+        digest.write_text("```yaml\nVERDICT: FAIL\nDIGEST: {cycles_used: 0.0}\n"
+                          "artifact: float.md\n```\n", encoding="utf-8")
+        before = self.write(base_doc(runs=[{
+            "id": "r1", "squad": "product", "agent": "harness-product-lead", "verdict": "PENDING"}]))
+        result = self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                              "--verdict", "FAIL", "--cycles-used", "0", "--digest", str(digest))
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_digest_operand_is_relative_to_the_target_feature_not_caller(self):
+        digest = self.path.parent / "relative.md"
+        digest.write_text("```yaml\nVERDICT: FAIL\nDIGEST: {cycles_used: 0}\n"
+                          "artifact: relative.md\n```\n", encoding="utf-8")
+        self.write(base_doc(cycles_used=2, runs=[{
+            "id": "r1", "squad": "product", "agent": "harness-product-lead", "verdict": "PENDING"}]))
+        self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                                    "--verdict", "FAIL", "--cycles-used", "0", "--digest", "relative.md"))
+        doc = self.load()
+        self.assertEqual(2, doc["cycles_used"])
+        self.assertEqual([], feature_schema.run_evidence_problems(
+            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
+
+    def test_zero_sendback_fail_and_one_sendback_preserve_legacy_residual(self):
+        self.write(base_doc(cycles_used=3, runs=[
+            {"id": "r1", "squad": "product", "agent": "harness-product-lead",
+             "verdict": "PENDING"},
+            {"id": "r2", "squad": "product", "agent": "harness-product-lead",
+             "verdict": "PENDING"}]))
+        for run_id, count in (("r1", 0), ("r2", 1)):
+            digest = self.path.parent / (run_id + ".md")
+            digest.write_text("```yaml\nVERDICT: FAIL\nDIGEST:\n"
+                              f"  cycles_used: {count}\nartifact: {digest}\n```\n",
+                              encoding="utf-8")
+            args = ("run-end", "--file", str(self.path), "--id", run_id,
+                    "--verdict", "FAIL", "--cycles-used", str(count),
+                    "--digest", str(digest))
+            self.assert_ok(self.run_cli(*args))
+            before = self.path.read_bytes()
+            self.assert_ok(self.run_cli(*args))
+            self.assertEqual(before, self.path.read_bytes())
+        doc = self.load()
+        self.assertEqual(4, doc["cycles_used"])
+        self.assertEqual([0, 1], [run["cycles_used"] for run in doc["runs"]])
+        self.assertEqual(["FAIL", "FAIL"], [run["verdict"] for run in doc["runs"]])
+        self.assert_clean()
+
+    def test_replay_refuses_changed_evidence_before_any_write(self):
+        digest = self.path.parent / "lead.md"
+        digest.write_text("```yaml\nVERDICT: FAIL\nDIGEST: {cycles_used: 0}\n"
+                          "artifact: lead.md\n```\n", encoding="utf-8")
+        self.write(base_doc(runs=[{"id": "r1", "squad": "product", "verdict": "PENDING"}]))
+        args = ("run-end", "--file", str(self.path), "--id", "r1", "--verdict", "FAIL",
+                "--cycles-used", "0", "--digest", str(digest))
+        self.assert_ok(self.run_cli(*args))
+        before = self.path.read_bytes()
+        digest.write_text(digest.read_text() + "different report bytes\n", encoding="utf-8")
+        result = self.run_cli(*args)
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_fail_is_not_a_sendback_and_impossible_attribution_is_rejected(self):
+        from check_state.feature_record import inv_7
+        from types import SimpleNamespace
+        doc = base_doc(runs=[{"id": "r1", "squad": "product",
+                              "verdict": "FAIL", "cycles_used": 0}])
+        ctx = SimpleNamespace(
+            H=str(self.path.parent), root=str(self.tmp),
+            fpath=lambda *args: str(self.path),
+            path=lambda *args: str(self.path),
+            record=lambda feat: (doc, [("r1", "product", "FAIL")], [], []))
+        bad, warnings = inv_7(ctx, doc["feature_id"])
+        self.assertEqual([], bad)
+        self.assertTrue(any("evidence" in warning for warning in warnings))
+        doc["runs"][0]["cycles_used"] = 1
+        bad, _ = inv_7(ctx, doc["feature_id"])
+        self.assertTrue(any("attribution" in finding for finding in bad))
+
+
+class HistoricalRecoveryTest(FeatureRecordCase):
+    def test_duplicate_authorization_identity_is_ambiguous_and_never_mutates_history(self):
+        digest = self.path.parent / "refused.md"
+        digest.write_text("Refused raw return.\n", encoding="utf-8")
+        before = self.write(base_doc(runs=[{
+            "id": "r1", "squad": "engineering", "agent": "harness-eng-lead",
+            "verdict": "BLOCKED", "cycles_used": 0, "ended_at": "2026-09-11T11:00:00+00:00"}]))
+        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(digest))
+        note = self.path.parent / "ambiguous.json"
+        note.write_text('{"feature_id":"WRONG","feature_id":"FEAT-77-record","effects":'
+                        + json.dumps([{"effect": "record-refusal", "run_id": "r1", "digest": ref}]) + "}")
+        result = self.run_cli("record-refusal", "--file", str(self.path), "--id", "r1",
+                              "--digest", str(digest), "--evidence", str(note),
+                              "--by", "operator", "--reason", "contract refused", "--yes")
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_operator_history_cannot_contradict_an_explicit_authentic_digest_count(self):
+        digest = Path(self.lead_evidence(1, "FAIL"))
+        before = self.write(base_doc(cycles_used=2, runs=[{
+            "id": "r1", "squad": "engineering", "agent": "harness-eng-lead",
+            "verdict": "FAIL", "cycles_used": 0, "ended_at": "2026-09-11T11:00:00+00:00"}]))
+        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(digest))
+        note = self.path.parent / "count-authorization.json"
+        note.write_text(json.dumps({"feature_id": "FEAT-77-record", "effects": [{
+            "effect": "record-cycle-evidence", "run_id": "r1", "digest": ref, "cycles_used": 0}]}))
+        result = self.run_cli("record-cycle-evidence", "--file", str(self.path), "--id", "r1",
+                              "--digest", str(digest), "--evidence", str(note), "--by", "operator", "--yes")
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_refusal_preserves_malformed_bytes_and_authorization_is_hash_bound(self):
+        digest = self.path.parent / "refused.md"
+        digest.write_text("The reader finished; its return was refused.\n", encoding="utf-8")
+        original = digest.read_bytes()
+        self.write(base_doc(runs=[{
+            "id": "r1", "squad": "engineering", "agent": "harness-eng-lead",
+            "verdict": "BLOCKED", "cycles_used": 0,
+            "ended_at": "2026-09-11T11:00:00+00:00"}]))
+        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(digest))
+        note = self.path.parent / "authorization.json"
+        note.write_text(json.dumps({
+            "feature_id": "FEAT-77-record",
+            "effects": [{"effect": "record-refusal", "run_id": "r1", "digest": ref}]
+        }), encoding="utf-8")
+        args = ("record-refusal", "--file", str(self.path), "--id", "r1",
+                "--digest", str(digest), "--evidence", str(note),
+                "--by", "operator", "--reason", "authentic refused return", "--yes")
+        self.assert_ok(self.run_cli(*args))
+        doc = self.load()
+        self.assertEqual("BLOCKED", doc["runs"][0]["verdict"])
+        self.assertEqual("2026-09-11T11:00:00+00:00", doc["runs"][0]["ended_at"])
+        self.assertEqual(original, digest.read_bytes())
+        self.assertEqual([], feature_schema.run_evidence_problems(
+            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
+        before = self.path.read_bytes()
+        self.assert_ok(self.run_cli(*args))
+        self.assertEqual(before, self.path.read_bytes())
+        digest.write_text("changed report\n", encoding="utf-8")
+        self.assertNotEqual([], feature_schema.run_evidence_problems(
+            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
+        result = self.run_cli(*args)
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
 
 
 if __name__ == "__main__":

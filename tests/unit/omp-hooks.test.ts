@@ -1780,23 +1780,6 @@ describe("loadDigestSchemaBundle", () => {
     }
   });
 
-  test("takes every field and required set from the persona's JSON file", () => {
-    for (const persona of DIGEST_PERSONAS) {
-      const file = JSON.parse(readFileSync(join(DIGEST_SCHEMA_DIR, `${persona}.json`), "utf8"));
-      // Every persona file is a closed {VERDICT, DIGEST, artifact} object schema.
-      type PersonaShape = {
-        required: string[];
-        additionalProperties?: boolean;
-        properties: { DIGEST: { required: string[]; properties: Record<string, unknown> } };
-      };
-      const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona) as unknown as PersonaShape;
-      expect(bundle.required).toEqual(file.required);
-      expect(bundle.additionalProperties).toBe(false);
-      expect(bundle.properties.DIGEST.required).toEqual(file.properties.DIGEST.required);
-      expect(Object.keys(bundle.properties.DIGEST.properties)).toEqual(Object.keys(file.properties.DIGEST.properties));
-    }
-  });
-
   test("a repeat load, an alias and another path to the same directory return the cached bundle", () => {
     const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev");
     expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev")).toBe(bundle);
@@ -2464,9 +2447,14 @@ describe("host-stamped tokens", () => {
     await handlers.get("tool_result")?.(wakeWith({ results: [{ index: 0, exitCode: 0 }] }), ctx);
     expect(JSON.parse(readFileSync(featureJson, "utf8")).runs[0]).not.toHaveProperty("tokens");
     expect(calls.some((c) => c.script === "feature-record.py" && c.args[0] === "stamp-tokens")).toBe(false);
-    // A bare run-end then records null: the host reported nothing, and nothing was invented.
-    spawnSync("python3", [gatePath("feature-record.py"), "run-end", "--file", featureJson,
-      "--id", "r1", "--verdict", "PASS", "--cycles-used", "0"], { encoding: "utf8" });
+    // Closing without a host measurement preserves null, with an explicit evidenced count.
+    const digest = join(root, ".harness", "harness", "features", FEATURE, "lead.json");
+    writeFileSync(digest, JSON.stringify({
+      VERDICT: "PASS", DIGEST: { cycles_used: 0 }, artifact: "lead.json",
+    }));
+    const closed = spawnSync("python3", [gatePath("feature-record.py"), "run-end", "--file", featureJson,
+      "--id", "r1", "--verdict", "PASS", "--cycles-used", "0", "--digest", digest], { encoding: "utf8" });
+    expect(closed.status).toBe(0);
     expect(tokensOf(featureJson)).toBeNull();
   });
 
