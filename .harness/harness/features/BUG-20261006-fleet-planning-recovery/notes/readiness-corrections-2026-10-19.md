@@ -154,3 +154,53 @@ pending; no full-matrix rerun was performed.
 Four separate final d6074f0e-delta quality readers (reuse, simplification,
 efficiency, altitude) returned no findings. No edits or checks were performed by
 those readers; source correctness still requires the final pinned re-review.
+
+## Final tooling source pin
+
+The feature-scoped canonical checker exited zero before the final commit; the
+plan checker again resolved all 51 anchors with zero failures. Final local source
+pin: `03c4d9c95def9990dc9d4707e722a732f1a8cade`. Its actual canonical grading
+CLI exits zero: raw grade_2, 83 passing, 35 named medium reasons, zero high and
+zero ungraded. All 283 scoped runtime/source/test/config blobs and signed plan
+bytes match the pin.
+
+A fresh-process POST-PIN CLI smoke exits zero for all three paths: initial full
+replacement, an approved added task after completion, and durable run ownership.
+Both initial T-01 and subsequently added T-02 associate with confirmed milestone
+7, not old-title milestone 100. The amendment preserves the original signatures,
+receipts, recovery generation and archive; ordinary-open replay is byte-identical
+with no create. Exactly one known-number read occurs for each task-creation phase,
+none for either completed replay. Run total 6 remains unchanged on cross-run or
+tampered-prior refusal, both metadata-preserving; the fresh reader detects tampering.
+
+Final read-only code/security re-review remains pending. No full matrix has been
+run at this pin, and no T-03–T-05 or operational authorization has been added.
+
+## Final scoped readiness handoff
+
+Independent read-only code re-review at `03c4d9c95def9990dc9d4707e722a732f1a8cade`
+returned **correct**, no findings, confidence 0.98. Both milestone findings are
+cleared, with no new finding in retained SC-03/04/05 evidence/refusal paths.
+Independent security re-review returned **no substantive findings**; durable
+cycle-subject ownership, including superseded references, remains cleared, and
+the final milestone delta adds no discovery/adoption/authorization bypass.
+Neither reviewer ran checks or made edits; these are T-01/T-02 scoped clearances,
+not whole-feature or deployment certification.
+
+**Remaining decision:** authorize exactly one full active unit matrix and one
+full active integration matrix at this new pin, or keep them held. The original
+plan's exactly-once matrix limit and the consumed f9a13cac/b3f55520 rulings do not
+authorize a rerun at 03c4d9c9. No such command has run. Previous raw receipts,
+historical verdicts/times/counts, direct-run BLOCKED 0 and `cycles_used: 0` remain
+unchanged. No T-03–T-05, Kaya, installation, push, merge or deployment is authorized.
+
+## Authorized final-pin matrix — 2026-10-24
+
+The operator subsequently selected **Authorize one new-pin matrix**. Both kinds
+ran exactly once at 03c4d9c9 and passed: unit 55/55 files, integration 83/83 files.
+After both commands, all 283 source/runtime/test/config blobs and signed plan
+bytes still match the pin. Full command/time/output receipts are preserved in
+`pinned-matrix-03c4d9c9.md`. This consumes that new ruling and completes the
+authorized T-01/T-02 tooling verification; it does not activate T-03–T-05 or
+authorize any Kaya/install/push/merge/deployment operation. No historical
+receipt, verdict, timestamp or accounting value was rewritten.
