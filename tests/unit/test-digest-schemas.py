@@ -175,8 +175,17 @@ class PersonaSchemas(unittest.TestCase):
         for persona in PERSONAS:
             schema = digest_schema.load_schema(persona)
             self.assertIs(schema["additionalProperties"], False, persona)
-            self.assertIs(schema["properties"]["DIGEST"]["additionalProperties"], False, persona)
             self.assertTrue(schema["properties"]["VERDICT"]["$ref"].startswith("common.json#"))
+
+    def test_backend_direct_count_is_optional_but_must_be_nonnegative_integer(self):
+        persona = "harness-backend-dev"
+        self.assertEqual(errors(persona, make(persona)), [])
+        for count in (0, 3):
+            with self.subTest(accepted=count):
+                self.assertEqual(errors(persona, make(persona, cycles_used=count)), [])
+        for count in (-1, True, 0.5, "0"):
+            with self.subTest(refused=count):
+                self.assertTrue(errors(persona, make(persona, cycles_used=count)))
 
     def test_every_object_is_closed_and_fully_required(self):
         """OpenAI strict requires every declared key and refuses undeclared ones, so every

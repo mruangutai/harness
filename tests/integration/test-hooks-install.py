@@ -42,6 +42,7 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
+import json
 import os
 import re
 import shutil
@@ -143,7 +144,6 @@ def _bootstrap_origin(path, github_repo="acme/repo-x"):
     with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
         f.write("schema: team-config/1\n")
     with open(os.path.join(path, ".harness", "harness.json"), "w") as f:
-        import json
         json.dump({"github": {"sync": True, "repo": github_repo, "board": None}}, f)
     _install_real_bin_and_hook(path)
     subprocess.run(["git", "add", "-A"], cwd=path, capture_output=True)
@@ -183,7 +183,8 @@ def _clone(origin, dest):
 def _commit_feature(repo, feature_id, status, milestone=None, build_entry=None, repo_segment="harness"):
     doc = {"feature_id": feature_id}
     if milestone is not None or build_entry is not None:
-        doc["github"] = {}
+        with open(os.path.join(repo, ".harness", "harness.json"), encoding="utf-8") as source:
+            doc["github"] = {"repo": json.load(source)["github"]["repo"]}
     if milestone is not None:
         doc["github"]["milestone"] = milestone
     if build_entry is not None:

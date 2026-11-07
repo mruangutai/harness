@@ -109,6 +109,7 @@ CHILD_PREAMBLE = (
 sys.path.insert(0, str(BIN))
 import harness_boundary  # noqa: E402  (the root resolver every gate uses)
 import inflight_registry  # noqa: E402  (the registry under test, from this worktree)
+import digest_record  # noqa: E402  (the sole durable digest selector)
 
 RESULTS: list[tuple[str, bool, object]] = []
 
@@ -550,6 +551,27 @@ def record_run(command: str, *options: str) -> None:
                    cwd=ROOT, check=True, capture_output=True, text=True)
 
 
+def close_probe_run(evidence: dict) -> None:
+    """Close only from the matching authentic lead count; failures leave the run open."""
+    verdict = ("PASS" if all(ok for _, ok, _ in RESULTS)
+               and evidence.get("suite", {}).get("returncode") == 0 else "FAIL")
+    try:
+        record = digest_record.load_record(str(LEAD_RUN_DIGEST))
+        count = record["DIGEST"]["cycles_used"]
+        if type(count) is not int or count < 0:
+            raise ValueError("lead cycles_used must be an explicit nonnegative integer")
+        if record.get("VERDICT") != verdict:
+            raise ValueError(f"probe verdict {verdict} differs from the lead return; "
+                             "the run remains open without a matching authentic return")
+    except (digest_record.DigestRecordError, KeyError, TypeError, ValueError) as error:
+        evidence["unclosed_run"] = {"id": RUN_ID, "reason": str(error)}
+        check("the probe run has authentic cycle evidence before closing", False, str(error))
+    else:
+        record_run("run-end", "--verdict", verdict,
+                   "--cycles-used", str(count), "--digest", str(LEAD_RUN_DIGEST),
+                   "--code-grade", "n_a")
+
+
 def run_live(args) -> tuple[dict, Session | None]:
     evidence: dict = {"before": registry_rows(), "registered_run": RUN_ID}
     log = Path(os.environ.get("TMPDIR", "/tmp")) / f"inflight-probe-{STAMP}.log"
@@ -580,9 +602,7 @@ def run_live(args) -> tuple[dict, Session | None]:
         WAKE_MARKER.unlink(missing_ok=True)
         evidence["after"] = registry_rows()
         if registered:
-            passed = all(ok for _, ok, _ in RESULTS) and evidence.get("suite", {}).get("returncode") == 0
-            record_run("run-end", "--verdict", "PASS" if passed else "FAIL",
-                       "--cycles-used", "0" if passed else "1", "--code-grade", "n_a")
+            close_probe_run(evidence)
     return evidence, session
 
 

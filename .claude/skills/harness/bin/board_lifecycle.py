@@ -147,7 +147,7 @@ tool, so a `GhError` propagates as one line on stderr and exit 4 — never exit 
 "findings were found", and never a silent zero-finding report. An audit that could not run must
 never be mistaken for an audit that found nothing.
 
-BOARD RESOLUTION, one code path for both repositories (T-04 intent):
+REQUESTED BOARD RESOLUTION, for both repositories:
   - no --repo, or --repo naming THIS checkout's own harness.json `github.repo`: the board comes
     from `gh_board.load_board(harness_boundary.resolve_root(_BIN_DIR))`. `resolve_root` is the
     one shared root resolver (harness_boundary.py, already reused by factory_config.py,
@@ -157,6 +157,11 @@ BOARD RESOLUTION, one code path for both repositories (T-04 intent):
     repository's own `.harness/harness.json` REMOTELY at its default_branch — this tool never
     checks out a served repository to provision its board.
   - --repo naming neither: exit 2, naming the repo and both sources tried.
+
+Active-feature projection independently resolves each feature's authoritative binding with
+`feature_schema.resolve_binding`. A bound feature uses its declared fleet member's remote config,
+not the ancestor's mirror flags. Only matching board/repository provenance yields actionable cards;
+factory issue claims and unproven legacy numbers are diagnostics, never projection authority.
 
 provision is idempotent, and NEVER infers "there is no project" from a field-resolution failure
 (see `factory_gh.project_resolve`'s own docstring for the disaster that produces — a duplicate
@@ -250,6 +255,7 @@ import artifact_accessors
 import factory_cli
 import factory_config
 import feature_corpus
+import feature_schema
 import feature_json_write
 import factory_gh
 import gh_board
@@ -491,20 +497,6 @@ def _active_plan(feat_dir):
     return plan_doc, None
 
 
-def _feature_projection(feat_dir, feature_doc):
-    """Return an active feature's projected cards and any invalid-station finding."""
-    plan_doc, invalid = _active_plan(feat_dir)
-    if plan_doc is None:
-        return {}, invalid
-    github = feature_doc.get("github")
-    github = github if isinstance(github, dict) else {}
-    factory_block = feature_doc.get("factory")
-    factory_block = factory_block if isinstance(factory_block, dict) else {}
-    if not github.get("issues") and factory_block.get("issues"):
-        return {}, None
-    return gh_board.project(plan_doc, github), None
-
-
 def _projection_findings(feat_dir, board, stations, projection):
     findings = []
     for issue_number, expected in projection.items():
@@ -519,7 +511,7 @@ def _projection_findings(feat_dir, board, stations, projection):
     return findings
 
 
-def _status_findings(root, board, stations):
+def _status_findings(root, board, stations, repo_name):
     """Compare active feature cards using the one supplied board snapshot and shared policy."""
     findings = []
     try:
@@ -531,15 +523,39 @@ def _status_findings(root, board, stations):
         try:
             feature_doc = artifact_accessors.load_feature_json(
                 os.path.join(feat_dir, "feature.json"))
-        except artifact_accessors.ArtifactAccessError:
-            continue
         except artifact_accessors.FeatureJsonError as exc:
             findings.append(_finding("STATUS", f"STATUS: {feat_dir}'s card cannot be audited: {exc}"))
             continue
-        projection, invalid = _feature_projection(feat_dir, feature_doc)
+        except artifact_accessors.ArtifactAccessError as error:
+            findings.append(_finding("STATUS", f"STATUS: cannot establish feature binding at {feat_dir}: {error}"))
+            continue
+        plan, invalid = _active_plan(feat_dir)
+        if plan is None and invalid is None:
+            continue
+        try:
+            bound_repo, bound_board, _types = feature_schema.resolve_binding(feature_doc, root)
+        except artifact_accessors.FleetError as error:
+            findings.append(_finding("STATUS", f"STATUS: invalid feature binding at {feat_dir}: {error}"))
+            continue
+        if bound_repo != repo_name:
+            continue
+        if not bound_board or any(bound_board.get(key) != board.get(key)
+                                  for key in ("owner", "number", "station_field")):
+            findings.append(_finding("STATUS", f"STATUS: feature {feat_dir} targets a different board; no projection is safe"))
+            continue
+        problems = feature_schema.mirror_evidence_problems(feat_dir, feature_doc)
+        provenance = feature_schema.mirror_provenance_problem(feature_doc, repo_name)
+        if problems or provenance:
+            detail = "; ".join(problems) or provenance
+            findings.append(_finding("STATUS", f"STATUS: mirror provenance for {feat_dir}: {detail}. Run: "
+                                     f"{feature_schema.recovery_command_line(feat_dir, feature_doc, repo_name)}"))
+            continue
         if invalid is not None:
             findings.append(invalid)
-        findings.extend(_projection_findings(feat_dir, board, stations, projection))
+            continue
+        github = feature_doc.get("github") or {}
+        findings.extend(_projection_findings(
+            feat_dir, board, stations, gh_board.project(plan, github)))
     return findings
 
 
@@ -853,17 +869,8 @@ def _audit_findings(root, board, repo_name):
     notes.append(_WORKFLOW_HEADER)
     findings.extend(_workflow_findings(owner, number))
 
-    # Class 6 -- STATUS. No call, EXCEPT it self-skips for any repo but this checkout's own
-    # (#783's fix -- see `_status_findings`'s own docstring for the ruling and why). This
-    # checkout's on-disk `.harness/*/features/*` is never a served fleet repo's feature set --
-    # that repo's config is read remotely and no feature.json records a `github.repo` to filter
-    # by, so scoping instead of skipping would mean inventing a field that does not exist.
-    # (own_repo was resolved above for class 4.)
-    if repo_name == own_repo:
-        findings.extend(_status_findings(root, board, stations))
-    else:
-        notes.append(f"STATUS: skipped -- auditing {repo_name!r}, not this checkout's own repo "
-                     f"({own_repo!r}); this checkout's on-disk features are never that repo's")
+    # Class 6: only provenanced, feature-bound receipts belong to this repository's snapshot.
+    findings.extend(_status_findings(root, board, stations, repo_name))
 
     return findings, notes
 
@@ -1088,6 +1095,8 @@ _ABANDONED_LABEL_COLOR = "b60205"  # MUST match gh-sync.py's own colour for this
 def _fixable(finding):
     """Return whether reconcile has a safe write for this finding: its class has one and it
     names an issue -- a report-only finding (an unreadable corpus or record) is a residual."""
+    if finding.kind == "STATUS":
+        return "issue_number" in finding.data and "expected" in finding.data
     return finding.kind in _FIXABLE_KINDS and "issue_number" in finding.data
 
 

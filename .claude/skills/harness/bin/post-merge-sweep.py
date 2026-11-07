@@ -226,12 +226,13 @@ def _ship_allows_removal(path, feat_dir):
 
 def _read_build_receipt(main_checkout_root, feat_dir):
     """Return mirror enablement and the feature receipt document."""
-    config_path = os.path.join(
-        main_checkout_root, ".harness", "harness.json")
-    sync_enabled = bool((
-        artifact_accessors.load_harness_json(config_path).get("github") or {}).get("sync"))
     feature_doc = artifact_accessors.load_feature_json(
         os.path.join(feat_dir, "feature.json"))
+    if feature_schema.has_repository_binding(feature_doc):
+        return True, feature_doc
+    config_path = os.path.join(main_checkout_root, ".harness", "harness.json")
+    sync_enabled = bool((
+        artifact_accessors.load_harness_json(config_path).get("github") or {}).get("sync"))
     return sync_enabled, feature_doc
 
 
@@ -240,25 +241,25 @@ def _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
     try:
         sync_enabled, feature_doc = _read_build_receipt(
             main_checkout_root, feat_dir)
-    except (artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError) as exc:
+        repo, _board, _types = feature_schema.resolve_binding(feature_doc, main_checkout_root)
+        problems = feature_schema.mirror_evidence_problems(feat_dir, feature_doc)
+        provenance = feature_schema.mirror_provenance_problem(feature_doc, repo)
+    except (artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError,
+            artifact_accessors.FleetError) as exc:
         print(f"post-merge-sweep: SKIP removal of {path} — could not read Build entry receipt: {exc}")
         return False
-    if not sync_enabled:
-        return True
-
-    entry = (feature_doc.get("github") or {}).get("build_entry")
-    if entry is None and feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-        print(f"post-merge-sweep: {feature_id} predates the build-entry receipt "
-              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so the worktree is removed normally. "
-              f"Its terminal receipt is created only by an explicit operator-approved gh-sync.py "
-              f"recover-terminal {os.path.realpath(feat_dir)} --yes.")
-        return True
-    if entry not in {"opened", "not-applicable", "recovered-terminal"}:
-        value = entry or "absent"
-        print(f"post-merge-sweep: SKIP removal of {path} — {feature_id} records "
-              f"github.build_entry={value}, so no Build entry receipt exists. The worktree stays "
-              f"until gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes and ship both succeed.")
+    detail = "; ".join(problems) or provenance
+    receipt_missing = sync_enabled and not feature_schema.receipt_allows_merge(
+        feature_doc, repo, era_requires_absent=True)
+    if detail or receipt_missing:
+        detail = detail or "Build-entry receipt absent or incomplete"
+        print(f"post-merge-sweep: SKIP removal of {path} — {feature_id}: {detail}. "
+              f"The worktree stays until recovery and ship succeed. Run: "
+              f"{feature_schema.recovery_command_line(feat_dir, feature_doc, repo)}")
         return False
+    if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+        print(f"post-merge-sweep: {feature_id} predates the build-entry receipt; "
+              f"explicit recovery is {feature_schema.recovery_command_line(feat_dir, feature_doc, repo)}.")
     return True
 
 

@@ -1,0 +1,472 @@
+schema: plan/1
+feature: BUG-20261006-fleet-planning-recovery
+approval:
+  date: '2026-10-17'
+  approved_by: operator
+  status: approved
+status: building
+source_issues: []
+panel:
+  last_run: 2026-10-06-3-plan-product
+  cycle: 2
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: status skipped; DEC-228 proportionality and form findings do not buy reread;
+      conservative task trim applies the prior alternative.
+  - reader: design
+    status: skipped
+    persona: harness-ui-reviewer
+    reason: status skipped; prior cycle self-scoped out, unchanged non-UI CLI/state
+      repair has no prototype surface.
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-d05126619f3593a9580f5fe2d9a3624d
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: Kaya authorization evidence has no permitted durable location
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-2157d88745db4a1c95c3d28de6c2930d
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: 'Drop or simplify the per-issue recovery-marker read-back: deterministic markers in every replacement-created Kaya issue body plus a new DEC-203 read purpose, built for a create/save interruption race with zero observed occurrences.'
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-aa1abfeee616fde328cd7f12af5ec561
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: run-end --digest required for all new/changed attribution is a fleet-wide forward workflow change riding on a historical repair; defensible, but approval should be conscious.
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-0dbbc2c3de55632954c366422eff4b99
+    severity: info
+    reader: should-not-exist
+    kind: substance
+    summary: "Everything else survives the challenge: binding cutover, INV-7 amendment,\
+      \ refused-return hardening, recover-mirror (not redundant with adoption-only\
+      \ recover-terminal), T-03\u2013T-05 operational tasks, and the dual live/historical\
+      \ verbs are all backed by verified defects or DEC-237's live-vs-historical split."
+    disposition: open
+  - id: PF-05621fab61565ae1d4d06904eda968fa
+    severity: low
+    reader: code-reviewer
+    kind: form
+    summary: T-01 names nonexistent factory_config.load_fleet; use existing artifact_accessors.load_fleet.
+    disposition: resolved
+    resolved_by: T-01
+lanes:
+  resolved_at: 63cac11a3216aa8d34792665a05fcb185f7cf73b
+  rows:
+  - surface: .claude/skills/harness/bin/**
+    lane: main-session-direct
+    reason: DEC-174 enforcement contracts cannot execute through the path being changed.
+  - surface: tests/unit/**
+    lane: main-session-direct
+    reason: DEC-174 tests of the changed enforcement path.
+  - surface: tests/integration/**
+    lane: main-session-direct
+    reason: DEC-174 tests of the changed enforcement path.
+  - surface: tests/manual/probe-inflight-claim-lifecycle.py
+    lane: main-session-direct
+    reason: DEC-174 requires direct migration of the existing enforcement probe caller.
+  - surface: .harness/harness/docs/DECISIONS*
+    lane: main-session-direct
+    reason: Governing decision amendments accompany the enforcement cutover.
+  - surface: .claude/skills/harness/SKILL.md
+    lane: main-session-direct
+    reason: The existing enforcement playbook must change with its guarded contract.
+  - surface: .claude/skills/harness/references/**
+    lane: main-session-direct
+    reason: Existing references must change with the enforcement cutover.
+  - surface: .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/**
+    lane: main-session-direct
+    reason: Operator-authorized evidence and operational recovery are main-session work.
+decisions:
+  - id: D-01
+    choice: Bind every feature mirror to factory.repo when present and persist github.repo; existing unproven or mismatched active mappings require explicit recovery rather than inference.
+    because: Repository-local issue numbers cannot prove ownership and an ancestor default already caused cross-repository mutations.
+    dec: DEC-221
+  - id: D-02
+    choice: Add recover-mirror with archived prior receipts and durable replacement progress; uncertain creation refuses until explicit operator-evidenced receipt adoption reconciles the same recovery intent.
+    because: Terminal adoption and ordinary open cannot replace invalid mappings. Saving confirmed receipts permits safe resumption; an unrecorded possibly successful create cannot justify another create or automatic discovery.
+    dec: DEC-203
+  - id: D-03
+    choice: Replace the FAIL-count floor with evidenced run attribution plus preserved legacy residual; a worst-member FAIL is not itself a rework cycle.
+    because: Inflating the total would falsify history while eliminating the ceiling would lose the bounded-loop contract.
+    dec: DEC-157
+  - id: D-04
+    choice: Record typed refused-return provenance on the original BLOCKED run, preserving its malformed digest instead of synthesizing an accepted fenced record.
+    because: Execution completion and acceptance of an agent return are different facts under the live object-only contract.
+    dec: DEC-237
+tasks:
+  - id: T-01
+    title: Cut over mirror provenance and evidence-aware run accounting end to end
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: main-session-direct
+    execution_reason: DEC-174 covers all changed enforcement code and tests; one task owns the shared closed schema and its complete reader-writer cutover.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/gh-sync.py#main
+    - .claude/skills/harness/bin/feature_schema.py#recovery_command_for
+    - .claude/skills/harness/bin/feature-schema.json#github
+    - .claude/skills/harness/bin/feature-record.py#cmd_close_run
+    - .claude/skills/harness/bin/digest_record.py#load_record
+    - .claude/skills/harness/bin/validate-digest.py#cli_object
+    - .claude/skills/harness/bin/check_state/feature_record.py#inv_7
+    - .claude/skills/harness/bin/check_state/run_state.py#inv_15
+    - .claude/skills/harness/bin/check_state/table.py#INVARIANTS
+    - .claude/skills/harness/bin/check_state/board.py#inv_37
+    - .claude/skills/harness/bin/merge-gate.py#_enforce_receipt
+    - .claude/skills/harness/bin/post-merge-sweep.py#_receipt_allows_removal
+    - .claude/skills/harness/bin/board_lifecycle.py#_status_findings
+    - tests/unit/test-feature-record.py#CloseRunTest
+    - tests/unit/test-digest-record.py#DurableRecord
+    - tests/unit/test-gh-sync-build-entry.py#base_doc
+    - tests/unit/test-feature-schema-build-entry.py#write_plan
+    - tests/integration/gh_sync_support.py#stage_station
+    - tests/integration/test-gh-sync-open.py#main
+    - tests/integration/test-gh-sync-start-task.py#main
+    - tests/integration/test-gh-sync-ship.py#main
+    - tests/integration/test-gh-sync-abandon.py#main
+    - tests/integration/test-gh-sync-record.py#main
+    - tests/integration/test-gh-issue-types.py#check
+    - tests/integration/test-board-lifecycle.py#write_root
+    - tests/integration/test-merge-gate.py#fixture
+    - tests/integration/test-post-merge-sweep.py#main
+    - tests/integration/test-check-state-records.py#main
+    - tests/integration/test-check-state-table.py#two_feature_tree
+    - tests/integration/test-check-state-feat59.py#_in_era
+    - tests/integration/test-validate-feature-json.py#full_doc
+    - tests/integration/test-validate-digest.py
+    - .claude/skills/harness/bin/digest-schemas/harness-backend-dev.json
+    - tests/manual/probe-inflight-claim-lifecycle.py
+    verify: |
+      python3 tests/unit/test-feature-record.py && python3 tests/unit/test-digest-record.py && python3 tests/unit/test-gh-sync-build-entry.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-check-state-records.py
+    intent: 'Execute only after explicit repair BRIEF and plan approval, directly in
+      the main session under DEC-174. This task owns all shared production/schema/test
+      files so no intermediate layer is declared shipped. Use test-first regressions
+      in the existing unit/integration suites and fake-gh support before production
+      edits. No real GitHub calls or Kaya state changes belong to this task. Keep factory_config.product_config
+      and board_for, gh_board projection/station primitives, artifact_accessors and
+      feature_json_write as the existing seams; do not add a second config, projection,
+      lock or digest parser. resolve_binding, receipt_allows_merge and the evidence
+      resolver/verifier below are NEW functions to create in the existing feature_schema
+      module, not predicates claimed to exist already.
+
+      Repository contract: create one resolve_binding(feature_doc, root) -> (repo, board,
+      issue_types) in feature_schema, composing existing artifact_accessors.load_fleet,
+      declared repo_entry, product_config, board_for and gh_issue_types.overrides_from_config.
+      A present non-null factory.repo must be a valid declared owner/name and is authoritative;
+      derive issue-type overrides from that same product config, never owner Harness
+      config. Unbound Harness features retain owner-checkout configuration, sync-off
+      and environmental mirror semantics; null board is legal only where the existing
+      unbound Harness path permits it, not for fleet board_for. Invalid binding or unavailable/malformed
+      product configuration refuses with no ancestor/disk fallback. gh-sync load_config
+      loads the feature before calling this resolver, including status early branch,
+      skip/build-entry and every feature-bound command. Route INV-37, board_lifecycle
+      status/audit/reconcile, merge-gate and post-merge-sweep through the same resolver,
+      with no per-caller binding derivation. Preserve INV-26 read-only/offline boundaries:
+      network unavailability is a non-mutating diagnostic, not permission to reuse an
+      unproven mapping. Refuse invalid binding/provenance before any mutation or local
+      status station write. Route record-pr and ship PR reads through the bound repository
+      too. Source tickets come only from the signed plan; factory claims remain unchanged.
+
+      Add optional validated owner/name github.repo and closed github.history/github.recovery
+      records in feature-schema.json. Absence remains readable for untouched historical
+      records, but a nonempty active mapping with absent/conflicting repo cannot be
+      reused without explicit recovery. New mappings/build-entry outcomes carry provenance.
+      Factor the existing github mapping sub-schema into one shared definition excluding
+      history/recovery; active github and github.history[].previous reference that same
+      definition, without a second hand-listed field set. Archive previous by copying
+      that object verbatim minus history/recovery, preserving every original absence
+      versus value, including repo absence. Each history entry has recovery_id, at,
+      repo, reason, evidence (the shared evidence_ref) and previous. Recovery has id,
+      from_repo, to_repo, mode (full or terminal), state (in-progress or complete),
+      plan_sha256, started_at, optional completed_at and optional pending_create with
+      role and started_at; role is milestone, parent or task:<signed-task-id>. Its id
+      identifies exactly one history entry, which owns the evidence reference; no second
+      stored evidence copy. Validate closed keys, nonempty IDs, repositories, timestamps,
+      hashes and map/number types. save_recorded preserves history/recovery rather than
+      reconstructing them away. record_build_entry cannot let an archived opened generation
+      prevent recovery-required on the active replacement; retain no-downgrade only
+      within the same bound generation.
+
+      Add gh-sync.py recover-mirror <feature-dir> --previous-repo <owner/name> --evidence
+      <local-authentic-recovery-note> --yes, with optional --adopt-receipt <role>=<positive-number>
+      for explicit reconciliation. Require --yes, authentic local authorization, unchanged
+      signed plan and matching factory.repo/target configuration. Refuse disagreement
+      between --previous-repo and recorded prior provenance; absent provenance is recorded
+      as the evidenced prior repo, not retroactively claimed original metadata. Under
+      the existing locked writer archive once, set target repo, clear only active milestone/parent/task/attached/typed
+      receipts, retain signed source issues, set recovery-required and save in-progress
+      before remote creation. Do not close, reopen, relabel or move previous-repository
+      objects. Claims, verdicts, approvals and task statuses are unchanged.
+
+      Extend existing feature_schema.recovery_command_for, preserving its current compatible-missing-receipt
+      behavior, as the single home for full versus terminal recovery mode and recovery
+      command/gate text. Add optional context for feature document/bound repo and requested
+      replacement; share the existing work-started/terminal decision instead of copying
+      it. Before work starts replacement creates milestone/parent/current signed task
+      mirrors and finishes opened; started/completed work creates only milestone/parent
+      and finishes recovered-terminal. Invalid/unproven mapping selects recover-mirror
+      with required --previous-repo, --evidence and --yes operands; compatible missing
+      receipts select open or recover-terminal. gh-sync, merge-gate and post-merge-sweep
+      use this shared selection/formatter, deleting hard-coded gate command duplicates.
+      Reuse existing title/type/link/projection logic, not a parallel DAG. Ordinary
+      open refuses invalid or in-progress replacement; recover-terminal stays compatible
+      adoption-only and rejects invalid provenance.
+
+      Conservative create protocol: before each remote create durably save pending_create
+      for that exact role under the same recovery ID/plan hash. Persist each returned,
+      confirmed remote number and clear pending_create in one locked transition BEFORE
+      any next create. A failure before dispatch can clear the intent only when no request
+      could have reached the remote. A missing number, interruption with pending_create,
+      or local save failure after a possibly successful create REFUSES naming the uncertain
+      intent; do not issue another create. Never add issue-body recovery markers or
+      automatically read back, scan, adopt a match, retry, poll or title-search for
+      replacement recovery, including milestone uncertainty. Known saved receipts resume
+      remaining linking/type/projection work without recreating the object; create only
+      missing roles with no uncertain pending intent. Repeated completed recovery with
+      identical target/evidence/plan is a durable no-op and adds no archive.
+
+      Explicit reconciliation uses --adopt-receipt for the exact pending role only,
+      never an inferred source ticket. A separately authorized immutable target-local
+      note must name the recovery ID, pending role/task, target repository, positive
+      object number, signed plan hash, authentic ownership evidence and adoption effect;
+      number/title alone is insufficient. The same confined verifier rejects partial/ambiguous/conflicting
+      evidence, duplicate role/number, wrong repo/task/plan and unapproved effects before
+      state/remote changes. Store the note through the shared evidence_ref as an optional
+      reconciliation reference in recovery, retained after completion for audit; renewed
+      authorization uses a new note and never overwrites the originally referenced note.
+      Atomically record the evidenced number and clear only that pending intent, then
+      resume the same recovery generation. Adoption does not authorize another uncertain
+      create or automatic discovery. A normal resume still uses the original recovery
+      authorization; the new adoption note only discharges its exact pending intent.
+
+      Create receipt_allows_merge(doc, bound_repo) in feature_schema; DELETE the three
+      literal allowed-receipt sets in merge-gate, post-merge-sweep and check_state.board
+      and route them to this predicate. Preserve currently legal not-applicable cases
+      and frozen era exemption sets without adding Kaya/this repair. opened/recovered-terminal
+      requires usable matching repo provenance and no in-progress/uncertain replacement;
+      an opened string alone cannot pass a wrong-repo receipt. gh-sync preflights share
+      the same provenance rule. INV-37 grades per-feature enablement/binding, not ancestor
+      github.sync or factory.issues as proof. board_lifecycle scopes projection/fixes
+      by resolved binding and usable receipts; remove its comment claiming github.repo
+      does not exist. Invalid mappings are non-mutating diagnostics, never numbers projected
+      onto another board.
+
+      Evidence contract: define ONE closed evidence_ref $def containing required path
+      and sha256. Create feature_schema.resolve_evidence_ref(feature_dir, operand) ->
+      {path, sha256} and verify_evidence_ref(feature_dir, ref, subject) as the one confined
+      path/hash and subject/effect resolver/verifier for cycle/refusal writers, history/recovery,
+      recover-mirror/adoption and all INV-7/INV-15/INV-46 readers. CLI absolute operands
+      are allowed only inside the target feature containing feature.json; normalize
+      stored paths feature-relative. Reject lexical parent traversal, symlink escape,
+      nonregular/absent files, external files, changed hash and wrong feature/repository/run/plan/effect
+      before state changes. Define one operator_authorization shape with by, at and
+      authorization referencing evidence_ref, reused for operator-history cycle/refusal
+      provenance. Do NOT migrate set-rework or raise-cycles or tighten their existing
+      _require_decision_file operand grammar. digest_record remains the sole accepted-digest
+      selector/parser; feature_schema remains JSON-only without PyYAML.
+
+      Cycle contract: optional closed cycle_evidence carries source (lead-digest or
+      operator-history), path, sha256 using the evidence_ref definition; operator-history
+      additionally carries by, at and authorization using the shared authorization shape.
+      Store no reported_cycles or third count. For lead-digest compare run.cycles_used
+      == DIGEST.cycles_used selected through digest_record; retain CLI --cycles-used
+      and validate it against that digest, not the rolled-up VERDICT. Explicit historical
+      supported counts live only in the operator-history authorization note and must
+      equal the run attribution. close-run forwards its digest to run-end; run-end --digest
+      is required for new/changed attribution including newly attributed zero. Add feature-record.py
+      record-cycle-evidence --file <feature.json> --id <run-id> --digest <digest.md>
+      --evidence <operator-note> --by <operator> --yes to attach authentic historical
+      authorization to the original run/count, refusing contradiction. A refused historical
+      run without an accepted digest can derive count only from separately authorized
+      authentic history, never malformed prose treated as DIGEST.
+
+      Retain legacy residual = prior feature total minus existing per-run attributions;
+      new total = residual plus updated attribution sum. Refuse attributed totals above
+      feature total, negative/bool counts and contradictory evidence. Repeated reports
+      preserve totals/evidence identity, measured tokens and original timestamps. INV-7
+      grades these relationships and shared evidence verification, not number of FAILs.
+      Legacy entries without evidence/attribution remain readable with explicit unknown
+      notes; never inferred zero, invented evidence or rewritten totals. Preserve INV-39
+      ceilings/raise authorization and INV-40 regate duties; regate itself is not send-back
+      evidence. Update descriptions and table inputs/contracts so --changed includes
+      every evidence artifact actually read. Fleet-wide forward duty applies only to
+      new/changed attribution; unchanged historical rows and exact replay need no retroactive
+      backfill or rewritten timestamp. Missing new evidence refuses before total changes.
+
+      Refusal contract: optional closed refusal alone marks refused provenance; do NOT
+      add return_status or store constant validation_exit. refusal contains source (close-run
+      or operator-history), digest (evidence_ref), original run_id, reason, by and at;
+      operator-history adds authorization (evidence_ref). BLOCKED-only and exact run/hash
+      subject checks apply. Normal records keep existing accepted-return rules. close-run
+      --refused-return accepts only the expected validator CLI contract-rejection exit
+      1, not valid returns, crashes, signals, missing/unreadable artifacts or arbitrary
+      nonzero. Persist provenance through the locked writer before later station/judgement/spend
+      stages, preserving raw malformed digest bytes. Repeat closure preserves refusal
+      identity and attribution/tokens; normal close cannot upgrade refusal to PASS.
+      New/changed refused-run attribution, even zero, obeys the same authentic evidence
+      duty.
+
+      Add feature-record.py record-refusal --file <feature.json> --id <run-id> --digest
+      <original-digest.md> --evidence <operator-note> --by <operator> --reason <text>
+      --yes for closed historical BLOCKED runs only. Evidence must authorize that exact
+      run/hash/effect. Do not rerun old prose through the live schema, alter verdict/time,
+      synthesize an accepted fence or change reports. Use shared evidence_ref verification
+      and digest_record accepted selection, not another parser. INV-15/INV-46 keep complete
+      as execution completion, retain weaker existing accepted historical key/verdict
+      checks, and report proven BLOCKED refusal as refused completion, not accepted
+      PASS. Missing/mismatched evidence or complete with neither accepted return nor
+      valid refusal still violates; later success cannot mask earlier malformed reports.
+      Preserve state.yaml vocabulary, INV-36 identity and DEC-237 closed object-only
+      live validation; historical metadata never authorizes a live append bypass.
+
+      Authorization is target-local, not relative to caller/repair checkout. T-03 separately
+      creates canonical Kaya notes/research-fleet-planning-recovery-authorization.md
+      with identity/date, authentic origin, feature/repository binding, run IDs/digest
+      hashes, supported historical counts, signed plan hash and expressly permitted
+      metadata/replacement effects. Its bytes/hash, not the external repair receipt,
+      are runtime evidence. Existing original digests remain in place; authorization
+      is not invented history or an accepted return. Renewed/adoption authorization
+      is a new immutable target-local note/reference, never overwrite referenced history.
+
+      Tests: in existing gh_sync_support.run set BOTH FACTORY_GH and GH_SYNC_GH to the
+      same fake binary and add ONE shared repos/<repo>/contents handler returning per-repo
+      product configs and loudly rejecting unknown repos/unsupported calls. Ensure env_extra
+      cannot silently restore a real binary in fleet tests. Exercise the real product_config
+      subprocess path, board and issue-type overrides against conflicting Harness/Kaya
+      config and colliding numbers; assert the COMPLETE fake call log includes config
+      reads, targets correct repo/overrides and contains NO Harness mutation or real-gh
+      escape. Cover every feature-bound command, build-entry and board reconciliation,
+      missing config, malformed binding, sync off and null board only on legal unbound
+      paths, matching/absent/mismatched provenance and status preflight ordering. Cover
+      schema refs/closed keys, verbatim previous snapshots including absent repo, shared
+      gates and partial/invalid receipts. Cover signed source separation, full/terminal
+      modes, saved milestone/parent/task progress and repeated completion; interruption
+      before create, remote-success/no-number, local-save failure and restart with pending
+      intent must refuse with no next create and unchanged durable known receipts. Assert
+      NO automatic recovery reads/scans/retries/poll/title-search or issue markers.
+      Exercise separately authorized explicit adoption of each role under the same ID,
+      no duplicate create/archive, and partial/ambiguous/wrong-role/repo/plan evidence
+      refusal before changes. Existing nonreplacement read purposes remain unchanged.
+
+      Add unit cases for authentic two FAILs with 0/1, one real send-back, repeated
+      deltas, preserved legacy residual and conflicting/negative/bool counts; checker
+      cases preserve ceilings/regates. Cover missing new digest, authentic newly attributed
+      zero, forwarding, unchanged legacy and replay. Cover lead-evidence equality without
+      a stored third count; reject unauthorized historical counts. Cover refusal before/after
+      later valid run, changed hash, absent provenance, valid-digest misuse, validator
+      exit/crash/read failure and repeated close. Keep DEC-237 null/prose/fenced/live-object
+      negative controls. Unit/integration cases reject external repair evidence unchanged,
+      accept authentic target-local authorization, and reject traversal/symlink/mutated
+      bytes/wrong subject/effect before writes. Absolute-inside-target operands normalize
+      to the same evidence_ref read by every historical consumer.
+
+      Produce actual red-first receipts and named tests for SC-01 through SC-06, with
+      measured first-green focused wall time; the 60-second ceiling is currently unmeasured.
+      If exceeded move the slowest case to full-matrix coverage, not delete coverage
+      or inflate the claim. Main/qa runs the full active unit/integration matrix EXACTLY
+      ONCE at pinned review_sha after T-02 and before T-03 activation, including existing
+      live validation and all gh-sync suites; T-03 through T-05 add no code and require
+      no second matrix. No unexecuted claims, UI, generic retries, telemetry, framework
+      redesign, invented source tickets or unrelated fixes. S-6 timestamp/hash factoring
+      and S-13 possible close-run count derivation are build notes only, not scope/tasks/SC
+      additions; this plan retains --cycles-used.
+
+      '
+  - id: T-02
+    title: Reconcile governing decisions and existing operator guidance
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_agent: main-session-direct
+    execution_reason: These decision and skill amendments govern the DEC-174 enforcement cutover; honor every NOBODY route directly.
+    depends_on: [T-01]
+    status: done
+    files:
+      - {path: .harness/harness/docs/DECISIONS.md, quote: DEC-157}
+      - {path: .harness/harness/docs/DECISIONS-INDEX.md, quote: DEC-157}
+      - {path: .claude/skills/harness/SKILL.md, quote: recovery-required}
+      - {path: .claude/skills/harness/references/github-mirror.md, quote: recover-terminal}
+      - {path: .claude/skills/harness/references/ledger.md, quote: refused-return}
+      - {path: .claude/skills/harness/references/build-phase.md, quote: recovery-required}
+      - {path: .claude/skills/harness/bin/gen-decisions-index.py, quote: "gen-decisions-index.py --stdout"}
+    verify: |
+      python3 .claude/skills/harness/bin/check-decision-anchors.py --file .harness/harness/docs/DECISIONS.md && python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      # Expect exit 0 within 60 seconds and empty diff; pinned review_sha inspection carries SC-07. After T-02 main/qa runs the full active unit/integration matrix exactly once at that review_sha, before T-03 activation; T-03 through T-05 add no code and no second matrix.
+    intent: |
+      After T-01, directly update only the named governing files and existing skill references, no new standalone manuals or broad documentation cleanup. The generator content anchor is an existing read-only regeneration/verification tool, not a requested code edit. Preserve DEC-123 worst-member roll-up, DEC-174 execution carve-out, DEC-191 closed typed state, DEC-208 append-only history, DEC-226 hard budgets, DEC-229 operator signatures and DEC-237 live closed Yield objects. Amend DEC-157 FAIL floor into evidence-attribution/legacy-residual semantics while preserving genuine send-backs, idempotent deltas, raises and ceilings; record the removed contradiction. Reconcile DEC-156/INV-15 complete execution versus accepted/evidenced-refused historical completion, without accepting live operator prose or tightening old accepted history to current live schemas.
+      Amend affected DEC-138/DEC-203/DEC-220/DEC-221 routing/adoption clauses for factory.repo binding, github.repo provenance, unproven/invalid refusal, main-owned recover-mirror, archived generations, full/terminal replacement and product_config/board_for with no ancestor/disk fallback. Preserve existing DEC-203 read purposes without adding a replacement-recovery purpose. Document incremental confirmed saves, uncertain-create refusal and explicit --adopt-receipt <role>=<positive-number> authorized by immutable target-local evidence; no issue markers, automatic read-back/scan/adopt-match, retry, polling or title-search. recover-terminal stays compatible terminal adoption, not replacement. Ordinary open fills only compatible missing receipts, never known-invalid/unproven mappings.
+      In harness/SKILL.md, github-mirror.md and build-phase.md replace instructions sending every missing/recovery-required receipt to ordinary open with explicit invalid-mapping recovery. In ledger.md and existing playbook summary propagate run-end digest evidence, historical record-cycle-evidence/record-refusal, expected-rejection close-run semantics, refusal provenance distinct from acceptance, genuine zero-cycle FAILs, unknown legacy notes and unchanged budget/regate duties. Use T-01 shared evidence_ref path/sha256 and authorization semantics, no parallel evidence shape or duplicate status/count. Keep exact CLI flags aligned; no aliases or fake accepted historical examples. Regenerate DECISIONS-INDEX.md with the existing generator, preserving authored row filters, then require the empty stdout/diff result. Reviewer cites pinned git show and affected symbols/clauses for SC-07. After this task main/qa performs the one pinned full matrix before operational installation/capture; no second matrix from note-only T-03 through T-05.
+  - id: T-03
+    title: Capture authentic Kaya recovery evidence under separate operator authorization
+    traces: [SC-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_agent: main-session-direct
+    execution_reason: Missing external history and operator authorization cannot be supplied by a team or inferred from a sibling worktree.
+    depends_on: [T-02]
+    status: ready
+    files:
+      - {path: .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/research-kaya-recovery-evidence.md, create: true}
+    verify: |
+      MANUAL — Reviewed and tested repair tooling must be explicitly installed for recovery, and the operator must authorize authentic capture; the main Kaya corpus currently lacks historical feature files. Review exact paths, hashes and attribution in the capture receipt before T-04. Final repair shipping is not a prerequisite to its own UAT.
+    intent: |
+      This is an operational prerequisite after T-01/T-02 tooling has passed review and the full active unit/integration matrix exactly once at pinned review_sha after T-02, before T-03 activation. Record that pin and actual matrix receipt before separately authorized installation. T-03 through T-05 add no code and trigger no second matrix. Installation/capture may precede final repair completion and its own UAT; plan approval alone authorizes neither. Obtain separate capture authorization. Read authentic Kaya history only from /Users/molchairuangutai/GitHub/harness/.harness/kaya/features/FEAT-01-kaya-platform after operator-authorized owner/corpus capture. No sibling copies, invented artifacts, feature.json/state.yaml/plan/digest edits, signatures or remote operations belong to capture. Only the target-local evidence note below is an authorized capture write using main-session file tools. Missing originals yield a blocked capture receipt and no recovery.
+      Write .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/research-kaya-recovery-evidence.md with authorization identity/date, authentic origin, exact canonical paths/hashes for feature.json, approved plan.yaml and approval/task hashes, plus state.yaml/digest.md for 2026-10-05-2-plan-product, 2026-10-05-6-plan-product and 2026-10-05-3-simplify-eng. Separate intake from inspection. Capture original verdicts, supported 0/1 counts and designer-send-back passage, total/legacy residual, malformed simplify bytes/BLOCKED ledger entry, later valid runs, original times/tokens/provenance and implementation progress; do not fabricate history to fit intake of no implementation.
+      Capture factory.repo=mruangutai/kaya and invalid github including opened and original repo absence/value. Harness milestone 100, parent 2116 and tasks 2117 through 2126 are prior created mappings only, never source tickets. Capture signed Kaya source_issues separately; do not assume ticket 14. Keep attributed cleanup/wrong-issues-closed/unrelated-Harness-14-untouched observation without remote discovery/recleaning. Retain raw reports, not synthesized accepted digests.
+      Before T-04 obtain separate recovery authorization distinct from capture/install/plan approval for exact historical metadata and mirror effects. Under explicit note-creation authorization create /Users/molchairuangutai/GitHub/harness/.harness/kaya/features/FEAT-01-kaya-platform/notes/research-fleet-planning-recovery-authorization.md. Its immutable contents identify dates/operators/origin, canonical feature/repo, original feature/plan/run paths/hashes, supported 0/1 counts and passage attribution, refused run/hash, previous/target repo and full/terminal permitted effects. Use T-01 evidence_ref {path, sha256} and the SAME feature_schema resolver/verifier: persisted authorization is notes/research-fleet-planning-recovery-authorization.md plus hash, confined to Kaya. The external repair receipt records canonical path/bytes/hash and authorization for audit, never as --evidence. No inferred grant; existing different note requires renewed authorization/new local reference. No Kaya writes beyond this note until supported T-04/T-05 operations. Evidence stays immutable through authorized ledger/mirror changes; uncertain-create adoption needs separate exact-role authorization, not a blanket inferred grant.
+  - id: T-04
+    title: Record Kaya historical attribution and refusal without rewriting returns
+    traces: [SC-03, SC-04, SC-05, SC-08]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_agent: main-session-direct
+    execution_reason: The operator alone authorizes historical external state recovery; its canonical artifacts are CLI runtime operands outside this repair checkout.
+    depends_on: [T-03]
+    status: ready
+    files:
+      - {path: .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/research-kaya-ledger-recovery.md, create: true}
+    verify: |
+      MANUAL — After reviewed/tested tooling activation, authentic capture and separate recovery authorization, run Kaya feature-scoped INV-7/INV-15/INV-46/INV-39/INV-40 checks and compare original hashes/verdicts. Expect clean attributable rows or named real blockers, never bypasses or invented cycles; SC-08 remains user-executed.
+    intent: |
+      Require reviewed/tested repair tooling installed under explicit operator authorization, authentic T-03 capture and separate recovery authorization for exact canonical path/hashes/metadata changes. The matrix receipt is the one pinned review_sha run after T-02 and before T-03 activation; T-04 adds no code or second matrix. Plan signature is not operational authorization. Runtime operands are /Users/molchairuangutai/GitHub/harness/.harness/kaya/features/FEAT-01-kaya-platform/feature.json and original local run digests, never a repair-checkout shadow or sibling. Missing/changed/contradictory material stops; final repair completion is not a circular prerequisite.
+      Use installed feature-record.py record-cycle-evidence and record-refusal with --yes, --by and --evidence /Users/molchairuangutai/GitHub/harness/.harness/kaya/features/FEAT-01-kaya-platform/notes/research-fleet-planning-recovery-authorization.md. Verify that immutable note against T-03 hash/authorization via T-01 shared evidence_ref {path, sha256} and feature_schema verifier; persist only normalized target-local notes/research-fleet-planning-recovery-authorization.md plus hash, no external repair evidence or traversal/symlink exception. Original digests use that same reference shape at unchanged local run paths. Attach supported original 0 to 2026-10-05-2-plan-product and 1 to 2026-10-05-6-plan-product, retaining FAILs, legacy residual, verdicts/times/tokens. Lead evidence compares run.cycles_used to digest count without reported_cycles; operator-history note explicitly authorizes historical count. Unsupported counts/passage refuse, never inflate FAIL floor. On already-BLOCKED 2026-10-05-3-simplify-eng record typed refusal only with original run/hash and operator-history authorization; no return_status, constant validation_exit, accepted fence, live historical revalidation, verdict upgrade, digest edit or state vocabulary rewrite. Later valid reports remain separate.
+      Write .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/research-kaya-ledger-recovery.md with authorization, exact commands, before/after hashes, fields and actual stdout/exits; forward unchanged target-local evidence_ref to T-05, not this repair receipt. Main runs installed feature-scoped check-state.py --feature FEAT-01-kaya-platform --only INV-7,INV-15,INV-46,INV-39,INV-40 through authorized owner installation and records findings. This is later authorized post-fix verification, not a planning rerun. No unrelated changes, scope/approval/budget waivers or invented counts to force green; real blockers prevent continuation. External writes are supported historical metadata operations only.
+  - id: T-05
+    title: Replace Kaya invalid mirror and present the resume receipt to the operator
+    traces: [SC-01, SC-02, SC-07, SC-08]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_agent: main-session-direct
+    execution_reason: This separately authorized main-session operation mutates external canonical Kaya receipts and its GitHub mirror, never through changed enforcement dispatch.
+    depends_on: [T-04]
+    status: ready
+    files:
+      - {path: .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/research-kaya-mirror-recovery.md, create: true}
+    verify: |
+      MANUAL — After reviewed/tested tooling activation and separate authorization, execute recover-mirror, repeat it to demonstrate the durable no-op, run Kaya feature-scoped checks and obtain user-executed SC-08. Remote calls remain suspended during planning; final repair completion follows, not precedes, its UAT.
+    intent: |
+      Require T-01/T-02 reviewed/tested tooling explicitly installed, authentic capture/ledger recovery and separate operator authorization for prior mruangutai/harness and target mruangutai/kaya. Record the one full-matrix receipt at pinned review_sha after T-02 before T-03 activation; T-05 adds no code and no second matrix. Canonical target is /Users/molchairuangutai/GitHub/harness/.harness/kaya/features/FEAT-01-kaya-platform in authorized owner installation, never sibling/invented shadow. Confirm original captured plan/feature hashes and factory.repo; changed evidence requires renewed authorization. Operational acceptance precedes final repair completion.
+      Invoke installed gh-sync.py recover-mirror <canonical-Kaya-feature-dir> --previous-repo mruangutai/harness --evidence <authentic-authorized-evidence-note> --yes, never ordinary open on invalid receipts or recover-terminal as replacement. Do not close/reopen/relabel/move Harness milestone 100, parent 2116, tasks 2117 through 2126 or unrelated Harness 14. Archive prior mappings and use the single resolve_binding/product_config/board_for path. Board 9 is an attributed old observation, not fresh evidence.
+      If authentic history confirms no work started, full replacement creates actual Kaya milestone/parent/tasks from unchanged signed plan and records provenanced opened. If work started, require authorization for terminal replacement without task creation. Save every confirmed receipt before next create; resume known partial progress under the SAME recovery ID/plan hash without duplicate objects/archive. Uncertain create with no durable number or save failure after possible success REFUSES naming its pending role; no automatic read-back, scan/adopt-match, retry, polling, title-search or issue markers. Do not bypass ambiguous/partial evidence. If reconciliation is needed obtain new immutable target-local exact recovery/role/repo/number/plan/ownership/adoption authorization and invoke the T-01 explicit --adopt-receipt <role>=<positive-number> flag; use the shared evidence_ref verifier, preserve original authorization and resume that same generation. No invented IDs or inferred signed source tickets.
+      Write .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/research-kaya-mirror-recovery.md with authorization, actual repo/board, before/after hashes, archives/new mappings, exact stdout/exits and repeated completed operation proving durable no-op. Main runs installed check-state.py --feature FEAT-01-kaya-platform with no INV-7/INV-15/INV-46/INV-37 waiver or new exemption. Operator executes SC-08 against original FAILs, supported 0/1 plus legacy residual, byte-identical refused simplify, untouched unrelated Harness 14 and no product implementation. Return ready resume receipt only; UAT stays not_met until user execution. No invented passed UAT or product implementation.

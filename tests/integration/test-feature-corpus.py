@@ -23,6 +23,7 @@ sys.path.insert(0, str(BIN))
 import f58_sparse_fixture as F  # noqa: E402
 import feature_corpus as fc  # noqa: E402
 import layout_migration  # noqa: E402
+import factory_config  # noqa: E402
 
 ACTIVE = "FEAT-1-alpha"
 MANIFEST = """schema_version: 1
@@ -34,7 +35,7 @@ teams:
           - { path: .harness/*/features/**, upsert: true }
           - { path: ".", read: true }
 """
-GITHUB_ON = '{"github": {"sync": true, "repo": "o/r"}}\n'
+GITHUB_ON = '{"github": {"sync": true, "repo": "o/r", "board": null}}\n'
 
 
 def repair(checkout):
@@ -163,7 +164,7 @@ class MergeGate(Case):
 
     def test_a_single_receipted_owner_is_allowed(self):
         doc = json.loads(F.feature_json("FEAT-2-beta", "feat/FEAT-2-beta"))
-        doc["github"] = {"build_entry": "opened"}
+        doc["github"] = {"repo": "o/r", "build_entry": "opened"}
         self.fx.commit_owner({".harness/harness/features/FEAT-2-beta/feature.json":
                               json.dumps(doc) + "\n"}, "receipt")
         wt = repair(self.fx.add_worktree(ACTIVE))
@@ -311,14 +312,19 @@ class BoardStatus(Case):
         super().setUp()
         import board_lifecycle
         self.bl = board_lifecycle
+        self.board = {"owner": "o", "number": 9, "station_field": "Status",
+                      "stations": list(factory_config.MANDATED_STATIONS)}
         record = json.loads(F.feature_json("FEAT-2-beta", "feat/FEAT-2-beta"))
-        record["github"] = {"issues": {"T-01": 501}, "parent": 500}
+        record["github"] = {"repo": "o/r", "issues": {"T-01": 501}, "parent": 500}
         self.fx.commit_owner({f"{self.OTHER}/feature.json": json.dumps(record) + "\n",
-                              f"{self.OTHER}/plan.yaml": self.PLAN}, "FEAT-2-beta is building")
+                              f"{self.OTHER}/plan.yaml": self.PLAN,
+                              ".harness/harness.json": json.dumps({"github": {
+                                  "sync": True, "repo": "o/r", "board": self.board}}) + "\n"},
+                             "FEAT-2-beta is building")
         self.wt = repair(self.fx.add_worktree(ACTIVE))
 
     def messages(self, stations):
-        return [f.message for f in self.bl._status_findings(self.wt, None, stations)]
+        return [f.message for f in self.bl._status_findings(self.wt, self.board, stations, "o/r")]
 
     def test_a_landed_feature_absent_here_is_audited_against_its_cards(self):
         self.assertFalse(os.path.exists(os.path.join(self.wt, self.OTHER)))
@@ -334,7 +340,7 @@ class BoardStatus(Case):
 
     def test_one_id_active_in_two_segments_is_audited_in_both(self):
         record = json.loads(F.feature_json("FEAT-2-beta", "feat/kaya-beta"))
-        record["github"] = {"issues": {"T-01": 601}, "parent": 600}
+        record["github"] = {"repo": "o/r", "issues": {"T-01": 601}, "parent": 600}
         kaya = ".harness/kaya/features/FEAT-2-beta"
         self.fx.commit_owner({f"{kaya}/feature.json": json.dumps(record) + "\n",
                               f"{kaya}/plan.yaml": self.PLAN}, "kaya FEAT-2-beta is building")

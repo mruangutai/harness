@@ -1,0 +1,29 @@
+{
+  "feature_id": "BUG-20261006-fleet-planning-recovery",
+  "approved_at": "2026-10-18T16:01:06.350319+00:00",
+  "operator_selection": "Authorize own-feature recovery",
+  "scope": "This Harness feature only. Preserve original digest bytes, verdicts, timestamps and cycle counts. Leave original remote objects untouched. Permit explicit mirror replacement, a local review commit and the one required pinned full matrix. No Kaya writes, merge or deployment.",
+  "effects": [
+    {
+      "effect": "record-refusal",
+      "feature_id": "BUG-20261006-fleet-planning-recovery",
+      "run_id": "2026-10-06-2-simplify-eng",
+      "digest": {
+        "path": "runs/2026-10-06-2-simplify-eng/digest.md",
+        "sha256": "fd5656050c7dbbf9c979bd0bff9ef24805959a162341d06183f3055c844d9336"
+      },
+      "by": "operator",
+      "reason": "Operator authorizes typed provenance for the original closed BLOCKED return, whose raw report has no accepted fenced mapping; preserve its original bytes, verdict, timestamps and zero attribution."
+    },
+    {
+      "effect": "recover-mirror",
+      "feature_id": "BUG-20261006-fleet-planning-recovery",
+      "from_repo": "mruangutai/harness",
+      "to_repo": "mruangutai/harness",
+      "mode": "terminal",
+      "plan_sha256": "77ac2d598b15d69506452542ce68ed2f3b7a821252f54e517327f17dc44f6281",
+      "by": "operator",
+      "reason": "Operator authorizes explicit replacement of this feature\u2019s unproven active Harness mapping. GitHub read verified milestone 103 and parent 2154 belong to mruangutai/harness and name this feature. Archive the original mapping verbatim; create only the terminal replacement milestone and parent; leave old remote objects untouched."
+    }
+  ]
+}

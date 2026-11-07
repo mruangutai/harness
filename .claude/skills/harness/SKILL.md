@@ -84,13 +84,16 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    (DEC-201).
    Never guess a figure; a reported number is a claim until disk confirms it (DEC-199).
 6. **Adjust and record — ONE command closes the run.**
-   `feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a] [--refused-return]`
+   `feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a] [--refused-return --evidence <authorization> --by <operator>]`
    Stages run in order and the first refusal stops the rest: fix the named stage, never re-issue
    later ones by hand (BUG-1723). The `plan` run alone closes with `--code-grade n_a`, recording
    `code_grade: n_a` so INV-6 demands no `review_sha` for it (BUG-1080). Tokens, `C`, refusals:
    `ledger.md`. **Three writes are separate, after close-run:** REPLACE `STATE.md`'s `## Current`
    (values, never narrative, DEC-150); the phase handoff note at a seam; the commit. Then route
    (below).
+   New/changed attribution, including zero, needs hash-bound digest evidence and its exact integer
+   count; FAIL is not itself a cycle. Historical `record-cycle-evidence`/`record-refusal` require
+   immutable target-local authorization and never manufacture an accepted return (`ledger.md`).
 7. **Advance until DONE — and done means the success criteria are met, not the tasks exhausted.**
    Each wake advances the plan by exactly one step. **There is no waiting anywhere in this loop.**
    The goal-check grades the SCs **twice per feature and never per cycle** (SC-09): inside the
@@ -129,8 +132,10 @@ byte-verified before any commit.
   proportionality finding no reader opposes downgrades the mission to `patch` by your own hand
   (SC-03); `scope: task` findings never do, however many (DEC-228). Procedure:
   `plan-phase.md`.
-- **Build** — require the signature-created `github.build_entry` receipt; absent or
-  `recovery-required`, idempotent `open` is the recovery path. Run
+- **Build** — require the signature-created `github.build_entry` plus valid repository provenance.
+  Compatible missing/partial receipts may use main-owned `open`; invalid mappings require explicitly
+  authorized `recover-mirror`, never ordinary `open` (`github-mirror.md`). Compatible
+  `recovery-required` may continue but gates merge. Run
   `gh-sync.py status <feature-dir> building` before task dispatch, then send the
   `build` team to `harness-eng-lead` (single-squad, DEC-118). **A `PASS` carrying `amendments:` is
   transcribed FIRST** — `plan-merge.py record-amendments --file <plan.yaml> --digest <lead

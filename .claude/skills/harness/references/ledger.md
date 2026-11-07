@@ -20,38 +20,73 @@ the judgement land in one write. A reason for a judgement the open does not owe 
 You never write those two kinds with `judgement` after the fact; INV-43 grades a late succession
 as retrospective forever.
 After every return, ONE command:
-`feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a] [--refused-return]`
+`feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a] [--refused-return --evidence <authorization> --by <operator>]`
 — in order: the digest is validated against the run's recorded persona; `run-end`; the task
 station when `--task`/`--station` are paired; the judgement, recorded as you; `spend`. **The first
 refusal stops it, names its stage, and keeps every earlier durable write** — fix what the named
 stage refused; never re-issue the later stages by hand (BUG-1723). On success it prints one line
-carrying the spend figure, which every return of yours reports. `C` is the non-negative
-`cycles_used` the lead DIGEST reports, **never estimated**: run-end writes the run's cycle
-attribution and adjusts the feature total so repeating the same report leaves it unchanged.
+carrying the spend figure, which every return of yours reports. For an accepted close, `C` is the
+exact non-boolean, non-negative integer `DIGEST.cycles_used`, never inferred from the verdict.
+Every new or changed `run-end` count, including zero, requires `--digest`; the sole
+`digest_record.py` reader checks the same verdict/count and stores hash-bound `cycle_evidence`.
+`close-run` resolves a feature-relative or absolute `--digest` once at entry; validation,
+accounting and refused-return recording all receive that same target-local file, never a
+similarly named file in the process working directory.
+Live digest paths belong to one run: another recorded run's `runs/<id>/` namespace or
+current/prior evidence cannot supply your close. Arbitrary feature-local locations remain legal
+for a first claim. A count correction retains superseded hash-bound references in
+`cycle_evidence.previous`; they keep their original ownership and must remain immutable.
+Writers and invariant readers enforce the same ownership, including after correction.
+Repeating identical evidence is byte-idempotent. Attribution deltas preserve the legacy
+unattributed residual; historical missing counts/evidence are explicit notes, not assumed zeros.
+A first-pass FAIL can legitimately contribute zero; a genuine send-back contributes one.
 Tokens are the host's: the hook stamps the measured figure onto the open run on your wake
 (BUG-1724) and a bare close-out preserves it; only a run whose entry still carries none may take
 `run-end --tokens N` from `details.results[i].tokens`, never an estimate — `null` when unmeasured,
 so a reader can tell unmeasured from zero (SC-18).
 
 When the host **refused** the lead's final return, its `digest.md` never received a valid record
-and the digest stage can never pass. Close that run with `--refused-return --verdict BLOCKED`: the
-digest stage is inverted — it refuses if the digest *does* validate, because then the return
-landed and closes normally under its own verdict — and every later stage runs as usual (#2068).
-Only this validated close-out creates `return_disposition: refused`; `run-end` has no
-`--refused-return` option and can only replay a disposition already recorded. The inverted
-stage requests deliberate contract-refusal status 65 from the validator: argument-parser
-errors (2), input-read errors and internal failures (1) stop closure rather than providing
-refusal evidence. Positional inputs follow `--`, including dash-leading digest filenames.
-The closure records that disposition with the terminal BLOCKED entry. INV-15
-recognizes only that exact closed run and matching lead; it does not accept the prose as a digest
-or turn the refused result into PASS. Ordinary completed runs still require their durable record.
-Reapplying that refused closure to an already BLOCKED run preserves its original `ended_at`;
-ordinary run-end also preserves that timestamp once refusal is recorded. Neither path can
-rewrite the refused terminal verdict or erase its disposition.
-Historical refused annotation and replay also preserve the recorded cycle attribution, feature
-cycle total, and measured tokens; conflicting explicit accounting is refused without writing.
-A prior non-BLOCKED terminal verdict cannot be annotated as refused even when a legacy record
-has no timing fields.
+and the digest stage can never pass. Close that still-open run with
+`--refused-return --verdict BLOCKED --cycles-used <C> --evidence <authorization> --by <operator>`;
+`--evidence`/`--by` are required for its new attribution, zero included. The digest stage is
+inverted: it refuses if the digest *does* validate, because then the return landed and closes
+normally under its own verdict (#2068). It requests deliberate contract-refusal status 65 from
+the validator; argument-parser errors (2), input-read errors and internal failures (1) stop
+closure rather than providing refusal evidence. The raw digest must exist and be readable.
+The composed close stores typed, hash-bound `refusal` provenance (`source: close-run`) with the
+BLOCKED entry before later station, judgement and spend stages. Complete execution is not an
+accepted return; it remains `BLOCKED`. Never append a fake accepted fence or close such a run
+with a bare `run-end`: `run-end` has no `--refused-return` option.
+
+Replaying either close on an already-refused run preserves its `ended_at`, verdict, cycle
+attribution and measured tokens; a conflicting count or token figure is refused without writing,
+and no prior non-BLOCKED terminal verdict can be closed as refused. A run already closed
+`BLOCKED` without provenance is historical: `close-run` refuses it and `record-refusal` below is
+its only path. A frozen legacy `return_disposition: refused` marker, written before provenance
+existed, has no writer; INV-15/INV-46 still read it as grandfathered data with its closed BLOCKED
+identity, and an entry never carries both it and `refusal`.
+
+**Historical proof without rewritten returns.**
+
+Only an existing closed run can receive historical metadata:
+
+- `feature-record.py record-cycle-evidence --file <feature.json> --id <run-id> --digest <original> --evidence <authorization> --by <operator> --yes` attaches proof to its already recorded integer count. It never supplies or changes that count and cannot contradict an explicit authentic digest count.
+- `feature-record.py record-refusal --file <feature.json> --id <run-id> --digest <original> --evidence <authorization> --by <operator> --reason <reason> --yes` records provenance only for an existing `BLOCKED` run.
+
+Both preserve original digest bytes, verdicts, timestamps, tokens, counts and the feature's legacy
+residual. Identical replay changes nothing; conflicting metadata or changed evidence refuses.
+Historical refusal provenance satisfies the evidenced-refused branch of INV-15/INV-46, never live
+return acceptance. Missing authentic history or authorization is a blocker, not permission to
+manufacture a record.
+
+The shared `evidence_ref` is exactly `{path, sha256}`. Paths normalize under the target feature;
+traversal, symlink escape, non-regular files and hash mismatch refuse. An immutable authorization
+note contains strict JSON, even if its filename ends in `.md`: top-level `feature_id` and an
+`effects` list with exactly one matching subject/effect. Historical effects name `effect`
+(`record-cycle-evidence` or `record-refusal`), `run_id` and `digest: {path, sha256}`; the cycle
+effect additionally names the exact recorded `cycles_used`. Duplicate keys, ambiguous matching
+effects and wrong scalar types refuse. Persist the normalized note reference and operator/time,
+never a mutable external link. Mirror recovery uses the same resolver and authorization protocol.
 Retryable yield refusals retain the same live job's claim until its corrected return is accepted;
 host terminal cleanup still releases jobs that actually end without an accepted return.
 

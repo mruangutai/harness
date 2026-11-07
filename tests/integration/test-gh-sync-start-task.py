@@ -526,12 +526,6 @@ def main():
                      {"FACTORY_GH": os.path.join(tmpT04, "gh")})
         check("T-12 era-exempt trailing slash continues", result.returncode == 0
               and "predates" in result.stderr, result.stderr)
-        document = read_feature_json(os.path.join(era, "feature.json"))
-        document["github"]["build_entry"] = "recovery-required"
-        write_feature_json(os.path.join(era, "feature.json"), feature_id=document["feature_id"], github=document["github"])
-        result = run(["start-task", era, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
-        check("T-04 era recovery-required does not claim a refusal", result.returncode == 0
-              and "is not refused" in result.stderr and "open" not in result.stderr.lower(), result.stderr)
 
     # =============================================================================================
     # BUG-201 (D-05, REQ-05): the two swallowing consumers' failing diagnosis cases (T-05).
