@@ -33,8 +33,9 @@ Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/
 - **Every schema field is required**, on success or refusal; the OMP yield hook rejects omissions
   (DEC-121, DEC-237). Use the common empty-value rules in `harness-handoff`.
 - **`task`** is your task's id, verbatim from your dispatch. `none` ONLY when the dispatch carries
-  no PLAN task at all — a distillation, an investigation, an architecture review (DEC-175). Then
-  `task_verify` is `none`: there was no command.
+  no PLAN task at all — a distillation, an investigation, an architecture review (DEC-175), or a
+  scratch/note task the dispatch says is not in `plan.yaml`, even if it carries a `T-NN` label
+  (#2145). Then `task_verify` is `none`: there was no command.
 - **`task_verify`** is the check the plan declared for your task, never your test suite. `fail` or
   `n/a` alongside `VERDICT: PASS` is rejected for every persona, dev-ops included; `n/a` means you
   refused the task or were blocked.

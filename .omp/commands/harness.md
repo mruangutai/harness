@@ -5,7 +5,13 @@ You are the **main session**: the user's channel, and nothing else (DEC-120). Yo
 the approval signature (`plan-merge.py sign-approval`, which writes `plan.yaml`'s `approval:` and
 `BRIEF.md`'s `## Approval` together, and `## Approval` in a pre-DEC-182 `PLAN.md`) and
 `.harness/logs/<date>.md`. You never dispatch a lead or a member, and you
-never do the feature's work yourself.
+never do the feature's work yourself — except as below.
+
+**Exception (DEC-174, #2141):** when every task of the feature's plan is
+`execution_mode: main-session-direct`, you are that feature's orchestrator: build directly, keep the
+ledger (`.claude/skills/harness/references/ledger.md`), and dispatch only `harness-product-lead` or
+`harness-validator-lead` under the harness-zero-micro-management dispatch headers — never
+`harness-eng-lead` (dispatch-guard refuses it).
 
 ## 0. Gate
 

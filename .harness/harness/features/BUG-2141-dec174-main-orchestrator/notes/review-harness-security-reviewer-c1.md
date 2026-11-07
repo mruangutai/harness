@@ -1,0 +1,18 @@
+# Security review — BUG-2141 · T-01 · c1
+
+**PASS — remediation adds real-guard controls without changing authorization, identity, claim handling or secret handling. No introduced security findings.** T-01 / SC-04's missing integration shapes are present by inspection; execution and final acceptance remain QA/validator-owned.
+
+Pinned ranges: immutable baseline `0b17e9bbf7ef4baafa0eb0844ec0edbb753dd86f` → current `cc0c16bd31035152857c07036fce6094715e596e`; remediation `423049fe49c122ee2ec790c53cdc6ce19f1ec791` → current. Compared exact commit objects, never HEAD. Pin-to-working diff is empty for inspected guard, integration test, BRIEF and plan.
+
+## Census and scope
+- Full baseline-to-pin census: 18 paths. Security-bearing production `dispatch-guard.py`, authority `DECISIONS.md`/`DECISIONS-INDEX.md`, guidance `AGENTS.md`/`.omp/commands/harness.md`, and both unit/integration guard tests remain in scope; production/authority/unit paths are unchanged since the accepted c0 review.
+- Feature `BRIEF.md`, `plan.yaml`, `feature.json` are acceptance/routing records assessed for authority tampering. Eight notes (`evidence-T-01`, `research-patch-intake`, `rework-ruling`, c0 goalcheck research and four c0 reviewer notes) are evidence prose, not new executable authorization/input/output surfaces; inspected delta has no credential-shaped secret material.
+- Remediation is **tests-only executable change, not literally a one-file diff**: seven paths change—`test-dispatch-guard.py` plus `feature.json` and five c0 assessment notes. The pinned feature record preserves c0 FAIL and its historical review pin; it does not grant permissions. No dependency, request, export, shell interpolation or production secret-handling change.
+
+## Trust-boundary assessment
+- `tests/integration/test-dispatch-guard.py:717–779`: case_15d supplies four Main→product/validator mission controls and team-only/missing-mode/empty/invalid/absent plan controls. Existing case_15c retains prohibited all-direct and allowed mixed coverage. Assertions require actual subprocess exit 0, one claim filtered to the requested lead/feature, a receipt marker and no DEC-174 refusal; they do not substitute fixture-only success.
+- `:726–752` reuses `_checkout`, `_register_lead_run`, `_task` and `fire`. The added validator persona is copied from the checked-in persona, not replaced with permissive content. Existing registration (`:276–293`) supplies one open PENDING run and its normal run-directory grant. `fire` (`:56–73`) invokes the real guard; no monkeypatch, auth bypass flag, fabricated registry claim or altered guard dependency is added.
+- Pending plan status is legitimate setup for product plan preflight, not a disabled check: unchanged `dispatch-guard.py:590–688` still resolves registered destinations and checks pending-plan status where applicable, before `live_claim`/`claim_with_receipt` (`:714–735`). Malformed/absent plans retain prior classification and preflight, with valid runs explicitly supplied. The accepted c0 BUG-2110 fallback assessment is unchanged; no new evidence reopens it.
+- Main identity is carried in the same host-level fixture fields as existing case_15c, not task-input lineage. Claim assertions bind lead and feature; they do not newly assert every receipt/dispatcher field. No runtime identity or claim mechanism changed, so this is not an introduced privilege or identity defect.
+
+SC-01–03 accepted outcomes stand: none of their production, guidance or unit subjects changed. No tests/builds/linters/formatters, mutants or grading commands executed by this reviewer. Findings, must-fix and open questions: none. Assessment is pinned structural inspection, not an execution or mutation-proof claim.

@@ -152,6 +152,12 @@ class JsonContracts(unittest.TestCase):
             path.write_text(json.dumps(document), encoding="utf-8")
             self.assertEqual(document, accessors.load_feature_json(path))
 
+    def test_feature_json_excessive_depth_is_a_typed_input_error(self):
+        text = '{"feature_id":"F1","nested":' + "[" * 10000 + "0" + "]" * 10000 + "}"
+        with mock.patch("json.scanner.make_scanner", json.scanner.py_make_scanner):
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(text=text, context="F1 feature.json")
+
     # FEAT-61 T-01: ONE strict decoding primitive. Every strict JSON reader in bin/ (harness.json,
     # feature.json, gh payloads, feature_json_write.parse_doc) goes through it, so a tightening
     # lands everywhere at once instead of in whichever of two hand-copied hook pairs got edited.

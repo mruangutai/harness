@@ -64,7 +64,11 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    (the three leads) and any `name:` parameter (DEC-147); cross-squad leads are two dispatches
    you sequence (DEC-118). Pass paths, never content; pin `review_sha` before any validator run
    over code (INV-6). A dispatch asking a question names where the answer belongs:
-   `adequacy_notes`, a step's `evidence`, or the digest — never a new digest key.
+   `adequacy_notes`, a step's `evidence`, or the digest — never a new digest key. Other header
+   lines follow `harness-zero-micro-management`'s dispatch header: `HARNESS-MISSION: <actual
+   phase>` only on product and validator starts, after the lead's `feature-record.py run-start`
+   registration; the guard refuses, before any claim, a lead with no or several open registered
+   runs or a plan panel on a plan that is not `pending`, naming the remedy.
 4. **Let the host supervise the nested dispatch at the tool boundary.** Every lead and member is
    declared `blocking: true`; the `task` call remains in the host while your model is inactive,
    and returns only when the child is terminal. Do not poll, sleep, emit heartbeats, or invent

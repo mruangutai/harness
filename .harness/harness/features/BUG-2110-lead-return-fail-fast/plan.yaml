@@ -1,0 +1,145 @@
+schema: plan/1
+feature: BUG-2110-lead-return-fail-fast
+approval:
+  date: '2026-10-07'
+  approved_by: Mike Ruangutai
+  status: approved
+status: done
+source_issues: [2110, 2097]
+panel:
+  last_run: 2026-10-07-01-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - disposition: resolved
+    id: PF-9f6bd1eb181229102dc35c6c563de45e
+    kind: proportionality
+    reader: should-not-exist
+    resolved_by: T-01
+    scope: task
+    severity: med
+    summary: T-01's --prove-baseline SHA mode — in-test git-show provisioning of historical bin subjects plus sibling imports in private trees, with per-case red-validity rules — should not be committed as a permanent dual-mode feature of both new test files.
+  - id: PF-e3c978efcc531b970d4700a2a00f005c
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-01 bundles four files and three execution modes (normal, --prove-baseline,
+      --check-producers) plus mutant tooling into one task; keep, but expect it to
+      dominate the schedule.
+    disposition: open
+    scope: task
+lanes:
+  resolved_at: 2d28b79e3e7b5ae5623bd47dd87eab53a4a0c724
+  rows:
+  - surface: .claude/skills/harness/bin/**
+    lane: main-session-direct
+    reason: DEC-174 excludes enforcement scripts from execution through their changing gates.
+  - surface: tests/unit/**
+    lane: main-session-direct
+    reason: DEC-174 includes each gate's regression tests.
+  - surface: tests/integration/**
+    lane: main-session-direct
+    reason: DEC-174 includes dispatch and return authorization integration tests.
+  - surface: .claude/skills/harness/SKILL.md
+    lane: main-session-direct
+    reason: This dispatch-contract producer has no specialist write grant.
+  - surface: .claude/skills/harness/references/plan-phase.md
+    lane: main-session-direct
+    reason: This dispatch-contract producer has no specialist write grant.
+  - surface: .claude/skills/harness/teams/plan.yaml
+    lane: main-session-direct
+    reason: This plan-reader dispatch producer has no specialist write grant.
+  - surface: .claude/skills/harness-team/SKILL.md
+    lane: main-session-direct
+    reason: This team dispatch-contract producer has no specialist write grant.
+  - surface: .claude/skills/harness-zero-micro-management/SKILL.md
+    lane: main-session-direct
+    reason: This dispatch-contract authority or producer surface has no specialist write grant.
+  - surface: .omp/agents/harness-orchestrator.md
+    lane: main-session-direct
+    reason: This dispatch-contract authority or producer surface has no specialist write grant.
+  - surface: .claude/skills/harness/references/build-phase.md
+    lane: main-session-direct
+    reason: This dispatch-contract authority or producer surface has no specialist write grant.
+decisions:
+  - id: D-01
+    choice: Keep registered_destination preflight mandatory for all three leads. Require an explicit HARNESS-MISSION declaration only for product-lead and validator-lead starts and the plan scope-reader route; plan selects the declared feature checkout-local plan.yaml before spawn. Missing mission must not refuse engineering-lead starts; existing mission forwarding and distill behavior stay unchanged.
+    because: Current validator dispatches expose only free-form prompt text, and reviewed plan targets are otherwise first reliable at reader yield; explicit mode avoids guessing from prose or blocking ordinary code validation of an approved feature.
+    dec: DEC-228
+tasks:
+  - id: T-01
+    title: Pin startup refusals and authorized startup-to-return regressions
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires direct authoring and execution of enforcement tests in this feature worktree.
+    depends_on: []
+    status: done
+    files:
+      - tests/unit/test-lead-start-preflight.py
+      - tests/integration/test-lead-start-return.py
+      - tests/integration/test-dispatch-guard.py
+      - tests/integration/test-validate-digest.py
+    verify: |
+      python3 /tmp/BUG-2110-fail-first-evidence.py --baseline 63cac11a
+    intent: |
+      Work only in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2110-lead-return-fail-fast. Write tests before T-02 production edits. Add the two named executable Python test files under their configured unit/integration directories, using private copied bin trees and disposable registered feature checkouts, never live feature records or claims. Reuse existing isolated_bin, dispatch payload, registered-run and hook-yield fixture patterns. Update existing lead-dispatch positive fixtures to register their actual agent/squad PENDING run and supply HARNESS-MISSION only for product/validator starts and the plan scope-reader route, without weakening their assertions or registering invalid negative cases. Preserve non-lead and non-Harness passthrough controls.
+      For SC-01 parameterize all three lead personas, exercising zero and two matching open runs, exactly one matching run, and irrelevant closed, ended, wrong-squad and other-agent runs. Invoke the real dispatch guard, assert exit 2 and the actual authorization failure on zero/two, and prove refusal precedes claim_with_receipt by checking an unchanged empty private registry alongside a valid-start positive control. Test the shared registered_destination behavior rather than reproducing its run predicate. For SC-03 unit diagnostic assertions must name the feature, target lead, original binding error, exactly-one-open-run remedy, and feature-record.py run-start --file FEATURE_JSON --id RUN_ID --squad SQUAD --agent LEAD for a missing run. Ambiguous runs require inspecting and legitimately closing surplus open runs, not deleting records or releasing runtime claims as a substitute.
+      For SC-02 integration cases invoke dispatch-guard.py with HARNESS-MISSION: plan for product and standalone validator leads. Existing approved plans and existing plans with absent approval/status must refuse before assessment, reader dispatch or a claim receipt, naming the exact canonical target and observed status. Assert pending-plan success; product-lead initial drafting with no plan file succeeds; validator standalone plan-panel with no plan file refuses. Include normal validator validate/fix and product patch dispatches against an approved plan as positive controls. Product patch must declare patch explicitly rather than inherit plan. Test missing/conflicting mission refusal for product-lead and validator-lead and missing plan mission on the plan scope-reader route. A registered engineering-lead build or standalone SIMPLIFY start without HARNESS-MISSION must succeed against an approved plan; prove its zero/two-run cases still refuse independently of mission. Preserve existing mission forwarding and distill behavior with regression controls; do not introduce an engineering mission prerequisite. Unit SC-03 cases assert the plan diagnostic says panels run before signature and directs callers to the pending-plan phase; it must not recommend toggling approval or relabelling the review. Cover plan scope-reader dispatch after approval changes while the plan-team lead is already running.
+      For SC-04 integration cases drive dispatch, runtime claim registration, digest_destination.bind and validate-digest.py --hook in sequence for each lead using a regular human-assessment digest file and schema-complete valid objects. Assert successful authorized append to exactly the registered destination, and a pending-plan scope review accepted normally. Assert missing trusted binding still refuses without append and a plan accepted at startup then changed to approved is refused at reader return. Retain existing wrong-child, wrong-parent, wrong-feature, wrong-checkout and wrong-artifact authorization assertions. Prove missing-binding and pending-only return refusals discriminate with separate temporary gate-loosening mutants, each mutant making its own retained refusal assertions fail. Never alter the real gates during this task.
+      Do not add --prove-baseline or any historical provisioning mode to committed tests. Before T-02, create the disposable external procedure /tmp/BUG-2110-fail-first-evidence.py and run it once with --baseline 63cac11a. It must provision historical production bin subjects and required sibling imports from that exact pin in private temporary trees, and execute the current test assertions and current fixtures against those subjects using disposable copies, adapting only their subject paths outside the committed tree. Preserve a durable QA receipt in this feature notes directory with the baseline pin, subject and per-SC/per-case exit, diagnostic and assertion output. The procedure must exit 0 only when each named new startup refusal/diagnostic case fails for the intended missing behavior, each new SC-04 startup-to-return witness demonstrates the old startup gap, and unchanged return controls and positive fixture controls execute successfully. Import failure, unavailable historical bytes, fixture failure or an earlier unrelated guard invalidates the receipt and must exit nonzero. Independently exercise the retained missing-binding and pending-only refusal assertions against separate temporary gate-loosening mutants, recording which assertions each mutant makes fail. Complete each focused suite invocation within 60 seconds. Remove the disposable procedure and private subject trees after QA consumes the receipt; never commit them or require historical git objects in normal tests or CI. Normal no-argument mode runs current runtime behavior with no historical dependency and exits nonzero on any failed assertion. Add --check-producers to the integration test to additionally inspect every T-03 producer file individually across the dispatch-contract authority chain. Assert that the existing zero-micro-management header section is the sole authority for mission applicability, harness-team points to it, and the orchestrator persona and harness lead headers reference or comply with it. Assert plan-phase plan leads and scope-reader use plan, product patch uses explicit patch, and build-phase validator validate/fix dispatches use validate/fix. Assert all-three-lead registration/remedy clauses and that engineering recipes do not require a new mission marker. Reject competing blanket all-lead mission requirements; a file-global match or matching-file count is insufficient; do not enable this future-document check in T-02's no-argument verification. T-01 owns all test edits, including these assertions for T-03. Keep behavioral tests as SC evidence; text assertions alone are not refusal proof. Preserve baseline output for QA; do not claim PM ran these tests.
+  - id: T-02
+    title: Refuse impossible lead and plan-panel starts before claiming
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 excludes dispatch-guard and digest validator enforcement changes from governed execution.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/dispatch-guard.py
+    verify: |
+      python3 tests/unit/test-lead-start-preflight.py && python3 tests/integration/test-lead-start-return.py
+    intent: |
+      Work only in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2110-lead-return-fail-fast, after T-01 red evidence. In dispatch-guard.py place lead prerequisites after feature/repository checkout resolution and before live_claim or claim_with_receipt can mutate the registry. Import digest_destination.LEAD_SQUADS and call registered_destination(root, declared, dispatched) for each lead; reuse this function's exact feature identity, sole open registered run, run-id safety and writable-grant checks. Do not duplicate the runs predicate, mint runtime ids, fabricate a digest binding, weaken return authorization, or claim that a preflight can validate runtime identities not yet created. A registered_destination AuthorizationError must exit 2 with its original failure, declared feature and dispatched lead. Missing matching run guidance names feature-record.py run-start with the actual record, agent and squad; ambiguous-run guidance explains legitimate reconciliation to one matching open run. Resolve/read failures must not silently allow a recognized lead whose prerequisite cannot be established. Keep unrelated non-lead dispatch behavior unchanged.
+      Read HARNESS-MISSION lines from the individual prompt/task string already seen by this guard, not batch context. For product-lead and validator-lead targets require exactly one nonempty lowercase mission declaration; refuse missing or conflicting declarations with actionable guidance to supply the actual phase, never guessed prose or a review relabel. Require an explicit plan declaration on the plan scope-reader route. Do not refuse an engineering-lead start for missing mission; its registered_destination preflight remains mandatory regardless of mission. Preserve existing mission forwarding and distill behavior unchanged. Product patch dispatches declare patch explicitly and must not inherit plan. Do not impose mission requirements on unrelated code-reviewer dispatches. Preserve the existing hook marker spelling; do not add a TypeScript field. A plan mission for product-lead or validator-lead identifies the canonical plan.yaml beside the exact registered feature.json resolved by digest_destination, inside the assigned checkout, not the owner corpus or a similarly named feature. Derive this feature directory from the returned registered digest destination rather than doing a second feature-record search. A product plan-team start with no plan file may draft it; an existing file with missing approval or any status other than pending refuses. A validator standalone panel requires an existing pending plan. For code-reviewer dispatch with explicit HARNESS-MISSION: plan require the canonical existing pending target too, so a status change after lead startup stops the reader before work; readers do not need a lead run of their own. Other mission values do not infer a plan panel merely because a plan path occurs in prose or the plan is signed.
+      Reuse validate-digest.py's existing _pending_plan_status_error for the canonical target, loading the script once only when a plan preflight is needed through harness_boundary.load_repo_module with the trusted HARNESS_GUARD_BIN_DIR script path and register=True. The script's __main__ guard makes import read-only; do not invoke its CLI or duplicate its YAML approval predicate. Keep _is_plan_review and _resolve_plan_review_path unchanged because dispatch already knows its canonical assigned target and has no reviewed field. Translate a returned error into exit 2 plus startup context explaining panels precede signature and callers must return to the legitimate pending-plan phase. Import/read failures must name the unavailable prerequisite, not claim pending status or pass through. No approval toggle, automatic revoke, status rewrite or review relabel is a remedy.
+      Leave validate-digest.py and digest_destination.py unchanged. Their runtime identity, missing-binding, wrong-destination, plan-feature target equality, no pinned review_sha, checkout branch/code-grade and pending-only checks remain authoritative at every yield, including changes after a valid preflight. Do not loosen sign-approval findings gates. Do not change .omp/extensions/harness-hooks.ts: refusing in Python before spawn prevents the two known startup conditions from reaching its silently unbound lead path; bind and authorized_destination continue enforcing runtime child/parent/feature/checkout identity. Do not promise race freedom if the registered run or approval changes after preflight. Run each focused test command within 60 seconds and require exit 0. Main performs the existing full unit/integration suites once after all tasks land.
+  - id: T-03
+    title: Migrate dispatch producers to the explicit preflight contract
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: These skill and team dispatch-contract surfaces have no specialist write grant; direct implementation keeps the producer cutover with its gate.
+    depends_on: [T-02]
+    status: done
+    files:
+    - .claude/skills/harness/SKILL.md
+    - .claude/skills/harness/references/plan-phase.md
+    - .claude/skills/harness/teams/plan.yaml
+    - .claude/skills/harness-team/SKILL.md
+    - .claude/skills/harness-zero-micro-management/SKILL.md
+    - .omp/agents/harness-orchestrator.md
+    - .claude/skills/harness/references/build-phase.md
+    verify: |
+      python3 tests/unit/test-lead-start-preflight.py && python3 tests/integration/test-lead-start-return.py --check-producers
+    intent: |
+      Work only in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2110-lead-return-fail-fast after T-02. Use the existing individual-dispatch header section of harness-zero-micro-management/SKILL.md as the ONE authoritative statement of mission applicability and phase selection, consistent with harness-team header authority. State there that registered_destination preflight requires an open registered run for all three leads, but an explicit HARNESS-MISSION is mandatory only for product-lead and validator-lead starts and the plan scope-reader route. Missing mission must not refuse engineering-lead starts; preserve existing mission forwarding and distill behavior unchanged. Update harness-team/SKILL.md to reference that authority rather than define a competing contract. Make the orchestrator persona lead-header section and harness/SKILL.md lead headers reference or comply with the same authority. Update plan-phase.md plan and patch recipes: product and standalone validator plan panels use plan, the plan scope-reader uses plan, and product patch dispatches explicitly use patch rather than inherit plan. Update build-phase.md validator validate/fix dispatches to use validate/fix. Engineering build and standalone SIMPLIFY recipes need no mission migration. Put required declarations in each individual prompt after first-line HARNESS-FEATURE, keeping HARNESS-FEATURE-TREE-ROOT and repository declarations intact; use the actual dispatched phase, not the original feature intake mission. Register the feature-record.py run-start agent/squad entry before dispatch and do not change registration to the live runtime-claim vocabulary. Explain that the lead writes its regular human assessment before authorized return and no authored binding is permitted.
+      In plan-phase.md document the canonical assigned feature target, the product draft absent-plan exception, refusal of any existing nonpending plan, and the standalone validator existing-plan requirement. State that the old free-form validator prompt alone did not reliably identify a plan panel at dispatch time: its first authoritative plan signal was the scope reader's reviewed field at yield. The explicit existing mission marker now supplies that signal before lead spawn; require plan on the plan team's scope-reader dispatch too. Update teams/plan.yaml scope prompt and harness-team dispatch instructions so plan scope reviews carry the declaration before any substantive reader work. A signed plan that genuinely needs edits follows DEC-229 task-set amendment/reset and renewed signature; do not suggest an approval toggle, retrospective panel acceptance or code-review relabel. Keep patch missions without a panel.
+      Update existing sections in place rather than adding a second dispatch recipe. Include operator-facing registration and pending-phase refusal remedies adjacent to the instructions that produce the dispatch. For principles applied, record Redesign From First Principles as integrating startup prerequisites into the existing dispatch producer/return-validator seam instead of adding a second authorization policy. Do not edit tests: T-01 already owns the optional producer checks invoked here. The terminal focused commands must exit 0 independently within 60 seconds; full configured unit/integration checks belong to main after this task. No TypeScript changes are planned, so unresolved typecheck is not exercised or represented as passed; a future necessary hook edit must stop for an explicit runner prerequisite rather than skip it.

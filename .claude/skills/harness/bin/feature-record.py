@@ -17,12 +17,13 @@ VERBS
                 run-end, then plan-merge.py set-task-station when --task/--station are given,
                 then judgement (as harness-orchestrator) when --judgement is given, then spend;
                 --cycles-used is forwarded to run-end
-                — composed as subprocesses so each keeps its own refusal; the first refusal
-                stops the sequence naming its stage, earlier durable writes stay. Prints ONE
+                — existing subprocess authorities plus the shared atomic run-end transaction;
+                the first refusal stops the sequence naming its stage, earlier durable writes stay. Prints ONE
                 line on success. Never takes --tokens: the host hook stamps those.
                 --refused-return (#2068) closes a run whose lead return the host refused:
                 verdict BLOCKED only, and the digest stage inverts — it refuses if the digest
-                validates, since that return landed and closes normally.
+                validates, since that return landed and closes normally. Only close-run can
+                create this disposition; run-end can replay an already refused historical run.
   judgement     append one {at, by, kind, decision, reason} to judgements[] (SC-21).
   set-rework    write the operator's one rework ruling (SC-15); --decision must be a file
                 under the feature's own directory (refuses exit 2 otherwise).
@@ -77,6 +78,7 @@ import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 import harness_yaml  # noqa: E402  (local import, after sys.path fix-up)
 import feature_schema
 import digest_record
+from harness_boundary import CONTRACT_REFUSAL_CODE  # noqa: E402
 
 JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject")
 MISSIONS = ("patch", "plan")
@@ -194,6 +196,11 @@ def _reconcile_owed(kind, owed_to, decision):
 
 
 def cmd_run_start(args):
+    from digest_destination import LEAD_SQUADS
+    expected_squad = LEAD_SQUADS.get(args.agent)
+    if expected_squad is not None and args.squad != expected_squad:
+        _exit_refused([f"REFUSED: {args.agent} requires --squad {expected_squad!r}; "
+                       f"got {args.squad!r}."])
     # THE RUN AND WHAT ITS OPEN OWES ARE ONE WRITE (#1881), the posture set-mission takes for
     # the mission and close-run takes for the close. What the open owes is DERIVED from the
     # record — a FAIL run this one follows owes a regate (INV-40 b); a handoff note this one
@@ -268,6 +275,9 @@ def cmd_record_history(args):
         effect = args.cmd
         if effect == "record-refusal" and entry.get("verdict") != "BLOCKED":
             _refuse(["REFUSED: refusal provenance requires a historical BLOCKED run."])
+        if effect == "record-refusal" and "return_disposition" in entry:
+            _refuse(["REFUSED: the run already carries the frozen legacy refused marker; "
+                     "an entry never holds both it and refusal provenance."])
         if effect == "record-cycle-evidence":
             _cycle_count(entry.get("cycles_used"), f"run {args.id!r}")
         ref, authorization = _history_evidence(doc, entry, args, effect)
@@ -326,7 +336,22 @@ def _run_end_digest(args, entry, changed, runs):
         _refuse([f"REFUSED: {error}"])
 
 
-def cmd_run_end(args):
+def _is_refused(entry):
+    """Typed refusal provenance, or the frozen legacy marker no writer produces any more."""
+    return bool(entry.get("refusal")) or entry.get("return_disposition") == "refused"
+
+
+def _replay_refused(entry, args):
+    """An already-refused run keeps its terminal record: BLOCKED, its count and its tokens."""
+    if args.verdict != "BLOCKED":
+        _refuse(["REFUSED: a refused return cannot be upgraded to an accepted verdict."])
+    if args.cycles_used != entry.get("cycles_used", 0):
+        _refuse(["REFUSED: a refused run's recorded cycles_used cannot be rewritten."])
+    if getattr(args, "tokens", None) is not None and args.tokens != entry.get("tokens"):
+        _refuse(["REFUSED: a refused run's measured tokens cannot be rewritten."])
+
+
+def _record_run_end(args):
     def mutate(doc):
         runs = _runs(doc)
         entry = _find_run(runs, args.id)
@@ -342,29 +367,34 @@ def cmd_run_end(args):
                 "  repair the inconsistent ledger before recording another run result.",
             ])
         previous_cycles = entry.get("cycles_used", 0)
-        if entry.get("refusal") and args.verdict != "BLOCKED":
-            _refuse(["REFUSED: a refused return cannot be upgraded to an accepted verdict."])
-        changed = "cycles_used" not in entry or previous_cycles != args.cycles_used
-        if changed and not args.digest:
-            _refuse(["REFUSED: new/changed cycle attribution requires --digest evidence."])
-        if args.digest:
-            ref = _run_end_digest(args, entry, changed, runs)
-            if changed or "cycle_evidence" not in entry:
-                entry["cycle_evidence"] = dict(source="lead-digest", **ref)
+        if _is_refused(entry):
+            _replay_refused(entry, args)
+        else:
+            changed = "cycles_used" not in entry or previous_cycles != args.cycles_used
+            if changed and not args.digest:
+                _refuse(["REFUSED: new/changed cycle attribution requires --digest evidence."])
+            if args.digest:
+                ref = _run_end_digest(args, entry, changed, runs)
+                if changed or "cycle_evidence" not in entry:
+                    entry["cycle_evidence"] = dict(source="lead-digest", **ref)
+            entry["cycles_used"] = args.cycles_used
+            # A measured figure is never overwritten with null; null is written only when
+            # the entry has no figure at all, so "unmeasured" is recorded rather than implied.
+            if args.tokens is not None or "tokens" not in entry:
+                entry["tokens"] = args.tokens
         entry["verdict"] = args.verdict
         entry.setdefault("ended_at", now_iso())
-        entry["cycles_used"] = args.cycles_used
-        # A measured figure is never overwritten with null; null is written only when
-        # the entry has no figure at all, so "unmeasured" is recorded rather than implied.
-        if args.tokens is not None or "tokens" not in entry:
-            entry["tokens"] = args.tokens
         if args.code_grade:
             entry["code_grade"] = args.code_grade
-        doc["cycles_used"] = feature_cycles - previous_cycles + args.cycles_used
+        doc["cycles_used"] = feature_cycles - previous_cycles + entry.get("cycles_used", 0)
         doc["runs"] = runs
         return doc
 
     _apply(args.file, mutate)
+
+
+def cmd_run_end(args):
+    _record_run_end(args)
     print(f"ENDED run {args.id!r} verdict={args.verdict} "
           f"cycles_used={args.cycles_used} tokens={json.dumps(args.tokens)}")
     print(f"APPLIED {args.file}")
@@ -633,9 +663,9 @@ def cmd_spend(args):
 
 
 # close-run (BUG-1723 T-01, D-01): ONE command for the close-out the orchestrator used to spend
-# ~11 model calls on. It COMPOSES the existing authorities as subprocesses — validate-digest.py,
-# this file's run-end and judgement, plan-merge.py set-task-station, this file's spend — so each
-# keeps its own validation, lock and refusal text. Stages run in that order; the first refusal
+# ~11 model calls on. It COMPOSES the existing authorities — validate-digest.py, the shared
+# atomic run-end transaction, plan-merge.py set-task-station, this file's judgement and spend —
+# so each keeps its own validation, lock and refusal text. The first refusal
 # stops the sequence, names its stage, and leaves every earlier durable write in place (no
 # rollback: a closed run is a fact, and hiding it would be worse than a half-finished close-out).
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -669,21 +699,16 @@ def _stage(name, argv, refuse_on_success=None):
     import subprocess
     proc = subprocess.run([sys.executable, *argv], stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE, text=True)
-    if refuse_on_success is not None:
-        if proc.returncode == 0:
-            _exit_refused([f"REFUSED at stage {name}: later stages were not run.",
-                           refuse_on_success])
-        if (proc.returncode != 1
-                or "(contract violation)" not in (proc.stdout + proc.stderr)):
-            _exit_refused([f"REFUSED at stage {name}: expected contract-rejection exit 1, "
-                           f"got {proc.returncode}; later stages were not run.",
-                           proc.stderr or proc.stdout])
-        return ""
-    if proc.returncode != 0:
+    inverted = refuse_on_success is not None
+    expected = CONTRACT_REFUSAL_CODE if inverted else 0
+    if inverted and proc.returncode == 0:
+        _exit_refused([f"REFUSED at stage {name}: later stages were not run.",
+                       refuse_on_success])
+    if proc.returncode != expected:
         print(f"REFUSED at stage {name}: later stages were not run.", file=sys.stderr)
         sys.stderr.write(proc.stderr or proc.stdout)
-        sys.exit(proc.returncode or REFUSAL_CODE)
-    return proc.stdout
+        sys.exit(proc.returncode)
+    return "" if inverted else proc.stdout
 
 
 def _close_run_options(args):
@@ -741,7 +766,10 @@ def _close_run_stages(args, agent, judgement):
     return that landed, and must close through the normal stage under its own verdict."""
     grade = ["--code-grade", args.code_grade] if args.code_grade else []
     plan_yaml = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
-    digest = [os.path.join(_HERE, "validate-digest.py"), agent, args.digest]
+    digest = [os.path.join(_HERE, "validate-digest.py")]
+    if args.refused_return:
+        digest.extend(["--contract-refusal-code", str(CONTRACT_REFUSAL_CODE)])
+    digest.extend(["--", agent, args.digest])
     if args.refused_return:
         first = ("refused-return", digest, "refused-return",
                  f"  {args.digest} validates for {agent}: the lead's return landed, so close "
@@ -771,7 +799,11 @@ def _close_run_stages(args, agent, judgement):
 
 
 def _close_refused_run(args, agent):
-    """Persist observed rejection before any later close stage, without a fake accepted record."""
+    """Persist observed rejection before any later close stage, without a fake accepted record.
+
+    Only an open run takes new close-run provenance. An already-refused run (typed refusal or
+    the frozen legacy marker) replays unchanged; a closed BLOCKED run without provenance is
+    historical and takes it through record-refusal, never here."""
     def mutate(doc):
         runs = _runs(doc)
         entry = _find_run(runs, args.id)
@@ -788,11 +820,17 @@ def _close_refused_run(args, agent):
                 raise ValueError("digest bytes changed after the observed contract rejection")
         except (OSError, ValueError, TypeError) as error:
             _refuse([f"REFUSED: {error}"])
-        if entry.get("ended_at") and entry.get("verdict") != "BLOCKED":
-            _refuse(["REFUSED: an accepted closed run cannot be rewritten as a refusal."])
+        if entry.get("verdict") not in ("PENDING", "BLOCKED"):
+            _refuse(["REFUSED: a refused closure cannot rewrite an existing terminal verdict."])
         existing = entry.get("refusal")
         if existing and (existing["digest"] != ref or existing["run_id"] != args.id):
             _refuse(["REFUSED: refusal conflicts with the recorded provenance."])
+        if _is_refused(entry):
+            _replay_refused(entry, args)
+            return doc
+        if entry.get("verdict") == "BLOCKED" or entry.get("ended_at"):
+            _refuse(["REFUSED: this run is already closed BLOCKED; record historical refusal "
+                     "provenance with record-refusal, not close-run."])
         changed = "cycles_used" not in entry or previous != args.cycles_used
         if changed:
             if not args.evidence or not args.by:
@@ -803,13 +841,13 @@ def _close_refused_run(args, agent):
             entry["cycle_evidence"] = dict(
                 source="operator-history", by=args.by, at=now_iso(),
                 authorization=authorization, **digest)
-        if existing is None:
-            entry["refusal"] = {
-                "source": "close-run", "digest": ref, "run_id": args.id,
-                "reason": "validator CLI rejected the return with contract-rejection exit 1",
-                "by": args.by or agent, "at": now_iso()}
+        entry["refusal"] = {
+            "source": "close-run", "digest": ref, "run_id": args.id,
+            "reason": "validator rejected the return with deliberate contract-refusal "
+                      f"status {CONTRACT_REFUSAL_CODE}",
+            "by": args.by or agent, "at": now_iso()}
         entry["verdict"] = "BLOCKED"
-        entry.setdefault("ended_at", now_iso())
+        entry["ended_at"] = now_iso()
         entry.setdefault("tokens", None)
         entry["cycles_used"] = args.cycles_used
         if args.code_grade:

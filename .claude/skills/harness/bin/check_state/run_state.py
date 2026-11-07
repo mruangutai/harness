@@ -273,14 +273,19 @@ def _inv15_validate(ctx, dg):
             f"successor reads this file, not the transcript (DEC-156): {_why}."]
 
 def _refusal_completion(ctx, feat, rundir, sdoc):
-    """A completed execution may have an evidenced refused return, never accepted success."""
+    """A completed execution may have an evidenced refused return, never accepted success.
+
+    Every writer records typed `refusal` provenance, verified here. A frozen legacy
+    `return_disposition: refused` entry (written by close-run before provenance existed; no
+    writer remains) is recognised by its closed BLOCKED identity alone — grandfathered data,
+    not proof (DEC-191)."""
     if sdoc.get("status") != "complete" or sdoc.get("host") not in LEADS:
         return False, []
     doc, _, _, _errors = ctx.record(feat)
     entries = [entry for entry in (doc or {}).get("runs", [])
                if entry.get("id") == os.path.basename(rundir)]
     if not any(entry.get("refusal") for entry in entries):
-        return False, []
+        return _refused_closed_run(_unique_recorded_runs(doc), rundir, sdoc), []
     try:
         feature_schema = harness_boundary.load_repo_module("feature_schema")
     except harness_boundary.RepoModuleError as error:
@@ -316,6 +321,29 @@ def _inv15_run(ctx, rundir, sdoc):
         return [f"{os.path.relpath(rundir, H)}: run is complete but digest.md is "
                 f"missing — the lead's report artifact never landed (DEC-156)."]
     return _inv15_validate(ctx, dg)
+
+def _unique_recorded_runs(doc):
+    if not isinstance(doc, dict):
+        return {}
+    unique = {}
+    entries = doc.get("runs") or []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        rid = entry.get("id")
+        if not isinstance(rid, str):
+            continue
+        unique[rid] = entry if rid not in unique else None
+    return unique
+
+
+def _refused_closed_run(unique, rundir, sdoc):
+    entry = unique.get(os.path.basename(rundir))
+    if entry is None:
+        return False
+    identity = (entry.get("return_disposition"), entry.get("verdict"), entry.get("agent"))
+    return identity == ("refused", "BLOCKED", sdoc.get("host")) and bool(entry.get("ended_at"))
+
 
 def inv_15(ctx, feat):
     bad, warn = [], []

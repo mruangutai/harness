@@ -10,6 +10,9 @@ Every write goes through `feature-record.py`; you never edit `feature.json` by h
 
 Before every dispatch:
 `feature-record.py run-start --file <feature.json> --id <run-id> --squad <squad> --agent <lead> [--by harness-orchestrator --reason <one line> --regate <decision>] [--by harness-orchestrator --reason <one line> --succession continue|downgrade|stop]`.
+For lead runs, `<squad>` is the canonical identity: `engineering` for `harness-eng-lead`,
+`product` for `harness-product-lead`, and `validator` for `harness-validator-lead`. A mismatched
+registration is refused before dispatch; an `eng` label cannot obtain the engineering digest binding.
 The open is composed like the close (#1881): `run-start` derives what the new run owes from the
 record — a FAIL run it follows owes a `regate`; a handoff note at `seq-N` it succeeds owes a
 `succession` — and **refuses** unless you supply the matching decision and reason, in which case the run and
@@ -42,14 +45,26 @@ Tokens are the host's: the hook stamps the measured figure onto the open run on 
 `run-end --tokens N` from `details.results[i].tokens`, never an estimate — `null` when unmeasured,
 so a reader can tell unmeasured from zero (SC-18).
 
-When the host **refused** the lead's final return, use
-`--refused-return --verdict BLOCKED --cycles-used <C> --evidence <authorization> --by <operator>`
-for a new or changed attribution. The raw digest must exist and be readable. Only the validator's
-expected contract-rejection exit 1 with its contract marker qualifies; a crash, other failure or
-missing/unreadable artifact does not. A validating digest must close normally under its own
-verdict. The composed close stores typed, hash-bound refusal provenance before later station,
-judgement and spend stages. Complete execution is not an accepted return; it remains `BLOCKED`.
-Never append a fake accepted fence or close such a run with a bare `run-end`.
+When the host **refused** the lead's final return, its `digest.md` never received a valid record
+and the digest stage can never pass. Close that still-open run with
+`--refused-return --verdict BLOCKED --cycles-used <C> --evidence <authorization> --by <operator>`;
+`--evidence`/`--by` are required for its new attribution, zero included. The digest stage is
+inverted: it refuses if the digest *does* validate, because then the return landed and closes
+normally under its own verdict (#2068). It requests deliberate contract-refusal status 65 from
+the validator; argument-parser errors (2), input-read errors and internal failures (1) stop
+closure rather than providing refusal evidence. The raw digest must exist and be readable.
+The composed close stores typed, hash-bound `refusal` provenance (`source: close-run`) with the
+BLOCKED entry before later station, judgement and spend stages. Complete execution is not an
+accepted return; it remains `BLOCKED`. Never append a fake accepted fence or close such a run
+with a bare `run-end`: `run-end` has no `--refused-return` option.
+
+Replaying either close on an already-refused run preserves its `ended_at`, verdict, cycle
+attribution and measured tokens; a conflicting count or token figure is refused without writing,
+and no prior non-BLOCKED terminal verdict can be closed as refused. A run already closed
+`BLOCKED` without provenance is historical: `close-run` refuses it and `record-refusal` below is
+its only path. A frozen legacy `return_disposition: refused` marker, written before provenance
+existed, has no writer; INV-15/INV-46 still read it as grandfathered data with its closed BLOCKED
+identity, and an entry never carries both it and `refusal`.
 
 **Historical proof without rewritten returns.**
 
@@ -72,6 +87,8 @@ note contains strict JSON, even if its filename ends in `.md`: top-level `featur
 effect additionally names the exact recorded `cycles_used`. Duplicate keys, ambiguous matching
 effects and wrong scalar types refuse. Persist the normalized note reference and operator/time,
 never a mutable external link. Mirror recovery uses the same resolver and authorization protocol.
+Retryable yield refusals retain the same live job's claim until its corrected return is accepted;
+host terminal cleanup still releases jobs that actually end without an accepted return.
 
 The `plan` run graded a document and no code: close it with `--code-grade n_a`. Omitting the flag
 declares the run reviewed code, and INV-6 then demands a `review_sha` that cannot exist before the

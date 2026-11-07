@@ -1,0 +1,216 @@
+{
+  "feature_id": "BUG-2161-abandon-source-tickets",
+  "branch": "feat/BUG-2161-abandon-source-tickets",
+  "pr": 2165,
+  "review_sha": "38008d4237d7148bbbf0e54181d1a1fc6bb7de88",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-02-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-02T14:22:14+00:00",
+      "tokens": 64903,
+      "cycles_used": 0,
+      "ended_at": "2026-11-02T14:50:24+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-02-02-engineering",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-02T14:50:36+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-02T14:51:10+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-02-03-simplify-plan-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-02T14:51:11+00:00",
+      "tokens": 45722,
+      "cycles_used": 0,
+      "ended_at": "2026-11-02T14:55:50+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-02-04-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-02T14:56:00+00:00",
+      "tokens": 32323,
+      "cycles_used": 0,
+      "ended_at": "2026-11-02T14:59:34+00:00",
+      "return_disposition": "refused",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-03-05-build-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-03T13:05:51+00:00",
+      "tokens": 48415,
+      "cycles_used": 1,
+      "ended_at": "2026-11-03T13:18:33+00:00"
+    },
+    {
+      "id": "2026-11-03-06-t02-docs-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-03T13:18:59+00:00",
+      "tokens": 33069,
+      "cycles_used": 0,
+      "ended_at": "2026-11-03T13:23:26+00:00"
+    },
+    {
+      "id": "2026-11-03-07-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-03T13:23:34+00:00",
+      "tokens": 76581,
+      "cycles_used": 0,
+      "ended_at": "2026-11-03T13:35:34+00:00"
+    },
+    {
+      "id": "2026-11-03-08-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-03T13:37:56+00:00",
+      "tokens": 70614,
+      "cycles_used": 0,
+      "ended_at": "2026-11-03T13:53:34+00:00"
+    },
+    {
+      "id": "2026-11-03-09-fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-03T13:53:58+00:00",
+      "tokens": 53118,
+      "cycles_used": 1,
+      "ended_at": "2026-11-03T14:07:02+00:00"
+    },
+    {
+      "id": "2026-11-06-10-distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-06T14:58:54+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-06T15:05:19+00:00",
+      "return_disposition": "refused",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-06-11-distill-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-06T14:59:02+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-06T15:05:17+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-06-12-distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-06T15:05:27+00:00",
+      "tokens": 53747,
+      "cycles_used": 0,
+      "ended_at": "2026-11-06T15:10:11+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-02T14:22:12+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "cause known and files nameable, but --close-sources is a new public CLI interface, so the patch rule's third condition fails; it also amends DEC-203's abandonment clause."
+    },
+    {
+      "at": "2026-11-03T13:05:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-plan seq-4 Next is build entry; plan signed, mirror opened, cycles 0/10, rework 0/2 rounds; continue into build as ship-mission successor"
+    },
+    {
+      "at": "2026-11-03T13:37:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-build seq-7 Next is validate over pin 1ef80c26; cycles 1/10, rework 0/2; same orchestrator continues into validate"
+    },
+    {
+      "at": "2026-11-03T13:53:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "F1 and GC-01 routed to one fix run (T-01 backend-dev) inside the 2-round ruling; F2 not routed: signed SC-02 orders only Backlog-after-close and comment-first mirrors the settled parent order; F3 advisory"
+    },
+    {
+      "at": "2026-11-03T13:53:58+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix round 1 of 2: F1 and GC-01 to harness-backend-dev (T-01), readers re-verify over the fix tip",
+      "reason": "validate c0 FAIL with substance must_fix bound to T-01; rework ruling 2 rounds / 90 min, 15 min and 0 rounds spent"
+    },
+    {
+      "at": "2026-11-06T14:58:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-validate seq-9 Next was operator ship; PR merged 68c37253, so feature-close distillation starts; validator squad first (pm single-flight)"
+    },
+    {
+      "at": "2026-11-06T15:05:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "validator distill return refused for undeclared amendments key; its four member Expertise writes verified on disk and corpus check-expertise OK, so distillation proceeds"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-2161-abandon-source-tickets/notes/operator-signature-2026-11-03.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "89436fba5c33da99300653d4c9ae32ff39d63c29ceddd1dbc1844d8d37b4d9be",
+    "T-02": "be35e9bc96a76b9b7a207ce4ede0967a3ae955d0f97a8f0828bcf9980e6a4e32"
+  },
+  "github": {
+    "milestone": 104,
+    "parent": 2162,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2163,
+      "T-02": 2164
+    },
+    "source_issues": [
+      2161
+    ],
+    "build_entry": "opened"
+  }
+}

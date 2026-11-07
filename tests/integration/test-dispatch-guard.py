@@ -20,6 +20,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -253,7 +254,42 @@ def _task(dispatched, dispatcher="harness-orchestrator", cwd=None):
                            "prompt": FEATURE_LINE + (
                                "\nHARNESS-FEATURE-TREE-ROOT: " + (cwd or FEATURE_TREE_ROOT)
                                if dispatched == "harness-product-lead" else ""
+                           ) + (
+                               # BUG-2110: a product or validator lead start declares the
+                               # phase it is dispatched for.
+                               "\nHARNESS-MISSION: plan"
+                               if dispatched in ("harness-product-lead",
+                                                 "harness-validator-lead") else ""
                            ) + "\nx"}}
+
+
+# BUG-2110: a lead whose return could never be authorized is refused at dispatch, so a
+# positive lead-dispatch case registers what `feature-record.py run-start` would: the ONE
+# open PENDING run for the lead's agent and squad, and the lead's write grant over its
+# run digest. `grant` overrides the run-dir grant for a case whose run-dir vocabulary is
+# itself under test, so registering the run does not change that vocabulary.
+_LEAD_RUNS = {"harness-eng-lead": ("engineering", "eng"),
+              "harness-product-lead": ("product", "product"),
+              "harness-validator-lead": ("validator", "validator")}
+
+
+def _register_lead_run(root, lead, feature, grant=None):
+    squad, suffix = _LEAD_RUNS[lead]
+    manifest = os.path.join(root, ".harness", "team-config.yaml")
+    with open(manifest) as fh:
+        text = fh.read()
+    if not re.search(r"(?m)^leads:", text):
+        text += "leads:\n"
+    text += ("  - name: %s\n    squad: %s\n    domain:\n      - { path: %s, upsert: true }\n"
+             % (lead, squad, grant or ".harness/*/features/*/runs/*-%s/**" % suffix))
+    with open(manifest, "w") as fh:
+        fh.write(text)
+    feature_dir = os.path.join(root, ".harness", "harness", "features", feature)
+    os.makedirs(feature_dir, exist_ok=True)
+    with open(os.path.join(feature_dir, "feature.json"), "w") as fh:
+        json.dump({"feature_id": feature, "runs": [{
+            "id": "r1-" + suffix, "squad": squad, "agent": lead, "verdict": "PENDING",
+            "started_at": "2026-10-07T00:00:00+00:00"}]}, fh)
 
 
 def case_6_single_flight_refusal():
@@ -633,6 +669,161 @@ def case_15b_omp_main_dispatch_records_top_level_claim():
     )
 
 
+def _plan_with_modes(feature, *modes):
+    return ("schema: plan/1\nfeature: %s\ntasks:\n" % feature) + "".join(
+        "  - id: T-%02d\n    title: t\n    change_type: test\n    execution_mode: %s\n"
+        "    files: [x.py]\n    verify: \"true\"\n    intent: x\n" % (i, mode)
+        for i, mode in enumerate(modes, 1))
+
+
+def case_15c_omp_main_eng_lead_on_all_direct_plan_refused():
+    """BUG-2141 (DEC-174): an entirely main-session-direct plan makes the main session the
+    orchestrator; its harness-eng-lead dispatch is refused before any claim. A mixed plan
+    keeps the prior outcome."""
+    feature = "FEAT-42-one-root-resolver"
+    reg = _load_registry_module()
+    for label, modes, refused in (("all-direct", ("main-session-direct",) * 2, True),
+                                  ("mixed", ("main-session-direct", "team"), False)):
+        root = _checkout()
+        try:
+            _register_lead_run(root, "harness-eng-lead", feature)
+            with open(os.path.join(root, ".harness", "harness", "features", feature,
+                                   "plan.yaml"), "w") as fh:
+                fh.write(_plan_with_modes(feature, *modes))
+            payload = _task("harness-eng-lead", "Main", root)
+            payload["harness_agent_id"] = "Main"
+            payload["tool_input"]["prompt"] = "%s\nHARNESS-FEATURE-TREE-ROOT: %s\nx" % (
+                FEATURE_LINE, root)
+            before = _read_registry(root, reg)
+            result = fire(payload, env={"HARNESS_PROJECT_DIR": root,
+                                        "CLAUDE_PROJECT_DIR": root})
+            after = _read_registry(root, reg)
+            if refused:
+                check("case 15c: OMP Main -> eng-lead on an all-direct plan is refused (exit 2)",
+                      result.returncode == 2, result.stderr)
+                check("case 15c: the refusal names DEC-174 and tells main to build directly",
+                      "DEC-174" in result.stderr and "directly" in result.stderr, result.stderr)
+                check("case 15c: the refused dispatch leaves the registry unchanged",
+                      after == before and "harness_claim" not in result.stdout, after)
+            else:
+                check("case 15c: OMP Main -> eng-lead on a mixed plan still claims",
+                      result.returncode == 0
+                      and len(_claims_for(after, "harness-eng-lead", feature)) == 1,
+                      result.stderr)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+
+def _pending_plan(feature, *modes):
+    """A pending plan.yaml whose tasks carry `modes`; None omits the execution_mode key."""
+    return ("schema: plan/1\nfeature: %s\napproval:\n  status: pending\ntasks:\n" % feature
+            ) + "".join(
+        "  - id: T-%02d\n    title: t\n    change_type: test\n%s"
+        "    files: [x.py]\n    verify: \"true\"\n    intent: x\n"
+        % (i, "    execution_mode: %s\n" % mode if mode else "")
+        for i, mode in enumerate(modes, 1))
+
+
+def _main_start(plan, lead, mission=None):
+    """OMP Main dispatches `lead` (one open run registered) with `plan` on disk (None: no
+    plan). Returns (result, claims for the lead)."""
+    feature = "FEAT-42-one-root-resolver"
+    root = _checkout()
+    try:
+        shutil.copyfile(os.path.join(FEATURE_TREE_ROOT, ".omp", "agents",
+                                     "harness-validator-lead.md"),
+                        os.path.join(root, ".omp", "agents", "harness-validator-lead.md"))
+        _register_lead_run(root, lead, feature)
+        if plan is not None:
+            with open(os.path.join(root, ".harness", "harness", "features", feature,
+                                   "plan.yaml"), "w") as fh:
+                fh.write(plan)
+        payload = _task(lead, "Main", root)
+        payload["harness_agent_id"] = "Main"
+        payload["tool_input"]["prompt"] = "\n".join(
+            [FEATURE_LINE, "HARNESS-FEATURE-TREE-ROOT: " + root]
+            + (["HARNESS-MISSION: " + mission] if mission else []) + ["x"])
+        result = fire(payload, env={"HARNESS_PROJECT_DIR": root, "CLAUDE_PROJECT_DIR": root})
+        return result, _claims_for(_read_registry(root, _load_registry_module()), lead, feature)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _starts_and_claims(result, claims):
+    return (result.returncode == 0 and len(claims) == 1 and "harness_claim" in result.stdout
+            and "DEC-174" not in result.stderr)
+
+
+def case_15d_dec174_controls_keep_prior_outcomes():
+    """BUG-2141 SC-04: the DEC-174 refusal is the only new outcome. Main's product-lead and
+    validator-lead starts on an all-direct plan, and Main's eng-lead start on every
+    nonqualifying plan shape, still start and claim."""
+    feature = "FEAT-42-one-root-resolver"
+    direct = _pending_plan(feature, "main-session-direct", "main-session-direct")
+    for lead, mission in (("harness-product-lead", "plan"), ("harness-product-lead", "patch"),
+                          ("harness-validator-lead", "validate"),
+                          ("harness-validator-lead", "fix")):
+        result, claims = _main_start(direct, lead, mission)
+        check("case 15d: OMP Main -> %s (%s) on an all-direct plan starts and claims"
+              % (lead, mission), _starts_and_claims(result, claims), result.stderr)
+    for label, plan in (("team-only", _pending_plan(feature, "team", "team")),
+                        ("missing execution_mode",
+                         _pending_plan(feature, "main-session-direct", None)),
+                        ("empty tasks", _pending_plan(feature)),
+                        ("invalid", "tasks: [unclosed\n  - : :\n"),
+                        ("absent", None)):
+        result, claims = _main_start(plan, "harness-eng-lead")
+        check("case 15d: OMP Main -> eng-lead on a %s plan starts and claims" % label,
+              _starts_and_claims(result, claims), result.stderr)
+
+
+def _unresolvable_record(root, feature, how):
+    """Break `feature`'s registered record so digest_destination cannot resolve it."""
+    record = os.path.join(root, ".harness", "harness", "features", feature, "feature.json")
+    if how == "missing":
+        os.remove(record)
+    elif how == "mismatched":
+        with open(record, "w") as fh:
+            json.dump({"feature_id": "FEAT-43-someone-else", "runs": []}, fh)
+    else:  # "unparseable"
+        with open(record, "w") as fh:
+            fh.write("{not json\n")
+
+
+def case_15e_dec174_unresolvable_feature_keeps_prior_refusal():
+    """BUG-2141 fallback: when Main's declared feature cannot be resolved, the DEC-174 check
+    yields to the prior outcome. That outcome is the BUG-2110 registered-run refusal, so an
+    all-direct plan on disk can never turn an unresolvable feature into an eng-lead claim."""
+    feature = "FEAT-42-one-root-resolver"
+    reg = _load_registry_module()
+    for how in ("missing", "mismatched", "unparseable"):
+        root = _checkout()
+        try:
+            _register_lead_run(root, "harness-eng-lead", feature)
+            with open(os.path.join(root, ".harness", "harness", "features", feature,
+                                   "plan.yaml"), "w") as fh:
+                fh.write(_pending_plan(feature, "main-session-direct", "main-session-direct"))
+            _unresolvable_record(root, feature, how)
+            payload = _task("harness-eng-lead", "Main", root)
+            payload["harness_agent_id"] = "Main"
+            payload["tool_input"]["prompt"] = "%s\nHARNESS-FEATURE-TREE-ROOT: %s\nx" % (
+                FEATURE_LINE, root)
+            before = _read_registry(root, reg)
+            result = fire(payload, env={"HARNESS_PROJECT_DIR": root,
+                                        "CLAUDE_PROJECT_DIR": root})
+            after = _read_registry(root, reg)
+            check("case 15e: Main -> eng-lead with a %s feature record is refused (exit 2)"
+                  % how, result.returncode == 2, result.stderr)
+            check("case 15e: %s record: the refusal is the registered-run preflight's, not"
+                  " DEC-174's" % how,
+                  "harness-eng-lead cannot start for %s" % feature in result.stderr
+                  and "DEC-174" not in result.stderr, result.stderr)
+            check("case 15e: %s record: the refused dispatch leaves the registry unchanged"
+                  % how, after == before and "harness_claim" not in result.stdout, after)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+
 def case_25_non_omp_dispatch_refused():
     """DEC-233: there is one host. A dispatch payload that does not identify itself as
     OMP-supervised is refused, not passed through unclaimed — a pass-through would leave
@@ -699,6 +890,7 @@ def case_16_system_python_compatibility():
 
 def case_17_shell_less_persona_requires_matching_feature_root():
     root = _checkout()
+    _register_lead_run(root, "harness-product-lead", "FEAT-42-one-root-resolver")
     try:
         missing = _task("harness-product-lead", "harness-orchestrator", root)
         missing["tool_input"]["prompt"] = FEATURE_LINE + "\nplan"
@@ -746,6 +938,7 @@ def case_18_inverted_slug_refused_no_claim_and_paste_back_safe():
     because the anchor it prints is already broken (D-05)."""
     reg = _load_registry_module()
     root = _checkout_with_run_dir_grants(["eng"])
+    _register_lead_run(root, "harness-eng-lead", "BUG-124-run-dir-squad-suffix")
     try:
         env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
         tail = (".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/"
@@ -781,6 +974,7 @@ def case_19_matching_slugs_not_refused():
     """(c) t01-eng, plan-product and 2026-08-26-2-plan-product all resolve to a
     grant and are never refused."""
     root = _checkout_with_run_dir_grants(["eng", "product"])
+    _register_lead_run(root, "harness-eng-lead", "BUG-124-run-dir-squad-suffix")
     try:
         env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
         for slug in ("t01-eng", "plan-product", "2026-08-26-2-plan-product"):
@@ -798,6 +992,7 @@ def case_19_matching_slugs_not_refused():
 def case_20_no_run_dir_reference_untouched():
     """(d) a prompt naming no run-dir path at all is untouched by the check."""
     root = _checkout_with_run_dir_grants(["eng"])
+    _register_lead_run(root, "harness-eng-lead", "BUG-124-run-dir-squad-suffix")
     try:
         env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
         r = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
@@ -815,6 +1010,10 @@ def case_21_grant_less_manifest_fails_open_and_says_so():
     """(e) FAIL OPEN: a manifest with no run-dir grant at all skips the check and says
     the vocabulary is empty by manifest declaration -- not that derivation failed."""
     root = _checkout()
+    # A lead grant with no `/runs/` segment: the run is registered and the manifest still
+    # declares no run-dir write grant, which is this case's subject.
+    _register_lead_run(root, "harness-eng-lead", "BUG-124-run-dir-squad-suffix",
+                       grant=".harness/*/features/*/**")
     try:
         env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
         tail = ".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md"
@@ -835,6 +1034,9 @@ def case_22_derived_vocabulary_matches_invented_squad():
     """(f) the vocabulary is DERIVED, not hardcoded: an invented squad suffix with no
     code change is recognized both ways, and named in the refusal by its own form."""
     root = _checkout_with_run_dir_grants(["oddsquad"])
+    # As in case 21: the registered run's grant adds nothing to the run-dir vocabulary.
+    _register_lead_run(root, "harness-eng-lead", "BUG-124-run-dir-squad-suffix",
+                       grant=".harness/*/features/*/**")
     try:
         env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
         good = ".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/t01-oddsquad/x"
@@ -859,13 +1061,17 @@ def case_23_broken_derivation_distinguished_from_grant_less():
     """(i) a manifest that does not parse fails the DERIVATION, and the SKIPPED line
     says so -- never the benign no-run-dir-grant text case 21 asserts (F-4)."""
     root = _checkout()
+    # BUG-2110: with the manifest unparseable no lead's registered-run grant can be
+    # established, so a lead start is refused at dispatch. The run-dir derivation is the
+    # subject here, and it does not depend on the dispatched persona: a lead's own member
+    # carries the same run-dir reference through the same check.
     try:
         with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as fh:
             fh.write("leads: [\n")
         env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
         tail = ".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md"
-        r = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
-                  "tool_input": {"subagent_type": "harness-eng-lead",
+        r = fire({"agent_type": "harness-eng-lead", "tool_name": "Agent",
+                  "tool_input": {"subagent_type": "harness-backend-dev",
                                  "prompt": RUNDIR_FEATURE_LINE + "\nHARNESS-FEATURE-TREE-ROOT: " + root + "\n" + tail}},
                  env=env)
         check("case 23: an unparseable manifest is not refused", r.returncode != 2, r.stderr)
@@ -900,6 +1106,7 @@ def case_27_spawns_allowlist():
     persona outside its list. Allowed: a lead reaching its own member. A member with
     `spawns: []` may dispatch nothing. The refusal names both personas and the list."""
     root = _checkout()
+    _register_lead_run(root, "harness-product-lead", "FEAT-42-one-root-resolver")
     try:
         r = _fire_from(root, "harness-backend-dev", "harness-orchestrator")
         check("case 27a: orchestrator -> member is refused", r.returncode == 2, r.stderr)
@@ -1132,6 +1339,9 @@ def main():
     case_14_single_flight_is_per_feature()
     case_15_omp_dispatch_records_supervisor_and_receipt()
     case_15b_omp_main_dispatch_records_top_level_claim()
+    case_15c_omp_main_eng_lead_on_all_direct_plan_refused()
+    case_15d_dec174_controls_keep_prior_outcomes()
+    case_15e_dec174_unresolvable_feature_keeps_prior_refusal()
     case_25_non_omp_dispatch_refused()
     case_26_omp_dispatch_without_supervisor_pid_refused()
     case_16_system_python_compatibility()

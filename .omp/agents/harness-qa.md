@@ -71,8 +71,11 @@ yield({data: {
 }})
 ```
 
-- `suite`: `pass|fail|n/a` — `n/a` ONLY if the suite could not be run at all. `suite: fail` with
-  `VERDICT: PASS` is rejected — a gate that FAILED cannot have passed, and reporting the failure
+- `suite`: `pass|fail|n/a` — `n/a` if the suite could not be run at all, or if no started task's
+  test_matrix row can require a kind, `always` or `when:` (report `matrix_ok: true`, `kinds: []`);
+  never run an unrequired suite just to write `pass`. `n/a` with `VERDICT: PASS` is otherwise
+  rejected, as is `suite: fail`
+  with `VERDICT: PASS` — a gate that FAILED cannot have passed, and reporting the failure
   honestly while claiming PASS is the same fail-open as declining it.
 - `matrix_ok`: a BOOLEAN, or `n/a`. "mostly" is a contract violation. `n/a` ONLY if the matrix
   could not be evaluated; `n/a` with `VERDICT: PASS` is rejected — DEC-173. `false` with
@@ -81,7 +84,9 @@ yield({data: {
 - `kinds`: `{kind, state: satisfied|missing|not_applicable|locally_run|misconfigured, cmd, named_tests}`.
 - `coverage_gaps`: include Phase 1 expectations with no test. `sc_evidence`: `{id, test: "<path:line>"}`.
 - `fail_first`: `{sc, evidence}` per `verify: automated` SC — the evidence the test FAILED before
-  the fix. PASS + `matrix_ok: true` + `[]` is rejected — a green suite with no fail-first evidence
-  is not a pass (FEAT-59 SC-17). `[]` only with `matrix_ok: n/a` or a non-PASS verdict.
+  the fix. PASS + `matrix_ok: true` + `[]` is rejected unless the trusted runtime feature's
+  readable BRIEF explicitly marks every SC `inspection` or `uat` in its own continuation block.
+  Missing, ambiguous or mismatched feature context and unknown/missing modes do not earn that
+  exemption. `[]` also applies with `matrix_ok: n/a` or a non-PASS verdict.
 - `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
   none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).

@@ -2356,6 +2356,10 @@ test runs had orchestration hand-written into the prompt.
 Whether the multi-squad lifecycles (`plan-feature`, `ship-feature`, DEC-118) are playbooks the
 orchestrator *reads*, or a DAG format it *executes* like a team. Deferred until one exists.
 
+The thin layer-0 default above holds for ordinary spawned organization. Its one exception is a plan
+whose every task is `execution_mode: main-session-direct`: there the main session is the feature
+orchestrator — see DEC-174's 2026-10-10 amendment (#2141).
+
 ---
 
 ## DEC-121 — Every digest field is required; `[]` is how you say nothing
@@ -4354,6 +4358,17 @@ to `[]` (DEC-100) and "no tests apply" is the correct outcome. So `GATE_FIELDS` 
 are bound by it. A `reviewer` scoping out of a diff with nothing for its role to judge passes with
 `severity_max: n/a`, legitimately.
 
+**qa's `suite` has the same "no tests apply" case, and it is computed, never claimed (#2139).** When the
+plan has started work and every started task names a known `test_matrix` row whose `always` AND `when:`
+kinds are all explicitly `status: excluded` (a null `cmd` on an active kind is misconfigured, never an
+exclusion — DEC-187), qa may return `suite: n/a` with `VERDICT: PASS`, `matrix_ok: true` and
+`kinds: []`. Without this, a docs-only feature's honest qa return was refused and qa ran an unrequired
+suite to write `pass`: the fabricated-record shape this decision exists to prevent. `when:` kinds count
+because their applicability is qa's judgement (DEC-212) and cannot be ruled out mechanically, so
+`bugfix` and `config` never qualify. It fails closed: a reported kind, `matrix_ok` other than `true`,
+an unknown row, no started task, or an unreadable plan or matrix keeps the gate binding, and
+`matrix_ok: n/a` with PASS stays refused.
+
 **What triggered the audit.** `harness-tdd-enforcement`'s under-specified-task refusal was written
 with two DIGEST fields and no `artifact:`. The `SubagentStop` hook rejected it with **exit 2**, so the
 guard against under-specified tasks was told it had committed a contract violation at the moment it
@@ -4501,6 +4516,19 @@ missing. That cost **zero item writes** against the 118 finished issues of the 2
 renaming a Projects v2 option keeps its id, so no card moved. `Ready` is deliberately empty — on that
 board `Backlog` means filed-and-untriaged and `Ready` means promoted for the factory, so a claim run
 that finds nothing has found the truth.
+
+**Amended 2026-10-10 (#2141) — on an entirely main-session-direct plan the main session IS the
+feature orchestrator.** When every task of a feature's canonical `plan.yaml` is
+`execution_mode: main-session-direct` (the same plan-keyed answer `handoff_policy.exempt_reason`
+gives), the main session holds ALL orchestrator duties itself: the `run-start`/`close-run` ledger
+(`.claude/skills/harness/references/ledger.md`), the judgements, the review pin, the commit pen and
+ship. It may dispatch `harness-product-lead` for the plan team, a panel or a patch, and
+`harness-validator-lead` for validate or fix — never `harness-eng-lead`; it builds directly. Every
+such prompt obeys the harness-zero-micro-management dispatch headers. The existing handoff_policy
+exemption still means no handoff notes are owed. `dispatch-guard.py` enforces the one refusal: the
+OMP main session dispatching `harness-eng-lead` for a qualifying feature exits 2 before any lead
+preflight or claim, naming DEC-174 and the build-directly remedy. Mixed, team, absent, unreadable
+or empty plans keep their prior outcomes, as do every other dispatcher and lead.
 
 ## DEC-175 — The engineering return declares which task it is answering: `task: T-NN|none` gates `task_verify`, and a self-reported gate FAILURE stops being a pass
 
@@ -5452,6 +5480,10 @@ regular file whose bytes match the hash, with no traversal or symlink escape. Op
 metadata also binds an immutable authorization note, operator and timestamp. Archived `previous`
 uses the same non-recursive mirror definition as the active core; it cannot contain another
 history or recovery. `validation_exit`, `return_status` and arbitrary prose keys are not proofs.
+The frozen legacy `runs[].return_disposition: refused` marker stays readable only because named
+readers still read it: INV-15/INV-46 accept it as grandfathered data with its closed BLOCKED
+identity, and run-end/close-run replay it unchanged. No writer remains, and an entry never
+carries both it and `refusal`.
 
 
 ## DEC-193 — Code is written in exactly two locations; any other checkout of this repository is refused by one shared rule on both write routes
@@ -6351,6 +6383,34 @@ for the operator to pick up or clear later.
 Both writes are best-effort, like every other write the mirror makes: a failed detach prints one line
 and the close still runs. An attached-but-closed ticket is a worse outcome than a detached one, and a
 far better one than a ticket that was never closed.
+
+**Source disposal is explicit opt-in: only `abandon --close-sources --yes` authorizes source
+writes.** Without `--close-sources`, even `--yes` leaves sources entirely untouched: no comments,
+closes, labels or board writes. The opted-in list comes from the authoritative `plan.yaml`
+`source_issues`, not `feature.json`'s mirror. Each opted-in source closes `not_planned`, returns
+to `Backlog` **after** its close, is labelled `abandoned`, and receives exactly the parent's
+original `--reason-file` contents. DEC-138 requires passing that original file path unchanged:
+no prefix, generated explanation or source-specific wording. Parent/task closure and task detach
+remain unchanged; source disposal adds neither source detach nor dependency discovery.
+
+Without `--yes`, the dry run shows every intended write and makes none, remotely or locally:
+reason comments, closes, detach where applicable, close-before-Backlog writes, abandoned label
+setup and application, milestone closure, and local station/pruning effects. The same abandonment
+plan drives reporting and execution; a failed source write does not suppress later sources or
+local finalization.
+
+**There is no shared-ticket corpus check or active-feature ownership refusal.** Issue #2161's
+Constraint is explicitly overruled by settled operator grilling. The complete dry run and both
+flags are the guard, even when another active feature cites the source. The accepted cost is
+real: explicit disposal can close and return to Backlog a ticket another active feature still
+needs; confirmation assigns that risk to the operator, not to an ownership-discovery gate.
+
+**An unopened mirror still abandons locally.** Under `--yes`, even with no recorded parent,
+milestone or tasks, record `abandoned` before pruning `runs/` under INV-51 and DEC-238. On
+already-abandoned re-entry the station is not rewritten; absent `runs/` is a local no-op, while
+retained `runs/` is still pruned after confirming the station. Neither local no-op prevents
+explicit source disposal. Other feature artifacts remain. `gh-close-gate.py` and `reject`'s
+source behavior are unchanged.
 
 **9. The accepted cost, and it is the largest one here.** The harness now depends on a board
 automation that only a click in the project web interface can enable. Nothing in a checkout can turn
@@ -7859,8 +7919,10 @@ loaded YAML-labelled or unlabelled fenced mapping. Consumers use those structure
 retroactive live-persona validation, rewriting bytes or selecting by a `VERDICT` token.
 Historical prose is never a live return. Authorized `record-cycle-evidence` and `record-refusal`
 metadata binds unchanged original bytes and exact runs; it never appends a fake accepted fence.
-For a newly refused close, only the validator's expected contract-rejection exit 1 and marker
-authorize `BLOCKED` refusal provenance. A crash, missing/unreadable artifact or other exit cannot.
+For a newly refused close of an open run, only the validator's deliberate contract-refusal
+status 65 authorizes `BLOCKED` refusal provenance. A crash, usage error, missing/unreadable
+artifact or other exit cannot; a run already closed `BLOCKED` takes provenance only through
+`record-refusal`.
 Durable refusal is saved before later station, judgement and spend stages; INV-15/INV-46 distinguish
 that evidenced execution completion from an accepted return. Live YieldTool objects, member
 roll-up, signatures, budgets and validator-owned accepted fences remain unchanged.
