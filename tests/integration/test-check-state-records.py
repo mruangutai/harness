@@ -792,89 +792,87 @@ def case_bug1305_run_identity_invariant():
     return ok
 
 
-# --- BUG-1309 T-06: the terminal mirror receipt must be a local invariant.
-# GRADE-2 REASON: the test intentionally drives each independent invariant state through
-# the external checker; splitting it would hide the fixture-to-checker contract.
-def case_t06_build_entry_invariant():
-    def fixture(tmp, feature, station="done", build_entry=None, sync=True,
-                factory_issues=None, task_status=None):
-        h = os.path.join(tmp, ".harness")
-        feat_dir = os.path.join(h, "harness", "features", feature)
-        os.makedirs(feat_dir, exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w", encoding="utf-8") as f:
-            json.dump({"github": {"sync": sync, "repo": "acme/widgets", "board": None}}, f)
-        github = {} if build_entry is None else {"build_entry": build_entry, "repo": "acme/widgets"}
-        doc = {"feature_id": feature, "github": github}
-        if factory_issues is not None:
-            doc["factory"] = {"issues": factory_issues}
-        with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
-            json.dump(doc, f)
-        task = {
-            "id": "T-01",
-            "title": "fixture task",
-            "change_type": "bugfix",
-            "execution_mode": "main-session-direct",
-            "files": ["fixture"],
-            "verify": "true",
-            "intent": "fixture",
-        }
-        if task_status is not None:
-            task["status"] = task_status
-        with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
-            f.write(f"schema: plan/1\nfeature: {feature}\nstatus: {station}\ntasks:\n"
-                    f"  - {json.dumps(task)}\n")
-        return feat_dir
+# --- BUG-1309 T-06: the terminal mirror receipt must be a local invariant. Each independent
+# invariant state is driven through the external checker from one shared fixture builder.
+def _t06_fixture(tmp, feature, station="done", build_entry=None, sync=True,
+                 factory_issues=None, task_status=None):
+    h = os.path.join(tmp, ".harness")
+    feat_dir = os.path.join(h, "harness", "features", feature)
+    os.makedirs(feat_dir, exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"github": {"sync": sync, "repo": "acme/widgets", "board": None}}, f)
+    github = {} if build_entry is None else {"build_entry": build_entry, "repo": "acme/widgets"}
+    doc = {"feature_id": feature, "github": github}
+    if factory_issues is not None:
+        doc["factory"] = {"issues": factory_issues}
+    with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
+        json.dump(doc, f)
+    task = {"id": "T-01", "title": "fixture task", "change_type": "bugfix",
+            "execution_mode": "main-session-direct", "files": ["fixture"], "verify": "true",
+            "intent": "fixture"}
+    if task_status is not None:
+        task["status"] = task_status
+    with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
+        f.write(f"schema: plan/1\nfeature: {feature}\nstatus: {station}\ntasks:\n"
+                f"  - {json.dumps(task)}\n")
+    return feat_dir
 
-    def check(name, condition):
-        print(f"{'ok' if condition else 'FAIL'} - {name}")
-        return condition
 
+def _t06_check(name, condition):
+    print(f"{'ok' if condition else 'FAIL'} - {name}")
+    return condition
+
+
+def _t06_inv37_line(feature, **fields):
+    """The first INV-37 line check-state prints for one fixture feature, or ''."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _t06_fixture(tmp, feature, **fields)
+        _, out = run(tmp)
+    return next((x for x in out.splitlines() if "INV-37" in x), "")
+
+
+_T06_RECEIPT_ROWS = (
+    ("T-06 INV-37 accepts a provenanced opened receipt", "opened", True, None, False),
+    ("T-06 INV-37 accepts a provenanced terminal receipt", "recovered-terminal", True, None, False),
+    ("T-06 INV-37 remains disabled for an unbound sync-off feature", None, False, None, False),
+    ("T-06 INV-37 factory claims do not prove a mirror receipt", None, True, {"T-01": 9}, True),
+)
+
+
+def case_t06_inv37_receipt():
+    """INV-37 fires on a missing receipt for EVERY feature id — no id buys silence — and
+    accepts each provenanced receipt shape."""
     outcomes = []
-    with tempfile.TemporaryDirectory() as tmp:
-        fixture(tmp, "FEAT-9001-fixture")
-        _, out = run(tmp)
-        line = next((x for x in out.splitlines() if "INV-37" in x), "")
-        outcomes.append(check("T-06 INV-37 fires at a done station with no task statuses",
-                              "FEAT-9001-fixture" in line and "recover-terminal" in line))
-    for name, entry, sync, factory, expected_violation in (
-        ("T-06 INV-37 accepts a provenanced opened receipt", "opened", True, None, False),
-        ("T-06 INV-37 accepts a provenanced terminal receipt", "recovered-terminal", True, None, False),
-        ("T-06 INV-37 remains disabled for an unbound sync-off feature", None, False, None, False),
-        ("T-06 INV-37 factory claims do not prove a mirror receipt", None, True, {"T-01": 9}, True),
-    ):
-        with tempfile.TemporaryDirectory() as tmp:
-            fixture(tmp, "FEAT-9001-fixture", build_entry=entry, sync=sync,
-                    factory_issues=factory)
-            _, out = run(tmp)
-            outcomes.append(check(name, ("INV-37" in out) == expected_violation))
-    # No feature id buys silence: a feature of either kind with no build_entry owes the receipt.
-    with tempfile.TemporaryDirectory() as tmp:
-        fixture(tmp, "BUG-9-x")
-        _, out = run(tmp)
-        line = next((x for x in out.splitlines() if "INV-37" in x), "")
-        outcomes.append(check("T-06 INV-37 fires for any feature id with no build_entry",
-                              "BUG-9-x" in line and "recover-terminal" in line))
+    for feature in ("FEAT-9001-fixture", "BUG-9-x"):
+        line = _t06_inv37_line(feature)
+        outcomes.append(_t06_check(f"T-06 INV-37 fires for {feature} with no build_entry",
+                                   feature in line and "recover-terminal" in line))
+    for name, entry, sync, factory, expected_violation in _T06_RECEIPT_ROWS:
+        line = _t06_inv37_line("FEAT-9001-fixture", build_entry=entry, sync=sync,
+                               factory_issues=factory)
+        outcomes.append(_t06_check(name, bool(line) == expected_violation))
+    return all(outcomes)
 
+
+def _t06_recovery(station, task_status=None):
     import feature_schema
     with tempfile.TemporaryDirectory() as tmp:
-        building = fixture(tmp, "FEAT-9001-fixture", station="building")
-        outcomes.append(check("T-06 recovery_command_for returns open for a building plan with no started work",
-                              feature_schema.recovery_command_for(building)
-                              == "open"))
-    trigger_results = []
-    for feature, station, task_status in (
-        ("FEAT-9001-fixture", "review", None),
-        ("FEAT-9001-fixture", "building", "done"),
-    ):
-        with tempfile.TemporaryDirectory() as tmp:
-            feat_dir = fixture(tmp, feature, station=station, task_status=task_status)
-            trigger_results.append(
-                feature_schema.recovery_command_for(feat_dir)
-                == "recover-terminal"
-            )
-    outcomes.append(check("T-06 recovery_command_for returns recover-terminal for each trigger alone",
-                          all(trigger_results)))
-    return all(outcomes)
+        feat_dir = _t06_fixture(tmp, "FEAT-9001-fixture", station=station,
+                                task_status=task_status)
+        return feature_schema.recovery_command_for(feat_dir)
+
+
+def case_t06_recovery_command():
+    """recovery_command_for: `open` before any started work, `recover-terminal` for each
+    terminal trigger alone."""
+    opened = _t06_check(
+        "T-06 recovery_command_for returns open for a building plan with no started work",
+        _t06_recovery("building") == "open")
+    triggers = [_t06_recovery("review"), _t06_recovery("building", "done")]
+    terminal = _t06_check(
+        "T-06 recovery_command_for returns recover-terminal for each trigger alone",
+        triggers == ["recover-terminal", "recover-terminal"])
+    return opened and terminal
 
 
 def _bug440_digest(verdict):
@@ -1060,7 +1058,8 @@ def main():
     results.append(case_inv32_malformed_era_exempts_nothing())
     results.append(case_bug440_digest_verdict_reconciliation())
     results.append(case_bug1305_run_identity_invariant())
-    results.append(case_t06_build_entry_invariant())
+    results.append(case_t06_inv37_receipt())
+    results.append(case_t06_recovery_command())
     results.append(case_historical_refusal_completion())
     results.append(_report(
         case_inv33a_stale_is_reported()
