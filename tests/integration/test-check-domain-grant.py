@@ -310,8 +310,14 @@ def run_t12():
     # the criterion it traces to FAILED, and the tester saw nothing. That is the
     # verify-method defect this feature keeps finding, here in my own test. D-14b tracks
     # the real fix; renamed so nobody reads a green tick as SC-08 being met.
+    # BUG-2169: the advice is per platform (apt on Debian/Ubuntu's system python3, pip
+    # elsewhere), so the assertion is that one of harness_yaml's real install commands
+    # arrives, not that the word "pip" does.
+    import harness_yaml
+    advice = {harness_yaml.install_command(homebrew=brew, debian_system=debian).splitlines()[0]
+              for brew in (True, False) for debian in (True, False)}
     t12("[partial SC-08] the install command reaches stderr (NOT proof the user sees it — D-14b)",
-        "pip install" in r1.stderr and "pyyaml" in r1.stderr.lower(),
+        any(command in r1.stderr for command in advice),
         f"stderr: {r1.stderr.strip()[:200]}")
 
     # SC-08's ACTUAL clause: "a channel the user sees". stderr is not that on an allow —
@@ -326,14 +332,14 @@ def run_t12():
             return None
     msg = _sysmsg(r1)
     t12("SC-08: the install command reaches a channel the user SEES (systemMessage)",
-        isinstance(msg, str) and "pip install" in msg,
+        isinstance(msg, str) and any(command in msg for command in advice),
         f"stdout was {r1.stdout.strip()[:200]!r}")
     t12("SC-08: ...and records the marker",
         os.path.exists(marker), f"no marker at {marker}")
 
     r2 = fire_noyaml(root, "allowed/b.md", "sess-A")
     t12("SC-08: a SECOND write in the SAME session is permitted, silently",
-        r2.returncode == 0 and "pip install" not in r2.stderr,
+        r2.returncode == 0 and not any(command in r2.stderr for command in advice),
         f"exit {r2.returncode}: {r2.stderr.strip()[:200]}")
 
     # The SC-09 MECHANISM. The criterion itself is verify: uat, because only a real
@@ -351,7 +357,7 @@ def run_t12():
     # (D-14b), stderr on a BLOCK does reach the agent, because exit 2 surfaces it
     # (DEC-100) — so this channel is the right one here and the fix is complete.
     t12("D-14a: the block SAYS WHY and carries the install command",
-        r3.stderr.strip() != "" and "pip install" in r3.stderr
+        r3.stderr.strip() != "" and any(command in r3.stderr for command in advice)
         and "EARLIER session" in r3.stderr,
         f"stderr was {len(r3.stderr)} bytes: {r3.stderr.strip()[:200]}")
 

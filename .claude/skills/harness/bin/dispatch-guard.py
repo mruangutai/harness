@@ -74,17 +74,39 @@ if __name__ == "__main__":
         if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
     ]
 
-    # The helper was a separate interpreter. Do not leak its project or YAML modules into
-    # the isolated policy phase.
+    # The helper was a separate interpreter. Do not leak its project modules, or a PyYAML
+    # the isolated phase would not have found, into the isolated policy phase.
+    #
+    # PyYAML is KEPT when every loaded `yaml`/`yaml.*` module resolves, after symlinks,
+    # inside a directory the policy path still searches and outside every distrusted root
+    # (BUG-2169). Its compiled `yaml._yaml` cannot be re-initialized by a re-import: purging
+    # and re-importing the same installation left the cached C module holding the first
+    # import's node classes, so CSafeLoader produced an untagged root ("could not determine
+    # a constructor for the tag None") on every machine with one system-wide PyYAML. Keeping
+    # it changes nothing the isolation protects: the policy phase would import that copy.
+    # One untrusted module anywhere in the package purges ALL of it, never half of it.
+    def _bootstrap_within(path, roots):
+        real = _bootstrap_os.path.realpath(path)
+        return any(_bootstrap_os.path.commonpath([real, root]) == root for root in roots)
+
+    def _bootstrap_is_yaml(name):
+        return name == "yaml" or name.startswith("yaml.")
+
+    _bootstrap_policy_path = {
+        _bootstrap_os.path.realpath(entry) for entry in _bootstrap_sys.path}
+    _bootstrap_bin_root = [_bootstrap_os.path.realpath(_bootstrap_bin)]
+    _bootstrap_keep_yaml = all(
+        origin and _bootstrap_within(origin, _bootstrap_policy_path)
+        and not _bootstrap_within(origin, _bootstrap_unsafe)
+        for origin in (getattr(module, "__file__", None)
+                       for name, module in _bootstrap_sys.modules.items()
+                       if _bootstrap_is_yaml(name)))
     for _bootstrap_name, _bootstrap_module in list(_bootstrap_sys.modules.items()):
         if _bootstrap_name == "__main__":
             continue
         _bootstrap_file = getattr(_bootstrap_module, "__file__", None)
-        if (_bootstrap_name == "yaml" or _bootstrap_name.startswith("yaml.")
-                or (_bootstrap_file and _bootstrap_os.path.commonpath([
-                    _bootstrap_os.path.realpath(_bootstrap_file),
-                    _bootstrap_os.path.realpath(_bootstrap_bin),
-                ]) == _bootstrap_os.path.realpath(_bootstrap_bin))):
+        if ((_bootstrap_is_yaml(_bootstrap_name) and not _bootstrap_keep_yaml)
+                or (_bootstrap_file and _bootstrap_within(_bootstrap_file, _bootstrap_bin_root))):
             _bootstrap_sys.modules.pop(_bootstrap_name, None)
 
     _bootstrap_os.environ["HARNESS_GUARD_BIN_DIR"] = _bootstrap_bin

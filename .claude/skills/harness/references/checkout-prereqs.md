@@ -30,13 +30,21 @@ Print this for the user to run, then re-check:
 python3 -m pip install pyyaml jsonschema
 # only one of them missing? then just the one, e.g.:
 python3 -m pip install jsonschema
-# if either fails with "externally-managed-environment" (PEP 668, e.g. Homebrew/Debian):
-python3 -m pip install --user --break-system-packages pyyaml jsonschema
+# if jsonschema fails with "externally-managed-environment" (PEP 668, e.g. Homebrew/Debian):
+python3 -m pip install --user --break-system-packages jsonschema
 ```
 
-Quote the command from `harness_yaml.INSTALL_COMMAND` (D-07), never retype it. This shell check is
-advisory — the write hooks self-report `MISSING` from their own environment; `check-domain.py` is
-authoritative.
+If PyYAML fails with "externally-managed-environment" (PEP 668), print its advice for this
+interpreter rather than retyping it — it differs by platform (apt on Debian/Ubuntu's system
+python3; pip with `--break-system-packages` and without `--user` on Homebrew):
+
+```
+python3 -c 'import sys; sys.path.insert(0, ".claude/skills/harness/bin"); import harness_yaml; print(harness_yaml.INSTALL_COMMAND)'
+```
+
+Never install PyYAML with `--user`: the guard's policy phase drops per-user site-packages, so a
+per-user PyYAML leaves the refusal in place. This shell check is advisory — the write hooks
+self-report `MISSING` from their own environment; `check-domain.py` is authoritative.
 
 **If the packages cannot be installed, STOP HERE and tell the user.** A half-installed init looks
 finished but has no domain enforcement, which is worse than a refused one (observed in testing).

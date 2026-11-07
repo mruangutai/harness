@@ -1,0 +1,108 @@
+{
+  "feature_id": "BUG-2169-guard-yaml-reimport",
+  "branch": "feat/BUG-2169-guard-yaml-reimport",
+  "pr": null,
+  "review_sha": "a48a725e16321d3a3f9ef142a0b95e2e19a4de5e",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-07-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T13:04:04+00:00",
+      "tokens": 23137,
+      "cycles_used": 0,
+      "ended_at": "2026-11-07T13:14:36+00:00",
+      "return_disposition": "refused",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-07-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:03:20+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:19:37+00:00",
+      "return_disposition": "refused"
+    },
+    {
+      "id": "2026-11-07-3-fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:23:44+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:30:58+00:00",
+      "return_disposition": "refused"
+    },
+    {
+      "id": "2026-11-07-4-fix-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:36:12+00:00",
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:50:58+00:00",
+      "return_disposition": "refused"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-07T13:04:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause reproduced and known (guard purge re-imports PyYAML over its cached C extension); diff bounded to dispatch-guard.py, harness_yaml.py INSTALL_COMMAND, tests, CI; no new interface; main-session-direct per DEC-174"
+    },
+    {
+      "at": "2026-11-07T13:14:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "intake return PASS validated via CLI but no yield hook appended the durable record under this host; BRIEF (53 lines) and plan.yaml (T-01 main-session-direct, check 0 failures) verified on disk pending; advance to signature"
+    },
+    {
+      "at": "2026-11-07T13:55:24.587458+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Per-platform advice consumer: grant test pinned pip wording; assert real install_command lines. Red on 26.04 image, green after."
+    },
+    {
+      "at": "2026-11-07T14:02:33.598612+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Simplify fold-in: checkout-prereqs.md retyped the retired --user PyYAML advice; point it at harness_yaml.INSTALL_COMMAND."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-2169-guard-yaml-reimport/notes/operator-rework-raise-2026-11-07.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "dbfa848e65427a5b599975a2d7842e143a1e11ae689955b27a5a7f1e21ef103a"
+  },
+  "github": {
+    "milestone": 105,
+    "parent": 2175,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2176
+    },
+    "source_issues": [
+      2169
+    ],
+    "build_entry": "opened"
+  }
+}
