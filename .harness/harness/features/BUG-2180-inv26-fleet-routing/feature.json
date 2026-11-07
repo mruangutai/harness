@@ -2,7 +2,7 @@
   "feature_id": "BUG-2180-inv26-fleet-routing",
   "branch": "feat/BUG-2180-inv26-fleet-routing",
   "pr": null,
-  "review_sha": "556a23ffea8dafcf5110e80fe25a42ee2542ff2b",
+  "review_sha": "909798ec572ffe6ec484e89fd36f0f58ef113c45",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -53,6 +53,13 @@
       "cycles_used": 1,
       "tokens": null,
       "ended_at": "2026-11-07T15:07:05+00:00"
+    },
+    {
+      "id": "2026-11-07-03-fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-07T15:11:12+00:00"
     }
   ],
   "judgements": [
@@ -69,6 +76,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "DEC-217 bugfix unit floor named in the signed BRIEF; validate c0 must-fix 2; advisor ruling Inv26RoutingAdvisor"
+    },
+    {
+      "at": "2026-11-07T15:11:12+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "fix c1 re-verify after validate FAIL (complexity split + DEC-217 unit floor)"
     }
   ],
   "mission": "patch",
