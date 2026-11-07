@@ -728,6 +728,17 @@ def _owner_mirror_binding(root):
     return repo, gh_board.load_board(root), gh_issue_types.overrides_from_config(config)
 
 
+def effective_recorded_repo(doc, bound_repo):
+    """The repository a mapping is proven to live in. An UNBOUND feature's pre-provenance
+    mapping was created by the owner binding that still resolves it — there was never a second
+    destination — so its absent `github.repo` reads as that owner repository. A bound feature's
+    absence stays unproven: its old numbers may have come from an ancestor default (DEC-221)."""
+    recorded = (doc.get("github") or {}).get("repo")
+    if recorded is None and bound_repo and not has_repository_binding(doc):
+        return bound_repo
+    return recorded
+
+
 def mirror_provenance_problem(doc, bound_repo):
     """A readable legacy mapping is not permission to reuse its unproven numbers."""
     github = doc.get("github") or {}
@@ -737,7 +748,7 @@ def mirror_provenance_problem(doc, bound_repo):
             bound_repo is not None or active or github.get("build_entry") in {"opened", "recovered-terminal"}
             or (doc.get("factory") or {}).get("repo") is not None):
         return f"recorded github.repo {recorded_repo!r} conflicts with bound repository {bound_repo!r}"
-    if active and (not bound_repo or recorded_repo != bound_repo):
+    if active and (not bound_repo or effective_recorded_repo(doc, bound_repo) != bound_repo):
         return "nonempty mirror has no matching github.repo provenance"
     recovery = github.get("recovery") or {}
     if recovery and (recovery.get("state") != "complete" or recovery.get("pending_create")):
@@ -756,7 +767,7 @@ def receipt_allows_merge(doc, bound_repo, *, era_requires_absent=False):
     if entry == "not-applicable":
         return not has_repository_binding(doc)
     if entry in {"opened", "recovered-terminal"}:
-        return bool(bound_repo) and github.get("repo") == bound_repo
+        return bool(bound_repo) and effective_recorded_repo(doc, bound_repo) == bound_repo
     return (doc.get("feature_id") in BUILD_ENTRY_ERA_EXEMPT
             and (not era_requires_absent or entry is None))
 

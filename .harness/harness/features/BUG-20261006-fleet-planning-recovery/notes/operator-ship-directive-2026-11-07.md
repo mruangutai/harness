@@ -55,3 +55,26 @@ independently. RefusalModelAdvisor ruled on the merged tree:
 
 The ruling stays inside T-01 and T-02. All touched files are already in their signed file lists,
 and no signed decision changes meaning.
+
+## Legacy owner provenance ruling (advisor, 2026-11-07)
+
+I ran full-corpus `check-state.py`, the check CI's Repository-state gate runs, on merge commit
+6f6166a9 in a non-sparse probe. It found 94 INV-37 violations, all reading "nonempty mirror has no
+matching github.repo provenance". All 94 are historical unbound owner-repo features (opened 33,
+absent 49, recovered-terminal 12); none has `factory.repo`. `origin/main` is clean. Earlier pins
+only ever ran the feature-scoped checker in the sparse worktree, which is why this went unseen.
+
+KayaBlockersAdvisor chose option (1) over a new exemption set or a 94-record backfill:
+
+- `feature_schema.effective_recorded_repo` reads an absent `github.repo` as the owner repository
+  only when the feature has no repository binding. Both `mirror_provenance_problem` and
+  `receipt_allows_merge` go through it.
+- An absent repo on a bound feature, such as Kaya, stays unproven. An explicit mismatch is
+  refused everywhere.
+- The signed plan bytes are unchanged. The clarification is recorded in DEC-220's binding and
+  receipt predicate paragraph.
+- From now on, a full-corpus non-sparse probe check runs before every PR for this feature.
+
+Evidence-referenced run digests (`runs/2026-10-06-2-simplify-eng/digest.md` and
+`runs/2026-10-17-1-build-main/digest.md`) are force-added. `.gitignore` excludes `runs/**`, so
+without this CI could not verify the hashes that this feature's refusal and cycle evidence bind.

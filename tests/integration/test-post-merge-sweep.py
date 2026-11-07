@@ -1032,10 +1032,17 @@ def case_unproven_mirror_retention():
             _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
             observed = subprocess.run([sweep], cwd=repo, capture_output=True, text=True,
                                       env=_sweep_env(repo, gh_env))
-            results.append(("opened cannot remove wrong-repository or unproven mirror evidence",
-                            observed.returncode == 0 and os.path.isdir(dest)
-                            and "recover-mirror" in observed.stdout,
-                            f"provenance={provenance} stdout={observed.stdout!r}"))
+            if provenance is None:
+                results.append(("an unbound legacy mapping is proven by the owner binding, so "
+                                "the terminal worktree is swept",
+                                observed.returncode == 0 and not os.path.isdir(dest)
+                                and "recover-mirror" not in observed.stdout,
+                                f"stdout={observed.stdout!r}"))
+            else:
+                results.append(("opened cannot remove wrong-repository mirror evidence",
+                                observed.returncode == 0 and os.path.isdir(dest)
+                                and "recover-mirror" in observed.stdout,
+                                f"stdout={observed.stdout!r}"))
     return results
 
 

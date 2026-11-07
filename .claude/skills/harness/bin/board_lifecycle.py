@@ -497,17 +497,6 @@ def _active_plan(feat_dir):
     return plan_doc, None
 
 
-def _feature_projection(plan_doc, feature_doc):
-    """Return an active feature's projected cards; product-decomposed issues are not its own."""
-    github = feature_doc.get("github")
-    github = github if isinstance(github, dict) else {}
-    factory_block = feature_doc.get("factory")
-    factory_block = factory_block if isinstance(factory_block, dict) else {}
-    if not github.get("issues") and factory_block.get("issues"):
-        return {}
-    return gh_board.project(plan_doc, github)
-
-
 def _projection_findings(feat_dir, board, stations, projection):
     findings = []
     for issue_number, expected in projection.items():
@@ -564,8 +553,9 @@ def _status_findings(root, board, stations, repo_name):
         if invalid is not None:
             findings.append(invalid)
             continue
+        github = feature_doc.get("github") or {}
         findings.extend(_projection_findings(
-            feat_dir, board, stations, _feature_projection(plan, feature_doc)))
+            feat_dir, board, stations, gh_board.project(plan, github)))
     return findings
 
 

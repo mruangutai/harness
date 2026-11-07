@@ -158,20 +158,34 @@ with tempfile.TemporaryDirectory() as tmp:
           escaped)
 
 allows = getattr(feature_schema, "receipt_allows_merge", None)
-check("opened alone is not repository provenance",
-      callable(allows) and not allows({"github": {"parent": 7, "build_entry": "opened"}}, "org/product"))
+bound = {"repo": "org/product"}
+check("a bound feature's opened mapping without github.repo is not repository provenance",
+      callable(allows) and not allows(
+          {"factory": bound, "github": {"parent": 7, "build_entry": "opened"}}, "org/product"))
 if callable(allows):
-    for name, receipt, expected in (
-        ("matching opened generation", {"repo": "org/product", "parent": 7, "build_entry": "opened"}, True),
-        ("wrong repository", {"repo": "org/owner", "parent": 7, "build_entry": "opened"}, False),
-        ("replacement in progress", {"repo": "org/product", "build_entry": "opened",
-                                     "recovery": {"state": "in-progress"}}, False),
-        ("uncertain create", {"repo": "org/product", "build_entry": "recovered-terminal",
-                              "recovery": {"state": "complete", "pending_create": {"role": "parent"}}}, False),
-        ("legacy unbound sync-off", {"build_entry": "not-applicable"}, True),
+    for name, doc, expected in (
+        ("matching opened generation",
+         {"github": {"repo": "org/product", "parent": 7, "build_entry": "opened"}}, True),
+        ("wrong repository",
+         {"github": {"repo": "org/owner", "parent": 7, "build_entry": "opened"}}, False),
+        ("bound wrong repository",
+         {"factory": bound, "github": {"repo": "org/owner", "parent": 7, "build_entry": "opened"}},
+         False),
+        ("legacy unbound opened, created by the owner binding that still resolves it",
+         {"github": {"parent": 7, "build_entry": "opened"}}, True),
+        ("legacy unbound recovered-terminal",
+         {"github": {"milestone": 3, "parent": 7, "build_entry": "recovered-terminal"}}, True),
+        ("unresolved owner repository", {"github": {"parent": 7, "build_entry": "opened"}}, None),
+        ("replacement in progress", {"github": {"repo": "org/product", "build_entry": "opened",
+                                                "recovery": {"state": "in-progress"}}}, False),
+        ("uncertain create", {"github": {
+            "repo": "org/product", "build_entry": "recovered-terminal",
+            "recovery": {"state": "complete", "pending_create": {"role": "parent"}}}}, False),
+        ("legacy unbound sync-off", {"github": {"build_entry": "not-applicable"}}, True),
     ):
+        repo = None if expected is None else "org/product"
         check(f"repository-aware merge receipt: {name}",
-              allows({"github": receipt}, "org/product") is expected)
+              allows(doc, repo) is bool(expected))
 
 resolve = getattr(feature_schema, "resolve_binding", None)
 check("the shared binding resolver exists", callable(resolve))

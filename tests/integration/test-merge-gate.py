@@ -87,8 +87,12 @@ for provenance in (None, "elsewhere/wrong"):
     with open(record, "w") as target:
         json.dump(document, target)
     r, d, reason = gate("git merge feature/test", root)
-    check("opened is not proof of ownership for an unproven or wrong-repository mirror",
-          d == "deny" and "recover-mirror" in reason and "--previous-repo" in reason, reason)
+    if provenance is None:
+        check("an unbound legacy mapping is proven by the owner binding that created it",
+              r.returncode == 0 and d is None, f"decision={d} reason={reason}")
+    else:
+        check("opened is not proof of ownership for a wrong-repository mirror",
+              d == "deny" and "recover-mirror" in reason and "--previous-repo" in reason, reason)
 
 root, directory = fixture(entry="opened", sync=False)
 record = os.path.join(directory, "feature.json")

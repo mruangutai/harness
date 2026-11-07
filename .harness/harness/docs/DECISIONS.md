@@ -7189,7 +7189,12 @@ refuses before station changes or remote mutation, even if its old marker says `
 default-branch `product_config`/`board_for`, with no ancestor/disk fallback. A bound target must
 enable sync and declare the matching repository and valid board; failure never routes to Harness.
 Unbound sync-off/null-board semantics remain legal. Active object numbers need matching
-`github.repo`; archived numbers and `factory.claims` are not active provenance. INV-37, merge,
+`github.repo`; archived numbers and `factory.claims` are not active provenance. An unbound feature's
+pre-provenance mapping with absent `github.repo` is proven by construction: the owner binding that
+created it is the one that resolves it, with no second destination, so
+`feature_schema.effective_recorded_repo` reads that absence as the owner repository. A bound
+feature's absence stays unproven, and an explicit mismatch is refused everywhere. Writers persist
+`github.repo`; nothing backfills history. INV-37, merge,
 sweep and lifecycle projection share this proof and the recovery command formatter. Existing frozen
 exception sets and legal `not-applicable` receipts stay unchanged; sweep retains its stricter
 absent-only era exception. `recovery-required` may continue compatible Build but still gates merge.
