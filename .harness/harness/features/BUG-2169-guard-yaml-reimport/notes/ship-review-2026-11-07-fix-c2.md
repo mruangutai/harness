@@ -64,4 +64,4 @@ directories will go; the notes stay.
 |---|---|---|
 | B-1 | bug | `feature_schema.py:59-60` jsonschema advice and three test bail-out messages still say `--user`; isolated hooks importing `feature_schema` likely cannot see a per-user jsonschema [inference, not measured] |
 | B-2 | chore | `gh-sync.py status review` rewrites `plan.yaml` after the pin, so INV-33 marks the pin stale by construction; the procedure needs a repin step or the station write excluded from the comparison |
-| B-3 | chore | `feature-record.py close-run` resolves a relative `--digest` against the cwd at the validate stage - already fixed on the unmerged `feat/BUG-20261006-fleet-planning-recovery`; no new ticket needed if that ships |
+| B-3 | chore | `feature-record.py close-run` resolved a relative `--digest` against the cwd at the validate stage - fixed on main by #2177 (merged into this branch before push); not filed |
