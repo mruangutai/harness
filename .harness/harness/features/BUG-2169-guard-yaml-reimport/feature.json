@@ -2,7 +2,7 @@
   "feature_id": "BUG-2169-guard-yaml-reimport",
   "branch": "feat/BUG-2169-guard-yaml-reimport",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "6c896d981ed17d2bae528818ecffa56400ae2666",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -17,6 +17,13 @@
       "ended_at": "2026-11-07T13:14:36+00:00",
       "return_disposition": "refused",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-07-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-07T14:03:20+00:00"
     }
   ],
   "judgements": [
