@@ -112,6 +112,20 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "Complete backend schema consumer cleanup: delete incidental wording locks while retaining missing-field and undeclared-key rejection coverage."
+    },
+    {
+      "at": "2026-11-07T14:21:49.822725+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "DEC-182: the comment only justifies the command; moved verbatim to notes/amendment-T-01-budget-2026-11-07.md"
+    },
+    {
+      "at": "2026-11-07T14:21:49.822877+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "DEC-182 machine-line budget (56>50); dropped surfaces stay lane-routed main-session-direct; full touched set in notes/amendment-T-01-budget-2026-11-07.md; T-01 done, no scope change"
     }
   ],
   "mission": "plan",
