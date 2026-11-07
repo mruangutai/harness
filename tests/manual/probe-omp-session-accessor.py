@@ -28,14 +28,39 @@ So the honest arrangement is: unregistered from every test-kind list, run by a h
 release step) on a machine that has omp and credentials, and named `probe-` rather than `test-`
 so the unit glob does not sweep it back into the suite.
 
-WHAT THIS COSTS, RECORDED RATHER THAN GLOSSED. The version-floor risk in
-`.harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md` — that a later OMP
-renames or drops the accessor — is therefore watched by a check someone must REMEMBER TO RUN, not
-by CI. That is weaker than an automated gate and is not dressed up as one. Nothing available in
-this repository's CI can verify a property of a binary that CI does not have.
+WHAT THIS COSTS, RECORDED RATHER THAN GLOSSED. The version-floor risk recorded below — that a
+later OMP renames or drops the accessor — is therefore watched by a check someone must REMEMBER TO
+RUN, not by CI. That is weaker than an automated gate and is not dressed up as one. Nothing
+available in this repository's CI can verify a property of a binary that CI does not have.
 
 WHERE IT DOES RUN, IT FAILS RATHER THAN SKIPS: if omp is present and the accessor has moved, or
 the probe yields nothing, this exits non-zero.
+
+THE PROBE EXTENSION. `tests/manual/probe-session-accessors.ts` registers one `turn_end` handler,
+enumerates `ctx.sessionManager`'s read-only getters, calls each and appends one JSON line per
+session to `$CTXPROBE_OUT` (default `/tmp/ctxprobe/out2.jsonl`). Reproduce the measurement by hand
+from the repository root:
+
+    omp -p "Use the task tool once: spawn a subagent of type 'sonic' whose entire task is to reply with the single word pong." \\
+        -e tests/manual/probe-session-accessors.ts \\
+        --no-extensions --no-skills --no-rules --auto-approve \\
+        --model anthropic/claude-sonnet-5 \\
+        --session-dir /tmp/ctxprobe/sessions
+
+`--no-extensions --no-skills --no-rules` isolates it from harness machinery.
+
+MEASURED RESULT — 2026-08-28, reproduced 2026-08-29, one OMP build on one machine:
+
+    session              getContextUsage()                          getSessionFile()
+    main                 defined ({tokens, contextWindow, percent})  <dir>/<ts>_<session-id>.jsonl
+    subagent (depth 1)   undefined                                  <dir>/<ts>_<parent-id>/<DispatchLabel>.jsonl
+
+The accessor exists on that build, and in a subagent session it returns that subagent's OWN nested
+transcript, keyed by dispatch label under the parent's directory — in the very session type where
+`getContextUsage()` returns undefined, so the two accessors do not share the broken wiring.
+`getSessionId()` returns a plain id in both and cannot substitute: it names the session without
+locating its file. That every OMP version behaves this way is NOT established; it is the
+version-floor risk this check watches.
 """
 
 from __future__ import annotations
@@ -50,9 +75,8 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-# The probe is committed with the feature so this check and recorded evidence run the same code.
-PROBE = (ROOT / ".harness/harness/features/FEAT-44-omp-context-advisory/evidence"
-         / "probe-session-accessors.ts")
+# The extension lives beside this check so the check and a hand reproduction run the same code.
+PROBE = ROOT / "tests/manual/probe-session-accessors.ts"
 
 TASK = ("Use the task tool exactly once: spawn a subagent of type 'sonic' whose entire task "
         "is to reply with the single word pong.")

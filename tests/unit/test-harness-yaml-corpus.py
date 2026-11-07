@@ -165,9 +165,8 @@ ROOTS = [".harness", TEAMS_ROOT]
 # The team-definitions tree is expected to hold exactly four files: build.yaml,
 # plan.yaml, validate.yaml, fix.yaml. FEAT-59 (signed 2026-09-11; SC-04, SC-13, SC-14)
 # replaced plan-panel.yaml and review.yaml with plan.yaml and validate.yaml and added
-# fix.yaml; it is not drift. The ruling is G5 of that feature's build contract, recorded in
-# .harness/harness/features/FEAT-59-proportional-flow/ — read it before touching this
-# number.
+# fix.yaml; it is not drift. The ruling is G5 of that feature's build contract (kept in git
+# history) — read it before touching this number.
 #
 # FEAT-06's SC-05 ("the directory's contents at completion are exactly two files") is
 # a completion snapshot, already met and permanently met; it was never changed or

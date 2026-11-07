@@ -1171,22 +1171,30 @@ def _exemption_finding(row):
     return None
 
 
-def _route_finding(row, task_files, default_plan):
-    route = row.get("execution_route")
+def _row_label(row):
+    return (f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+            f"remedy={row.get('remedy')}")
+
+
+def _ownership_finding(row, task_files):
+    # Ownership is checked only for a row that names the plan owning its migration. The
+    # inventory names no plan of its own: a row's bare `task` is provenance, so the audit never
+    # depends on a feature directory that may since have been deleted (FEAT-71).
+    plan, task = row.get("plan"), row.get("task")
+    if not isinstance(plan, str) or not task or task == "none":
+        return None
+    if row.get("file") in task_files.get(plan, {}).get(task, ()):
+        return None
+    return f"{_row_label(row)}: {task} task files omit this source. PLAN AMENDMENT REQUIRED"
+
+
+def _route_finding(row, task_files):
     category = row.get("dec174_category")
-    if category != "none" and route != LEGAL_MAIN_SESSION_TOKEN:
+    if category != "none" and row.get("execution_route") != LEGAL_MAIN_SESSION_TOKEN:
         return (
-            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
-            f"remedy={row.get('remedy')}: DEC-174 category {category!r} requires "
+            f"{_row_label(row)}: DEC-174 category {category!r} requires "
             "main-session-direct. PLAN AMENDMENT REQUIRED")
-    task = row.get("task")
-    owner_files = task_files.get(row.get("plan", default_plan), {})
-    if task and task != "none" and row.get("file") not in owner_files.get(task, ()):
-        return (
-            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
-            f"remedy={row.get('remedy')}: {task} task files omit this source. "
-            "PLAN AMENDMENT REQUIRED")
-    return None
+    return _ownership_finding(row, task_files)
 
 
 def _classification_shape_findings(document, scanned_files):
@@ -1232,8 +1240,7 @@ def reader_classification_findings(candidates, scanned_files, document, task_fil
     findings.extend(duplicate_findings)
     live = {candidate["id"]: candidate for candidate in candidates}
     findings.extend(_unaccounted_candidate_findings(candidates, rows))
-    findings.extend(_classified_rows_findings(
-        rows, task_files, live, candidates, document.get("plan", "")))
+    findings.extend(_classified_rows_findings(rows, task_files, live, candidates))
     findings.extend(_state_reader_findings(rows))
     return findings
 
@@ -1427,10 +1434,10 @@ def _classified_disposition_findings(row, live, candidates):
     return _migration_row_findings(row, live, candidates)
 
 
-def _classified_row_finding(row, task_files, live, candidates, default_plan):
+def _classified_row_finding(row, task_files, live, candidates):
     if not isinstance(row, dict):
         return []
-    route = _route_finding(row, task_files, default_plan)
+    route = _route_finding(row, task_files)
     route_findings = [route] if route else []
     return route_findings + _classified_disposition_findings(
         row, live, candidates)
@@ -1506,17 +1513,17 @@ def _t07_terminal_findings(rows, candidates):
     )
 
 
-def _selected_migration_rows(rows, task_id, default_plan):
+def _selected_migration_rows(rows, task_id):
     return [
         row for row in rows
         if isinstance(row, dict) and row.get("task") == task_id
-        and row.get("plan", default_plan) == default_plan
+        and "plan" not in row
         and row.get("disposition") in {"migrate", "canonical"}
     ]
 
 
-def _task_migration_findings(rows, task_id, live, candidates, default_plan):
-    selected = _selected_migration_rows(rows, task_id, default_plan)
+def _task_migration_findings(rows, task_id, live, candidates):
+    selected = _selected_migration_rows(rows, task_id)
     if not selected:
         return [f"{task_id}: classification has no assigned rows"]
     states = {
@@ -1533,11 +1540,11 @@ def _task_migration_findings(rows, task_id, live, candidates, default_plan):
     ]
 
 
-def _classified_rows_findings(rows, task_files, live, candidates, default_plan):
+def _classified_rows_findings(rows, task_files, live, candidates):
     findings = []
     for row in rows:
         findings.extend(
-            _classified_row_finding(row, task_files, live, candidates, default_plan))
+            _classified_row_finding(row, task_files, live, candidates))
     return findings
 
 
@@ -1558,21 +1565,20 @@ def _valid_classification_findings(
         root, document, scanned, rows)
     live = {candidate["id"]: candidate for candidate in candidates}
     findings.extend(_unaccounted_candidate_findings(candidates, rows))
-    findings.extend(
-        _classified_rows_findings(rows, task_files, live, candidates, document.get("plan", "")))
+    findings.extend(_classified_rows_findings(rows, task_files, live, candidates))
     if task_id == "T-07":
         historical_rows = [row for row in rows
-                           if row.get("plan", document.get("plan", "")) == document.get("plan", "")]
+                           if isinstance(row, dict) and "plan" not in row]
         findings.extend(_t07_terminal_findings(historical_rows, candidates))
     else:
         findings.extend(
-            _task_migration_findings(
-                rows, task_id, live, candidates, document.get("plan", "")))
+            _task_migration_findings(rows, task_id, live, candidates))
     return findings
 
 
 def classification_task_findings(root, classification_path, task_id):
-    """Validate one signed migration unit without mistaking expected cutovers for drift."""
+    """Validate one signed migration unit without mistaking expected cutovers for drift. A unit
+    is the inventory's own task label: rows naming another feature's plan are not in it."""
     candidates, scanned, scan_findings = _scan_reader_tree(root)
     document, document_findings = _classification_document(classification_path)
     findings = scan_findings + document_findings
@@ -1597,17 +1603,29 @@ def _audit_result(scanned, candidates, findings, violations):
     }
 
 
+def _named_plans(document):
+    """Distinct `plan` values the classification rows name, in first-seen order."""
+    plans = []
+    for row in document.get("rows", []):
+        if isinstance(row, dict) and "plan" in row and row["plan"] not in plans:
+            plans.append(row["plan"])
+    return plans
+
+
+def _ownership_task_files(root, plan):
+    if not isinstance(plan, str) or not plan:
+        raise ValueError("ownership plan must be a nonempty path")
+    return _task_files(root, plan)
+
+
 def _classification_task_files(root, document):
+    """`(task_files, findings)` for the plans classification rows name — `{plan: {task: files}}`.
+    Only a row whose migration a feature owns names one; there is no document-level default."""
     import harness_yaml
-    plans = {document.get("plan", "")}
-    plans.update(row["plan"] for row in document.get("rows", [])
-                 if isinstance(row, dict) and "plan" in row)
     task_files, findings = {}, []
-    for plan in plans:
+    for plan in _named_plans(document):
         try:
-            if not isinstance(plan, str) or not plan:
-                raise ValueError("ownership plan must be a nonempty path")
-            task_files[plan] = _task_files(root, plan)
+            task_files[plan] = _ownership_task_files(root, plan)
         except (harness_yaml.YamlParseError, OSError, ValueError, KeyError, TypeError,
                 feature_corpus.CorpusError) as error:
             findings.append(f"{plan}: plan cannot be read: {error}")

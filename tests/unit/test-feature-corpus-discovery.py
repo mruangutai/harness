@@ -5,6 +5,7 @@ SC-05, SC-13).
 Discovery runs against a tiny real git repository in a temporary directory — structure is read
 from git, so a fake would test the fake. Branch claims are pure and take record mappings.
 """
+import inspect
 import os
 import shutil
 import subprocess
@@ -38,29 +39,19 @@ class BranchClaims(unittest.TestCase):
                    record("G", "  none  ")]
         self.assertEqual(fc.branch_collisions(entries), [])
 
-    def test_exact_era_pair_is_exempt(self):
-        pair = [record("FEAT-02", "feat/harness-native-foundation"),
-                record("FEAT-03-subissue-mirror", "feat/harness-native-foundation")]
-        self.assertEqual(fc.branch_collisions(pair), [])
-
-    def test_a_third_claimant_defeats_the_exemption(self):
-        trio = [record("FEAT-02", "feat/harness-native-foundation"),
-                record("FEAT-03-subissue-mirror", "feat/harness-native-foundation"),
-                record("FEAT-77-late", "feat/harness-native-foundation")]
+    def test_every_shared_branch_collides_without_exemption(self):
+        # FEAT-71: no historical id set is grandfathered; the collision rule is uniform.
+        trio = [record("FEAT-90-fixture", "feat/shared-fixture"),
+                record("BUG-9-x", "feat/shared-fixture"),
+                record("FEAT-91-fixture", "feat/shared-fixture")]
+        self.assertEqual(fc.branch_collisions(trio[:2]),
+                         [("feat/shared-fixture", ["BUG-9-x", "FEAT-90-fixture"])])
         self.assertEqual(fc.branch_collisions(trio),
-                         [("feat/harness-native-foundation",
-                           ["FEAT-02", "FEAT-03-subissue-mirror", "FEAT-77-late"])])
+                         [("feat/shared-fixture", ["BUG-9-x", "FEAT-90-fixture", "FEAT-91-fixture"])])
 
-    def test_an_empty_reason_defeats_the_exemption(self):
-        pair = [record("FEAT-02", "feat/harness-native-foundation"),
-                record("FEAT-03-subissue-mirror", "feat/harness-native-foundation")]
-        emptied = {frozenset({"FEAT-02", "FEAT-03-subissue-mirror"}): "  "}
-        self.assertEqual(len(fc.branch_collisions(pair, exempt=emptied)), 1)
-
-    def test_the_shipped_exemption_carries_a_reason(self):
-        reason = fc.BRANCH_ERA_EXEMPT[frozenset({"FEAT-02", "FEAT-03-subissue-mirror"})]
-        self.assertTrue(reason.strip())
-        self.assertEqual(len(fc.BRANCH_ERA_EXEMPT), 1)
+    def test_no_exemption_mechanism_exists(self):
+        self.assertEqual(list(inspect.signature(fc.branch_collisions).parameters), ["entries"])
+        self.assertEqual([name for name in vars(fc) if "EXEMPT" in name], [])
 
 
 class LandedDiscovery(unittest.TestCase):

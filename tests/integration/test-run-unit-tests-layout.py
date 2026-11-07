@@ -28,13 +28,6 @@ def tree():
 
 def git_tree():
     r = tree()
-    # suite_layout.py's own DOCUMENTED_EXCEPTIONS registry (D-05) polices itself
-    # against the tracked set: without this fixture file present at its exact
-    # real-repo relative path, the registry would report it "no longer tracked"
-    # in every git checkout fixture, independent of any rogue file under test.
-    exc_dir = r/".harness/harness/features/FEAT-44-omp-context-advisory/evidence"
-    exc_dir.mkdir(parents=True)
-    (exc_dir/"probe-session-accessors.ts").write_text("// fixture stand-in for D-05 documented exception\n")
     subprocess.run(["git", "init", "-b", "main", "-q"], cwd=r, check=True, capture_output=True)
     # These repositories live for milliseconds. Background maintenance can race
     # fixture teardown and recreate/remove files while shutil.rmtree walks .git.

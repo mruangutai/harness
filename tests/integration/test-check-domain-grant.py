@@ -214,7 +214,7 @@ def run_t12():
 
     # --- the state.yaml shape gate, now loader-driven (D-02) ---
     root = fixture(FIXTURE_MANIFEST)
-    sp = ".harness/harness/features/FEAT-01/runs/r1/state.yaml"
+    sp = ".harness/harness/features/FEAT-90-fixture/runs/r1/state.yaml"
 
     r = fire(root, sp, "schema_version: 2\nrun_id: r1\nstatus: complete\n")
     t12("a newly created, well-formed version-2 state.yaml with checkpoint keys passes",
@@ -379,7 +379,7 @@ def run_t12():
     # These two cases pin the RULED behaviour so nobody "fixes" it back: during a grant
     # the write is allowed, and the entry gate is the backstop.
     grant = fixture(FIXTURE_MANIFEST)
-    sp2 = ".harness/harness/features/FEAT-01/runs/r1/state.yaml"
+    sp2 = ".harness/harness/features/FEAT-90-fixture/runs/r1/state.yaml"
     rbad = fire_noyaml(grant, sp2, "sess-shape",
                        content="run_id: r1\nfindings: a notebook of prose\n")
     t12("grant: a malformed state.yaml is ALLOWED (no fallback — BRIEF Goal :20-21)",

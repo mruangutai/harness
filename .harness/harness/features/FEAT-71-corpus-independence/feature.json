@@ -1,0 +1,163 @@
+{
+  "feature_id": "FEAT-71-corpus-independence",
+  "branch": "feat/FEAT-71-corpus-independence",
+  "pr": 2192,
+  "review_sha": "5a2edb72a220efd4a44cda6f512ec5697c0f37e0",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-07-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T14:15:58+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:25:54+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-07-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T14:31:27+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-07-02-product/digest.md",
+        "sha256": "d066286a187300d512c2b8ecc2a704bf0b968e8b5b026780e3f0b2029a6e12cc"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:37:43+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T15:10:24+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-validator/digest.md",
+        "sha256": "af3e6d67df9d99ae5d8117ee664a0ddc801071346d1c8f2050cfd87c92b67483"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-07T15:21:30+00:00"
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T15:26:04+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c1-validator/digest.md",
+        "sha256": "3bdb587992e9a6274a2cc53d3b89d11b5c2ec54a1fc395eed78708d945b0b8b7"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T15:31:23+00:00"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T15:41:02+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-product/digest.md",
+        "sha256": "af953cb7c733252df26f2e446b0fb718a9593f3d2e254a5e07a5d86127ad650f"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T15:46:16+00:00"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T15:46:20+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-validator/digest.md",
+        "sha256": "d610f3fbf5df4639d552d2111407737383eb762430046544a8996ddaa8950925"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T16:12:38+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-07T14:15:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause known (deletion probe names every dependency), diff listable, removal-only with no new interface, schema or gate; operator confirmed patch"
+    },
+    {
+      "at": "2026-11-07T14:34:19.907502+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "Operator answer notes/answers-2026-11-07-02-product.md authorizes BUG-20261006-fleet-planning-recovery as fifth survivor; update only exact survivor list and count."
+    },
+    {
+      "at": "2026-11-07T14:34:40.674514+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Operator answer notes/answers-2026-11-07-02-product.md authorizes BUG-20261006-fleet-planning-recovery as fifth survivor; add only that folder to the exact-set assertion."
+    },
+    {
+      "at": "2026-11-07T14:43:13.689694+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Builder-learned: a fresh standalone clone has no core.hooksPath, so check-state INV-31 refuses before any feature gate runs; set the harness hooks path in the clone exactly as harness-init does for every clone."
+    },
+    {
+      "at": "2026-11-07T14:58:27.118126+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Builder-learned: a feature-branch clone has no local main, so INV-29 cannot ls-tree the control plane; create main from origin/main."
+    },
+    {
+      "at": "2026-11-07T15:07:25.276187+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Builder-learned: origin/main still holds the pruned corpus pre-merge; local main must be the feature tip to model the post-merge tree."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-71-corpus-independence/notes/rework-ruling.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "bb271e3d26fadac88abcc570503c9871b3af24259ece24975d187a06365be234"
+  },
+  "github": {
+    "milestone": 106,
+    "parent": 2178,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2179
+    },
+    "source_issues": [],
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

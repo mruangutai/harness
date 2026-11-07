@@ -1,0 +1,6 @@
+review_sha=5df3f8f000acbbc5f7b59847e299d9685797c3df
+standalone=/private/tmp/feat71-standalone.TinGvAFJ
+  VIOLATION  INV-52: branch feat/harness-native-foundation is claimed by 2 landed features (FEAT-02, FEAT-03-subissue-mirror); merge-gate cannot tell which one a merge of it ships. Give each feature its own branch.
+  note       INV-32: FEAT-71-corpus-independence is a patch mission, which runs no pre-build panel; its diff is graded by the validate run instead. Not graded.
+  note       FEAT-71-corpus-independence: run 2026-11-07-01-product has historical cycle attribution without evidence.
+  note       INV-17 FEAT-71-corpus-independence: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed. Suppressed handoff-plan.
