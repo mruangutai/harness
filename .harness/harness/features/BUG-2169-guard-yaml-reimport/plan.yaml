@@ -39,6 +39,7 @@ tasks:
     - tests/unit/test-lead-start-preflight.py
     - tests/integration/test-lead-start-return.py
     - tests/integration/test-check-domain-grant.py
+    - .claude/skills/harness/references/checkout-prereqs.md
     verify: |
       python3 tests/integration/test-dispatch-guard.py && python3 tests/unit/test-lead-start-preflight.py && python3 tests/integration/test-lead-start-return.py
       # Execute inside harness-2169-repro (ubuntu:26.04 + python3-yaml) OR CI on the image's own single PyYAML, never use the Mac as the regression source.

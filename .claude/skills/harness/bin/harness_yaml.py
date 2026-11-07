@@ -528,8 +528,8 @@ def _validate_plan_depends_on(tasks, path):
 
 # THE ADVICE MUST INSTALL WHERE THE GUARD LOOKS (BUG-2169). dispatch-guard.py's policy
 # phase and post-merge-sweep.py run with per-user site-packages dropped (the former
-# `python3 -I`), so a `--user` install — this constant's former fallback — could never
-# clear their refusal. Each branch installs into this interpreter's own site-packages.
+# `python3 -I`), so a `--user` install could never clear their refusal. Each branch
+# installs into this interpreter's own site-packages.
 #
 # Homebrew has no PyYAML formula, so its branch is pip with PEP 668's escape hatch and
 # WITHOUT --user, and it says so plainly: Homebrew warns that installing into its Python

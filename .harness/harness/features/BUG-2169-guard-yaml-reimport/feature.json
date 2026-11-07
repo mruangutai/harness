@@ -40,6 +40,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "Per-platform advice consumer: grant test pinned pip wording; assert real install_command lines. Red on 26.04 image, green after."
+    },
+    {
+      "at": "2026-11-07T14:02:33.598612+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Simplify fold-in: checkout-prereqs.md retyped the retired --user PyYAML advice; point it at harness_yaml.INSTALL_COMMAND."
     }
   ],
   "mission": "patch",
