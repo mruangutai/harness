@@ -1,0 +1,12 @@
+FAIL  u.1 each binding is read once, for its own numbers only — reads=[('org/repo', 3, [16, 17, 40, 41])]
+FAIL  u.1 the bound card is judged on its own board; the owner twin is clean — bad=['INV-26 CANNOT VERIFY FEAT-P T-02 (issue #17): not on the board. The plan says building, so the card should read building.', 'INV-26 CANNOT VERIFY FEAT-P parent (issue #16): not on the board. The plan projects building.']
+FAIL  u.2 owner sync off: the unbound feature is skipped, the bound one still read — reads=[] bad=[]
+FAIL  u.3 a GhError read is CANNOT VERIFY naming the feature and GitHub's answer — bad=['INV-26 FEAT-O T-01 (issue #41): plan says building, so the card should read building — the board reads backlog.', 'INV-26 CANNOT VERIFY FEAT-P T-01 (issue #17): not on the board. The plan says building, so the card should read building.', 'INV-26 CANNOT VERIFY FEAT-P parent (issue #16): not on the board. The plan projects building.']
+PASS  u.3 the healthy owner feature beside it is still compared
+FAIL  u.4 an unresolvable binding is CANNOT VERIFY naming the feature and the error — bad=['INV-26 CANNOT VERIFY FEAT-M T-01 (issue #17): not on the board. The plan says building, so the card should read building.', 'INV-26 CANNOT VERIFY FEAT-M parent (issue #16): not on the board. The plan projects building.']
+FAIL  u.4 its numbers never reach the owner read — reads=[('org/repo', 3, [16, 17, 40, 41])]
+PASS  u.5 unauthenticated gh: no finding, no read, no binding resolution
+FAIL  u.6 no recorded issue anywhere: gh is not even probed — probed=1
+
+7 FAILURE(S): ['u.1 each binding is read once, for its own numbers only', 'u.1 the bound card is judged on its own board; the owner twin is clean', 'u.2 owner sync off: the unbound feature is skipped, the bound one still read', "u.3 a GhError read is CANNOT VERIFY naming the feature and GitHub's answer", 'u.4 an unresolvable binding is CANNOT VERIFY naming the feature and the error', 'u.4 its numbers never reach the owner read', 'u.6 no recorded issue anywhere: gh is not even probed']
+base exit=1

@@ -1,0 +1,10 @@
+PASS  u.1 each binding is read once, for its own numbers only
+PASS  u.1 the bound card is judged on its own board; the owner twin is clean
+PASS  u.2 owner sync off: the unbound feature is skipped, the bound one still read
+PASS  u.3 a GhError read is CANNOT VERIFY naming the feature and GitHub's answer
+PASS  u.3 the healthy owner feature beside it is still compared
+PASS  u.4 an unresolvable binding is CANNOT VERIFY naming the feature and the error
+PASS  u.4 its numbers never reach the owner read
+PASS  u.5 unauthenticated gh: no finding, no read, no binding resolution
+PASS  u.6 no recorded issue anywhere: gh is not even probed
+after exit=0
