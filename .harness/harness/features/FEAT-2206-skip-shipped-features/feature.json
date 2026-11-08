@@ -86,6 +86,13 @@
       "kind": "regate",
       "decision": "validate cycle 1",
       "reason": "c0 FAIL: high duplicate-status bypass and med Unicode-digit crash remediated main-session-direct in 1dea8480 (shared opt_int); re-gate on review_sha 09ac5a4e"
+    },
+    {
+      "at": "2026-11-08T15:20:11.947635+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Validate rework: opt_int stays as is (#2151 relies on its raise); the strict loader's issue-number check in artifact_accessors.py absorbs it instead."
     }
   ],
   "mission": "patch",

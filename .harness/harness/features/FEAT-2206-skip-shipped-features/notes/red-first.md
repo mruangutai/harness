@@ -65,6 +65,9 @@ Baseline = the reviewed pin `fe49c8df` bin exported to /private/tmp/f2206-pin (p
 | integration `test_inv24_skips_unusable_shipped_numbers_and_keeps_usable_ones` ("²" parent, "x" issue, usable 11 collision) | FAIL (ValueError traceback in INV-24) | PASS |
 
 Fixing INV-24's coercion alone exposed the same crash one layer down: the census strict-loads every
-landed record for INV-52 and `feature_json_write.opt_int` (the shared coercion, documented to
-return None for junk) raised on "²". Fixed there (ASCII digits only); INV-24's
-`_inv24_issue_number` now delegates to it instead of carrying a second copy.
+landed record for INV-52, and `artifact_accessors._positive_issue_number` let `opt_int`'s
+ValueError on "²" escape the loader. It now returns None there, so the loader raises its
+documented "not a recorded issue number" refusal and the shipped record's claims arrive through
+the lenient comparison re-read. `opt_int` itself is unchanged: an attempt to make it total was
+reverted because `board_lifecycle._github_numbers` (#2151) reads its raise as "unreadable record"
+and the full suite caught the lost LABEL finding.

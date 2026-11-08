@@ -49,7 +49,7 @@ tasks:
     - .harness/harness/docs/DECISIONS.md
     - .harness/harness/docs/DECISIONS-INDEX.md
     - tests/integration/f58_sparse_fixture.py
-    - .claude/skills/harness/bin/feature_json_write.py
+    - .claude/skills/harness/bin/artifact_accessors.py
     verify: |
       bash -o pipefail <<'SH'
       set -eu

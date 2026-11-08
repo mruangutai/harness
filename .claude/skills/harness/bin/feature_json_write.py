@@ -101,15 +101,13 @@ def opt_int(value):
     Tolerates the quoted form the old `(\\d+)` regex silently read as ABSENT -- and "absent"
     here meant gh-sync believed nothing was recorded and would create a duplicate parent or
     milestone. `bool` is excluded explicitly: it is an `int` subclass in Python, so
-    `parent: true` would otherwise become `1`. ASCII digits only: `str.isdigit()` also accepts
-    "²" and other Unicode digits that `int()` refuses, and a junk value must read as None
-    here, never raise out of the strict loader or the checker (FEAT-2206)."""
+    `parent: true` would otherwise become `1`."""
     if value is None or isinstance(value, bool):
         return None
     if isinstance(value, int):
         return value
     s = str(value).strip()
-    return int(s) if s.isascii() and s.isdigit() else None
+    return int(s) if s.isdigit() else None
 
 
 def write_feature_json(path, transform, timeout=None, tail_regex=None):

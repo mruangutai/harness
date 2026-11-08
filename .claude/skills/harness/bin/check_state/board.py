@@ -2,7 +2,6 @@
 import os, re
 import artifact_accessors
 import feature_corpus
-import feature_json_write
 import harness_boundary
 from check_state.ctx import FINISHED_STATIONS
 # --- INV-21 (D-05): a mirrored feature whose task issues are recorded but whose
@@ -141,9 +140,17 @@ def _inv24_issue_number(n):
     # A DIGIT STRING IS A NUMBER HERE. INV-21 thirty lines above accepts `parent: "40"`
     # deliberately — gh-sync.py's reader was widened to it because bare-digits-only
     # read a quoted number as absent. Rejecting the same shape here would make one
-    # legal feature.json pass one invariant and hard-block on its twin (D-03). So this IS
-    # gh-sync's coercion, not a copy of it: one reading of a recorded number everywhere.
-    return feature_json_write.opt_int(n)
+    # legal feature.json pass one invariant and hard-block on its twin (D-03).
+    # ASCII ONLY: str.isdigit() accepts "²" and other Unicode digits int() refuses, which
+    # crashed INV-24 instead of reporting (or, for a shipped block, skipping) the value.
+    # Not feature_json_write.opt_int: that one raises on "²" by contract (#2151 reads the
+    # raise as "unreadable record").
+    if isinstance(n, bool):
+        return None
+    if isinstance(n, int):
+        return n
+    s = str(n).strip()
+    return int(s) if s.isascii() and s.isdigit() else None
 
 
 def _inv24_cross(first, second, repo, num):
