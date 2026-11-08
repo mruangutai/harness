@@ -7243,7 +7243,8 @@ Bound-feature INV-37 and mirror/merge/sweep preflight additionally resolve the t
 default-branch config through the shared binding resolver; unavailable or invalid binding fails
 closed, never falls back to the owner's config. This is a routing precondition, not a remote
 station write or a new issue-discovery purpose. Other offline advisory reads retain their existing
-non-gating behavior; that does not excuse an unresolvable bound target.
+non-gating behavior; that does not excuse an unresolvable bound target. The one exception is
+INV-37 where gh is not authenticated (see the amendment below).
 
 **Over:** issue 206 item 2's central `.harness/products/<name>/harness.json`, and the pre-existing
 per-product scaffold that copied `team-config.yaml` into a project. Also over issue 203's scoped
@@ -7262,6 +7263,16 @@ push a member's `default_branch` controls everything the factory reads for that 
 every `test_kinds.*.cmd`, which is a command the factory executes. A config that will not load
 fails closed, blocking writes rather than widening them, but a well-formed hostile one is screened
 by nothing — push access to a member's default branch is factory-level trust.
+
+**Amended by BUG-2190-inv37-offline-binding (operator, 2026-11-08) — INV-37's remote read only.**
+The operator ruled that CI need not verify gh-dependent state: "we're already running CI in gh so
+any test in gh is superseded". So INV-37 resolves a bound target's remote config only where
+`gh auth status` succeeds. Where it does not, as in tokenless CI, the target must still be a
+`factory` mapping whose `repo` is a well-formed owner/name listed in `fleet.yaml`. The receipt and
+provenance are graded against that repository, and an invalid target remains an invalid
+authoritative binding. There is still no owner fallback. Where gh is authenticated, an
+unreadable remote config still fails closed. gh-sync, mirror, merge and sweep preflight are
+unchanged and stay fail-closed. Evidence: #2190 and the CI run on draft PR #2189.
 
 **Record:** refs DEC-174, DEC-113, DEC-182, DEC-129.
 

@@ -32,12 +32,13 @@ tasks:
     files:
     - .claude/skills/harness/bin/check_state/board.py
     - tests/integration/test-check-state-inv37-offline.py
-    - tests/unit/test-check-state-inv37-offline.py
+    - tests/unit/test-check-state-inv37-local-binding.py
     - .harness/harness/docs/DECISIONS.md
     - .harness/harness/docs/DECISIONS-INDEX.md
     - tests/integration/canonical-reader-classification.json
+    - .claude/skills/harness/bin/check_state/table.py
     verify: |
-      python3 tests/unit/test-check-state-inv37-offline.py &&
+      python3 tests/unit/test-check-state-inv37-local-binding.py &&
       python3 tests/integration/test-check-state-inv37-offline.py
     intent: |
       Work only inside PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding after main signs both pending intake artifacts. Main implements and retains orchestration under DEC-174, with validation delegated to harness-validator-lead, never an engineering-lead build. This is one bounded patch task with no panel or goal-check. Read product guidance before assumptions: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/docs/spec.md, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/docs/decisions.md and /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/docs/architecture.md. Those paths are absent at intake; AGENTS.md explicitly maps this product to /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/harness/docs/SPEC.md and DECISIONS.md. Consult SPEC.md section 13 and DECISIONS.md DEC-174, DEC-182, DEC-217, DEC-220, DEC-221 and DEC-225 using its decision index. The settled grilling at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/notes/grilling-inv37-offline-binding-2026-11-07.md explicitly narrows DEC-221 remote INV-37 verification only for the offline path; this does not amend the shared resolver contract. The owned files are exactly the three listed, and relative-path edits must remain inside this feature worktree.

@@ -181,7 +181,7 @@ INVARIANTS = (
     Group("build-entry", (
         Inv("INV-37", inv_37, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON,
                                       _FEATURE_EVIDENCE, _EVIDENCE_READER,
-                                      "path:.harness/factory/fleet.yaml"),
+                                      "path:.harness/factory/fleet.yaml", "gh:auth"),
             "each enabled feature has a provenance-bound Build-entry receipt and intact recovery evidence", "DEC-220"),
     )),
     Group("board", (

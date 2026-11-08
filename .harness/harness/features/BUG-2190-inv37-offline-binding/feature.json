@@ -44,6 +44,27 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "the offline fleet read is a new canonical load_fleet site; the CI reader audit requires its inventory row"
+    },
+    {
+      "at": "2026-11-08T13:27:28.425428+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "suite layout forbids one basename in two kind directories"
+    },
+    {
+      "at": "2026-11-08T13:27:28.425584+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "follows the unit test rename"
+    },
+    {
+      "at": "2026-11-08T13:29:15.422843+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "the FEAT-62 SC-04 gate requires INV-37's row to declare its new gh:auth read"
     }
   ],
   "mission": "patch",

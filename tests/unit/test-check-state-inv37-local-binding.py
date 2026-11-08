@@ -3,7 +3,7 @@
 
 These tests run in-process against the public `inv_37(ctx)`. They use the real feature_schema receipt and provenance predicates and the real local fleet loader and `repo_entry`. The two remote boundaries are recorded: `feature_schema.resolve_binding` and `factory_config.product_config`. Each case asserts what INV-37 reported and which remote boundary it reached, so neither the local validation nor the receipt checks can be skipped unnoticed.
 
-    ./test-check-state-inv37-offline.py    -> exit 0 all pass, 1 otherwise
+    ./test-check-state-inv37-local-binding.py    -> exit 0 all pass, 1 otherwise
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
