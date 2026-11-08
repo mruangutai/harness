@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2190-inv37-offline-binding",
   "branch": "feat/BUG-2190-inv37-offline-binding",
-  "pr": null,
+  "pr": 2205,
   "review_sha": "cf13aab63f308c1d59e33737205a3064fa35b194",
   "cycles_used": 0,
   "max_total_cycles": 10,
