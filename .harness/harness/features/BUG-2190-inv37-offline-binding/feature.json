@@ -37,6 +37,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "operator decision 2026-11-08 amends DEC-221 (CI does not verify gh-dependent remote config); DEC-188 forbids leaving the contradicted text"
+    },
+    {
+      "at": "2026-11-08T13:24:30.812411+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "the offline fleet read is a new canonical load_fleet site; the CI reader audit requires its inventory row"
     }
   ],
   "mission": "patch",
@@ -47,5 +54,20 @@
   },
   "signed_task_hashes": {
     "T-01": "da67c1194fbda70e00d4868307491a3ff55b687d8fd319c416ef3257b222fd83"
+  },
+  "github": {
+    "milestone": 108,
+    "parent": 2203,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2204
+    },
+    "source_issues": [
+      2190
+    ],
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
   }
 }

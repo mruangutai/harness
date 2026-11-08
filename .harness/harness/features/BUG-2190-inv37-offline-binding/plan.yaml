@@ -4,7 +4,7 @@ approval:
   date: '2026-11-08'
   approved_by: operator
   status: approved
-status: plan
+status: building
 source_issues: [2190]
 lanes:
   resolved_at: f68c472c88071801be8f6f09d95b0f734bb4d724
@@ -28,13 +28,14 @@ tasks:
     execution_agent: main-session-direct
     execution_reason: DEC-174 requires main to implement this gate and its tests directly inside the assigned feature worktree.
     depends_on: []
-    status: ready
+    status: building
     files:
     - .claude/skills/harness/bin/check_state/board.py
     - tests/integration/test-check-state-inv37-offline.py
     - tests/unit/test-check-state-inv37-offline.py
     - .harness/harness/docs/DECISIONS.md
     - .harness/harness/docs/DECISIONS-INDEX.md
+    - tests/integration/canonical-reader-classification.json
     verify: |
       python3 tests/unit/test-check-state-inv37-offline.py &&
       python3 tests/integration/test-check-state-inv37-offline.py
