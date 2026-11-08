@@ -205,6 +205,32 @@ def _i9_owner_controls_beside_a_bound_feature():
             ok, f"clean={clean} bad={bad}")
 
 
+def _i10_offline_legacy_and_sync_off_controls():
+    with tempfile.TemporaryDirectory() as tmp:
+        h, fake = _root(tmp)
+        _bound(h, OPENED)
+        _feature(h, "harness", OWNER, {"build_entry": "opened", "milestone": 3, "parent": 40})
+        legacy, _reads, legacy_tb = _run(tmp, fake)
+    with tempfile.TemporaryDirectory() as tmp:
+        h, fake = _root(tmp, owner_sync=False)
+        _bound(h, OPENED)
+        _feature(h, "harness", OWNER, {})
+        sync_off, _reads, off_tb = _run(tmp, fake)
+    return ("(i.10) offline: legacy owner provenance and an unbound sync-off feature stay clean "
+            "beside a valid bound one", not legacy_tb and not off_tb and not legacy and not sync_off,
+            f"legacy={legacy} sync_off={sync_off}")
+
+
+def _i11_offline_bound_feature_without_a_plan_is_ineligible():
+    with tempfile.TemporaryDirectory() as tmp:
+        h, fake = _root(tmp)
+        _bound(h, {})
+        os.remove(os.path.join(h, "prod", "features", BOUND, "plan.yaml"))
+        lines, reads, tb = _run(tmp, fake)
+    return ("(i.11) offline: a bound feature with no plan is not graded",
+            not tb and not _has(lines, BOUND) and reads == [], f"lines={lines} reads={reads}")
+
+
 def main():
     scenarios = (_i1_offline_valid_opened_is_clean,
                  _i2_offline_terminal_with_owner_sync_off_is_clean,
@@ -214,7 +240,9 @@ def main():
                  _i6_offline_invalid_binding_still_fails,
                  _i7_online_matching_remote_is_clean_and_read,
                  _i8_online_remote_failure_stays_a_violation,
-                 _i9_owner_controls_beside_a_bound_feature)
+                 _i9_owner_controls_beside_a_bound_feature,
+                 _i10_offline_legacy_and_sync_off_controls,
+                 _i11_offline_bound_feature_without_a_plan_is_ineligible)
     allok = True
     for name, ok, detail in (scenario() for scenario in scenarios):
         print(f"{'ok' if ok else 'FAIL'} - {name}")
