@@ -85,8 +85,8 @@ def _feature(h, segment, feat, github, factory=None):
         f.write(f"schema: plan/1\nfeature: {feat}\nstatus: ready\ntasks:\n  - {json.dumps(task)}\n")
 
 
-def _bound(h, github, repo="org/prod"):
-    _feature(h, "prod", BOUND, github, {"repo": repo})
+def _bound(h, github, repo="org/prod", factory=None):
+    _feature(h, "prod", BOUND, github, {"repo": repo} if factory is None else factory)
 
 
 def _run(tmp, fake):
@@ -135,21 +135,24 @@ def _offline_receipt_case(github):
 
 def _i3_offline_missing_receipt_is_graded():
     ok, lines = _offline_receipt_case({})
-    ok = ok and _has(lines, BOUND, "receipt absent or incomplete")
+    ok = ok and _has(lines, BOUND, "receipt absent or incomplete",
+                     "gh-sync.py open ", f"/prod/features/{BOUND}")
     return ("(i.3) offline: a missing receipt is the receipt finding, not a binding finding",
             ok, f"lines={lines}")
 
 
 def _i4_offline_owner_repo_conflicts_with_factory_repo():
     ok, lines = _offline_receipt_case({"build_entry": "opened", "repo": "org/repo"})
-    ok = ok and _has(lines, "'org/repo' conflicts with bound repository 'org/prod'")
+    ok = ok and _has(lines, "'org/repo' conflicts with bound repository 'org/prod'",
+                     "gh-sync.py recover-mirror ", "--previous-repo org/repo")
     return ("(i.4) offline: github.repo naming the owner is graded against factory.repo",
             ok, f"lines={lines}")
 
 
 def _i5_offline_unproven_active_mirror():
     ok, lines = _offline_receipt_case({"build_entry": "opened", "milestone": 1, "parent": 16})
-    ok = ok and _has(lines, "nonempty mirror has no matching github.repo provenance")
+    ok = ok and _has(lines, "nonempty mirror has no matching github.repo provenance",
+                     "gh-sync.py recover-mirror ")
     return ("(i.5) offline: an active bound mirror without github.repo stays unproven",
             ok, f"lines={lines}")
 
@@ -165,6 +168,19 @@ def _i6_offline_invalid_binding_still_fails():
             failures.append((repo, lines, reads))
     return ("(i.6) offline: malformed, non-string, empty and unlisted factory.repo stay invalid "
             "authoritative bindings with no remote read", not failures, f"failures={failures}")
+
+
+def _i12_offline_non_mapping_factory_is_invalid():
+    failures = []
+    for factory in ("org/prod", ["org/prod"]):
+        with tempfile.TemporaryDirectory() as tmp:
+            h, fake = _root(tmp)
+            _bound(h, OPENED, factory=factory)
+            lines, reads, tb = _run(tmp, fake)
+        if tb or reads or not _has(lines, BOUND, "invalid authoritative", "expected a mapping"):
+            failures.append((factory, lines, reads))
+    return ("(i.12) offline: a non-mapping factory is an invalid binding, never an owner "
+            "fallback, with no remote read and no traceback", not failures, f"failures={failures}")
 
 
 def _i7_online_matching_remote_is_clean_and_read():
@@ -242,7 +258,8 @@ def main():
                  _i8_online_remote_failure_stays_a_violation,
                  _i9_owner_controls_beside_a_bound_feature,
                  _i10_offline_legacy_and_sync_off_controls,
-                 _i11_offline_bound_feature_without_a_plan_is_ineligible)
+                 _i11_offline_bound_feature_without_a_plan_is_ineligible,
+                 _i12_offline_non_mapping_factory_is_invalid)
     allok = True
     for name, ok, detail in (scenario() for scenario in scenarios):
         print(f"{'ok' if ok else 'FAIL'} - {name}")

@@ -54,8 +54,9 @@ class _Ctx:
         return os.path.join(self.H, "x", "features", feat)
 
 
-def _bound(github, repo="org/prod"):
-    return {"feature_id": BOUND, "factory": {"repo": repo}, "github": github}
+def _bound(github, repo="org/prod", factory=None):
+    return {"feature_id": BOUND, "factory": {"repo": repo} if factory is None else factory,
+            "github": github}
 
 
 def _run(docs, online, remote_ok=True, owner_sync=True):
@@ -108,16 +109,20 @@ def case_offline_valid_bound_is_clean():
 
 
 def case_offline_receipts_are_graded_against_factory_repo():
-    for label, github, detail in (
-            ("missing receipt", {}, "receipt absent or incomplete"),
+    for label, github, detail, guidance in (
+            ("missing receipt", {}, "receipt absent or incomplete", "gh-sync.py recover-terminal "),
             ("owner repo recorded", {"build_entry": "opened", "repo": "org/repo"},
-             "conflicts with bound repository 'org/prod'"),
+             "conflicts with bound repository 'org/prod'",
+             "gh-sync.py recover-mirror "),
             ("unproven active mirror", {"build_entry": "opened", "parent": 16},
-             "nonempty mirror has no matching github.repo provenance")):
+             "nonempty mirror has no matching github.repo provenance",
+             "gh-sync.py recover-mirror ")):
         bad, log = _run({BOUND: _bound(github)}, online=False)
         check(f"u.2 offline {label}: the receipt finding, never a binding finding",
               _has(bad, BOUND, detail) and not _has(bad, "invalid authoritative")
               and log["product_config"] == 0, f"bad={bad} log={log}")
+        check(f"u.2 offline {label}: recovery guidance is selected against factory.repo",
+              _has(bad, BOUND, guidance), f"bad={bad}")
 
 
 def case_offline_invalid_bindings_still_fail():
@@ -126,6 +131,12 @@ def case_offline_invalid_bindings_still_fail():
         check(f"u.3 offline factory.repo={repo!r}: still an invalid authoritative binding",
               _has(bad, BOUND, "invalid authoritative repository binding")
               and log["product_config"] == 0, f"bad={bad} log={log}")
+    for factory in ("org/prod", ["org/prod"]):
+        bad, log = _run({BOUND: _bound(OPENED, factory=factory)}, online=False)
+        check(f"u.3 offline factory={factory!r}: a non-mapping factory is an invalid binding "
+              "with no owner fallback and no remote read",
+              _has(bad, BOUND, "invalid authoritative repository binding", "expected a mapping")
+              and log == {"resolve": 0, "product_config": 0}, f"bad={bad} log={log}")
 
 
 def case_online_keeps_full_remote_verification():

@@ -26,8 +26,17 @@
       "id": "2026-11-08-02-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-08T13:35:42+00:00"
+      "verdict": "FAIL",
+      "started_at": "2026-11-08T13:35:42+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-02-validator/digest.md",
+        "sha256": "5b1bb1360ecdb5bc00ebb691e9e78353ecdfd3d8d6d57d707ccfefd272473ae6"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-08T13:45:02+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
