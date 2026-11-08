@@ -4,7 +4,7 @@ approval:
   date: '2026-11-08'
   approved_by: operator
   status: approved
-status: plan
+status: building
 source_issues: [2181]
 lanes:
   resolved_at: b7af829c0207522b43f978b5275a2ebdc96b3210
@@ -34,7 +34,7 @@ tasks:
     execution_agent: main-session-direct
     execution_reason: DEC-174 operator-settled direct build with harness-validator-lead validation
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/gh_board.py#set_station
       - .claude/skills/harness/references/repo-board-provisioning.md

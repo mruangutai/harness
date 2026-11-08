@@ -94,14 +94,17 @@ esac
 exit 0
 """
 
-# The board write's item-id lookup finds no matching project on the item -> BoardError,
-# a documented, ordinary board failure.
-FAKE_GH_NOT_ON_BOARD = """#!/bin/bash
+# The issue has no item on the project, so set_station adds it (#2181). Here the add itself
+# fails with a nonzero gh exit, which is BoardError: a documented, ordinary board failure.
+FAKE_GH_NOT_ON_BOARD_ADD_FAILS = """#!/bin/bash
 echo "$*" | tr ' ' '\\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
 case "$*" in
   *"projectItems(first: 100)"*)
     printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":0,"nodes":[]}}}}}\\n'
     exit 0 ;;
+  *"project item-add"*)
+    echo "simulated item-add failure" >&2
+    exit 1 ;;
 esac
 exit 0
 """
@@ -187,12 +190,14 @@ with tempfile.TemporaryDirectory() as tmp:
                               "board": {"owner": "mruangutai", "number": 3,
                                         "station_field": "Status",
                                         "stations": ["backlog", "plan", "ready", "building", "review", "done"]}})
-    r, log = run(tmp, ["327", "ready"], gh_script=FAKE_GH_NOT_ON_BOARD)
-    check("board-station reports a BoardError on stderr naming issue and station and exits 0",
+    r, log = run(tmp, ["327", "ready"], gh_script=FAKE_GH_NOT_ON_BOARD_ADD_FAILS)
+    check("board-station reports a failed item-add as a BoardError on stderr naming issue and "
+          "station, and exits 0",
           r.returncode == 0
           and r.stderr.startswith("board-station: ERROR - ")
-          and "327" in r.stderr and "ready" in r.stderr,
-          f"rc={r.returncode} stderr={r.stderr!r}")
+          and "327" in r.stderr and "ready" in r.stderr
+          and any("item-add" in line for line in log),
+          f"rc={r.returncode} stderr={r.stderr!r} log={log}")
 
 # ---------------- case 4: usage ----------------
 

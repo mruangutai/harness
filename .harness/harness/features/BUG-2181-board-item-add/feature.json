@@ -50,9 +50,19 @@
     }
   ],
   "github": {
+    "milestone": 110,
+    "parent": 2211,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2212
+    },
     "source_issues": [
       2181
-    ]
+    ],
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
   },
   "mission": "patch",
   "rework": {
