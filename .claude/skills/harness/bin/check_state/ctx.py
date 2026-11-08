@@ -89,6 +89,7 @@ def _landed_entry(entry):
         return entry["id"], comparison_record(os.path.join(entry["path"], "feature.json")), True
     return entry["id"], entry["document"], False
 
+
 def _discover_feature_dirs(H, root):
     """`{feature basename: root-relative directory}` for every feature directory on disk."""
     # corpus-scope: checkout-local
@@ -101,7 +102,6 @@ def _split_shipped(root, feat_dirs, keep):
     selected = [f for f in sorted(feat_dirs) if keep is None or f in keep]
     shipped = {f for f in selected if is_shipped(os.path.join(root, feat_dirs[f]))}
     return [f for f in selected if f not in shipped], shipped
-
 
 
 def approved(txt):
