@@ -36,6 +36,20 @@
       "kind": "amendment",
       "decision": "T-01.verify",
       "reason": "Operator sign-off (notes/answers-2026-11-08-signoff.md): also run the full suite and all gates in a standalone clone at the pin, with final exit marker."
+    },
+    {
+      "at": "2026-11-08T14:41:22.530751+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Builder-learned: suite_layout refuses one test file name in both unit and integration; the unit test is renamed test-check-state-shipped-ctx.py."
+    },
+    {
+      "at": "2026-11-08T14:41:35.129598+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Builder-learned: suite_layout refuses one test name in both kinds (unit renamed -shipped-ctx); ROW_FAMILIES, pr schema text and three done-station fixtures also referenced removed behavior."
     }
   ],
   "mission": "patch",

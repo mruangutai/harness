@@ -1,5 +1,5 @@
 """THE INVARIANT TABLE: the one place a row is declared and the one place discretion lives. (FEAT-69)"""
-from check_state.board import inv_13, inv_21, inv_24, inv_26, inv_28, inv_30, inv_37
+from check_state.board import inv_13, inv_21, inv_24, inv_26, inv_37
 from check_state.brief import inv_38, inv_41, inv_49
 from check_state.corpus import inv_52
 from check_state.feature_record import (
@@ -159,16 +159,12 @@ INVARIANTS = (
             "a mirrored feature with task issues records its parent container (a note)", "DEC-138"),
     )),
     Group("factory-claims", (
-        Inv("INV-24", inv_24, "repo", (_FEATURE_JSON, "path:.harness/factory/fleet.yaml"),
-            "a factory block names a fleet repository and no two features claim one issue", "DEC-203"),
+        Inv("INV-24", inv_24, "repo", (_FEATURE_JSON, _PLAN_YAML, "path:.harness/factory/fleet.yaml"),
+            "a factory block names a fleet repository and no two features claim one issue, shipped claims compared as data", "DEC-203"),
     )),
     Group("branch-claims", (
         Inv("INV-52", inv_52, "repo", (_FEATURE_JSON, "git:ls-tree"),
             "no two landed features claim one branch, read from the main corpus on demand", "DEC-95"),
-    )),
-    Group("shipped-pr", (
-        Inv("INV-28", inv_28, "feature", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON),
-            "a Done feature records the pull request that shipped it (a note)", "DEC-138"),
     )),
     Group("worktree-place", (
         Inv("INV-25", inv_25, "repo", ("git:worktree-list",),
@@ -187,8 +183,6 @@ INVARIANTS = (
     Group("board", (
         Inv("INV-26", inv_26, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON, "gh:auth", "gh:board"),
             "the board agrees with the plan on disk for every mirrored card", "DEC-203"),
-        Inv("INV-30", inv_30, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON, "gh:auth", "gh:milestones"),
-            "a Done feature's milestone is closed, proving ship ran", "DEC-203"),
     )),
     Group("mirror-config", (
         Inv("INV-13", inv_13, "repo", (_HARNESS_JSON,),
@@ -246,4 +240,6 @@ INVARIANTS = (
 RETIRED = {
     "INV-9": "DEC-233 — host enforcement moved to OMP; INV-45 grades the port surface",
     "INV-10": "check-docs.sh struck — a decision the tree contradicts is removed, not marked stale",
+    "INV-28": "DEC-252 — a shipped feature is checked for nothing; gh-sync.py ship records the PR",
+    "INV-30": "DEC-252 — a shipped feature is checked for nothing; gh-sync.py ship closes the milestone",
 }

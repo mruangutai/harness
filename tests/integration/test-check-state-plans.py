@@ -574,7 +574,7 @@ def _i34_fixture(tmp, with_plan):
     feat = os.path.join(h, "harness", "features", "FEAT-TEST")
     if with_plan:
         with open(os.path.join(feat, "plan.yaml"), "w") as f:
-            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n"
+            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n"
                     "station_only: true\ntasks: []\n")
     return feat
 
@@ -624,7 +624,7 @@ def _i34_station_only(tmp, tasks_block, state_md=None):
     h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
     feat = os.path.join(h, "harness", "features", "FEAT-TEST")
     with open(os.path.join(feat, "plan.yaml"), "w") as f:
-        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n" + tasks_block)
+        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n" + tasks_block)
     if state_md is not None:
         with open(os.path.join(feat, "STATE.md"), "w") as f:
             f.write(state_md)
@@ -697,7 +697,7 @@ def case_inv34_an_emptied_plan_is_not_station_only():
         feat = _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
         plan = os.path.join(feat, "plan.yaml")
         with open(plan, "w") as f:
-            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n"
+            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n"
                     "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
                     "tasks: []\n")
         code, out = run(tmp)
@@ -745,7 +745,7 @@ def _i35_fixture(tmp, notes_block):
     h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
     feat = os.path.join(h, "harness", "features", "FEAT-TEST")
     with open(os.path.join(feat, "plan.yaml"), "w") as f:
-        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n"
+        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n"
                  "station_only: true\ntasks: []\n" + notes_block)
     return feat
 

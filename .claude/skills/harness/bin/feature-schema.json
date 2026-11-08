@@ -169,7 +169,7 @@
     },
     "pr": {
       "type": ["integer", "null"],
-      "description": "The feature's pull request number, or null before one exists. READ BY CODE as of FEAT-26: check-state.py's INV-28 warns when a Done feature leaves it null, gh-sync.py's record-pr derives and writes it, and ship threads it before the terminal status write. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
+      "description": "The feature's pull request number, or null before one exists. READ BY CODE as of FEAT-26: gh-sync.py's record-pr derives and writes it, and ship threads it before the terminal status write (no state check guards it since DEC-252). JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
     },
     "review_sha": {
       "type": "string",

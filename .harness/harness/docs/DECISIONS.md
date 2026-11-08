@@ -6011,9 +6011,9 @@ records, each entry of `source_issues` included, to the done station at ship, an
 to a merged pull request, so a cut-off would preserve a gap nobody could later close. Four took a number
 the operator confirmed from the pull request titles, their branch being shared or unresolvable.
 
-**The new invariant is warn, not violation** — INV-28, a feature at `Done` with no recorded number,
-gated on `github.sync` like INV-21. It follows INV-21's recorded reason rather than a fresh judgement:
-the mirror never gates a flow, so a missing mirror value must not fail the state check.
+**No state check guards the recorded number.** `gh-sync.py ship` records it (via `record-pr`) as
+part of shipping, and a shipped feature is checked for nothing (DEC-252), so the warn-level INV-28
+this entry once added is retired.
 
 ## DEC-201 — Neither an orchestrator nor a lead ever waits: every dispatch ends its turn, and the platform's wake is measured, not documented
 
@@ -8135,3 +8135,42 @@ requires inspection of the decision, index, implementation and tests at pinned `
 the read-only index verification proves index consistency only, not adapter behavior.
 
 Lineage: DEC-174, DEC-250 and DEC-233.
+
+## DEC-252 — A shipped feature is checked for nothing
+
+**Chose:** `check-state` performs no check on a feature that has shipped. "Shipped" is the station
+`done`, read from exactly one column-zero `status:` line of the feature's `plan.yaml`, never through
+the strict plan loader. A shipped feature leaves the audit's subject list where the list is built, so
+none of its files is read up front and no per-feature row runs for it. `--feature X` for a shipped X
+prints one note saying so and exits 0. Operator ruling, 2026-11-08 (#2206, FEAT-2206).
+
+**Why.** Every check exists to keep work in flight honest; once a feature ships its record is
+history, and re-grading history only produces findings nobody acts on. The concrete failure:
+`prune-run-evidence.py` deletes run digests at ship (DEC-238) while INV-7 kept re-verifying the
+hash-bound cycle evidence those digests carried (DEC-157), so pruning a shipped feature turned
+`main` red. The check guarded a budget that stops mattering the moment the feature ships.
+
+**Why one line of text, not a parse.** A shipped plan never changes, but the parser and the plan
+schema do. Deciding "shipped" through the strict loader would let a later tightening make a shipped
+plan unreadable and drag the feature back into the audit. One line read leniently cannot be
+invalidated that way. It fails closed: no plan, unreadable bytes, no such line, two of them, or a
+status nested under another key all read as not shipped, and that feature keeps every check.
+
+**Three comparisons still read shipped records, as data only.** INV-24 (two features claiming one
+issue), INV-29 (a worktree outliving its terminal feature) and INV-52 (two landed features claiming
+one branch) compare live work against history, so shipped records still feed them. A shipped record
+is never graded on its own: INV-24 reads a shipped `factory` block for its usable claims and reports
+nothing about the block itself.
+
+**INV-28 and INV-30 are retired.** Both checked only shipped features — a recorded pull request
+number and a closed milestone — and `gh-sync.py ship` performs both. The numbers stay retired
+(DEC-205).
+
+**What this gives up, stated once.** INV-17 demanded `notes/handoff-validate.md` only at `done`, so
+that note is now demanded nowhere; the validate seam is recorded by the validator's digest alone.
+And the strict loader no longer reports a shipped plan that stopped parsing.
+
+**Unchanged:** the terminal stations `abandoned` and `rejected` keep their checks (INV-44, INV-51);
+host, repository and layout checks never concerned a feature.
+
+Lineage: DEC-157, DEC-174, DEC-200, DEC-203, DEC-205 and DEC-238.

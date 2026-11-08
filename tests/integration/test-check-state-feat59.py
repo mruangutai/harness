@@ -813,9 +813,9 @@ def case_inv43_unreadable():
 
 def case_inv43_scope():
     """What INV-43 leaves alone: a missing succession (INV-40's), no successor run yet, a
-    legacy record. What it does NOT leave alone: a terminal station — a retrospective
-    succession is graded the same at done as at review (SC-03/D-02; validate c0 struck the
-    terminal downgrade)."""
+    legacy record, and a shipped feature (done: checked for nothing, DEC-252). What it does NOT
+    leave alone: any station still checked — a retrospective succession is graded at review
+    (SC-03/D-02; validate c0 struck the terminal downgrade)."""
     results = []
     _, out = _seam(None)
     results.append(("(43.f) a MISSING succession is INV-40's finding, not INV-43's",
@@ -826,12 +826,14 @@ def case_inv43_scope():
     _, out = _check(_legacy(runs=_RUNS43, judgements=None), BRIEF_OLD, notes=_SEQ1)
     results.append(("(43.i) a legacy record is never graded by INV-43",
                     not _violations(out, "INV-43"), out[:400]))
-    for station in ("done", "review"):
-        _, out = _seam("2026-09-11T13:00:00+00:00", station=station)
-        v = _violations(out, "INV-43")
-        results.append((f"(43.j) at station {station} the retrospective succession is a VIOLATION",
-                        len(v) == 1 and "retrospective" in v[0] and not _notes(out, "INV-43"),
-                        out[:500]))
+    _, out = _seam("2026-09-11T13:00:00+00:00", station="review")
+    v = _violations(out, "INV-43")
+    results.append(("(43.j) at station review the retrospective succession is a VIOLATION",
+                    len(v) == 1 and "retrospective" in v[0] and not _notes(out, "INV-43"),
+                    out[:500]))
+    _, out = _seam("2026-09-11T13:00:00+00:00", station="done")
+    results.append(("(43.j2) at station done (shipped) nothing is graded",
+                    not _lines(out, "INV-43"), out[:500]))
     return results
 
 
@@ -857,7 +859,7 @@ def case_inv43_era_boundary():
               not v and len(n) == 1 and "would fail" in n[0] and "retrospective" in n[0], out[:600])
     v, n, out = _seam_era('"2026-09-11"')
     on = ("(43.l) on the seam_era_start date it is graded — a VIOLATION", len(v) == 1 and not n, out[:500])
-    v, n, out = _seam_era('"2026-09-12"', station="done")
+    v, n, out = _seam_era('"2026-09-12"', station="abandoned")
     terminal = ("(43.m) the boundary is by date at a terminal station too", not v and len(n) == 1, out[:500])
     return [before, on, terminal]
 

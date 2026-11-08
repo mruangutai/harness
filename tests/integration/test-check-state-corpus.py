@@ -134,9 +134,11 @@ class OpenConfinement(Case):
             (local if path.startswith(wt + os.sep) else owner).append((m.group(1), m.group(2)))
         self.assertTrue(local, "instrumentation saw no local feature read at all")
         self.assertEqual(sorted({fid for fid, _rest in local}), [ACTIVE])
-        # Owner-root opens: only the record files the repo-wide predicates declare.
+        # Owner-root opens: only the record files the repo-wide predicates declare, plus each
+        # landed plan.yaml's one-line status read that marks a shipped record as comparison
+        # data (DEC-252).
         self.assertTrue(owner, "instrumentation saw no owner-root record read")
-        self.assertEqual(sorted({rest for _fid, rest in owner}), ["feature.json"])
+        self.assertEqual(sorted({rest for _fid, rest in owner}), ["feature.json", "plan.yaml"])
 
 
 class Refusals(Case):

@@ -1,5 +1,5 @@
 """The parse-once runner context and the primitives every family shares. (FEAT-69)"""
-import glob, os, re, subprocess, sys
+import glob, json, os, re, subprocess, sys
 import artifact_accessors
 import digest_record
 import harness_boundary
@@ -27,7 +27,7 @@ FINISHED_STATIONS = factory_config.FINISHED_STATIONS
 #
 # `station_of` takes the feature DIRECTORY, not a file, because every caller already holds one
 # and the two callers that iterate feature.json globs still need that document for its OTHER
-# keys (INV-28's `pr`, INV-6's shape). Splitting the station read from the document read is
+# keys (INV-6's shape). Splitting the station read from the document read is
 # what lets those sites keep one open() each rather than gaining a second.
 #
 # RETURNS "" FOR EVERY UNKNOWABLE CASE — no plan, unparseable plan, no station, a station that
@@ -44,6 +44,42 @@ def station_of(plan_doc):
     # first whitespace-delimited token — the same normalisation the feature.json reads used.
     token = str(plan_doc.get("status", "")).split()
     return token[0] if token else ""
+
+# SHIPPED IS ONE LINE OF TEXT, NEVER A PARSE (FEAT-2206). A shipped feature is checked for
+# nothing, so deciding that a feature shipped must not depend on anything that can change after
+# it shipped: not the strict plan loader, not the plan schema, not the YAML library. The decision
+# reads exactly one column-zero `status:` line. Anything else -- no plan, unreadable bytes, no such
+# line, two of them, a status nested under another key -- is "not shipped", and the feature keeps
+# every check (fail closed: a plan nobody can read is never silently excused).
+_STATUS_LINE = re.compile(r"^status:[ \t]*(['\"]?)([A-Za-z][\w-]*)\1[ \t]*(?:#.*)?$", re.M)
+
+
+def lenient_station(feature_dir):
+    """The station on plan.yaml's single top-level `status:` line, or "" when there is not
+    exactly one such line to read."""
+    try:
+        with open(os.path.join(feature_dir, "plan.yaml"), encoding="utf-8") as fh:
+            text = fh.read()
+    except (OSError, UnicodeDecodeError):
+        return ""
+    found = _STATUS_LINE.findall(text)
+    return found[0][1] if len(found) == 1 else ""
+
+
+def is_shipped(feature_dir):
+    """Whether the feature at `feature_dir` has shipped (station `done`)."""
+    return lenient_station(feature_dir) == "done"
+
+
+def comparison_record(path):
+    """A shipped feature.json as raw comparison data: the parsed mapping, or None. Never a
+    finding -- a shipped record is read only so another feature's claims can be compared with it."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+    return doc if isinstance(doc, dict) else None
 
 def approved(txt):
     if not txt: return False
@@ -64,8 +100,9 @@ _MISSING = object()
 #
 # THE RESIDUAL LOSS, RECORDED RATHER THAN HIDDEN: validate and ship both folded into
 # review, so the validate-to-ship crossing is no longer separately observable and
-# handoff-validate.md cannot be demanded at review. It is demanded at done instead — the
-# next boundary that proves review completed. One seam moves later; none is dropped.
+# handoff-validate.md cannot be demanded at review. It used to be demanded at done; since
+# DEC-252 a done feature is shipped and checked for nothing, so handoff-validate.md is demanded
+# nowhere. The validate seam is recorded by its validator digest, not by a handoff note.
 #
 # A STATION OUTSIDE STATUS_ORDER IS NOW A VIOLATION, NOT A SILENT SKIP (FEAT-41 T-07, A-03).
 # It was a deliberate silent skip on the grounds that status was schema-required with a closed
@@ -93,7 +130,7 @@ SEAM_NOTES = {
     "ready":    ["plan"],
     "building": ["plan"],
     "review":   ["plan", "build"],
-    "done":     ["plan", "build", "validate"],
+    "done":     [],            # shipped: never an INV-17 subject (DEC-252)
     # THE TERMINAL STATIONS REQUIRE NO HANDOFF, and that is the whole difference from done. A
     # feature planned and never built (abandoned) or refused at intake (rejected, FEAT-1714)
     # crossed no seam, so there is no honest handoff note to write and none will be fabricated.
@@ -162,6 +199,12 @@ class Ctx:
         self.features = sorted(self.feat_dirs)
         if keep is not None:
             self.features = [f for f in self.features if f in keep]
+        # A SHIPPED FEATURE IS NEVER AN AUDIT SUBJECT (FEAT-2206). It leaves the subject list here,
+        # before any up-front load below opens its BRIEF, plan or STATE.md and before any
+        # per-feature row runs; only the cross-feature comparisons read it again, as data
+        # (`population`, INV-29, INV-52). `feat_dirs` keeps every discovered directory.
+        self.shipped = {f for f in self.features if is_shipped(os.path.join(root, self.feat_dirs[f]))}
+        self.features = [f for f in self.features if f not in self.shipped]
 
     def _selected(self, tail):
         """`{feature: path}` of `tail` inside each SELECTED feature directory that has it.
@@ -256,7 +299,7 @@ class Ctx:
 
     def gh_ok(self, gh_bin):
         """Whether `gh auth status` succeeds, probed ONCE per binary and shared by INV-26 and
-        INV-30 (each used to spawn its own probe)."""
+        INV-37 (each used to spawn its own probe)."""
         if gh_bin not in self._gh_ok:
             _auth = self.spawn([gh_bin, "auth", "status"], capture_output=True, text=True, timeout=15)
             self._gh_ok[gh_bin] = _auth is not None and _auth.returncode == 0
@@ -354,22 +397,39 @@ class Ctx:
         self._digests = {}
 
     def population(self):
-        """`[(feature, feature.json mapping or None)]` for a REPO-WIDE record predicate.
+        """`[(feature, feature.json mapping or None, shipped)]` for a REPO-WIDE record predicate,
+        sorted by feature.
 
         Unscoped (a plain clone, or any run outside a sparse worktree): the selected features,
         exactly as before — `--feature` narrows it, as the table's scope rule says. Scoped: every
         LANDED record from the main corpus, with this checkout's own active record in place of
         its landed copy, so a predicate across features still sees all of them. In-progress
         siblings are never read (operator ruling, 2026-10-04). A main corpus that cannot be read
-        raises feature_corpus.CorpusError; the caller reports it."""
+        raises feature_corpus.CorpusError; the caller reports it.
+
+        A SHIPPED record is comparison data only (FEAT-2206): read lazily, here, by
+        `comparison_record`, never through `record` or the strict reader, so nothing about it is
+        ever reported -- an unreadable one simply contributes no claim."""
         if not self.scoped:
-            return [(f, self.record(f)[0]) for f in self.features]
+            return sorted([(f, self.record(f)[0], False) for f in self.features]
+                          + [(f, comparison_record(self.path(f, "feature.json")), True)
+                             for f in self.shipped], key=lambda p: p[0])
         if self._population is None:
             import feature_corpus
-            local = {f: self.record(f)[0] for f in self.features}
-            landed = [(e["id"], e["document"]) for e in feature_corpus.records(self.owner)
-                      if e["id"] not in local]
-            self._population = sorted(landed + list(local.items()), key=lambda p: p[0])
+            local = [(f, self.record(f)[0], False) for f in self.features]
+            local += [(f, comparison_record(self.path(f, "feature.json")), True)
+                      for f in self.shipped]
+            mine = {f for f, _doc, _shipped in local}
+            landed = []
+            for e in feature_corpus.records(self.owner):
+                if e["id"] in mine:
+                    continue
+                if is_shipped(e["path"]):
+                    landed.append((e["id"], comparison_record(os.path.join(e["path"], "feature.json")),
+                                   True))
+                else:
+                    landed.append((e["id"], e["document"], False))
+            self._population = sorted(landed + local, key=lambda p: p[0])
         return self._population
 
     def fpath(self, feat, tail=""):
@@ -466,7 +526,7 @@ class Ctx:
 
     def record_error(self, feat):
         """The FeatureJsonError the ONE parse of `feat`'s feature.json raised, or None. For the
-        rows (INV-17, INV-21, INV-28, INV-44) whose own finding renders it (FEAT-63 T-02)."""
+        rows (INV-17, INV-21, INV-44) whose own finding renders it (FEAT-63 T-02)."""
         self.record(feat)
         return self._record_errors.get(feat)
 

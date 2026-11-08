@@ -48,7 +48,7 @@ def run_checker(checker, notes):
             '{"github": {"sync": false, "repo": null}}\n'
         )
         (feature / "plan.yaml").write_text(
-            "schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n"
+            "schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n"
             "station_only: true\ntasks: []\n" + notes
         )
         environment = dict(os.environ)

@@ -285,8 +285,8 @@ _UNDECLARED_MUTANTS = (
 # matches the operation/endpoint, so a false declaration is a finding, not a pass.
 _MISDECLARED_MUTANTS = (
     ("gh_board", '"gh:auth", "gh:board"', '"gh:auth"', ("INV-26", "reads gh:board", "declares no gh:board read")),
-    ("gh_endpoint", '"gh:auth", "gh:milestones"', '"gh:auth", "gh:issues"',
-     ("INV-30", "reads gh:milestones", "declares no gh:milestones read")),
+    ("gh_endpoint", '"gh:auth", "gh:board"', '"gh:auth", "gh:issues"',
+     ("INV-26", "reads gh:board", "declares no gh:board read")),
     ("git_op", '"git:show", "git:log"', '"git:status", "git:log"', ("INV-33", "reads git:show", "declares no git:show read")),
 )
 
