@@ -4,7 +4,7 @@ approval:
   date: '2026-11-08'
   approved_by: Mike Ruangutai
   status: approved
-status: review
+status: building
 source_issues: [2206]
 lanes:
   resolved_at: b7af829c0207522b43f978b5275a2ebdc96b3210
