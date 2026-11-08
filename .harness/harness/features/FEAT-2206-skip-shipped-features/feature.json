@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-2206-skip-shipped-features",
   "pr": null,
   "review_sha": "fe49c8df3807d875f2cd44410559966cc836b9ab",
-  "cycles_used": 0,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -20,6 +20,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-08T14:11:19+00:00"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-08T14:50:01+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-validator/digest.md",
+        "sha256": "06e5eac3201c3a7fc9078f42b0e8bcec98307741557045185f71c48b163b2301"
+      },
+      "cycles_used": 3,
+      "tokens": null,
+      "ended_at": "2026-11-08T15:08:55+00:00"
     }
   ],
   "judgements": [
@@ -57,6 +72,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "Simplify pass REUSE: the audit-hook wrapper moved into the shared f58_sparse_fixture.py both read-confinement suites import."
+    },
+    {
+      "at": "2026-11-08T15:13:34.420397+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Validate rework: the shipped-record crash on a Unicode digit lived in the shared opt_int coercion the census strict-loads through, not only in INV-24."
     }
   ],
   "mission": "patch",

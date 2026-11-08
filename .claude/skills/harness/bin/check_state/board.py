@@ -1,7 +1,8 @@
-"""The GitHub mirror agrees with disk: INV-13/21/24/26/28/30/37. (FEAT-69)"""
+"""The GitHub mirror agrees with disk: INV-13/21/24/26/37. (FEAT-69)"""
 import os, re
 import artifact_accessors
 import feature_corpus
+import feature_json_write
 import harness_boundary
 from check_state.ctx import FINISHED_STATIONS
 # --- INV-21 (D-05): a mirrored feature whose task issues are recorded but whose
@@ -136,14 +137,13 @@ def _inv24_numbers(feat, fac):
 
 
 def _inv24_issue_number(n):
-    """`n` as an int, or None when it is not an integer or a digit string."""
+    """`n` as an int, or None when it is not an integer or an ASCII digit string."""
     # A DIGIT STRING IS A NUMBER HERE. INV-21 thirty lines above accepts `parent: "40"`
     # deliberately — gh-sync.py's reader was widened to it because bare-digits-only
     # read a quoted number as absent. Rejecting the same shape here would make one
-    # legal feature.json pass one invariant and hard-block on its twin (D-03).
-    if isinstance(n, bool) or not (isinstance(n, int) or str(n).strip().isdigit()):
-        return None
-    return int(n)
+    # legal feature.json pass one invariant and hard-block on its twin (D-03). So this IS
+    # gh-sync's coercion, not a copy of it: one reading of a recorded number everywhere.
+    return feature_json_write.opt_int(n)
 
 
 def _inv24_cross(first, second, repo, num):

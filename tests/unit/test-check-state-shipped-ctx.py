@@ -40,6 +40,11 @@ PLANS = {
     "FEAT-7-not-utf8": b"status: done\n\xff\xfe\n",
     "FEAT-8-list-document": "- status: done\n",
     "FEAT-9-two-statuses": "status: done\nstatus: building\n",
+    # A second status KEY makes the plan ambiguous whatever its value: never "shipped".
+    "FEAT-10-done-then-list": "status: done\nstatus: [building]\n",
+    "FEAT-11-done-then-empty": "status: done\nstatus:\n",
+    "FEAT-12-number-then-done": "status: 7\nstatus: done\n",
+    "FEAT-13-done-then-quoted-key": 'status: done\n"status": building\n',
 }
 SHIPPED = {"FEAT-1-shipped", "FEAT-2-shipped-quoted"}
 NOT_SHIPPED = sorted(set(PLANS) - SHIPPED)

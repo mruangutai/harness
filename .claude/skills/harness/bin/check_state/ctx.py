@@ -49,18 +49,23 @@ def station_of(plan_doc):
 # nothing, so deciding that a feature shipped must not depend on anything that can change after
 # it shipped: not the strict plan loader, not the plan schema, not the YAML library. The decision
 # reads exactly one column-zero `status:` line. Anything else -- no plan, unreadable bytes, no such
-# line, two of them, a status nested under another key -- is "not shipped", and the feature keeps
-# every check (fail closed: a plan nobody can read is never silently excused).
+# line, two status keys whatever their values, a status nested under another key -- is "not
+# shipped", and the feature keeps every check (fail closed: a plan nobody can read is never
+# silently excused). Keys are counted before any value is read, so a second declaration whose
+# value is a list, empty or a number still makes the plan ambiguous rather than invisible.
+_STATUS_KEY = re.compile(r"""^(['"]?)status\1[ \t]*:""", re.M)
 _STATUS_LINE = re.compile(r"^status:[ \t]*(['\"]?)([A-Za-z][\w-]*)\1[ \t]*(?:#.*)?$", re.M)
 
 
 def lenient_station(feature_dir):
-    """The station on plan.yaml's single top-level `status:` line, or "" when there is not
-    exactly one such line to read."""
+    """The station on plan.yaml's single top-level `status:` line, or "" when the plan does not
+    declare exactly one top-level status key, or that one key's value is not a plain token."""
     try:
         with open(os.path.join(feature_dir, "plan.yaml"), encoding="utf-8") as fh:
             text = fh.read()
     except (OSError, UnicodeDecodeError):
+        return ""
+    if len(_STATUS_KEY.findall(text)) != 1:
         return ""
     found = _STATUS_LINE.findall(text)
     return found[0][1] if len(found) == 1 else ""

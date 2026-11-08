@@ -141,6 +141,18 @@ class ShippedSubjects(Case):
         _code, out = check(self.fx.clone())
         self.assertTrue(naming(out, "FEAT-8-nested"), out)
 
+    def test_a_duplicate_status_key_keeps_every_check(self):
+        # `done` followed by a second status key whose value is no plain token: ambiguous, so
+        # audited in full and never answered with the shipped note.
+        dup = "schema: plan/1\nfeature: FEAT-8-dup\nstatus: done\nstatus: [building]\ntasks: 7\n"
+        self.commit(feature_files("FEAT-8-dup", dup), "two status keys")
+        clone = self.fx.clone()
+        _code, out = check(clone)
+        self.assertTrue(naming(out, "FEAT-8-dup"), out)
+        _code, selected = check(clone, "--feature", "FEAT-8-dup")
+        self.assertNotIn(NOTE.format(fid="FEAT-8-dup"), selected)
+        self.assertTrue(naming(selected, "FEAT-8-dup"), selected)
+
     def test_a_shipped_directory_is_read_only_for_status_and_comparison(self):
         clone = self.fx.clone()
         os.makedirs(os.path.join(clone, f".harness/harness/features/{SHIPPED}/runs/r9"))
@@ -194,6 +206,22 @@ class ComparisonsKeepShippedRecords(Case):
         self.assertFalse([l for l in inv24 if SHIPPED in l or SHIPPED_TOO in l], out)
         self.assertTrue([l for l in inv24 if "FEAT-7-building" in l and "acme/nope" in l],
                         "control: an undeclared repository on a building feature is graded\n" + out)
+
+    def test_inv24_skips_unusable_shipped_numbers_and_keeps_usable_ones(self):
+        # A Unicode digit int() refuses and a word, beside one usable number another feature
+        # also claims: no crash, the usable collision reported, the unusable values ungraded.
+        # The strict loader refuses this shipped record, so its claims arrive through the
+        # lenient comparison re-read.
+        self.commit({**self.claim(SHIPPED, STRICT_INVALID_DONE,
+                                  {"repo": "acme/widget", "parent": "²",
+                                   "issues": {"T-01": "x", "T-02": 11}}),
+                     **self.claim("FEAT-7-building", BUILDING,
+                                  {"repo": "acme/widget", "issues": {"T-01": 11}})})
+        _code, out = check(self.fx.clone())
+        self.assertNotIn("Traceback", out)
+        inv24 = [l for l in out.splitlines() if "INV-24" in l]
+        self.assertEqual(len([l for l in inv24 if SHIPPED in l and "FEAT-7-building" in l]), 1, out)
+        self.assertFalse([l for l in inv24 if SHIPPED in l and "FEAT-7-building" not in l], out)
 
     def test_inv52_sees_two_shipped_features_on_one_branch(self):
         self.commit({**feature_files(SHIPPED, STRICT_INVALID_DONE, {"branch": "feat/dup"}),

@@ -52,3 +52,19 @@ FAILED (failures=8)
 - unit: 0 failure(s); integration: Ran 14 tests, OK.
 - `--real-corpus /Users/molchairuangutai/GitHub/harness`: 9 landed, 7 shipped, every shipped record excluded, open-confined and one-note on explicit selection; 0 failure(s).
 - full suite (`run-unit-tests.py --kind all`): 146 files, all exit 0 after the DEC-252 index ruling was shortened to the 30-word cap.
+
+## Rework round 1 (validate FAIL at fe49c8df; two must-fixes)
+
+Baseline = the reviewed pin `fe49c8df` bin exported to /private/tmp/f2206-pin (plus
+`.harness/team-config.yaml` so the unit import resolves a root).
+
+| Regression | At pin fe49c8df | After rework |
+|---|---|---|
+| unit: FEAT-10..13 duplicate status keys (list, empty, number-first, quoted key) stay subjects | FAIL (2 assertions: subjects, shipped set) | PASS |
+| integration `test_a_duplicate_status_key_keeps_every_check` (full audit + `--feature`) | FAIL | PASS |
+| integration `test_inv24_skips_unusable_shipped_numbers_and_keeps_usable_ones` ("²" parent, "x" issue, usable 11 collision) | FAIL (ValueError traceback in INV-24) | PASS |
+
+Fixing INV-24's coercion alone exposed the same crash one layer down: the census strict-loads every
+landed record for INV-52 and `feature_json_write.opt_int` (the shared coercion, documented to
+return None for junk) raised on "²". Fixed there (ASCII digits only); INV-24's
+`_inv24_issue_number` now delegates to it instead of carrying a second copy.
