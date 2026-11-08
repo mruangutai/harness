@@ -4,7 +4,7 @@ approval:
   date: '2026-10-17'
   approved_by: operator
   status: approved
-status: building
+status: review
 source_issues: []
 panel:
   last_run: 2026-10-06-3-plan-product
@@ -425,7 +425,7 @@ tasks:
     execution_agent: main-session-direct
     execution_reason: Missing external history and operator authorization cannot be supplied by a team or inferred from a sibling worktree.
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
       - {path: .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/research-kaya-recovery-evidence.md, create: true}
     verify: |
@@ -443,7 +443,7 @@ tasks:
     execution_agent: main-session-direct
     execution_reason: The operator alone authorizes historical external state recovery; its canonical artifacts are CLI runtime operands outside this repair checkout.
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - {path: .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/research-kaya-ledger-recovery.md, create: true}
     verify: |
@@ -460,7 +460,7 @@ tasks:
     execution_agent: main-session-direct
     execution_reason: This separately authorized main-session operation mutates external canonical Kaya receipts and its GitHub mirror, never through changed enforcement dispatch.
     depends_on: [T-04]
-    status: ready
+    status: done
     files:
       - {path: .harness/harness/features/BUG-20261006-fleet-planning-recovery/notes/research-kaya-mirror-recovery.md, create: true}
     verify: |
