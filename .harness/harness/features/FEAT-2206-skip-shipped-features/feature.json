@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-2206-skip-shipped-features",
   "pr": null,
   "review_sha": "4a351faea95ad3776f130d0f42f303a4eee3e4b9",
-  "cycles_used": 4,
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -50,6 +50,21 @@
       "cycles_used": 1,
       "tokens": null,
       "ended_at": "2026-11-08T15:37:20+00:00"
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-08T16:09:48+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-c2-validator/digest.md",
+        "sha256": "beced9705f19a83c30a6a7c49a842223824a153cd10fb31ecbfc3edec4c7e927"
+      },
+      "cycles_used": 2,
+      "tokens": null,
+      "ended_at": "2026-11-08T16:23:35+00:00"
     }
   ],
   "judgements": [

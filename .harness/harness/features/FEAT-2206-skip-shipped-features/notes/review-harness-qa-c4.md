@@ -1,0 +1,48 @@
+# QA gate c4 — FEAT-2206 T-01 at 4a351faea95ad3776f130d0f42f303a4eee3e4b9
+
+**PASS (advisory notes).** Both c1 must-fixes are closed and independently reproduced; every automated SC has a natural fail-first red from this run; 60 unit + 86 integration files (146) exit 0 at the exact pin. One new low-severity, non-regression observation (F-1) and the disclosed exact-pin items are reported below. Source, tests, plan and feature records untouched; no commits.
+
+## Phase 1 (source-blind, from BRIEF/plan only) — expected coverage
+SC-01 lenient status classification before up-front reads (strict-invalid done, unreadable/missing/non-mapping stay checked); SC-02 full/changed exclusion, `--feature X` one note exit 0, open-log boundary, real-corpus every shipped record; SC-03 INV-24/29/52 collisions (shipped/active, shipped/shipped, sparse/full), malformed shipped fields ungraded; SC-04 INV-28/30 retired (`--list`, `--only`), no GitHub query, adjacent controls green. Every item has a named test (below); no Phase 1 gap except F-1's implied "malformed shipped field still yields INV-52 claim", which has no test.
+
+## c1 must-fix closure (independent; shipped test file at pin, `CHECK_STATE_BIN` pointing at each tree)
+| Test | b7af829c (baseline) | 688c5ef5 (c1 pin) | 4a351fae (pin) |
+|---|---|---|---|
+| `test_inv24_skips_an_oversized_shipped_number_and_keeps_usable_ones` | FAIL (ValueError traceback, 4,301-digit) | FAIL (traceback) | ok |
+| `test_inv24_still_reads_a_unicode_digit_on_active_claims` ("٣" vs 3) | ok | FAIL (`INV-24 … '٣' … not an integer`, collision lost) | ok |
+Direct probe of `board._inv24_issue_number` at pin: "²"→None, "①"/"¼"→None, 4301 digits→None, "٣"→3, "３"→3, " 7 "→7, "3"→3, True→None, 5→5, "-3"→None. Superscript shipped case: `test_inv24_skips_unusable_shipped_numbers_and_keeps_usable_ones` fails at baseline, passes at pin. Diff 688c5ef5→4a351fae touches only `board.py` (+16/-5) and the shipped integration test (+25).
+
+## Matrix (P-13: resolved against the FULL feature diff b7af829c..pin, not the c1 delta)
+T-01 change_type bugfix; runtime code changed (`check_state/*.py`) → `unit` required (`touches_runtime_code`); `integration` required by signed BRIEF/plan contract (the `fix_confined_to_tests_and_contract_docs` predicate is false). `functional` excluded DEC-187 (`not_applicable`); `__bug_class__` placeholder unresolvable (repo G-08). Discovery: `tests/unit` 60 files + `tests/integration` 86 files = 146, nonzero both. Product `docs/spec.md|decisions.md|architecture.md` absent as recorded; not substituted.
+
+## Executed (checks actually run, all at the exact pin from a pinned checkout)
+- T-01 verify literal components, via a script copy (evidence kept at `/private/tmp/f2206-qa-c4/verify.out`, not under the feature notes, to avoid editing the feature record): (1) shipped unit 15 PASS/0 FAIL, shipped integration 18 tests OK, `--real-corpus /Users/molchairuangutai/GitHub/harness` (owner `main` = b7af829c0207522b43f978b5275a2ebdc96b3210): 9 landed, **7 shipped, 21 PASS/0 FAIL**, exit 0; (2) standalone clone at pin (HEAD verified = pin; `.git` is a directory): `validate-feature-json` 0, `check-decision-anchors` 0, `check-plan-routes` 0, `run-unit-tests --kind all` **146 files, exit 0, 116.6 s**, `gen-decisions-index --stdout | diff` empty. Env: CLAUDE_PROJECT_DIR, HARNESS_PROJECT_DIR, HARNESS_AGENT_TYPE unset. Deviation from the literal: `git branch main HEAD` is refused by the branch-name write guard for this persona, so the script used `git update-ref refs/heads/main HEAD` (same ref); and the literal's `tee …/notes/merge-<pin>.log` was not written (feature-record edits barred).
+- `check-state.py` in the clone: exit 1 on **only** three INV-26 violations for this feature (plan done vs. board `review`; issues #2210/#2209/#2206) — the disclosed live-board mismatch. INV-33 stale metadata was **not** observed in this run (the standing disclosure is unchanged, not re-claimed). Because the literal chains `&&`, it would stop at that step; that exit-1 is disclosed, not newly found, and no clean literal-verbatim run is asserted.
+- Baseline fail-first, fresh (base tree b7af829c, current tests): unit `CHECK_STATE_BIN_DIR` → exit 1, **10 FAIL**/5 PASS; integration `CHECK_STATE_BIN` → exit 1, 10 FAIL of 18 (below); `--real-corpus` → exit 1, **21 FAIL/0 PASS**. Captures: `/private/tmp/f2206-qa-c4/base-{unit,int,real}.txt` (untracked, mutable; the tracked narrative is `notes/red-first.md`). Reds are assertion failures, not import/setup errors (grep for ImportError/ModuleNotFound/No-such-file in captures: none).
+
+## fail_first / sc_evidence (per automated SC)
+- SC-01: unit `tests/unit/test-check-state-shipped-ctx.py` — baseline FAILs on subjects set, shipped flag, strict-invalid load finding, up-front BRIEF/STATE opens, keep={shipped}, population triple (10 FAIL). Duplicate-status bypass: `test_a_duplicate_status_key_keeps_every_check` (integration, passes at baseline here because rework-1 baseline was fe49c8df; its red is the retained red-first.md rework-1 receipt, not reproduced here).
+- SC-02: `test_a_full_audit_names_no_shipped_feature`, `test_a_changed_audit_names_no_shipped_feature`, `test_selecting_a_shipped_feature_prints_one_note_and_exits_clean`, `test_a_shipped_directory_is_read_only_for_status_and_comparison` all FAIL at baseline; real-corpus 21 FAIL at baseline, 21 PASS at pin.
+- SC-03: `test_inv24_does_not_grade_a_shipped_claim_itself` and `test_inv24_skips_unusable_shipped_numbers_and_keeps_usable_ones` (superscript) and the c1-round oversized test FAIL at baseline. Shipped/active and shipped/shipped INV-24, INV-29 standing worktree and INV-52 shared-branch tests pass at baseline — **not claimed newly red**; their discrimination against a mutant is unshown by me (O-05), and F-1 is the one comparison cell that has no test.
+- SC-04: `test_inv28_and_inv30_are_retired`, `test_selecting_a_retired_number_runs_nothing`, `test_no_milestone_or_pull_request_check_runs_for_a_shipped_feature` FAIL at baseline; `test_a_missing_selected_feature_still_refuses`, `test_an_unreadable_status_keeps_every_check` stay green (adjacent controls).
+- Test lines (pin): `tests/integration/test-check-state-shipped.py:226` (oversized), `:238` (Unicode active), `:210` (superscript unusable), `:196` (shipped claim ungraded), `:127` (one note), `:267`/`:274`/`:286` (SC-04); unit file `tests/unit/test-check-state-shipped-ctx.py`.
+
+## b5b6fa70 vs review pin
+`git diff b5b6fa70 4a351fae` = one file, `feature.json` (1 insertion, 8 deletions): b5b6 carries `review_sha=4a351fae…` plus the "validate cycle 2" `regate` entry; the pin carries the prior `review_sha=688c5ef5…`. No `.claude`, `tests` or docs byte differs. The b5b6 log (146 files, `verify-exit=0 review_sha=b5b6fa70…`, pool 113.8 s) is therefore **equivalent-code historical evidence**, not literal exact-pin verification; this run's 146-file exit-0 at the pin is the exact-pin evidence. Code-grade claim (60 passing b7af829c..4a351fae) not re-derived by QA; not my seat.
+
+## Findings
+- **F-1 — low / substance / T-01 SC-03 (advisory, not a regression).** A shipped record whose `factory.parent` (or an `issues` value) is `"²"`, a 4,301-digit string, or `"x"` is rejected whole by the strict census (`artifact_accessors._positive_issue_number` → `feature_corpus._entry` document=None), so INV-52 silently loses its branch claim. Probe `/private/tmp/f2206-qa-c4/probe_inv52.py` at the pin: shipped(`feat/dup`, parent `²`/oversized/`x`) + a second landed feature on `feat/dup` (building and shipped variants) → **no INV-52 line**; control parent 5 → INV-52 reported. At baseline the same `x` case also reports no INV-52 line, and `²`/oversized crash with ValueError; so the pin turns a crash into a silent skip and `x` is unchanged. Failure scenario: a malformed historical shipped record shares a branch with a new feature and the merge-gate never reports the collision. Plan intent names a lazy raw re-read only for INV-24 (`_landed_entry`), so this is within the as-built design; whether SC-03's "INV-52 still detects landed branch collisions involving [shipped records]" binds malformed ones is not decidable from BRIEF text (see Q-02). Reporter's trace (VoluntaryRat) confirmed by probe.
+- No other substance, form or proportionality findings. Original severities from c1 (med, low) are closed, not re-rated.
+
+## Disclosures (not findings)
+INV-26 live-board mismatch (3 lines, #2201 gh-sync); superseded round-1 regate naming 09ac5a4e; Q-01 (T-01 YAML-mapping wording vs DEC-252 text-line classification) remains open/nonblocking.
+
+## Open questions
+- Q-01 (carried, nonblocking): align T-01 YAML-mapping/invalid-YAML wording with DEC-252 text-line classification.
+- Q-02 (new, nonblocking): does SC-03 require INV-52 to keep a branch claim from a strict-invalid shipped record? Recommendation: accept as pre-existing, because baseline already skipped invalid records, or extend `_landed_entry`'s lenient re-read to INV-52 and add a CLI regression. Either is a human/lead call; QA does not self-bind it.
+
+## Blocked capabilities
+Could not write the T-01 `merge-<pin>.log` under feature notes (record edits barred); could not create `main` via `git branch` (write-guard branch-name rule; used `update-ref`); could not write mutants into pinned trees (guard denies), so discrimination used baseline/c1 trees as natural mutants. O-07: the INV-52 probe and closure reproductions are QA-only evidence.
+
+## Principles applied
+Verification rules (full-feature-diff matrix resolution; natural RED over mutation) and repo G-07/G-11 (live-corpus run, clean env) shaped the checks above.

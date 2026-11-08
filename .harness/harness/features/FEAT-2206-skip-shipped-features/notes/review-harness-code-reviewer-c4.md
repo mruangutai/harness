@@ -1,0 +1,21 @@
+# ESCALATE — unchanged pin 4a351faea95ad3776f130d0f42f303a4eee3e4b9
+
+**Stage 1 is unresolved, not a confirmed failed T-01 obligation.** F-1 remains the c3 **med/substance** observation; its assignment as an unconditional T-01 must-fix was not justified. No Stage 2 approval is given. No implementation or verification reruns occurred.
+
+## Ownership correction
+
+- **Evidence:** QA c4:34 executed the previously inferred scenario: shipped `feat/dup` with parent `²`, 4,301 digits, or `x`, plus a building or shipped landed record claiming that branch, yields no INV-52; parent 5 reports the collision. Baseline `x` already skips; baseline `²`/oversized crashes. Thus neither unchanged garbage handling nor converting an escaping ValueError into documented strict refusal alone establishes a newly promised malformed-record branch obligation.
+- **Authority tension:** BRIEF SC-03 and Constraints require retained INV-52 comparisons and lazy raw comparison data without shipped grading. DEC-252:8159-8163 preserves all three comparisons but explicitly assigns usable factory claims to INV-24. Binding grilling input, Settled/Not yet specified, preserves INV-52 and leaves its mechanism to PM/build; it does not explicitly settle malformed-record branch retention. Signed `plan.yaml:71` scopes lenient population to INV-24 and says preserve INV-52/29 **“as they already operate independently of ctx.features.”** Task intent/files are not compliance anchors overriding SC-03; equally, this reviewer cannot silently settle the competing readings or expand the signed behavior.
+- **Remedy boundary:** pinned `git diff b7af829c..4a351fae` shows no changes to `check_state/corpus.py` or `feature_corpus.py`. INV-52 reads `feature_corpus.records(owner)` directly (`corpus.py:153-160`); strict refusal leaves `document=None` (`feature_corpus.py:225-239`), skipped by branch claims (`:445-456`). Changing the in-scope `ctx._landed_entry` cannot affect that route. Relaxing the shared in-scope accessor's recorded-field validation would broaden active-record semantics. No remedy confined to T-01.files **and** preserving those semantics is established. The c3 remedy needs an explicitly authorized comparison seam change, not automatic T-01 regating.
+- **Recommendation / Q-02:** obtain an operator scope ruling. Recommend upgrading the approved plan/acceptance contract to explicitly require malformed shipped records' usable branch claims, authorize `check_state/corpus.py` and/or `feature_corpus.py`, preserve active strict-census behavior, and require a discriminating CLI regression. Alternatively, an explicit ruling that preservation means baseline parsed-record coverage can disposition F-1 as pre-existing advisory. Neither ruling is made here. `must_fix: []` removes the unsupported task assignment, not the observation or its severity/kind; no spec violation is conclusively adjudicated pending that ruling.
+
+## Retained dispositions and evidence limits
+
+C3 remains unedited: its FAIL, med/substance F-1 and original must-fix are historical dispositions corrected above. Both c1 conversion regressions remain closed (QA c4:8-12). SC-01/02 inspection remains `ctx.py:55-76,223-233` and `runner.py:313-323`; SC-04 retirement remains `table.py:240-245`. C3's source-inspected closures/retirement conclusions are retained, not a new whole-feature approval.
+
+`code_grade: pass` carries only c3's exact-pin mechanical receipt (60 passing, no severity/reason-required records); it is not rerun or qualitative Stage 2 approval. Reviewed range remains base..4a351fae, base b7af829c0207522b43f978b5275a2ebdc96b3210; human commits remain [] from c3. QA c4 supplies fresh exact-pin 146-file success and 7 shipped/21 corpus assertions; literal check-state still exits 1 on disclosed INV-26 only. b5b6fa70 remains equivalent-code, not literal exact-pin evidence. Product guidance absence and standing disclosures remain as recorded in c3.
+
+## Open questions
+
+- **Q-01 (nonblocking):** align T-01's YAML-mapping/invalid-YAML wording with DEC-252's text-line rule; retain DEC-252 behavior.
+- **Q-02 (blocking Stage 1 determination):** does SC-03 require usable branch retention from strict-invalid shipped records beyond baseline INV-52 coverage? Recommendation and plan-upgrade boundary above. This is a scope/contract decision, not another code/test rerun.
