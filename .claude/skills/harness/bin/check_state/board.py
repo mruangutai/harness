@@ -288,9 +288,11 @@ def inv_28(ctx, feat):
 # --- INV-37 (BUG-1309): an enabled mirror must leave a Build-entry receipt.
 # This deliberately runs regardless of station and task state. INV-26 correctly skips
 # terminal and all-ready plans for board placement; neither condition proves a mirror ran.
-# --- INV-37 (BUG-1309): an enabled mirror must leave a Build-entry receipt.
-# This deliberately runs regardless of station and task state. INV-26 correctly skips
-# terminal and all-ready plans for board placement; neither condition proves a mirror ran.
+# A BOUND feature's repository is verified remotely only where gh is authenticated (DEC-221 as
+# amended 2026-11-08, #2190): tokenless CI cannot read the target's default-branch config, and
+# the operator ruled CI need not verify gh-dependent state. Offline, the target still passes
+# every local check — mapping, owner/name syntax, fleet membership — and its receipt and
+# provenance are graded against it; there is never an owner fallback.
 def _inv37_import():
     bad = []
     try:
@@ -300,6 +302,26 @@ def _inv37_import():
         bad.append("INV-37 CANNOT RUN: feature_schema.py did not import (%s: %s), so a missing "
                    "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
     return bad, _fs37
+
+def _inv37_local_repo(ctx, _fs37, doc):
+    """The bound target's local checks only, in resolve_binding's own FleetError wording."""
+    factory = doc.get("factory")
+    if not isinstance(factory, dict):
+        raise artifact_accessors.FleetError("invalid feature binding", "factory", "expected a mapping")
+    bound = factory.get("repo")
+    if not isinstance(bound, str) or not _fs37._REPOSITORY.fullmatch(bound):
+        raise artifact_accessors.FleetError("invalid feature binding", "factory.repo",
+                                          "expected a declared owner/name")
+    fleet = artifact_accessors.load_fleet(os.path.join(ctx.root, ".harness", "factory", "fleet.yaml"))
+    harness_boundary.load_repo_module("factory_config").repo_entry(fleet, bound)
+    return bound
+
+
+def _inv37_repo(ctx, _fs37, doc, bound):
+    if bound and not ctx.gh_ok(os.environ.get("FACTORY_GH") or "gh"):
+        return _inv37_local_repo(ctx, _fs37, doc)
+    return _fs37.resolve_binding(doc, ctx.root)[0]
+
 
 
 def _inv37_finding(_fs37, _feat37, _fp37, doc, repo, detail):
@@ -317,7 +339,7 @@ def _inv37_feature(ctx, _fs37, plan_docs, _feat37):
     enabled = bound or bool((ctx.cj.get("github") or {}).get("sync"))
     if enabled:
         try:
-            repo, _board, _types = _fs37.resolve_binding(doc, ctx.root)
+            repo = _inv37_repo(ctx, _fs37, doc, bound)
         except artifact_accessors.FleetError as error:
             return [f"INV-37 {_feat37}: invalid authoritative repository binding: {error}"]
     else:

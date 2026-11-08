@@ -1,0 +1,74 @@
+schema_version: 2
+run_id: 2026-11-08-02-validator
+run_uid: 6ed85aa8a68341168d69e5ef5912a05f
+feature: BUG-2190-inv37-offline-binding
+squad: validator
+host: harness-validator-lead
+status: failed
+review_sha: 33c0c181e62c5e75692c8320fc01aaaaf06fa40b
+steps:
+  - id: qa
+    persona: harness-qa
+    status: complete
+    verdict: PASS
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/harness/features/BUG-2190-inv37-offline-binding/notes/review-harness-qa-c0.md
+    evidence:
+      matrix_ok: true
+      literal_verify_seconds: 3.06
+      literal_verify_exit: 0
+      unit_pool_files: 59
+      integration_pool_files: 85
+      fail_first_reproduced: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+      surviving_required_clause_mutants: [M4, M6]
+    note: Matrix passes; two signed assertion clauses remain unfulfilled.
+  - id: code
+    persona: harness-code-reviewer
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/harness/features/BUG-2190-inv37-offline-binding/notes/review-harness-code-reviewer-c0.md
+    evidence:
+      stage_one: fail
+      stage_two: deferred
+      code_grade: pass
+    note: SC-02 and SC-03 coverage omissions bind T-01.
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/harness/features/BUG-2190-inv37-offline-binding/notes/review-harness-security-reviewer-c0.md
+    note: Trust-boundary inspection found no actionable security defect.
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/harness/features/BUG-2190-inv37-offline-binding/notes/review-harness-ui-reviewer-c0.md
+    evidence:
+      in_scope: false
+      feature_final_paths: 13
+    note: Measured feature-only census contains no visual UI surface.
+  - id: goalcheck
+    persona: harness-pm
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/harness/features/BUG-2190-inv37-offline-binding/notes/research-BUG-2190-inv37-offline-binding-goalcheck-validate-c0.md
+    evidence:
+      operator: partial
+      code_maintainer: pass
+      partial_scs: [SC-02, SC-03]
+    note: Existing acceptance contract needs completion, not scope change or approval.

@@ -1,0 +1,51 @@
+schema: plan/1
+feature: BUG-2190-inv37-offline-binding
+approval:
+  date: '2026-11-08'
+  approved_by: operator
+  status: approved
+status: review
+source_issues: [2190]
+lanes:
+  resolved_at: f68c472c88071801be8f6f09d95b0f734bb4d724
+  rows:
+    - surface: .claude/skills/harness/bin/check_state/board.py
+      lane: main-session-direct
+      reason: DEC-174 enforcement-layer gate code is implemented directly by main.
+    - surface: tests/integration/test-check-state-inv37-offline.py
+      lane: main-session-direct
+      reason: DEC-174 includes integration regressions of the changed gate.
+    - surface: tests/unit/test-check-state-inv37-offline.py
+      lane: main-session-direct
+      reason: DEC-174 includes unit regressions of the changed gate.
+decisions: []
+tasks:
+  - id: T-01
+    title: Grade bound INV-37 receipts locally when gh authentication is unavailable
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_agent: main-session-direct
+    execution_reason: DEC-174 requires main to implement this gate and its tests directly inside the assigned feature worktree.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/check_state/board.py
+    - tests/integration/test-check-state-inv37-offline.py
+    - tests/unit/test-check-state-inv37-local-binding.py
+    - .harness/harness/docs/DECISIONS.md
+    - .harness/harness/docs/DECISIONS-INDEX.md
+    - tests/integration/canonical-reader-classification.json
+    - .claude/skills/harness/bin/check_state/table.py
+    verify: |
+      python3 tests/unit/test-check-state-inv37-local-binding.py &&
+      python3 tests/integration/test-check-state-inv37-offline.py
+    intent: |
+      Work only inside PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding after main signs both pending intake artifacts. Main implements and retains orchestration under DEC-174, with validation delegated to harness-validator-lead, never an engineering-lead build. This is one bounded patch task with no panel or goal-check. Read product guidance before assumptions: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/docs/spec.md, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/docs/decisions.md and /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/docs/architecture.md. Those paths are absent at intake; AGENTS.md explicitly maps this product to /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/harness/docs/SPEC.md and DECISIONS.md. Consult SPEC.md section 13 and DECISIONS.md DEC-174, DEC-182, DEC-217, DEC-220, DEC-221 and DEC-225 using its decision index. The settled grilling at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/notes/grilling-inv37-offline-binding-2026-11-07.md explicitly narrows DEC-221 remote INV-37 verification only for the offline path; this does not amend the shared resolver contract. The owned files are exactly the three listed, and relative-path edits must remain inside this feature worktree.
+      Write tests before production edits. Create the dedicated integration sibling tests/integration/test-check-state-inv37-offline.py rather than enlarging the already branching legacy case_t06_build_entry_invariant in test-check-state-records.py. Read and reuse check_state_support.SCRIPT, _root_env and _run_with_gh_streams plus the existing INV-37 receipt fixtures as read-only inputs; do not edit shared support or the legacy test. Use disposable roots with real feature.json, plan.yaml, owner harness.json and locally valid fleet.yaml; choose a non-era-exempt feature, different owner and bound repositories, and building eligibility. Drive the real check-state entrypoint with a hermetic FACTORY_GH recorder, capturing exit, stdout and stderr. Answer auth status independently from remote contents requests: offline returns nonzero, online returns zero; remote product-config reads either return the matching enabled product config and valid board or fail with a deterministic contents-read error. Permit the auth probe but assert zero remote reads on offline fixtures. Keep unrelated invariants from requesting remote data through fixture eligibility; never use a real gh or live network, and assert no traceback rather than accepting any nonzero process result as the expected violation.
+      In separate focused integration cases cover: offline well-formed fleet-listed binding with opened and recovered-terminal receipts matching factory.repo, also when owner sync is false; missing build_entry; active mirror with absent github.repo; github.repo equal to the owner instead of factory.repo; malformed factory mapping and malformed repository values including non-string, empty string and invalid owner/name syntax; a well-formed repository absent from fleet; an online matching remote config; an authenticated remote product-config read failure; and owner/unbound enabled, sync-off, legacy-provenance and invalid-receipt controls alongside a valid offline bound feature. Include no-plan eligibility and retain existing station-independent receipt checking. For receipt/provenance failures require the existing no-usable-Build-entry finding and bound-repository recovery guidance, not invalid authoritative repository binding or owner success. For malformed or unlisted bindings require invalid authoritative repository binding and no owner fallback. Pair the online remote-error fixture with the same valid local offline fixture so authentication availability, not the read exception, determines whether remote verification is attempted. Count logged contents requests so offline zero and online nonzero cannot pass through an unexercised branch. Assert each outcome independently with named failure accounting that exits nonzero for every failed assertion.
+      Create tests/unit/test-check-state-inv37-offline.py for the DEC-217 runtime-code floor. Use a small context fixture exposing H, fpath, feature_dir, record, plan_docs, features, cj, root and gh_ok, and call the real public check_state.board.inv_37 with the real feature_schema receipt/provenance predicates and local fleet loader/repo_entry. Record or fail remote-boundary calls without stubbing away local validation; clear product-config memo between cases and restore patched collaborators in cleanup. Independently assert offline valid-bound success and zero resolve_binding/product-config calls, local validation failures, missing/mismatched receipt findings against factory.repo, online full resolver delegation and its FleetError finding, and unchanged unbound owner resolution including sync-off. The false gh_ok probe must represent both unavailable and unauthenticated behavior at the CLI boundary. Keep helpers, fixtures and assertion functions small and cohesive; split scenarios by behavior, never build a giant conditional or nested-loop matrix test, and meet the normal changed-function complexity bar without grade-waiver comments.
+      Before production edits pin the baseline full SHA and preserve meaningful red results from the new unit and integration regressions, not setup/import errors. Keep unchanged online/owner/invalid-local controls and their baseline results. For SC-03 also show the invalid cases reject a bounded mutant that bypasses only offline local validation; the corrected valid-bound twin must distinguish pre-fix behavior. Record per-SC fail-first witnesses, commands, exits and stdout/stderr through main/QA-owned evidence, then the same tests green after the fix. The literal verify must finish in under 60 seconds, exit 0 and emit no FAIL assertions. Intake has not run production tests. QA also runs the configured unit and integration kinds after all edits land, including the unchanged legacy test-check-state-records.py INV-37 controls.
+      In board.py change only INV-37 binding selection. For enabled bound features resolve gh_bin as os.environ.get("FACTORY_GH") or "gh" and use the existing cached ctx.gh_ok(gh_bin) probe. If true, keep the full feature_schema.resolve_binding(doc, ctx.root) call and existing FleetError-to-invalid-authoritative-binding finding, including failed remote reads; never turn a post-auth remote error into offline success. If false, validate factory is a mapping, validate its authoritative non-null repo is a string matching the existing raw feature_schema._REPOSITORY fullmatch predicate, load .harness/factory/fleet.yaml through artifact_accessors.load_fleet and require factory_config.repo_entry(fleet, repo). Use that exact factory.repo as repo and do not call resolve_binding, product_config, board_for or other remote reads in this branch. Reuse the existing validation predicate and fleet APIs without editing their modules or parsing an alternate config; keep any local helper inside the INV-37 section and preserve the existing FleetError diagnostic boundary. A malformed factory or repo and an unlisted repo remain invalid authoritative repository binding.
+      Continue through the unchanged mirror_evidence_problems, mirror_provenance_problem, receipt_allows_merge and _inv37_finding logic with the selected repository; do not return success merely because gh is offline. Preserve the unbound owner path, enabled/sync-off semantics, era exemptions, no-plan eligibility, station-independent checking and existing receipt/provenance/recovery wording. Do not add the optional offline note: it is unnecessary output for this narrowly disclosed verification gap. Update INV-37 explanatory comments and the new test module docstrings to describe local-only offline validation and full authenticated verification. No changes to feature_schema.resolve_binding, factory_config, schemas, public interfaces, INV-26, INV-30, gh-sync/recover-mirror, issue 2181 or the Kaya corpus; no retries, telemetry or new offline flag. This fix merges before the Kaya corpus PR. If the fix requires a fourth implementation file or a broader contract, return the scope change to main before proceeding.
+
