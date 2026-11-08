@@ -3,7 +3,7 @@
   "branch": "feat/BUG-2181-board-item-add",
   "pr": null,
   "review_sha": "5d78ffc3ccf4d1c49aae47b9183a2c305c0be6a7",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -43,8 +43,17 @@
       "id": "2026-11-08-02-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-08T16:18:36+00:00"
+      "verdict": "PASS",
+      "started_at": "2026-11-08T16:18:36+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-02-validator/digest.md",
+        "sha256": "c8baf6bea0c06b3c2786bb54a49e4a1c89e3fff102d1016127b8f33ef07027c2"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-08T16:27:52+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
