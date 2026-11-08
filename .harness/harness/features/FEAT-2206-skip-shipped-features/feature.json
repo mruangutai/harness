@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2206-skip-shipped-features",
   "branch": "feat/FEAT-2206-skip-shipped-features",
   "pr": null,
-  "review_sha": "688c5ef5e3b6e0dd694afb3d6476c915934501d4",
+  "review_sha": "4a351faea95ad3776f130d0f42f303a4eee3e4b9",
   "cycles_used": 4,
   "max_total_cycles": 10,
   "runs": [
@@ -115,6 +115,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "Rework budget exhausted after validate c1 FAIL (med oversized-number crash, low Unicode regression); operator granted one more round (2 rounds / 75 min)."
+    },
+    {
+      "at": "2026-11-08T16:07:09+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL: med oversized shipped number crash and low active Unicode-digit regression fixed main-session-direct in 4a351fae (isdigit plus total int); re-gate on review_sha 4a351fae"
     }
   ],
   "mission": "patch",
