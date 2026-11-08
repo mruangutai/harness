@@ -1,0 +1,52 @@
+schema: plan/1
+feature: BUG-2181-board-item-add
+approval:
+  date: '2026-11-08'
+  approved_by: operator
+  status: approved
+status: plan
+source_issues: [2181]
+lanes:
+  resolved_at: b7af829c0207522b43f978b5275a2ebdc96b3210
+  rows:
+    - surface: .claude/skills/harness/bin/gh_board.py
+      lane: main-session-direct
+      reason: DEC-174 settled operator routing
+    - surface: .claude/skills/harness/references/repo-board-provisioning.md
+      lane: main-session-direct
+      reason: Same bounded direct patch
+    - surface: tests/unit/test-gh-board-item-add.py
+      lane: main-session-direct
+      reason: Tests accompanying direct patch
+    - surface: tests/integration/test-gh-sync-board-add.py
+      lane: main-session-direct
+      reason: Tests accompanying direct patch
+    - surface: tests/integration/test-board-station.py
+      lane: main-session-direct
+      reason: Adapt obsolete no-item refusal fixture
+decisions: []
+tasks:
+  - id: T-01
+    title: Add absent board items before setting station
+    traces: [SC-01, SC-02, SC-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_agent: main-session-direct
+    execution_reason: DEC-174 operator-settled direct build with harness-validator-lead validation
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/gh_board.py#set_station
+      - .claude/skills/harness/references/repo-board-provisioning.md
+      - {path: tests/unit/test-gh-board-item-add.py, create: true}
+      - {path: tests/integration/test-gh-sync-board-add.py, create: true}
+      - tests/integration/test-board-station.py
+    verify: |
+      python3 tests/unit/test-gh-board-item-add.py && python3 tests/integration/test-gh-sync-board-add.py && python3 tests/integration/test-board-station.py
+    intent: |
+      Main session builds only inside PRODUCT /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2181-board-item-add; validation is through harness-validator-lead. Consult PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md if available; intake found all three absent, so do not invent their guidance. Read .harness/notes/grilling-board-item-add-2026-11-08.md for the settled bounded contract.
+      In gh_board.set_station keep station_column conversion and existing field-set arguments. Within its existing GhError-catching try block, resolve issue_board_item_id first. Only when the result is None call factory_gh.project_item_add(board["owner"], board["number"], f"https://github.com/{repo}/issues/{issue_number}") and use its returned id for project_field_set. Existing ids must never trigger addition. Lookup, addition and field-set GhError must each remain BoardError with the original issue and requested lowercase station. No caller edits, retries, new API or changes to factory_decompose, audit or registration gates.
+      Create the new unit test with a recording patched factory_gh: assert absent-item lookup/add/set order, exact owner/number/URL/field/column arguments and returned id; existing-item lookup/set without addition; GhError independently at lookup, add and set becomes BoardError with issue and lowercase station and no downstream calls. Restore patched functions. Demonstrate the absent-item assertion fails against pre-fix gh_board.py before production edits, then passes after; retain evidence for SC-02.
+      Create the distinctly named integration test using read-only reuse inputs tests/integration/gh_sync_support.py and tests/integration/test-gh-sync-start-task.py. Reuse install_gh, stage_station, run and calls and extend the fake locally, not in the shared helper. Both GH_SYNC_GH and FACTORY_GH must target the same fake; no live GitHub. Invoke gh-sync start-task for an open issue with absent project item, return an id from item-add and assert ordered lookup/add/item-edit with that id and Building option. Repeat with a present item and assert zero additions; distinguish own and parent cards by identity. Record meaningful failing-before/passing-after proof for SC-01 rather than import or missing-file failures.
+      Existing tests were searched for no-item refusal. tests/integration/test-board-station.py FAKE_GH_NOT_ON_BOARD and case 3 currently imply absence alone causes BoardError. Update that fixture and its comments to explicitly fail item-add with a nonzero gh exit after an empty lookup, keeping the existing stderr/exit assertions as the add-failure contract. Other located set_station tests use a present id or a failing gh; factory-land's no-item refusal is a separate path and remains unchanged.
+      Add only a note to repo-board-provisioning.md explaining gh-sync adds missing cards itself and Auto-add to project is not required. Preserve the Item closed, Auto-close issue and Pull request merged requirements. Reviewer inspects the note at review_sha for SC-03. Run the literal verify from PRODUCT root after implementation; each script must exit 0 in under 60 seconds overall. Do not sign the BRIEF or plan.
