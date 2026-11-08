@@ -37,6 +37,13 @@
       "tokens": null,
       "ended_at": "2026-11-08T13:45:02+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-08-03-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-08T13:46:48+00:00"
     }
   ],
   "judgements": [
@@ -81,6 +88,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "the FEAT-62 SC-04 gate requires INV-37's row to declare its new gh:auth read"
+    },
+    {
+      "at": "2026-11-08T13:46:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix cycle 1",
+      "reason": "c0 FAIL: two med missing-assertion findings (SC-02 guidance, SC-03 non-mapping) remediated main-session-direct in fcc91963; re-gate on review_sha cf13aab6"
     }
   ],
   "mission": "patch",
