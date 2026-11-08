@@ -71,3 +71,14 @@ documented "not a recorded issue number" refusal and the shipped record's claims
 the lenient comparison re-read. `opt_int` itself is unchanged: an attempt to make it total was
 reverted because `board_lifecycle._github_numbers` (#2151) reads its raise as "unreadable record"
 and the full suite caught the lost LABEL finding.
+
+## Rework round 2 (validate c1 FAIL at 688c5ef5; operator granted the round)
+
+Baseline = the c1 pin `688c5ef5` bin exported to /private/tmp/f2206-pin2.
+
+| Regression | At pin 688c5ef5 | At b7af829c | After |
+|---|---|---|---|
+| `test_inv24_skips_an_oversized_shipped_number_and_keeps_usable_ones` (4,301-digit shipped parent) | FAIL | — | PASS |
+| `test_inv24_still_reads_a_unicode_digit_on_active_claims` ("٣" vs 3 collide, no malformed finding) | FAIL | PASS (pre-feature behaviour restored) | PASS |
+
+`_inv24_issue_number` is back on `str.isdigit()` and treats `int()`'s ValueError as unusable.

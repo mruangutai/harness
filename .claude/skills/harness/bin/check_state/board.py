@@ -136,21 +136,27 @@ def _inv24_numbers(feat, fac):
 
 
 def _inv24_issue_number(n):
-    """`n` as an int, or None when it is not an integer or an ASCII digit string."""
+    """`n` as an int, or None when it is not an integer or a digit string int() can read."""
     # A DIGIT STRING IS A NUMBER HERE. INV-21 thirty lines above accepts `parent: "40"`
     # deliberately — gh-sync.py's reader was widened to it because bare-digits-only
     # read a quoted number as absent. Rejecting the same shape here would make one
     # legal feature.json pass one invariant and hard-block on its twin (D-03).
-    # ASCII ONLY: str.isdigit() accepts "²" and other Unicode digits int() refuses, which
-    # crashed INV-24 instead of reporting (or, for a shipped block, skipping) the value.
-    # Not feature_json_write.opt_int: that one raises on "²" by contract (#2151 reads the
+    # TOTAL (FEAT-2206): str.isdigit() also accepts strings int() refuses -- "²", or more
+    # digits than int()'s conversion limit -- and those read as unusable (None) rather than
+    # crashing INV-24. Digits int() does read, "٣" among them, keep their value.
+    # Not feature_json_write.opt_int: that one raises on them by contract (#2151 reads the
     # raise as "unreadable record").
     if isinstance(n, bool):
         return None
     if isinstance(n, int):
         return n
     s = str(n).strip()
-    return int(s) if s.isascii() and s.isdigit() else None
+    if not s.isdigit():
+        return None
+    try:
+        return int(s)
+    except ValueError:
+        return None
 
 
 def _inv24_cross(first, second, repo, num):

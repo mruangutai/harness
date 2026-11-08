@@ -223,6 +223,31 @@ class ComparisonsKeepShippedRecords(Case):
         self.assertEqual(len([l for l in inv24 if SHIPPED in l and "FEAT-7-building" in l]), 1, out)
         self.assertFalse([l for l in inv24 if SHIPPED in l and "FEAT-7-building" not in l], out)
 
+    def test_inv24_skips_an_oversized_shipped_number_and_keeps_usable_ones(self):
+        # More digits than int()'s string-conversion limit: isdigit() says yes, int() refuses.
+        self.commit({**self.claim(SHIPPED, STRICT_INVALID_DONE,
+                                  {"repo": "acme/widget", "parent": "1" * 4301,
+                                   "issues": {"T-02": 11}}),
+                     **self.claim("FEAT-7-building", BUILDING,
+                                  {"repo": "acme/widget", "issues": {"T-01": 11}})})
+        _code, out = check(self.fx.clone())
+        self.assertNotIn("Traceback", out)
+        inv24 = [l for l in out.splitlines() if "INV-24" in l]
+        self.assertEqual(len([l for l in inv24 if SHIPPED in l and "FEAT-7-building" in l]), 1, out)
+
+    def test_inv24_still_reads_a_unicode_digit_on_active_claims(self):
+        # "٣" (Arabic-Indic three) is a number int() reads: two active claims on it collide,
+        # exactly as before this feature, and neither is graded as malformed.
+        self.commit({**self.claim("FEAT-7-building", BUILDING,
+                                  {"repo": "acme/widget", "issues": {"T-01": "٣"}}),
+                     **self.claim("FEAT-8-building", BUILDING,
+                                  {"repo": "acme/widget", "issues": {"T-01": 3}})})
+        _code, out = check(self.fx.clone())
+        inv24 = [l for l in out.splitlines() if "INV-24" in l]
+        self.assertEqual(len([l for l in inv24 if "FEAT-7-building" in l and "FEAT-8-building" in l
+                              and "issue 3" in l]), 1, out)
+        self.assertFalse([l for l in inv24 if "not an integer" in l], out)
+
     def test_inv52_sees_two_shipped_features_on_one_branch(self):
         self.commit({**feature_files(SHIPPED, STRICT_INVALID_DONE, {"branch": "feat/dup"}),
                      **feature_files(SHIPPED_TOO, STRICT_INVALID_DONE, {"branch": "feat/dup"})})

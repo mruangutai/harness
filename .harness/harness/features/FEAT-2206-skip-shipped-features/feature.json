@@ -108,13 +108,20 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "Validate rework: opt_int stays as is (#2151 relies on its raise); the strict loader's issue-number check in artifact_accessors.py absorbs it instead."
+    },
+    {
+      "at": "2026-11-08T16:05:50+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Rework budget exhausted after validate c1 FAIL (med oversized-number crash, low Unicode regression); operator granted one more round (2 rounds / 75 min)."
     }
   ],
   "mission": "patch",
   "rework": {
-    "rounds": 1,
-    "wall_clock_minutes": 45,
-    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2206-skip-shipped-features/.harness/harness/features/FEAT-2206-skip-shipped-features/notes/answers-2026-11-08-signoff.md"
+    "rounds": 2,
+    "wall_clock_minutes": 75,
+    "decision": "notes/answers-validate-c1-validator.md"
   },
   "signed_task_hashes": {
     "T-01": "f366019a6a176e8ed78e551107efb0c676b6421d4a6b8ea7e51fd81cb6a4f8c0"
