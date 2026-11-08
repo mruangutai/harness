@@ -89,6 +89,20 @@ def _landed_entry(entry):
         return entry["id"], comparison_record(os.path.join(entry["path"], "feature.json")), True
     return entry["id"], entry["document"], False
 
+def _discover_feature_dirs(H, root):
+    """`{feature basename: root-relative directory}` for every feature directory on disk."""
+    # corpus-scope: checkout-local
+    found = (d for d in glob.glob(os.path.join(H, "*", "features", "*")) if os.path.isdir(d))
+    return {os.path.basename(d): os.path.relpath(d, root) for d in found}
+
+
+def _split_shipped(root, feat_dirs, keep):
+    """(audit subjects, shipped set) of the features `keep` selects (None: all), sorted."""
+    selected = [f for f in sorted(feat_dirs) if keep is None or f in keep]
+    shipped = {f for f in selected if is_shipped(os.path.join(root, feat_dirs[f]))}
+    return [f for f in selected if f not in shipped], shipped
+
+
 
 def approved(txt):
     if not txt: return False
@@ -200,18 +214,12 @@ class Ctx:
         # (qualify one of the two name-derivation shapes and not the other and the station mirror
         # silently skips every feature), but a finding that names a PATH carries the DISCOVERED
         # segment-qualified path, so a reader can open exactly what the label names.
-        H, root = self.H, self.root
-        # corpus-scope: checkout-local
-        self.feat_dirs = {os.path.basename(_d): os.path.relpath(_d, root)
-                          for _d in glob.glob(os.path.join(H, "*", "features", "*"))
-                          if os.path.isdir(_d)}
-        selected = [f for f in sorted(self.feat_dirs) if keep is None or f in keep]
+        self.feat_dirs = _discover_feature_dirs(self.H, self.root)
         # A SHIPPED FEATURE IS NEVER AN AUDIT SUBJECT (FEAT-2206). It leaves the subject list here,
         # before any up-front load below opens its BRIEF, plan or STATE.md and before any
         # per-feature row runs; only the cross-feature comparisons read it again, as data
         # (`population`, INV-29, INV-52). `feat_dirs` keeps every discovered directory.
-        self.shipped = {f for f in selected if is_shipped(os.path.join(root, self.feat_dirs[f]))}
-        self.features = [f for f in selected if f not in self.shipped]
+        self.features, self.shipped = _split_shipped(self.root, self.feat_dirs, keep)
 
     def _selected(self, tail):
         """`{feature: path}` of `tail` inside each SELECTED feature directory that has it.
