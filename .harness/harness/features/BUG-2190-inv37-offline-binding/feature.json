@@ -1,0 +1,133 @@
+{
+  "feature_id": "BUG-2190-inv37-offline-binding",
+  "branch": "feat/BUG-2190-inv37-offline-binding",
+  "pr": null,
+  "review_sha": "cf13aab63f308c1d59e33737205a3064fa35b194",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-07-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T15:29:11+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-07-01-product/digest.md",
+        "sha256": "2d76a9795f30ba7ec9ac502a9859448f2f17be09e3e789951d217ce66420c1e8"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T15:39:11+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-08-02-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-08T13:35:42+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-02-validator/digest.md",
+        "sha256": "5b1bb1360ecdb5bc00ebb691e9e78353ecdfd3d8d6d57d707ccfefd272473ae6"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-08T13:45:02+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-08-03-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-08T13:46:48+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-03-validator/digest.md",
+        "sha256": "0d35a59b7d3d0c7a9f0662d59eb72405077355b9051f464791b63c68db2fe2c8"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-08T13:52:36+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-07T15:29:10+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "one known defect in _inv37_feature with a known fix (gate remote verification on gh_ok); bounded diff, no new interface"
+    },
+    {
+      "at": "2026-11-08T13:22:26.162393+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "operator decision 2026-11-08 amends DEC-221 (CI does not verify gh-dependent remote config); DEC-188 forbids leaving the contradicted text"
+    },
+    {
+      "at": "2026-11-08T13:24:30.812411+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "the offline fleet read is a new canonical load_fleet site; the CI reader audit requires its inventory row"
+    },
+    {
+      "at": "2026-11-08T13:27:28.425428+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "suite layout forbids one basename in two kind directories"
+    },
+    {
+      "at": "2026-11-08T13:27:28.425584+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "follows the unit test rename"
+    },
+    {
+      "at": "2026-11-08T13:29:15.422843+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "the FEAT-62 SC-04 gate requires INV-37's row to declare its new gh:auth read"
+    },
+    {
+      "at": "2026-11-08T13:46:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix cycle 1",
+      "reason": "c0 FAIL: two med missing-assertion findings (SC-02 guidance, SC-03 non-mapping) remediated main-session-direct in fcc91963; re-gate on review_sha cf13aab6"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2190-inv37-offline-binding/notes/operator-signature-2026-11-08.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "da67c1194fbda70e00d4868307491a3ff55b687d8fd319c416ef3257b222fd83"
+  },
+  "github": {
+    "milestone": 108,
+    "parent": 2203,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2204
+    },
+    "source_issues": [
+      2190
+    ],
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
