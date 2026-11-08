@@ -1,0 +1,45 @@
+schema_version: 2
+run_id: 2026-11-08-03-validator
+run_uid: 5108a1c835d440d490fff3faa852164c
+feature: BUG-2190-inv37-offline-binding
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: qa
+    persona: harness-qa
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/qa-c1.md
+    evidence:
+      review_sha: cf13aab63f308c1d59e33737205a3064fa35b194
+      execution_head: 2c2ec69f
+      executable_pin_equivalent: true
+      literal_exit: 0
+      literal_seconds: 4.0
+      unit_files: 59
+      integration_files: 85
+      mutants_killed: [M4, M6]
+  - id: code-review
+    persona: harness-code-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-code-reviewer-c1.md
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-security-reviewer-c1.md
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-ui-reviewer-c1.md
