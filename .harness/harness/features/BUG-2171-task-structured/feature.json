@@ -1,0 +1,43 @@
+{
+  "feature_id": "BUG-2171-task-structured",
+  "branch": "feat/BUG-2171-task-structured",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-08-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-08T16:07:29+00:00",
+      "tokens": 39734,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-01-patch-product/digest.md",
+        "sha256": "96789cc09ca2823b0b6a6f899f522f3b3c6ca86f61c2b2733349aee09a42e2fe"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-08T16:16:34+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-08T16:07:10+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause reproduced and known (OMP 18.10.2 task.structured default off, never set by Harness; revalidation strips hook-injected schema); diff bounded to .omp/config.yml, check-omp-port.py+test, one refusal line; DEC-174"
+    },
+    {
+      "at": "2026-11-08T16:16:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "intake PASS; lead yield appended digest.md via hook (no manual step); BRIEF (52 lines) and plan.yaml (T-01 main-session-direct, check 0 failures) pending on disk; advance to signature"
+    }
+  ],
+  "mission": "patch"
+}
