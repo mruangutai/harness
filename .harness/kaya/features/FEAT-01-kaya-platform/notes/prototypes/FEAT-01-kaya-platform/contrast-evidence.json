@@ -1,0 +1,123 @@
+[
+  {
+    "name": "01-light-empty",
+    "body": 18.59,
+    "mutedOnPage": 8.23,
+    "mutedOnSurface": 9.29,
+    "statusOnSurface": 9.29,
+    "transcript": null,
+    "textareaBorder": 4.54,
+    "link": null,
+    "error": null
+  },
+  {
+    "name": "02-light-pending",
+    "body": 18.59,
+    "mutedOnPage": 8.23,
+    "mutedOnSurface": 9.29,
+    "statusOnSurface": 9.29,
+    "transcript": 21,
+    "textareaBorder": 4.54,
+    "link": 9.42,
+    "error": null
+  },
+  {
+    "name": "03-light-saved",
+    "body": 18.59,
+    "mutedOnPage": 8.23,
+    "mutedOnSurface": 9.29,
+    "statusOnSurface": 10.73,
+    "transcript": 21,
+    "textareaBorder": 4.54,
+    "link": 9.42,
+    "error": null
+  },
+  {
+    "name": "04-dark-restored",
+    "body": 17.22,
+    "mutedOnPage": 6.43,
+    "mutedOnSurface": 5.65,
+    "statusOnSurface": 9.17,
+    "transcript": 15.13,
+    "textareaBorder": 5.65,
+    "link": 8.94,
+    "error": null
+  },
+  {
+    "name": "05-dark-database-error",
+    "body": 17.22,
+    "mutedOnPage": 6.43,
+    "mutedOnSurface": 5.65,
+    "statusOnSurface": 5.65,
+    "transcript": 15.13,
+    "textareaBorder": 5.65,
+    "link": 8.94,
+    "error": 7.63
+  },
+  {
+    "name": "06-dark-provider-error",
+    "body": 17.22,
+    "mutedOnPage": 6.43,
+    "mutedOnSurface": 5.65,
+    "statusOnSurface": 5.65,
+    "transcript": 15.13,
+    "textareaBorder": 5.65,
+    "link": 8.94,
+    "error": 7.63
+  },
+  {
+    "name": "07-dark-auth-error",
+    "body": 17.22,
+    "mutedOnPage": 6.43,
+    "mutedOnSurface": 5.65,
+    "statusOnSurface": 5.65,
+    "transcript": 15.13,
+    "textareaBorder": 5.65,
+    "link": 8.94,
+    "error": 7.63
+  },
+  {
+    "name": "08-dark-restore-error",
+    "body": 17.22,
+    "mutedOnPage": 6.43,
+    "mutedOnSurface": 5.65,
+    "statusOnSurface": 5.65,
+    "transcript": null,
+    "textareaBorder": 5.65,
+    "link": 8.94,
+    "error": 7.63
+  },
+  {
+    "name": "09-light-320",
+    "body": 18.59,
+    "mutedOnPage": 8.23,
+    "mutedOnSurface": 9.29,
+    "statusOnSurface": 10.73,
+    "transcript": 21,
+    "textareaBorder": 4.54,
+    "link": 9.42,
+    "error": null
+  },
+  {
+    "name": "10-light-320-200percent",
+    "body": 18.59,
+    "mutedOnPage": 8.23,
+    "mutedOnSurface": 9.29,
+    "statusOnSurface": 10.73,
+    "transcript": 21,
+    "textareaBorder": 4.54,
+    "link": 9.42,
+    "error": null
+  },
+  {
+    "name": "11-dark-320-200percent",
+    "body": 17.22,
+    "mutedOnPage": 6.43,
+    "mutedOnSurface": 5.65,
+    "statusOnSurface": 9.17,
+    "transcript": 15.13,
+    "textareaBorder": 5.65,
+    "link": 8.94,
+    "error": null
+  }
+]

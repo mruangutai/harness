@@ -1,0 +1,358 @@
+{
+  "feature_id": "FEAT-01-kaya-platform",
+  "branch": "feat/FEAT-01-kaya-platform",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261004-1",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T01:40:21+00:00",
+      "ended_at": "2026-10-05T01:41:27+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-04-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T01:41:31+00:00",
+      "ended_at": "2026-10-05T01:45:19+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T02:18:23+00:00",
+      "tokens": 78002,
+      "ended_at": "2026-10-05T04:55:00+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-2-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-05T04:58:58+00:00",
+      "tokens": 44838,
+      "ended_at": "2026-10-05T05:57:58+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a",
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T14:29:09+00:00",
+        "authorization": {
+          "path": "notes/research-fleet-planning-recovery-authorization.md",
+          "sha256": "a6ec5e0986310e1025ea2dcedfb4b7ec65205b27e72a3bac31adbe6fad3d0df2"
+        },
+        "path": "runs/2026-10-05-2-plan-product/digest.md",
+        "sha256": "94d6f194c2159f19f1b2f4c50b6617043f26c22ff029b0fe040f6a85f98ba40f"
+      }
+    },
+    {
+      "id": "2026-10-05-3-simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-05T05:58:18+00:00",
+      "tokens": 99568,
+      "ended_at": "2026-10-05T06:32:16+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a",
+      "refusal": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T14:29:01+00:00",
+        "authorization": {
+          "path": "notes/research-fleet-planning-recovery-authorization.md",
+          "sha256": "a6ec5e0986310e1025ea2dcedfb4b7ec65205b27e72a3bac31adbe6fad3d0df2"
+        },
+        "digest": {
+          "path": "runs/2026-10-05-3-simplify-eng/digest.md",
+          "sha256": "d0e28f4d9a801e073c2835ec80d692ddd4b469d84eb52a90563e8703804910de"
+        },
+        "run_id": "2026-10-05-3-simplify-eng",
+        "reason": "Ledger BLOCKED refused lead return: prose-only digest without the required structured mapping (DEC-156); bytes, verdict and count preserved (#2174)."
+      }
+    },
+    {
+      "id": "2026-10-05-4-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T06:13:19+00:00",
+      "tokens": 45110,
+      "ended_at": "2026-10-05T06:17:31+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-5-simplify-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T06:17:32+00:00",
+      "tokens": 50842,
+      "ended_at": "2026-10-05T06:30:30+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-6-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-05T12:54:49+00:00",
+      "tokens": 133071,
+      "ended_at": "2026-10-05T14:29:59+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a",
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T14:29:11+00:00",
+        "authorization": {
+          "path": "notes/research-fleet-planning-recovery-authorization.md",
+          "sha256": "a6ec5e0986310e1025ea2dcedfb4b7ec65205b27e72a3bac31adbe6fad3d0df2"
+        },
+        "path": "runs/2026-10-05-6-plan-product/digest.md",
+        "sha256": "b8792f929c02fa39ce33dacd49910b74f18f57fd2f06615caf7e36bad269ae22"
+      }
+    },
+    {
+      "id": "2026-10-05-7-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T14:30:09+00:00",
+      "tokens": 88106,
+      "ended_at": "2026-10-05T14:43:01+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-10-05-8-simplify-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-05T14:43:03+00:00",
+      "tokens": 45195,
+      "ended_at": "2026-10-05T14:52:54+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-05T01:40:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "This creates a new application, server interface, and operational persistence integration; it is not a bounded known-cause patch."
+    },
+    {
+      "at": "2026-10-05T01:41:29+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "r-20261004-1 opened under an id outside the product lead's runs/*-product/** grant; closed BLOCKED at zero cycles before any dispatch, reopened as 2026-10-04-1-product"
+    },
+    {
+      "at": "2026-10-05T01:45:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "check-domain reads repository binding at owner root (.harness/.inflight-claims.json empty) while dispatch-guard claims land in the feature worktree registry; every Write to .harness/kaya/** is refused 'missing', so no plan run can land"
+    },
+    {
+      "at": "2026-10-05T02:46:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan run 2026-10-05-1-plan-product BLOCKED and unclosable: no product --root for plan-merge check, greenfield anchors, apps/web routes NOBODY, lead digest binding refused (claim cwd owner vs feature root)"
+    },
+    {
+      "at": "2026-10-05T05:36:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "plan run 2 BLOCKED only by owner-checkout harness_yaml.py drift (create anchors); owner fast-forwarded to e8d868f7, parsers identical, digest validates; resume same lead to seal scope receipt, apply, goalcheck"
+    },
+    {
+      "at": "2026-10-05T05:58:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance-applied",
+      "reason": "team FAIL is validate-digest worst-member roll-up of design reader med substance finding already applied by pm in-run (record-panel PF-86e4a4c3); plan complete pending signature; no rework routed"
+    },
+    {
+      "at": "2026-10-05T05:58:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "simplify pass, flag-only; no fix cycle",
+      "reason": "pre-signature harness-simplify four-angle read-only pass over plan draft; prior FAIL was validator worst-member roll-up of an applied med design finding, no rework owed"
+    },
+    {
+      "at": "2026-10-05T06:13:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "eng-lead typed return refused: digest_destination.LEAD_SQUADS binds harness-eng-lead to squad 'engineering' while team-config declares 'eng'; prose digest and 4 receipts landed; reopen with squad engineering to seal"
+    },
+    {
+      "at": "2026-10-05T12:54:49+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "operator review (notes/answers-thin-chat-review-2026-10-05.md) directs one consolidated plan revision adding a thin browser chat surface; plan phase re-enters as successor to handoff seq-7 at 0/10 cycles"
+    },
+    {
+      "at": "2026-10-05T14:30:01+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance-applied",
+      "reason": "team FAIL is worst-member roll-up of scope high and design high/med/low substance findings all applied in-run (panel c2 resolved); one designer send-back is the reported rework cycle; plan revision complete pending signature"
+    },
+    {
+      "at": "2026-10-05T14:30:09+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "simplify pass, flag-only; no fix cycle",
+      "reason": "pre-signature harness-simplify four-angle read-only pass over the c2 revised plan; prior FAIL was worst-member roll-up of substance findings already applied in-run, no rework owed"
+    },
+    {
+      "at": "2026-10-05T14:52:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "SPEND advisory 4.02x plan_phase_warn_minutes weighed; revision c2 complete at the signature seam (check exit 0, panel c2, goalcheck, simplify applied); plan phase stops here pending operator review, no further dispatch"
+    },
+    {
+      "at": "2026-10-05T23:27:17+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "Approval recorded; stop before build: gh-sync routed factory.repo Kaya to Harness. Misplaced 2116-2126/milestone100 closed; github receipt is invalid for Kaya. Fleet mirror recovery required; no source implementation authorized."
+    }
+  ],
+  "factory": {
+    "repo": "mruangutai/kaya"
+  },
+  "mission": "plan",
+  "rework": {
+    "rounds": 4,
+    "wall_clock_minutes": 180,
+    "decision": ".harness/kaya/features/FEAT-01-kaya-platform/notes/approval-2026-10-05.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "8eed62d13d7c6cc9f12aa69d177df74db7d34b7c6f4bbbbd601115cf71054371",
+    "T-02": "d90abbaa54f4ced40c33851823518f0a9062721599befc36a503ee275420c217",
+    "T-03": "29def192c569287455d0ef6425ee373ad5d9d916a8f056eb9f466a631f81fb95",
+    "T-04": "4ede5014128a8b9081e5233130b3d0a4edb35c92348b1d3d126437b18d435db8",
+    "T-05": "2211f92d735762f824fe222ab21c07831b01c6d949d8d3722acba7486438d582",
+    "T-06": "673512cf12c2394ccb3128420e02a43e7280e84771fd6e3f96c2fb6fb881764d",
+    "T-07": "28bef43293da96ec4b336175351c4e2e32b21a5339d89ecf8f24f93004324a58",
+    "T-08": "a1ca07dbbe5589a98101412fcb752e7783a8a534384a4791155b7bd4c386096d",
+    "T-09": "ab0f28b6a4d266bc33319b78603b907ec8a2a1fb067c4f10443d7a7aa232090b",
+    "T-10": "51356a2962d61f8e3431621aab67300167d3041ba96fa2297c588af8250dde46"
+  },
+  "github": {
+    "milestone": 1,
+    "parent": 16,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 17,
+      "T-02": 18,
+      "T-03": 19,
+      "T-04": 20,
+      "T-05": 21,
+      "T-06": 22,
+      "T-07": 23,
+      "T-08": 24,
+      "T-09": 25,
+      "T-10": 26
+    },
+    "source_issues": [
+      14
+    ],
+    "build_entry": "opened",
+    "repo": "mruangutai/kaya",
+    "history": [
+      {
+        "recovery_id": "25a09cc3-8755-460b-8658-71730b3a6162",
+        "at": "2026-11-07T14:29:44.614155+00:00",
+        "repo": "mruangutai/harness",
+        "reason": "Approval transaction mirrored into mruangutai/harness (milestone 100, parent 2116, tasks 2117-2126, all closed not_planned; Harness #14 unrelated and untouched). No implementation started: full replacement in mruangutai/kaya from the unchanged signed plan, projecting signed source #14 (#2172).",
+        "evidence": {
+          "path": "notes/research-fleet-planning-recovery-authorization.md",
+          "sha256": "a6ec5e0986310e1025ea2dcedfb4b7ec65205b27e72a3bac31adbe6fad3d0df2"
+        },
+        "previous": {
+          "milestone": 100,
+          "parent": 2116,
+          "attached": [
+            "T-01",
+            "T-02",
+            "T-03",
+            "T-04",
+            "T-05",
+            "T-06",
+            "T-07",
+            "T-08",
+            "T-09",
+            "T-10"
+          ],
+          "issues": {
+            "T-01": 2117,
+            "T-02": 2118,
+            "T-03": 2119,
+            "T-04": 2120,
+            "T-05": 2121,
+            "T-06": 2122,
+            "T-07": 2123,
+            "T-08": 2124,
+            "T-09": 2125,
+            "T-10": 2126
+          },
+          "source_issues": [
+            14
+          ],
+          "build_entry": "opened"
+        }
+      }
+    ],
+    "recovery": {
+      "id": "25a09cc3-8755-460b-8658-71730b3a6162",
+      "from_repo": "mruangutai/harness",
+      "to_repo": "mruangutai/kaya",
+      "mode": "full",
+      "state": "complete",
+      "plan_sha256": "1c5d6bfbace6034faebb291fa18b63a42446831b86715258f8722ae32c5fb462",
+      "started_at": "2026-11-07T14:29:44.614155+00:00",
+      "completed_at": "2026-11-07T14:34:53.529534+00:00"
+    }
+  }
+}

@@ -1,0 +1,928 @@
+schema: plan/1
+feature: FEAT-01-kaya-platform
+approval:
+  date: '2026-10-05'
+  approved_by: operator
+  status: approved
+status: ready
+source_issues: [14]
+panel:
+  last_run: 2026-10-05-6-plan-product
+  cycle: 2
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: 'status skipped: fable-advisor unavailable per orchestrator dispatch; no
+      substitute reader.'
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-86e4a4c3bab8d58a49ab058413901982
+    severity: med
+    reader: ui-reviewer
+    kind: substance
+    summary: Static landing lacks checkable semantic, theme and overflow acceptance.
+    disposition: resolved
+    resolved_by: T-07
+  - id: PF-9934351e32ee60d9e3c0fbc5691f142b
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-06/T-07 saved confirmation can accept an older assistant reply.
+    disposition: resolved
+    resolved_by: T-06
+  - id: PF-2595c9a86abd127b3ad08e0c54dbd140
+    severity: med
+    reader: ui-reviewer
+    kind: substance
+    summary: Saved confirmation can accept a prior assistant instead of the current turn.
+    disposition: resolved
+    resolved_by: T-07
+  - id: PF-6f3435775972d6734b52015b463d7b0f
+    severity: high
+    reader: ui-reviewer
+    kind: substance
+    summary: Recovery-action focus transitions are unspecified; prototype unmounts the triggering button.
+    disposition: resolved
+    resolved_by: T-07
+  - id: PF-1481f3904d365641cbe3c92f05a14db1
+    severity: low
+    reader: ui-reviewer
+    kind: substance
+    summary: Captured error evidence lacks light-theme and 320px/200% error recovery states.
+    disposition: resolved
+    resolved_by: T-02
+lanes:
+  resolved_at: e8d868f78a6ec43880598af5c5873f5daa8ba985
+  rows:
+  - surface: apps/web/src/server/**
+    lane: team
+    agent: harness-backend-dev
+  - surface: apps/web/src/mastra/**
+    lane: team
+    agent: harness-backend-dev
+  - surface: apps/web/src/app/api/**
+    lane: team
+    agent: harness-backend-dev
+  - surface: apps/web/src/**/*.test.*
+    lane: team
+    agent: harness-qa
+  - surface: apps/web/src/**/__tests__/*.test.ts
+    lane: team
+    agent: harness-qa
+  - surface: supabase/migrations/**
+    lane: team
+    agent: harness-data-engineer
+  - surface: docs/**
+    lane: team
+    agent: harness-documentor
+  - surface: README.md
+    lane: team
+    agent: harness-documentor
+  - surface: package.json
+    lane: main-session-direct
+    reason: Shared root manifest requires serialized main-session ownership.
+  - surface: pnpm-workspace.yaml
+    lane: main-session-direct
+    reason: Workspace configuration is serialized with the shared root manifest.
+  - surface: pnpm-lock.yaml
+    lane: main-session-direct
+    reason: Shared single workspace lockfile requires serialized main-session ownership.
+  - surface: tsconfig.base.json
+    lane: main-session-direct
+    reason: Shared strictness configuration is serialized with workspace setup.
+  - surface: apps/web/package.json
+    lane: main-session-direct
+    reason: Application manifest is ungranted.
+  - surface: apps/web/tsconfig.json
+    lane: main-session-direct
+    reason: Application TypeScript configuration is ungranted.
+  - surface: apps/web/next.config.ts
+    lane: main-session-direct
+    reason: Application Next configuration is ungranted.
+  - surface: apps/web/next-env.d.ts
+    lane: main-session-direct
+    reason: Application environment type configuration is serialized with workspace setup.
+  - surface: eslint.config.mjs
+    lane: main-session-direct
+    reason: Root lint configuration requires serialized main-session ownership.
+  - surface: apps/web/vitest.config.ts
+    lane: main-session-direct
+    reason: Application runner configuration is serialized with workspace setup.
+  - surface: .node-version
+    lane: main-session-direct
+    reason: Root runtime pin requires serialized main-session ownership.
+  - surface: .npmrc
+    lane: main-session-direct
+    reason: Root package-manager configuration requires serialized main-session ownership.
+  - surface: .env.example
+    lane: main-session-direct
+    reason: Root environment example is ungranted.
+  - surface: .gitignore
+    lane: main-session-direct
+    reason: Root generated/private-file exclusions are serialized with workspace setup.
+  - surface: .harness/harness.json
+    lane: main-session-direct
+    reason: Product runner cutover is ungranted and explicitly main-session-direct after all implementation tasks.
+  - surface: apps/web/src/app/*.tsx
+    lane: team
+    agent: harness-frontend-dev
+  - surface: apps/web/src/app/*.css
+    lane: team
+    agent: harness-frontend-dev
+  - surface: apps/web/src/features/chat/**
+    lane: team
+    agent: harness-frontend-dev
+  - surface: tests/e2e/chat.e2e.spec.ts
+    lane: team
+    agent: harness-qa
+  - surface: tests/e2e/platform-live.ts
+    lane: team
+    agent: harness-backend-dev
+  - surface: tests/e2e/platform.e2e.spec.ts
+    lane: team
+    agent: harness-backend-dev
+  - surface: playwright.config.ts
+    lane: main-session-direct
+    reason: Ungrantable shared root browser runner configuration serialized with T-01.
+decisions:
+  - id: D-01
+    choice: Keep Mastra memory in schema mastra and use direct-5432 when reachable or the same Kaya project session-5432 pooler for IPv4-only local networks; no transaction-6543 mode or silent fallback.
+    because: SQL isolation and persistent connection semantics must be explicit without settling production pooling or financial storage contracts.
+    dec: none
+  - id: D-02
+    choice: Use localhost-only same-origin browser routes with a server-bootstrapped signed HttpOnly SameSite=Strict cookie
+      and exact Host/Origin/Fetch-Metadata guards; keep KAYA_API_STUB_TOKEN server-only and CLI bearer supplementary, fixed
+      resource kaya-local-platform.
+    because: The browser must send and restore a real conversation without receiving the privileged token. Loopback binding
+      plus same-origin checks grants the trusted local operator access only, not account identity or production authorization;
+      signed expiry survives restart without model involvement.
+    dec: none
+tasks:
+  - id: T-01
+    title: Materialize pinned workspace and browser verification tooling
+    traces:
+    - SC-01
+    - SC-05
+    - SC-06
+    - SC-08
+    - SC-09
+    - SC-10
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: Shared workspace manifests and ungranted root and apps/web configuration require one serialized main-session owner.
+    depends_on: []
+    status: ready
+    files:
+    - path: package.json
+      create: true
+    - path: pnpm-workspace.yaml
+      create: true
+    - path: pnpm-lock.yaml
+      create: true
+    - path: tsconfig.base.json
+      create: true
+    - path: apps/web/package.json
+      create: true
+    - path: apps/web/tsconfig.json
+      create: true
+    - path: apps/web/next.config.ts
+      create: true
+    - path: apps/web/next-env.d.ts
+      create: true
+    - path: eslint.config.mjs
+      create: true
+    - path: apps/web/vitest.config.ts
+      create: true
+    - path: playwright.config.ts
+      create: true
+    - path: .node-version
+      create: true
+    - path: .npmrc
+      create: true
+    - path: .env.example
+      create: true
+    - .gitignore
+    verify: 'pnpm exec eslint --version && pnpm --filter @kaya/web exec tsc --version && pnpm --filter @kaya/web exec vitest
+      --version && pnpm --filter @kaya/web exec next --version && pnpm exec playwright --version
+
+      '
+    intent: 'Main session only; own all listed shared/ungranted configuration, serialized
+      before dependents. Follow docs/ARCHITECTURE.md Source organization and docs/DECISIONS.md
+      DEC-002/010/011/012/013. Create private pnpm workspace apps/* and packages/*,
+      one lockfile, private @kaya/web, strict shared tsconfig and app-local @/* alias
+      only to apps/web/src. No empty packages, Turbo/Nx or copied configuration. dev/start
+      bind only 127.0.0.1:3000; Next project root apps/web. Root ignored .env.local
+      is loaded server-side using @next/env with explicit workspace-root location, never
+      exported by next.config or NEXT_PUBLIC. .env.example contains exactly five empty
+      approved names ANTHROPIC_API_KEY, SUPABASE_PROJECT_URL, SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_DB_URL, KAYA_API_STUB_TOKEN. Do not inspect secret values. Ignore env
+      files, dependency/build/test output and browser reports.
+
+      Use exact researched candidates Node 24.21.0, pnpm 11.2.2, next/@next/env 16.3.8,
+      react/react-dom 19.3.0, @astryxdesign/core and @astryxdesign/theme-neutral 0.6.5,
+      @stylexjs/stylex 0.19.0, ai 6.0.116, @ai-sdk/react 3.0.118, @mastra/ai-sdk 1.10.6,
+      @mastra/core 1.74.0, @mastra/memory 1.35.0, @mastra/pg 1.29.0, @ai-sdk/anthropic
+      3.0.103, @supabase/supabase-js 2.117.2, pg 8.23.1 and @playwright/test 1.63.0.
+      Before installing verify exact-release metadata and published types, pin compatible
+      exact TypeScript/Zod/server-only/ESLint/Vitest/DOM/render/testing-library/tsx/type
+      packages, packageManager and engine-strict. Astryx uses prebuilt reset/astryx/theme
+      CSS and Theme neutralTheme; no Babel/PostCSS StyleX plugin needed, no AI Elements
+      or alternate agent backend. Research is not installed compatibility; capture actual
+      pins and receipts for T-10. Unsupported installed provider/model/API is a blocker,
+      not permission to substitute the accepted stack.
+
+      Root scripts typecheck, lint, test:unit, test:functional, test:integration, test:component,
+      test:ui, test (four Vitest suites plus browser suite), build, dev/start and verify:platform
+      forward to actual tools. Vitest node unit selects non-JSX colocated *.test.ts
+      excluding __tests__; DOM component selects *.test.tsx; functional/integration
+      select subsystem __tests__/*.functional.test.ts and *.integration.test.ts mutually
+      exclusively. server-only resolution bypass is test-only. Each suite fails on zero
+      selection and assertions. Playwright config is root-owned, testDir tests/e2e,
+      testMatch **/*.e2e.spec.ts, retries 0, workers 1, Chromium, explicit finite local
+      expect and per-test timeout bounds selected from actual local fixture/startup
+      behavior and recorded with elapsed receipts, actual Next webServer on isolated
+      127.0.0.1 port (e.g. 3100), reuseExistingServer false, bounded startup, synthetic
+      token and explicitly empty hosted/provider env so dotenv cannot refill. Browser
+      install is explicit pnpm exec playwright install chromium, never silently assume
+      binaries. No probe .ts classified as UI. T-02 chat.e2e.spec.ts intercepts only
+      external HTTP boundary for deterministic real browser/AI SDK contract; T-08 platform.e2e.spec.ts
+      does not intercept application responses.
+
+      Root smoke:offline/live/readback/supabase and schema:apply call T-08 tests/e2e/platform-live.ts
+      via node --conditions=react-server --import tsx and exact mode; declare actual
+      CLI root imports including loader, ai and pg at identical exact application versions.
+      verify:platform chains four Vitest suites, Playwright, typecheck, lint, Next build
+      and smoke:offline only at T-09. No runner tests just checking script strings.
+      This task gate checks installed tools only, without requiring absent app/test/CLI
+      successors. Record exact APIs handleChatStream version v6 + createUIMessageStreamResponse,
+      DefaultChatTransport/useChat with installed DefaultChatTransport request-preparation
+      and credentials option names/types verified and recorded for newest-user-only
+      plus threadId and same-origin credentials, and convertMessages(...).to(''AIV6.UI'');
+      do not use removed toAISdkFormat or parallel streamText backend.
+
+      '
+  - id: T-02
+    title: Deliver browser and server behavioral red tests first
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-05
+    - SC-06
+    - SC-07
+    - SC-08
+    - SC-10
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-qa
+    depends_on: [T-01]
+    status: ready
+    files:
+    - path: apps/web/src/server/env.test.ts
+      create: true
+    - path: apps/web/src/server/auth/platform-token.test.ts
+      create: true
+    - path: apps/web/src/server/auth/local-session.test.ts
+      create: true
+    - path: apps/web/src/server/services/platform/request.test.ts
+      create: true
+    - path: apps/web/src/server/db/supabase.test.ts
+      create: true
+    - path: apps/web/src/server/db/schema.test.ts
+      create: true
+    - path: apps/web/src/mastra/storage.test.ts
+      create: true
+    - path: apps/web/src/mastra/readback.test.ts
+      create: true
+    - path: apps/web/src/mastra/agents/platform-agent.test.ts
+      create: true
+    - path: apps/web/src/app/layout.test.ts
+      create: true
+    - path: apps/web/src/app/page.test.tsx
+      create: true
+    - path: apps/web/src/features/chat/chat-panel.test.tsx
+      create: true
+    - path: apps/web/src/features/chat/thread-url.test.ts
+      create: true
+    - path: apps/web/src/app/api/platform/__tests__/route.functional.test.ts
+      create: true
+    - path: apps/web/src/mastra/__tests__/platform.integration.test.ts
+      create: true
+    - path: tests/e2e/chat.e2e.spec.ts
+      create: true
+    - path: apps/web/src/features/chat/saved-exchange.test.ts
+      create: true
+    verify: "MANUAL \u2014 Preserve runnable assertion-level red receipts before releasing production tasks; intentional red\
+      \ delivery is not a green gate. Missing tools/import-collection errors are not behavioral red evidence.\n"
+    intent: 'QA owns every listed test; production owners never weaken these assertions.
+      Run real T-01 runners before T-03 through T-07 edits, provide red receipt per
+      required behavior. Behavior-selective red runs are permitted only with an assertion-level
+      red receipt for EVERY required behavior, including every independent rejection
+      and rendered matrix observable; finite local expect/test bounds apply. Do not
+      substitute max-failures for complete receipts. Full green task and terminal gates
+      remain unchanged. Safely loading absent subjects may produce explicit failed behavior
+      assertions, not generic import/collection errors; once subjects exist assertions
+      exercise actual subjects without fake-success fallback. Author browser assertions
+      now. Because a nonexistent Next shell cannot yield behavioral browser red, T-02
+      supplies component behavior red for T-07 release; T-07 first adds only framework-required
+      real layout/page mounting, runs the already-authored browser suite to capture
+      missing-control/state assertion red, and only then implements chat behavior. Startup/compile
+      failures do not count. No QA-only application harness or production stubs are
+      authorized. Use outer provider/database/HTTP fixtures only where named; no mock
+      useChat or handwritten substitute message-state implementation. Demonstrate each
+      runner nonzero assertion failure and zero selection, retain receipts outside source.
+      T-07 targeted suites select its tests independently of unfinished server code.
+
+
+      Cover env operation-specific loading, every name/invalid URL/token independently
+      and redacted diagnostics. Auth tests cover CLI malformed/wrong/missing bearer;
+      timing-safe comparisons; cookie nonce/expiry/signature/tampering/rotation; Host/Origin/Fetch-Metadata
+      cross-origin/same-site/remote spoof denial including forwarded-host tricks; same-origin
+      bootstrap and no secret in response; rejection before provider/DB creation. Request
+      tests cover exact single latest user UIMessage text parts, UUID and message ID,
+      1..2000 text, unknown keys/caller resource rejected; GET UUID only. Supabase tests
+      check real client settings and operation error classification. SQL tests inspect
+      every T-04 schema/table/sequence/default privilege revocation separately, no financial
+      DDL; missing SQL is a failed assertion, not import failure.
+
+
+      Storage tests prove one process/HMR-safe pool/store, schema mastra, bounded pool/timeouts,
+      verified TLS, initialization/failure/shutdown ownership. Agent tests prove actual
+      Mastra Memory + selected Anthropic composition, fixed resource/thread, persistence
+      of user/assistant, output/time/retry limits and empty output error with outer
+      I/O controlled. Readback tests use actual Memory recall/converter composition,
+      thread ownership, all ordered typed UI parts and IDs, no duplicate replay, no
+      provider instantiation/call/config requirement, absent/mismatch 404. Layout/page
+      tests enforce English/main/one descriptive h1, real chat controls and no secrets/server
+      imports. saved-exchange.test.ts directly exercises T-07 compareSavedExchange with
+      native UIMessages and independent expected facts for every rejection enumerated
+      below, positive completed U2/A2 and non-text safe-projection consistency; prove
+      metadata sanitization does not hide typed-part identity/state/content/order mismatches.
+      Chat-panel/thread-url tests cover new UUID URL before send, existing thread restoration,
+      no silent new thread after 404, pending/disable/single send, Enter vs Shift+Enter/IME,
+      focus, announced error/restore, safe plain-text rendering and SDK setMessages
+      restoration.
+
+
+      Functional tests call actual session and platform Next handlers, assert bootstrap/session
+      guards, CLI bearer compatibility, input 400, auth 401/cross-origin 403, absent/mismatch
+      404, pre-stream provider 502/storage/config 503 and sanitized stream error after
+      headers. Integration replaces only outer provider/database I/O, exercises actual
+      route/Mastra/memory/adapter conversion; stream header x-vercel-ai-ui-message-stream:v1,
+      v6 UI parser, streamed user+assistant persistence, readback no model with provider
+      key absent. Saved success requires the corresponding current user ID and CURRENT
+      completed native SDK assistant ID, assistant following that user in the current
+      turn, and completed ordered persisted parts matching the streamed result; HTTP200,
+      finish alone and any nonempty assistant are insufficient. Include independent
+      assertions for U1/A1/U2 readback missing A2 after A2 streamed, old assistant only,
+      new-user-only, missing current user, missing/unfinished assistant, partial parts,
+      mismatched assistant or user ID, incorrect user/assistant order and mismatched
+      part content/order. Each rejects saved success, preserves visible streamed A2
+      and submitted draft, and never replaces SDK messages with stale readback. Include
+      a positive matching completed U2/A2 readback and GET-only recovery applying the
+      identical predicate. An interrupted/errored stream cannot become a confirmed completed
+      turn from an older exchange.
+
+
+      chat.e2e.spec.ts drives actual Next page with actual useChat/DefaultChatTransport
+      and Astryx, intercepts session/send/readback HTTP only. Supply specification-valid
+      v6 SSE fixtures including start with native assistant message ID, text-start/text-delta/text-end/finish/[DONE]
+      and separate saved UIMessage readback. Assert visible user/reply, pending, current-turn
+      post-finish persistence confirmation, all rejection scenarios above, reload same
+      URL restored IDs/parts, zero POST generation during restore/check, bootstrap retry,
+      denied/bootstrap/provider/storage/network/stream/readback errors and no fabricated
+      replies. Label fixtures offline contract evidence, never real Anthropic/hosted
+      restart proof.
+
+
+      Keyboard recovery tests activate Check saved messages, Retry restoration and Renew
+      local access using Enter. The same focusable recovery button and error panel stay
+      mounted while busy, aria-disabled reflects busy and the handler guards repeat
+      activation; no native disabled or removed focused node. Failure retains a reachable
+      focused recovery action. Success transfers to composer before removal only if
+      focus is still on recovery; if moved to a link/another region, completion does
+      not steal focus. Page-load restore never autofocuses. Renew may bootstrap then
+      continue GET-only check/restore, never replay POST generation; assert request
+      counts. Check failure preserves incomplete reply/draft and does not announce saved.
+
+
+      Assert accessible labels/main/coarse live status/visible focus and usable error
+      panels plus recovery controls in BOTH light/dark themes at 320 CSS pixels and
+      200 percent text enlargement, individually and combined. Cover provider, database/readback,
+      authorization renewal and network errors plus restoration failure; inspect before
+      activation, busy, failed recovery and successful recovery. Assert no document
+      horizontal overflow, visible safe error/action text, controls reachable by vertical
+      scrolling and keyboard focus continuity in each theme/size case. These are rendered
+      browser assertions, not mere CSS/attribute presence or restored-only screenshots.
+      Actual contrast, real browser zoom/screen-reader timing and live send/restart
+      remain future product review/UAT. No successor green required at red delivery.
+
+      '
+  - id: T-03
+    title: Enforce private settings local sessions and UI request contracts
+    traces:
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-07
+    - SC-10
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    status: ready
+    files:
+    - path: apps/web/src/server/env.ts
+      create: true
+    - path: apps/web/src/server/auth/platform-token.ts
+      create: true
+    - path: apps/web/src/server/auth/local-session.ts
+      create: true
+    - path: apps/web/src/server/services/platform/request.ts
+      create: true
+    - path: apps/web/src/server/db/supabase.ts
+      create: true
+    verify: 'pnpm --filter @kaya/web exec vitest run --project unit src/server/env.test.ts src/server/auth/platform-token.test.ts
+      src/server/auth/local-session.test.ts src/server/services/platform/request.test.ts src/server/db/supabase.test.ts
+
+      '
+    intent: 'Work only in assigned Kaya CODE worktree. Obtain assertion-level T-02 red
+      receipts before production edits; do not edit QA-owned tests or predecessor-owned
+      configuration. Independent expected literals remain independent of implementation
+      constants. All files have server-only guards and named exports. services/db/auth
+      never import mastra. Load five approved settings privately from root .env.local
+      per operation: local auth needs only token; readback DB but no Anthropic key;
+      send needs provider; denial happens before hosted validation/client creation.
+      Validate HTTPS project URL and same-project direct/session 5432 with explicit
+      project identity, reject transaction6543/mismatch/ambiguity. Diagnostics only
+      setting names and fixed classifications, no values/raw SDK errors.
+
+      Implement D-02 in local-session.ts: export authorizePlatformRequest as the sole
+      request-authorization entry, accepting the request and operation (bootstrap, send
+      or readback), returning allow or classified denial. It owns cookie/bearer/Host/Origin/Fetch-Metadata
+      precedence and uses platform-token.ts credential verification; both route handlers
+      consume this export, without a wrapper module. Preserve every denial-order assertion
+      and authorization before external calls. canonical loopback HTTP 127.0.0.1 and
+      actual listener port, never trust forwarded host. Browser bootstrap POST requires
+      exact Host + matching Origin, Sec-Fetch-Site same-origin, JSON and destination
+      empty; reject missing/remote/cross-origin metadata 403 before external calls.
+      Sign random nonce plus issued/expiry with HMAC-SHA256 server KAYA_API_STUB_TOKEN;
+      timing-safe verify, expiry eight hours. Cookie kaya-local-session HttpOnly SameSite
+      Strict Path /api/platform, no Domain, Max-Age 28800, Secure false solely for loopback
+      HTTP; never raw token or cookie value in JSON. HMAC survives restart with same
+      token; rotation invalidates. This grants local operator access, not account authorization.
+      Browser GET/POST require cookie and same-origin Fetch-Metadata; POST exact Origin,
+      GET validate Origin if present. CLI bearer accepted only with exact loopback Host
+      and no browser Origin/Fetch-Metadata; browser headers cannot bypass guards via
+      bearer. Deny bad credential 401, guard failure403, unavailable auth setting503.
+      Cookie bootstrap only reads token.
+
+      request.ts owns named PLATFORM_RESOURCE_ID literal kaya-local-platform. POST allowlist
+      threadId UUID and messages containing exactly newest user UIMessage with stable
+      ID, text-only parts, combined text length1..2000; reject client memory/resource/agent/provider
+      overrides, unknown fields and malformed JSON400. GET only required UUID. Never
+      trust UUID as authorization. supabase.ts owns reused privileged admin client with
+      persistence/URL-session/token refresh off and safe real connectivity operation
+      checking errors; no financial/user creation. Targeted predecessor unit gate only.
+
+      '
+  - id: T-04
+    title: Define non-public Mastra schema ownership and grants
+    traces: [SC-03, SC-04, SC-07, SC-09]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-data-engineer
+    depends_on: [T-02]
+    status: ready
+    files:
+      - {path: supabase/migrations/202610050001_platform_mastra.sql, create: true}
+    verify: |
+      pnpm --filter @kaya/web exec vitest run --project unit src/server/db/schema.test.ts
+    intent: |
+      Work only in assigned Kaya CODE worktree. Use T-02 SQL security assertions before editing. Create only operational SQL for schema mastra, never public application or financial tables. The approved Kaya database principal is the schema owner and adapter table creator; execute under that same principal so ALTER DEFAULT PRIVILEGES applies to future adapter objects. Idempotently create the schema; revoke schema access from PUBLIC, anon and authenticated; revoke those roles' privileges on all existing tables and sequences; set owner default table and sequence privileges in mastra to revoke these roles. Preserve unrelated schemas/roles/grants. Let exact @mastra/pg own its operational table DDL instead of copying guessed adapter table definitions. State in SQL comments that grants do not configure Supabase Data API exposed schemas and that the separate operator probe must verify non-exposure. This task does not execute hosted SQL during its local gate. T-08 supplies explicit project-confirmed schema application and actual catalog/Data API probes after the application exists; the targeted predecessor SQL test is the only task-local verify and does not claim live security proof.
+  - id: T-05
+    title: Compose Mastra streaming memory and model-free readback
+    traces:
+    - SC-02
+    - SC-03
+    - SC-05
+    - SC-07
+    - SC-10
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03, T-04]
+    status: ready
+    files:
+    - path: apps/web/src/mastra/index.ts
+      create: true
+    - path: apps/web/src/mastra/storage.ts
+      create: true
+    - path: apps/web/src/mastra/agents/platform-agent.ts
+      create: true
+    - path: apps/web/src/mastra/readback.ts
+      create: true
+    verify: 'pnpm --filter @kaya/web exec vitest run --project unit src/mastra/storage.test.ts src/mastra/agents/platform-agent.test.ts
+      src/mastra/readback.test.ts
+
+      '
+    intent: 'Work only in assigned Kaya CODE worktree. Obtain assertion-level T-02 red
+      receipts before production edits; do not edit QA-owned tests or predecessor-owned
+      configuration. Independent expected literals remain independent of implementation
+      constants. index.ts is the sole Mastra composition home with lazy send initialization.
+      storage.ts owns one pg Pool/PostgresStore in a narrowly named HMR-safe process
+      global cache, schemaName mastra, max2, connectionTimeoutMillis5000, idleTimeoutMillis10000
+      and certificate verification; init once and surface errors. Do not close request-shared
+      resources; expose shutdown for owning process/probe only. D-01 explicit direct/session5432,
+      no automatic endpoint fallback. Honor exact installed PostgresStore external-pool
+      ownership/disableInit/init semantics; schema bootstrap is not a general migration
+      framework.
+
+      platform-agent.ts owns named identifiers anthropic and claude-sonnet-5-5 and one
+      tool-free real Mastra Agent, not parallel AI SDK agent calls. Use real Memory
+      and shared @mastra/pg store; retain user/assistant history scoped to T-03 PLATFORM_RESOURCE_ID
+      and UUID. Disable semantic/vector recall, model-backed working memory and automatic
+      title generation; restore must not require a model. Harmless instruction, maximum
+      output1024 tokens, total send budget30000ms, zero automatic retries. 1024 leaves
+      room for researched Sonnet5.5 adaptive-thinking behavior; actual model support
+      remains unexercised and incompatibility stops execution, no substitute/fallback.
+      Expose selected identifiers for consumers, test literals stay independent.
+
+      readback.ts uses DB-only Memory, verifies getThreadById resource ownership before
+      recall, perPage:false for complete ordered exchange, and convertMessages from
+      @mastra/core/agent .to(''AIV6.UI'') to preserve IDs/typed parts. Return only safe
+      user/assistant messages and thread UUID, sanitize metadata and unsafe payload
+      fields without dropping required typed parts or changing message/part identity
+      or order. Define the safe native-UIMessage comparison domain as all completed
+      ordered typed parts with type, identity, state and safe content preserved; remove
+      only non-comparison metadata/unsafe payload fields consistently from stream and
+      recall. Non-text parts remain typed and ordered, never reduced to text-only equality;
+      unsupported or unsafe content is safely labeled rather than silently removed.
+      If safe preservation is impossible, return a classified failure, never a successful
+      truncated exchange. T-07 comparator applies this same safe projection to both
+      inputs; retain independent non-text/sanitization, partial, identity, content and
+      order rejection assertions. Never flatten into a competing protocol. No agent
+      instantiation, provider env access or generation on GET; absent/mismatch404. Wait
+      for installed memory settled semantics where needed before probe shutdown; never
+      infer writes from a completed model stream. Empty assistant/provider or storage
+      failure is classified, not success. T-06 uses handleChatStream with this same
+      Mastra/Memory composition; UI confirms saved exchange after finish by GET. Targeted
+      tests require no routes/UI successors.
+
+      '
+  - id: T-06
+    title: Expose protected v6 stream session and no-model readback
+    traces:
+    - SC-02
+    - SC-03
+    - SC-05
+    - SC-07
+    - SC-08
+    - SC-10
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-05]
+    status: ready
+    files:
+    - path: apps/web/src/app/api/platform/route.ts
+      create: true
+    - path: apps/web/src/app/api/platform/session/route.ts
+      create: true
+    verify: |
+      pnpm --filter @kaya/web exec vitest run --project functional --project integration
+    intent: 'Work only in assigned Kaya CODE worktree. Obtain assertion-level T-02 red
+      receipts before production edits; do not edit QA-owned tests or predecessor-owned
+      configuration. Independent expected literals remain independent of implementation
+      constants. Next Node runtime/dynamic route handlers compose auth/request with
+      Mastra; server services do not depend on mastra. Both handlers call T-03 local-session.ts
+      authorizePlatformRequest rather than reconstructing credential/metadata precedence.
+      POST /api/platform/session performs D-02 checks and sets signed HttpOnly cookie
+      via RouteHandler before response; return only safe readiness, no credential. GET/POST
+      /api/platform authorize before parsing/body/hosted clients. CLI bearer remains
+      supplementary. POST accepts newest-message contract from T-03 and calls @mastra/ai-sdk
+      handleChatStream({mastra,agentId,...,version:''v6''}) then ai createUIMessageStreamResponse.
+      Pin server-side defaultOptions/memory thread+resource from validated UUID and
+      PLATFORM_RESOURCE_ID, reject client execution overrides. Explicit version v6 (adapter
+      default is v5), standard SSE header x-vercel-ai-ui-message-stream:v1 and native
+      AI SDK events, no custom duplicate message stream. Use selected provider/model
+      named authority, never arbitrary model input.
+
+
+      Preserve the native SDK current assistant message identity and completed ordered
+      parts across stream and persisted conversion; do not invent a second identity/state
+      protocol. GET validates UUID, uses T-05 DB-only readback, returns {threadId,messages}
+      AI SDK v6 UIMessage parts/IDs in saved order with no model invocation even if
+      provider key unavailable. Server stream/readback guarantees are observable only:
+      expose actual persisted IDs and completed ordered typed parts in T-05 safe comparison
+      domain, without fabricating missing A2 in U1/A1/U2, promoting unfinished/partial
+      output or rewriting mismatched identity/content/order. Stream finish and HTTP200
+      are not storage claims. Integration independently asserts actual missing/stale/partial/mismatched/order
+      facts and matching complete U2/A2; browser/CLI saved comparison and GET-only recovery
+      belong to T-07/T-08, not route implementation.
+
+
+      Pre-stream errors400/401/403/404/502/503 as classified; post-header failures use
+      adapter onError with fixed safe text plus incomplete client state, never attempt
+      invalid status replacement mid-stream. Empty output is failure, not an empty successful
+      turn. No raw error/log secret/URL/stack. Targeted functional/integration red-to-green
+      gate uses controlled outer I/O, including second-turn missing/stale/partial/mismatched/order
+      failures and matching complete success, not live proof or cumulative build. No
+      UI successor required.
+
+      '
+  - id: T-07
+    title: Build minimal Astryx browser conversation and restoration
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-05
+    - SC-06
+    - SC-08
+    - SC-10
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-02]
+    status: ready
+    files:
+    - path: apps/web/src/app/layout.tsx
+      create: true
+    - path: apps/web/src/app/page.tsx
+      create: true
+    - path: apps/web/src/app/providers.tsx
+      create: true
+    - path: apps/web/src/app/globals.css
+      create: true
+    - path: apps/web/src/features/chat/chat-panel.tsx
+      create: true
+    - path: apps/web/src/features/chat/thread-url.ts
+      create: true
+    - path: apps/web/src/features/chat/saved-exchange.ts
+      create: true
+    verify: 'pnpm --filter @kaya/web exec vitest run --project unit src/app/layout.test.ts
+      src/features/chat/thread-url.test.ts src/features/chat/saved-exchange.test.ts
+      && pnpm --filter @kaya/web exec vitest run --project component src/app/page.test.tsx
+      src/features/chat/chat-panel.test.tsx && pnpm test:ui tests/e2e/chat.e2e.spec.ts
+
+      '
+    intent: 'Work only in assigned Kaya CODE worktree. Obtain assertion-level T-02 red
+      receipts before production edits; do not edit QA-owned tests or predecessor-owned
+      configuration. Independent expected literals remain independent of implementation
+      constants. Read approved DESIGN.md and current designer correction receipt notes/mockups/design-thin-chat-c2-apply.md
+      with its interactive prototype direction before production UI. These feature artifacts
+      specify presentation, not a production custom message-state implementation. Layout
+      English html, exactly one main and descriptive h1 Kaya local chat; server page
+      composes one features/chat browser surface. Use pinned Astryx Theme neutralTheme
+      and prebuilt reset/astryx/neutral-theme CSS with local minimal layout, no new
+      design system or AI Elements. No client imports server/mastra or secret env; no
+      generated executable UI. Follow settled folder boundaries, no empty packages.
+      Auth session bootstrap via same-origin fetch on mount, renew after auth denial
+      with visible state and no automatic generation retry.
+
+
+      Use actual @ai-sdk/react useChat + ai DefaultChatTransport /api/platform, not
+      a custom conversation reducer. Before first send allocate crypto.randomUUID and
+      replace URL /?thread=<uuid>; newest UIMessage only plus threadId, credentials
+      same-origin, using the native DefaultChatTransport request-preparation and credentials
+      options verified against installed types in T-01. Do not pin an unverified option
+      spelling or introduce a custom transport/fetch wrapper for sending. Browser URL
+      is durable thread identity, not localStorage transcript/credential authority.
+      Existing thread URL on reopen shows restoring state, bootstrap then GET, restore
+      SDK messages with setMessages preserving typed parts/IDs. Missing/resource-mismatched/malformed
+      URL/thread produces clear recoverable error without silently creating a different
+      conversation. Root without thread starts empty. Do not GET an unsaved UUID immediately
+      in the first-send mount; reopening that unsaved URL truthfully shows missing.
+      No history sidebar or multi-conversation management.
+
+
+      Visible user/assistant transcript, labeled multiline composer, Send and pending/restoring/status/error.
+      Enter sends, Shift+Enter newline, IME composition never submits; prevent duplicate/empty/oversized
+      sends while pending or restoring, preserve submitted draft until saved confirmation.
+      Stream typed plain text safely (no arbitrary HTML/executable model content), label
+      unsupported parts safely. Own saved-exchange.ts with named pure compareSavedExchange
+      export: inputs are retained current user native UIMessage, retained completed
+      assistant native UIMessage, same-thread readback native UIMessages and stream-completion
+      fact; output is match or a classified rejection. It has no fetch, DOM, environment
+      or server imports and no parallel protocol. Browser completion and GET-only check
+      call it; T-08 CLI imports the identical export. Apply T-05 safe comparison projection
+      identically to streamed and recalled parts, preserving all completed ordered typed
+      parts including non-text type/identity/state/safe content; not text-only equality.
+      Consume T-02-owned saved-exchange.test.ts with independent expected literals and
+      an assertion for every rejection below, positive complete U2/A2, and non-text
+      sanitization consistency. Do not replace QA browser/server assertions with helper-derived
+      expectations. Retain corresponding current user ID plus CURRENT assistant ID and
+      completed ordered parts from native SDK stream completion. After successful SDK
+      finish read back SAME thread and require those two IDs in current-turn order,
+      assistant following its corresponding user, and matching completed ordered persisted
+      parts. Only then setMessages from persisted messages, clear draft and announce
+      Exchange saved. Reject U1/A1/U2 without A2, old-assistant/new-user-only, missing
+      current user/assistant, unfinished stream, partial parts, mismatched IDs/content/parts
+      and message/part order errors. On every rejection keep visible streamed A2 and
+      submitted draft incomplete, do not replace them with stale recall, clear draft
+      or announce success. Check saved messages repeats GET-only and this exact predicate;
+      nonempty prior assistant is never sufficient. Stream partial failure stays incomplete
+      and visible; DB/provider/auth/network/restoration failures never fabricate assistant
+      or claim saved. No parallel message protocol, automatic fallback model or unrequested
+      retry.
+
+
+      Use accessible names/landmarks, polite concise live status (not every token),
+      alert for errors and keyboard-visible focus. No initial/page-load restore autofocus.
+      Explicit Send retains/returns composer focus; asynchronous send completion returns
+      it only if focus remains within composer/submit, not another region. For Check
+      saved messages, Retry restoration and Renew local access keep the SAME recovery
+      action and error panel mounted throughout busy; action stays focusable with aria-disabled
+      true and guarded repeated activation, not native disabled. Verify actual Astryx
+      DOM propagation rather than assuming a forwarded attribute survives. Announce
+      progress separately; retain action label. Failure keeps reachable recovery action
+      and its focus, never body. Success focuses composer BEFORE removing recovery only
+      if focus is still on that action; otherwise preserve the user''s chosen region.
+      Renewal may bootstrap then resume DB-only GET check/restore but must never replay
+      POST generation. No focus traps. Busy composer remains focusable/read-only and
+      draft preserved; Send disabled.
+
+
+      Both light/dark WCAG AA text contrast4.5:1 normal/3:1 large, reflow320 CSSpx and200
+      percent text without document horizontal scroll, including every error panel and
+      recovery control. Actions remain reachable through normal vertical scrolling.
+      UI browser fixtures assert controls, state, send/reload and current-turn recovery/focus/before-busy-failure-success
+      in both themes/enlarged narrow layouts using real SDK transport; not provider/hosted
+      proof. Gate only owned/predecessor tests with intercepted HTTP boundary, no T-06
+      import or full cumulative build dependency. Interactive prototype review and user
+      approval are required and bundled with this pending plan. Corrected designer captures
+      are throwaway design evidence, not product contrast/zoom/keyboard/UAT passes.
+
+
+      Browser red sequencing: after predecessor component assertion red and before chat
+      behavior, add only the framework-required real shell from these owned layout/page
+      files, run QA-authored chat.e2e.spec.ts against actual Next for missing-control/state
+      assertion-level red, Use finite local expect/test bounds; behavior-selective red
+      runs require a red receipt for each required behavior and each independent rejection/matrix
+      observable, never max-failures as a substitute. Then implement UI behavior and
+      run the unchanged complete assertions and full green gates. Do not substitute
+      a QA-only application or count startup failures as red.
+
+      '
+  - id: T-08
+    title: Supply unmocked browser denial and supplementary live probes
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-07
+    - SC-08
+    - SC-09
+    - SC-10
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-06, T-07]
+    status: ready
+    files:
+    - path: tests/e2e/platform-live.ts
+      create: true
+    - path: tests/e2e/platform.e2e.spec.ts
+      create: true
+    verify: 'pnpm smoke:offline && pnpm test:ui tests/e2e/platform.e2e.spec.ts
+
+      '
+    intent: 'Work only in assigned CODE worktree, own these two files and no predecessor
+      tests/config. Red-first: write runnable failing assertions for actual HTTP/browser
+      outcomes before probe implementation; retain assertion-level receipts. platform.e2e.spec.ts
+      uses actual Next and browser WITHOUT route interception/mock responses, synthetic
+      token and empty provider/hosted env, asserts real controls, bootstrap access,
+      send pending then safe missing-config error, denied cross-origin/bootstrap/unauthorized
+      routes, no fabricated assistant, no credential leakage. Assert visible retained
+      draft and incomplete state on failure, keyboard-reachable recovery where offered,
+      and no automatic POST generation after renewal/check/restore. This exercises user-visible
+      real application failure behavior, not real model success; live success/restart
+      belongs to browser UAT. Finish each local probe within bounded deadline, stop
+      all owned children on every exit, failure/skip/startup mismatch nonzero.
+
+
+      platform-live.ts implements offline/live/readback/supabase/schema-apply/help.
+      Offline starts real local Next on isolated loopback port, explicitly empties all
+      four hosted/provider names before dotenv, synthetic token only; verify chat controls,
+      absent/wrong bearer401 before external calls and authorized missing-config503;
+      no fake app responses. Reuse T-03 env/admin operations and T-05 shared store/readback/ownership/TLS
+      instead of duplicate config/pools. Consume resource/provider/model named authorities,
+      keep expected assertion literals independent. No new general seam/factory/framework.
+      Standalone imports honor react-server. Closure is probe-owned only. D-01 and model
+      compatibility blocker retained.
+
+
+      CLI live/readback supplementary only: load private root env through existing authority,
+      bearer internally (not command argument), target127.0.0.1:3000, unique harmless
+      nonce, UUID. Live submits latest UIMessage via standard stream, consumes AI SDK
+      readUIMessageStream/helper using exact installed APIs rather than alternative
+      chat state. Retain native completed assistant ID/ordered parts and corresponding
+      submitted user ID. Import T-07 pure compareSavedExchange from apps/web/src/features/chat/saved-exchange.ts
+      for live confirmation with the identical T-05 safe ordered typed-part comparison
+      domain, not a second comparator; retain independent expected literals and all
+      rejection assertions. SAME-thread GET confirms only the matching current completed
+      exchange: user ID/nonce, current assistant ID following that user in current-turn
+      order, nonempty completed ordered parts matching streamed parts. Reject stale
+      old assistant/new-user-only, missing/partial/mismatched-ID/content/order or unfinished
+      stream; never count HTTP200 or finish alone. Print PASS/thread/model only, no
+      secret/full exchange. Readback accepts UUID only after restart and checks the
+      ordered saved exchange without invoking model; do not mistake an earlier assistant
+      for a later user reply. CLI proof cannot replace browser send/reopen UAT. No fallback
+      project/model/provider, mocked response or skipped assertion counts.
+
+
+      schema-apply retains explicit project-reference confirmation and same-project
+      validation, transactional idempotent T-04 SQL under adapter owning principal,
+      real PostgresStore init and process-owned shutdown, no financial DDL. supabase
+      retains real admin connectivity, actual catalogs schema/table/sequence/default
+      grants with adapter tables required (empty schema not proof), public-profile GET
+      /rest/v1/ successful control then authenticated Accept-Profile mastra request
+      to actual adapter relation accepting only406 PGRST106. Generic401/403/404/network
+      failures are not non-exposure proof. Fail safely if dashboard exposes mastra;
+      no undeclared management credentials/dashboard mutation. Help documents bounded
+      timeouts and offline/live distinction. No credentials/live smoke required for
+      task-local verify.
+
+      '
+  - id: T-09
+    title: Activate six runners and terminal offline browser gate
+    traces:
+    - SC-01
+    - SC-05
+    - SC-06
+    - SC-07
+    - SC-08
+    - SC-10
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: Product .harness/harness.json is ungranted and explicitly reserved for serialized main-session runner cutover after all implementation files exist.
+    depends_on: [T-08]
+    status: ready
+    files:
+      - .harness/harness.json
+    verify: |
+      pnpm verify:platform
+    intent: 'Main session only, serialized .harness/harness.json cutover after all executable implementation exists. Preserve
+      schema/product identity/board/budgets/attribution/unrelated matrix. Activate unit pnpm test:unit detection apps/*/src/**/*.test.ts
+      excluding JSX/__tests__/generated trees; functional pnpm test:functional apps/*/src/**/__tests__/*.functional.test.ts;
+      integration pnpm test:integration analogous *.integration.test.ts; component pnpm test:component apps/*/src/**/*.test.tsx;
+      ui pnpm test:ui tests/e2e/**/*.e2e.spec.ts; typecheck pnpm typecheck apps/*/**/*.ts|apps/*/**/*.tsx|tsconfig.base.json.
+      Match actual Vitest/Playwright discovery exactly, mutually exclusive test kinds, never classify platform-live.ts CLI as
+      UI. Replace stale detectors, not parallel conventions. eval remains cmd:null with honest BLOCKED semantic-extraction-quality
+      gap under issue7, no unsigned exclusion or fake command; UI is ACTIVE browser workflow, not a null gap.
+
+      Confirm each activated test runner assertion-failure and zero-selection nonzero exits using QA receipts plus actual Playwright
+      selection; demonstrate actual temporary TypeScript error rejection and restore subject without permanent scaffolds. No
+      tests merely asserting config strings. Require predecessor red-first and green receipts. Run cumulative verify:platform
+      only now: four Vitest suites, actual Chromium browser scenarios, typecheck/lint/Next build and unmocked smoke:offline,
+      no hosted/provider credentials. Capture versions/exits/elapsed, target under60s after installation; report timeouts/failures
+      honestly and fix through owning task without suppressing checks. No unfinished executable successor: T-10 docs only. Offline
+      browser fixtures/unmocked errors are not live Anthropic, persistence/restart or visual-UAT passes.
+
+      '
+  - id: T-10
+    title: Document browser fresh-clone send restart and evidence limits
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-06
+    - SC-07
+    - SC-08
+    - SC-09
+    - SC-10
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-09]
+    status: ready
+    files:
+      - README.md
+      - {path: docs/PLATFORM.md, create: true}
+      - {path: docs/platform-compatibility.md, create: true}
+    verify: |
+      git diff --check -- README.md docs/PLATFORM.md docs/platform-compatibility.md
+    intent: |
+      Work only in assigned CODE worktree; documentation-only after terminal gate. Preserve authoritative README architecture/decision links. One exact fresh-clone sequence: supported pinned Node/pnpm activation/install, pnpm install --frozen-lockfile, pnpm exec playwright install chromium, root ignored .env.local from empty .env.example with five private setting names/key/dashboard sources, explicit Kaya project confirmation schema:apply, actual six runners/lint/build, pnpm dev and http://127.0.0.1:3000. Browser flow is primary: enter/send, pending, real visible user/assistant, current-turn saved confirmation, copy same thread URL, stop/restart, reopen that URL and observe same exchange without another model call (including absent provider key on restore). Explain restoring/missing-thread/provider/storage/auth failures and safe recovery, no false success. CLI smoke commands are supplementary, not replacement UI acceptance.
+
+      PLATFORM.md documents D-02 local browser cookie bootstrap/Host/Origin/Fetch-Metadata protections, loopback-only HTTP exception, eight-hour expiry/token rotation, fixed resource/UUID as selection not account auth, CLI-only bearer, private settings/guards, no secret bundle or response. Explain v6 SDK useChat/DefaultChatTransport -> @mastra/ai-sdk handleChatStream -> Mastra, SSE wire header v1 distinct from SDK majorv6, typed-parts readback conversion, no duplicate protocol, server pool/HMR reuse/TLS/timeouts, model-free GET/no title/semantic-model memory. Provider/model/resource from named authorities, no alternate choices. Include status400/401/403/404/502/503 and post-header stream errors. Saved confirmation requires SAME-thread corresponding current user and CURRENT completed native SDK assistant IDs, assistant following that user in current-turn order, and completed ordered persisted parts matching streamed result. Earlier assistant/new-user-only, missing/unfinished/partial/mismatched identity/parts/order is incomplete, not success; preserve visible streamed reply and draft, never adopt stale history or clear draft. Check saved messages/Retry restoration are GET-only; Renew local access may bootstrap and continue GET-only recovery but never replay generation. Explain mounted/focusable busy recovery, guarded activation, retained reachable action on failure and composer focus on success only if still recovery-focused; no focus stealing or page-load autofocus.
+
+      Retain direct/session5432 network prerequisites/no transaction/silent fallback, schema ownership/default grants separate from Data API exposure, dashboard exclude-mastra steps, project-confirmed idempotent SQL apply and exact supabase control406PGRST106 probe, bounded billing/request limits. platform-compatibility.md records exact direct pins, engine/peer intersections and release/vendor links, researched vs installed vs actual offline receipts separately, unexercised model/account/hosted/browser live UAT honestly. Astryx0.6.5 prebuilt CSS/React peer and ai6/react3/adapter explicitv6 proven by metadata/types only until installation. Reference final DESIGN.md and notes/mockups/design-thin-chat-c2-apply.md as corrected design authority, not old prototype evidence; browser-only simulated replies/storage/localStorage/captures are never product SDK/Mastra/Postgres/restart proof. Both-theme 320px/200 percent error/recovery browser assertions remain future QA; actual product contrast/zoom/screen-reader and live browser UAT remain unexercised. eval gap remains BLOCKED issue7; six other runner commands active; existing account/production/financial/worker contracts remain out of scope. Never mark live UAT passed or spike wholesale closed. Whitespace gate only; content via inspection and operator live outcomes via browser UAT, no executable changes.
