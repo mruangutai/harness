@@ -44,24 +44,6 @@ FLEET = ("schema: factory-fleet/1\nrepos:\n  - name: acme/widget\n    default_br
          "workspace_root: /tmp/acme-factories\n")
 COMPARISON_ONLY = ("INV-24", "INV-29", "INV-52")
 
-# Runs check-state.py under an audit hook and writes every opened path to OPEN_LOG.
-WRAPPER = r"""
-import os, runpy, sys
-log, script = os.environ["OPEN_LOG"], sys.argv[1]
-seen = []
-def hook(event, args):
-    if event == "open" and isinstance(args[0], (str, bytes)):
-        p = os.fsdecode(args[0])
-        seen.append(os.path.realpath(p if os.path.isabs(p) else os.path.join(os.getcwd(), p)))
-sys.addaudithook(hook)
-sys.argv = [script] + sys.argv[2:]
-try:
-    runpy.run_path(script, run_name="__main__")
-finally:
-    with open(log, "w") as fh:
-        fh.write("\n".join(seen))
-"""
-
 FAKE_GH = """#!/bin/sh
 printf '%s\\n' "$*" >> "{log}"
 exit 0
@@ -75,7 +57,7 @@ def check(checkout, *args, opens=None, env_extra=None):
     argv = [sys.executable, str(CHECK), *args]
     if opens is not None:
         env["OPEN_LOG"] = opens
-        argv = [sys.executable, "-c", WRAPPER, str(CHECK), *args]
+        argv = [sys.executable, "-c", F.OPEN_TRACE_WRAPPER, str(CHECK), *args]
     proc = subprocess.run(argv, env=env, capture_output=True, text=True, cwd=checkout)
     return proc.returncode, proc.stdout + proc.stderr
 

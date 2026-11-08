@@ -48,6 +48,7 @@ tasks:
     - tests/integration/test-check-state-corpus.py
     - .harness/harness/docs/DECISIONS.md
     - .harness/harness/docs/DECISIONS-INDEX.md
+    - tests/integration/f58_sparse_fixture.py
     verify: |
       bash -o pipefail <<'SH'
       set -eu

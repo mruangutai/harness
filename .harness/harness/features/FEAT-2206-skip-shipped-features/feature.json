@@ -50,6 +50,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "Builder-learned: suite_layout refuses one test name in both kinds (unit renamed -shipped-ctx); ROW_FAMILIES, pr schema text and three done-station fixtures also referenced removed behavior."
+    },
+    {
+      "at": "2026-11-08T14:46:51.253803+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Simplify pass REUSE: the audit-hook wrapper moved into the shared f58_sparse_fixture.py both read-confinement suites import."
     }
   ],
   "mission": "patch",

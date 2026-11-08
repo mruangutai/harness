@@ -83,11 +83,15 @@ def comparison_record(path):
 
 
 def _landed_entry(entry):
-    """One landed feature_corpus entry as a population triple: a shipped record re-read as
-    comparison data, any other as the document the census already parsed."""
-    if is_shipped(entry["path"]):
-        return entry["id"], comparison_record(os.path.join(entry["path"], "feature.json")), True
-    return entry["id"], entry["document"], False
+    """One landed feature_corpus entry as a population triple. A shipped record reuses the
+    document the census already parsed and is re-read leniently only when the strict parse gave
+    none, so it still contributes its claims as comparison data."""
+    if not is_shipped(entry["path"]):
+        return entry["id"], entry["document"], False
+    doc = entry["document"]
+    if not isinstance(doc, dict):
+        doc = comparison_record(os.path.join(entry["path"], "feature.json"))
+    return entry["id"], doc, True
 
 
 def _discover_feature_dirs(H, root):
@@ -154,9 +158,9 @@ SEAM_NOTES = {
     "building": ["plan"],
     "review":   ["plan", "build"],
     "done":     [],            # shipped: never an INV-17 subject (DEC-252)
-    # THE TERMINAL STATIONS REQUIRE NO HANDOFF, and that is the whole difference from done. A
-    # feature planned and never built (abandoned) or refused at intake (rejected, FEAT-1714)
-    # crossed no seam, so there is no honest handoff note to write and none will be fabricated.
+    # THE TERMINAL STATIONS REQUIRE NO HANDOFF. A feature planned and never built (abandoned)
+    # or refused at intake (rejected, FEAT-1714) crossed no seam, so there is no honest handoff
+    # note to write and none will be fabricated.
     # Keyed EXPLICITLY rather than omitted: an omitted key is now a KeyError rather than a
     # silent skip, since the station passes the membership test above by construction.
     **{station: [] for station in TERMINAL_STATIONS},
