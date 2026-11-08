@@ -375,6 +375,11 @@ def set_station(board, repo, issue_number, station):
     that is the value the caller can find in its own source; the capitalised column name appears
     nowhere the caller would recognise.
 
+    An issue with no item on the board is ADDED to it first (#2181), and the returned item id is
+    the one written. The lookup comes first, so an item that already exists is never re-added.
+    Mirroring therefore no longer depends on the project's "Auto-add to project" workflow. The
+    guarded add is `factory_decompose`'s own pattern.
+
     `factory_gh.preflight()` is deliberately NOT called — its callers exit non-zero and this
     module's callers must not.
     """
@@ -382,9 +387,8 @@ def set_station(board, repo, issue_number, station):
     try:
         item_id = factory_gh.issue_board_item_id(repo, issue_number, board["number"])
         if item_id is None:
-            raise BoardError(
-                repo, issue_number, station,
-                f"issue carries no item on {board['owner']} project {board['number']}",
+            item_id = factory_gh.project_item_add(
+                board["owner"], board["number"], f"https://github.com/{repo}/issues/{issue_number}",
             )
         factory_gh.project_field_set(
             board["owner"], board["number"], item_id, board["station_field"], column,
