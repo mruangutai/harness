@@ -1,0 +1,93 @@
+schema_version: 2
+run_id: 2026-11-08-02-validator
+run_uid: fc7a234b212b427d8a6858a4ea2a14dc
+feature: BUG-2181-board-item-add
+squad: validator
+host: harness-validator-lead
+status: complete
+review_sha: 5d78ffc3ccf4d1c49aae47b9183a2c305c0be6a7
+steps:
+  - id: qa
+    persona: harness-qa
+    task: T-01
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    redispatches: 1
+    cycles: 1
+    mutates_repo: false
+    depends_on: []
+    on_fail: continue
+    artifact: notes/review-harness-qa-c0.md
+    note: One return-contract correction; no execution rework.
+    evidence:
+      review_sha: 5d78ffc3ccf4d1c49aae47b9183a2c305c0be6a7
+      matrix_ok: true
+      unit_files: 60
+      integration_files: 86
+      unit_named_tests: 6
+      integration_named_tests: 22
+      verify_exit: 0
+      verify_seconds: 2.73
+      fail_first_sc: [SC-01, SC-02]
+  - id: code
+    persona: harness-code-reviewer
+    task: T-01
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    mutates_repo: false
+    depends_on: []
+    on_fail: continue
+    artifact: notes/review-harness-code-reviewer-c0.md
+    evidence:
+      sc_03_pinned_paragraph: .claude/skills/harness/references/repo-board-provisioning.md:39-41
+      preserved_workflows: [Item closed, Auto-close issue, Pull request merged]
+      grading_source: notes/build-evidence-2026-11-08.md
+  - id: security
+    persona: harness-security-reviewer
+    task: T-01
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    mutates_repo: false
+    depends_on: []
+    on_fail: continue
+    artifact: notes/review-harness-security-reviewer-c0.md
+  - id: ui
+    persona: harness-ui-reviewer
+    task: T-01
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    mutates_repo: false
+    depends_on: []
+    on_fail: continue
+    artifact: notes/review-harness-ui-reviewer-c0.md
+    evidence:
+      changed_paths: 8
+      ui_in_scope: false
+  - id: goalcheck
+    persona: harness-pm
+    task: T-01
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    mutates_repo: false
+    depends_on: []
+    on_fail: continue
+    artifact: notes/research-BUG-2181-board-item-add-goalcheck-validate-c0.md
+    evidence:
+      goalcheck_applicable: false
+      applicability_authority: DEC-225

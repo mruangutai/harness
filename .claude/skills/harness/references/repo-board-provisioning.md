@@ -36,6 +36,10 @@ repository's default branch through `harness-add-repo` step 1.
    project's web UI turns them on.** Ask the operator to do it, then re-run the audit.
    Registration is not finished until it reports all three enabled.
 
+   **"Auto-add to project" is not required.** gh-sync adds missing cards itself:
+   `gh_board.set_station` puts an issue with no item on the board before it sets the station
+   (#2181). Leaving that workflow off is not a registration finding.
+
 This workflow check runs only during registration, never in `check-state.py` (which fires
 at every door and pre-commit). A workflow switched off after registration is invisible
 until the next registration run.

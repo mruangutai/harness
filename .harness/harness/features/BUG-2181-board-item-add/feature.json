@@ -1,0 +1,92 @@
+{
+  "feature_id": "BUG-2181-board-item-add",
+  "branch": "feat/BUG-2181-board-item-add",
+  "pr": null,
+  "review_sha": "5d78ffc3ccf4d1c49aae47b9183a2c305c0be6a7",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-08-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-08T16:07:58+00:00",
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-08T16:13:12+00:00",
+        "authorization": {
+          "path": "notes/refused-return-authorization-2026-11-08-01-product.md",
+          "sha256": "e2dfcd3f7868ffe1849447f7c9bf8799d41f55186495f08ea8c307da277c8fdf"
+        },
+        "path": "runs/2026-11-08-01-product/digest.md",
+        "sha256": "0c64a7f412f92bddf85815a6fcf5f139112372a13dacdd6bdd166045c5f67578"
+      },
+      "refusal": {
+        "source": "close-run",
+        "digest": {
+          "path": "runs/2026-11-08-01-product/digest.md",
+          "sha256": "0c64a7f412f92bddf85815a6fcf5f139112372a13dacdd6bdd166045c5f67578"
+        },
+        "run_id": "2026-11-08-01-product",
+        "reason": "validator rejected the return with deliberate contract-refusal status 65",
+        "by": "operator",
+        "at": "2026-11-08T16:13:12+00:00"
+      },
+      "ended_at": "2026-11-08T16:13:12+00:00",
+      "tokens": null,
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-08-02-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-08T16:18:36+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-02-validator/digest.md",
+        "sha256": "c8baf6bea0c06b3c2786bb54a49e4a1c89e3fff102d1016127b8f33ef07027c2"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-08T16:27:52+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-08T16:07:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "one known defect at one choke point (gh_board.set_station) with a known fix (guarded item-add as factory_decompose does); bounded diff, no new interface"
+    }
+  ],
+  "github": {
+    "milestone": 110,
+    "parent": 2211,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2212
+    },
+    "source_issues": [
+      2181
+    ],
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  },
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2181-board-item-add/notes/operator-signature-2026-11-08.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "587891290654dc833550d1c9acfa301d14dcdb37d4f2fb7aa1178b81b53b9da5"
+  }
+}
