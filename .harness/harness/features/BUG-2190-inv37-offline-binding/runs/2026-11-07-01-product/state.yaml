@@ -1,0 +1,24 @@
+schema_version: 2
+run_id: 2026-11-07-01-product
+feature: BUG-2190-inv37-offline-binding
+squad: product
+host: harness-product-lead
+status: complete
+run_uid: 0407161f8e9447a8b6d332b515e5560e
+steps:
+  - id: intake
+    persona: harness-pm
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2190-inv37-offline-binding/.harness/harness/features/BUG-2190-inv37-offline-binding/notes/research-offline-binding.md
+    evidence:
+      brief_lines: 54
+      tasks: 1
+      route_violations: 0
+      plan_check_failures: 0
+      approval: pending
+      prototype: not-required-noninteractive-gate-fix

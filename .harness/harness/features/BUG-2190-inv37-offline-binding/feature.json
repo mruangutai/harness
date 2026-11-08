@@ -1,0 +1,51 @@
+{
+  "feature_id": "BUG-2190-inv37-offline-binding",
+  "branch": "feat/BUG-2190-inv37-offline-binding",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-07-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-07T15:29:11+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-07-01-product/digest.md",
+        "sha256": "2d76a9795f30ba7ec9ac502a9859448f2f17be09e3e789951d217ce66420c1e8"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T15:39:11+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-07T15:29:10+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "one known defect in _inv37_feature with a known fix (gate remote verification on gh_ok); bounded diff, no new interface"
+    },
+    {
+      "at": "2026-11-08T13:22:26.162393+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "operator decision 2026-11-08 amends DEC-221 (CI does not verify gh-dependent remote config); DEC-188 forbids leaving the contradicted text"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2190-inv37-offline-binding/notes/operator-signature-2026-11-08.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "da67c1194fbda70e00d4868307491a3ff55b687d8fd319c416ef3257b222fd83"
+  }
+}
