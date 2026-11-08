@@ -219,9 +219,23 @@ def _inv24_feature(feat, fac, fleet, _fac_pairs):
     return bad
 
 
+def _inv24_fleet(H, root, feat):
+    """The parsed fleet declaration for an active feature's block: (fleet, findings). The fleet
+    is None, and one finding names why, when it is absent or does not parse."""
+    fleet_p = os.path.join(H, "factory", "fleet.yaml")
+    if not os.path.isfile(fleet_p):
+        return None, [f"INV-24 {feat}: records factory state but {os.path.relpath(fleet_p, root)} "
+                      f"is absent — no fleet declares the repository it claims work in. "
+                      f"Write the fleet declaration, or clear the feature's factory block."]
+    try:
+        return artifact_accessors.load_fleet(fleet_p) or {}, []
+    except artifact_accessors.FleetError as _e:
+        return None, [f"INV-24 {feat}: records factory state but the fleet file does not parse: "
+                      f"{_e} — fix .harness/factory/fleet.yaml before any factory run."]
+
+
 def inv_24(ctx):
     bad, warn = [], []
-    H, root = ctx.H, ctx.root
     _fac_pairs = {}
     try:
         _blocks24 = list(_inv24_factory_blocks(ctx))
@@ -233,19 +247,10 @@ def inv_24(ctx):
         if shipped:
             bad.extend(_inv24_shipped_claims(feat, fac, _fac_pairs))
             continue
-        fleet_p = os.path.join(H, "factory", "fleet.yaml")
-        if not os.path.isfile(fleet_p):
-            bad.append(f"INV-24 {feat}: records factory state but {os.path.relpath(fleet_p, root)} "
-                       f"is absent — no fleet declares the repository it claims work in. "
-                       f"Write the fleet declaration, or clear the feature's factory block.")
-            continue
-        try:
-            fleet = artifact_accessors.load_fleet(fleet_p) or {}
-        except artifact_accessors.FleetError as _e:
-            bad.append(f"INV-24 {feat}: records factory state but the fleet file does not parse: "
-                       f"{_e} — fix .harness/factory/fleet.yaml before any factory run.")
-            continue
-        bad.extend(_inv24_feature(feat, fac, fleet, _fac_pairs))
+        fleet, findings = _inv24_fleet(ctx.H, ctx.root, feat)
+        bad.extend(findings)
+        if fleet is not None:
+            bad.extend(_inv24_feature(feat, fac, fleet, _fac_pairs))
     return bad, warn
 
 # --- INV-37 (BUG-1309): an enabled mirror must leave a Build-entry receipt.

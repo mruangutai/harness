@@ -263,42 +263,54 @@ class RetiredMirrorChecks(Case):
         self.assertNotRegex(out, r"INV-(28|30)[ :]", out)
 
 
+def _export_corpus(owner, export):
+    """OWNER's committed .harness tree, extracted to `export`: the real records, no git."""
+    os.makedirs(export)
+    archive = subprocess.run(["git", "-C", owner, "archive", "HEAD", ".harness"],
+                             capture_output=True, check=True).stdout
+    subprocess.run(["tar", "-x", "-C", export], input=archive, check=True)
+
+
+def _shipped_ids(owner, export):
+    """Every landed id whose exported plan reads `done` under the production classifier."""
+    import feature_corpus
+    from check_state.ctx import lenient_station
+    landed = feature_corpus.landed_dirs(owner)
+    shipped = sorted(fid for seg, fid, _path in landed
+                     if lenient_station(os.path.join(export, ".harness", seg, "features", fid)) == "done")
+    print(f"real corpus {owner}: {len(landed)} landed, {len(shipped)} shipped: {', '.join(shipped)}")
+    return shipped
+
+
+def _shipped_record_failures(export, full_out, log, fid):
+    """The labels of every shipped-record claim `fid` breaks; each claim is printed."""
+    named = naming(full_out, fid)
+    opened = set(opened_under(log, export, fid))
+    code, selected = check(export, "--feature", fid)
+    lines = [l.strip() for l in selected.splitlines() if l.strip()]
+    claims = ((not named, f"{fid} named by the full audit: {named}"),
+              (opened <= {"plan.yaml", "feature.json"},
+               f"{fid} opened beyond status/comparison: {sorted(opened)}"),
+              (code == 0 and lines == ["note       " + NOTE.format(fid=fid)],
+               f"{fid} --feature: exit {code}, {lines}"))
+    for ok, label in claims:
+        print(("PASS  " if ok else "FAIL  ") + (fid if ok else label))
+    return [label for ok, label in claims if not ok]
+
+
 def real_corpus(owner):
     """Every lenient `done` record OWNER's HEAD tracks: never an audit subject, and selecting it
     prints exactly one shipped note. Runs THIS checkout's checker over an export of OWNER's
     committed .harness tree, so the subject is the real records and the code is the candidate."""
-    import feature_corpus
-    from check_state.ctx import lenient_station
-    failures = []
     with tempfile.TemporaryDirectory() as tmp:
         export = os.path.join(tmp, "corpus")
-        os.makedirs(export)
-        archive = subprocess.run(["git", "-C", owner, "archive", "HEAD", ".harness"],
-                                 capture_output=True, check=True).stdout
-        subprocess.run(["tar", "-x", "-C", export], input=archive, check=True)
-        landed = feature_corpus.landed_dirs(owner)
-        shipped = sorted(fid for _seg, fid, _path in landed
-                         if lenient_station(os.path.join(export, ".harness", _seg, "features", fid))
-                         == "done")
-        print(f"real corpus {owner}: {len(landed)} landed, {len(shipped)} shipped: "
-              f"{', '.join(shipped)}")
-        if not shipped:
-            failures.append("no shipped record found — the real-corpus check would be vacuous")
+        _export_corpus(owner, export)
+        shipped = _shipped_ids(owner, export)
+        failures = [] if shipped else ["no shipped record found — the check would be vacuous"]
         log = os.path.join(tmp, "opens.log")
         _code, out = check(export, opens=log)
         for fid in shipped:
-            named = naming(out, fid)
-            opened = set(opened_under(log, export, fid))
-            selected_code, selected = check(export, "--feature", fid)
-            lines = [l.strip() for l in selected.splitlines() if l.strip()]
-            for ok, label in ((not named, f"{fid} named by the full audit: {named}"),
-                              (opened <= {"plan.yaml", "feature.json"},
-                               f"{fid} opened beyond status/comparison: {sorted(opened)}"),
-                              (selected_code == 0 and lines == ["note       " + NOTE.format(fid=fid)],
-                               f"{fid} --feature: exit {selected_code}, {lines}")):
-                print(("PASS  " if ok else "FAIL  ") + (fid if ok else label))
-                if not ok:
-                    failures.append(label)
+            failures += _shipped_record_failures(export, out, log, fid)
     print(f"\n{len(failures)} failure(s)")
     return 1 if failures else 0
 

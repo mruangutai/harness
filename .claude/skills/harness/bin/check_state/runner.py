@@ -291,6 +291,15 @@ def _shipped_selection(H, feature):
                for d in glob.glob(os.path.join(H, "*", "features", glob.escape(feature))))
 
 
+def _main_refusal(pre):
+    """Print the preflight's refusal, with its notes, and return the exit status."""
+    for m in pre.refusal:
+        print(f"  VIOLATION  {m}")
+    for m in pre.notes:
+        print(f"  note       {m}")
+    return 1
+
+
 def main(root, argv):
     H = os.path.join(root, ".harness")
     only, feature, list_mode, changed = _parse_args(argv)
@@ -304,11 +313,7 @@ def main(root, argv):
     # feature file is read. `--list` above stays metadata-only.
     pre = preflight(root, feature, sys.argv[2])
     if pre.refusal:
-        for m in pre.refusal:
-            print(f"  VIOLATION  {m}")
-        for m in pre.notes:
-            print(f"  note       {m}")
-        return 1
+        return _main_refusal(pre)
     # A SHIPPED SUBJECT IS CHECKED FOR NOTHING (FEAT-2206): say so once and stop, before the
     # context loads anything or a single row runs. Exit 0 -- a shipped feature is not an error.
     if _shipped_selection(H, feature):

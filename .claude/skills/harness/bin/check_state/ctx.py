@@ -81,6 +81,15 @@ def comparison_record(path):
         return None
     return doc if isinstance(doc, dict) else None
 
+
+def _landed_entry(entry):
+    """One landed feature_corpus entry as a population triple: a shipped record re-read as
+    comparison data, any other as the document the census already parsed."""
+    if is_shipped(entry["path"]):
+        return entry["id"], comparison_record(os.path.join(entry["path"], "feature.json")), True
+    return entry["id"], entry["document"], False
+
+
 def approved(txt):
     if not txt: return False
     m = re.search(r"^##\s+Approval\s*$(.*?)(?=^##\s|\Z)", txt, re.M | re.S)
@@ -196,15 +205,13 @@ class Ctx:
         self.feat_dirs = {os.path.basename(_d): os.path.relpath(_d, root)
                           for _d in glob.glob(os.path.join(H, "*", "features", "*"))
                           if os.path.isdir(_d)}
-        self.features = sorted(self.feat_dirs)
-        if keep is not None:
-            self.features = [f for f in self.features if f in keep]
+        selected = [f for f in sorted(self.feat_dirs) if keep is None or f in keep]
         # A SHIPPED FEATURE IS NEVER AN AUDIT SUBJECT (FEAT-2206). It leaves the subject list here,
         # before any up-front load below opens its BRIEF, plan or STATE.md and before any
         # per-feature row runs; only the cross-feature comparisons read it again, as data
         # (`population`, INV-29, INV-52). `feat_dirs` keeps every discovered directory.
-        self.shipped = {f for f in self.features if is_shipped(os.path.join(root, self.feat_dirs[f]))}
-        self.features = [f for f in self.features if f not in self.shipped]
+        self.shipped = {f for f in selected if is_shipped(os.path.join(root, self.feat_dirs[f]))}
+        self.features = [f for f in selected if f not in self.shipped]
 
     def _selected(self, tail):
         """`{feature: path}` of `tail` inside each SELECTED feature directory that has it.
@@ -411,26 +418,21 @@ class Ctx:
         `comparison_record`, never through `record` or the strict reader, so nothing about it is
         ever reported -- an unreadable one simply contributes no claim."""
         if not self.scoped:
-            return sorted([(f, self.record(f)[0], False) for f in self.features]
-                          + [(f, comparison_record(self.path(f, "feature.json")), True)
-                             for f in self.shipped], key=lambda p: p[0])
+            return sorted(self._local_population(), key=lambda p: p[0])
         if self._population is None:
             import feature_corpus
-            local = [(f, self.record(f)[0], False) for f in self.features]
-            local += [(f, comparison_record(self.path(f, "feature.json")), True)
-                      for f in self.shipped]
+            local = self._local_population()
             mine = {f for f, _doc, _shipped in local}
-            landed = []
-            for e in feature_corpus.records(self.owner):
-                if e["id"] in mine:
-                    continue
-                if is_shipped(e["path"]):
-                    landed.append((e["id"], comparison_record(os.path.join(e["path"], "feature.json")),
-                                   True))
-                else:
-                    landed.append((e["id"], e["document"], False))
+            landed = [_landed_entry(e) for e in feature_corpus.records(self.owner)
+                      if e["id"] not in mine]
             self._population = sorted(landed + local, key=lambda p: p[0])
         return self._population
+
+    def _local_population(self):
+        """This checkout's selected records: subjects through `record`, shipped ones as data."""
+        return ([(f, self.record(f)[0], False) for f in self.features]
+                + [(f, comparison_record(self.path(f, "feature.json")), True)
+                   for f in self.shipped])
 
     def fpath(self, feat, tail=""):
         _b = self.feat_dirs.get(feat) or os.path.join(".harness", "?", "features", feat)

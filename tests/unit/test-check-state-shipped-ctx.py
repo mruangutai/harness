@@ -161,31 +161,45 @@ def case_an_explicit_shipped_keep_selects_nothing():
               f"features={ctx.features}")
 
 
-def case_population_reads_shipped_claims_lazily_and_ungraded():
-    plans = {"FEAT-1-shipped": STRICT_INVALID_DONE, "FEAT-2-shipped-quoted": STRICT_INVALID_DONE,
-             "FEAT-3-building": "schema: plan/1\nstatus: building\ntasks: []\n"}
-    claim = {"repo": "acme/widget", "issues": {"T-01": 11}}
-    docs = {"FEAT-1-shipped": {"feature_id": "FEAT-1-shipped", "factory": claim},
-            "FEAT-2-shipped-quoted": "{ not json",
-            "FEAT-3-building": {"feature_id": "FEAT-3-building", "factory": claim}}
+_POP_PLANS = {"FEAT-1-shipped": STRICT_INVALID_DONE, "FEAT-2-shipped-quoted": STRICT_INVALID_DONE,
+              "FEAT-3-building": "schema: plan/1\nstatus: building\ntasks: []\n"}
+_CLAIM = {"repo": "acme/widget", "issues": {"T-01": 11}}
+_POP_DOCS = {"FEAT-1-shipped": {"feature_id": "FEAT-1-shipped", "factory": _CLAIM},
+             "FEAT-2-shipped-quoted": "{ not json",
+             "FEAT-3-building": {"feature_id": "FEAT-3-building", "factory": _CLAIM}}
+
+
+def _population_fixture(root):
+    """The context over the population tree, and the paths opened while it was built."""
+    _tree(root, plans=_POP_PLANS, feature_json=_POP_DOCS)
+    with _Opens() as seen:
+        ctx = _ctx(root)
+    return ctx, seen.paths
+
+
+def case_population_reads_shipped_claims_lazily():
     with tempfile.TemporaryDirectory() as root:
-        _tree(root, plans=plans, feature_json=docs)
-        with _Opens() as seen:
-            ctx = _ctx(root)
+        ctx, opened = _population_fixture(root)
         check("no shipped feature.json is opened while the context is built",
               not any("feature.json" in p for f in ("FEAT-1-shipped", "FEAT-2-shipped-quoted")
-                      for p in _opened_in(seen.paths, root, f)))
+                      for p in _opened_in(opened, root, f)))
         population = ctx.population()
         shaped = all(isinstance(e, tuple) and len(e) == 3 for e in population)
         check("population entries carry (feature, document, shipped)", shaped, repr(population))
         by_id = {e[0]: e for e in population} if shaped else {}
         check("a readable shipped record is in the population, flagged shipped",
-              by_id.get("FEAT-1-shipped", (None, None, False))[1:] == (docs["FEAT-1-shipped"], True),
+              by_id.get("FEAT-1-shipped", (None, None, False))[1:] == (_POP_DOCS["FEAT-1-shipped"], True),
               repr(by_id.get("FEAT-1-shipped")))
-        check("an unparseable shipped record contributes no claim",
-              by_id.get("FEAT-2-shipped-quoted", (None, None))[1] is None, repr(by_id))
         check("an unshipped record is in the population, not flagged shipped",
               by_id.get("FEAT-3-building", (None, None, True))[2] is False, repr(by_id))
+
+
+def case_an_unreadable_shipped_record_is_never_graded():
+    with tempfile.TemporaryDirectory() as root:
+        ctx, _opened = _population_fixture(root)
+        by_id = {e[0]: e for e in ctx.population()}
+        check("an unparseable shipped record contributes no claim",
+              by_id.get("FEAT-2-shipped-quoted", (None, None))[1] is None, repr(by_id))
         graded = [m for m in ctx.bad + ctx.warn if "FEAT-2-shipped-quoted" in m]
         check("an unparseable shipped record is never reported", not graded, "; ".join(graded))
 
@@ -194,7 +208,8 @@ def main():
     case_classification_selects_only_unshipped_subjects()
     case_shipped_directories_are_not_read_up_front()
     case_an_explicit_shipped_keep_selects_nothing()
-    case_population_reads_shipped_claims_lazily_and_ungraded()
+    case_population_reads_shipped_claims_lazily()
+    case_an_unreadable_shipped_record_is_never_graded()
     print(f"\n{len(FAILURES)} failure(s)")
     return 1 if FAILURES else 0
 
