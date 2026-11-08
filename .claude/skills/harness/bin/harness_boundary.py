@@ -367,7 +367,7 @@ def worktree_for_feature(owner_root, feature_id, *, strict=False):
     PREFIX, NOT EQUALITY, because this repository measured the equality premise false
     in its own source: feature-worktree.py:236-239 recorded that all four live
     worktrees were named FEAT-32 while every feature directory was
-    FEAT-32-concurrent-write-merge, and :244-248 resolved that by prefix, refusing on
+    the slugged FEAT-32-<slug>, and :244-248 resolved that by prefix, refusing on
     ambiguity, because a coin flip is strictly worse than a refusal the operator can
     act on. Both spellings are legal input, so equality alone leaves every short-form
     worktree unmatched and silently unbound.

@@ -130,7 +130,7 @@ DIGEST:
   expertise_update: []
   sc_status: []
   adequacy_notes: []
-artifact: .harness/features/FEAT-01/runs/r1/digest.md
+artifact: .harness/features/FEAT-90/runs/r1/digest.md
 """
 case("lead, block-style members", "harness-eng-lead", LEAD_BLOCK, True)
 
@@ -222,7 +222,7 @@ DIGEST:
   escalations: []
   expertise_update: []
   sc_status: []
-artifact: .harness/features/FEAT-01/runs/r2/digest.md
+artifact: .harness/features/FEAT-90/runs/r2/digest.md
 """, True)
 
 # THE FALSE PASS. `must_fix` appears ONLY inside a member entry. The old parser
@@ -243,7 +243,7 @@ DIGEST:
   escalations: []
   expertise_update: []
   sc_status: []
-artifact: .harness/features/FEAT-01/runs/r3/digest.md
+artifact: .harness/features/FEAT-90/runs/r3/digest.md
 """, False, "must_fix")
 
 # The object counterpart of SPEC 10.4's old one-line packing (`team: build  steps_run: 3
@@ -295,7 +295,7 @@ DIGEST:
   files_touched: [.claude/skills/harness/bin/board-station.py]
   open_questions: []
   expertise_update: []
-artifact: .harness/harness/features/FEAT-64-x/notes/red-first-receipts.md
+artifact: .harness/harness/features/FEAT-95-x/notes/red-first-receipts.md
 """, True)
 
 case("main-session with task_verify fail and VERDICT PASS is refused like any dev", "main-session", """
@@ -844,23 +844,23 @@ artifact: .harness/notes/impl-auth.md
 case("orchestrator digest with the reconciled schema", "harness-orchestrator", """
 VERDICT: PASS
 DIGEST:
-  headline: FEAT-01 shipped
-  feature: FEAT-01
+  headline: FEAT-90 shipped
+  feature: FEAT-90
   status: shipped
   runs: [{ id: r1, squad: build, verdict: PASS }, { id: r2, squad: validate, verdict: PASS }]
   cycles_used: 2
-  briefing: .harness/notes/ship-review-FEAT-01-r2.md
+  briefing: .harness/notes/ship-review-FEAT-90-r2.md
   files_touched: []
   open_questions: []
   expertise_update: []
-artifact: .harness/features/FEAT-01/feature.json
+artifact: .harness/features/FEAT-90/feature.json
 """, True)
 
 case("orchestrator briefing is NULLABLE — `none` when nothing was written", "harness-orchestrator", """
 VERDICT: PASS
 DIGEST:
   headline: mid-flight, no briefing yet
-  feature: FEAT-01
+  feature: FEAT-90
   status: in_progress
   runs: [{ id: r1, squad: build, verdict: PASS }]
   cycles_used: 1
@@ -873,7 +873,7 @@ DIGEST:
   files_touched: []
   open_questions: []
   expertise_update: []
-artifact: .harness/features/FEAT-01/feature.json
+artifact: .harness/features/FEAT-90/feature.json
 """, True)
 
 # FEAT-1714 T-01 (SC-01): `status: rejected` is a terminal return an orchestrator makes at
@@ -886,7 +886,7 @@ def _reject_digest(judgement_yaml, cycles=0, status="rejected"):
 VERDICT: PASS
 DIGEST:
   headline: superseded by the canonical-reader ticket
-  feature: BUG-285-yaml-loader-pin
+  feature: BUG-92-yaml-loader-fixture
   status: {status}
   runs: [{{ id: plan-product, squad: product, verdict: PASS }}]
   cycles_used: {cycles}
@@ -894,7 +894,7 @@ DIGEST:
 {judgement_yaml}  files_touched: []
   open_questions: []
   expertise_update: []
-artifact: .harness/features/BUG-285-yaml-loader-pin/feature.json
+artifact: .harness/features/BUG-92-yaml-loader-fixture/feature.json
 """
 
 
@@ -1020,7 +1020,7 @@ def run_cli_cases():
 # the run's exact feature and runtime id; the hook refuses a non-BLOCKED return without them.
 # Cases about digest SHAPE carry this neutral identity (no worktree, no claim of that id);
 # a case's own keys win, and a case about a missing value passes it as None.
-HOOK_IDENTITY = {"harness_feature": "FEAT-01-hook-case", "harness_agent_id": "Test.Run"}
+HOOK_IDENTITY = {"harness_feature": "FEAT-90-hook-case", "harness_agent_id": "Test.Run"}
 
 
 def _governed(payload):
@@ -1083,11 +1083,11 @@ DIGEST:
   files_touched: []
   expertise_update: []
   sc_status: []
-artifact: .harness/features/FEAT-01/plan.yaml
+artifact: .harness/features/FEAT-90/plan.yaml
 """
 
 CHILD_MARK = "BLOCKED - returned with children in flight"
-T09_FEATURE = "FEAT-09-exact-claims"
+T09_FEATURE = "FEAT-89-exact-claims"
 
 
 def run_t09():
@@ -1448,7 +1448,7 @@ def _append_binding(root):
 
 
 def _append_lead_object(**digest):
-    obj = fixture("harness-eng-lead", LEAD_BLOCK.replace("artifact: .harness/features/FEAT-01/runs/r1/digest.md",
+    obj = fixture("harness-eng-lead", LEAD_BLOCK.replace("artifact: .harness/features/FEAT-90/runs/r1/digest.md",
                                     f"artifact: {APPEND_REL}"))
     obj["DIGEST"].update(digest)
     return obj
@@ -1640,7 +1640,7 @@ def _append_authorization_target(root, kind):
     if kind in ("product", "validator", "other-eng"):
         relative = relative.replace("r1-eng", f"victim-{kind}")
     elif kind == "other-feature":
-        relative = relative.replace(HOOK_IDENTITY["harness_feature"], "FEAT-02-other")
+        relative = relative.replace(HOOK_IDENTITY["harness_feature"], "FEAT-91-other")
     target = os.path.join(root, relative)
     os.makedirs(os.path.dirname(target), exist_ok=True)
     return target, None
@@ -2058,14 +2058,14 @@ def run_bug919_resolve_by_artifact_case():
     owner = tempfile.mkdtemp(prefix="vd-919-owner-")
     os.makedirs(os.path.join(owner, ".harness"), exist_ok=True)
     worktree = _linked_worktree_fixture(owner, "process-gaps")
-    artifact = (f"{worktree}/.harness/harness/features/FEAT-63-thing/notes/"
+    artifact = (f"{worktree}/.harness/harness/features/FEAT-96-thing/notes/"
                 f"review-harness-qa-c2.md")
     original_root_fn = validator._root_or_none
     validator._root_or_none = lambda: owner
     saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
     try:
         resolved = validator._resolve_run_unit_tests_bin(
-            {"harness_feature": "FEAT-63-thing"}, artifact)
+            {"harness_feature": "FEAT-96-thing"}, artifact)
     finally:
         validator._root_or_none = original_root_fn
         if saved_env is not None:
@@ -2183,7 +2183,7 @@ DIGEST:
   open_questions: []
   files_touched: []
   expertise_update: []
-artifact: .harness/features/FEAT-01/notes/qa.md
+artifact: .harness/features/FEAT-90/notes/qa.md
 """
 case("qa that cannot run the suite can say matrix_ok: n/a", "harness-qa", QA_NA, True)
 
@@ -2204,7 +2204,7 @@ DIGEST:
   open_questions: []
   files_touched: []
   expertise_update: []
-artifact: .harness/features/FEAT-01/notes/ui-review.md
+artifact: .harness/features/FEAT-90/notes/ui-review.md
 """, True)
 
 case("visual-designer deciding no DESIGN.md is needed may say contract: n/a",
@@ -2218,7 +2218,7 @@ DIGEST:
   open_questions: []
   files_touched: []
   expertise_update: []
-artifact: .harness/features/FEAT-01/notes/design-scope.md
+artifact: .harness/features/FEAT-90/notes/design-scope.md
 """, True)
 
 case("pm blocked before sizing may say surface: n/a and risk: n/a", "harness-pm", """
@@ -2237,7 +2237,7 @@ DIGEST:
   open_questions: []
   files_touched: []
   expertise_update: []
-artifact: .harness/features/FEAT-01/notes/pm-block.md
+artifact: .harness/features/FEAT-90/notes/pm-block.md
 """, True)
 
 # REGRESSIONS — the near-miss vocabulary DEC-121 exists to catch must still fail.
@@ -2626,7 +2626,7 @@ case("DEC-228 kind: proportionality with scope: task is accepted",
          '    - { kind: proportionality, scope: task, severity: med, reader: ui-reviewer, '
          'summary: "T-03 ships one-shot scaffolding as a durable flag", why: "the flag outlives T-03" }'),
      True)
-# The BUG-285-canonical-reader defect: four task-scope findings summed into a mission downgrade.
+# The BUG-285 defect: four task-scope findings summed into a mission downgrade.
 # Without scope the route is undecidable, so a scope-less proportionality finding is refused.
 case("DEC-228 kind: proportionality without scope is rejected, naming the entry",
      "harness-ui-reviewer", _ui_review(
@@ -2745,28 +2745,25 @@ case("FEAT-59 fail_first block-mapping entries are accepted",
      True)
 
 
-# SEC-01: `REVIEW_SHA` stands in for a feature's `feature.json` `review_sha` — a
-# real, resolvable commit, deliberately NOT `HEAD` (which moves as this repo
-# gains commits) so an honest range stays honest across test runs.
+# SEC-01: `REVIEW_SHA` stands in for a feature's `feature.json` `review_sha`,
+# deliberately NOT `HEAD`, so `HEAD..REVIEW_SHA` is never a self-consistent no-op.
 #
-# SEC-01 wave 4 (Q8): this is now FEAT-43's own real `review_sha`
-# (`.harness/harness/features/FEAT-43-code-risk-grading/feature.json`), not
-# `PRE_FEATURE_REVISION` — deliberately, because `check_reviewed_range` below
-# needs a review_sha whose TRUE, repository-derived range (`merge-base(main,
-# REVIEW_SHA)..REVIEW_SHA`) genuinely changes Python TODAY, so a forged
-# self-consistent no-op AT this pin has something real to be caught hiding.
-# Send-back 1: `check_reviewed_range`'s ambient-repo assertions no longer pin
-# WHICH wave-4 reason the claim is refused for (see N_A_REFUSAL_SUBSTRINGS) —
-# only that it IS refused — because this constant's own derived range stops
-# meaning "genuinely changes Python" the moment FEAT-43 lands on main
-# (REVIEW_SHA becomes an ancestor of origin/main: the range goes degenerate)
-# or the checkout has no `origin/HEAD` at all; the reason-level pin for each
-# of those shapes lives hermetically in `check_derived_base_range` and
-# `check_unresolvable_default_branch` instead, against purpose-built /tmp
-# repos where the environment is controlled, not ambient.
+# It is a SYNTHETIC placeholder, not a commit of this repository: every case that
+# resolves it as a git object runs inside `_hermetic_review_sha_repo`, which
+# re-points it at `make_review_sha_repo`'s purpose-built commit — a real child of
+# that repo's `origin/main` whose TRUE derived range (`merge-base(main,
+# REVIEW_SHA)..REVIEW_SHA`) genuinely changes Python, so a forged self-consistent
+# no-op AT this pin has something real to be caught hiding. (SEC-01 wave 4 once
+# pinned FEAT-43's own recorded review_sha here; that tied the suite to one
+# feature's record and to this repository's history.) Outside that block the
+# value only has to be a well-formed, non-`HEAD` revision.
+# `check_reviewed_range`'s assertions do not pin WHICH wave-4 reason the claim is
+# refused for (see N_A_REFUSAL_SUBSTRINGS) — only that it IS refused; the
+# reason-level pin for each shape lives in `check_derived_base_range` and
+# `check_unresolvable_default_branch`.
 # `PRE_FEATURE_REVISION` stays available on its own name below for the cases
 # that want an honest, resolvable ancestor with no such requirement.
-REVIEW_SHA = "94383e671e51f95d142f3220f97c8e453721d516"
+REVIEW_SHA = "5eed" * 10
 
 
 def make_feature_dir(root, review_sha=None, feat="FEAT-TEST", branch=None):
@@ -2972,7 +2969,7 @@ def run_qa_foreign_brief_case():
     root = _t09_root()
     try:
         current = make_feature_dir(root, feat=HOOK_IDENTITY["harness_feature"])
-        foreign = make_feature_dir(root, feat="FEAT-02-nonautomated")
+        foreign = make_feature_dir(root, feat="FEAT-91-nonautomated")
         _write_verification_brief(os.path.join(current, "BRIEF.md"),
                                   "- SC-01: prove behavior\n  verify: automated\n")
         _write_verification_brief(os.path.join(foreign, "BRIEF.md"),
@@ -3127,7 +3124,7 @@ def _corrupt_qa_brief(root, record, mode, foreign_root):
         target_dir = os.path.dirname(_nested_registration_source(root, record))
     else:
         target_dir = make_feature_dir(root if mode == "sibling" else foreign_root,
-                                      feat="FEAT-02-foreign")
+                                      feat="FEAT-91-foreign")
     target = os.path.join(target_dir, "BRIEF.md")
     _write_verification_brief(target, "- SC-01: inspect\n  verify: inspection\n")
     os.remove(brief)
@@ -3165,7 +3162,7 @@ def run_qa_brief_authority_cases():
 def _add_matching_worktrees(root, td):
     _write_verification_brief(os.path.join(root, ".gitignore"), ".harness/.inflight-claims.json*\n")
     _commit_file(root, "fixture.txt", "worktree fixture\n", "fixture")
-    for basename in ("FEAT-01", "FEAT-01-hook"):
+    for basename in ("FEAT-90", "FEAT-90-hook"):
         _git_quiet(root, "worktree", "add", "-q", "--detach", os.path.join(td, basename), "HEAD")
 
 
@@ -3178,7 +3175,7 @@ def _ambiguous_qa_fixture(td):
     brief_rel = os.path.relpath(os.path.join(feature_dir, "BRIEF.md"), root)
     _write_verification_brief(os.path.join(root, brief_rel), "- SC-01: inspect\n  verify: inspection\n")
     _add_matching_worktrees(root, td)
-    for basename in ("FEAT-01", "FEAT-01-hook"):
+    for basename in ("FEAT-90", "FEAT-90-hook"):
         checkout = os.path.join(td, basename)
         _write_verification_brief(os.path.join(checkout, brief_rel),
                                   "- SC-01: automated evidence\n  verify: integration\n")
@@ -3207,8 +3204,8 @@ def run_qa_ambiguous_checkout_case():
 def _single_registered_checkout(root, td):
     _initialize_test_git(root)
     _add_matching_worktrees(root, td)
-    _git_quiet(root, "worktree", "remove", "--force", os.path.join(td, "FEAT-01-hook"))
-    checkout = os.path.realpath(os.path.join(td, "FEAT-01"))
+    _git_quiet(root, "worktree", "remove", "--force", os.path.join(td, "FEAT-90-hook"))
+    checkout = os.path.realpath(os.path.join(td, "FEAT-90"))
     feature_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.join(checkout, APPEND_REL))))
     _write_verification_brief(os.path.join(feature_dir, "BRIEF.md"),
                               "- SC-01: inspect\n  verify: inspection\n")
@@ -3354,7 +3351,7 @@ def _nested_registration_source(root, record):
 def _corrupt_qa_authorization_context(root, feature_dir, mode):
     metadata = os.path.join(root, ".git", "worktrees")
     if mode in ("foreign", "nested"):
-        for basename in ("FEAT-01", "FEAT-01-hook"):
+        for basename in ("FEAT-90", "FEAT-90-hook"):
             _git_quiet(root, "worktree", "remove", "--force", os.path.join(os.path.dirname(root), basename))
         record = os.path.join(feature_dir, "feature.json")
         if mode == "nested":
@@ -3743,16 +3740,16 @@ def check_code_grade_state(validator, config, feature_dir, failures):
         failures.append("grade_2 without written reasons must reject")
 
 
-# Send-back 1 (sec01-derived-base-sendback): the three ambient-repo n_a cases
-# in `check_reviewed_range` run against THIS repository's real, live state —
-# exogenous to the defect they guard. Pinning a single wave-4 refusal reason
-# (e.g. "only valid") there is a false failure waiting to happen: the moment
-# FEAT-43 lands on main by a non-squash merge, REVIEW_SHA becomes an ancestor
-# of origin/main and the SAME correct fix refuses with "already an ancestor"
+# Send-back 1 (sec01-derived-base-sendback): the three n_a cases in
+# `check_reviewed_range` once ran against THIS repository's real, live state —
+# exogenous to the defect they guard — and still assert only membership in
+# N_A_REFUSAL_SUBSTRINGS. Pinning a single wave-4 refusal reason there is a
+# false failure waiting to happen: once review_sha is an ancestor of
+# origin/main the SAME correct fix refuses with "already an ancestor"
 # instead; a checkout with no `origin/HEAD` at all (a fresh `git init`, some
 # CI checkouts) refuses with "default branch ... could not be resolved"
-# instead. Neither is a regression. So here we assert only what the ambient
-# cases CAN prove without depending on ambient repo state: `code_grade: n_a`
+# instead. Neither is a regression. So here we assert only what these
+# cases CAN prove without depending on the repository's shape: `code_grade: n_a`
 # is refused for one of wave-4's own named reasons — never that some
 # unrelated schema error tripped instead (a bare `if errors:` would pass
 # vacuously on that). The exact-reason discrimination is not lost: each
@@ -4268,7 +4265,7 @@ def check_artifact_in_linked_worktree_binds_there(td, failures):
 
     Three agents on 2026-09-22 (FEAT-63's delta reviewer, the distill's code-expertise
     member) returned valid digests and could not yield: the artifact named
-    `<owner>/.claude/worktrees/harness/distill-FEAT-63/.harness/harness/features/FEAT-63-…`
+    `<owner>/.claude/worktrees/harness/distill-<FEAT>/.harness/harness/features/<FEAT>-…`
     and the binding joined the suffix onto the OWNER root, where a worktree-only feature
     has no record. The worktree family SEC-01 trusts is the owner root plus
     `linked_worktrees(owner_root)` — nothing digest-chosen — so an absolute path inside
@@ -5220,7 +5217,7 @@ DIGEST:
   open_questions: []
   escalations: []
   expertise_update: []
-artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
+artifact: .harness/features/FEAT-90/runs/distill-validator/digest.md
 """
 case("#1854: a member's nested block list stays inside that member",
      "harness-validator-lead", LEAD_NESTED_LIST_MEMBERS, True)
@@ -5255,7 +5252,7 @@ DIGEST:
   open_questions: []
   files_touched: [/abs/.harness/expertise/harness-qa.md]
   expertise_update: [{ op: add, target: /abs/.harness/expertise/harness-qa.md, section: Patterns, entry: "WHEN a suite is green DO record the fail-first receipt", why: "three runs lost it" }]
-artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
+artifact: .harness/features/FEAT-90/runs/distill-validator/digest.md
 """
 REVIEWER_DISTILL = """
 VERDICT: PASS
@@ -5269,7 +5266,7 @@ DIGEST:
   files_touched: [/abs/.harness/expertise/harness-code-reviewer.md]
   open_questions: []
   expertise_update: [{ op: add, target: /abs/.harness/expertise/harness-code-reviewer.md, section: Gotchas, entry: "WHEN a grade is n_a DO name the range", why: "two reviews skipped it" }]
-artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
+artifact: .harness/features/FEAT-90/runs/distill-validator/digest.md
 """
 hook_case("#1855: qa on a distill dispatch may PASS with suite/matrix_ok n/a",
           "harness-qa", QA_DISTILL, 0, harness_mission="distill")
@@ -5652,7 +5649,7 @@ def _run_groups(checks):
     return fails
 
 
-_SENTINEL_FEATURE = "BUG-1898-suite-sentinel-%d" % os.getpid()
+_SENTINEL_FEATURE = "BUG-97-suite-sentinel-%d" % os.getpid()
 
 
 def _sentinel_rows(registry):

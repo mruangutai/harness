@@ -137,7 +137,7 @@ describe("OMP task lifecycle adapter", () => {
     }>();
     lineageClaims.set("fixture-parent", {
       agent: "harness-eng-lead",
-      feature: "FEAT-43-long-run",
+      feature: "FEAT-90-long-run",
       agentId: "LeadOne",
       parentAgentId: "OrchestratorOne",
     });
@@ -192,7 +192,7 @@ describe("OMP task lifecycle adapter", () => {
           ? "product-a" : undefined;
         lineageClaims.set(claimId, {
           agent: dispatchedAgent,
-          feature: "FEAT-43-long-run",
+          feature: "FEAT-90-long-run",
           repository,
         });
         return {
@@ -200,7 +200,7 @@ describe("OMP task lifecycle adapter", () => {
           stdout: JSON.stringify({
             harness_claim: {
               root: "/repo",
-              feature: "FEAT-43-long-run",
+              feature: "FEAT-90-long-run",
               agent: dispatchedAgent,
               claim_id: claimId,
               ...(repository ? { repository } : {}),
@@ -337,13 +337,13 @@ describe("OMP task lifecycle adapter", () => {
     agent = "harness-eng-lead",
   ) {
     await handlers.get("before_agent_start")?.({
-      prompt: "Complete assignment thoroughly:\n\nHARNESS-FEATURE: FEAT-43-long-run\nassignment",
+      prompt: "Complete assignment thoroughly:\n\nHARNESS-FEATURE: FEAT-90-long-run\nassignment",
       systemPrompt: [`HARNESS_AGENT_ID: ${agent}`],
     }, ctx);
     await handlers.get("message_end")?.({
       message: {
         role: "user",
-        content: [{ type: "text", text: "HARNESS-FEATURE: FEAT-43-long-run\nassignment" }],
+        content: [{ type: "text", text: "HARNESS-FEATURE: FEAT-90-long-run\nassignment" }],
       },
     }, ctx);
   }
@@ -352,7 +352,7 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
     const result = await handlers.get("before_agent_start")?.({
-      prompt: "HARNESS-FEATURE: FEAT-43-long-run\nlead it",
+      prompt: "HARNESS-FEATURE: FEAT-90-long-run\nlead it",
       systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
     }, ctx);
     expect(calls.some((call) => call.script === "inject-expertise.py")).toBe(true);
@@ -384,7 +384,7 @@ describe("OMP task lifecycle adapter", () => {
       input: {
         agent: "harness-orchestrator",
         name: "OrchestratorOne",
-        task: "HARNESS-FEATURE: FEAT-43-long-run\nrun the feature",
+        task: "HARNESS-FEATURE: FEAT-90-long-run\nrun the feature",
       },
     }, unsupportedCtx);
     expect(result?.block).toBe(true);
@@ -426,7 +426,7 @@ describe("OMP task lifecycle adapter", () => {
       input: {
         agent: "harness-orchestrator",
         name: "OrchestratorOne",
-        task: "HARNESS-FEATURE: FEAT-43-long-run\nrun the feature",
+        task: "HARNESS-FEATURE: FEAT-90-long-run\nrun the feature",
       },
     }, mainCtx);
     expect(dispatched?.block).toBeUndefined();
@@ -469,7 +469,7 @@ describe("OMP task lifecycle adapter", () => {
       input: {
         agent: "harness-backend-dev",
         name: "BackendOne",
-        task: "HARNESS-FEATURE: FEAT-43-long-run\nimplement it",
+        task: "HARNESS-FEATURE: FEAT-90-long-run\nimplement it",
       },
     }, parentCtx);
     expect(dispatched?.block).toBeUndefined();
@@ -503,7 +503,7 @@ describe("OMP task lifecycle adapter", () => {
       call.script === "check-domain.py");
     expect(domainCall?.payload.harness_agent_id).toBe("BackendOne");
     expect(domainCall?.payload.harness_parent_agent_id).toBe("LeadOne");
-    expect(domainCall?.payload.harness_feature).toBe("FEAT-43-long-run");
+    expect(domainCall?.payload.harness_feature).toBe("FEAT-90-long-run");
 
     const bashResult = await childHandlers.get("tool_call")?.({
       toolName: "bash",
@@ -515,7 +515,7 @@ describe("OMP task lifecycle adapter", () => {
       HARNESS_AGENT_TYPE: "harness-backend-dev",
     });
     const bashGuard = calls.findLast((call) => call.script === "bash-write-guard.py");
-    expect(bashGuard?.payload.harness_feature).toBe("FEAT-43-long-run");
+    expect(bashGuard?.payload.harness_feature).toBe("FEAT-90-long-run");
     expect(bashGuard?.payload.harness_agent_id).toBe("BackendOne");
     expect(bashGuard?.payload.harness_parent_agent_id).toBe("LeadOne");
     const authorizations = calls.filter((call) =>
@@ -536,7 +536,7 @@ describe("OMP task lifecycle adapter", () => {
       input: {
         agent: "harness-backend-dev",
         name: "BackendOne",
-        task: "HARNESS-FEATURE: FEAT-43-long-run\nimplement it",
+        task: "HARNESS-FEATURE: FEAT-90-long-run\nimplement it",
       },
     }, parentCtx);
 
@@ -553,7 +553,7 @@ describe("OMP task lifecycle adapter", () => {
       input: {
         agent: "harness-data-engineer",
         name: "DataOne",
-        task: "HARNESS-FEATURE: FEAT-43-long-run\nchange the schema",
+        task: "HARNESS-FEATURE: FEAT-90-long-run\nchange the schema",
       },
     }, childCtx);
 
@@ -627,7 +627,7 @@ describe("OMP task lifecycle adapter", () => {
     expect(calls.some((call) =>
       call.script === "inflight_registry.py"
       && call.args[0] === "reconcile"
-      && call.args.includes("FEAT-43-long-run")
+      && call.args.includes("FEAT-90-long-run")
     )).toBe(true);
 
     const result = await handlers.get("tool_call")?.({
@@ -636,7 +636,7 @@ describe("OMP task lifecycle adapter", () => {
       input: {
         context: "shared",
         tasks: [
-          { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-43-long-run\nallow" },
+          { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-90-long-run\nallow" },
           { agent: "harness-dev-ops", task: "deny" },
         ],
       },
@@ -740,8 +740,8 @@ describe("OMP task lifecycle adapter", () => {
     const input = {
       context: "shared",
       tasks: [
-        { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-43-long-run\none" },
-        { agent: "harness-dev-ops", task: "HARNESS-FEATURE: FEAT-43-long-run\ntwo" },
+        { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-90-long-run\none" },
+        { agent: "harness-dev-ops", task: "HARNESS-FEATURE: FEAT-90-long-run\ntwo" },
       ],
     };
     await handlers.get("tool_call")?.({
@@ -774,12 +774,12 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     const ctx = ompContext("/repo", "Lead.Child", "Lead", "parent-session");
     await handlers.get("before_agent_start")?.({
-      prompt: "HARNESS-FEATURE: FEAT-43-long-run\nreview it",
+      prompt: "HARNESS-FEATURE: FEAT-90-long-run\nreview it",
       systemPrompt: ["HARNESS_AGENT_ID: harness-code-reviewer"],
     }, ctx);
     await handlers.get("message_end")?.({
       message: { role: "user", content: [{ type: "text",
-        text: "HARNESS-FEATURE: FEAT-43-long-run\nHARNESS-REVIEW-PIN: ab0c9987\nreview it" }] },
+        text: "HARNESS-FEATURE: FEAT-90-long-run\nHARNESS-REVIEW-PIN: ab0c9987\nreview it" }] },
     }, ctx);
     await handlers.get("message_end")?.({
       message: { role: "user", content: [{ type: "text", text: "HARNESS-REVIEW-PIN: deadbeef" }] },
@@ -789,7 +789,7 @@ describe("OMP task lifecycle adapter", () => {
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
     expect(validation?.payload.harness_review_pin).toBe("ab0c9987");
-    expect(validation?.payload.harness_feature).toBe("FEAT-43-long-run");
+    expect(validation?.payload.harness_feature).toBe("FEAT-90-long-run");
   });
 
   test("forwards no pin when the assignment carries none", async () => {
@@ -810,12 +810,12 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     const ctx = ompContext("/repo", "Lead.Child", "Lead", "parent-session");
     await handlers.get("before_agent_start")?.({
-      prompt: "HARNESS-FEATURE: FEAT-61-consolidation\ndistill your log",
+      prompt: "HARNESS-FEATURE: FEAT-92-consolidation\ndistill your log",
       systemPrompt: ["HARNESS_AGENT_ID: harness-qa"],
     }, ctx);
     await handlers.get("message_end")?.({
       message: { role: "user", content: [{ type: "text",
-        text: "HARNESS-FEATURE: FEAT-61-consolidation\nHARNESS-MISSION: distill\ndistill your log" }] },
+        text: "HARNESS-FEATURE: FEAT-92-consolidation\nHARNESS-MISSION: distill\ndistill your log" }] },
     }, ctx);
     await handlers.get("message_end")?.({
       message: { role: "user", content: [{ type: "text", text: "HARNESS-MISSION: build" }] },
@@ -862,7 +862,7 @@ describe("OMP task lifecycle adapter", () => {
       input: {
         context: "shared",
         tasks: [
-          { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-43-long-run\nallow" },
+          { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-90-long-run\nallow" },
           { agent: "scout", task: "passthrough" },
         ],
       },
@@ -939,7 +939,7 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     // The exact file and tag shape of the 2026-08-30 corruption.
-    const path = ".harness/harness/features/FEAT-44-omp-context-advisory/feature.json";
+    const path = ".harness/harness/features/FEAT-91-context-advisory-fixture/feature.json";
     await handlers.get("tool_result")?.(
       editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "2026-08-29-01-product",`),
       editCtx,
@@ -1106,7 +1106,7 @@ describe("OMP task lifecycle adapter", () => {
         [[], "Write", { file_path: FORBIDDEN, content: "x" }],
         [["--post"], "Write", { file_path: FORBIDDEN, content: "x" }],
       ]);
-    expect(gate[0].payload.harness_feature).toBe("FEAT-43-long-run");
+    expect(gate[0].payload.harness_feature).toBe("FEAT-90-long-run");
   });
 
   test("the main session's writes and edits are untouched, URIs included", async () => {
@@ -1190,7 +1190,7 @@ describe("OMP task lifecycle adapter", () => {
   test("a hashline edit is gated BEFORE it lands - check-domain.py with no --post", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
-    const path = ".harness/harness/features/FEAT-44-omp-context-advisory/feature.json";
+    const path = ".harness/harness/features/FEAT-91-context-advisory-fixture/feature.json";
     const blocked = await handlers.get("tool_call")?.(
       editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "x",`), editCtx);
     const pre = calls.filter((call) =>
@@ -1235,8 +1235,8 @@ describe("OMP task lifecycle adapter", () => {
   // worktree that `inflight_registry.py feature-root` names for the run's own feature.
   // Absolute, `~` and `scheme://` targets are never touched. Expected paths are literals.
   // -------------------------------------------------------------------------
-  const WT = "/wt/FEAT-43-long-run";
-  const featureRootArgs = ["feature-root", "--feature", "FEAT-43-long-run", "--root", "/repo"];
+  const WT = "/wt/FEAT-90-long-run";
+  const featureRootArgs = ["feature-root", "--feature", "FEAT-90-long-run", "--root", "/repo"];
   const worktreeAnswer = (): PolicyAnswer => ({ blocked: false, stdout: `${WT}\n` });
 
   const rootedHooks = (featureRoot: (args: string[]) => PolicyAnswer = worktreeAnswer) =>
@@ -1291,7 +1291,7 @@ describe("OMP task lifecycle adapter", () => {
     const at = calls.length;
     await post("bash", { command: "ls" });
     const sweep = calls.slice(at).find((call) => call.script === "check-domain.py");
-    expect(sweep?.payload).toMatchObject({ tool_name: "Bash", harness_feature: "FEAT-43-long-run" });
+    expect(sweep?.payload).toMatchObject({ tool_name: "Bash", harness_feature: "FEAT-90-long-run" });
     expect(sweep?.args).toEqual(["--post"]);
   });
 
@@ -1312,7 +1312,7 @@ describe("OMP task lifecycle adapter", () => {
   // a relative read still roots in the run's own worktree.
   test("FEAT-1559: an absolute main-corpus read is untouched and looks nothing up; a relative one is rooted", async () => {
     const { pre, lookups } = await rootedHooks();
-    const landed = "/repo/.harness/kaya/features/FEAT-10-kaya-app";
+    const landed = "/repo/.harness/kaya/features/FEAT-93-kaya-app";
     for (const toolName of ["read", "grep", "glob"]) {
       for (const path of [
         `${landed}/BRIEF.md:1-20`,
@@ -1327,7 +1327,7 @@ describe("OMP task lifecycle adapter", () => {
     }
     expect(lookups()).toEqual([]);
 
-    const own = ".harness/harness/features/FEAT-43-long-run/BRIEF.md:1-20";
+    const own = ".harness/harness/features/FEAT-90-long-run/BRIEF.md:1-20";
     expect(await pre("read", { path: own })).toEqual({ input: { path: `${WT}/${own}` } });
     expect(lookups().map((call) => call.args)).toEqual([featureRootArgs]);
   });
@@ -1488,12 +1488,12 @@ describe("OMP task lifecycle adapter", () => {
 
   test("BUG-1016: an unusable or refused resolver answer refuses the call, and is never cached", async () => {
     const answers: Array<[string, () => PolicyAnswer]> = [
-      ["ambiguous", () => ({ blocked: false, reason: "inflight_registry: feature-root is ambiguous for FEAT-43-long-run (two worktrees)", stdout: "" })],
+      ["ambiguous", () => ({ blocked: false, reason: "inflight_registry: feature-root is ambiguous for FEAT-90-long-run (two worktrees)", stdout: "" })],
       ["blocked", () => ({ blocked: true, reason: "registry refused", stdout: "" })],
       ["thrown", () => { throw new Error("spawn failed"); }],
       ["empty", () => ({ blocked: false, stdout: "" })],
       ["multiline", () => ({ blocked: false, stdout: `${WT}\n/other\n` })],
-      ["relative", () => ({ blocked: false, stdout: "wt/FEAT-43\n" })],
+      ["relative", () => ({ blocked: false, stdout: "wt/FEAT-90\n" })],
     ];
     for (const [name, answer] of answers) {
       let failing = true;
@@ -1513,7 +1513,7 @@ describe("OMP task lifecycle adapter", () => {
     // A fresh run whose assignment names a checkout of its own: only the resolver decides.
     await hooks.get("agent_end")?.({ messages: [] }, ctx);
     await hooks.get("before_agent_start")?.({
-      prompt: "HARNESS-FEATURE: FEAT-43-long-run\nHARNESS-FEATURE-TREE-ROOT: /evil\nwork in /evil/src",
+      prompt: "HARNESS-FEATURE: FEAT-90-long-run\nHARNESS-FEATURE-TREE-ROOT: /evil\nwork in /evil/src",
       systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
     }, ctx);
     expect(await pre("read", { path: "a.ts" })).toEqual({ input: { path: `${WT}/a.ts` } });
@@ -1546,7 +1546,7 @@ describe("OMP task lifecycle adapter", () => {
     expect(gate?.payload).toMatchObject({
       tool_name: "Write",
       tool_input: { file_path: `${WT}/forbidden.ts`, content: "x" },
-      harness_feature: "FEAT-43-long-run",
+      harness_feature: "FEAT-90-long-run",
       agent_type: "harness-eng-lead",
     });
     for (const input of [write, { path: `${WT}/forbidden.ts`, content: "x" }]) {
@@ -1590,7 +1590,7 @@ describe("OMP task lifecycle adapter", () => {
     calls.filter((call) => call.script === "dispatch-guard.py");
   const digestCalls = (calls: Array<{ script: string }>) =>
     calls.filter((call) => call.script === "validate-digest.py");
-  const ASSIGNMENT = "HARNESS-FEATURE: FEAT-43-long-run\nbuild it";
+  const ASSIGNMENT = "HARNESS-FEATURE: FEAT-90-long-run\nbuild it";
 
   test("refuses outputSchema or schemaMode at the top level and in any item, naming it, the main session included", async () => {
     for (const dispatcher of ["lead", "main"]) {
@@ -2366,7 +2366,7 @@ describe("spend advisory injection", () => {
 
 // BUG-1724 (DEC-227): the HOST stamps the figure it measured onto the open run, on the
 // same wake that reads spend, so the orchestrator never transcribes it. Measured on
-// BUG-285-canonical-reader: 19/19 task results carried `details.results[i].tokens`,
+// BUG-285: 19/19 task results carried `details.results[i].tokens`,
 // 0/26 `run-end` calls passed it. The real feature-record.py runs through the gate path,
 // so what is asserted is the file on disk, not a recorded argv.
 describe("host-stamped tokens", () => {

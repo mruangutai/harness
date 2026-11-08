@@ -55,7 +55,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpN:
         install_gh(tmpN, FAKE_GH_STATIONS)
         featN = stage_station(
-            tmpN, "FEAT-09-start-task",
+            tmpN, "FEAT-89-start-task",
             [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
             issues={"T-01": 41, "T-02": 326},
             parent=40,
@@ -87,7 +87,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpN2:
         install_gh(tmpN2, FAKE_GH_STATIONS)
         featN2 = stage_station(
-            tmpN2, "FEAT-09-start-task-closed-done",
+            tmpN2, "FEAT-89-start-task-closed-done",
             [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
             issues={"T-01": 41, "T-02": 326},
             parent=40,
@@ -112,7 +112,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpN3:
         install_gh(tmpN3, FAKE_GH_STATIONS)
         featN3 = stage_station(
-            tmpN3, "FEAT-09-start-task-open-backlog",
+            tmpN3, "FEAT-89-start-task-open-backlog",
             [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
             issues={"T-01": 41, "T-02": 326},
             parent=40,
@@ -137,7 +137,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpN4:
         install_gh(tmpN4, FAKE_GH_STATIONS)
         featN4 = stage_station(
-            tmpN4, "FEAT-09-start-task-open-done",
+            tmpN4, "FEAT-89-start-task-open-done",
             [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
             issues={"T-01": 41, "T-02": 326},
             parent=40,
@@ -157,7 +157,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpN5:
         install_gh(tmpN5, FAKE_GH_STATIONS)
         featN5 = stage_station(
-            tmpN5, "FEAT-09-start-task-closed-building",
+            tmpN5, "FEAT-89-start-task-closed-building",
             [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
             issues={"T-01": 41, "T-02": 326},
             parent=40,
@@ -177,7 +177,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpN6:
         install_gh(tmpN6, FAKE_GH_STATIONS_GUARD_READ_FAILS)
         featN6 = stage_station(
-            tmpN6, "FEAT-09-start-task-guard-read-fails",
+            tmpN6, "FEAT-89-start-task-guard-read-fails",
             [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
             issues={"T-01": 41, "T-02": 326},
             parent=40,
@@ -207,7 +207,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpN7:
         install_gh(tmpN7, FAKE_GH_STATIONS_CUSTOM)
         featN7 = stage_station(
-            tmpN7, "FEAT-09-start-task-custom-stations",
+            tmpN7, "FEAT-89-start-task-custom-stations",
             [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
             issues={"T-01": 41, "T-02": 326},
             parent=40,
@@ -255,7 +255,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpO:
         install_gh(tmpO, FAKE_GH_STATIONS)
         featO = stage_station(
-            tmpO, "FEAT-09-close-last-task",
+            tmpO, "FEAT-89-close-last-task",
             [("T-01", "done"), ("T-02", "done"), ("T-03", "done")],
             issues={"T-01": 41, "T-02": 42, "T-03": 43},
             parent=40,
@@ -287,7 +287,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpP:
         install_gh(tmpP, FAKE_GH_STATIONS)
         featP = stage_station(
-            tmpP, "FEAT-09-done-exempt",
+            tmpP, "FEAT-89-done-exempt",
             [("T-01", "done")],
             issues={"T-01": 41},
             parent=40,
@@ -313,7 +313,7 @@ def main():
     # that does. SHIP_EDIT_FAIL picks which single card's write fails.
     with tempfile.TemporaryDirectory() as tmpQ1:
         install_gh(tmpQ1, FAKE_GH_SHIP)
-        featQ1 = stage_ship(tmpQ1, "FEAT-09-loud-item-edit-fails", {"T-01": 41, "T-02": 42},
+        featQ1 = stage_ship(tmpQ1, "FEAT-89-loud-item-edit-fails", {"T-01": 41, "T-02": 42},
                              parent=40)
         r = run(["start-task", featQ1, "T-02"], tmpQ1,
                 ship_env(tmpQ1, "40=Building 41=Building 42=Backlog", SHIP_EDIT_FAIL="ITEM_42"))
@@ -336,7 +336,7 @@ def main():
     #     has simply stopped writing anything.
     with tempfile.TemporaryDirectory() as tmpQ2:
         featQ2 = stage_station(
-            tmpQ2, "FEAT-09-loud-gh-absent",
+            tmpQ2, "FEAT-89-loud-gh-absent",
             [("T-01", "done"), ("T-02", "done")],
             issues={"T-01": 41, "T-02": 42},
             parent=40,
@@ -356,7 +356,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpR:
         install_gh(tmpR, FAKE_GH_STATIONS)
         featR = stage_station(
-            tmpR, "FEAT-09-no-board",
+            tmpR, "FEAT-89-no-board",
             [("T-01", "done"), ("T-02", "building")],
             issues={},
             board=False,
@@ -390,7 +390,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpW:
         install_gh(tmpW, FAKE_GH_STATIONS)
         featW = stage_station(
-            tmpW, "FEAT-24-unusable-board",
+            tmpW, "FEAT-88-unusable-board",
             [("T-01", "done")],
             issues={},
         )
@@ -417,7 +417,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpPW:
         install_gh(tmpPW, FAKE_GH_STATIONS)
         featPW = stage_station(
-            tmpPW, "FEAT-09-plan-write-fails",
+            tmpPW, "FEAT-89-plan-write-fails",
             [("T-01", "done"), ("T-02", "building")],
             issues={"T-01": 41, "T-99": 326},
             parent=40,
@@ -483,22 +483,26 @@ def main():
     # ---------- T-04 (BUG-1309): start-task's Build-entry preflight ----------
     # A feature with no receipt is refused and pointed at the subcommand that would mint one —
     # `open` for a plan still in flight, `recover-terminal` for one whose stations are already
-    # done — unless its name is in the era-exempt set, which continues with a warning.
+    # done. The rule is uniform: no feature name exempts itself from it.
     with tempfile.TemporaryDirectory() as tmpT04:
         install_gh(tmpT04, FAKE_GH_STATIONS)
-        feat = stage_station(tmpT04, "FEAT-9001-fixture-non-era", [("T-01", "ready")],
+        feat = stage_station(tmpT04, "FEAT-9001-fixture-no-receipt", [("T-01", "ready")],
                              issues={"T-01": 41})
         _without_build_entry(feat)
         result = run(["start-task", feat, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
-        check("T-04 non-era absent refuses", result.returncode == 2 and "gh-sync.py open" in result.stdout,
+        check("T-04 absent receipt refuses", result.returncode == 2 and "gh-sync.py open" in result.stdout,
               result.stdout)
-        bug = stage_station(tmpT04, "BUG-9001-fixture-non-era", [("T-01", "ready")],
+        bug = stage_station(tmpT04, "BUG-9001-fixture-no-receipt", [("T-01", "ready")],
                             issues={"T-01": 42})
         _without_build_entry(bug)
         result = run(["start-task", bug, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
-        check("T-04 BUG-named non-era absent refuses", result.returncode == 2 and "gh-sync.py open" in result.stdout,
+        check("T-04 BUG-named absent receipt refuses", result.returncode == 2 and "gh-sync.py open" in result.stdout,
               result.stdout)
-        write_plan_yaml(feat, "FEAT-9001-fixture-non-era", [("T-01", "done")])
+        result = run(["start-task", feat + "/", "T-01"], tmpT04,
+                     {"FACTORY_GH": os.path.join(tmpT04, "gh")})
+        check("T-12 absent receipt with a trailing slash refuses the same way",
+              result.returncode == 2 and "gh-sync.py open" in result.stdout, result.stdout)
+        write_plan_yaml(feat, "FEAT-9001-fixture-no-receipt", [("T-01", "done")])
         result = run(["start-task", feat, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
         check("T-04 station discriminator", result.returncode == 2 and "recover-terminal" in result.stdout
               and "open" not in result.stdout.lower(), result.stdout)
@@ -512,20 +516,11 @@ def main():
         expected_command = feature_schema.recovery_command_for(recovery)
         result = run(["start-task", recovery, "T-01"], tmpT04,
                      {"FACTORY_GH": os.path.join(tmpT04, "gh")})
-        check("T-04 recovery-required non-era recover-terminal horn names the derived command",
+        check("T-04 recovery-required recover-terminal horn names the derived command",
               result.returncode == 0 and expected_command == "recover-terminal"
               and expected_command in result.stderr and " --yes" in result.stderr
               and "open" not in result.stderr.lower(),
               result.stderr)
-        era = stage_station(tmpT04, "BUG-1030-stale-anchor-write-hazard", [("T-01", "ready")],
-                            issues={"T-01": 43})
-        _without_build_entry(era)
-        result = run(["start-task", era, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
-        check("T-04 era-exempt continues", result.returncode == 0 and "predates" in result.stderr, result.stderr)
-        result = run(["start-task", era + "/", "T-01"], tmpT04,
-                     {"FACTORY_GH": os.path.join(tmpT04, "gh")})
-        check("T-12 era-exempt trailing slash continues", result.returncode == 0
-              and "predates" in result.stderr, result.stderr)
 
     # =============================================================================================
     # BUG-201 (D-05, REQ-05): the two swallowing consumers' failing diagnosis cases (T-05).

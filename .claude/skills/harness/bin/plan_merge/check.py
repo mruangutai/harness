@@ -178,7 +178,7 @@ def _overlap_lines(tasks):
     anchor form reduces to its path, so `a.py#foo` in T-01 and `{path: a.py, quote}` in T-02
     are the same shared file. Advisory because a shared file is sometimes right (a fixture two
     tasks extend) — but a plan whose tasks are LAYERS over the same files gates each one against
-    a tree the next one will move, and BUG-285-canonical-reader paid five of ten cycles for
+    a tree the next one will move, and BUG-285 paid five of ten cycles for
     exactly that before anything said so."""
     owners = {}
     for task in tasks:

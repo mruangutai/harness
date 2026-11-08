@@ -3050,7 +3050,7 @@ def case_f59_check_lists_each_failure_on_its_own_line():
         shutil.rmtree(root, ignore_errors=True)
 
 def case_bug1725_check_names_files_shared_by_tasks():
-    """BUG-1725 (#1713 Finding 3): five of BUG-285-canonical-reader's ten cycles were one task's
+    """BUG-1725 (#1713 Finding 3): five of BUG-285's ten cycles were one task's
     gate tripping on another task's half-built tree, because the plan layered tasks over shared
     files and nothing said so at draft. `check` now prints ONE `OVERLAP <path>: T-a, T-b` line
     per normalized path named by two or more tasks — every anchor form reduces to its path — and
@@ -3377,10 +3377,10 @@ def case_1683_set_key_writes_any_top_level_key():
         check("set-key keeps the comment introducing the next key, the approval bytes and the "
               "tasks", "# approval header comment\n" + APPROVED_APPROVAL in after
               and task_block("T-01") in after and after.count("source_issues:") == 1, after)
-        r = set_key(plan, value, "notes_ref", "notes/research-BUG-285.md\n")
+        r = set_key(plan, value, "notes_ref", "notes/research-BUG-9-x.md\n")
         after = read(plan)
         check("set-key inserts an absent key before tasks: and it reloads",
-              r.returncode == 0 and yaml.safe_load(after)["notes_ref"] == "notes/research-BUG-285.md"
+              r.returncode == 0 and yaml.safe_load(after)["notes_ref"] == "notes/research-BUG-9-x.md"
               and after.index("notes_ref:") < after.index("tasks:"), f"rc={r.returncode} {after}")
     finally:
         shutil.rmtree(root, ignore_errors=True)

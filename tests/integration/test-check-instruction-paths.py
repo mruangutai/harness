@@ -53,7 +53,7 @@ def case_landed_feature_reads():
     """FEAT-1559 (amends DEC-214): a CONCRETE feature id names a landed record, so a path into it
     is a READ of the main corpus and takes the control-plane anchor; a sparse worktree does not
     hold it. A placeholder names the active feature, a write target, and keeps the feature tree."""
-    landed = ".harness/harness/features/FEAT-23-ship-flow-fixes/notes/source.md"
+    landed = ".harness/harness/features/FEAT-90-fixture-landed/notes/source.md"
     root, _ = make_root(f"`<HARNESS_CONTROL_PLANE_ROOT>/{landed}`\n"
                         f"```\n<HARNESS_CONTROL_PLANE_ROOT>/.harness/kaya/features/BUG-7-x/BRIEF.md\n```\n")
     clean = run(root)

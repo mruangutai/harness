@@ -3825,9 +3825,9 @@ nothing may ever require it, or a crash becomes unrecoverable.
 **Enforcement, the digest pattern (DEC-156) pointed at a new artifact:** the DEC-150 write-time
 shape gate demands all five sections and the 60-line whole-file cap, and validates the `## Done
 when` block's shape, pointer grammar, and target resolution while the author is still alive to fix
-it. `check-state.py` INV-17 demands all five sections except from the frozen baseline of notes that
-predate this contract; whenever the fifth section is present, INV-17 checks its shape and pointer
-grammar but never re-resolves a target.
+it. `check-state.py` INV-17 demands all five sections of every handoff note, with no baseline
+exemption; INV-17 checks the fifth section's shape and pointer grammar but never re-resolves a
+target.
 
 **The in-flight warning, and the metric it is not.** The watchdog is no longer only a post-hoc
 audit: a running `harness-orchestrator` is told, in its OWN context while it runs, that its
@@ -4261,7 +4261,7 @@ also stands — no CLI, no build step, no template generator.
 **What forced it.** Issue #11: `check-state.py`'s run parser is a three-line regex,
 `id:\s*(\S+)\s*\n\s*squad:\s*(\S+)\s*\n\s*verdict:\s*(\S+)`. Because `\s*\n` admits only whitespace
 after the `id:` and `squad:` captures, a trailing `# comment` — legal YAML, and the house style on
-45 lines of `FEAT-03-subissue-mirror/feature.yaml` — makes the match fail and drops the **entire
+45 lines of FEAT-03-subissue-mirror's `feature.yaml` — makes the match fail and drops the **entire
 run** from `runs`. That silently fails open on three invariants at once: INV-6 (`review_sha` pinned
 when a validator run exists), INV-7 (`cycles_used` >= FAIL count), INV-8 (run dir exists). Exit 0,
 no message. It has not fired only because the two vulnerable lines happen to carry no comments, and
@@ -4379,7 +4379,7 @@ It now reads `suite: n/a` and validates in both CLI and hook mode.
 **NOT fixed here, and both need a decision rather than a patch:**
 
 1. **B-13, the `lead` row** (recorded under Open Questions in
-   `FEAT-03-subissue-mirror/STATE.md`, raised independently by product-lead and validator-lead).
+   FEAT-03-subissue-mirror's `STATE.md`, raised independently by product-lead and validator-lead).
    `members: []` with `steps_run > 0` is rejected as "never
    legitimate", but a lead applying its own Expertise ops genuinely self-executes a step. This is
    doctrinal — *may a lead execute work at all?* `harness-zero-micro-management` says route, never do;
@@ -4897,8 +4897,8 @@ three routes pass both. The mixed tuple arity that made the gap easy to miss —
 
 A comment justifying the original fix claimed the stripped form "still carries `FEAT-NN` — enough to
 tell two checkouts apart". A reviewer falsified that against this repo the same day: two live worktrees
-emitted findings naming the identical strings `FEAT-02/STATE.md` and
-`FEAT-05-pyyaml-file-parsers/STATE.md`. Stripping collapses every checkout onto one name for state
+emitted findings naming identical feature-id-plus-`STATE.md` strings, one for FEAT-02 and one for
+FEAT-05-pyyaml-file-parsers. Stripping collapses every checkout onto one name for state
 files as much as for `CLAUDE.md`; the latter is only where it is most obvious.
 
 **PyYAML's C loader, folded in on measurement.** `harness_yaml.py` subclassed the pure-Python
@@ -4913,7 +4913,7 @@ sweep's own performance argument by 7.7x, which is a reason to record it plainly
 measured rather than tidy.** It is the backstop for a session where the `PostToolUse` half was never
 registered — which INV-9 now asserts against separately, because the pre-existing check passes on a
 tree carrying only the `PreToolUse` half. Run against this tree the day it landed, INV-23 found
-`FEAT-05/STATE.md` at 165 lines against a 120 budget with five illegal sections, and `FEAT-02/STATE.md`
+FEAT-05's `STATE.md` at 165 lines against a 120 budget with five illegal sections, and FEAT-02's `STATE.md`
 with five more, both predating the gate. Making those halt `/harness` entry would convert a reporting
 backstop into an unrelated cleanup that has to land first. The write-time gate is the one with teeth.
 
@@ -5004,7 +5004,7 @@ ruling — which is exactly why issue #147 could be filed and could not be answe
 
 **Measured, not argued.** `harness_yaml.load_str` over every task block in the four live plans fails
 **43 of 44 times**. 26 because `files:` begins with a backtick, a reserved YAML indicator; 4 the same
-on `verify:`; one — `execution_mode: **SPLIT` at `FEAT-08/PLAN.md:306` — raises *"while scanning an
+on `verify:`; one — `execution_mode: **SPLIT` at line 306 of FEAT-08's `PLAN.md` — raises *"while scanning an
 alias"*. Meanwhile `intent:` and `verify:` already use folded `>` scalars in 64 places: the authors
 were writing YAML-shaped values all along, and only the markdown-decorated fields broke.
 `SPEC.md:1701-1702`, the NORMATIVE example, was itself illegal YAML — three keys on one line — and
@@ -5739,8 +5739,8 @@ reader carrying four checklists is not the same pass and must not be substituted
 **The two measurements that forced the position.** On FEAT-20 the pass ran after the validator's
 PASS at `6296149`; the apply commit moved the tip, invalidated the pinned verdict and cost a third
 validator round. On FEAT-22 the pass ran after the operator's signature and zero findings could be
-applied — four binding notes now sit beside the signed text in
-`notes/simplify-pass-2026-08-16.md` instead of inside it.
+applied — four binding notes now sit beside the signed text in a separate simplify-pass note
+instead of inside it.
 
 **Why never the validator lead: the fixer is never the judge.** The validation tier's FAILs stick
 precisely because it is read-only on the source it rules on and could not have quietly fixed
@@ -5749,9 +5749,8 @@ something and then forgiven it. A seat that has applied edits to a diff cannot c
 **Why harness-native.** The methodology previously existed only in one session's dispatch prompts
 and in a plugin shipping outside this repository. A workflow step that depends on either breaks
 silently on a machine lacking it, which is the quiet-degradation shape the files-only constraint
-exists to prevent. The prompts are preserved verbatim in
-`.harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-simplify-angles-source.md`
-and the procedure ships at `.claude/skills/harness-simplify/SKILL.md`, read at the point of use and
+exists to prevent. The prompts were preserved verbatim in FEAT-23's research notes, and the
+procedure ships at `.claude/skills/harness-simplify/SKILL.md`, read at the point of use and
 deliberately not preloaded.
 
 **The rejected alternative: a dedicated `harness-simplifier` agent.** Considered and refused. DEC-107
@@ -6089,10 +6088,10 @@ the sidecar yet. A claim that was right and became inapplicable is not a claim t
 
 **The evidence for the replacement and its limits, recorded because the permanent record must not
 overstate.** It was measured on ONE OMP build, twice, on one machine (2026-08-28 and 2026-08-29).
-The probe and its raw output are committed at
-`.harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md`. **Version-floor risk:**
+The probe extension and its measured result are committed at `tests/manual/probe-session-accessors.ts`
+and in the docstring of `tests/manual/probe-omp-session-accessor.py`. **Version-floor risk:**
 a later OMP may rename or drop the accessor. That is not an unwatched assumption —
-`.claude/skills/harness/bin/probe-omp-session-accessor.py` dispatches a real subagent under the
+`tests/manual/probe-omp-session-accessor.py` dispatches a real subagent under the
 committed probe and fails, never skips, if the accessor stops resolving. **It is a MANUAL check, not
 a CI gate** — it needs the omp binary and live model credentials, and CI has neither — so the risk is
 watched by something a human must run. This is one build's observed behaviour, not a timeless
@@ -6568,9 +6567,6 @@ The port checker rejects drift in:
 - a lifecycle listener registered anywhere but `pi.events`;
 - the GitHub close gate.
 
-The live `tests/manual/probe-inflight-claim-lifecycle.py` is the credentialled merge gate for a
-change to this lifecycle.
-
 This decision supersedes DEC-199 only for claim schema, key, liveness, and automated recovery. It
 supersedes DEC-201's host-specific mechanics for OMP while preserving its no-wait conduct and
 evidence standard. DEC-202 still owns canonical paths and provider overlays. DEC-203 still owns
@@ -6933,7 +6929,7 @@ directory; renaming `is_control_plane_target`, because the behaviour would be id
 enforcement-layer churn buys nothing; and retaining registration arrays as a directory
 cross-check, because that recreates the two-readers failure one level lower.
 
-**Amended by BUG-1286-test-tree-enforcement — the predicate's reach, not its principle.** This entry's "One predicate guards the shape" enumerates an empty kind directory, a duplicated basename, and any test-shaped file left under bin. `suite_layout.violations` now additionally refuses every tracked test-shaped file outside `tests/`, and the authoritative vocabulary FOR THAT CLAUSE is TWO pattern groups with deliberately different extension policies — `RESTRICTED_NAME_PATTERNS`, refused only at one of `SOURCE_EXTENSIONS`, and `AGNOSTIC_NAME_PATTERNS`, refused whatever the extension — all three defined in `.claude/skills/harness/bin/suite_layout.py`, which is the authority and is not re-listed here. The consequence differs per group, so it is stated per group: a record of a probe carrying a non-source extension is deliberately OUT of scope of the repository-wide clause, while a file matching the agnostic group is in scope at ANY extension. That extension restriction governs one group inside one clause — it is not a property of the whole vocabulary, and it does not hold in the other clauses. Governing semantics, because the whole claim rests on them: the only mechanical consumer of `harness.json` `test_kinds` `detect` is `code_grade._is_test_path`, which `fnmatch`-matches the FULL relative path against every `detect` pattern of every kind whose status is `active` or `locally_run`, minus that kind's `exclude`, and `fnmatch` has no `**` operator, so a bare `*` crosses `/`. The clause is therefore a SUPERSET obligation across all running kinds — it must refuse at least every tracked path outside `tests/` that this matcher counts — rather than a mirror of any one kind's `detect`, and it additionally carries the manual-probe source-name rule that no `detect` pattern expresses. The superset property is ENFORCED BY AN ASSERTION rather than by a snapshot of a `detect` value: `tests/unit/test-suite-layout.py` case 11 reads `test_kinds` at test time, calls that same matcher, and requires every tracked path outside `tests/` the matcher counts to be judged test-shaped by `suite_layout.is_test_shaped` and to be no documented exception, so a counted-but-permitted file reddens the unit suite. One consequence of the running-kind scope that a future dev-ops task will meet: the invariant is stated over the kinds that RUN, so ACTIVATING a kind that carries no runner today extends the guard's obligation to that kind's discovery surface, and the remedy is to widen the vocabulary or to record the scope here; `suite_layout.py` stays the vocabulary authority. The bin clause is RETAINED beside the new one, unchanged and with its own deliberately unrestricted `probe-*` glob, because it reads the filesystem and so catches untracked plants that an index scan cannot see — a probe-shaped file under bin is refused whatever its extension, and a path the bin clause already reported is not reported twice. The bin-only enumeration above is superseded as a statement of the predicate's REACH, not as a rule. The authoritative tracked set is the Git index read in the root, active only under the three conditions `suite_layout.py`'s repository-wide clause tests (see that module); DEC-189 records why a product checkout is worked from a harness-rooted session, and that argument is not restated here. A root with no index at all keeps the other clauses and contributes nothing here, which is what the synthetic layout fixtures require, while an unreadable index in a root that claims to be a checkout is reported as a violation and never as a clean result. Exceptions are exact paths in one `DOCUMENTED_EXCEPTIONS` registry inside the predicate, and a glob, a duplicate, an untracked entry and an unnecessary entry are each themselves a violation; the sole live entry is FEAT-44's `evidence/probe-session-accessors.ts`, classified evidence consumed by `tests/manual/probe-omp-session-accessor.py`. The "What this does not do" paragraph above still holds for bin support modules such as `layout_fixtures.py`, which is not test-shaped and needs no exception.
+**Amended by BUG-1286-test-tree-enforcement — the predicate's reach, not its principle.** This entry's "One predicate guards the shape" enumerates an empty kind directory, a duplicated basename, and any test-shaped file left under bin. `suite_layout.violations` now additionally refuses every tracked test-shaped file outside `tests/`, and the authoritative vocabulary FOR THAT CLAUSE is TWO pattern groups with deliberately different extension policies — `RESTRICTED_NAME_PATTERNS`, refused only at one of `SOURCE_EXTENSIONS`, and `AGNOSTIC_NAME_PATTERNS`, refused whatever the extension — all three defined in `.claude/skills/harness/bin/suite_layout.py`, which is the authority and is not re-listed here. The consequence differs per group, so it is stated per group: a record of a probe carrying a non-source extension is deliberately OUT of scope of the repository-wide clause, while a file matching the agnostic group is in scope at ANY extension. That extension restriction governs one group inside one clause — it is not a property of the whole vocabulary, and it does not hold in the other clauses. Governing semantics, because the whole claim rests on them: the only mechanical consumer of `harness.json` `test_kinds` `detect` is `code_grade._is_test_path`, which `fnmatch`-matches the FULL relative path against every `detect` pattern of every kind whose status is `active` or `locally_run`, minus that kind's `exclude`, and `fnmatch` has no `**` operator, so a bare `*` crosses `/`. The clause is therefore a SUPERSET obligation across all running kinds — it must refuse at least every tracked path outside `tests/` that this matcher counts — rather than a mirror of any one kind's `detect`, and it additionally carries the manual-probe source-name rule that no `detect` pattern expresses. The superset property is ENFORCED BY AN ASSERTION rather than by a snapshot of a `detect` value: `tests/unit/test-suite-layout.py` case 11 reads `test_kinds` at test time, calls that same matcher, and requires every tracked path outside `tests/` the matcher counts to be judged test-shaped by `suite_layout.is_test_shaped` and to be no documented exception, so a counted-but-permitted file reddens the unit suite. One consequence of the running-kind scope that a future dev-ops task will meet: the invariant is stated over the kinds that RUN, so ACTIVATING a kind that carries no runner today extends the guard's obligation to that kind's discovery surface, and the remedy is to widen the vocabulary or to record the scope here; `suite_layout.py` stays the vocabulary authority. The bin clause is RETAINED beside the new one, unchanged and with its own deliberately unrestricted `probe-*` glob, because it reads the filesystem and so catches untracked plants that an index scan cannot see — a probe-shaped file under bin is refused whatever its extension, and a path the bin clause already reported is not reported twice. The bin-only enumeration above is superseded as a statement of the predicate's REACH, not as a rule. The authoritative tracked set is the Git index read in the root, active only under the three conditions `suite_layout.py`'s repository-wide clause tests (see that module); DEC-189 records why a product checkout is worked from a harness-rooted session, and that argument is not restated here. A root with no index at all keeps the other clauses and contributes nothing here, which is what the synthetic layout fixtures require, while an unreadable index in a root that claims to be a checkout is reported as a violation and never as a clean result. Exceptions are exact paths in one `DOCUMENTED_EXCEPTIONS` registry inside the predicate, and a glob, a duplicate, an untracked entry and an unnecessary entry are each themselves a violation; the registry is empty: its one former entry, the OMP extension `tests/manual/probe-omp-session-accessor.py` loads, now lives at `tests/manual/probe-session-accessors.ts`, where it needs no exception. The "What this does not do" paragraph above still holds for bin support modules such as `layout_fixtures.py`, which is not test-shaped and needs no exception.
 
 ## DEC-214 — Instruction paths take two anchors: an injected control-plane root for every read, and a dispatch-resolved feature-tree root for every write
 
@@ -7018,18 +7014,17 @@ completion boundary of the one immediate action in `## Next` with exactly one `S
 to four typed `Authority:` lines, all of which must be satisfied. The only legal authority types are
 `plan-task:`, `brief-sc:`, `finding:`, and `approval:`.
 
-**Historical notes remain valid by a frozen fact, not by weakening the contract.**
-`.harness/harness.json` carries the per-project `handoff_done_when_baseline`: the paths of notes that
-predate this contract. INV-17 exempts only those paths from fifth-section presence. A new or edited
-note must carry the section; a baselined note that already carries it is still checked for shape and
-pointer grammar.
+**Every handoff note carries the section; there is no historical baseline.** INV-17 demands all
+five sections, `## Done when` included, of every existing handoff note, and checks the section's
+shape and pointer grammar. No per-project list of notes predating this contract exempts any note
+from fifth-section presence.
 
 **Resolution is a write-time obligation with one implementation.**
 `.claude/skills/harness/bin/handoff_done_when.py` is the single parser and resolver used by both
 gates, applying DEC-179's rule that a second implementation may not drift from the governing one.
 The write gate calls it with target resolution enabled and resolves every pointer. The
 persisted-corpus INV-17 pass calls the same implementation with target resolution disabled: it
-checks required presence under the frozen baseline, block shape, and typed-pointer grammar, but
+checks required presence, block shape, and typed-pointer grammar, but
 never re-resolves a target (D-10). A later target edit therefore cannot invalidate an untouched note
 that was valid when written.
 
@@ -7195,9 +7190,11 @@ created it is the one that resolves it, with no second destination, so
 `feature_schema.effective_recorded_repo` reads that absence as the owner repository. A bound
 feature's absence stays unproven, and an explicit mismatch is refused everywhere. Writers persist
 `github.repo`; nothing backfills history. INV-37, merge,
-sweep and lifecycle projection share this proof and the recovery command formatter. Existing frozen
-exception sets and legal `not-applicable` receipts stay unchanged; sweep retains its stricter
-absent-only era exception. `recovery-required` may continue compatible Build but still gates merge.
+sweep and lifecycle projection share this proof and the recovery command formatter. Legal
+`not-applicable` receipts stay unchanged. No feature is exempt from the receipt by its age: there
+is no era exception set, so merge and sweep apply the same receipt predicate to every feature, and a
+feature without a valid receipt takes `open` or explicit recovery like any other.
+`recovery-required` may continue compatible Build but still gates merge.
 
 **Replacement recovery is main-owned, explicit and never retroactive.**
 `gh-sync.py recover-mirror <feat> --previous-repo <owner/name> --evidence <authorization> --yes`
@@ -7732,7 +7729,7 @@ symbol renamed after plan exit; the builder's re-resolution is the second and la
 
 **Record:** refs DEC-177, DEC-179, DEC-205, DEC-228, DEC-229.
 
-**The field-citation evidence beside the path evidence (moved from `harness-spec-driven` under FEAT-60).** Two failure shapes, both measured on the pilot host's FEAT-03 where four citations were stale before the build began: `feature.json:41` was cited four times for `parent: none`, the orchestrator rewrote that file every run, and line 41 became `squad: eng`; and "check-state.py exits 1" went stale the moment the user signed the approval — the signature itself changed the answer, so a claim is written as `observed exit 1 at <sha>, BRIEF pending` so a later reader can tell drift from falsification. A bare number is unfalsifiable and therefore unverifiable. Nothing false is asserted when either rots, which is exactly why neither gets caught: the claim survives while the pointer dies, and both are `verify:` inputs, so a rotted anchor sends a doer to the wrong place with a correct instruction.
+**The field-citation evidence beside the path evidence (moved from `harness-spec-driven` under FEAT-60).** Two failure shapes, both measured on the pilot host's FEAT-03 where four citations were stale before the build began: line 41 of the feature's `feature.json` was cited four times for `parent: none`, the orchestrator rewrote that file every run, and line 41 became `squad: eng`; and "check-state.py exits 1" went stale the moment the user signed the approval — the signature itself changed the answer, so a claim is written as `observed exit 1 at <sha>, BRIEF pending` so a later reader can tell drift from falsification. A bare number is unfalsifiable and therefore unverifiable. Nothing false is asserted when either rots, which is exactly why neither gets caught: the claim survives while the pointer dies, and both are `verify:` inputs, so a rotted anchor sends a doer to the wrong place with a correct instruction.
 
 ## DEC-233 — OMP is the only Harness host; the Claude Code compatibility layer is removed
 
@@ -8051,9 +8048,10 @@ both narrower and simpler than inventing secret transport.
 
 **Evidence and execution.** Deterministic integration cases cover two products, same-persona
 siblings, repeated valid writes, cross-product and wrong-parent attempts, a run with no repository
-receipt, every named fail-closed state, release revocation, and non-disclosure. The live lineage
-evidence is BUG-1898's locally-run `inflight_claim_lifecycle_live` probe, since #2000 retired
-Harness's own runtime pin and lineage probe once upstream OMP shipped `ctx.agent`. This
+receipt, every named fail-closed state, release revocation, and non-disclosure. The lineage was
+proven live once, at FEAT-495; no standing live probe exists. BUG-1898's locally-run lifecycle
+probe was retired by the operator, and #2000 had already retired Harness's own runtime pin and
+lineage probe once upstream OMP shipped `ctx.agent`. This
 enforcement-layer change was executed directly in a feature worktree under DEC-174.
 
 Lineage: DEC-174, DEC-179, DEC-189, DEC-193, DEC-204, DEC-218, and DEC-233.
@@ -8131,7 +8129,7 @@ DEC-233 still makes OMP the only Harness host; no Claude adapter is restored. Un
 T-01's enforcement code and tests were main-session-direct; this decision and index are
 documentation only, and any new gate change requires a main-session-direct plan amendment.
 Implementation: `.omp/extensions/harness-hooks.ts`, `registerHarnessHooks` and its rooting
-helpers. Preserved evidence: BUG-1016's `notes/t01-receipts-main-session.md`, commit
+helpers. Preserved evidence: BUG-1016's T-01 main-session receipts note, commit
 `10f38a42`, and `tests/unit/omp-hooks.test.ts`'s OMP task lifecycle adapter cases. SC-07
 requires inspection of the decision, index, implementation and tests at pinned `review_sha`;
 the read-only index verification proves index consistency only, not adapter behavior.

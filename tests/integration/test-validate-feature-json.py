@@ -94,7 +94,7 @@ def full_doc():
         "max_total_cycles": 8,
         # `agent` added by FEAT-31 T-15: full_doc means "a realistic VALID document",
         # and a run entry written today must name its agent (SC-07). Without it these
-        # cases would fail on the positional rule rather than on the eleven-key shape
+        # cases would fail on the agent rule rather than on the eleven-key shape
         # they exist to test. The rule's own cases below drive the missing case
         # deliberately.
         "runs": [{"id": "r1", "squad": "code", "verdict": "PASS", "agent": "harness-qa"}],
@@ -602,19 +602,12 @@ def case_accepted_github_block_without_build_entry():
     check("accepted_github_block_without_build_entry", problems == [], problems)
 
 # ---------------------------------------------------------------------------
-# SC-07's positional agent rule (FEAT-31 T-15). Read D-23.
-#
-# The two halves are in tension: a NEW entry omitting `agent` must be refused, and
-# every feature.json already on disk must still validate. These cases assert BOTH,
-# and the boundary case is the one that proves the rule bites at the right index.
+# SC-07's agent rule (FEAT-31 T-15; made uniform by FEAT-71). Every runs entry must
+# name its agent, at every index, under every feature directory name — no feature and
+# no index is exempt.
 # ---------------------------------------------------------------------------
 
-# A feature name that is NOT in the frozen map, so its exempt count is 0 and its very
-# first entry is required to carry the field. Asserted rather than assumed, because a
-# name that turned out to be IN the map would make case A pass for the wrong reason.
-T15_UNKNOWN_FEATURE = "FEAT-99-not-in-the-frozen-map"
-# One that IS, read from the map itself so the fixture cannot drift from the source.
-T15_KNOWN_FEATURE = "FEAT-10-software-factory"
+T15_FEATURE = "FEAT-90-fixture"
 
 
 def _t15_display(feature, root="/tmp/x"):
@@ -627,68 +620,62 @@ def _t15_doc(entries):
     return json.dumps(d)
 
 
-def case_t15_refused_when_absent_from_map():
-    """CASE A, REFUSED. A feature absent from the frozen map has exempt count 0, so
-    its index-0 entry must carry `agent`. The TEXT is asserted, not merely the count:
-    an unrelated problem would otherwise satisfy this case."""
-    check("t15_unknown_feature_really_is_absent_from_the_map",
-          T15_UNKNOWN_FEATURE not in feature_schema.RUNS_AGENT_EXEMPT,
-          f"{T15_UNKNOWN_FEATURE} is in the map, so case A would prove nothing")
+def _t15_probe_displays():
+    """Synthetic display paths PLUS one per feature_id_probe_support.held_feature_ids(
+    feature_schema), so a reintroduced per-feature exemption table is probed without this
+    file naming any real feature."""
+    from feature_id_probe_support import held_feature_ids
+    names = [T15_FEATURE, "BUG-9-x"] + held_feature_ids(feature_schema)
+    return [_t15_display(n) for n in names] + ["/tmp/x/no-features-segment/feature.json"]
+
+
+def case_t15_refused_without_agent():
+    """CASE A, REFUSED. An index-0 entry without `agent` is refused. The TEXT is asserted,
+    not merely the count: an unrelated problem would otherwise satisfy this case."""
     probs = feature_schema.problems_for_text(
         _t15_doc([{"id": "r1", "squad": "code", "verdict": "PASS"}]),
-        _t15_display(T15_UNKNOWN_FEATURE))
+        _t15_display(T15_FEATURE))
     hit = [p for p in probs if "runs[0]" in p and "'agent'" in p]
     check("t15_a_entry_without_agent_is_refused_and_names_index_and_key",
           len(hit) == 1, f"{probs}")
 
 
-def case_t15_existing_entries_still_validate():
-    """CASE B, THE OTHER HALF. A feature IN the map, with exactly exempt_count entries
-    and none carrying `agent`, returns the EMPTY LIST — not merely something falsy.
-    This is the half a schema `required` would have broken."""
-    n = feature_schema.RUNS_AGENT_EXEMPT[T15_KNOWN_FEATURE]
-    entries = [{"id": f"r{i}", "squad": "code", "verdict": "PASS"} for i in range(n)]
-    probs = feature_schema.problems_for_text(_t15_doc(entries),
-                                             _t15_display(T15_KNOWN_FEATURE))
-    check("t15_b_all_legacy_entries_validate_with_no_agent",
-          probs == [], f"{n} exempt entries produced {probs}")
-
-
-def case_t15_boundary():
-    """CASE C, THE BOUNDARY. exempt_count legacy entries plus ONE more, so the new
-    entry's index EQUALS exempt_count. Exactly one problem, naming that index. This is
-    what proves the rule bites at the boundary and not one entry late."""
-    n = feature_schema.RUNS_AGENT_EXEMPT[T15_KNOWN_FEATURE]
-    entries = [{"id": f"r{i}", "squad": "code", "verdict": "PASS"} for i in range(n + 1)]
-    probs = feature_schema.problems_for_text(_t15_doc(entries),
-                                             _t15_display(T15_KNOWN_FEATURE))
-    check("t15_c_the_rule_bites_at_index_equal_to_the_exempt_count",
-          len(probs) == 1 and f"runs[{n}]" in probs[0], f"n={n} {probs}")
+def case_t15_uniform_for_every_feature_and_index():
+    """CASE B, UNIFORM. Five entries none carrying `agent` yield exactly five problems,
+    naming runs[0]..runs[4], under every probed display path — the rule depends neither
+    on the feature's name nor on an entry's position."""
+    n = 5
+    doc = _t15_doc([{"id": f"r{i}", "squad": "code", "verdict": "PASS"} for i in range(n)])
+    exempted = []
+    for display in _t15_probe_displays():
+        probs = feature_schema.problems_for_text(doc, display)
+        named = [i for i in range(n) if any(f"runs[{i}]" in p and "'agent'" in p for p in probs)]
+        if len(probs) != n or named != list(range(n)):
+            exempted.append((display, len(probs)))
+    check("t15_b_every_entry_without_agent_is_refused_for_every_feature",
+          exempted == [], f"{len(exempted)} displays exempted entries, e.g. {exempted[:3]}")
 
 
 def case_t15_accepted_with_the_field():
-    """CASE D, ACCEPTED — and the check is on a VALUE, not on key presence. The same
-    append carrying a non-empty agent validates; the same append carrying the EMPTY
-    STRING is refused."""
-    n = feature_schema.RUNS_AGENT_EXEMPT[T15_KNOWN_FEATURE]
-    legacy = [{"id": f"r{i}", "squad": "code", "verdict": "PASS"} for i in range(n)]
-
-    ok_doc = _t15_doc(legacy + [{"id": "new", "squad": "eng", "verdict": "PASS",
-                                 "agent": "harness-backend-dev"}])
+    """CASE D, ACCEPTED — and the check is on a VALUE, not on key presence. An entry
+    carrying a non-empty agent validates; the same append carrying the EMPTY STRING is
+    refused at its own index."""
+    first = {"id": "r0", "squad": "code", "verdict": "PASS", "agent": "harness-qa"}
+    ok_doc = _t15_doc([first, {"id": "new", "squad": "eng", "verdict": "PASS",
+                               "agent": "harness-backend-dev"}])
     check("t15_d_a_new_entry_naming_its_agent_validates",
-          feature_schema.problems_for_text(ok_doc, _t15_display(T15_KNOWN_FEATURE)) == [],
+          feature_schema.problems_for_text(ok_doc, _t15_display(T15_FEATURE)) == [],
           "a populated agent was still refused")
 
-    empty_doc = _t15_doc(legacy + [{"id": "new", "squad": "eng", "verdict": "PASS",
-                                    "agent": ""}])
-    probs = feature_schema.problems_for_text(empty_doc, _t15_display(T15_KNOWN_FEATURE))
+    empty_doc = _t15_doc([first, {"id": "new", "squad": "eng", "verdict": "PASS",
+                                  "agent": ""}])
+    probs = feature_schema.problems_for_text(empty_doc, _t15_display(T15_FEATURE))
     check("t15_d_an_empty_agent_string_is_refused_so_the_check_is_on_the_value",
-          len(probs) == 1 and f"runs[{n}]" in probs[0], f"{probs}")
-
+          len(probs) == 1 and "runs[1]" in probs[0], f"{probs}")
 
 def case_t15_red():
     """CASE E, RED PROOF. An exit status is never the proof (D-08). Copy
-    feature_schema.py with the positional rule's call site removed, assert the text
+    feature_schema.py with the agent rule's call site removed, assert the text
     DIFFERS before running anything, and compare COUNTS on case A's fixture: original
     at least 1, mutant 0. Equal counts are INCONCLUSIVE and exit non-zero.
 
@@ -724,10 +711,10 @@ def case_t15_red():
         mutant.SCHEMA_PATH = feature_schema.SCHEMA_PATH
 
         doc = _t15_doc([{"id": "r1", "squad": "code", "verdict": "PASS"}])
-        display = _t15_display(T15_UNKNOWN_FEATURE)
+        display = _t15_display(T15_FEATURE)
         n_real = len(feature_schema.problems_for_text(doc, display))
         n_mut = len(mutant.problems_for_text(doc, display))
-    check("t15_e_the_positional_rule_is_load_bearing",
+    check("t15_e_the_agent_rule_is_load_bearing",
           n_real >= 1 and n_mut == 0,
           f"INCONCLUSIVE — original {n_real}, mutant {n_mut}")
     print(f"     (red proof counts: original {n_real}, mutant {n_mut})")
@@ -855,10 +842,9 @@ CASES = (
     case_rejected_github_build_entry_hyphen_misspelling,
     case_accepted_github_block_without_build_entry,
 
-    # FEAT-31 T-15 — SC-07's positional agent rule.
-    case_t15_refused_when_absent_from_map,
-    case_t15_existing_entries_still_validate,
-    case_t15_boundary,
+    # FEAT-31 T-15 — SC-07's agent rule, uniform since FEAT-71.
+    case_t15_refused_without_agent,
+    case_t15_uniform_for_every_feature_and_index,
     case_t15_accepted_with_the_field,
     case_t15_red,
 )

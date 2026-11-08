@@ -1,5 +1,4 @@
 {
-  "plan": ".harness/harness/features/BUG-285-canonical-reader/plan.yaml",
   "rows": [
     {
       "artifact": "in-memory canonical JSON payload",
@@ -480,11 +479,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/check_state/ctx.py",
       "id": ".claude/skills/harness/bin/check_state/ctx.py::Ctx._load_plan_docs::load_plan#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_plan",
       "symbol": "Ctx._load_plan_docs",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "plan.yaml",
@@ -599,11 +597,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/dispatch-guard.py",
       "id": ".claude/skills/harness/bin/dispatch-guard.py::_repository_identity::load_feature_json#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "_repository_identity",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "fleet.yaml",
@@ -613,11 +610,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/dispatch-guard.py",
       "id": ".claude/skills/harness/bin/dispatch-guard.py::_repository_identity::load_fleet#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_fleet",
       "symbol": "_repository_identity",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "in-memory JSON payload",
@@ -1866,11 +1862,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/validate-digest.py",
       "id": ".claude/skills/harness/bin/validate-digest.py::_plan_task::load_plan#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_plan",
       "symbol": "_plan_task",
-      "task": "T-02"
+      "task": "none"
     },
     {
       "artifact": "harness.json",
@@ -1880,11 +1875,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/validate-digest.py",
       "id": ".claude/skills/harness/bin/validate-digest.py::_load_matrix_inputs::load_harness_json#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_harness_json",
       "symbol": "_load_matrix_inputs",
-      "task": "T-02"
+      "task": "none"
     },
     {
       "artifact": "plan.yaml",
@@ -1894,11 +1888,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/validate-digest.py",
       "id": ".claude/skills/harness/bin/validate-digest.py::_load_matrix_inputs::load_plan#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_plan",
       "symbol": "_load_matrix_inputs",
-      "task": "T-02"
+      "task": "none"
     },
     {
       "artifact": "harness.json",
@@ -2000,11 +1993,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/digest_destination.py",
       "id": ".claude/skills/harness/bin/digest_destination.py::registered_feature::load_feature_json#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "registered_feature",
-      "task": "T-02"
+      "task": "none"
     },
     {
       "artifact": "team-config.yaml",
@@ -2014,11 +2006,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/digest_destination.py",
       "id": ".claude/skills/harness/bin/digest_destination.py::_registered_digest::manifest_domains#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.manifest_domains",
       "symbol": "_registered_digest",
-      "task": "T-02"
+      "task": "none"
     },
     {
       "artifact": "in-memory hook payload",
@@ -2028,11 +2019,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/digest_destination.py",
       "id": ".claude/skills/harness/bin/digest_destination.py::main::read_hook_payload#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.read_hook_payload",
       "symbol": "main",
-      "task": "T-02"
+      "task": "none"
     },
     {
       "artifact": "plan.yaml",
@@ -2042,11 +2032,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/handoff_policy.py",
       "id": ".claude/skills/harness/bin/handoff_policy.py::_plan_mapping::load_plan#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_plan",
       "symbol": "_plan_mapping",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "run UI results.json",
@@ -2070,11 +2059,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/prune-run-evidence.py",
       "id": ".claude/skills/harness/bin/prune-run-evidence.py::_load_record::load_feature_json#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "_load_record",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "fleet.yaml",
@@ -2098,11 +2086,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/check_state/board.py",
       "id": ".claude/skills/harness/bin/check_state/board.py::inv_24::load_fleet#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_fleet",
       "symbol": "inv_24",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "harness.json",
@@ -2112,11 +2099,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/check_state/ctx.py",
       "id": ".claude/skills/harness/bin/check_state/ctx.py::Ctx._load_config::load_harness_json#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_harness_json",
       "symbol": "Ctx._load_config",
-      "task": "T-02"
+      "task": "none"
     },
     {
       "artifact": "feature.json",
@@ -2126,11 +2112,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/check_state/ctx.py",
       "id": ".claude/skills/harness/bin/check_state/ctx.py::Ctx._record_doc::load_feature_json#1",
-      "plan": ".harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "Ctx._record_doc",
-      "task": "T-02"
+      "task": "none"
     },
     {
       "artifact": "caller supplied structured writer operand",
@@ -2168,11 +2153,10 @@
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/feature_corpus.py",
       "id": ".claude/skills/harness/bin/feature_corpus.py::_entry::load_feature_json#1",
-      "plan": ".harness/harness/features/FEAT-1559-corpus-outside-worktree/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "_entry",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "worktree-state.py --verify --json report",
@@ -2196,11 +2180,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/feature_schema.py",
       "id": ".claude/skills/harness/bin/feature_schema.py::_bound_mirror_binding::load_fleet#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_fleet",
       "symbol": "_bound_mirror_binding",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "harness.json",
@@ -2210,11 +2193,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/feature_schema.py",
       "id": ".claude/skills/harness/bin/feature_schema.py::_owner_mirror_binding::load_harness_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_harness_json",
       "symbol": "_owner_mirror_binding",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "harness.json",
@@ -2224,11 +2206,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::_unbound_project_config::load_harness_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_harness_json",
       "symbol": "_unbound_project_config",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "feature.json",
@@ -2238,11 +2219,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::load_config::load_feature_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "load_config",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "feature.json",
@@ -2252,11 +2232,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::record_build_entry::load_feature_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "record_build_entry",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "gh JSON output",
@@ -2266,11 +2245,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::_replacement_create::parse_gh_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.parse_gh_json",
       "symbol": "_replacement_create",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "feature.json",
@@ -2280,11 +2258,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::cmd_open::load_feature_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "cmd_open",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "plan.yaml",
@@ -2294,11 +2271,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::_replacement_plan::load_plan#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_plan",
       "symbol": "_replacement_plan",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "feature.json",
@@ -2322,11 +2298,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::cmd_recover_mirror::load_feature_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "cmd_recover_mirror",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "feature.json",
@@ -2336,11 +2311,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::cmd_recover_terminal::load_feature_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "cmd_recover_terminal",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "feature.json",
@@ -2350,11 +2324,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::_build_entry_preflight::load_feature_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "_build_entry_preflight",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "feature.json",
@@ -2364,11 +2337,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::_build_entry_recovery_notice::load_feature_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "_build_entry_recovery_notice",
-      "task": "T-01"
+      "task": "none"
     },
     {
       "artifact": "feature.json",
@@ -2378,11 +2350,10 @@
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
       "id": ".claude/skills/harness/bin/gh-sync.py::cmd_ship::load_feature_json#1",
-      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "cmd_ship",
-      "task": "T-01"
+      "task": "none"
     }
   ],
   "scanned_files": [

@@ -134,10 +134,9 @@ def write_feature_json(path, transform, timeout=None, tail_regex=None):
     SCHEMA_REFUSAL_CODE), and `path` is left byte-for-byte unchanged. A base that does not
     exist, or does not parse, contributes an EMPTY baseline -- so a document written from
     nothing, or replacing unparseable bytes, must still be fully schema-clean; leniency
-    exists only for problems the file already carried. This is the same shape as
-    feature_schema.py's own RUNS_AGENT_EXEMPT/D-23 positional carve-out: a rule enforced
-    prospectively, against a frozen baseline, rather than retroactively against everything
-    already on disk.
+    exists only for problems the file already carried: a rule enforced prospectively,
+    against the document's own base, rather than retroactively against everything already
+    on disk.
 
     This still closes the incident's own shape for every document this function touches: a
     write that would corrupt a SCHEMA-CLEAN document (or produce invalid JSON at all, from

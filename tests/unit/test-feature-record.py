@@ -401,7 +401,7 @@ class CloseRunTest(FeatureRecordCase):
     order — validate-digest, run-end, plan-merge set-task-station (paired --task/--station),
     judgement (as harness-orchestrator), spend — retains any stage that completed, stops at
     the FIRST refusal naming its stage, and on success prints ONE line carrying spend.
-    Measured on BUG-285-canonical-reader: ~11 orchestrator model calls per dispatch went to
+    Measured on BUG-285: ~11 orchestrator model calls per dispatch went to
     exactly this sequence, each at ~125k context."""
 
     OPEN = {"id": "r1", "squad": "eng", "verdict": "PENDING", "agent": "harness-eng-lead",

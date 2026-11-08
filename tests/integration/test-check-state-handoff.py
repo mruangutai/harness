@@ -13,6 +13,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
 import json
+import re
 import os
 import subprocess
 import sys
@@ -20,6 +21,21 @@ import shutil
 import tempfile
 from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, check_state_mutant,
                                  check_state_owner, isolated_bin, run, _root_env)
+
+
+# Every task main-session-direct: the plan-keyed exemption (DEC-174), the ONE way a feature
+# past a seam owes no handoff note.
+MSD = (
+    "tasks:\n"
+    "  - id: T-01\n"
+    "    title: something\n"
+    "    change_type: logic\n"
+    "    execution_mode: main-session-direct\n"
+    "    status: done\n"
+    "    files: [fixture.py]\n"
+    "    verify: run it\n"
+    "    intent: exercise handoff exemption\n"
+)
 
 
 def case_g():
@@ -62,17 +78,6 @@ def case_g():
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
-    MSD = (
-        "tasks:\n"
-        "  - id: T-01\n"
-        "    title: something\n"
-        "    change_type: logic\n"
-        "    execution_mode: main-session-direct\n"
-        "    status: done\n"
-        "    files: [fixture.py]\n"
-        "    verify: run it\n"
-        "    intent: exercise handoff exemption\n"
-    )
     NO_MODE = MSD.replace("    execution_mode: main-session-direct\n", "")
     results = []
 
@@ -92,11 +97,15 @@ def case_g():
     check("INV-17 RAISES on Review with handoff-build.md absent, and names it",
           "handoff-build.md" in out and "Traceback" not in out, out)
 
-    # 2 — the literal exemption set. FEAT-01 finished before DEC-159 existed and no honest
-    # handoff note can be written for it, so none is demanded and none is fabricated.
-    out = build("FEAT-01", "Done")
-    check("INV-17 stays quiet for the literal exemption set (FEAT-01 at Done, no notes)",
-          "handoff-" not in out, out)
+    # 2 — no feature id is privileged. INV-17 once skipped, silently, every feature whose id
+    # merely STARTED WITH one of two historical ids — a prefix match that reached unrelated
+    # later features too. These synthetic ids share that prefix shape; each owes every note
+    # its station demands, like any other feature.
+    for feat in ("FEAT-0190-fixture", "FEAT-0290-fixture"):
+        out = build(feat, "Done")
+        check(f"INV-17 RAISES for {feat} at Done with no notes: no id is exempt",
+              all(f"notes/handoff-{s}.md is missing" in out
+                  for s in ("plan", "build", "validate")), out)
 
     # 3 — the validate seam survived the fold of validate and ship into Review by moving to
     # the Done boundary, rather than being silently dropped.
@@ -200,13 +209,10 @@ def _shape_lines(out, needle):
             if l.startswith("  VIOLATION") and "fails the shape" in l and needle in l]
 
 
-def _feat54_fixture_case(tmp, note, baseline_marker, name="handoff-plan.md"):
+def _feat54_fixture_case(tmp, note, name="handoff-plan.md"):
     fdir = _handoff_fixture(tmp, "Building", {name: note})
-    cfg = {"github": {"sync": False, "repo": None}}
-    if baseline_marker is not None:
-        cfg["handoff_done_when_baseline"] = baseline_marker
     with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
-        json.dump(cfg, f)
+        json.dump({"github": {"sync": False, "repo": None}}, f)
     with open(os.path.join(fdir, "plan.yaml"), "w") as f:
         f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: building\ntasks:\n"
                 "  - id: T-03\n    title: Fixture task\n    traces: [REQ-01]\n"
@@ -221,11 +227,10 @@ def _feat54_fixture_case(tmp, note, baseline_marker, name="handoff-plan.md"):
     return fdir
 
 
-def _feat54_check_case(outcomes, label, note, baseline_marker,
-                       expect_report, needles="Done when"):
+def _feat54_check_case(outcomes, label, note, expect_report, needles="Done when"):
     needles = needles if isinstance(needles, tuple) else (needles,)
     with tempfile.TemporaryDirectory() as tmp:
-        _feat54_fixture_case(tmp, note, baseline_marker)
+        _feat54_fixture_case(tmp, note)
         _, out = run(tmp)
         lines = [line for line in out.splitlines()
                  if "handoff-plan.md" in line
@@ -270,8 +275,9 @@ def _feat54_case_notes():
     }
 
 
-def _feat54_baseline_cases(outcomes):
-    baseline_path = ".harness/harness/features/FEAT-TEST/notes/handoff-plan.md"
+def _feat54_shape_cases(outcomes):
+    """One rule for every note, whenever it was written: no path is graded more leniently
+    than another, so a note without the fifth section reports wherever it sits."""
     notes = _feat54_case_notes()
     missing = notes["missing"]
     malformed = notes["malformed"]
@@ -285,49 +291,73 @@ def _feat54_baseline_cases(outcomes):
     duplicate = notes["duplicate"]
 
     _feat54_check_case(
-        outcomes, "non-baselined missing section reports", missing, [], True)
+        outcomes, "missing section reports", missing, True)
     _feat54_check_case(
-        outcomes, "baselined missing section is exempt", missing, [baseline_path], False)
+        outcomes, "resolving block passes", HANDOFF_GOOD, False)
     _feat54_check_case(
-        outcomes, "baselined malformed block reports", malformed, [baseline_path], True,
-        ("Scope", "2"))
+        outcomes, "absent targets do not rot", absent_targets, False, ())
     _feat54_check_case(
-        outcomes, "non-baselined resolving block passes", HANDOFF_GOOD, [], False)
+        outcomes, "shape remains enforced", malformed, True, ("Scope", "2"))
     _feat54_check_case(
-        outcomes, "non-baselined absent targets do not rot",
-        absent_targets, [], False, ())
+        outcomes, "grammar remains enforced", unknown, True, "legal prefixes")
     _feat54_check_case(
-        outcomes, "baselined absent targets do not rot",
-        absent_targets, [baseline_path], False, ())
+        outcomes, "blank Scope remains enforced", blank_scope, True, "non-empty")
     _feat54_check_case(
-        outcomes, "shape remains enforced", malformed, [], True, ("Scope", "2"))
-    _feat54_check_case(
-        outcomes, "grammar remains enforced", unknown, [], True, "legal prefixes")
-    _feat54_check_case(
-        outcomes, "blank Scope remains enforced", blank_scope, [], True, "non-empty")
-    _feat54_check_case(
-        outcomes, "Scope ordering remains enforced", reversed_order, [], True,
+        outcomes, "Scope ordering remains enforced", reversed_order, True,
         "before every Authority")
     _feat54_check_case(
-        outcomes, "unsafe target grammar remains enforced", unsafe, [], True, "unsafe")
+        outcomes, "unsafe target grammar remains enforced", unsafe, True, "unsafe")
     _feat54_check_case(
         outcomes, "unsafe approval grammar remains enforced",
-        unsafe_approval, [], True, "unsafe")
+        unsafe_approval, True, "unsafe")
     _feat54_check_case(
         outcomes, "nested heading cannot truncate validation",
-        nested, [], True, "unexpected line")
+        nested, True, "unexpected line")
     _feat54_check_case(
         outcomes, "duplicate heading cannot truncate validation",
-        duplicate, [], True, "expected exactly 1")
-    _feat54_check_case(
-        outcomes, "absent baseline key means no exemption", missing, None, True)
+        duplicate, True, "expected exactly 1")
+
+
+FEATURE_PATH = re.compile(r"\.harness/[^/\s\"]+/features/")
+
+
+def _config_strings(node):
+    """Every string in a parsed JSON document, keys included."""
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for key, value in node.items():
+            yield key
+            yield from _config_strings(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _config_strings(value)
+
+
+def _feat54_config_case(outcomes):
+    """INV-17 grades every note by the same rule, so no harness.json carries per-note data.
+    A config value naming a path inside a features folder is one repository's history
+    exported as policy: it exempts whatever it names and rots as folders are deleted. The
+    project config and the template are both read."""
+    hits = []
+    for rel in (".harness/harness.json", ".claude/skills/harness/templates/harness.json"):
+        with open(os.path.join(_anchor_root, rel), encoding="utf-8") as f:
+            doc = json.load(f)
+        hits += [f"{rel}: {s}" for s in _config_strings(doc) if FEATURE_PATH.search(s)]
+    ok = not hits
+    print(f"{'ok' if ok else 'FAIL'} - FEAT-54 no harness.json names a feature-folder path "
+          f"({len(hits)} found)")
+    if not ok:
+        print("        " + "\n        ".join(hits[:5]))
+    outcomes.append(ok)
+
+
 
 
 def _feat54_clean_corpus_case(outcomes):
-    baseline_path = ".harness/harness/features/FEAT-TEST/notes/handoff-plan.md"
     with tempfile.TemporaryDirectory() as tmp:
         second = HANDOFF_GOOD.replace("implementation complete", "validation complete")
-        _feat54_fixture_case(tmp, HANDOFF_GOOD, [baseline_path])
+        _feat54_fixture_case(tmp, HANDOFF_GOOD)
         fdir = os.path.join(tmp, ".harness", "harness", "features", "FEAT-TEST")
         second_path = os.path.join(fdir, "notes", "handoff-build.md")
         with open(second_path, "w") as f:
@@ -350,7 +380,7 @@ def _feat54_line_cap_case(outcomes):
         lines += ["## Done when", "Scope: complete", "Authority: plan-task:T-03.verify"]
         note = "\n".join(lines) + "\n"
         assert len(note.splitlines()) == 60
-        _feat54_fixture_case(tmp, note, [])
+        _feat54_fixture_case(tmp, note)
         _, out = run(tmp)
         hits = [line for line in out.splitlines() if "handoff-plan.md" in line]
         ok = not hits
@@ -371,7 +401,7 @@ def _feat54_resolution_mutant(iso_root):
 def _feat54_resolution_mutant_counts(mutant):
     with tempfile.TemporaryDirectory() as tmp:
         absent = _feat54_case_notes()["absent_targets"]
-        _feat54_fixture_case(tmp, absent, [])
+        _feat54_fixture_case(tmp, absent)
         _, real_out = run(tmp)
         result = subprocess.run(
             [mutant], cwd=tmp, capture_output=True, text=True, env=_root_env(tmp))
@@ -401,7 +431,8 @@ def _feat54_resolution_mode_mutant_case(outcomes):
 
 def case_feat54_done_when():
     outcomes = []
-    _feat54_baseline_cases(outcomes)
+    _feat54_shape_cases(outcomes)
+    _feat54_config_case(outcomes)
     _feat54_clean_corpus_case(outcomes)
     _feat54_line_cap_case(outcomes)
     _feat54_resolution_mode_mutant_case(outcomes)
@@ -456,21 +487,30 @@ def case_t14_no_double():
 
 
 def case_t14_exempt_shape():
-    """EXEMPTION DOES NOT SUPPRESS SHAPE. FEAT-01 is in HANDOFF_EXEMPT_LITERAL, so a
-    MISSING required note is suppressed — but a note that EXISTS is shape-checked
-    anyway. Both halves asserted in one fixture: status Done owes plan, build and
-    validate; only a malformed handoff-plan.md is present."""
+    """EXEMPTION DOES NOT SUPPRESS SHAPE. The one handoff exemption is plan-keyed
+    (DEC-174): every task main-session-direct, so a MISSING required note is suppressed —
+    and REPORTED by name — but a note that EXISTS is shape-checked anyway. All three halves
+    asserted in one fixture: status Done owes plan, build and validate; only a malformed
+    handoff-plan.md is present. The synthetic id shares a historical id's prefix, which once
+    bought a SILENT skip; the suppression must be the plan's, and it must say so."""
+    feat = "FEAT-0190-fixture"
     with tempfile.TemporaryDirectory() as tmp:
         bad_note = HANDOFF_GOOD.replace("## Working set\n", "## Elsewhere\n")
-        _handoff_fixture(tmp, "Done", {"handoff-plan.md": bad_note}, feat="FEAT-01-exempt")
+        fdir = _handoff_fixture(tmp, "Done", {"handoff-plan.md": bad_note}, feat=feat)
+        with open(os.path.join(fdir, "plan.yaml"), "w") as f:
+            f.write(f"schema: plan/1\nfeature: {feat}\nstatus: done\n" + MSD)
         _, out = run(tmp)
         hits = _shape_lines(out, "handoff-plan.md")
         missing = [l for l in out.splitlines()
                    if l.startswith("  VIOLATION") and "is missing" in l and "handoff-" in l]
-        ok = len(hits) == 1 and len(missing) == 0
-        print(f"{'ok' if ok else 'FAIL'} - case (t14-g): a literal-exempt feature still has "
+        reported = [l for l in out.splitlines()
+                    if "exempt" in l and feat in l and "handoff-build" in l
+                    and "handoff-validate" in l and "VIOLATION" not in l]
+        ok = len(hits) == 1 and len(missing) == 0 and len(reported) == 1
+        print(f"{'ok' if ok else 'FAIL'} - case (t14-g): a plan-exempt feature still has "
               f"its EXISTING note shape-checked ({len(hits)} shape) while missing notes stay "
-              f"suppressed ({len(missing)} missing)")
+              f"suppressed ({len(missing)} missing) and the exemption is reported "
+              f"({len(reported)} reported)")
         return ok
 
 

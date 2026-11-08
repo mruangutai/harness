@@ -1,1 +1,0 @@
-No user-facing visual surface or design-dependent interaction is planned: the change is confined to file schemas, CLI transcription/validation, operator-facing text, and documentation, so DESIGN.md and a high-fidelity/user-approved prototype are not required.
