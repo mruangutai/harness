@@ -1,0 +1,65 @@
+{
+  "feature_id": "FEAT-2206-skip-shipped-features",
+  "branch": "feat/FEAT-2206-skip-shipped-features",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-08-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-08T14:03:14+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-01-product/digest.md",
+        "sha256": "2d0267f2c9a1bc8377692f4c394093eeb4272380d34a8e8ce8afb53ccf32da6b"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-08T14:11:19+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-08T14:03:13+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Cause known (no station filter at feature-list build); files named in grilling; narrows an existing enforcement surface, creates none. Operator confirmed. DEC-174: main-session-direct."
+    },
+    {
+      "at": "2026-11-08T14:24:01.232944+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Operator sign-off (notes/answers-2026-11-08-signoff.md): also run the full suite and all gates in a standalone clone at the pin, with final exit marker."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2206-skip-shipped-features/.harness/harness/features/FEAT-2206-skip-shipped-features/notes/answers-2026-11-08-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "f366019a6a176e8ed78e551107efb0c676b6421d4a6b8ea7e51fd81cb6a4f8c0"
+  },
+  "github": {
+    "milestone": 109,
+    "parent": 2209,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2210
+    },
+    "source_issues": [
+      2206
+    ],
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

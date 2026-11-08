@@ -1,0 +1,71 @@
+schema: plan/1
+feature: FEAT-2206-skip-shipped-features
+approval:
+  date: '2026-11-08'
+  approved_by: Mike Ruangutai
+  status: approved
+status: ready
+source_issues: [2206]
+lanes:
+  resolved_at: b7af829c0207522b43f978b5275a2ebdc96b3210
+  rows:
+    - surface: .claude/skills/harness/bin/check_state/**
+      lane: main-session-direct
+      reason: DEC-174 enforcement-layer carve-out.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 includes enforcement tests.
+    - surface: .harness/harness/docs/**
+      lane: main-session-direct
+      reason: Coupled enforcement decision and generated index.
+decisions: []
+tasks:
+  - id: T-01
+    title: Exclude shipped subjects while preserving historical comparisons
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 enforcement-layer carve-out; main session builds directly in the assigned worktree and retains all orchestrator duties, never harness-eng-lead.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check_state/ctx.py
+      - .claude/skills/harness/bin/check_state/board.py
+      - .claude/skills/harness/bin/check_state/table.py
+      - .claude/skills/harness/bin/check_state/runner.py
+      - tests/unit/test-check-state-shipped.py
+      - tests/integration/test-check-state-shipped.py
+      - tests/integration/test-check-state-entry.py
+      - tests/integration/test-check-state-table.py
+      - tests/integration/test-checker-structure-locks.py
+      - tests/integration/test-check-state-handoff.py
+      - tests/integration/test-check-state-feat59.py
+      - tests/integration/test-check-state-records.py
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      bash -o pipefail <<'SH'
+      set -eu
+      unset CLAUDE_PROJECT_DIR HARNESS_PROJECT_DIR HARNESS_AGENT_TYPE
+      python3 -c "import os,pathlib,subprocess,sys,time; [os.environ.pop(k,None) for k in (\"CLAUDE_PROJECT_DIR\",\"HARNESS_PROJECT_DIR\",\"HARNESS_AGENT_TYPE\")]; root=pathlib.Path.cwd(); start=time.monotonic(); commands=[[sys.executable,str(root/p)] for p in (\"tests/unit/test-check-state-shipped.py\",\"tests/integration/test-check-state-shipped.py\")]; commands.append([sys.executable,str(root/\"tests/integration/test-check-state-shipped.py\"),\"--real-corpus\",\"/Users/molchairuangutai/GitHub/harness\"]); [(lambda r:(print(r.stdout,end=\"\"),print(r.stderr,end=\"\",file=sys.stderr),sys.exit(r.returncode or 1) if r.returncode or any(line.startswith(\"FAIL\") for line in (r.stdout+r.stderr).splitlines()) else None))(subprocess.run(c,capture_output=True,text=True,timeout=max(0.1,55-(time.monotonic()-start)))) for c in commands]; print(\"FEAT-2206 shipped unit/integration and real-corpus assertions PASS; exit=0\")"
+      pin=$(git rev-parse HEAD)
+      evidence=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2206-skip-shipped-features/.harness/harness/features/FEAT-2206-skip-shipped-features/notes
+      clone=$(mktemp -d /private/tmp/feat2206-standalone.XXXXXXXX)
+      git clone --no-local --no-hardlinks . "$clone"
+      git -C "$clone" config core.hooksPath .claude/skills/harness/hooks
+      git -C "$clone" branch main HEAD
+      (cd "$clone" && test ! -f .git && test "$(git rev-parse HEAD)" = "$pin" && printf 'review_sha=%s\nstandalone=%s\n' "$pin" "$clone" && python3 .claude/skills/harness/bin/check-state.py && python3 .claude/skills/harness/bin/validate-feature-json.py && python3 .claude/skills/harness/bin/check-decision-anchors.py && python3 .claude/skills/harness/bin/check-plan-routes.py && python3 .claude/skills/harness/bin/run-unit-tests.py --kind all && python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md) 2>&1 | tee "$evidence/merge-$pin.log"
+      printf 'verify-exit=0 review_sha=%s\n' "$pin" | tee -a "$evidence/merge-$pin.log"
+      SH
+    intent: |
+      Work only inside PRODUCT /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2206-skip-shipped-features after explicit signature. Main session builds directly, retains ALL orchestrator duties, commit pen, review pin and ship; never harness-eng-lead. All relative-path edits remain inside this worktree. This is the single bounded patch task; no readers, panel, goal-check, UI or prototype. Read the binding /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-skip-shipped-features-2026-11-08.md; reuse its verified inventory at b7af829c rather than repeating research.
+      Product guidance read inputs are PRODUCT/docs/spec.md, PRODUCT/docs/decisions.md and PRODUCT/docs/architecture.md. All three are absent at baseline: report the missing requirement, adopted-decision and architecture guidance; do not silently substitute control-plane documents. The operator-settled grilling behavior is the bounded requirement authority. Consult the control-plane indexed DEC-174 enforcement route, DEC-217 runtime bugfix unit floor and DEC-213 test layout; FEAT-71 T-01 is the routing precedent.
+      In ctx._load_features keep discovered directory identity separately from the audit subject list. After applying the existing keep selector, classify shipped solely by a lenient YAML mapping read of plan.yaml top-level status equal to done; never call strict load_plan to classify. Missing, unreadable, invalid YAML, non-mapping, absent or non-done status is not shipped and retains all checks and diagnostics. Filter shipped out of ctx.features BEFORE _load_plans, _load_plan_docs, _load_states_and_abandoned and per-feature dispatch. A shipped plan invalid under the strict schema must stay excluded permanently. Do not add per-invariant shipped exemptions.
+      Settle comparison data with the smallest existing seam: retain the pre-filter selected directory set and make population() lazily include shipped raw feature.json mappings only when INV-24 requests comparison data. Do not pass shipped records through ctx.record or feature_schema and do not append shipped parse/type errors. In scoped runs retain landed-owner population and local-active replacement boundaries, without reading in-progress siblings. Within INV-24, shipped inputs seed only usable repo/issue identity claims; do not grade their fleet membership, containers, invalid issue values or within-record duplicates. Keep active-record validation unchanged. Detect cross-feature collisions regardless of iteration order, including shipped/shipped and shipped/active; missing or malformed comparison fields contribute no usable claim. Preserve INV-52 landed branch comparison and INV-29 finished-worktree comparison as they already operate independently of ctx.features; no strict shipped-plan parsing may be introduced there. Comparison-data access remains lazy, never an up-front feature read.
+      In runner.main, after existing layout/subject preflight but before constructing a full Ctx, recognize an explicitly selected shipped feature with the same lenient classification and print exactly one note naming it and saying it has shipped and nothing is checked for shipped features, exit 0. No context-wide loads, table execution, gh queries or extra success line may run on that path. Keep missing-selector refusal and preflight host/repo/layout behavior unchanged. Full and changed selection must not resurrect shipped audit subjects.
+      Delete inv_28 and inv_30 implementations, their dead private helpers, table imports and rows; preserve helpers still used by INV-26. Add INV-28 and INV-30 to RETIRED with the reason that ship owns PR recording and milestone closure. Existing retired --only and --list behavior governs them. Update obsolete enforcement tests rather than preserving old done-only checks. Migrate done-grading handoff/seam fixtures to a non-shipped station when their purpose is current validation; replace uniquely done-bound expectations with shipped-skip assertions. Keep the surviving active main-session-direct exemption and malformed-plan controls discriminating. Update the INV-30-specific structure-lock mutation to a surviving GitHub-read declaration. Add a current DECISIONS entry for this ruling and regenerate DECISIONS-INDEX.md through gen-decisions-index.py; never hand-edit index anchors. No new schema, public interface, exemption list or production helper module.
+      Tests first: create tests/unit/test-check-state-shipped.py with unittest assertions for lenient classification and selection ordering, including strict-schema-invalid done, missing/unreadable/non-mapping status and non-done stations. Create tests/integration/test-check-state-shipped.py with synthetic full/sparse fixtures, CLI subprocesses and audit-hook open logs. Prove every BRIEF clause, including pruned evidence, changed audits, exact one-note explicit selection, no shipped BRIEF/STATE/evidence/strict-plan reads, lazy comparison-only JSON reads, all three preserved comparisons, shipped/shipped and shipped/active collisions, malformed shipped comparison fields, retirement and no milestone queries. Reuse existing isolated fixture support. Include adjacent controls for abandoned/rejected INV-44/51, missing selectors and host/repo/layout failure paths, never silence these checks to get green.
+      The integration test also accepts its test-only --real-corpus OWNER_ROOT mode. Read OWNER_ROOT default-branch corpus through existing feature_corpus accessors, assert at least one shipped plan exists, and separately assert for EVERY lenient done record that actual implementation subject selection excludes it and explicit selection yields exactly one shipped note with exit 0. Execute candidate checker code from this PRODUCT, not the owner script. Use a temporary full fixture populated from the real records if sparse checkout preflight would hide them; retain real artifact bytes and assert observed opens stay within status/comparison boundaries. Do not require a full-table zero exit or clean unrelated active-feature violations. No fixed historical feature ids or corpus-size floor beyond non-vacuity. OWNER_ROOT is an explicit override, so evidence can be rerun after worktree disposal.
+      Before production edits preserve baseline b7af829c0207522b43f978b5275a2ebdc96b3210 assertion names, commands, stdout/stderr and exit receipts. Run new tests against isolated baseline source, require failures specifically for shipped strict parsing/up-front reads, explicit note shape, comparison-only malformed-field handling and active INV-28/30 retirement, not import/setup failures. Preserve green adjacent controls; already-correct collision behavior need not be claimed newly red. After implementation preserve named green assertions and run unit and integration required kinds under the project matrix; bugfix touches runtime code, unit is mandatory and integration is explicitly required by this contract. Never claim intake validators are implementation evidence.
+      Execute the literal verify from the committed PRODUCT at review_sha. It clears inherited root and persona variables, bounds the combined new unit/integration and real-corpus verification to 55 seconds and requires zero exits with no FAIL-prefixed assertions. The owner root is only the real comparison corpus input; implementation always comes from the review-pinned PRODUCT. Preserve review_sha, owner corpus ref, command, per-assertion results and final exit marker. Leave prune-run-evidence.py, abandoned/rejected policy, BUG-2169 INV-26 mismatch and BUG-20261006 building state untouched.
+
