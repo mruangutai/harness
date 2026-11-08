@@ -249,17 +249,13 @@ def _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
         print(f"post-merge-sweep: SKIP removal of {path} — could not read Build entry receipt: {exc}")
         return False
     detail = "; ".join(problems) or provenance
-    receipt_missing = sync_enabled and not feature_schema.receipt_allows_merge(
-        feature_doc, repo, era_requires_absent=True)
+    receipt_missing = sync_enabled and not feature_schema.receipt_allows_merge(feature_doc, repo)
     if detail or receipt_missing:
         detail = detail or "Build-entry receipt absent or incomplete"
         print(f"post-merge-sweep: SKIP removal of {path} — {feature_id}: {detail}. "
               f"The worktree stays until recovery and ship succeed. Run: "
               f"{feature_schema.recovery_command_line(feat_dir, feature_doc, repo)}")
         return False
-    if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-        print(f"post-merge-sweep: {feature_id} predates the build-entry receipt; "
-              f"explicit recovery is {feature_schema.recovery_command_line(feat_dir, feature_doc, repo)}.")
     return True
 
 

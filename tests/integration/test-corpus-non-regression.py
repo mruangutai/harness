@@ -11,22 +11,23 @@ Three parts are collected on every run, because their post-change side is live:
      (D-13). Findings are normalised to (level, invariant, features) so wording edits elsewhere
      cannot redden this; a lost finding is the regression this feature could cause, so the check
      is that the baseline is a subset of what the checker reports now.
-  3. CONVERSION MANIFEST. When T-06's notes/conversion-manifest.json exists, its records must be
-     internally consistent: converted checkouts verified and idempotent, dirty ones skipped with
-     unchanged bytes, code-only probes excluded and never counted as converted.
-
-`--conversion-manifest PATH` adds the LIVE half (T-06's verify): every converted checkout still at
-its recorded HEAD must verify clean now. Read-only; a checkout that is gone or has moved on is an
-announced skip, not a pass.
+  3. CONVERSION MANIFEST. A manifest recorded the way T-06 recorded the real one — produced here
+     by converting a synthetic owner's checkouts — must be internally consistent: converted
+     checkouts verified and idempotent, dirty ones skipped with unchanged bytes, code-only probes
+     excluded and never counted as converted. Its LIVE half (T-06's verify) must hold too: every
+     converted checkout still at its recorded HEAD verifies clean now; a checkout that is gone or
+     has moved on is reported as skipped, never counted as a pass.
 
 The one-time endpoint proofs — merge-base(review_sha, main) as pre_change_sha, the whole-feature
 diff touching no other feature's directory, main-corpus byte equality — are NOT here. They are
 recorded once in notes/non-regression-receipt.md (D-13: a pinned proof or a one-time one; there
 is no third form).
 """
+import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import unittest
@@ -40,8 +41,7 @@ sys.path.insert(0, str(BIN))
 import f58_sparse_fixture as F  # noqa: E402
 import feature_corpus as fc  # noqa: E402
 
-MANIFEST_REL = ".harness/harness/features/FEAT-1559-corpus-outside-worktree/notes/conversion-manifest.json"
-LIVE_MANIFEST = None          # set from --conversion-manifest
+OUTCOMES = ("converted", "skipped-dirty", "excluded")
 
 # The planning-baseline checker (git archive 652e70d4 .claude/skills/harness/bin) run once against
 # a fresh f58_sparse_fixture clone, normalised by `finding_keys`. Recorded 2026-10-05.
@@ -63,7 +63,6 @@ BASELINE_KEYS = {
     ("note", "INV-42", ()),
 }
 FEATURE_ID = re.compile(r"\b(?:FEAT|BUG)-\d+(?:-[a-z0-9]+)*")
-OUTCOMES = ("converted", "skipped-dirty", "excluded")
 
 
 def finding_keys(output):
@@ -194,17 +193,79 @@ def manifest_findings(doc):
     return bad
 
 
-class ConversionManifest(unittest.TestCase):
-    def manifest(self):
-        path = LIVE_MANIFEST or fc.corpus_path(str(ROOT), MANIFEST_REL)
-        if not os.path.isfile(path):
-            print(f"SKIP: no conversion manifest at {path} (T-06 has not run)")
-            self.skipTest("no conversion manifest yet")
-        with open(path, encoding="utf-8") as fh:
-            return json.load(fh)
+def _digest(checkout):
+    digest = hashlib.sha256()
+    for key, value in sorted(F.snapshot(checkout).items()):
+        digest.update(repr((key, value)).encode())
+    return digest.hexdigest()
 
-    def test_the_manifest_is_internally_consistent(self):
-        self.assertEqual(manifest_findings(self.manifest()), [])
+
+def _repair(checkout):
+    return subprocess.run([sys.executable, str(BIN / "worktree-state.py"), "--repair",
+                           "--checkout", checkout], env=F.ENV, capture_output=True,
+                          text=True).returncode
+
+
+def build_manifest(fx):
+    """Convert a synthetic owner's checkouts the way T-06 converted the real ones and return the
+    manifest it records: one planning worktree converted, one with uncommitted work skipped as
+    dirty, one code-only probe excluded. Every exit and digest is observed, never written in."""
+    head = F.git(fx.owner, "rev-parse", "HEAD").stdout.strip()
+    active, busy = F.HARNESS_FEATURES
+    path = fx.add_worktree(active)
+    converted = {"path": path, "outcome": "converted", "active_feature": active, "head": head,
+                 "expected_dirs": [f"harness/{active}"]}
+    repair = _repair(path)
+    converted["after"] = {"digest": _digest(path)}
+    verify_exit, _report = verify(path)
+    repair_again = _repair(path)
+    converted["after_repair_again"] = {"digest": _digest(path)}
+    converted["exits"] = {"repair": repair, "verify": verify_exit, "repair_again": repair_again}
+    converted["observed_dirs"] = F.feature_dirs_on_disk(path)
+    converted["missing"], converted["unexpected"] = fc.compare_names(
+        converted["expected_dirs"], converted["observed_dirs"])
+
+    path = fx.add_worktree(busy)
+    with open(os.path.join(path, ".harness", "harness", "features", busy, "BRIEF.md"), "a") as fh:
+        fh.write("an uncommitted edit\n")
+    before = _digest(path)
+    dirty = {"path": path, "outcome": "skipped-dirty", "reason": "C: uncommitted work",
+             "exits": {"repair": _repair(path)}, "before": {"digest": before},
+             "after": {"digest": _digest(path)}}
+
+    excluded = {"path": fx.add_probe("code-only"), "outcome": "excluded",
+                "reason": "code-only probe outside .claude/worktrees"}
+    return {"schema": "feat-1559-conversion/1", "owner": fx.owner, "owner_head": head,
+            "pre_change_sha": head, "review_sha": head, "checkouts": [converted, dirty, excluded]}
+
+
+def live_findings(doc):
+    """`(findings, skipped)` for the LIVE half (T-06's verify): every converted checkout still at
+    its recorded HEAD must verify clean now, on its recorded active feature. Read-only; a
+    checkout that is gone or has moved on is reported in `skipped`, never counted as a pass."""
+    bad, skipped = [], []
+    for entry in doc.get("checkouts", []):
+        if entry.get("outcome") != "converted":
+            continue
+        path = entry["path"]
+        if not os.path.isdir(path):
+            skipped.append(f"{path} no longer exists")
+            continue
+        head = F.git(path, "rev-parse", "HEAD", check=False).stdout.strip()
+        if head != entry.get("head"):
+            skipped.append(f"{path} moved from {str(entry.get('head'))[:12]} to {head[:12]}")
+            continue
+        code, report = verify(path)
+        if code != 0:
+            bad.append(f"{path}: verify exited {code}: {report.get('findings')}")
+        elif report.get("active_feature") != entry.get("active_feature"):
+            bad.append(f"{path}: active feature {report.get('active_feature')!r}, recorded "
+                       f"{entry.get('active_feature')!r}")
+    return bad, skipped
+
+
+class ManifestRules(unittest.TestCase):
+    """The consistency rules themselves, on a hand-built manifest."""
 
     def test_a_planted_inconsistency_is_caught(self):
         sha = "a" * 40
@@ -228,34 +289,42 @@ class ConversionManifest(unittest.TestCase):
             mutate(broken)
             self.assertTrue(any(expect in f for f in manifest_findings(broken)), expect)
 
+
+class ConversionManifest(unittest.TestCase):
+    """Runs on a manifest this test produces from a synthetic owner (FEAT-71): never on a prior
+    feature's notes, and never skipped."""
+
+    def setUp(self):
+        ctx = F.sparse_fixture()
+        self.fx = ctx.__enter__()
+        self.addCleanup(ctx.__exit__, None, None, None)
+        self.doc = build_manifest(self.fx)
+
+    def test_the_manifest_is_internally_consistent(self):
+        self.assertEqual([c["outcome"] for c in self.doc["checkouts"]], list(OUTCOMES))
+        self.assertEqual(manifest_findings(self.doc), [])
+
     def test_converted_checkouts_still_verify_clean(self):
-        if LIVE_MANIFEST is None:
-            print("SKIP: live manifest validation runs only with --conversion-manifest PATH")
-            self.skipTest("no --conversion-manifest")
-        for entry in self.manifest()["checkouts"]:
-            if entry["outcome"] != "converted":
-                continue
-            with self.subTest(entry["path"]):
-                path = entry["path"]
-                if not os.path.isdir(path):
-                    print(f"SKIP: {path} no longer exists")
-                    continue
-                head = F.git(path, "rev-parse", "HEAD", check=False).stdout.strip()
-                if head != entry["head"]:
-                    print(f"SKIP: {path} moved from {entry['head'][:12]} to {head[:12]}")
-                    continue
-                code, doc = verify(path)
-                self.assertEqual(code, 0, doc.get("findings"))
-                self.assertEqual(doc["active_feature"], entry["active_feature"])
+        self.assertEqual(live_findings(self.doc), ([], []))
+
+    def test_a_live_regression_is_caught_and_a_moved_checkout_is_not_a_pass(self):
+        wrong = json.loads(json.dumps(self.doc))
+        wrong["checkouts"][0]["active_feature"] = F.HARNESS_FEATURES[1]
+        self.assertTrue(live_findings(wrong)[0])
+
+        moved = json.loads(json.dumps(self.doc))
+        moved["checkouts"][0]["head"] = "0" * 40
+        self.assertEqual(len(live_findings(moved)[1]), 1)
+
+        converted = self.doc["checkouts"][0]["path"]
+        other = os.path.join(".harness", "harness", "features", F.HARNESS_FEATURES[1],
+                             "feature.json")
+        os.makedirs(os.path.dirname(os.path.join(converted, other)), exist_ok=True)
+        shutil.copyfile(os.path.join(self.fx.owner, other), os.path.join(converted, other))
+        bad, skipped = live_findings(self.doc)
+        self.assertEqual(skipped, [])
+        self.assertTrue(bad and "verify exited" in bad[0], bad)
 
 
 if __name__ == "__main__":
-    argv = sys.argv[:1]
-    rest = sys.argv[1:]
-    while rest:
-        arg = rest.pop(0)
-        if arg == "--conversion-manifest" and rest:
-            LIVE_MANIFEST = os.path.abspath(rest.pop(0))
-        else:
-            argv.append(arg)
-    unittest.main(argv=argv)
+    unittest.main()

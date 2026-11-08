@@ -29,9 +29,6 @@ noise, and it costs a reader's whole run; and the one angle file the reader foll
 The angle file carries the finding shape (five parts: file, line, summary, concrete cost,
 alternative) and the rule that an empty return is a real result; you do not restate either.
 
-Source prompts (eight, verbatim):
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-simplify-angles-source.md`.
-
 ## The four angles, in one line each
 
 - **REUSE** — the change re-implements something the tree already has.

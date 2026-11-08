@@ -1,0 +1,82 @@
+review_sha=dcb71f8a5680f9768a68d73e29c85df0df8a6db3
+standalone=/private/tmp/feat71-standalone.IRKYS5BG
+  VIOLATION  FEAT-71-corpus-independence: run 2026-11-07-02-product cycle/refusal evidence: [Errno 2] No such file or directory: '/private/tmp/feat71-standalone.IRKYS5BG/.harness/harness/features/FEAT-71-corpus-independence/runs/2026-11-07-02-product/digest.md'
+  VIOLATION  INV-29: /Users/molchairuangutai/GitHub/harness-factories/kaya/.claude/worktrees/kaya/FEAT-01-kaya-platform is a standing worktree whose terminal status could not be determined — git ls-tree of the landed features directory errored. A lookup that FAILED is not an exemption; the worktree is reported rather than passed over. Remove it with `python3 .agents/skills/harness/bin/feature-worktree.py remove --repo mruangutai/kaya --id FEAT-01-kaya-platform` (path: /Users/molchairuangutai/GitHub/harness-factories/kaya/.claude/worktrees/kaya/FEAT-01-kaya-platform).
+  note       INV-32: BUG-20261006-fleet-planning-recovery finding PF-d05126619f3593a9580f5fe2d9a3624d disposition resolved.
+  note       INV-32: BUG-20261006-fleet-planning-recovery finding PF-2157d88745db4a1c95c3d28de6c2930d disposition resolved.
+  note       INV-32: BUG-20261006-fleet-planning-recovery finding PF-aa1abfeee616fde328cd7f12af5ec561 disposition resolved.
+  note       INV-32: BUG-20261006-fleet-planning-recovery finding PF-05621fab61565ae1d4d06904eda968fa disposition resolved.
+  note       INV-32: BUG-20261006-fleet-planning-recovery reader should-not-exist skipped persona fable-advisor: status skipped; DEC-228 proportionality and form findings do not buy reread; conservative task trim applies the prior alternative.
+  note       INV-32: BUG-2141-dec174-main-orchestrator is a patch mission, which runs no pre-build panel; its diff is graded by the validate run instead. Not graded.
+  note       INV-32: BUG-2161-abandon-source-tickets finding PF-a68755d85a05e098891d2d28274a6e7a disposition resolved.
+  note       INV-32: BUG-2161-abandon-source-tickets finding PF-f3f10babb2e63d106e0d0d8db679839c disposition resolved.
+  note       INV-32: FEAT-2037-product-document-guidance is a patch mission, which runs no pre-build panel; its diff is graded by the validate run instead. Not graded.
+  note       INV-32: FEAT-71-corpus-independence is a patch mission, which runs no pre-build panel; its diff is graded by the validate run instead. Not graded.
+  note       BUG-20261006-fleet-planning-recovery: run 2026-10-06-1-plan-product has historical cycle attribution without evidence.
+  note       BUG-20261006-fleet-planning-recovery: run 2026-10-06-2-simplify-eng has historical cycle attribution without evidence.
+  note       BUG-20261006-fleet-planning-recovery: run 2026-10-06-3-plan-product has historical cycle attribution without evidence.
+  note       BUG-20261006-fleet-planning-recovery: run 2026-10-06-1-plan-product is referenced but its dir is absent (pruned, or never created).
+  note       BUG-20261006-fleet-planning-recovery: run 2026-10-06-3-plan-product is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2141-dec174-main-orchestrator: run 2026-10-10-01-product has historical cycle attribution without evidence.
+  note       BUG-2141-dec174-main-orchestrator: run 2026-10-10-02-validator has historical cycle attribution without evidence.
+  note       BUG-2141-dec174-main-orchestrator: run 2026-10-10-03-validator has historical cycle attribution without evidence.
+  note       BUG-2141-dec174-main-orchestrator: run 2026-10-10-01-product is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2141-dec174-main-orchestrator: run 2026-10-10-02-validator is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2141-dec174-main-orchestrator: run 2026-10-10-03-validator is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-02-01-product has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-02-02-engineering has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-02-03-simplify-plan-eng has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-02-04-simplify-apply-product has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-05-build-eng has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-06-t02-docs-product has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-07-simplify-eng has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-08-validate-validator has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-09-fix-c1-validator has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-06-10-distill-validator has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-06-11-distill-eng has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-06-12-distill-product has historical cycle attribution without evidence.
+  note       BUG-2161-abandon-source-tickets: run 2026-11-02-01-product is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-02-02-engineering is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-02-03-simplify-plan-eng is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-02-04-simplify-apply-product is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-05-build-eng is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-06-t02-docs-product is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-07-simplify-eng is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-08-validate-validator is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-03-09-fix-c1-validator is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-06-10-distill-validator is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-06-11-distill-eng is referenced but its dir is absent (pruned, or never created).
+  note       BUG-2161-abandon-source-tickets: run 2026-11-06-12-distill-product is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run plan-product has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run preflight-product has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run preflight-eng has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run correction-verify-product has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run qa-validator has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run simplify-eng has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run validate-validator has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run simplify-c1-eng has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run validate-c1-validator has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run uat-u01-product has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run uat-u02-eng has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run uat-u03-validator has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run uat-u04-product has historical cycle attribution without evidence.
+  note       FEAT-2037-product-document-guidance: run plan-product is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run preflight-product is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run preflight-eng is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run correction-verify-product is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run qa-validator is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run simplify-eng is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run validate-validator is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run simplify-c1-eng is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run validate-c1-validator is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run uat-u01-product is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run uat-u02-eng is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run uat-u03-validator is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-2037-product-document-guidance: run uat-u04-product is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-71-corpus-independence: run 2026-11-07-01-product has historical cycle attribution without evidence.
+  note       FEAT-71-corpus-independence: run 2026-11-07-01-product is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-71-corpus-independence: run 2026-11-07-02-product is referenced but its dir is absent (pruned, or never created).
+  note       INV-17 BUG-20261006-fleet-planning-recovery: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed. Suppressed handoff-plan.
+  note       INV-17 BUG-2141-dec174-main-orchestrator: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed. Suppressed handoff-plan, handoff-build, handoff-validate.
+  note       INV-17 FEAT-2037-product-document-guidance: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed. Suppressed handoff-plan, handoff-validate.
+  note       INV-17 FEAT-71-corpus-independence: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed. Suppressed handoff-plan.

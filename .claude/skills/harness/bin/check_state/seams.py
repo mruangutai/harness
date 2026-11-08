@@ -17,20 +17,6 @@ def _handoff_done_when():
 HANDOFF_SECTIONS = ["## next", "## trust", "## dead ends", "## working set", "## done when"]
 HANDOFF_NARRATIVE_HEADINGS = HANDOFF_SECTIONS[:4]
 
-# The literal exemption set. FEAT-01 and FEAT-02 are Done, carry zero handoff notes, and
-# finished before DEC-159 existed: no seam was crossed, so no honest handoff note can be
-# written for them and none will be fabricated (PRINCIPLES rule 15). A finite list, not an
-# inferred rule — no future feature can join it.
-#
-# Matched by PREFIX because a feature directory is FEAT-01-<slug>, and FEAT-01's happens to
-# be bare today. Exact equality would pass every fixture and still raise three violations
-# on the live corpus the moment either directory gained a slug.
-#
-# This one is a SILENT skip, unlike the plan-keyed exemption below, which reports. The
-# difference is deliberate: reporting exists so a WRONGLY granted exemption is visible, and
-# a two-element list that cannot grow has nothing to grant wrongly.
-HANDOFF_EXEMPT_LITERAL = ("FEAT-01", "FEAT-02")
-
 # --- INV-17 (DEC-159): squad seams hand off through notes/handoff-<stem>.md.
 # A feature whose status: sits past a seam with no handoff note for the crossing lost the
 # predecessor's working memory — recoverable (disk-only is supported) but never silent.
@@ -64,17 +50,10 @@ def _inv17_station(ctx, feat, fy):
         return None, bad
     return _status, bad
 
-def _inv17_owed_stems(feat, fy, _status):
-    """Seam stems whose handoff note is absent, minus the literal exemption."""
-    _lit = feat.startswith(HANDOFF_EXEMPT_LITERAL)
-    owed = []
-    for prev in SEAM_NOTES[_status]:
-        hp = os.path.join(os.path.dirname(fy), "notes", f"handoff-{prev}.md")
-        if not os.path.isfile(hp):
-            if _lit:
-                continue
-            owed.append(prev)
-    return owed
+def _inv17_owed_stems(fy, _status):
+    """Seam stems whose handoff note is absent."""
+    return [prev for prev in SEAM_NOTES[_status]
+            if not os.path.isfile(os.path.join(os.path.dirname(fy), "notes", f"handoff-{prev}.md"))]
 
 def _inv17_missing_notes(feat, fy, _status):
     bad = []
@@ -82,7 +61,7 @@ def _inv17_missing_notes(feat, fy, _status):
     # every feature on every run — and cached, so a feature owing three notes reads its
     # plan once and emits ONE line rather than three near-identical ones.
     _ex_why, _ex_detail, _ex_stems = None, "", []
-    for prev in _inv17_owed_stems(feat, fy, _status):
+    for prev in _inv17_owed_stems(fy, _status):
         if _ex_why is None:
             _ex_why, _ex_detail = handoff_policy.exempt_reason(os.path.dirname(fy))
         if _ex_why:
@@ -101,11 +80,8 @@ def _inv17_missing_notes(feat, fy, _status):
         continue
     return bad, _ex_why, _ex_stems
 
-def _inv17_missing_headings(ctx, hl, _rel_handoff):
-    miss = [h for h in HANDOFF_NARRATIVE_HEADINGS if h not in hl]
-    if "## done when" not in hl and _rel_handoff not in ctx.handoff_baseline:
-        miss.append("## done when")
-    return miss
+def _inv17_missing_headings(hl):
+    return [h for h in HANDOFF_SECTIONS if h not in hl]
 
 def _inv17_section_body(hl, _i):
     _body = []
@@ -153,7 +129,7 @@ def _inv17_note_shape(ctx, feat, hp):
     _text = read(hp) or ""
     hl = [l.strip().lower() for l in _text.splitlines()]
     _rel_handoff = os.path.normpath(os.path.relpath(hp, ctx.root)).replace(os.sep, "/")
-    miss = _inv17_missing_headings(ctx, hl, _rel_handoff)
+    miss = _inv17_missing_headings(hl)
     # INV-17 empty-body check (FEAT-31 T-10)
     # SC-15 requires the relay be SHOWN TO FAIL when "## Next" is emptied. Until now it
     # could not be: `miss` tests only that the HEADING is present, so a note carrying all
@@ -168,8 +144,8 @@ def _inv17_note_shape(ctx, feat, hp):
     # MIGRATION, re-measured at 1929774 in the FEAT-31 worktree rather than copied from
     # the plan: 74 notes match, and ZERO have an empty required section. The three
     # non-seam stems T-14's glob newly reaches carry 13, 6 and 8 non-blank lines under
-    # "## Next" (FEAT-09/handoff-ship.md, FEAT-22/handoff-t09-rotation.md,
-    # FEAT-24/handoff-ship.md) — the same figures the plan measured at 7299669. So this
+    # "## Next" (FEAT-09's handoff-ship, FEAT-22's handoff-t09-rotation, FEAT-24's
+    # handoff-ship) — the same figures the plan measured at 7299669. So this
     # adds zero violations.
     _empty = _inv17_empty_sections(hl)
     _done_when_problems = _inv17_done_when_problems(ctx, hl, _rel_handoff, _text)
@@ -217,17 +193,17 @@ def inv_17(ctx, feat):
     # WHY A GLOB. check-domain.py's RE_HANDOFF already accepts handoff-[a-z0-9-]+.md, so a
     # mid-phase note is already legal to write and was, until now, never opened. Measured at
     # cf51dce in the FEAT-31 worktree: 74 notes match, 71 on seam stems and THREE on
-    # non-seam stems newly in reach — FEAT-09/handoff-ship.md (56 lines),
-    # FEAT-22/handoff-t09-rotation.md (50), FEAT-24/handoff-ship.md (60, exactly on the cap
+    # non-seam stems newly in reach — FEAT-09's handoff-ship (56 lines), FEAT-22's
+    # handoff-t09-rotation (50), FEAT-24's handoff-ship (60, exactly on the cap
     # with no headroom). All 74 carry the four headings and are within the cap, so this pass
     # adds ZERO violations at that sha. The plan measured 69 at 7299669; the five-note gap
-    # reconciles exactly — FEAT-30's three notes plus FEAT-29's handoff-validate.md plus
-    # FEAT-31's own handoff-build.md all landed after that reading.
+    # reconciles exactly — FEAT-30's three notes plus FEAT-29's handoff-validate note plus
+    # FEAT-31's own handoff-build note all landed after that reading.
     #
-    # EXEMPTIONS DO NOT REACH HERE, deliberately. HANDOFF_EXEMPT_LITERAL and
-    # handoff_policy.exempt_reason gate the missing-note branch above only: they answer whether a note is
-    # OWED. Once a file exists its shape is checked whoever wrote it and whatever the
-    # feature's status.
+    # THE EXEMPTION DOES NOT REACH HERE, deliberately. handoff_policy.exempt_reason gates the
+    # missing-note branch above only: it answers whether a note is OWED. Once a file exists
+    # its shape — all five sections, "## Done when" included — is checked whoever wrote it,
+    # whenever it was written, and whatever the feature's status.
     bad.extend(_inv17_shape_pass(ctx, feat, fy))
     if _ex_stems:
         # Reported, never silent: a wrongly granted exemption must be VISIBLE rather than

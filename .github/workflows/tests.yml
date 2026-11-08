@@ -76,21 +76,8 @@ jobs:
       # the suite exercise a degraded path that does not exist. jsonschema is REQUIRED
       # too (DEC-189): FEAT-14's feature.json schema checker fails loudly, never silently,
       # when it is absent, and CI must carry the same dependency it demands locally.
-      #
-      # PYPI'S PYYAML, NOT THE IMAGE'S. `--ignore-installed` installs PyPI's PyYAML even when the
-      # image's python3 already carries a distro build. Measured 2026-11-05: ubuntu-latest moved
-      # from ubuntu-24.04 to ubuntu-26.04, whose python3 ships Debian's PyYAML 6.0.3 in
-      # /usr/lib/python3/dist-packages, so a plain `--upgrade` kept it ("Requirement already
-      # satisfied") and test-dispatch-guard.py, test-lead-start-preflight.py and
-      # test-lead-start-return.py failed with "could not determine a constructor for the tag
-      # None" on unchanged main (e817d357, rerun of 38160729080). On 24.04 the same step
-      # installed PyPI's 6.0.3 and the suite was green. The loader defect itself is tracked
-      # separately; the import line prints which build the suite actually runs on.
       - name: Install PyYAML and jsonschema
-        run: |
-          python3 -m pip install --upgrade --ignore-installed pyyaml
-          python3 -m pip install --upgrade jsonschema
-          python3 -c 'import yaml; print("PyYAML", yaml.__version__, yaml.__file__, "libyaml:", yaml.__with_libyaml__)'
+        run: python3 -m pip install --upgrade pyyaml jsonschema
 
       # PRECOMPILE bin/ BEFORE ANY TEST. A fresh checkout has no __pycache__, so the first
       # import of each module writes a .pyc there through a temporary file. Many tests copy
@@ -387,10 +374,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install PyYAML and jsonschema
-        run: |
-          python3 -m pip install --upgrade --ignore-installed pyyaml
-          python3 -m pip install --upgrade jsonschema
-          python3 -c 'import yaml; print("PyYAML", yaml.__version__, yaml.__file__, "libyaml:", yaml.__with_libyaml__)'
+        run: python3 -m pip install --upgrade pyyaml jsonschema
 
       # Same precompile as `checks`, for the reason recorded there.
       - name: Precompile harness bin

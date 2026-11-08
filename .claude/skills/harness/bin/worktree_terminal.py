@@ -246,6 +246,12 @@ def _read_landed_plan_yaml(owner_root, default_branch, plan_rel):
     is unparseable", so NO terminal worktree was ever reclaimed — silently, because "unresolved"
     is a SKIP. test-post-merge-sweep.py caught it; nothing else would have.
 
+    THE INSTALL ADVICE DOES NOT RETIRE THIS FALLBACK (BUG-2169). harness_yaml.INSTALL_COMMAND
+    tells operators to install PyYAML into the interpreter's own site-packages, where an
+    isolated process can see it. Nothing guarantees the advice was followed: a machine whose
+    PyYAML lives only in per-user site still reaches this code without a parser, so the scan
+    stays.
+
     THE SCAN IS SOUND HERE FOR A REASON THAT DOES NOT GENERALISE, and the reason is the whole
     justification: plan.yaml's top-level `status` has exactly ONE writer — `plan-merge.py
     set-feature-station` — which emits a bare lowercase scalar on its own line. This is not

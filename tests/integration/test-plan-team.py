@@ -57,7 +57,7 @@ PLAN_YAML = os.path.join(TEAMS, "plan.yaml")
 VALIDATE_YAML = os.path.join(TEAMS, "validate.yaml")
 FIX_YAML = os.path.join(TEAMS, "fix.yaml")
 
-FEAT = "FEAT-59-proportional-flow"
+FEAT = "FEAT-90-fixture"   # synthetic: route resolution is by path shape, never a real folder
 LEADS = {"harness-product-lead", "harness-eng-lead", "harness-validator-lead"}
 KINDS = ("substance", "form", "proportionality")
 

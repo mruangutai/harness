@@ -1,0 +1,54 @@
+# BLUF: Bounded hook correction, one direct task; pending proposal for plan-merge apply.
+schema: plan/1
+feature: BUG-2169-guard-yaml-reimport
+approval:
+  date: '2026-11-07'
+  approved_by: operator
+  status: approved
+status: done
+source_issues: [2169]
+lanes:
+  resolved_at: c4e8bbc87e858bb2a0320efd766c7036cbcebb8b
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 hook category governs this coupled bootstrap correction.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 includes enforcement-layer regression tests.
+    - surface: .github/workflows/tests.yml
+      lane: main-session-direct
+      reason: Coupled single-install regression coverage in the same DEC-174 task.
+decisions: []
+tasks:
+  - id: T-01
+    title: Preserve trusted PyYAML across guard phases and restore single-install coverage
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_agent: main-session-direct
+    execution_reason: DEC-174 dispatch-guard.py is a hook; category governs despite backend/devops file grants. Main implements directly, never a build team.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/dispatch-guard.py
+    - .claude/skills/harness/bin/harness_yaml.py
+    - .claude/skills/harness/bin/worktree_terminal.py
+    - .github/workflows/tests.yml
+    - tests/integration/test-dispatch-guard.py
+    - tests/unit/test-lead-start-preflight.py
+    - tests/integration/test-lead-start-return.py
+    - tests/integration/test-check-domain-grant.py
+    - .claude/skills/harness/references/checkout-prereqs.md
+    verify: |
+      python3 tests/integration/test-dispatch-guard.py && python3 tests/unit/test-lead-start-preflight.py && python3 tests/integration/test-lead-start-return.py
+      # Execute inside harness-2169-repro (ubuntu:26.04 + python3-yaml) OR CI on the image's own single PyYAML, never use the Mac as the regression source.
+      # Preserve named fail-first stdout/stderr and exit statuses at c4e8bbc8 or an explicitly pinned pre-fix state before edits; repeat at fixed review pin. Identify interpreter, yaml path, version, libyaml availability and single-install layout in both receipts.
+      # Fixed state: all three commands exit 0, no FAIL cases, focused run under 60 seconds; pre-fix receipts must discriminate the bootstrap/advice defect, not an invocation failure.
+    intent: |
+      Work only in PRODUCT /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2169-guard-yaml-reimport on feat/BUG-2169-guard-yaml-reimport, baseline c4e8bbc8. All relative-path edits stay in that worktree. Main session implements directly under DEC-174 because dispatch-guard.py is a hook; do not dispatch a build team. Consult PRODUCT CLAUDE.md and AGENTS.md, mapped .harness/harness/docs/SPEC.md section 13 and .harness/harness/docs/DECISIONS.md DEC-174 and DEC-225. Generic PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are absent; do not create them or invent architecture guidance. Read this feature's approved BRIEF SC-01 through SC-05 and the operator's settled grilling at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-guard-yaml-reimport-2026-11-07.md. Control-plane mechanics come from /Users/molchairuangutai/GitHub/harness, not stale worktree bin interfaces.
+      Before production changes preserve fail-first evidence at c4e8bbc8 or an explicitly pinned pre-fix state from harness-2169-repro (ubuntu:26.04 plus python3-yaml) or CI on the image's own single PyYAML. Do not substitute this Mac's two-copy, system-without-libyaml layout. Reuse the three existing named suites and private-bin fixtures, retaining authorization/refusal/claim assertions. Add discriminating assertions before fixes for trusted single-install reuse, C-loader and non-C-loader behavior, distrusted yaml origin removal and platform-specific advice. Capture named red cases, source layout, revision and command receipts; repeat at fixed review pin. QA must map fail-first evidence to each automated SC, not merely report a green suite.
+      In dispatch-guard.py keep phase-1 system-wide yaml and yaml.* loaded and reused, including yaml._yaml; do not purge trusted modules just because their names begin yaml. Purge yaml modules only when loaded from locations the isolated phase distrusts: per-user site, PYTHONPATH, cwd and bin directory. Classify normalized origins against the existing isolation roots, with tests for nested module paths and aliases so unsafe modules cannot survive by path spelling. Preserve the current path boundary: only standard library, system-wide packages and the explicitly added bin/ decide. Preserve required project-module purging. Non-yaml compiled-module handling is a builder choice only within that unchanged isolation contract; do not generalize into unrelated runtime changes. No subprocess restoration, isolation weakening or forcing the pure-Python loader.
+      Replace harness_yaml.py INSTALL_COMMAND and obsolete adjacent advice with platform-specific instructions visible in isolated mode: Debian/Ubuntu apt install python3-yaml; Homebrew python3 -m pip install --break-system-packages pyyaml without --user, plainly warning that Homebrew's PEP 668 guidance says omitting --user can break the Homebrew installation; otherwise python3 -m pip install pyyaml. Select the applicable platform branch without a new public interface or dependency. Exact detection structure and warning wording/placement are builder choices, but all commands and warning must be observable in the refusal and asserted for each branch. Do not change other harness_yaml behavior.
+      In worktree_terminal.py preserve _read_landed_plan_yaml and its documented PyYAML-absent fallback; align the explanation where necessary with isolated mode ignoring user site and corrected install advice without implying PyYAML is universally available or broadening the fallback. This file owns the bounded documentation update, not a fallback redesign. Reviewer inspects its pinned blob at review_sha for SC-05.
+      In .github/workflows/tests.yml revert issue 2168's --ignore-installed addition and remove its associated comment blaming the distro build. Keep CI on the image's own single PyYAML; do not replace the workaround with another second install. Preserve unrelated jsonschema and workflow behavior. Reviewer inspects the pinned workflow blob for SC-03. Existing guard integration, unit preflight and integration start-to-return suites must all pass without suppressing their failures. No digest append issue 2171, unrelated harness_yaml changes, new public interface, schema or enforcement surface. No live GitHub writes.

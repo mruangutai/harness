@@ -308,7 +308,7 @@ def _write_top_mapping(resolved, key, value, splice):
 # `set-key` — ONE route for every top-level key (#1683).
 #
 # FEAT-59 closed "`lanes:` has no writer" (#1595, #1636) with `set-lanes`, a verb for that one
-# key. The next key to go stale was `source_issues` (BUG-285-canonical-reader, 2026-09-13):
+# key. The next key to go stale was `source_issues` (BUG-285, 2026-09-13):
 # `apply` exits 7 on a differing top-level key by design, `amend --key` names tasks|decisions
 # only, and the shape gate denies every editor write of a plan.yaml to every author. Three
 # instances, each an agent blocked mid-run over a route that should already have existed. The

@@ -298,15 +298,6 @@ class Ctx:
                 self.cj_valid = False
                 bad.append(f".harness/harness.json is not valid JSON: {e}")
 
-    def _load_handoff_baseline(self):
-        cj, root = self.cj, self.root
-        self.handoff_baseline = set()
-        for _entry in cj.get("handoff_done_when_baseline", []) if isinstance(cj, dict) else []:
-            if not isinstance(_entry, str):
-                continue
-            _path = os.path.relpath(_entry, root) if os.path.isabs(_entry) else _entry
-            self.handoff_baseline.add(os.path.normpath(_path).replace(os.sep, "/"))
-
     def _assert_seam_rows(self):
         # EVERY STATION IN THE VOCABULARY HAS A SEAM ROW, asserted here rather than trusted. The two
         # structures are derived from the same source, so the only way they can disagree is a hand-typed
@@ -348,7 +339,6 @@ class Ctx:
         self._load_git_top()
         self._load_config()
         self._load_eras()
-        self._load_handoff_baseline()
         self._assert_seam_rows()
         self.default_cycles = (_int_field((self.cj.get("budgets") or {}).get("max_total_cycles"))
                                if isinstance(self.cj, dict) else None)

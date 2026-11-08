@@ -15,8 +15,7 @@ argument it is called with and always resolves through one fixed owner-qualified
 name, "acme/harness" (segment "harness") — the same "one root for every candidate" shape
 BUG-1290's now-deleted FEATURES_ROOT hardcode produced. The proxy resolves attributes at
 call time, so it sits in front of the suite's own `factory_config.features_root`
-monkeypatch rather than replacing it (measured in
-notes/research-BUG-1290-factory-claim-repo-root-fix-c2.md).
+monkeypatch rather than replacing it (measured during BUG-1290's second fix cycle).
 
 A second, independent arm below proves the operator's literal BUG-1290 directive at a different
 seam: under a mutation collapsing the issue-map cache key from (repo, feature) down to feature

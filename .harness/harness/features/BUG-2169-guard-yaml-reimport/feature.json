@@ -1,0 +1,172 @@
+{
+  "feature_id": "BUG-2169-guard-yaml-reimport",
+  "branch": "feat/BUG-2169-guard-yaml-reimport",
+  "pr": 2185,
+  "review_sha": "a48a725e16321d3a3f9ef142a0b95e2e19a4de5e",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-07-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T13:04:04+00:00",
+      "tokens": 23137,
+      "cycles_used": 0,
+      "ended_at": "2026-11-07T13:14:36+00:00",
+      "return_disposition": "refused",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-07-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:03:20+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:19:37+00:00",
+      "return_disposition": "refused"
+    },
+    {
+      "id": "2026-11-07-3-fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:23:44+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:30:58+00:00",
+      "return_disposition": "refused"
+    },
+    {
+      "id": "2026-11-07-4-fix-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T14:36:12+00:00",
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-07T14:50:58+00:00",
+      "return_disposition": "refused"
+    },
+    {
+      "id": "2026-11-07-5-distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T15:29:59+00:00",
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T15:35:07+00:00",
+        "authorization": {
+          "path": "notes/operator-distill-close-2026-11-07-5-distill-product.json",
+          "sha256": "ce3a7f8975135388d35ed15c72390966eee22624ab0848dedd5fbfba3d07e03d"
+        },
+        "path": "runs/2026-11-07-5-distill-product/digest.md",
+        "sha256": "86a82a2032fc489f1972bf00fba3bd8b2d40d5d29d4bdb1cd012974b95544b9b"
+      },
+      "refusal": {
+        "source": "close-run",
+        "digest": {
+          "path": "runs/2026-11-07-5-distill-product/digest.md",
+          "sha256": "86a82a2032fc489f1972bf00fba3bd8b2d40d5d29d4bdb1cd012974b95544b9b"
+        },
+        "run_id": "2026-11-07-5-distill-product",
+        "reason": "validator rejected the return with deliberate contract-refusal status 65",
+        "by": "operator",
+        "at": "2026-11-07T15:35:07+00:00"
+      },
+      "ended_at": "2026-11-07T15:35:07+00:00",
+      "tokens": null,
+      "cycles_used": 0
+    },
+    {
+      "id": "2026-11-07-6-distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-07T15:34:20+00:00",
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-07T16:09:40+00:00",
+        "authorization": {
+          "path": "notes/operator-distill-close-2026-11-07-6-distill-validator.json",
+          "sha256": "8d37976af13d279eff7988cc2925f8b5659bc516290355566c736f14c592e995"
+        },
+        "path": "runs/2026-11-07-6-distill-validator/digest.md",
+        "sha256": "3086054e12ddcd1ea2833b166ce4c592ef5ecffec7f8308bd987148f21b21b23"
+      },
+      "refusal": {
+        "source": "close-run",
+        "digest": {
+          "path": "runs/2026-11-07-6-distill-validator/digest.md",
+          "sha256": "3086054e12ddcd1ea2833b166ce4c592ef5ecffec7f8308bd987148f21b21b23"
+        },
+        "run_id": "2026-11-07-6-distill-validator",
+        "reason": "validator rejected the return with deliberate contract-refusal status 65",
+        "by": "operator",
+        "at": "2026-11-07T16:09:40+00:00"
+      },
+      "ended_at": "2026-11-07T16:09:40+00:00",
+      "tokens": null,
+      "cycles_used": 1
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-07T13:04:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause reproduced and known (guard purge re-imports PyYAML over its cached C extension); diff bounded to dispatch-guard.py, harness_yaml.py INSTALL_COMMAND, tests, CI; no new interface; main-session-direct per DEC-174"
+    },
+    {
+      "at": "2026-11-07T13:14:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "intake return PASS validated via CLI but no yield hook appended the durable record under this host; BRIEF (53 lines) and plan.yaml (T-01 main-session-direct, check 0 failures) verified on disk pending; advance to signature"
+    },
+    {
+      "at": "2026-11-07T13:55:24.587458+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Per-platform advice consumer: grant test pinned pip wording; assert real install_command lines. Red on 26.04 image, green after."
+    },
+    {
+      "at": "2026-11-07T14:02:33.598612+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Simplify fold-in: checkout-prereqs.md retyped the retired --user PyYAML advice; point it at harness_yaml.INSTALL_COMMAND."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-2169-guard-yaml-reimport/notes/operator-rework-raise-2026-11-07.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "dbfa848e65427a5b599975a2d7842e143a1e11ae689955b27a5a7f1e21ef103a"
+  },
+  "github": {
+    "milestone": 105,
+    "parent": 2175,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2176
+    },
+    "source_issues": [
+      2169
+    ],
+    "build_entry": "opened"
+  }
+}

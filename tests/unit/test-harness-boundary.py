@@ -616,8 +616,8 @@ def case_bug1304_short_claim():
     agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
-        short = make_worktree(mod, owner, "FEAT-32")
-        write_claims(short, [live_claim(agent, "FEAT-32-concurrent-write-merge")])
+        short = make_worktree(mod, owner, "FEAT-91")
+        write_claims(short, [live_claim(agent, "FEAT-91-concurrent-write-fixture")])
         got = mod.claim_worktrees(owner, agent, owner)
         check("bug1304: short-form worktree prefix contributes to S",
               got == [short], f"expected {[short]!r}, got {got!r}")
@@ -630,8 +630,8 @@ def case_bug1304_owner_claim():
     agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
-        linked = make_worktree(mod, owner, "FEAT-40")
-        write_claims(owner, [live_claim(agent, "FEAT-40-harness-writes-done")])
+        linked = make_worktree(mod, owner, "FEAT-92")
+        write_claims(owner, [live_claim(agent, "FEAT-92-harness-writes-fixture")])
         got = mod.claim_worktrees(owner, agent, owner)
         check("bug1304: owner-root registry claim resolves by its feature",
               got == [linked], f"expected {[linked]!r}, got {got!r}")
@@ -662,11 +662,11 @@ def case_bug1304_multiple_claims():
     agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
-        first = make_worktree(mod, owner, "FEAT-31")
-        second = make_worktree(mod, owner, "FEAT-32")
+        first = make_worktree(mod, owner, "FEAT-90")
+        second = make_worktree(mod, owner, "FEAT-91")
         write_claims(owner, [
-            live_claim(agent, "FEAT-31-orchestrator-context-watch"),
-            live_claim(agent, "FEAT-32-concurrent-write-merge"),
+            live_claim(agent, "FEAT-90-context-watch-fixture"),
+            live_claim(agent, "FEAT-91-concurrent-write-fixture"),
         ])
         check("bug1304: claims in two features yield both worktrees",
               mod.claim_worktrees(owner, agent, owner) == sorted([first, second]))
@@ -678,11 +678,11 @@ def case_runtime_lineage_filters_claim_worktrees():
     agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
-        first = make_worktree(mod, owner, "FEAT-31")
-        make_worktree(mod, owner, "FEAT-32")
-        first_claim = live_claim(agent, "FEAT-31-orchestrator-context-watch")
+        first = make_worktree(mod, owner, "FEAT-90")
+        make_worktree(mod, owner, "FEAT-91")
+        first_claim = live_claim(agent, "FEAT-90-context-watch-fixture")
         first_claim.update({"agent_id": "BackendOne", "parent_agent_id": "LeadOne"})
-        second_claim = live_claim(agent, "FEAT-32-concurrent-write-merge")
+        second_claim = live_claim(agent, "FEAT-91-concurrent-write-fixture")
         second_claim.update({"agent_id": "BackendTwo", "parent_agent_id": "LeadTwo"})
         write_claims(owner, [first_claim, second_claim])
         got = mod.claim_worktrees(
@@ -731,7 +731,7 @@ def _bug1304_check_owner_unreadable(mod, owner, linked, agent,
                                     owner_registry, outside):
     with open(owner_registry, "w", encoding="utf-8") as handle:
         handle.write("{")
-    write_claims(linked, [live_claim(agent, "FEAT-50-run-artifact-integrity")])
+    write_claims(linked, [live_claim(agent, "FEAT-93-run-artifact-fixture")])
     raised = _bug1304_unreadable(mod, owner, agent, outside)
     check("bug1304: unreadable owner registry also refuses",
           raised is not None and owner_registry in str(raised), repr(raised))
@@ -746,9 +746,9 @@ def case_bug1304_unreadable_claims():
     agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
-        linked = make_worktree(mod, owner, "FEAT-50")
+        linked = make_worktree(mod, owner, "FEAT-93")
         owner_registry = write_claims(
-            owner, [live_claim(agent, "FEAT-50-run-artifact-integrity")])
+            owner, [live_claim(agent, "FEAT-93-run-artifact-fixture")])
         linked_registry = write_claims(linked, [])
         with open(linked_registry, "w", encoding="utf-8") as handle:
             handle.write("{")
@@ -847,7 +847,7 @@ def case_real_keeps_one_namespace_when_unresolvable():
 
 def case_run_identity_pattern():
     mod = hb()
-    marker = ".harness/harness/features/BUG-1305-run-state-clobber/runs/r1/.run-identity.json"
+    marker = ".harness/harness/features/BUG-94-run-state-fixture/runs/r1/.run-identity.json"
     check("run identity pattern matches marker", mod.RE_RUN_IDENTITY.match(marker))
     check("run identity pattern is case insensitive",
           mod.RE_RUN_IDENTITY.match(marker.upper()))
