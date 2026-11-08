@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2206-skip-shipped-features",
   "branch": "feat/FEAT-2206-skip-shipped-features",
   "pr": null,
-  "review_sha": "fe49c8df3807d875f2cd44410559966cc836b9ab",
+  "review_sha": "09ac5a4e6f334589b4ae5f6e924604d6cfec438e",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
@@ -79,6 +79,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "Validate rework: the shipped-record crash on a Unicode digit lived in the shared opt_int coercion the census strict-loads through, not only in INV-24."
+    },
+    {
+      "at": "2026-11-08T15:15:01+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 1",
+      "reason": "c0 FAIL: high duplicate-status bypass and med Unicode-digit crash remediated main-session-direct in 1dea8480 (shared opt_int); re-gate on review_sha 09ac5a4e"
     }
   ],
   "mission": "patch",
