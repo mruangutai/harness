@@ -27,7 +27,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 enforcement-layer carve-out; main session builds directly in the assigned worktree and retains all orchestrator duties, never harness-eng-lead.
     depends_on: []
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/check_state/ctx.py
     - .claude/skills/harness/bin/check_state/board.py
