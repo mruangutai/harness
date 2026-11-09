@@ -255,6 +255,20 @@ class ComparisonsKeepShippedRecords(Case):
         self.assertIn(f"INV-52: branch feat/dup is claimed by 2 landed features "
                       f"({SHIPPED}, {SHIPPED_TOO})", out)
 
+    def test_inv52_keeps_the_branch_of_a_shipped_record_the_strict_loader_refuses(self):
+        # A malformed parent makes the shipped record strict-invalid; it is never graded, so its
+        # branch must still be compared or a later feature could reuse it unnoticed. Full clone
+        # and the active feature's sparse worktree both read the main corpus.
+        self.commit({**feature_files(SHIPPED, STRICT_INVALID_DONE,
+                                     {"branch": "feat/dup", "github": {"parent": "²"}}),
+                     **feature_files("FEAT-7-building", BUILDING, {"branch": "feat/dup"})})
+        for checkout in (self.fx.clone(), self.sparse("FEAT-7-building")):
+            _code, out = check(checkout)
+            self.assertIn(f"INV-52: branch feat/dup is claimed by 2 landed features "
+                          f"({SHIPPED}, FEAT-7-building)", out)
+            self.assertFalse([l for l in out.splitlines()
+                              if SHIPPED in l and "does not parse" in l], out)
+
     def test_inv29_sees_a_standing_worktree_of_a_shipped_feature(self):
         self.commit(feature_files(SHIPPED, STRICT_VALID_DONE))
         wt = self.fx.add_worktree(SHIPPED)

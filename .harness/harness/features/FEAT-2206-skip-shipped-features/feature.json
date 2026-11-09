@@ -137,13 +137,27 @@
       "kind": "regate",
       "decision": "validate cycle 2",
       "reason": "c1 FAIL: med oversized shipped number crash and low active Unicode-digit regression fixed main-session-direct in 4a351fae (isdigit plus total int); re-gate on review_sha 4a351fae"
+    },
+    {
+      "at": "2026-11-09T14:59:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Validate c2 BLOCKED on Q-02; operator ruled INV-52 must salvage strict-refused shipped branch claims (literal SC-03) and granted a third round (3 rounds / 105 min)."
+    },
+    {
+      "at": "2026-11-09T15:01:37.869735+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Validate c2 Q-02, operator ruling: INV-52 (check_state/corpus.py) salvages branch claims of strict-refused shipped records."
     }
   ],
   "mission": "patch",
   "rework": {
-    "rounds": 2,
-    "wall_clock_minutes": 75,
-    "decision": "notes/answers-validate-c1-validator.md"
+    "rounds": 3,
+    "wall_clock_minutes": 105,
+    "decision": "notes/answers-validate-c2-validator.md"
   },
   "signed_task_hashes": {
     "T-01": "f366019a6a176e8ed78e551107efb0c676b6421d4a6b8ea7e51fd81cb6a4f8c0"

@@ -82,3 +82,12 @@ Baseline = the c1 pin `688c5ef5` bin exported to /private/tmp/f2206-pin2.
 | `test_inv24_still_reads_a_unicode_digit_on_active_claims` ("٣" vs 3 collide, no malformed finding) | FAIL | PASS (pre-feature behaviour restored) | PASS |
 
 `_inv24_issue_number` is back on `str.isdigit()` and treats `int()`'s ValueError as unusable.
+
+## Rework round 3 (validate c2 BLOCKED on Q-02; operator ruled "fix that")
+
+| Regression | At b7af829c | At pin 4a351fae | After |
+|---|---|---|---|
+| `test_inv52_keeps_the_branch_of_a_shipped_record_the_strict_loader_refuses` (shipped `parent: "²"` + active feature on one branch; full clone and sparse worktree) | FAIL | FAIL | PASS |
+
+INV-52 now re-reads a strict-refused shipped record through `comparison_record`, as INV-24's
+population does; its declared reads gain `plan.yaml` (the shipped classification).

@@ -163,7 +163,7 @@ INVARIANTS = (
             "a factory block names a fleet repository and no two features claim one issue, shipped claims compared as data", "DEC-203"),
     )),
     Group("branch-claims", (
-        Inv("INV-52", inv_52, "repo", (_FEATURE_JSON, "git:ls-tree"),
+        Inv("INV-52", inv_52, "repo", (_FEATURE_JSON, _PLAN_YAML, "git:ls-tree"),
             "no two landed features claim one branch, read from the main corpus on demand", "DEC-95"),
     )),
     Group("worktree-place", (
