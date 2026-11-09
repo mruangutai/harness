@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2206-skip-shipped-features",
   "branch": "feat/FEAT-2206-skip-shipped-features",
   "pr": null,
-  "review_sha": "4a351faea95ad3776f130d0f42f303a4eee3e4b9",
+  "review_sha": "7b8e2e1f485db72a4a574e04738533cb0ab821ed",
   "cycles_used": 6,
   "max_total_cycles": 10,
   "runs": [
@@ -151,6 +151,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "Validate c2 Q-02, operator ruling: INV-52 (check_state/corpus.py) salvages branch claims of strict-refused shipped records."
+    },
+    {
+      "at": "2026-11-09T15:01:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 3",
+      "reason": "c2 BLOCKED on Q-02; operator ruled INV-52 must salvage strict-refused shipped branch claims; fixed main-session-direct in 7b8e2e1f; re-gate on review_sha 7b8e2e1f"
     }
   ],
   "mission": "patch",
