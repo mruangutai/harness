@@ -78,13 +78,12 @@ def is_shipped(feature_dir):
 
 def comparison_record(path):
     """A shipped feature.json as raw comparison data: the parsed mapping, or None. Never a
-    finding -- a shipped record is read only so another feature's claims can be compared with it."""
+    finding -- a shipped record is read only so another feature's claims can be compared with it.
+    The canonical JSON-mapping read, without the feature schema the strict loader adds."""
     try:
-        with open(path, encoding="utf-8") as fh:
-            doc = json.load(fh)
-    except (OSError, UnicodeDecodeError, ValueError):
+        return artifact_accessors.load_harness_json(path)
+    except (artifact_accessors.ArtifactAccessError, RecursionError):
         return None
-    return doc if isinstance(doc, dict) else None
 
 
 def _landed_entry(entry):

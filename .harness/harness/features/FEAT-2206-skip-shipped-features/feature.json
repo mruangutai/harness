@@ -173,6 +173,13 @@
       "kind": "regate",
       "decision": "validate cycle 3",
       "reason": "c2 BLOCKED on Q-02; operator ruled INV-52 must salvage strict-refused shipped branch claims; fixed main-session-direct in 7b8e2e1f; re-gate on review_sha 7b8e2e1f"
+    },
+    {
+      "at": "2026-11-10T12:55:12.059340+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "PR CI canonical-reader audit: the grade split moved inv_24's load_fleet into _inv24_fleet, and comparison_record now reads through artifact_accessors.load_harness_json; inventory rows follow."
     }
   ],
   "mission": "patch",

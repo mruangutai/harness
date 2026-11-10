@@ -51,6 +51,7 @@ tasks:
     - tests/integration/f58_sparse_fixture.py
     - .claude/skills/harness/bin/artifact_accessors.py
     - .claude/skills/harness/bin/check_state/corpus.py
+    - tests/integration/canonical-reader-classification.json
     verify: |
       bash -o pipefail <<'SH'
       set -eu
