@@ -40,7 +40,7 @@ No escalations.
 
 `feature-record.py spend`: 5 runs, 68 wall-clock minutes, 60 rework minutes, tokens not recorded.
 Rework budget: signed at 1 round / 45 min, raised by you to 2 / 75 and then to 3 / 105. All three rounds were used, ending at 60 of 105 minutes.
-cycles_used 7 of 10. Judgements: 13 in total: 1 mission, 7 amendments, 3 regates, 2 continue.
+cycles_used 7 of 10. Judgements: 14 in total: 1 mission, 8 amendments, 3 regates, 2 continue.
 `rework_rounds` reads 0 in `spend` despite three recorded regates (B-6).
 
 ## Amendments
@@ -54,8 +54,9 @@ cycles_used 7 of 10. Judgements: 13 in total: 1 mission, 7 amendments, 3 regates
 | 2026-11-08T15:13:34Z | T-01.files | Rework: `feature_json_write.py` added for a shared-coercion fix (later reverted, see the next row) | no |
 | 2026-11-08T15:20:11Z | T-01.files | Rework: `opt_int` kept as is (#2151 relies on its raise); `artifact_accessors.py` absorbs it instead | no |
 | 2026-11-09T15:01:37Z | T-01.files | Q-02 ruling: INV-52 (`check_state/corpus.py`) salvages strict-refused shipped branch claims | no |
+| 2026-11-10T12:55:12Z | T-01.files | PR CI canonical-reader audit: inventory rows follow the moved `load_fleet` site and `comparison_record`'s switch to `load_harness_json` | no |
 
-overrule rate: 0/7
+overrule rate: 0/8
 
 ## Disclosed consequences (already stated in DEC-252)
 
@@ -63,6 +64,7 @@ overrule rate: 0/7
 - **FEAT-63's "gh auth is probed once" test was deleted, not rebuilt.** INV-30 was its second prober; with INV-30 gone, the test has no pair of probers left to observe.
 - **The exact-pin standalone verify can't run cleanly.** After `gh-sync status review` rewrites plan.yaml, INV-33/INV-26 report the pin stale (#2201, already filed). Each round's full verify therefore ran at the pin *commit*. That commit differs from the pin only in feature.json's `review_sha` and the regate. The readers independently confirmed the byte equivalence.
 - The round-1 regate judgement names `09ac5a4e`, an intermediate tip that `688c5ef5` superseded after the `opt_int` revert.
+- **After the c3 PASS, PR CI's canonical-reader audit failed.** It is not among T-01.verify's gates. The grade split had moved `inv_24`'s `load_fleet` call into `_inv24_fleet`, and `comparison_record`'s raw `json.load` was an unclassified reader site. Fixed in `e640baa7`: `comparison_record` reads through `artifact_accessors.load_harness_json`, the canonical JSON-mapping accessor, without the feature schema. The two inventory rows were updated, `review_sha` was re-pinned to `e640baa7`, and the full verify was re-run. The panel reviewed `7b8e2e1f`, not this delta (an 8th amendment, T-01.files).
 
 ## Proposed backlog
 
@@ -76,3 +78,4 @@ Strike any row by ID. Rows you don't strike become backlog issues when you accep
 | B-4 | chore | `feature_json_write.opt_int`'s docstring promises None for junk, but it raises on `isdigit()` strings `int()` refuses (`"²"`, more than 4,300 digits). `board_lifecycle` (#2151) relies on that raise, and gh-sync reads only after the strict loader, which now refuses such values. Document the raise as the contract. |
 | B-5 | chore | T-01.verify's real-corpus run does not capture the owner's HEAD before executing, so its evidence is not bound to an immutable SHA. |
 | B-6 | bug | `feature-record.py spend` reports `rework_rounds: 0` after three recorded regate rounds. |
+| B-7 | chore | T-01.verify-style gate lists omit `check-plan-routes.py --canonical-reader-audit`, which PR CI runs; it should be part of every check-state change's local gates. |
