@@ -1,4 +1,4 @@
-"""The GitHub mirror agrees with disk: INV-13/21/24/26/28/30/37. (FEAT-69)"""
+"""The GitHub mirror agrees with disk: INV-13/21/24/26/37. (FEAT-69)"""
 import os, re
 import artifact_accessors
 import feature_corpus
@@ -71,18 +71,19 @@ def inv_21(ctx, feat):
 # parents and issues in one list is the only place in this increment it becomes visible.
 # A feature.json with no `factory` block contributes nothing and is not a violation.
 def _inv24_factory_blocks(ctx):
-    """Each feature's `factory` block, in feature order. A feature with no feature.json, an
-    unreadable one, or no block contributes nothing. Two features claiming one issue is a
-    REPO-WIDE predicate, so the population is `ctx.population()`: in a sparse worktree that is
-    every landed record plus this checkout's own (FEAT-1559), never just the one local record."""
-    for feat, fdoc in ctx.population():
+    """Each feature's `(feature, factory block, shipped)`, in feature order. A feature with no
+    feature.json, an unreadable one, or no block contributes nothing. Two features claiming one
+    issue is a REPO-WIDE predicate, so the population is `ctx.population()`: in a sparse worktree
+    that is every landed record plus this checkout's own (FEAT-1559), never just the one local
+    record. Shipped records are in it as comparison data (FEAT-2206)."""
+    for feat, fdoc, shipped in ctx.population():
         # (FEAT-63: `None` is also an ABSENT record, which an isfile check used to skip here.)
         if fdoc is None:
             continue  # the parse failure is already a violation elsewhere; do not double-report
         fac = fdoc.get("factory")
         if not isinstance(fac, dict):
             continue
-        yield feat, fac
+        yield feat, fac, shipped
 
 
 def _inv24_fleet_names(fleet):
@@ -135,14 +136,35 @@ def _inv24_numbers(feat, fac):
 
 
 def _inv24_issue_number(n):
-    """`n` as an int, or None when it is not an integer or a digit string."""
+    """`n` as an int, or None when it is not an integer or a digit string int() can read."""
     # A DIGIT STRING IS A NUMBER HERE. INV-21 thirty lines above accepts `parent: "40"`
     # deliberately — gh-sync.py's reader was widened to it because bare-digits-only
     # read a quoted number as absent. Rejecting the same shape here would make one
     # legal feature.json pass one invariant and hard-block on its twin (D-03).
-    if isinstance(n, bool) or not (isinstance(n, int) or str(n).strip().isdigit()):
+    # TOTAL (FEAT-2206): str.isdigit() also accepts strings int() refuses -- "²", or more
+    # digits than int()'s conversion limit -- and those read as unusable (None) rather than
+    # crashing INV-24. Digits int() does read, "٣" among them, keep their value.
+    # Not feature_json_write.opt_int: that one raises on them by contract (#2151 reads the
+    # raise as "unreadable record").
+    if isinstance(n, bool):
         return None
-    return int(n)
+    if isinstance(n, int):
+        return n
+    s = str(n).strip()
+    if not s.isdigit():
+        return None
+    try:
+        return int(s)
+    except ValueError:
+        return None
+
+
+def _inv24_cross(first, second, repo, num):
+    """The finding for two features recording one repository issue."""
+    return (f"INV-24: {first} and {second} both record {repo} issue {num} — "
+            f"two features claiming one issue means the board and the harness "
+            f"disagree about what is in flight. Decide which feature owns it and "
+            f"clear the other's factory block.")
 
 
 def _inv24_collision(feat, repo, n, _src, _seen_here, _fac_pairs):
@@ -161,12 +183,29 @@ def _inv24_collision(feat, repo, n, _src, _seen_here, _fac_pairs):
                 f"Re-run `factory publish` after correcting the block."]
     _seen_here[key] = _src
     if key in _fac_pairs and _fac_pairs[key] != feat:
-        return [f"INV-24: {_fac_pairs[key]} and {feat} both record {repo} issue {num} — "
-                f"two features claiming one issue means the board and the harness "
-                f"disagree about what is in flight. Decide which feature owns it and "
-                f"clear the other's factory block."]
+        return [_inv24_cross(_fac_pairs[key], feat, repo, num)]
     _fac_pairs[key] = feat
     return []
+
+
+def _inv24_shipped_claims(feat, fac, _fac_pairs):
+    """A SHIPPED feature's block as comparison data only (FEAT-2206): every usable repo/issue
+    claim enters the cross-feature ledger, so another feature -- shipped or not -- claiming the
+    same issue is still reported. Nothing about the shipped block itself is graded: an unnamed
+    or undeclared repository, a malformed container, a non-integer number or a number repeated
+    within the block is skipped, never reported."""
+    repo = fac.get("repo")
+    if not isinstance(repo, str) or not repo:
+        return []
+    bad = []
+    for n, _src in _inv24_numbers(feat, fac)[1]:
+        num = _inv24_issue_number(n)
+        if num is None:
+            continue
+        first = _fac_pairs.setdefault((repo, num), feat)
+        if first != feat:
+            bad.append(_inv24_cross(first, feat, repo, num))
+    return bad
 
 
 def _inv24_collisions(feat, repo, nums, _fac_pairs):
@@ -193,9 +232,23 @@ def _inv24_feature(feat, fac, fleet, _fac_pairs):
     return bad
 
 
+def _inv24_fleet(H, root, feat):
+    """The parsed fleet declaration for an active feature's block: (fleet, findings). The fleet
+    is None, and one finding names why, when it is absent or does not parse."""
+    fleet_p = os.path.join(H, "factory", "fleet.yaml")
+    if not os.path.isfile(fleet_p):
+        return None, [f"INV-24 {feat}: records factory state but {os.path.relpath(fleet_p, root)} "
+                      f"is absent — no fleet declares the repository it claims work in. "
+                      f"Write the fleet declaration, or clear the feature's factory block."]
+    try:
+        return artifact_accessors.load_fleet(fleet_p) or {}, []
+    except artifact_accessors.FleetError as _e:
+        return None, [f"INV-24 {feat}: records factory state but the fleet file does not parse: "
+                      f"{_e} — fix .harness/factory/fleet.yaml before any factory run."]
+
+
 def inv_24(ctx):
     bad, warn = [], []
-    H, root = ctx.H, ctx.root
     _fac_pairs = {}
     try:
         _blocks24 = list(_inv24_factory_blocks(ctx))
@@ -203,86 +256,14 @@ def inv_24(ctx):
         bad.append(f"INV-24 CANNOT VERIFY factory claims across features: {_ce24}. A population "
                    f"that could not be read is not one without a duplicate claim.")
         return bad, warn
-    for feat, fac in _blocks24:
-        fleet_p = os.path.join(H, "factory", "fleet.yaml")
-        if not os.path.isfile(fleet_p):
-            bad.append(f"INV-24 {feat}: records factory state but {os.path.relpath(fleet_p, root)} "
-                       f"is absent — no fleet declares the repository it claims work in. "
-                       f"Write the fleet declaration, or clear the feature's factory block.")
+    for feat, fac, shipped in _blocks24:
+        if shipped:
+            bad.extend(_inv24_shipped_claims(feat, fac, _fac_pairs))
             continue
-        try:
-            fleet = artifact_accessors.load_fleet(fleet_p) or {}
-        except artifact_accessors.FleetError as _e:
-            bad.append(f"INV-24 {feat}: records factory state but the fleet file does not parse: "
-                       f"{_e} — fix .harness/factory/fleet.yaml before any factory run.")
-            continue
-        bad.extend(_inv24_feature(feat, fac, fleet, _fac_pairs))
-    return bad, warn
-
-# --- INV-28 (FEAT-26 T-05, REQ-04): a feature that shipped but whose pull request
-# number was never recorded. WARN, not violation: the mirror is never a gate (DEC-138),
-# and the remedy is one command that can be run at any time.
-#
-# THE FAILURE THIS MAKES VISIBLE IS A HABIT DECAYING, NOT A BUG. `feature.json`'s `pr`
-# was filled by hand for thirteen features and then the hand stopped; five ran null before
-# anyone noticed (#492). Nothing checked, so nothing complained.
-#
-# ONE LINE PER FEATURE, never an aggregate count. A per-feature check that reports a
-# single total cannot tell the operator WHICH feature to run the remedy on, which makes
-# the report unactionable at exactly the moment it matters.
-#
-# GATED ON github.sync, like INV-21 above: a repository with no mirror has no pull
-# requests to record, and the remedy needs a working `gh`.
-#
-# THE TERMINAL MARKER IS TERMINAL AND IS SILENT HERE, deliberately. It asserts that no seam was
-# crossed and nothing shipped, so there is no pull request to have missed. Only the `done`
-# station is checked, read from plan.yaml (FEAT-41 T-07) — the feature.json read below stays,
-# because this invariant is ABOUT that document's `pr` key.
-def _inv28_feature_doc(ctx, feat):
-    """The feature's feature.json path and document behind the github.sync gate:
-    (path, doc, findings). The doc is None when sync is off, the file is absent, or it
-    does not parse — only the last of those is a finding."""
-    bad = []
-    fpath = ctx.fpath
-    cj = ctx.cj
-    if not (cj and (cj.get("github") or {}).get("sync")):
-        return None, None, bad
-    fy = ctx.path(feat, 'feature.json')
-    if not os.path.isfile(fy):
-        return fy, None, bad
-    e = ctx.record_error(feat)
-    if e is not None:
-        bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-28 cannot be "
-                   f"checked for it: {e}")
-        return fy, None, bad
-    return fy, ctx.record(feat)[0] or {}, bad
-
-
-def _inv28_missing_pr(ctx, feat, fy, pdoc):
-    """The finding for a Done feature whose `pr` key holds no pull request number, if any."""
-    root = ctx.root
-    if not isinstance(pdoc, dict):
-        return []
-    if ctx.station(feat) != "done":
-        return []
-    _pr = pdoc.get("pr")
-    # `isinstance(True, int)` is True in Python, so the bool exclusion is load-bearing:
-    # `pr: true` is not a pull request number and must not read as one.
-    if isinstance(_pr, int) and not isinstance(_pr, bool):
-        return []
-    return [f"INV-28: {feat} is Done but its pull request number was never "
-            f"recorded — the linkage from the feature to the change that shipped "
-            f"it is missing. Record it with `gh-sync.py record-pr "
-            f"{os.path.relpath(os.path.dirname(fy), root)}`."]
-
-
-def inv_28(ctx, feat):
-    bad, warn = [], []
-    H, root, fpath = ctx.H, ctx.root, ctx.fpath
-    fy, pdoc, bad = _inv28_feature_doc(ctx, feat)
-    if pdoc is None:
-        return bad, warn
-    warn.extend(_inv28_missing_pr(ctx, feat, fy, pdoc))
+        fleet, findings = _inv24_fleet(ctx.H, ctx.root, feat)
+        bad.extend(findings)
+        if fleet is not None:
+            bad.extend(_inv24_feature(feat, fac, fleet, _fac_pairs))
     return bad, warn
 
 # --- INV-37 (BUG-1309): an enabled mirror must leave a Build-entry receipt.
@@ -730,7 +711,7 @@ def _inv26_group(ctx, _gb, plan_docs, group):
 
 def _inv26_check(ctx, _gb, _fs, _owner, _gh_bin, plan_docs):
     # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
-    # something to ask about. That is INV-30's posture one screen below, and it is the one this
+    # something to ask about. That was the retired INV-30's posture too, and it is the one this
     # invariant was missing (issue #1541): the whole-board read downloaded every card the board
     # has ever held — 918 items over ten sequential `gh` processes, 11.25s of this script's
     # 14.3s — to answer questions about the handful of features actually in flight. Measured
@@ -767,151 +748,6 @@ def inv_26(ctx):
     bad += _bbad
     _owner = (_repo26, _inv26_board) if _inv26_board else None
     bad += _inv26_check(ctx, _gb, _fs, _owner, _gh_bin, ctx.plan_docs)
-    return bad, warn
-
-# --- INV-30 (FEAT-34 T-08, REQ-12): a feature recorded `Done` whose milestone is still OPEN.
-#
-# IT KEYS ON THE MILESTONE, NEVER ON THE STATUS AGREEING WITH ITSELF. `status: Done` has more
-# than one path that can write it — the 2026-08-24 repair wrote ten by hand — so a Done status
-# corroborating a Done status proves nothing. The milestone has exactly ONE writer,
-# `gh-sync.py`'s `cmd_ship`, which PATCHes it closed unconditionally once entered. So an OPEN
-# milestone on a Done feature is proof that `ship` never ran.
-#
-# THE OFFLINE POSTURE IS INV-26's, NOT A NEW ONE. The IMPORT failing is a violation, because
-# the module ships with this repository. Everything else — `gh` absent, unauthenticated, the
-# network unreachable, a milestone that 404s — records NOTHING. `check-state.py` runs before
-# every commit, and an offline environment must never become a red gate.
-#
-# ONE `gh` CALL, NOT ONE PER FEATURE. 24 features carry a recorded milestone at 9165162; a
-# request each would make the pre-commit gate pay 24 round trips for a check that one paginated
-# list answers. The whole milestone list is fetched once and matched by number in memory.
-def _inv30_import():
-    bad = []
-    try:
-        harness_boundary.load_repo_module("gh_board")
-        _inv30_import_ok = True
-    except harness_boundary.RepoModuleError as _gbe30:
-        _inv30_import_ok, _gbe30 = False, _gbe30.cause
-        bad.append("INV-30 CANNOT RUN: gh_board.py did not import (%s: %s), so a feature recorded "
-                   "Done whose milestone is still open would go unreported. The module ships with "
-                   "this repository — restore .agents/skills/harness/bin/gh_board.py."
-                   % (type(_gbe30).__name__, _gbe30))
-    return bad, _inv30_import_ok
-
-
-def _inv30_repo(cj):
-    _g30 = cj.get("github") if isinstance(cj, dict) else None
-    _repo30 = (_g30 or {}).get("repo")
-    return _g30, _repo30
-
-
-def _inv30_feature_doc(ctx, _feat30):
-    _doc30 = ctx.record(_feat30)[0]
-    if _doc30 is None:
-        # INV-28 above already reports an unparseable feature.json. Restating it here would
-        # report one defect twice.
-        return None
-    if not isinstance(_doc30, dict):
-        return None
-    return _doc30
-
-
-def _inv30_candidate(ctx, _feat30):
-    _fy30 = ctx.path(_feat30, 'feature.json')
-    _doc30 = _inv30_feature_doc(ctx, _feat30)
-    if _doc30 is None:
-        return None
-    # The `done` station and nothing else, read from plan.yaml (FEAT-41 T-07). The terminal
-    # marker is terminal and silent here for INV-28's reason: nothing shipped, so there is
-    # no milestone that ship should have closed. The feature.json read above stays — this
-    # invariant needs `github.milestone` off that document.
-    if ctx.station(_feat30) != "done":
-        return None
-    _ms30 = (_doc30.get("github") or {}).get("milestone")
-    if _ms30 is None:
-        # A Done feature with no recorded milestone is outside this invariant's reach, not a
-        # finding. Eight features are in that state at 9165162 and none of them is a defect
-        # INV-30 can speak to.
-        return None
-    try:
-        return (_feat30, int(_ms30))
-    except (TypeError, ValueError):
-        return None
-
-
-def _inv30_candidates(ctx):
-    # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
-    # something to ask about. A tree with no Done-and-milestoned feature makes no gh call at all.
-    _cand30 = []
-    for _feat30 in ctx.features:
-        _c30 = _inv30_candidate(ctx, _feat30)
-        if _c30 is not None:
-            _cand30.append(_c30)
-    return _cand30
-
-
-
-def _inv30_open_milestones(ctx, _gh_bin30, _repo30):
-    # `--paginate` rather than a bare per_page: the list is small today and silently
-    # truncating it later would make this invariant quietly stop firing on the oldest
-    # features, which is the decay shape INV-28 was written to catch.
-    _r30 = ctx.spawn(
-        [_gh_bin30, "api", "--paginate",
-         "repos/%s/milestones?state=open&per_page=100" % _repo30,
-         "-q", ".[].number"],
-        capture_output=True, text=True, timeout=60)
-    if _r30 is None or _r30.returncode != 0:
-        return None
-    return {int(x) for x in _r30.stdout.split() if x.strip().isdigit()}
-
-
-def _inv30_compare(_cand30, _open30, fpath):
-    bad = []
-    for _feat30, _num30 in _cand30:
-        if _num30 not in _open30:
-            continue
-        bad.append(
-            "INV-30 %s: status is Done but milestone #%d is still OPEN, so "
-            "`gh-sync.py ship` never ran for it. The status is not evidence — it has "
-            "several writers and the milestone has one. Close it with `python3 "
-            ".agents/skills/harness/bin/gh-sync.py ship %s`."
-            % (_feat30, _num30, fpath(_feat30)))
-    return bad
-
-
-def _inv30_check(ctx, _cand30, _repo30, fpath):
-    # SAME RESOLUTION AS INV-26 at :1371 — FACTORY_GH first. A fixture that stubs
-    # `gh` through that variable must reach this invariant too, or INV-30 would be
-    # untestable offline while claiming an offline posture.
-    _gh_bin30 = os.environ.get("FACTORY_GH") or "gh"
-    _open30 = None
-    _gh_ok30 = ctx.gh_ok(_gh_bin30)
-
-    if _gh_ok30:
-        _open30 = _inv30_open_milestones(ctx, _gh_bin30, _repo30)
-
-    # None means "we could not ask", which is NOT the same as "nothing is open" and must
-    # never be treated as one. Silence here is the whole offline posture.
-    bad = []
-    if _open30 is not None:
-        bad += _inv30_compare(_cand30, _open30, fpath)
-    return bad
-
-
-def inv_30(ctx):
-    bad, warn = [], []
-    H, root, fpath = ctx.H, ctx.root, ctx.fpath
-    cj = ctx.cj
-    _ibad, _inv30_import_ok = _inv30_import()
-    bad += _ibad
-
-    _g30, _repo30 = _inv30_repo(cj)
-
-    if _inv30_import_ok and (_g30 or {}).get("sync") and _repo30:
-        _cand30 = _inv30_candidates(ctx)
-
-        if _cand30:
-            bad += _inv30_check(ctx, _cand30, _repo30, fpath)
     return bad, warn
 
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo

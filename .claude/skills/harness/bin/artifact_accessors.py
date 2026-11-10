@@ -144,7 +144,10 @@ def _parse_feature_json_text(text, context):
 
 def _positive_issue_number(value):
     import feature_json_write
-    number = feature_json_write.opt_int(value)
+    try:
+        number = feature_json_write.opt_int(value)
+    except ValueError:  # an `isdigit` string int() cannot parse, e.g. "²" (FEAT-2206)
+        return None
     return number if number is not None and number >= 1 else None
 
 

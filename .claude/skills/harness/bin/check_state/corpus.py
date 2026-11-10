@@ -22,6 +22,7 @@ meant to see is the silent shrink this feature exists to stop.
 """
 import feature_corpus
 import harness_boundary
+from check_state.ctx import comparison_record, is_shipped
 
 
 class Preflight:
@@ -141,6 +142,15 @@ def preflight(root, feature, bin_dir):
 
 # --- INV-52 -----------------------------------------------------------------------------------
 
+def _branch_entry(entry):
+    """A census entry as INV-52 compares it. A SHIPPED record the strict loader refused still
+    claims its branch (FEAT-2206 SC-03): it is never graded, so dropping it here would let a later
+    feature reuse its branch with nobody told. It is re-read leniently, as INV-24's population is."""
+    if entry["document"] is not None or entry["record"] is None or not is_shipped(entry["path"]):
+        return entry
+    return dict(entry, document=comparison_record(entry["record"]))
+
+
 def inv_52(ctx):
     """INV-52: no two LANDED features claim one branch, read from the main corpus on demand —
     a sparse checkout's one local record cannot see a collision between two others. No git work
@@ -151,7 +161,7 @@ def inv_52(ctx):
         return bad, warn
     try:
         owner = ctx.owner or feature_corpus.owner_root(ctx.root)
-        entries = feature_corpus.records(owner)
+        entries = [_branch_entry(e) for e in feature_corpus.records(owner)]
     except feature_corpus.CorpusError as exc:
         bad.append(f"INV-52 CANNOT VERIFY branch claims: {exc}. A population that could not be "
                    f"read is not one without collisions.")

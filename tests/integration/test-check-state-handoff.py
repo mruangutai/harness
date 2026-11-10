@@ -102,16 +102,15 @@ def case_g():
     # later features too. These synthetic ids share that prefix shape; each owes every note
     # its station demands, like any other feature.
     for feat in ("FEAT-0190-fixture", "FEAT-0290-fixture"):
-        out = build(feat, "Done")
-        check(f"INV-17 RAISES for {feat} at Done with no notes: no id is exempt",
-              all(f"notes/handoff-{s}.md is missing" in out
-                  for s in ("plan", "build", "validate")), out)
+        out = build(feat, "Review")
+        check(f"INV-17 RAISES for {feat} at Review with no notes: no id is exempt",
+              all(f"notes/handoff-{s}.md is missing" in out for s in ("plan", "build")), out)
 
-    # 3 — the validate seam survived the fold of validate and ship into Review by moving to
-    # the Done boundary, rather than being silently dropped.
+    # 3 — Done is shipped, and a shipped feature is checked for nothing (DEC-252): no note is
+    # owed there, the validate note included.
     out = build("FEAT-TEST", "Done", notes=("plan", "build"))
-    check("INV-17 RAISES at Done when handoff-validate.md is absent",
-          "handoff-validate.md" in out, out)
+    check("INV-17 owes nothing at Done: a shipped feature is not checked",
+          "handoff-" not in out, out)
 
     # 4 — no seam has been crossed yet at Plan, so nothing is owed.
     out = build("FEAT-TEST", "Plan")
@@ -120,27 +119,27 @@ def case_g():
 
     # 5 — the plan-keyed exemption, positive direction. BOTH halves are asserted: silence
     # alone would pass against an exemption that granted itself without saying so.
-    out = build("FEAT-TEST", "Done", tasks=MSD)
-    check("all-main-session-direct at Done raises NO handoff violation AND reports the "
+    out = build("FEAT-TEST", "Review", tasks=MSD)
+    check("all-main-session-direct at Review raises NO handoff violation AND reports the "
           "exemption by name",
           ("handoff-plan.md is missing" not in out
            and any("exempt" in l and "FEAT-TEST" in l and "handoff-plan" in l
-                   and "handoff-validate" in l and "VIOLATION" not in l
+                   and "handoff-build" in l and "VIOLATION" not in l
                    for l in out.splitlines())), out)
 
     # 6 — what stops the exemption degenerating into keyed-on-absence. Same absent notes as
     # case 5; the only difference is that the plan declares no execution modes. If this goes
     # quiet the predicate is reading the notes' absence, which is the condition INV-17
     # exists to detect.
-    out = build("FEAT-TEST", "Done", tasks=NO_MODE)
+    out = build("FEAT-TEST", "Review", tasks=NO_MODE)
     check("a plan with NO execution_mode keys still RAISES and reports no exemption",
           "plan.yaml does not load" in out and "exempt" not in out, out)
 
     # 7 — condition 2, the vacuity guard, in both its shapes. "Every task is
     # main-session-direct" is VACUOUSLY TRUE over an empty list, so without condition 2 a
     # stub plan would be silently exempted from a seam invariant.
-    out_empty = build("FEAT-TEST", "Done", tasks="tasks: []\n")
-    out_absent = build("FEAT-TEST", "Done", tasks="approval: approved\n")
+    out_empty = build("FEAT-TEST", "Review", tasks="tasks: []\n")
+    out_absent = build("FEAT-TEST", "Review", tasks="approval: approved\n")
     check("an empty tasks: list and an absent tasks: key BOTH raise, never vacuously exempt",
           ("plan.yaml does not load" in out_empty and "exempt" not in out_empty
            and "plan.yaml does not load" in out_absent and "exempt" not in out_absent),
@@ -490,22 +489,22 @@ def case_t14_exempt_shape():
     """EXEMPTION DOES NOT SUPPRESS SHAPE. The one handoff exemption is plan-keyed
     (DEC-174): every task main-session-direct, so a MISSING required note is suppressed —
     and REPORTED by name — but a note that EXISTS is shape-checked anyway. All three halves
-    asserted in one fixture: status Done owes plan, build and validate; only a malformed
+    asserted in one fixture: status Review owes plan and build; only a malformed
     handoff-plan.md is present. The synthetic id shares a historical id's prefix, which once
     bought a SILENT skip; the suppression must be the plan's, and it must say so."""
     feat = "FEAT-0190-fixture"
     with tempfile.TemporaryDirectory() as tmp:
         bad_note = HANDOFF_GOOD.replace("## Working set\n", "## Elsewhere\n")
-        fdir = _handoff_fixture(tmp, "Done", {"handoff-plan.md": bad_note}, feat=feat)
+        fdir = _handoff_fixture(tmp, "Review", {"handoff-plan.md": bad_note}, feat=feat)
         with open(os.path.join(fdir, "plan.yaml"), "w") as f:
-            f.write(f"schema: plan/1\nfeature: {feat}\nstatus: done\n" + MSD)
+            f.write(f"schema: plan/1\nfeature: {feat}\nstatus: review\n" + MSD)
         _, out = run(tmp)
         hits = _shape_lines(out, "handoff-plan.md")
         missing = [l for l in out.splitlines()
                    if l.startswith("  VIOLATION") and "is missing" in l and "handoff-" in l]
         reported = [l for l in out.splitlines()
                     if "exempt" in l and feat in l and "handoff-build" in l
-                    and "handoff-validate" in l and "VIOLATION" not in l]
+                    and "VIOLATION" not in l]
         ok = len(hits) == 1 and len(missing) == 0 and len(reported) == 1
         print(f"{'ok' if ok else 'FAIL'} - case (t14-g): a plan-exempt feature still has "
               f"its EXISTING note shape-checked ({len(hits)} shape) while missing notes stay "

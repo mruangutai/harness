@@ -1,0 +1,209 @@
+{
+  "feature_id": "FEAT-2206-skip-shipped-features",
+  "branch": "feat/FEAT-2206-skip-shipped-features",
+  "pr": null,
+  "review_sha": "e640baa7e24273760528a0232d849b002fc5697b",
+  "cycles_used": 7,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-08-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-08T14:03:14+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-01-product/digest.md",
+        "sha256": "2d0267f2c9a1bc8377692f4c394093eeb4272380d34a8e8ce8afb53ccf32da6b"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-08T14:11:19+00:00"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-08T14:50:01+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-validator/digest.md",
+        "sha256": "06e5eac3201c3a7fc9078f42b0e8bcec98307741557045185f71c48b163b2301"
+      },
+      "cycles_used": 3,
+      "tokens": null,
+      "ended_at": "2026-11-08T15:08:55+00:00"
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-08T15:22:59+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-c1-validator/digest.md",
+        "sha256": "23a9088264a4b5dc107ade1e4fee42d825b857064ee45a9f9652973a36f32ea2"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-08T15:37:20+00:00"
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-08T16:09:48+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-c2-validator/digest.md",
+        "sha256": "beced9705f19a83c30a6a7c49a842223824a153cd10fb31ecbfc3edec4c7e927"
+      },
+      "cycles_used": 2,
+      "tokens": null,
+      "ended_at": "2026-11-08T16:23:35+00:00"
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-09T15:04:36+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-c3-validator/digest.md",
+        "sha256": "2dc6162652021f955931edaeb15b14d777955d1e8ba7648bab7d1085fef91e5b"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-09T15:18:08+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-08T14:03:13+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Cause known (no station filter at feature-list build); files named in grilling; narrows an existing enforcement surface, creates none. Operator confirmed. DEC-174: main-session-direct."
+    },
+    {
+      "at": "2026-11-08T14:24:01.232944+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Operator sign-off (notes/answers-2026-11-08-signoff.md): also run the full suite and all gates in a standalone clone at the pin, with final exit marker."
+    },
+    {
+      "at": "2026-11-08T14:41:22.530751+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Builder-learned: suite_layout refuses one test file name in both unit and integration; the unit test is renamed test-check-state-shipped-ctx.py."
+    },
+    {
+      "at": "2026-11-08T14:41:35.129598+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Builder-learned: suite_layout refuses one test name in both kinds (unit renamed -shipped-ctx); ROW_FAMILIES, pr schema text and three done-station fixtures also referenced removed behavior."
+    },
+    {
+      "at": "2026-11-08T14:46:51.253803+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Simplify pass REUSE: the audit-hook wrapper moved into the shared f58_sparse_fixture.py both read-confinement suites import."
+    },
+    {
+      "at": "2026-11-08T15:13:34.420397+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Validate rework: the shipped-record crash on a Unicode digit lived in the shared opt_int coercion the census strict-loads through, not only in INV-24."
+    },
+    {
+      "at": "2026-11-08T15:15:01+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 1",
+      "reason": "c0 FAIL: high duplicate-status bypass and med Unicode-digit crash remediated main-session-direct in 1dea8480 (shared opt_int); re-gate on review_sha 09ac5a4e"
+    },
+    {
+      "at": "2026-11-08T15:20:11.947635+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Validate rework: opt_int stays as is (#2151 relies on its raise); the strict loader's issue-number check in artifact_accessors.py absorbs it instead."
+    },
+    {
+      "at": "2026-11-08T16:05:50+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Rework budget exhausted after validate c1 FAIL (med oversized-number crash, low Unicode regression); operator granted one more round (2 rounds / 75 min)."
+    },
+    {
+      "at": "2026-11-08T16:07:09+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL: med oversized shipped number crash and low active Unicode-digit regression fixed main-session-direct in 4a351fae (isdigit plus total int); re-gate on review_sha 4a351fae"
+    },
+    {
+      "at": "2026-11-09T14:59:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Validate c2 BLOCKED on Q-02; operator ruled INV-52 must salvage strict-refused shipped branch claims (literal SC-03) and granted a third round (3 rounds / 105 min)."
+    },
+    {
+      "at": "2026-11-09T15:01:37.869735+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Validate c2 Q-02, operator ruling: INV-52 (check_state/corpus.py) salvages branch claims of strict-refused shipped records."
+    },
+    {
+      "at": "2026-11-09T15:01:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 3",
+      "reason": "c2 BLOCKED on Q-02; operator ruled INV-52 must salvage strict-refused shipped branch claims; fixed main-session-direct in 7b8e2e1f; re-gate on review_sha 7b8e2e1f"
+    },
+    {
+      "at": "2026-11-10T12:55:12.059340+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "PR CI canonical-reader audit: the grade split moved inv_24's load_fleet into _inv24_fleet, and comparison_record now reads through artifact_accessors.load_harness_json; inventory rows follow."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 3,
+    "wall_clock_minutes": 105,
+    "decision": "notes/answers-validate-c2-validator.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "f366019a6a176e8ed78e551107efb0c676b6421d4a6b8ea7e51fd81cb6a4f8c0"
+  },
+  "github": {
+    "milestone": 109,
+    "parent": 2209,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2210
+    },
+    "source_issues": [
+      2206
+    ],
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

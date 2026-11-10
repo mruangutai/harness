@@ -29,31 +29,13 @@ from isolated_bin import isolated_bin  # noqa: E402
 ACTIVE = "FEAT-1-alpha"
 NO_INVARIANT_RAN = "no invariant ran"
 
-# Runs check-state.py under an audit hook and appends every opened path to OPEN_LOG.
-WRAPPER = r"""
-import os, runpy, sys
-log, script = os.environ["OPEN_LOG"], sys.argv[1]
-seen = []
-def hook(event, args):
-    if event == "open" and isinstance(args[0], (str, bytes)):
-        p = os.fsdecode(args[0])
-        seen.append(os.path.realpath(p if os.path.isabs(p) else os.path.join(os.getcwd(), p)))
-sys.addaudithook(hook)
-sys.argv = [script] + sys.argv[2:]
-try:
-    runpy.run_path(script, run_name="__main__")
-finally:
-    with open(log, "w") as fh:
-        fh.write("\n".join(seen))
-"""
-
 
 def check(checkout, *args, script=CHECK, opens=None):
     env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout, CLAUDE_PROJECT_DIR=checkout)
     argv = [sys.executable, str(script), *args]
     if opens is not None:
         env["OPEN_LOG"] = opens
-        argv = [sys.executable, "-c", WRAPPER, str(script), *args]
+        argv = [sys.executable, "-c", F.OPEN_TRACE_WRAPPER, str(script), *args]
     proc = subprocess.run(argv, env=env, capture_output=True, text=True, cwd=checkout)
     return proc.returncode, proc.stdout + proc.stderr
 
@@ -134,9 +116,11 @@ class OpenConfinement(Case):
             (local if path.startswith(wt + os.sep) else owner).append((m.group(1), m.group(2)))
         self.assertTrue(local, "instrumentation saw no local feature read at all")
         self.assertEqual(sorted({fid for fid, _rest in local}), [ACTIVE])
-        # Owner-root opens: only the record files the repo-wide predicates declare.
+        # Owner-root opens: only the record files the repo-wide predicates declare, plus each
+        # landed plan.yaml's one-line status read that marks a shipped record as comparison
+        # data (DEC-252).
         self.assertTrue(owner, "instrumentation saw no owner-root record read")
-        self.assertEqual(sorted({rest for _fid, rest in owner}), ["feature.json"])
+        self.assertEqual(sorted({rest for _fid, rest in owner}), ["feature.json", "plan.yaml"])
 
 
 class Refusals(Case):

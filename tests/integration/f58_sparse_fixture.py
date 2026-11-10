@@ -258,3 +258,24 @@ def snapshot(checkout):
             with open(path, "rb") as fh:
                 state[f"<git>/{label}"] = fh.read()
     return state
+
+
+# Runs a script under a Python audit hook and writes every path it opens to $OPEN_LOG, one per
+# line, resolved against the working directory. Used as `python3 -c OPEN_TRACE_WRAPPER <script>
+# <args...>` so read-confinement claims are observed rather than inferred from code.
+OPEN_TRACE_WRAPPER = r"""
+import os, runpy, sys
+log, script = os.environ["OPEN_LOG"], sys.argv[1]
+seen = []
+def hook(event, args):
+    if event == "open" and isinstance(args[0], (str, bytes)):
+        p = os.fsdecode(args[0])
+        seen.append(os.path.realpath(p if os.path.isabs(p) else os.path.join(os.getcwd(), p)))
+sys.addaudithook(hook)
+sys.argv = [script] + sys.argv[2:]
+try:
+    runpy.run_path(script, run_name="__main__")
+finally:
+    with open(log, "w") as fh:
+        fh.write("\n".join(seen))
+"""

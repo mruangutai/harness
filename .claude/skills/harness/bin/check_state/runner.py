@@ -1,7 +1,7 @@
 """Row selection, the repo and feature passes, collation, reporting and the CLI. (FEAT-69)"""
-import os, re, sys
+import glob, os, re, sys
 from check_state.corpus import preflight
-from check_state.ctx import Ctx
+from check_state.ctx import Ctx, is_shipped
 from check_state.table import INVARIANTS, RETIRED
 _INV_NAME = re.compile(r"^(?:INV-\d+|[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)$")
 
@@ -281,6 +281,25 @@ def _main_report(bad, warn, changed):
     return 1 if bad else 0
 
 
+def _shipped_selection(H, feature):
+    """Whether an explicit `--feature` names a feature that has shipped (FEAT-2206). Read with
+    the same one-line status classification the context uses, before any context is built."""
+    if feature is None:
+        return False
+    # corpus-scope: checkout-local
+    return any(os.path.isdir(d) and is_shipped(d)
+               for d in glob.glob(os.path.join(H, "*", "features", glob.escape(feature))))
+
+
+def _main_refusal(pre):
+    """Print the preflight's refusal, with its notes, and return the exit status."""
+    for m in pre.refusal:
+        print(f"  VIOLATION  {m}")
+    for m in pre.notes:
+        print(f"  note       {m}")
+    return 1
+
+
 def main(root, argv):
     H = os.path.join(root, ".harness")
     only, feature, list_mode, changed = _parse_args(argv)
@@ -294,11 +313,12 @@ def main(root, argv):
     # feature file is read. `--list` above stays metadata-only.
     pre = preflight(root, feature, sys.argv[2])
     if pre.refusal:
-        for m in pre.refusal:
-            print(f"  VIOLATION  {m}")
-        for m in pre.notes:
-            print(f"  note       {m}")
-        return 1
+        return _main_refusal(pre)
+    # A SHIPPED SUBJECT IS CHECKED FOR NOTHING (FEAT-2206): say so once and stop, before the
+    # context loads anything or a single row runs. Exit 0 -- a shipped feature is not an error.
+    if _shipped_selection(H, feature):
+        print(f"  note       {feature} has shipped; nothing is checked for shipped features.")
+        return 0
     # The context is built BEFORE the selection is resolved (FEAT-63 T-01): `--changed` reads
     # the dirty tree through the context's one process boundary and its one git top level.
     # Building it prints nothing, so a selector error still exits before any finding.

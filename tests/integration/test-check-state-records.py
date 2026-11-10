@@ -794,7 +794,7 @@ def case_bug1305_run_identity_invariant():
 
 # --- BUG-1309 T-06: the terminal mirror receipt must be a local invariant. Each independent
 # invariant state is driven through the external checker from one shared fixture builder.
-def _t06_fixture(tmp, feature, station="done", build_entry=None, sync=True,
+def _t06_fixture(tmp, feature, station="review", build_entry=None, sync=True,
                  factory_issues=None, task_status=None):
     h = os.path.join(tmp, ".harness")
     feat_dir = os.path.join(h, "harness", "features", feature)

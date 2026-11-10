@@ -1982,7 +1982,7 @@ ROW_FAMILIES = {
     "seams": ("INV-17",),
     "brief": ("INV-38", "INV-41", "INV-49"),
     "worktrees": ("INV-25", "INV-27", "INV-29", "INV-31"),
-    "board": ("INV-13", "INV-21", "INV-24", "INV-26", "INV-28", "INV-30", "INV-37"),
+    "board": ("INV-13", "INV-21", "INV-24", "INV-26", "INV-37"),
     "host": ("INV-19", "INV-42", "INV-45", "INV-48"),
     "corpus": ("INV-52",),
 }

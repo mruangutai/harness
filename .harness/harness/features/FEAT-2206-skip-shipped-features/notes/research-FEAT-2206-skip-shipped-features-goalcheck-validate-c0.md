@@ -1,0 +1,21 @@
+# Goal-check — FAIL at fe49c8df3807d875f2cd44410559966cc836b9ab
+
+T-01 does not fully discharge the signed goal: ambiguous status can silently remove a non-shipped subject. Baseline: b7af829c0207522b43f978b5275a2ebdc96b3210. Read the pinned BRIEF, plan, feature amendments, exact scoped diff, new tests and DEC-252; no tests/builds/formatters executed by PM.
+
+## Perspectives
+- **operator — fail:** SC-01 fails closed incorrectly for mixed valid/malformed duplicate status declarations; SC-02 is partial pending retained real-corpus execution detail; SC-03 passes historical comparison protection.
+- **code maintainer — partial:** SC-04 retirement and adjacent regression controls pass; SC-01's unreadable/ambiguous status protection is incomplete, so the full perspective promise is not delivered.
+
+## Criteria and evidence
+- **SC-01 — not_met (automated):** notes/merge-fe49c8df3807d875f2cd44410559966cc836b9ab.log:218–236 records the unit suite passing; notes/red-first.md:5–24 records 10 baseline assertion failures. However pinned check_state/ctx.py#lenient_station counts only regex-valid declarations. The unit PLANS fixture's duplicate-status case uses two valid scalars and misses the counterexample below.
+- **SC-02 — partial (automated):** pinned tests/integration/test-check-state-shipped.py#ShippedSubjects asserts full/changed exclusion, exact explicit note and audit-hook confinement. Merge log:3806–3812 records 14 integration tests passing; red-first.md:27–47 records eight discriminating baseline failures. The real_corpus implementation iterates every discovered shipped record and refuses an empty population, but its execution appears only as the summary in red-first.md:53; the merge log starts with standalone review_sha and does not retain the scoped real-corpus output or corpus commit. Static implementation is not execution evidence. Requested QA's retained per-record receipt through the validator lead.
+- **SC-03 — met (automated):** pinned ComparisonsKeepShippedRecords tests exercise shipped/active INV-24 in clone and sparse contexts, shipped/shipped INV-24 and INV-52, INV-29 standing worktree, and malformed shipped fields with an active-record control. Execution: merge log:3806–3812. Discriminating newly-red malformed-field assertion: red-first.md:32; existing collision controls correctly remained green at baseline (:29,33–36).
+- **SC-04 — met (automated):** pinned RetiredMirrorChecks asserts --list, retired --only parity and no milestone query; merge log:3806–3812 records green execution, red-first.md:37–39 records baseline failures. Adjacent suites remain green in the same pinned standalone run (entry, handoff, plans, records, corpus, worktrees and feat59); merge log:8172–8174 records 146 files and verify-exit=0. This does not claim PM re-execution.
+
+## Finding
+- **G-01 — kind: correctness; severity: high; task: T-01.** At pinned .claude/skills/harness/bin/check_state/ctx.py#_STATUS_LINE and #lenient_station, the bytes `status: done\nstatus: [building]\n` yield exactly one regex match and therefore shipped=true. Two top-level status declarations are present, yet all subject checks are skipped. DEC-252 explicitly requires two status lines to remain checked, consistent with SC-01's unreadable-status protection. Evidence is direct static derivation, not an executed reproduction. Count declarations independently of whether their values match the accepted scalar syntax; QA should add this counterexample and capture its red/green result.
+
+## Scope and questions
+Missing product guidance remains disclosed: PRODUCT/docs/spec.md, docs/decisions.md and docs/architecture.md are absent per signed input; the bounded operator-settled grilling and pinned DEC-252 govern. No substitute control-plane product specification was used. DEC-252's removal of handoff-validate enforcement and the deleted second-prober test are accepted consequences, not findings. Live plan review-station drift is not evidence against this pin.
+
+Open question Q-01 (blocking SC-02): Where is the retained pin-bound, per-record --real-corpus execution receipt and owner corpus ref? Recommendation: QA supplies it; do not rerun through PM or treat the test source as a run. No emergent scope requests. Complexity grading belongs to the code-review seat, not this perspective assessment.
