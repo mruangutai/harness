@@ -3,16 +3,18 @@
 ## Current
 
 - feature: FEAT-2225-member-expertise-writes
-- run: .harness/harness/features/FEAT-2225-member-expertise-writes/runs/r-20261121-5-simplify-eng/state.yaml
+- run: .harness/harness/features/FEAT-2225-member-expertise-writes/runs/r-20261121-6-validate-validator/state.yaml
 - squad: none
-- status: in_progress
+- status: blocked
 - station: building
-- tasks: T-01 done (ba3fab79) · T-02 done (7c2f2d48) · T-03 done (c6b5e3c7) · T-04 done (bf09458a..fd8ffcdf) · SIMPLIFY applied (f06b2e57)
+- tasks: T-01 done (ba3fab79, lifts f06b2e57) · T-02 done (7c2f2d48) · T-03 done (c6b5e3c7) · T-04 done (bf09458a..fd8ffcdf)
 - cycles_used: 1 / 10
-- review_sha: pending (seam commit next)
-- handoff: notes/handoff-build.md (seq-4)
+- rework: round 0 of 2 consumed · 13 / 90 min
+- review_sha: 130592528844321c27fbb628fdc05f6f17f86d0d (stale once the fix segment lands)
+- validate c1: BLOCKED (qa return refused by host; matrix observed green) · must_fix F1 (T-04, high), F2 (T-01+T-04, high), F3 (T-04, med)
+- handoff: notes/handoff-validate.md (seq-5)
 
 ## Open Questions
 
-- SIMPLIFY run r-20261121-5-simplify-eng closed BLOCKED: three read-only readers' returns were refused by the host yield gate (host defect); their findings are durable in notes/receipt-*-r-20261121-5-simplify-eng-*.md. Grade lifts verified at f06b2e57 (code-grade rc 0, six gates rc 0); `continue` judgement recorded.
-- Altitude F1 (notes/receipt-harness-ai-dev-r-20261121-5-simplify-eng-altitude.md) — prose-marker vs registered-run distill authority at expertise_apply — goes to the validate panel for adjudication.
+- F1 and F3 cite T-04 only (main-session-direct); F2 spans T-01 and T-04. Main executes one fix segment (handoff-validate.md `## Next`), then re-delegates the orchestrator for re-pin, status review and validate c2 (`run-start --regate`).
+- Host yield gate refused structured returns from four read-only members across two runs (three SIMPLIFY readers, qa); harness defect for the harness owner.

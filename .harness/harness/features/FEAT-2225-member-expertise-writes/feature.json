@@ -82,6 +82,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-21T22:14:04+00:00"
+    },
+    {
+      "id": "r-20261121-6-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T22:15:43+00:00",
+      "tokens": 87562,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-6-validate-validator/digest.md",
+        "sha256": "08c63991cb45f30cdd59495ca01b19a7dda4d5e630bf7a0c6f911a3f60223c6a"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T22:28:46+00:00"
     }
   ],
   "judgements": [
@@ -119,6 +134,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "SIMPLIFY BLOCKED only on 3 readers' host yield refusals (host defect); grade lifts landed f06b2e57, orchestrator re-ran code-grade and 6 gates rc0; pin and validate, F1 to panel"
+    },
+    {
+      "at": "2026-11-21T22:28:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "panel must_fix F1-F3 cite T-04 (main-session-direct) and T-01; no squad fix run can own F1/F3, so route one main-direct fix segment then re-validate (rework round 1 of 2)"
     }
   ],
   "mission": "plan",
