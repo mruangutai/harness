@@ -4,7 +4,7 @@ approval:
   date: '2026-11-21'
   approved_by: operator
   status: approved
-status: building
+status: review
 source_issues: [2241]
 lanes:
   resolved_at: 926383aef86ee505d2909c291ef4ab672b8ea09b
