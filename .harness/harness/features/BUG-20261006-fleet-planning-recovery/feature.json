@@ -84,6 +84,13 @@
       "tokens": null,
       "ended_at": "2026-11-21T16:53:45+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-21T17:21:15+00:00"
     }
   ],
   "judgements": [
@@ -142,6 +149,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "DEC-182 machine-line budget (56>50); dropped surfaces stay lane-routed main-session-direct; full touched set in notes/amendment-T-01-budget-2026-11-07.md; T-01 done, no scope change"
+    },
+    {
+      "at": "2026-11-21T17:21:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix cycle 1",
+      "reason": "c0 FAIL: LABEL ownership (high) fixed in 843a16dc with collision regression; SC-01/04/06 integration coverage added in 35d46417, mutant-discriminated; re-gate at a80b9ef3"
     }
   ],
   "mission": "plan",
