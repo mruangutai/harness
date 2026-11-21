@@ -513,6 +513,20 @@
       "task": "none"
     },
     {
+      "artifact": "plan.yaml text at the pinned commit and on disk",
+      "category": "harness_yaml_string",
+      "dec174_category": "validator",
+      "disposition": "exempt",
+      "execution_route": "main-session-direct",
+      "exemption": "in_memory_validation",
+      "file": ".claude/skills/harness/bin/check_state/feature_record.py",
+      "id": ".claude/skills/harness/bin/check_state/feature_record.py::_inv33_reviewed::harness_yaml_string#1",
+      "reason": "INV-33 compares plan text already read from the pinned commit and from disk; no file path exists for the pinned side (#2187).",
+      "remedy": "none",
+      "symbol": "_inv33_reviewed",
+      "task": "none"
+    },
+    {
       "artifact": "harness.json",
       "category": "json_file",
       "dec174_category": "validator",

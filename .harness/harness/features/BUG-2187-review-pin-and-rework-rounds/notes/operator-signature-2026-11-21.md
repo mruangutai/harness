@@ -11,3 +11,4 @@ At grilling, the operator chose "presigned". That pre-approves the intake built 
 - Rework ruling: 1 round / 45 minutes.
 - No panel ran (patch mission), so nothing is overruled.
 - One build note, made by the main session, not by the operator. SC-02's guidance regressions will assert that every `feature-record.py` verb the guidance names exists in the CLI. They will not pin the guidance's prose.
+- Amendment during build: `tests/integration/canonical-reader-classification.json` was added to T-01 `files:` and to the lanes table. It was recorded as an `amendment` judgement on `T-01.files`, because the canonical-reader audit requires a row for INV-33's new plan-text reader. The operator reviewed the diff and chose "accept" under the existing signature. No re-sign.

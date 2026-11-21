@@ -63,9 +63,33 @@ def _inv33_plan_path(fy):
         _pf = os.path.join(os.path.dirname(fy), "PLAN.md")
     return _pf
 
+def _inv33_reviewed(raw, _pf):
+    """What a pin claims about the plan: a plan.yaml's loaded document minus the station values
+    (top-level `status` and each task's `status`), else the raw bytes.
+
+    #2187/#2201: the build-phase seam pins `review_sha` and then `gh-sync.py status review` and
+    `set-task-station` rewrite those two fields, so a byte comparison made every reviewed
+    feature's pin STALE by construction. They are lifecycle state no reader reviewed; every other
+    field — a `status` anywhere else included — is content. A legacy PLAN.md, or a side that
+    does not load, compares as bytes, so an unloadable edit still reads as a change."""
+    if os.path.basename(_pf) != "plan.yaml":
+        return raw
+    try:
+        doc = harness_yaml.load_str(raw.decode("utf-8"), _pf)
+    except (UnicodeDecodeError, harness_yaml.YamlParseError):
+        return raw
+    if not isinstance(doc, dict):
+        return doc
+    tasks = doc.get("tasks")
+    reviewed = {k: v for k, v in doc.items() if k != "status"}
+    if isinstance(tasks, list):
+        reviewed["tasks"] = [{k: v for k, v in t.items() if k != "status"} if isinstance(t, dict) else t
+                             for t in tasks]
+    return reviewed
+
 def _inv33_stale_relpath(ctx, _git_top, _sha, _pf):
-    """The plan's path relative to the work tree when its bytes at the pin differ from
-    the bytes on disk, else None."""
+    """The plan's path relative to the work tree when its reviewed content at the pin differs
+    from the content on disk, else None."""
     # REALPATH BOTH SIDES. `git rev-parse --show-toplevel` returns the resolved
     # path, and on macOS the temp dir every fixture uses is a symlink
     # (/var -> /private/var). Mixing the two makes relpath emit a
@@ -81,7 +105,8 @@ def _inv33_stale_relpath(ctx, _git_top, _sha, _pf):
         _disk = None
     # BOTH reads must succeed. See the path-absent paragraph above — this one clause is
     # what keeps 19 honest pins quiet.
-    if _shown is not None and _shown.returncode == 0 and _disk is not None and _shown.stdout != _disk:
+    if _shown is not None and _shown.returncode == 0 and _disk is not None \
+            and _inv33_reviewed(_shown.stdout, _pf) != _inv33_reviewed(_disk, _pf):
         return _prel
     return None
 
@@ -136,10 +161,12 @@ def inv_33(ctx, feat):
     # grep-able string. Six existing cases assert INV-6's exact text; a distinct number leaves
     # them untouched and makes each invariant separately searchable.
     #
-    # A BYTE COMPARISON, NEVER A COMMIT COMPARISON. Comparing the pin to the last commit that
+    # A CONTENT COMPARISON, NEVER A COMMIT COMPARISON. Comparing the pin to the last commit that
     # touched the plan reports a plan changed and changed back, and reports any feature reviewed
-    # before an unrelated commit landed on that path. The bytes are what the pin actually
-    # claims. Case (inv32.b) exists to kill the commit-equality implementation.
+    # before an unrelated commit landed on that path. The reviewed content is what the pin
+    # actually claims: the loaded plan minus its station values (`_inv33_reviewed`, #2187).
+    # Case (inv33.b) kills the commit-equality implementation; (inv33.e)/(inv33.g) bound the
+    # station exclusion to exactly the two station fields.
     #
     # SILENT, DELIBERATELY, ON FIVE STATES, four of which this invariant simply cannot speak to:
     # no git work tree; a pin that does not resolve; no plan file on disk; THE PLAN FILE EXISTS

@@ -31,6 +31,13 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "causes located: inv_33 byte compare includes station lines; no pin verb; spend counts only fix- runs. Bounded diff, one new verb; main-session-direct per DEC-174"
+    },
+    {
+      "at": "2026-11-21T23:11:45.767761+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "canonical-reader audit: INV-33's new plan-text reader needs its classification row (in_memory_validation, as worktree_terminal._read_landed_plan_yaml)"
     }
   ],
   "rework": {

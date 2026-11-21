@@ -43,9 +43,10 @@ outcome. Header declarations follow `harness-zero-micro-management`'s dispatch h
    BEFORE the team is dispatched: the pin fixes what is reviewed, the station write puts every card
    at review. **The order is fixed** (#2012): mark every task `done` in `plan.yaml`
    (`plan-merge.py set-task-station`), commit that as the seam commit, pin `review_sha` to the seam
-   commit, then run `status review`. `status review` refuses while any task is not `done` or
-   `abandoned` (a task left at `review` blocks it), and a `plan.yaml` write after the pin makes
-   the pin stale (INV-33).
+   commit with `feature-record.py pin-review --file <feature.json> --sha <seam-commit>`, then run
+   `status review`. `status review` refuses while any task is not `done` or `abandoned` (a task
+   left at `review` blocks it). Station writes after the pin leave it current; any other
+   `plan.yaml` change after the pin makes it stale (INV-33).
    When `feature.json` cannot carry the pin — a frozen feature, or a review dispatched
    with no feature at all — put `HARNESS-REVIEW-PIN: <sha>` on its own line in the dispatch prompt:
    the host forwards it to the digest validator, which accepts it as the pin when `feature.json`
@@ -75,7 +76,8 @@ outcome. Header declarations follow `harness-zero-micro-management`'s dispatch h
    distinct personas). The dev fixes test-first and commits; the lead's readers — `qa`, `code`,
    `security`, `ui` — re-verify over the tip that commit produced, in the same run, and the digest
    names that tip. **The pin is yours, never the lead's:** on return, record it as the new
-   `review_sha`. At the next validation boundary, run
+   `review_sha` with `feature-record.py pin-review --file <feature.json> --sha <tip>`. At the
+   next validation boundary, run
    `gh-sync.py status <feature-dir> review` before any subsequent validation dispatch or result handling.
    Each round is one `cycles_used` and one `regate` judgement. **The loop runs inside the
    operator's rework ruling** — `feature.json` `rework` `rounds` and `wall_clock_minutes`

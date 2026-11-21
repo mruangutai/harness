@@ -62,8 +62,9 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    team goes to its named lead, which hosts the DAG via `harness-team`; a single task goes to
    the lead that owns the persona. `dispatch-guard` refuses a target outside your `spawns:`
    (the three leads) and any `name:` parameter (DEC-147); cross-squad leads are two dispatches
-   you sequence (DEC-118). Pass paths, never content; pin `review_sha` before any validator run
-   over code (INV-6). A dispatch asking a question names where the answer belongs:
+   you sequence (DEC-118). Pass paths, never content; pin `review_sha` with
+   `feature-record.py pin-review` before any validator run over code (INV-6). A dispatch asking
+   a question names where the answer belongs:
    `adequacy_notes`, a step's `evidence`, or the digest — never a new digest key. Other header
    lines follow `harness-zero-micro-management`'s dispatch header: `HARNESS-MISSION: <actual
    phase>` only on product and validator starts, after the lead's `feature-record.py run-start`
@@ -141,13 +142,13 @@ byte-verified before any commit.
   transcribed FIRST** — `plan-merge.py record-amendments --file <plan.yaml> --digest <lead
   digest.md>`, same run, no re-dispatch, no `cycles_used` increment (no gate failed, DEC-157); a
   lead that could not amend returns `BLOCKED`, routed below. SIMPLIFY last; then pin `review_sha`
-  and run
+  (`feature-record.py pin-review --file <feature.json> --sha <seam-commit>`) and run
   `gh-sync.py status <feature-dir> review` before the `validate` dispatch to
   `harness-validator-lead` over that sha — `qa` enforces the `test_matrix` gate with `fail_first`
   evidence; a qa FAIL is a `loop_back` to the owning dev through a `fix` run, never a second qa
   run over the same sha — beside `code`, `security`, `ui`, `goalcheck`, fanned in to one must-fix
   list. On `must_fix`, run `gh-sync.py status <feature-dir> building` before each `fix` dispatch
-  to the validator lead naming the owning dev; re-pin on return and run
+  to the validator lead naming the owning dev; re-pin on return (`feature-record.py pin-review`) and run
   `gh-sync.py status <feature-dir> review` at the next validation boundary. The loop stays inside
   the rework ruling. Procedure: `build-phase.md`.
 - **Ship** — the briefing (`briefing.md`); the merge is the user's.

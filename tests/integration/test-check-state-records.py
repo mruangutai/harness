@@ -274,10 +274,11 @@ def case_inv32():
 # says nobody reviewed this. A stale pin makes a CLAIM (this text was reviewed at this commit)
 # and once the text has moved that claim is false while looking byte-identical to a true one.
 #
-# A BYTE COMPARISON, NEVER A COMMIT COMPARISON. Comparing review_sha to the last commit that
+# A CONTENT COMPARISON, NEVER A COMMIT COMPARISON. Comparing review_sha to the last commit that
 # touched the plan reports a plan changed and changed back, and reports any feature reviewed
 # before an unrelated commit landed on that path. Case (inv33.b) exists to kill that
-# implementation.
+# implementation. The content is the loaded plan minus its station values (#2187): cases
+# (inv33.e)-(inv33.g).
 #
 # BUILT WITH REAL GIT, deliberately: INV-33 runs `git rev-parse --show-toplevel` and `git show`,
 # so a hand-built .git pointer yields no top level and all four cases would pass vacuously.
@@ -322,8 +323,12 @@ def _inv33_set_sha(feat_dir, sha, validator_run=True):
         target.write("\n")
 
 
-def _inv33_plan(feat_dir, body, station=None):
+def _inv33_plan(feat_dir, body, station=None, task_status="building", approval=None, flow=True):
+    """Write the fixture plan. `approval` adds an `approval:` block carrying that status;
+    `flow=False` writes `files:` as a block list — the same document, serialized differently."""
     lines = ["schema: plan/1", "feature: FEAT-TEST"]
+    if approval is not None:
+        lines += ["approval:", f"  status: {approval}"]
     if station is not None:
         lines.append(f"status: {station}")
     lines += [
@@ -332,8 +337,8 @@ def _inv33_plan(feat_dir, body, station=None):
         "    title: fixture task",
         f"    change_type: {body}",
         "    execution_mode: main-session-direct",
-        "    status: building",
-        "    files: [fixture.py]",
+        f"    status: {task_status}",
+        *(["    files: [fixture.py]"] if flow else ["    files:", "      - fixture.py"]),
         "    verify: run it",
         "    intent: exercise INV-33",
     ]
@@ -371,8 +376,8 @@ def case_inv33a_stale_is_reported():
 def case_inv33b_current_is_silent():
     """(inv33.b) THE SILENCE, AND THE DISCRIMINATOR that kills a commit-equality check.
 
-    Commit X, commit Y, commit X AGAIN, leave X on disk, pin the FIRST commit. The pinned BYTES
-    equal the working copy's, so INV-33 must be silent even though a LATER commit touched the
+    Commit X, commit Y, commit X AGAIN, leave X on disk, pin the FIRST commit. The pinned content
+    equals the working copy's, so INV-33 must be silent even though a LATER commit touched the
     file — which is exactly what a `git log -1` implementation would report.
     """
     results = []
@@ -392,7 +397,7 @@ def case_inv33b_current_is_silent():
         if ok:
             print("ok - case (inv33.b) a current review_sha is silent")
         results.append(("(inv33.b) a current review_sha is silent even though a later commit "
-                        "touched the plan — a BYTE comparison, not a commit comparison", ok,
+                        "touched the plan — a content comparison, not a commit comparison", ok,
                         "\n".join(ls) or "(unexpected line)"))
     return results
 
@@ -465,6 +470,48 @@ def case_inv33d_absent_path_is_silent():
                         "silent, at a NON-TERMINAL station", ok,
                         "\n".join(ls) or "(unexpected line)"))
     return results
+
+
+def _inv33_pinned_then(edit):
+    """INV-33's lines after: commit the plan at `building`, pin that commit, apply `edit(feat)`
+    to the plan on disk, and commit it."""
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        _inv33_plan(feat, "logic", station="building", approval="approved")
+        pinned = _inv33_commit(tmp, "plan at the pin")
+        _inv33_set_sha(feat, pinned)
+        edit(feat)
+        _inv33_commit(tmp, "after the pin")
+        _code, out = run(tmp)
+        return _inv33_lines(out)
+
+
+def case_inv33e_station_writes_are_silent():
+    """(inv33.e) #2187/#2201: the build-phase seam pins `review_sha`, then `gh-sync.py status
+    review` rewrites the plan's station, and every task station moves with set-task-station.
+    Those are lifecycle writes the pin never claimed, so a station-only change is silent."""
+    ls = _inv33_pinned_then(lambda feat: _inv33_plan(
+        feat, "logic", station="review", task_status="done", approval="approved"))
+    return [("(inv33.e) a station-only change after the pin (top-level and task status) is "
+             "silent", not ls, "\n".join(ls) or "(unexpected line)")]
+
+
+def case_inv33f_reserialization_is_silent():
+    """(inv33.f) The pin claims the plan's content, so the comparison is of the loaded
+    documents: a block list where a flow list was, same values, is the same plan."""
+    ls = _inv33_pinned_then(lambda feat: _inv33_plan(
+        feat, "logic", station="building", approval="approved", flow=False))
+    return [("(inv33.f) a serialization-only change after the pin is silent", not ls,
+             "\n".join(ls) or "(unexpected line)")]
+
+
+def case_inv33g_other_status_fields_stay_stale():
+    """(inv33.g) Only the two station fields are lifecycle. A `status` anywhere else — here the
+    approval's — is reviewed content, so changing it still reports STALE."""
+    ls = _inv33_pinned_then(lambda feat: _inv33_plan(
+        feat, "logic", station="building", approval="pending"))
+    return [("(inv33.g) a non-station status change after the pin still reports STALE",
+             any("FEAT-TEST" in l and "STALE" in l for l in ls), "\n".join(ls) or "(no INV-33 line)")]
 
 
 # BUG-1071 — INV-32's era guard. FEAT-45 T-07 shipped INV-32 with no era boundary, so it
@@ -1190,7 +1237,9 @@ _CASES = (
     case_historical_refusal_completion, case_inv7_counts_evidence_not_fail_verdicts,
     case_refusal_provenance_never_satisfies_live_validation)
 _INV33_CASES = (case_inv33a_stale_is_reported, case_inv33b_current_is_silent,
-                case_inv33c_terminal_is_silent, case_inv33d_absent_path_is_silent)
+                case_inv33c_terminal_is_silent, case_inv33d_absent_path_is_silent,
+                case_inv33e_station_writes_are_silent, case_inv33f_reserialization_is_silent,
+                case_inv33g_other_status_fields_stay_stale)
 
 
 def main():

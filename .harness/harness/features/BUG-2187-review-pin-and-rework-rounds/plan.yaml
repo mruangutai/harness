@@ -18,6 +18,9 @@ lanes:
   - surface: tests/integration/test-check-state-records.py
     lane: main-session-direct
     reason: DEC-174 gate tests
+  - surface: tests/integration/canonical-reader-classification.json
+    lane: main-session-direct
+    reason: DEC-174 gate reader inventory
   - surface: tests/unit/test-feature-record.py
     lane: main-session-direct
     reason: DEC-174 coupled ledger tests
@@ -41,6 +44,7 @@ tasks:
   - .claude/skills/harness/bin/check_state/feature_record.py
   - .claude/skills/harness/bin/feature-record.py
   - tests/integration/test-check-state-records.py
+  - tests/integration/canonical-reader-classification.json
   - tests/unit/test-feature-record.py
   - .claude/skills/harness/references/build-phase.md
   - .claude/skills/harness/SKILL.md
