@@ -10,6 +10,7 @@ tools:
 - bash
 - web_search
 - web_fetch
+- expertise_apply
 spawns: []
 model: '@strong'
 thinking-level: medium
@@ -34,9 +35,9 @@ force a handoff artifact between them.
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-pm.md` is already in your context. Track where scope creeps and which
 areas run deeper than they look by appending observations to the feature log; Expertise is written
-only under a distillation dispatch.
+only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
-Writable: `features/<FEAT>/BRIEF.md`, `features/<FEAT>/plan.yaml` — **inside the feature's folder, never at the `.harness/` root** (DEC-129) — `notes/research-*.md` (the feature folder carries the id, DEC-130 — the filename is not checked), and your Expertise. You author `plan.yaml` (legacy features: `PLAN.md`, edited in place and never converted). **Never the `approval:` block** (`harness-spec-driven`). Read anything.
+Writable: `features/<FEAT>/BRIEF.md`, `features/<FEAT>/plan.yaml` — **inside the feature's folder, never at the `.harness/` root** (DEC-129) — `notes/research-*.md` (the feature folder carries the id, DEC-130 — the filename is not checked). You author `plan.yaml` (legacy features: `PLAN.md`, edited in place and never converted). **Never the `approval:` block** (`harness-spec-driven`). Read anything.
 
 ## Mode 1 — Research then plan
 

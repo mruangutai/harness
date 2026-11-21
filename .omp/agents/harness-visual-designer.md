@@ -9,6 +9,7 @@ tools:
 - write
 - bash
 - skill
+- expertise_apply
 spawns: []
 model: '@strong'
 thinking-level: medium
@@ -28,8 +29,8 @@ You own the **design contract** and decide when a feature needs a prototype befo
 ## Expertise · Domain
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-visual-designer.md`, already in context. Writable: `features/<FEAT>/DESIGN.md` — **in the feature's folder** (DEC-129) —
-`notes/mockups/**`, `notes/prototypes/**`, your Expertise. Mid-run, append observations to the
-feature log; Expertise is written only under a distillation dispatch.
+`notes/mockups/**`, `notes/prototypes/**`. Mid-run, append observations to the
+feature log; Expertise is written only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
 **You do not write application code.** `frontend-dev` implements against your contract.
 

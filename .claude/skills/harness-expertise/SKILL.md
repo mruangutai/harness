@@ -14,8 +14,8 @@ Memory has **two layers**:
 | Layer | File | Written | Injected at spawn |
 |---|---|---|---|
 | **Observations** — hot, granular, this feature | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/observations/<your-agent-name>.md` | by you, mid-run, freely | **never** |
-| **Expertise, craft** — how you work, anywhere | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
-| **Expertise, repository** — true of ONE repo | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/<repo>/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
+| **Expertise, craft** — how you work, anywhere | `<HARNESS_FEATURE_TREE_ROOT>/.harness/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
+| **Expertise, repository** — true of ONE repo | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
 `<FEAT>` is the FEAT id on the first line of your dispatch (harness-handoff).
 
 Craft is the default: **could this be true and useful in a repository you have never seen?** If yes,
@@ -53,6 +53,6 @@ When unsure: if a human would want to *sign off* on it, it is a decision.
 ## Distillation — not here, and not now
 
 **Only an explicit distill dispatch authorizes Expertise writes** (DEC-145). Then read
-`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first: its merge-tool-only
-contract preserves earlier entries (DEC-125). Format, ops and caps load at that seam, never on
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first: you apply your own
+ops with the `expertise_apply` tool, which preserves earlier entries (DEC-125). Format, ops and caps load at that seam, never on
 ordinary spawns (DEC-158); until then, leave both injected Expertise layers untouched.

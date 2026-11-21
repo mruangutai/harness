@@ -23,9 +23,13 @@ asks for a cleanup.
    ```
 
    Files reported `OK` are done — do not touch them.
-2. **Distill each failing file.** The contract lives in `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md`
-   — **read it first; it is NOT preloaded** (DEC-158). The entry shape, the sections, the caps, the
-   ops schema and merge-tool-only write contract are only in that file. Two rules are curation's own:
+2. **Distill each failing file — by its own persona, never inline.** Create a feature worktree
+   and dispatch each failing file's original persona with `HARNESS-MISSION: distill`; it reads
+   `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` (NOT preloaded, DEC-158)
+   and applies its own ops with `expertise_apply`. You recommend; you never rewrite another
+   persona's judgment. Landing follows the same receipt check, replay and `merge-distill` gate
+   as feature-close distillation (`harness/references/distillation.md` step 3). Two rules are
+   curation's own, passed to each persona as recommendations:
    - Entries under invented section names are still real lessons — reclassify into the four
      canonical sections, don't discard. When a section overflows, keep the entries that pass
      the six-spawns test hardest: rules that fire on every dispatch beat rules for rare shapes.
@@ -33,10 +37,9 @@ asks for a cleanup.
 3. **Move, don't destroy:** anything distilled away that is still feature-specific context worth
    keeping goes to `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/observations/<agent>.md` if the feature dir exists;
    otherwise it is dropped — it already failed the durability test.
-4. **Verify:** re-run the step-1 audit until every file passes. Report per-file entry and word
-   counts before and after — counted, not estimated.
-5. Distillation may be delegated (one agent per file) or done inline for small sets; the checker
-   is the gate either way.
+4. **Verify:** re-run the step-1 audit (a read) until every file passes, and check each persona's
+   receipt against its resulting file. Report per-file entry and word counts before and after —
+   counted, not estimated.
 
 ## What this skill never does
 

@@ -8,6 +8,7 @@ tools:
 - edit
 - write
 - bash
+- expertise_apply
 spawns: []
 model: '@standard'
 thinking-level: medium
@@ -33,7 +34,7 @@ Schemas, migrations, pipelines, data models, queries, indexes, serialization con
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-data-engineer.md`, already in context. This is where ordering constraints
 belong — *"migrations fail if run before the seed script"* is exactly the observation that costs an hour
-to rediscover. You hold `Write`.
+to rediscover. You hold `Write`; Expertise is written only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
 Writable paths including `supabase/migrations/**` are in the manifest.
 

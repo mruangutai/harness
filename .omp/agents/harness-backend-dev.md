@@ -8,6 +8,7 @@ tools:
 - edit
 - write
 - bash
+- expertise_apply
 spawns: []
 model: '@standard'
 thinking-level: medium
@@ -33,7 +34,7 @@ APIs, services, business logic, auth, background jobs, server-side integration.
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-backend-dev.md` is already in your context — how this codebase's service
 layer actually behaves, which integrations are flaky, what the error conventions are. Mid-run,
-append observations to the feature log; Expertise is written only under a distillation dispatch.
+append observations to the feature log; Expertise is written only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
 Writable paths are in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml`. Read anything.
 

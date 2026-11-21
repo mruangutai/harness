@@ -8,6 +8,7 @@ tools:
 - edit
 - write
 - bash
+- expertise_apply
 spawns: []
 model: '@standard'
 thinking-level: medium
@@ -32,7 +33,7 @@ UI components, styling, client state, forms, routing, accessibility, browser beh
 ## Expertise · Domain
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-frontend-dev.md`, already in context. Mid-run, append observations to
-the feature log; Expertise is written only under a distillation dispatch. Writable paths are in the manifest.
+the feature log; Expertise is written only at distillation, through `expertise_apply`, to your own file in the feature worktree. Writable paths are in the manifest.
 
 ## You implement a contract you did not write
 

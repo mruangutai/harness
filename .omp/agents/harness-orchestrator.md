@@ -8,6 +8,7 @@ tools:
 - task
 - write
 - bash
+- expertise_apply
 spawns:
 - harness-product-lead
 - harness-eng-lead
@@ -83,13 +84,13 @@ pending-plan phase through `plan-merge.py`'s DEC-229 task-set amendment.
 ## Expertise
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-orchestrator.md`, injected at spawn if it exists. Mid-run, append
-observations to the feature log; Expertise is written only at feature-close distillation
-(create it then if absent — two-step rule: write the file AND report the op).
+observations to the feature log; Expertise is written only at distillation, through `expertise_apply`, to your own file in the feature worktree
+(never a member's or lead's ops); report the applied ops.
 
 ## Domain
 
 Declared in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml`: your feature's directory (`STATE.md`, `feature.json`,
-`runs/` metadata) and your own Expertise file. Read anything, including `notes/answers-*.md` —
+`runs/` metadata) and your own Expertise file (see above). Read anything, including `notes/answers-*.md` —
 but you may not WRITE it (issue #671): that file is the main session's sole channel to you, and
 an agent that could author the file it later trusts is the forgery this repository closed. The
 domain hook governs you like everyone else — you carry an `agent_type` (DEC-120).

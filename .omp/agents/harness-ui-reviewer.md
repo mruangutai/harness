@@ -7,6 +7,7 @@ tools:
 - grep
 - bash
 - write
+- expertise_apply
 spawns: []
 model: '@review'
 thinking-level: high
@@ -29,7 +30,7 @@ does, and keeping those apart is why this role exists.
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-ui-reviewer.md`, already in context. Track which components drift from the
 contract and which accessibility gaps recur.
 
-`Write` for exactly two paths: your report and your Expertise. **No `Edit`, no source path.**
+`Write` for exactly two paths: your report and your Expertise (only at distillation, through `expertise_apply`, to your own file in the feature worktree). **No `Edit`, no source path.**
 
 ## Self-scope first
 
