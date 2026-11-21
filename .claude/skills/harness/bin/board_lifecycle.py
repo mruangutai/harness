@@ -860,10 +860,17 @@ def _audit_findings(root, board, repo_name):
     # Class 3 -- REASON.
     findings.extend(_reason_findings(issues))
     # Class 4 -- LABEL. Scoped to this checkout's recorded tickets for its own repo only, the same
-    # #783 rule STATUS follows; any other repo, or an unreadable corpus, keeps the broad rule.
+    # #783 rule STATUS follows; any other repo keeps the broad rule. A ticket is recorded only by a
+    # record whose mirror provably lives in this repo -- a Kaya task #17 never makes Harness #17
+    # labelable -- and an unreadable corpus or record is a report-only residual, never a reason to
+    # broaden which issues a reconcile may write to.
     own_repo = _own_repo(root)
-    findings.extend(_label_findings(
-        issues, _recorded_issue_numbers(root) if repo_name == own_repo else None))
+    if repo_name == own_repo:
+        recorded, residuals = _label_scope(root, repo_name)
+        findings.extend(_label_findings(issues, recorded))
+        findings.extend(residuals)
+    else:
+        findings.extend(_label_findings(issues))
 
     # Class 5 -- WORKFLOW. Call 4/4.
     notes.append(_WORKFLOW_HEADER)
@@ -929,30 +936,50 @@ def _reason_findings(issues):
     return findings
 
 
-def _recorded_issue_numbers(root):
-    """Every ticket a feature record names (source, parent, task) -- the only tickets
-    `abandon` labels. None when the corpus cannot be read, so the caller keeps the broad rule."""
+def _label_scope(root, repo_name):
+    """(recorded ticket numbers, report-only residuals) for LABEL in `repo_name`. Only records
+    whose mirror is proven to live in `repo_name` contribute; anything unreadable contributes
+    nothing and is named instead, so it can never widen what reconcile labels."""
     try:
         feat_dirs = _feature_dirs(root)
-    except feature_corpus.CorpusError:
-        return None
-    numbers = set()
+    except feature_corpus.CorpusError as exc:
+        return set(), [_finding("LABEL", f"LABEL: recorded tickets cannot be scoped, because the "
+                                         f"feature corpus could not be read: {exc}")]
+    numbers, residuals = set(), []
     for feat_dir in feat_dirs:
-        try:
-            doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json"))
-        except (artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError):
-            return None
-        recorded = _github_numbers(doc)
-        if recorded is None:
-            return None
-        numbers.update(recorded)
-    return numbers
+        owned, problem = _label_owned_numbers(feat_dir, repo_name)
+        if problem:
+            residuals.append(_finding(
+                "LABEL", f"LABEL: {feat_dir}'s tickets cannot be judged: {problem}"))
+        numbers.update(owned)
+    return numbers, residuals
+
+
+def _label_owned_numbers(feat_dir, repo_name):
+    """(numbers, problem): the tickets one record proves it owns in `repo_name`. A record bound
+    to another repository owns nothing here and is not a problem."""
+    try:
+        doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json"))
+    except (artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError) as exc:
+        return set(), f"unreadable record: {exc}"
+    recorded = _github_numbers(doc) if isinstance(doc, dict) else None
+    if recorded is None:
+        return set(), "malformed github mapping"
+    factory = doc.get("factory")
+    if feature_schema.has_repository_binding(doc):
+        if not isinstance(factory, dict):
+            return set(), "invalid feature binding"
+        if factory.get("repo") != repo_name:
+            return set(), None
+    problem = ("; ".join(feature_schema.mirror_evidence_problems(feat_dir, doc))
+               or feature_schema.mirror_provenance_problem(doc, repo_name))
+    return (set(), problem) if problem else (recorded, None)
 
 
 def _github_numbers(doc):
     """The ticket numbers one record names, coerced as gh-sync reads them (`opt_int`). Absent
     or null containers record nothing; any other wrong shape returns None -- an unreadable
-    record keeps the broad LABEL rule."""
+    record names no tickets."""
     github = _shaped(doc.get("github") if isinstance(doc, dict) else None, dict)
     if github is None:
         return None
