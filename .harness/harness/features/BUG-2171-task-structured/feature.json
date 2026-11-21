@@ -1,0 +1,222 @@
+{
+  "feature_id": "BUG-2171-task-structured",
+  "branch": "feat/BUG-2171-task-structured",
+  "pr": 2230,
+  "review_sha": "e7960a2ff6713185a981758d59e37f9feb723ef4",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-08-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-08T16:07:29+00:00",
+      "tokens": 39734,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-01-patch-product/digest.md",
+        "sha256": "96789cc09ca2823b0b6a6f899f522f3b3c6ca86f61c2b2733349aee09a42e2fe"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-08T16:16:34+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-02-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T15:20:56+00:00",
+      "tokens": 28632,
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-21T15:45:11+00:00",
+        "authorization": {
+          "path": "notes/operator-refused-return-2026-11-21-02-patch-product.json",
+          "sha256": "7d5d933f4da1843658aac25170a59c9da7370d0ad6dad407cde5120638a91371"
+        },
+        "path": "runs/2026-11-21-02-patch-product/digest.md",
+        "sha256": "0eb2799f25cda780eca5e020f0fdc77498ce95b61a0ee7f32926c9f81ebad0cd"
+      },
+      "refusal": {
+        "source": "close-run",
+        "digest": {
+          "path": "runs/2026-11-21-02-patch-product/digest.md",
+          "sha256": "0eb2799f25cda780eca5e020f0fdc77498ce95b61a0ee7f32926c9f81ebad0cd"
+        },
+        "run_id": "2026-11-21-02-patch-product",
+        "reason": "validator rejected the return with deliberate contract-refusal status 65",
+        "by": "operator",
+        "at": "2026-11-21T15:45:11+00:00"
+      },
+      "ended_at": "2026-11-21T15:45:11+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "2026-11-08-02-smoke-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T15:51:51+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-08-02-smoke-product/digest.md",
+        "sha256": "ea54b9df88c5263e4d2590c27181a129541238ef40409d2569573dfc96c28b0f"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T15:53:13+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T15:54:54+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-03-validate-validator/digest.md",
+        "sha256": "1c966e62d2fdf0c7c34b95be71546a4d1bdbe73cd8a11f66973fa6fb41660505"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-21T16:12:57+00:00"
+    },
+    {
+      "id": "2026-11-21-04-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T16:13:17+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-04-validate-validator/digest.md",
+        "sha256": "85fb0eb9b6956b3a956af5c76b0a764f3edd903c5f60c22100d599a4d005530e"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T16:24:53+00:00"
+    },
+    {
+      "id": "2026-11-21-05-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T16:34:55+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-05-patch-product/digest.md",
+        "sha256": "188a15ab5b7caf575e35d1d194df8455edaf0f7d8020611cb4b9122d059ec716"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T16:43:39+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-06-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T16:44:12+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-06-patch-product/digest.md",
+        "sha256": "b84b8fc1d38eee10517e107ddd522ba414b21751be35e5f606b3d881ceefd7b1"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T16:48:57+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-08T16:07:10+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause reproduced and known (OMP 18.10.2 task.structured default off, never set by Harness; revalidation strips hook-injected schema); diff bounded to .omp/config.yml, check-omp-port.py+test, one refusal line; DEC-174"
+    },
+    {
+      "at": "2026-11-08T16:16:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "intake PASS; lead yield appended digest.md via hook (no manual step); BRIEF (52 lines) and plan.yaml (T-01 main-session-direct, check 0 failures) pending on disk; advance to signature"
+    },
+    {
+      "at": "2026-11-21T16:13:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "revalidate",
+      "reason": "no must-fix; QA string-data yields refused by the pre-fix hook loaded in the main session (the SC-04 defect); revalidate from a fresh session rooted in the worktree"
+    },
+    {
+      "at": "2026-11-21T16:31:12+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "ship",
+      "reason": "Operator overrules validate c1 must-fix: smoke run id is single-use by signed T-01 design; SC-03 met on saved receipts (notes/operator-ruling-validate-c1-2026-11-21.md)"
+    },
+    {
+      "at": "2026-11-21T16:34:52+00:00",
+      "by": "operator",
+      "kind": "regate",
+      "decision": "overruled",
+      "reason": "validate c1 FAIL regated by operator overrule: single-use smoke run id is signed T-01 design (notes/operator-ruling-validate-c1-2026-11-21.md); no rework round"
+    },
+    {
+      "at": "2026-11-21T16:43:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "main-owns-helper-and-revoke",
+      "reason": "trim blocked on main-owned verify helper and explicit revoke-approval; main supplies both then redispatches"
+    },
+    {
+      "at": "2026-11-21T16:47:01.951542+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "DEC-182 form-only budget trim; main owns unchanged extracted helper"
+    },
+    {
+      "at": "2026-11-21T16:47:05.226025+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "DEC-182 form-only budget trim; main owns unchanged extracted helper"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/notes/operator-resignature-2026-11-21.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "a1b96706cabf52a8828fea4bc23745523837a8f3a6fb0c385e1e4a55ef612c61"
+  },
+  "github": {
+    "milestone": 111,
+    "parent": 2226,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2227
+    },
+    "source_issues": [
+      2171
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
