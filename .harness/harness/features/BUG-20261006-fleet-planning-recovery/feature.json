@@ -100,6 +100,13 @@
       "tokens": null,
       "ended_at": "2026-11-21T17:47:51+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-21T17:58:39+00:00"
     }
   ],
   "judgements": [
