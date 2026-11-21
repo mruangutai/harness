@@ -44,7 +44,7 @@ tasks:
     execution_reason: DEC-174 reserves configuration, hook, gate and their regression-test
       edits to the main session; no harness-eng-lead execution route.
     depends_on: []
-    status: ready
+    status: done
     files:
     - .omp/config.yml
     - .claude/skills/harness/bin/check-omp-port.py#config_errors
