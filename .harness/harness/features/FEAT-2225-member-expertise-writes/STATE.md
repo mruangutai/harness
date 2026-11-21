@@ -10,7 +10,7 @@
 - tasks: T-01 done (ba3fab79, lifts f06b2e57) · T-02 done (7c2f2d48) · T-03 done (c6b5e3c7) · T-04 done (bf09458a..fd8ffcdf)
 - cycles_used: 1 / 10
 - rework: round 0 of 2 consumed · 13 / 90 min
-- review_sha: 130592528844321c27fbb628fdc05f6f17f86d0d (stale once the fix segment lands)
+- review_sha: fef0f49454cab6def002520f517deeb83570693b (panel reviewed 13059252; identical code tree; stale once the fix segment lands)
 - validate c1: BLOCKED (qa return refused by host; matrix observed green) · must_fix F1 (T-04, high), F2 (T-01+T-04, high), F3 (T-04, med)
 - handoff: notes/handoff-validate.md (seq-6)
 
