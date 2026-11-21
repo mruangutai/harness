@@ -174,6 +174,7 @@ def case_task_structured_required():
         ("absent", None, False),
         ("boolean false", "false", False),
         ("string 'true'", '"true"', False),
+        ("integer 1", "1", False),
         ("boolean true", "true", True),
     )
     rows = []
