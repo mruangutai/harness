@@ -1,0 +1,38 @@
+schema: plan/1
+feature: BUG-2241-smoke-run-id
+approval:
+  date: '2026-11-21'
+  approved_by: operator
+  status: approved
+status: review
+source_issues: [2241]
+lanes:
+  resolved_at: 926383aef86ee505d2909c291ef4ab672b8ea09b
+  rows:
+    - surface: .agents/skills/harness-spec-driven/SKILL.md
+      lane: main-session-direct
+      reason: No configured squad persona is granted this rule skill; resolver returns NOBODY.
+decisions: []
+tasks:
+  - id: T-01
+    title: Require rerunnable ids in state-creating verify guidance
+    traces: [SC-01, SC-02, SC-03]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: Rule-skill path resolves to NOBODY; disclose the conflict with the requested team route before signature.
+    depends_on: []
+    status: done
+    files:
+      - .agents/skills/harness-spec-driven/SKILL.md
+    verify: |
+      python3 -c 'import os, subprocess; path=".claude/skills/harness-spec-driven/SKILL.md"; ref=os.environ.get("REVIEW_SHA", "HEAD"); text=subprocess.check_output(["git", "show", ref+":"+path], text=True); heading=next(line for line in text.splitlines() if line.startswith("## ") and "literal block" in line); section=text.split(heading, 1)[1].split("\n## ", 1)[0]; rule="A verify step creating durable state (a run, issue, branch or other named record) MUST derive a fresh id at execution (timestamp or run counter) or receive one as a parameter; a literal single-use id is a defect because validation cannot re-run it (DEC-182)."; assert rule in " ".join(section.split()), "SC-01: complete durable-state id rule absent from verify section"; assert len(text.split()) == 1181, "SC-03: expected 1137 baseline words plus 44"; print("PASS SC-01 content; SC-03 skill words 1181 (+44)")' &&
+      python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/check-skill-weight.py .
+    intent: |
+      PRODUCT checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2241-smoke-run-id. Edit only its .agents/skills/harness-spec-driven/SKILL.md, the alias of tracked .claude/skills/harness-spec-driven/SKILL.md. This is a pending main-session-direct proposal because check-domain.py --resolve reports NOBODY; do not dispatch a squad writer or alter grants to simulate the requested team route. Obtain explicit route acknowledgement and ordinary operator signature before execution.
+      Product read inputs: docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout. AGENTS.md Project map identifies product-local .harness/harness/docs/SPEC.md sections 6 and 11.2 and .harness/harness/docs/DECISIONS.md DEC-158 move 1, DEC-179, DEC-182 and DEC-225. SPEC section 6 reserves rule-skill edits to the human; DEC-179 supplies the ungranted main-session route, conflicting with DEC-225 normal team packaging. These inputs are not owned files. Do not invent missing guidance or broaden this text-only patch.
+      In the existing verify literal-block section, append exactly this standalone paragraph after the existing paragraph and before The panel result, preserving all other bytes: A verify step creating durable state (a run, issue, branch or other named record) MUST derive a fresh id at execution (timestamp or run counter) or receive one as a parameter; a literal single-use id is a defect because validation cannot re-run it (DEC-182).
+      This one rule covers durable state generally and permits either execution-derived ids or parameterized ids. Add no mechanical detection of literal ids, no BUG-2171 recipe change, no helper, new interface, extra task, changelog file or skill-history narrative. The rule itself is the complete documentation change. change_type docs is configured with an empty required-test floor; no runtime logic or enforcement is changed.
+      Preserve DEC-158 rule plus one-clause why plus DEC pointer brevity. The paragraph is 44 whitespace words; baseline skill 1137 at 594af2a8123771da1a5290942400f4f8a064656f, expected total 1181. Baseline pm preload 5001, projected 5045; universal 1476 unchanged. Configured warning budgets are agent 5500 and universal 1900; report actual skill delta and check-skill-weight.py plain output without modifying budgets. Its --json path currently raises NameError; do not fix that unrelated defect.
+      Run the literal verify from PRODUCT checkout after committing the source change, with REVIEW_SHA unset for HEAD or set to the immutable pin. Expected exit 0, PASS SC-01 content; SC-03 skill words 1181 (+44), then a preload report with no VIOLATION; projections are pm 5045 and universal 1476. The commands only read Git and files and create no durable named state. For QA run from its assigned pinned checkout at review_sha, so preload measurement matches the pin; normal post-merge reruns can use any surviving checkout plus REVIEW_SHA for content and that pin checkout for preload evidence.
+      QA must separately capture the same SC-01 content assertion failing against immutable baseline 594af2a8123771da1a5290942400f4f8a064656f for the missing-rule assertion, then passing at review_sha. Treat this as supplemental unit-level evidence under the active unit kind; the registered unit runner does not discover inline assertions and a green unrelated suite cannot discharge SC-01. The docs floor is empty but red-first evidence for this automated SC is still required.
+      Reviewer discharges SC-02 by reading git show at review_sha of the tracked skill and judging both id sources and the rerun explanation in the existing verify section. Discharge SC-03 by reading the pinned base-to-review source diff and skill content, confirming only this paragraph changed in the single owned source file, and citing actual word delta and preload output. No UAT, plan readers, panel or goal-check run belongs to this patch intake.
