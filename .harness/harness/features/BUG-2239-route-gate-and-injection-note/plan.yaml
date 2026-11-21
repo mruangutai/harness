@@ -42,7 +42,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 hooks and gates including their tests must be changed directly
     depends_on: []
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/plan_merge/check.py
     - .omp/extensions/harness-hooks.ts
