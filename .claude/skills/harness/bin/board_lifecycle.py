@@ -937,7 +937,7 @@ def _label_scope(root, repo_name):
                                          f"feature corpus could not be read: {exc}")]
     numbers, residuals = set(), []
     for feat_dir in feat_dirs:
-        owned, problem = _label_owned_numbers(feat_dir, repo_name)
+        owned, problem = _label_owned_numbers(root, feat_dir, repo_name)
         if problem:
             residuals.append(_finding(
                 "LABEL", f"LABEL: {feat_dir}'s tickets cannot be judged: {problem}"))
@@ -957,7 +957,7 @@ def _label_class_findings(root, issues, repo_name):
     return _label_findings(issues, recorded) + residuals
 
 
-def _label_owned_numbers(feat_dir, repo_name):
+def _label_owned_numbers(root, feat_dir, repo_name):
     """(numbers, problem): the tickets one record proves it owns in `repo_name`. A record bound
     to another repository owns nothing here and is not a problem."""
     try:
@@ -967,18 +967,23 @@ def _label_owned_numbers(feat_dir, repo_name):
     recorded = _github_numbers(doc) if isinstance(doc, dict) else None
     if recorded is None:
         return set(), "malformed github mapping"
-    owner, problem = _label_record_owner(feat_dir, doc, repo_name)
+    owner, problem = _label_record_owner(root, feat_dir, doc, repo_name)
     return (recorded, None) if owner and not problem else (set(), problem)
 
 
-def _label_record_owner(feat_dir, doc, repo_name):
-    """(owned, problem): whether one readable record's mirror is provably `repo_name`'s."""
+def _label_record_owner(root, feat_dir, doc, repo_name):
+    """(owned, problem): whether one readable record's mirror is provably `repo_name`'s. The
+    authoritative `resolve_binding` decides the repository, exactly as for STATUS; a binding it
+    refuses owns nothing and is named, never trusted on its `factory.repo` string alone."""
     factory = doc.get("factory")
-    if feature_schema.has_repository_binding(doc):
-        if not isinstance(factory, dict):
-            return False, "invalid feature binding"
-        if factory.get("repo") != repo_name:
-            return False, None
+    if isinstance(factory, dict) and factory.get("repo") not in (None, repo_name):
+        return False, None
+    try:
+        bound_repo = feature_schema.resolve_binding(doc, root)[0]
+    except artifact_accessors.FleetError as error:
+        return False, f"invalid feature binding: {error}"
+    if bound_repo != repo_name:
+        return False, None
     problem = ("; ".join(feature_schema.mirror_evidence_problems(feat_dir, doc))
                or feature_schema.mirror_provenance_problem(doc, repo_name))
     return not problem, problem
