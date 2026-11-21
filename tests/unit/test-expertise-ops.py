@@ -411,6 +411,292 @@ def case_u23():
         )
 
 
+# ---------------------------------------------------------------------------------------------
+# FEAT-2225 T-01: member-ops destination, receipts, supersession and replay engine. These cases
+# are RED against the pre-change tool (every name below is new) and each one is paired with a
+# one-mechanism mutant in the T-01 receipt.
+# ---------------------------------------------------------------------------------------------
+import json
+import shutil
+import tempfile
+
+PERSONA = "harness-backend-dev"
+CRAFT_REL = f".harness/expertise/{PERSONA}.md"
+REPO_REL = f".harness/harness/expertise/{PERSONA}.md"
+
+
+def replay_entry(runtime, ops, originals, seq=1, ident=None, persona=PERSONA, destination=CRAFT_REL,
+                 supersedes=(), receipt=None, ts=0):
+    """A plain-dict batch entry shaped like what load_active hands the replay engine."""
+    return {
+        "id": ident or f"{runtime}-{seq}", "seq": seq, "destination": destination, "ops": ops,
+        "originals": [{"section": o["section"], "target": o["target"], "original": t}
+                      for o, t in zip(ops, originals)],
+        "persona": persona, "feature": "FEAT-1", "runtime_id": runtime, "parent_id": "p",
+        "receipt": receipt or f"notes/{runtime}.json", "supersedes": list(supersedes),
+        "recorded_at_ns": ts, "before_sha256": None, "after_sha256": "0" * 64,
+    }
+
+
+def replay_blob(sections):
+    lines = [f"# Expertise — {PERSONA}"]
+    for name, entries in sections:
+        lines.append(f"## {name}")
+        lines.extend(f"- {eid}: {text}" for eid, text in entries)
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+def case_u30_free_ids():
+    free = expertise_merge._next_free_id
+    check("u30: first gap is chosen", free("P", ["P-01", "P-03"]) == "P-02", free("P", ["P-01", "P-03"]))
+    check("u30: past the end", free("P", ["P-01", "P-02"]) == "P-03", None)
+    check("u30: empty section starts at 01", free("P", []) == "P-01", None)
+    check("u30: other prefixes do not occupy ids", free("G", ["P-01"]) == "G-01", None)
+    check("u30: numeric not textual comparison", free("P", ["P-1", "P-2"]) == "P-03", free("P", ["P-1", "P-2"]))
+    wide = [f"P-{n:02d}" for n in range(1, 100)]
+    check("u30: width grows past 99", free("P", wide) == "P-100", free("P", wide))
+
+
+def case_u31_destination_rel():
+    rel = expertise_merge.destination_rel
+    check("u31: craft path", rel(PERSONA, "craft", None) == CRAFT_REL, rel(PERSONA, "craft", None))
+    check("u31: repository path", rel(PERSONA, "repository", "harness") == REPO_REL, None)
+    bad = [(PERSONA, "craft", "harness"), (PERSONA, "repository", None), (PERSONA, "repository", ".."),
+           (PERSONA, "repository", "a/b"), (PERSONA, "repository", "expertise"), ("reviewer", "craft", None),
+           ("harness-../x", "craft", None), (PERSONA, "global", None)]
+    for args in bad:
+        try:
+            rel(*args)
+            check(f"u31: {args} refused", False, "no refusal")
+        except MergeRefusal as e:
+            check(f"u31: {args} refused with 9", e.code == 9, e.code)
+
+
+def apply_entries(blob, entries):
+    replay = expertise_merge._DestinationReplay(CRAFT_REL, blob)
+    for entry in entries:
+        replay.apply_batch(entry)
+    return replay
+
+
+def case_u32_collision_remap():
+    blob = replay_blob([("Patterns", [("P-01", "a"), ("P-03", "c")])])
+    first = replay_entry("r1", [op("add", "Patterns", "P-03", "mine")], [None], seq=1)
+    later = replay_entry("r1", [op("replace", "Patterns", "P-03", "mine two")], ["mine"], seq=2)
+    replay = apply_entries(blob, [first, later])
+    pats = dict(replay.sections["Patterns"])
+    check("u32: refusals empty", replay.refusals == [], replay.refusals)
+    check("u32: foreign P-03 kept", pats.get("P-03") == "c", pats)
+    check("u32: first free id P-02 received the add, then the remapped replace", pats.get("P-02") == "mine two", pats)
+    want = [{"runtime_id": "r1", "section": "Patterns", "original_id": "P-03", "replayed_id": "P-02", "batch": "r1-1",
+             "persona": PERSONA, "destination": CRAFT_REL}]
+    check("u32: mapping exact", replay.mappings == want, replay.mappings)
+    # reserved ids: another add in the same batch already names P-02, so the remap must skip it
+    both = replay_entry("r2", [op("add", "Patterns", "P-03", "x"), op("add", "Patterns", "P-02", "y")], [None, None])
+    pats2 = dict(apply_entries(blob, [both]).sections["Patterns"])
+    check("u32: reserved P-02 not reused, first free after it is P-04", pats2.get("P-04") == "x" and pats2.get("P-02") == "y", pats2)
+
+
+def case_u33_identical_add_preserved():
+    blob = replay_blob([("Patterns", [("P-01", "a")])])
+    replay = apply_entries(blob, [replay_entry("r1", [op("add", "Patterns", "P-01", "a")], [None])])
+    check("u33: identical add keeps one entry", replay.sections["Patterns"] == [("P-01", "a")], replay.sections["Patterns"])
+    check("u33: no mapping for preserved add", replay.mappings == [] and replay.refusals == [], (replay.mappings, replay.refusals))
+
+
+def refusal_reason(blob, entries):
+    refusals = apply_entries(blob, entries).refusals
+    return refusals[0]["reason"] if refusals else None
+
+
+def case_u34_replace_drop_originals():
+    changed = replay_blob([("Patterns", [("P-01", "changed upstream")])])
+    gone = replay_blob([("Patterns", [("P-02", "other")])])
+    ready = replay_blob([("Patterns", [("P-01", "orig")])])
+    done = replay_blob([("Patterns", [("P-01", "new")])])
+    rep = replay_entry("r1", [op("replace", "Patterns", "P-01", "new")], ["orig"])
+    drp = replay_entry("r1", [op("drop", "Patterns", "P-01")], ["orig"])
+    check("u34: replace over changed entry refuses CHANGED", (refusal_reason(changed, [rep]) or "").startswith("CHANGED"), refusal_reason(changed, [rep]))
+    check("u34: replace of vanished entry refuses DISAPPEARED", (refusal_reason(gone, [rep]) or "").startswith("DISAPPEARED"), refusal_reason(gone, [rep]))
+    check("u34: drop over changed entry refuses CHANGED", (refusal_reason(changed, [drp]) or "").startswith("CHANGED"), None)
+    check("u34: drop of vanished entry refuses DISAPPEARED", (refusal_reason(gone, [drp]) or "").startswith("DISAPPEARED"), None)
+    check("u34: replace when original matches applies", apply_entries(ready, [rep]).sections["Patterns"] == [("P-01", "new")], None)
+    idem = apply_entries(done, [rep])
+    check("u34: already-applied replace is idempotent", idem.refusals == [] and idem.sections["Patterns"] == [("P-01", "new")], idem.refusals)
+    check("u34: drop when original matches applies", apply_entries(ready, [drp]).sections["Patterns"] == [], None)
+    refused = apply_entries(changed, [rep])
+    check("u34: refused batch leaves state unchanged", refused.sections["Patterns"] == [("P-01", "changed upstream")], None)
+    r = refused.refusals[0]
+    for key, want in (("persona", PERSONA), ("runtimes", ["r1"]), ("destination", CRAFT_REL), ("section", "Patterns"),
+                      ("target", "P-01"), ("batches", ["r1-1"])):
+        check(f"u34: refusal names {key}", r.get(key) == want, r)
+
+
+def case_u35_independent_callers():
+    blob = replay_blob([("Patterns", [("P-01", "orig"), ("P-02", "two")])])
+    a = replay_entry("r1", [op("replace", "Patterns", "P-01", "new")], ["orig"], ts=1)
+    b = replay_entry("r2", [op("replace", "Patterns", "P-01", "new")], ["orig"], ts=2)
+    reason = refusal_reason(blob, [a, b])
+    check("u35: identical independent replace is refused, not hidden by idempotence",
+          (reason or "").startswith("INDEPENDENT") and "r1" in reason and "r2" in reason, reason)
+    c = replay_entry("r2", [op("drop", "Patterns", "P-01")], ["orig"], ts=2)
+    check("u35: replace then drop by another caller refused", (refusal_reason(blob, [a, c]) or "").startswith("INDEPENDENT"), None)
+    again = replay_entry("r1", [op("replace", "Patterns", "P-01", "newer")], ["new"], seq=2, ts=3)
+    check("u35: the SAME caller may chain edits of one entry",
+          apply_entries(blob, [a, again]).sections["Patterns"][0] == ("P-01", "newer"), None)
+
+
+def case_u36_caps_deferred():
+    secs, order = base_sections([("Open", [(f"Q-{n:02d}", "t") for n in range(1, 6)])])
+    try:
+        resolve_ops(secs, order, [op("add", "Open", "Q-06", "t")])
+        check("u36: default still enforces the cap", False, "no refusal")
+    except MergeRefusal as e:
+        check("u36: default cap refusal is 8", e.code == 8, e.code)
+    merged, _, _ = resolve_ops(secs, order, [op("add", "Open", "Q-06", "t")], enforce_caps=False)
+    check("u36: enforce_caps=False defers the cap", len(merged["Open"]) == 6, len(merged["Open"]))
+
+
+def graph_reason(entries):
+    try:
+        active = expertise_merge.active_entries(entries)
+        return None, [e["id"] for e in active]
+    except MergeRefusal as e:
+        return e, None
+
+
+def case_u38_supersession_graph():
+    a = replay_entry("r1", [], [], ident="A", receipt="n/r1")
+    b = replay_entry("r2", [], [], ident="B", supersedes=["A"], receipt="n/r2")
+    err, active = graph_reason([a, b])
+    check("u38: replacement retires the referenced batch", err is None and active == ["B"], (err, active))
+    c = replay_entry("r3", [], [], ident="C", supersedes=["B"], receipt="n/r3")
+    err, active = graph_reason([a, b, c])
+    check("u38: chains retire step by step", err is None and active == ["C"], (err, active))
+    cases = {
+        "missing": [replay_entry("r2", [], [], ident="B", supersedes=["Z"])],
+        "cross-persona": [a, replay_entry("r2", [], [], ident="B", supersedes=["A"], persona="harness-other")],
+        "cross-destination": [a, replay_entry("r2", [], [], ident="B", supersedes=["A"], destination=REPO_REL)],
+        "not-earlier": [replay_entry("r1", [], [], ident="A", seq=2, receipt="n/r1"),
+                        replay_entry("r1", [], [], ident="B", seq=1, supersedes=["A"], receipt="n/r1")],
+        "self": [replay_entry("r1", [], [], ident="A", supersedes=["A"])],
+        "ambiguous": [a, b, replay_entry("r3", [], [], ident="C", supersedes=["A"], receipt="n/r3")],
+        "cycle": [replay_entry("r1", [], [], ident="A", supersedes=["B"], receipt="n/r1"),
+                  replay_entry("r2", [], [], ident="B", supersedes=["A"], receipt="n/r2")],
+    }
+    for name, entries in cases.items():
+        err, _ = graph_reason(entries)
+        check(f"u38: {name} supersession refused with 15", err is not None and err.code == 15, err)
+    err, _ = graph_reason(cases["cycle"])
+    check("u38: cycle is named CYCLIC", err is not None and "CYCLIC" in err.lines[0], err)
+    err, _ = graph_reason(cases["ambiguous"])
+    check("u38: double supersession is named AMBIGUOUS", err is not None and "AMBIGUOUS" in err.lines[0], err)
+
+
+def case_u39_batch_identity():
+    header = {"persona": PERSONA, "feature": "FEAT-1", "runtime_id": "r1", "parent_id": "p"}
+    batch = {"seq": 1, "destination": CRAFT_REL, "ops": [op("add", "Patterns", "P-01", "a")],
+             "originals": [{"section": "Patterns", "target": "P-01", "original": None}],
+             "before_sha256": None, "after_sha256": "1" * 64, "supersedes": []}
+    ident = expertise_merge.batch_identity(header, batch)
+    check("u39: identity is a sha256 hex digest", len(ident) == 64 and set(ident) <= set("0123456789abcdef"), ident)
+    check("u39: identity ignores the timestamp", expertise_merge.batch_identity(header, dict(batch, recorded_at_ns=5)) == ident, None)
+    mutations = {"seq": 2, "destination": "x", "ops": [], "after_sha256": "2" * 64, "supersedes": ["f" * 64],
+                 "before_sha256": "3" * 64, "originals": []}
+    for key, value in mutations.items():
+        check(f"u39: identity covers {key}", expertise_merge.batch_identity(header, dict(batch, **{key: value})) != ident, None)
+    for key in header:
+        changed = dict(header, **{key: "other"})
+        check(f"u39: identity covers {key}", expertise_merge.batch_identity(changed, batch) != ident, None)
+
+
+def case_u40_receipt_failure_fails_call():
+    tmp = tempfile.mkdtemp(prefix="member-ops-unit-")
+    real = expertise_merge.harness_merge.locked_update
+
+    def failing(path, transform, timeout=None):
+        if path.endswith(".json"):
+            raise OSError("disk full")
+        return real(path, transform, timeout)
+
+    try:
+        features = os.path.join(tmp, ".harness", "harness", "features", "FEAT-1")
+        os.makedirs(features)
+        expertise_merge.harness_merge.locked_update = failing
+        try:
+            expertise_merge.member_ops(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
+                                       json.dumps([op("add", "Patterns", "P-01", "text")]))
+            check("u40: receipt failure fails the call", False, "no refusal")
+        except MergeRefusal as e:
+            check("u40: receipt failure is refusal 15", e.code == 15, e)
+        finally:
+            expertise_merge.harness_merge.locked_update = real
+        target = os.path.join(tmp, CRAFT_REL)
+        written = open(target, encoding="utf-8").read() if os.path.exists(target) else ""
+        check("u40: target was persisted before the receipt step", "P-01: text" in written, written)
+        notes = os.path.join(features, "notes")
+        receipts = [n for n in os.listdir(notes) if n.endswith(".json")] if os.path.isdir(notes) else []
+        check("u40: no receipt exists, so verification must fail closed", receipts == [], receipts)
+        try:
+            expertise_merge.verify_receipt(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
+                                           [dict(op("add", "Patterns", "P-01", "text"), persona=PERSONA)])
+            check("u40: verify refuses without receipt", False, "verified")
+        except MergeRefusal as e:
+            check("u40: verify without receipt is 15", e.code == 15, e)
+    finally:
+        expertise_merge.harness_merge.locked_update = real
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_u41_effect_mismatches():
+    sections = {"Patterns": [("P-01", "v2")]}
+    batches = [
+        {"ops": [op("add", "Patterns", "P-01", "v1")]},
+        {"ops": [op("replace", "Patterns", "P-01", "v2"), op("add", "Patterns", "P-02", "kept")]},
+    ]
+    miss = expertise_merge._effect_mismatches(batches, sections)
+    check("u41: final effect of ordered batches, superseded intermediate not required",
+          [m[0] for m in miss] == [("Patterns", "P-02")], miss)
+    gone = expertise_merge._effect_mismatches([{"ops": [op("drop", "Patterns", "P-01")]}], sections)
+    check("u41: drop expects absence", [m[0] for m in gone] == [("Patterns", "P-01")], gone)
+    ok = expertise_merge._effect_mismatches([{"ops": [op("drop", "Patterns", "P-09")]}], sections)
+    check("u41: drop of absent id is satisfied", ok == [], ok)
+
+
+def case_u42_receipt_file_agreement():
+    """Success is published only once receipt and file agree: a target that changes between its
+    own persist and the receipt landing (a stand-in for any disagreement) fails the call."""
+    tmp = tempfile.mkdtemp(prefix="member-ops-unit-")
+    real = expertise_merge.harness_merge.locked_update
+    target = os.path.join(tmp, CRAFT_REL)
+
+    def disagreeing(path, transform, timeout=None):
+        real(path, transform, timeout)
+        if path.endswith(".json"):
+            with open(target, "a", encoding="utf-8") as fh:
+                fh.write("- P-99: written behind the receipt's back\n")
+
+    try:
+        os.makedirs(os.path.join(tmp, ".harness", "harness", "features", "FEAT-1"))
+        expertise_merge.harness_merge.locked_update = disagreeing
+        try:
+            expertise_merge.member_ops(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
+                                       json.dumps([op("add", "Patterns", "P-01", "text")]))
+            check("u42: receipt/file disagreement refuses the call", False, "published success")
+        except MergeRefusal as e:
+            check("u42: disagreement is refusal 15 naming the mismatch", e.code == 15 and "MISMATCH" in e.lines[0], e)
+    finally:
+        expertise_merge.harness_merge.locked_update = real
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def run_guarded(fn):
+    try:
+        fn()
+    except Exception as exc:  # a mutant or the pre-change tool must read as FAIL, never crash the suite
+        check(f"{fn.__name__}: completed without raising", False, repr(exc))
+
+
 def main():
     case_u1()
     case_u2()
@@ -434,6 +720,13 @@ def main():
     case_u21()
     case_u22()
     case_u23()
+
+    for case in (case_u30_free_ids, case_u31_destination_rel, case_u32_collision_remap,
+                 case_u33_identical_add_preserved, case_u34_replace_drop_originals,
+                 case_u35_independent_callers, case_u36_caps_deferred, case_u38_supersession_graph,
+                 case_u39_batch_identity, case_u40_receipt_failure_fails_call, case_u41_effect_mismatches,
+                 case_u42_receipt_file_agreement):
+        run_guarded(case)
 
     fails = 0
     for name, ok, detail in RESULTS:
