@@ -26,9 +26,33 @@
       "id": "2026-11-21-02-patch-product",
       "squad": "product",
       "agent": "harness-product-lead",
-      "verdict": "PENDING",
+      "verdict": "BLOCKED",
       "started_at": "2026-11-21T15:20:56+00:00",
-      "tokens": 28632
+      "tokens": 28632,
+      "cycle_evidence": {
+        "source": "operator-history",
+        "by": "operator",
+        "at": "2026-11-21T15:45:11+00:00",
+        "authorization": {
+          "path": "notes/operator-refused-return-2026-11-21-02-patch-product.json",
+          "sha256": "7d5d933f4da1843658aac25170a59c9da7370d0ad6dad407cde5120638a91371"
+        },
+        "path": "runs/2026-11-21-02-patch-product/digest.md",
+        "sha256": "0eb2799f25cda780eca5e020f0fdc77498ce95b61a0ee7f32926c9f81ebad0cd"
+      },
+      "refusal": {
+        "source": "close-run",
+        "digest": {
+          "path": "runs/2026-11-21-02-patch-product/digest.md",
+          "sha256": "0eb2799f25cda780eca5e020f0fdc77498ce95b61a0ee7f32926c9f81ebad0cd"
+        },
+        "run_id": "2026-11-21-02-patch-product",
+        "reason": "validator rejected the return with deliberate contract-refusal status 65",
+        "by": "operator",
+        "at": "2026-11-21T15:45:11+00:00"
+      },
+      "ended_at": "2026-11-21T15:45:11+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
