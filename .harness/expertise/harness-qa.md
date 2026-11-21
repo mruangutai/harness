@@ -2,7 +2,7 @@
 ## Patterns (max 15)
 - P-01: WHEN citing a test as SC evidence DO read the invocation and the assertion at that line, not the test's own label string — a label can name a different verb than the one actually invoked, and an unchecked label propagates as a false measurement up the review chain.
 - P-02: WHEN scoping a negative assertion (e.g. "X was not closed") DO confirm it filters a structured call log to the specific operation, not a stdout substring check — a substring check can pass vacuously if unrelated output happens to contain the same text.
-- P-03: WHEN a fixture's premise is "this code path is never reached" DO grep the function body directly for the call in question rather than trusting the fixture's own comment or name.
+- P-03: WHEN a repair closes a crash reproducer DO diff baseline against the repaired tree over neighboring inputs on every caller path, preserved ones included — a repair can regress a sibling path or turn a crash into silent loss of usable data, neither visible to the original reproducer.
 - P-04: WHEN resolving a test-matrix floor DO check every configured trigger, then independently confirm each required kind directly exercises the task’s changed behavior — green integration or adjacent-unit proof never satisfies a missing unit kind.
 - P-05: WHEN a stricter consistency lock exposes a real prohibited site DO derive that site from the canonical authority rather than exempt it — an exemption preserves a parallel source of truth and lets future authority changes drift.
 - P-07: WHEN verifying feedback must run after a writer releases a lock DO make the fixture checker acquire the sibling lock non-blocking and assert it is free — source order or a call-only fake does not prove post-release execution.
