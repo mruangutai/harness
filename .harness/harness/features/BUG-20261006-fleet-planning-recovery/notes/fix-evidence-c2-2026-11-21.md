@@ -42,5 +42,25 @@ This item is a reader-return defect inside the validator team, not a source chan
 - `code-grade.py --base fbff8150 --head 587e591b`: all 24 changed functions PASS their bars.
 - pyflakes is clean on the touched files.
 - Configured kinds: unit 61/61 files and integration 87/87 files, both exit 0.
-- `check-plan-routes.py --canonical-reader-audit`: 0 unresolved reader sites.
+- `check-plan-routes.py --canonical-reader-audit`: **misread here.** I took the "0 unresolved" summary line as clean, but the checker exited 2 with two CLASSIFICATION findings. Both c1 and c2 read the summary through `| tail`, which hid the exit code. See the post-pin correction below.
 - `check-instruction-paths.py`: 68 files, 0 violations.
+
+## Post-pin correction (after validate PASS at `91f1d0c6`; found by CI on PR #2231)
+
+**What CI's `checks` job found.** The canonical-reader audit failed on two rows:
+
+- The live `board_lifecycle.py::_label_owned_numbers` `load_feature_json` site had no inventory row.
+- The `_recorded_issue_numbers::json_file#1` row was stale. Fix c1 removed that function.
+
+**Correction.** In `tests/integration/canonical-reader-classification.json`, the stale row was replaced by a row for the live site:
+
+- category `load_feature_json`, disposition `canonical`, `main-session-direct`;
+- owned by this plan's T-01, whose files already list `board_lifecycle.py`.
+
+Afterwards the audit exits 0 (measured on its own exit code this time), and the plan-route gate exits 0.
+
+**Scope.** This changes classification metadata only; no behaviour changes. The reviewed reader call is byte-identical to the one the readers validated at `91f1d0c6`.
+
+**Handoff header.** `notes/handoff-validate.md` also had its `seq` corrected from 3 to 7, the number of runs recorded when it was written, which INV-40 requires.
+
+**Local CI gate reproduction, each step's own exit code:** `validate-feature-json` 0, plan routes 0, reader audit 0, instruction paths 0, layout 0, `check-state` 0.

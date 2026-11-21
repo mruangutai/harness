@@ -1,4 +1,4 @@
-# Handoff — BUG-20261006-fleet-planning-recovery, validate → ship — written at 91f1d0c6, seq-3
+# Handoff — BUG-20261006-fleet-planning-recovery, validate → ship — written at 91f1d0c6, seq-7
 
 ## Next
 
