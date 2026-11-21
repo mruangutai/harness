@@ -207,6 +207,19 @@ def _route_gate_failures(resolved_plan, root, routes):
     return [f"FAIL {line}" for line in findings if line.startswith("VIOLATION")]
 
 
+def _preface(routes, brief_fault):
+    """The plan-wide FAIL lines printed before any task's: a DEVIATION and an absent BRIEF."""
+    return [line for line in (routes.deviation and f"FAIL {routes.deviation}", brief_fault) if line]
+
+
+def _report(failures, tasks, summary):
+    """Print every FAIL, then every OVERLAP advisory, then the CHECK summary; exit 1 on any FAIL."""
+    for line in failures + _overlap_lines(tasks):
+        print(line)
+    print(f"{summary}, {len(failures)} failure(s)")
+    sys.exit(1 if failures else 0)
+
+
 def cmd_check(args):
     resolved_plan, root, code_root, tasks = _check_inputs(args)
     routes = _Routes(root, code_root)
@@ -214,14 +227,7 @@ def cmd_check(args):
     brief_text, brief_fault = _brief_text(resolved_plan)
     # The gate first: a plan it cannot load exits 5 before any OK line or resolver spawn.
     gate_failures = _route_gate_failures(resolved_plan, root, routes)
-    preface = [f"FAIL {routes.deviation}"] if routes.deviation else []
-    preface += [brief_fault] if brief_fault else []
     task_failures, total = _check_all(tasks, anchor_root, brief_text, routes)
-    failures = preface + task_failures + gate_failures
-    for line in failures:
-        print(line)
-    for line in _overlap_lines(tasks):
-        print(line)
-    print(f"CHECK {resolved_plan} against {anchor_root}: {len(tasks)} task(s), {total} "
-          f"anchor(s) resolved, {len(failures)} failure(s)")
-    sys.exit(1 if failures else 0)
+    _report(_preface(routes, brief_fault) + task_failures + gate_failures, tasks,
+            f"CHECK {resolved_plan} against {anchor_root}: {len(tasks)} task(s), {total} "
+            "anchor(s) resolved")
