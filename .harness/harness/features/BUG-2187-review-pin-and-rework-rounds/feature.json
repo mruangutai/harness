@@ -21,6 +21,13 @@
       "tokens": null,
       "ended_at": "2026-11-21T23:03:19+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-21T23:18:57+00:00"
     }
   ],
   "mission": "patch",
