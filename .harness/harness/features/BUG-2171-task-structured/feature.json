@@ -122,6 +122,13 @@
       "kind": "continue",
       "decision": "revalidate",
       "reason": "no must-fix; QA string-data yields refused by the pre-fix hook loaded in the main session (the SC-04 defect); revalidate from a fresh session rooted in the worktree"
+    },
+    {
+      "at": "2026-11-21T16:31:12+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "ship",
+      "reason": "Operator overrules validate c1 must-fix: smoke run id is single-use by signed T-01 design; SC-03 met on saved receipts (notes/operator-ruling-validate-c1-2026-11-21.md)"
     }
   ],
   "mission": "patch",
