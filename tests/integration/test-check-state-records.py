@@ -281,7 +281,7 @@ def case_inv32():
 # (inv33.e)-(inv33.g).
 #
 # BUILT WITH REAL GIT, deliberately: INV-33 runs `git rev-parse --show-toplevel` and `git show`,
-# so a hand-built .git pointer yields no top level and all four cases would pass vacuously.
+# so a hand-built .git pointer yields no top level and every INV-33 case would pass vacuously.
 # ==========================================================================================
 
 _INV32_HJ = '{"schema_version": 1, "github": {"sync": false}}\n'
@@ -472,15 +472,15 @@ def case_inv33d_absent_path_is_silent():
     return results
 
 
-def _inv33_pinned_then(edit):
-    """INV-33's lines after: commit the plan at `building`, pin that commit, apply `edit(feat)`
-    to the plan on disk, and commit it."""
+def _inv33_pinned_then(**after):
+    """INV-33's lines after: commit the plan at `building`, approved, pin that commit, then
+    rewrite the plan with `after` overriding those fields, and commit it."""
+    pinned_plan = {"station": "building", "approval": "approved"}
     with tempfile.TemporaryDirectory() as tmp:
         feat = _inv33_repo(tmp)
-        _inv33_plan(feat, "logic", station="building", approval="approved")
-        pinned = _inv33_commit(tmp, "plan at the pin")
-        _inv33_set_sha(feat, pinned)
-        edit(feat)
+        _inv33_plan(feat, "logic", **pinned_plan)
+        _inv33_set_sha(feat, _inv33_commit(tmp, "plan at the pin"))
+        _inv33_plan(feat, "logic", **{**pinned_plan, **after})
         _inv33_commit(tmp, "after the pin")
         _code, out = run(tmp)
         return _inv33_lines(out)
@@ -490,8 +490,7 @@ def case_inv33e_station_writes_are_silent():
     """(inv33.e) #2187/#2201: the build-phase seam pins `review_sha`, then `gh-sync.py status
     review` rewrites the plan's station, and every task station moves with set-task-station.
     Those are lifecycle writes the pin never claimed, so a station-only change is silent."""
-    ls = _inv33_pinned_then(lambda feat: _inv33_plan(
-        feat, "logic", station="review", task_status="done", approval="approved"))
+    ls = _inv33_pinned_then(station="review", task_status="done")
     return [("(inv33.e) a station-only change after the pin (top-level and task status) is "
              "silent", not ls, "\n".join(ls) or "(unexpected line)")]
 
@@ -499,8 +498,7 @@ def case_inv33e_station_writes_are_silent():
 def case_inv33f_reserialization_is_silent():
     """(inv33.f) The pin claims the plan's content, so the comparison is of the loaded
     documents: a block list where a flow list was, same values, is the same plan."""
-    ls = _inv33_pinned_then(lambda feat: _inv33_plan(
-        feat, "logic", station="building", approval="approved", flow=False))
+    ls = _inv33_pinned_then(flow=False)
     return [("(inv33.f) a serialization-only change after the pin is silent", not ls,
              "\n".join(ls) or "(unexpected line)")]
 
@@ -508,8 +506,7 @@ def case_inv33f_reserialization_is_silent():
 def case_inv33g_other_status_fields_stay_stale():
     """(inv33.g) Only the two station fields are lifecycle. A `status` anywhere else — here the
     approval's — is reviewed content, so changing it still reports STALE."""
-    ls = _inv33_pinned_then(lambda feat: _inv33_plan(
-        feat, "logic", station="building", approval="pending"))
+    ls = _inv33_pinned_then(approval="pending")
     return [("(inv33.g) a non-station status change after the pin still reports STALE",
              any("FEAT-TEST" in l and "STALE" in l for l in ls), "\n".join(ls) or "(no INV-33 line)")]
 

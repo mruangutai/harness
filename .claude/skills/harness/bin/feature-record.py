@@ -149,9 +149,14 @@ def _attributed_cycles(runs):
     return total
 
 
+def _judgements_of(doc, kind):
+    """Every judgement entry of `kind` (the stored kind compared stripped), in ledger order."""
+    return [e for e in (doc.get("judgements") or [])
+            if isinstance(e, dict) and str(e.get("kind", "")).strip() == kind]
+
+
 def _kind_count(doc, kind):
-    return sum(1 for e in (doc.get("judgements") or [])
-               if isinstance(e, dict) and str(e.get("kind", "")).strip() == kind)
+    return len(_judgements_of(doc, kind))
 
 
 def _owed_regate(doc, runs):
@@ -589,17 +594,14 @@ def cmd_set_mission(args):
 def _commit_id(path, sha):
     """`sha` resolved to a full commit id in the repository holding `path`, or the exit-2
     refusal. A tree, a blob or an unresolved name is refused: readers diff a commit."""
-    import subprocess
+    import code_grade
     repo = os.path.dirname(os.path.abspath(path))
-    proc = subprocess.run(["git", "-C", repo, "rev-parse", "--verify", "--quiet",
-                           "--end-of-options", f"{sha}^{{commit}}"],
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    full = proc.stdout.strip()
-    if proc.returncode != 0 or not full:
-        print(f"REFUSED: {sha!r} does not resolve to a commit in {repo}.", file=sys.stderr)
-        print("  review_sha pins the commit the readers diff; nothing was written.", file=sys.stderr)
-        sys.exit(REFUSAL_CODE)
-    return full
+    try:
+        # The one resolver: validate-digest.py resolves the recorded pin through it too.
+        return code_grade.commit_oid(repo, sha)
+    except ValueError:
+        _exit_refused([f"REFUSED: {sha!r} does not resolve to a commit in {repo}.",
+                       "  review_sha pins the commit the readers diff; nothing was written."])
 
 
 def cmd_pin_review(args):
@@ -664,22 +666,24 @@ DISTILL_RUN = re.compile(r"(?:^|-)distill-")
 
 def _regate_stamps(doc):
     """The parsed `at` of every `regate` judgement; an unparsable stamp is left out."""
-    judgements = doc.get("judgements")
-    entries = judgements if isinstance(judgements, list) else []
-    stamps = (_parse_iso(j.get("at")) for j in entries
-              if isinstance(j, dict) and j.get("kind") == "regate")
+    stamps = (_parse_iso(j.get("at")) for j in _judgements_of(doc, "regate"))
     return [at for at in stamps if at is not None]
 
 
 def _not_before(at, opened):
-    """`at >= opened`, False when one is naive and the other aware (they do not compare)."""
+    """`at >= opened`, False when one is naive and the other aware: they do not compare, and a
+    hand-written naive stamp must not crash `spend`, which the hook calls."""
     return (at.tzinfo is None) == (opened.tzinfo is None) and at >= opened
 
 
-def _regate_rounds(doc, runs, first_validate):
-    """The `regate` judgements recorded at or after the first validate run's start, or None
-    when that run carries no start or no regate falls in the window (#2222)."""
-    opened = _parse_iso(runs[first_validate].get("started_at")) if first_validate is not None else None
+def _window_opened(runs, first_validate):
+    """The first validate run's start, or None when there is no validate run or no start."""
+    return _parse_iso(runs[first_validate].get("started_at")) if first_validate is not None else None
+
+
+def _regate_rounds(doc, opened):
+    """The `regate` judgements recorded at or after `opened`, or None when the window has no
+    start (no validate run, or one with no `started_at`) or holds no regate (#2222)."""
     if opened is None:
         return None
     return sum(1 for at in _regate_stamps(doc) if _not_before(at, opened)) or None
@@ -712,7 +716,7 @@ def spend_for(doc):
               if not DISTILL_RUN.search(str(entry.get("id", "")))]
     github = doc.get("github")
     has_build_entry = isinstance(github, dict) and "build_entry" in github
-    rounds = _regate_rounds(doc, runs, first_validate)
+    rounds = _regate_rounds(doc, _window_opened(runs, first_validate))
     if rounds is None:
         rounds = sum(1 for entry in window if FIX_RUN.search(str(entry.get("id", ""))))
     return {"runs": len(runs), "wall_clock_minutes": seconds // 60, "tokens": tokens,

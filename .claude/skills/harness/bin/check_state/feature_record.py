@@ -107,7 +107,9 @@ def _inv33_stale_relpath(ctx, _git_top, _sha, _pf):
         _disk = None
     # BOTH reads must succeed. See the path-absent paragraph above — this one clause is
     # what keeps 19 honest pins quiet.
+    # Equal bytes load equal, so only a byte difference pays for the two parses.
     if _shown is not None and _shown.returncode == 0 and _disk is not None \
+            and _shown.stdout != _disk \
             and _inv33_reviewed(_shown.stdout, _pf) != _inv33_reviewed(_disk, _pf):
         return _prel
     return None

@@ -45,8 +45,8 @@ outcome. Header declarations follow `harness-zero-micro-management`'s dispatch h
    (`plan-merge.py set-task-station`), commit that as the seam commit, pin `review_sha` to the seam
    commit with `feature-record.py pin-review --file <feature.json> --sha <seam-commit>`, then run
    `status review`. `status review` refuses while any task is not `done` or `abandoned` (a task
-   left at `review` blocks it). Station writes after the pin leave it current; any other
-   `plan.yaml` change after the pin makes it stale (INV-33).
+   left at `review` blocks it). Station writes after the pin, and edits that leave the loaded plan
+   unchanged, keep it current; any other change to `plan.yaml`'s content makes it stale (INV-33).
    When `feature.json` cannot carry the pin — a frozen feature, or a review dispatched
    with no feature at all — put `HARNESS-REVIEW-PIN: <sha>` on its own line in the dispatch prompt:
    the host forwards it to the digest validator, which accepts it as the pin when `feature.json`

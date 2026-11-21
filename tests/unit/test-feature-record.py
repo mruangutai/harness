@@ -1217,33 +1217,28 @@ class SpendTest(FeatureRecordCase):
         return {"at": f"2026-09-11T{at}:00+00:00", "by": "harness-orchestrator", "kind": kind,
                 "decision": "d", "reason": "r"}
 
-    DIRECT_FIX_RUNS = [
-        {"id": "2026-09-11-01-patch-product", "squad": "product", "verdict": "PASS",
-         "agent": "harness-product-lead", "started_at": "2026-09-11T10:00:00+00:00",
-         "ended_at": "2026-09-11T10:20:00+00:00"},
-        {"id": "2026-09-11-04-validate-validator", "squad": "validator", "verdict": "ESCALATE",
-         "agent": "harness-validator-lead", "started_at": "2026-09-11T12:00:00+00:00",
-         "ended_at": "2026-09-11T12:30:00+00:00"},
-        {"id": "2026-09-11-05-validate-validator", "squad": "validator", "verdict": "PASS",
-         "agent": "harness-validator-lead", "started_at": "2026-09-11T13:00:00+00:00",
-         "ended_at": "2026-09-11T13:15:00+00:00"},
-    ]
+    def direct_fix_runs(self):
+        """Intake, a validate run that sent work back, and the re-validation after a fix the
+        main session built directly: no `fix-` run anywhere."""
+        return [self.timed("2026-09-11-01-patch-product", "10:00", "10:20"),
+                self.timed("2026-09-11-04-validate-validator", "12:00", "12:30"),
+                self.timed("2026-09-11-05-validate-validator", "13:00", "13:15")]
 
     def rounds(self, runs, judgements):
         self.write(base_doc(runs=runs, judgements=judgements, github={"build_entry": "opened"}))
         return self.spend()["rework_rounds"]
 
     def test_a_direct_fix_round_counts_its_regate_judgement(self):
-        self.assertEqual(1, self.rounds(self.DIRECT_FIX_RUNS, [self.judged("regate", "12:35")]))
+        self.assertEqual(1, self.rounds(self.direct_fix_runs(), [self.judged("regate", "12:35")]))
 
     def test_every_regate_in_the_window_is_a_round(self):
-        self.assertEqual(2, self.rounds(self.DIRECT_FIX_RUNS, [
+        self.assertEqual(2, self.rounds(self.direct_fix_runs(), [
             self.judged("regate", "12:35"), self.judged("regate", "13:20")]))
 
     def test_the_window_opens_exactly_at_the_first_validate_start(self):
         """A regate stamped AT the first validate start counts; a plan-phase regate before it
         and a non-regate judgement inside it do not."""
-        self.assertEqual(1, self.rounds(self.DIRECT_FIX_RUNS, [
+        self.assertEqual(1, self.rounds(self.direct_fix_runs(), [
             self.judged("regate", "10:10"), self.judged("regate", "12:00"),
             self.judged("continue", "12:40"), self.judged("mission", "12:45")]))
 
@@ -1256,7 +1251,7 @@ class SpendTest(FeatureRecordCase):
         self.assertEqual(2, self.rounds(self.REWORK_RUNS, [self.judged("mission", "12:30")]))
 
     def test_no_validate_run_means_no_round_whatever_was_judged(self):
-        self.assertEqual(0, self.rounds(self.DIRECT_FIX_RUNS[:1], [self.judged("regate", "10:10")]))
+        self.assertEqual(0, self.rounds(self.direct_fix_runs()[:1], [self.judged("regate", "10:10")]))
 
 
 class PinReviewTest(FeatureRecordCase):
@@ -1294,12 +1289,14 @@ class PinReviewTest(FeatureRecordCase):
             self.assertEqual(self.head, self.load()["review_sha"], ref)
 
     def test_a_non_commit_or_unresolved_sha_is_refused_without_a_write(self):
-        for bad in (self.git("rev-parse", "HEAD^{tree}"), "0" * 40, "no-such-ref"):
-            result = self.pin("--sha", bad)
-            self.assertNotEqual(0, result.returncode, bad)
-            self.assertTrue((result.stdout + result.stderr).lstrip().startswith("REFUSED:"),
-                            f"{bad}: {result.stdout!r} {result.stderr!r}")
-            self.assertEqual(self.before, self.path.read_bytes(), bad)
+        """A tree, an absent object, an unknown name and an option-shaped value: exit 2,
+        REFUSED on stderr, feature.json byte-identical."""
+        for argv in (("--sha", self.git("rev-parse", "HEAD^{tree}")), ("--sha", "0" * 40),
+                     ("--sha", "no-such-ref"), ("--sha=--git-dir",)):
+            result = self.pin(*argv)
+            self.assertEqual(2, result.returncode, f"{argv}: {result.stderr}")
+            self.assertTrue(result.stderr.startswith("REFUSED:"), f"{argv}: {result.stderr!r}")
+            self.assertEqual(self.before, self.path.read_bytes(), argv)
 
     def test_the_pin_guidance_names_only_verbs_the_cli_has(self):
         """Both documents that tell the orchestrator to pin `review_sha` name the verb, and every
