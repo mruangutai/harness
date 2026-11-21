@@ -71,5 +71,13 @@
       "reason": "intake PASS; lead yield appended digest.md via hook (no manual step); BRIEF (52 lines) and plan.yaml (T-01 main-session-direct, check 0 failures) pending on disk; advance to signature"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/notes/operator-signature-2026-11-21.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "5fafcfc5a5a659414a6eceaa9341c2b2dc7fe976c7abb2abc7e46687987fc0be"
+  }
 }

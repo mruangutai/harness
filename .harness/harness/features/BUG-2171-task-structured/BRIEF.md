@@ -50,6 +50,6 @@ Harness lead returns do not reach runs/<id>/digest.md automatically, forcing man
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-11-21
