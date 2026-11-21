@@ -86,6 +86,10 @@ lead carries the string **verbatim** to the member, which cross-checks it agains
 returns `BLOCKED` on any mismatch (`harness-zero-micro-management`); a folded scalar loads as a
 different string, so a correct task blocks.
 
+A verify step creating durable state (a run, issue, branch or other named record) MUST derive a
+fresh id at execution (timestamp or run counter) or receive one as a parameter; a literal
+single-use id is a defect because validation cannot re-run it (DEC-182).
+
 ## The panel result
 
 `plan-merge.py record-panel` writes `panel:` from the lead's digest. **You never transcribe a
