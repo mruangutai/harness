@@ -1003,10 +1003,23 @@ with tempfile.TemporaryDirectory() as base:
           r2.returncode == 0 and "LABEL" not in r2.stdout, repr(r2.stdout))
 
 
-# #2151 review: a padded recorded number still counts; a malformed record falls back to the
-# broad rule rather than aborting the audit (ship runs it).
-for label, github in (("a padded recorded number", {"issues": {"T-01": " 33 "}}),
-                      ("a non-list source_issues", {"source_issues": 99}),
+# #2151 review: a padded recorded number still counts.
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-ODD")
+    os.makedirs(fdir)
+    with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
+        json.dump({"github": {"issues": {"T-01": " 33 "}}}, f)
+    r, _log = run(root, ["audit"],
+                  issues=json.dumps([{"number": 33, "stateReason": "NOT_PLANNED", "labels": []}]))
+    check("audit LABEL (#2151): a padded recorded number still yields the finding",
+          "LABEL: issue #33" in r.stdout and "Traceback" not in r.stderr, repr(r.stdout + r.stderr))
+
+# BUG-20261006 fix c1 (supersedes #2151's broad fallback): a malformed or unreadable record
+# names no tickets. It is a report-only LABEL residual naming the record, never a reason to
+# label every not_planned issue, and reconcile writes nothing for it.
+for label, github in (("a non-list source_issues", {"source_issues": 99}),
                       ("a false-valued non-list source_issues", {"source_issues": 0}),
                       ("a non-mapping github block", [33]),
                       ("a non-mapping issues block", {"issues": [33]}),
@@ -1019,11 +1032,73 @@ for label, github in (("a padded recorded number", {"issues": {"T-01": " 33 "}})
         os.makedirs(fdir)
         with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
             f.write("{not json" if github is None else json.dumps({"github": github}))
-        r, _log = run(root, ["audit"],
-                      issues=json.dumps([{"number": 33, "stateReason": "NOT_PLANNED", "labels": []}]))
-        check(f"audit LABEL (#2151): {label} still yields the finding, without a crash",
-              "LABEL: issue #33" in r.stdout and "Traceback" not in r.stderr,
-              repr(r.stdout + r.stderr))
+        odd = json.dumps([{"number": 33, "stateReason": "NOT_PLANNED", "labels": []}])
+        r, _log = run(root, ["audit"], issues=odd)
+        r2, log2 = run(root, ["reconcile", "--apply"], issues=odd)
+        check(f"audit LABEL: {label} is a report-only residual naming the record, not a "
+              "finding on #33, and reconcile adds no label",
+              "LABEL: issue #33" not in r.stdout and "FEAT-ODD's tickets cannot be judged" in r.stdout
+              and not any("issue\x01edit" in l for l in log2)
+              and "Traceback" not in r.stderr + r2.stderr,
+              repr(r.stdout + r.stderr + r2.stdout + r2.stderr))
+
+
+def _write_collision_fixture(base, bound_repo, declare=False):
+    """Owner acme/widget. One record mirrors task #17 into `bound_repo` with full provenance.
+    `declare` adds acme/widget to the fleet, so the binding can resolve."""
+    root = os.path.join(base, "root")
+    fleet = ({"workspace_root": os.path.join(base, "ws"),
+              "repos": [{"name": "acme/widget", "default_branch": "main"}]} if declare else None)
+    write_root(root, default_github(), fleet=fleet)
+    fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-BOUND")
+    os.makedirs(fdir)
+    doc = {"factory": {"repo": bound_repo},
+           "github": {"repo": bound_repo, "build_entry": "opened", "issues": {"T-01": 17}}}
+    with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
+        json.dump(doc, f)
+    return root
+
+
+def _served_widget_b64(**github):
+    """acme/widget's own served .harness/harness.json, with `github` overriding the valid block."""
+    doc = {"schema_version": 1, "github": {**default_github(), **github}}
+    return base64.b64encode(json.dumps(doc).encode("utf-8")).decode("ascii")
+
+
+# BUG-20261006 fix c1/c2: LABEL ownership is repository-bound and resolver-proven.
+# - A record mirrored into another repository (Kaya's task #17) never makes the owner
+#   repository's own #17 labelable.
+# - A record bound to this repository owns #17 only when `resolve_binding` accepts it:
+#   declared in the fleet, with a readable served config that has sync on and names this
+#   repository.
+# - Every refused binding is a report-only residual with no write.
+_ISSUE_17 = json.dumps([{"number": 17, "stateReason": "NOT_PLANNED", "labels": []}])
+_LABEL_BINDINGS = (
+    ("bound to acme/other", "acme/other", False, None, False),
+    ("bound to acme/widget, undeclared in the fleet", "acme/widget", False, None, False),
+    ("bound to acme/widget, served config sync off", "acme/widget", True,
+     _served_widget_b64(sync=False), False),
+    ("bound to acme/widget, served config unavailable", "acme/widget", True, "", False),
+    ("bound to acme/widget, served config naming acme/other", "acme/widget", True,
+     _served_widget_b64(repo="acme/other"), False),
+    ("bound to acme/widget, declared and validly configured", "acme/widget", True,
+     _served_widget_b64(), True),
+)
+for label, bound_repo, declare, served, owned in _LABEL_BINDINGS:
+    with tempfile.TemporaryDirectory() as base:
+        root = _write_collision_fixture(base, bound_repo, declare)
+        r, _log = run(root, ["audit"], issues=_ISSUE_17, contents_b64=served)
+        r2, log2 = run(root, ["reconcile", "--apply"], issues=_ISSUE_17, contents_b64=served)
+        edits = [l for l in log2 if "issue\x01edit" in l and "abandoned" in l]
+        found = "LABEL: issue #17" in r.stdout
+        residual = "FEAT-BOUND's tickets cannot be judged" in r.stdout
+        refused = declare or bound_repo == "acme/widget"
+        check(f"LABEL ownership: a record {label} "
+              f"{'owns acme/widget#17 (finding and one label write)' if owned else 'does not own acme/widget#17 (no finding, no write)'}",
+              found == owned and len(edits) == (1 if owned else 0)
+              and residual == (refused and not owned)
+              and "Traceback" not in r.stderr + r2.stderr,
+              repr(r.stdout + r2.stdout + r2.stderr) + repr(edits))
 
 # #2151 review: an unparseable record is a report-only STATUS residual -- reconcile never
 # dispatches a write for it, and does not crash.

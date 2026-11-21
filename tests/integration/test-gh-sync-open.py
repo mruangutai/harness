@@ -24,9 +24,12 @@ from unittest.mock import patch
 import harness_merge
 
 from gh_sync_support import (
-    FAKE_GH, FAKE_GH_ATTACH_FAILS, FAKE_GH_STATIONS, SYNC, calls, check, install_gh, load_gh_sync,
-    nested_feature_dir, read_feature_json, report, run, stage, write_feature_json,
-    write_plan_yaml, stage_fleet)
+    FAKE_GH, FAKE_GH_ATTACH_FAILS, FAKE_GH_STATIONS, FULL_STATIONS, SYNC, calls, check,
+    install_gh, load_gh_sync, nested_feature_dir, read_feature_json, report, run, stage,
+    write_feature_json, write_plan_yaml, write_validate_handoff, stage_fleet)
+
+_MUTATION_TOKENS = ("issue create", "issue close", "issue edit", "label create", "project item-",
+                    "api -X POST", "api -X PATCH", "api -X DELETE")
 
 
 def stage_recover(tmp, feat_name, milestone=None, parent=None, issues=None, source_issues=None):
@@ -269,6 +272,98 @@ def fleet_unproven_command_cases():
                   result.returncode == 2 and same_ledger and same_plan and not mutations
                   and "provenance" in result.stdout + result.stderr,
                   f"rc={result.returncode} out={result.stdout} err={result.stderr} calls={calls(tmp)}")
+
+
+# BUG-20261006 fix c1 (SC-01): after a bound `open`, every other feature-bound command
+# succeeds against the bound repository, and no gh call ever names the owner repository.
+_BOUND_COMMANDS = (
+    ("status", ["building"]), ("start-task", ["T-01"]), ("record-pr", ["--pr", "1"]),
+    ("ship", []), ("abandon", ["--yes", "--reason-file", "REASON"]),
+    ("reject", ["--yes", "--superseded-by", "none", "--reason-file", "REASON"]),
+    ("backlog", ["bug:fixture"]), ("recover-terminal", ["--yes"]))
+
+
+def _bound_command_run(tmp, command, args):
+    """Open the fleet fixture, then run one command. Returns (open rc, rc, calls after open)."""
+    feat = stage_fleet(tmp)
+    write_plan_yaml(feat, "FEAT-9000-fleet", [("T-01", "ready")], source_issues=[901],
+                    plan_station="ready")
+    opened = run(["open", feat], tmp).returncode
+    before = len(calls(tmp))
+    reason = os.path.join(tmp, "reason.txt")
+    with open(reason, "w", encoding="utf-8") as target:
+        target.write("fixture reason\n")
+    if command == "ship":
+        write_validate_handoff(feat)
+        write_plan_yaml(feat, "FEAT-9000-fleet", [("T-01", "done")], source_issues=[901],
+                        plan_station="review")
+    argv = [command, feat] + [reason if arg == "REASON" else arg for arg in args]
+    result = run(argv, tmp, {"HARNESS_PROJECT_DIR": tmp})
+    return opened, result, calls(tmp)[before:]
+
+
+def fleet_bound_command_cases():
+    for command, args in _BOUND_COMMANDS:
+        with tempfile.TemporaryDirectory() as tmp:
+            opened, result, log = _bound_command_run(tmp, command, args)
+            check(f"{command} on a bound feature succeeds against product/app and never "
+                  "calls the owner repository",
+                  opened == 0 and result.returncode == 0
+                  and any("product/app" in call for call in log)
+                  and not any("owner/harness" in call for call in log),
+                  f"open={opened} rc={result.returncode} out={result.stdout} "
+                  f"err={result.stderr} calls={log}")
+
+
+def _install_product(tmp, configs):
+    script = FAKE_GH_STATIONS.replace('"number":3', '"number":9').replace(
+        "implentio/fake", "product/app")
+    install_gh(tmp, script, product_configs=configs)
+
+
+def _product(**github):
+    base = {"sync": True, "repo": "product/app",
+            "board": {"owner": "product", "number": 9, "station_field": "Status",
+                      "stations": list(FULL_STATIONS)}}
+    return {"github": {**base, **github}}
+
+
+# BUG-20261006 fix c1 (SC-01): a bound target whose configuration is missing, unreadable or
+# mismatched refuses before any mutation, and never falls back to the owner repository.
+_CONFIG_FAILURES = (
+    ("an unreadable product config", {}, None),
+    ("a product config naming another repository", {"product/app@release": _product(repo="other/app")}, None),
+    ("a product config with sync off", {"product/app@release": _product(sync=False)}, None),
+    ("a factory.repo missing from the fleet", {"product/app@release": _product()}, "ghost/app"))
+
+
+def _rebind(feat, factory_repo):
+    path = os.path.join(feat, "feature.json")
+    doc = read_feature_json(path)
+    doc["factory"]["repo"] = factory_repo
+    with open(path, "w", encoding="utf-8") as target:
+        json.dump(doc, target, indent=2)
+
+
+def _refused_cleanly(result, feat, log):
+    receipt = read_feature_json(os.path.join(feat, "feature.json"))["github"]
+    mutated = any(token in call for call in log for token in _MUTATION_TOKENS)
+    owner_call = any("owner/harness" in call for call in log)
+    return result.returncode != 0 and receipt == {} and not mutated and not owner_call
+
+
+def fleet_config_failure_cases():
+    for label, configs, factory_repo in _CONFIG_FAILURES:
+        with tempfile.TemporaryDirectory() as tmp:
+            feat = stage_fleet(tmp)
+            _install_product(tmp, configs)
+            if factory_repo:
+                _rebind(feat, factory_repo)
+            result = run(["open", feat], tmp)
+            log = calls(tmp)
+            check(f"open refuses {label} before any mutation, with no owner fallback",
+                  _refused_cleanly(result, feat, log),
+                  f"rc={result.returncode} out={result.stdout} err={result.stderr} calls={log}")
 
 
 def replacement_authority(feat, started=False):
@@ -605,6 +700,8 @@ def _replacement_role_adoption_case(tmp, feat, note, previous, role):
 def main():
     fleet_binding_cases()
     fleet_unproven_command_cases()
+    fleet_bound_command_cases()
+    fleet_config_failure_cases()
     replacement_cases()
     completed_replacement_amendment_case()
     replacement_parent_uncertainty_case()

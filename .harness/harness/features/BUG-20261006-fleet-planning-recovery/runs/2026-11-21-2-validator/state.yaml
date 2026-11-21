@@ -1,0 +1,92 @@
+schema_version: 2
+run_id: 2026-11-21-2-validator
+run_uid: 96a483f30e264bd3a8989c696c266d9f
+feature: BUG-20261006-fleet-planning-recovery
+squad: validator
+host: harness-validator-lead
+team: fix
+status: blocked
+verdict: BLOCKED
+severity_max: high
+review_sha: a80b9ef3b2a30b1fa73101385a15b71b873cf09b
+head_sha: a80b9ef3b2a30b1fa73101385a15b71b873cf09b
+base_sha: 6451153169f469f5bd9d5f3f01bf89b82787b720
+cycles_used: 1
+steps:
+  - id: qa
+    persona: harness-qa
+    task: T-01
+    depends_on: []
+    mutates_repo: false
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    artifact: notes/review-harness-qa-c4.md
+    outputs: [notes/review-harness-qa-c4.md]
+    evidence:
+      member_claimed_verdict: FAIL
+      matrix_ok: false
+      unit_files: 61
+      integration_files: 87
+      binding_refusal_variants_with_writes: 4
+      configured_positive_control: true
+      return_contract: invalid_after_one_reprompt
+    note: Execution confirms remaining high bypass; repeated invalid return escalated.
+  - id: code
+    persona: harness-code-reviewer
+    task: T-01
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-code-reviewer-c3.md
+    evidence:
+      severity_max: high
+      code_grade_functions: 23
+  - id: security
+    persona: harness-security-reviewer
+    task: T-01
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-security-reviewer-c3.md
+  - id: ui
+    persona: harness-ui-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-ui-reviewer-c3.md
+    evidence:
+      delta_paths: 16
+      ui_surface: false
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/research-BUG-20261006-fleet-planning-recovery-goalcheck-validate-c3.md
+    evidence:
+      sc_met: [SC-02, SC-03, SC-05, SC-07, SC-08]
+      sc_pending_qa: [SC-01, SC-04, SC-06]
+      lead_sc_met: [SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08]
+      lead_sc_not_met: [SC-01]

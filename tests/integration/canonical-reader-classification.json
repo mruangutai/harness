@@ -122,16 +122,17 @@
     },
     {
       "artifact": "feature.json",
-      "category": "json_file",
+      "category": "load_feature_json",
       "dec174_category": "none",
       "disposition": "canonical",
-      "execution_route": "team",
+      "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/board_lifecycle.py",
-      "id": ".claude/skills/harness/bin/board_lifecycle.py::_recorded_issue_numbers::json_file#1",
+      "id": ".claude/skills/harness/bin/board_lifecycle.py::_label_owned_numbers::load_feature_json#1",
+      "plan": ".harness/harness/features/BUG-20261006-fleet-planning-recovery/plan.yaml",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
-      "symbol": "_recorded_issue_numbers",
-      "task": "T-03"
+      "symbol": "_label_owned_numbers",
+      "task": "T-01"
     },
     {
       "artifact": "feature.json",
