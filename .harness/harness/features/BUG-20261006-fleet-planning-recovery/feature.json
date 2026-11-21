@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-20261006-fleet-planning-recovery",
   "branch": "feat/BUG-20261006-fleet-planning-recovery",
-  "pr": null,
+  "pr": 2231,
   "review_sha": "91f1d0c64fc4ce94d3fcb8110933c2171a0424d6",
   "cycles_used": 4,
   "max_total_cycles": 10,
