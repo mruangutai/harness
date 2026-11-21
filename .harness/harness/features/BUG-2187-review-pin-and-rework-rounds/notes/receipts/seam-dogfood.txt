@@ -1,0 +1,22 @@
+command: python3 .claude/skills/harness/bin/feature-record.py pin-review --file .harness/harness/features/BUG-2187-review-pin-and-rework-rounds/feature.json --sha 1b35414bfc865786baffe0418528deeeef141272
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2187-review-pin-and-rework-rounds/.harness/harness/features/BUG-2187-review-pin-and-rework-rounds/feature.json:
+  note       INV-32: BUG-2187-review-pin-and-rework-rounds is a patch mission, which runs no pre-build panel; its diff is graded by the validate run instead. Not graded.
+  note       INV-17 BUG-2187-review-pin-and-rework-rounds: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed. Suppressed handoff-plan.
+  note       LAYOUT dirty (8): 1 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+APPLIED pin-review 1b35414bfc865786baffe0418528deeeef141272
+exit: 0
+command: python3 .claude/skills/harness/bin/gh-sync.py status <feature-dir> review
+gh-sync: plan.yaml station -> review
+gh-sync: issue #2167 -> review
+gh-sync: issue #2187 -> review
+gh-sync: issue #2201 -> review
+gh-sync: issue #2222 -> review
+gh-sync: issue #2249 -> review
+gh-sync: issue #2250 -> review
+exit: 0
+plan.yaml after status review (uncommitted station write):
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+command: python3 .claude/skills/harness/bin/check-state.py  (INV-33 lines for this feature)
+exit: 0
+INV-33 lines: 0
+VIOLATION lines: 0
