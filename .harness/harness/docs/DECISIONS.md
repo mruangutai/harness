@@ -8199,7 +8199,11 @@ Mixed `expertise_update` items require `persona` and have no `state`; low-level 
 persona. The member reports only its applied ops; its lead reads each receipt and actual file,
 preserves exact active mixed-persona consolidation and returns PASS absent a real refusal.
 The orchestrator confirms, never applies another persona's or lead's ops. Missing, fabricated,
-unreceipted or file-inconsistent evidence refuses live yield, durable close and replay/merge.
+unreceipted or file-inconsistent evidence refuses live yield and replay/merge, and durable close
+verifies against the default branch as the local repository records it.
+Unreceipted content hidden by deliberately moving default-branch refs (`git update-ref`,
+`git branch -f`, `git symbolic-ref`) is a stated close-time boundary, refused at
+`merge-gate.py merge-distill` against the live remote; hardening is tracked in #2251.
 
 **Reconcile while the worktree is live.** Fetch/rebase current main, reconstruct touched files
 from that exact base through `expertise-merge.py replay`, check Expertise, and commit/push the
@@ -8218,7 +8222,8 @@ base. Reconstruction omits those whole batches and retains other active batches 
 the replacement, including an explicitly judged empty withdrawal. Only successful authorized
 replacement selects new active batches; historical receipts remain immutable in the current PR.
 Missing, cross-persona/feature/destination, cyclic or ambiguous supersession refuses. Receipt/file
-integrity remains required at close and replay; this is neither an independent ledger nor a queue.
+integrity remains required at close, against the default branch as the local repository records it,
+and replay; this is neither an independent ledger nor a queue.
 
 **Serialize checks through merge.** Changed Expertise paths identify distill candidates; raw
 git/gh distill merges refuse. `merge-gate.py merge-distill` holds one owner-root `harness_merge`

@@ -942,8 +942,12 @@ identities and caller lineage in feature-local
 `verify-receipt` is read-only and checks the reconstructed final effect of active batches against
 the actual file, not whether a superseded intermediate replacement still survives. Leads verify
 these receipts and files, preserving exact mixed-persona ops; the orchestrator confirms, never applies.
-Fabricated, missing, unreceipted or file-inconsistent evidence refuses live yield and durable close,
-as well as replay/merge. Emitting an op alone is not completion.
+Fabricated, missing, unreceipted or file-inconsistent evidence refuses live yield and replay/merge,
+and durable close verifies against the default branch as the local repository records it.
+Unreceipted content hidden by deliberately moving default-branch refs (`git update-ref`,
+`git branch -f`, `git symbolic-ref`) is a stated close-time boundary, refused at
+`merge-gate.py merge-distill` against the live remote; hardening is tracked in #2251.
+Emitting an op alone is not completion.
 
 **Replay before merge in the still-live worktree.** Fetch/rebase current main, rebuild touched files
 from that exact main blob using `expertise-merge.py replay` with the feature root, feature and base,
@@ -966,7 +970,8 @@ Only successful authorized replacement changes active replay selection. Earlier 
 immutable inside the current PR. Missing, cross-persona/feature/destination, cyclic or ambiguous
 references refuse; a failed replacement cannot retire history. Replay refusal is exit 13,
 failed candidate format checking 14, and missing/mismatched/unauthorized receipt evidence 15.
-Close and replay retain receipt/file integrity after supersession; there is no independent queue.
+Close, against the default branch as the local repository records it, and replay retain receipt/file
+integrity after supersession; there is no independent queue.
 
 **Harness-controlled distill merges serialize through `merge-gate.py merge-distill`.**
 Changed Expertise paths identify candidates and raw git/gh distill merges refuse. One owner-root
