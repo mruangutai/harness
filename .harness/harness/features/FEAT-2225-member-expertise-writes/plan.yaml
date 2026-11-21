@@ -193,7 +193,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Rule skills and canonical persona files resolve outside squad grants; preserve their constitutional ownership.
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
       - {path: .claude/skills/harness-distill/SKILL.md, quote: '# Distillation: the only time Expertise is written'}
       - {path: .claude/skills/harness-expertise/SKILL.md, quote: '# Expertise'}
