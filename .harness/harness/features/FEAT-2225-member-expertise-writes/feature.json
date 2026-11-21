@@ -143,6 +143,21 @@
       "cycles_used": 0,
       "ended_at": "2026-11-21T23:41:06+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-10-validate-c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T23:42:21+00:00",
+      "tokens": 72900,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-10-validate-c4-validator/digest.md",
+        "sha256": "ba74f1ae5422fd9c50494207281cdd685b8a211d63998da289a23164a6c470a5"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T23:53:19+00:00"
     }
   ],
   "judgements": [
@@ -257,6 +272,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "SC-03/T-04/SPEC/DEC-253 amended under the F2 ruling (amendment judgement ledgered; signatures stand); commit, re-pin, station review, confirmatory validate c4"
+    },
+    {
+      "at": "2026-11-21T23:53:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "c4: F2 dispositioned as ruled boundary, F1/F3 closed; sole must_fix C4-F1 is the amendment run's own omission (DEC-253 index not regenerated, T-02 documentor) \u2014 not code rework under the spent ruling; one product fix run then validate c5"
     }
   ],
   "mission": "plan",
