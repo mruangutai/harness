@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2225-member-expertise-writes",
   "branch": "feat/FEAT-2225-member-expertise-writes",
   "pr": null,
-  "review_sha": "219690d0",
+  "review_sha": "6d9e6053a6367c78f1e5848a6801e7ca09d82dd1",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
