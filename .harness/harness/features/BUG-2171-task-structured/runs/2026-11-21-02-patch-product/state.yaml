@@ -1,0 +1,23 @@
+schema_version: 2
+run_id: 2026-11-21-02-patch-product
+feature: BUG-2171-task-structured
+squad: product
+host: harness-product-lead
+status: complete
+run_uid: 7791013c43d4498fafe4d1707303b809
+steps:
+  - id: revise
+    persona: harness-pm
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/notes/research-intake.md
+    evidence:
+      plan_check: exit 0; 6 anchors resolved; 0 failures
+      lanes: five rows; tests/unit/omp-hooks.test.ts main-session-direct
+      approval: pending
+      plan_status: plan
+      value_file: notes/research-lanes.md

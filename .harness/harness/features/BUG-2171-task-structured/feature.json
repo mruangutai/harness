@@ -99,6 +99,29 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-21T16:24:53+00:00"
+    },
+    {
+      "id": "2026-11-21-05-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T16:34:55+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-05-patch-product/digest.md",
+        "sha256": "188a15ab5b7caf575e35d1d194df8455edaf0f7d8020611cb4b9122d059ec716"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T16:43:39+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-06-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-21T16:44:12+00:00"
     }
   ],
   "judgements": [
@@ -129,6 +152,20 @@
       "kind": "continue",
       "decision": "ship",
       "reason": "Operator overrules validate c1 must-fix: smoke run id is single-use by signed T-01 design; SC-03 met on saved receipts (notes/operator-ruling-validate-c1-2026-11-21.md)"
+    },
+    {
+      "at": "2026-11-21T16:34:52+00:00",
+      "by": "operator",
+      "kind": "regate",
+      "decision": "overruled",
+      "reason": "validate c1 FAIL regated by operator overrule: single-use smoke run id is signed T-01 design (notes/operator-ruling-validate-c1-2026-11-21.md); no rework round"
+    },
+    {
+      "at": "2026-11-21T16:43:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "main-owns-helper-and-revoke",
+      "reason": "trim blocked on main-owned verify helper and explicit revoke-approval; main supplies both then redispatches"
     }
   ],
   "mission": "patch",
