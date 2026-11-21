@@ -1,4 +1,4 @@
-# Handoff — FEAT-2225-member-expertise-writes, validate c1 → fix (main-session-direct segment) → validate c2 — written at 3ab9f467 + bookkeeping, seq-5
+# Handoff — FEAT-2225-member-expertise-writes, validate c1 → fix (main-session-direct segment) → validate c2 — written at 3ab9f467 + bookkeeping, seq-6
 
 ## Next
 

@@ -12,7 +12,7 @@
 - rework: round 0 of 2 consumed · 13 / 90 min
 - review_sha: 130592528844321c27fbb628fdc05f6f17f86d0d (stale once the fix segment lands)
 - validate c1: BLOCKED (qa return refused by host; matrix observed green) · must_fix F1 (T-04, high), F2 (T-01+T-04, high), F3 (T-04, med)
-- handoff: notes/handoff-validate.md (seq-5)
+- handoff: notes/handoff-validate.md (seq-6)
 
 ## Open Questions
 
