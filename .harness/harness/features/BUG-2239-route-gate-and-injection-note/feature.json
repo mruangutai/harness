@@ -2,8 +2,8 @@
   "feature_id": "BUG-2239-route-gate-and-injection-note",
   "branch": "feat/BUG-2239-route-gate-and-injection-note",
   "pr": null,
-  "review_sha": "0646be2354b49c46e7a7b0acc5f15eff84cf5d19",
-  "cycles_used": 0,
+  "review_sha": "a986d0896fb28f4722acd1e66b1eea14f1fbef2c",
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -58,8 +58,16 @@
       "id": "2026-11-21-04-validate-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-21T21:22:47+00:00"
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-21T21:22:47+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-04-validate-validator/digest.md",
+        "sha256": "21320858fca87ad7000616d885a8d4231f249eb89841a23ea155c4e837622cc6"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-21T21:53:14+00:00"
     }
   ],
   "judgements": [
@@ -76,6 +84,13 @@
       "kind": "continue",
       "decision": "simplify-then-sign",
       "reason": "fold authored and gated; main runs the four-angle plan simplify before applying the operator's signature"
+    },
+    {
+      "at": "2026-11-21T21:53:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix then validate cycle 2",
+      "reason": "SCOPE-01 void: branch base is 594af2a8; BUG-2171 records differ only vs 926383ae (dispatch named the wrong base). Fix: code-grade FAILs on cmd_check and two case_2239 tests."
     }
   ],
   "mission": "patch",
