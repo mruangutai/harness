@@ -80,6 +80,36 @@
       "cycles_used": 1,
       "tokens": null,
       "ended_at": "2026-11-09T15:18:08+00:00"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T15:17:15+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-product/digest.md",
+        "sha256": "59dd4b9a4be2dd81bbc10a39f3a81a6de3e28c1d46b8f1c12e4561790438bdd9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T15:22:42+00:00"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T15:22:51+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-validator/digest.md",
+        "sha256": "12a22a215d097b673ac4ccfdb112b69f13d96e7a142f68b4222af60294d5e6ef"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T15:31:08+00:00"
     }
   ],
   "judgements": [
