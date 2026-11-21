@@ -189,6 +189,13 @@
       "kind": "amendment",
       "decision": "T-01.intent",
       "reason": "DEC-182 form-only budget trim; main owns unchanged extracted helper"
+    },
+    {
+      "at": "2026-11-21T20:07:46+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Operator skipped feature-close distillation; lessons are carried as backlog fixes B-1..B-5 instead"
     }
   ],
   "mission": "patch",
