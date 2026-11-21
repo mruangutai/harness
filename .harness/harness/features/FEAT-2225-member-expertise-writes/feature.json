@@ -37,6 +37,21 @@
       "cycles_used": 1,
       "ended_at": "2026-11-21T17:21:42+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-3-t01-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T20:09:59+00:00",
+      "tokens": 67239,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-3-t01-eng/digest.md",
+        "sha256": "5cc14e81f3b1b121c51ed870f18b3ecd9a7e7284305d38fe0b108eb8af24df06"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T20:51:32+00:00"
     }
   ],
   "judgements": [
@@ -53,6 +68,13 @@
       "kind": "regate",
       "decision": "re-panel T-04 with the scope reader over the applied text; no goal-check re-run (SC-09)",
       "reason": "scope reader FAIL (PF-35d0f7a4, high substance) applied by pm inside run 1 but unread by the reader; re-panel T-04 only"
+    },
+    {
+      "at": "2026-11-21T20:09:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff seq-2 Next matches PLAN: signed, mirror opened, spend 47 min / 2 runs; proceed to build T-01"
     }
   ],
   "mission": "plan",

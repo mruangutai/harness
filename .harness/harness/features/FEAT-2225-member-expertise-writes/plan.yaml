@@ -4,7 +4,7 @@ approval:
   date: '2026-11-21'
   approved_by: Mike Ruangutai
   status: approved
-status: ready
+status: building
 source_issues: [2225]
 panel:
   last_run: r-20261121-2-plan-c2-product
@@ -151,7 +151,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/expertise-merge.py#cmd_ops
       - tests/unit/test-expertise-ops.py#resolve_ops
