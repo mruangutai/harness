@@ -765,8 +765,9 @@ spawns a lead immediately for its condense ops.
 ## DEC-69 — The orchestrator curates the leads; you see it and can object
 
 **Chose:** the orchestrator recommends curation for a lead's own expertise, using the cross-lead view
-it holds at the CEO briefing. The lead converts the recommendation into ops; the orchestrator applies
-them. A compact summary appears in the briefing and **applies unless you object**.
+it holds at the CEO briefing. The lead converts the recommendation into ops and self-applies through
+`expertise_apply`; the orchestrator confirms the receipt against the file (DEC-253).
+A compact summary appears in the briefing and **applies unless you object**.
 **Over:** (a) leads self-curating with no external check; (b) requiring your explicit approval;
 (c) applying silently and letting you find it in the PR diff.
 **Because:** leads curate members, but nothing curated leads — a wrong lead entry shapes every
@@ -1040,23 +1041,18 @@ the design mostly does not parallelize — maximum machinery, minimum protected 
 attributed to whichever specialist the lead routed; no agent owns them.
 **Tradeoff accepted:** less parallelism than the design implied it had. It never actually had it.
 
-## DEC-86 — Roster arithmetic corrected: 3 leads + 9 doers + 3 reviewers
+## DEC-86 — STRUCK: false write-less roster claim; successor DEC-253
 
-**The count was wrong in the spec and every reviewer inherited it.** The roster arithmetic and SPEC §5.3 said "8 doers"
-and "3 leads + 4 reviewers", making 7 agents write-less. Correct: **9 doers** (pm, visual-designer,
-documentor, frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops, **qa**) + **3 reviewers** (code,
-security, ui) + 3 leads = 15. `qa` is a doer — it writes tests. **Six** agents are write-less, not seven.
-**Why it matters beyond tidiness:** it widens the `Bash`-bypass surface from 8 to 9 (DEC-85), and it
-means all three reviews under-counted it.
-**Process note:** all three independent reviewers repeated the error, because they were auditing the
-document that contained it. Independent review does not catch a shared premise.
+**Strike record under DEC-188:** the claim that six agents are write-less is measured false:
+all 16 personas retain `Write` and their own Expertise grants. The old roster arithmetic is not a
+live rule or gate input. DEC-253 is the named successor and governs member-owned application;
+the removed wording remains recoverable in git history.
 
 ## DEC-87 — Spec bug: a doer's Expertise path must appear in its `domain`
 
-**Fixed.** §5.3 has doers self-apply their Expertise ops in place, "scoped by the domain hook to its own
-file" — but no manifest `domain` listed `.harness/expertise/<agent>.md`. **A working hook would have
-blocked the mechanism §5.3 depends on**, and the failure would have looked like agents mysteriously
-never learning.
+**Fixed.** §5.3 has doers self-apply their Expertise ops through the caller-bound `expertise_apply`
+tool (DEC-253), with their own Expertise path retained in the manifest `domain`.
+The missing domain grant would have blocked the mechanism and made agents appear never to learn.
 **Caught by review before any agent file was written**, which is the cheapest place to catch it.
 
 ## DEC-89 — Human edits get a legal path instead of being treated as corruption
@@ -1497,7 +1493,8 @@ while §2.3 simultaneously listed them as writers of `notes/review-<persona>-<ru
 with no `Write` cannot produce its own artifact**, which the three-part return requires (§8).
 
 **Chose:** grant reviewers `Write`, scoped by the domain hook to exactly two paths — their namespaced
-report and their own Expertise file. **No `Edit` at all, and no source path in the domain.**
+report and their own Expertise file; Expertise writes use `expertise_apply` (DEC-253).
+**No `Edit` at all, and no source path in the domain.**
 **Over:** returning findings inline in the DIGEST (violates "artifact is a path, never a payload"), or
 having the lead write the reviewer's report (absurd — the lead has no `Bash` and did not do the review).
 **Because:** it is the same shape already used for leads, whose `Write` is scoped to their run dir. The
@@ -2553,10 +2550,10 @@ explanation that covers all 13 is that nothing ever said "create it".
 
 ### The fix
 
-`harness-expertise` now says the absence of the block means *you are the first — create it*, gives
-the skeleton, and states that with `Write` and no `Edit`, updating is read-modify-write from the
-copy already in context. Writing the file from your new entry alone silently deletes every earlier
-one, which is the obvious next failure and cheaper to prevent than to detect.
+Under a distillation dispatch, absence of the injected block means the agent is the first writer:
+`expertise_apply` creates its own feature-tree file from the skeleton and applies accepted ops
+through the existing merge core (DEC-253). The former read-modify-write prescription is
+measured unsafe: writing from new entries alone silently deletes earlier learning.
 
 An earlier attempt at this made it worse: it correctly told agents the block may be absent and then
 concluded "you have none — proceed without it and do not go looking for it", which states the
@@ -3478,6 +3475,9 @@ every detected write. Every other harness agent except dev-ops (exempt per DEC-8
 gets extractable targets checked against its team-config domain, shared paths included and
 worktree-normalized; in-domain and unparseable commands pass. A path the domain hook denied does
 not become writable by switching tools — that is guardrail evasion; raise an open_question.
+Direct mutating shell calls to `expertise-merge.py` are governed writes and are blocked in favor
+of caller-bound `expertise_apply`, including for dev-ops (DEC-253); the general dev-ops exemption
+does not bypass that rule. Reviewer shell writes remain forbidden.
 
 **Honest scope:** this narrows DEC-85, it does not void it. Arbitrary shell is still unwinnable —
 the guard converts the CASUAL bypass (what an agent under pressure actually types) into deliberate
@@ -5754,7 +5754,7 @@ procedure ships at `.claude/skills/harness-simplify/SKILL.md`, read at the point
 deliberately not preloaded.
 
 **The rejected alternative: a dedicated `harness-simplifier` agent.** Considered and refused. DEC-107
-and DEC-86 declare the roster complete at three leads, nine doers and three reviewers; the seat needs
+records roster validation; DEC-253 replaces the false write-less roster premise. The seat needs
 no write domain of its own and accumulates no expertise, so the price would be superseding a signed
 decision to buy nothing mechanical. Measured at `b7ae135`: no script in the tree validates roster
 composition — `check-domain.py` harvests the names from `team-config.yaml` only to resolve domains,
@@ -5763,7 +5763,7 @@ shape of the roster. So the cost of a seventeenth agent is doctrinal, not CI bre
 is the expensive kind. Recorded here so a future scan does not re-suggest it.
 
 Lineage: DEC-118 for why this is a squad segment rather than part of the `build` team; DEC-107 and
-DEC-86 for the roster this refuses to grow; DEC-174, because the pass reads and applies across the
+DEC-253 for the retained capability boundary; DEC-174, because the pass reads and applies across the
 harness's own tree and the enforcement-layer carve-out still governs what it may touch there.
 
 ## DEC-197 — A test file matching two `detect` globs resolves to the explicit kind, and the record is the enforcement
@@ -8174,3 +8174,61 @@ And the strict loader no longer reports a shipped plan that stopped parsing.
 host, repository and layout checks never concerned a feature.
 
 Lineage: DEC-157, DEC-174, DEC-200, DEC-203, DEC-205 and DEC-238.
+
+## DEC-253 — Members apply their own Expertise in the feature worktree; receipts replay before serialized merge
+
+**Chose:** every persona applies only its own accepted Expertise ops through caller-bound
+`expertise_apply` under a distill dispatch, into `<HARNESS_FEATURE_TREE_ROOT>`, never the
+control plane or global tier. All 16 retain `Write` and existing own-file grants. Leads keep no
+`Bash` or `Edit`; reviewers keep no `Edit` or shell writes. This adds no direct file-tool denial.
+The host binds persona, feature, live child/parent lineage and destination rather than accepting
+identity/path authority from arguments. It wraps `expertise-merge.py member-ops`, not a second writer.
+
+**Authority changes, supplied mechanisms do not.** DEC-199 supplies `harness_merge` locking and
+atomic replacement; DEC-219 supplies section/id base-snapshot add/replace/drop semantics.
+Both entries remain unchanged, as do DEC-18's capability limits and DEC-145's distillation timing
+and member judgment. This decision governs their changed application route explicitly.
+DEC-86's false write-less claim is struck under DEC-188; DEC-69's application clause,
+DEC-87, DEC-106, DEC-125 and DEC-151 are corrected in place under DEC-205.
+The missing-create diagnosis and conclusion that the scribe route has no reason to exist survive.
+
+**Applied reports, not a pending queue.** Each accepted batch persists exact ops, originals,
+before/after hashes, stable batch identity and runtime lineage in feature-local
+`notes/expertise-receipt-<sha256-runtime-id>.json`, committed in this PR.
+Mixed `expertise_update` items require `persona` and have no `state`; low-level ops still exclude
+persona. The member reports only its applied ops; its lead reads each receipt and actual file,
+preserves exact active mixed-persona consolidation and returns PASS absent a real refusal.
+The orchestrator confirms, never applies another persona's or lead's ops. Missing, fabricated,
+unreceipted or file-inconsistent evidence refuses live yield, durable close and replay/merge.
+
+**Reconcile while the worktree is live.** Fetch/rebase current main, reconstruct touched files
+from that exact base through `expertise-merge.py replay`, check Expertise, and commit/push the
+reconstruction with original receipts before merge. Only this PR's receipts participate.
+Identical adds are preserved; different-text add collisions receive the first free positive
+numeric id for their prefix/section, padded to at least two digits, with later references from
+that runtime caller remapped. Repeated replay does not duplicate learning. Independent callers'
+same-entry replace/drop, changed-main originals and cap overflow refuse without changing the
+refused file. The lead returns exact persona/run/destination/section/id/batch evidence to the
+original member for re-judgment or curation, never substitutes its own or main's judgment.
+
+**Authorized replacement selects active replay, not rewritten history.** The same original persona
+under trusted distill lineage, including a re-dispatched child with verified parentage, may submit
+a replacement batch with exact earlier active batch identities in `supersedes` and a current-main
+base. Reconstruction omits those whole batches and retains other active batches before applying
+the replacement, including an explicitly judged empty withdrawal. Only successful authorized
+replacement selects new active batches; historical receipts remain immutable in the current PR.
+Missing, cross-persona/feature/destination, cyclic or ambiguous supersession refuses. Receipt/file
+integrity remains required at close and replay; this is neither an independent ledger nor a queue.
+
+**Serialize checks through merge.** Changed Expertise paths identify distill candidates; raw
+git/gh distill merges refuse. `merge-gate.py merge-distill` holds one owner-root `harness_merge`
+lock across fresh main/head checks, replay/check-expertise validation and synchronous internal
+gh merge. Stale base/head, unknown changed paths or absent replay evidence refuse. It reuses
+DEC-220's existing owner/binding/mirror-receipt predicate before that internal subprocess,
+including wrong-repository, missing and recovery-required receipt refusals: the subprocess is not
+a second host-hook event. Serialization covers Harness-controlled distill merges, not arbitrary
+external main writers; ordinary non-distill merge behavior is unchanged.
+
+**Verification limit:** no TypeScript typecheck is configured (`cmd: null`, unresolved); no
+typecheck success is claimed. Executable host and boundary evidence belongs to the implementation
+tasks, not this documentation ruling.
