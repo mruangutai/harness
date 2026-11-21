@@ -1043,10 +1043,13 @@ for label, github in (("a non-list source_issues", {"source_issues": 99}),
               repr(r.stdout + r.stderr + r2.stdout + r2.stderr))
 
 
-def _write_collision_fixture(base, bound_repo):
-    """Owner acme/widget. One record mirrors task #17 into `bound_repo` with full provenance."""
+def _write_collision_fixture(base, bound_repo, declare=False):
+    """Owner acme/widget. One record mirrors task #17 into `bound_repo` with full provenance.
+    `declare` adds acme/widget to the fleet, so the binding can resolve."""
     root = os.path.join(base, "root")
-    write_root(root, default_github())
+    fleet = ({"workspace_root": os.path.join(base, "ws"),
+              "repos": [{"name": "acme/widget", "default_branch": "main"}]} if declare else None)
+    write_root(root, default_github(), fleet=fleet)
     fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-BOUND")
     os.makedirs(fdir)
     doc = {"factory": {"repo": bound_repo},
@@ -1056,20 +1059,44 @@ def _write_collision_fixture(base, bound_repo):
     return root
 
 
-# BUG-20261006 fix c1: LABEL ownership is repository-bound. A record mirrored into another
-# repository (Kaya's task #17) never makes the owner repository's own #17 labelable.
+def _served_widget_b64(**github):
+    """acme/widget's own served .harness/harness.json, with `github` overriding the valid block."""
+    doc = {"schema_version": 1, "github": {**default_github(), **github}}
+    return base64.b64encode(json.dumps(doc).encode("utf-8")).decode("ascii")
+
+
+# BUG-20261006 fix c1/c2: LABEL ownership is repository-bound and resolver-proven.
+# - A record mirrored into another repository (Kaya's task #17) never makes the owner
+#   repository's own #17 labelable.
+# - A record bound to this repository owns #17 only when `resolve_binding` accepts it:
+#   declared in the fleet, with a readable served config that has sync on and names this
+#   repository.
+# - Every refused binding is a report-only residual with no write.
 _ISSUE_17 = json.dumps([{"number": 17, "stateReason": "NOT_PLANNED", "labels": []}])
-for bound_repo, owned in (("acme/other", False), ("acme/widget", True)):
+_LABEL_BINDINGS = (
+    ("bound to acme/other", "acme/other", False, None, False),
+    ("bound to acme/widget, undeclared in the fleet", "acme/widget", False, None, False),
+    ("bound to acme/widget, served config sync off", "acme/widget", True,
+     _served_widget_b64(sync=False), False),
+    ("bound to acme/widget, served config unavailable", "acme/widget", True, "", False),
+    ("bound to acme/widget, served config naming acme/other", "acme/widget", True,
+     _served_widget_b64(repo="acme/other"), False),
+    ("bound to acme/widget, declared and validly configured", "acme/widget", True,
+     _served_widget_b64(), True),
+)
+for label, bound_repo, declare, served, owned in _LABEL_BINDINGS:
     with tempfile.TemporaryDirectory() as base:
-        root = _write_collision_fixture(base, bound_repo)
-        r, _log = run(root, ["audit"], issues=_ISSUE_17)
-        r2, log2 = run(root, ["reconcile", "--apply"], issues=_ISSUE_17)
+        root = _write_collision_fixture(base, bound_repo, declare)
+        r, _log = run(root, ["audit"], issues=_ISSUE_17, contents_b64=served)
+        r2, log2 = run(root, ["reconcile", "--apply"], issues=_ISSUE_17, contents_b64=served)
         edits = [l for l in log2 if "issue\x01edit" in l and "abandoned" in l]
         found = "LABEL: issue #17" in r.stdout
-        check(f"LABEL ownership: a record bound to {bound_repo} "
-              f"{'owns' if owned else 'does not own'} acme/widget#17 "
-              f"({'finding and one label write' if owned else 'no finding, no write'})",
+        residual = "FEAT-BOUND's tickets cannot be judged" in r.stdout
+        refused = declare or bound_repo == "acme/widget"
+        check(f"LABEL ownership: a record {label} "
+              f"{'owns acme/widget#17 (finding and one label write)' if owned else 'does not own acme/widget#17 (no finding, no write)'}",
               found == owned and len(edits) == (1 if owned else 0)
+              and residual == (refused and not owned)
               and "Traceback" not in r.stderr + r2.stderr,
               repr(r.stdout + r2.stdout + r2.stderr) + repr(edits))
 
