@@ -2,13 +2,13 @@
 
 ## Problem
 
-Operators can sign a plan that intake accepts but CI refuses, and dispatchers mistake hook-injected schema fields for fields they supplied. The settled grilling records BUG-2171's 75-line task passing intake before CI refused it, and four schema-provenance misunderstandings (grilling-BUG-2239-route-gate-and-injection-note-2026-11-21.md, Facts I verified).
+Operators can sign a plan that intake accepts but CI refuses, dispatchers mistake hook-injected schema fields for fields they supplied, and check-skill-weight.py --json crashes instead of producing its report. The settled grilling records BUG-2171's 75-line task passing intake before CI refused it, four schema-provenance misunderstandings, and the missing json import (NameError, exit 1 at immutable base 926383aef86ee505d2909c291ef4ab672b8ea09b); plain mode works.
 
 ## Done when — by perspective
 
-**operator** — I can rely on intake rejecting the same per-plan violations as the route gate, and on dispatch-time context identifying schema fields supplied by the hook rather than me.
+**operator** — I can rely on intake rejecting the same per-plan violations as the route gate, on dispatch-time context identifying schema fields supplied by the hook rather than me, and on a valid skill-weight report being available as JSON without losing plain output.
 
-**code maintainer** — I can change the shared route rules without maintaining a second copy, and regression tests catch both defects before they recur.
+**code maintainer** — I can change the shared route rules without maintaining a second copy, and regression tests catch route enforcement, schema disclosure and JSON CLI defects before they recur.
 
 ## Success criteria
 
@@ -22,6 +22,8 @@ Operators can sign a plan that intake accepts but CI refuses, and dispatchers mi
   verify: automated evidence: integration
 - SC-05 (code maintainer): Automated hook regressions assert the revised input and exact additionalContext together for single and batch schema injection, and absence of the note without injection, with red-before/green-after evidence for the missing-note cases.
   verify: automated evidence: unit
+- SC-06 (operator): On a valid synthetic fixture, an actual check-skill-weight.py --json CLI subprocess exits 0 and its stdout parses as valid JSON with the expected report values; the same fixture's plain-mode CLI retains its successful output and status. Preserve authentic red evidence from this same new regression against immutable base 926383aef86ee505d2909c291ef4ab672b8ea09b and corresponding green evidence at the fix, recording command, subject identity, exit and output; intake gates and narrative are not substitutes. No regression runs during intake.
+  verify: automated evidence: integration
 
 ## Verification gaps
 
@@ -33,8 +35,8 @@ Unit and integration have active runners covering the named tests. Typecheck has
 - DEC-182 SUPPLIES real YAML, controlled plan writes and the 50-machine-field-line task budget; the settled remedy reuses the existing per-plan processor as the single source of rules.
 - DEC-225 SUPPLIES bounded patch intake without panel or goalcheck. The operator explicitly permits one or two tasks and requires main-session-direct, overriding generic patch defaults.
 - DEC-120 BLOCKS approval by spawned agents; both artifacts remain pending.
-- Production/test ownership is exactly the six paths named in the plan. Existing product guidance is .harness/harness/docs/SPEC.md (dispatch contract and plan declaration) and .harness/harness/docs/DECISIONS.md; docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout, not invented inputs.
-- Every verification execution that creates a durable run, feature or fixture plan must mint a fresh identity, never reuse a signed single-use identifier.
+- Production/test ownership is exactly the eight paths named in the plan, including check-skill-weight.py and its existing integration regression file. Existing product guidance is .harness/harness/docs/SPEC.md (dispatch contract and plan declaration) and .harness/harness/docs/DECISIONS.md; docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout, not invented inputs.
+- Every verification execution that creates a durable run, feature or fixture plan must mint a fresh identity, including retries and copied plans; never reuse a signed single-use identifier.
 
 ## Out of scope
 

@@ -7,47 +7,63 @@ source_issues: [2239, 2240]
 lanes:
   resolved_at: 926383aef86ee505d2909c291ef4ab672b8ea09b
   rows:
-    - surface: .claude/skills/harness/bin/plan_merge/check.py
-      lane: main-session-direct
-      reason: DEC-174 gate implementation
-    - surface: .omp/extensions/harness-hooks.ts
-      lane: main-session-direct
-      reason: DEC-174 hook implementation
-    - surface: tests/integration/test-plan-merge.py
-      lane: main-session-direct
-      reason: DEC-174 gate tests
-    - surface: tests/integration/test-check-plan-routes.py
-      lane: main-session-direct
-      reason: DEC-174 gate tests
-    - surface: tests/unit/omp-hooks.test.ts
-      lane: main-session-direct
-      reason: DEC-174 hook tests
-    - surface: tests/unit/test-omp-hooks.py
-      lane: main-session-direct
-      reason: DEC-174 hook test entrypoint
+  - surface: .claude/skills/harness/bin/plan_merge/check.py
+    lane: main-session-direct
+    reason: DEC-174 gate implementation
+  - surface: .omp/extensions/harness-hooks.ts
+    lane: main-session-direct
+    reason: DEC-174 hook implementation
+  - surface: tests/integration/test-plan-merge.py
+    lane: main-session-direct
+    reason: DEC-174 gate tests
+  - surface: tests/integration/test-check-plan-routes.py
+    lane: main-session-direct
+    reason: DEC-174 gate tests
+  - surface: tests/unit/omp-hooks.test.ts
+    lane: main-session-direct
+    reason: DEC-174 hook tests
+  - surface: tests/unit/test-omp-hooks.py
+    lane: main-session-direct
+    reason: DEC-174 hook test entrypoint
+  - surface: .claude/skills/harness/bin/check-skill-weight.py
+    lane: main-session-direct
+    reason: DEC-174 gate implementation
+  - surface: tests/integration/test-check-skill-weight.py
+    lane: main-session-direct
+    reason: DEC-174 gate tests
 decisions: []
 tasks:
   - id: T-01
     title: Share per-plan route enforcement and disclose hook schema injection
-    traces: [SC-01, SC-02, SC-03, SC-04, SC-05]
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-06
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: DEC-174 hooks and gates including their tests must be changed directly
     depends_on: []
     status: ready
     files:
-      - .claude/skills/harness/bin/plan_merge/check.py
-      - .omp/extensions/harness-hooks.ts
-      - tests/integration/test-plan-merge.py
-      - tests/integration/test-check-plan-routes.py
-      - tests/unit/omp-hooks.test.ts
-      - tests/unit/test-omp-hooks.py
+    - .claude/skills/harness/bin/plan_merge/check.py
+    - .omp/extensions/harness-hooks.ts
+    - tests/integration/test-plan-merge.py
+    - tests/integration/test-check-plan-routes.py
+    - tests/unit/omp-hooks.test.ts
+    - tests/unit/test-omp-hooks.py
+    - .claude/skills/harness/bin/check-skill-weight.py
+    - tests/integration/test-check-skill-weight.py
     verify: |
-      python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-check-plan-routes.py && python3 tests/unit/test-omp-hooks.py
+      python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-check-plan-routes.py && python3 tests/unit/test-omp-hooks.py && python3 tests/integration/test-check-skill-weight.py
     intent: |
-      Work directly in the assigned PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2239-route-gate-and-injection-note; keep all relative edits inside that checkout. DEC-174 requires direct main-session execution, not team implementation. Consult .harness/harness/docs/SPEC.md dispatch contract and plan declaration and .harness/harness/docs/DECISIONS.md DEC-174 and DEC-182. Conventional docs/spec.md, docs/decisions.md and docs/architecture.md are absent; do not invent them. The settled control-plane grilling is .harness/notes/grilling-BUG-2239-route-gate-and-injection-note-2026-11-21.md.
-      Add regressions first and record authentic pre-fix failures, then change the two production files. In plan_merge/check.py call the existing loaded check-plan-routes module process_plan_yaml for the exact checked plan with appropriate checkout and manifest roots. Integrate every VIOLATION finding as a check failure while preserving existing anchor, trace and route validation and valid-plan acceptance. Do not copy budget, status or routing predicates or vocabulary. Preserve cannot-load and processor-error handling as failure, never silent acceptance. Do not scan other feature plans.
-      Cover budget overflow, invalid top-level status, invalid task status, routing violations, valid-plan acceptance and target-plan isolation. Prove delegation using distinct shared-processor findings so a partial local reimplementation cannot pass. Reuse temporary-fixture and copied-package test idioms. Every verification execution creating a durable run, feature or fixture plan, including a copied plan, must mint a fresh identity; never reuse a single-use id. Do not change check-plan-routes.py or its rules.
+      Work directly in the assigned PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2239-route-gate-and-injection-note; keep all relative edits inside that checkout. DEC-174 requires direct main-session execution, not team implementation. Consult .harness/harness/docs/SPEC.md dispatch contract and plan declaration and .harness/harness/docs/DECISIONS.md DEC-174 and DEC-182. Conventional docs/spec.md, docs/decisions.md and docs/architecture.md are absent; do not invent them. Read the settled grilling at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-BUG-2239-route-gate-and-injection-note-2026-11-21.md.
+      Add regressions first and preserve authentic pre-fix failures before changing the three production files. In plan_merge/check.py call the existing loaded check-plan-routes module process_plan_yaml for the exact checked plan with appropriate checkout and manifest roots. Integrate every VIOLATION finding as a check failure while preserving existing anchor, trace and route validation and valid-plan acceptance. Do not copy budget, status or routing predicates or vocabulary. Preserve cannot-load and processor-error handling as failure, never silent acceptance. Do not scan other feature plans.
+      Cover budget overflow, invalid top-level status, invalid task status, routing violations, valid-plan acceptance and target-plan isolation. Prove delegation using distinct shared-processor findings so a partial local reimplementation cannot pass. Reuse temporary-fixture and copied-package test idioms. Every verification execution creating a durable run, feature or fixture plan, including retries and copied plans, must mint a fresh identity; never reuse a single-use id. Do not change check-plan-routes.py or its rules.
       In the harness-hooks.ts task branch, when withDigestSchemas returns revised input, return that input and additionalContext together with exactly this one-sentence note: The hook injected outputSchema and schemaMode into this task call; never copy these fields into a task call.
       Emit no injection note without revision. Preserve existing refusals, schema contents, claim ordering and non-task behavior. Hook tests must assert revised input and exact additionalContext together for single and batch injection, plus absence of the note for no-injection and non-Harness dispatches. Keep the Python wrapper executing the TypeScript tests. Preserve BUG-2171 refusal text unchanged.
-      Do not modify CI, sign-approval, #2241, feature.json or STATE.md. The pending BRIEF documents the behavior; unrelated docs remain unchanged. Run verify from the product checkout with Python dependencies and bun available: expect exit 0, every regression passing, no FAIL output, within 60 seconds. Record failing-then-passing evidence per automated SC; intake-only gates are not regression evidence.
+      Add the missing import json in check-skill-weight.py. In the existing tests/integration/test-check-skill-weight.py add an actual subprocess CLI regression invoking the script with a valid synthetic root and --json, asserting exit 0, parsing stdout with json.loads and checking expected skills, agent totals, universal totals and empty errors. Reuse _tree with agents a:[u,x], b:[u,y], skill counts u:100,x:50,y:70 and universal/agent budgets 1000: expect agents a:150,b:170, universal [u], universal_words 100 and total_words 320. Also execute plain mode on that fixture and assert exit 0 and the expected agent/universal/total output; retain all existing tests and plain-mode semantics.
+      Preserve authentic red evidence using this same new JSON regression against immutable base 926383aef86ee505d2909c291ef4ab672b8ea09b before the import fix, then corresponding green against the fixed subject. Use an isolated baseline package/tree with sibling dependencies intact and the same new regression, not the old suite without the regression. Record full commands, exact base/fix subject identity, regression identity, exit, stdout and stderr in durable QA evidence. The red must expose the missing-json NameError, not a harness/setup failure. The reported base failure is ground truth; intake must not rerun it. Intake gates or narrative never substitute for this regression red/green evidence.
+      Do not modify CI, sign-approval, #2241, feature.json or STATE.md. The pending BRIEF documents the behavior; unrelated docs remain unchanged. Run verify from the product checkout with Python dependencies and bun available: expect exit 0, every regression passing, no FAIL output, within 60 seconds. Record failing-then-passing evidence per automated SC. No implementation or regression runs during intake.
