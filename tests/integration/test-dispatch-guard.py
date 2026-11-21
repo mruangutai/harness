@@ -1293,6 +1293,147 @@ def case_30_schema_controls_are_not_the_guards():
           outcomes.get("plain") == outcomes.get("with controls"), repr(outcomes))
 
 
+# ---------------------------------------------------------------------------
+# FEAT-2225 T-04 — a bound distill run carries its mission to EVERY governed child. The
+# mission is derived from the parent's bound run (its feature.json `distill-*` run, reached
+# through its runtime claim), never from prose the child writes later. Engineering leads and
+# leaf members are included; plan-reader checks and ordinary dispatches are unchanged.
+# ---------------------------------------------------------------------------
+DISTILL_FEATURE = "FEAT-90-one-root-fixture"
+
+
+def _distill_checkout(lead, run_id, extra=()):
+    """A checkout whose `lead` holds exactly one open registered run named `run_id`."""
+    root = _checkout()
+    for persona in ("harness-validator-lead", "harness-code-reviewer", "harness-qa", *extra):
+        shutil.copyfile(os.path.join(FEATURE_TREE_ROOT, ".omp", "agents", persona + ".md"),
+                        os.path.join(root, ".omp", "agents", persona + ".md"))
+    _register_lead_run(root, lead, DISTILL_FEATURE)
+    record = os.path.join(root, ".harness", "harness", "features", DISTILL_FEATURE, "feature.json")
+    with open(record) as fh:
+        doc = json.load(fh)
+    doc["runs"][0]["id"] = run_id
+    with open(record, "w") as fh:
+        json.dump(doc, fh)
+    return root
+
+
+def _distill_task(root, dispatched, dispatcher, lines, agent_id=None, feature_line=FEATURE_LINE):
+    payload = _task(dispatched, dispatcher, root)
+    payload["tool_input"]["prompt"] = "\n".join([feature_line, *lines, "x"])
+    if agent_id:
+        payload["harness_agent_id"] = agent_id
+        payload["harness_parent_agent_id"] = "Orch"
+    return payload
+
+
+def _distill_fire(root, payload):
+    return fire(payload, env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
+
+
+def _bind_lead_runtime(root, lead, agent_id, feature=DISTILL_FEATURE):
+    _load_registry_module().claim_run_start(root, lead, feature, agent_id, "Orch",
+                                            supervisor_pid=os.getpid(), cwd=root)
+
+
+def _child_claims(root, persona):
+    return _claims_for(_read_registry(root, _load_registry_module()), persona, DISTILL_FEATURE)
+
+
+def case_32_distill_lead_start_carries_the_mission():
+    """An engineering-lead start whose registered run is `distill-eng` needs the marker too."""
+    tree = lambda root: "HARNESS-FEATURE-TREE-ROOT: " + root
+    for label, lines, refused in (
+            ("no mission", [], True),
+            ("a conflicting mission", ["HARNESS-MISSION: build"], True),
+            ("two missions", ["HARNESS-MISSION: distill", "HARNESS-MISSION: distill"], True),
+            ("the distill mission", ["HARNESS-MISSION: distill"], False)):
+        root = _distill_checkout("harness-eng-lead", "distill-eng")
+        try:
+            r = _distill_fire(root, _distill_task(root, "harness-eng-lead", "harness-orchestrator",
+                                                  [tree(root), *lines]))
+            claims = _child_claims(root, "harness-eng-lead")
+            if refused:
+                check("case 32: eng-lead distill start with %s is refused before any claim"
+                      % label, r.returncode == 2 and not claims
+                      and "HARNESS-MISSION: distill" in r.stderr, r.stderr)
+            else:
+                check("case 32: eng-lead distill start with %s starts and claims" % label,
+                      r.returncode == 0 and len(claims) == 1, r.stderr)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+    root = _distill_checkout("harness-eng-lead", "r1-eng")
+    try:
+        r = _distill_fire(root, _distill_task(root, "harness-eng-lead", "harness-orchestrator",
+                                              [tree(root)]))
+        check("case 32: an ordinary eng-lead build start still needs no mission",
+              r.returncode == 0 and len(_child_claims(root, "harness-eng-lead")) == 1, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _distill_child_case(lead, run_id, child, label, lines, refused, mention=None):
+    root = _distill_checkout(lead, run_id)
+    try:
+        _bind_lead_runtime(root, lead, "Orch.Lead")
+        built = [line.replace("{root}", root) for line in lines]
+        r = _distill_fire(root, _distill_task(root, child, lead, built, agent_id="Orch.Lead"))
+        claims = _child_claims(root, child)
+        if refused:
+            check("case 33: %s -> %s under %s with %s is refused before any claim"
+                  % (lead, child, run_id, label),
+                  r.returncode == 2 and not claims and (mention or "") in r.stderr, r.stderr)
+        else:
+            check("case 33: %s -> %s under %s with %s starts and claims"
+                  % (lead, child, run_id, label),
+                  r.returncode == 0 and len(claims) == 1, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_33_every_child_of_a_bound_distill_run_carries_the_mission():
+    good = ["HARNESS-FEATURE-TREE-ROOT: {root}", "HARNESS-MISSION: distill"]
+    for lead, child in (("harness-eng-lead", "harness-backend-dev"),
+                        ("harness-validator-lead", "harness-code-reviewer"),
+                        ("harness-validator-lead", "harness-qa")):
+        run_id = "distill-" + _LEAD_RUNS[lead][1]
+        _distill_child_case(lead, run_id, child, "no mission", good[:1], True,
+                            "HARNESS-MISSION: distill")
+        _distill_child_case(lead, run_id, child, "a conflicting mission",
+                            [good[0], "HARNESS-MISSION: validate"], True, "HARNESS-MISSION")
+        _distill_child_case(lead, run_id, child, "no feature-tree root", good[1:], True,
+                            "HARNESS-FEATURE-TREE-ROOT")
+        _distill_child_case(lead, run_id, child, "a foreign feature-tree root",
+                            ["HARNESS-FEATURE-TREE-ROOT: " + FEATURE_TREE_ROOT, good[1]], True,
+                            "declared feature-tree root")
+        _distill_child_case(lead, run_id, child, "the mission and its tree", good, False)
+    _distill_child_case("harness-eng-lead", "r1-eng", "harness-backend-dev",
+                        "an ordinary build dispatch and no mission", [], False)
+
+
+def case_34_distill_child_bound_to_another_feature_is_refused():
+    """The parent's runtime claim binds it to its distill feature; a child it declares for a
+    different feature conflicts with that binding and is refused before any claim."""
+    other = "FEAT-91-other-fixture"
+    root = _distill_checkout("harness-eng-lead", "distill-eng")
+    try:
+        os.makedirs(os.path.join(root, ".harness", "harness", "features", other))
+        with open(os.path.join(root, ".harness", "harness", "features", other,
+                               "feature.json"), "w") as fh:
+            json.dump({"feature_id": other, "runs": []}, fh)
+        _bind_lead_runtime(root, "harness-eng-lead", "Orch.Lead")
+        r = _distill_fire(root, _distill_task(
+            root, "harness-backend-dev", "harness-eng-lead",
+            ["HARNESS-FEATURE-TREE-ROOT: " + root, "HARNESS-MISSION: distill"],
+            agent_id="Orch.Lead", feature_line="HARNESS-FEATURE: " + other))
+        claims = _claims_for(_read_registry(root, _load_registry_module()),
+                             "harness-backend-dev")
+        check("case 34: a distill lead's child declaring another feature is refused",
+              r.returncode == 2 and not claims and DISTILL_FEATURE in r.stderr, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
     #
@@ -1359,6 +1500,9 @@ def main():
     case_30_schema_controls_are_not_the_guards()
     case_30_repository_header_binds_exact_factory_claim()
     case_31_repository_binding_read_from_the_feature_worktree()
+    case_32_distill_lead_start_carries_the_mission()
+    case_33_every_child_of_a_bound_distill_run_carries_the_mission()
+    case_34_distill_child_bound_to_another_feature_is_refused()
 
     failed = 0
     for name, ok, detail in RESULTS:

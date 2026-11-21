@@ -459,17 +459,25 @@ except (OSError, ValueError, IndexError) as exc:
           % (dispatched, exc), file=sys.stderr)
     has_bash = True
 
-if not has_bash:
-    declared_root = None
+TREE_ROOT_PREFIX = "HARNESS-FEATURE-TREE-ROOT: "
+
+
+def _declared_tree_root():
     for prompt_line in prompt.splitlines():
         stripped = prompt_line.strip()
-        if stripped.startswith("HARNESS-FEATURE-TREE-ROOT: "):
-            declared_root = stripped[len("HARNESS-FEATURE-TREE-ROOT: "):]
-            break
+        if stripped.startswith(TREE_ROOT_PREFIX):
+            return stripped[len(TREE_ROOT_PREFIX):]
+    return None
+
+
+def _require_feature_tree_root(why):
+    """Exit 2 unless the task text names the declared feature's resolved tree root; `why`
+    says what makes this dispatch need it."""
+    declared_root = _declared_tree_root()
     if not declared_root:
-        print("dispatch-guard: BLOCKED -- %s holds no shell and requires "
+        print("dispatch-guard: BLOCKED -- %s %s and requires "
               "HARNESS-FEATURE-TREE-ROOT: from inflight_registry.py feature-root --feature %s."
-              % (dispatched, declared), file=sys.stderr)
+              % (dispatched, why, declared), file=sys.stderr)
         sys.exit(2)
     if not os.path.isabs(declared_root):
         print("dispatch-guard: BLOCKED -- HARNESS-FEATURE-TREE-ROOT value must be absolute: %r"
@@ -481,11 +489,14 @@ if not has_bash:
         print("dispatch-guard: BLOCKED -- feature tree for %s is ambiguous (%s)."
               % (declared, exc), file=sys.stderr)
         sys.exit(2)
-    else:
-        if os.path.realpath(declared_root) != os.path.realpath(expected_root):
-            print("dispatch-guard: BLOCKED -- declared feature-tree root %s disagrees with resolver %s."
-                  % (declared_root, expected_root), file=sys.stderr)
-            sys.exit(2)
+    if os.path.realpath(declared_root) != os.path.realpath(expected_root):
+        print("dispatch-guard: BLOCKED -- declared feature-tree root %s disagrees with resolver %s."
+              % (declared_root, expected_root), file=sys.stderr)
+        sys.exit(2)
+
+
+if not has_bash:
+    _require_feature_tree_root("holds no shell")
 
 # OMP is the only host (DEC-233). A dispatch that does not identify itself as OMP-supervised,
 # or carries no supervisor pid, cannot be claimed and so cannot be tracked: single-flight and
@@ -733,8 +744,84 @@ def _direct_orchestration_refusal():
             "  team, panel, patch) and harness-validator-lead (validate, fix).")
 
 
+# ---------------------------------------------------------------------------
+# FEAT-2225 T-04 — A BOUND DISTILL RUN CARRIES ITS MISSION TO EVERY GOVERNED CHILD. Members
+# apply their own Expertise only under trusted distill (validate-digest.py derives that from
+# the same registered run), so a child of a distill run that lacks the marker, declares
+# another mission, names another feature or omits its feature tree is refused before any
+# claim. The mission is DERIVED from the bound run, never from prose: a lead start's own
+# registered `distill-*` run (engineering leads included), or the dispatching lead's, reached
+# through that lead's runtime claim. Every other dispatch keeps its prior outcome.
+# ---------------------------------------------------------------------------
+DISTILL_RUN_RE = re.compile(r"(?:^|-)distill-")  # feature-record.py DISTILL_RUN's token rule
+LEADS = ("harness-eng-lead",) + MISSION_LEADS
+
+
+def _registered_run_id(destinations, errors, feature, lead):
+    """`lead`'s one open registered run id in `feature`, or None when none is readable."""
+    try:
+        checkout = destinations.authorization_root(owner_root, feature)
+        return destinations.registered_destination(checkout, feature, lead)[0]
+    except errors:
+        return None
+
+
+def _dispatcher_feature():
+    """The feature the dispatching run's own runtime claim binds it to, else the declared one."""
+    agent_id = d.get("harness_agent_id")
+    if not isinstance(agent_id, str) or not agent_id:
+        return declared
+    try:
+        found = reg.find_run_claim(owner_root, agent_id)
+    except (reg.UnreadableRegistry, OSError):
+        return declared
+    claim = found.get("claim") or {}
+    bound = found.get("ok") and claim.get("agent") == agent
+    return found.get("feature") if bound else declared
+
+
+def _distill_run_feature(destinations, errors, feature, lead):
+    run_id = _registered_run_id(destinations, errors, feature, lead)
+    return feature if isinstance(run_id, str) and DISTILL_RUN_RE.search(run_id) else None
+
+
+def _bound_distill_feature(destinations, errors):
+    """The feature of the bound distill run this dispatch belongs to, or None."""
+    if dispatched in LEADS:
+        own = _distill_run_feature(destinations, errors, declared, dispatched)
+        if own:
+            return own
+    if agent in LEADS:
+        return _distill_run_feature(destinations, errors, _dispatcher_feature(), agent)
+    return None
+
+
+def _distill_preflight():
+    if dispatched not in LEADS and agent not in LEADS:
+        return
+    destinations, errors = _destinations()
+    feature = _bound_distill_feature(destinations, errors)
+    if feature is None:
+        return
+    if feature != declared:
+        _refuse("dispatch-guard: BLOCKED — %s's bound distill run is for %s, but this dispatch "
+                "of %s declares %s." % (agent, feature, dispatched, declared),
+                "  A child of a distill run belongs to that run's feature tree; dispatch it with "
+                "HARNESS-FEATURE: %s." % (feature,))
+    mission, problem = _declared_mission()
+    if problem or mission != "distill":
+        _refuse("dispatch-guard: BLOCKED — the %s dispatch for %s is a child of a bound distill "
+                "run but %s." % (dispatched, declared, problem or "declares %r" % (mission,)),
+                "  Every governed child of a distill run, engineering and leaf personas included,",
+                "  carries exactly one line in its own task text, spelled",
+                "    HARNESS-MISSION: distill",
+                "  The mission comes from the registered distill run; no other phase applies.")
+    _require_feature_tree_root("is a child of a bound distill run")
+
+
 _direct_orchestration_refusal()
 _start_preflight()
+_distill_preflight()
 
 try:
     existing, expired = reg.live_claim(root, dispatched, feature=declared)

@@ -766,7 +766,7 @@ def resolve_destination(root, rel):
     if not os.path.isdir(real_root):
         _refuse(9, f"REFUSED root {root!r} is not a directory")
     parts = rel.split("/")
-    if len(parts) == 4 and not os.path.isdir(os.path.join(real_root, ".harness", parts[1])):
+    if len(parts) == 4 and parts[1] not in harness_segments(real_root):
         _refuse(9, f"REFUSED repository segment {parts[1]!r} is not declared under {real_root}/.harness")
     path = os.path.join(real_root, *parts)
     if os.path.realpath(path) != path:
@@ -774,16 +774,24 @@ def resolve_destination(root, rel):
     return require_expertise_destination(path)
 
 
+def harness_segments(real_root):
+    """The segment directories of the checkout's `.harness`: a repository-tier destination and a
+    feature directory may live only under one of these, never under a path the caller invents."""
+    harness_dir = os.path.join(real_root, ".harness")
+    try:
+        names = sorted(os.listdir(harness_dir))
+    except OSError:
+        return []
+    return [name for name in names if os.path.isdir(os.path.join(harness_dir, name))]
+
+
 def feature_directory(root, feature):
     """The one `.harness/<segment>/features/<feature>` directory under `root`."""
     if not (isinstance(feature, str) and FEATURE_RE.match(feature)):
         _refuse(9, f"REFUSED feature {feature!r} is not a feature id")
-    harness_dir = os.path.join(os.path.realpath(root), ".harness")
-    try:
-        segments = sorted(os.listdir(harness_dir))
-    except OSError:
-        segments = []
-    found = [p for p in (os.path.join(harness_dir, s, "features", feature) for s in segments)
+    real_root = os.path.realpath(root)
+    harness_dir = os.path.join(real_root, ".harness")
+    found = [p for p in (os.path.join(harness_dir, s, "features", feature) for s in harness_segments(real_root))
              if os.path.isdir(p) and os.path.realpath(p) == p]
     if len(found) != 1:
         _refuse(9, f"REFUSED feature {feature} has {len(found)} feature directories under "

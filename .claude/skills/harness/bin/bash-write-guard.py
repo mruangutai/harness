@@ -6,7 +6,8 @@ agent identity and Bash command.
 
 Detected common write shapes are refused for reviewers and checked against every other
 governed agent's domain. Dev-ops retains its write recovery exemption, but all governed
-agents remain unable to move HEAD. Main-session and non-Harness calls remain ungoverned.
+agents remain unable to move HEAD or to run the Expertise CLI's mutating subcommands and
+the distill merge (FEAT-2225). Main-session and non-Harness calls remain ungoverned.
 
 WAS A .sh (issue #1674). The 962-line Python body lived in a heredoc behind a shell
 bootstrap. A native script keeps one interpreter launch and makes the body visible to
@@ -266,6 +267,126 @@ if agent.startswith("harness-"):
                 _refuse_head(f"`git {_sub}` moves HEAD, and every harness agent is "
                              f"refused this for the duration of a run")
 
+# ====================== THE EXPERTISE-MUTATION RULE (FEAT-2225) ======================
+# DEC-253: a governed agent changes Expertise only through the `expertise_apply` host tool,
+# which derives persona, feature, destination and base itself and records the receipt the
+# validator and replay gates check. A Bash call of the CLI's mutating subcommands skips that
+# identity binding, and `merge-gate.py merge-distill` is the main session's merge step.
+#
+# PLACED LIKE THE HEAD-MOVE RULE, ahead of the dev-ops exemption and the reviewer branch,
+# so it binds every governed agent: neither is a write-PATH question, and the CLI call
+# carries no write pattern those branches could see. Reads stay open (`replay --check`,
+# `verify-receipt`, `--help`); the main session has no agent_type and returned above.
+#
+# IDENTITY IS THE SCRIPT'S BASENAME, so the `.claude/skills` and `.agents/skills` spellings,
+# relative or absolute, direct or behind an interpreter, `env` or `sh -c`, are one program.
+SHELL_FEEDERS = {"bash", "sh", "zsh", "dash", "ksh"}
+PYTHON_EXECUTABLE = re.compile(r"^python(?:3(?:\.\d+)*)?$")
+EXPERTISE_CLI = "expertise-merge.py"
+DISTILL_GATE = "merge-gate.py"
+# The READS are listed, not the mutators: a subcommand this guard cannot read (`"$SUB"`)
+# is not one it may judge safe — the direction the HEAD-move rule chose for git.
+EXPERTISE_CLI_READS = {"verify-receipt"}
+_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+_TRANSPARENT_PREFIXES = {"env", "command", "exec", "nohup", "time"}
+_PREFIX_FLAGS_WITH_VALUE = {"-u", "--unset", "-C", "--chdir"}
+_PYTHON_FLAGS_WITH_VALUE = {"-X", "-W"}
+_SHELL_OPTIONS_WITH_VALUE = {"-o", "+o"}
+
+
+def _is_python_executable(token):
+    return PYTHON_EXECUTABLE.fullmatch(os.path.basename(token)) is not None
+
+
+def _split_words(segment):
+    try:
+        return shlex.split(segment, posix=True)
+    except ValueError:
+        return segment.split()
+
+
+def _command_words(words):
+    """`words` without leading assignments and transparent prefixes (`env`, `exec`, …)."""
+    i, prefixed = 0, False
+    while i < len(words):
+        word = words[i]
+        if _ASSIGNMENT.match(word) or os.path.basename(word) in _TRANSPARENT_PREFIXES:
+            i, prefixed = i + 1, True
+        elif prefixed and word.startswith("-"):
+            i += 2 if word in _PREFIX_FLAGS_WITH_VALUE else 1
+        else:
+            break
+    return words[i:]
+
+
+def _python_script_words(words):
+    """The script and arguments a Python call runs; [] for `-c`, `-m` and stdin."""
+    i = 1
+    while i < len(words) and words[i].startswith("-"):
+        if words[i] in ("-c", "-m", "-"):
+            return []
+        i += 2 if words[i] in _PYTHON_FLAGS_WITH_VALUE else 1
+    return words[i:]
+
+
+def _shell_command_string(words):
+    """The `-c` string a shell call runs, or None — a script file is not judged here."""
+    i = 1
+    while i < len(words) and words[i].startswith(("-", "+")):
+        word = words[i]
+        if not word.startswith("--") and "c" in word[1:]:
+            return words[i + 1] if i + 1 < len(words) else None
+        i += 2 if word in _SHELL_OPTIONS_WITH_VALUE else 1
+    return None
+
+
+def _program_calls(text, depth=0):
+    """(program basename, arguments) for each command `text` runs, `sh -c` strings included."""
+    for segment in segments(text):
+        words = _command_words(_split_words(segment))
+        if words and os.path.basename(words[0]) in SHELL_FEEDERS:
+            nested = _shell_command_string(words)
+            if nested and depth < 3:
+                yield from _program_calls(nested, depth + 1)
+            continue
+        if words and _is_python_executable(words[0]):
+            words = _python_script_words(words)
+        if words:
+            yield os.path.basename(words[0]), words[1:]
+
+
+def _expertise_mutation(program, args):
+    """The refused call `program args` spells, or None for a read or another program."""
+    if "-h" in args or "--help" in args:
+        return None
+    sub = next((a for a in args if not a.startswith("-")), None)
+    if program == DISTILL_GATE and sub == "merge-distill":
+        return f"{DISTILL_GATE} merge-distill"
+    if program != EXPERTISE_CLI or sub in EXPERTISE_CLI_READS:
+        return None
+    if sub == "replay" and "--check" in args:
+        return None
+    return f"{EXPERTISE_CLI} {sub or ''}".rstrip()
+
+
+def _refuse_expertise_cli(call):
+    print(f"bash-write-guard: BLOCKED — {agent} ran `{call}` from Bash. Governed agents "
+          "change Expertise only through the `expertise_apply` tool.", file=sys.stderr)
+    print("  expertise_apply applies add/replace/drop ops to your own persona file in this "
+          "feature's worktree (tier: craft, or tier: repository with repository: <segment>) "
+          "and records the receipt validation checks. Replay and the distill merge belong "
+          "to the main session.", file=sys.stderr)
+    print(f"  Reads stay open: `{EXPERTISE_CLI} replay --check`, `verify-receipt` and "
+          "`--help`.", file=sys.stderr)
+    sys.exit(2)
+
+
+if agent.startswith("harness-"):
+    for _program, _args in _program_calls((d.get("tool_input") or {}).get("command") or ""):
+        _call = _expertise_mutation(_program, _args)
+        if _call:
+            _refuse_expertise_cli(_call)
+
 # harness-dev-ops is EXEMPT: it owns the tooling this guard is made of, and blocking
 # it would remove the one recovery path when the guard itself is broken. THE HEAD-MOVE
 # RULE ABOVE IS DELIBERATELY NOT SUBJECT TO IT (ruling R-01) — this exemption covers
@@ -365,8 +486,6 @@ REVIEWERS = {"harness-code-reviewer", "harness-security-reviewer", "harness-ui-r
 
 # --- detect write patterns and extract candidate target paths where parseable ---
 findings = []   # (pattern-name, [paths])
-
-SHELL_FEEDERS = {"bash", "sh", "zsh", "dash", "ksh"}
 
 
 def strip_heredoc_bodies(text):
@@ -495,12 +614,7 @@ def trailing_files(args, drop_first_script=False, script_flags=False):
         out = out[1:]                      # bare `sed -i 's/a/b/' file`: first arg is the script
     return out
 
-PYTHON_EXECUTABLE = re.compile(r"^python(?:3(?:\.\d+)*)?$")
 PYTHON_WRITE_MODE = frozenset("wax+")
-
-
-def _is_python_executable(token):
-    return PYTHON_EXECUTABLE.fullmatch(os.path.basename(token)) is not None
 
 
 def _python_command_sources(tokenized_segments):

@@ -54,8 +54,8 @@ def fixture(feature="FEAT-9001-fixture-non-era", entry=None, repo="acme/widgets"
     return root, directory
 
 
-def gate(command, root, gh=None):
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
+def gate(command, root, gh=None, env_extra=None):
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root, **(env_extra or {}))
     if gh:
         env["GH_BIN"] = gh
     result = subprocess.run([GATE], input=json.dumps({"tool_input": {"command": command}}),
@@ -121,8 +121,12 @@ root, _ = fixture(sync=False)
 r, d, _ = gate("git merge feature/test", root)
 check("T-05 sync false allows", r.returncode == 0 and d is None)
 root, _ = fixture()
+subprocess.run(["git", "branch", "other"], cwd=root, check=True)
 r, d, _ = gate("git merge other", root)
 check("T-05 branch matching no feature allows", r.returncode == 0 and d is None)
+r, d, reason = gate("git merge no-such-ref", root)
+check("FEAT-2225 unreadable git merge ref denies rather than guessing non-distill",
+      d == "deny" and "could not be read" in reason, f"decision={d} reason={reason!r}")
 r, d, _ = gate("git status", root)
 check("T-05 non-merge command allows", r.returncode == 0 and d is None)
 root, _ = fixture()
@@ -167,8 +171,16 @@ bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002
 os.makedirs(bad_directory)
 with open(os.path.join(bad_directory, "feature.json"), "w") as f:
     json.dump([], f)
-r, d, _ = gate("gh pr merge 7", root, fake)
-check("T-05 gh outage with no matching feature allows", d is None and "could not verify" in r.stderr, r.stderr)
+r, d, reason = gate("gh pr merge 7", root, fake)
+check("FEAT-2225 gh outage with no matching feature denies: changed paths unreadable",
+      d == "deny" and "could not be read" in reason, f"decision={d} reason={reason!r}")
+view_only_fails = os.path.join(root, "gh-view-fails")
+with open(view_only_fails, "w") as f:
+    f.write('#!/bin/sh\nif [ "$2" = diff ]; then echo src/ordinary.py; exit 0; fi\necho unavailable >&2\nexit 9\n')
+os.chmod(view_only_fails, 0o755)
+r, d, _ = gate("gh pr merge 7", root, view_only_fails)
+check("T-05 gh head outage with readable ordinary diff and no matching feature allows",
+      d is None and "could not verify" in r.stderr, f"decision={d} stderr={r.stderr!r}")
 doc["branch"] = "feature/test"
 with open(os.path.join(root, ".harness", "harness", "features", "FEAT-9001-fixture-non-era", "feature.json"), "w") as f:
     json.dump(doc, f)
@@ -333,6 +345,310 @@ r = _feat65_fire(root, "feature_schema.py", sig + "    raise SystemExit(7)\n")
 check("FEAT-65: a deliberate SystemExit keeps its own exit code",
       r.returncode == 7 and "failed internally" not in r.stderr,
       f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
+
+# FEAT-2225 T-04: distill candidates (changed Expertise paths) merge only through the locked
+# `merge-distill` executor. Fixtures: a bare origin, an owner checkout on main and a linked
+# feature worktree whose Expertise change was applied by expertise-merge.py member-ops.
+import harness_merge  # noqa: E402
+
+DFEAT = "FEAT-9100-distill-fixture"
+DBRANCH = f"feat/{DFEAT}"
+CRAFT = ".harness/expertise/harness-backend-dev.md"
+PLAN = ("status: {status}\ntasks:\n  - id: T-01\n    title: Fixture task\n    change_type: test\n"
+        "    execution_mode: main-session-direct\n    files: [fixture.py]\n    status: ready\n"
+        "    verify: python3 test.py\n    intent: Exercise the merge gate fixture.\n")
+FAKE_GH = r'''#!/usr/bin/env python3
+import fcntl, json, os, subprocess, sys
+path = os.environ["FAKE_GH_STATE"]
+with open(path) as f:
+    state = json.load(f)
+args = sys.argv[1:]
+
+
+def save():
+    with open(path, "w") as f:
+        json.dump(state, f)
+
+
+def second_view():
+    hook = state.get("on_second_view")
+    if hook == "advance-main":
+        for cmd in (["commit", "--allow-empty", "-qm", "advance"], ["push", "-q", "origin", "main"]):
+            subprocess.run(["git", "-C", state["owner"], *cmd], check=True, capture_output=True)
+    if hook == "move-head":
+        state["head"] = "1" * 40
+
+
+def lock_held():
+    fd = os.open(state["lock"], os.O_CREAT | os.O_RDWR)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return False
+    except OSError:
+        return True
+    finally:
+        os.close(fd)
+
+
+if args[:2] == ["pr", "view"]:
+    state["views"] = state.get("views", 0) + 1
+    if state["views"] == 2:
+        second_view()
+    save()
+    meta = {"headRefOid": state["head"], "headRefName": state["branch"], "baseRefName": "main"}
+    print(meta["headRefName"] if "-q" in args else json.dumps(meta))
+elif args[:2] == ["pr", "diff"]:
+    if state.get("diff_fails"):
+        sys.exit("diff unavailable")
+    print("\n".join(state["files"]))
+elif args[:2] == ["pr", "merge"]:
+    state.setdefault("merges", []).append({"args": args, "lock_held": lock_held()})
+    save()
+else:
+    sys.exit(2)
+'''
+
+
+def git(cwd, *args):
+    return subprocess.run(["git", "-C", cwd, *args], check=True, capture_output=True,
+                          text=True, timeout=30).stdout.strip()
+
+
+def write(path, content):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as stream:
+        stream.write(content if isinstance(content, str) else json.dumps(content))
+
+
+def seed_owner(owner, entry, repo):
+    github = {"build_entry": entry, "repo": repo} if entry else {}
+    feature_dir = os.path.join(owner, ".harness", "harness", "features", DFEAT)
+    write(os.path.join(owner, ".harness", "team-config.yaml"), "agents: {}\n")
+    write(os.path.join(owner, ".harness", "harness.json"),
+          {"github": {"sync": True, "repo": "acme/widgets", "board": None}})
+    write(os.path.join(owner, ".gitignore"), "*.lock\n")
+    write(os.path.join(feature_dir, "feature.json"),
+          {"feature_id": DFEAT, "branch": DBRANCH, "github": github})
+    write(os.path.join(feature_dir, "plan.yaml"), PLAN.format(status="build"))
+
+
+def member_ops(wt, entry="Distill fixture entry text."):
+    ops = [{"op": "add", "section": "Patterns", "target": "P-01", "entry": entry, "why": "fixture"}]
+    return subprocess.run(
+        [sys.executable, os.path.join(BIN, "expertise-merge.py"), "member-ops", "--root", wt,
+         "--feature", DFEAT, "--persona", "harness-backend-dev", "--runtime-id", "rt-1",
+         "--parent-id", "parent-1", "--tier", "craft", "--ops", "-"],
+        input=json.dumps(ops), capture_output=True, text=True, timeout=60)
+
+
+def commit_push(wt, message):
+    git(wt, "add", "-A")
+    git(wt, "commit", "-qm", message)
+    git(wt, "push", "-q", "origin", DBRANCH)
+    return git(wt, "rev-parse", "HEAD")
+
+
+def distill_fixture(entry="opened", repo="acme/widgets", apply=True):
+    base = os.path.realpath(tempfile.mkdtemp())
+    origin, owner, wt = (os.path.join(base, name) for name in ("origin.git", "owner", "wt"))
+    git(base, "init", "-q", "--bare", "-b", "main", origin)
+    git(base, "init", "-q", "-b", "main", owner)
+    for key, value in (("user.email", "t@example.invalid"), ("user.name", "T"), ("commit.gpgsign", "false")):
+        git(owner, "config", key, value)
+    seed_owner(owner, entry, repo)
+    git(owner, "add", "-A")
+    git(owner, "commit", "-qm", "base")
+    git(owner, "remote", "add", "origin", origin)
+    git(owner, "push", "-q", "origin", "main")
+    git(owner, "worktree", "add", "-q", "-b", DBRANCH, wt)
+    if apply:
+        ops = member_ops(wt)
+        assert ops.returncode == 0, ops.stdout + ops.stderr
+    else:
+        write(os.path.join(wt, "src", "ordinary.py"), "x = 1\n")
+    head = commit_push(wt, "distill")
+    gh = os.path.join(base, "gh")
+    write(gh, FAKE_GH)
+    os.chmod(gh, 0o755)
+    fx = {"base": base, "owner": owner, "wt": wt, "gh": gh, "state": os.path.join(base, "gh-state.json"),
+          "lock": os.path.join(owner, ".harness", "merge-distill.lock")}
+    set_state(fx, head=head, branch=DBRANCH, files=[CRAFT], owner=owner, lock=fx["lock"])
+    return fx
+
+
+def set_state(fx, **values):
+    state = {}
+    if os.path.exists(fx["state"]):
+        with open(fx["state"]) as stream:
+            state = json.load(stream)
+    state.update(values)
+    write(fx["state"], state)
+
+
+def gh_state(fx):
+    with open(fx["state"]) as stream:
+        return json.load(stream)
+
+
+def distill(fx, feature=DFEAT, pr="7", env_extra=None):
+    env = dict(os.environ, GH_BIN=fx["gh"], FAKE_GH_STATE=fx["state"], **(env_extra or {}))
+    return subprocess.run([sys.executable, GATE, "merge-distill", "--root", fx["wt"], "--feature", feature,
+                           "--pr", pr], capture_output=True, text=True, cwd=fx["owner"], env=env, timeout=60)
+
+
+def refused_before_merge(name, fx, result, *needles):
+    merges = gh_state(fx).get("merges", [])
+    check(name, result.returncode != 0 and not merges and all(n in result.stderr for n in needles),
+          f"rc={result.returncode} merges={merges} stderr={result.stderr!r}")
+
+
+def blob_sha(fx, rel):
+    import hashlib
+    data = subprocess.run(["git", "-C", fx["wt"], "cat-file", "blob", f"HEAD:{rel}"],
+                          capture_output=True, check=True, timeout=30).stdout
+    return hashlib.sha256(data).hexdigest()
+
+
+def json_or_empty(text):
+    try:
+        return json.loads(text)
+    except ValueError:
+        return {}
+
+
+def case_distill_valid():
+    fx = distill_fixture()
+    r = distill(fx)
+    merges = gh_state(fx).get("merges", [])
+    head, main = gh_state(fx)["head"], git(fx["owner"], "rev-parse", "main")
+    args = merges[0]["args"] if merges else []
+    ok = r.returncode == 0 and len(merges) == 1 and merges[0]["lock_held"]
+    check("FEAT-2225 valid distill merges once, holding the owner lock, at the exact head",
+          ok and args[:3] == ["pr", "merge", "7"] and "--match-head-commit" in args
+          and args[args.index("--match-head-commit") + 1] == head,
+          f"rc={r.returncode} merges={merges} stderr={r.stderr!r}")
+    evidence = json_or_empty(r.stdout)
+    files = evidence.get("files") or [{}]
+    check("FEAT-2225 valid distill emits head, main and committed hash evidence",
+          evidence.get("head") == head and evidence.get("main") == main
+          and files[0].get("destination") == CRAFT and files[0].get("sha256") == blob_sha(fx, CRAFT),
+          f"evidence={evidence}")
+    return fx
+
+
+def case_distill_lock_contention():
+    fx = distill_fixture()
+    with harness_merge.acquire(fx["lock"]):
+        r = distill(fx, env_extra={"HARNESS_LOCK_TIMEOUT_SECONDS": "0.5"})
+    refused_before_merge("FEAT-2225 distill waits on the one owner-checkout lock and refuses LOCKED",
+                         fx, r, "LOCKED", fx["lock"])
+    check("FEAT-2225 lock refusal exits with the merge core's LOCKED code", r.returncode == 6, r.stderr)
+
+
+def case_distill_changed_main_and_head():
+    fx = distill_fixture()
+    git(fx["owner"], "commit", "--allow-empty", "-qm", "main moved")
+    git(fx["owner"], "push", "-q", "origin", "main")
+    refused_before_merge("FEAT-2225 distill refuses a head that does not contain current main",
+                         fx, distill(fx), "does not contain current main")
+    fx = distill_fixture()
+    write(os.path.join(fx["wt"], "src", "later.py"), "y = 2\n")
+    git(fx["wt"], "add", "-A")
+    git(fx["wt"], "commit", "-qm", "local only")
+    refused_before_merge("FEAT-2225 distill refuses a worktree that is not at the PR head",
+                         fx, distill(fx), "not PR head")
+
+
+def case_distill_recheck():
+    fx = distill_fixture()
+    set_state(fx, on_second_view="advance-main")
+    refused_before_merge("FEAT-2225 distill rechecks main immediately before merging",
+                         fx, distill(fx), "main advanced")
+    fx = distill_fixture()
+    set_state(fx, on_second_view="move-head")
+    refused_before_merge("FEAT-2225 distill rechecks the PR head immediately before merging",
+                         fx, distill(fx), "head moved")
+
+
+def case_distill_replay_invalid():
+    fx = distill_fixture()
+    with open(os.path.join(fx["wt"], CRAFT), "a") as stream:
+        stream.write("- P-02: hand-written entry with no receipt.\n")
+    set_state(fx, head=commit_push(fx["wt"], "hand edit"))
+    refused_before_merge("FEAT-2225 distill refuses committed Expertise that differs from the replay",
+                         fx, distill(fx), "differs from the replay")
+    fx = distill_fixture()
+    write(os.path.join(fx["wt"], ".harness", "harness", "expertise", "harness-qa.md"), "# harness-qa\n")
+    set_state(fx, head=commit_push(fx["wt"], "unreceipted"), files=[CRAFT, ".harness/harness/expertise/harness-qa.md"])
+    refused_before_merge("FEAT-2225 distill refuses when replay --check refuses (unreceipted change)",
+                         fx, distill(fx), "replay --check refused", "UNRECEIPTED")
+
+
+def case_distill_build_entry():
+    for name, kwargs, needles in (
+        ("missing", {"entry": None}, ("gh-sync.py open",)),
+        ("wrong-repository", {"entry": "opened", "repo": "elsewhere/wrong"}, ("recover-mirror", "--previous-repo")),
+        ("recovery-required", {"entry": "recovery-required"}, ("needs its GitHub mirror recovery completed",)),
+    ):
+        fx = distill_fixture(**kwargs)
+        refused_before_merge(f"FEAT-2225 replay-valid distill with {name} build-entry evidence refuses "
+                             f"with recovery guidance before gh merge", fx, distill(fx), DFEAT, *needles)
+
+
+def case_distill_identity():
+    fx = distill_fixture()
+    refused_before_merge("FEAT-2225 distill refuses a feature id that does not own the PR",
+                         fx, distill(fx, feature="FEAT-9101-not-the-owner"), "REFUSED")
+    fx = distill_fixture(apply=False)
+    set_state(fx, files=["src/ordinary.py"])
+    refused_before_merge("FEAT-2225 merge-distill refuses a PR that changes no Expertise",
+                         fx, distill(fx), "not a distill candidate")
+
+
+def hook(fx, command, **state):
+    set_state(fx, **state)
+    return gate(command, fx["owner"], fx["gh"], {"FAKE_GH_STATE": fx["state"]})
+
+
+def case_raw_distill_hook(fx):
+    command = "python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree>"
+    _, d, reason = hook(fx, f"git merge {DBRANCH}")
+    check("FEAT-2225 raw git merge of a distill candidate is refused with the merge-distill command",
+          d == "deny" and f"{command} --feature {DFEAT} --pr <pr-number>" in reason, reason)
+    _, d, reason = hook(fx, "gh pr merge 7")
+    check("FEAT-2225 raw gh pr merge of a distill candidate is refused with the merge-distill command",
+          d == "deny" and f"{command} --feature {DFEAT} --pr 7" in reason, reason)
+    _, d, reason = hook(fx, "bash -c 'gh pr merge 7 --squash'")
+    check("FEAT-2225 nested raw gh distill merge is refused", d == "deny" and "merge-distill" in reason, reason)
+    _, d, reason = hook(fx, "gh pr merge 7", branch="topic/plain",
+                        files=[".harness/harness/expertise/harness-qa.md"])
+    check("FEAT-2225 repository-tier Expertise change is a distill candidate whatever the branch name",
+          d == "deny" and "--feature <feature-id> --pr 7" in reason, reason)
+    _, d, reason = hook(fx, "gh pr merge 7", branch=DBRANCH, files=[CRAFT], diff_fails=True)
+    check("FEAT-2225 unreadable gh changed-path evidence refuses", d == "deny" and "could not be read" in reason, reason)
+    _, d, reason = hook(fx, "gh pr merge 7", branch=DBRANCH, files=["src/ordinary.py"], diff_fails=False)
+    check("FEAT-2225 ordinary gh merge with a valid receipt still allows", d is None, reason)
+    _, d, reason = hook(fx, f"{sys.executable} {GATE} merge-distill --root {fx['wt']} --feature {DFEAT} --pr 7")
+    check("FEAT-2225 the merge-distill command itself is not a raw merge", d is None, reason)
+
+
+def case_shipped_not_exempt():
+    fx = distill_fixture()
+    write(os.path.join(fx["owner"], ".harness", "harness", "features", DFEAT, "plan.yaml"),
+          PLAN.format(status="done"))
+    _, d, reason = hook(fx, "gh pr merge 7")
+    check("FEAT-2225 a shipped feature's distill candidate is not exempt", d == "deny" and "merge-distill" in reason,
+          reason)
+
+
+case_raw_distill_hook(case_distill_valid())
+case_distill_lock_contention()
+case_distill_changed_main_and_head()
+case_distill_recheck()
+case_distill_replay_invalid()
+case_distill_build_entry()
+case_distill_identity()
+case_shipped_not_exempt()
 
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))

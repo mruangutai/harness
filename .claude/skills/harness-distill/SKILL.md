@@ -126,22 +126,22 @@ loses its tail — the budget is physics, not advice. **Craft is 150 lines; the 
 and both layers are injected at every spawn, so a generous second budget would double a per-spawn
 cost DEC-105 already treats as expensive.
 
-Updates are **ops**. The vocabulary is exactly `add | replace | drop`. Every op requires
+Updates are **ops**. The vocabulary is exactly `add | replace | merge | drop`. Every op requires
 both `target` and `section`: `target` names the entry ID, `section` names one of the four sections,
 and resolution never leaves that section. There is no whole-file lookup and no omitted section.
 
 ```yaml
 expertise_update:
   - persona: harness-backend-dev
-    op: replace              # add | replace | drop
+    op: replace              # add | replace | merge | drop
     target: P-01
     section: Patterns
     entry: "WHEN running migrations DO run the seed script first — they fail on a clean DB."
     why: "three observations this feature, same root cause"
 ```
 
-`merge` is an authoring outcome, not a mechanism op: a replace on the surviving id plus a drop of
-the absorbed id; the tool refuses an `op: merge`. The refusals are the table in step 3.
+`merge` is an authoring outcome, not a mechanism op: a replace on the surviving id plus a
+drop of the absorbed id; the tool refuses an `op: merge`. The refusals are the table in step 3.
 
 **At merge your ops are replayed onto current main.** A replayed `add` whose id collides is
 renumbered automatically. A `replace`/`drop` whose target changed on main, or a cap overflow,

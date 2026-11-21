@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
+import { closeSync, existsSync, lstatSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync, type Stats } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DigestSchemaBundleError, loadDigestSchemaBundle } from "./digest-schema.ts";
@@ -486,6 +486,120 @@ const RETURN_THE_OBJECT = "Harness agents must return the digest as an object: "
   + "not a digest.";
 const MISSING_CAPABILITY = "Harness requires OMP's runtime lineage capability; install the "
   + "pinned Harness OMP build before dispatching agents or allowing governed mutations.";
+
+// --- FEAT-2225 (DEC-253): expertise_apply, each persona's own Expertise pen ---------------
+//
+// The ONLY arguments are what the member judged: a tier, a literal repository segment, the ops
+// and, for an original-member re-judgment, the exact batches it supersedes. Persona, feature,
+// runtime ids, root, destination and main base are host-derived; naming one is refused.
+const APPLY_ARGUMENTS = ["tier", "repository", "ops", "supersedes"];
+// T-01's SEGMENT_RE and HEX64_RE, so the host refuses nothing the core would take and vice versa.
+const REPOSITORY_SEGMENT = /^[a-z0-9][a-z0-9-]*$/;
+const BATCH_ID = /^[0-9a-f]{64}$/;
+const GIT_TIMEOUT_MS = 10_000;
+
+function expertiseApplySchema(z: any): unknown {
+  const textField = z.string().min(1);
+  const section = z.enum(["Patterns", "Gotchas", "Outcomes", "Open"]);
+  return z.object({
+    tier: z.enum(["craft", "repository"])
+      .describe("craft: your own .harness/expertise file; repository: your file under one declared repository"),
+    repository: z.string().regex(REPOSITORY_SEGMENT).optional()
+      .describe("tier=repository only: the literal declared segment, e.g. harness"),
+    ops: z.array(z.union([
+      z.object({ op: z.enum(["add", "replace"]), target: textField, section, entry: textField, why: textField }).strict(),
+      z.object({ op: z.literal("drop"), target: textField, section, why: textField }).strict(),
+    ])).describe("your judged ops; empty only to withdraw superseded batches"),
+    supersedes: z.array(z.string().regex(BATCH_ID)).optional()
+      .describe("exact batch ids of your own refused batches this re-judgment replaces"),
+  }).strict();
+}
+
+function refuseApply(reason: string): never {
+  throw new Error(`expertise_apply refused: ${reason}`);
+}
+
+// A second fence behind the host's own schema validation: a host that skipped it must still
+// never forward a caller-named identity, root, destination or base.
+function applyArgumentRefusal(params: Dict): string | undefined {
+  const extra = Object.keys(params).find((key) => !APPLY_ARGUMENTS.includes(key));
+  if (extra) {
+    return `argument "${extra}" is not accepted; persona, feature, runtime ids, root, destination `
+      + "and base are host-derived. Pass only tier, repository, ops and supersedes.";
+  }
+  if (!Array.isArray(params.ops)) return "ops must be a list of add, replace or drop ops.";
+  const supersedes = params.supersedes ?? [];
+  const exact = Array.isArray(supersedes)
+    && supersedes.every((id) => typeof id === "string" && BATCH_ID.test(id));
+  return exact ? undefined : "supersedes must list exact 64-hex batch ids.";
+}
+
+// The persona's own file, checkout-relative: never a free path.
+function applyDestination(tier: unknown, repository: unknown, persona: string): { rel: string } | { reason: string } {
+  if (tier === "craft") {
+    return repository === undefined
+      ? { rel: `.harness/expertise/${persona}.md` }
+      : { reason: "tier craft takes no repository segment." };
+  }
+  if (tier !== "repository") return { reason: `tier must be craft or repository, not ${JSON.stringify(tier)}.` };
+  if (typeof repository !== "string" || !REPOSITORY_SEGMENT.test(repository) || repository === "expertise") {
+    return { reason: `repository must be one literal declared segment, not ${JSON.stringify(repository)}.` };
+  }
+  return { rel: `.harness/${repository}/expertise/${persona}.md` };
+}
+
+function lstatOrUndefined(path: string): Stats | undefined {
+  try {
+    return lstatSync(path);
+  } catch {
+    return undefined;
+  }
+}
+
+// The containment recheck on the resolved root: a repository segment must be a real directory
+// under .harness (declared), and no existing component of the destination may be a symlink —
+// the same exact-path rule T-01's resolve_destination applies, checked before the core runs.
+function placementRefusal(root: string, rel: string): string | undefined {
+  const parts = rel.split("/");
+  if (parts.length === 4 && !lstatOrUndefined(join(root, parts[0], parts[1]))?.isDirectory()) {
+    return `repository segment "${parts[1]}" is not declared under ${root}/.harness.`;
+  }
+  for (let depth = 1; depth <= parts.length; depth += 1) {
+    const path = join(root, ...parts.slice(0, depth));
+    const stat = lstatOrUndefined(path);
+    if (!stat) return undefined;
+    if (stat.isSymbolicLink()) return `${path} is a symlink; the destination must stay inside ${root}.`;
+  }
+  return undefined;
+}
+
+// The current main a supersession reconstructs from: origin/HEAD's commit as the feature checkout
+// records it — the default branch validate-digest.py also reads — never a caller-chosen base.
+function mainBase(root: string): { base: string } | { reason: string } {
+  const proc = spawnSync("git", ["rev-parse", "--verify", "--quiet", "refs/remotes/origin/HEAD^{commit}"], {
+    cwd: root, encoding: "utf8", timeout: GIT_TIMEOUT_MS,
+  });
+  const base = (proc.stdout || "").trim();
+  if (proc.status === 0 && /^[0-9a-f]{40,64}$/.test(base)) return { base };
+  return {
+    reason: `the current main base (origin/HEAD) could not be resolved in ${root}; Main must fetch `
+      + "origin and set origin/HEAD before a re-judgment can supersede a batch.",
+  };
+}
+
+// member-ops answers exit 0 with one JSON receipt line, returned verbatim. ANY other exit is a
+// tool failure — not runPolicy's policy-only non-blocking convention — carrying the core's lines.
+function memberOpsReceipt(result: PolicyResult): { line: string; receipt: Dict } {
+  const lines = result.stdout.split("\n").map((line) => line.trim()).filter(Boolean);
+  if (result.blocked || result.reason) {
+    refuseApply(`expertise-merge.py member-ops failed (${result.reason || "refused"}): `
+      + (lines.join(" | ") || "no output"));
+  }
+  const line = lines.at(-1) ?? "";
+  const receipt = jsonLines(line)[0];
+  if (!receipt) refuseApply(`expertise-merge.py member-ops exited 0 but printed no receipt: ${line || "no output"}`);
+  return { line, receipt };
+}
 
 // The assignment's feature: one HARNESS-FEATURE value across the prompt (DEC-204's grammar,
 // now read where OMP delivers the assignment). Two different values are a conflict to refuse.
@@ -1011,6 +1125,122 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     return started;
   };
 
+  // Exact runtime lineage through the registry: the one claim authorization every governed
+  // mutation passes, expertise_apply included.
+  const authorizationRefusal = (cwd: string, agent: string): string | undefined => {
+    const authorization = policyRunner(cwd, "inflight_registry.py", [
+      "authorize",
+      "--agent", agent,
+      "--feature", String(currentFeature),
+      "--agent-id", runtimeAgentId,
+      "--parent-agent-id", runtimeParentAgentId,
+      "--root", cwd,
+    ], {});
+    return authorization.blocked || authorization.reason
+      ? authorization.reason || "Harness runtime child lineage is not authorized."
+      : undefined;
+  };
+
+  // FEAT-2225: the caller expertise_apply serves — a ready governed run under a trusted distill
+  // assignment whose exact runtime lineage the registry authorizes. Nothing is read from arguments.
+  const applyCallerRefusal = (cwd: string): string | undefined => {
+    if (!currentAgent) {
+      return "expertise_apply is only for a governed Harness persona; this session carries no Harness identity.";
+    }
+    if (runGate.state !== "ready") return heldReason();
+    if (currentMission !== "distill") {
+      return "expertise_apply runs only under a trusted distill assignment (HARNESS-MISSION: distill in the dispatch).";
+    }
+    if (!currentFeature || !runtimeAgentId || !runtimeParentAgentId) return MISSING_CAPABILITY;
+    return authorizationRefusal(cwd, currentAgent);
+  };
+
+  // Where the persona's own file lands: the run's feature root from the one resolver, the file
+  // from tier and segment, the containment recheck, and for a supersession the main base.
+  const applyPlacement = (cwd: string, params: Dict): { root: string; rel: string; base?: string } => {
+    const destination = applyDestination(params.tier, params.repository, String(currentAgent));
+    if ("reason" in destination) refuseApply(destination.reason);
+    const resolved = featureRoot(cwd);
+    if ("reason" in resolved) refuseApply(resolved.reason);
+    const root = realpathSync(resolved.root);
+    const misplaced = placementRefusal(root, destination.rel);
+    if (misplaced) refuseApply(misplaced);
+    if (!(params.supersedes as unknown[] | undefined)?.length) return { root, rel: destination.rel };
+    const main = mainBase(root);
+    if ("reason" in main) refuseApply(main.reason);
+    return { root, rel: destination.rel, base: main.base };
+  };
+
+  // Destinations expertise_apply landed, by tool call, for that call's post-write check.
+  const appliedDestinations = new Map<string, string>();
+
+  const applyExpertise = (toolCallId: string, params: Dict, cwd: string) => {
+    const refusal = applyArgumentRefusal(params) ?? applyCallerRefusal(cwd);
+    if (refusal) refuseApply(refusal);
+    const placed = applyPlacement(cwd, params);
+    const supersedes = (params.supersedes as string[] | undefined) ?? [];
+    const result = policyRunner(placed.root, "expertise-merge.py", [
+      "member-ops",
+      "--root", placed.root,
+      "--feature", String(currentFeature),
+      "--persona", String(currentAgent),
+      "--runtime-id", runtimeAgentId,
+      "--parent-id", runtimeParentAgentId,
+      "--tier", String(params.tier),
+      ...(params.tier === "repository" ? ["--repository", String(params.repository)] : []),
+      "--ops", "-",
+      ...supersedes.flatMap((id) => ["--supersedes", id]),
+      ...(placed.base ? ["--base", placed.base] : []),
+      // The ops list is the stdin document (`--ops -`); runPolicy serializes any JSON value.
+    ], params.ops as unknown as Dict);
+    const { line, receipt } = memberOpsReceipt(result);
+    appliedDestinations.set(toolCallId, join(placed.root, placed.rel));
+    return { content: [{ type: "text", text: line }], details: receipt };
+  };
+
+  // Essential, not discoverable: a discoverable tool is reached through `write xd://…`, which the
+  // governed URI rule refuses, and the tool_call gates must see this tool under its own name.
+  pi.registerTool({
+    name: "expertise_apply",
+    label: "Expertise apply",
+    description: "During a distill assignment, apply your own judged Expertise ops (add, replace, drop) "
+      + "to your own craft or repository Expertise file in this feature's checkout. Persona, feature "
+      + "and destination come from your run. Returns the core's receipt with before/after counts.",
+    parameters: expertiseApplySchema(pi.zod),
+    approval: "write",
+    loadMode: "essential",
+    async execute(toolCallId: string, params: unknown, _signal: unknown, _onUpdate: unknown, ctx: any) {
+      const args = (params && typeof params === "object" && !Array.isArray(params) ? params : {}) as Dict;
+      return applyExpertise(toolCallId, args, text(ctx?.cwd) || sessionCwd);
+    },
+  });
+
+  // The post-write check on the file expertise_apply landed, as an Edit of that exact path: the
+  // destination the host resolved for this call, never one the caller's input names.
+  const appliedPost = (cwd: string, agent: string, toolCallId: string, ctx: any): PolicyResult[] => {
+    const destination = appliedDestinations.get(toolCallId);
+    appliedDestinations.delete(toolCallId);
+    if (!destination) return [];
+    return [policyRunner(cwd, "check-domain.py", ["--post"], {
+      ...basePayload(agent, "PostToolUse", cwd, ctx),
+      tool_name: "Edit",
+      tool_input: { file_path: destination },
+    })];
+  };
+
+  // FEAT-2225: a non-governed Bash merge reaches merge-gate.py (a distill candidate must go through
+  // merge-gate.py merge-distill) while every other Main call stays outside governed domains. The
+  // word prefilter only spares a spawn; merge-gate.py parses the command itself.
+  const mainMergeGate = (cwd: string, command: string, ctx: any): { block: true; reason: string } | undefined => {
+    if (!/\bmerge\b/.test(command)) return undefined;
+    const result = policyRunner(cwd, "merge-gate.py", [], {
+      ...basePayload("Main", "PreToolUse", cwd, ctx),
+      tool_name: "Bash",
+      tool_input: { command },
+    });
+    return result.blocked ? { block: true, reason: result.reason || "merge-gate.py denied the merge." } : undefined;
+  };
+
   pi.on("before_agent_start", async (event: Dict, ctx: any) => {
     const detected = detectHarnessAgent(event.systemPrompt);
     const detectedFeature = detectMarker(event.systemPrompt, FEATURE_MARKER, "feature");
@@ -1135,7 +1365,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         ...(parentAgentId ? { parentId: parentAgentId } : {}),
       },
     };
-    const mutates = ["write", "edit", "ast_edit", "bash"].includes(toolName);
+    const mutates = ["write", "edit", "ast_edit", "bash", "expertise_apply"].includes(toolName);
     sessionCwd = text(ctx.cwd) || sessionCwd;
     if (toolName === "task" && !agentId) {
       return { block: true, reason: MISSING_CAPABILITY };
@@ -1144,6 +1374,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (currentAgent && runGate.state !== "ready" && toolName !== "yield") {
       return { block: true, reason: heldReason() };
     }
+    if (!currentAgent && toolName === "bash") return mainMergeGate(ctx.cwd, text(input.command), runtimeCtx);
     const ompMainTask = !currentAgent
       && toolName === "task"
       && agentId === "Main"
@@ -1153,21 +1384,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     let revisedInput: Dict | undefined;
     let reason: string | undefined;
     if (mutates) {
-      if (!currentFeature) {
-        reason = "Harness child mutation policy requires runtime child, parent, and feature identity.";
-      } else {
-        const authorization = policyRunner(ctx.cwd, "inflight_registry.py", [
-          "authorize",
-          "--agent", policyAgent,
-          "--feature", currentFeature,
-          "--agent-id", agentId,
-          "--parent-agent-id", parentAgentId,
-          "--root", ctx.cwd,
-        ], {});
-        if (authorization.blocked || authorization.reason) {
-          reason = authorization.reason || "Harness runtime child lineage is not authorized.";
-        }
-      }
+      reason = currentFeature
+        ? authorizationRefusal(ctx.cwd, policyAgent)
+        : "Harness child mutation policy requires runtime child, parent, and feature identity.";
     }
     // BUG-1016: after claim readiness and mutation authorization, before any domain gate, so
     // every gate judges the input the tool will actually run with.
@@ -1460,9 +1679,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     // idempotent, so the post gate judges the same files the pre gate did either way.
     const rooted = currentAgent && ["write", "edit", "ast_edit"].includes(toolName)
       ? rootCall(ctx.cwd, toolName, input) : {};
-    const reason = rooted.reason ?? firstBlock(postDomain(
-      ctx.cwd, policyAgent, toolName, rooted.input ?? input, policyRunner, ctx, currentFeature,
-    ));
+    const reason = rooted.reason ?? firstBlock(toolName === "expertise_apply"
+      ? appliedPost(ctx.cwd, policyAgent, text(event.toolCallId), ctx)
+      : postDomain(ctx.cwd, policyAgent, toolName, rooted.input ?? input, policyRunner, ctx, currentFeature));
     const content = Array.isArray(event.content) ? event.content : [];
     const appended = advisories.map((advisoryText) => ({ type: "text", text: advisoryText }));
     if (!reason) {

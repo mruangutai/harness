@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -42,11 +42,48 @@ function ompContext(cwd: string, id: string, parentId?: string, sessionId = `ses
   };
 }
 
+// FEAT-2225: a credential-free stand-in for OMP's injected `pi.zod`. Every builder returns a
+// plain descriptor (descriptions dropped), so a test can assert a registered schema exactly.
+// Descriptor keys never reuse a method name: the methods are non-enumerable own properties.
+type FakeSchema = Record<string, unknown>;
+function fakeSchema(node: FakeSchema): FakeSchema {
+  return Object.defineProperties({ ...node }, {
+    optional: { value: () => fakeSchema({ ...node, isOptional: true }) },
+    strict: { value: () => fakeSchema({ ...node, closed: true }) },
+    min: { value: (bound: number) => fakeSchema({ ...node, minLength: bound }) },
+    regex: { value: (expression: RegExp) => fakeSchema({ ...node, pattern: expression.source }) },
+    describe: { value: () => fakeSchema(node) },
+  });
+}
+const fakeZod = {
+  string: () => fakeSchema({ type: "string" }),
+  enum: (values: string[]) => fakeSchema({ enum: values }),
+  literal: (value: unknown) => fakeSchema({ const: value }),
+  array: (items: FakeSchema) => fakeSchema({ type: "array", items }),
+  union: (anyOf: FakeSchema[]) => fakeSchema({ anyOf }),
+  object: (shape: Record<string, FakeSchema>) => fakeSchema({ type: "object", shape }),
+};
+// The ExtensionAPI surface every mocked host now carries beside `on` and `events`.
+const toolApi = (tools: Map<string, any> = new Map()) => ({
+  zod: fakeZod,
+  registerTool(tool: { name: string }) { tools.set(tool.name, tool); },
+});
+
 // FEAT-1928: a yield's `data` IS the digest object; the validator receives it unmodified.
 const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
 const RETURN_THE_OBJECT = "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}})";
 // The canonical schema directory the hook loads from: the gate tree this extension ships in.
 const DIGEST_SCHEMA_DIR = gatePath("digest-schemas");
+// FEAT-2225: one member-ops receipt line as T-01's core prints it; the host returns it verbatim.
+const MEMBER_OPS_RECEIPT = JSON.stringify({
+  batch: "b".repeat(64),
+  counts: {
+    before: { Gotchas: 0, Open: 0, Outcomes: 0, Patterns: 0 },
+    after: { Gotchas: 0, Open: 0, Outcomes: 0, Patterns: 1 },
+  },
+  outcomes: [{ op: "add", section: "Patterns", target: "P-1" }],
+  receipt: ".harness/harness/features/FEAT-90-long-run/notes/expertise-receipt-x.json",
+});
 
 describe("detectHarnessAgent", () => {
   test("finds the canonical machine-readable marker", () => {
@@ -123,7 +160,12 @@ describe("OMP task lifecycle adapter", () => {
   // BUG-1016: `featureRoot` answers `inflight_registry.py feature-root`. The default is the
   // real CLI's no-worktree answer, the --root it was given, so no other case is rewritten.
   type PolicyAnswer = { blocked: boolean; reason?: string; stdout: string };
-  function fixture(options: { featureRoot?: (args: string[]) => PolicyAnswer } = {}) {
+  function fixture(options: {
+    featureRoot?: (args: string[]) => PolicyAnswer;
+    memberOps?: (args: string[], payload: unknown) => PolicyAnswer;
+    mergeGate?: (payload: Record<string, unknown>) => PolicyAnswer;
+  } = {}) {
+    const tools = new Map<string, any>();
     const handlers = new Map<string, Function>();
     const calls: Array<{ script: string; args: string[]; payload: Record<string, unknown>; cwd: string }> = [];
     const active = new Set(["agent-a", "agent-b"]);
@@ -156,6 +198,7 @@ describe("OMP task lifecycle adapter", () => {
           return () => {};
         },
       },
+      ...toolApi(tools),
     };
     const settle = (data: Record<string, unknown>) => lifecycle.forEach((handler) => handler(data));
     const runner = (
@@ -323,10 +366,14 @@ describe("OMP task lifecycle adapter", () => {
         }
         return { blocked: false, stdout: "" };
       }
+      if (script === "expertise-merge.py") {
+        return options.memberOps?.(args, payload) ?? { blocked: false, stdout: `${MEMBER_OPS_RECEIPT}\n` };
+      }
+      if (script === "merge-gate.py" && options.mergeGate) return options.mergeGate(payload);
       return { blocked: false, stdout: "" };
     };
     registerHarnessHooks(pi, runner);
-    return { handlers, calls, runner, settle };
+    return { handlers, calls, runner, settle, tools };
   }
 
   async function start(
@@ -444,6 +491,7 @@ describe("OMP task lifecycle adapter", () => {
     registerHarnessHooks({
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     }, runner);
     const childCtx = ompContext("/repo", "OrchestratorOne", "Main", "orchestrator-session");
     await start(childHandlers, childCtx, "harness-orchestrator");
@@ -484,6 +532,7 @@ describe("OMP task lifecycle adapter", () => {
     registerHarnessHooks({
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     }, runner);
     const childCtx = ompContext("/repo", "BackendOne", "LeadOne", "child-session");
     await start(childHandlers, childCtx, "harness-backend-dev");
@@ -544,6 +593,7 @@ describe("OMP task lifecycle adapter", () => {
     registerHarnessHooks({
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     }, runner);
     const childCtx = ompContext("/repo", "BackendOne", "LeadOne", "child-session");
     await start(childHandlers, childCtx, "harness-backend-dev");
@@ -561,6 +611,7 @@ describe("OMP task lifecycle adapter", () => {
     registerHarnessHooks({
       on(name: string, handler: Function) { goodHandlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     }, runner);
     const goodCtx = ompContext("/repo", "DataOne", "BackendOne", "grandchild-session");
     await start(goodHandlers, goodCtx, "harness-data-engineer");
@@ -574,6 +625,7 @@ describe("OMP task lifecycle adapter", () => {
     registerHarnessHooks({
       on(name: string, handler: Function) { siblingHandlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     }, runner);
     const siblingCtx = ompContext("/repo", "DataOne", "LeadOne", "sibling-session");
     await start(siblingHandlers, siblingCtx, "harness-data-engineer");
@@ -592,6 +644,7 @@ describe("OMP task lifecycle adapter", () => {
     registerHarnessHooks({
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     }, runner);
     const childCtx = ompContext("/repo", "AuthorizeError", "LeadOne", "child-session");
     await start(childHandlers, childCtx, "harness-backend-dev");
@@ -980,6 +1033,7 @@ describe("OMP task lifecycle adapter", () => {
     registerHarnessHooks({
       on(name: string, handler: Function) { handlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     }, (cwd, script, args, payload) => {
       const result = runner(cwd, script, args, payload);
       const target = (payload.tool_input as Record<string, unknown> | undefined)?.file_path;
@@ -1749,6 +1803,280 @@ describe("OMP task lifecycle adapter", () => {
     }, leadCtx());
     expect(digestCalls(calls)).toEqual([]);
   });
+
+  // -------------------------------------------------------------------------
+  // FEAT-2225 T-04: expertise_apply, each persona's host-bound Expertise pen, and the merge
+  // gate on Main's own Bash merges.
+  // -------------------------------------------------------------------------
+  const OP_TEXT = { type: "string", minLength: 1 };
+  const OP_SECTION = { enum: ["Patterns", "Gotchas", "Outcomes", "Open"] };
+  const APPLY_SCHEMA = {
+    type: "object",
+    closed: true,
+    shape: {
+      tier: { enum: ["craft", "repository"] },
+      repository: { type: "string", pattern: "^[a-z0-9][a-z0-9-]*$", isOptional: true },
+      ops: {
+        type: "array",
+        items: {
+          anyOf: [
+            {
+              type: "object",
+              closed: true,
+              shape: { op: { enum: ["add", "replace"] }, target: OP_TEXT, section: OP_SECTION, entry: OP_TEXT, why: OP_TEXT },
+            },
+            {
+              type: "object",
+              closed: true,
+              shape: { op: { const: "drop" }, target: OP_TEXT, section: OP_SECTION, why: OP_TEXT },
+            },
+          ],
+        },
+      },
+      supersedes: { type: "array", items: { type: "string", pattern: "^[0-9a-f]{64}$" }, isOptional: true },
+    },
+  };
+  const ADD = { op: "add", target: "P-1", section: "Patterns", entry: "a lesson", why: "seen twice" };
+  const BATCH = "a".repeat(64);
+  const IDENTITY = (root: string) => [
+    "--root", root, "--feature", "FEAT-90-long-run", "--persona", "harness-eng-lead",
+    "--runtime-id", "LeadOne", "--parent-id", "OrchestratorOne",
+  ];
+
+  // A feature tree on disk with the craft tier and one declared repository tier; with `main`,
+  // a git checkout whose origin/HEAD names a main commit.
+  function featureTree(main = false): string {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "f2225-tree-")));
+    mkdirSync(join(root, ".harness", "expertise"), { recursive: true });
+    mkdirSync(join(root, ".harness", "harness", "expertise"), { recursive: true });
+    if (!main) return root;
+    const git = (...args: string[]) => spawnSync("git", args, { cwd: root, encoding: "utf8" });
+    git("init", "-q");
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "base");
+    git("update-ref", "refs/remotes/origin/main", "HEAD");
+    git("symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main");
+    return root;
+  }
+
+  async function startDistill(
+    handlers: Map<string, Function>,
+    ctx: Record<string, unknown> = leadCtx(),
+    agent = "harness-eng-lead",
+    mission = "distill",
+  ) {
+    const assignment = `HARNESS-FEATURE: FEAT-90-long-run\nHARNESS-MISSION: ${mission}\ndistill your lessons`;
+    await handlers.get("before_agent_start")?.({
+      prompt: `Complete assignment thoroughly:\n\n${assignment}`,
+      systemPrompt: [`HARNESS_AGENT_ID: ${agent}`],
+    }, ctx);
+    await handlers.get("message_end")?.({
+      message: { role: "user", content: [{ type: "text", text: assignment }] },
+    }, ctx);
+  }
+
+  function applyHooks(root: string, options: Parameters<typeof fixture>[0] = {}) {
+    const hooks = fixture({ featureRoot: () => ({ blocked: false, stdout: `${root}\n` }), ...options });
+    const apply = (params: Record<string, unknown>, ctx: Record<string, unknown> = leadCtx(), id = "call-apply") =>
+      hooks.tools.get("expertise_apply").execute(id, params, undefined, undefined, ctx);
+    const coreCalls = () => hooks.calls.filter((call) => call.script === "expertise-merge.py");
+    return { ...hooks, apply, coreCalls };
+  }
+
+  test("FEAT-2225: registers expertise_apply with the exact closed argument schema", () => {
+    const { tools } = fixture();
+    const tool = tools.get("expertise_apply");
+    expect(tool?.name).toBe("expertise_apply");
+    expect(typeof tool.execute).toBe("function");
+    expect(JSON.parse(JSON.stringify(tool.parameters))).toEqual(APPLY_SCHEMA);
+  });
+
+  test("FEAT-2225: persona, feature, run id, root, destination, base and state arguments are refused before the core runs", async () => {
+    const { handlers, apply, coreCalls } = applyHooks(featureTree());
+    await startDistill(handlers);
+    for (const key of ["persona", "feature", "runtime_id", "parent_id", "root", "destination", "base", "state"]) {
+      await expect(apply({ tier: "craft", ops: [ADD], [key]: "spoofed" })).rejects.toThrow(`argument "${key}"`);
+    }
+    await expect(apply({ tier: "global", ops: [ADD] })).rejects.toThrow("tier");
+    await expect(apply({ tier: "craft", ops: "not a list" })).rejects.toThrow("ops");
+    await expect(apply({ tier: "craft", ops: [ADD], supersedes: ["../batch"] })).rejects.toThrow("supersedes");
+    expect(coreCalls()).toEqual([]);
+  });
+
+  test("FEAT-2225: an unidentified, non-distill, held, unready, unplaced or unauthorized caller is refused", async () => {
+    const root = featureTree();
+    const refusals: Array<[string, () => Promise<any>, Record<string, unknown>, string]> = [
+      ["main", async () => {
+        const hooks = applyHooks(root);
+        await hooks.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+        return hooks;
+      }, mainCtx(), "governed Harness persona"],
+      ["build mission", async () => {
+        const hooks = applyHooks(root);
+        await startDistill(hooks.handlers, leadCtx(), "harness-eng-lead", "build");
+        return hooks;
+      }, leadCtx(), "HARNESS-MISSION: distill"],
+      ["no mission", async () => {
+        const hooks = applyHooks(root);
+        await start(hooks.handlers);
+        return hooks;
+      }, leadCtx(), "HARNESS-MISSION: distill"],
+      ["held", async () => {
+        const hooks = applyHooks(root);
+        await startDistill(hooks.handlers, ompContext("/repo", "LeadOne", "OtherParent", "s"));
+        return hooks;
+      }, ompContext("/repo", "LeadOne", "OtherParent", "s"), "already claimed under a different parent"],
+      ["unready", async () => {
+        const hooks = applyHooks(root);
+        await startDistill(hooks.handlers);
+        await hooks.handlers.get("agent_end")?.({ messages: [] }, leadCtx());
+        return hooks;
+      }, leadCtx(), "run start has not completed"],
+      ["unplaced", async () => {
+        const hooks = applyHooks(root, { featureRoot: () => ({ blocked: true, reason: "registry refused", stdout: "" }) });
+        await startDistill(hooks.handlers);
+        return hooks;
+      }, leadCtx(), "feature-root refused"],
+      ["unauthorized", async () => {
+        const hooks = applyHooks(root);
+        await startDistill(hooks.handlers, ompContext("/repo", "AuthorizeError", "LeadOne", "c"), "harness-backend-dev");
+        return hooks;
+      }, ompContext("/repo", "AuthorizeError", "LeadOne", "c"), "authorization gate crashed"],
+    ];
+    for (const [name, make, ctx, why] of refusals) {
+      const hooks = await make();
+      const error = await hooks.apply({ tier: "craft", ops: [ADD] }, ctx).then(() => undefined, (e: Error) => e.message);
+      expect([name, error]).toEqual([name, expect.stringContaining(why)]);
+      expect([name, hooks.coreCalls()]).toEqual([name, []]);
+    }
+  });
+
+  test("FEAT-2225: the custom mutator takes the existing claim authorization and held-run refusal in tool_call", async () => {
+    const root = featureTree();
+    const { handlers, calls } = applyHooks(root);
+    await startDistill(handlers);
+    const at = calls.length;
+    const call = { toolName: "expertise_apply", toolCallId: "call-apply", input: { tier: "craft", ops: [ADD] } };
+    expect(await handlers.get("tool_call")?.(call, leadCtx())).toBeUndefined();
+    expect(calls.slice(at).map((c) => [c.script, c.args[0]])).toContainEqual(["inflight_registry.py", "authorize"]);
+    const crashed = applyHooks(root);
+    const crashCtx = ompContext("/repo", "AuthorizeError", "LeadOne", "c");
+    await startDistill(crashed.handlers, crashCtx, "harness-backend-dev");
+    expect(await crashed.handlers.get("tool_call")?.(call, crashCtx))
+      .toEqual({ block: true, reason: "authorization gate crashed" });
+    await handlers.get("agent_end")?.({ messages: [] }, leadCtx());
+    const held = await handlers.get("tool_call")?.(call, leadCtx());
+    expect(held?.block).toBe(true);
+    expect(held?.reason).toContain("run start has not completed");
+  });
+
+  test("FEAT-2225: craft and repository destinations run member-ops with host-derived identity and return its receipt verbatim", async () => {
+    const root = featureTree();
+    const { handlers, apply, coreCalls, calls } = applyHooks(root);
+    await startDistill(handlers);
+    const craft = await apply({ tier: "craft", ops: [ADD] });
+    expect(craft.content).toEqual([{ type: "text", text: MEMBER_OPS_RECEIPT }]);
+    expect(craft.details).toEqual(JSON.parse(MEMBER_OPS_RECEIPT));
+    await apply({ tier: "repository", repository: "harness", ops: [ADD] }, leadCtx(), "call-repo");
+    expect(coreCalls().map((call) => call.args)).toEqual([
+      ["member-ops", ...IDENTITY(root), "--tier", "craft", "--ops", "-"],
+      ["member-ops", ...IDENTITY(root), "--tier", "repository", "--repository", "harness", "--ops", "-"],
+    ]);
+    expect(coreCalls().map((call) => call.payload)).toEqual([[ADD], [ADD]]);
+    expect(coreCalls().map((call) => call.cwd)).toEqual([root, root]);
+    // The post-write check judges the destination the host resolved, never a caller path.
+    const at = calls.length;
+    expect(await handlers.get("tool_result")?.({
+      toolName: "expertise_apply", toolCallId: "call-repo", content: [],
+      input: { tier: "repository", repository: "harness", ops: [ADD], destination: "/evil.md" },
+    }, leadCtx())).toBeUndefined();
+    expect(calls.slice(at).filter((call) => call.script === "check-domain.py").map((call) =>
+      [call.args, call.payload.tool_name, (call.payload.tool_input as Record<string, unknown>).file_path]))
+      .toEqual([[["--post"], "Edit", `${root}/.harness/harness/expertise/harness-eng-lead.md`]]);
+  });
+
+  test("FEAT-2225: a repository segment with separators, traversal, an undeclared name or a symlink is refused before the core runs", async () => {
+    const root = featureTree();
+    const outside = realpathSync(mkdtempSync(join(tmpdir(), "f2225-outside-")));
+    mkdirSync(join(outside, "expertise"));
+    symlinkSync(outside, join(root, ".harness", "linked"));
+    const { handlers, apply, coreCalls } = applyHooks(root);
+    await startDistill(handlers);
+    for (const repository of ["../harness", "harness/expertise", "..", ".", "", "/abs", "Harness", "expertise", "undeclared", "linked"]) {
+      const error = await apply({ tier: "repository", repository, ops: [ADD] }).then(() => undefined, (e: Error) => e.message);
+      expect([repository, error]).toEqual([repository, expect.stringContaining("repository")]);
+    }
+    await expect(apply({ tier: "repository", ops: [ADD] })).rejects.toThrow("repository");
+    await expect(apply({ tier: "craft", repository: "harness", ops: [ADD] })).rejects.toThrow("repository");
+    symlinkSync(join(outside, "x.md"), join(root, ".harness", "expertise", "harness-eng-lead.md"));
+    await expect(apply({ tier: "craft", ops: [ADD] })).rejects.toThrow("symlink");
+    expect(coreCalls()).toEqual([]);
+  });
+
+  test("FEAT-2225: any nonzero member-ops exit, or a missing receipt, is a tool failure carrying the core's words", async () => {
+    const root = featureTree();
+    const answers: Array<[PolicyAnswer, string]> = [
+      [{ blocked: false, reason: "expertise-merge.py exited 14", stdout: "CANDIDATE REFUSED check-expertise failed\n" }, "CANDIDATE REFUSED"],
+      [{ blocked: false, reason: "expertise-merge.py exited 9", stdout: "REFUSED destination\n" }, "exited 9"],
+      [{ blocked: true, reason: "denied by core", stdout: "" }, "denied by core"],
+      [{ blocked: false, stdout: "no receipt here\n" }, "no receipt"],
+    ];
+    for (const [answer, words] of answers) {
+      const { handlers, apply, calls } = applyHooks(root, { memberOps: () => answer });
+      await startDistill(handlers);
+      await expect(apply({ tier: "craft", ops: [ADD] })).rejects.toThrow(words);
+      // A failed application leaves no destination for the post-write check to judge.
+      const at = calls.length;
+      await handlers.get("tool_result")?.({
+        toolName: "expertise_apply", toolCallId: "call-apply", content: [], isError: true, input: {},
+      }, leadCtx());
+      expect(calls.slice(at).filter((call) => call.script === "check-domain.py")).toEqual([]);
+    }
+  });
+
+  test("FEAT-2225: supersedes carries exact batch ids and the host-resolved main base, never a caller base", async () => {
+    const root = featureTree(true);
+    const main = spawnSync("git", ["rev-parse", "refs/remotes/origin/HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
+    const { handlers, apply, coreCalls } = applyHooks(root);
+    await startDistill(handlers);
+    await apply({ tier: "craft", ops: [ADD], supersedes: [BATCH] });
+    expect(coreCalls().map((call) => call.args)).toEqual([
+      ["member-ops", ...IDENTITY(root), "--tier", "craft", "--ops", "-", "--supersedes", BATCH, "--base", main],
+    ]);
+    const bare = applyHooks(featureTree());
+    await startDistill(bare.handlers);
+    await expect(bare.apply({ tier: "craft", ops: [], supersedes: [BATCH] })).rejects.toThrow("origin/HEAD");
+    expect(bare.coreCalls()).toEqual([]);
+  });
+
+  test("FEAT-2225: Main's Bash git merge and gh pr merge reach merge-gate before the non-governed return", async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const { handlers, calls } = fixture({
+      mergeGate: (payload) => {
+        seen.push(payload);
+        return { blocked: true, reason: "merge-gate: run merge-gate.py merge-distill --root R --feature F --pr 42", stdout: "" };
+      },
+    });
+    await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    const commands = ["gh pr merge 42 --squash", "git merge feat/x", "bash -c 'git -C /x merge feat/y'"];
+    for (const command of commands) {
+      expect(await handlers.get("tool_call")?.({ toolName: "bash", toolCallId: "m", input: { command } }, mainCtx()))
+        .toEqual({ block: true, reason: expect.stringContaining("merge-distill") });
+    }
+    expect(seen.map((payload) => [payload.agent_type, payload.harness_agent_id, payload.tool_name,
+      (payload.tool_input as Record<string, unknown>).command])).toEqual(
+      commands.map((command) => ["Main", "Main", "Bash", command]),
+    );
+    // Every other Main call stays ungoverned: no merge gate, no domain or shell guard.
+    const at = calls.length;
+    expect(await handlers.get("tool_call")?.({ toolName: "bash", input: { command: "git status" } }, mainCtx())).toBeUndefined();
+    expect(await handlers.get("tool_call")?.({ toolName: "write", input: { path: "/repo/x", content: "x" } }, mainCtx())).toBeUndefined();
+    expect(calls.slice(at)).toEqual([]);
+    // A merge the gate passes runs as asked.
+    const open = fixture();
+    await open.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    expect(await open.handlers.get("tool_call")?.({ toolName: "bash", input: { command: "gh pr merge 7" } }, mainCtx())).toBeUndefined();
+    expect(open.calls.map((call) => call.script)).toContain("merge-gate.py");
+  });
 });
 
 // FEAT-1928: the in-process provider adapter over bin/digest-schemas/.
@@ -2006,6 +2334,7 @@ describe("context advisory injection", () => {
     const pi = {
       on(name: string, handler: Function) { handlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     };
     const runner = (_cwd: string, script: string) => {
       if (script === "check-domain.py" && opts.blockReason) {
@@ -2276,6 +2605,7 @@ describe("spend advisory injection", () => {
     const pi = {
       on(name: string, handler: Function) { handlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     };
     const calls: Array<{ script: string; args: string[] }> = [];
     const runner = (_cwd: string, script: string, args: string[]) => {
@@ -2421,6 +2751,7 @@ describe("host-stamped tokens", () => {
     const pi = {
       on(name: string, handler: Function) { handlers.set(name, handler); },
       events: { on: () => () => {} },
+      ...toolApi(),
     };
     const calls: Array<{ script: string; args: string[] }> = [];
     const runner = (_cwd: string, script: string, args: string[]) => {
@@ -2575,6 +2906,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
         },
         emit(channel: string, data: unknown) { (bus.get(channel) || []).forEach((h) => h(data)); },
       },
+      ...toolApi(),
     }, runner as any);
     const emit = async (channel: string, data: unknown) => {
       for (const handler of bus.get(channel) || []) await handler(data);

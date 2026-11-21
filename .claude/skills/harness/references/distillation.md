@@ -21,6 +21,11 @@ feature-close write seam; `harness-curate` also authorizes out-of-band distillat
    did-nothing spelling — qa `suite: n/a` / `matrix_ok: n/a`, code-reviewer `code_grade: n_a` /
    `reviewed: none` — instead of demanding a suite nobody ran or a diff nobody reviewed
    (#1855). Without the line, qa's honest return is refused and the code-reviewer cannot bind.
+   **Register each lead's run as `distill-<squad>`** (`feature-record.py run-start --id
+   distill-validator`, `distill-product`, `distill-eng`): that id is how the digest validator and
+   the dispatch guard know the run is a distill, so applied ops on any other run id are refused.
+   **Every distill dispatch, lead and member alike, also carries `HARNESS-FEATURE-TREE-ROOT`**
+   naming the feature worktree; a child of a distill run without it is refused before it starts.
    **Product and validator go one after the other, never together** (#2033): both put a
    `harness-pm` to work (product's pm, validator's `goalcheck`), and `harness-pm` is single-flight
    per feature, so the second spawn is refused and its lead returns BLOCKED. Dispatch the eng
