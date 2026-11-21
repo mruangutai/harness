@@ -662,18 +662,27 @@ FIX_RUN = re.compile(r"(?:^|-)fix-")
 DISTILL_RUN = re.compile(r"(?:^|-)distill-")
 
 
+def _regate_stamps(doc):
+    """The parsed `at` of every `regate` judgement; an unparsable stamp is left out."""
+    judgements = doc.get("judgements")
+    entries = judgements if isinstance(judgements, list) else []
+    stamps = (_parse_iso(j.get("at")) for j in entries
+              if isinstance(j, dict) and j.get("kind") == "regate")
+    return [at for at in stamps if at is not None]
+
+
+def _not_before(at, opened):
+    """`at >= opened`, False when one is naive and the other aware (they do not compare)."""
+    return (at.tzinfo is None) == (opened.tzinfo is None) and at >= opened
+
+
 def _regate_rounds(doc, runs, first_validate):
     """The `regate` judgements recorded at or after the first validate run's start, or None
     when that run carries no start or no regate falls in the window (#2222)."""
     opened = _parse_iso(runs[first_validate].get("started_at")) if first_validate is not None else None
     if opened is None:
         return None
-    judgements = doc.get("judgements")
-    stamps = [_parse_iso(j.get("at")) for j in (judgements if isinstance(judgements, list) else [])
-              if isinstance(j, dict) and j.get("kind") == "regate"]
-    rounds = sum(1 for at in stamps if at is not None
-                 and (at.tzinfo is None) == (opened.tzinfo is None) and at >= opened)
-    return rounds or None
+    return sum(1 for at in _regate_stamps(doc) if _not_before(at, opened)) or None
 
 
 def spend_for(doc):

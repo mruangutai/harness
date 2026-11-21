@@ -63,9 +63,18 @@ def _inv33_plan_path(fy):
         _pf = os.path.join(os.path.dirname(fy), "PLAN.md")
     return _pf
 
+def _without_stations(doc):
+    """`doc` minus the plan's top-level `status` and each task's `status`: the two fields the
+    station verbs write. Nothing else is dropped, a nested `status` included."""
+    reviewed = {k: v for k, v in doc.items() if k != "status"}
+    if isinstance(doc.get("tasks"), list):
+        reviewed["tasks"] = [{k: v for k, v in t.items() if k != "status"} if isinstance(t, dict)
+                             else t for t in doc["tasks"]]
+    return reviewed
+
 def _inv33_reviewed(raw, _pf):
-    """What a pin claims about the plan: a plan.yaml's loaded document minus the station values
-    (top-level `status` and each task's `status`), else the raw bytes.
+    """What a pin claims about the plan: a plan.yaml's loaded document minus its station
+    values, else the raw bytes.
 
     #2187/#2201: the build-phase seam pins `review_sha` and then `gh-sync.py status review` and
     `set-task-station` rewrite those two fields, so a byte comparison made every reviewed
@@ -78,14 +87,7 @@ def _inv33_reviewed(raw, _pf):
         doc = harness_yaml.load_str(raw.decode("utf-8"), _pf)
     except (UnicodeDecodeError, harness_yaml.YamlParseError):
         return raw
-    if not isinstance(doc, dict):
-        return doc
-    tasks = doc.get("tasks")
-    reviewed = {k: v for k, v in doc.items() if k != "status"}
-    if isinstance(tasks, list):
-        reviewed["tasks"] = [{k: v for k, v in t.items() if k != "status"} if isinstance(t, dict) else t
-                             for t in tasks]
-    return reviewed
+    return _without_stations(doc) if isinstance(doc, dict) else doc
 
 def _inv33_stale_relpath(ctx, _git_top, _sha, _pf):
     """The plan's path relative to the work tree when its reviewed content at the pin differs
