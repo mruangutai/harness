@@ -46,6 +46,16 @@ def case_path_directions():
         check(label, result.returncode == 1 and detail in result.stdout, result.stdout)
     root, _ = make_root("`<HARNESS_FEATURE_TREE_ROOT>/.harness/features/F/BRIEF.md`\n`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/F/BRIEF.md`\n")
     check("both feature path shapes are accepted", run(root).returncode == 0)
+    root, _ = make_root("`<HARNESS_FEATURE_TREE_ROOT>/.harness/expertise/<agent>.md`\n"
+                        "`<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/expertise/<agent>.md`\n"
+                        "`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<agent>.md`\n")
+    result = run(root)
+    check("FEAT-2225 (DEC-253): Expertise destinations take either anchor",
+          result.returncode == 0 and "0 violation(s)" in result.stdout, result.stdout)
+    root, _ = make_root("`<HARNESS_FEATURE_TREE_ROOT>/.harness/expertise-notes/x.md`\n")
+    result = run(root)
+    check("FEAT-2225: only a real expertise directory is a feature-tree write",
+          result.returncode == 1 and "control-plane path anchored to the feature tree" in result.stdout, result.stdout)
     check("outside scope refuses", run(root, os.path.join(root, "nope.md")).returncode == 2)
 
 

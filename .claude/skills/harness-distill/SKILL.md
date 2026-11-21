@@ -31,7 +31,8 @@ file; never another persona's. Then:
    ```
 
    The host derives everything else — persona, feature, runtime lineage, feature-tree root and
-   destination (`.harness/expertise/<you>.md` or `.harness/<segment>/expertise/<you>.md`); a
+   destination (`<HARNESS_FEATURE_TREE_ROOT>/.harness/expertise/<you>.md` or
+   `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/expertise/<you>.md`); a
    path argument does not exist. It returns one JSON object: before/after per-section counts,
    per-op outcomes, a batch id and the receipt path. A **whole-file write** is what loses another
    run's entries (DEC-125), so this is not a style preference.

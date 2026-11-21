@@ -2058,13 +2058,25 @@ def _durable_context(persona, path):
             "root": os.path.realpath(root)}
 
 
+def _evidence_failures():
+    """Every failure reading registry, receipt or merge-core evidence can raise. Each one means the
+    return cannot be trusted, so callers refuse on it rather than passing (fail closed)."""
+    import harness_merge
+    import inflight_registry
+    return (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError,
+            harness_boundary.RepoModuleError, harness_boundary.AmbiguousWorktree,
+            artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError,
+            artifact_accessors.FleetError, harness_yaml.YamlParseError,
+            inflight_registry.UnreadableRegistry, harness_merge.MergeRefusal)
+
+
 def _trusted(resolve, *args):
     """`(context, None)`, or `(None, why)` when no trusted distill context binds the return."""
     try:
         return resolve(*args), None
     except _Untrusted as why:
         return None, str(why)
-    except Exception as error:  # noqa: BLE001 — any failure to establish trust is "untrusted"
+    except _evidence_failures() as error:
         return None, f"its registered run could not be read ({type(error).__name__}: {error})"
 
 
@@ -2118,7 +2130,7 @@ def _verified_expertise_errors(canonical, items, context):
         return _foreign_persona_errors(canonical, items) or _evidence_errors(items, context)
     except _Untrusted as why_not:
         return [f"expertise_update cannot be verified: {why_not}. Nothing is trusted unverified."]
-    except Exception as error:  # noqa: BLE001 — unverifiable evidence fails closed, never open
+    except _evidence_failures() as error:
         return [f"expertise_update cannot be verified ({type(error).__name__}: {error}); "
                 "the return is refused rather than trusted."]
 
