@@ -1,0 +1,87 @@
+schema_version: 2
+run_id: 2026-11-21-3-validator
+run_uid: e4f470b6a22146bfbcec2e81fc466b44
+feature: BUG-20261006-fleet-planning-recovery
+squad: validator
+host: harness-validator-lead
+team: fix
+status: complete
+verdict: PASS
+severity_max: none
+review_sha: 91f1d0c64fc4ce94d3fcb8110933c2171a0424d6
+head_sha: 91f1d0c64fc4ce94d3fcb8110933c2171a0424d6
+base_sha: a80b9ef3b2a30b1fa73101385a15b71b873cf09b
+cycles_used: 1
+digest: runs/2026-11-21-3-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    task: T-01
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    outputs: [notes/review-harness-qa-c5.md, notes/review-harness-qa-c6.md]
+    artifact: notes/review-harness-qa-c6.md
+    evidence:
+      execution_artifact: notes/review-harness-qa-c5.md
+      matrix_ok: true
+      unit_files: 61
+      integration_files: 87
+      refused_binding_variants_red: 4
+      natural_red_and_mutant_killed: true
+      return_shape: exact_json_object
+      return_schema_errors: 0
+      sc_met: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+    note: One form-only send-back; c5 execution preserved and c6 object schema-valid.
+  - id: code
+    persona: harness-code-reviewer
+    task: T-01
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-code-reviewer-c4.md
+    outputs: [notes/review-harness-code-reviewer-c4.md]
+    evidence:
+      prior_high: resolved
+      graded_functions: 24
+      code_grade: pass
+      sc_inspected_met: [SC-07]
+  - id: security
+    persona: harness-security-reviewer
+    task: T-01
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-security-reviewer-c4.md
+    outputs: [notes/review-harness-security-reviewer-c4.md]
+    evidence:
+      prior_high: resolved_by_source_inspection
+  - id: ui
+    persona: harness-ui-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-ui-reviewer-c4.md
+    outputs: [notes/review-harness-ui-reviewer-c4.md]
+    evidence:
+      delta_paths: 12
+      ui_surface: false
