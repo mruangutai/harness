@@ -39,7 +39,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 requires direct execution for the INV-33 check-state gate and its coupled tests and guidance
   depends_on: []
-  status: ready
+  status: done
   files:
   - .claude/skills/harness/bin/check_state/feature_record.py
   - .claude/skills/harness/bin/feature-record.py
