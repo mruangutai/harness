@@ -39,3 +39,5 @@ index dbd0bb90..d66c88f3 100644
 Initial and post-generation `git diff --stat` both included pre-existing run bookkeeping: feature.json (14 insertions), plan.yaml (one insertion/one deletion). Those are outside deliverables, unchanged by this repair and not staged. The only added deliverable diff is `.harness/harness/docs/DECISIONS-INDEX.md` (one insertion/one deletion), plus this receipt. DECISIONS.md, SPEC.md and review_sha were not edited. No push or gh used.
 
 Fix commit SHA will be recorded below after the explicit-path index/receipt commit; the subsequent commit contains receipt provenance only. Open questions: none.
+
+Fix commit: **8257a2e02d84a1fb32f91b24d645cd9404bf092e** (index and receipt only; commit output: 2 files, 42 insertions, 1 deletion). The final receipt-only commit is the immediate child of this fix commit; its SHA is returned in the handoff rather than embedded in its own content.
