@@ -751,6 +751,49 @@ def case_u43_write_chain():
           (states, used))
 
 
+def _git(repo, *args):
+    import subprocess
+    return subprocess.run(["git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+                           "-c", "commit.gpgsign=false", *args],
+                          capture_output=True, text=True, timeout=30, check=True).stdout.strip()
+
+
+def _branch_repo():
+    """main at A; feature branch at B (a commit the feature itself made). Returns (repo, A, B)."""
+    import tempfile
+    repo = tempfile.mkdtemp(prefix="authorized-base-unit-")
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "commit", "-q", "--allow-empty", "-m", "A")
+    first = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-q", "-b", "feat/x")
+    _git(repo, "commit", "-q", "--allow-empty", "-m", "B")
+    return repo, first, _git(repo, "rev-parse", "HEAD")
+
+
+def _authorized_or_refusal(repo, base=None):
+    try:
+        return expertise_merge.authorized_base(os.path.realpath(repo), base)
+    except MergeRefusal as refusal:
+        return refusal
+
+
+def case_u44_authorized_base():
+    """c2: the anchor is the merge-base with the default branch (or --base), never HEAD."""
+    repo, first, feature = _branch_repo()
+    check("u44: no --base anchors on the merge-base with local main, not the feature HEAD",
+          _authorized_or_refusal(repo) == first, (first, feature))
+    check("u44: --base anchors on its merge-base with HEAD", _authorized_or_refusal(repo, feature) == feature, None)
+    _git(repo, "update-ref", "refs/remotes/origin/main", feature)
+    _git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+    check("u44: refs/remotes/origin/HEAD wins over local main", _authorized_or_refusal(repo) == feature, None)
+    for ref in ("refs/remotes/origin/HEAD", "refs/remotes/origin/main", "refs/heads/main"):
+        _git(repo, "update-ref", "-d", "--no-deref", ref)
+    refusal = _authorized_or_refusal(repo)
+    check("u44: no default branch refuses 15 NO AUTHORIZED BASE",
+          isinstance(refusal, MergeRefusal) and refusal.code == 15 and refusal.lines[0].startswith("NO AUTHORIZED BASE"),
+          refusal)
+
+
 def run_guarded(fn):
     try:
         fn()
@@ -766,7 +809,8 @@ GUARDED_CASES = (case_u30_free_ids, case_u31_destination_rel, case_u32_collision
                  case_u34_refused_batch_report, case_u35_independent_callers, case_u36_caps_deferred,
                  case_u38_retirement, case_u38_refused_graphs, case_u39_batch_identity,
                  case_u40_receipt_failure_fails_call, case_u40_verify_without_receipt,
-                 case_u41_effect_mismatches, case_u42_receipt_file_agreement, case_u43_write_chain)
+                 case_u41_effect_mismatches, case_u42_receipt_file_agreement, case_u43_write_chain,
+                 case_u44_authorized_base)
 
 
 def print_results():

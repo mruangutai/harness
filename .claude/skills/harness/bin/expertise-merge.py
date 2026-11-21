@@ -1556,22 +1556,41 @@ def _committed_state(real_root, rev, rel):
     return None if blob is None else _sha256(blob)
 
 
-def _anchor_states(real_root, rel, base):
-    """The committed states a destination's write chain may start from: HEAD's, and the base's."""
-    revs = _git_lines(real_root, "rev-parse", "--verify", "HEAD^{commit}")
-    revs += [resolve_base(real_root, base)] if base else []
-    return {_committed_state(real_root, rev, rel) for rev in revs}
+# The default branch, in resolution order, when verify-receipt is given no --base. The feature's
+# own HEAD is never an anchor: a change committed on the feature branch would authorize itself.
+DEFAULT_BRANCH_REFS = ("refs/remotes/origin/HEAD", "refs/remotes/origin/main", "refs/heads/main")
+
+
+def _default_branch(real_root):
+    for ref in DEFAULT_BRANCH_REFS:
+        proc = _git(real_root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
+        if proc.returncode == 0 and proc.stdout.strip():
+            return proc.stdout.decode().strip()
+    _refuse(EXIT_EVIDENCE, f"NO AUTHORIZED BASE: none of {', '.join(DEFAULT_BRANCH_REFS)} resolves in "
+                           f"{real_root}, so no independent state anchors the receipted writes; pass --base <main-sha>")
+
+
+def authorized_base(real_root, base):
+    """The independently authorized anchor commit: the merge-base of HEAD with `--base` when given,
+    else with the default branch. Refuses (15, NO AUTHORIZED BASE) when none resolves."""
+    main = resolve_base(real_root, base) if base else _default_branch(real_root)
+    proc = _git(real_root, "merge-base", main, "HEAD")
+    fork = proc.stdout.decode().strip()
+    if proc.returncode != 0 or not fork:
+        _refuse(EXIT_EVIDENCE, f"NO AUTHORIZED BASE: {main} shares no history with HEAD in {real_root}")
+    return fork
 
 
 def _refuse_unreceipted_content(real_root, rel, base, writes, mine, data):
     """F2: the COMPLETE file must be the recorded result of the destination's receipted writes,
-    chained from a committed state, with every active batch of the caller on that chain."""
+    chained from the authorized base's state, with every active batch of the caller on that chain."""
+    anchor = _committed_state(real_root, authorized_base(real_root, base), rel)
     states, used = _write_chain(writes, _sha256(data))
     unchained = [e["id"] for e in mine if e["id"] not in used]
-    if unchained or not _anchor_states(real_root, rel, base).intersection(states):
+    if unchained or anchor not in states:
         _refuse(EXIT_EVIDENCE,
                 f"UNRECEIPTED CONTENT {rel}: the file (sha256 {states[0]}) is not the recorded result of "
-                "its receipted writes onto the committed base",
+                "its receipted writes onto the authorized base",
                 *([f"  active batches off the write chain: {', '.join(unchained)}"] if unchained else []),
                 "  an Expertise change made outside expertise_apply fails closed; restore the file and re-apply")
 

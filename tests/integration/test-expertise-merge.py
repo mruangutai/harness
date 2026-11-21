@@ -1934,6 +1934,78 @@ def case_verify_complete_destination(root):
     _refuses_unreceipted("verify full: unreceipted G-01 deletion BEFORE the receipted add refuses", _verify_full(early))
 
 
+# FEAT-2225 c2 — the write chain anchors on the authorized base (merge-base with the default
+# branch, or with --base), never on the feature's own HEAD.
+LINEAGES = (("member", PERSONA, "lead-run"), ("lead", "harness-product-lead", "orch-run"))
+
+
+def _feature_branch_fixture(root, name, persona, tamper):
+    """Baseline on main, then a feature branch; `tamper` deletes G-01 in a COMMIT before the
+    first receipted application."""
+    co = new_checkout(root, name)
+    rel = ".harness/expertise/%s.md" % persona
+    os.makedirs(os.path.join(co, ".harness", "expertise"), exist_ok=True)
+    write_file(os.path.join(co, rel), GBASE_DOC)
+    main = commit_all(co, "baseline")
+    sh(co, "checkout", "-q", "-b", "feat/fixture")
+    if tamper:
+        overwrite(os.path.join(co, rel), read_rel(co, rel).replace("- G-01: watch one\n", ""))
+        commit_all(co, "unreceipted edit")
+    return co, main
+
+
+def _check_committed_tamper(root, label, persona, parent):
+    co, main = _feature_branch_fixture(root, "ctamper-" + label, persona, tamper=True)
+    p = member(co, "run-" + label, [FULL_ADD], persona=persona, parent=parent)
+    check("verify c2 %s: the receipted application itself lands" % label, p.returncode == 0, out_of(p))
+    for base in (None, main):
+        v = verify(co, "run-" + label, [claim(FULL_ADD, persona)], persona=persona, parent=parent, base=base)
+        _refuses_unreceipted("verify c2 %s: unreceipted G-01 deletion COMMITTED before the first receipted "
+                             "application refuses (base=%s)" % (label, "default" if base is None else "--base"), v)
+
+
+def _check_feature_branch_clean(root, label, persona, parent):
+    co, main = _feature_branch_fixture(root, "cclean-" + label, persona, tamper=False)
+    member(co, "run-" + label, [FULL_ADD], persona=persona, parent=parent)
+    commit_all(co, "receipted application committed")
+    for base in (None, main):
+        v = verify(co, "run-" + label, [claim(FULL_ADD, persona)], persona=persona, parent=parent, base=base)
+        check("verify c2 %s: a committed receipted application on a feature branch verifies (base=%s)"
+              % (label, "default" if base is None else "--base"), v.returncode == 0, out_of(v))
+
+
+def _check_no_authorized_base(root):
+    co, _ = _feature_branch_fixture(root, "cnobase", PERSONA, tamper=False)
+    member(co, "run-nb", [FULL_ADD])
+    sh(co, "branch", "-m", "main", "trunk")
+    v = verify(co, "run-nb", [claim(FULL_ADD)])
+    check("verify c2: no default branch and no --base refuses with 15, NO AUTHORIZED BASE",
+          v.returncode == 15 and v.stdout.startswith("NO AUTHORIZED BASE"), out_of(v))
+
+
+def _check_unchained_active_batch(root):
+    """N2: run-f's add was undone by hand and run-a re-added the identical entry. The file and the
+    final effect agree, the chain reaches the base through run-a, and run-f's batch is OFF it."""
+    co = new_checkout(root, "cunchained", craft=GBASE_DOC)
+    path = os.path.join(co, CRAFT_REL)
+    baseline = read_bytes(path)
+    member(co, "run-f", [FULL_ADD])
+    overwrite_bytes(path, baseline)
+    member(co, "run-a", [FULL_ADD])
+    check("verify c2: the runtime whose write is on the chain verifies", verify(co, "run-a", [claim(FULL_ADD)]).returncode == 0, None)
+    v = verify(co, "run-f", [claim(FULL_ADD)])
+    check("verify c2: an active batch off the write chain refuses and is named (unchained-batch guard)",
+          v.returncode == 15 and "active batches off the write chain" in v.stdout, out_of(v))
+
+
+def case_verify_authorized_anchor(root):
+    for label, persona, parent in LINEAGES:
+        _check_committed_tamper(root, label, persona, parent)
+        _check_feature_branch_clean(root, label, persona, parent)
+    _check_no_authorized_base(root)
+    _check_unchained_active_batch(root)
+
+
 def _selection_fixture(root):
     co = new_checkout(root, "sel", craft=BASE_DOC)
     member(co, "old-run", [mop("replace", "Patterns", "P-01", "beta rule")])
@@ -2332,7 +2404,7 @@ POOLED_CASES = (
     case_member_batches_append, case_member_refusal_preserves, case_member_receipt_failure_fails_closed,
     case_member_verify, case_replay_current_pr_selection, case_replay_collision_and_repeat,
     case_replay_independent_callers, case_replay_changed_main_and_cap, case_supersession_flow,
-    case_replay_evidence_fails_closed, case_verify_complete_destination)
+    case_replay_evidence_fails_closed, case_verify_complete_destination, case_verify_authorized_anchor)
 
 
 def _run_all_cases(root):

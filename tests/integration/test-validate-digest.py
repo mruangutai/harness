@@ -5688,13 +5688,36 @@ def _mx_tree(run_id=MX_RUN):
             "started_at": "2026-11-21T00:00:00+00:00"}]}))
     _mx_write(os.path.join(feature_dir, "runs", run_id, "digest.md"), MX_HISTORICAL)
     _mx_write(os.path.join(feature_dir, "notes", "README"), "notes\n")
-    _mx_write(os.path.join(root, ".gitignore"), "*.lock\n.harness/.inflight-claims.json\n")
+    _mx_write(os.path.join(root, ".gitignore"),
+              "*.lock\n.harness/.inflight-claims.json\n" + MX_ORIGIN + "/\n")
     _mx_git(root, "init", "-q", "-b", "main")
     _mx_git(root, "add", "-A")
     _mx_git(root, "commit", "-q", "-m", "base")
+    _mx_origin(root)
     _mx_claim(root, MX_ORCH, MX_ORCH_ID, "Main")
     _mx_claim(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID)
     return root, _mx_git(root, "rev-parse", "HEAD")
+
+
+# The default branch verify-receipt anchors on: a local bare `origin` inside the (ignored) tree,
+# `origin/HEAD -> origin/main`, and the feature work on its own branch, as a real distill PR.
+MX_ORIGIN = ".mx-origin.git"
+
+
+def _mx_origin(root):
+    bare = os.path.join(root, MX_ORIGIN)
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", bare], capture_output=True,
+                   text=True, timeout=30, check=True)
+    _mx_git(root, "remote", "add", "origin", bare)
+    _mx_publish(root)
+    _mx_git(root, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+    _mx_git(root, "checkout", "-q", "-b", "feat/mx")
+
+
+def _mx_publish(root):
+    """Land the current HEAD on the default branch: what main carries before the distill."""
+    _mx_git(root, "push", "-q", "origin", "HEAD:refs/heads/main")
+    _mx_git(root, "fetch", "-q", "origin")
 
 
 def _mx_op(verb, section, target, entry=None):
@@ -6127,13 +6150,19 @@ QA_PRIOR = ("# Expertise — harness-qa\n## Patterns\n## Gotchas\n"
 QA_PRIOR_ENTRY = "- G-01: WHEN the matrix is red DO stop the merge\n"
 
 
+def _mx_prior_on_main(root):
+    """qa's craft file holding G-01, landed on the default branch before the distill."""
+    _mx_write(os.path.join(root, ".harness", "expertise", "harness-qa.md"), QA_PRIOR)
+    _mx_git(root, "add", "-A")
+    _mx_git(root, "commit", "-q", "-m", "prior expertise")
+    _mx_publish(root)
+
+
 def _mx_f2_prepare():
     """The pre-existing file, the receipted add verified live and recorded durably, and then
     the unreceipted deletion."""
     root, _base = _mx_tree()
-    _mx_write(os.path.join(root, ".harness", "expertise", "harness-qa.md"), QA_PRIOR)
-    _mx_git(root, "add", "-A")
-    _mx_git(root, "commit", "-q", "-m", "prior expertise")
+    _mx_prior_on_main(root)
     _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
     _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_CRAFT])
     item = [_mx_item(QA_CRAFT, MX_QA)]
@@ -6174,6 +6203,53 @@ def run_member_expertise_f2_cases():
     finally:
         shutil.rmtree(root, ignore_errors=True)
     return _mx_report("F2")
+
+
+# --- FEAT-2225 c2 F2: the COMMITTED tamper. G-01 is deleted with no op and committed on the
+# feature branch; P-01 is then applied legitimately. A write chain anchored on HEAD accepts it,
+# so verification must anchor on the authorized base (the default branch's merge-base).
+def _mx_committed_tamper_prepare():
+    root, _base = _mx_tree()
+    _mx_prior_on_main(root)
+    _mx_tamper(root, ".harness/expertise/harness-qa.md", QA_PRIOR_ENTRY, "")
+    _mx_git(root, "commit", "-q", "-am", "unreceipted deletion of G-01")
+    _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+    _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_CRAFT])
+    return root
+
+
+def _mx_committed_tamper_live(root):
+    item = [_mx_item(QA_CRAFT, MX_QA)]
+    _mx_expect("committed tamper live: the member's yield is refused",
+               _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, item), 2, "verify")
+    _mx_release(root, MX_QA_ID)
+    _mx_expect("committed tamper live: the lead's yield is refused",
+               _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, item), 2, "verify")
+
+
+def _mx_committed_tamper_durable(root):
+    """A lead record claiming the add (as an earlier accepted yield would have written it)
+    must still fail at the durable check and at close-run's digest stage."""
+    digest = _mx_durable_digest(root)
+    with open(digest, "a", encoding="utf-8") as handle:
+        handle.write(_fenced(_mx_obj(MX_LEAD, [_mx_item(QA_CRAFT, MX_QA)])))
+    result = _mx_durable_cli(digest)
+    mx("committed tamper durable: the durable check refuses",
+       result.returncode == 1 and "verify" in result.stdout, result.stdout[-400:])
+    close = _mx_close_run(root)
+    mx("committed tamper durable: close-run refuses the run at its digest stage",
+       close.returncode != 0 and "REFUSED at stage digest" in close.stderr,
+       close.stderr[-500:])
+
+
+def run_member_expertise_committed_tamper_cases():
+    root = _mx_committed_tamper_prepare()
+    try:
+        _mx_committed_tamper_live(root)
+        _mx_committed_tamper_durable(root)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return _mx_report("committed tamper")
 
 
 def _mx_report(group):
@@ -6315,6 +6391,7 @@ def main(argv=None):
         run_member_expertise_supersession_cases,
         run_member_expertise_authority_cases,
         run_member_expertise_f2_cases,
+        run_member_expertise_committed_tamper_cases,
     )
     # `--only <group>` runs one group by its function name. test-suite-claim-preservation.py's
     # mutant pass reads only the [bug1898] lines, and without this it paid for every group.

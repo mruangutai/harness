@@ -2261,7 +2261,11 @@ def _receipt_errors(context, slots):
 
 
 def _verify_receipt(context, runtime, destination, slot):
-    """T-01's read-only `verify-receipt`: ids, feature, exact ops, destination and file."""
+    """T-01's read-only `verify-receipt`: ids, feature, exact ops, destination and the COMPLETE
+    file. No `--base` is passed on purpose: with none, the core anchors the write chain on the
+    merge-base of the checkout's HEAD with its default branch (`authorized_base`), never on HEAD,
+    and refuses (15, NO AUTHORIZED BASE) when that cannot resolve. Resolving a base here too would
+    duplicate the core's resolver; nothing here comes from a digest field."""
     parts = destination.split("/")
     tier = (["--tier", "craft"] if len(parts) == 3
             else ["--tier", "repository", "--repository", parts[1]])
