@@ -79,5 +79,24 @@
   },
   "signed_task_hashes": {
     "T-01": "5fafcfc5a5a659414a6eceaa9341c2b2dc7fe976c7abb2abc7e46687987fc0be"
+  },
+  "github": {
+    "milestone": 111,
+    "parent": 2226,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2227
+    },
+    "source_issues": [
+      2171
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
   }
 }
