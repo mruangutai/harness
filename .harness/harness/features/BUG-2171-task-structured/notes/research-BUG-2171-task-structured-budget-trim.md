@@ -1,37 +1,46 @@
 # T-01 contract-budget maintenance
 
-Blocked before plan mutation: the helper is outside PM ownership and has not been supplied, and the mandated automatic reset is incompatible with existing-field amendments in the current control plane. The supplied CI observation is **75 machine-field lines / budget 50**; the known failing baseline was not rerun. No plan field or approval was changed.
+Complete: machine-field budget reduced from **75 to 25**, with the final feature-scoped route checker reporting **0 violations**. Approval remains pending, unchanged. No implementation, suite or live smoke was executed by PM.
 
-## Preserved-check equivalence
+## Historical disposition and prerequisites
 
-The signed input is feature `plan.yaml`, T-01 `verify`. Retain the three exact commands: `python3 tests/integration/test-check-omp-port.py`, `python3 tests/unit/test-omp-hooks.py`, and `python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit`. Extract the two historical Python blocks and durable append block without changing their assertions, immutable base `b7af829c0207522b43f978b5275a2ebdc96b3210`, real Bun handler invocation, stdout/stderr capture, or invocation-error discrimination. Preserve the complete credentialled live-smoke command as a reference, never execute it during this maintenance. Human-only prefix preservation, canonical `last_fenced_mapping` selection, PASS and artifact identity assertions remain binding.
+The preceding maintenance attempt was blocked before amendment: no main-owned helper existed and automatic approval reset did not apply to replacement-field amendments. That attempt changed no plan field. Main subsequently supplied notes/verify-task-structured.py and explicitly revoked approval; this dispatch therefore amended an already-pending plan. Main reports its three helper steps are byte-identical extractions and exit zero; those executions were not repeated here.
 
-## Relocated justification
+## Meaning preservation
 
-Only the settled-cause explanation and rationale that canonical-reader output alone cannot establish the writer may move here; all prohibitions, implementation requirements, receipt requirements and live-proof obligations stay in intent. The settled cause is native OMP 18.10.2 `task.structured` defaulting off while Harness never opted in: revalidation strips injected `outputSchema`/`schemaMode`, so the child lacks yield and the existing yield hook is not reached. The canonical reader proves readable appended bytes, not which writer produced them; actual child/lead yield calls and hook-triggered append must still be established from traces.
+Only T-01 verify and intent changed in loaded plan data. Structural assertions compared the complete pre/post loaded plan, permitting exactly these two replacements; approval, statuses, lanes, decisions, files, traces and all other fields were equal. BRIEF bytes were equal. No SC changes.
 
-Product guidance read: `AGENTS.md`; mapped `.harness/harness/docs/SPEC.md` §8.3; mapped decisions DEC-174, DEC-182, DEC-229 and DEC-237. Conventional `docs/spec.md`, `docs/decisions.md`, `docs/architecture.md` remain absent as the signed intent already records; no substitute guidance is authored.
+Verify replaced exactly three complete Python heredocs, in order, with:
 
-## Invariants and receipts
+- python3 .harness/harness/features/BUG-2171-task-structured/notes/verify-task-structured.py port-red-green
+- python3 .harness/harness/features/BUG-2171-task-structured/notes/verify-task-structured.py hook-red-green
+- python3 .harness/harness/features/BUG-2171-task-structured/notes/verify-task-structured.py append-check
 
-Baseline canonical-JSON SHA-256 fingerprints, collected before amendment (not a failing-gate rerun): non-target plan fields excluding tasks/approval/status `cd2ab8b0465c7701ca8823cf66dc32899a80e644b5a5597c31c122d8f2a681c5`; T-01 excluding intent/verify `f23c294b1562d43bef54cd6474542e7c8b060b1ab97873b2ded8282eb0070dca`; BRIEF bytes `75bb5235556b6f41531db120f32f146c87c1b93aa606456823f29b6e1354016b`. These cover task traces, owned files, execution_mode, statuses, lanes, decisions and SCs. Original verify fingerprint: `6f2c492b3a013134c300b9378fd93acf00e30a434f1dee11038afa33a6b86dfa`.
+An exact string equality assertion reconstructed this replacement from the current authoritative original verify, proving EVERY non-heredoc byte unchanged, including all existing test commands, shell preamble, QA comment and full credentialled live-smoke command. Final verify SHA-256: 108c4eb1867e43d7c01d847ac45b843b0f9a7e8bc12fdba0d09e4196fcb71bad. Unchanged live-smoke line SHA-256: dc4c49f54f95c096c44215deb690bfc9ec270327a9289302031b9daf83f201a1.
 
-Original extracted proof-body SHA-256 fingerprints: gate `af856b2e508a443d2b71363e1389e989c5767c0b4279ff56bc08e6ecda99b2cb` (18 lines), real hook `274212d4b1709d8b014929e26b0677af59a22cc442c2239753dd1c5eff484848` (19 lines), append `eafaca99a4515f9513704eb466f6cf986c282d246626aef8a2b9f2aa606ee838` (10 lines). Complete live-smoke command: `dc4c49f54f95c096c44215deb690bfc9ec270327a9289302031b9daf83f201a1` (1,516 characters).
+The existing helper remains MAIN-OWNED and was not edited. It is a read-only verification dependency, not a task implementation target; T-01 files remains unchanged. All normative intent, including no re-investigation, intact validator, actual yield traces, append ownership, literal verification, regression fixtures and shipment blocking without live proof, remains verbatim. Only the following settled-cause justification moved here, replaced by a useful reference to this note:
 
-## Open questions
+The settled cause is native OMP 18.10.2 task.structured defaulting off while Harness never opted in. Revalidation strips injected outputSchema/schemaMode with that setting off, so the child lacks yield and the existing yield hook is never reached.
 
-- Main must create/own `notes/verify-task-structured.py` and provide its invocation before PM can wire the extracted checks. Ownership was requested directly from Main. `wait` reported: `Nothing to wait for: Main cannot reply before you finish: it is waiting on your result.` The spawning lead was notified of this ownership blocker.
-- Main must resolve the reset conflict: control-plane `plan_merge/amend.py#_amended_text` sets `reset=False`; `plan_merge/union.py#_carry_base_items` explicitly resets only task-set changes, not replacement fields; `plan_merge/stations.py#_reset_approval_lines` and product DEC-229 confirm that policy. The stdout constant still mentions task-field changes, but neither replacement route reaches it. Adding/deleting tasks, modifying control-plane source, or calling sign/revoke is not authorized here.
+The canonical reader proves readable appended bytes, not the writer; the original intent still requires actual child/lead yield calls and hook-triggered append from traces.
 
-No suites, tests, builds, lint, formatters or live smoke have been executed for this maintenance.
+## Commands and receipts
 
-## Verification disposition
+From PRODUCT /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured, before and after:
 
-Before: 75 (supplied CI report). After: unchanged; no final `_budget_lines` result is claimed because no amendment could land within the prerequisites. Approval remains the original `approved`, signed by `operator` on `2026-11-21`; feature phase remains `review`. No `APPROVAL-RESET:` receipt exists, so the conditional GitHub status synchronization was not invoked. No plan-verb side effects occurred.
+    python3 .claude/skills/harness/bin/check-plan-routes.py .harness/harness/features/BUG-2171-task-structured/plan.yaml
 
-The two authorized gates are reserved for after the helper-backed amendment; neither was executed on the known failing baseline:
+Before: exit 1, T-01 75 machine-field lines, budget 50, 1 violation across 1 plan. After: exit 0, 0 violations across 1 plan. Structural inspection through the same script's _budget_lines function measured exactly 25 final lines (runpy.run_path with run_name budget_inspection, yaml.safe_load of the feature plan, _budget_lines(tasks[0])).
 
-- PRODUCT root: `python3 .claude/skills/harness/bin/check-plan-routes.py`
-- `python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/plan-merge.py check --file /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/plan.yaml --root /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured`
+Both replacements used the control-plane interface, capturing stdout:
 
-No plan-changing command was run; therefore no gate/reset stdout is fabricated. The exact proof-body and reference fingerprints above let Main verify a helper extraction without replaying any suite or live smoke.
+    python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/plan-merge.py amend --file /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/plan.yaml --key tasks --id T-01 --field FIELD --show
+    python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/plan-merge.py amend --file /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/plan.yaml --key tasks --id T-01 --field FIELD --expect-sha256 SHA_FROM_SHOW --value-file /dev/stdin --reason 'DEC-182 form-only budget trim; main owns unchanged extracted helper'
+
+FIELD was verify, then intent; each SHA was read immediately from --show. Both exited 0 and printed AMENDED tasks:T-01.FIELD judgement=amendment and APPLIED plan.yaml plus APPLIED feature.json. The tool's automatic check-state reported stale review_sha d3792019e74ff266c2414708124512544d1fc9f6 (INV-33), expected pending approval and historical/layout notes. This is not a passing review claim. No APPROVAL-RESET receipt occurred and no GitHub sync was invoked. The feature.json write was a plan-merge side effect, not manual bookkeeping.
+
+PRODUCT AGENTS.md and mapped SPEC section 8.3 plus DEC-182 were consulted; mapped DEC-174/229/237 guidance was already recorded in the prior research. Conventional docs/spec.md, docs/decisions.md and docs/architecture.md remain recorded absent in unchanged intent; no substitute documents were authored. SPEC's string refusal versus the settled JSON-object-string ruling remains explicitly recorded in unchanged intent.
+
+## Touched paths and open questions
+
+Repository: feature plan.yaml; this research note; feature.json (automatic plan-merge side effect). Scratch: /tmp/bug2171-verify.txt (literal replacement input). No helper/source/test/config/BRIEF edits. No open questions. Main must refresh review provenance through its normal approval/review flow; this amendment makes no implementation or SC-outcome claim.

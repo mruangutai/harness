@@ -120,8 +120,17 @@
       "id": "2026-11-21-06-patch-product",
       "squad": "product",
       "agent": "harness-product-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-21T16:44:12+00:00"
+      "verdict": "PASS",
+      "started_at": "2026-11-21T16:44:12+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-06-patch-product/digest.md",
+        "sha256": "b84b8fc1d38eee10517e107ddd522ba414b21751be35e5f606b3d881ceefd7b1"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T16:48:57+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -166,6 +175,20 @@
       "kind": "continue",
       "decision": "main-owns-helper-and-revoke",
       "reason": "trim blocked on main-owned verify helper and explicit revoke-approval; main supplies both then redispatches"
+    },
+    {
+      "at": "2026-11-21T16:47:01.951542+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "DEC-182 form-only budget trim; main owns unchanged extracted helper"
+    },
+    {
+      "at": "2026-11-21T16:47:05.226025+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "DEC-182 form-only budget trim; main owns unchanged extracted helper"
     }
   ],
   "mission": "patch",
