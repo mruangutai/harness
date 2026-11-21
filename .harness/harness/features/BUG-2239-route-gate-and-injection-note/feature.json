@@ -37,6 +37,22 @@
       "tokens": null,
       "ended_at": "2026-11-21T21:03:36+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-03-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T21:07:37+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-03-patch-product/digest.md",
+        "sha256": "70178720aa4e1ead1651162c6927b2d9960eb9537fa370bcd45856e791c1f7a5"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T21:12:07+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -55,5 +71,13 @@
       "reason": "fold authored and gated; main runs the four-angle plan simplify before applying the operator's signature"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2239-route-gate-and-injection-note/.harness/harness/features/BUG-2239-route-gate-and-injection-note/notes/operator-signature-2026-11-21.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "2704db011754b9fe8873aaea982352f9ee9de301f9513358df07f579e5895bf0"
+  }
 }
