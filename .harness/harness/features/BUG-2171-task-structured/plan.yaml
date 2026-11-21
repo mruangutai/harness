@@ -3,10 +3,7 @@ feature: BUG-2171-task-structured
 approval:
   date: '2026-11-21'
   approved_by: operator
-  status: pending
-  reset_at: '2026-11-21T16:44:09+00:00'
-  reset_reason: 'revoke-approval operator: T-01 exceeds DEC-182 machine-field budget (75/50); form-only trim needs re-signature'
-  resume_station: review
+  status: approved
 status: plan
 source_issues: [2171]
 lanes:

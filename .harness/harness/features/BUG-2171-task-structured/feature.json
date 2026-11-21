@@ -195,10 +195,10 @@
   "rework": {
     "rounds": 1,
     "wall_clock_minutes": 45,
-    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/notes/operator-signature-2026-11-21.md"
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/notes/operator-resignature-2026-11-21.md"
   },
   "signed_task_hashes": {
-    "T-01": "5fafcfc5a5a659414a6eceaa9341c2b2dc7fe976c7abb2abc7e46687987fc0be"
+    "T-01": "a1b96706cabf52a8828fea4bc23745523837a8f3a6fb0c385e1e4a55ef612c61"
   },
   "github": {
     "milestone": 111,
