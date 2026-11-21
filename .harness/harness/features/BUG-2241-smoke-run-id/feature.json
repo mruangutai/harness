@@ -1,0 +1,43 @@
+{
+  "feature_id": "BUG-2241-smoke-run-id",
+  "branch": "feat/BUG-2241-smoke-run-id",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-21-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-21T20:15:31+00:00",
+      "tokens": 49824,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-01-plan-product/digest.md",
+        "sha256": "7c408e555b3165dbfa2da5213bfb753e6ad750836a08e7db03dde3c13f472bdb"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T20:26:51+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-21T20:15:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause known (no rule in harness-spec-driven verify guidance; BUG-2171 T-01 hard-coded a single-use smoke id); diff is one guidance rule in .agents/skills/harness-spec-driven/SKILL.md; no new interface; ordinary execution path"
+    },
+    {
+      "at": "2026-11-21T20:26:52+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "E-01 resolved by measurement: check-domain --resolve returns NOBODY for harness-spec-driven/SKILL.md for every squad persona; T-01 main-session-direct per DEC-179, disclosed at signature"
+    }
+  ],
+  "mission": "patch"
+}
