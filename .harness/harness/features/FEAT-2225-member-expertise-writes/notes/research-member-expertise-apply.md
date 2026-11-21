@@ -1,0 +1,35 @@
+# FEAT-2225 — reader findings applied; proposal remains pending
+
+All four classified findings are resolved in the proposal, not claimed as implemented. Four tasks, three decisions and six SCs retain the binding grilling's member ownership, all-16 capability, worktree writes, lead verification, replay and original-member judgment. No signature, build, tests, lint, format, goal-check or proportionality reader re-cycle ran.
+
+## Finding dispositions
+
+- PF-35d0f7a433ed64af6ae1c772dbc21e87, high substance → resolved by T-04. D-03, SC-05 and T-04 require existing owner resolution plus merge-gate.py _handle_owners/_enforce_receipt and feature_schema binding/mirror predicates before synchronous internal gh merge. Replay-valid missing-receipt, wrong-repository and recovery-required cases must refuse before fake gh executes. Governing DEC-220, One binding and receipt predicate; existing product seam: .claude/skills/harness/bin/merge-gate.py _enforce_receipt/_handle_owners. Internal gh receives no independent host Bash event.
+- PF-c321e721c79eac9f7de5afe11f1ce5db, med task proportionality → resolved by T-04. Removed check-domain.py and test-check-domain.py anchors/lanes and the new direct file-tool denial from SC-03/T-04. The grilling settled the shell loophole, not removal-by-denial of retained Write/grants. Missing or inconsistent receipt/file evidence still refuses close-run and replay/merge; no integrity gate was dropped.
+- PF-54f95156a56007c371f6f6d198e99420, low task proportionality → resolved by T-01. Removed write-ahead/interrupted-transaction/resume machinery and its special tests. Receipts persist atomically through the existing facility; missing evidence or target/receipt disagreement fails closed. Per-runtime sequential receipts need no extra journal to obtain these landing guarantees.
+- PF-56a0a01a997b0fc444b5328e6bd027c6, low task proportionality → resolved by T-04. SC-01 retains actual create/add/replace/drop capability for all 16; every config is checked independently for tool, Write and own-file grants. Behavior representatives are harness-product-lead (shell-less), harness-code-reviewer (READ-ONLY), harness-dev-ops, harness-orchestrator and harness-backend-dev. This discriminates capability boundaries without sixteen copies of one E2E path.
+
+## Q1 and pre-ship evidence
+
+Q1 is answered, not classified or escalated as a user question. Existing cmd_ops has strict ordinary op keys and no replay/receipt implementation, so there is no existing retirement API to reuse. T-01 adds exact batch supersedes references inside replacement PR receipts; T-04 authorizes the same original persona, feature and destination through trusted distill lineage, allowing a re-dispatched runtime child. Replacement reconstruction starts from current main with the referenced whole batch omitted and other active batches retained; old receipts remain immutable. Failed/mismatched replacement cannot retire history. Empty withdrawal is a member judgment, not an invented digest op. Active replay/close selection follows verified successful replacements, with unauthorized/ambiguous references refused. T-01/T-04 require refusal → original-member re-judgment → successful replay, retained-history and repeat-replay coverage. T-02/T-03 carry the contract into SPEC, successor decision and skills. No digest state enum, independent selection ledger or queue.
+
+BRIEF Verification gaps and terminal T-04 schedule configured locally_run handoff_comprehension (tests/manual/probe-handoff-comprehension.py) on a credentialled OMP host before ship, with feature-notes output. It did not run here; unresolved/null TypeScript typecheck remains disclosed too.
+
+## Actual planning receipts
+
+Product worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes. HEAD and lanes.resolved_at: 6451153169f469f5bd9d5f3f01bf89b82787b720. Feature artifacts below live in its .harness/harness/features/FEAT-2225-member-expertise-writes directory. Control-plane commands used /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/.
+
+- inflight_registry.py feature-root returned the assigned worktree, exit 0.
+- plan-merge.py apply printed/captured REPLACED for D-03.choice/because, T-01/T-02/T-03.intent and T-04.files/intent, then APPLIED with the absolute plan path, exit 0 (full tool output artifact://1060). No APPROVAL-RESET: receipt occurred, so no gh-sync was called. set-lanes printed LANES 23 row(s) resolved at the HEAD above and APPLIED, exit 0. Temporary proposal/value files were removed.
+- Required record-panel --file <absolute feature plan.yaml> --digest <absolute feature runs/plan-product/panel-c1.md> --cycle 1 exited 0. Actual stdout added PF-35d0f7a433ed64af6ae1c772dbc21e87, PF-c321e721c79eac9f7de5afe11f1ce5db, PF-54f95156a56007c371f6f6d198e99420 and PF-56a0a01a997b0fc444b5328e6bd027c6, then PANEL cycle 1 from the supplied panel path and APPLIED. set-panel then printed PANEL cycle 1 and APPLIED, exit 0, marking the four resolved_by tasks above without changing reader severity/kind/summary.
+- Required plan-merge.py check --file <absolute feature plan.yaml> --root <product worktree> exited 0 after panel dispositions. Actual output: OK T-01 3 anchor(s) resolved; OK T-02 3 anchor(s) resolved; OK T-03 20 anchor(s) resolved; OK T-04 14 anchor(s) resolved; CHECK <absolute plan path> against <product worktree>: 4 task(s), 40 anchor(s) resolved, 0 failure(s). No OVERLAP or FAIL lines.
+- check-domain.py --resolve ran for all 40 planned files plus this note, BRIEF and plan; xargs exited 0. T-01 permits backend-dev (also dev-ops; tests also qa); T-02 permits documentor. All 20 T-03 files and T-04's extension return NOBODY; remaining T-04 paths return bin/test specialists but remain main-session-direct under DEC-174. The three actual artifact paths grant pm/orchestrator. Capability is not DEC-174 execution sanction; no enforcement task is assigned to a squad.
+- Metadata selection confirmed source_issues: [2225], status: plan, approval.status: pending and four literal verify: | blocks. BRIEF remains pending; approval fields were not authored.
+
+## Signature issues and open questions
+
+No unresolved implementation question or open classified finding remains in this proposal. Plan verbs' automatic check-state diagnostics still report unsigned BRIEF, missing Build-entry receipt (INV-37), registered r-20261121-1-plan-product versus on-disk runs/plan-product mismatch/unknown historical cycle attribution, and untracked feature-directory notice. These are not a clean check-state claim and were not repaired by signing, opening mirrors or editing someone else's run. Parent must reconcile its run identity; Main owns explicit signature and subsequent mirror transaction. Required record-panel/check both passed independently of those diagnostics. Goal-check remains the separate once-at-exit step.
+
+## Principles applied
+
+- Redesign From First Principles: fold mirror provenance, original-member recovery and retained capability directly into existing SCs/tasks/guidance rather than add an exempt executor, scribe branch or parallel queue.

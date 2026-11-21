@@ -1,0 +1,5 @@
+# Observations — harness-orchestrator — FEAT-2225-member-expertise-writes
+
+- 2026-11-21: Lead returns via the task tool's structured output never passed the host yield gate (validate-digest --hook): no fenced record was appended to either digest.md, and run 2's first return was contract-invalid (readers[0] carried verdict/artifact, lacked reason) yet was delivered as completed. Orchestrator validated each verbatim object in CLI mode, appended the fence for valid ones, and re-dispatched the lead assess-not-redo for the invalid one. Harness defect, reported in open_questions.
+- 2026-11-21: Registering a run id that differs from the run-dir slug (r-20261121-1-plan-product vs runs/plan-product) trips INV-8 "dir is absent" for the whole run; naming the run dir exactly after the run id in the dispatch avoids the rename afterwards.
+- 2026-11-21: A plan lead that applies a high substance finding inside its own run still rolls up the reader's FAIL (worst-wins); the honest close is FAIL at zero cycles, then a scoped re-panel run over the named task with --regate, which cost one cycle and four minutes.

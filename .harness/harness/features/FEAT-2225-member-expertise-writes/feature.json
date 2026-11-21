@@ -1,0 +1,59 @@
+{
+  "feature_id": "FEAT-2225-member-expertise-writes",
+  "branch": "feat/FEAT-2225-member-expertise-writes",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261121-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T16:33:53+00:00",
+      "tokens": 80855,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-1-plan-product/digest.md",
+        "sha256": "76edddb3aeda7d1afd4fb08bbad2abf62aea1feb7cbf2a6ea9fa6c2b437965fc"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T17:13:21+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-2-plan-c2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T17:13:33+00:00",
+      "tokens": 25611,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-2-plan-c2-product/digest.md",
+        "sha256": "a92dd28d8821b2db3f2a570844398850dedddbd4da8b4d46d07bd6fad006ad70"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-21T17:21:42+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-21T16:33:50+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "cause known and files mostly nameable, but it adds new enforcement surface \u2014 a host tool, a digest schema field, a replay command, a merge-gate rule and a write-guard rule"
+    },
+    {
+      "at": "2026-11-21T17:13:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel T-04 with the scope reader over the applied text; no goal-check re-run (SC-09)",
+      "reason": "scope reader FAIL (PF-35d0f7a4, high substance) applied by pm inside run 1 but unread by the reader; re-panel T-04 only"
+    }
+  ],
+  "mission": "plan"
+}
