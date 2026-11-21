@@ -21,7 +21,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Rule-skill path resolves to NOBODY; disclose the conflict with the requested team route before signature.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .agents/skills/harness-spec-driven/SKILL.md
     verify: |

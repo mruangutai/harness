@@ -1,0 +1,19 @@
+PASS SC-01 content; SC-03 skill words 1181 (+44)
+  5045  harness-pm
+  4924  harness-eng-lead
+  4838  harness-code-reviewer
+  4177  harness-ai-dev
+  4177  harness-backend-dev
+  4177  harness-data-engineer
+  4177  harness-dev-ops
+  4177  harness-frontend-dev
+  4115  harness-product-lead
+  4115  harness-validator-lead
+  3847  harness-orchestrator
+  3494  harness-qa
+  1476  harness-documentor
+  1476  harness-security-reviewer
+  1476  harness-ui-reviewer
+  1476  harness-visual-designer
+  1476  universal: harness-handoff, harness-expertise, harness-principles
+ 57167  total across 16 agents
