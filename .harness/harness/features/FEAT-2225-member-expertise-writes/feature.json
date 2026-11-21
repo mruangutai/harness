@@ -112,6 +112,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-21T23:03:50+00:00"
+    },
+    {
+      "id": "r-20261121-8-validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T23:14:48+00:00",
+      "tokens": 46662,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-8-validate-c3-validator/digest.md",
+        "sha256": "4122d538d5768f1c8d92fa6992d97fad0cd36eded3c3e4ba678a314407171d9e"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T23:25:47+00:00"
     }
   ],
   "judgements": [
@@ -177,6 +192,27 @@
       "kind": "finding_kind",
       "decision": "form",
       "reason": "QA-N2 (kind 'evidence', low): volatile T-01 raw logs and receipt-only configuration reds are an evidence-durability record qualification, not shipped-code behaviour; form, non-gating, carried as coverage_gaps as in c1"
+    },
+    {
+      "at": "2026-11-21T23:14:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 3 over 6d9e6053: re-judge F2, confirm F1/F3 closed",
+      "reason": "c2 FAIL on F2 only; main-direct fix 219690d0 anchors receipt chains on merge-base; rework round 2 of 2 under answers-2026-11-21-signoff.md; successor continues from handoff seq-7"
+    },
+    {
+      "at": "2026-11-21T23:14:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "c2 FAIL on F2 only; main-direct fix 219690d0 anchors receipt chains on merge-base; rework round 2 of 2 under answers-2026-11-21-signoff.md; successor continues from handoff seq-7"
+    },
+    {
+      "at": "2026-11-21T23:25:49+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "c3 FAIL: F2 open high (mutable local default refs self-authorize); rework ruling 2/2 exhausted; must_fix returned to operator"
     }
   ],
   "mission": "plan",
