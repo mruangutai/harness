@@ -3,7 +3,7 @@
   "branch": "feat/BUG-20261006-fleet-planning-recovery",
   "pr": null,
   "review_sha": "6451153169f469f5bd9d5f3f01bf89b82787b720",
-  "cycles_used": 0,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -73,8 +73,17 @@
       "id": "2026-11-21-1-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-21T16:33:14+00:00"
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T16:33:14+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-1-validator/digest.md",
+        "sha256": "45a43bde116dd7bf5dbb196c2d3293f41fefea79c707d8a2aa1a0826f15b329d"
+      },
+      "cycles_used": 2,
+      "tokens": null,
+      "ended_at": "2026-11-21T16:53:45+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
