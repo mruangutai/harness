@@ -97,6 +97,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-21T22:28:46+00:00"
+    },
+    {
+      "id": "r-20261121-7-validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T22:51:49+00:00",
+      "tokens": 48125,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-7-validate-c2-validator/digest.md",
+        "sha256": "e0d9184cb54a0b41cafca867ec0a0c5713e0a1eb286d3264e869ce8c786ea503"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T23:03:50+00:00"
     }
   ],
   "judgements": [
@@ -141,6 +156,27 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "panel must_fix F1-F3 cite T-04 (main-session-direct) and T-01; no squad fix run can own F1/F3, so route one main-direct fix segment then re-validate (rework round 1 of 2)"
+    },
+    {
+      "at": "2026-11-21T22:51:49+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-validate seq-6 Next matches PLAN: c1 must_fix F1-F3 landed main-session-direct at 06ab8282 (receipt-main-session-fix-c1.md), gates rc0; re-pinned 23805867, station review; validate c2 is rework round 1 of 2"
+    },
+    {
+      "at": "2026-11-21T23:03:52+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "c2 F1/F3 closed; F2 still open (verify-receipt anchors on HEAD; validate-digest passes no base) spans T-01+T-04 so one main-direct fix segment then validate c3 = rework round 2 of 2"
+    },
+    {
+      "at": "2026-11-21T23:04:05+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "form",
+      "reason": "QA-N2 (kind 'evidence', low): volatile T-01 raw logs and receipt-only configuration reds are an evidence-durability record qualification, not shipped-code behaviour; form, non-gating, carried as coverage_gaps as in c1"
     }
   ],
   "mission": "plan",
