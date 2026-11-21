@@ -467,8 +467,8 @@ def default_title(file_path):
     return f"# Expertise — {base}"
 
 
-EXPERTISE_TAIL = re.compile(
-    r"(?:^|/)\.harness/(?:[^/]+/)?expertise/(harness-[a-z0-9-]+)\.md$")
+_EXPERTISE_REL = r"\.harness/(?:[^/]+/)?expertise/(harness-[a-z0-9-]+)\.md"
+EXPERTISE_TAIL = re.compile(r"(?:^|/)" + _EXPERTISE_REL + "$")
 
 
 def require_expertise_destination(file_path):
@@ -713,7 +713,7 @@ FEATURE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 REV_RE = re.compile(r"^[0-9a-fA-F]{7,64}$")
 RECEIPT_NAME_RE = re.compile(r"^expertise-receipt-([0-9a-f]{64})\.json$")
-EXPERTISE_PATH_RE = re.compile(r"^\.harness/(?:[^/]+/)?expertise/harness-[a-z0-9-]+\.md$")
+EXPERTISE_PATH_RE = re.compile("^" + _EXPERTISE_REL + "$")
 HEADER_KEYS = ("persona", "feature", "runtime_id", "parent_id")
 RECEIPT_KEYS = {"schema", "batches", *HEADER_KEYS}
 IDENTITY_KEYS = ("seq", "destination", "ops", "originals", "before_sha256", "after_sha256", "supersedes")
@@ -748,11 +748,11 @@ def section_counts(sections):
 def destination_rel(persona, tier, segment):
     """The checkout-relative path of the persona's own file. The persona is a host-bound name
     and the repository segment a literal token, never a free path."""
-    if not (isinstance(persona, str) and PERSONA_RE.match(persona)):
+    if not _is_persona(persona):
         _refuse(9, f"REFUSED persona {persona!r} is not a harness-* persona name")
     if tier == "craft" and segment is None:
         return f".harness/expertise/{persona}.md"
-    if tier == "repository" and isinstance(segment, str) and SEGMENT_RE.match(segment) and segment != "expertise":
+    if tier == "repository" and _declared_segment(segment):
         return f".harness/{segment}/expertise/{persona}.md"
     _refuse(9, f"REFUSED destination tier={tier!r} repository={segment!r}: use craft with no "
                "repository segment, or repository with one literal declared segment")
@@ -853,14 +853,25 @@ def _require(condition, name, message):
         _invalid(name, message)
 
 
+def _is_persona(value):
+    return isinstance(value, str) and bool(PERSONA_RE.match(value))
+
+
+def _is_text(value):
+    return isinstance(value, str) and bool(value)
+
+
+def _declared_segment(segment):
+    return isinstance(segment, str) and bool(SEGMENT_RE.match(segment)) and segment != "expertise"
+
+
 def _destination_form_ok(persona, rel):
     if not isinstance(rel, str):
         return False
     if rel == f".harness/expertise/{persona}.md":
         return True
     match = re.fullmatch(r"\.harness/([^/]+)/expertise/(.+)\.md", rel)
-    return bool(match and match.group(2) == persona and SEGMENT_RE.match(match.group(1))
-                and match.group(1) != "expertise")
+    return bool(match and match.group(2) == persona and _declared_segment(match.group(1)))
 
 
 def _check_original(name, index, verb, entry, original):
@@ -868,19 +879,30 @@ def _check_original(name, index, verb, entry, original):
     _require(possible, name, f"originals[{index}] is impossible for op={verb}")
 
 
+def _parse_recorded_op(name, op, index):
+    try:
+        return _parse_op(op, index)
+    except harness_merge.MergeRefusal as exc:
+        _invalid(name, "; ".join(exc.lines))
+
+
+def _record_describes(record, section, target):
+    return (isinstance(record, dict) and set(record) == {"section", "target", "original"}
+            and record["section"] == section and record["target"] == target)
+
+
+def _validate_op_record(name, index, op, record):
+    verb, target, section, entry = _parse_recorded_op(name, op, index)
+    _require(_record_describes(record, section, target), name, f"originals[{index}] does not describe op {index}")
+    _check_original(name, index, verb, entry, record["original"])
+
+
 def _validate_ops(name, batch):
     ops, originals = batch["ops"], batch["originals"]
     _require(isinstance(ops, list) and isinstance(originals, list) and len(ops) == len(originals),
              name, "ops and originals must be parallel lists")
     for index, (op, record) in enumerate(zip(ops, originals)):
-        try:
-            verb, target, section, entry = _parse_op(op, index)
-        except harness_merge.MergeRefusal as exc:
-            _invalid(name, "; ".join(exc.lines))
-        _require(isinstance(record, dict) and set(record) == {"section", "target", "original"}
-                 and record["section"] == section and record["target"] == target,
-                 name, f"originals[{index}] does not describe op {index}")
-        _check_original(name, index, verb, entry, record["original"])
+        _validate_op_record(name, index, op, record)
 
 
 def _validate_batch_fields(name, batch):
@@ -902,14 +924,18 @@ def _validate_batch(name, header, index, batch):
     _validate_batch_fields(name, batch)
 
 
-def _validate_receipt(name, raw, feature, digest):
+def _validate_receipt_header(name, raw, feature, digest):
     _require(isinstance(raw, dict) and set(raw) == RECEIPT_KEYS and raw["schema"] == RECEIPT_SCHEMA,
              name, "unexpected shape or schema")
-    _require(isinstance(raw["persona"], str) and PERSONA_RE.match(raw["persona"]), name, "bad persona")
+    _require(_is_persona(raw["persona"]), name, "bad persona")
     _require(raw["feature"] == feature, name, f"receipt is for feature {raw['feature']!r}, not {feature!r}")
-    _require(isinstance(raw["runtime_id"], str) and raw["runtime_id"]
-             and _sha256(raw["runtime_id"].encode("utf-8")) == digest, name, "runtime_id does not match the file name")
-    _require(isinstance(raw["parent_id"], str) and raw["parent_id"], name, "bad parent_id")
+    _require(_is_text(raw["runtime_id"]) and _sha256(raw["runtime_id"].encode("utf-8")) == digest,
+             name, "runtime_id does not match the file name")
+    _require(_is_text(raw["parent_id"]), name, "bad parent_id")
+
+
+def _validate_receipt(name, raw, feature, digest):
+    _validate_receipt_header(name, raw, feature, digest)
     _require(isinstance(raw["batches"], list), name, "batches must be a list")
     for index, batch in enumerate(raw["batches"]):
         _validate_batch(name, raw, index, batch)
@@ -1229,6 +1255,20 @@ def _file_report(plan, will_write):
         "counts": {"base": plan["base_counts"], "result": section_counts(plan["replay"].sections)}}
 
 
+def _plan_refusals(plans):
+    return [r for plan in plans for r in plan["replay"].refusals]
+
+
+def _plan_mappings(plans):
+    return [m for plan in plans for m in plan["replay"].mappings]
+
+
+def _write_plans(plans):
+    for plan in plans:
+        if plan["data"] != plan["current"]:
+            harness_merge.locked_update(plan["path"], lambda _current, data=plan["data"]: data)
+
+
 def replay_feature(root, feature, base, check_only):
     """Rebuild every touched file from the main blob and replay the PR's active batches.
     All-or-nothing: any refusal leaves every file byte-identical. `check_only` never writes."""
@@ -1238,16 +1278,14 @@ def replay_feature(root, feature, base, check_only):
     _check_coverage(real_root, base_sha, entries)
     plans = [_plan_destination(real_root, base_sha, rel, batches)
              for rel, batches in _by_destination(active).items()]
-    refusals = [r for plan in plans for r in plan["replay"].refusals]
+    refusals = _plan_refusals(plans)
     will_write = not refusals and not check_only
     files = [_file_report(plan, will_write) for plan in plans]
     if will_write:
-        for plan in plans:
-            if plan["data"] != plan["current"]:
-                harness_merge.locked_update(plan["path"], lambda _current, data=plan["data"]: data)
+        _write_plans(plans)
     return {"replayed": not refusals, "check": check_only, "base": base_sha, "receipts": manifest,
             "batches": [e["id"] for e in ordered(active)], "files": files, "refusals": refusals,
-            "mappings": [m for plan in plans for m in plan["replay"].mappings]}
+            "mappings": _plan_mappings(plans)}
 
 
 # ---- member-ops ------------------------------------------------------------------------------
@@ -1325,6 +1363,7 @@ def _original_entries(sections, ops):
 
 def _land_target(dest, rel, ops, reconstruct):
     """Compute and persist the target under harness_merge's lock; returns what the receipt records."""
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
     landed = {}
 
     def transform(current):
@@ -1381,28 +1420,41 @@ def _confirm_agreement(dest, receipt, caller, batch):
         _refuse(EXIT_EVIDENCE, f"RECEIPT/FILE MISMATCH batch={batch['id']}: the receipt and {batch['destination']} disagree")
 
 
+def _locate(root, feature, persona, runtime_id, tier, segment):
+    """(real root, destination rel, destination path, receipt path) for the host-bound caller."""
+    real_root = os.path.realpath(root)
+    rel = destination_rel(persona, tier, segment)
+    dest = resolve_destination(real_root, rel)
+    return real_root, rel, dest, receipt_location(feature_directory(real_root, feature), runtime_id)
+
+
+def _reconstructor(refs, real_root, base_sha, rel, active):
+    """None for an ordinary write; for a replacement, the callable that rebuilds the target."""
+    return (lambda: _reconstruct(real_root, base_sha, rel, active)) if refs else None
+
+
+def _member_report(real_root, caller, rel, receipt, refs, batch, landed):
+    return {"applied": True, "persona": caller["persona"], "feature": caller["feature"],
+            "runtime_id": caller["runtime_id"], "destination": rel, "batch": batch["id"],
+            "supersedes": refs, "receipt": os.path.relpath(receipt, real_root),
+            "outcomes": landed["outcomes"], "counts": landed["counts"],
+            "before_sha256": landed["before_sha256"], "after_sha256": landed["after_sha256"]}
+
+
 def member_ops(root, feature, persona, runtime_id, parent_id, tier, segment, ops_text, supersedes=(), base=None):
     """Apply the persona's ordinary ops to its own file beneath the feature checkout and record
     the batch. Returns the JSON-ready result; raises MergeRefusal for every refusal."""
     caller = _caller(feature, persona, runtime_id, parent_id)
     refs = _supersedes_refs(supersedes, base)
     ops = _decode_ops(ops_text, bool(refs))
-    real_root = os.path.realpath(root)
-    rel = destination_rel(persona, tier, segment)
-    dest = resolve_destination(real_root, rel)
-    receipt = receipt_location(feature_directory(real_root, feature), runtime_id)
+    real_root, rel, dest, receipt = _locate(root, feature, persona, runtime_id, tier, segment)
     own = _own_receipt(receipt, caller)
     base_sha, active = _supersession_context(real_root, caller, rel, refs, base, own, receipt)
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
-    reconstruct = (lambda: _reconstruct(real_root, base_sha, rel, active)) if refs else None
+    reconstruct = _reconstructor(refs, real_root, base_sha, rel, active)
     landed = _land_target(dest, rel, ops, reconstruct)
     batch = _persist_batch(receipt, caller, rel, ops, landed, refs)
     _confirm_agreement(dest, receipt, caller, batch)
-    return {"applied": True, "persona": persona, "feature": feature, "runtime_id": runtime_id,
-            "destination": rel, "batch": batch["id"], "supersedes": refs,
-            "receipt": os.path.relpath(receipt, real_root), "outcomes": landed["outcomes"],
-            "counts": landed["counts"], "before_sha256": landed["before_sha256"],
-            "after_sha256": landed["after_sha256"]}
+    return _member_report(real_root, caller, rel, receipt, refs, batch, landed)
 
 
 # ---- read-only verification ------------------------------------------------------------------
@@ -1449,41 +1501,58 @@ def _check_caller_identity(own, caller):
                                    f"parent {entry['parent_id']}, not the caller")
 
 
-def verify_receipt(root, feature, persona, runtime_id, parent_id, tier, segment, claimed, base=None):
-    """READ-ONLY. Match persona, feature, runtime ids, exact ops and destination against the
-    ordered active batches, then compare the file with their final effect. Never applies."""
-    caller = _caller(feature, persona, runtime_id, parent_id)
-    real_root = os.path.realpath(root)
-    rel = destination_rel(persona, tier, segment)
-    dest = resolve_destination(real_root, rel)
-    receipt = receipt_location(feature_directory(real_root, feature), runtime_id)
+def _require_files(real_root, receipt, dest, rel):
     if not os.path.isfile(receipt):
         _refuse(EXIT_EVIDENCE, f"MISSING RECEIPT {os.path.relpath(receipt, real_root)}")
     if not os.path.isfile(dest):
         _refuse(EXIT_EVIDENCE, f"MISSING FILE {rel}")
+
+
+def _recorded_batches(real_root, feature, caller, rel, base):
+    """The caller's active batches for `rel`, in sequence, after the receipt identity is bound."""
     entries, active, _ = load_active(real_root, feature, resolve_base(real_root, base) if base else None)
+    runtime_id = caller["runtime_id"]
     _check_caller_identity([e for e in entries if e["runtime_id"] == runtime_id], caller)
-    mine = sorted((e for e in active if e["runtime_id"] == runtime_id and e["destination"] == rel),
+    return sorted((e for e in active if e["runtime_id"] == runtime_id and e["destination"] == rel),
                   key=lambda e: e["seq"])
-    unreported = _match_claimed(mine, _claimed_ops(claimed, persona))
+
+
+def _read_destination(dest, rel):
     with open(dest, "rb") as fh:
         data = fh.read()
     _, sections, _, _ = parse_state(data, rel)
-    mismatches = _effect_mismatches(mine, sections)
+    return data, sections
+
+
+def _refuse_mismatches(batches, sections):
+    mismatches = _effect_mismatches(batches, sections)
     if mismatches:
         _refuse(EXIT_EVIDENCE, *[f"MISMATCH {s} {i}: receipt says {want!r}, file holds {got!r}"
                                  for (s, i), want, got in mismatches])
-    preserved = [[op["section"], op["target"]] for e in mine for op, rec in zip(e["ops"], e["originals"])
-                 if op["op"] == "add" and rec["original"] == op["entry"]]
+
+
+def _preserved_adds(batches):
+    """[section, id] of every add whose identical entry already stood in the file."""
+    return [[op["section"], op["target"]] for e in batches for op, rec in zip(e["ops"], e["originals"])
+            if op["op"] == "add" and rec["original"] == op["entry"]]
+
+
+def verify_receipt(root, feature, persona, runtime_id, parent_id, tier, segment, claimed, base=None):
+    """READ-ONLY. Match persona, feature, runtime ids, exact ops and destination against the
+    ordered active batches, then compare the file with their final effect. Never applies."""
+    caller = _caller(feature, persona, runtime_id, parent_id)
+    real_root, rel, dest, receipt = _locate(root, feature, persona, runtime_id, tier, segment)
+    _require_files(real_root, receipt, dest, rel)
+    mine = _recorded_batches(real_root, feature, caller, rel, base)
+    unreported = _match_claimed(mine, _claimed_ops(claimed, persona))
+    data, sections = _read_destination(dest, rel)
+    _refuse_mismatches(mine, sections)
     return {"verified": True, "persona": persona, "feature": feature, "runtime_id": runtime_id,
-            "destination": rel, "batches": [e["id"] for e in mine], "preserved": preserved,
+            "destination": rel, "batches": [e["id"] for e in mine], "preserved": _preserved_adds(mine),
             "unreported": unreported, "counts": section_counts(sections), "file_sha256": _sha256(data)}
 
 
-def main():
-    parser = argparse.ArgumentParser(prog="expertise-merge.py")
-    sub = parser.add_subparsers(dest="cmd", required=True)
-
+def _add_apply_parser(sub):
     p_apply = sub.add_parser("apply", help="union-merge a proposal into an Expertise file")
     p_apply.add_argument("--file", required=True, help="path to the Expertise markdown file")
     p_apply.add_argument(
@@ -1491,6 +1560,8 @@ def main():
     )
     p_apply.set_defaults(func=cmd_apply)
 
+
+def _add_ops_parser(sub):
     p_ops = sub.add_parser("ops", help="apply add/replace/drop ops to an Expertise file")
     p_ops.add_argument("--file", required=True, help="path to the Expertise markdown file")
     p_ops.add_argument(
@@ -1500,6 +1571,8 @@ def main():
     )
     p_ops.set_defaults(func=cmd_ops)
 
+
+def _add_member_parser(sub):
     p_member = sub.add_parser("member-ops", help="apply ops to a persona's own file and record a receipt")
     _add_identity_arguments(p_member)
     p_member.add_argument("--ops", required=True, help="path to a JSON list of ordinary ops, or - for stdin")
@@ -1507,12 +1580,16 @@ def main():
     p_member.add_argument("--base", help="main commit sha; required with --supersedes")
     p_member.set_defaults(func=cmd_member_ops)
 
+
+def _add_verify_parser(sub):
     p_verify = sub.add_parser("verify-receipt", help="read-only: check a member's claimed ops against its receipt")
     _add_identity_arguments(p_verify)
     p_verify.add_argument("--claimed", required=True, help="path to the expertise_update list, or - for stdin")
     p_verify.add_argument("--base", help="main commit sha; limits receipts to this PR's")
     p_verify.set_defaults(func=cmd_verify_receipt)
 
+
+def _add_replay_parser(sub):
     p_replay = sub.add_parser("replay", help="replay this PR's receipts onto the main base")
     p_replay.add_argument("--root", required=True)
     p_replay.add_argument("--feature", required=True)
@@ -1520,6 +1597,13 @@ def main():
     p_replay.add_argument("--check", action="store_true", help="read-only: report, write nothing")
     p_replay.set_defaults(func=cmd_replay)
 
+
+def main():
+    parser = argparse.ArgumentParser(prog="expertise-merge.py")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    for add_parser in (_add_apply_parser, _add_ops_parser, _add_member_parser,
+                       _add_verify_parser, _add_replay_parser):
+        add_parser(sub)
     args = parser.parse_args()
     args.func(args)
 

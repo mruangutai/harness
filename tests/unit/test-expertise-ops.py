@@ -416,6 +416,7 @@ def case_u23():
 # are RED against the pre-change tool (every name below is new) and each one is paired with a
 # one-mechanism mutant in the T-01 receipt.
 # ---------------------------------------------------------------------------------------------
+import contextlib
 import json
 import shutil
 import tempfile
@@ -509,21 +510,34 @@ def refusal_reason(blob, entries):
     return refusals[0]["reason"] if refusals else None
 
 
-def case_u34_replace_drop_originals():
+def u34_fixtures():
     changed = replay_blob([("Patterns", [("P-01", "changed upstream")])])
     gone = replay_blob([("Patterns", [("P-02", "other")])])
     ready = replay_blob([("Patterns", [("P-01", "orig")])])
     done = replay_blob([("Patterns", [("P-01", "new")])])
     rep = replay_entry("r1", [op("replace", "Patterns", "P-01", "new")], ["orig"])
     drp = replay_entry("r1", [op("drop", "Patterns", "P-01")], ["orig"])
+    return changed, gone, ready, done, rep, drp
+
+
+def case_u34_refusals():
+    changed, gone, _, _, rep, drp = u34_fixtures()
     check("u34: replace over changed entry refuses CHANGED", (refusal_reason(changed, [rep]) or "").startswith("CHANGED"), refusal_reason(changed, [rep]))
     check("u34: replace of vanished entry refuses DISAPPEARED", (refusal_reason(gone, [rep]) or "").startswith("DISAPPEARED"), refusal_reason(gone, [rep]))
     check("u34: drop over changed entry refuses CHANGED", (refusal_reason(changed, [drp]) or "").startswith("CHANGED"), None)
     check("u34: drop of vanished entry refuses DISAPPEARED", (refusal_reason(gone, [drp]) or "").startswith("DISAPPEARED"), None)
+
+
+def case_u34_applies():
+    _, _, ready, done, rep, drp = u34_fixtures()
     check("u34: replace when original matches applies", apply_entries(ready, [rep]).sections["Patterns"] == [("P-01", "new")], None)
     idem = apply_entries(done, [rep])
     check("u34: already-applied replace is idempotent", idem.refusals == [] and idem.sections["Patterns"] == [("P-01", "new")], idem.refusals)
     check("u34: drop when original matches applies", apply_entries(ready, [drp]).sections["Patterns"] == [], None)
+
+
+def case_u34_refused_batch_report():
+    changed, _, _, _, rep, _ = u34_fixtures()
     refused = apply_entries(changed, [rep])
     check("u34: refused batch leaves state unchanged", refused.sections["Patterns"] == [("P-01", "changed upstream")], None)
     r = refused.refusals[0]
@@ -565,15 +579,14 @@ def graph_reason(entries):
         return e, None
 
 
-def case_u38_supersession_graph():
+def u38_chain():
     a = replay_entry("r1", [], [], ident="A", receipt="n/r1")
     b = replay_entry("r2", [], [], ident="B", supersedes=["A"], receipt="n/r2")
-    err, active = graph_reason([a, b])
-    check("u38: replacement retires the referenced batch", err is None and active == ["B"], (err, active))
-    c = replay_entry("r3", [], [], ident="C", supersedes=["B"], receipt="n/r3")
-    err, active = graph_reason([a, b, c])
-    check("u38: chains retire step by step", err is None and active == ["C"], (err, active))
-    cases = {
+    return a, b
+
+
+def u38_refused_graphs(a, b):
+    return {
         "missing": [replay_entry("r2", [], [], ident="B", supersedes=["Z"])],
         "cross-persona": [a, replay_entry("r2", [], [], ident="B", supersedes=["A"], persona="harness-other")],
         "cross-destination": [a, replay_entry("r2", [], [], ident="B", supersedes=["A"], destination=REPO_REL)],
@@ -584,6 +597,19 @@ def case_u38_supersession_graph():
         "cycle": [replay_entry("r1", [], [], ident="A", supersedes=["B"], receipt="n/r1"),
                   replay_entry("r2", [], [], ident="B", supersedes=["A"], receipt="n/r2")],
     }
+
+
+def case_u38_retirement():
+    a, b = u38_chain()
+    err, active = graph_reason([a, b])
+    check("u38: replacement retires the referenced batch", err is None and active == ["B"], (err, active))
+    c = replay_entry("r3", [], [], ident="C", supersedes=["B"], receipt="n/r3")
+    err, active = graph_reason([a, b, c])
+    check("u38: chains retire step by step", err is None and active == ["C"], (err, active))
+
+
+def case_u38_refused_graphs():
+    cases = u38_refused_graphs(*u38_chain())
     for name, entries in cases.items():
         err, _ = graph_reason(entries)
         check(f"u38: {name} supersession refused with 15", err is not None and err.code == 15, err)
@@ -610,7 +636,10 @@ def case_u39_batch_identity():
         check(f"u39: identity covers {key}", expertise_merge.batch_identity(changed, batch) != ident, None)
 
 
-def case_u40_receipt_failure_fails_call():
+@contextlib.contextmanager
+def failed_receipt_tree():
+    """A feature checkout where member_ops landed its target and then failed at the receipt write:
+    yields (tmp, features, the refusal member_ops raised, or None when it raised nothing)."""
     tmp = tempfile.mkdtemp(prefix="member-ops-unit-")
     real = expertise_merge.harness_merge.locked_update
 
@@ -626,26 +655,39 @@ def case_u40_receipt_failure_fails_call():
         try:
             expertise_merge.member_ops(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
                                        json.dumps([op("add", "Patterns", "P-01", "text")]))
-            check("u40: receipt failure fails the call", False, "no refusal")
+            refusal = None
         except MergeRefusal as e:
-            check("u40: receipt failure is refusal 15", e.code == 15, e)
+            refusal = e
         finally:
             expertise_merge.harness_merge.locked_update = real
+        yield tmp, features, refusal
+    finally:
+        expertise_merge.harness_merge.locked_update = real
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_u40_receipt_failure_fails_call():
+    with failed_receipt_tree() as (tmp, features, refusal):
+        if refusal is None:
+            check("u40: receipt failure fails the call", False, "no refusal")
+        else:
+            check("u40: receipt failure is refusal 15", refusal.code == 15, refusal)
         target = os.path.join(tmp, CRAFT_REL)
         written = open(target, encoding="utf-8").read() if os.path.exists(target) else ""
         check("u40: target was persisted before the receipt step", "P-01: text" in written, written)
         notes = os.path.join(features, "notes")
         receipts = [n for n in os.listdir(notes) if n.endswith(".json")] if os.path.isdir(notes) else []
         check("u40: no receipt exists, so verification must fail closed", receipts == [], receipts)
+
+
+def case_u40_verify_without_receipt():
+    with failed_receipt_tree() as (tmp, _features, _refusal):
         try:
             expertise_merge.verify_receipt(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
                                            [dict(op("add", "Patterns", "P-01", "text"), persona=PERSONA)])
             check("u40: verify refuses without receipt", False, "verified")
         except MergeRefusal as e:
             check("u40: verify without receipt is 15", e.code == 15, e)
-    finally:
-        expertise_merge.harness_merge.locked_update = real
-        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def case_u41_effect_mismatches():
@@ -697,37 +739,18 @@ def run_guarded(fn):
         check(f"{fn.__name__}: completed without raising", False, repr(exc))
 
 
-def main():
-    case_u1()
-    case_u2()
-    case_u3()
-    case_u5()
-    case_u6()
-    case_u7()
-    case_u8()
-    case_u9()
-    case_u10()
-    case_u11()
-    case_u12()
-    case_u13()
-    case_u14()
-    case_u15()
-    case_u16()
-    case_u17()
-    case_u18()
-    case_u19()
-    case_u20()
-    case_u21()
-    case_u22()
-    case_u23()
+LEGACY_CASES = (case_u1, case_u2, case_u3, case_u5, case_u6, case_u7, case_u8, case_u9, case_u10,
+                case_u11, case_u12, case_u13, case_u14, case_u15, case_u16, case_u17, case_u18,
+                case_u19, case_u20, case_u21, case_u22, case_u23)
+GUARDED_CASES = (case_u30_free_ids, case_u31_destination_rel, case_u32_collision_remap,
+                 case_u33_identical_add_preserved, case_u34_refusals, case_u34_applies,
+                 case_u34_refused_batch_report, case_u35_independent_callers, case_u36_caps_deferred,
+                 case_u38_retirement, case_u38_refused_graphs, case_u39_batch_identity,
+                 case_u40_receipt_failure_fails_call, case_u40_verify_without_receipt,
+                 case_u41_effect_mismatches, case_u42_receipt_file_agreement)
 
-    for case in (case_u30_free_ids, case_u31_destination_rel, case_u32_collision_remap,
-                 case_u33_identical_add_preserved, case_u34_replace_drop_originals,
-                 case_u35_independent_callers, case_u36_caps_deferred, case_u38_supersession_graph,
-                 case_u39_batch_identity, case_u40_receipt_failure_fails_call, case_u41_effect_mismatches,
-                 case_u42_receipt_file_agreement):
-        run_guarded(case)
 
+def print_results():
     fails = 0
     for name, ok, detail in RESULTS:
         if ok:
@@ -735,7 +758,16 @@ def main():
         else:
             fails += 1
             print(f"FAIL  {name}\n      | {detail}")
+    return fails
 
+
+def main():
+    for case in LEGACY_CASES:
+        case()
+    for case in GUARDED_CASES:
+        run_guarded(case)
+
+    fails = print_results()
     summary = "FAIL test-expertise-ops.py" if fails else "PASS test-expertise-ops.py"
     print(summary)
     return fails
