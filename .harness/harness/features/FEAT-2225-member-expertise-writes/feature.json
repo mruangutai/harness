@@ -52,6 +52,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-21T20:51:32+00:00"
+    },
+    {
+      "id": "r-20261121-4-t02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T20:52:19+00:00",
+      "tokens": 45789,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-4-t02-product/digest.md",
+        "sha256": "53a349cf85c117728dddf65cab61b13362fd19d7d9a4ad71cfb9226a3eccf8df"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T21:00:10+00:00"
     }
   ],
   "judgements": [
