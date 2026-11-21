@@ -1330,8 +1330,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (reason) return { block: true, reason };
     // #2240: OMP persists this revision as the call itself, so the dispatcher later reads the
     // injected schema as fields it sent and copies them into its next call (refused).
-    if (revisedInput && schemasInjected) return { input: revisedInput, additionalContext: SCHEMA_INJECTION_NOTE };
-    if (revisedInput) return { input: revisedInput };
+    if (revisedInput) {
+      return schemasInjected ? { input: revisedInput, additionalContext: SCHEMA_INJECTION_NOTE } : { input: revisedInput };
+    }
   });
 
   pi.on("tool_result", async (event: Dict, ctx: any) => {

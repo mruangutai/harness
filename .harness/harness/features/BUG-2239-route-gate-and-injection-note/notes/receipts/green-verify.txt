@@ -387,7 +387,7 @@ PASS  2239: check fails an illegal top-level status the CI route gate refuses
 PASS  2239: check fails an illegal task status the CI route gate refuses
 PASS  2239: a plan the CI route gate accepts still passes check
 PASS  2239: another feature's violating plan does not fail the target plan
-PASS  2239: check exits 5 when the route gate cannot load the plan
+PASS  2239: check exits 5 when the route gate cannot load the plan, before any OK line
 PASS  2239: check fails on a finding only the shared processor emits
 PASS  2239: the harness plan is asked with --root
 PASS  2239: a served plan is asked with --root, never --code-root, and check's manifest root
@@ -794,7 +794,7 @@ bun test v1.3.14 (0d9b296a)
  141 pass
  0 fail
  724 expect() calls
-Ran 141 tests across 1 file. [7.70s]
+Ran 141 tests across 1 file. [8.10s]
 .....    10  a
     10  universal: u
     10  total across 1 agents
@@ -809,6 +809,6 @@ Ran 141 tests across 1 file. [7.70s]
   note       a preloads 150 words (budget 120): u 100, x 50
 ..
 ----------------------------------------------------------------------
-Ran 8 tests in 0.160s
+Ran 8 tests in 0.165s
 
 OK

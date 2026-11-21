@@ -3163,13 +3163,11 @@ def case_2239_check_refuses_a_plan_the_route_gate_cannot_load():
     shared processor return None with no VIOLATION. That must never read as a clean plan."""
     root, plan = _check_root()
     try:
-        task = _check_task("T-01", "      - .claude/skills/harness/bin/a.py\n", agent=None,
-                           mode="main-session-direct")
-        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
-                    "tasks:\n" + task + task)
+        text = _gate_plan()
+        write(plan, text + text.split("tasks:\n", 1)[1])
         r = run_verb("check", "--file", plan, "--root", root)
-        check("2239: check exits 5 when the route gate cannot load the plan",
-              r.returncode == 5 and "duplicate task id" in r.stderr,
+        check("2239: check exits 5 when the route gate cannot load the plan, before any OK line",
+              r.returncode == 5 and "duplicate task id" in r.stderr and "OK " not in r.stdout,
               f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)

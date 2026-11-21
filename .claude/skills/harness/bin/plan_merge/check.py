@@ -26,8 +26,10 @@ import worktree_terminal
 # verb is that script. It WRITES NOTHING; exit 0 means every `files:` anchor resolves under
 # --root, every team task's `execution_agent` is granted its files by the SAME resolver the
 # build hook consults (check-plan-routes.resolve_agents -> check-domain.py --resolve), and
-# every `traces:` id is present in the sibling BRIEF.md. Exit 1 lists each failure on its own
-# FAIL line; exit 2 means the check could not run at all (no manifest under --root).
+# every `traces:` id is present in the sibling BRIEF.md, and CI's per-plan rule set
+# (check-plan-routes.process_plan_yaml: budget, stations, routing) reports no VIOLATION
+# (#2239). Exit 1 lists each failure on its own FAIL line; exit 2 means the check could not run
+# at all (no manifest under --root); exit 5 means the plan does not load or validate.
 
 
 def _check_plan_routes_module():
@@ -210,10 +212,12 @@ def cmd_check(args):
     routes = _Routes(root, code_root)
     anchor_root = code_root or root
     brief_text, brief_fault = _brief_text(resolved_plan)
+    # The gate first: a plan it cannot load exits 5 before any OK line or resolver spawn.
+    gate_failures = _route_gate_failures(resolved_plan, root, routes)
     preface = [f"FAIL {routes.deviation}"] if routes.deviation else []
     preface += [brief_fault] if brief_fault else []
     task_failures, total = _check_all(tasks, anchor_root, brief_text, routes)
-    failures = preface + task_failures + _route_gate_failures(resolved_plan, root, routes)
+    failures = preface + task_failures + gate_failures
     for line in failures:
         print(line)
     for line in _overlap_lines(tasks):
