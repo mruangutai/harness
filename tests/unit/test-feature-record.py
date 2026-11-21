@@ -1253,6 +1253,12 @@ class SpendTest(FeatureRecordCase):
     def test_no_validate_run_means_no_round_whatever_was_judged(self):
         self.assertEqual(0, self.rounds(self.direct_fix_runs()[:1], [self.judged("regate", "10:10")]))
 
+    def test_a_naive_regate_stamp_neither_crashes_spend_nor_counts(self):
+        """A hand-written stamp with no offset cannot be ordered against an aware validate
+        start: `spend` (which the hook calls) still answers, falling back to fix runs."""
+        naive = dict(self.judged("regate", "12:35"), at="2026-09-11T12:35:00")
+        self.assertEqual(0, self.rounds(self.direct_fix_runs(), [naive]))
+
 
 class PinReviewTest(FeatureRecordCase):
     """#2167: `pin-review` records `review_sha` through the ledger writer, never a hand edit.
@@ -1287,6 +1293,31 @@ class PinReviewTest(FeatureRecordCase):
             self.write(base_doc())
             self.assert_ok(self.pin("--sha", ref))
             self.assertEqual(self.head, self.load()["review_sha"], ref)
+
+    def test_every_other_field_is_carried_through_unchanged(self):
+        """The pin moves `review_sha` and nothing else: runs, judgements, mission, the cycle
+        budget and the rework ruling come back exactly as they were."""
+        doc = base_doc(cycles_used=1, mission="patch", runs=[
+            {"id": "2026-09-11-01-patch-product", "squad": "product", "verdict": "PASS",
+             "agent": "harness-product-lead", "started_at": "2026-09-11T10:00:00+00:00",
+             "ended_at": "2026-09-11T10:20:00+00:00"}],
+            judgements=[{"at": "2026-09-11T09:59:00+00:00", "by": "harness-orchestrator",
+                         "kind": "mission", "decision": "patch", "reason": "r"}])
+        self.write(doc)
+        self.assert_ok(self.pin())
+        self.assertEqual({**doc, "review_sha": self.head}, self.load())
+
+    def test_the_write_goes_through_the_shared_writers_destination_contract(self):
+        """feature_json_write refuses a feature.json outside `.harness/*/features/*/` before
+        it locks anything; a verb that wrote the file itself would pin it anyway."""
+        stray = self.tmp / "elsewhere" / "feature.json"
+        stray.parent.mkdir()
+        stray.write_text(json.dumps(base_doc(), indent=2) + "\n", encoding="utf-8")
+        before = stray.read_bytes()
+        result = self.run_cli("pin-review", "--file", str(stray))
+        self.assertNotEqual(0, result.returncode, result.stdout)
+        self.assertNotIn("APPLIED", result.stdout)
+        self.assertEqual(before, stray.read_bytes())
 
     def test_a_non_commit_or_unresolved_sha_is_refused_without_a_write(self):
         """A tree, an absent object, an unknown name and an option-shaped value: exit 2,

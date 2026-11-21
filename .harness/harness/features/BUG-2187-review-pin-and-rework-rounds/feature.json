@@ -3,7 +3,7 @@
   "branch": "feat/BUG-2187-review-pin-and-rework-rounds",
   "pr": null,
   "review_sha": "1b35414bfc865786baffe0418528deeeef141272",
-  "cycles_used": 0,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -26,8 +26,16 @@
       "id": "2026-11-21-02-validate-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-21T23:18:57+00:00"
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-21T23:18:57+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-02-validate-validator/digest.md",
+        "sha256": "00a1bc4a61de33fdf4d716d5c14fde80660f4b6ea86a43c9c6da5fda02614abf"
+      },
+      "cycles_used": 2,
+      "tokens": null,
+      "ended_at": "2026-11-21T23:48:52+00:00"
     }
   ],
   "mission": "patch",
@@ -45,6 +53,13 @@
       "kind": "amendment",
       "decision": "T-01.files",
       "reason": "canonical-reader audit: INV-33's new plan-text reader needs its classification row (in_memory_validation, as worktree_terminal._read_landed_plan_yaml)"
+    },
+    {
+      "at": "2026-11-21T23:48:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix then validate cycle 2",
+      "reason": "Cycle 1 ESCALATE: SC-01/SC-02 regression gaps (tests only) and Q-GATE run-unit-tests exit 1 to reproduce; fix main-session-direct inside the 1-round ruling."
     }
   ],
   "rework": {

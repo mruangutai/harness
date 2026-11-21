@@ -1,0 +1,14 @@
+# Security review — BUG-2187 / T-01
+
+PASS — no exploitable security regression found by static inspection of immutable `5bd9efd411a4b4a7a6a09dcf7517946c75c5f220..1b35414bfc865786baffe0418528deeeef141272`. Findings: none. Open questions: none.
+
+Scope IN: local operator/agent commit arguments, feature-ledger mutation, plan-content integrity and recorded judgement metadata; no web, tenant or network boundary is introduced.
+
+- SC-02: `feature-record.py:594-617` resolves before calling `_apply`; `code_grade.py:290-301` rejects option-shaped revisions, uses list-form argv and `--end-of-options`, and peels to a commit. Refusal reaches exit 2 (`feature-record.py:756-759`) before mutation. Successful resolution writes only `review_sha` through `_apply:101-121`; `feature_json_write.py:177-209` retains destination validation, schema non-regression and the existing locked-update authority. Refusal does not become success output.
+- SC-01: `check_state/feature_record.py:66-114` removes only root/task status, preserves nested content, uses the shared strict safe YAML loader (`harness_yaml.py:132-135,208-248`), and falls back to raw bytes on decoding/parser failure or legacy PLAN.md. Equal bytes skip parsing. Existing five deliberate silences remain (`feature_record.py:100-114,130-137,195-197`); this review does not characterize those accepted silences as newly closed protections.
+- SC-03: `feature-record.py:667-725` parses judgement stamps without executing metadata, rejects incomparable naive/aware timestamps from the count, counts at/after the validate start, and selects regates or the existing fix-run fallback, never their sum. Ledger editors already control the underlying recorded spend evidence; no new privilege boundary is inferred.
+- Census: both production Python paths are in scope; both test paths and canonical-reader classification were inspected for boundary coverage/exemption effects; both guidance paths preserve the seam and explicit external/frozen exceptions. Added BRIEF/plan, feature/run records, operator/simplify/intake notes and red/green receipts were inspected as interpreted records/disclosure surfaces. Full-diff credential-pattern sweep found no credential material; run ids, hashes, issue ids and local checkout paths are administrative metadata. No new dependency or outbound request.
+
+Authority: pinned BRIEF SC-01..03, signed plan T-01, accepted reader-inventory amendment and control-plane grilling note. Product spec/decisions/architecture are absent as disclosed by intake; no substitutes assumed.
+
+Verification: inspection only. No builds, tests, linters, formatters or grading commands executed; no temporary checkout created. QA owns final `python3 tests/integration/test-check-state-records.py && python3 tests/unit/test-feature-record.py` at the assigned pin. Historical receipts are not claimed as this review's execution evidence.

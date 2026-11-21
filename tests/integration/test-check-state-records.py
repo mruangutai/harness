@@ -323,9 +323,11 @@ def _inv33_set_sha(feat_dir, sha, validator_run=True):
         target.write("\n")
 
 
-def _inv33_plan(feat_dir, body, station=None, task_status="building", approval=None, flow=True):
+def _inv33_plan(feat_dir, body, station=None, task_status="building", approval=None, flow=True,
+                gate=None):
     """Write the fixture plan. `approval` adds an `approval:` block carrying that status;
-    `flow=False` writes `files:` as a block list — the same document, serialized differently."""
+    `flow=False` writes `files:` as a block list — the same document, serialized differently;
+    `gate` adds a mapping under T-01 carrying its own `status`, which is content, not station."""
     lines = ["schema: plan/1", "feature: FEAT-TEST"]
     if approval is not None:
         lines += ["approval:", f"  status: {approval}"]
@@ -338,6 +340,7 @@ def _inv33_plan(feat_dir, body, station=None, task_status="building", approval=N
         f"    change_type: {body}",
         "    execution_mode: main-session-direct",
         f"    status: {task_status}",
+        *(["    gate:", f"      status: {gate}"] if gate is not None else []),
         *(["    files: [fixture.py]"] if flow else ["    files:", "      - fixture.py"]),
         "    verify: run it",
         "    intent: exercise INV-33",
@@ -472,10 +475,10 @@ def case_inv33d_absent_path_is_silent():
     return results
 
 
-def _inv33_pinned_then(**after):
-    """INV-33's lines after: commit the plan at `building`, approved, pin that commit, then
-    rewrite the plan with `after` overriding those fields, and commit it."""
-    pinned_plan = {"station": "building", "approval": "approved"}
+def _inv33_pinned_then(pinned=None, **after):
+    """INV-33's lines after: commit the plan at `building`, approved (plus `pinned`), pin that
+    commit, then rewrite the plan with `after` overriding those fields, and commit it."""
+    pinned_plan = {"station": "building", "approval": "approved", **(pinned or {})}
     with tempfile.TemporaryDirectory() as tmp:
         feat = _inv33_repo(tmp)
         _inv33_plan(feat, "logic", **pinned_plan)
@@ -484,6 +487,10 @@ def _inv33_pinned_then(**after):
         _inv33_commit(tmp, "after the pin")
         _code, out = run(tmp)
         return _inv33_lines(out)
+
+
+def _inv33_stale(ls):
+    return any("FEAT-TEST" in l and "STALE" in l for l in ls)
 
 
 def case_inv33e_station_writes_are_silent():
@@ -509,6 +516,77 @@ def case_inv33g_other_status_fields_stay_stale():
     ls = _inv33_pinned_then(approval="pending")
     return [("(inv33.g) a non-station status change after the pin still reports STALE",
              any("FEAT-TEST" in l and "STALE" in l for l in ls), "\n".join(ls) or "(no INV-33 line)")]
+
+
+def case_inv33h_task_nested_status_stays_stale():
+    """(inv33.h) The task-level exclusion is the task's OWN `status` key only. A `status` inside
+    a mapping the task carries is reviewed content: a shallow strip must not reach it."""
+    ls = _inv33_pinned_then(pinned={"gate": "open"}, gate="closed")
+    return [("(inv33.h) a status nested inside a task still reports STALE", _inv33_stale(ls),
+             "\n".join(ls) or "(no INV-33 line)")]
+
+
+def _inv33_changed_since(pin, git=True, drop_plan=False):
+    """INV-33's lines when the plan changed (X then Y, Y on disk) and feature.json carries
+    `pin(first_commit)`. `git=False` builds no repository; `drop_plan` removes plan.yaml."""
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp) if git else os.path.join(tmp, ".harness", "harness", "features", "FEAT-TEST")
+        if not git:
+            make_fixture(tmp, _INV32_HJ, "  parent: 1\n")
+        _inv33_plan(feat, "logic", station="building")
+        first = _inv33_commit(tmp, "plan X") or "abc1234"
+        _inv33_plan(feat, "docs", station="building")
+        _inv33_set_sha(feat, pin(first))
+        if drop_plan:
+            os.remove(os.path.join(feat, "plan.yaml"))
+        _inv33_commit(tmp, "plan Y")
+        _code, out = run(tmp)
+        return _inv33_lines(out)
+
+
+def case_inv33i_named_silences_hold():
+    """(inv33.i) The deliberate silences the content comparison must keep, each built over a
+    plan that really did change — and the same construction with an honest pin as the control
+    that proves the harness reports at all."""
+    control = _inv33_changed_since(lambda first: first)
+    rows = [("(inv33.i) control: the same changed plan with a resolvable pin reports STALE",
+             _inv33_stale(control), "\n".join(control) or "(no INV-33 line)")]
+    for label, kwargs in (("a placeholder pin", {"pin": lambda first: "none"}),
+                          ("a pin that does not resolve", {"pin": lambda first: "0" * 40}),
+                          ("no plan file on disk", {"pin": lambda first: first, "drop_plan": True}),
+                          ("no git work tree", {"pin": lambda first: first, "git": False})):
+        ls = _inv33_changed_since(**kwargs)
+        rows.append((f"(inv33.i) {label} is silent", not ls, "\n".join(ls) or "(unexpected line)"))
+    return rows
+
+
+def _inv33_raw_after_pin(name, pinned_text, after_text):
+    """INV-33's lines for a plan file `name` written raw: `pinned_text` at the pin, then
+    `after_text` on disk."""
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        path = os.path.join(feat, name)
+        with open(path, "w") as f:
+            f.write(pinned_text)
+        _inv33_set_sha(feat, _inv33_commit(tmp, "plan at the pin"))
+        with open(path, "w") as f:
+            f.write(after_text)
+        _inv33_commit(tmp, "after the pin")
+        _code, out = run(tmp)
+        return _inv33_lines(out)
+
+
+def case_inv33j_unloadable_and_legacy_plans_compare_as_bytes():
+    """(inv33.j) Only a plan.yaml that loads is compared as a document. Two different unloadable
+    texts are two different plans — collapsing both to one value would read them as equal —
+    and any edit to a legacy PLAN.md, a station line included, still reports."""
+    plan = "schema: plan/1\nfeature: FEAT-TEST\nstatus: building\n"
+    broken = _inv33_raw_after_pin("plan.yaml", plan + "tasks: [one\n", plan + "tasks: [two\n")
+    legacy = _inv33_raw_after_pin("PLAN.md", "# Plan\n\nstatus: building\n", "# Plan\n\nstatus: review\n")
+    return [("(inv33.j) an unloadable plan.yaml edited after the pin reports STALE",
+             _inv33_stale(broken), "\n".join(broken) or "(no INV-33 line)"),
+            ("(inv33.j) a legacy PLAN.md compares as bytes, station line included",
+             _inv33_stale(legacy), "\n".join(legacy) or "(no INV-33 line)")]
 
 
 # BUG-1071 — INV-32's era guard. FEAT-45 T-07 shipped INV-32 with no era boundary, so it
@@ -1236,7 +1314,8 @@ _CASES = (
 _INV33_CASES = (case_inv33a_stale_is_reported, case_inv33b_current_is_silent,
                 case_inv33c_terminal_is_silent, case_inv33d_absent_path_is_silent,
                 case_inv33e_station_writes_are_silent, case_inv33f_reserialization_is_silent,
-                case_inv33g_other_status_fields_stay_stale)
+                case_inv33g_other_status_fields_stay_stale, case_inv33h_task_nested_status_stays_stale,
+                case_inv33i_named_silences_hold, case_inv33j_unloadable_and_legacy_plans_compare_as_bytes)
 
 
 def main():
