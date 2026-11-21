@@ -42,6 +42,6 @@ A signed verify recipe can create durable state using a literal single-use id, l
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-11-21

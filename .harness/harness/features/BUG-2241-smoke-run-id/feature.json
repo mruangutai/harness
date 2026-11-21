@@ -39,5 +39,13 @@
       "reason": "E-01 resolved by measurement: check-domain --resolve returns NOBODY for harness-spec-driven/SKILL.md for every squad persona; T-01 main-session-direct per DEC-179, disclosed at signature"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2241-smoke-run-id/.harness/harness/features/BUG-2241-smoke-run-id/notes/operator-signature-2026-11-21.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "33908b45944c124b4728bb7168931895fd133f3511c97d9203fafcabf0aedaa4"
+  }
 }

@@ -1,7 +1,9 @@
 schema: plan/1
 feature: BUG-2241-smoke-run-id
 approval:
-  status: pending
+  date: '2026-11-21'
+  approved_by: operator
+  status: approved
 status: plan
 source_issues: [2241]
 lanes:
