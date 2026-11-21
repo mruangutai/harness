@@ -166,6 +166,39 @@ def case_task_wall_clock_limit_fails():
         td.cleanup()
 
 
+def case_task_structured_required():
+    """BUG-2171: OMP 18.10.2 made `task.structured` native and default-off; with it off a child
+    gets no `yield` tool and OMP strips the hook's injected digest schema, so no lead return
+    reaches `runs/<id>/digest.md`. The gate requires the boolean `true` — never a truthy look-alike."""
+    variants = (
+        ("absent", None, False),
+        ("boolean false", "false", False),
+        ("string 'true'", '"true"', False),
+        ("boolean true", "true", True),
+    )
+    rows = []
+    for label, value, accepted in variants:
+        td, root = fixture()
+        try:
+            config = root / ".omp" / "config.yml"
+            lines = [line for line in config.read_text().splitlines(keepends=True)
+                     if not line.lstrip().startswith("structured:")]
+            text = "".join(lines)
+            if value is not None:
+                text = text.replace("  maxRuntimeMs: 0\n", f"  maxRuntimeMs: 0\n  structured: {value}\n")
+            config.write_text(text)
+            result = run(root)
+            if accepted:
+                rows.append((f"task.structured {label} passes", result.returncode == 0, result.stderr))
+            else:
+                rows.append((f"task.structured {label} fails",
+                             result.returncode == 1 and "task.structured" in result.stderr,
+                             result.stderr))
+        finally:
+            td.cleanup()
+    return rows
+
+
 def case_missing_lifecycle_wiring_fails():
     td, root = fixture()
     try:
@@ -308,6 +341,7 @@ CASES = (
     case_thinking_level_disagrees_with_alias_fails,
     case_missing_async_enablement_fails,
     case_task_wall_clock_limit_fails,
+    case_task_structured_required,
     case_missing_lifecycle_wiring_fails,
     case_lifecycle_on_the_wrong_bus_fails,
     case_missing_sign_gate_wiring_fails,

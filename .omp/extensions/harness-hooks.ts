@@ -384,6 +384,7 @@ function schemaControlRefusal(input: Dict): string | undefined {
   return found.length
     ? `Harness dispatches never carry ${found.join(", ")}: the hook injects each harness `
       + "persona's strict digest schema itself. Remove the field and dispatch again."
+      + " Fields on earlier calls were hook-injected and must never be copied."
     : undefined;
 }
 
@@ -1294,10 +1295,15 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       }
     }
     if (!reason && toolName === "yield") {
-      const digest = input.data;
+      let digest: unknown = input.data;
       // OMP normalizes optional null data to absence before this hook; strict terminal yields
       // reject that natively before last-turn resolution and leave the same child retryable.
       if (digest == null && input.type === "result") return undefined;
+      // BUG-2171: a model may send the object as JSON text, which OMP's own yield tool parses
+      // losslessly; only a string encoding one plain object passes the check below.
+      if (typeof digest === "string") {
+        try { digest = JSON.parse(digest); } catch { digest = undefined; }
+      }
       if (!digest || typeof digest !== "object" || Array.isArray(digest)) {
         reason = RETURN_THE_OBJECT;
       } else if (currentAgent && runGate.state !== "ready" && (digest as Dict).VERDICT !== "BLOCKED") {

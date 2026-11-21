@@ -1,0 +1,39 @@
+bun test v1.3.14 (0d9b296a)
+
+tests/unit/omp-hooks.test.ts:
+1720 |     const { handlers, calls } = fixture();
+1721 |     await start(handlers);
+1722 |     const verdict = await handlers.get("tool_call")?.({
+1723 |       toolName: "yield", input: { data: JSON.stringify(PASS_DIGEST) },
+1724 |     }, leadCtx());
+1725 |     expect(verdict).toBeUndefined();
+                           ^
+error: expect(received).toBeUndefined()
+
+Received: {
+  block: true,
+  reason: "Harness agents must return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) — a string, null, list or missing `data` is not a digest.",
+}
+
+      at <anonymous> (/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/tests/unit/omp-hooks.test.ts:1725:21)
+(fail) OMP task lifecycle adapter > BUG-2171 string-serialized PASS digest is validated as the object it encodes [5.63ms]
+2831 |     await begin(s, ctx, "harness-qa", ASSIGN);
+2832 |     const pass = await s.handlers.get("tool_call")?.({
+2833 |       toolName: "yield", input: { data: JSON.stringify(PASS_DIGEST) },
+2834 |     }, ctx);
+2835 |     expect(pass?.block).toBe(true);
+2836 |     expect(pass?.reason).toMatch(/may yield only a BLOCKED digest/);
+                                ^
+error: expect(received).toMatch(expected)
+
+Expected substring or pattern: /may yield only a BLOCKED digest/
+Received: "Harness agents must return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}}) — a string, null, list or missing `data` is not a digest."
+
+      at <anonymous> (/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/tests/unit/omp-hooks.test.ts:2836:26)
+(fail) BUG-1898 run-start claims on the real registry > BUG-2171 a held run refuses a string PASS digest and validates a string BLOCKED one [74.82ms]
+
+ 1 pass
+ 137 filtered out
+ 2 fail
+ 9 expect() calls
+Ran 3 tests across 1 file. [174.00ms]

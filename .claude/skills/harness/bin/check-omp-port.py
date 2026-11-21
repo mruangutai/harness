@@ -93,6 +93,8 @@ def config_errors(root: Path) -> list[str]:
             errors.append(".omp/config.yml async.enabled must be true")
         if ((config.get("task") or {}).get("maxRuntimeMs")) != 0:
             errors.append(".omp/config.yml task.maxRuntimeMs must be 0")
+        if ((config.get("task") or {}).get("structured")) is not True:
+            errors.append(".omp/config.yml task.structured must be true")
         if config.get("modelRoles"):
             errors.append("concrete modelRoles belong in .omp/providers overlays, not .omp/config.yml")
     except artifact_accessors.ArtifactAccessError as exc:

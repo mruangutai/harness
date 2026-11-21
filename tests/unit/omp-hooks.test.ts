@@ -1713,6 +1713,34 @@ describe("OMP task lifecycle adapter", () => {
     expect(digestCalls(calls)).toEqual([]);
   });
 
+  // BUG-2171: some models serialize the yield's object as a JSON string. OMP's own yield tool
+  // parses such a string losslessly, but the hook ran first and refused it, so a complete
+  // return could exhaust its retries. A string that parses to one plain object is that object.
+  test("BUG-2171 string-serialized PASS digest is validated as the object it encodes", async () => {
+    const yieldOnce = async (data: unknown) => {
+      const { handlers, calls } = fixture();
+      await start(handlers);
+      const verdict = await handlers.get("tool_call")?.({ toolName: "yield", input: { data } }, leadCtx());
+      return { verdict, validations: digestCalls(calls) };
+    };
+    const asObject = await yieldOnce(PASS_DIGEST);
+    const asString = await yieldOnce(JSON.stringify(PASS_DIGEST));
+    expect(asString.validations).toHaveLength(1);
+    expect(asString.validations[0].payload.digest_object).toEqual(PASS_DIGEST);
+    expect(asString.verdict).toEqual(asObject.verdict);
+  });
+
+  test("BUG-2171 a string that does not parse to one plain object is still refused", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    for (const data of ["{not json", "null", "[1]", JSON.stringify("PASS"), JSON.stringify([PASS_DIGEST])]) {
+      expect(await handlers.get("tool_call")?.({ toolName: "yield", input: { data } }, leadCtx())).toEqual({
+        block: true, reason: expect.stringContaining(RETURN_THE_OBJECT),
+      });
+    }
+    expect(digestCalls(calls)).toEqual([]);
+  });
+
   test("agent_end validates nothing: the yield is the one digest gate", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
@@ -2794,6 +2822,26 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     await expectHeld(s, ctx, /unreadable[\s\S]*cannot succeed/);
     expect(readFileSync(join(w.root, ".harness", ".inflight-claims.json"), "utf8"))
       .toBe("{not json");
+  });
+
+  test("BUG-2171 a held run refuses a string PASS digest and validates a string BLOCKED one", async () => {
+    const w = world();
+    mkdirSync(join(w.root, ".harness"), { recursive: true });
+    writeFileSync(join(w.root, ".harness", ".inflight-claims.json"), "{not json");
+    const s = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    await begin(s, ctx, "harness-qa", ASSIGN);
+    const pass = await s.handlers.get("tool_call")?.({
+      toolName: "yield", input: { data: JSON.stringify(PASS_DIGEST) },
+    }, ctx);
+    expect(pass?.block).toBe(true);
+    expect(pass?.reason).toMatch(/may yield only a BLOCKED digest/);
+    expect(w.calls.filter((call) => call.script === "validate-digest.py")).toEqual([]);
+    expect(await s.handlers.get("tool_call")?.({
+      toolName: "yield", input: { data: JSON.stringify(blockedDigest) },
+    }, ctx)).toBeUndefined();
+    const validations = w.calls.filter((call) => call.script === "validate-digest.py");
+    expect(validations.map((call) => call.payload.digest_object)).toEqual([blockedDigest]);
   });
 
   test("a second live pm is held, naming the holder and that a retry can succeed", async () => {

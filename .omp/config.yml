@@ -12,3 +12,6 @@ async:
 task:
   maxRecursionDepth: 3
   maxRuntimeMs: 0
+  # BUG-2171: native since OMP 18.10.2 and default off. Off, task children get no `yield` tool
+  # and OMP strips the hook-injected strict digest schema, so no return reaches digest.md.
+  structured: true
