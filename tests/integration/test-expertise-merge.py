@@ -1887,6 +1887,53 @@ def case_member_verify(root):
     _check_verify_invented_application(co)
 
 
+# FEAT-2225 F2 — verify-receipt checks the COMPLETE destination, not only the recorded op keys.
+GBASE_DOC = [("Patterns", []), ("Gotchas", [("G-01", "watch one"), ("G-02", "watch two")]),
+             ("Outcomes", []), ("Open", [])]
+FULL_ADD = mop("add", "Patterns", "P-01", "receipted rule")
+
+
+def _complete_fixture(root, name, before=None):
+    co = new_checkout(root, name, craft=GBASE_DOC)
+    if before:
+        overwrite(os.path.join(co, CRAFT_REL), read_rel(co, CRAFT_REL).replace(*before))
+    member(co, "run-full", [FULL_ADD])
+    return co
+
+
+def _verify_full(co):
+    return verify(co, "run-full", [claim(FULL_ADD)])
+
+
+def _refuses_unreceipted(name, v):
+    check(name, v.returncode == 15 and "UNRECEIPTED CONTENT" in v.stdout, out_of(v))
+
+
+def _check_tamper_after(co, old, new, name):
+    path = os.path.join(co, CRAFT_REL)
+    good = read_rel(co, CRAFT_REL)
+    overwrite(path, good.replace(old, new))
+    _refuses_unreceipted(name, _verify_full(co))
+    overwrite(path, good)
+
+
+def _verifies(name, co):
+    v = _verify_full(co)
+    check(name, v.returncode == 0, out_of(v))
+
+
+def case_verify_complete_destination(root):
+    co = _complete_fixture(root, "vfull")
+    _verifies("verify full: a clean receipted add verifies", co)
+    _check_tamper_after(co, "- G-01: watch one\n", "",
+                        "verify full: receipted P-01 add plus unreceipted deletion of pre-existing G-01 refuses")
+    _check_tamper_after(co, "watch two", "edited by hand",
+                        "verify full: receipted add plus unreceipted edit of another entry refuses")
+    _verifies("verify full: restored file verifies again", co)
+    early = _complete_fixture(root, "vfull-early", before=("- G-01: watch one\n", ""))
+    _refuses_unreceipted("verify full: unreceipted G-01 deletion BEFORE the receipted add refuses", _verify_full(early))
+
+
 def _selection_fixture(root):
     co = new_checkout(root, "sel", craft=BASE_DOC)
     member(co, "old-run", [mop("replace", "Patterns", "P-01", "beta rule")])
@@ -2142,6 +2189,9 @@ def _check_supersession_replay_idempotent(x, base_z, expected):
 def _check_supersession_verification(x, base_z, new_op):
     v = verify(x, "run-c2", [claim(new_op)], parent="parent-2", base=base_z)
     check("supersession: replacement receipt verifies with its authorization reference", v.returncode == 0, out_of(v))
+    v = verify(x, "run-c2", [claim(new_op)], parent="parent-2")
+    check("supersession: replacement verifies its complete destination with no --base (superseded write honoured)",
+          v.returncode == 0, out_of(v))
     v = verify(x, "run-c", [claim(mop("replace", "Patterns", "P-03", "mine"))], base=base_z)
     check("supersession: the retired batch no longer verifies as active", v.returncode == 15, out_of(v))
 
@@ -2282,7 +2332,7 @@ POOLED_CASES = (
     case_member_batches_append, case_member_refusal_preserves, case_member_receipt_failure_fails_closed,
     case_member_verify, case_replay_current_pr_selection, case_replay_collision_and_repeat,
     case_replay_independent_callers, case_replay_changed_main_and_cap, case_supersession_flow,
-    case_replay_evidence_fails_closed)
+    case_replay_evidence_fails_closed, case_verify_complete_destination)
 
 
 def _run_all_cases(root):

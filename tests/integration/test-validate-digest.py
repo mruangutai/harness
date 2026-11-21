@@ -6045,6 +6045,137 @@ def run_member_expertise_supersession_cases():
     return _mx_report("supersession")
 
 
+# --- FEAT-2225 F1: the host asks `--distill-authority` BEFORE member-ops. Authority is the
+# registered lineage only — the request carries no mission, and a marker could not help it.
+def _mx_authority(root, persona, runtime, parent, raw=None):
+    request = json.dumps({"agent_type": persona, "harness_feature": MX_FEATURE,
+                          "harness_agent_id": runtime, "harness_parent_agent_id": parent,
+                          "cwd": root})
+    return subprocess.run([sys.executable, VALIDATE, "--distill-authority"],
+                          input=request if raw is None else raw, capture_output=True, text=True,
+                          timeout=60, env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+
+
+def _mx_authorized(name, result):
+    mx(name, result.returncode == 0 and result.stdout.strip() == '{"authorized": true}'
+       and not result.stderr.strip(), "exit %d: %s%s" % (result.returncode, result.stdout,
+                                                         result.stderr))
+
+
+def _mx_unauthorized(name, result, mention):
+    lines = result.stderr.strip().splitlines()
+    one_line = len(lines) == 1 and mention in lines[0]
+    mx(name, result.returncode == 2 and one_line and not result.stdout.strip(),
+       "exit %d: %s" % (result.returncode, result.stderr.strip()[-400:]))
+
+
+def _mx_authority_distill_scenario():
+    """Every registered distill lineage is authorized; anything not bound to one is not."""
+    root, _base = _mx_tree()
+    try:
+        _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+        _mx_authorized("authority: a member of a lead's registered distill run",
+                       _mx_authority(root, MX_QA, MX_QA_ID, MX_LEAD_ID))
+        _mx_authorized("authority: a lead on its own registered distill run",
+                       _mx_authority(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID))
+        _mx_authorized("authority: the orchestrator of a feature with a registered distill run",
+                       _mx_authority(root, MX_ORCH, MX_ORCH_ID, "Main"))
+        _mx_unauthorized("authority: a parent the live claim does not record is refused",
+                         _mx_authority(root, MX_QA, MX_QA_ID, "Orch.Other"), "claim")
+        _mx_unauthorized("authority: a runtime holding no live claim is refused",
+                         _mx_authority(root, MX_QA, "Nobody.Qa", MX_LEAD_ID), "no live claim")
+        _mx_unauthorized("authority: an ungoverned agent is refused",
+                         _mx_authority(root, "Main", MX_QA_ID, MX_LEAD_ID), "governed persona")
+        _mx_unauthorized("authority: an unreadable request fails closed",
+                         _mx_authority(root, MX_QA, MX_QA_ID, MX_LEAD_ID, raw="not json"),
+                         "not one JSON object")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _mx_authority_ordinary_scenario():
+    """F1's counterexample: a valid run of an ORDINARY registered run has no distill authority,
+    whatever its dispatch text says."""
+    root, _base = _mx_tree(run_id="r1-validator")
+    try:
+        _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+        _mx_unauthorized("authority: a member of an ordinary registered run is refused",
+                         _mx_authority(root, MX_QA, MX_QA_ID, MX_LEAD_ID),
+                         "not a feature-close distill run")
+        _mx_unauthorized("authority: a lead on an ordinary registered run is refused",
+                         _mx_authority(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID),
+                         "not a feature-close distill run")
+        _mx_unauthorized("authority: the orchestrator of a feature with no distill run is refused",
+                         _mx_authority(root, MX_ORCH, MX_ORCH_ID, "Main"),
+                         "registers no feature-close distill run")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def run_member_expertise_authority_cases():
+    _mx_authority_distill_scenario()
+    _mx_authority_ordinary_scenario()
+    return _mx_report("authority")
+
+
+# --- FEAT-2225 F2: verification covers the destination's COMPLETE content. qa's craft file
+# held G-01 at base; qa applied a receipted add of P-01; G-01 was then deleted with no
+# receipt. Only recorded keys used to be compared, so both the live yield and the durable
+# close stayed green. The core fix is T-01's verify-receipt; this pins it where it is used.
+QA_PRIOR = ("# Expertise — harness-qa\n## Patterns\n## Gotchas\n"
+            "- G-01: WHEN the matrix is red DO stop the merge\n## Outcomes\n## Open\n")
+QA_PRIOR_ENTRY = "- G-01: WHEN the matrix is red DO stop the merge\n"
+
+
+def _mx_f2_prepare():
+    """The pre-existing file, the receipted add verified live and recorded durably, and then
+    the unreceipted deletion."""
+    root, _base = _mx_tree()
+    _mx_write(os.path.join(root, ".harness", "expertise", "harness-qa.md"), QA_PRIOR)
+    _mx_git(root, "add", "-A")
+    _mx_git(root, "commit", "-q", "-m", "prior expertise")
+    _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+    _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_CRAFT])
+    item = [_mx_item(QA_CRAFT, MX_QA)]
+    _mx_expect("F2 control: the member's receipted add verifies before any other change",
+               _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, item), 0)
+    _mx_expect("F2 control: the lead's consolidation verifies and is recorded",
+               _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, item), 0)
+    _mx_tamper(root, ".harness/expertise/harness-qa.md", QA_PRIOR_ENTRY, "")
+    return root
+
+
+def _mx_f2_durable(root):
+    result = _mx_durable_cli(_mx_durable_digest(root))
+    mx("F2 durable: an unreceipted deletion of a pre-existing entry fails the durable check",
+       result.returncode == 1 and "verify" in result.stdout, result.stdout[-400:])
+    close = _mx_close_run(root)
+    mx("F2 durable: feature-record.py close-run refuses the run at its digest stage",
+       close.returncode != 0 and "REFUSED at stage digest" in close.stderr,
+       close.stderr[-500:])
+
+
+def _mx_f2_live(root):
+    item = [_mx_item(QA_CRAFT, MX_QA)]
+    _mx_claim(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID)
+    _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+    _mx_expect("F2 live: the member's yield is refused after the unreceipted deletion",
+               _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, item), 2, "verify")
+    _mx_release(root, MX_QA_ID)
+    _mx_expect("F2 live: the lead's yield is refused after the unreceipted deletion",
+               _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, item), 2, "verify")
+
+
+def run_member_expertise_f2_cases():
+    root = _mx_f2_prepare()
+    try:
+        _mx_f2_durable(root)
+        _mx_f2_live(root)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return _mx_report("F2")
+
+
 def _mx_report(group):
     fails = 0
     for name, ok, detail in MX:
@@ -6182,6 +6313,8 @@ def main(argv=None):
         run_member_expertise_leaf_cases,
         run_member_expertise_lead_cases,
         run_member_expertise_supersession_cases,
+        run_member_expertise_authority_cases,
+        run_member_expertise_f2_cases,
     )
     # `--only <group>` runs one group by its function name. test-suite-claim-preservation.py's
     # mutant pass reads only the [bug1898] lines, and without this it paid for every group.

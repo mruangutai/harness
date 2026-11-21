@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -17,6 +18,7 @@ import {
   detectHarnessAgent,
   featureJsonPath,
   gatePath,
+  gateRoot,
   extractEditPaths,
   normalizeTaskDispatches,
   readContextAnchor,
@@ -164,6 +166,7 @@ describe("OMP task lifecycle adapter", () => {
     featureRoot?: (args: string[]) => PolicyAnswer;
     memberOps?: (args: string[], payload: unknown) => PolicyAnswer;
     mergeGate?: (payload: Record<string, unknown>) => PolicyAnswer;
+    distillAuthority?: (payload: Record<string, unknown>) => PolicyAnswer;
   } = {}) {
     const tools = new Map<string, any>();
     const handlers = new Map<string, Function>();
@@ -353,6 +356,9 @@ describe("OMP task lifecycle adapter", () => {
         if (claimIndex >= 0 && args[claimIndex + 1] === "claim-1") active.delete("agent-a");
         if (claimIndex >= 0 && args[claimIndex + 1] === "claim-2") active.delete("agent-b");
         return { blocked: false, stdout: "" };
+      }
+      if (script === "validate-digest.py" && args[0] === "--distill-authority") {
+        return options.distillAuthority?.(payload) ?? { blocked: false, stdout: '{"authorized": true}\n' };
       }
       if (script === "validate-digest.py") {
         return active.size
@@ -2033,6 +2039,34 @@ describe("OMP task lifecycle adapter", () => {
     }
   });
 
+  // F1 (validate c1): the HARNESS-MISSION marker alone never authorizes an application. The
+  // registered lineage does, answered by validate-digest.py --distill-authority for this exact run.
+  test("FEAT-2225 F1: a distill marker under a non-distill registered run is refused and member-ops never runs", async () => {
+    const root = featureTree();
+    const refusals: PolicyAnswer[] = [
+      { blocked: true, reason: "harness-eng-lead's registered run 'build-engineering' is not a feature-close distill run", stdout: "" },
+      { blocked: false, reason: "validate-digest.py exited 1", stdout: "" },
+      { blocked: false, stdout: '{"authorized": false}\n' },
+      { blocked: false, stdout: "" },
+    ];
+    for (const answer of refusals) {
+      const asked: Array<Record<string, unknown>> = [];
+      const { handlers, apply, coreCalls, calls } = applyHooks(root, {
+        distillAuthority: (payload) => { asked.push(payload); return answer; },
+      });
+      await startDistill(handlers);
+      const error = await apply({ tier: "craft", ops: [ADD] }).then(() => undefined, (e: Error) => e.message);
+      expect([answer, error]).toEqual([answer, expect.stringContaining("expertise_apply refused")]);
+      if (answer.reason) expect(error).toContain(answer.reason);
+      expect(coreCalls()).toEqual([]);
+      expect(asked).toEqual([{
+        agent_type: "harness-eng-lead", harness_feature: "FEAT-90-long-run", harness_agent_id: "LeadOne",
+        harness_parent_agent_id: "OrchestratorOne", cwd: root,
+      }]);
+      expect(calls.find((call) => call.args[0] === "--distill-authority")?.cwd).toBe(root);
+    }
+  });
+
   test("FEAT-2225: supersedes carries exact batch ids and the host-resolved main base, never a caller base", async () => {
     const root = featureTree(true);
     const main = spawnSync("git", ["rev-parse", "refs/remotes/origin/HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
@@ -3324,4 +3358,184 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     expect(verdict?.reason).toContain("runtime lineage capability");
     expect(rows(w.root)).toEqual([]);
   });
+});
+
+// ---------------------------------------------------------------------------
+// FEAT-2225 F3 (validate c1): the host tool driven through the REAL policyRunner — the module's
+// own runPolicy, no runner injected — into the real inflight_registry, validate-digest
+// --distill-authority and expertise-merge.py member-ops, with every receipt then checked by the
+// real verify-receipt. Nothing is canned: the lineage is real claims made by each session's own
+// run start plus feature.json distill runs.
+//
+// ISOLATED COPY: every gate resolves its root from its own location (root_from_script) and the
+// marker there, never from cwd. So each temporary checkout carries the marker AND its own copy
+// of the harness bin, the `.agents/skills` discovery symlink and the hook extension; the test
+// imports that copied module, and its gates then judge the temporary checkout and nothing else.
+// The five capability-class representatives each create, add, replace and drop on both tiers.
+// ---------------------------------------------------------------------------
+describe("FEAT-2225 expertise_apply through the real policyRunner into the real core", () => {
+  const FEATURE = "FEAT-9003-host-core";
+  const FEATURE_REL = `.harness/harness/features/${FEATURE}`;
+  const SOURCE = realpathSync(gateRoot());
+  const SQUADS: Record<string, string> = {
+    "harness-product-lead": "product", "harness-eng-lead": "engineering", "harness-validator-lead": "validator",
+  };
+  const DISTILL_RUNS = {
+    "harness-product-lead": "distill-product", "harness-eng-lead": "distill-engineering",
+    "harness-validator-lead": "distill-validator",
+  };
+  type Register = typeof registerHarnessHooks;
+  type Tree = { root: string; register: Register };
+  type Session = { tools: Map<string, any>; ctx: Record<string, unknown>; persona: string; id: string; parent: string };
+
+  const op = (verb: string, section: string, target: string, entry?: string) =>
+    ({ op: verb, target, section, why: "seen in two runs", ...(entry ? { entry } : {}) });
+  const ADDS = [op("add", "Patterns", "P-01", "WHEN x DO y"), op("add", "Gotchas", "G-01", "WHEN w DO watch")];
+  const CHANGES = [op("replace", "Patterns", "P-01", "WHEN x DO z"), op("drop", "Gotchas", "G-01")];
+
+  // The gate tree a checkout needs to be its own root: the bin, its discovery symlink and the
+  // extension, copied from this checkout; returns the copied module's registerHarnessHooks.
+  async function isolate(root: string): Promise<Register> {
+    cpSync(join(SOURCE, ".claude/skills/harness/bin"), join(root, ".claude/skills/harness/bin"), { recursive: true });
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    symlinkSync("../.claude/skills", join(root, ".agents/skills"));
+    for (const name of ["harness-hooks.ts", "digest-schema.ts"]) {
+      cpSync(join(SOURCE, ".omp/extensions", name), join(root, ".omp/extensions", name));
+    }
+    // Runtime-selected: the module under test is the copy inside this temporary checkout.
+    return (await import(join(root, ".omp/extensions/harness-hooks.ts"))).registerHarnessHooks;
+  }
+
+  // A committed feature checkout: the root marker with each lead's run grant, one open
+  // registered run per lead named by `runs`, the craft and harness tiers, and no Expertise yet.
+  async function tree(runs: Record<string, string>): Promise<Tree> {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "f2225-host-core-")));
+    const put = (rel: string, body: string) => {
+      mkdirSync(join(root, rel, ".."), { recursive: true });
+      writeFileSync(join(root, rel), body);
+    };
+    // JSON is YAML: the manifest needs no YAML writer here.
+    put(".harness/team-config.yaml", JSON.stringify({
+      leads: Object.entries(SQUADS).map(([name, squad]) => ({
+        name, squad, domain: [{ path: `.harness/*/features/*/runs/*-${squad}/**`, upsert: true }, { path: ".", read: true }],
+      })),
+    }));
+    put(`${FEATURE_REL}/feature.json`, JSON.stringify({
+      feature_id: FEATURE,
+      runs: Object.entries(runs).map(([agent, id]) => ({
+        id, squad: SQUADS[agent], agent, verdict: "PENDING", started_at: "2026-11-21T00:00:00+00:00",
+      })),
+    }));
+    put(`${FEATURE_REL}/notes/README`, "notes\n");
+    put(".harness/expertise/README", "craft tier\n");
+    put(".harness/harness/expertise/README", "repository tier\n");
+    put(".gitignore", "*.lock\n.harness/.inflight-claims.json\n.claude/\n.agents/\n.omp/\n");
+    const register = await isolate(root);
+    const git = (...args: string[]) => spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@t",
+      "-c", "commit.gpgsign=false", ...args], { cwd: root, encoding: "utf8", timeout: 30_000 });
+    git("init", "-q", "-b", "main");
+    git("add", "-A");
+    git("commit", "-q", "-m", "base");
+    return { root, register };
+  }
+
+  // One governed session over the copied real hooks: its own run start makes its real claim.
+  async function session(t: Tree, persona: string, id: string, parent: string): Promise<Session> {
+    const tools = new Map<string, any>();
+    const handlers = new Map<string, Function>();
+    t.register({
+      on(name: string, handler: Function) { handlers.set(name, handler); },
+      events: { on: () => () => {} },
+      ...toolApi(tools),
+    });
+    const ctx = ompContext(t.root, id, parent);
+    const assignment = `HARNESS-FEATURE: ${FEATURE}\nHARNESS-MISSION: distill\ndistill your lessons`;
+    const started = await handlers.get("before_agent_start")?.({
+      prompt: assignment, systemPrompt: [`HARNESS_AGENT_ID: ${persona}`],
+    }, ctx);
+    expect([persona, started?.message?.customType]).not.toEqual([persona, "harness-run-refused"]);
+    await handlers.get("message_end")?.({ message: { role: "user", content: [{ type: "text", text: assignment }] } }, ctx);
+    return { tools, ctx, persona, id, parent };
+  }
+
+  const apply = (s: Session, call: string, params: Record<string, unknown>) =>
+    s.tools.get("expertise_apply").execute(call, params, undefined, undefined, s.ctx);
+
+  function verify(root: string, s: Session, persona: string, repository?: string) {
+    const claimed = [...ADDS, ...CHANGES].map((item) => ({ ...item, persona }));
+    return spawnSync("python3", [join(root, ".agents/skills/harness/bin/expertise-merge.py"), "verify-receipt",
+      "--root", root, "--feature", FEATURE,
+      "--persona", persona, "--runtime-id", s.id, "--parent-id", s.parent,
+      "--tier", repository ? "repository" : "craft", ...(repository ? ["--repository", repository] : []),
+      "--claimed", "-"], { input: JSON.stringify(claimed), encoding: "utf8", timeout: 30_000 });
+  }
+
+  const receiptPath = (root: string, id: string) =>
+    join(root, FEATURE_REL, "notes", `expertise-receipt-${createHash("sha256").update(id).digest("hex")}.json`);
+
+  let main: Tree;
+  let root = "";
+  const sessions = new Map<string, Session>();
+  beforeAll(async () => {
+    main = await tree(DISTILL_RUNS);
+    root = main.root;
+    // Parents first: a member's authority is its dispatching lead's LIVE registered distill run.
+    const lineage: Array<[string, string, string]> = [
+      ["harness-orchestrator", "Orch", "Main"],
+      ["harness-product-lead", "Orch.Product", "Orch"],
+      ["harness-eng-lead", "Orch.Eng", "Orch"],
+      ["harness-validator-lead", "Orch.Val", "Orch"],
+      ["harness-backend-dev", "Orch.Eng.Dev", "Orch.Eng"],
+      ["harness-dev-ops", "Orch.Eng.Ops", "Orch.Eng"],
+      ["harness-code-reviewer", "Orch.Val.Code", "Orch.Val"],
+    ];
+    for (const [persona, id, parent] of lineage) sessions.set(persona, await session(main, persona, id, parent));
+  }, 60_000);
+
+  const REPRESENTATIVES = [
+    "harness-product-lead", "harness-code-reviewer", "harness-dev-ops", "harness-orchestrator", "harness-backend-dev",
+  ];
+  for (const persona of REPRESENTATIVES) {
+    test(`${persona}: creates, adds, replaces and drops on craft and repository; each receipt verifies`, async () => {
+      const s = sessions.get(persona)!;
+      for (const [tier, repository, rel] of [
+        ["craft", undefined, `.harness/expertise/${persona}.md`],
+        ["repository", "harness", `.harness/harness/expertise/${persona}.md`],
+      ] as Array<[string, string | undefined, string]>) {
+        const params = (ops: unknown[]) => ({ tier, ...(repository ? { repository } : {}), ops });
+        const first = await apply(s, `${s.id}-${tier}-1`, params(ADDS));
+        const second = await apply(s, `${s.id}-${tier}-2`, params(CHANGES));
+        expect(JSON.parse(first.content[0].text)).toEqual(first.details);
+        expect([tier, first.details.destination, first.details.counts.before, first.details.counts.after]).toEqual(
+          [tier, rel, { Gotchas: 0, Open: 0, Outcomes: 0, Patterns: 0 }, { Gotchas: 1, Open: 0, Outcomes: 0, Patterns: 1 }]);
+        expect([tier, second.details.counts.after]).toEqual([tier, { Gotchas: 0, Open: 0, Outcomes: 0, Patterns: 1 }]);
+        const written = readFileSync(join(root, rel), "utf8");
+        expect([tier, written.includes("WHEN x DO z"), written.includes("WHEN x DO y"), written.includes("WHEN w DO watch")])
+          .toEqual([tier, true, false, false]);
+        const verified = verify(root, s, persona, repository);
+        expect([tier, verified.status, verified.stdout + verified.stderr]).toEqual([tier, 0, expect.any(String)]);
+      }
+      expect(existsSync(receiptPath(root, s.id))).toBe(true);
+    }, 60_000);
+  }
+
+  test("a receipt does not vouch for another persona", () => {
+    const forged = verify(root, sessions.get("harness-backend-dev")!, "harness-qa");
+    expect(forged.status).not.toBe(0);
+  }, 30_000);
+
+  // F1 on real lineage: the distill marker rides the dispatch, but the eng-lead's registered
+  // run is an ordinary build run, so neither the lead nor its member may apply.
+  test("F1: a distill marker under a non-distill registered run applies nothing", async () => {
+    const build = await tree({ "harness-eng-lead": "build-engineering" });
+    await session(build, "harness-orchestrator", "Orch", "Main");
+    const lead = await session(build, "harness-eng-lead", "Orch.Eng", "Orch");
+    const member = await session(build, "harness-backend-dev", "Orch.Eng.Dev", "Orch.Eng");
+    for (const s of [lead, member]) {
+      const error = await apply(s, `${s.id}-refused`, { tier: "craft", ops: ADDS }).then(() => undefined, (e: Error) => e.message);
+      expect([s.persona, error]).toEqual([s.persona, expect.stringContaining("expertise_apply refused: distill-authority: REFUSED")]);
+      expect([s.persona, existsSync(join(build.root, `.harness/expertise/${s.persona}.md`))]).toEqual([s.persona, false]);
+      expect([s.persona, existsSync(receiptPath(build.root, s.id))]).toEqual([s.persona, false]);
+    }
+  }, 60_000);
 });

@@ -1509,12 +1509,14 @@ def _require_files(real_root, receipt, dest, rel):
 
 
 def _recorded_batches(real_root, feature, caller, rel, base):
-    """The caller's active batches for `rel`, in sequence, after the receipt identity is bound."""
+    """(the caller's active batches for `rel` in sequence, every recorded write to `rel`), after the
+    receipt identity is bound. The writes include superseded batches: they still landed."""
     entries, active, _ = load_active(real_root, feature, resolve_base(real_root, base) if base else None)
     runtime_id = caller["runtime_id"]
     _check_caller_identity([e for e in entries if e["runtime_id"] == runtime_id], caller)
-    return sorted((e for e in active if e["runtime_id"] == runtime_id and e["destination"] == rel),
+    mine = sorted((e for e in active if e["runtime_id"] == runtime_id and e["destination"] == rel),
                   key=lambda e: e["seq"])
+    return mine, [e for e in entries if e["destination"] == rel]
 
 
 def _read_destination(dest, rel):
@@ -1531,6 +1533,49 @@ def _refuse_mismatches(batches, sections):
                                  for (s, i), want, got in mismatches])
 
 
+def _chain_step(pending, used, state):
+    return next((b for b in pending if b["id"] not in used and b["after_sha256"] == state), None)
+
+
+def _write_chain(writes, current_sha):
+    """(states, used batch ids): walk the recorded writes backward from the file's current hash,
+    each step the latest unused write whose after-state is the current link."""
+    pending = ordered(writes)[::-1]
+    states, used = [current_sha], set()
+    step = _chain_step(pending, used, current_sha)
+    while step is not None:
+        used.add(step["id"])
+        states.append(step["before_sha256"])
+        step = _chain_step(pending, used, step["before_sha256"])
+    return states, used
+
+
+def _committed_state(real_root, rev, rel):
+    """sha256 of `rel` at commit `rev`, or None when that commit does not carry it."""
+    blob = base_blob(real_root, rev, rel)
+    return None if blob is None else _sha256(blob)
+
+
+def _anchor_states(real_root, rel, base):
+    """The committed states a destination's write chain may start from: HEAD's, and the base's."""
+    revs = _git_lines(real_root, "rev-parse", "--verify", "HEAD^{commit}")
+    revs += [resolve_base(real_root, base)] if base else []
+    return {_committed_state(real_root, rev, rel) for rev in revs}
+
+
+def _refuse_unreceipted_content(real_root, rel, base, writes, mine, data):
+    """F2: the COMPLETE file must be the recorded result of the destination's receipted writes,
+    chained from a committed state, with every active batch of the caller on that chain."""
+    states, used = _write_chain(writes, _sha256(data))
+    unchained = [e["id"] for e in mine if e["id"] not in used]
+    if unchained or not _anchor_states(real_root, rel, base).intersection(states):
+        _refuse(EXIT_EVIDENCE,
+                f"UNRECEIPTED CONTENT {rel}: the file (sha256 {states[0]}) is not the recorded result of "
+                "its receipted writes onto the committed base",
+                *([f"  active batches off the write chain: {', '.join(unchained)}"] if unchained else []),
+                "  an Expertise change made outside expertise_apply fails closed; restore the file and re-apply")
+
+
 def _preserved_adds(batches):
     """[section, id] of every add whose identical entry already stood in the file."""
     return [[op["section"], op["target"]] for e in batches for op, rec in zip(e["ops"], e["originals"])
@@ -1539,14 +1584,16 @@ def _preserved_adds(batches):
 
 def verify_receipt(root, feature, persona, runtime_id, parent_id, tier, segment, claimed, base=None):
     """READ-ONLY. Match persona, feature, runtime ids, exact ops and destination against the
-    ordered active batches, then compare the file with their final effect. Never applies."""
+    ordered active batches, compare the file with their final effect, then require the COMPLETE
+    file to be the recorded result of the destination's receipted writes. Never applies."""
     caller = _caller(feature, persona, runtime_id, parent_id)
     real_root, rel, dest, receipt = _locate(root, feature, persona, runtime_id, tier, segment)
     _require_files(real_root, receipt, dest, rel)
-    mine = _recorded_batches(real_root, feature, caller, rel, base)
+    mine, writes = _recorded_batches(real_root, feature, caller, rel, base)
     unreported = _match_claimed(mine, _claimed_ops(claimed, persona))
     data, sections = _read_destination(dest, rel)
     _refuse_mismatches(mine, sections)
+    _refuse_unreceipted_content(real_root, rel, base, writes, mine, data)
     return {"verified": True, "persona": persona, "feature": feature, "runtime_id": runtime_id,
             "destination": rel, "batches": [e["id"] for e in mine], "preserved": _preserved_adds(mine),
             "unreported": unreported, "counts": section_counts(sections), "file_sha256": _sha256(data)}

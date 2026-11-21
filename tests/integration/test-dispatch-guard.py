@@ -1434,6 +1434,65 @@ def case_34_distill_child_bound_to_another_feature_is_refused():
         shutil.rmtree(root, ignore_errors=True)
 
 
+# FEAT-2225 F1: the marker never grants distill authority by itself. A dispatch or lead start
+# carrying `HARNESS-MISSION: distill` with no bound `distill-*` run is refused before any claim;
+# the orchestrator keeps its authority from a `distill-*` run in the feature's runs[].
+DISTILL_MARKER = ["HARNESS-MISSION: distill"]
+
+
+def case_35_marker_on_an_ordinary_run_child_is_refused():
+    """The F1 counterexample: an ordinary build lead's own member carrying the marker."""
+    root = _distill_checkout("harness-eng-lead", "r1-eng")
+    try:
+        _bind_lead_runtime(root, "harness-eng-lead", "Orch.Lead")
+        r = _distill_fire(root, _distill_task(
+            root, "harness-backend-dev", "harness-eng-lead",
+            ["HARNESS-FEATURE-TREE-ROOT: " + root, *DISTILL_MARKER], agent_id="Orch.Lead"))
+        check("case 35: an ordinary build lead's member carrying the distill marker is refused "
+              "before any claim", r.returncode == 2 and not _child_claims(root, "harness-backend-dev")
+              and "no registered distill-* run" in r.stderr, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_36_marker_on_an_ordinary_lead_start_is_refused():
+    root = _distill_checkout("harness-eng-lead", "r1-eng")
+    try:
+        r = _distill_fire(root, _distill_task(
+            root, "harness-eng-lead", "harness-orchestrator",
+            ["HARNESS-FEATURE-TREE-ROOT: " + root, *DISTILL_MARKER]))
+        check("case 36: a lead start on an ordinary registered run carrying the distill marker "
+              "is refused before any claim", r.returncode == 2
+              and not _child_claims(root, "harness-eng-lead")
+              and "no registered distill-* run" in r.stderr, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _main_orchestrator_start(run_id):
+    """OMP Main dispatches the orchestrator with the distill marker on a feature whose only
+    registered run is `run_id`; returns (result, orchestrator claims)."""
+    root = _distill_checkout("harness-eng-lead", run_id)
+    try:
+        payload = _distill_task(root, "harness-orchestrator", "Main",
+                                ["HARNESS-FEATURE-TREE-ROOT: " + root, *DISTILL_MARKER])
+        payload["harness_agent_id"] = "Main"
+        result = _distill_fire(root, payload)
+        return result, _child_claims(root, "harness-orchestrator")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_37_orchestrator_keeps_registered_distill_authority():
+    result, claims = _main_orchestrator_start("distill-eng")
+    check("case 37: the orchestrator of a feature with a registered distill-* run starts with "
+          "the marker", result.returncode == 0 and len(claims) == 1, result.stderr)
+    result, claims = _main_orchestrator_start("r1-eng")
+    check("case 37: the orchestrator of a feature with no distill-* run is refused the marker",
+          result.returncode == 2 and not claims and "no registered distill-* run" in result.stderr,
+          result.stderr)
+
+
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
     #
@@ -1503,6 +1562,9 @@ def main():
     case_32_distill_lead_start_carries_the_mission()
     case_33_every_child_of_a_bound_distill_run_carries_the_mission()
     case_34_distill_child_bound_to_another_feature_is_refused()
+    case_35_marker_on_an_ordinary_run_child_is_refused()
+    case_36_marker_on_an_ordinary_lead_start_is_refused()
+    case_37_orchestrator_keeps_registered_distill_authority()
 
     failed = 0
     for name, ok, detail in RESULTS:

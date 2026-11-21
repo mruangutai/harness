@@ -732,6 +732,25 @@ def case_u42_receipt_file_agreement():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def _write(ident, before, after, at):
+    return {"id": ident, "before_sha256": before, "after_sha256": after,
+            "recorded_at_ns": at, "runtime_id": "r", "seq": at}
+
+
+def case_u43_write_chain():
+    """F2: the complete file is the last link of the destination's recorded write chain."""
+    a, b, c = _write("a", None, "h1", 1), _write("b", "h1", "h2", 2), _write("c", "h2", "h3", 3)
+    states, used = expertise_merge._write_chain([a, b, c], "h3")
+    check("u43: the chain walks every recorded write back to the first before-state",
+          states == ["h3", "h2", "h1", None] and used == {"a", "b", "c"}, (states, used))
+    states, used = expertise_merge._write_chain([a, b], "hX")
+    check("u43: a file no recorded write produced has an empty chain", states == ["hX"] and used == set(),
+          (states, used))
+    states, used = expertise_merge._write_chain([a, _write("n", "h1", "h1", 2)], "h1")
+    check("u43: a no-op write is consumed once, never looped", states == ["h1", "h1", None] and used == {"a", "n"},
+          (states, used))
+
+
 def run_guarded(fn):
     try:
         fn()
@@ -747,7 +766,7 @@ GUARDED_CASES = (case_u30_free_ids, case_u31_destination_rel, case_u32_collision
                  case_u34_refused_batch_report, case_u35_independent_callers, case_u36_caps_deferred,
                  case_u38_retirement, case_u38_refused_graphs, case_u39_batch_identity,
                  case_u40_receipt_failure_fails_call, case_u40_verify_without_receipt,
-                 case_u41_effect_mismatches, case_u42_receipt_file_agreement)
+                 case_u41_effect_mismatches, case_u42_receipt_file_agreement, case_u43_write_chain)
 
 
 def print_results():

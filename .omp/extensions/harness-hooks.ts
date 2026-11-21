@@ -1174,10 +1174,28 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // Destinations expertise_apply landed, by tool call, for that call's post-write check.
   const appliedDestinations = new Map<string, string>();
 
+  // F1: REGISTERED distill authority, never the HARNESS-MISSION marker alone. validate-digest.py
+  // derives it from this exact run's live claim and its registered distill lineage (the lineage
+  // it already checks for yields); only exit 0 with `{"authorized": true}` grants it.
+  const distillAuthorityRefusal = (root: string): string | undefined => {
+    const answer = policyRunner(root, "validate-digest.py", ["--distill-authority"], {
+      agent_type: currentAgent,
+      harness_feature: currentFeature,
+      harness_agent_id: runtimeAgentId,
+      harness_parent_agent_id: runtimeParentAgentId,
+      cwd: root,
+    });
+    const granted = !answer.blocked && !answer.reason
+      && jsonLines(answer.stdout).some((line) => line.authorized === true);
+    return granted ? undefined : answer.reason || "validate-digest.py --distill-authority granted no authority.";
+  };
+
   const applyExpertise = (toolCallId: string, params: Dict, cwd: string) => {
     const refusal = applyArgumentRefusal(params) ?? applyCallerRefusal(cwd);
     if (refusal) refuseApply(refusal);
     const placed = applyPlacement(cwd, params);
+    const unauthorized = distillAuthorityRefusal(placed.root);
+    if (unauthorized) refuseApply(unauthorized);
     const supersedes = (params.supersedes as string[] | undefined) ?? [];
     const result = policyRunner(placed.root, "expertise-merge.py", [
       "member-ops",

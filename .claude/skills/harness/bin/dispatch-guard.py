@@ -751,7 +751,9 @@ def _direct_orchestration_refusal():
 # another mission, names another feature or omits its feature tree is refused before any
 # claim. The mission is DERIVED from the bound run, never from prose: a lead start's own
 # registered `distill-*` run (engineering leads included), or the dispatching lead's, reached
-# through that lead's runtime claim. Every other dispatch keeps its prior outcome.
+# through that lead's runtime claim. F1: the converse holds too — a dispatch carrying the
+# distill marker with no bound `distill-*` run is refused, except the orchestrator of a
+# feature whose runs[] registers one. Every other dispatch keeps its prior outcome.
 # ---------------------------------------------------------------------------
 DISTILL_RUN_RE = re.compile(r"(?:^|-)distill-")  # feature-record.py DISTILL_RUN's token rule
 LEADS = ("harness-eng-lead",) + MISSION_LEADS
@@ -780,9 +782,13 @@ def _dispatcher_feature():
     return found.get("feature") if bound else declared
 
 
+def _is_distill_run_id(run_id):
+    return isinstance(run_id, str) and bool(DISTILL_RUN_RE.search(run_id))
+
+
 def _distill_run_feature(destinations, errors, feature, lead):
     run_id = _registered_run_id(destinations, errors, feature, lead)
-    return feature if isinstance(run_id, str) and DISTILL_RUN_RE.search(run_id) else None
+    return feature if _is_distill_run_id(run_id) else None
 
 
 def _bound_distill_feature(destinations, errors):
@@ -825,9 +831,42 @@ def _require_distill_mission():
                 "  The mission comes from the registered distill run; no other phase applies.")
 
 
+def _declares_distill():
+    """Whether any HARNESS-MISSION line of this task text declares distill."""
+    return any(line == MISSION_PREFIX + " distill" for line in prompt.splitlines())
+
+
+def _orchestrator_distill_authority():
+    """F1: the orchestrator's distill authority is a `distill-*` run in its feature's runs[]."""
+    if dispatched != "harness-orchestrator":
+        return False
+    destinations, errors = _destinations()
+    try:
+        checkout = destinations.authorization_root(owner_root, declared)
+        record = destinations.registered_feature(checkout, declared)[0]
+    except errors:
+        return False
+    runs = record.get("runs")
+    return isinstance(runs, list) and any(
+        isinstance(run, dict) and _is_distill_run_id(run.get("id")) for run in runs)
+
+
+def _refuse_unbound_distill_marker():
+    """F1: the marker alone never grants distill authority; it must name a registered run."""
+    if not _declares_distill() or _orchestrator_distill_authority():
+        return
+    _refuse("dispatch-guard: BLOCKED — the %s dispatch for %s carries HARNESS-MISSION: distill, "
+            "but no registered distill-* run binds it." % (dispatched, declared),
+            "  Distill authority is registered, never declared: a lead start needs its own open",
+            "  `distill-*` run (feature-record.py run-start --id distill-<squad>), a member its",
+            "  dispatching lead's, and the orchestrator a `distill-*` run in the feature's runs[].",
+            "  An ordinary dispatch carries no distill marker.")
+
+
 def _distill_preflight():
     feature = _bound_distill_run()
     if feature is None:
+        _refuse_unbound_distill_marker()
         return
     _require_distill_feature(feature)
     _require_distill_mission()

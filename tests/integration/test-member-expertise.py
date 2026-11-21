@@ -4,11 +4,16 @@
 The configuration half needs nothing running: every one of the 16 canonical personas carries the
 tool, keeps `write`, keeps its own-file grants, and the leads still hold no shell. The guidance half
 asserts the distill procedure names member application, feature-tree destinations, lead
-verification, orchestrator confirmation, replay and refusal routing. The behavioural half drives
-the real gates (host tool, digest validator, write guard, merge gate) against temporary feature
-trees, local git and a fake `gh`.
+verification, orchestrator confirmation, replay and refusal routing.
 
-Every subprocess has a deadline and the whole script must finish inside DEADLINE_S.
+The behavioural representatives live in tests/unit/omp-hooks.test.ts ("expertise_apply through the
+real policyRunner into the real core"), the other half of the T-04 verify. There the real host tool
+drives the real registry, distill-authority and member-ops for product-lead, code-reviewer,
+dev-ops, orchestrator and backend-dev, on craft and repository, with add, replace and drop, and
+verify-receipt checks every receipt. They sit beside the TypeScript host they exercise; a Python
+copy would bypass the host or need a second bun driver.
+
+Every case reads files only, and the whole script must finish inside DEADLINE_S.
 
     ./test-member-expertise.py    -> exit 0 all pass, 1 otherwise
 """
@@ -17,18 +22,14 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
-import json
 import os
 import re
 import signal
-import subprocess
 import sys
-import tempfile
 
 import artifact_accessors  # noqa: E402
 
 ROOT = _anchor_root
-BIN = _anchor_bin
 DEADLINE_S = 45
 FAILURES = []
 
@@ -122,112 +123,12 @@ def case_expertise_and_curate_skills_point_at_the_feature_tree():
           re.search(r"expertise-merge\.py\s+(apply|ops)\b", curate) is None)
 
 
-# ---------------------------------------------------------------- member application (SC-01)
-
-MERGE_CLI = os.path.join(BIN, "expertise-merge.py")
-FEATURE = "FEAT-9002-member-flow"
-FEATURE_REL = os.path.join(".harness", "harness", "features", FEATURE)
-REPRESENTATIVES = ("harness-product-lead", "harness-code-reviewer", "harness-dev-ops",
-                   "harness-orchestrator", "harness-backend-dev")
-
-
-def _git(cwd, *args):
-    return subprocess.run(["git", "-C", cwd, "-c", "user.name=t", "-c", "user.email=t@example.invalid",
-                           "-c", "commit.gpgsign=false", *args],
-                          capture_output=True, text=True, timeout=30, check=True).stdout.strip()
-
-
-def _feature_tree(parent):
-    """A committed feature checkout with no Expertise file yet: craft and repository tiers absent."""
-    root = os.path.join(parent, "feature")
-    os.makedirs(os.path.join(root, FEATURE_REL, "notes"))
-    os.makedirs(os.path.join(root, ".harness", "expertise"))
-    with open(os.path.join(root, FEATURE_REL, "BRIEF.md"), "w", encoding="utf-8") as fh:
-        fh.write("fixture\n")
-    with open(os.path.join(root, ".gitignore"), "w", encoding="utf-8") as fh:
-        fh.write("*.lock\n")
-    subprocess.run(["git", "init", "-q", "-b", "main", root], capture_output=True, timeout=30, check=True)
-    _git(root, "add", "-A")
-    _git(root, "commit", "-q", "-m", "base")
-    return root
-
-
-def _op(verb, section, target, entry=None):
-    item = {"op": verb, "target": target, "section": section, "why": "fixture"}
-    if entry is not None:
-        item["entry"] = entry
-    return item
-
-
-def _member_ops(root, persona, runtime, ops, tier="craft", repository=None):
-    args = [sys.executable, MERGE_CLI, "member-ops", "--root", root, "--feature", FEATURE,
-            "--persona", persona, "--runtime-id", runtime, "--parent-id", "parent-" + runtime,
-            "--tier", tier, "--ops", "-"]
-    if repository:
-        args += ["--repository", repository]
-    return subprocess.run(args, input=json.dumps(ops), capture_output=True, text=True, timeout=30)
-
-
-def _verify(root, persona, runtime, claimed, tier="craft", repository=None):
-    args = [sys.executable, MERGE_CLI, "verify-receipt", "--root", root, "--feature", FEATURE,
-            "--persona", persona, "--runtime-id", runtime, "--parent-id", "parent-" + runtime,
-            "--tier", tier, "--claimed", "-"]
-    if repository:
-        args += ["--repository", repository]
-    return subprocess.run(args, input=json.dumps(claimed), capture_output=True, text=True, timeout=30)
-
-
-def _representative_flow(parent, persona):
-    """Create, add, replace and drop on the craft tier, add on the repository tier, then verify."""
-    root = _feature_tree(os.path.join(parent, persona))
-    os.makedirs(os.path.join(root, ".harness", "harness", "expertise"), exist_ok=True)
-    runtime = "rt-" + persona
-    craft_ops = [[_op("add", "Patterns", "P-01", "WHEN x DO y")],
-                 [_op("replace", "Patterns", "P-01", "WHEN x DO z")],
-                 [_op("add", "Gotchas", "G-01", "watch w")],
-                 [_op("drop", "Gotchas", "G-01")]]
-    codes = [_member_ops(root, persona, runtime, ops).returncode for ops in craft_ops]
-    repo = _member_ops(root, persona, runtime, [_op("add", "Patterns", "P-01", "repo rule")],
-                       tier="repository", repository="harness")
-    craft_text = _read(root, ".harness", "expertise", f"{persona}.md")
-    claimed = [dict(op, persona=persona) for batch in craft_ops for op in batch]
-    verified = _verify(root, persona, runtime, claimed)
-    return codes, repo.returncode, craft_text, verified, root
-
-
-def case_representatives_apply_their_own_expertise():
-    with tempfile.TemporaryDirectory() as parent:
-        for persona in REPRESENTATIVES:
-            codes, repo_code, craft, verified, root = _representative_flow(parent, persona)
-            check(f"{persona}: create/add/replace/drop on craft all exit 0", codes == [0, 0, 0, 0], repr(codes))
-            check(f"{persona}: repository tier add exits 0", repo_code == 0, str(repo_code))
-            check(f"{persona}: craft file holds the replaced entry, not the dropped one",
-                  "WHEN x DO z" in craft and "watch w" not in craft and "WHEN x DO y" not in craft, craft)
-            check(f"{persona}: its own receipt verifies the reported ops", verified.returncode == 0,
-                  verified.stdout + verified.stderr)
-            receipts = os.listdir(os.path.join(root, FEATURE_REL, "notes"))
-            check(f"{persona}: one receipt recorded in the feature tree",
-                  len([r for r in receipts if r.startswith("expertise-receipt-") and r.endswith(".json")]) == 1,
-                  repr(receipts))
-
-
-def case_a_receipt_does_not_vouch_for_another_persona():
-    with tempfile.TemporaryDirectory() as parent:
-        _codes, _repo, _craft, _verified, root = _representative_flow(parent, "harness-backend-dev")
-        claimed = [dict(_op("add", "Patterns", "P-01", "WHEN x DO y"), persona="harness-qa")]
-        forged = _verify(root, "harness-qa", "rt-harness-backend-dev", claimed)
-        check("a claim under another persona's name is refused by verify-receipt",
-              forged.returncode != 0, forged.stdout)
-
-
 CASES = [
     case_every_persona_carries_the_tool_and_keeps_its_pen,
     case_capability_limits_are_unchanged,
     case_distillation_reference_names_member_application,
     case_distill_skill_has_no_shell_application_recipe,
     case_expertise_and_curate_skills_point_at_the_feature_tree,
-    case_representatives_apply_their_own_expertise,
-    case_a_receipt_does_not_vouch_for_another_persona,
 ]
 
 

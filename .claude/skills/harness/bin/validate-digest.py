@@ -1995,13 +1995,12 @@ def _exact_text(value):
     return isinstance(value, str) and bool(value) and value == value.strip()
 
 
-def _live_run(d, persona, mission):
+def _run_identity(d, persona):
+    """The exact feature, runtime id and parent the host supplied for this run, or raises."""
     feature, runtime_id = _exact_run_identity(d)
     parent_id = d.get("harness_parent_agent_id")
     if feature is None or not _exact_text(parent_id):
-        raise _Untrusted("the return names no exact feature, runtime id and parent")
-    if mission != "distill":
-        raise _Untrusted("its dispatch carries no HARNESS-MISSION: distill")
+        raise _Untrusted("no exact feature, runtime id and parent identify this run")
     return {"persona": persona, "feature": feature, "runtime_id": runtime_id,
             "parent_id": parent_id}
 
@@ -2015,9 +2014,10 @@ def _require_own_claim(reg, owner, root, run):
                          "checkout or parent")
 
 
-def _live_context(d, persona, mission):
-    """The trusted context of a live yield, from its claim and registered run, or raises."""
-    run = _live_run(d, persona, mission)
+def _registered_distill_context(d, persona):
+    """F1: the REGISTERED distill authority of one exact run — its own live claim, its feature
+    checkout and its registered distill lineage. The HARNESS-MISSION marker plays no part."""
+    run = _run_identity(d, persona)
     owner = _root_or_none()
     if owner is None:
         raise _Untrusted("no checkout root resolves from this vantage")
@@ -2027,6 +2027,14 @@ def _live_context(d, persona, mission):
     _require_own_claim(reg, owner, root, run)
     _require_distill_lineage(reg, dest, owner, root, run)
     return dict(run, root=root)
+
+
+def _live_context(d, persona, mission):
+    """The trusted context of a live yield: its dispatch's distill mission AND its registered
+    distill authority, or raises."""
+    if mission != "distill":
+        raise _Untrusted("its dispatch carries no HARNESS-MISSION: distill")
+    return _registered_distill_context(d, persona)
 
 
 def _durable_run(persona, path):
@@ -2727,6 +2735,42 @@ def _contract_refusal(errs):
     return 2
 
 
+# --- FEAT-2225 F1: registered distill authority, asked BEFORE any application. The host's
+# `expertise_apply` runs this after its own caller checks and before member-ops. The marker never
+# authorizes: authority is the same registered lineage a distill yield is checked against —
+# a lead's own open `distill-*` run, a member's dispatching lead's, or for the orchestrator a
+# `distill-*` run in the feature's runs[]. Not hook_guard-wrapped: every failure refuses.
+def _authority_refusal(why):
+    print("distill-authority: REFUSED " + " ".join(str(why).split()), file=sys.stderr)
+    return 2
+
+
+def _authority_request(text):
+    """(payload, canonical persona) of an authority request, or raises _Untrusted."""
+    try:
+        payload = artifact_accessors.read_hook_payload(text, "distill authority request")
+    except artifact_accessors.ArtifactAccessError as error:
+        raise _Untrusted(f"the request is not one JSON object ({error})") from error
+    persona = payload.get("agent_type")
+    if persona not in digest_schema.PERSONAS:
+        raise _Untrusted(f"agent_type {persona!r} is not a governed persona")
+    return payload, persona
+
+
+def distill_authority_mode():
+    """Exit 0 printing {"authorized": true} when the registered lineage grants this exact run
+    distill authority; exit 2 with one stderr line naming why not. Fails closed."""
+    try:
+        payload, persona = _authority_request(sys.stdin.read())
+    except _Untrusted as why:
+        return _authority_refusal(why)
+    context, why = _trusted(_registered_distill_context, payload, persona)
+    if context is None:
+        return _authority_refusal(why)
+    print(json.dumps({"authorized": True}))
+    return 0
+
+
 def cli_object(text, where):
     """`(mapping, None)` for CLI input, or `(None, error)`. One JSON object is the live
     shape; anything else is read as a durable digest.md and its last fenced mapping is the
@@ -2745,6 +2789,8 @@ def cli_object(text, where):
 if __name__ == "__main__":
     if "--hook" in sys.argv:
         sys.exit(harness_boundary.hook_guard(hook_mode, "check-digest"))
+    if "--distill-authority" in sys.argv:
+        sys.exit(distill_authority_mode())
     # F14: CLI mode crashed with UnicodeEncodeError under an ASCII locale (LC_ALL=C),
     # truncating the printed reasons before the operator saw them.
     try:
