@@ -55,5 +55,44 @@
       "reason": "scope reader FAIL (PF-35d0f7a4, high substance) applied by pm inside run 1 but unread by the reader; re-panel T-04 only"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "notes/answers-2026-11-21-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "1955706dc99bed1fc33d2725c6afe66095a1ea5d2c21d51cead1cb4c362628ce",
+    "T-02": "83c587d6b35527d7f573dd2f32d8324bf4e3cd4e1f9819507d0c7e2ade1d1f11",
+    "T-03": "0141f045c7f363ae733a499786d660e31e36ea696edfa1f4c911ef2580fb5a3d",
+    "T-04": "445206e4bba7f529e69ab2e3588ad07306dcb3999bab354922d0f135d8e7ed94"
+  },
+  "github": {
+    "milestone": 112,
+    "parent": 2233,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 2234,
+      "T-02": 2235,
+      "T-03": 2236,
+      "T-04": 2237
+    },
+    "source_issues": [
+      2225
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

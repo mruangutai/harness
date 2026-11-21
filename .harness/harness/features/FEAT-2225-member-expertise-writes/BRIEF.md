@@ -52,6 +52,6 @@ FEAT-2206's security reviewer accepted an Expertise replacement but could not ex
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike Ruangutai
+date: 2026-11-21
