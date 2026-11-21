@@ -1049,6 +1049,34 @@ def _lines_with(out, *needles):
     return [line for line in out.splitlines() if all(n in line for n in needles)]
 
 
+def _print_outcomes(prefix, outcomes, detail):
+    for label, passed in outcomes:
+        print(f"{'ok' if passed else 'FAIL'} - {prefix}: {label}")
+    passed = all(ok for _, ok in outcomes)
+    if not passed:
+        print(detail)
+    return passed
+
+
+def _note_only(out, run_id, note):
+    return bool(_lines_with(out, f"run {run_id} has {note}")) and not _lines_with(
+        out, "VIOLATION", f"run {run_id} ")
+
+
+def _inv7_fixture(tmp):
+    """Runs F (PENDING, to be ended with evidence), L (FAIL, unevidenced 1) and U (FAIL,
+    no count) against a feature total of 1. Returns feature.json's path."""
+    fail = _bug440_digest("FAIL")
+    fdir = _bug440_build(tmp, ("F", "L", "U"), [
+        (name, "harness-product-lead", "complete", fail) for name in ("F", "L", "U")])
+    lead = {"squad": "product", "agent": "harness-product-lead"}
+    return _set_runs(fdir, 1, [
+        {"id": "F", **lead, "verdict": "PENDING"},
+        {"id": "L", **lead, "verdict": "FAIL", "cycles_used": 1,
+         "ended_at": "2026-10-01T10:00:00+00:00"},
+        {"id": "U", **lead, "verdict": "FAIL", "ended_at": "2026-10-01T11:00:00+00:00"}])
+
+
 def case_inv7_counts_evidence_not_fail_verdicts():
     """BUG-20261006 fix c1 (SC-04), through the real reader.
     - Three FAIL runs against a total of 1 are not a violation; there is no FAIL-count floor.
@@ -1056,35 +1084,63 @@ def case_inv7_counts_evidence_not_fail_verdicts():
     - Run L's unevidenced 1 is a note, not a violation.
     - Run U's absent count is an unknown-attribution note, not a violation."""
     with tempfile.TemporaryDirectory() as tmp:
-        fail = _bug440_digest("FAIL")
-        fdir = _bug440_build(tmp, ("F", "L", "U"), [
-            (name, "harness-product-lead", "complete", fail) for name in ("F", "L", "U")])
-        lead = {"squad": "product", "agent": "harness-product-lead"}
-        path = _set_runs(fdir, 1, [
-            {"id": "F", **lead, "verdict": "PENDING"},
-            {"id": "L", **lead, "verdict": "FAIL", "cycles_used": 1,
-             "ended_at": "2026-10-01T10:00:00+00:00"},
-            {"id": "U", **lead, "verdict": "FAIL", "ended_at": "2026-10-01T11:00:00+00:00"}])
+        path = _inv7_fixture(tmp)
         ended = _feature_record("run-end", "--file", path, "--id", "F", "--verdict", "FAIL",
                                 "--cycles-used", "0", "--digest", "runs/F/digest.md", tmp=tmp)
         _, out = run(tmp)
-    violations = [line for line in _lines_with(out, "VIOLATION")
-                  if "FEAT-TEST" in line and ("cycle" in line or "FAIL" in line)]
-    outcomes = [
+    violations = [line for line in _lines_with(out, "VIOLATION", "FEAT-TEST")
+                  if "cycle" in line or "FAIL" in line]
+    return _print_outcomes("INV-7 (SC-04)", [
         ("run-end records F's evidenced zero", ended.returncode == 0),
         ("no cycle or FAIL-count violation for three FAILs against a total of 1", not violations),
         ("L's unevidenced count is reported as a note",
-         bool(_lines_with(out, "run L has historical cycle attribution without evidence"))
-         and not _lines_with(out, "VIOLATION", "run L ")),
+         _note_only(out, "L", "historical cycle attribution without evidence")),
         ("U's absent count is reported as unknown attribution",
-         bool(_lines_with(out, "run U has unknown historical cycle attribution"))
-         and not _lines_with(out, "VIOLATION", "run U ")),
-        ("F's evidenced count draws no note", not _lines_with(out, "run F has"))]
-    for label, passed in outcomes:
-        print(f"{'ok' if passed else 'FAIL'} - INV-7 (SC-04): {label}")
-    if not all(passed for _, passed in outcomes):
-        print(ended.stdout, ended.stderr, "\n".join(violations), out[-3000:])
-    return all(passed for _, passed in outcomes)
+         _note_only(out, "U", "unknown historical cycle attribution")),
+        ("F's evidenced count draws no note", not _lines_with(out, "run F has"))],
+        (ended.stderr, violations, out[-3000:]))
+
+
+def _refused_fixture(tmp, prose):
+    """Runs R (BLOCKED, refused prose), Q (complete, no digest) and S (PENDING, the same
+    prose). Returns (feature.json path, R's digest path)."""
+    fdir = _bug440_build(tmp, ("R", "Q", "S"), [
+        ("R", "harness-eng-lead", "complete", prose),
+        ("Q", "harness-eng-lead", "complete", None),
+        ("S", "harness-eng-lead", "active", prose)])
+    lead = {"squad": "eng", "agent": "harness-eng-lead"}
+    path = _set_runs(fdir, 0, [
+        {"id": "R", **lead, "verdict": "BLOCKED", "cycles_used": 0,
+         "ended_at": "2026-10-01T10:00:00+00:00"},
+        {"id": "Q", **lead, "verdict": "PASS", "cycles_used": 0,
+         "ended_at": "2026-10-01T11:00:00+00:00"},
+        {"id": "S", **lead, "verdict": "PENDING"}])
+    return path, os.path.join(fdir, "runs", "R", "digest.md")
+
+
+def _record_refusal(tmp, path, digest):
+    import feature_schema
+    fdir = os.path.dirname(path)
+    note = os.path.join(fdir, "authorization.json")
+    with open(note, "w", encoding="utf-8") as target:
+        json.dump({"feature_id": "FEAT-TEST", "effects": [{
+            "effect": "record-refusal", "run_id": "R",
+            "digest": feature_schema.resolve_evidence_ref(fdir, digest)}]}, target)
+    return _feature_record(
+        "record-refusal", "--file", path, "--id", "R", "--digest", digest, "--evidence", note,
+        "--by", "operator", "--reason", "authentic historical contract rejection", "--yes",
+        tmp=tmp)
+
+
+def _close_unchanged(tmp, path):
+    """(close-run result for S, whether feature.json kept its bytes)."""
+    with open(path, "rb") as source:
+        before = source.read()
+    closed = _feature_record("close-run", "--file", path, "--id", "S",
+                             "--digest", "runs/S/digest.md", "--verdict", "PASS",
+                             "--cycles-used", "0", "--code-grade", "n_a", tmp=tmp)
+    with open(path, "rb") as source:
+        return closed, source.read() == before
 
 
 def case_refusal_provenance_never_satisfies_live_validation():
@@ -1093,53 +1149,22 @@ def case_refusal_provenance_never_satisfies_live_validation():
     - the live validator rejects it;
     - close-run rejects it for a new run S;
     - the reader still reports complete run Q, whose digest is missing."""
-    import feature_schema
-    prose = "# assessment completed; the return was refused\n"
     with tempfile.TemporaryDirectory() as tmp:
-        fdir = _bug440_build(tmp, ("R", "Q", "S"), [
-            ("R", "harness-eng-lead", "complete", prose),
-            ("Q", "harness-eng-lead", "complete", None),
-            ("S", "harness-eng-lead", "active", prose)])
-        lead = {"squad": "eng", "agent": "harness-eng-lead"}
-        path = _set_runs(fdir, 0, [
-            {"id": "R", **lead, "verdict": "BLOCKED", "cycles_used": 0,
-             "ended_at": "2026-10-01T10:00:00+00:00"},
-            {"id": "Q", **lead, "verdict": "PASS", "cycles_used": 0,
-             "ended_at": "2026-10-01T11:00:00+00:00"},
-            {"id": "S", **lead, "verdict": "PENDING"}])
-        digest = os.path.join(fdir, "runs", "R", "digest.md")
-        note = os.path.join(fdir, "authorization.json")
-        with open(note, "w", encoding="utf-8") as target:
-            json.dump({"feature_id": "FEAT-TEST", "effects": [{
-                "effect": "record-refusal", "run_id": "R",
-                "digest": feature_schema.resolve_evidence_ref(fdir, digest)}]}, target)
-        recorded = _feature_record(
-            "record-refusal", "--file", path, "--id", "R", "--digest", digest, "--evidence", note,
-            "--by", "operator", "--reason", "authentic historical contract rejection", "--yes",
-            tmp=tmp)
+        path, digest = _refused_fixture(tmp, "# assessment completed; the return was refused\n")
+        recorded = _record_refusal(tmp, path, digest)
         live = subprocess.run(
             [sys.executable, os.path.join(_anchor_bin, "validate-digest.py"), "harness-eng-lead",
              digest], capture_output=True, text=True, env=_root_env(tmp))
-        with open(path, "rb") as source:
-            before = source.read()
-        closed = _feature_record("close-run", "--file", path, "--id", "S",
-                                 "--digest", "runs/S/digest.md", "--verdict", "PASS",
-                                 "--cycles-used", "0", "--code-grade", "n_a", tmp=tmp)
-        with open(path, "rb") as source:
-            unchanged = source.read() == before
+        closed, unchanged = _close_unchanged(tmp, path)
         _, out = run(tmp)
-    outcomes = [
+    return _print_outcomes("live validation (SC-06)", [
         ("record-refusal records R's provenance", recorded.returncode == 0),
         ("the live validator still rejects R's refused prose", live.returncode != 0),
         ("close-run refuses the same prose for a new run, leaving the record unchanged",
          closed.returncode != 0 and unchanged),
         ("complete run Q with no digest is still a violation",
-         bool(_lines_with(out, "runs/Q", "digest.md is missing")))]
-    for label, passed in outcomes:
-        print(f"{'ok' if passed else 'FAIL'} - live validation (SC-06): {label}")
-    if not all(passed for _, passed in outcomes):
-        print(recorded.stderr, live.stdout, closed.stdout, closed.stderr, out[-3000:])
-    return all(passed for _, passed in outcomes)
+         bool(_lines_with(out, "runs/Q", "digest.md is missing")))],
+        (recorded.stderr, live.stdout, closed.stdout, closed.stderr, out[-3000:]))
 
 
 def _report(results):
@@ -1153,34 +1178,24 @@ def _report(results):
     return ok
 
 
+_CASES = (
+    case_inv32, case_inv32_unrated_severity_fails_closed,
+    case_2095_off_template_finding_is_a_violation, case_inv32_pre_era_is_exempt,
+    case_inv32_era_boundary_is_exact, case_inv32_patch_mission_has_no_panel,
+    case_inv32_patch_mission_exempts_only_one_task, case_inv32_undated_approval_fails,
+    case_inv32_era_guard_is_load_bearing, case_inv32_era_comes_from_project_config,
+    case_inv32_null_era_grades_everything, case_inv32_missing_era_key_is_a_violation,
+    case_inv32_malformed_era_exempts_nothing, case_bug440_digest_verdict_reconciliation,
+    case_bug1305_run_identity_invariant, case_t06_inv37_receipt, case_t06_recovery_command,
+    case_historical_refusal_completion, case_inv7_counts_evidence_not_fail_verdicts,
+    case_refusal_provenance_never_satisfies_live_validation)
+_INV33_CASES = (case_inv33a_stale_is_reported, case_inv33b_current_is_silent,
+                case_inv33c_terminal_is_silent, case_inv33d_absent_path_is_silent)
+
+
 def main():
-    results = []
-    results.append(case_inv32())
-    results.append(case_inv32_unrated_severity_fails_closed())
-    results.append(case_2095_off_template_finding_is_a_violation())
-    results.append(case_inv32_pre_era_is_exempt())
-    results.append(case_inv32_era_boundary_is_exact())
-    results.append(case_inv32_patch_mission_has_no_panel())
-    results.append(case_inv32_patch_mission_exempts_only_one_task())
-    results.append(case_inv32_undated_approval_fails())
-    results.append(case_inv32_era_guard_is_load_bearing())
-    results.append(case_inv32_era_comes_from_project_config())
-    results.append(case_inv32_null_era_grades_everything())
-    results.append(case_inv32_missing_era_key_is_a_violation())
-    results.append(case_inv32_malformed_era_exempts_nothing())
-    results.append(case_bug440_digest_verdict_reconciliation())
-    results.append(case_bug1305_run_identity_invariant())
-    results.append(case_t06_inv37_receipt())
-    results.append(case_t06_recovery_command())
-    results.append(case_historical_refusal_completion())
-    results.append(case_inv7_counts_evidence_not_fail_verdicts())
-    results.append(case_refusal_provenance_never_satisfies_live_validation())
-    results.append(_report(
-        case_inv33a_stale_is_reported()
-            + case_inv33b_current_is_silent()
-            + case_inv33c_terminal_is_silent()
-            + case_inv33d_absent_path_is_silent()
-    ))
+    results = [case() for case in _CASES]
+    results.append(_report([row for case in _INV33_CASES for row in case()]))
     return 0 if all(results) else 1
 
 

@@ -859,18 +859,8 @@ def _audit_findings(root, board, repo_name):
     findings.extend(_station_findings(issues, stations, done_station))
     # Class 3 -- REASON.
     findings.extend(_reason_findings(issues))
-    # Class 4 -- LABEL. Scoped to this checkout's recorded tickets for its own repo only, the same
-    # #783 rule STATUS follows; any other repo keeps the broad rule. A ticket is recorded only by a
-    # record whose mirror provably lives in this repo -- a Kaya task #17 never makes Harness #17
-    # labelable -- and an unreadable corpus or record is a report-only residual, never a reason to
-    # broaden which issues a reconcile may write to.
-    own_repo = _own_repo(root)
-    if repo_name == own_repo:
-        recorded, residuals = _label_scope(root, repo_name)
-        findings.extend(_label_findings(issues, recorded))
-        findings.extend(residuals)
-    else:
-        findings.extend(_label_findings(issues))
+    # Class 4 -- LABEL.
+    findings.extend(_label_class_findings(root, issues, repo_name))
 
     # Class 5 -- WORKFLOW. Call 4/4.
     notes.append(_WORKFLOW_HEADER)
@@ -955,6 +945,18 @@ def _label_scope(root, repo_name):
     return numbers, residuals
 
 
+def _label_class_findings(root, issues, repo_name):
+    """Class 4 -- LABEL. Scoped to this checkout's recorded tickets for its own repo only, the
+    same #783 rule STATUS follows; any other repo keeps the broad rule. A ticket is recorded
+    only by a record whose mirror provably lives in this repo -- a Kaya task #17 never makes
+    Harness #17 labelable -- and an unreadable corpus or record is a report-only residual,
+    never a reason to broaden which issues a reconcile may write to."""
+    if repo_name != _own_repo(root):
+        return _label_findings(issues)
+    recorded, residuals = _label_scope(root, repo_name)
+    return _label_findings(issues, recorded) + residuals
+
+
 def _label_owned_numbers(feat_dir, repo_name):
     """(numbers, problem): the tickets one record proves it owns in `repo_name`. A record bound
     to another repository owns nothing here and is not a problem."""
@@ -965,15 +967,21 @@ def _label_owned_numbers(feat_dir, repo_name):
     recorded = _github_numbers(doc) if isinstance(doc, dict) else None
     if recorded is None:
         return set(), "malformed github mapping"
+    owner, problem = _label_record_owner(feat_dir, doc, repo_name)
+    return (recorded, None) if owner and not problem else (set(), problem)
+
+
+def _label_record_owner(feat_dir, doc, repo_name):
+    """(owned, problem): whether one readable record's mirror is provably `repo_name`'s."""
     factory = doc.get("factory")
     if feature_schema.has_repository_binding(doc):
         if not isinstance(factory, dict):
-            return set(), "invalid feature binding"
+            return False, "invalid feature binding"
         if factory.get("repo") != repo_name:
-            return set(), None
+            return False, None
     problem = ("; ".join(feature_schema.mirror_evidence_problems(feat_dir, doc))
                or feature_schema.mirror_provenance_problem(doc, repo_name))
-    return (set(), problem) if problem else (recorded, None)
+    return not problem, problem
 
 
 def _github_numbers(doc):

@@ -337,26 +337,33 @@ _CONFIG_FAILURES = (
     ("a factory.repo missing from the fleet", {"product/app@release": _product()}, "ghost/app"))
 
 
+def _rebind(feat, factory_repo):
+    path = os.path.join(feat, "feature.json")
+    doc = read_feature_json(path)
+    doc["factory"]["repo"] = factory_repo
+    with open(path, "w", encoding="utf-8") as target:
+        json.dump(doc, target, indent=2)
+
+
+def _refused_cleanly(result, feat, log):
+    receipt = read_feature_json(os.path.join(feat, "feature.json"))["github"]
+    mutated = any(token in call for call in log for token in _MUTATION_TOKENS)
+    owner_call = any("owner/harness" in call for call in log)
+    return result.returncode != 0 and receipt == {} and not mutated and not owner_call
+
+
 def fleet_config_failure_cases():
     for label, configs, factory_repo in _CONFIG_FAILURES:
         with tempfile.TemporaryDirectory() as tmp:
             feat = stage_fleet(tmp)
             _install_product(tmp, configs)
             if factory_repo:
-                path = os.path.join(feat, "feature.json")
-                doc = read_feature_json(path)
-                doc["factory"]["repo"] = factory_repo
-                with open(path, "w", encoding="utf-8") as target:
-                    json.dump(doc, target, indent=2)
+                _rebind(feat, factory_repo)
             result = run(["open", feat], tmp)
             log = calls(tmp)
-            receipt = read_feature_json(os.path.join(feat, "feature.json"))["github"]
             check(f"open refuses {label} before any mutation, with no owner fallback",
-                  result.returncode != 0 and receipt == {}
-                  and not any(token in call for call in log for token in _MUTATION_TOKENS)
-                  and not any("owner/harness" in call for call in log),
+                  _refused_cleanly(result, feat, log),
                   f"rc={result.returncode} out={result.stdout} err={result.stderr} calls={log}")
-
 
 
 def replacement_authority(feat, started=False):
