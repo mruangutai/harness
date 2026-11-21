@@ -3,7 +3,7 @@
   "branch": "feat/BUG-2171-task-structured",
   "pr": null,
   "review_sha": "d3792019e74ff266c2414708124512544d1fc9f6",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -69,6 +69,21 @@
       "tokens": null,
       "ended_at": "2026-11-21T15:53:13+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T15:54:54+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-03-validate-validator/digest.md",
+        "sha256": "1c966e62d2fdf0c7c34b95be71546a4d1bdbe73cd8a11f66973fa6fb41660505"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-21T16:12:57+00:00"
     }
   ],
   "judgements": [
@@ -85,6 +100,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "intake PASS; lead yield appended digest.md via hook (no manual step); BRIEF (52 lines) and plan.yaml (T-01 main-session-direct, check 0 failures) pending on disk; advance to signature"
+    },
+    {
+      "at": "2026-11-21T16:13:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "revalidate",
+      "reason": "no must-fix; QA string-data yields refused by the pre-fix hook loaded in the main session (the SC-04 defect); revalidate from a fresh session rooted in the worktree"
     }
   ],
   "mission": "patch",
