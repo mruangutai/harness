@@ -230,7 +230,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires direct changes to host hooks, validators, schemas, write and merge gates and every test of those gates.
     depends_on: [T-01, T-02, T-03]
-    status: ready
+    status: done
     files:
       - .omp/extensions/harness-hooks.ts#registerHarnessHooks
       - .claude/skills/harness/bin/digest-schemas/common.json#expertise_write
