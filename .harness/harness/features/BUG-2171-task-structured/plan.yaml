@@ -7,18 +7,21 @@ source_issues: [2171]
 lanes:
   resolved_at: b7af829c0207522b43f978b5275a2ebdc96b3210
   rows:
-    - surface: .omp/config.yml
-      lane: main-session-direct
-      reason: DEC-174 enforcement configuration
-    - surface: .claude/skills/harness/bin/check-omp-port.py
-      lane: main-session-direct
-      reason: DEC-174 gate script
-    - surface: tests/integration/test-check-omp-port.py
-      lane: main-session-direct
-      reason: DEC-174 gate regression test
-    - surface: .omp/extensions/harness-hooks.ts
-      lane: main-session-direct
-      reason: DEC-174 hook refusal text
+  - surface: .omp/config.yml
+    lane: main-session-direct
+    reason: DEC-174 enforcement configuration
+  - surface: .claude/skills/harness/bin/check-omp-port.py
+    lane: main-session-direct
+    reason: DEC-174 gate script
+  - surface: tests/integration/test-check-omp-port.py
+    lane: main-session-direct
+    reason: DEC-174 gate regression test
+  - surface: .omp/extensions/harness-hooks.ts
+    lane: main-session-direct
+    reason: DEC-174 hook refusal text and yield-branch string-data parse
+  - surface: tests/unit/omp-hooks.test.ts
+    lane: main-session-direct
+    reason: DEC-174 hook regression test
 
 decisions:
   - id: D-01
@@ -29,20 +32,29 @@ decisions:
 tasks:
   - id: T-01
     title: Restore structured Harness child returns and prove automatic durable append
-    traces: [SC-01, SC-02, SC-03]
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 reserves configuration, hook, gate and gate-test edits to the main session; no harness-eng-lead execution route.
+    execution_reason: DEC-174 reserves configuration, hook, gate and their regression-test
+      edits to the main session; no harness-eng-lead execution route.
     depends_on: []
     status: ready
     files:
-      - .omp/config.yml
-      - .claude/skills/harness/bin/check-omp-port.py#config_errors
-      - tests/integration/test-check-omp-port.py
-      - .omp/extensions/harness-hooks.ts#schemaControlRefusal
+    - .omp/config.yml
+    - .claude/skills/harness/bin/check-omp-port.py#config_errors
+    - tests/integration/test-check-omp-port.py
+    - .omp/extensions/harness-hooks.ts#schemaControlRefusal
+    - .omp/extensions/harness-hooks.ts#registerHarnessHooks
+    - tests/unit/omp-hooks.test.ts
     verify: |
       set -eu
       python3 tests/integration/test-check-omp-port.py
+      python3 tests/unit/test-omp-hooks.py
+      python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit
       python3 - <<"PY"
       import os, subprocess, sys, tempfile
       from pathlib import Path
@@ -63,7 +75,28 @@ tasks:
           green = list(case()); assert green and all(ok for label, ok, detail in green), green
           print("GREEN fixed gate:", [label for label, ok, detail in green])
       PY
-      env -u HARNESS_AGENT_TYPE -u HARNESS_PROJECT_DIR -u CLAUDE_PROJECT_DIR omp --cwd=. --config=.omp/providers/openai.yml --no-lsp --no-title --auto-approve --max-time=55s -p "HARNESS-FEATURE: BUG-2171-task-structured. HARNESS-FEATURE-TREE-ROOT: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured. Fresh runtime smoke only, not an intake, panel, goal-check or build. Act as main session; require all prior product runs closed. Register new run 2026-11-08-02-smoke-product with feature-record.py run-start, squad product, agent harness-product-lead, using the control-plane ledger protocol. Dispatch harness-product-lead without outputSchema or schemaMode. The lead dispatches one harness-pm child, which reads existing notes/research-intake.md and makes a real schema-conforming yield tool call referencing that existing artifact, with no file edits and no implementation verdicts. The lead writes its human assessment identically to its run before.md and digest.md, with no fenced records, then makes its own real schema-conforming yield tool call. No agent may append a fence or invoke validate-digest.py directly. After the lead returns, preserve the main and child session paths and actual yield tool call ids; check that the hook appended the durable fence without a manual step, then close the new product run through close-run with code-grade n_a. Do not edit any product source, approvals, plan or brief. A missing yield or append is failure, not a text-return substitute."
+      python3 - <<"PYHOOK"
+      import subprocess, tempfile
+      from pathlib import Path
+      root = Path.cwd()
+      with tempfile.TemporaryDirectory() as td:
+          tree = Path(td) / "proof"
+          subprocess.run(["git", "clone", "--shared", "--no-hardlinks", str(root), str(tree)], check=True)
+          for rel in ["tests/unit/omp-hooks.test.ts", ".omp/extensions/harness-hooks.ts"]:
+              (tree / rel).write_bytes((root / rel).read_bytes())
+          hook = tree / ".omp/extensions/harness-hooks.ts"
+          fixed = hook.read_bytes()
+          hook.write_bytes(subprocess.check_output(["git", "show", "b7af829c0207522b43f978b5275a2ebdc96b3210:.omp/extensions/harness-hooks.ts"], cwd=root))
+          command = ["bun", "test", "tests/unit/omp-hooks.test.ts", "--test-name-pattern", "BUG-2171 string-serialized PASS digest"]
+          red = subprocess.run(command, cwd=tree, text=True, capture_output=True)
+          print("RED b7af829c hook assertion output:", red.stdout, red.stderr, flush=True)
+          assert red.returncode != 0 and "expect(" in red.stderr and "fail" in red.stderr, "Need actual new assertion failure, not invocation failure"
+          hook.write_bytes(fixed)
+          green = subprocess.run(command, cwd=tree, text=True, capture_output=True)
+          print("GREEN fixed hook assertion output:", green.stdout, green.stderr, flush=True)
+          assert green.returncode == 0 and "1 pass" in green.stderr, "Need actual new assertion pass"
+      PYHOOK
+      env -u HARNESS_AGENT_TYPE -u HARNESS_PROJECT_DIR -u CLAUDE_PROJECT_DIR omp --cwd=. --config=.omp/providers/openai.yml --no-lsp --no-title --auto-approve --max-time=10m -p "HARNESS-FEATURE: BUG-2171-task-structured. HARNESS-FEATURE-TREE-ROOT: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured. Fresh runtime smoke only, not an intake, panel, goal-check or build. Act as main session; require all prior product runs closed. Register new run 2026-11-08-02-smoke-product with feature-record.py run-start, squad product, agent harness-product-lead, using the control-plane ledger protocol. Dispatch harness-product-lead without outputSchema or schemaMode. The lead dispatches one harness-pm child, which reads existing notes/research-intake.md and makes a real schema-conforming yield tool call referencing that existing artifact, with no file edits and no implementation verdicts. The lead writes its human assessment identically to its run before.md and digest.md, with no fenced records, then makes its own real schema-conforming yield tool call. No agent may append a fence or invoke validate-digest.py directly. After the lead returns, preserve the main and child session paths and actual yield tool call ids; check that the hook appended the durable fence without a manual step, then close the new product run through close-run with code-grade n_a. Do not edit any product source, approvals, plan or brief. A missing yield or append is failure, not a text-return substitute."
       python3 - <<"PY"
       import sys
       from pathlib import Path
@@ -76,14 +109,20 @@ tasks:
       assert Path(record["artifact"]).resolve() == (run / "digest.md").resolve()
       print("PASS hook-owned append: human-only prefix preserved; canonical reader selects lead record")
       PY
+      # QA retains actual red-base and green-fix assertion stdout/stderr receipts.
     intent: |
       Work only in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured at base b7af829c0207522b43f978b5275a2ebdc96b3210. Main-session-direct under DEC-174; never dispatch harness-eng-lead or an implementation squad. Keep every relative-path edit inside this worktree.
       Consult PRODUCT AGENTS.md and its mapped .harness/harness/docs/SPEC.md section 8.3 and .harness/harness/docs/DECISIONS.md DEC-174 and DEC-237. PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are absent; report that absence, invent no architecture and do not author substitute documents. The actual product-local mapped specification and decisions preserve hook-owned strict injection and validator-owned append.
       The settled cause is native OMP 18.10.2 task.structured defaulting off while Harness never opted in. Revalidation strips injected outputSchema/schemaMode with that setting off, so the child lacks yield and the existing yield hook is never reached. Do not re-investigate this settled cause or modify the intact validator.
       First add case_task_structured_required to tests/integration/test-check-omp-port.py and register it in CASES. Use its existing fixture and run helpers. Return named label, boolean, detail rows testing independent fixtures with task.structured missing, boolean false, a non-boolean string true, and boolean true. The first three must return exit 1 with a diagnostic naming task.structured; true must pass. Keep CHECK replaceable through the module global so the verify block runs these exact new assertions against the historical gate and the fixed gate. Capture the red run against the gate from immutable b7af829c before changing production, then green after the fix. An import, syntax or invocation failure is not a red assertion receipt.
       Add structured: true beneath task in .omp/config.yml, retaining maxRecursionDepth: 3 and maxRuntimeMs: 0. In check-omp-port.py config_errors add the sibling rule requiring task.structured is True, not equality that accepts integer 1, and emit .omp/config.yml task.structured must be true for absent or other values. Retain every other rule and its diagnostics.
-      In schemaControlRefusal add exactly ONE source line concatenating the sentence Fields on earlier calls were hook-injected and must never be copied. Include a separating space in the added string. Keep all existing refusal text and every other hook byte unchanged; do not modify dispatch, injection, lifecycle or yield logic. Do not change validate-digest.py, digest schemas, per-agent frontmatter, or OMP version requirements.
-      Run the literal verify block from the worktree root only after the fix, on a credentialled host with OMP >=18.10.2. The provider overlay supplies modelRoles only, never task.structured; use normal extension discovery, no resume and no independent structured override. The smoke run id must be unused, and the intake product run must be closed first; refuse rather than overwrite an existing smoke run. The new product lead run and its pm child are read-only runtime probes, not another intake, reader panel, goal-check or engineering execution. The 55-second live bound returns failure on timeout; never claim a partial run passed.
+      In schemaControlRefusal add exactly ONE source line concatenating the sentence Fields on earlier calls were hook-injected and must never be copied. Include a separating space in the added string. Keep all existing refusal text. Apart from that single added line, change only string-data parsing within the yield branch of registerHarnessHooks; dispatch, injection, lifecycle and append remain untouched. Do not change validate-digest.py, digest schemas, per-agent frontmatter, or OMP version requirements.
+      Run the literal verify block from the worktree root only after the fix, on a credentialled host with OMP >=18.10.2. The provider overlay supplies modelRoles only, never task.structured; use normal extension discovery, no resume and no independent structured override. The smoke run id must be unused, and the intake product run must be closed first; refuse rather than overwrite an existing smoke run. The new product lead run and its pm child are read-only runtime probes, not another intake, reader panel, goal-check or engineering execution. The 10-minute live bound returns failure on timeout; never claim a partial run passed.
       Bind receipts to the executed source SHA and record the actual OMP launcher path, version and executable hash. Retain red-base and green-fix assertion output, fresh main/child session paths, actual yield call ids, injected strict persona schema evidence, human-only before.md and the appended digest.md. A reviewer must confirm actual child and lead yield calls and hook-triggered append from these traces; the final canonical-reader check is necessary but alone cannot establish the writer. No direct validator command, agent-authored fence or manual append is permitted. Missing live proof blocks shipment even if the integration suite passes.
-      At review compare git show review_sha versions of all four owned files with immutable base b7af829c, proving the bounded config/gate/test changes and exactly one added refusal-text line with no other hook diff. Run normal required matrix gates at validation; the targeted verify block does not waive them. Preserve BUG-2169 refused-return history. Cause correction belongs in the eventual issue closing comment, not an intake issue mutation; notes/research-intake.md records the chosen wording and guidance gaps.
+      At review compare git show review_sha versions of all owned files with immutable base b7af829c, proving the bounded config/gate/test changes and exactly one added refusal-text line plus yield-branch string parsing with no other hook diff. Run normal required matrix gates at validation; the targeted verify block does not waive them. Preserve BUG-2169 refused-return history. Cause correction belongs in the eventual issue closing comment, not an intake issue mutation; notes/research-intake.md records the chosen wording and guidance gaps.
+      Before production edits, add a real handler regression named BUG-2171 string-serialized PASS digest in tests/unit/omp-hooks.test.ts, using fixture/start and handlers.get("tool_call") for yield, not a reimplementation. Assert JSON.stringify(PASS_DIGEST) is accepted, digestCalls has exactly one validate-digest.py invocation and validation.payload.digest_object deep-equals the parsed object. Demonstrate that same new assertion red against immutable b7af829c hook (RETURN_THE_OBJECT refusal and no validator invocation), then green against the fixed hook. Preserve actual red and green assertion stdout/stderr in QA receipts; an import or invocation error does not qualify. Retain existing object-data coverage and the non-JSON digestText refusal. Add malformed string, JSON null, JSON array [1], and JSON string primitive refusals with unchanged RETURN_THE_OBJECT and no validator call, plus held-run string PASS refusal and string BLOCKED validation under the same existing rule.
+      In the existing yield branch parse string input.data with JSON.parse, accepting only a plain object, not null or an array. Validate and record the parsed object through the identical digest_object payload and existing held-run BLOCKED-only gate. Malformed or non-object JSON remains refused using unchanged RETURN_THE_OBJECT. Whether input.data itself is normalized is a developer choice because OMP yield losslessly parses it itself. Do not alter the intact validator or append logic.
+      The literal verify additionally runs tests/unit/test-omp-hooks.py (the Bun handler suite), the active unit matrix through .agents/skills/harness/bin/run-unit-tests.py --kind unit, and isolated historical-hook red/fixed-hook green assertions. Capture their output and source identity. The live smoke uses OMP --max-time=10m and timeout remains failure. No intake verification is being authorized by this future execution prompt.
+      Product mapped SPEC section 8.3 and DEC-237 literally reject strings; the operator's settled String data ruling explicitly changes only JSON-object string data at this hook boundary. Preserve all other mapped strict validation/injection/append requirements. The unresolved typecheck runner covers the new TypeScript branch as well as the test; Bun proves behavior, not static typechecking. Rework baseline is signature-owned; do not modify it.
+      Retain all unrelated pre-existing verification requirements verbatim.
 

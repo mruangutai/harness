@@ -1,33 +1,49 @@
-# BUG-2171 — Bounded patch intake ready for signature
+# BUG-2171 — Task revision and five-row lane mapping ready
 
-One main-session-direct task covers all three SCs; both approvals remain pending. No implementation, panel, reader, goal-check, tests, build, lint, formatter or live smoke was run by this intake.
+SC-04 adds real-handler string-data regression evidence; SC-01 now bounds the hook diff to one added refusal-text line and yield-branch parsing. One main-session-direct T-01 traces all four SCs. Both approvals remain pending and plan status remains plan. No implementation, reader, panel, goal-check, build, tests, lint, formatter or live smoke was executed. Intake cycles: 0.
 
-## Scope and authority
+## Authority and guidance
 
-- Settled scope and cause: control-plane .harness/notes/grilling-BUG-2171-task-structured-2026-11-08.md, Destination/Settled/Facts I verified; [source issue #2171](https://github.com/mruangutai/harness/issues/2171). No cause re-derivation.
-- Product checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured; base and lane resolution SHA b7af829c0207522b43f978b5275a2ebdc96b3210. Registry feature-root resolved to this checkout.
-- Product AGENTS.md maps requirements to .harness/harness/docs/SPEC.md §8.3 and decisions to .harness/harness/docs/DECISIONS.md. DEC-174 reserves execution, including the gate test, to main; DEC-225 supplies one-task patch intake; DEC-237 preserves strict hook injection and validator-owned append.
-- Conventional product docs/spec.md, docs/decisions.md and docs/architecture.md are absent. The mapped specification and decisions answer the return-contract question. No standalone architecture document answers component-relationship guidance; this patch introduces no new boundary and invents none.
+- Authoritative scope: control-plane .harness/notes/grilling-BUG-2171-task-structured-2026-11-08.md, Settled String data and Signature rulings. The patch remains bounded; dispatch, injection, lifecycle, validator and append are unchanged.
+- PRODUCT root resolved with inflight_registry.py feature-root: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured. Immutable base b7af829c0207522b43f978b5275a2ebdc96b3210; assigned HEAD bf1fbb8b.
+- Consulted PRODUCT AGENTS.md, mapped SPEC.md §8.3 and DECISIONS.md DEC-174/225/237. Conventional docs/spec.md, docs/decisions.md and docs/architecture.md remain absent (prior intake finding); T-01 preserves mapped guidance pointers. SPEC §8.3 and DEC-237 literally reject strings, conflicting with the newly settled operator JSON-object string ruling; the pending BRIEF and intent explicitly disclose this narrow authority change. No guidance or architecture substitute was authored.
+- Hook registerHarnessHooks yield branch currently uses const digest = input.data and rejects strings before validation. Existing real-handler tests assert validation.payload.digest_object; digestText in the non-object loop is non-JSON and must remain refused. tests/unit/test-omp-hooks.py invokes bun test on omp-hooks.test.ts; the active unit matrix runs that wrapper. The unresolved/null typecheck runner covers the new branch and test; Bun behavior evidence is not a static typecheck.
 
-## Choices and proof contract
+## Proof and scope choices
 
-- D-01 records the settled native opt-in rather than schema duplication, text parsing or downgrade. Closing-comment versus issue-body correction is cheap/reversible: choose a closing comment at ship, preserving the investigation record. No issue mutation now.
-- Proposed closing correction: OMP 18.10.2 introduced native task.structured, default off; Harness never set it. With it off, argument revalidation strips hook-injected outputSchema/schemaMode, children receive no yield, and the existing yield hook never runs. This fix enables task.structured, guards it and clarifies that earlier schema fields were hook-injected. Link the fix SHA and red/green plus live-append evidence when available; do not claim those proofs already exist.
-- SC-01: pinned config and exactly one added refusal-text source line; no other hook byte changes. SC-02: new named integration assertions run against the immutable base gate and fixed gate. SC-03: fresh credentialled OMP process, actual child and lead yield calls, human-only before.md, hook-triggered fenced append, canonical digest reader and retained session pointers. plan.yaml T-01.verify supplies runnable commands from the worktree root, including the live smoke; T-01.intent binds runtime/source provenance and forbids manual append or direct validator calls.
-- Verification disclosure: integration is active and detects the named test. Typecheck has unresolved/null runner coverage for the .ts text line; pinned diff inspection and live smoke carry the bounded change, not a fabricated typecheck. No exact structured-return smoke runner is registered; durable evidence is inspected. No personal UAT, UI or prototype work is required. No standing runner repair is added to this patch.
+- SC-04 requires exactly one validator call with deep-equal parsed PASS digest_object, invalid/non-object JSON refusals, retained object coverage and held-run BLOCKED-only semantics through the real tool_call handler. T-01 preserves unrelated verify requirements and adds the Bun wrapper, active unit matrix and isolated immutable-base-hook red/fixed-hook green assertion output. QA must retain both outputs, not merely current green. These commands are future execution instructions, not exercised intake evidence.
+- OMP v19.1.0 --help explicitly documents --max-time=<value> with examples 600, 10m, 1h. T-01 now uses --max-time=10m and states timeout is failure; no live smoke ran. Rework baseline was untouched: operator rounds=1/minutes=45 belongs only at signature.
+- Closing-comment correction remains selected: explain the missing native task.structured opt-in and bounded string-data handling, linking eventual fix and proof. Preserve original issue and BUG-2169 history; no issue mutation now.
+- plan-merge apply printed APPLIED for task revisions, with no APPROVAL-RESET receipt, so no remote sync was invoked. Automatic state-hook output reported pending BRIEF, absent Build-entry receipt and unrelated terminal FEAT-2206 worktree; no bypass or unrelated edit was attempted.
 
 ## Intake check receipt
 
-Controlled plan creation printed APPLIED with no APPROVAL-RESET receipt; no remote sync was invoked. Its automatic state-hook report named unsigned BRIEF and absent Build-entry receipt, expected before the operator signature; neither was bypassed.
+Required plan-merge.py check --file /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/plan.yaml --root /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured exited 0, exact stdout:
 
-Authorized plan-merge.py check exited 0:
+    OK T-01 6 anchor(s) resolved
+    CHECK /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/plan.yaml against /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured: 1 task(s), 6 anchor(s) resolved, 0 failure(s)
 
-    OK T-01 4 anchor(s) resolved
-    CHECK /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/plan.yaml against /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured: 1 task(s), 4 anchor(s) resolved, 0 failure(s)
+Authorized set-lanes completed with five rows, preserving resolved_at b7af829c0207522b43f978b5275a2ebdc96b3210 and all four existing surfaces. The hook reason now covers refusal text and yield-branch string-data parse; tests/unit/omp-hooks.test.ts is main-session-direct with reason DEC-174 hook regression test. The replacement YAML value is notes/research-lanes.md: pm owns notes/research-*.md, while run-directory bookkeeping belongs to the lead, so the explicitly permitted staging fallback was used.
 
-Artifacts: BRIEF.md and plan.yaml beside this notes/ directory; this file is the pm-owned durable artifact. Only intake metadata was authored. Main signs or amends; implementation and all planned verification remain unexercised. No open scope question.
+Set-lanes exited 0; exact mutation receipt:
+
+    LANES 5 row(s) resolved at b7af829c0207522b43f978b5275a2ebdc96b3210 -> /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/plan.yaml
+    APPLIED /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/plan.yaml
+
+The automatic state hook again reported pending BRIEF, absent Build-entry receipt and unrelated terminal FEAT-2206 worktree, plus historical cycle attribution and dirty-layout notes. These were not bypassed or edited. No APPROVAL-RESET receipt appeared and no remote sync ran.
+
+The required post-set-lanes check exited 0; exact stdout:
+
+    OK T-01 6 anchor(s) resolved
+    CHECK /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured/.harness/harness/features/BUG-2171-task-structured/plan.yaml against /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2171-task-structured: 1 task(s), 6 anchor(s) resolved, 0 failure(s)
+
+## Adequacy notes
+
+Full run change set: SC-04 added; SC-01 rewritten; smoke bounded to 10m; T-01 files/anchors added for the hook yield handler and unit regression; lanes updated to five rows. This completion changed lanes only, leaving the already-completed BRIEF and T-01 files/traces/verify/intent unchanged. Approval remains pending and plan status remains plan; rework baseline untouched. No implementation verification was executed.
 
 ## Principles applied
 
-- Experience First — operator success is automatic durable return, not merely a green gate; no extra UI or workflow.
-- Redesign From First Principles — the native structured-return requirement is folded into the existing return contract and perspectives, not a parallel fallback path.
+- Experience First — retain automatic durable return and unchanged actionable refusals, rather than accepting a green gate alone.
+- Redesign From First Principles — integrate string-data equivalence into the maintainer perspective, bounded scope and real-handler proof, not a second validator path.
+
+Open questions: none. Written paths in this completion: plan.yaml, notes/research-lanes.md and notes/research-intake.md, all inside this feature directory.
