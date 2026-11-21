@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2171-task-structured",
   "branch": "feat/BUG-2171-task-structured",
-  "pr": null,
+  "pr": 2230,
   "review_sha": "d3792019e74ff266c2414708124512544d1fc9f6",
   "cycles_used": 1,
   "max_total_cycles": 10,
