@@ -516,23 +516,35 @@ def json_or_empty(text):
         return {}
 
 
+def option_value(args, flag):
+    return args[args.index(flag) + 1] if flag in args else None
+
+
+def check_merged_at_head(fx, r):
+    merges = gh_state(fx).get("merges", [])
+    merge = merges[0] if len(merges) == 1 else {"args": [], "lock_held": False}
+    check("FEAT-2225 valid distill merges once, holding the owner lock, at the exact head",
+          r.returncode == 0 and merge["lock_held"] and merge["args"][:3] == ["pr", "merge", "7"]
+          and option_value(merge["args"], "--match-head-commit") == gh_state(fx)["head"],
+          f"rc={r.returncode} merges={merges} stderr={r.stderr!r}")
+
+
+def check_distill_evidence(fx, r):
+    evidence = json_or_empty(r.stdout)
+    first = (evidence.get("files") or [{}])[0]
+    expected = {"head": gh_state(fx)["head"], "main": git(fx["owner"], "rev-parse", "main"),
+                "destination": CRAFT, "sha256": blob_sha(fx, CRAFT)}
+    actual = {"head": evidence.get("head"), "main": evidence.get("main"),
+              "destination": first.get("destination"), "sha256": first.get("sha256")}
+    check("FEAT-2225 valid distill emits head, main and committed hash evidence",
+          actual == expected, f"evidence={evidence}")
+
+
 def case_distill_valid():
     fx = distill_fixture()
     r = distill(fx)
-    merges = gh_state(fx).get("merges", [])
-    head, main = gh_state(fx)["head"], git(fx["owner"], "rev-parse", "main")
-    args = merges[0]["args"] if merges else []
-    ok = r.returncode == 0 and len(merges) == 1 and merges[0]["lock_held"]
-    check("FEAT-2225 valid distill merges once, holding the owner lock, at the exact head",
-          ok and args[:3] == ["pr", "merge", "7"] and "--match-head-commit" in args
-          and args[args.index("--match-head-commit") + 1] == head,
-          f"rc={r.returncode} merges={merges} stderr={r.stderr!r}")
-    evidence = json_or_empty(r.stdout)
-    files = evidence.get("files") or [{}]
-    check("FEAT-2225 valid distill emits head, main and committed hash evidence",
-          evidence.get("head") == head and evidence.get("main") == main
-          and files[0].get("destination") == CRAFT and files[0].get("sha256") == blob_sha(fx, CRAFT),
-          f"evidence={evidence}")
+    check_merged_at_head(fx, r)
+    check_distill_evidence(fx, r)
     return fx
 
 
@@ -610,26 +622,36 @@ def hook(fx, command, **state):
     return gate(command, fx["owner"], fx["gh"], {"FAKE_GH_STATE": fx["state"]})
 
 
-def case_raw_distill_hook(fx):
+def hook_denies(fx, name, command, needle, **state):
+    _, d, reason = hook(fx, command, **state)
+    check(name, d == "deny" and needle in reason, reason)
+
+
+def hook_allows(fx, name, command, **state):
+    _, d, reason = hook(fx, command, **state)
+    check(name, d is None, reason)
+
+
+def case_raw_distill_hook_denials(fx):
     command = "python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree>"
-    _, d, reason = hook(fx, f"git merge {DBRANCH}")
-    check("FEAT-2225 raw git merge of a distill candidate is refused with the merge-distill command",
-          d == "deny" and f"{command} --feature {DFEAT} --pr <pr-number>" in reason, reason)
-    _, d, reason = hook(fx, "gh pr merge 7")
-    check("FEAT-2225 raw gh pr merge of a distill candidate is refused with the merge-distill command",
-          d == "deny" and f"{command} --feature {DFEAT} --pr 7" in reason, reason)
-    _, d, reason = hook(fx, "bash -c 'gh pr merge 7 --squash'")
-    check("FEAT-2225 nested raw gh distill merge is refused", d == "deny" and "merge-distill" in reason, reason)
-    _, d, reason = hook(fx, "gh pr merge 7", branch="topic/plain",
-                        files=[".harness/harness/expertise/harness-qa.md"])
-    check("FEAT-2225 repository-tier Expertise change is a distill candidate whatever the branch name",
-          d == "deny" and "--feature <feature-id> --pr 7" in reason, reason)
-    _, d, reason = hook(fx, "gh pr merge 7", branch=DBRANCH, files=[CRAFT], diff_fails=True)
-    check("FEAT-2225 unreadable gh changed-path evidence refuses", d == "deny" and "could not be read" in reason, reason)
-    _, d, reason = hook(fx, "gh pr merge 7", branch=DBRANCH, files=["src/ordinary.py"], diff_fails=False)
-    check("FEAT-2225 ordinary gh merge with a valid receipt still allows", d is None, reason)
-    _, d, reason = hook(fx, f"{sys.executable} {GATE} merge-distill --root {fx['wt']} --feature {DFEAT} --pr 7")
-    check("FEAT-2225 the merge-distill command itself is not a raw merge", d is None, reason)
+    hook_denies(fx, "FEAT-2225 raw git merge of a distill candidate is refused with the merge-distill command",
+                f"git merge {DBRANCH}", f"{command} --feature {DFEAT} --pr <pr-number>")
+    hook_denies(fx, "FEAT-2225 raw gh pr merge of a distill candidate is refused with the merge-distill command",
+                "gh pr merge 7", f"{command} --feature {DFEAT} --pr 7")
+    hook_denies(fx, "FEAT-2225 nested raw gh distill merge is refused",
+                "bash -c 'gh pr merge 7 --squash'", "merge-distill")
+    hook_denies(fx, "FEAT-2225 repository-tier Expertise change is a distill candidate whatever the branch name",
+                "gh pr merge 7", "--feature <feature-id> --pr 7", branch="topic/plain",
+                files=[".harness/harness/expertise/harness-qa.md"])
+    hook_denies(fx, "FEAT-2225 unreadable gh changed-path evidence refuses", "gh pr merge 7",
+                "could not be read", branch=DBRANCH, files=[CRAFT], diff_fails=True)
+
+
+def case_raw_distill_hook_allows(fx):
+    hook_allows(fx, "FEAT-2225 ordinary gh merge with a valid receipt still allows", "gh pr merge 7",
+                branch=DBRANCH, files=["src/ordinary.py"], diff_fails=False)
+    hook_allows(fx, "FEAT-2225 the merge-distill command itself is not a raw merge",
+                f"{sys.executable} {GATE} merge-distill --root {fx['wt']} --feature {DFEAT} --pr 7")
 
 
 def case_shipped_not_exempt():
@@ -641,7 +663,9 @@ def case_shipped_not_exempt():
           reason)
 
 
-case_raw_distill_hook(case_distill_valid())
+VALID_DISTILL = case_distill_valid()
+case_raw_distill_hook_denials(VALID_DISTILL)
+case_raw_distill_hook_allows(VALID_DISTILL)
 case_distill_lock_contention()
 case_distill_changed_main_and_head()
 case_distill_recheck()

@@ -5895,33 +5895,58 @@ def _mx_lead_refusals(root):
                fire([]), 2, "does not report")
 
 
-def _mx_durable_cases(root):
-    digest = os.path.join(root, MX_FEATURE_REL, "runs", MX_RUN, "digest.md")
-    cli = lambda: subprocess.run([sys.executable, VALIDATE, MX_LEAD, digest],
-                                 capture_output=True, text=True, timeout=120)
+def _mx_durable_digest(root):
+    return os.path.join(root, MX_FEATURE_REL, "runs", MX_RUN, "digest.md")
+
+
+def _mx_durable_cli(digest):
+    return subprocess.run([sys.executable, VALIDATE, MX_LEAD, digest],
+                          capture_output=True, text=True, timeout=120)
+
+
+def _mx_durable_record_cases(root):
+    """The verified record validates through the CLI close-run uses and is never rewritten."""
+    digest = _mx_durable_digest(root)
     before = _read_bytes(digest)
-    result = cli()
+    result = _mx_durable_cli(digest)
     mx("durable: the lead's digest.md validates with its verified ops",
        result.returncode == 0, result.stdout[-400:])
     mx("durable: validation never rewrites the record, historical block included",
        _read_bytes(digest) == before and before.startswith(MX_HISTORICAL.encode()), "bytes")
-    _mx_tamper(root, ".harness/harness/expertise/harness-qa.md", "name the reason", "move on")
-    result = cli()
-    mx("durable: a file changed after application fails the durable check",
-       result.returncode == 1 and "verify" in result.stdout, result.stdout[-400:])
-    close = subprocess.run(
+
+
+def _mx_close_run(root):
+    return subprocess.run(
         [sys.executable, _mx_bin("feature-record.py"), "close-run",
          "--file", os.path.join(root, MX_FEATURE_REL, "feature.json"), "--id", MX_RUN,
          "--digest", f"runs/{MX_RUN}/digest.md", "--verdict", "PASS", "--cycles-used", "0"],
         capture_output=True, text=True, timeout=120)
+
+
+def _mx_durable_tamper_cases(root):
+    """A file changed after application fails the durable CLI and close-run's digest stage."""
+    _mx_tamper(root, ".harness/harness/expertise/harness-qa.md", "name the reason", "move on")
+    result = _mx_durable_cli(_mx_durable_digest(root))
+    mx("durable: a file changed after application fails the durable check",
+       result.returncode == 1 and "verify" in result.stdout, result.stdout[-400:])
+    close = _mx_close_run(root)
     mx("durable: feature-record.py close-run refuses that run at its digest stage",
        close.returncode != 0 and "REFUSED at stage digest" in close.stderr
        and "verify" in close.stderr, close.stderr[-500:])
+
+
+def _mx_bare_object_case():
     obj = json.dumps(_mx_obj(MX_LEAD, [_mx_item(LEAD_CRAFT, MX_LEAD)]))
     result = subprocess.run([sys.executable, VALIDATE, MX_LEAD], input=obj,
                             capture_output=True, text=True, timeout=120)
     mx("durable: a bare JSON object with applied ops has no trusted distill context",
        result.returncode == 1 and "trusted distill" in result.stdout, result.stdout[-400:])
+
+
+def _mx_durable_cases(root):
+    _mx_durable_record_cases(root)
+    _mx_durable_tamper_cases(root)
+    _mx_bare_object_case()
 
 
 def run_member_expertise_lead_cases():
@@ -5964,7 +5989,8 @@ def _mx_superseded_tree(replacement):
     return root
 
 
-def run_member_expertise_supersession_cases():
+def _mx_replacement_scenario():
+    """Refusal, then the original member's trusted re-judgment retires its batch."""
     root = _mx_superseded_tree([QA_REJUDGED])
     try:
         _mx_claim(root, MX_QA, MX_QA_ID + "2", MX_LEAD_ID)
@@ -5978,6 +6004,10 @@ def run_member_expertise_supersession_cases():
                    lead([_mx_item(QA_REJUDGED, MX_QA)]), 0)
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def _mx_withdrawal_scenario():
+    """The member's empty withdrawal: nothing is invented for the retired batch."""
     root = _mx_superseded_tree([])
     try:
         _mx_claim(root, MX_QA, MX_QA_ID + "2", MX_LEAD_ID)
@@ -5990,6 +6020,10 @@ def run_member_expertise_supersession_cases():
                    lead([]), 0)
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def _mx_orchestrator_scenario():
+    """The orchestrator distills its own file and confirms, never applies, a member's op."""
     root, _base = _mx_tree()
     try:
         _mx_release(root, MX_LEAD_ID)
@@ -6002,6 +6036,12 @@ def run_member_expertise_supersession_cases():
                    orch([_mx_item(ORCH_CRAFT, MX_ORCH)]), 0)
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def run_member_expertise_supersession_cases():
+    _mx_replacement_scenario()
+    _mx_withdrawal_scenario()
+    _mx_orchestrator_scenario()
     return _mx_report("supersession")
 
 

@@ -305,17 +305,25 @@ def _split_words(segment):
         return segment.split()
 
 
+def _prefix_width(words, i):
+    """How many words the prefix item at `i` spans: an assignment or transparent prefix is
+    one, a flag after one is one or two (`-u NAME`), and 0 means the command starts here."""
+    word = words[i]
+    if _ASSIGNMENT.match(word) or os.path.basename(word) in _TRANSPARENT_PREFIXES:
+        return 1
+    if i == 0 or not word.startswith("-"):
+        return 0
+    return 2 if word in _PREFIX_FLAGS_WITH_VALUE else 1
+
+
 def _command_words(words):
     """`words` without leading assignments and transparent prefixes (`env`, `exec`, …)."""
-    i, prefixed = 0, False
+    i = 0
     while i < len(words):
-        word = words[i]
-        if _ASSIGNMENT.match(word) or os.path.basename(word) in _TRANSPARENT_PREFIXES:
-            i, prefixed = i + 1, True
-        elif prefixed and word.startswith("-"):
-            i += 2 if word in _PREFIX_FLAGS_WITH_VALUE else 1
-        else:
+        width = _prefix_width(words, i)
+        if not width:
             break
+        i += width
     return words[i:]
 
 
@@ -329,42 +337,60 @@ def _python_script_words(words):
     return words[i:]
 
 
+def _is_command_flag(word):
+    """A short-option cluster carrying `c` (`-c`, `-lc`, `-ec`): the next word is the command."""
+    return not word.startswith("--") and "c" in word[1:]
+
+
 def _shell_command_string(words):
     """The `-c` string a shell call runs, or None — a script file is not judged here."""
     i = 1
     while i < len(words) and words[i].startswith(("-", "+")):
-        word = words[i]
-        if not word.startswith("--") and "c" in word[1:]:
-            return words[i + 1] if i + 1 < len(words) else None
-        i += 2 if word in _SHELL_OPTIONS_WITH_VALUE else 1
+        if _is_command_flag(words[i]):
+            return next(iter(words[i + 1:i + 2]), None)
+        i += 2 if words[i] in _SHELL_OPTIONS_WITH_VALUE else 1
     return None
 
 
 def _program_calls(text, depth=0):
     """(program basename, arguments) for each command `text` runs, `sh -c` strings included."""
     for segment in segments(text):
-        words = _command_words(_split_words(segment))
-        if words and os.path.basename(words[0]) in SHELL_FEEDERS:
-            nested = _shell_command_string(words)
-            if nested and depth < 3:
-                yield from _program_calls(nested, depth + 1)
-            continue
-        if words and _is_python_executable(words[0]):
-            words = _python_script_words(words)
-        if words:
-            yield os.path.basename(words[0]), words[1:]
+        yield from _command_calls(_command_words(_split_words(segment)), depth)
+
+
+def _command_calls(words, depth):
+    """The calls one command makes: itself, or the commands of its `sh -c` string."""
+    if not words:
+        return []
+    if os.path.basename(words[0]) in SHELL_FEEDERS:
+        nested = _shell_command_string(words)
+        return list(_program_calls(nested, depth + 1)) if nested and depth < 3 else []
+    if _is_python_executable(words[0]):
+        words = _python_script_words(words)
+    return [(os.path.basename(words[0]), words[1:])] if words else []
+
+
+def _subcommand(args):
+    return next((a for a in args if not a.startswith("-")), None)
+
+
+def _asks_help(args):
+    return "-h" in args or "--help" in args
+
+
+def _is_expertise_read(sub, args):
+    """`verify-receipt` or `replay --check`: the Expertise CLI writes nothing."""
+    return sub in EXPERTISE_CLI_READS or (sub == "replay" and "--check" in args)
 
 
 def _expertise_mutation(program, args):
     """The refused call `program args` spells, or None for a read or another program."""
-    if "-h" in args or "--help" in args:
+    sub = _subcommand(args)
+    if _asks_help(args):
         return None
-    sub = next((a for a in args if not a.startswith("-")), None)
     if program == DISTILL_GATE and sub == "merge-distill":
         return f"{DISTILL_GATE} merge-distill"
-    if program != EXPERTISE_CLI or sub in EXPERTISE_CLI_READS:
-        return None
-    if sub == "replay" and "--check" in args:
+    if program != EXPERTISE_CLI or _is_expertise_read(sub, args):
         return None
     return f"{EXPERTISE_CLI} {sub or ''}".rstrip()
 

@@ -796,18 +796,25 @@ def _bound_distill_feature(destinations, errors):
     return None
 
 
-def _distill_preflight():
-    if dispatched not in LEADS and agent not in LEADS:
-        return
+def _bound_distill_run():
+    """The feature of the bound distill run this dispatch belongs to, or None. Only a lead
+    start or a lead's dispatch can belong to one, so nothing else reads a registered run."""
+    involves_lead = dispatched in LEADS or agent in LEADS
+    if not involves_lead:
+        return None
     destinations, errors = _destinations()
-    feature = _bound_distill_feature(destinations, errors)
-    if feature is None:
-        return
+    return _bound_distill_feature(destinations, errors)
+
+
+def _require_distill_feature(feature):
     if feature != declared:
         _refuse("dispatch-guard: BLOCKED — %s's bound distill run is for %s, but this dispatch "
                 "of %s declares %s." % (agent, feature, dispatched, declared),
                 "  A child of a distill run belongs to that run's feature tree; dispatch it with "
                 "HARNESS-FEATURE: %s." % (feature,))
+
+
+def _require_distill_mission():
     mission, problem = _declared_mission()
     if problem or mission != "distill":
         _refuse("dispatch-guard: BLOCKED — the %s dispatch for %s is a child of a bound distill "
@@ -816,6 +823,14 @@ def _distill_preflight():
                 "  carries exactly one line in its own task text, spelled",
                 "    HARNESS-MISSION: distill",
                 "  The mission comes from the registered distill run; no other phase applies.")
+
+
+def _distill_preflight():
+    feature = _bound_distill_run()
+    if feature is None:
+        return
+    _require_distill_feature(feature)
+    _require_distill_mission()
     _require_feature_tree_root("is a child of a bound distill run")
 
 

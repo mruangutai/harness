@@ -1160,13 +1160,26 @@ def _schema_message(canonical, family, obj, path, message):
     same fault in its own single error (D-08(c): exactly one error per fault)."""
     parts = [] if path == "<root>" else path.split("/")
     digest = obj.get("DIGEST") if isinstance(obj.get("DIGEST"), dict) else {}
-    if len(parts) == 2 and parts[0] == "DIGEST" and _semantics_own(parts[1], digest, message):
+    if _is_digest_field(parts) and _semantics_own(parts[1], digest, message):
         return None
-    if len(parts) == 3 and parts[:2] == ["DIGEST", "expertise_update"]:
+    if _is_expertise_item(parts):
         return _expertise_item_message(parts[2], _at(obj, parts))
+    return _reworded_message(canonical, family, parts, digest, message)
+
+
+def _is_digest_field(parts):
+    """`DIGEST/<field>`: a top-level DIGEST field."""
+    return len(parts) == 2 and parts[0] == "DIGEST"
+
+
+def _is_expertise_item(parts):
+    """`DIGEST/expertise_update/<index>`: one applied Expertise item."""
+    return len(parts) == 3 and parts[:2] == ["DIGEST", "expertise_update"]
+
+
+def _reworded_message(canonical, family, parts, digest, message):
     reworded = _structure_message(canonical, family, parts, message) or (
-        len(parts) == 2 and parts[0] == "DIGEST"
-        and _field_message(canonical, parts[1], digest, message))
+        _is_digest_field(parts) and _field_message(canonical, parts[1], digest, message))
     return reworded or f"{_location(parts)}: {message}"
 
 
