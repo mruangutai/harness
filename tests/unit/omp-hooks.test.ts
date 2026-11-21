@@ -45,6 +45,8 @@ function ompContext(cwd: string, id: string, parentId?: string, sessionId = `ses
 // FEAT-1928: a yield's `data` IS the digest object; the validator receives it unmodified.
 const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
 const RETURN_THE_OBJECT = "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}})";
+// #2240: SC-02's exact sentence, asserted verbatim.
+const INJECTION_NOTE = "The hook injected outputSchema and schemaMode into this task call; never copy these fields into a task call.";
 // The canonical schema directory the hook loads from: the gate tree this extension ships in.
 const DIGEST_SCHEMA_DIR = gatePath("digest-schemas");
 
@@ -1645,6 +1647,8 @@ describe("OMP task lifecycle adapter", () => {
       expect(revised.tasks[index].outputSchema).toBe(bundle);
     });
     expect(revised.tasks[16]).toBe(scout);
+    // #2240: the injected fields land in the persisted call; the dispatcher is told so.
+    expect(result?.additionalContext).toBe(INJECTION_NOTE);
     // The governed preflight still judges every harness target of the accepted call.
     expect(guardCalls(calls)).toHaveLength(17);
   });
@@ -1658,7 +1662,23 @@ describe("OMP task lifecycle adapter", () => {
     }, leadCtx());
     expect(result).toEqual({
       input: { ...input, outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa"), schemaMode: "strict" },
+      additionalContext: INJECTION_NOTE,
     });
+  });
+
+  test("#2240 no injection note when nothing was injected", async () => {
+    const { handlers } = fixture();
+    await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    for (const input of [
+      { agent: "scout", name: "Look", task: "look" },
+      { context: "shared", tasks: [{ agent: "scout", name: "Look", task: "look" }] },
+    ]) {
+      const result = await handlers.get("tool_call")?.({
+        toolName: "task", toolCallId: "plain", input,
+      }, mainCtx()) as Record<string, unknown> | undefined;
+      expect(result?.block).toBeUndefined();
+      expect(result?.additionalContext).toBeUndefined();
+    }
   });
 
   test("refuses a harness dispatch whose schema cannot load, before any claim, with no loose fallback", async () => {

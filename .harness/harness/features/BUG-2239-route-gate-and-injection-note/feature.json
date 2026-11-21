@@ -1,0 +1,140 @@
+{
+  "feature_id": "BUG-2239-route-gate-and-injection-note",
+  "branch": "feat/BUG-2239-route-gate-and-injection-note",
+  "pr": 2247,
+  "review_sha": "a986d0896fb28f4722acd1e66b1eea14f1fbef2c",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-21-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T20:16:07+00:00",
+      "tokens": 31263,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-01-patch-product/digest.md",
+        "sha256": "ca57a60a56411efa7df8441330dce3462c8c39ce1a469ae43e4aa66af4ac32dd"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T20:22:47+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-02-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-21T20:54:42+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-02-patch-product/digest.md",
+        "sha256": "f153bc3e290aa251307237b1f2c00e4af74dfb6ae20cca9b28477308b7997185"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T21:03:36+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-03-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T21:07:37+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-03-patch-product/digest.md",
+        "sha256": "70178720aa4e1ead1651162c6927b2d9960eb9537fa370bcd45856e791c1f7a5"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T21:12:07+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-04-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-21T21:22:47+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-04-validate-validator/digest.md",
+        "sha256": "21320858fca87ad7000616d885a8d4231f249eb89841a23ea155c4e837622cc6"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-21T21:53:14+00:00"
+    },
+    {
+      "id": "2026-11-21-05-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T21:56:40+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-05-validate-validator/digest.md",
+        "sha256": "41e9c2fd182f820239a08455c7d745e828e8f466aea093d93acefb58dc2a2dcf"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T22:12:51+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-21T20:15:32+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "both causes known and located (check.py never calls process_plan_yaml; hook task branch injects with no note); diff bounded to plan_merge/check.py, harness-hooks.ts task branch, tests; no new interface; main-session-direct per DEC-174"
+    },
+    {
+      "at": "2026-11-21T21:03:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "simplify-then-sign",
+      "reason": "fold authored and gated; main runs the four-angle plan simplify before applying the operator's signature"
+    },
+    {
+      "at": "2026-11-21T21:53:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix then validate cycle 2",
+      "reason": "SCOPE-01 void: branch base is 594af2a8; BUG-2171 records differ only vs 926383ae (dispatch named the wrong base). Fix: code-grade FAILs on cmd_check and two case_2239 tests."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2239-route-gate-and-injection-note/.harness/harness/features/BUG-2239-route-gate-and-injection-note/notes/operator-signature-2026-11-21.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "2704db011754b9fe8873aaea982352f9ee9de301f9513358df07f579e5895bf0"
+  },
+  "github": {
+    "milestone": 114,
+    "parent": 2245,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2246
+    },
+    "source_issues": [
+      2239,
+      2240
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

@@ -1,0 +1,21 @@
+head: 3d414200d3e58375b562f4d1335e6e174404e177
+branch base (merge-base with main): 594af2a8123771da1a5290942400f4f8a064656f
+command: python3 .claude/skills/harness/bin/code-grade.py --base 594af2a8 --head HEAD
+exit: 0
+PASSING: 15
+command: python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-check-plan-routes.py && python3 tests/unit/test-omp-hooks.py && python3 tests/integration/test-check-skill-weight.py
+exit: 0
+PASS  2239: check fails an over-budget task the CI route gate refuses
+PASS  2239: check fails an illegal top-level status the CI route gate refuses
+PASS  2239: check fails an illegal task status the CI route gate refuses
+PASS  2239: a gate-clean plan passes check beside another feature's violating plan
+PASS  2239: check exits 5 when the route gate cannot load the plan, before any OK line
+PASS  2239: check fails on a finding only the shared processor emits
+PASS  2239: the harness plan is asked with --root
+PASS  2239: a served plan is asked with --root, never --code-root, and check's manifest root
+ALL PASS
+ 141 pass
+ 0 fail
+Ran 141 tests across 1 file. [8.14s]
+Ran 8 tests in 0.170s
+OK

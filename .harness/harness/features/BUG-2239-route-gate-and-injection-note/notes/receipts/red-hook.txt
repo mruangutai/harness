@@ -1,0 +1,42 @@
+bun test v1.3.14 (0d9b296a)
+
+tests/unit/omp-hooks.test.ts:
+1646 |       expect(revised.tasks[index]).toEqual({ ...tasks[index], outputSchema: bundle, schemaMode: "strict" });
+1647 |       expect(revised.tasks[index].outputSchema).toBe(bundle);
+1648 |     });
+1649 |     expect(revised.tasks[16]).toBe(scout);
+1650 |     // #2240: the injected fields land in the persisted call; the dispatcher is told so.
+1651 |     expect(result?.additionalContext).toBe(INJECTION_NOTE);
+                                             ^
+error: expect(received).toBe(expected)
+
+Expected: "The hook injected outputSchema and schemaMode into this task call; never copy these fields into a task call."
+Received: undefined
+
+      at <anonymous> (/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2239-route-gate-and-injection-note/tests/unit/omp-hooks.test.ts:1651:39)
+(fail) OMP task lifecycle adapter > injects every one of the 16 personas' own strict bundle, leaving other targets and fields alone [8.41ms]
+1658 |     await start(handlers);
+1659 |     const input = { agent: "harness-qa", name: "Check", task: ASSIGNMENT, context: "ctx" };
+1660 |     const result = await handlers.get("tool_call")?.({
+1661 |       toolName: "task", toolCallId: "flat", input,
+1662 |     }, leadCtx());
+1663 |     expect(result).toEqual({
+                          ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "additionalContext": "The hook injected outputSchema and schemaMode into this task call; never copy these fields into a task call.",
+    "input": {
+
+- Expected  - 1
++ Received  + 0
+
+      at <anonymous> (/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2239-route-gate-and-injection-note/tests/unit/omp-hooks.test.ts:1663:20)
+(fail) OMP task lifecycle adapter > injects into a flat governed dispatch and keeps its other fields [0.69ms]
+
+ 17 pass
+ 122 filtered out
+ 2 fail
+ 79 expect() calls
+Ran 19 tests across 1 file. [624.00ms]

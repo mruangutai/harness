@@ -3040,7 +3040,10 @@ def case_f59_check_lists_each_failure_on_its_own_line():
               one("T-02", "harness-frontend-dev", "harness-backend-dev"), r.stdout)
         check("check: team task without execution_agent on its own line", one("T-03", "execution_agent"),
               r.stdout)
-        check("check: exactly these seven failures, nothing else", len(lines) == 7, r.stdout)
+        # #2239: CI's per-plan route gate also reports the ungranted path, as its own rule.
+        check("check: the shared route gate's NOBODY VIOLATION is reported too, not deduped",
+              one("FAIL VIOLATION T-01:", "nowhere/at/all.py", "ungranted (NOBODY)"), r.stdout)
+        check("check: exactly these eight failures, nothing else", len(lines) == 8, r.stdout)
         # BRIEF absent: the traces cannot be checked at all, and that is a failure, not a pass.
         os.remove(os.path.join(os.path.dirname(plan), "BRIEF.md"))
         r2 = run_verb("check", "--file", plan, "--root", root)
@@ -3102,6 +3105,148 @@ def case_bug1725_check_names_files_shared_by_tasks():
               "OVERLAP .claude/skills/harness/bin/a.py: T-01, T-02" in r2.stdout, r2.stdout)
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def _gate_plan(top="", t01_extra="", t01_verify=""):
+    """A FEAT-99-fixture plan whose T-01 is main-session-direct (no route noise), so each #2239
+    case raises exactly the shared per-plan rule it is about."""
+    task = _check_task("T-01", "      - .claude/skills/harness/bin/a.py\n", agent=None,
+                       mode="main-session-direct")
+    if t01_extra:
+        task = task.replace("    intent: do it\n", t01_extra)
+    if t01_verify:
+        task = task.replace("    verify: true\n", t01_verify)
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n" + top
+            + "tasks:\n" + task)
+
+
+def _gate_rejections():
+    """(label, plan text, expected FAIL prefix) for each per-plan rule CI's route gate refuses.
+    The budget and the illegal status are derived from the processor, never restated here."""
+    cpr = _load_owner("check")._check_plan_routes_module()
+    over = "    verify: |\n" + "".join(f"      true {i}\n" for i in range(cpr.MACHINE_LINES_PER_TASK + 1))
+    bad = "not-a-station"
+    assert bad not in cpr.legal_task_statuses()
+    return (("over-budget task", _gate_plan(t01_verify=over), "FAIL VIOLATION T-01:"),
+            ("illegal top-level status", _gate_plan(top=f"status: {bad}\n"),
+             "FAIL VIOLATION top-level status"),
+            ("illegal task status", _gate_plan(t01_extra=f"    intent: do it\n    status: {bad}\n"),
+             "FAIL VIOLATION T-01:"))
+
+
+def case_2239_check_runs_ci_per_plan_route_gate():
+    """#2239: `check` passed BUG-2171's 75-line task that CI's check-plan-routes refused, so the
+    signature landed on an unmergeable plan. `check` now fails on every VIOLATION the shared
+    per-plan processor reports — budget, feature status, task status."""
+    root, plan = _check_root()
+    try:
+        for label, text, needle in _gate_rejections():
+            write(plan, text)
+            r = run_verb("check", "--file", plan, "--root", root)
+            check(f"2239: check fails an {label} the CI route gate refuses",
+                  r.returncode == 1 and needle in r.stdout,
+                  f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2239_check_accepts_a_gate_clean_plan_beside_a_violating_one():
+    """#2239: the gate runs on the target plan alone. A valid plan still passes, and another
+    feature's violating plan under the same root does not fail it."""
+    root, plan = _check_root()
+    try:
+        write(plan, _gate_plan())
+        other = os.path.join(root, ".harness", "harness", "features", "FEAT-98-other")
+        os.makedirs(other)
+        write(os.path.join(other, "plan.yaml"), _gate_rejections()[1][1])
+        r = run_verb("check", "--file", plan, "--root", root)
+        check("2239: a gate-clean plan passes check beside another feature's violating plan",
+              r.returncode == 0 and "VIOLATION" not in r.stdout and "FEAT-98" not in r.stdout,
+              f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2239_check_refuses_a_plan_the_route_gate_cannot_load():
+    """#2239: a YAML-valid plan that plan validation refuses (a duplicate task id) makes the
+    shared processor return None with no VIOLATION. That must never read as a clean plan."""
+    root, plan = _check_root()
+    try:
+        text = _gate_plan()
+        write(plan, text + text.split("tasks:\n", 1)[1])
+        r = run_verb("check", "--file", plan, "--root", root)
+        check("2239: check exits 5 when the route gate cannot load the plan, before any OK line",
+              r.returncode == 5 and "duplicate task id" in r.stderr and "OK " not in r.stdout,
+              f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+class _GateSpy:
+    """check-plan-routes with process_plan_yaml replaced: it records how it was asked and emits
+    a sentinel VIOLATION no local copy of the rules could produce."""
+    SENTINEL = "VIOLATION T-77: sentinel from the shared processor"
+
+    def __init__(self, inner, calls):
+        self._inner, self._calls = inner, calls
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+    def process_plan_yaml(self, path, findings, root, manifest_root):
+        self._calls.append((path, root, manifest_root))
+        findings.append(self.SENTINEL)
+        return 1
+
+
+def _spied_check(file, root, code_root=None):
+    """(exit code, stdout, recorded calls) of an in-process `check` whose check-plan-routes is a
+    _GateSpy; the module hook is restored however the run ends."""
+    import contextlib, io, types
+    mod = _load_owner("check")
+    real, calls, out = mod._check_plan_routes_module, [], io.StringIO()
+    mod._check_plan_routes_module = lambda: _GateSpy(real(), calls)
+    try:
+        with contextlib.redirect_stdout(out):
+            mod.cmd_check(types.SimpleNamespace(file=file, root=root, code_root=code_root))
+    except SystemExit as exc:
+        return exc.code, out.getvalue(), calls
+    finally:
+        mod._check_plan_routes_module = real
+    return None, out.getvalue(), calls
+
+
+def case_2239_check_delegates_to_the_shared_processor():
+    """#2239: the findings come from check-plan-routes.process_plan_yaml itself, asked with
+    --root: a sentinel only the shared processor emits fails the harness plan."""
+    root, plan = _check_root()
+    try:
+        write(plan, _gate_plan())
+        code, out, calls = _spied_check(plan, root)
+        check("2239: check fails on a finding only the shared processor emits",
+              code == 1 and f"FAIL {_GateSpy.SENTINEL}" in out, out)
+        check("2239: the harness plan is asked with --root",
+              [c[1] for c in calls] == [os.path.abspath(root)], repr(calls))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2239_check_asks_a_served_plan_with_root_and_manifest():
+    """#2239: a served repository's plan is asked with --root, never its --code-root, and with
+    the manifest root check already resolved — the arguments CI's own invocation passes."""
+    from unittest import mock
+    base, root, code, plan = _product_check_roots()
+    try:
+        write(plan, _product_plan([("T-01", "harness-backend-dev", "      - src/a.ts\n")]))
+        with mock.patch.dict(os.environ, {"HARNESS_PROJECT_DIR": root}):
+            _, _, calls = _spied_check(plan, root, code)
+            manifest_root = _load_owner("check")._check_plan_routes_module().resolution_manifest(root)[0]
+        asked = [(r, m) for _, r, m in calls]
+        check("2239: a served plan is asked with --root, never --code-root, and check's manifest root",
+              asked == [(os.path.abspath(root), manifest_root)] and os.path.abspath(root) != code,
+              repr(calls))
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
 
 
 def _product_check_roots():
@@ -5006,6 +5151,11 @@ CASES = (
     case_f59_check_passes_on_every_anchor_form,
     case_f59_check_lists_each_failure_on_its_own_line,
     case_bug1725_check_names_files_shared_by_tasks,
+    case_2239_check_runs_ci_per_plan_route_gate,
+    case_2239_check_accepts_a_gate_clean_plan_beside_a_violating_one,
+    case_2239_check_refuses_a_plan_the_route_gate_cannot_load,
+    case_2239_check_delegates_to_the_shared_processor,
+    case_2239_check_asks_a_served_plan_with_root_and_manifest,
     case_2064_product_plan_checks_against_its_code_worktree,
     case_2064_code_root_is_required_for_a_product_plan_and_refused_for_harness,
     case_2065_create_anchor_names_a_new_tree_and_nothing_else,

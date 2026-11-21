@@ -1,0 +1,63 @@
+schema: plan/1
+feature: BUG-2239-route-gate-and-injection-note
+approval:
+  date: '2026-11-21'
+  approved_by: operator
+  status: approved
+status: review
+source_issues: [2239, 2240]
+lanes:
+  resolved_at: 926383aef86ee505d2909c291ef4ab672b8ea09b
+  rows:
+  - surface: .claude/skills/harness/bin/plan_merge/check.py
+    lane: main-session-direct
+    reason: DEC-174 gate implementation
+  - surface: .omp/extensions/harness-hooks.ts
+    lane: main-session-direct
+    reason: DEC-174 hook implementation
+  - surface: tests/integration/test-plan-merge.py
+    lane: main-session-direct
+    reason: DEC-174 gate tests
+  - surface: tests/unit/omp-hooks.test.ts
+    lane: main-session-direct
+    reason: DEC-174 hook tests
+  - surface: .claude/skills/harness/bin/check-skill-weight.py
+    lane: main-session-direct
+    reason: DEC-174 gate implementation
+  - surface: tests/integration/test-check-skill-weight.py
+    lane: main-session-direct
+    reason: DEC-174 gate tests
+decisions: []
+tasks:
+  - id: T-01
+    title: Share per-plan route enforcement and disclose hook schema injection
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-06
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 hooks and gates including their tests must be changed directly
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/plan_merge/check.py
+    - .omp/extensions/harness-hooks.ts
+    - tests/integration/test-plan-merge.py
+    - tests/unit/omp-hooks.test.ts
+    - .claude/skills/harness/bin/check-skill-weight.py
+    - tests/integration/test-check-skill-weight.py
+    verify: |
+      python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-check-plan-routes.py && python3 tests/unit/test-omp-hooks.py && python3 tests/integration/test-check-skill-weight.py
+    intent: |
+      Work directly in the assigned PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2239-route-gate-and-injection-note; keep all relative edits inside that checkout. DEC-174 requires direct main-session execution, not team implementation. Consult applicable PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md if present; all are absent at intake. Do not invent contents or substitute alternate-root documents. Read the settled grilling at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-BUG-2239-route-gate-and-injection-note-2026-11-21.md.
+      Add regressions first and preserve authentic pre-fix failures before changing the three production files. In plan_merge/check.py call routes.cpr.process_plan_yaml(resolved_plan, findings, root, routes.manifest_root), where root is --root, never --code-root or anchor_root. Reuse loaded routes.cpr and routes.manifest_root without reloading. Render every VIOLATION as FAIL followed by its complete violation text, count it in the summary, and never dedupe or filter cpr findings. Integrate every VIOLATION finding as a check failure while preserving existing anchor, trace and route validation and valid-plan acceptance. Do not copy budget, status or routing predicates or vocabulary. Preserve cannot-load and processor-error handling as failure, never silent acceptance. Do not scan other feature plans. If process_plan_yaml returns None after validate_plan_doc refuses a YAML-valid plan, refuse with exit 5 and a message naming the load failure, like _check_inputs does-not-load handling. Add a duplicate-task-id regression proving this refusal.
+      Cover budget overflow, invalid top-level status, invalid task status, routing violations, valid-plan acceptance and target-plan isolation. Prove delegation using distinct shared-processor findings so a partial local reimplementation cannot pass. Reuse _check_root, _check_task and run_verb; use _load_owner("check") for delegation proof. Size budget overflow from cpr.MACHINE_LINES_PER_TASK and choose illegal status outside cpr.legal_task_statuses(). Add one served-repo-plan regression proving root and manifest arguments. Routing red is absence of the shared VIOLATION line, since routing already exits 1; budget and status cases carry exit-code red. Preserve both the _route_faults NOBODY failure and the shared routing VIOLATION. Update case_f59_check_lists_each_failure_on_its_own_line from 7 to 8 failure lines, explicitly asserting FAIL VIOLATION <tid>: <path> ungranted (NOBODY) using its fixture values. Do not change check-plan-routes.py or its rules.
+      In the harness-hooks.ts task branch, when withDigestSchemas returns revised input, return that input and additionalContext together with exactly the note required by SC-02.
+      Emit no injection note without revision. Preserve existing refusals, schema contents, claim ordering and non-task behavior. Extend existing FEAT-1928 flat and batch injection tests rather than adding parallel tests; reuse the scout/no-injection fixture for the no-note case. Hook tests must assert revised input and exact additionalContext together for single and batch injection, plus absence of the note for no-injection and non-Harness dispatches. Keep the Python wrapper executing the TypeScript tests. Preserve BUG-2171 refusal text unchanged.
+      Add the missing import json in check-skill-weight.py. In the existing tests/integration/test-check-skill-weight.py add an actual subprocess CLI regression invoking the script with a valid synthetic root and --json, asserting exit 0, parsing stdout with json.loads and checking expected skills, agent totals, universal totals and empty errors. Reuse _tree with agents a:[u,x], b:[u,y], skill counts u:100,x:50,y:70 and universal/agent budgets 1000: expect agents a:150,b:170, universal [u], universal_words 100 and total_words 320. Also execute plain mode on that fixture and assert exit 0 and the expected agent/universal/total output; retain all existing tests and plain-mode semantics.
+      Preserve authentic baseline and fix evidence required by SC-06 using this same new JSON regression. Use an isolated baseline package/tree with sibling dependencies intact and the same new regression, not the old suite without the regression. Record full commands, exact base/fix subject identity, regression identity, exit, stdout and stderr in durable QA evidence. The red must expose the missing-json NameError, not a harness/setup failure. Intake gates or narrative never substitute for this regression red/green evidence.
+      Do not modify CI, sign-approval, #2241, feature.json or STATE.md. The pending BRIEF documents the behavior; unrelated docs remain unchanged. Run verify from the product checkout with Python dependencies and bun available: expect exit 0, every regression passing, no FAIL output, within 60 seconds. Record failing-then-passing evidence per automated SC.

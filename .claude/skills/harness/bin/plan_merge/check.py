@@ -26,8 +26,10 @@ import worktree_terminal
 # verb is that script. It WRITES NOTHING; exit 0 means every `files:` anchor resolves under
 # --root, every team task's `execution_agent` is granted its files by the SAME resolver the
 # build hook consults (check-plan-routes.resolve_agents -> check-domain.py --resolve), and
-# every `traces:` id is present in the sibling BRIEF.md. Exit 1 lists each failure on its own
-# FAIL line; exit 2 means the check could not run at all (no manifest under --root).
+# every `traces:` id is present in the sibling BRIEF.md, and CI's per-plan rule set
+# (check-plan-routes.process_plan_yaml: budget, stations, routing) reports no VIOLATION
+# (#2239). Exit 1 lists each failure on its own FAIL line; exit 2 means the check could not run
+# at all (no manifest under --root); exit 5 means the plan does not load or validate.
 
 
 def _check_plan_routes_module():
@@ -191,19 +193,41 @@ def _overlap_lines(tasks):
             for path, tids in sorted(owners.items()) if len(tids) > 1]
 
 
+def _route_gate_failures(resolved_plan, root, routes):
+    """#2239: CI's per-plan rule set — check-plan-routes.process_plan_yaml, the ONE copy of the
+    DEC-182 budget, station and routing rules — run on this plan alone, each VIOLATION a FAIL.
+    Asked with --root (never the code worktree) and the manifest root `_Routes` resolved, as CI
+    asks. A plan the processor cannot load (it returns None, reason on stderr) is a refusal,
+    never a clean pass. Its NOBODY routing line is a separate rule from `_route_faults`'
+    execution_agent grant, so both are reported, never deduped."""
+    findings = []
+    if routes.cpr.process_plan_yaml(resolved_plan, findings, root, routes.manifest_root) is None:
+        _die(5, f"plan-merge: {resolved_plan} fails plan validation, so CI's route gate cannot "
+                "check it (the reason is printed above).")
+    return [f"FAIL {line}" for line in findings if line.startswith("VIOLATION")]
+
+
+def _preface(routes, brief_fault):
+    """The plan-wide FAIL lines printed before any task's: a DEVIATION and an absent BRIEF."""
+    return [line for line in (routes.deviation and f"FAIL {routes.deviation}", brief_fault) if line]
+
+
+def _report(failures, tasks, summary):
+    """Print every FAIL, then every OVERLAP advisory, then the CHECK summary; exit 1 on any FAIL."""
+    for line in failures + _overlap_lines(tasks):
+        print(line)
+    print(f"{summary}, {len(failures)} failure(s)")
+    sys.exit(1 if failures else 0)
+
+
 def cmd_check(args):
     resolved_plan, root, code_root, tasks = _check_inputs(args)
     routes = _Routes(root, code_root)
     anchor_root = code_root or root
     brief_text, brief_fault = _brief_text(resolved_plan)
-    preface = [f"FAIL {routes.deviation}"] if routes.deviation else []
-    preface += [brief_fault] if brief_fault else []
+    # The gate first: a plan it cannot load exits 5 before any OK line or resolver spawn.
+    gate_failures = _route_gate_failures(resolved_plan, root, routes)
     task_failures, total = _check_all(tasks, anchor_root, brief_text, routes)
-    failures = preface + task_failures
-    for line in failures:
-        print(line)
-    for line in _overlap_lines(tasks):
-        print(line)
-    print(f"CHECK {resolved_plan} against {anchor_root}: {len(tasks)} task(s), {total} "
-          f"anchor(s) resolved, {len(failures)} failure(s)")
-    sys.exit(1 if failures else 0)
+    _report(_preface(routes, brief_fault) + task_failures + gate_failures, tasks,
+            f"CHECK {resolved_plan} against {anchor_root}: {len(tasks)} task(s), {total} "
+            "anchor(s) resolved")
