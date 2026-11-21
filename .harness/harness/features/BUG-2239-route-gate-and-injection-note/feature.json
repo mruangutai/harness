@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2239-route-gate-and-injection-note",
   "branch": "feat/BUG-2239-route-gate-and-injection-note",
-  "pr": null,
+  "pr": 2247,
   "review_sha": "a986d0896fb28f4722acd1e66b1eea14f1fbef2c",
   "cycles_used": 1,
   "max_total_cycles": 10,
