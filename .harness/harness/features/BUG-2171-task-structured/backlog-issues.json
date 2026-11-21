@@ -1,0 +1,14 @@
+{
+  "bug:Intake signs plans that CI's plan-route gate (DEC-182 budget) refuses": {
+    "number": 2239,
+    "typed": true
+  },
+  "enhancement:Tell dispatchers at dispatch time that outputSchema/schemaMode on their task call were hook-injected": {
+    "number": 2240,
+    "typed": true
+  },
+  "bug:pm guidance lets signed live-smoke recipes hard-code a single-use run id": {
+    "number": 2241,
+    "typed": true
+  }
+}
