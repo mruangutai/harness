@@ -1,0 +1,44 @@
+{
+  "feature_id": "BUG-2187-review-pin-and-rework-rounds",
+  "branch": "feat/BUG-2187-review-pin-and-rework-rounds",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-21-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T22:57:16+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-01-patch-product/digest.md",
+        "sha256": "07641038fd1b23d0a481e7a1261134f099e755199e0a9c18e6d02e787e3ac062"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T23:03:19+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "mission": "patch",
+  "judgements": [
+    {
+      "at": "2026-11-21T22:57:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "causes located: inv_33 byte compare includes station lines; no pin verb; spend counts only fix- runs. Bounded diff, one new verb; main-session-direct per DEC-174"
+    }
+  ],
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "notes/operator-signature-2026-11-21.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "e9852d8ebba5f8d58d51e45c46ef2a315f21c3a5fe317ea46d91d5dc451ffbad"
+  }
+}
