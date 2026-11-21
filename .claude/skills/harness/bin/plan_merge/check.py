@@ -191,6 +191,20 @@ def _overlap_lines(tasks):
             for path, tids in sorted(owners.items()) if len(tids) > 1]
 
 
+def _route_gate_failures(resolved_plan, root, routes):
+    """#2239: CI's per-plan rule set — check-plan-routes.process_plan_yaml, the ONE copy of the
+    DEC-182 budget, station and routing rules — run on this plan alone, each VIOLATION a FAIL.
+    Asked with --root (never the code worktree) and the manifest root `_Routes` resolved, as CI
+    asks. A plan the processor cannot load (it returns None, reason on stderr) is a refusal,
+    never a clean pass. Its NOBODY routing line is a separate rule from `_route_faults`'
+    execution_agent grant, so both are reported, never deduped."""
+    findings = []
+    if routes.cpr.process_plan_yaml(resolved_plan, findings, root, routes.manifest_root) is None:
+        _die(5, f"plan-merge: {resolved_plan} fails plan validation, so CI's route gate cannot "
+                "check it (the reason is printed above).")
+    return [f"FAIL {line}" for line in findings if line.startswith("VIOLATION")]
+
+
 def cmd_check(args):
     resolved_plan, root, code_root, tasks = _check_inputs(args)
     routes = _Routes(root, code_root)
@@ -199,7 +213,7 @@ def cmd_check(args):
     preface = [f"FAIL {routes.deviation}"] if routes.deviation else []
     preface += [brief_fault] if brief_fault else []
     task_failures, total = _check_all(tasks, anchor_root, brief_text, routes)
-    failures = preface + task_failures
+    failures = preface + task_failures + _route_gate_failures(resolved_plan, root, routes)
     for line in failures:
         print(line)
     for line in _overlap_lines(tasks):

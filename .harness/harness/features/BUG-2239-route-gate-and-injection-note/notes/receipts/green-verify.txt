@@ -1,0 +1,814 @@
+PASS  apply_indent_mismatch_exits_0
+PASS  apply_indent_mismatch_leaves_a_PARSEABLE_plan
+PASS  apply_indent_mismatch_added_the_decision
+PASS  apply_indent_mismatch_preserves_the_base_item
+PASS  case1: naive whole-file write loses T-02
+PASS  case1: naive whole-file write loses T-03
+PASS  case1: naive whole-file write loses T-04
+PASS  case1: naive whole-file write loses T-05
+PASS  case1: naive whole-file write loses T-06
+PASS  case1: naive whole-file write loses T-07
+PASS  case1: naive whole-file write loses T-08
+PASS  case1: naive whole-file write loses T-09
+PASS  case1: naive whole-file write loses T-10
+PASS  case1: naive whole-file write loses T-11
+PASS  case1: naive whole-file write loses T-12
+PASS  case1: naive whole-file write loses T-13
+PASS  case1: naive whole-file write loses T-14
+PASS  case2: first apply exits 0
+PASS  case2: T-01 present after first apply
+PASS  case2: T-02 present after first apply
+PASS  case2: T-03 present after first apply
+PASS  case2: T-04 present after first apply
+PASS  case2: T-05 present after first apply
+PASS  case2: T-06 present after first apply
+PASS  case2: T-07 present after first apply
+PASS  case2: T-08 present after first apply
+PASS  case2: T-09 present after first apply
+PASS  case2: T-10 present after first apply
+PASS  case2: T-11 present after first apply
+PASS  case2: T-12 present after first apply
+PASS  case2: T-13 present after first apply
+PASS  case2: T-14 present after first apply
+PASS  case2: second apply exits 0
+PASS  case2: T-01 present after second apply
+PASS  case2: T-02 present after second apply
+PASS  case2: T-03 present after second apply
+PASS  case2: T-04 present after second apply
+PASS  case2: T-05 present after second apply
+PASS  case2: T-06 present after second apply
+PASS  case2: T-07 present after second apply
+PASS  case2: T-08 present after second apply
+PASS  case2: T-09 present after second apply
+PASS  case2: T-10 present after second apply
+PASS  case2: T-11 present after second apply
+PASS  case2: T-12 present after second apply
+PASS  case2: T-13 present after second apply
+PASS  case2: T-14 present after second apply
+PASS  case2: T-15 present after second apply
+PASS  case3: exit 0
+PASS  case3: the exact byte slice of the base's approval block occurs verbatim in the result
+PASS  case3: number of hash-comment lines in the whole file is unchanged
+PASS  case3: stdout carries IGNORED-APPROVAL
+PASS  case4: 20 concurrent trials admit only the union outcome or the lock outcome
+PASS  case4: informational — the exit-6 lock branch was taken in 0/20 trials
+PASS  case5: a changed field on an existing id exits 0
+PASS  case5: the named field is replaced
+PASS  case5: the new field is added
+PASS  case5: the omitted field is kept
+PASS  case5: stdout logs the replacement per field with both values
+PASS  case5: T-01 is byte-identical after the replace
+PASS  case5: T-02 is byte-identical after the replace
+PASS  case5: T-04 is byte-identical after the replace
+PASS  case5: T-05 is byte-identical after the replace
+PASS  case5: the approval block is untouched (base was pending)
+PASS  case5: the task count is unchanged — replace never adds an item
+PASS  case6: first apply exits 0
+PASS  case6: second apply exits 0
+PASS  case6: file is byte identical after the second, idempotent apply
+PASS  case7: a source path is REFUSED with exit 9
+PASS  case7: ...and the refused file is untouched
+PASS  case7: the escape's literal argument ends in the matching tail
+PASS  case7: a symlink escape whose LITERAL argument matches but RESOLVES elsewhere is REFUSED with exit 9
+PASS  case7: ...and the file behind the symlink is untouched
+PASS  case7: a legitimate fixture plan.yaml is ALLOWED — exit 0
+PASS  case8: unparseable proposal exits 5
+PASS  case8: stdout/stderr names the proposal side
+PASS  case8: base file is byte identical to before
+PASS  issue #720: a proposal with a duplicated key exits 5, never 0
+PASS  issue #720: the refusal names the duplicate key
+PASS  issue #720: the base is left byte-identical — no merge that later breaks a downstream reader
+PASS  issue #720 half 2: a duplicate key already on disk refuses the merge, exit 5
+PASS  issue #720 half 2: the refusal names the base side
+PASS  issue #720 half 2: the base is left byte-identical
+PASS  case9: exit 0
+PASS  case9: leading comments survive byte identical
+PASS  case9: T-15 was added
+PASS  case10a: differing approval exits 8
+PASS  case10a: stdout/stderr names the approval mapping and both loaded values
+PASS  case10a: file is byte identical to before (nothing applied)
+PASS  case10a: T-15 is absent, asserted by id
+PASS  case10b: proposal with no approval key exits 0
+PASS  case10b: T-15 is present
+PASS  case10c: loaded-equal-but-reflowed approval exits 0
+PASS  case10c: T-15 is present
+PASS  case11a: base file does not exist before apply
+PASS  case11a: create with no approval key exits 0
+PASS  case11a: the file now exists
+PASS  case11a: T-01 present in the created file
+PASS  case11a: T-02 present in the created file
+PASS  case11a: T-03 present in the created file
+PASS  case11a: apply seeds approval as pending
+PASS  case11a: a newly created plan can be signed
+PASS  case11b: base file does not exist before apply
+PASS  case11b: create with an approval key exits 8
+PASS  case11b: no file was created by the refused apply
+PASS  case11b: stdout/stderr names the approval mapping
+PASS  case11b: stdout/stderr names the main session as the signer
+PASS  case11b: no stray tempfile/plan.yaml left behind after the refusal
+PASS  set-task-station exits 0
+PASS  set-task-station changes EXACTLY one line
+PASS  set-task-station changes T-02's status line and nothing else
+PASS  set-task-station leaves the leading comment intact
+PASS  set-task-station leaves T-01 and T-03 ready
+PASS  set-task-station exits 3 on an unknown task id
+PASS  set-task-station's exit-3 message NAMES the ids the plan does carry
+PASS  set-task-station writes nothing on an unknown task id
+PASS  set-feature-station exits 0 when the key is absent
+PASS  set-feature-station INSERTS status immediately after feature:
+PASS  set-feature-station exits 0 when the key is present
+PASS  set-feature-station REPLACES rather than appending a second key
+PASS  set-feature-station does not touch a task's status
+PASS  set-panel exits 0 for a complete panel mapping
+PASS  set-panel replaces the whole panel mapping
+PASS  set-panel leaves tasks and approval unchanged
+PASS  set-panel refuses a mapping missing last_run before writing
+PASS  set-panel refusal leaves plan byte-identical
+PASS  amend --show emits a structured list value and hash
+PASS  amend --yaml-value replaces a list field
+PASS  structured amend leaves sibling tasks intact
+PASS  set-task-station exits 4 on the illegal station 'Done'
+PASS  set-task-station's exit-4 line lists the legal stations for 'Done', rejected included
+PASS  set-task-station writes nothing when 'Done' is refused
+PASS  set-task-station exits 4 on the illegal station 'icebox'
+PASS  set-task-station's exit-4 line lists the legal stations for 'icebox', rejected included
+PASS  set-task-station writes nothing when 'icebox' is refused
+PASS  set-task-station exits 4 on the illegal station ''
+PASS  set-task-station's exit-4 line lists the legal stations for '', rejected included
+PASS  set-task-station writes nothing when '' is refused
+PASS  set-task-station exits 4 on the illegal station 'abandonded'
+PASS  set-task-station's exit-4 line lists the legal stations for 'abandonded', rejected included
+PASS  set-task-station writes nothing when 'abandonded' is refused
+PASS  set-feature-station exits 4 on the illegal station 'Done'
+PASS  set-feature-station's exit-4 line lists the legal stations for 'Done', rejected included
+PASS  set-feature-station writes nothing when 'Done' is refused
+PASS  set-feature-station exits 4 on the illegal station 'icebox'
+PASS  set-feature-station's exit-4 line lists the legal stations for 'icebox', rejected included
+PASS  set-feature-station writes nothing when 'icebox' is refused
+PASS  set-feature-station exits 4 on the illegal station ''
+PASS  set-feature-station's exit-4 line lists the legal stations for '', rejected included
+PASS  set-feature-station writes nothing when '' is refused
+PASS  set-feature-station exits 4 on the illegal station 'abandonded'
+PASS  set-feature-station's exit-4 line lists the legal stations for 'abandonded', rejected included
+PASS  set-feature-station writes nothing when 'abandonded' is refused
+PASS  set-task-station ACCEPTS abandoned, a terminal station
+PASS  set-feature-station ACCEPTS abandoned (FEAT-1714 T-03: reject's one station write)
+PASS  set-task-station ACCEPTS rejected, a terminal station
+PASS  set-feature-station ACCEPTS rejected (FEAT-1714 T-03: reject's one station write)
+PASS  sign-approval exits 0
+PASS  sign-approval writes status: approved
+PASS  sign-approval writes approved_by
+PASS  sign-approval writes date, and it reloads as the string that was passed
+PASS  sign-approval leaves status: pending behind nowhere
+PASS  sign-approval does not disturb the tasks
+PASS  re-signing a ruled plan exits 0
+PASS  re-signing a ruled plan writes the requested approval date
+PASS  re-signing a ruled plan preserves its existing ruling
+PASS  1157: sign-approval accepts repeatable --overrule
+PASS  1157: each ruling records finding, attribution, date, and full reason
+PASS  1157: an overrule for a non-current finding is refused without writing
+PASS  1157: an empty overrule reason is refused without writing
+PASS  1157: a risk acceptance with an invalid date is refused without writing
+PASS  1157: an unattributed risk acceptance is refused without writing
+PASS  sign-approval inserts an absent approval mapping
+PASS  the inserted approval records the exact signature
+PASS  inserting approval preserves every pre-existing byte
+PASS  F-02 (colon and space breaks the mapping): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (colon and space breaks the mapping): approved_by round-trips as the exact string passed
+PASS  F-02 (colon and space breaks the mapping): the tasks are undisturbed
+PASS  F-02 (a leading hash is swallowed as a comment): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a leading hash is swallowed as a comment): approved_by round-trips as the exact string passed
+PASS  F-02 (a leading hash is swallowed as a comment): the tasks are undisturbed
+PASS  F-02 (a YAML boolean word must stay a STRING): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a YAML boolean word must stay a STRING): approved_by round-trips as the exact string passed
+PASS  F-02 (a YAML boolean word must stay a STRING): the tasks are undisturbed
+PASS  F-02 (a trailing colon): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a trailing colon): approved_by round-trips as the exact string passed
+PASS  F-02 (a trailing colon): the tasks are undisturbed
+PASS  F-02 (a quote of its own): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a quote of its own): approved_by round-trips as the exact string passed
+PASS  F-02 (a quote of its own): the tasks are undisturbed
+PASS  F-02 (a bare newline): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a bare newline): approved_by round-trips as the exact string passed
+PASS  F-02 (a bare newline): the tasks are undisturbed
+PASS  F-02 NEGATIVE CONTROL: an ordinary signer name stays unquoted
+PASS  F-02: a duplicate approved_by key in the base is REFUSED at exit 5 — caught by the stricter loader before signing, not after
+PASS  F-02: the refusal names the duplicate key, so a reader can act on it
+PASS  F-02: and the plan is left BYTE-IDENTICAL — a refusal that had already written would be worse than the bug
+PASS  comparison loop: a clean-parsing but mismatched reload is REFUSED
+PASS  comparison loop: the refusal names both the value asked for and the value it would reload as — a reader cannot act on 'refused' alone
+PASS  HIGH-1: `apply` REFUSES to mint station_only onto a plan that has tasks
+PASS  HIGH-1: and the plan is left BYTE-IDENTICAL — a refusal that had already written would be the defect it is meant to prevent
+PASS  HIGH-1: the refusal names the marker, so the operator can act on it
+PASS  amend --show prints a 64-char sha256 for the named field
+PASS  amend --show prints the field's MULTI-LINE body, not just its first line
+PASS  amend --show does not modify the plan
+PASS  amend replaces a multi-line decision field
+PASS  the new prose is present
+PASS  the OLD prose is gone — a replace that appends is not a replace
+PASS  the sibling decision D-14 survives untouched
+PASS  the tasks: key is untouched
+PASS  the result still parses as YAML
+PASS  amend refuses a stale --expect-sha256
+PASS  and leaves the plan BYTE-IDENTICAL
+PASS  and the refusal reports the ACTUAL hash, so the caller can re-read
+PASS  amend without --expect-sha256 is refused
+PASS  and nothing is written
+PASS  amend refuses an absent id
+PASS  and names the ids that ARE present
+PASS  and does NOT list decision ids for a --key tasks miss — a refusal that suggests a wrong next step is worse than a terse one
+PASS  amend refuses a field the item does not carry
+PASS  and does not insert it
+PASS  amend refuses --key approval
+PASS  and the plan is unchanged
+PASS  amend succeeds on a single-line task field
+PASS  the leading comment survives the splice
+PASS  the new title is present
+PASS  amend accepts a value carrying a colon, a dash and a hash
+PASS  the value ROUND-TRIPS byte-identical through yaml.safe_load
+PASS  amend accepts a value that is a YAML boolean word
+PASS  `yes` reloads as the STRING 'yes', not the boolean True
+PASS  V1: --show binds to the REAL verify, not the prose inside intent
+PASS  V1: and does not return the intent body
+PASS  V2: an identity replace of a block field SUCCEEDS
+PASS  V2: and the value is byte-identical, trailing newline included
+PASS  V2: and the emitted form is still a literal block
+PASS  V3: _verify_amend ACCEPTS a value that reloads as asked
+PASS  V3: and REFUSES when the reloaded value is not what was asked for
+PASS  V3: the refusal names both values, so the caller can see the difference
+PASS  V3: and REFUSES a duplicate id rather than accepting the first match
+PASS  V4: an unparseable base refuses rather than crashing
+PASS  V4: and the refusal says the plan on disk does not parse
+PASS  a duplicate id is refused, not bound to the first match
+PASS  and the plan is unchanged
+PASS  N1: the amendment succeeds
+PASS  N1: the comment BETWEEN fields survives
+PASS  N1: the blank line between fields survives
+PASS  N1: and the new value landed
+PASS  N1b: --show returns the WHOLE block value, comment line included
+PASS  N1b: and an identity replace keeps it
+PASS  N1b: the comment line survives the round trip
+PASS  N3: --show emits the VALUE, not the block with its key line
+PASS  N3: feeding --show output back succeeds
+PASS  N3: and the value is unchanged — a true round trip
+PASS  N5: the fixture base really is schema-valid (or this case is vacuous)
+PASS  N5: a schema-breaking amendment on a schema-valid base is refused
+PASS  N5: and the plan is unchanged
+PASS  neither station verb writes the approval mapping
+PASS  the approval block's own bytes are untouched by the station verbs
+PASS  only the feature status key was added to the head
+PASS  a governed agent's sign-approval exits 10
+PASS  the refusal names the agent and REQ-05/DEC-120
+PASS  the plan is untouched — no partial write on refusal
+PASS  an absent HARNESS_AGENT_TYPE may still sign
+PASS  the signature actually lands
+PASS  add-tasks exits 0
+PASS  add-tasks adds the new task
+PASS  add-tasks reports through the same ADDED/APPLIED contract as apply
+PASS  F1: `|` round-trips byte-identical through --show -> --value-file
+PASS  F1: `|` keeps its emitted form
+PASS  F1: `|-` round-trips byte-identical through --show -> --value-file
+PASS  F1: `|-` keeps its emitted form
+PASS  F1: `|+` round-trips byte-identical through --show -> --value-file
+PASS  F1: `|+` keeps its emitted form
+PASS  F1: `>` round-trips byte-identical through --show -> --value-file
+PASS  F1: `>` keeps its emitted form
+PASS  F1: a list field is refused rather than flattened to text
+PASS  F1: a null field is refused rather than shown as an empty string
+PASS  F1: and neither refusal wrote anything
+PASS  F2: the under-lock check ACCEPTS a block that still matches
+PASS  F2: and REFUSES a block that changed under the lock
+PASS  F2: naming the field, so the caller knows what to re-read
+PASS  F2: and the check is WIRED INTO the locked transform (reachability, not behaviour)
+PASS  bug201: the fixture base is a LEGAL plan (artifact_accessors.load_plan accepts it)
+PASS  bug201a: apply refuses a dangling depends_on with exit 5
+PASS  bug201a: refusal names ILLEGAL PLAN
+PASS  bug201a: refusal names the dangling id T-99
+PASS  bug201a: base file is byte identical to before the refused apply
+PASS  bug201b: the paired apply naming a real dependency exits 0
+PASS  bug201b: T-03 is present after the allowed apply
+PASS  delete: a two-list multi-item delete exits 0
+PASS  delete: the receipt names every id that went
+PASS  delete: the receipt states the reason
+PASS  delete: and the reason is NOT written into the plan
+PASS  delete: EVERY surviving byte is identical (chunk-derived expectation)
+PASS  delete: the document NOTE after the deleted first task survives
+PASS  delete: the blank line the deleted last decision carried goes with it
+PASS  delete: the survivors are exactly the items not named
+PASS  delete: deleting a task whose last line is a block-body comment exits 0
+PASS  delete: the `#` line inside the `|` body went with the item
+PASS  delete: the `#` line between the items did not
+PASS  delete: and nothing else moved
+PASS  delete: two consecutive blank-separated items delete cleanly
+PASS  delete: exactly one separator survives, with no blank-line residue
+PASS  delete: and the blank INSIDE no body was disturbed
+PASS  delete: an absent id is refused with exit 3
+PASS  delete: the refusal names the id that is not there
+PASS  delete: and lists the ids that are, scoped to that list
+PASS  delete: the valid id named in the same call is NOT deleted
+PASS  delete: the same id twice is refused with exit 2
+PASS  delete: naming the id that was repeated
+PASS  delete: no --task and no --decision is refused with exit 2
+PASS  delete: an empty --reason is refused with exit 2
+PASS  delete: none of the three refusals touched the file
+PASS  delete-dangling: the fixture base IS a legal plan (or (a) proves nothing)
+PASS  delete-dangling a: a delete that would dangle an edge is refused with exit 4
+PASS  delete-dangling a: and the refusal names the edge, not just the id
+PASS  delete-dangling a: the plan is byte-identical after the refusal
+PASS  delete-dangling b: the fixture base is ALREADY schema-illegal, so do-no-harm skips the schema check (or (b) proves nothing)
+PASS  delete-dangling b: the edge is refused even where the schema cannot see it
+PASS  delete-dangling b: naming the edge
+PASS  delete-dangling b: and nothing was written
+PASS  delete-dangling c: deleting BOTH ends of the edge in one call exits 0
+PASS  delete-dangling c: and only the independent task is left
+PASS  delete: an id carried twice by the plan is refused, not resolved to the first
+PASS  delete: and the ambiguous plan is unchanged
+PASS  delete: a deletion that makes a legal plan illegal is refused with exit 5
+PASS  delete: and the legal plan survives byte-identical
+PASS  delete: an unparseable base is refused with exit 5
+PASS  delete: and the refusal blames the plan on disk, not the splice
+PASS  delete: leaving the broken file exactly as it was
+PASS  delete: a --file that is not a plan.yaml under features/ is refused with exit 9
+PASS  delete: an unacquirable lock is refused with exit 6
+PASS  delete: naming the lock it could not take
+PASS  delete: and the plan is untouched while another writer holds the lock
+PASS  delete-verify: a survivor that quietly lost a field is refused with exit 5
+PASS  delete-verify: and the refusal says the ids matched, so it was a boundary error
+PASS  delete-verify: a splice that took an item nobody named is refused, naming both id lists
+PASS  delete-verify: the CORRECT deletion is accepted (or this case refuses everything)
+PASS  delete-verify: and the check is WIRED IN (reachability, not behaviour)
+PASS  record-panel exits 0 on a well-formed lead digest
+PASS  record-panel writes cycle and last_run (the run directory) from the call
+PASS  record-panel transcribes every reader, skipped ones with persona and reason
+PASS  record-panel writes id (content hash), severity, reader, kind, summary and an open disposition per finding
+PASS  record-panel leaves tasks and approval byte-identical
+PASS  record-panel puts panel: BEFORE tasks:, where the template has it
+PASS  record-panel's receipt names the cycle
+PASS  record-panel (carry) exits 0
+PASS  the carried finding's lines are byte-identical, comment and quoting included
+PASS  the carried finding keeps disposition resolved and resolved_by
+PASS  the new finding is appended after the carried one with disposition open
+PASS  cycle, last_run and readers are replaced
+PASS  record-panel (carry) leaves tasks byte-identical
+PASS  record-panel's receipt says which ids were carried and which added
+PASS  record-panel refuses a finding without kind (exit 5) and names it
+PASS  record-panel refuses a kind outside the enum
+PASS  record-panel refuses a proportionality finding without scope (DEC-228)
+PASS  record-panel refuses a proportionality scope outside task|mission
+PASS  record-panel refuses a skipped reader without persona and reason
+PASS  record-panel refuses a digest with no DIGEST block
+PASS  record-panel refuses an unfenced digest (no bare-text fallback)
+PASS  record-panel reads the last fenced mapping and refuses its non-mapping DIGEST
+PASS  every record-panel refusal leaves the plan byte-identical
+PASS  check exits 0 when every anchor, route and trace resolves
+PASS  check's receipt says how many anchors it resolved
+PASS  check exits 1 when anything fails to resolve
+PASS  check: missing symbol on its own line
+PASS  check: quote not found on its own line
+PASS  check: path in a missing directory on its own line
+PASS  check: the same ungranted path is ALSO a route failure, on its own line
+PASS  check: trace id absent from the BRIEF on its own line
+PASS  check: SC-01 present in the BRIEF is NOT reported
+PASS  check: ungranted execution_agent on its own line, naming who IS granted
+PASS  check: team task without execution_agent on its own line
+PASS  check: the shared route gate's NOBODY VIOLATION is reported too, not deduped
+PASS  check: exactly these eight failures, nothing else
+PASS  check: an absent sibling BRIEF fails every trace loudly
+PASS  check: an otherwise valid plan with shared files still exits 0 (SC-02)
+PASS  check: exactly one OVERLAP line per shared path — two here, not one per anchor (SC-01)
+PASS  check: a.py named three ways by T-01 and once by T-02 is ONE line naming both, once each
+PASS  check: new_module.py shared by T-01 and T-03
+PASS  check: a file one task names is never an overlap
+PASS  check: repeated anchors confined to one task print no OVERLAP
+PASS  check: an existing failure keeps its exit 1 when overlap is also present
+PASS  check: the overlap is still reported beside the failure
+PASS  2239: check fails an over-budget task the CI route gate refuses
+PASS  2239: check fails an illegal top-level status the CI route gate refuses
+PASS  2239: check fails an illegal task status the CI route gate refuses
+PASS  2239: a plan the CI route gate accepts still passes check
+PASS  2239: another feature's violating plan does not fail the target plan
+PASS  2239: check exits 5 when the route gate cannot load the plan
+PASS  2239: check fails on a finding only the shared processor emits
+PASS  2239: the harness plan is asked with --root
+PASS  2239: a served plan is asked with --root, never --code-root, and check's manifest root
+PASS  2064: a product plan resolves anchors in its code worktree and routes in the harness manifest
+PASS  2064: the receipt names the code worktree it resolved against
+PASS  2064: a product route still fails for an agent the manifest does not grant
+PASS  2064: a product plan without --code-root exits 2 naming how to get it
+PASS  2064: a --code-root that is not a directory exits 2
+PASS  2064: harness's own plan refuses --code-root
+PASS  2064: the segmentless .harness/features/ layout is harness's own, not a product
+PASS  2065: a create anchor under absent directories resolves
+PASS  2065: create on an existing file, under a file, and a bare path in a missing directory each fail on their own line
+PASS  2065: a dangling link is neither absent nor a directory to create beneath
+PASS  2065: { path: .claude/skills/harness/bin/*.py, create: true } is refused at write
+PASS  2065: { path: .claude/skills/harness/bin/m.py, create: false } is refused at write
+PASS  2065: { path: .claude/skills/harness/bin/m.py, create: true, quote: x } is refused at write
+PASS  apply refuses a line-number anchor when creating a plan (exit 2, names the entry)
+PASS  and creates nothing
+PASS  apply refuses a line-number anchor on an existing plan (exit 2, names the entry)
+PASS  add-tasks refuses a line-number anchor on an existing plan (exit 2, names the entry)
+PASS  the plan is byte-identical after both refusals
+PASS  amend refuses a line-number anchor in files (exit 2, names the entry)
+PASS  amend's refusal leaves the plan byte-identical
+PASS  amend accepts path#symbol and {path, quote} anchors
+PASS  set-lanes exits 0 on a well-formed lanes mapping
+PASS  set-lanes writes the mapping verbatim
+PASS  set-lanes leaves tasks and approval byte-identical
+PASS  set-lanes REPLACES an existing mapping rather than adding a second key
+PASS  set-lanes refuses a mapping without rows, naming the key
+PASS  set-lanes refuses a row whose lane is not team|main-session-direct
+PASS  set-lanes refusals leave the plan byte-identical
+PASS  set-key replaces an existing scalar-list key
+PASS  set-key keeps the comment introducing the next key, the approval bytes and the tasks
+PASS  set-key inserts an absent key before tasks: and it reloads
+PASS  set-key runs the lanes validator rather than bypassing it
+PASS  set-key refuses approval (exit 2) and names its route
+PASS  set-key refuses tasks (exit 2) and names its route
+PASS  set-key refuses decisions (exit 2) and names its route
+PASS  set-key refuses status (exit 2) and names its route
+PASS  set-key refuses a key name the indexer could not find again
+PASS  set-key refusals leave the plan byte-identical
+PASS  set-panel exits 0
+PASS  set-panel reloads as the value supplied
+PASS  set-panel keeps the unchanged finding's bytes — quoting and comment included
+PASS  set-panel writes the new finding
+PASS  set-panel replaces a finding whose content changed
+PASS  and the changed finding is no longer byte-identical to its old form
+PASS  reset/apply exits 0
+PASS  reset/apply: approval.status is pending after apply
+PASS  reset/apply: approval.reset_at is an ISO instant
+PASS  reset/apply: approval.reset_reason names the verb and the ids
+PASS  reset/apply: the signer and date are kept, so the operator can see what was voided
+PASS  reset/apply: the receipt says approval was reset
+PASS  reset/add-tasks exits 0
+PASS  reset/add-tasks: approval.status is pending after add-tasks
+PASS  reset/add-tasks: approval.reset_at is an ISO instant
+PASS  reset/add-tasks: approval.reset_reason names the verb and the ids
+PASS  reset/add-tasks: the signer and date are kept, so the operator can see what was voided
+PASS  reset/apply-replace exits 0
+PASS  reset/apply-replace: a replaced field on an existing task keeps approved (D-04)
+PASS  reset/delete-items exits 0
+PASS  reset/delete-items: approval.status is pending after delete-items
+PASS  reset/delete-items: approval.reset_at is an ISO instant
+PASS  reset/delete-items: approval.reset_reason names the verb and the ids
+PASS  reset/delete-items: the signer and date are kept, so the operator can see what was voided
+PASS  reset/amend exits 0
+PASS  reset/amend: amending a field on an existing task keeps approved (D-04)
+PASS  re-signing writes approved and drops reset_at/reset_reason
+PASS  resume/plan: feature returns to plan while approval is pending
+PASS  resume/plan: reset records the classified resume station
+PASS  resume/plan: reset receipt is emitted only after the reset lands
+PASS  resume/ready: unrelated bytes survive the combined locked splice
+PASS  resume/building: feature returns to plan while approval is pending
+PASS  resume/building: reset records the classified resume station
+PASS  resume/building: reset receipt is emitted only after the reset lands
+PASS  resume/ready: feature returns to plan while approval is pending
+PASS  resume/ready: reset records the classified resume station
+PASS  resume/ready: reset receipt is emitted only after the reset lands
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/ready: feature returns to plan while approval is pending
+PASS  resume/ready: reset records the classified resume station
+PASS  resume/ready: reset receipt is emitted only after the reset lands
+PASS  resume/ready/'Building': a task station outside the vocabulary raises rather than classifies
+PASS  resume/ready/'Building': the refused mutation leaves the plan byte-identical
+PASS  resume/building/'': a task station outside the vocabulary raises rather than classifies
+PASS  resume/building/'': the refused mutation leaves the plan byte-identical
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/review: reapproval emits the stored station and clears reset metadata
+PASS  resume/initial: an initial signature emits ready
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/pending: new ready work demotes a stale review target to building
+PASS  resume/pending: reapproval emits the recomputed target
+PASS  resume/done: task mutation does not reopen a terminal feature
+PASS  resume/abandoned: task mutation does not reopen a terminal feature
+PASS  no-network NEGATIVE CONTROL: the same guard reddens when gh is invoked
+PASS  no-network: local plan mutation succeeds
+PASS  no-network: local plan mutation never invokes gh
+PASS  a pending plan's approval bytes are untouched by apply
+PASS  amending a decision leaves approval approved
+PASS  deleting a decision leaves approval approved
+PASS  an apply that changes nothing leaves approval approved
+PASS  revoke-approval pauses at Plan with the reset and resume record
+PASS  revoke-approval keeps the voided signer, date, rulings, and unrelated bytes
+PASS  a fresh signature supersedes a revocation's reset record
+PASS  revoke-approval refuses a plan that is not approved (exit 5, names the status)
+PASS  revoke-approval refuses an empty reason (exit 2)
+PASS  revoke-approval refuses a governed agent (exit 10), as sign-approval does
+PASS  every refusal leaves the plan byte-identical
+PASS  sign-approval --rework refuses when the sibling feature.json is absent (exit 2)
+PASS  and writes no signature in that case
+PASS  sign-approval --rework without --decision is exit 2
+PASS  sign-approval --rework with a non-integer is exit 2
+PASS  no signature was written by the refused calls
+PASS  sign-approval --rework refuses a --decision that is not a file under the feature dir
+PASS  and writes neither signature nor ruling
+PASS  sign-approval --rework exits 0
+PASS  the approval is signed
+PASS  feature.json carries the rework ruling per C1
+PASS  the other feature.json keys are untouched
+PASS  the receipt records the ruling
+PASS  f3/quoted: apply exits 0
+PASS  f3/quoted: a quoted "approved" reloads as pending with the reset record
+PASS  f3/quoted: the receipt says APPROVAL-RESET only because it landed
+PASS  f3/indent4: apply exits 0
+PASS  f3/indent4: a four-space approval body reloads as pending with the reset record
+PASS  f3/indent4: the reset lines are written at the body's own indent
+PASS  f3/flow: a shape the splice cannot reset is REFUSED with the signature verifier's exit 5
+PASS  f3/flow: nothing is written — the plan is byte-identical
+PASS  f3/flow: no APPROVAL-RESET receipt over a standing signature
+PASS  f4: a feature.json refusal propagates feature_json_write's exit 11
+PASS  f4: and leaves approval pending — the plan is byte-identical
+PASS  f4: no SIGNED receipt for a signature that was not written
+PASS  f4: a plan refusal after the ruling was recorded still refuses (exit 5)
+PASS  f4: the ruling stands in feature.json
+PASS  f4: the refusal says the ruling was recorded and the plan is re-signed
+PASS  f7/status-only: apply exits 0
+PASS  f7/status-only: T-01 keeps its station
+PASS  f7/status-only: the signature stands — a status-only difference is not a task change
+PASS  f7/status-only: the receipt prints IGNORED, not REPLACED or APPROVAL-RESET
+PASS  f7/status-only: every other byte is identical
+PASS  f7/mixed: apply exits 0
+PASS  f7/mixed: the title is replaced and the station is kept
+PASS  f7/mixed: a replaced field on an existing task keeps the signature (BUG-1716 D-04)
+PASS  f7/mixed: REPLACED names the title and IGNORED names the status
+PASS  f8: record-panel exits 0
+PASS  f8: a new finding the digest calls resolved is written open
+PASS  f8: a new finding with a nonsense disposition is written open, not refused
+PASS  f8: the carried finding keeps its base disposition against the digest's open
+PASS  f10/last: record-panel exits 0
+PASS  f10/last: the carried finding and its trailing note are one contiguous run of bytes, and the new finding follows the note
+PASS  f10/last: the block-level comment stays after the whole list, before tasks:
+PASS  f10/last: the panel reloads with both findings
+PASS  f10/between: record-panel exits 0
+PASS  f10/between: a comment between two carried findings is kept, in place
+PASS  f10/between: the panel reloads with all three findings
+PASS  b1716/sign: exits 0 and prints HASHED
+PASS  b1716/sign: one hash per task, sha256 of the canonical JSON
+PASS  b1716/sign: hashes are 64 lowercase hex characters
+PASS  b1716/sign: a reflowed plan (quoting, order, list form) hashes identically
+PASS  b1716/sign: a changed value changes that task's hash
+PASS  b1716/sign: the other task's hash is unchanged
+PASS  b1716/sign: a refused signature leaves feature.json byte-identical
+PASS  b1716/285: exits 0 naming each target
+PASS  b1716/285: intent carries the digest's now
+PASS  b1716/285: verify carries the digest's now
+PASS  b1716/285: files carries the digest's now
+PASS  b1716/285: the `|` verify body keeps its block form
+PASS  b1716/285: approval and the preamble are byte-identical, comment included
+PASS  b1716/285: T-01 is byte-identical
+PASS  b1716/285: decisions are byte-identical
+PASS  b1716/285: T-03's title and status are untouched
+PASS  b1716/285: three amendment judgements in digest order, by the orchestrator
+PASS  b1716/285: reasons are the digest's
+PASS  b1716/285: every `at` is distinct and increasing
+PASS  b1716/285: signed_task_hashes are not revised by the amendment
+PASS  b1716/285: the ledger still validates
+PASS  b1716/285: a rerun is refused (exit 6) naming the already-applied state
+PASS  b1716/285: the rerun writes nothing to either file
+PASS  b1716/refuse/no amendments: exit 2 naming the fault
+PASS  b1716/refuse/no amendments: both files byte-identical
+PASS  b1716/refuse/absent amendments: exit 2 naming the fault
+PASS  b1716/refuse/absent amendments: both files byte-identical
+PASS  b1716/refuse/not a mapping: exit 5 naming the fault
+PASS  b1716/refuse/not a mapping: both files byte-identical
+PASS  b1716/refuse/extra key: exit 5 naming the fault
+PASS  b1716/refuse/extra key: both files byte-identical
+PASS  b1716/refuse/missing key: exit 5 naming the fault
+PASS  b1716/refuse/missing key: both files byte-identical
+PASS  b1716/refuse/SC id: exit 5 naming the fault
+PASS  b1716/refuse/SC id: both files byte-identical
+PASS  b1716/refuse/decision id: exit 5 naming the fault
+PASS  b1716/refuse/decision id: both files byte-identical
+PASS  b1716/refuse/bad field: exit 5 naming the fault
+PASS  b1716/refuse/bad field: both files byte-identical
+PASS  b1716/refuse/empty reason: exit 5 naming the fault
+PASS  b1716/refuse/empty reason: both files byte-identical
+PASS  b1716/refuse/long reason: exit 5 naming the fault
+PASS  b1716/refuse/long reason: both files byte-identical
+PASS  b1716/refuse/intent as list: exit 5 naming the fault
+PASS  b1716/refuse/intent as list: both files byte-identical
+PASS  b1716/refuse/files as string: exit 5 naming the fault
+PASS  b1716/refuse/files as string: both files byte-identical
+PASS  b1716/refuse/line anchor: exit 5 naming the fault
+PASS  b1716/refuse/line anchor: both files byte-identical
+PASS  b1716/refuse/absent task: exit 3 naming the fault
+PASS  b1716/refuse/absent task: both files byte-identical
+PASS  b1716/refuse/stale was: exit 6 naming the fault
+PASS  b1716/refuse/stale was: both files byte-identical
+PASS  b1716/refuse/duplicate target: exit 5 naming the fault
+PASS  b1716/refuse/duplicate target: both files byte-identical
+PASS  b1716/refuse/second entry stale: exit 6 naming the fault
+PASS  b1716/refuse/second entry stale: both files byte-identical
+PASS  b1716/refuse/no feature.json: exit 2 naming the ledger path
+PASS  b1716/refuse/no feature.json: the plan is byte-identical
+PASS  b1716/approval: record-amendments exits 0
+PASS  b1716/approval: the approved block survives byte for byte
+PASS  b1716/approval: amend on an existing task no longer resets the signature
+PASS  b1716/approval: apply replacing a field on an existing task keeps the signature
+PASS  b1716/approval: adding a task still resets approval to pending
+PASS  b1716/atomic: a ledger refusal under the lock exits nonzero naming LOCKED
+PASS  b1716/atomic: the refusal says the plan splice was restored
+PASS  b1716/atomic: neither file changed
+PASS  b1716/atomic: released, the same two-entry digest lands both entries
+PASS  b1716/io: a PermissionError on the ledger write exits nonzero naming it
+PASS  b1716/io: the refusal says the plan splice was restored
+PASS  b1716/io: neither file changed
+PASS  feat62: the write still exits 0 with its receipt on stdout
+PASS  feat62: the checker's non-clean row reaches stderr under the feedback header
+PASS  feat62: the checker runs AFTER the writer's lock is released (GC-03)
+PASS  feat62: the feedback never leaks into stdout
+PASS  feat62: a refused write prints NO feedback
+PASS  feat62: a clean --changed run leaves stderr empty
+PASS  feat70/sc03: exits 0 naming both targets, no traceback
+PASS  feat70/sc03: the block-scalar field reloads as the digest's now
+PASS  feat70/sc03: the `|` header survives with the longer body
+PASS  feat70/sc03: the second entry, in the later task, lands
+PASS  feat70/sc03: two amendment judgements in digest order
+PASS  feat70/sc03: the ledger still validates
+PASS  1985: a signed field without --reason is refused, both files untouched
+PASS  1985: the signed field lands with one amendment judgement naming it
+PASS  1985: a field INV-40 does not grade needs no reason and adds no judgement
+PASS  1985: a failed ledger write exits nonzero and restores the plan
+PASS  2095: set-panel refuses a prose disposition (exit 5), naming the finding and disposition
+PASS  2095: set-panel writes nothing on a prose disposition
+PASS  2095: set-panel refuses a free key (exit 5), naming the finding and resolution
+PASS  2095: set-panel writes nothing on a free key
+PASS  2095: set-panel refuses resolved_by on an open finding (exit 5), naming the finding and resolved_by
+PASS  2095: set-panel writes nothing on resolved_by on an open finding
+PASS  2095: set-panel refuses resolved_by naming no task in the plan (exit 5), naming the finding and T-09
+PASS  2095: set-panel writes nothing on resolved_by naming no task in the plan
+PASS  2095: set-panel refuses a severity outside the enum (exit 5), naming the finding and severe
+PASS  2095: set-panel writes nothing on a severity outside the enum
+PASS  2095: set-panel refuses a missing summary (exit 5), naming the finding and summary
+PASS  2095: set-panel writes nothing on a missing summary
+PASS  2095: set-panel accepts a resolved finding whose resolved_by names a plan task
+PASS  2095: record-panel refuses to carry an off-template base finding (exit 5)
+PASS  2095: record-panel writes nothing when it refuses
+PASS  2095: sign-approval refuses an open high finding (exit 4), naming it and both remedies
+PASS  2095: sign-approval writes nothing over an open high finding
+PASS  2095: sign-approval refuses an open critical finding (exit 4), naming it and both remedies
+PASS  2095: sign-approval writes nothing over an open critical finding
+PASS  2095: sign-approval refuses an open unrated finding (exit 4), naming it and both remedies
+PASS  2095: sign-approval writes nothing over an open unrated finding
+PASS  2095: sign-approval refuses an off-template finding even when it does not gate
+PASS  2095: sign-approval signs an open high finding overruled in the same call
+PASS  2095: sign-approval signs an open high finding already ruled
+PASS  2095: sign-approval signs a resolved high finding
+PASS  2095: sign-approval signs an open med finding
+PASS  2096: sign-approval signs the BRIEF's ## Approval with the plan
+PASS  2096: the BRIEF outside its ## Approval block is byte-identical
+PASS  2096: re-signing leaves an approved BRIEF byte-identical
+PASS  2096: sign-approval refuses a BRIEF with no ## Approval block (exit 5), naming BRIEF.md
+PASS  2096: with no ## Approval block, neither file is written
+PASS  2096: sign-approval refuses a BRIEF with no BRIEF.md (exit 5), naming BRIEF.md
+PASS  2096: with no BRIEF.md, neither file is written
+PASS  2096: a plan-side refusal leaves the BRIEF pending
+PASS  2096: a signer with a line break is one quoted BRIEF line
+PASS  2102: set-panel refuses a persona as a panel reader (exit 5), naming it
+PASS  2102: record-panel refuses a persona as a panel reader (exit 5), naming it
+PASS  2102: set-panel accepts all four slots, design included
+PASS test-plan-merge.py
+PASS case_41_t09_comment_only_manifest_difference_is_NOT_a_deviation
+PASS case_41_t09_a_ROUTE_difference_still_deviates
+PASS case_41_t09_an_unparseable_branch_manifest_still_deviates
+PASS case_01_ungranted_undeclared_exits_nonzero
+PASS case_02_output_has_task_id
+PASS case_03_output_has_offending_path
+PASS case_04_all_granted_exits_0
+PASS case_05_ungranted_declared_main_session_exits_0
+PASS case_06_wildcard_produces_unresolved_glob
+PASS case_07_wildcard_exit_status_matches_task_removed
+PASS case_08_source_mentions_check_domain_py
+PASS case_09_source_has_no_fnmatch
+PASS case_16_source_has_no_glob_to_re
+PASS case_10_template_has_lanes_section
+PASS case_11_template_has_team_token
+PASS case_12_template_has_main_session_direct_token
+PASS case_13_runner_discovers_integration_directory
+PASS case_14_granted_but_main_session_produces_deviation
+PASS case_15_deviation_plan_still_exits_0
+PASS case_17_midpattern_wildcard_grant_no_violation
+PASS case_17_midpattern_wildcard_grant_reports_ok
+PASS case_17_midpattern_wildcard_grant_exits_0
+PASS case_17b_ok_line_names_the_exact_granting_set
+ok case_18a_block_form_first_entry_not_falsely_rejected
+ok case_18b_block_form_LATER_entry_is_checked_the_fail_open
+ok case_18d_block_form_OK_line_names_the_UNION_of_granted_sets
+ok case_18e_wrapped_same_line_continuation_is_read
+ok case_18f_unparseable_files_value_is_reported_not_silent
+ok case_18c_same_line_form_still_parsed
+PASS case_19a_argvless_output_is_independent_of_cwd
+PASS case_19a3_argvless_reports_a_count_at_all
+PASS case_19a3b_discovery_finds_the_live_plan_and_skips_the_shipped_one
+PASS case_19a3c_the_examined_line_reports_dirs_entered_and_shipped_skipped
+PASS case_19a3d_explicit_paths_print_no_examined_line
+PASS case_19a2_argvless_names_the_root_it_scanned
+PASS case_19b_unresolvable_root_exits_2_not_0
+PASS case_19b2_unresolvable_root_says_why_on_stderr
+PASS case_19b3_unusable_project_dir_is_reported_not_silently_replaced
+PASS case_19b4_a_valid_project_dir_is_not_warned_about
+PASS case_19b5_an_unset_project_dir_is_not_warned_about
+PASS case_19a4_discovery_finds_exactly_the_feature_plans
+PASS case_19a5_the_scan_line_matches_the_glob_that_ran
+PASS case_19c_zero_feature_project_is_not_an_error
+PASS case_19c2_zero_feature_project_scans_the_declared_root
+PASS case_19d_explicit_path_unaffected_by_the_root_guard
+PASS case_19d2_explicit_path_with_no_tasks_still_exits_0
+PASS case_20_logical_lines_is_string_and_comment_aware
+PASS case_20_board_station_py_probes_the_manifest
+PASS case_20_gh_sync_py_probes_the_manifest
+PASS case_20_prune_run_evidence_py_probes_the_manifest
+PASS case_20_the_detector_is_not_blind
+PASS case_21_a_bare_harness_dir_is_not_a_project_root
+PASS case_22a_unreadable_feature_dir_exits_2
+PASS case_22b_unreadable_plan_file_exits_2
+PASS case_22c_broken_symlink_plan_is_reported_not_skipped
+PASS case_22d_a_readable_tree_is_not_flagged
+PASS case_23a_plan_yaml_granted_path_is_OK
+PASS case_23b_plan_yaml_ungranted_path_is_a_VIOLATION
+PASS case_23c_an_annotated_path_resolves_to_NOBODY_not_silently_cleaned
+PASS case_23d_a_malformed_plan_yaml_exits_2_not_1
+PASS case_23e_the_per_task_machine_budget_fires
+PASS case_23f_the_budget_stays_silent_on_a_normal_task
+PASS case_23h_an_over_budget_task_sets_the_EXIT_CODE_not_just_stdout
+PASS case_23i_the_budget_boundary_is_exact
+PASS case_23j_every_budgeted_field_counts_exactly_once
+PASS case_23j2_BUDGETED_FIELDS_is_still_the_eleven_this_case_pins
+PASS case_23g_both_plan_yaml_and_PLAN_md_is_refused
+PASS case_24_backlog_is_checked
+PASS case_24_plan_is_checked
+PASS case_24_ready_is_checked
+PASS case_24_building_is_checked
+PASS case_24_review_is_checked
+PASS case_24_done_is_skipped
+PASS case_24_abandoned_is_skipped
+PASS case_24_Done_is_checked
+PASS case_24_finished_stations_is_a_subset_of_the_station_vocabulary
+PASS case_24_no_feature_yaml_is_checked_not_skipped
+PASS case_24_feature_yaml_a_sequence_is_checked_not_crashed
+PASS case_24_feature_yaml_a_bare_scalar_is_checked_not_crashed
+PASS case_24_feature_yaml_status_is_a_list_is_checked_not_crashed
+PASS case_24_feature_yaml_a_mapping_with_no_status_is_checked_not_crashed
+PASS case_24_ten_key_feature_json_with_a_done_plan_station_is_skipped_end_to_end
+PASS case_27a_owner_manifest_controls_routes
+PASS case_27b_prior_revision_false_ok
+PASS case_27c_unreadable_owner_manifest_refuses
+PASS case_41a_legal_task_statuses_is_the_mandate_plus_the_terminal_stations
+PASS case_41b_every_legal_task_status_and_an_absent_one_are_accepted
+PASS case_41c_task_status_pending_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_Building_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_Done_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_shipped_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_in-progress_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_exits_1_with_one_violation_per_value
+PASS case_41c_the_violation_names_every_legal_value
+PASS case_41d_an_absent_or_legal_top_level_status_is_accepted
+PASS case_41f_top_level_status_pending_is_a_VIOLATION_naming_the_value
+PASS case_41f_top_level_status_Done_is_a_VIOLATION_naming_the_value
+PASS case_41f_top_level_status_nonsense_is_a_VIOLATION_naming_the_value
+PASS case_41f_top_level_status_exits_1_with_one_violation_per_value
+PASS 2077: a served plan's product paths are granted through the fleet product base
+PASS 2077: a segment the fleet does not declare is a violation, not a silent pass
+PASS case_41_t07_is_shipped_FEAT-A-shipped_is_shipped
+PASS case_41_t07_is_shipped_FEAT-B-building_is_checked
+PASS case_41_t07_is_shipped_FEAT-C-no-plan_is_checked
+PASS case_41_t07_is_shipped_FEAT-D-plan-md-era_is_shipped
+PASS case_41_t07_is_shipped_FEAT-E-both_is_checked
+PASS feat64_manifest_deviation_unrelated_RuntimeError_escapes
+PASS feat64_live_plan_loaded_exactly_once_per_execution
+PASS feat64_shipped_plan_loaded_exactly_once_and_skipped
+
+ALL PASS
+bun test v1.3.14 (0d9b296a)
+
+ 141 pass
+ 0 fail
+ 724 expect() calls
+Ran 141 tests across 1 file. [7.70s]
+.....    10  a
+    10  universal: u
+    10  total across 1 agents
+  note       universal preload is 10 words (budget 1): u 10
+  note       a preloads 10 words (budget 1): u 10, ghost 0
+  VIOLATION  a: autoloadSkills names `ghost` but .claude/skills/ghost/SKILL.md does not exist
+.   150  a
+   100  b
+   100  universal: u
+   250  total across 2 agents
+  note       universal preload is 100 words (budget 99): u 100
+  note       a preloads 150 words (budget 120): u 100, x 50
+..
+----------------------------------------------------------------------
+Ran 8 tests in 0.160s
+
+OK

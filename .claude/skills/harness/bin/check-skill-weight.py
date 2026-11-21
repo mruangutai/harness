@@ -18,6 +18,7 @@ Usage: check-skill-weight.py [ROOT] [--json]
 from __future__ import annotations
 
 import artifact_accessors
+import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path

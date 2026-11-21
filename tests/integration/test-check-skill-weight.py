@@ -124,6 +124,28 @@ class WeightTests(unittest.TestCase):
         self.assertEqual(set(r.universal),
                          {"harness-handoff", "harness-expertise", "harness-principles"})
 
+    def test_cli_json_and_plain_modes(self):
+        """BUG-2239 fold: `--json` called json.dumps with no `import json` and crashed with
+        NameError; plain mode worked. Both modes run as real subprocesses on one fixture."""
+        import subprocess
+        root = _tree({"a": ["u", "x"], "b": ["u", "y"]}, {"u": 100, "x": 50, "y": 70},
+                     {"universal": 1000, "agent": 1000})
+        r = subprocess.run([sys.executable, MODULE, str(root), "--json"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        doc = json.loads(r.stdout)
+        self.assertEqual(doc["skills"], {"u": 100, "x": 50, "y": 70})
+        self.assertEqual(doc["agents"], {"a": 150, "b": 170})
+        self.assertEqual(doc["universal"], ["u"])
+        self.assertEqual(doc["universal_words"], 100)
+        self.assertEqual(doc["total_words"], 320)
+        self.assertEqual(doc["errors"], [])
+        plain = subprocess.run([sys.executable, MODULE, str(root)], capture_output=True, text=True)
+        self.assertEqual(plain.returncode, 0, plain.stderr)
+        self.assertIn("   170  b", plain.stdout)
+        self.assertIn("   100  universal: u", plain.stdout)
+        self.assertIn("   320  total across 2 agents", plain.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

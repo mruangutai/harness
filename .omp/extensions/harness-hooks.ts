@@ -370,6 +370,8 @@ function taskModelOverride(input: Dict): string | undefined {
 // dispatcher-supplied schema or mode would replace or loosen that contract. Refused wherever
 // it can appear, the main session included — the FEAT-65 collision came from the main session.
 const SCHEMA_CONTROLS = ["outputSchema", "schemaMode"];
+const SCHEMA_INJECTION_NOTE = "The hook injected outputSchema and schemaMode into this task call; "
+  + "never copy these fields into a task call.";
 const DIGEST_SCHEMA_DIR = join(gateRoot(), BIN, "digest-schemas");
 
 function schemaControlRefusal(input: Dict): string | undefined {
@@ -1151,6 +1153,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (!currentAgent && !ompMainTask) return;
     const policyAgent = currentAgent || "Main";
     let revisedInput: Dict | undefined;
+    let schemasInjected = false;
     let reason: string | undefined;
     if (mutates) {
       if (!currentFeature) {
@@ -1221,6 +1224,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       if (!reason) {
         try {
           revisedInput = withDigestSchemas(input);
+          schemasInjected = revisedInput !== undefined;
         } catch (error) {
           if (!(error instanceof DigestSchemaBundleError)) throw error;
           reason = `Harness dispatch refused: ${error.message} A harness agent is never `
@@ -1324,6 +1328,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       }
     }
     if (reason) return { block: true, reason };
+    // #2240: OMP persists this revision as the call itself, so the dispatcher later reads the
+    // injected schema as fields it sent and copies them into its next call (refused).
+    if (revisedInput && schemasInjected) return { input: revisedInput, additionalContext: SCHEMA_INJECTION_NOTE };
     if (revisedInput) return { input: revisedInput };
   });
 
