@@ -1,0 +1,91 @@
+schema_version: 2
+run_id: 2026-11-21-04-validate-validator
+run_uid: 41904ec356aa48608a8a4f738ac9c90f
+feature: BUG-2171-task-structured
+squad: validation
+host: harness-validator-lead
+status: failed
+team: validate
+branch: feat/BUG-2171-task-structured
+review_sha: d3792019e74ff266c2414708124512544d1fc9f6
+base_sha: b7af829c0207522b43f978b5275a2ebdc96b3210
+cycles_used: 0
+verdict: FAIL
+severity_max: low
+digest: .harness/harness/features/BUG-2171-task-structured/runs/2026-11-21-04-validate-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: 1
+    depends_on: []
+    outputs: [.harness/harness/features/BUG-2171-task-structured/notes/review-harness-qa-c1.md]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: Matrix green with fail-first evidence; literal smoke rerun refused consumed run id.
+    artifact: .harness/harness/features/BUG-2171-task-structured/notes/review-harness-qa-c1.md
+  - id: code
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: []
+    outputs: [.harness/harness/features/BUG-2171-task-structured/notes/review-harness-code-reviewer-c1.md]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: Bounded patch passes with one low historical-record note.
+    artifact: .harness/harness/features/BUG-2171-task-structured/notes/review-harness-code-reviewer-c1.md
+  - id: security
+    persona: harness-security-reviewer
+    seq: 3
+    depends_on: []
+    outputs: [.harness/harness/features/BUG-2171-task-structured/notes/review-harness-security-reviewer-c1.md]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: No exploitable regression at the structured append boundary.
+    artifact: .harness/harness/features/BUG-2171-task-structured/notes/review-harness-security-reviewer-c1.md
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: 4
+    depends_on: []
+    outputs: [.harness/harness/features/BUG-2171-task-structured/notes/review-harness-ui-reviewer-c1.md]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: Measured 22-path diff has no user-facing UI surface.
+    artifact: .harness/harness/features/BUG-2171-task-structured/notes/review-harness-ui-reviewer-c1.md
+  - id: goalcheck
+    persona: harness-pm
+    seq: 5
+    depends_on: []
+    outputs: [.harness/harness/features/BUG-2171-task-structured/notes/research-BUG-2171-task-structured-goalcheck-validate-c1.md]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: Both declared perspectives and all four SCs pass at the pin.
+    artifact: .harness/harness/features/BUG-2171-task-structured/notes/research-BUG-2171-task-structured-goalcheck-validate-c1.md
