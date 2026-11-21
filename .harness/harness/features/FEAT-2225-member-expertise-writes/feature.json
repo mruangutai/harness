@@ -67,6 +67,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-21T21:00:10+00:00"
+    },
+    {
+      "id": "r-20261121-5-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T21:49:02+00:00",
+      "tokens": 95157,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-5-simplify-eng/digest.md",
+        "sha256": "0334f7f6ddbd24e1fb993099bcc3f6949f78eb676d103ffc597b2b170e8436ec"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T22:14:04+00:00"
     }
   ],
   "judgements": [
@@ -90,6 +105,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "handoff seq-2 Next matches PLAN: signed, mirror opened, spend 47 min / 2 runs; proceed to build T-01"
+    },
+    {
+      "at": "2026-11-21T21:49:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-build seq-4 Next matches PLAN: T-03/T-04 landed main-session-direct at fd8ffcdf, tree clean; proceed to SIMPLIFY then pin and validate"
+    },
+    {
+      "at": "2026-11-21T22:14:13+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "SIMPLIFY BLOCKED only on 3 readers' host yield refusals (host defect); grade lifts landed f06b2e57, orchestrator re-ran code-grade and 6 gates rc0; pin and validate, F1 to panel"
     }
   ],
   "mission": "plan",
