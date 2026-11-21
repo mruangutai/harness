@@ -46,6 +46,12 @@ def case_path_directions():
         check(label, result.returncode == 1 and detail in result.stdout, result.stdout)
     root, _ = make_root("`<HARNESS_FEATURE_TREE_ROOT>/.harness/features/F/BRIEF.md`\n`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/F/BRIEF.md`\n")
     check("both feature path shapes are accepted", run(root).returncode == 0)
+    check("outside scope refuses", run(root, os.path.join(root, "nope.md")).returncode == 2)
+
+
+def case_expertise_destinations():
+    """FEAT-2225 (DEC-253): a distill member writes its Expertise in the feature worktree, so those
+    destinations take the feature-tree anchor; reading them from the control plane stays legal."""
     root, _ = make_root("`<HARNESS_FEATURE_TREE_ROOT>/.harness/expertise/<agent>.md`\n"
                         "`<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/expertise/<agent>.md`\n"
                         "`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<agent>.md`\n")
@@ -56,7 +62,6 @@ def case_path_directions():
     result = run(root)
     check("FEAT-2225: only a real expertise directory is a feature-tree write",
           result.returncode == 1 and "control-plane path anchored to the feature tree" in result.stdout, result.stdout)
-    check("outside scope refuses", run(root, os.path.join(root, "nope.md")).returncode == 2)
 
 
 def case_landed_feature_reads():
@@ -104,7 +109,8 @@ def case_scope_and_debug_read():
 
 
 def main():
-    for case in (case_path_directions, case_landed_feature_reads, case_scope_and_debug_read):
+    for case in (case_path_directions, case_expertise_destinations, case_landed_feature_reads,
+                 case_scope_and_debug_read):
         case()
     if any(not row[1] for row in RESULTS):
         raise SystemExit(1)
