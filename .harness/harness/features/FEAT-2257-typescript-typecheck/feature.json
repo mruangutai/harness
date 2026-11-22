@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-2257-typescript-typecheck",
   "branch": "feat/FEAT-2257-typescript-typecheck",
-  "pr": null,
-  "review_sha": "none",
+  "pr": 2386,
+  "review_sha": "45626d7964e732e8e21b594a78dcbed8fa0494a7",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -21,6 +21,21 @@
       "cycles_used": 0,
       "ended_at": "2026-11-22T21:04:00+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T21:22:44+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-validate-validator/digest.md",
+        "sha256": "7373d28d2bb72ab869a79e2d7ed6c721e228321479a6904d9a91e9123a4c10f9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T21:35:21+00:00"
     }
   ],
   "judgements": [

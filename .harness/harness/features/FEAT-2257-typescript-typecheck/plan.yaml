@@ -5,7 +5,7 @@ approval:
   approved_by: fable-advisor (delegated by Mike Ruangutai)
   status: approved
 drafted_at: '2026-11-22T19:53:34Z'
-status: building
+status: review
 source_issues: [2257]
 panel:
   last_run: r-20261122-1-plan-product
@@ -205,7 +205,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-179 root-file routes resolve NOBODY and this scaffolds a DEC-174 gate
     depends_on: []
-    status: review
+    status: done
     files:
     - path: package.json
       create: true
@@ -243,7 +243,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers tests of the OMP enforcement hook
     depends_on: [T-01]
-    status: review
+    status: done
     files:
       - {path: tests/unit/omp-hooks.test.ts, quote: 'const digestCalls = (calls: Array<{ script: string }>)'}
     verify: |
@@ -264,7 +264,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 applies to required CI enforcement changes
     depends_on: [T-02]
-    status: review
+    status: done
     files:
       - {path: .github/workflows/tests.yml, quote: 'needs: [checks, integration-shards]'}
       - {path: .github/dependabot.yml, create: true}
@@ -315,7 +315,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers both code_grade paths, suite-layout enforcement and tests, template/live policy, compiler regression and activation
     depends_on: [T-01, T-02, T-03]
-    status: review
+    status: done
     files:
     - path: .harness/harness.json
       quote: '"_test_kinds_note"'
