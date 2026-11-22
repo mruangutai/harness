@@ -26,7 +26,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 forbids execution through the enforcement writer being changed
     depends_on: []
-    status: building
+    status: review
     files:
       - .claude/skills/harness/bin/plan_merge/union.py
       - tests/integration/test-plan-merge.py
