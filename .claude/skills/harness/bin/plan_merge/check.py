@@ -198,9 +198,14 @@ ERA_KEY = "decision_dispositions_era_start"
 # The established DECISIONS-INDEX.md row (check-plan-routes._decisions_index); a ruling that
 # opens with STRUCK — in any case, `Struck under DEC-188` included — marks the entry struck.
 INDEX_ROW_RE = re.compile(r"^- (DEC-\d+) @\S+ \[[^\]]*\] refs:[^:]*:: (.*)$")
-# A fence opens with a run of three or more backticks or tildes and closes only on a run of the
-# same character at least as long, so a ``` line inside a ```` fence stays inside it.
-FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
+# The ONE fence/heading scanner for locating a decision's section, per CommonMark (4.2, 4.5):
+# fence lines and ATX headings take 0-3 spaces of indentation — 4 or more is an indented code
+# line, content that neither opens, closes nor heads anything. A fence is a run of 3+ backticks
+# or tildes plus an info string; a backtick opener's info string may not hold a backtick. A
+# closer is the opener's character, at least as long, followed only by whitespace; an unclosed
+# fence runs to the end of the file. A heading is 1-6 `#` then a space, tab or line end.
+FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)")
+HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:[ \t]|$)")
 
 
 def _instant(value):
@@ -269,26 +274,29 @@ def _struck_by_dec(index_text):
 
 
 def _heading_level(line, dec=None):
-    """The `#` count of a markdown heading line (naming `dec` when given), else 0."""
-    m = re.match(r"^(#+)\s", line)
-    if m is None or (dec is not None and re.match(rf"#+\s+{re.escape(dec)}(?!\d)", line) is None):
+    """The `#` count of an ATX heading line (naming `dec` when given), else 0."""
+    m = HEADING_RE.match(line)
+    if m is None or (dec is not None and re.match(
+            rf" {{0,3}}#{{1,6}}[ \t]+{re.escape(dec)}(?!\d)", line) is None):
         return 0
     return len(m.group(1))
 
 
-def _fence_after(line, fence):
-    """The open fence's opening run after `line`, or None outside any fence.
+def _opener(run, info):
+    """`run` when it opens a fence, else None: a backtick info string may not hold a backtick."""
+    return None if run[0] == "`" and "`" in info else run
 
-    CommonMark 4.5: an opener may carry an info string; a closer is a run of the opener's
-    character at least as long, followed only by whitespace. A run carrying an info string
-    (```python inside an open ``` fence) is content and keeps the fence open."""
+
+def _fence_after(line, fence):
+    """The open fence's opening run after `line`, or None outside any fence. A run carrying an
+    info string (```python inside an open ``` fence) is content and keeps the fence open."""
     m = FENCE_RE.match(line)
     if m is None:
         return fence
-    run = m.group(1)
+    run, info = m.group(1), m.group(2)
     if fence is None:
-        return run
-    closes = run[0] == fence[0] and len(run) >= len(fence) and not line[m.end():].strip()
+        return _opener(run, info)
+    closes = run[0] == fence[0] and len(run) >= len(fence) and not info.strip()
     return None if closes else fence
 
 

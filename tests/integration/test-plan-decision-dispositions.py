@@ -322,6 +322,67 @@ def case_info_string_run_does_not_close_a_fence():
                 plan_text([row(clause="The ten clause is here.")]), setup=_info_string_docs)
 
 
+# F3-I (validate c3, operator ruling 2026-11-21): every CommonMark rule that bears on locating a
+# decision's section, one CLI case each. Each fixture is a spoof: misreading the rule selects a
+# fake `## DEC-10`, or bleeds a neighbour's text into DEC-10's section.
+REAL_TEN = "The ten clause is here."
+SPOOF = "Spoof clause."
+
+
+def _docs(text):
+    """A run_check setup writing `text` as the segment's DECISIONS.md."""
+    return lambda root: write(os.path.join(root, DOCS_REL), text)
+
+
+def _spoof_and_control(rule, text):
+    """The spoof clause fails the DEC-10 row; the genuine DEC-10 clause passes."""
+    setup = _docs(text)
+    expect_fail(f"{rule}: the spoof clause fails the DEC-10 row", plan_text([row(clause=SPOOF)]),
+                ["decisions_affected[0] DEC-10", "clause"], setup=setup)
+    expect_pass(f"{rule}: the genuine DEC-10 clause passes", plan_text([row(clause=REAL_TEN)]),
+                setup=setup)
+
+
+def case_overindented_fence_lines_are_content():
+    """Rule 1: a fence closer or opener indented 4+ spaces is content."""
+    _spoof_and_control("rule 1 closer", "## DEC-11 — Eleven\n\n```text\n    ```\n"
+                       "## DEC-10 — example\n" + SPOOF + "\n```\n\n## DEC-10 — Ten\n\n"
+                       + REAL_TEN + "\n")
+    _spoof_and_control("rule 1 opener", "## DEC-11 — Eleven\n\n    ```\nEleven text.\n```\n"
+                       "## DEC-10 — example\n" + SPOOF + "\n```\n\n## DEC-10 — Ten\n\n"
+                       + REAL_TEN + "\n")
+
+
+def case_heading_indentation_limits():
+    """Rule 2: an ATX heading takes 0-3 spaces; 4+ is an indented code line, never a heading —
+    both when locating DEC-10 and when ending its section."""
+    text = ("## DEC-10 — Ten\n\n" + REAL_TEN + "\n\n    ## DEC-10 — indented code\n"
+            "Still ten.\n\n   ## DEC-11 — Eleven\n\nOnly eleven says this.\n")
+    setup = _docs(text)
+    expect_fail("rule 2: a 3-space DEC-11 heading ends DEC-10's section",
+                plan_text([row(clause="Only eleven says this.")]),
+                ["decisions_affected[0] DEC-10", "clause"], setup=setup)
+    expect_pass("rule 2: a 3-space heading is DEC-11's own heading",
+                plan_text([row(dec="DEC-11", clause="Only eleven says this.")]), setup=setup)
+    expect_pass("rule 2: a 4-space `## DEC-10` neither starts nor ends a section",
+                plan_text([row(clause="Still ten.")]), setup=setup)
+    _spoof_and_control("rule 2 spoof", "## DEC-11 — Eleven\n\n    ## DEC-10 — indented code\n"
+                       + SPOOF + "\n\n## DEC-10 — Ten\n\n" + REAL_TEN + "\n")
+
+
+def case_backtick_info_string_cannot_open():
+    """Rule 3: a backtick run whose info string holds a backtick is not a fence opener."""
+    _spoof_and_control("rule 3", "## DEC-11 — Eleven\n\n```inline `code` span\n```\n"
+                       "## DEC-10 — a spoof heading\n" + SPOOF + "\n```\n\n## DEC-10 — Ten\n\n"
+                       + REAL_TEN + "\n")
+
+
+def case_unclosed_fence_runs_to_end():
+    """Rule 5: an unclosed fence runs to the end of the file; no heading after it is real."""
+    _spoof_and_control("rule 5", "## DEC-10 — Ten\n\n" + REAL_TEN + "\n\n## DEC-11 — Eleven\n\n"
+                       "```text\n## DEC-10 — a spoof heading\n" + SPOOF + "\n")
+
+
 def case_successors():
     expect_fail("an amend to a D id this plan lacks fails",
                 plan_text([row(disposition="amend", successor="D-09")]),
@@ -588,7 +649,10 @@ def case_ordinary_edits():
 def main():
     for case in (case_valid_controls, case_missing_block, case_unindexed_dec, case_struck,
                  case_clause_location, case_fenced_heading_is_not_a_section,
-                 case_info_string_run_does_not_close_a_fence, case_successors,
+                 case_info_string_run_does_not_close_a_fence,
+                 case_overindented_fence_lines_are_content, case_heading_indentation_limits,
+                 case_backtick_info_string_cannot_open, case_unclosed_fence_runs_to_end,
+                 case_successors,
                  case_ownership, case_each_failure_keeps_other_checks,
                  case_served_segment_authority, case_era, case_malformed_instants,
                  case_history_skipped, case_creation_stamp, case_creation_refuses_backdating,

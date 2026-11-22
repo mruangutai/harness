@@ -142,3 +142,25 @@ info string is content. Openers may still carry info strings.
 
 Green: unit 40/40, integration 100/100, `test-plan-team.py` 184/184 (the acceptance chain exits
 0); `test-plan-merge.py` exit 0; `_fence_after` grade 4.
+
+## Validate c3 fix (F3-I med, SC-02; operator ruling: close the class) — red → green
+
+One actual-CLI spoof case per CommonMark rule, added to
+`tests/integration/test-plan-decision-dispositions.py` first and run against the c3 source
+(HEAD d1fd4aa1) → exit 1, **108/113 passed**:
+
+| Rule | Case | Red (c3 source) | Green |
+|---|---|---|---|
+| 1 fence lines 0–3 spaces | `case_overindented_fence_lines_are_content` (4-space closer — the reviewer's input — and 4-space opener) | FAIL ×2: the spoof clause passed the DEC-10 row (controls passed) | PASS 4/4 |
+| 2 ATX heading 0–3 spaces, at lookup and section end | `case_heading_indentation_limits` | FAIL ×2: a 3-space `## DEC-11` did not end DEC-10's section (neighbour clause accepted) and was not found as DEC-11's heading; the 4-space spoof assertions passed | PASS 5/5 |
+| 3 backtick info string may not hold a backtick | `case_backtick_info_string_cannot_open` | FAIL: the spoof clause passed the DEC-10 row | PASS 2/2 |
+| 4 closer bare + fenced `## DEC-` never a heading (landed F3/F2) | `case_info_string_run_does_not_close_a_fence`, `case_fenced_heading_is_not_a_section` | already green (landed) | PASS 6/6 |
+| 5 unclosed fence runs to EOF | `case_unclosed_fence_runs_to_end` | already green: the scanner already agreed, so no red was possible | PASS 2/2 |
+
+Fix: `plan_merge/check.py` keeps a single scanner. `FENCE_RE` is `^ {0,3}` plus the run and
+its info string; `HEADING_RE` is `^ {0,3}#{1,6}` followed by a space, tab or line end, and is used for both
+heading lookup and section end. `_opener` refuses a backtick opener whose info string holds a backtick.
+`_fence_after` keeps the bare-closer rule, and an unclosed fence stays open to EOF.
+
+Green: unit 40/40, integration 113/113, `test-plan-team.py` 184/184 (acceptance chain exit 0);
+`test-plan-merge.py` exit 0. Touched functions grade 4–5.
