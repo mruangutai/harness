@@ -8,14 +8,14 @@ Loaded hosts spuriously time out the digest integration suite's hook calls after
 
 **operator** — I can identify every failing or mutated file when the gate rejects a QA PASS, without losing the existing diagnostic tail or changing refusal policy.
 
-**code maintainer** — I can run the hook safety cases with load headroom while genuine hangs remain bounded, and regressions expose both defects before the fixes.
+**code maintainer** — I can run the hook safety cases with load headroom, from one named budget, and a regression exposes the gate defect before its fix.
 
 ## Success criteria
 
 - SC-01 (operator): A nonzero independent re-run reports every FAIL <file> and MUTATED <file> line before its existing last-20-line tail, including multiple entries buried above 20 passing lines; with no matching entries it retains the tail alone. RUN_UNIT_TESTS_BIN behavioral regressions must fail against the exact base gate and pass against the fixed gate; fallback and existing refusal status remain covered.
-  verify: automated evidence: integration
-- SC-02 (code maintainer): All six formerly three-second hook calls use the same 30-second hang budget. Executing each call observes 30 by default and follows two distinct temporary budget values; actual blocked subprocess execution through each helper times out within the selected budget plus bounded scheduling tolerance. A missing timeout must fail under an independent watchdog, not pass or hang the regression. The same new behavioral regressions must demonstrably fail against the exact base test subject and pass against the fixed subject; source-text assertions are insufficient.
-  verify: automated evidence: integration
+  verify: automated evidence: integration, unit
+- SC-02 (code maintainer): All six formerly three-second hook calls pass the same named 30-second hang budget, HOOK_HANG_BUDGET_S, with a rationale comment; no other timeout changes. Amended 2026-11-22 by operator ruling after the load analysis (#2283): the 3s failures were host oversubscription by concurrent pooled suites, so behavioral regressions for the budget are out of scope.
+  verify: inspection
 
 ## Verification gaps
 

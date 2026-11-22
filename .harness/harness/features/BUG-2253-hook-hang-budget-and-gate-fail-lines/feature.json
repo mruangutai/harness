@@ -148,6 +148,13 @@
       "kind": "amendment",
       "decision": "T-01.verify",
       "reason": "Operator (validate c3 ESCALATE): verify also runs the new unit file for the run_pool parsers"
+    },
+    {
+      "at": "2026-11-22T14:09:38.774753+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "Operator 2026-11-22: after load analysis (#2283) drop SC-02 behavioral regressions; SC-02 by inspection; intent states validated gate rule"
     }
   ],
   "rework": {
