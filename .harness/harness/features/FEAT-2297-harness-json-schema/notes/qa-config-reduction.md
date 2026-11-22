@@ -13,8 +13,8 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 ## Measurement
 
 <!-- measured:begin -->
-- base `837e709670db5d884f5500a241bacda13e614399` (`git merge-base HEAD origin/main`)
-- review `1b904355a1b29876f9dce03b75d61bd7965ec0c4`
+- base `9fd1f6b414ed683cd5f5bcca4ad5fe17c35e0568` (`git merge-base HEAD origin/main`)
+- review `55dbbd027ebf0b46b83b836f22ae5da87d12dab1`
 
 | File | Base | Review | Delta |
 |---|---|---|---|
@@ -55,7 +55,7 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/integration/test-gh-sync-start-task.py` | 696 | 676 | -20 |
 | `tests/integration/test-harness-config-fixtures.py` | new | 424 | +424 |
 | `tests/integration/test-harness-config-readers.py` | new | 327 | +327 |
-| `tests/integration/test-harness-config-upgrade.py` | new | 118 | +118 |
+| `tests/integration/test-harness-config-upgrade.py` | new | 132 | +132 |
 | `tests/integration/test-hooks-install.py` | 525 | 527 | +2 |
 | `tests/integration/test-layout-migration.py` | 438 | 439 | +1 |
 | `tests/integration/test-lead-start-return.py` | 714 | 715 | +1 |
@@ -83,13 +83,13 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/unit/test-fleet-product-config.py` | 286 | 271 | -15 |
 | `tests/unit/test-gate-policy.py` | 125 | 104 | -21 |
 | `tests/unit/test-gh-board.py` | 484 | 410 | -74 |
-| `tests/unit/test-harness-config.py` | new | 262 | +262 |
+| `tests/unit/test-harness-config.py` | new | 266 | +266 |
 | `tests/unit/test-prune-run-evidence.py` | 304 | 304 | +0 |
 | `tests/unit/test-wayfind.py` | 156 | 155 | -1 |
 
 - Gate A, pre-existing affected files: -583
-- Gate B, new files enumerated below: +1557
-- Reported total, both populations: +974
+- Gate B, new files enumerated below: +1575
+- Reported total, both populations: +992
 <!-- measured:end -->
 
 ## New coverage
