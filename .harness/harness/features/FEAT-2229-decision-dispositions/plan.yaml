@@ -247,7 +247,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Canonical .omp roles and shipped skill/template/team instructions are unowned; prompt wiring regressions accompany the enforcement cutover.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
     - path: .claude/skills/harness/templates/plan.yaml
       quote: 'decisions:'
