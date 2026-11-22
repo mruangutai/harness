@@ -1,0 +1,37 @@
+# RED at base loader (digest-schema.ts unchanged from dd04e52a); 2026-11-22T19:12:22Z
+$ bun test tests/unit/omp-hooks.test.ts -t 'changed on disk|same contract'
+bun test v1.3.14 (0d9b296a)
+
+tests/unit/omp-hooks.test.ts:
+2766 |       properties: { x: { $ref: "common.json#/$defs/entry" } } };
+2767 |     const projected = (required: string[]) => ({ ...persona, properties: { x: entry(required) } });
+2768 |     const dir = schemaDir({ "harness-qa.json": persona, "common.json": { $defs: { entry: entry(["op"]) } } });
+2769 |     expect(loadDigestSchemaBundle(dir, "harness-qa")).toEqual(projected(["op"]));
+2770 |     writeFileSync(join(dir, "common.json"), JSON.stringify({ $defs: { entry: entry(["op", "persona"]) } }));
+2771 |     expect(loadDigestSchemaBundle(dir, "harness-qa")).toEqual(projected(["op", "persona"]));
+                                                             ^
+error: expect(received).toEqual(expected)
+
+@@ -9,5 +9,3 @@
+          },
+-         "persona": {
+-           "type": "string",
+-         },
+        },
+@@ -15,3 +13,3 @@
+          "op",
+-         "persona",
+        ],
+
+- Expected  - 4
++ Received  + 0
+
+      at <anonymous> (/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2328-digest-schema-cache/tests/unit/omp-hooks.test.ts:2771:55)
+(fail) loadDigestSchemaBundle > a schema file changed on disk is reflected by the next load [3.24ms]
+
+ 1 pass
+ 184 filtered out
+ 1 fail
+ 5 expect() calls
+Ran 2 tests across 1 file. [199.00ms]
+exit=1

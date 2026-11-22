@@ -1,0 +1,63 @@
+schema: plan/1
+feature: BUG-2328-digest-schema-cache
+approval:
+  date: '2026-11-22'
+  approved_by: Mike Ruangutai
+  status: approved
+drafted_at: '2026-11-22T19:03:58Z'
+status: done
+source_issues: [2328]
+lanes:
+  resolved_at: dd04e52a898109fdbe09cf5fa14e1148161734d0
+  rows:
+  - surface: .omp/extensions/digest-schema.ts
+    lane: main-session-direct
+    reason: DEC-174 requires main to execute the hook library that injects every Harness dispatch digest contract.
+  - surface: tests/unit/omp-hooks.test.ts
+    lane: main-session-direct
+    reason: DEC-174 keeps the coupled hook regression tests in the same direct task despite team ownership.
+decisions: []
+decisions_affected:
+- dec: DEC-174
+  disposition: keep
+  clause: through the harness is not.
+  successor: none
+  reason: Main executes the hook library and its regression tests directly rather than dispatching an engineering team.
+- dec: DEC-179
+  disposition: keep
+  clause: declared in the plan
+  successor: none
+  reason: Both owned files declare main-session-direct before signature.
+- dec: DEC-225
+  disposition: keep
+  clause: with no panel and no goal-check run
+  successor: none
+  reason: Preserve the bounded one-task patch intake with the DEC-174 direct-execution carve-out.
+- dec: DEC-237
+  disposition: keep
+  clause: canonical schema, resolves and projects a ref-free provider bundle
+  successor: none
+  reason: Fresh loading changes no schema authority, projection or injection contract.
+adequacy_notes: The operator settled cache removal and rejected mtime and hash alternatives; no new hard-to-reverse choice requires D-NN. All SCs trace to one direct task owning exactly two files. Product guidance files are absent and no contents are invented. Existing issues 2257 and 2329 own typecheck and generic Bun discovery gaps; direct Bun execution supplies runtime evidence, without claiming either standing gap resolved. No readers, panel or separate goal-check run.
+tasks:
+- id: T-01
+  title: Remove process-lifetime digest bundle caching and preserve contract equivalence
+  traces: [SC-01, SC-02, SC-03]
+  change_type: bugfix
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 requires main to execute directly because this hook library injects every Harness dispatch digest contract; coupled tests remain in the same direct task.
+  depends_on: []
+  status: done
+  files:
+  - .omp/extensions/digest-schema.ts
+  - tests/unit/omp-hooks.test.ts
+  verify: |
+    set -eu
+    bun test tests/unit/omp-hooks.test.ts
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2328-digest-schema-cache. Every relative-path edit stays inside that worktree. Main owns execution under DEC-174, not an engineering lead or team. Read the feature BRIEF and operator-confirmed /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-digest-schema-cache-2026-11-22.md. Consult PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md if present; all three were absent at intake. They are read inputs, not owned files; do not invent or substitute guidance. Source issue is 2328; supplied base is dd04e52a898109fdbe09cf5fa14e1148161734d0. Treat grilling verified facts as supplied truth, not an investigation to repeat.
+    Before production changes, add a behavioral regression in tests/unit/omp-hooks.test.ts using a temporary schema directory: load a bundle, rewrite common.json to add a required field in a referenced shared definition, load again, and assert the second projected bundle carries the added required field. Preserve raw failing assertion output, command and actual nonzero status with loader pinned to dd04e52a, then green output and actual exit 0 after the fix in durable validation evidence. The failure must be the stale second bundle, not setup/import errors; wording or source-text assertions do not count. Do not re-run the supplied staleness investigation. Keep fixture cleanup using existing test facilities.
+    Rewrite the repeat/alias/alternate-path test identified at baseline tests/unit/omp-hooks.test.ts line 2755 to assert toEqual rather than toBe, preserving repeat load, main-session and backend-dev alias equivalence and alternate-path equivalence. Rename its cached-bundle wording to describe equivalent contracts. In the sixteen-persona injection test identified at baseline line 1711 change outputSchema toBe(bundle) to toEqual(bundle) for every persona. Preserve the baseline line 1757 not.toBe(injected) assertion proving a distinct copy, all unrelated checks and existing coverage. These line references identify the supplied baseline; locate their current test blocks rather than treating line numbers as file anchors.
+    In .omp/extensions/digest-schema.ts remove the process-lifetime BUNDLES map and its cache lookup/store logic so loadDigestSchemaBundle loads and projects schema files on every call. Preserve existing aliases, projection and per-loader BundleLoader.#documents behavior unchanged. Update existing module/function comments describing the cache in that same file. Do not add a cache replacement, mtime/size tracking, content hashes, dependencies or host-reload logic; no additional documentation file is owned.
+    Preserve all grilling exclusions: TypeScript hook modules still host-load once per OMP process, and edits to harness-hooks.ts or digest-schema.ts still require host restart; only schema data freshness changes. BundleLoader.#documents stays per-loader/per-call. Python digest_schema.py via validate-digest.py --hook remains a fresh subprocess per yield and unchanged. Do not broaden into issue 2195, which the operator says closed through 2230.
+    Run the literal verify from the PRODUCT checkout after the fix, expected under 60 seconds, exit 0 and every assertion passing. Direct Bun execution is mandatory because backlog issue 2329 records that the configured generic unit runner misses Bun files. Do not claim the unresolved null typecheck runner is passing; issue 2257 owns that standing gap. Preserve red and green behavioral evidence for SC-01, final suite evidence for SC-02, and pinned review_sha inspection of the library and its comments for SC-03. Main owns approval and subsequent build orchestration; intake does not run these tests.
