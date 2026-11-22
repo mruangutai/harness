@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai (delegated to fable-advisor)
   status: approved
 drafted_at: '2026-11-22T19:27:44Z'
-status: building
+status: review
 source_issues: [2337]
 panel:
   last_run: r-20261122-1-plan-product
