@@ -5,7 +5,7 @@ approval:
   approved_by: fable-advisor (delegated by Mike Ruangutai)
   status: approved
 drafted_at: '2026-11-22T20:10:42Z'
-status: ready
+status: building
 source_issues: [2349]
 lanes:
   resolved_at: e239d88156c508c948d49cd31238ea13b3b39865
@@ -26,7 +26,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 forbids execution through the enforcement writer being changed
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/plan_merge/union.py
       - tests/integration/test-plan-merge.py
