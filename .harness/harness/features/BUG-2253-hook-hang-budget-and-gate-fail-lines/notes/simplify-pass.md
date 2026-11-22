@@ -16,3 +16,12 @@ Four read-only reviewer angles (reuse, simplification, correctness, altitude) ov
 ## Declined
 
 - Dropping the second rebound value (0.10): kept, because the signed intent names both 0.05 and 0.10.
+
+## Rework after validate cycle 1 (FAIL, run 2026-11-21-02-validate-validator)
+
+Two of the simplify-pass changes above were unsound and are superseded:
+
+- **One-token file-line regex → structural parse.** run_pool emits raw names, which may contain spaces (`MUTATED notes/my file.md`). The gate now walks run_pool's blocks: `FAIL <name>` counts only when it closes the open `----- <name> (exit N, Ss) -----` block, and `MUTATED <name>` counts only outside every block. Echoed case lines inside a block never qualify, whatever their shape. The regression covers names with spaces and in-block `FAIL`/`MUTATED` echoes.
+- **Readiness dropped as a pass condition → restored.** The blocked-hook rows again require the child to have written its pid. The one-shot timer is replaced by a polling watchdog: from 2s until the probe ends it kills the child the moment its pid appears, so a late-starting child under a timeout that ignores the budget cannot survive. A containment case proves this with a 2.5s-delayed child under a 60s timeout.
+
+Call-only timing stays (validated as sound). Receipts: `receipts/red-c2.*` and `receipts/green-c2.*`, with exact subject SHAs, a subject hash and separate streams. The cycle-1 receipts are left unchanged.
