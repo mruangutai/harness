@@ -1,9 +1,11 @@
 schema: plan/1
 feature: BUG-2294-prune-keeps-run-digests
 approval:
-  status: pending
+  date: '2026-11-22'
+  approved_by: operator
+  status: approved
 drafted_at: '2026-11-22T14:55:30Z'
-status: plan
+status: ready
 source_issues: [2294]
 lanes:
   resolved_at: c1724230c4d931ad46d433c8ba93df8cf312f898

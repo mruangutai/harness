@@ -32,5 +32,32 @@
       "reason": "The cause is known: the pruner predates the rule that pins each run's digest. The diff is bounded to the pruner, its unit test and the ship command text, with no new interface, schema or gate."
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2294-prune-keeps-run-digests/.harness/harness/features/BUG-2294-prune-keeps-run-digests/notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "ba6adb3fe6f51637fc438a63a1cad3d4de65db7d1c8823de0540b2e3a6192928"
+  },
+  "github": {
+    "milestone": 119,
+    "parent": 2302,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2303
+    },
+    "source_issues": [
+      2294
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
