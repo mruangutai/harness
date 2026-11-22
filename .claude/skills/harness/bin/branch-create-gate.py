@@ -176,9 +176,9 @@ def _github_config():
         return str(bool(github.get("sync"))).lower(), github.get("repo") or "-"
     except AttributeError:
         # A `github:` block that is not a mapping has no .get (FEAT-65).
-        # As with malformed hook input, the old helper exposed its traceback while
-        # the shell itself continued and self-gated. Preserve that exceptional path
-        # without paying for another interpreter on a valid configuration.
+        # The old helper exposed its traceback while the shell itself continued
+        # and self-gated. Preserve that exceptional path without paying for
+        # another interpreter on a valid configuration.
         subprocess.run(
             [_bootstrap_sys.executable, "-I", "-", root],
             input=_CONFIG_READER, stdout=subprocess.PIPE, text=True)
@@ -189,31 +189,18 @@ SYNC, REPO = _github_config()
 if SYNC != "true" or REPO == "-":
     raise SystemExit(0)
 
-_COMMAND_EXTRACTOR = (
-    'import sys,json; print((json.load(sys.stdin).get("tool_input") or {})'
-    '.get("command") or "")'
-)
-
 
 def _command():
+    """The guarded command from the strict hook reader. The applicability preflight has
+    already proved the payload is JSON with a mapping tool_input and a string command, so a
+    strict refusal here (duplicate keys, nonstandard constants) is an invalid payload: no
+    command."""
     try:
         document = _artifact_accessors.read_hook_payload(
             input_text, "branch-create-gate hook payload")
-        return str((document.get("tool_input") or {}).get("command") or "")
-    except _artifact_accessors.ArtifactAccessError as exc:
-        if not isinstance(exc.__cause__, json.JSONDecodeError):
-            return ""
-        # The shell gate ignored malformed JSON but exposed the helper's stderr.
-        # Duplicate keys are valid stdlib JSON yet invalid hook payloads, so they
-        # stop here rather than being reparsed by the compatibility helper.
-    except AttributeError:
-        # A tool_input that is not a mapping has no .get: the compatibility helper below
-        # answers it exactly as the shell gate did (FEAT-65).
-        pass
-    result = subprocess.run(
-        [_bootstrap_sys.executable, "-I", "-c", _COMMAND_EXTRACTOR],
-        input=input_text, stdout=subprocess.PIPE, text=True)
-    return result.stdout.rstrip("\n")
+    except _artifact_accessors.ArtifactAccessError:
+        return ""
+    return str((document.get("tool_input") or {}).get("command") or "")
 
 
 def deny(reason):
