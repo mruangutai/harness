@@ -17,6 +17,8 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = (_anchor_os.environ.get("CHECK_STATE_BIN_DIR")
                or _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin"))
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from harness_config_support import write_config  # noqa: E402
 import json
 import os
 import sys
@@ -68,7 +70,7 @@ def _write(path, data):
 def _tree(root, plans=PLANS, feature_json=None):
     """One feature directory per plan; every one also carries an UNSIGNED BRIEF, a STATE.md and
     a feature.json, so a pass that opened a shipped directory would have something to open."""
-    _write(os.path.join(root, ".harness", "harness.json"), "{}\n")
+    write_config(os.path.join(root, ".harness", "harness.json"))
     for fid, plan in plans.items():
         d = os.path.join(root, ".harness", "harness", "features", fid)
         if plan is not None:

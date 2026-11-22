@@ -9,7 +9,11 @@ import os
 from pathlib import Path
 import subprocess
 import tarfile
+import sys
 import tempfile
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness_config_support import write_config  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,9 +48,7 @@ def run_checker(checker, notes):
         feature = root / ".harness/harness/features/FEAT-TEST"
         feature.mkdir(parents=True)
         (root / ".harness/team-config.yaml").write_text("agents: {}\n")
-        (root / ".harness/harness.json").write_text(
-            '{"github": {"sync": false, "repo": null}}\n'
-        )
+        write_config(root / ".harness/harness.json")
         (feature / "plan.yaml").write_text(
             "schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n"
             "station_only: true\ntasks: []\n" + notes

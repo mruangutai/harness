@@ -10,7 +10,8 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
-import json
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from harness_config_support import build_config, write_config  # noqa: E402
 import os
 import tempfile
 
@@ -38,7 +39,7 @@ class _Ctx:
 
     def __init__(self, root, docs, online, owner_sync=True):
         self.root, self.H = root, os.path.join(root, ".harness")
-        self.cj = {"github": {"sync": owner_sync, "repo": "org/repo", "board": None}}
+        self.cj = build_config({"github": {"sync": owner_sync, "repo": "org/repo"}})
         self._docs, self._online = docs, online
         self.features = sorted(docs)
         self.plan_docs = {f: {"status": "ready", "tasks": []} for f in docs}
@@ -72,8 +73,8 @@ def _run(docs, online, remote_ok=True, owner_sync=True):
         log["product_config"] += 1
         if not remote_ok:
             raise artifact_accessors.FleetError("product config unreadable", repo, "offline")
-        return {"github": {"sync": True, "repo": repo, "board": {
-            "owner": "org", "number": 9, "station_field": "Status", "stations": _STATIONS}}}
+        return build_config({"github": {"sync": True, "repo": repo, "board": {
+            "owner": "org", "number": 9, "station_field": "Status", "stations": _STATIONS}}})
 
     with tempfile.TemporaryDirectory() as root:
         os.makedirs(os.path.join(root, ".harness", "factory"))
@@ -81,8 +82,7 @@ def _run(docs, online, remote_ok=True, owner_sync=True):
             f.write(f"schema: factory-fleet/1\nrepos:\n  - name: org/prod\n"
                     f"    default_branch: main\nworkspace_root: {root}\n")
         ctx = _Ctx(root, docs, online, owner_sync)
-        with open(os.path.join(ctx.H, "harness.json"), "w") as f:
-            json.dump(ctx.cj, f)
+        write_config(os.path.join(ctx.H, "harness.json"), ctx.cj)
         feature_schema.resolve_binding, factory_config.product_config = resolve, product_config
         factory_config.clear_product_config_memo()
         try:

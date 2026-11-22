@@ -379,7 +379,7 @@ tasks:
   - T-01
   - T-02
   - T-03
-  status: ready
+  status: done
   files:
   - tests/unit/test-factory-config.py#check
   - tests/unit/test-gh-board.py#check
@@ -397,6 +397,7 @@ tasks:
     quote: import { beforeAll, describe, expect, test } from "bun:test";
   - path: tests/fixtures/harness-config-budgets.json
     create: true
+  - .claude/skills/harness/bin/check-plan-routes.py#_classified_disposition_findings
   verify: |
     python3 tests/integration/test-harness-config-fixtures.py tests/unit/test-factory-config.py tests/unit/test-gh-board.py tests/unit/test-gate-policy.py tests/unit/test-fleet-product-config.py tests/unit/test-code-grade.py tests/unit/test-feature-record.py tests/unit/test-wayfind.py tests/unit/test-feature-schema-build-entry.py tests/unit/test-check-state-shipped-ctx.py tests/unit/test-check-state-inv37-local-binding.py tests/unit/test-check-state-inv35.py tests/unit/test-check-state-inv26-routing.py tests/unit/omp-hooks.test.ts tests/fixtures/harness-config-budgets.json && python3 tests/unit/test-gate-policy.py
   intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Delete the listed factory-config board-shape/raw-JSON, gh-board shape, gate-policy shape, fleet-product-config raw-JSON and code-grade malformed-kind duplicate assertions. Retain one compact test-factory-config board_for no-board domain refusal from inventory 719-732, with its stated operational precondition reason, not reader-specific missing-key messages. Preserve board number/station normalization identity and tuple behavior, remote per-repo resolution and success-only memoization/failure recovery, review severity decisions, grading bars and feature overrides. gate-policy obsolete-key acceptance becomes refusal. Migrate all unit valid fixtures through the helper. Generate tests/fixtures/harness-config-budgets.json solely with build_config: default uses no overrides, context_150000 sets budgets.orchestrator_context_warn_tokens to 150000, and plan_30 sets budgets.plan_phase_warn_minutes to 30. omp-hooks.test.ts reads and clones these checked-in config objects without invoking Python/jsonschema at Bun runtime. Preserve absent-file, absent-key and advisory-threshold fallback tests by explicit field deletion or file omission after cloning the generated valid base; deliberate malformed cases visibly corrupt it. The census regenerates all three cases through the same builder and rejects stale/missing fixture values, including a drift negative control. No independent TypeScript builder or production hook change; Keep every non-config inflight schema_version fixture untouched. No weakening of TypeScript advisory behavior or new typecheck runner is permitted.'

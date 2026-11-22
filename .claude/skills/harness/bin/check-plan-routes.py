@@ -1414,33 +1414,42 @@ def _unmigrated_row_findings(row, live, candidates):
     ]
 
 
-def _classified_disposition_findings(row, live, candidates):
-    disposition = row.get("disposition")
-    if disposition not in {"canonical", "migrate", "exempt"}:
-        return [
-            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
-            f"remedy={row.get('remedy', 'unknown')}: illegal disposition "
-            f"{disposition!r}. PLAN AMENDMENT REQUIRED"
-        ]
-    if disposition == "exempt":
-        findings = _unmigrated_row_findings(row, live, candidates)
-        exemption = _exemption_finding(row)
-        if exemption:
-            findings.append(exemption)
-        return findings
+def _exempt_row_findings(row, live, candidates):
+    findings = _unmigrated_row_findings(row, live, candidates)
+    exemption = _exemption_finding(row)
+    if exemption:
+        findings.append(exemption)
+    return findings
+
+
+def _canonical_row_findings(row, live, candidates):
     state = _migration_row_state(row, live, candidates)
-    if disposition == "canonical" and state != "canonical":
+    if state != "canonical":
         return [
             f"{row.get('id')}: observed state={state}; expected disposition=canonical "
             f"remedy={_row_remedy(row)}. PLAN AMENDMENT REQUIRED"
         ]
-    if (disposition == "canonical" and row.get("artifact") == CONFIG_ARTIFACT
-            and _row_remedy(row) == GENERIC_JSON_REMEDY):
+    if row.get("artifact") == CONFIG_ARTIFACT and _row_remedy(row) == GENERIC_JSON_REMEDY:
         return [
             f"{row.get('id')}: harness.json read through {GENERIC_JSON_REMEDY}; configuration "
             f"reads use {READER_CATEGORY_REMEDIES['json_file']}. PLAN AMENDMENT REQUIRED"
         ]
     return _migration_row_findings(row, live, candidates)
+
+
+def _classified_disposition_findings(row, live, candidates):
+    disposition = row.get("disposition")
+    if disposition == "exempt":
+        return _exempt_row_findings(row, live, candidates)
+    if disposition == "canonical":
+        return _canonical_row_findings(row, live, candidates)
+    if disposition == "migrate":
+        return _migration_row_findings(row, live, candidates)
+    return [
+        f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+        f"remedy={row.get('remedy', 'unknown')}: illegal disposition "
+        f"{disposition!r}. PLAN AMENDMENT REQUIRED"
+    ]
 
 
 def _classified_row_finding(row, task_files, live, candidates):

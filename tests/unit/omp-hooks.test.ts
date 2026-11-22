@@ -2922,22 +2922,37 @@ describe("resolveSessionFile", () => {
   });
 });
 
-describe("resolveContextWarnTokens", () => {
-  function rootWith(budgets: Record<string, unknown> | undefined) {
-    const root = mkdtempSync(join(tmpdir(), "feat44-cfg-"));
-    const dir = join(root, ".harness");
-    require("node:fs").mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "harness.json"), JSON.stringify(budgets ? { budgets } : {}));
-    return root;
-  }
+// Builder-generated valid configs (tests/harness_config_support.build_config, checked in and
+// drift-checked by test-harness-config-fixtures.py), so Bun never needs Python or jsonschema.
+const BUDGET_CONFIGS = JSON.parse(
+  readFileSync(join(import.meta.dir, "..", "fixtures", "harness-config-budgets.json"), "utf8"));
 
+/** `config` minus `drop`: one budgets key, or "budgets" for the whole block. */
+function without(config: Record<string, any>, drop?: string) {
+  if (drop === "budgets") delete config.budgets;
+  else if (drop) delete config.budgets[drop];
+  return config;
+}
+
+/** A root whose harness.json is the generated `name` config, with `drop` deleted from it. */
+function budgetRoot(name: "default" | "context_150000" | "plan_30", drop?: string) {
+  const root = mkdtempSync(join(tmpdir(), "budget-cfg-"));
+  mkdirSync(join(root, ".harness"));
+  writeFileSync(join(root, ".harness", "harness.json"),
+    JSON.stringify(without(structuredClone(BUDGET_CONFIGS[name]), drop)));
+  return root;
+}
+
+describe("resolveContextWarnTokens", () => {
   test("reads the configured budget", () => {
     // 150000 differs from the default, so a mutation back to a hardcoded 200000 reddens.
-    expect(resolveContextWarnTokens(rootWith({ orchestrator_context_warn_tokens: 150000 }))).toBe(150000);
+    expect(resolveContextWarnTokens(budgetRoot("context_150000"))).toBe(150000);
   });
 
   test("falls back to the declared default when the key is absent", () => {
-    expect(resolveContextWarnTokens(rootWith(undefined))).toBe(DEFAULT_CONTEXT_WARN_TOKENS);
+    expect(resolveContextWarnTokens(budgetRoot("default", "orchestrator_context_warn_tokens")))
+      .toBe(DEFAULT_CONTEXT_WARN_TOKENS);
+    expect(resolveContextWarnTokens(budgetRoot("default", "budgets"))).toBe(DEFAULT_CONTEXT_WARN_TOKENS);
     expect(DEFAULT_CONTEXT_WARN_TOKENS).toBe(200000);
   });
 });
@@ -3162,21 +3177,14 @@ describe("spendAdvisoryFor", () => {
 });
 
 describe("resolvePlanPhaseWarnMinutes", () => {
-  function rootWith(budgets: Record<string, unknown> | undefined) {
-    const root = mkdtempSync(join(tmpdir(), "feat59-cfg-"));
-    mkdirSync(join(root, ".harness"));
-    writeFileSync(join(root, ".harness", "harness.json"),
-      JSON.stringify(budgets === undefined ? {} : { budgets }));
-    return root;
-  }
-
   test("reads the configured value", () => {
-    expect(resolvePlanPhaseWarnMinutes(rootWith({ plan_phase_warn_minutes: 30 }))).toBe(30);
+    expect(resolvePlanPhaseWarnMinutes(budgetRoot("plan_30"))).toBe(30);
   });
 
   test("falls back to the declared default when the key is absent", () => {
-    expect(resolvePlanPhaseWarnMinutes(rootWith({}))).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
-    expect(resolvePlanPhaseWarnMinutes(rootWith(undefined))).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
+    expect(resolvePlanPhaseWarnMinutes(budgetRoot("default", "plan_phase_warn_minutes")))
+      .toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
+    expect(resolvePlanPhaseWarnMinutes(budgetRoot("default", "budgets"))).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
     expect(resolvePlanPhaseWarnMinutes("/nonexistent")).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
   });
 

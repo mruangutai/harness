@@ -18,9 +18,10 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from harness_config_support import write_config  # noqa: E402
 import contextlib
 import io
-import json
 import os
 import shutil
 import sys
@@ -91,10 +92,8 @@ def case_1_wayfind_directory_probe():
     try:
         real_root = tmp
         _write(os.path.join(real_root, ".harness", "team-config.yaml"), "# marker\n")
-        _write(
-            os.path.join(real_root, ".harness", "harness.json"),
-            json.dumps({"github": {"sync": True, "repo": "acme/real-root"}}),
-        )
+        write_config(os.path.join(real_root, ".harness", "harness.json"),
+                     {"github": {"sync": True, "repo": "acme/real-root"}})
 
         # The decoy: a directory NAMED .harness directly under `decoy_child`, holding
         # NO team-config.yaml — the bare-directory probe this case exists to defeat.

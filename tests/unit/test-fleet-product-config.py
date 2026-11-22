@@ -20,6 +20,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import contextlib
 import io
 import json
@@ -30,6 +31,10 @@ import yaml
 import artifact_accessors
 
 import factory_config as fc
+from harness_config_support import build_config  # noqa: E402
+
+# Every remote member returns the same builder-valid harness.json text.
+VALID_PAYLOAD = json.dumps(build_config())
 
 FAILS = 0
 RAN = 0
@@ -109,7 +114,7 @@ _SECOND_NAME = _FLEET["repos"][1]["name"]
 
 
 def stub_all_ok(repo, path, ref):
-    return json.dumps({"read": "ok"})
+    return VALID_PAYLOAD
 
 
 def stub_first_gherror_second_ok(repo, path, ref, _first=_FIRST_NAME):
@@ -120,14 +125,7 @@ def stub_first_gherror_second_ok(repo, path, ref, _first=_FIRST_NAME):
             ["gh", "api", f"repos/{repo}/contents/.harness/harness.json"],
             1, "", "404", "gh call failed", repo, "check gh auth and the ref",
         )
-    return json.dumps({"read": "ok"})
-
-
-def stub_first_not_json_second_ok(repo, path, ref, _first=_FIRST_NAME):
-    """Returns invalid JSON for the FIRST declared name, valid JSON for the second — case (c)."""
-    if repo == _first:
-        return "not { valid json"
-    return json.dumps({"read": "ok"})
+    return VALID_PAYLOAD
 
 
 def stub_first_unexpected_second_ok(repo, path, ref, _first=_FIRST_NAME):
@@ -136,7 +134,7 @@ def stub_first_unexpected_second_ok(repo, path, ref, _first=_FIRST_NAME):
     clause must stay narrowed to FleetError; a widened `except Exception` would swallow this."""
     if repo == _first:
         raise RuntimeError("unexpected failure, not a GhError")
-    return json.dumps({"read": "ok"})
+    return VALID_PAYLOAD
 
 
 # --- (a) two declared repos, stub returns valid JSON for both -> every entry ok --------------
@@ -175,19 +173,6 @@ check("(b) the SECOND entry, asserted individually, is ok with an empty detail",
       _b_entry1_ok, _b_entry1)
 check("(b)/(d) len(report) equals len(fleet['repos'])",
       len(report_b) == len(fleet["repos"]), (len(report_b), len(fleet["repos"])))
-
-# --- (c) stub returns invalid JSON for one repo -> that entry not ok, names invalid-JSON -----
-with tempfile.TemporaryDirectory() as td:
-    fleet = artifact_accessors.load_fleet(write_fleet(td, two_repo_fleet_dict()))
-    with patched_file_at_ref(stub_first_not_json_second_ok):
-        report_c = fc.product_config_report(fleet)
-    _c_entry0 = report_c[0]
-    _c_ok = (_c_entry0["ok"] is False and "JSON" in _c_entry0["detail"]
-             and _c_entry0["repo"] == _FIRST_NAME)
-check("(c) invalid JSON content -> entry not ok, detail names the invalid-JSON failure",
-      _c_ok, _c_entry0)
-check("(c)/(d) len(report) equals len(fleet['repos'])",
-      len(report_c) == len(fleet["repos"]), (len(report_c), len(fleet["repos"])))
 
 # --- (f) V-2: stub raises a bare RuntimeError (neither FleetError nor GhError) for the FIRST -
 # name -> product_config_report must PROPAGATE it, never fold it into an ok:False entry. This

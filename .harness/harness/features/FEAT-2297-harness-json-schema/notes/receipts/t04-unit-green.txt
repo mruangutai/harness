@@ -1,0 +1,16 @@
+# T-04 GREEN on the uncommitted T-04 tree over 70a0def9: signed verify exit 0
+$ python3 tests/integration/test-harness-config-fixtures.py tests/unit/test-factory-config.py tests/unit/test-gh-board.py tests/unit/test-gate-policy.py tests/unit/test-fleet-product-config.py tests/unit/test-code-grade.py tests/unit/test-feature-record.py tests/unit/test-wayfind.py tests/unit/test-feature-schema-build-entry.py tests/unit/test-check-state-shipped-ctx.py tests/unit/test-check-state-inv37-local-binding.py tests/unit/test-check-state-inv35.py tests/unit/test-check-state-inv26-routing.py tests/unit/omp-hooks.test.ts tests/fixtures/harness-config-budgets.json && python3 tests/unit/test-gate-policy.py
+0 finding(s)
+ok    loader resolves review by name from the validated config
+ok    removed gate keys are refused, naming the key
+ok    review blocks must_fix even without a severity escalation
+ok    review passes a clean medium-severity report
+ok    review blocks high severity
+ok    blocking review blocks findings
+ok    advisory review always passes
+ok    unknown review severity raises loudly: names severity_max
+ok    unknown review severity raises loudly: carries offending value
+
+# every T-04-owned suite run individually: all exit 0; bun test tests/unit/omp-hooks.test.ts: 186 pass, 0 fail
+# T-04 amendment (fable-advisor): check-plan-routes._classified_disposition_findings split into _exempt_row_findings/_canonical_row_findings (T-03 grade-3 regression, now >= 4); canonical-reader audit 0 findings; negative control holds; test-check-plan-routes green
+# kept domain refusal (inventory 719-732): board_for refuses a valid member config whose github.board is null -- the schema defaults an absent board to null, but the factory cannot serve a repository with no board (operational precondition, not schema)
