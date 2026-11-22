@@ -2732,18 +2732,26 @@ def _pass_through(d, agent, obj):
         print("check-digest: hook payload has no agent_type — passing through. If this "
               "is unexpected, the payload key may have been renamed and this hook is "
               "silently no-oping project-wide.", file=sys.stderr)
+        harness_boundary.emit_unavailable(
+            __file__, "the yield payload carries no agent_type, so no digest contract applies")
     return 0
 
 
 def _settle_claim(d, agent, verdict, release=True):
     """The registry side errand: refuses only for a live child or an unreadable registry
-    under a dispatching parent, and never changes the digest verdict."""
+    under a dispatching parent, and never changes the digest verdict. A missing registry is
+    the unavailable outcome (FEAT-2274), said once: on the releasing call, which only a
+    return that otherwise passes reaches."""
     try:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
         import inflight_registry
     except ImportError as error:
         print(f"check-digest: inflight_registry unavailable ({error!r}) — the #551 claim was "
               f"neither released nor checked. This is our gap, not theirs.", file=sys.stderr)
+        if release:
+            harness_boundary.emit_unavailable(
+                __file__, f"inflight_registry unavailable ({error!r}); the claim was neither "
+                          f"released nor checked")
         return None
     return _registry_errand(inflight_registry, d, agent, verdict, release=release)
 
@@ -2762,6 +2770,7 @@ def _validate_hook_object(d, agent, obj):
     except digest_schema.DigestSchemaError:
         print(f"check-digest: no schema for {agent} — passing through rather than "
               f"blocking on our own gap.", file=sys.stderr)
+        harness_boundary.emit_unavailable(__file__, f"no digest schema for {agent}")
         return 0
     # Only the policy refusal is answered here, because it is THEIR verdict (exit 2); every
     # other exception is our failure and hook_guard's loud fail-open.
@@ -2846,7 +2855,7 @@ def cli_object(text, where):
 
 if __name__ == "__main__":
     if "--hook" in sys.argv:
-        sys.exit(harness_boundary.hook_guard(hook_mode, "check-digest"))
+        sys.exit(harness_boundary.hook_guard(hook_mode, "check-digest", script=__file__))
     if "--distill-authority" in sys.argv:
         sys.exit(distill_authority_mode())
     # F14: CLI mode crashed with UnicodeEncodeError under an ASCII locale (LC_ALL=C),

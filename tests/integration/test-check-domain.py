@@ -2,14 +2,16 @@
 """FEAT-104: closed schema enforcement on run state.yaml writes."""
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 
 TESTS = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS, "..", ".."))
 sys.path.insert(0, TESTS)
 
-from check_domain_support import FIXTURE_MANIFEST, fire, fixture
+from check_domain_support import FIXTURE_MANIFEST, fire, fire_write_payload, fixture
 from isolated_bin import isolated_bin
 
 # FEAT-65: the hook's own-failure posture is harness_boundary.hook_guard's ONE template.
@@ -72,12 +74,17 @@ def _feat65_guard_cases():
     line = GUARD_LINE.format(detail="RuntimeError: FEAT-65 injected")
     return [
         ("a defect reading the payload passes through with exactly the hook_guard line",
-         payload_defect.stderr == line and payload_defect.stdout == ""
+         payload_defect.stderr == line and _unavailable_gates(payload_defect) == ["check-domain"]
          and _feat65_guarded(payload_defect, line), payload_defect),
+        ("a defect in a governed rule is visibly unavailable, once",
+         _unavailable_gates(checkout_defect) == ["check-domain"]
+         and _unavailable_gates(claim_defect) == ["check-domain"], claim_defect),
         ("a defect in the feature-checkout rule is no longer absorbed: it is named on stderr",
          _feat65_guarded(checkout_defect, line), checkout_defect),
         ("a defect in the claim rule is no longer classified locally: it is named on stderr",
          _feat65_guarded(claim_defect, line), claim_defect),
+        # The --resolve CLI's stdout is its answer (agent names, NOBODY, SHARED); a defect
+        # answers no route and never prints an unavailable line a caller would read as one.
         ("a --resolve defect passes through the same guard and answers no route",
          resolve_defect.stderr == line and resolve_defect.stdout == ""
          and _feat65_guarded(resolve_defect, line), resolve_defect),
@@ -85,6 +92,62 @@ def _feat65_guard_cases():
          _feat65_escaped(interrupt) and "KeyboardInterrupt" in interrupt.stderr, interrupt),
         ("a deliberate SystemExit keeps its own exit code",
          _feat65_escaped(deliberate_exit, 7), deliberate_exit),
+    ]
+
+
+def _unavailable_gates(result):
+    """FEAT-2274 C1: gate names of the `decision: unavailable` lines on stdout, in order."""
+    gates = []
+    for out_line in result.stdout.splitlines():
+        try:
+            obj = json.loads(out_line)
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and obj.get("decision") == "unavailable":
+            gates.append(obj.get("gate"))
+    return gates
+
+
+def _feat2274_cases():
+    """FEAT-2274 C1: check-domain's own crash (above), a payload it cannot read, and a tree
+    whose harness_boundary.py cannot be imported are each ONE stdout unavailable line at exit
+    0. A normal pass, the main session's pass and a deliberate denial emit none."""
+    root = fixture(FIXTURE_MANIFEST)
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    unreadable = subprocess.run([os.path.join(ROOT, ".claude", "skills", "harness", "bin",
+                                              "check-domain.py")],
+                                input="{not json", capture_output=True, text=True, env=env)
+    # The tree without harness_boundary.py: the hook runs unguarded, as the DEC-101 isolated
+    # copy does, and its bootstrap says so before the body runs.
+    bare = tempfile.mkdtemp()
+    bare_bin = os.path.join(bare, ".claude", "skills", "harness", "bin")
+    os.makedirs(bare_bin)
+    for name in ("check-domain.py", "artifact_accessors.py"):
+        shutil.copy(os.path.join(ROOT, ".claude", "skills", "harness", "bin", name),
+                    os.path.join(bare_bin, name))
+    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+               "tool_input": {"file_path": os.path.join(bare, "anything.md"), "content": "x"}}
+    no_boundary = subprocess.run([os.path.join(bare_bin, "check-domain.py")],
+                                 input=json.dumps(payload), capture_output=True, text=True,
+                                 env=dict(os.environ, CLAUDE_PROJECT_DIR=bare,
+                                          HARNESS_PROJECT_DIR=bare))
+    passed = _fire_new(_state("2"), "f2274-pass")
+    main_session = fire_write_payload(root, os.path.join(root, "notes.md"), "x")
+    denied = fire(fixture(FIXTURE_MANIFEST), "forbidden/x.md")
+    return [
+        ("an unreadable payload passes through as one unavailable line",
+         unreadable.returncode == 0 and _unavailable_gates(unreadable) == ["check-domain"],
+         unreadable),
+        ("a tree without harness_boundary.py says unavailable once and still fails open",
+         no_boundary.returncode == 0 and _unavailable_gates(no_boundary) == ["check-domain"],
+         no_boundary),
+        ("a normal governed pass emits no unavailable line",
+         passed.returncode == 0 and _unavailable_gates(passed) == [], passed),
+        ("the main session's ungoverned pass emits no unavailable line",
+         main_session.returncode == 0 and _unavailable_gates(main_session) == [], main_session),
+        ("a deliberate denial is exit 2 with no unavailable line",
+         denied.returncode == 2 and "BLOCKED" in denied.stderr
+         and _unavailable_gates(denied) == [], denied),
     ]
 
 
@@ -348,6 +411,7 @@ def run_t06_cases():
     if strict_failure is not None:
         cases.append(strict_failure)
     cases.extend(_feat65_guard_cases())
+    cases.extend(_feat2274_cases())
     return _report(cases)
 
 

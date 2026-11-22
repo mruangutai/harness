@@ -1,0 +1,178 @@
+schema: plan/1
+feature: FEAT-2274-omp-native-gate-policy
+approval:
+  date: '2026-11-22'
+  approved_by: Mike Ruangutai
+  status: approved
+status: review
+source_issues: [2274]
+panel:
+  last_run: r-20261121-1-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-888fa7b2f3f44ac2aefa08e6e39ca54e
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's captured baseline manifest pinning all 16 personas' spawns frontmatter should not be built
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-0f0b049449c24bf5e87f934e144b25e5
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: T-02's 16-way selection/non-selection matrix reimplements omp rule matching and proves nothing about delivery
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-3cd59610b455d6909af7f433f31178d6
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: Per-gate enumeration of extension-side failure modes quadruplicates coverage of one shared adapter path
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-666b37a77bd35f130ce5d07a27a2e1e4
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: '''Deletion-specific tests'' risk duplicating SC-04''s inspection as trivial source-absence greps — clarify or drop'
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+lanes:
+  resolved_at: 3dd8bb677bb2936361e3952030fc24f15bf9afc6
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 enforcement code and its shared crash boundary must be changed directly.
+    - surface: .omp/extensions/harness-hooks.ts
+      lane: main-session-direct
+      reason: DEC-174 the extension is the enforcement adapter under change.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 includes tests proving the changed enforcement contract.
+    - surface: .omp/agents/**
+      lane: main-session-direct
+      reason: DEC-233 leaves persona definitions unowned by every governed agent.
+    - surface: .omp/rules/**
+      lane: main-session-direct
+      reason: Governed project constraints accompany the DEC-174 direct-only enforcement cutover.
+    - surface: .harness/harness/docs/**
+      lane: main-session-direct
+      reason: Main owns this entirely direct enforcement feature including its decision amendments.
+decisions:
+  - id: D-01
+    choice: A gate reports unavailable with a standalone stdout JSON object containing decision unavailable, gate as its script stem, and reason as a diagnostic string; the four broad gates retain exit 0 for their own guarded failures. Centralize Python emission in one emitter beside hook_guard deriving gate identity from the script path; preserve stderr diagnostic naming, including check-digest for validate-digest, and inline emission only when the bootstrap cannot import the boundary.
+    because: An explicit machine outcome distinguishes the existing exit-0 crash path from a pass without changing broad fail-open exit semantics; the adapter synthesizes the same outcome for startup and spawn failures rather than relying on stderr wording.
+    dec: DEC-100
+tasks:
+  - id: T-01
+    title: Cut over gate outcomes and native spawn-route enforcement atomically
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-06, SC-07, SC-09]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 forbids dispatching the gates, their adapter or their tests through the enforcement being changed; metadata identifies expertise only and Main executes.
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/harness_boundary.py#hook_guard
+      - {path: .claude/skills/harness/bin/check-domain.py, quote: '_bootstrap_boundary.run_hook_body(__file__, "check-domain", "check_domain_body")'}
+      - {path: .claude/skills/harness/bin/bash-write-guard.py, quote: '_bootstrap_boundary.run_hook_body(__file__, "bash-write-guard", "bash_write_guard_body")'}
+      - {path: .claude/skills/harness/bin/dispatch-guard.py, quote: '# THE ALLOWLIST. A persona may dispatch only what its own frontmatter'}
+      - .claude/skills/harness/bin/validate-digest.py#hook_mode
+      - .claude/skills/harness/bin/gh-close-gate.py#denies
+      - .claude/skills/harness/bin/branch-create-gate.py#_branch_name
+      - .claude/skills/harness/bin/plan-sign-gate.py#denies
+      - .omp/extensions/harness-hooks.ts#runPolicy
+      - tests/unit/test-harness-boundary.py#case_marker_constant
+      - {path: tests/unit/omp-hooks.test.ts, quote: 'describe("detectHarnessAgent", () => {'}
+      - tests/integration/test-check-domain.py#_feat65_fire
+      - {path: tests/integration/test-bash-write-guard.py, quote: 'Tests for bash-write-guard.py'}
+      - tests/integration/test-dispatch-guard.py#case_1_governed_agent_passing_a_model
+      - {path: tests/integration/test-gh-close-gate.py, quote: 'GH_CLOSE_GATE_BIN'}
+      - tests/integration/test-branch-create-gate.py#main
+      - {path: tests/integration/test-plan-sign-gate.py, quote: 'PLAN_SIGN_GATE_BIN'}
+      - tests/integration/test-validate-digest.py#obj_of
+      - {path: tests/integration/test-omp-native-gate-runtime.py, create: true}
+    verify: |
+      python3 tests/integration/test-omp-native-gate-runtime.py &&
+      python3 tests/unit/test-omp-hooks.py &&
+      python3 tests/unit/test-harness-boundary.py
+    intent: |
+      PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2274-omp-native-gate-policy. Main alone executes this task there; every relative edit stays inside that worktree. Before any production or test writing read /Users/molchairuangutai/GitHub/harness/.agents/skills/harness-tdd-enforcement/SKILL.md. Read the feature BRIEF SC-01 through SC-04, SC-06, SC-07 and SC-09 and D-01. Applicable product read inputs are docs/spec.md, docs/decisions.md and docs/architecture.md, all absent at planning; do not invent them. Product AGENTS.md explicitly maps the specification and decision authority to .harness/harness/docs/SPEC.md section 4.2 and .harness/harness/docs/DECISIONS.md entries DEC-100, DEC-127, DEC-174, DEC-204, DEC-208, DEC-233, DEC-234 and DEC-237. Consult these product inputs rather than treating the control-plane checkout as product source.
+      Implement D-01 by adding one explicit unavailable outcome alongside ordinary allow and deny. Use a standalone JSON stdout line with decision equal to unavailable, gate equal to the script filename without .py, and a reason string. Keep hook_guard fail-open own exceptions at exit 0 and keep diagnostics on stderr; a normal pass must not emit the unavailable line. Preserve deliberate SystemExit outcomes and closed guards. Have check-domain, bash-write-guard, dispatch-guard and validate-digest expose their own crash/unavailable execution with this outcome, including deliberate unavailable-library/schema/identity branches that currently print only a passthrough diagnostic. Distinguish legitimate not-applicable and non-governed passthroughs from unavailable execution. Do not change the CLI meaning of check-domain --resolve or reclassify an intentional policy/authorization refusal as a crash. Digest input is digest_object today: missing, null or non-object data remains a contract refusal; do not resurrect the historical last_assistant_message contract in DEC-208. Preserve stop_hook_active behavior.
+      Extend PolicyResult/runPolicy and every affected tool_call/tool_result caller so unavailable is not lost through firstBlock or an early return. For the four broad scripts only, synthesize the same unavailable outcome for non-2 unexpected exits, signal/null-status termination, failure before the Python guard loads, missing gate/interpreter, and spawnSync error or throw. Own execution failures allow the call and add passive additionalContext containing the gate name and the exact phrase nothing was checked; do not set block or isError for that failure and do not mark a successful result as an error. Preserve explicit structured deny and exit 2 as refusals. Emit one notice for each unavailable gate invocation, including repeated calls and multiple/pre/post invocations; no per-session cache or dedup. Compose additionalContext with existing input/env/schema revisions and tool-result content instead of replacing them. Keep existing claims, authoritative run-start/authorization refusals, schema-injection failures and non-policy command error handling intact; do not globally convert every runPolicy caller to a new fail-open or fail-closed posture.
+      Make gh-close-gate, branch-create-gate and plan-sign-gate closed on their own failures, but only AFTER determining command applicability. Matching must precede root resolution, repository/library/config loads and closed guard entry; unrelated Bash must bypass those dependencies. The extension must likewise determine applicability before a missing executable or spawn error can be treated as a closed failure. Use each current gate's supported command semantics and exemptions, including plan-sign gated feature-record verbs, nested/quoted/split/indirect spellings its tests protect, branch-creation forms and gh close/API forms; do not replace semantic matching with a coarse substring that blocks unrelated commands. Build-design assignment: before writing code choose and record the smallest matching arrangement within these owned runtime files that satisfies both direct script invocation and extension startup/spawn-failure classification; this plan deliberately does not require a second general-purpose shell parser, shared startup dependency, new dependency, or one-process Bash redesign. The observable contract above is fixed and cannot be weakened by that choice. Preserve isolated trusted-path bootstrap mechanics and merge-gate's existing posture. Cover #2107 with a flow branch and malformed feature.json whose github.parent contains the Unicode digit that raises ValueError, proving a named refusal rather than exit 1.
+      Delete ONLY dispatch-guard's spawns allowlist regex/frontmatter lookup and its refusal guidance, leaving all other checks and registry work unchanged. Keep every persona spawns list unchanged. Do not add owner-root parity checks, a replacement allowlist or a fork. Register before_subagent_spawn independently of currentAgent: when the target agent matches harness-* and invocationKind is anything except task, return block true with a reason directing the caller to task. Apply to Main, governed parents and any other caller. Non-governed targets and governed task invocation continue normally. Native assertDepthAndSpawnAllowed alone enforces which targets a caller may spawn.
+      Write tests first. Unit tests in test-harness-boundary.py and omp-hooks.test.ts must cover the unavailable JSON contract, event registration and Main/non-Main route matrix, normal pass and explicit deny, notice multiplicity, pre/post composition, task schemas and input/env preservation. Extend existing gate regression suites only where their owned assertions must track the changed contract; retain all unchanged refusal cases. Replace only obsolete Python spawns-regex assertions with behavioral dispatch passthrough assertions: an otherwise valid spawn-target dispatch formerly refused solely by the Python allowlist now passes dispatch-guard, leaving target permission to native assertDepthAndSpawnAllowed. Demonstrate this assertion failing against pre-edit dispatch-guard; do not add source-absence greps or a native allowlist test double. SC-04 separately inspects native authority. Add tests/integration/test-omp-native-gate-runtime.py as a credential-free subprocess/adapter regression suite using real gate processes and copied isolated gate roots, not only a PolicyRunner stub: exercise the shared adapter failure modes fully on one representative broad gate and one representative narrow gate, including guarded crash, pre-guard startup failure, missing executable/interpreter, spawn error/throw and unexpected termination. Add unavailable smoke per broad gate and matching/unrelated applicability smoke per narrow gate. Retain independent cases for every gate-specific deliberate unavailable branch and each narrow gate own body/dependency failure; do not multiply the shared adapter failure matrix across every gate. Assert exact outcomes and diagnostic text, use independent per-gate assertions, and cover each remaining dispatch check listed in SC-06. Include missing identity/schema notices and unchanged absent/null/empty digest_object refusal controls. Faults belong in disposable fixtures, never a production environment-variable bypass. Record fail-first evidence against the captured pre-edit source, not a drifting HEAD predecessor; bounded test-process deadlines are allowed but no production timeout work is in scope. Keep the new integration suite plus the two scoped verify suites below 60 seconds total, with nonzero exit and named failure accounting. Expected verify result: every named assertion passes, no FAIL output, exit 0. Full active unit/integration matrix judgment remains validation's responsibility after all tasks, not an early whole-tree task gate.
+
+      Simplify fold-ins: centralize Python unavailable emission in one emitter beside hook_guard deriving gate from the script path, not the diagnostic label. Preserve existing stderr naming: validate-digest uses check-digest diagnostically but emits gate validate-digest. Reuse the emitter for guarded and deliberate unavailable branches; inline only for bootstrap import failure. Treat the existing spelling/exemption command corpora in tests/integration/test-gh-close-gate.py, test-branch-create-gate.py and test-plan-sign-gate.py as one shared acceptance surface exercised against BOTH extension-side and Python-side applicability classifiers, including startup failures; keep arrangement open, and reject unrelated-command overmatching. Convert the FEAT-65 unexpected resolver defect assertions in test-gh-close-gate.py (the assertion also requires empty stdout), test-branch-create-gate.py run_feat65, and test-plan-sign-gate.py: each currently expects returncode not in (0, 2). Keep injected resolve_root RuntimeError fixtures, but require exit 2 and a named refusal for matching commands, with unrelated-command bypass controls under the identical injected failure. The plan-sign fixture currently supplies git status: retain it as the unrelated bypass control and add a matching gated feature-record command, rather than mislabelling git status a matching fault. Reuse the existing copied isolated-bin support idiom where practical, without mandating an abstraction. Retain SC-06 adapter-level refusal-versus-unavailable controls as a distinct seam; do not delete coverage for overlap.
+  - id: T-02
+    title: Deliver governed constraints and relocate escalation guidance
+    traces: [SC-04, SC-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_agent: harness-dev-ops
+    execution_reason: Main executes the all-direct DEC-174 feature and .omp/agents is unowned; execution_agent is not authorization to dispatch protected work.
+    depends_on: [T-01]
+    status: done
+    files:
+      - {path: .omp/rules/harness-constraints.md, create: true}
+      - {path: .omp/agents/harness-product-lead.md, quote: 'HARNESS_AGENT_ID: harness-product-lead'}
+      - {path: .omp/agents/harness-eng-lead.md, quote: 'HARNESS_AGENT_ID: harness-eng-lead'}
+      - {path: .omp/agents/harness-validator-lead.md, quote: 'HARNESS_AGENT_ID: harness-validator-lead'}
+      - {path: tests/integration/test-harness-constraints.py, create: true}
+    verify: |
+      python3 tests/integration/test-harness-constraints.py
+    intent: |
+      PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2274-omp-native-gate-policy. Main executes directly and every relative edit remains in this feature worktree. Before any production or test writing read /Users/molchairuangutai/GitHub/harness/.agents/skills/harness-tdd-enforcement/SKILL.md. Applicable product read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent; report rather than author replacements. Consult the product AGENTS.md declared map to .harness/harness/docs/SPEC.md and DECISIONS.md, especially DEC-174, DEC-193, DEC-204 and DEC-233. Also read the grilling Settled rule-content list at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-omp-native-enforcement-a-2026-11-21.md and BRIEF SC-04 and SC-05.
+      Create .omp/rules/harness-constraints.md with YAML frontmatter agents containing exactly the harness-* glob and alwaysApply true. Do not create .omp/RULES.md or add a universal main-session rule. The main session's name is main and must not match. The current AGENTS.md groups are unnumbered: use the five operator-settled groups, not the first five physical bullet lines. Carry sanctioned Harness work only in a .claude/worktrees feature worktree, one feature directory per worktree and absolute-path reads of other features from the owner checkout; search DECISIONS-INDEX and open governing decisions before changing documents, following references as needed, and retain strike records rather than stale aliases; check command-verifiable prose claims before writing; never shell-wait-loop or supervise children with shell commands, sleeps or repeated status calls because the host owns supervision; and DEC-174's plan-but-do-not-execute-through-the-changed-enforcement boundary, including gate tests. Preserve meaning and useful existing identifiers without copying the rest of AGENTS.md. Exclude the GSD bullet and commit-time check-state step. Do not edit AGENTS.md or any other persona.
+      In each of harness-product-lead.md, harness-eng-lead.md and harness-validator-lead.md add the guidance removed from dispatch-guard: work outside the allowed squad escalates to the orchestrator, which routes it to the owning lead; members are reached through their lead. Retain the plan/validate borrowed-reader exceptions and native spawns frontmatter exactly, so this guidance does not contradict existing authorized reader hosting. State native spawns enforcement supplies the allowed-target refusal; do not install a parity checker or regenerate lists.
+      Add tests/integration/test-harness-constraints.py first. Parse frontmatter with the repository's existing YAML facilities, independently assert the exact agents glob and alwaysApply value, cite the documented native OMP agents/alwaysApply delivery contract in the evidence receipt. Do not implement glob matching, a 16-persona selection matrix or a main/non-governed selection simulation, and do not claim live delivery was tested. Assert each of the five content groups independently, both exclusions, each lead's escalation guidance. Do not create a permanent spawns baseline manifest or snapshot assertion; SC-04 compares unchanged spawns frontmatter through pinned-content inspection against the pre-edit pin. A file-wide token count is insufficient. Keep the suite credential-free and under 10 seconds. Demonstrate the absent rule and missing lead guidance as failures against the pre-edit source; report exact failure labels. Expected verify result is exit 0 with every named assertion passing and no FAIL output. This proves exact configuration and rule content only; native delivery relies on the documented OMP contract, not a homegrown selection test or a newly executed live OMP rule-loader session.
+  - id: T-03
+    title: Amend enforcement decisions and close the cumulative contract
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08, SC-09]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_agent: harness-documentor
+    execution_reason: Main completes the entirely direct DEC-174 enforcement feature and records its policy amendments without outsourcing protected execution.
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - {path: .harness/harness/docs/DECISIONS.md, quote: '## DEC-100 — All four platform unknowns resolved empirically'}
+      - {path: .harness/harness/docs/DECISIONS-INDEX.md, quote: '- DEC-100 @'}
+      - {path: .harness/harness/docs/SPEC.md, quote: '### 4.2 Domain enforcement — the hook'}
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md &&
+      python3 tests/integration/test-omp-native-gate-runtime.py &&
+      python3 tests/integration/test-harness-constraints.py &&
+      python3 tests/unit/test-omp-hooks.py
+    intent: |
+      PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2274-omp-native-gate-policy. Main executes directly and every relative edit stays inside this worktree. Applicable product read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent; do not author them or replace missing architecture guidance with control-plane doctrine. Product AGENTS.md maps specification and decision authority to .harness/harness/docs/SPEC.md and DECISIONS.md; read the affected sections there. Consult the feature BRIEF, D-01, the runtime cutover from T-01 and configuration from T-02, plus decisions DEC-100, DEC-127, DEC-174, DEC-204, DEC-208, DEC-233, DEC-234 and DEC-237. No production/test writing belongs to this documentation task.
+      Amend DEC-100 section 4 rather than reversing the default: check-domain, bash-write-guard, dispatch-guard and validate-digest own failures remain open, now visibly unavailable through passive additionalContext on every occurrence; gh-close-gate, branch-create-gate and plan-sign-gate own failures close only after command matching, including startup and spawn failure. Record D-01's exact stdout JSON fields, exit semantics, extension synthesis, deny precedence and no-dedup notice behavior. Preserve authoritative run-start claims as the dispatch backstop, not as an excuse to hide failed preflight.
+      Amend DEC-127's own-failure visibility wording and DEC-208's relevant digest gap wording. DEC-208's last_assistant_message absence discussion is historical after the live digest_object migration; name DEC-237 as the current contract and do not restore an absent/null digest-object pass. Preserve actual contract refusals, deliberate non-governed passthroughs and independent authorization/claim refusals. Amend DEC-204 so its statement that Main is outside persona policy does not exempt Main from the target-based before_subagent_spawn task-only requirement; retain all lineage, liveness and ledger rules. Amend DEC-234 only to qualify that the three narrow gates match before the isolated bootstrap/dependencies, while retaining the accepted copied import seam and leaving merge-gate and run-unit-tests behavior unchanged.
+      Add a concise amendment disposition paragraph identifying DEC-100, DEC-127, DEC-204, DEC-208 and DEC-234 as amended and DEC-174, DEC-233 and DEC-237 as retained, with the reason for each. If the implemented matching arrangement changes another consulted decision, amend its affected claim in this same owned DECISIONS.md file and record why rather than silently superseding it. Do not introduce a second normative authority or strike a decision merely for its historical evidence.
+      Update SPEC.md's affected enforcement passages to describe the OMP unavailable/allow/deny distinction, bounded closed exceptions, native allowlist authority, task-only governed spawns including Main, and the agent-scoped rule delivery. Restrict edits to these affected contracts; broad Claude-era cleanup is out of scope. Refresh the human-written DECISIONS-INDEX ruling tails for changed entries, regenerate the index through gen-decisions-index.py, and retain source anchors for unchanged entries. These documentation changes are the durable change record; no separate changelog exists in the inspected root.
+      This is the last task and owns the cumulative verify; predecessors' files are not edited here. Run the literal verify after all prior work, with total duration below 60 seconds, requiring index diff clean, all new runtime/rule assertions and the existing extension suite passing, no FAIL output, exit 0. The generator stdout comparison is read-only. For SC-04 and SC-08 supply reviewer pointers at the eventual review_sha using git show review_sha:path; task-local working-tree success is not committed-content proof. Final validation separately judges active unit and integration kinds and fail-first receipts; do not claim their whole matrix ran merely because this scoped verify passed.
+
+      For SC-04 native OMP 19.1.0 authority evidence, point reviewers explicitly to /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-omp-native-enforcement-a-2026-11-21.md, section Facts I verified (so pm does not re-derive them), especially the published 19.1.0 shared runStructuredSubagent and assertDepthAndSpawnAllowed facts. This is external owner-checkout evidence, not content at review_sha; keep that provenance separate from git show review_sha:path pointers for committed product files.

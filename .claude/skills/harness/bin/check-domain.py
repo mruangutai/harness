@@ -79,13 +79,26 @@ if __name__ == "__main__":
     # ImportError and SyntaxError are what `import` itself raises for a module that is
     # missing or does not compile; a module that raises while executing is loud here, as a
     # defect in the module that defines the guard has to be.
+    #
+    # FEAT-2274: a hook running without its guard module says so as the unavailable outcome on
+    # stdout (harness_boundary.emit_unavailable's one line, spelled inline here because that
+    # module is the thing missing) — except under --resolve, whose stdout is the route answer.
     _bootstrap_sys.path.insert(0, _bootstrap_selfdir)
     try:
         import harness_boundary as _bootstrap_boundary
-    except (ImportError, SyntaxError):
+    except (ImportError, SyntaxError) as _bootstrap_error:
         _bootstrap_boundary = None
+        if _bootstrap_first != "--resolve":
+            import json as _bootstrap_json
+            print(_bootstrap_json.dumps({
+                "decision": "unavailable", "gate": "check-domain",
+                "reason": f"harness_boundary.py could not be imported "
+                          f"({type(_bootstrap_error).__name__}: {_bootstrap_error}); "
+                          f"the hook ran unguarded"}), flush=True)
     if _bootstrap_boundary is not None:
-        _bootstrap_sys.exit(_bootstrap_boundary.run_hook_body(__file__, "check-domain", "check_domain_body"))
+        _bootstrap_sys.exit(_bootstrap_boundary.run_hook_body(
+            __file__, "check-domain", "check_domain_body",
+            report=_bootstrap_first != "--resolve"))
 
 
 import sys, os, re, json, fnmatch
@@ -148,8 +161,19 @@ import artifact_accessors as _artifact_accessors
 try:
     d = _artifact_accessors.read_hook_payload(
         os.environ.get("HOOK_PAYLOAD") or "", "check-domain hook payload")
-except _artifact_accessors.ArtifactAccessError:
+except _artifact_accessors.ArtifactAccessError as _payload_error:
     d = {}
+    # FEAT-2274: with no payload there is no caller and no target, so nothing below can be
+    # checked — the unavailable outcome, not a silent pass. --resolve reads no payload. A tree
+    # without harness_boundary.py was already reported by the bootstrap.
+    if os.environ.get("HARNESS_RESOLVE_PATH") is None:
+        try:
+            import harness_boundary as _payload_boundary
+        except (ImportError, SyntaxError):
+            _payload_boundary = None
+        if _payload_boundary is not None:
+            _payload_boundary.emit_unavailable(
+                __file__, f"the hook payload could not be read ({_payload_error})")
 
 # Agent identity: prefer `agent_type` from the hook payload, fall back to $1.
 #

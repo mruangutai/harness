@@ -1,0 +1,90 @@
+schema_version: 2
+run_id: r-20261122-5-validate-validator
+run_uid: e6a46f51deec4697a80ce7f02a9decee
+feature: FEAT-2274-omp-native-gate-policy
+squad: validator
+host: harness-validator-lead
+status: complete
+review_sha: 242f9714d426415611bea796dd30a807f14c4193
+steps:
+  - id: qa
+    persona: harness-qa
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    mutates_repo: false
+    outputs: [notes/review-harness-qa-c2.md]
+    artifact: notes/review-harness-qa-c2.md
+    evidence:
+      matrix_ok: true
+      unit_files: 63
+      integration_files: 91
+      unit_exit: 0
+      integration_exit: 0
+      automated_sc_fail_first: [SC-01, SC-02, SC-03, SC-05, SC-06, SC-07, SC-09]
+      closed: [V1, V2, V3, V4, V5, V6]
+  - id: code
+    persona: harness-code-reviewer
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    mutates_repo: false
+    outputs: [notes/review-harness-code-reviewer-c2.md]
+    artifact: notes/review-harness-code-reviewer-c2.md
+    evidence:
+      grade_one_records: 0
+      grade_two_records: 4
+      grade_passing_records: 104
+      closed: [V1, V2, V3, V4, V5, V6, V7]
+  - id: security
+    persona: harness-security-reviewer
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    mutates_repo: false
+    outputs: [notes/review-harness-security-reviewer-c2.md]
+    artifact: notes/review-harness-security-reviewer-c2.md
+    evidence:
+      in_scope: true
+      closed: [V1, V2, V3]
+      assurance: static
+  - id: ui
+    persona: harness-ui-reviewer
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    mutates_repo: false
+    outputs: [notes/review-harness-ui-reviewer-c2.md]
+    artifact: notes/review-harness-ui-reviewer-c2.md
+    evidence:
+      in_scope: false
+      changed_objects: 31
+      changed_rendering_objects: 0
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    mutates_repo: false
+    outputs: [notes/research-FEAT-2274-omp-native-gate-policy-goalcheck-validate-c2.md]
+    artifact: notes/research-FEAT-2274-omp-native-gate-policy-goalcheck-validate-c2.md
+    evidence:
+      sc_met: 9
+      decision_landings_met: 6
+      closed: [V2, V7]
+      advisory: task_file_ownership

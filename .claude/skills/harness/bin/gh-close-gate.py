@@ -35,68 +35,14 @@ _bootstrap_sys.path[:] = [
     if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
 ]
 
-
-# ACCEPTED DUPLICATION (FEAT-61 D-09, DEC-234). This prologue is copied, not shared, in
-# branch-create-gate.py, merge-gate.py, plan-sign-gate.py, run-unit-tests.py: it runs BEFORE the
-# trusted bin path is on sys.path, so no helper can be imported to hold it — the code below IS
-# what creates the import seam. Change all five together; never replace one with an import.
-def _resolve_root():
-    """Resolve through the trusted sibling with isolated import semantics."""
-    try:
-        _bootstrap_sys.path.insert(0, _bootstrap_bin)
-        with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
-            import harness_boundary
-            return harness_boundary.resolve_root(_bootstrap_bin)
-    except (ModuleNotFoundError, ValueError):
-        # FEAT-64: the module did not import (a missing first-party sibling), or resolve_root
-        # refused (strict: no MARKER anywhere) -- the two shapes "no root" takes, matching
-        # check-state.py's copy. The four gate copies narrow the same way in FEAT-65.
-        return ""
-
-
-ROOT = _resolve_root()
-if not ROOT or not _bootstrap_os.path.isdir(ROOT):
-    print(
-        f"gh-close-gate.py: no harness root could be resolved from "
-        f"{_bootstrap_bin} — refusing to run",
-        file=_bootstrap_sys.stderr,
-    )
-    raise SystemExit(2)
-import artifact_accessors as _artifact_accessors
-_bootstrap_sys.path[:] = _bootstrap_original_path
-
 import json
 import os
 import re
 import shlex
 import sys
+import traceback
 
-# ONE refusal text, used verbatim for EVERY denial. A second wording would drift, and the
-# operator would learn two different answers to one question.
-REASON = (
-    "Refused: the harness closes tickets by landing their card at Done, never by closing an issue.\n"
-    "If the work is finished, do nothing here \u2014 gh-sync.py ship writes Done at the merge and GitHub\n"
-    "closes the issue. If it is being dropped, run:\n"
-    "  python3 .claude/skills/harness/bin/gh-sync.py abandon <feature-dir> --reason-file <path> --yes\n"
-    "If the issue is not tracked by the harness at all, close it in the GitHub web UI; this gate\n"
-    "cannot tell tracked from untracked, by design."
-)
-
-# ---- config gate: github.sync on -- else pass through instantly
-try:
-    config_path = os.path.join(ROOT, ".harness", "harness.json")
-    g = _artifact_accessors.load_harness_json(config_path).get("github") or {}
-except _artifact_accessors.ArtifactAccessError:
-    g = {}
-if not g.get("sync"):
-    sys.exit(0)
-
-try:
-    payload = _artifact_accessors.read_hook_payload(
-        sys.stdin.read(), "gh-close-gate hook payload")
-    cmd = (payload.get("tool_input") or {}).get("command") or ""
-except _artifact_accessors.ArtifactAccessError:
-    sys.exit(0)
+GATE = "gh-close-gate"
 
 # Shell operators shlex hands back as their own tokens. They are separators, never words.
 OPS = {";", "&", "&&", "|", "||", "(", ")", "<", ">", ">>", "\n"}
@@ -209,6 +155,106 @@ def denies(line, depth=0):
         return _raw_denial(line)
     return _direct_denial(tokens) or _nested_denial(tokens, depth)
 
+
+# ---- APPLICABILITY FIRST (FEAT-2274 C2) -----------------------------------------------------
+# The command is matched with the standard library alone, before root resolution and before any
+# library or config load: a command this gate does not guard exits 0 here and never meets a
+# dependency, so a broken root or sibling module cannot refuse unrelated Bash. A command it DOES
+# guard runs the rest closed — an own failure refuses it by name rather than leaving it
+# unchecked. Copied, not shared, in branch-create-gate.py and plan-sign-gate.py for DEC-234's
+# reason: it runs before the trusted bin path is there to import a helper from.
+def _payload_command(text):
+    """tool_input.command from the raw payload, or "" when there is none to read. A lenient
+    stdlib read for applicability only: read_hook_payload below stays the authority."""
+    try:
+        payload = json.loads(text)
+    except (ValueError, RecursionError):
+        return ""
+    tool_input = payload.get("tool_input") if isinstance(payload, dict) else None
+    command = tool_input.get("command") if isinstance(tool_input, dict) else None
+    return command if isinstance(command, str) else ""
+
+
+def _unrunnable(detail):
+    """The named refusal for a guarded command the gate could not check; exit status 2."""
+    print(f"{GATE}: BLOCKED — the gate could not run ({detail}); the command it guards is "
+          f"refused rather than left unchecked.", file=sys.stderr)
+    return 2
+
+
+def _refuse_on_crash(kind, error, trace):
+    """sys.excepthook for a guarded command: the traceback stays loud, the verdict is the
+    refusal. No broad catch (the FEAT-65 census holds every hook at zero) and the body stays at
+    module level, where the canonical-reader inventory records its reads. os._exit, because
+    the interpreter exits 1 after any excepthook returns."""
+    traceback.print_exception(kind, error, trace)
+    status = _unrunnable(f"{kind.__name__}: {error}")
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(status)
+
+
+_payload_text = sys.stdin.read()
+if not denies(_payload_command(_payload_text)):
+    sys.exit(0)
+sys.excepthook = _refuse_on_crash
+
+
+# ACCEPTED DUPLICATION (FEAT-61 D-09, DEC-234). This prologue is copied, not shared, in
+# branch-create-gate.py, merge-gate.py, plan-sign-gate.py, run-unit-tests.py: it runs BEFORE the
+# trusted bin path is on sys.path, so no helper can be imported to hold it — the code below IS
+# what creates the import seam. Change all five together; never replace one with an import.
+def _resolve_root():
+    """Resolve through the trusted sibling with isolated import semantics."""
+    try:
+        _bootstrap_sys.path.insert(0, _bootstrap_bin)
+        with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
+            import harness_boundary
+            return harness_boundary.resolve_root(_bootstrap_bin)
+    except (ModuleNotFoundError, ValueError):
+        # FEAT-64: the module did not import (a missing first-party sibling), or resolve_root
+        # refused (strict: no MARKER anywhere) -- the two shapes "no root" takes, matching
+        # check-state.py's copy. The four gate copies narrow the same way in FEAT-65.
+        return ""
+
+
+ROOT = _resolve_root()
+if not ROOT or not _bootstrap_os.path.isdir(ROOT):
+    raise SystemExit(_unrunnable(f"no harness root could be resolved from {_bootstrap_bin}"))
+import artifact_accessors as _artifact_accessors
+_bootstrap_sys.path[:] = _bootstrap_original_path
+
+# ONE refusal text, used verbatim for EVERY denial. A second wording would drift, and the
+# operator would learn two different answers to one question.
+REASON = (
+    "Refused: the harness closes tickets by landing their card at Done, never by closing an issue.\n"
+    "If the work is finished, do nothing here \u2014 gh-sync.py ship writes Done at the merge and GitHub\n"
+    "closes the issue. If it is being dropped, run:\n"
+    "  python3 .claude/skills/harness/bin/gh-sync.py abandon <feature-dir> --reason-file <path> --yes\n"
+    "If the issue is not tracked by the harness at all, close it in the GitHub web UI; this gate\n"
+    "cannot tell tracked from untracked, by design."
+)
+
+# ---- config gate: github.sync on -- else pass through instantly. Only a READABLE config with
+# sync off exempts (FEAT-2274 V1): the command already matched, so a harness.json that cannot be
+# read, or whose github block is not a mapping, refuses it by name rather than passing unchecked.
+config_path = os.path.join(ROOT, ".harness", "harness.json")
+try:
+    g = _artifact_accessors.load_harness_json(config_path).get("github", {})
+except _artifact_accessors.ArtifactAccessError as error:
+    raise SystemExit(_unrunnable(f"harness.json could not be read: {error}"))
+if not isinstance(g, dict):
+    raise SystemExit(_unrunnable(
+        f"harness.json github block is not a mapping: {type(g).__name__} in {config_path}"))
+if not g.get("sync"):
+    sys.exit(0)
+
+try:
+    payload = _artifact_accessors.read_hook_payload(
+        _payload_text, "gh-close-gate hook payload")
+    cmd = (payload.get("tool_input") or {}).get("command") or ""
+except _artifact_accessors.ArtifactAccessError:
+    sys.exit(0)
 
 if denies(cmd):
     print(json.dumps({"hookSpecificOutput": {
