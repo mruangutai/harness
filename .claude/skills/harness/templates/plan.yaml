@@ -72,6 +72,19 @@ decisions:
     because: <one clause>
     dec: DEC-NNN | none
 
+# Every existing DEC this plan keeps, amends or strikes. Each row has exactly five fields:
+# dec, disposition (keep | amend | strike), clause (verbatim from DECISIONS.md),
+# successor (none for keep; D-NN or DEC-NNN for amend/strike) and reason.
+# No affected decision: keep the explicit empty list — [] is a claim the scope reader checks.
+# Row shape, illustrative only (no real id is required to instantiate the template):
+#   - dec: DEC-<n>
+#     disposition: amend
+#     clause: "<verbatim clause>"
+#     successor: D-01
+#     reason: <one clause>
+# drafted_at is writer-owned provenance plan-merge.py stamps at creation, never a user-filled date.
+decisions_affected: []
+
 tasks:
   - id: T-01
     title: <imperative, one line>

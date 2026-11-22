@@ -17,7 +17,9 @@ in it:
   owning dev, `files:` the ones the grilling named, `traces:` every SC, `change_type: bugfix`
   unless the grilling says otherwise. The lane itself is not yours to record: `feature.json` is
   the orchestrator's domain, and it wrote `mission: patch` from the grilling's `## Mission` block
-  before it dispatched you (playbook step 1).
+  before it dispatched you (playbook step 1). The one-task plan still carries the five-field
+  `decisions_affected:` block (`[]` when no decision is affected) and must pass
+  `plan-merge.py check` like any draft; the lane adds no panel for it.
 
 No panel and no goal-check run read the patch intake; it is gated at qa and review on the diff,
 not at plan on a document (DEC-225, amending DEC-139). After signature the orchestrator runs

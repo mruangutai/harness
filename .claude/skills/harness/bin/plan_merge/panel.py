@@ -16,6 +16,7 @@ from plan_merge.guards import (
     _die, _load_base_doc, _load_mapping_value, _locked_plan_update, _reload_or_refuse,
     _resolve_plan, _schema_error,
 )
+from plan_merge.union import DRAFTED_AT
 
 # ---------------------------------------------------------------------------
 # `panel:` and `lanes:` — the top-level mappings pm and the orchestrator write (FEAT-59 SC-05,
@@ -332,6 +333,9 @@ OWNED_KEYS = {
     "tasks": "apply, add-tasks, amend --key tasks, or delete-items --task",
     "decisions": "apply, amend --key decisions, or delete-items --decision",
     "status": "set-feature-station",
+    # FEAT-2229: creation provenance, refused here on every plan — stamped or undated legacy —
+    # before the lock, so no rewrite, null or insertion can buy or move an era exemption.
+    DRAFTED_AT: "apply's plan creation alone — writer-stamped provenance, never caller-set",
 }
 
 

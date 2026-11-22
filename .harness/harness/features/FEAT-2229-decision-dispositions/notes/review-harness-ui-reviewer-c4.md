@@ -1,0 +1,10 @@
+# FEAT-2229 — UI review c4
+
+**PASS — Mode B, scoped out: the measured pinned diff contains no rendered or interactive UI surface.** This is not visual assurance or acceptance of scanner correctness.
+
+- Reviewed commit objects at `dfa52536..46d0c4bce7cec18e0aabec56a490981496970cc0`, without checking out or executing mutable implementation code. Complete changed-object census: **50 paths: 35 Markdown, 7 Python, 4 YAML, 4 JSON**; **zero** HTML/HTM/CSS/SCSS/SASS/LESS/TSX/JSX/Vue/Svelte/SVG paths.
+- Classified the changes: Python implements schema/provenance/draft checks and regression fixtures; YAML/JSON contains configuration, templates, routing, classification and feature state; Markdown contains product authorities, agent instructions, planning and evidence records. Inspected implementation and instruction/authority deltas add no rendering, visual tokens, components or interactive controls. Test-delta render/theme/focus/style keyword census matched only YAML merge serialization, not UI rendering.
+- Direct pinned feature `DESIGN.md` object check returned absent (exit 128); pinned feature-tree enumeration found **zero prototype paths**. Unchanged visual artifacts elsewhere in the repository are not surfaces changed by this diff. The product-authority changes describe decision dispositions and pinned evidence, not visual design contracts.
+- Consulted pinned `AGENTS.md`, feature `plan.yaml`, `BRIEF.md`, operator ruling `notes/answers-2026-11-21-f3i-ruling.md`, relevant changes in `.harness/harness/docs/{SPEC.md,DECISIONS.md,DECISIONS-INDEX.md}`, and c3 UI review as historical evidence only. No c3 pin was executed. The four-rule scanner ruling remains **T-01 / SC-02**, for code/security/QA correctness review; this UI scope result neither closes it nor certifies the caller's source-equivalence claim.
+
+Accessibility, theme parity, focus preservation, interaction states and layout: **not applicable**, not visually passed. Rendered-size/layout cannot be verified from source; no such assurance is claimed. No builds, tests, linters, formatters or smoke checks run; no source/test edits. Findings, must-fix items and open questions: **none**.

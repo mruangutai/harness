@@ -78,7 +78,7 @@ Four files plus `harness.json` and one directory:
 | File | Purpose | Read by | Written by |
 |---|---|---|---|
 | `.harness/features/<FEAT>/BRIEF.md` | The one statement of done (DEC-231): `## Problem`, `## Done when — by perspective` (one `**<name>** —` line per perspective with something to say), `## KPIs` (optional), `## Success criteria` (`- SC-NN (<perspective>):` with `verify:`), `## Verification gaps`, `## Constraints`, `## Out of scope`, `## Approval`. No `## Goal`, no `REQ-NN`. **The goal of record** — every goal-check grades it per perspective; INV-38 grades its shape. A `patch` mission's BRIEF is at most 120 lines | all personas | `harness-pm` (drafts) · **user approves** |
-| `.harness/features/<FEAT>/plan.yaml` | The declaration (§11.2): `decisions:` (D-NN), `tasks:` (T-NN: `files:` symbol anchors, `intent:`, `verify:`, `traces:` SC ids, `change_type:`, `execution_agent:`, `status:`), `panel:`, `lanes:`, top-level `status` (the station), `approval:`. Written only through `plan-merge.py`; any task-set change resets approval to `pending` | all personas | `harness-pm` authors; the orchestrator runs `set-task-station` and `record-panel` (DEC-229); `sign-approval` is the main session's |
+| `.harness/features/<FEAT>/plan.yaml` | The declaration (§11.2): `decisions:` (D-NN), `decisions_affected:` (five-field dispositions or explicit `[]`), writer-owned `drafted_at`, `tasks:` (T-NN: `files:` symbol anchors, `intent:`, `verify:`, `traces:` SC ids, `change_type:`, `execution_agent:`, `status:`), `panel:`, `lanes:`, top-level `status` (the station), `approval:`. Written only through `plan-merge.py`; any task-set change resets approval to `pending` | all personas | `harness-pm` authors; the orchestrator runs `set-task-station` and `record-panel` (DEC-229); `sign-approval` is the main session's |
 | `.harness/features/<FEAT>/STATE.md` | Live handoff digest **per flow** — `## Current` (a *pointer* to the in-flight run's `state.yaml`, not a copy) + `## Open Questions`. Nothing else. **Bounded by construction** — no rotation rule needed. Per-feature since DEC-120: with N concurrent flows a single project-level file would have N writers | that flow's agents at spawn | **that feature's orchestrator only** |
 | `.harness/logs/<YYYY-MM-DD>.md` | Append-only **cross-flow** stream, one file per day: flow started, escalation raised, question answered, briefing held. Per-flow detail lives in that feature's `STATE.md` and run dirs. **Not loaded at spawn.** Pruned on a recurring schedule. | on request only | **main session only** — kept single-writer by being the one thing above the flows (DEC-120) |
 | `.harness/features/<FEAT>/DESIGN.md` | Visual design contract: palette, type scale, spacing, component direction, light/dark. Established by the design pass in `/harness-plan`; the authority UI work implements against. | frontend-dev, documentor, ui-reviewer | `harness-visual-designer` |
@@ -251,7 +251,8 @@ DEC-120) — two jobs:
 **Goal-checking is distributed, not centralized in one role:**
 
 - **Feature-level goal** → `pm` (owns the "what"; grades each perspective of `## Done when — by
-  perspective` from SC outcomes, at plan exit and at validate exit)
+  perspective` from SC outcomes, at plan exit and at validate exit; at validate, also grades each
+  declared amend/strike decision disposition from pinned evidence, §11.6)
 - **Architecture goals** → the `scope` reader (`code-reviewer`, per `harness-codebase-design`) at
   plan time and `code-reviewer` at validate · **Coverage goals** → `qa` · **Security goals** →
   `security-reviewer`
@@ -1982,6 +1983,8 @@ decisions:                         # pointers; reasoning lives in .harness/harne
     because: auth is not our differentiator and Supabase is already our DB
     dec: none                      # a plan-local choice that never became a repo ruling
 
+decisions_affected: []              # explicit claim: no existing decision is affected (DEC-254)
+
 tasks:
   - id: T-04
     title: Configure Supabase Google provider
@@ -2002,6 +2005,42 @@ tasks:
 
 **Nothing in `plan.yaml` is prose for a human.** Human-facing intent lives in `BRIEF.md`. The one
 long field, `intent:`, is the literal dispatch prompt the doing agent receives.
+
+**Decision dispositions are part of the declaration, including a one-task patch** (DEC-254).
+The shipped template, `.claude/skills/harness/templates/plan.yaml`, starts with
+`decisions_affected: []`: an explicit claim that no existing decision is affected. Otherwise each
+row has exactly `dec` (a DEC identifier), `disposition` (`keep | amend | strike`), `clause`
+(nonempty verbatim source text), `successor` (the string `none` for keep, a plan-local D id or
+indexed DEC for amend/strike), and `reason` (one nonempty line). The shared loader validates
+shape whenever the block is present but permits absence for legacy readability.
+
+New-plan creation alone stamps `drafted_at` from the writer's UTC clock; callers cannot supply,
+change, null or insert it through later set-key or apply/merge operations. Ordinary edits preserve
+the existing stamp or its absence, without backfill. The per-project `harness.json` key
+`decision_dispositions_era_start` sets the creation boundary: a pending, nonterminal draft with a
+writer stamp at or after that timezone-qualified activation instant must carry the block.
+New-install `null` means every newly stamped draft; a missing key preserves pre-adoption
+behavior. Pre-activation stamped drafts and undated legacy plans are grandfathered. Approved
+and terminal history skip this drafting rule, since the quoted clause may disappear after
+signature. On the stamped pending-draft path, malformed non-null timestamps produce diagnostics,
+not exemptions; signature date, file mtime and feature start do not determine eligibility.
+
+The existing `plan-merge.py check` requires the eligible draft's block, accepts `[]`, and resolves
+each DEC against the product segment's index. Keep/amend cannot target STRUCK entries, with status
+matched case-insensitively. Each clause must occur exactly in that DEC's own heading section,
+not another section or normalized text. Amend/strike successors must resolve to this plan's
+`decisions:` id or an indexed DEC, and a task's normalized `files:` anchor must own the segment's
+DECISIONS.md. Row diagnostics name the list index and DEC and fail the existing check; malformed
+shape is a loader error. These are plan checks, not a general decision-freshness detector or
+DEC-205's decision-file anchor-rot check.
+
+The scope reader independently searches touched surfaces and governing decisions for omissions
+or an unjustified empty list, leaving mechanically resolvable defects to the script. Under
+DEC-188, a flat contradiction is struck; merely dated, narrowed or partly overtaken decisions
+are amended unless the operator expressly authorizes a softer strike. See the canonical draft
+and scope prompts in `.claude/skills/harness/teams/plan.yaml`. The patch contract in
+`.claude/skills/harness/references/patch-lane.md` requires the same block and check, without adding
+a pre-build panel.
 
 **Why not markdown, and why not a fenced block inside markdown.** The format this replaced was
 markdown containing `key: value` lines — parseable by no YAML library, so three scripts hand-rolled
@@ -2245,6 +2284,23 @@ Because pm authors the plan *and* runs this check, it is the one acknowledged se
 (§3) — but note it is the *weakest* form of self-review available here: pm cannot manufacture
 evidence, only report what qa and the reviewers produced.
 
+**At validate, pm also grades decision-disposition landing, independently of SC outcomes**
+(DEC-254). Every amend/strike row is graded individually; keep rows are skipped. Canonical
+Mode 2 in `.omp/agents/harness-pm.md` requires DECISIONS.md as committed at the supplied
+`review_sha`, never the mutable working tree. It reuses `sc_status`: `id` names the DEC,
+`verdict` is `met | not_met | partial`, `method` is `inspection`, and `evidence` names the pin,
+decision-file path and pinned line. Multiple clauses of one DEC retain plan-row identity in the
+durable research note.
+
+The declared clause, successor and reason define what must land: amend requires the intended
+current text to replace the clause; strike requires a strike record, or deletion justified by its
+named successor with citations repointed under DEC-188/205. A DEC mention or green suite is not
+landing evidence. Missing or partial landing fails goal-check like an unmet SC; pm names the
+canonical task owning that DECISIONS.md for remediation. No owner is a plan/scope defect, not a
+pass. The validator lead preserves these failures as `must_fix` against that task even with
+clean QA (`.omp/agents/harness-validator-lead.md`, “The gate”). No new digest field or
+validate-time script is involved.
+
 **The UAT — `.harness/features/<FEAT>/notes/uat.md`, pm-owned.** Any SC marked `verify: uat` produces a step in
 a UAT script for that feature:
 
@@ -2433,6 +2489,8 @@ unfalsifiable (DEC-231):
   reader it was promised to.
 - **Trace coverage** — every SC has at least one task `traces:` to it; an orphan SC is the `scope`
   reader's finding at plan time, not a build-time discovery.
+- **Decision-disposition outcomes at validate** — pm individually grades amend/strike rows,
+  skipping keep, using the pinned landing-evidence and owning-task failure route in §11.6.
 
 The check runs **once at plan exit** (`goalcheck` in the `plan` team, against the plan) and **once at
 validate exit** (`goalcheck` in the `validate` team, against the diff). There is no per-cycle

@@ -387,5 +387,126 @@ for team_name, team_steps in (("plan", steps), ("validate", v_steps), ("fix", f_
                       f"persona {persona}", ok,
                       f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
 
+# --- 10. FEAT-2229 decision dispositions: each obligation asserted at its owning prompt or
+#         section, never file-globally. Static wiring only — proof the text is present, not
+#         proof any agent obeys it. The mutation witness deletes each obligation's matched
+#         text from its own slice and requires that obligation's assertion to redden.
+TEMPLATE_PLAN = os.path.join(REPO, ".claude", "skills", "harness", "templates", "plan.yaml")
+PATCH_LANE_MD = os.path.join(REPO, ".claude", "skills", "harness", "references", "patch-lane.md")
+
+
+def _section(text, start, end):
+    """The slice of `text` from the line matching `start` up to the next `end` match."""
+    m = re.search(start + r".*?(?=" + end + r"|\Z)", text, re.S | re.M)
+    return m.group(0) if m else ""
+
+
+def _prose(slice_text):
+    """Normalized prose with YAML comment markers dropped, so wrapped comments read as one."""
+    return _normalize_prose(re.sub(r"^\s*# ?", "", slice_text, flags=re.M))
+
+
+def _missing(slice_text, patterns):
+    """Patterns the slice's prose does not contain."""
+    norm = _prose(slice_text)
+    return [p for p in patterns if not re.search(p, norm)]
+
+
+def _without(slice_text, patterns):
+    """The slice with every match of `patterns` removed: one obligation deleted."""
+    norm = _prose(slice_text)
+    for p in patterns:
+        norm = re.sub(p, "", norm)
+    return norm
+
+
+_template_text = read(TEMPLATE_PLAN)
+DISPOSITION_SLICES = {
+    "template": _section(_template_text, r"^# Every existing DEC", r"^tasks:"),
+    "patch-lane": _section(read(PATCH_LANE_MD), r"^- \*\*`plan\.yaml` with exactly one task",
+                           r"^\n"),
+    "plan/draft": steps_by_id["draft"].get("prompt", ""),
+    "plan/scope": scope.get("prompt", ""),
+    "validate/goalcheck": v_by_id["goalcheck"].get("prompt", ""),
+    "pm Mode 2": _section(read(os.path.join(AGENTS_OMP, "harness-pm.md")),
+                          r"^## Mode 2", r"^## Mode 3"),
+    "validator gate": _section(read(os.path.join(AGENTS_OMP, "harness-validator-lead.md")),
+                               r"^## The gate", r"^## "),
+}
+DISPOSITION_OBLIGATIONS = (
+    ("template", "names exactly the five row fields",
+     [r"exactly five fields: dec, disposition \(keep \| amend \| strike\), clause \(verbatim",
+      r"successor \(none for keep; D-NN or DEC-NNN for amend/strike\) and reason"]),
+    ("template", "instantiates the explicit empty list", [r"decisions_affected: \[\]"]),
+    ("template", "example needs no real decision id", [r"no real id is required"]),
+    ("template", "drafted_at is writer-owned, not user-filled",
+     [r"drafted_at is writer-owned provenance", r"never a user-filled date"]),
+    ("patch-lane", "one-task plan still carries the block",
+     [r"still carries the five-field `decisions_affected:` block"]),
+    ("patch-lane", "one-task plan still runs the check, adding no panel",
+     [r"must pass `plan-merge\.py check`", r"adds no panel"]),
+    ("plan/draft", "every new draft carries the five-field block",
+     [r"Every new draft carries a `decisions_affected:` block",
+      r"`dec`, `disposition` \(keep, amend or strike\), `clause`, `successor` and `reason`"]),
+    ("plan/draft", "explicit empty list when nothing is affected",
+     [r"explicit empty list `decisions_affected: \[\]`"]),
+    ("plan/draft", "verbatim clauses", [r"Quote each clause verbatim"]),
+    ("plan/draft", "resolvable amend/strike successor", [r"names a resolvable successor"]),
+    ("plan/draft", "a task owns DECISIONS.md", [r"some task owns DECISIONS\.md"]),
+    ("plan/draft", "then runs plan-merge.py check", [r"Then run `plan-merge\.py check"]),
+    ("plan/scope", "searches touched surfaces independently of the plan's list",
+     [r"independently of the plan's own list"]),
+    ("plan/scope", "flags omissions", [r"flag an omitted affected decision"]),
+    ("plan/scope", "flags an unjustified empty list", [r"an unjustified empty list"]),
+    ("plan/scope", "applies DEC-188 strike-vs-amend",
+     [r"Apply DEC-188: a flat contradiction is struck",
+      r"merely dated, narrowed or partly overtaken is amended"]),
+    ("plan/scope", "softer strike needs operator authorization",
+     [r"operator expressly authorizes a softer strike"]),
+    ("plan/scope", "mechanical defects left to the check",
+     [r"Leave mechanically resolvable defects"]),
+    ("validate/goalcheck", "points at canonical harness-pm Mode 2 at the supplied pin",
+     [r"per canonical harness-pm Mode 2 at the supplied \{\{review_sha\}\}"]),
+    ("pm Mode 2", "third falsifiable unit", [r"three falsifiable units",
+                                             r"Decision-disposition outcomes"]),
+    ("pm Mode 2", "keep rows are not graded", [r"`keep` rows are not graded"]),
+    ("pm Mode 2", "per-row read pinned at review_sha, never the working tree",
+     [r"For each amend/strike row individually",
+      r"git show <review_sha>:<repo-relative DECISIONS\.md path>`\) — never the mutable"]),
+    ("pm Mode 2", "sc_status row: DEC id, verdict, inspection method",
+     [r"`sc_status` row: `id` the DEC, `verdict` `met \| not_met \| partial`, "
+      r"`method` `inspection`"]),
+    ("pm Mode 2", "evidence names review_sha, path and pinned line",
+     [r"naming the review_sha, the DECISIONS\.md path and the pinned line"]),
+    ("pm Mode 2", "amend and strike landing tests",
+     [r"an amend is met only when the intended current text has actually replaced",
+      r"a strike only when the strike record exists"]),
+    ("pm Mode 2", "strike alternative: successor-justified deletion with repointed citations",
+     [r"or the deletion is justified by its named successor with citations repointed "
+      r"\(DEC-188, DEC-205\)"]),
+    ("pm Mode 2", "mention or green suite is insufficient",
+     [r"merely mentions the DEC, or a green suite, is insufficient"]),
+    ("pm Mode 2", "failed landing fails the goal-check, routed to the owning task",
+     [r"fails the goal-check exactly like an unmet SC",
+      r"name the task owning DECISIONS\.md for remediation"]),
+    ("pm Mode 2", "missing owner is a plan/scope defect, not success",
+     [r"No owning task is a plan/scope defect, never a reason to claim success"]),
+    ("validator gate", "failed dispositions become must_fix against the owning task",
+     [r"decision-disposition `sc_status` rows are `must_fix`",
+      r"DECISIONS\.md-owning task pm names"]),
+    ("validator gate", "clean QA cannot erase a failed landing",
+     [r"clean QA cannot erase a failed landing"]),
+)
+for owner, label, patterns in DISPOSITION_OBLIGATIONS:
+    slice_text = DISPOSITION_SLICES[owner]
+    gone = _missing(slice_text, patterns)
+    check(f"(10) {owner}: {label}", not gone, f"missing {gone}\n{slice_text}")
+    if not gone:
+        check(f"(10m) {owner}: deleting '{label}' reddens its assertion",
+              bool(_missing(_without(slice_text, patterns), patterns)))
+check("(10z) template's decisions_affected is the instantiated empty list, not a comment",
+      re.search(r"^decisions_affected: \[\]$", DISPOSITION_SLICES["template"], re.M) is not None,
+      DISPOSITION_SLICES["template"])
+
 print(f"\n{ran - fails}/{ran} checks passed." if fails == 0 else f"\n{fails} of {ran} FAILING.")
 sys.exit(1 if fails else 0)

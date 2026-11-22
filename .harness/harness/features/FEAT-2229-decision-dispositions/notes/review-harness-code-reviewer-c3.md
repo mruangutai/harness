@@ -1,0 +1,27 @@
+# FEAT-2229 pinned code review — c3
+
+**PASS with a medium T-01 advisory: the suffix-bearing closer defect is repaired, but four-space-indented fence content still exposes a spoof decision section.** SC-02's own-section guarantee remains incomplete; reviewer severity policy does not independently gate medium findings.
+
+Reviewed `dfa52536..ab1e42460b5310a9473724edfb574454d39f6ca8` only. Read BRIEF/plan decisions before the diff; completed compliance assessment before the quality pass. Inspected the full non-`.harness` diff and pinned T-03 documentation; consulted AGENTS.md and the designated SPEC/decision authorities, not absent `docs/spec.md`, `docs/decisions.md` or `docs/architecture.md`. Commit history has no `[harness:human]` commits or foreign-feature commits. Only tracked dirt was feature.json bookkeeping; its live review pin agrees with dispatch. No source-equivalence claim between ab1e4246 and 8cf1d93f is made.
+
+## Stage 1 — compliance and closure
+
+- **F3 / SEC-C2-01 suffix scenario closed by inspection, T-01 / SC-02.** At pinned `.claude/skills/harness/bin/plan_merge/check.py:279-292`, the new suffix predicate keeps a `python`-bearing run inside the fence. `tests/integration/test-plan-decision-dispositions.py:296-323,588-593` adds and invokes `case_info_string_run_does_not_close_a_fence`, requiring both spoof rejection with row/DEC/clause diagnostics and genuine-section acceptance. Removing the suffix predicate would invert those outcomes by source reasoning; no mutation was executed here.
+- **F1 remains closed, T-01 / SC-01:** `plan_merge/union.py:340-347,381-391` validates creation rows through the shared schema before returning write bytes; integration `:466-480` pairs malformed/no-file refusal with successful valid creation. **Original F2 remains closed, T-01 / SC-02:** whole-document fence tracking and real-heading section bounds remain at `check.py:295-325`; plain/nested examples have negative and genuine-section controls at integration `:249-292`.
+- **F-01 remains closed, T-02 / SC-07:** `tests/integration/test-plan-team.py:439-440,481-486,500-508` binds the successor-justified deletion assertion and deletion witness to canonical pm Mode 2, independently of other documents.
+- **SC-04 inspection met:** `teams/plan.yaml:59-66,103-108`, template `:75-86`, patch reference `:20-22`: five fields, explicit empty list, independent omissions review, DEC-188 distinction, same check and no patch panel. **SC-05 inspection met:** `.omp/agents/harness-pm.md:58-82`, `teams/validate.yaml:120-121`, validator-lead `:104-105`: individual pinned amend/strike outcomes, keep skipping and owning-task failure preservation. **SC-06 inspection met, owner T-03:** pinned DECISIONS.md `:5313-5336,8253-8326`, index DEC-188/254 rows, SPEC `:2009-2043,2287-2302` record the promised amendment and existing sc_status route without reviving general stale detection.
+- SC-01/03 implementation retains typed rows, no-partial-write guards, writer-owned provenance and forward-only era behavior; SC-07 remains owner-scoped instruction verification, not proof of agent obedience. No unrelated scope addition identified.
+
+## Stage 2 — one ranked finding
+
+**F3-I / substance / med / scope none / code-reviewer / owner T-01 / SC-02 mismatch:** `check.py:203,285-292` accepts arbitrary leading whitespace as fence indentation. Inside a real three-backtick `text` fence in DEC-11, put a line containing **four spaces followed by three backticks**, then an unindented `## DEC-10` example heading and `Spoof clause.`, then the actual unindented closing fence and the genuine DEC-10 section. CommonMark keeps the four-space run and example inside the existing fence, but this scanner closes at that run. `_Authority.section` selects the example before the genuine section (`:318-325`), and `_row_faults` accepts the spoof clause (`:355-369`). Thus a clause absent from the real DEC-10 passes. **REASONED inspection counterexample, not executed.** Same uncommon decision-document authority defect class and medium severity as F3/SEC-C2-01, not a severity escalation. Bound fence indentation and add an actual-CLI spoof-negative/genuine-positive regression; QA should measure its pre-fix failure.
+
+Broader shape inspection: tildes share the same suffix rule; same-character longer closers and trailing ASCII spaces/tabs are accepted, while shorter/different-character runs retain the fence. Zero-to-three-space indentation is accepted appropriately; four-or-more spaces expose the residual above. The new regression covers suffixes, not this indentation boundary.
+
+Mandatory static grader executed before quality review: `code-grade.py --base 3dd8bb677bb2936361e3952030fc24f15bf9afc6 --head ab1e42460b5310a9473724edfb574454d39f6ca8` (canonical merge-base range), **exit 0, PASSING: 90**, no high or grade-2 records; `code_grade: pass`. No builds, suites, lint, formatters or runtime probes ran. QA c3 note was not available at inspection; QA owns signed verification and runtime falsification, not this reviewer.
+
+## Principles applied
+
+Model the Domain: checked the fence-state transition against both suffix and indentation invariants. Delete First: remediation stays in the existing scanner/check seam, not a parallel decision-audit system.
+
+Settled LEAVE items remain untouched: D-01/DEC-254, FINISHED_STATIONS, pm placeholder, gate placement, simplify L-1..L-4/B-1/B-2, landed create:true behavior and the 34-second advisory. No source fixes. Open questions: none.
