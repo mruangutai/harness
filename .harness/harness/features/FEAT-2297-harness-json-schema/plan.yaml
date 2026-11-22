@@ -511,7 +511,7 @@ tasks:
   - T-05
   - T-06
   - T-07
-  status: ready
+  status: done
   files:
   - path: .harness/harness/docs/DECISIONS.md
     quote: '# Harness — Decision Log'

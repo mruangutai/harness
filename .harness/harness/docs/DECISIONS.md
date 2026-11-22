@@ -7283,7 +7283,9 @@ Bound-feature INV-37 and mirror/merge/sweep preflight additionally resolve the t
 default-branch config through the shared binding resolver; unavailable or invalid binding fails
 closed, never falls back to the owner's config. This is a routing precondition, not a remote
 station write or a new issue-discovery purpose. Other offline advisory reads retain their existing
-non-gating behavior; that does not excuse an unresolvable bound target. The one exception is
+best-effort transport behavior, but every Python read of `harness.json` validates it and refuses a
+missing or invalid file (DEC-255); only DEC-198's advisory TypeScript budget fallback stays lenient.
+That does not excuse an unresolvable bound target. The one exception is
 INV-37 where gh is not authenticated (see the amendment below).
 
 **Over:** issue 206 item 2's central `.harness/products/<name>/harness.json`, and the pre-existing
@@ -8330,7 +8332,8 @@ This decision adds the per-project `decision_dispositions_era_start` key in `har
 timezone-qualified UTC activation instant. The drafting requirement applies when approval is
 pending, the station is nonterminal, and the writer stamp is at or after activation, including
 the exact boundary. New-install templates use `null`, meaning every newly stamped draft is in
-scope; a missing key preserves pre-adoption behavior. The eligible-draft path diagnoses malformed
+scope; under the version-3 schema an absent key defaults to `null` as well (DEC-255), so omission
+no longer preserves pre-adoption behavior. The eligible-draft path diagnoses malformed
 non-null draft instants or configured era instants rather than treating them as exemptions.
 Pre-activation stamped drafts and pre-writer undated plans are grandfathered without backfill;
 approved and terminal history skip this new drafting rule because the quoted pre-change clause
@@ -8366,3 +8369,61 @@ check remain intact: the new mechanical rule grades plans, not general decision 
 
 **Record:** amends DEC-188's human-only enforcement assertion. Refs: DEC-73, DEC-174, DEC-179,
 DEC-182, DEC-188, DEC-205, DEC-227, DEC-228, DEC-229, DEC-232.
+
+## DEC-255 — harness.json is one validated version-3 contract
+
+**Chose:** `.claude/skills/harness/bin/config-schemas/harness.json` (Draft 2020-12) is the sole
+shape and default contract for `harness.json` version 3, and it alone holds the default values and
+closed vocabularies. Eight signed choices:
+
+- **One loader (D-01).** Every ordinary Python config read goes through
+  `artifact_accessors.load_harness_json(path | text, context)`: strict decode, the schema's defaults
+  for absent keys, then validation. A missing or invalid file raises `ArtifactAccessError` naming
+  the source; no reader keeps a private interpretation, and none disables its policy on a bad file.
+- **Defaults only where absent (D-02).** Absent optional configuration takes the schema's template
+  defaults, never live Harness project values; absent `schema_version` means 3 and absent
+  `decision_dispositions_era_start` means `null`. A present invalid or legacy shape is refused,
+  never repaired.
+- **Closed shapes (D-03).** Structural keys, change types, matrix conditions, registered kind names
+  and kind statuses are closed sets. A present kind, board or matrix record must be complete, and
+  `github.sync: true` or a non-null board requires a pinned `github.repo`. Underscore-prefixed prose
+  stays unchecked except the operational `_matrix_provenance`.
+- **Two strict readers, no switch (D-04).** `load_harness_json` keeps its path/text/context API and
+  `ArtifactAccessError`. Non-config JSON artifacts, and the raw inputs a repair or report must read
+  before they can validate, use the strict `load_json_mapping`; the config loader has no permissive
+  mode.
+- **Explicit upgrade; recognize before refusing (D-05).** Version 2 becomes 3 only through
+  `upgrade-config.py` (`--config-only` for a product checkout): a kind without `status` becomes
+  `active` with a non-empty `cmd` and `unresolved` with a null one, project values are preserved,
+  and the candidate validates before the atomic replacement. Bash gates recognize their governed
+  command before loading config, and refuse a matched command on a missing or invalid file before
+  consulting sync.
+- **One fixture builder (D-06).** `tests/harness_config_support.py` builds every test config,
+  TypeScript included through builder-generated fixtures; each superseded reader-specific test is
+  disposed, and the affected test files shrink on net against the pinned base.
+- **Kaya by PR (D-07).** Kaya's configuration migrates through a validated payload in a dedicated PR
+  to `mruangutai/kaya` main, landing only on the operator's review and explicit merge authorization.
+- **The one lenient host read (D-08).** DEC-198's TypeScript `resolveBudgetNumber` fallback remains
+  for advisory budgets only; Python advisory readers still refuse an invalid file. Implementation
+  stays main-session-direct (DEC-174).
+
+**Over:** each reader's private reading of `harness.json` — a missing file read as sync off, a
+malformed era as an exemption, an absent budget as inactive counting, a broken board as a vacuous
+INV-26 — and a permissive flag on the loader for callers that wanted less.
+
+**Because:** one portable contract replaces duplicated reader checks and silent policy
+disablement. New optional keys must not demand fleet-wide edits, but omission must not disguise an
+invalid present structure. Typos become mechanical errors without treating prose as config, and
+conditional requirements are signed rather than inferred. Non-config callers stay strict without
+inheriting config defaults. Recognizing a governed command before reading config keeps repair,
+report and unrelated commands reachable without an allowlist. Central validation earns the deletion
+of duplicated tests, not a larger parallel suite. A product's default branch is its contract.
+
+**Tradeoff accepted:** a version-2 or hand-edited file now stops every reader until it is repaired
+or upgraded. The hooks need an importable `jsonschema`; a gate or the post-merge sweep that hardens
+its import path restores the interpreter's own path after its first-party imports so a user-site
+installation still resolves.
+
+**Record:** FEAT-2297 (#2297); D-01 to D-08 approved by Mike Ruangutai on 2026-11-22. Amends DEC-221
+(offline advisory reads) and DEC-254 (an absent era key). Refs: DEC-174, DEC-187, DEC-198, DEC-212,
+DEC-217.

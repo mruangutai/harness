@@ -88,6 +88,32 @@ Also present: `.harness/harness.json` (config — gates, `test_matrix`, `test_ki
 `log_retention_days`), `.harness/team-config.yaml` (the team manifest, §3),
 `.harness/expertise/` (§5), `.harness/features/` (§11).
 
+**`harness.json` is one validated contract (DEC-255).** Its shape, defaults, conditional
+requirements and closed vocabularies are written only in
+`.claude/skills/harness/bin/config-schemas/harness.json`; this document names its boundaries and
+never restates its values. Every Python reader loads it through
+`artifact_accessors.load_harness_json(path | text, context)`: a strict decode, the schema's
+`default`s for absent keys, then validation.
+
+- A missing file, a decode failure (duplicate keys, non-finite numbers, a non-mapping root) or a
+  schema violation raises `ArtifactAccessError` naming the file. The reader refuses; it never reads
+  the failure as sync off or as an empty policy.
+- Defaults fill only what is absent. An absent `test_kinds` or `test_matrix` takes the template map
+  whole; a present one keeps exactly the entries it lists. A present kind without `status`, or a
+  partial `github.board`, is invalid rather than completed. Conditional requirements, such as a
+  pinned `github.repo` once sync or a board is declared, are the schema's own `if`/`then` clauses.
+- Structural validity is not runner readiness. An `active` kind whose `cmd` is `null` validates,
+  yet qa still returns BLOCKED for it (§9); a product's `unresolved` kinds, Kaya's included, are
+  honest records of an undecided runner rather than errors.
+- Raw repair and report inputs, such as `upgrade-config.py`'s source file, are read through the
+  strict `load_json_mapping`, which never applies the schema.
+- The Bash gates recognize their governed command before reading config (§4.2): an unrelated
+  command never reads it, and a matched one is refused on a missing or invalid file before sync is
+  consulted.
+- A version-2 file does not load. `upgrade-config.py` (run by `harness-init --upgrade`; `--config-only`
+  for a product checkout) migrates it and validates the result before its atomic write.
+- The one lenient reader is DEC-198's TypeScript advisory budget fallback.
+
 ### 2.1 The question round-trip
 
 Subagents have no channel to the user; the main session does. Questions flow *up* and answers flow
@@ -155,6 +181,7 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 | STATE points at a task absent from PLAN | halt — report inconsistency, offer repair |
 | PLAN task missing `change_type` | pm must fill it before the qa gate can apply |
 | template `schema_version` gap in the control-plane clone's own manifest | tell the user to run `harness-init` with `--upgrade` |
+| `.harness/harness.json` missing or refused by the loader | one violation naming the file and the loader's diagnosis; no config-dependent invariant runs on top of it — repair the file or run `upgrade-config.py` (DEC-255) |
 | logs older than `log_retention_days` | prune opportunistically |
 
 ### 2.3 Writer ownership (concurrency safety)
@@ -1381,40 +1408,20 @@ the baseline; qa may *add* requirements it infers from the diff. It never drops 
 | config (shape change) | exempt | exempt | if touches config shape | exempt |
 | scaffolding / docs | exempt | exempt | exempt | exempt |
 
-`harness.json` schema. **Conditionals are structured predicates, not prose** — otherwise the
-table's "if touches DB/external" cells silently vanish and high-risk changes ship untested:
-
-```json
-"test_matrix": {
-  "logic":        { "always": ["unit"] },
-  "api":          { "always": ["unit","functional"],
-                    "when": [{ "kind":"integration", "if":"touches_db_or_external" }] },
-  "cross_module": { "always": ["unit","functional","integration"] },
-  "frontend":     { "always": ["unit","component"],
-                    "when": [{ "kind":"ui", "if":"has_interaction_flow" }] },
-  "feature":      { "always": ["unit","functional","integration","ui"] },
-  "bugfix":       { "always": ["unit"],
-                    "when": [{ "kind":"__bug_class__", "if":"match_bug_class" }] },
-  "config": { "always": [],
-              "when": [{ "kind":"integration", "if":"touches_config_shape" }] },
-  "scaffolding": { "always": [] }, "docs": { "always": [] }
-},
-"test_kinds": {
-  "unit":        { "detect": "tests/unit/**|*.test.*|*_test.*", "cmd": "<project test cmd>" },
-  "functional":  { "detect": "tests/functional/**",             "cmd": "..." },
-  "integration": { "detect": "tests/integration/**",            "cmd": "..." },
-  "component":   { "detect": "**/*.spec.tsx",                   "cmd": "..." },
-  "ui":          { "detect": "tests/e2e/**|*.spec.ts",          "cmd": "playwright test" }
-}
-```
+`harness.json` carries both tables. Their row and record shapes, the closed change-type, condition,
+kind and status vocabularies and the template defaults are defined only in
+`config-schemas/harness.json` (`test_matrix`, `test_kinds` and their `$defs`), never restated here.
+**Conditionals are structured predicates, not prose** — otherwise the table's "if touches
+DB/external" cells silently vanish and high-risk changes ship untested: a row is
+`{"always": [<kind>, …], "when": [{"kind": <kind>, "if": <condition>}]}`.
 
 - **Predicate evaluation** is qa's judgment against the diff, but the *predicate names are fixed
-  data* so behavior is auditable (`touches_db_or_external`, `has_interaction_flow`,
-  `match_bug_class`, `touches_config_shape` — the last for a `config` change that alters a value's
-  container shape rather than its value, DEC-212).
-- **`test_kinds` supplies two things** without which "missing required kind → FAIL" is not
-  computable: how to *detect* a kind's presence in a diff (`detect` globs), and *what command runs
-  it* (`cmd`, per project).
+  data* — the schema's closed `condition` set — so behavior is auditable. `touches_config_shape`
+  covers a `config` change that alters a value's container shape rather than its value (DEC-212).
+  The schema validates names only; nothing evaluates a condition mechanically.
+- **`test_kinds` supplies what "missing required kind → FAIL" needs:** how to *detect* a kind's
+  presence in a diff (`detect` globs), *what command runs it* (`cmd`, per project), and its
+  `status`.
 - **Owner: `dev-ops`.** During `harness-add-repo`, dev-ops detects the project's test runner and writes
   `test_kinds` into `.harness/harness.json`. **An unresolvable or missing `cmd` is a distinct LOUD
   third state** (`VERDICT: BLOCKED — test command unresolved`), never folded into the
