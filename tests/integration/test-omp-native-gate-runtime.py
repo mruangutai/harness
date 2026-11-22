@@ -37,6 +37,7 @@ import json
 import os
 import shutil
 import stat
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -532,12 +533,6 @@ def run_composition():
           any(line.startswith(gate_notice("bash-write-guard")) for line in lines[1:]), repr(lines))
 
 
-def median(values):
-    ordered = sorted(values)
-    middle = len(ordered) // 2
-    return ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
-
-
 def sample_arms(evidence):
     """The sequential and parallel timing lists, or [] when the evidence has no samples map."""
     samples = evidence.get("samples") if isinstance(evidence, dict) else None
@@ -572,7 +567,7 @@ def benchmark_verdict(evidence):
     if defect:
         print(f"FAIL  benchmark evidence is malformed: {defect}")
         return 2
-    sequential, parallel = (median(evidence["samples"][a]) for a in ("sequential", "parallel"))
+    sequential, parallel = (statistics.median(evidence["samples"][a]) for a in ("sequential", "parallel"))
     ratio = parallel / sequential
     verdict = "ok   " if ratio <= BENCH_RATIO else "FAIL "
     print(f"{verdict} benchmark: parallel median {parallel:.1f} ms / sequential median "

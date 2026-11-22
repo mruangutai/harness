@@ -1680,9 +1680,15 @@ def _matrix_floor(root, feature_dir, test_kinds):
     return sorted(floor - _excluded_kinds(test_kinds))
 
 
+def _satisfied_kind_names(kinds):
+    """Normalized names of the satisfied entries in a `kinds:` list, in claim order. The one
+    reading of a satisfied kind: the matrix floor and the receipt check both go through it."""
+    return (str(entry.get("kind", "")).strip() for entry in kinds
+            if isinstance(entry, dict) and entry.get("state") == "satisfied")
+
+
 def _satisfied_kinds(kinds):
-    return {str(entry.get("kind", "")).strip() for entry in kinds
-            if isinstance(entry, dict) and entry.get("state") == "satisfied"}
+    return set(_satisfied_kind_names(kinds))
 
 
 def _matrix_floor_errors(kinds, floor):
@@ -2413,12 +2419,11 @@ def _receipt_refusal(agent, problems, repairs):
 
 
 def _claimed_receipt_kinds(seen):
-    """Satisfied claimed kinds a receipt can prove, in claim order. Names are normalized as the
-    matrix floor reads them, so whatever counts as `unit` there needs a unit receipt here."""
+    """Satisfied claimed kinds a receipt can prove, in claim order, read through the matrix
+    floor's own `_satisfied_kind_names`, so whatever counts as `unit` there needs a unit receipt
+    here."""
     entries = seen.get("kinds") if isinstance(seen.get("kinds"), list) else []
-    named = [str(entry.get("kind", "")).strip() for entry in entries
-             if isinstance(entry, dict) and entry.get("state") == "satisfied"]
-    return [kind for kind in dict.fromkeys(named) if kind in RECEIPT_KINDS]
+    return [kind for kind in dict.fromkeys(_satisfied_kind_names(entries)) if kind in RECEIPT_KINDS]
 
 
 def _require_validator_parent(reg, owner, root, run):
