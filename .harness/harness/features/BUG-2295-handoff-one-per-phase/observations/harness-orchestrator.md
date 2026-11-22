@@ -2,3 +2,6 @@
 
 - 2026-11-22: Grilling named tests/unit/test-check-domain.py as the test home; the file does not exist at dd04e52a — handoff shape cases live in tests/integration/test-check-domain-post.py. Re-anchoring grilling facts at the cut commit before dispatch saved pm a dead end.
 - 2026-11-22: The patch-product task call carried outputSchema/schemaMode despite the assignment forbidding them; the host reported them as hook-injected and the lead return validated and closed normally. Flagged, not actionable here.
+- 2026-11-22: A reader's bypass finding (case-sensitive sub-regex under a case-insensitive routing regex) was inspection-only; a 4-line probe through the suite's own fixture builders at the pin confirmed it in under a minute (exit 0 on `handoff-Build-c1.md`, `handoff-build-C1.md`). Probing before routing turned a claim into a verified must-fix with a one-flag remedy.
+- 2026-11-22: The live task hook injected `outputSchema`/`schemaMode` into the validate dispatch even though the call carried neither; the lead still returned a valid digest. Not a defect of the dispatch text.
+- 2026-11-22: A `validate` run that FAILs on a main-session-direct task has no fix run to open: the seam is a return to main with STATE.md carrying the exact finding, and the cycle attribution waits for the re-close of the FAIL run after the fix lands (repository P-11).
