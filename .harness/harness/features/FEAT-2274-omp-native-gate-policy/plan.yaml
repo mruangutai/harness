@@ -4,7 +4,7 @@ approval:
   date: '2026-11-22'
   approved_by: Mike Ruangutai
   status: approved
-status: ready
+status: building
 source_issues: [2274]
 panel:
   last_run: r-20261121-1-plan-product
@@ -93,7 +93,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 forbids dispatching the gates, their adapter or their tests through the enforcement being changed; metadata identifies expertise only and Main executes.
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/harness_boundary.py#hook_guard
       - {path: .claude/skills/harness/bin/check-domain.py, quote: '_bootstrap_boundary.run_hook_body(__file__, "check-domain", "check_domain_body")'}
