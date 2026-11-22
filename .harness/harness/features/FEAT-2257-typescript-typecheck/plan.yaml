@@ -1,0 +1,368 @@
+schema: plan/1
+feature: FEAT-2257-typescript-typecheck
+approval:
+  date: '2026-11-22'
+  approved_by: fable-advisor (delegated by Mike Ruangutai)
+  status: approved
+drafted_at: '2026-11-22T19:53:34Z'
+status: done
+source_issues: [2257]
+panel:
+  last_run: r-20261122-1-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-522c9686ffcafb390384939a75519e3a
+    severity: med
+    reader: harness-code-reviewer
+    kind: form
+    summary: DEC-213 keep overlooks activation matching a manual probe.
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-adb70eb5cd75fad18cb5409a3fdd1e9b
+    severity: low
+    reader: harness-code-reviewer
+    kind: form
+    summary: Canonical SPEC retains the verification gap this feature closes.
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-6c307c2aae9bda18630f06e5f3469e4a
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-04's per-file poison-probe harness is heavier than the evasion it guards
+    disposition: resolved
+    scope: task
+    resolved_by: T-04
+  - id: PF-50db9cdc009d32584f9727db700cc2e7
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: SC-04 red-first demonstration of the ignore assertion against pre-change .gitignore is ceremony
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-8a2fd14c930ba73eea3316b2987f1e90
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-04 regression permanently re-asserts SC-02 one-time inspection facts
+    disposition: resolved
+    scope: task
+    resolved_by: T-04
+lanes:
+  resolved_at: 0bdcabbfc585a9357554817684d1b8a19d69038a
+  rows:
+  - surface: package.json
+    lane: main-session-direct
+    reason: check-domain resolves NOBODY for this shared root file
+  - surface: bun.lock
+    lane: main-session-direct
+    reason: check-domain resolves NOBODY for this lockfile
+  - surface: tsconfig.json
+    lane: main-session-direct
+    reason: check-domain resolves NOBODY for this shared root file
+  - surface: .gitignore
+    lane: main-session-direct
+    reason: check-domain resolves NOBODY for root ignore rules
+  - surface: README.md
+    lane: main-session-direct
+    reason: Document the toolchain atomically with the direct root-file cutover
+  - surface: tests/unit/omp-hooks.test.ts
+    lane: main-session-direct
+    reason: DEC-174 includes hook enforcement tests
+  - surface: .github/workflows/tests.yml
+    lane: main-session-direct
+    reason: DEC-174 applies to the new required CI gate
+  - surface: .github/dependabot.yml
+    lane: main-session-direct
+    reason: Keep dependency updates in the direct CI cutover
+  - surface: .harness/harness.json
+    lane: main-session-direct
+    reason: DEC-174 applies to activating the new QA enforcement command
+  - surface: tests/integration/test-typescript-typecheck.py
+    lane: main-session-direct
+    reason: DEC-174 includes the new compiler gate regression
+  - surface: .harness/harness/docs/DECISIONS.md
+    lane: main-session-direct
+    reason: Land the narrow DEC-213 permission with direct enforcement activation in T-04
+  - surface: .harness/harness/docs/DECISIONS-INDEX.md
+    lane: main-session-direct
+    reason: Regenerate the decision index with its T-04 decision-file owner
+  - surface: .harness/harness/docs/SPEC.md
+    lane: main-session-direct
+    reason: Correct the closed verification gap only after T-04 observed activation
+  - surface: .claude/skills/harness/bin/code_grade.py
+    lane: main-session-direct
+    reason: DEC-174 covers the approved classification capability, its tests and template policy before typecheck activation in T-04
+  - surface: .agents/skills/harness/bin/code_grade.py
+    lane: main-session-direct
+    reason: DEC-174 covers the approved classification capability, its tests and template policy before typecheck activation in T-04
+  - surface: tests/unit/test-code-grade.py
+    lane: main-session-direct
+    reason: DEC-174 covers the approved classification capability, its tests and template policy before typecheck activation in T-04
+  - surface: tests/unit/test-suite-layout.py
+    lane: main-session-direct
+    reason: DEC-174 covers the approved classification capability, its tests and template policy before typecheck activation in T-04
+  - surface: .claude/skills/harness/templates/harness.json
+    lane: main-session-direct
+    reason: DEC-174 covers the approved classification capability, its tests and template policy before typecheck activation in T-04
+decisions:
+- id: D-01
+  choice: Separate static source detection from test-code classification with default-true classifies_tests; permit typecheck of manual sources without normal-runner execution
+  because: 'Main and its operator-delegated advisor approved ALTITUDE-1: broad detect truthfully covers all tracked TypeScript, but activation must not break live suite-layout checks; the TypeScript complexity-bar risk is latent because grading currently selects changed Python only'
+  dec: DEC-213
+decisions_affected:
+- dec: DEC-98
+  disposition: keep
+  clause: a load / import / collection / syntax error
+  successor: none
+  reason: Distinguish setup failure from actual compiler diagnostics and record the executed command
+- dec: DEC-187
+  disposition: keep
+  clause: someone has run and seen pass
+  successor: none
+  reason: Activate only after observed success while retaining the matrix and excluded kinds
+- dec: DEC-217
+  disposition: keep
+  clause: 'The predicates keep code bugfixes on the unit floor while giving test-and-contract-only fixes the
+
+    integration kind their observable boundary requires.'
+  successor: none
+  reason: Preserve the operator-ruled matrix instead of adding a typecheck fail-first floor
+- dec: DEC-35
+  disposition: keep
+  clause: but never drop below; conditionals expressed as named predicates
+  successor: none
+  reason: Preserve task change types and conditional test floors
+- dec: DEC-212
+  disposition: keep
+  clause: the predicate is a judgment call, not a mechanical diff rule
+  successor: none
+  reason: Supply an integration regression for the config activation shape change
+- dec: DEC-213
+  disposition: keep
+  clause: 'The directory containing a test is its kind; no
+
+    registration list assigns either membership or kind.'
+  successor: none
+  reason: Discover the real compiler subprocess regression under integration
+- dec: DEC-174
+  disposition: keep
+  clause: 'not dispatched through a team run whose gates are the thing
+
+    being changed.'
+  successor: none
+  reason: Build this enforcement cutover and its tests directly in the main session
+- dec: DEC-179
+  disposition: keep
+  clause: 'a main-session step, priced and visible before approval, instead of
+
+    surfacing as a rejected write halfway through a build.'
+  successor: none
+  reason: Declare the ungranted root toolchain files before signature
+- dec: DEC-183
+  disposition: keep
+  clause: exactly that one context, and it is the job's ID
+  successor: none
+  reason: Reuse checks under the required integration aggregator without renaming its context
+- dec: DEC-183
+  disposition: keep
+  clause: Neutering is detectable; deleting the host is not.
+  successor: none
+  reason: Use pinned workflow and run inspection instead of a self-protection workflow test
+- dec: DEC-213
+  disposition: amend
+  clause: contains probes and review instruments that no normal runner may execute and no
+  successor: D-01
+  reason: T-04 implements D-01 manual-source static checking while retaining the normal-runner execution ban and credentialled nondeterministic-probe rationale
+- dec: DEC-213
+  disposition: amend
+  clause: the only mechanical consumer of
+  successor: D-01
+  reason: T-04 rewrites the governing semantics for default-true classifies_tests, naming both mechanical consumers and limiting the test-layout superset obligation to test-classifying kinds without narrowing source coverage
+tasks:
+  - id: T-01
+    title: Pin and document the complete TypeScript toolchain
+    traces: [SC-01, SC-02, SC-04, SC-10, SC-11, SC-12]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-179 root-file routes resolve NOBODY and this scaffolds a DEC-174 gate
+    depends_on: []
+    status: done
+    files:
+    - path: package.json
+      create: true
+    - path: bun.lock
+      create: true
+    - path: tsconfig.json
+      create: true
+    - path: .gitignore
+      quote: '# OS'
+    - path: README.md
+      quote: '## Development'
+    - node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json
+    verify: |
+      python3 - <<'PY'
+      import json, subprocess
+      subprocess.run(['bun', 'install', '--frozen-lockfile'], check=True, timeout=40)
+      with open('package.json') as f: package = json.load(f)
+      with open('tsconfig.json') as f: config = json.load(f)
+      assert package['scripts']['typecheck'] == 'tsc --noEmit -p tsconfig.json'
+      assert config['compilerOptions']['strict'] is True
+      assert config['compilerOptions']['noEmit'] is True
+      assert subprocess.run(['git', 'check-ignore', '-q', 'node_modules/']).returncode == 0
+      assert subprocess.run(['git', 'ls-files', 'node_modules'], capture_output=True, text=True, check=True).stdout == ''
+      print('PASS frozen install, compiler configuration and ignored node_modules')
+      PY
+    intent: |
+      Assigned PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck; all relative edits and commands stay there. Read product README.md Development and Canonical surfaces, .harness/harness/docs/SPEC.md section 9 and .harness/harness/docs/DECISIONS.md DEC-98/174/179/183/187/212/213/217, using /Users/molchairuangutai/GitHub/harness/.harness/harness/docs/DECISIONS-INDEX.md. Conventional product docs/spec.md, docs/decisions.md and docs/architecture.md are absent; README explicitly locates the Harness SPEC/DECISIONS/BUILD records. Do not author the absent documents.
+      Execute main-session-direct. Record pre-implementation git HEAD in the durable execution receipt. Create a private root package.json with only typescript and @types/bun as direct devDependencies, each an exact version without ranges. Resolve once at installation, record both versions, and generate and commit bun.lock with Bun rather than hand-writing it. Prefer the settled compiler version when available; surface registry/runtime incompatibility rather than weaken checking. No other direct JS dependency or runtime dependency.
+      Set scripts.typecheck exactly tsc --noEmit -p tsconfig.json. In tsconfig.json set strict and noEmit true, target/module ESNext, moduleResolution bundler, allowImportingTsExtensions true, skipLibCheck true and types [bun]. Include all repository TypeScript including hidden .omp sources, unit tests and tests/manual; exclude node_modules and nested worktrees. Do not use a four-file allowlist. T-04 alone owns the independent tracked-source/compiler-file-list coverage regression and representative temporary-error proof; do not duplicate either here.
+      Add node_modules/ to root .gitignore without ignoring the manifest, lock or config. README Development documents bun install --frozen-lockfile, bun run typecheck, complete tracked-source coverage, existing pi/ctx:any limitation, weekly Dependabot updates, and bun update followed by reviewed manifest/lock commits and rerunning verification. This supplies the permanent feature documentation/change record. Do not edit the production extensions or activate the kind. The eight settled test errors remain for T-02; this task verifies installation/configuration, not a passing compiler. Expected verify exit 0 and PASS line within 60 seconds.
+  - id: T-02
+    title: Repair all eight hook test fixture type errors
+    traces: [SC-01, SC-09, SC-10, SC-12]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 covers tests of the OMP enforcement hook
+    depends_on: [T-01]
+    status: done
+    files:
+      - {path: tests/unit/omp-hooks.test.ts, quote: 'const digestCalls = (calls: Array<{ script: string }>)'}
+    verify: |
+      python3 - <<'PY'
+      import subprocess
+      subprocess.run(['bun', 'run', 'typecheck'], check=True, timeout=20)
+      subprocess.run(['python3', 'tests/unit/test-omp-hooks.py'], check=True, timeout=35)
+      print('PASS strict compiler and registered hook unit wrapper')
+      PY
+    intent: |
+      Assigned PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck; all relative commands/edits stay there. Read product README.md Development, .harness/harness/docs/SPEC.md section 9, .harness/harness/docs/DECISIONS.md DEC-174/213 and /Users/molchairuangutai/GitHub/harness/.harness/harness/docs/DECISIONS-INDEX.md. Conventional docs/spec.md, docs/decisions.md and docs/architecture.md are absent; README Canonical surfaces explicitly locates the Harness records, with BUILD.md as build context.
+      Execute main-session-direct after T-01. BEFORE editing, execute bun run typecheck and preserve its actual compiler diagnostics and nonzero exit as fail-first evidence; preserve the existing passing hook suite baseline through python3 tests/unit/test-omp-hooks.py too. The eight errors observed at 120b131f are settled intake evidence, not a claim of this future execution. Fix all eight through accurate fixture types and literal narrowing without changing runtime behavior or removing assertions.
+      digestCalls must retain each input element's payload type rather than erase the call array to script-only records. The fixture call payload must truthfully represent object policy payloads and member-ops arrays; narrow object accesses rather than cast arrays to records. Preserve the object callback contracts for mergeGate/distillAuthority/gate and use unknown plus narrowing rather than new any. Narrow the failed session expectation's kind to the literal failed with a type annotation or const assertion. Preserve every existing expect assertion and value. Additional diagnostics in this owned file are in scope; diagnostics needing another file require a scope finding. Never suppress diagnostics, exclude files, weaken strictness or change production OMP pi/ctx:any typing. This is type-only config enablement, not a runtime bugfix; QA still runs the unit kind and checks assertion preservation. Use the registered unit wrapper rather than bypass it with an ad hoc Bun invocation. Expected verify exit 0 and PASS line under 60 seconds.
+  - id: T-03
+    title: Enforce typecheck in required CI and schedule Bun updates
+    traces: [SC-03, SC-05, SC-06, SC-10, SC-12]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 applies to required CI enforcement changes
+    depends_on: [T-02]
+    status: done
+    files:
+      - {path: .github/workflows/tests.yml, quote: 'needs: [checks, integration-shards]'}
+      - {path: .github/dependabot.yml, create: true}
+    verify: |
+      python3 - <<'PY'
+      import yaml
+      with open('.github/workflows/tests.yml') as f: workflow = yaml.load(f, Loader=yaml.BaseLoader)
+      assert 'pull_request' in workflow['on'] and not workflow['on']['pull_request']
+      jobs = workflow['jobs']
+      assert not jobs['checks'].get('if')
+      checks = jobs['checks']['steps']
+      commands = [s.get('run', '').strip() for s in checks]
+      install = commands.index('bun install --frozen-lockfile')
+      compiler = commands.index('bun run typecheck')
+      unit = next(i for i, c in enumerate(commands) if 'run-unit-tests.py --kind unit' in c)
+      setup = next(i for i, s in enumerate(checks) if s.get('uses') == 'oven-sh/setup-bun@v2')
+      assert setup < install < compiler < unit
+      assert all(not s.get('if') and s.get('continue-on-error', 'false') == 'false' for s in (checks[install], checks[compiler]))
+      shards = jobs['integration-shards']['steps']
+      shard_setup = next(i for i, s in enumerate(shards) if s.get('uses') == 'oven-sh/setup-bun@v2')
+      shard_install = next(i for i, s in enumerate(shards) if s.get('run', '').strip() == 'bun install --frozen-lockfile')
+      shard_suite = next(i for i, s in enumerate(shards) if 'run-unit-tests.py' in s.get('run', ''))
+      assert shard_setup < shard_install < shard_suite
+      aggregate = jobs['integration']
+      assert 'name' not in aggregate and aggregate['needs'] == ['checks', 'integration-shards']
+      assert aggregate['if'] == 'always()'
+      with open('.github/dependabot.yml') as f: updates = yaml.safe_load(f)['updates']
+      assert any(x.get('package-ecosystem') == 'bun' and x.get('directory') == '/' and x.get('schedule', {}).get('interval') == 'weekly' for x in updates)
+      print('PASS local workflow structure and weekly root Bun updates; execution needs pinned remote evidence')
+      PY
+    intent: |
+      Assigned PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck; all relative edits/commands stay there. Read product README.md Development, .harness/harness/docs/SPEC.md section 9, .harness/harness/docs/DECISIONS.md DEC-174 and full DEC-183, and /Users/molchairuangutai/GitHub/harness/.harness/harness/docs/DECISIONS-INDEX.md. Conventional docs/spec.md, docs/decisions.md and docs/architecture.md are absent; README Canonical surfaces identifies Harness SPEC/DECISIONS/BUILD instead.
+      Execute main-session-direct. Reuse checks and its existing oven-sh/setup-bun@v2. Add separate run steps bun install --frozen-lockfile and then bun run typecheck before test execution, with ordinary failure propagation on EVERY pull_request: no new event/path/branch restrictions, guards, continue-on-error or success fallback. Add a separate frozen-install step after existing Bun setup in integration-shards as T-04's real-compiler regression needs the installed toolchain there; do not duplicate the typecheck step in every shard.
+      Preserve integration's job ID without a name key, needs [checks, integration-shards], if always(), explicit dependency-result validation and shard completeness checks. Leave every existing gate/test command otherwise unchanged. No new required context, branch-protection change, standalone workflow or permanent workflow-content/self-protection test: DEC-183 accepts that structural limitation. Create dependabot.yml version 2 with package-ecosystem bun, directory / and schedule.interval weekly; preserve any entries that appeared after planning. No extra JS dependency, linter or formatter.
+      The bounded local verify inspects workflow/configuration structure only; do not repeat dependency installation or full compilation for this workflow-only task. During final validation, collect the real PR run URL, run/job identities, tested SHA and checks plus required integration results on the pinned PR merge tree, with logs showing frozen installation and compiler execution. Inspect the pinned workflow dependency/result chain and the pinned run; local structure checks are not remote execution evidence. Cite T-04's single representative temporary-type-error regression for command discrimination; do not create another mutant or coverage proof here. Collect asynchronous host-supervised results without shell wait loops. Expected local verify exit 0 and PASS line under 60 seconds.
+  - id: T-04
+    title: Land classification capability before proving and activating typecheck
+    traces:
+    - SC-01
+    - SC-07
+    - SC-08
+    - SC-09
+    - SC-10
+    - SC-11
+    - SC-12
+    - SC-13
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 covers both code_grade paths, suite-layout enforcement and tests, template/live policy, compiler regression and activation
+    depends_on: [T-01, T-02, T-03]
+    status: done
+    files:
+    - path: .harness/harness.json
+      quote: '"_test_kinds_note"'
+    - path: tests/integration/test-typescript-typecheck.py
+      create: true
+    - path: .harness/harness/docs/DECISIONS.md
+      quote: "## DEC-213 \u2014"
+    - .harness/harness/docs/DECISIONS-INDEX.md
+    - path: .harness/harness/docs/SPEC.md
+      quote: '**Verification gap:** the TypeScript host-tool surface'
+    - path: .claude/skills/harness/bin/code_grade.py
+      quote: 'def _is_test_path(relative, test_kinds):'
+    - path: .agents/skills/harness/bin/code_grade.py
+      quote: 'def _is_test_path(relative, test_kinds):'
+    - path: tests/unit/test-code-grade.py
+      quote: 'def check_classify_locally_run_bars_as_test():'
+    - path: tests/unit/test-suite-layout.py
+      quote: 'def _running_kinds(test_kinds_cfg):'
+    - path: .claude/skills/harness/templates/harness.json
+      quote: '"typecheck": {'
+    verify: "python3 - <<'PYVERIFY'\nimport json, pathlib, subprocess, time\ndeadline = time.monotonic() + 55\ndef run(command):\n    subprocess.run(command, check=True, timeout=max(0.1, deadline - time.monotonic()))\nrun(['python3', 'tests/unit/test-code-grade.py'])\nrun(['python3', 'tests/unit/test-suite-layout.py'])\nrun(['python3', 'tests/integration/test-typescript-typecheck.py'])\nrun(['bun', 'run', 'typecheck'])\nassert pathlib.Path('.claude/skills/harness/bin/code_grade.py').read_bytes() == pathlib.Path('.agents/skills/harness/bin/code_grade.py').read_bytes()\nbefore = json.loads(subprocess.run(['git', 'show', '0bdcabbfc585a9357554817684d1b8a19d69038a:.harness/harness.json'], check=True, capture_output=True, text=True).stdout)\nwith open('.harness/harness.json') as f: after = json.load(f)\nwith open('.claude/skills/harness/templates/harness.json') as f: template = json.load(f)\nfor key in ('test_matrix', '_matrix_provenance'): assert before[key] == after[key], key\nfor config in (after, template):\n    assert config['test_kinds']['typecheck']['classifies_tests'] is False\n    assert config['test_kinds']['typecheck']['detect'] == before['test_kinds']['typecheck']['detect']\nprint('PASS capability unit regressions, live layout, compiler regression, real typecheck, mirror parity and unchanged matrix/provenance')\nPYVERIFY\n"
+    intent: 'Assigned PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck; all relative edits/commands stay there. Read product README.md Canonical surfaces and Development, .harness/harness/docs/SPEC.md section 9 and its TypeScript host-tool verification-gap paragraph, .harness/harness/docs/DECISIONS.md DEC-35/98/174/183/187/188/205/212/213/217/254, and /Users/molchairuangutai/GitHub/harness/.harness/harness/docs/DECISIONS-INDEX.md. Conventional docs/spec.md, docs/decisions.md and docs/architecture.md are absent; README explicitly locates these Harness records. Read harness.json and template _test_kinds_note before editing kind policy. Main transmitted the operator-delegated advisor APPROVE ruling in .harness/harness/features/FEAT-2257-typescript-typecheck/runs/r-20261122-1-plan-product/altitude-ruling-c1.md; this capability is authorized scope expansion, not independent product design.
+
+      Execute main-session-direct after T-01 through T-03, including every new enforcement path and its tests. T-04 alone owns each added file; .agents/skills links to .claude/skills in this checkout, so both code_grade spellings must resolve to identical landed content, not diverging copies. All relative-path edits remain inside the assigned feature worktree.
+
+      MANDATORY ORDERING PRECONDITION BEFORE ANY TYPECHECK STATUS FLIP: finish the following capability phase after T-02, capture its red-first and green receipts, and pass both existing unit scripts before proceeding to compiler activation. Never set live typecheck active merely to discover or repair these consumers afterward.
+
+      First author synthetic unit assertions in tests/unit/test-code-grade.py and tests/unit/test-suite-layout.py before changing the consumer filters. Record actual failing assertions/output and exits, distinguishing a behavioral failure from import/setup failure. Also make a deep config COPY with typecheck active, a real command value and classifies_tests absent; pass its test_kinds to offenders() over the tracked source set and hygiene_uncertified(). Preserve the pre-capability offenders naming the production .omp extensions and the uncertified broad TypeScript patterns as the activation red-first receipt. Do not edit live status for this reproduction or invent a TypeScript complexity-grade execution: gated_set currently uses _changed_python_files, so the TypeScript bar risk is LATENT, while the suite-layout activation failure is LIVE.
+
+      Implement only the approved boolean classifies_tests capability, absent meaning true. In code_grade._is_test_path add kind.get("classifies_tests", True) to the existing active/locally_run kind filter, preserving full-relative-path fnmatch, exclude and error behavior. Correct its docstring to distinguish a runnable source check from test-code classification. Land identical content under .claude/skills/harness/bin/code_grade.py and .agents/skills/harness/bin/code_grade.py according to the existing linked-path convention. offenders() and select_control_candidate() inherit that matcher; do not add parallel policy checks there. In tests/unit/test-suite-layout.py add the same default-true filter once to local _running_kinds; hygiene_uncertified is its sole consumer. Do not change production suite_layout.py or runner discovery.
+
+      Register synthetic test-code-grade.py assertions in its existing main checks: a matching active/locally_run kind flagged false yields _is_test_path False; absent and explicit true retain True; existing exclude and non-running status behavior remains. Cover the boolean policy independently of live configuration, without claiming TypeScript is currently graded. Add synthetic suite-layout assertions that hygiene_uncertified skips a flagged broad pattern but reports it when the flag is absent; confirm offenders and select_control_candidate inherit the matcher with flagged versus absent fixtures. Preserve every existing live-config case and positive control; after activation those cases are the live activation regression, not new hardcoded typecheck-content guards.
+
+      Before activation, set test_kinds.typecheck.classifies_tests false in BOTH .harness/harness.json and .claude/skills/harness/templates/harness.json, retaining their identical broad detect **/*.ts|**/*.tsx and existing excludes. Template cmd remains null and is not activated. No upgrade-config.py edit: additive merge already works and no validator rejects unknown kind keys; do not add validation or migration machinery. Update _test_kinds_note only if it enumerates kind fields; current notes do not, so do not expand or repair unrelated note prose. Execute python3 tests/unit/test-code-grade.py and python3 tests/unit/test-suite-layout.py successfully and record source identities/output/exits BEFORE any live status flip. Repeat the config-copy helpers with classifies_tests false and record absence of the TypeScript offenders/uncertified patterns while preserving positive controls. This passing capability receipt is the explicit T-04 activation precondition.
+
+      Then author the compiler regression and activation below. Write a discoverable standard-library Python integration script using the existing tests/integration convention, resolving its checkout from its own path rather than inherited control-plane environment. Fail closed for absent Bun/compiler/config, timeout, empty tracked source discovery, malformed activation config, missing source or any failed assertion. Failure accounting must not depend on nonempty diagnostic text; any failed assertion exits nonzero.
+
+      Independently enumerate git ls-files -z -- ''*.ts''; assert the four settled sources are present and EACH tracked .ts is in the real compiler''s --listFilesOnly output. Scan each tracked source for compiler-suppression comments containing @ts-nocheck, @ts-ignore or @ts-expect-error and fail if any occur. Execute bun run typecheck on the clean real tree and assert exit 0. Retain only the durable activation guard on test_kinds.typecheck: status active, cmd bun run typecheck and no _reason. Do not permanently re-assert exact package dependency versions/sets, scripts.typecheck spelling, strict/noEmit config values or ignore rules; SC-02/04 are one-time pinned inspections. Do not inspect the workflow or add workflow-content guards.
+
+      For command discrimination, use a temporary directory outside the checkout; copy tsconfig.json, package.json and every tracked .ts preserving relative paths, and link installed node_modules. Prove the clean source copy passes bun run typecheck. Append a uniquely named invalid never assignment only to the copy of .omp/extensions/digest-schema.ts; execute the identical command once, require nonzero with a real type diagnostic naming that file, then remove the temporary directory. This is one representative poison, not one compile per source; independent compiler file-list coverage and the suppression scan cover each source. Keep the regression under 40 seconds; timeout fails instead of skipping. Never mutate the actual checkout or a sibling worktree.
+
+      Author the regression before activation and record actual red output against unresolved config. Run bun run typecheck successfully on the repaired REAL tree BEFORE filling cmd; record command, compiler/runtime versions, git/source identity, output and exit status in the durable direct-execution receipt. Only after the recorded passing capability precondition and this real compiler pass set test_kinds.typecheck.cmd to bun run typecheck and status active, and DELETE _reason. Preserve detect/exclude and every unrelated config field. Leave test_matrix and _matrix_provenance byte-for-byte unedited; compare their loaded subtrees to immutable base 0bdcabbfc585a9357554817684d1b8a19d69038a. Never activate from the planning-era scratch run.
+
+      Implement the single D-01 by rewriting DEC-213 current text in two bounded places: the tests/manual paragraph permits active typecheck to match manual source solely for static checking without executing probes, retaining the normal-runner execution ban and credential/nondeterministic-evidence rationale; the governing-semantics clause replaces the false only mechanical consumer claim with the source-detection versus test-classification distinction. State classifies_tests is boolean and defaults true, _is_test_path and the local suite-layout _running_kinds filter honor it, offenders/select_control_candidate inherit the matcher and hygiene_uncertified reads the local filter. The test-layout superset obligation applies to running kinds that classify tests, not static-only source coverage. Preserve directory-selected discovery, fnmatch/exclude semantics and all unrelated DEC-213 clauses. Do not claim QA uses detect to map files; narrow detect was rejected because it encodes false coverage. This is a narrow amendment, not a strike, new DEC number or appended historical subsection. Regenerate DECISIONS-INDEX.md with the existing .agents/skills/harness/bin/gen-decisions-index.py after the rewrite; preserve the index''s authored entry semantics.
+
+      After observed activation, replace only SPEC.md''s TypeScript host-tool verification-gap paragraph: the pinned strict no-emit compiler now checks tracked TypeScript via bun run typecheck and the active kind/required PR chain; pi/ctx:any still prevents validation of the real OMP extension API, so executable host/boundary evidence remains necessary and index generation alone proves no behavioral claim. No unrelated specification cleanup. Final pinned inspection must read these documents at review_sha; SC-07 covers DEC-213 and SC-11 covers SPEC maintenance.
+
+      Preserve mandatory signed test-floor discipline: change_type config remains unchanged; capability runtime logic requires the explicit red-first unit evidence in SC-13 in addition to QA evaluating touches_config_shape, and the integration regression is authored red-first for the activation shape change under DEC-35/212. Preserve T-02''s compiler red-first and unchanged-runtime-suite evidence; trimming redundant assertions is not permission to drop required tests. Final host validation must run the regression through normal integration discovery, the existing unit kind including test-omp-hooks.py and the exact active command on pinned review/prospective merge trees, with receipts bound to executed sources/toolchain versions. Obtain T-03''s real PR-run evidence. This terminal task owns cumulative capability/compiler/matrix verification; full existing suites and CI are separate host-supervised final validation rather than this bounded verify. Expected verify exit 0 and PASS line under 60 seconds, with subprocess work sharing a 55-second deadline.
+
+      '

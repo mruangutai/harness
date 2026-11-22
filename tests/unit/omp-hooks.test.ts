@@ -1655,7 +1655,7 @@ describe("OMP task lifecycle adapter", () => {
   const mainCtx = () => ompContext("/repo", "Main", undefined, "main-session");
   const guardCalls = (calls: Array<{ script: string }>) =>
     calls.filter((call) => call.script === "dispatch-guard.py");
-  const digestCalls = (calls: Array<{ script: string }>) =>
+  const digestCalls = <Call extends { script: string }>(calls: Call[]) =>
     calls.filter((call) => call.script === "validate-digest.py");
   const ASSIGNMENT = "HARNESS-FEATURE: FEAT-90-long-run\nbuild it";
 
@@ -2146,7 +2146,9 @@ describe("OMP task lifecycle adapter", () => {
       ["member-ops", ...IDENTITY(root), "--tier", "craft", "--ops", "-"],
       ["member-ops", ...IDENTITY(root), "--tier", "repository", "--repository", "harness", "--ops", "-"],
     ]);
-    expect(coreCalls().map((call) => call.payload)).toEqual([[ADD], [ADD]]);
+    // member-ops receives its ops LIST as the stdin document (harness-hooks.ts types it as the
+    // runner's Dict); compare the recorded value as the unknown it really is.
+    expect(coreCalls().map((call): unknown => call.payload)).toEqual([[ADD], [ADD]]);
     expect(coreCalls().map((call) => call.cwd)).toEqual([root, root]);
     // The post-write check judges the destination the host resolved, never a caller path.
     const at = calls.length;
@@ -2995,7 +2997,7 @@ describe("resolveSessionFile", () => {
   });
 
   test("distinguishes a moved accessor from a session that has none yet", () => {
-    const failed = { kind: "failed", accessor: "sessionManager.getSessionFile" };
+    const failed = { kind: "failed" as const, accessor: "sessionManager.getSessionFile" };
     // Threw, absent, and not-a-function are all "the API moved".
     expect(resolveSessionFile({
       sessionManager: { getSessionFile: () => { throw new Error("gone"); } },

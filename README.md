@@ -217,6 +217,28 @@ are loaded at session start (DEC-100a).
 
 To add a skill, create `.claude/skills/harness-<name>/SKILL.md` and add its name to the applicable agents' `autoloadSkills` lists. OMP discovers it through the `.agents/skills` symlink.
 
+### TypeScript typecheck
+
+The OMP extensions (`.omp/extensions/*.ts`) and their Bun tests are typechecked by a pinned,
+dev-only toolchain: `package.json` pins `typescript` and `@types/bun` exactly, and `bun.lock`
+locks the tree. `tsconfig.json` runs strict, no-emit checking over every tracked `.ts` file,
+including `.omp/`, `tests/unit/` and `tests/manual/`.
+
+```bash
+bun install --frozen-lockfile   # never regenerates bun.lock
+bun run typecheck               # tsc --noEmit -p tsconfig.json
+```
+
+CI runs the same two commands on every pull request, under the required `integration` check, and
+`test_kinds.typecheck` in `.harness/harness.json` names the command. The hooks type OMP's API
+object as `pi`/`ctx: any`, so the typecheck cannot validate calls into OMP itself; executable
+hook tests remain the evidence for that boundary.
+
+Dependabot opens weekly `bun` update PRs. To upgrade by hand, run
+`bun update --latest typescript @types/bun` (a plain `bun update` leaves exact pins where they
+are), rerun `bun run typecheck` and the hook suite, and commit the reviewed `package.json` and
+`bun.lock` together.
+
 ## Factory repositories
 
 The Harness repository holds the organization and skills. Onboarding is two skills, neither of them a command (DEC-222): the `harness-init` skill configures a fresh Harness checkout — prerequisites, hooks, this clone's `.harness/` — and carries `--upgrade`; the `harness-add-repo` skill registers a repository into that configured control plane. Registration lands the repository's `harness.json` on its own default branch — the only file the harness puts in a product repository — then adds it to `.harness/factory/fleet.yaml`, then creates its central tree under `<control-plane>/.harness/<segment>/`, in that order (DEC-221). The factory materializes its checkout under the declared `workspace_root`. Its first `BRIEF.md`, that BRIEF's approval and any design pass are `/harness-plan`'s work.

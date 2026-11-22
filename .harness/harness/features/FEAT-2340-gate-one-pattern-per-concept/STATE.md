@@ -3,19 +3,17 @@
 ## Current
 
 - feature: FEAT-2340-gate-one-pattern-per-concept
-- run: .harness/harness/features/FEAT-2340-gate-one-pattern-per-concept/runs/r-20261122-2-validate-validator/state.yaml
-- squad: validator
-- status: in_review (validate PASS; awaiting operator ship instruction)
-- station: review
-- mission: plan → ship (signed 2026-11-22 by advisor under goal mode; rework 2 rounds / 90 min)
-- source: #2340 — inspected 2026-11-22: open, not superseded
-- plan: T-01 done (df6ae1cc), T-02 done (ffe320f5), both main-session-direct; SIMPLIFY empty (acd655c7, notes/simplify-pass.md)
-- seam: bca0980d (tasks done, handoff-build seq-1); review_sha 125a04f8 (station review commit; code diff vs seam empty)
-- validate: r-20261122-2-validate-validator PASS over 125a04f8, must_fix [], severity_max none, both perspectives met; succession continue recorded at run-start
-- briefing: notes/ship-review-r-20261122-2-validate-validator.md (18 backlog rows)
-- fixes: main-session-direct only — any must_fix returns to Main, no fix run
-- cycles_used: 0 / 10 · runs 2 / 20 · rework 8 min / 90, 0 / 2 rounds
+- run: .harness/harness/features/FEAT-2340-gate-one-pattern-per-concept/runs/distill-product/state.yaml
+- squad: product
+- status: blocked (distill-product BLOCKED; expertise_apply unregistered in this host session)
+- station: done (recorded on ship/FEAT-2340-gate-one-pattern-per-concept, PR #2383; this worktree's plan still reads review)
+- mission: distill (after merge 0d7326e4, PR #2358; decided in notes/answers-2026-11-22-ship.md)
+- distill-product: BLOCKED, 0 cycles — pm judged (self 1 accepted / 2 rejected, relay 0/1) but could not apply: tool absent from pm, product lead and orchestrator inventories; judgments preserved in notes/research-FEAT-2340-gate-one-pattern-per-concept-distill-product.md
+- distill-validator: not dispatched — same host, same tool absence
+- distill-orchestrator: not applied — observations/harness-orchestrator.md holds the candidates
+- blocker: host session predates c62ab0a1 (FEAT-2225 expertise_apply registration); resume distill from a host started after it, re-dispatching product (apply pm's preserved judgments, application-not-re-adjudication) then validator, then self
+- cycles_used: 0 / 10 · runs 3 / 20 · rework 8 min / 90, 0 / 2 rounds
 
 ## Open Questions
 
-- none
+- Q-D1 (blocking): restart the host so expertise_apply is registered, then re-dispatch the distill

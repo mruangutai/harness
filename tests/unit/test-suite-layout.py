@@ -349,10 +349,13 @@ finally:
     shutil.rmtree(td)
 
 
-# Case 11: the guard covers actual discovery, derived at test time and never copied.
+# Case 11: the guard covers actual discovery, derived at test time and never copied. Only a
+# running kind that classifies tests detects test files; a static source check such as
+# typecheck (`classifies_tests: false`, FEAT-2257) selects production source and is skipped.
+# The predicate is code_grade's own, so hygiene and complexity classification cannot drift.
 def _running_kinds(test_kinds_cfg):
     return {name: cfg for name, cfg in test_kinds_cfg.items()
-            if cfg.get("status") in ("active", "locally_run")}
+            if code_grade._classifies_tests(cfg)}
 
 
 def _is_inside_tests(pattern):
@@ -605,5 +608,31 @@ check("b6 message: the no-candidate failure names both remedies",
 uncertified = hygiene_uncertified(test_kinds_cfg)
 check("case 11 hygiene: every running-kind detect pattern is certified",
       uncertified == [], repr(uncertified))
+
+# FEAT-2257: a running kind whose detect selects PRODUCTION source for a static check declares
+# `classifies_tests: false`. Neither the hygiene certifier nor the offender scan may then read
+# its broad patterns as test-file detection; absent the flag, today's refusals stand.
+STATIC_SOURCE = {"status": "active", "detect": "**/*.ts|**/*.tsx", "exclude": ""}
+FLAGGED_KINDS = {"typecheck": {**STATIC_SOURCE, "classifies_tests": False}}
+UNFLAGGED_KINDS = {"typecheck": dict(STATIC_SOURCE)}
+check("classifies_tests: hygiene skips a flagged kind's broad patterns",
+      hygiene_uncertified(FLAGGED_KINDS) == [], repr(hygiene_uncertified(FLAGGED_KINDS)))
+unflagged_uncertified = hygiene_uncertified(UNFLAGGED_KINDS)
+check("classifies_tests: hygiene still refuses the same patterns when the flag is absent",
+      [entry.split(" (")[0] for entry in unflagged_uncertified]
+      == ["typecheck: **/*.ts", "typecheck: **/*.tsx"], repr(unflagged_uncertified))
+production_ts = [".omp/extensions/harness-hooks.ts", "tests/unit/omp-hooks.test.ts"]
+check("classifies_tests: offenders ignore production source a flagged kind detects",
+      offenders(production_ts, FLAGGED_KINDS) == [], repr(offenders(production_ts, FLAGGED_KINDS)))
+check("classifies_tests: offenders report it when the flag is absent",
+      offenders(production_ts, UNFLAGGED_KINDS) == [".omp/extensions/harness-hooks.ts"],
+      repr(offenders(production_ts, UNFLAGGED_KINDS)))
+STATIC_PY = {"status": "active", "detect": "**/*.py", "exclude": ""}
+check("classifies_tests: the control candidate inherits the flag",
+      select_control_candidate({"lint": {**STATIC_PY, "classifies_tests": False}}) is None
+      and select_control_candidate({"lint": STATIC_PY}) == CANDIDATE_CORPUS[0],
+      repr((select_control_candidate({"lint": {**STATIC_PY, "classifies_tests": False}}),
+            select_control_candidate({"lint": STATIC_PY}))))
+
 
 raise SystemExit(1 if failures else 0)

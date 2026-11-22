@@ -594,6 +594,28 @@ def check_classify_locally_run_bars_as_test():
     return failures
 
 
+def check_is_test_path_honors_classifies_tests():
+    """FEAT-2257: a running kind may detect PRODUCTION source for a static check (typecheck
+    over every .ts). `classifies_tests: false` keeps such a kind from marking its matches as
+    test code; absent or true keeps today's classification, and exclude/status still apply."""
+    def kinds(status="active", **flag):
+        return {"static": {"detect": "**/*.ts", "exclude": "vendor/**", "status": status, **flag}}
+    failures = check(code_grade._is_test_path(".omp/extensions/hooks.ts", kinds(classifies_tests=False)),
+                     False, "an active kind flagged classifies_tests false classifies nothing as test")
+    failures += check(code_grade._is_test_path(".omp/extensions/hooks.ts",
+                                               kinds("locally_run", classifies_tests=False)),
+                      False, "a locally_run kind flagged false classifies nothing as test")
+    failures += check(code_grade._is_test_path(".omp/extensions/hooks.ts", kinds()),
+                      True, "an absent flag keeps a matching running kind's test classification")
+    failures += check(code_grade._is_test_path(".omp/extensions/hooks.ts", kinds(classifies_tests=True)),
+                      True, "an explicit true keeps a matching running kind's test classification")
+    failures += check(code_grade._is_test_path("vendor/lib.ts", kinds(classifies_tests=True)),
+                      False, "exclude still removes a match from a classifying kind")
+    failures += check(code_grade._is_test_path(".omp/extensions/hooks.ts", kinds("unresolved")),
+                      False, "a non-running kind still classifies nothing")
+    return failures
+
+
 def check_classify_grade_two_is_reasoned():
     records, result = code_grade.classify(
         [_grade_stub("boundary", 2, path="src/prod.py")], _CLASSIFY_TEST_KINDS)
@@ -954,6 +976,7 @@ def main():
         check_optional_field_guards,
         check_classify_bars,
         check_classify_locally_run_bars_as_test,
+        check_is_test_path_honors_classifies_tests,
         check_classify_grade_two_is_reasoned,
         check_classify_precedence,
         check_classify_rejects_bad_test_kinds,
