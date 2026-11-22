@@ -64,5 +64,40 @@
       "reason": "Cause known, diff bounded, but A adds enforcement surfaces (before_subagent_spawn handler, unavailable gate contract, rule file to every governed persona) and amends DEC-100; main-session-direct under DEC-174."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "715e151048b87ebf9f9b9b01dce6f44d306ed5f5c435cb1c0651924b56687b4f",
+    "T-02": "3492575d26942d6d5118bca23bf5b1bbdeef0c529bfc6d56fa246e0f95e09bd6",
+    "T-03": "030ee391271b9039b234bdd29353113d7cdb60398907ab1f544cb0aa745c814a"
+  },
+  "github": {
+    "milestone": 118,
+    "parent": 2298,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2299,
+      "T-02": 2300,
+      "T-03": 2301
+    },
+    "source_issues": [
+      2274
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

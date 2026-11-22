@@ -1,8 +1,10 @@
 schema: plan/1
 feature: FEAT-2274-omp-native-gate-policy
 approval:
-  status: pending
-status: plan
+  date: '2026-11-22'
+  approved_by: Mike Ruangutai
+  status: approved
+status: ready
 source_issues: [2274]
 panel:
   last_run: r-20261121-1-plan-product
