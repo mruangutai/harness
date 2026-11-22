@@ -71,7 +71,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 requires direct hook and regression work; DEC-179 declares the NOBODY hook surface in the same one-task patch.
   depends_on: []
-  status: ready
+  status: done
   files:
   - .omp/extensions/harness-hooks.ts
   - tests/unit/omp-hooks.test.ts
