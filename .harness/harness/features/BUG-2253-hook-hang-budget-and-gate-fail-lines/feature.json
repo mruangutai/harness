@@ -2,7 +2,7 @@
   "feature_id": "BUG-2253-hook-hang-budget-and-gate-fail-lines",
   "branch": "feat/BUG-2253-hook-hang-budget-and-gate-fail-lines",
   "pr": 2282,
-  "review_sha": "3ba8dd4bf65392a1dd4fe99dddfebb14fe68d01d",
+  "review_sha": "7e590f735af90220baec7013c7ce8eafc2163bce",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
@@ -96,6 +96,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-22T13:52:19+00:00"
+    },
+    {
+      "id": "2026-11-22-07-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-22T14:12:23+00:00"
     }
   ],
   "mission": "patch",
