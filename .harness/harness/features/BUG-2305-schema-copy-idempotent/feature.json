@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2305-schema-copy-idempotent",
   "branch": "feat/BUG-2305-schema-copy-idempotent",
-  "pr": null,
+  "pr": 2325,
   "review_sha": "297913318472d066ecb9d5eb3f83ee2ca82c3ad7",
   "cycles_used": 0,
   "max_total_cycles": 10,
@@ -45,6 +45,13 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "The cause is known: OMP persists the hook's revised call, and the refusal does not recognise its own injection. The diff is bounded to one hook file and its unit test, and it narrows an existing check."
+    },
+    {
+      "at": "2026-11-22T18:55:49+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Operator skipped feature-close distillation at ship; lessons carried by backlog B-1..B-3 and the regression"
     }
   ],
   "mission": "patch",
