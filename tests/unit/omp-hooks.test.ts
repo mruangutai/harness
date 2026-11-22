@@ -74,8 +74,6 @@ const toolApi = (tools: Map<string, any> = new Map()) => ({
 // FEAT-1928: a yield's `data` IS the digest object; the validator receives it unmodified.
 const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
 const RETURN_THE_OBJECT = "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}})";
-// #2240: SC-02's exact sentence, asserted verbatim.
-const INJECTION_NOTE = "The hook injected outputSchema and schemaMode into this task call; never copy these fields into a task call.";
 // The canonical schema directory the hook loads from: the gate tree this extension ships in.
 const DIGEST_SCHEMA_DIR = gatePath("digest-schemas");
 // FEAT-2225: one member-ops receipt line as T-01's core prints it; the host returns it verbatim.
@@ -1707,8 +1705,8 @@ describe("OMP task lifecycle adapter", () => {
       expect(revised.tasks[index].outputSchema).toBe(bundle);
     });
     expect(revised.tasks[16]).toBe(scout);
-    // #2240: the injected fields land in the persisted call; the dispatcher is told so.
-    expect(result?.additionalContext).toBe(INJECTION_NOTE);
+    // BUG-2305: a successful dispatch carries no note telling the dispatcher about the fields.
+    expect(result).not.toHaveProperty("additionalContext");
     // The governed preflight still judges every harness target of the accepted call.
     expect(guardCalls(calls)).toHaveLength(17);
   });
@@ -1722,11 +1720,146 @@ describe("OMP task lifecycle adapter", () => {
     }, leadCtx());
     expect(result).toEqual({
       input: { ...input, outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa"), schemaMode: "strict" },
-      additionalContext: INJECTION_NOTE,
     });
   });
 
-  test("#2240 no injection note when nothing was injected", async () => {
+  // BUG-2305: OMP persists the revised call, so a dispatcher may send the injected pair back.
+  // Keys reversed at every depth, so only structural equality — not JSON text — accepts it.
+  const reordered = (value: unknown): unknown => Array.isArray(value)
+    ? value.map(reordered)
+    : value && typeof value === "object"
+      ? Object.fromEntries(Object.entries(value as Record<string, unknown>).reverse()
+        .map(([key, item]) => [key, reordered(item)]))
+      : value;
+  const mainFixture = async () => {
+    const f = fixture();
+    await f.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    return f;
+  };
+  const dispatch = async (handlers: Map<string, any>, input: Record<string, unknown>) =>
+    await handlers.get("tool_call")?.({ toolName: "task", toolCallId: "copy", input }, mainCtx()) as
+      Record<string, any> | undefined;
+
+  test("BUG-2305: every persona's injected bundle, copied back strict, is accepted flat and per item", async () => {
+    for (const persona of DIGEST_PERSONAS) {
+      const { handlers, calls } = await mainFixture();
+      const first = await dispatch(handlers, { agent: persona, name: "One", task: ASSIGNMENT });
+      const injected = first?.input.outputSchema;
+      const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona);
+      expect(injected).toEqual(bundle);
+      for (const copy of [structuredClone(injected), reordered(structuredClone(injected))]) {
+        expect(copy).not.toBe(injected);
+        const flatInput = { agent: persona, name: "Two", task: ASSIGNMENT, outputSchema: copy, schemaMode: "strict" };
+        const flat = await dispatch(handlers, flatInput);
+        expect({ persona, block: flat?.block, reason: flat?.reason }).toEqual({ persona, block: undefined, reason: undefined });
+        expect(flat).toEqual({ input: { ...flatInput, outputSchema: bundle, schemaMode: "strict" } });
+        expect(flat?.input.outputSchema).toBe(bundle);
+        const item = { agent: persona, name: "Three", task: ASSIGNMENT, outputSchema: copy, schemaMode: "strict" };
+        const batch = await dispatch(handlers, { context: "shared", tasks: [item] });
+        expect({ persona, block: batch?.block, reason: batch?.reason }).toEqual({ persona, block: undefined, reason: undefined });
+        expect(batch).toEqual({ input: { context: "shared", tasks: [{ ...item, outputSchema: bundle, schemaMode: "strict" }] } });
+        expect(batch?.input.tasks[0].outputSchema).toBe(bundle);
+      }
+      expect(guardCalls(calls)).toHaveLength(5);
+    }
+  });
+
+  test("BUG-2305: a batch accepts copies at any position beside plain and non-harness items", async () => {
+    const { handlers, calls } = await mainFixture();
+    const qa = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa");
+    const pm = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-pm");
+    const tasks = [
+      { agent: "harness-qa", task: ASSIGNMENT, outputSchema: reordered(structuredClone(qa)), schemaMode: "strict" },
+      { agent: "harness-backend-dev", task: ASSIGNMENT },
+      { agent: "scout", task: "look" },
+      { agent: "harness-pm", task: ASSIGNMENT, schemaMode: "strict", outputSchema: structuredClone(pm) },
+    ];
+    const result = await dispatch(handlers, { context: "shared", tasks });
+    expect(result?.block).toBeUndefined();
+    expect(result?.input.tasks).toEqual([
+      { ...tasks[0], outputSchema: qa, schemaMode: "strict" },
+      { ...tasks[1], outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev"), schemaMode: "strict" },
+      tasks[2],
+      { ...tasks[3], outputSchema: pm, schemaMode: "strict" },
+    ]);
+    expect(result).not.toHaveProperty("additionalContext");
+    expect(guardCalls(calls)).toHaveLength(4);
+  });
+
+  test("BUG-2305: every other schema control is refused flat and per item, naming field and location", async () => {
+    const qa = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa");
+    const changed = { ...structuredClone(qa), additionalProperties: true };
+    const target = (controls: Record<string, unknown>, agent = "harness-qa") =>
+      ({ agent, name: "Check", task: agent.startsWith("harness-") ? ASSIGNMENT : "look", ...controls });
+    const cases: Array<[string, Record<string, unknown>, string, string?]> = [
+      ["changed schema, strict", { outputSchema: changed, schemaMode: "strict" }, "outputSchema"],
+      ["wrong persona's bundle", { outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-pm"), schemaMode: "strict" }, "outputSchema"],
+      ["exact, permissive", { outputSchema: structuredClone(qa), schemaMode: "permissive" }, "schemaMode"],
+      ["exact, null mode", { outputSchema: structuredClone(qa), schemaMode: null }, "schemaMode"],
+      ["exact, boolean mode", { outputSchema: structuredClone(qa), schemaMode: true }, "schemaMode"],
+      ["exact, number mode", { outputSchema: structuredClone(qa), schemaMode: 1 }, "schemaMode"],
+      ["exact, object mode", { outputSchema: structuredClone(qa), schemaMode: { mode: "strict" } }, "schemaMode"],
+      ["schema without mode", { outputSchema: structuredClone(qa) }, "outputSchema"],
+      ["mode without schema", { schemaMode: "strict" }, "schemaMode"],
+      ["non-harness schema", { outputSchema: structuredClone(qa) }, "outputSchema", "scout"],
+      ["non-harness mode", { schemaMode: "strict" }, "schemaMode", "scout"],
+      ["non-harness pair", { outputSchema: structuredClone(qa), schemaMode: "strict" }, "outputSchema", "scout"],
+    ];
+    for (const [label, controls, field, agent] of cases) {
+      const { handlers, calls } = await mainFixture();
+      const flat = await dispatch(handlers, target(controls, agent));
+      expect({ label, block: flat?.block }).toEqual({ label, block: true });
+      expect(flat?.reason).toMatch(new RegExp(`never carry (\\S+, )*${field}[,:]`));
+      const batch = await dispatch(handlers, { context: "shared", tasks: [target(controls, agent)] });
+      expect({ label, block: batch?.block }).toEqual({ label, block: true });
+      expect(batch?.reason).toContain(`tasks[0].${field}`);
+      expect(guardCalls(calls)).toEqual([]);
+    }
+  });
+
+  test("BUG-2305: batch top-level controls stay refused even as an exact copy, one or both", async () => {
+    const qa = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa");
+    for (const controls of [
+      { outputSchema: structuredClone(qa) }, { schemaMode: "strict" },
+      { outputSchema: structuredClone(qa), schemaMode: "strict" },
+    ]) {
+      const { handlers, calls } = await mainFixture();
+      const result = await dispatch(handlers, {
+        context: "shared", ...controls, tasks: [{ agent: "harness-qa", task: ASSIGNMENT }],
+      });
+      expect(result?.block).toBe(true);
+      for (const field of Object.keys(controls)) expect(result?.reason).toMatch(new RegExp(`never carry (\\S+, )*${field}[,:]`));
+      expect(guardCalls(calls)).toEqual([]);
+    }
+  });
+
+  test("BUG-2305: an accepted copy never masks a later invalid item", async () => {
+    const { handlers, calls } = await mainFixture();
+    const qa = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa");
+    const result = await dispatch(handlers, {
+      context: "shared",
+      tasks: [
+        { agent: "harness-qa", task: ASSIGNMENT, outputSchema: structuredClone(qa), schemaMode: "strict" },
+        { agent: "harness-pm", task: ASSIGNMENT },
+        { agent: "harness-qa", task: ASSIGNMENT, outputSchema: structuredClone(qa), schemaMode: "permissive" },
+      ],
+    });
+    expect(result?.block).toBe(true);
+    expect(result?.reason).toContain("never carry tasks[2].outputSchema, tasks[2].schemaMode:");
+    expect(result?.reason).not.toContain("tasks[0]");
+    expect(guardCalls(calls)).toEqual([]);
+  });
+
+  test("BUG-2305: a copied pair for a persona whose bundle cannot load is refused before any claim", async () => {
+    const { handlers, calls } = await mainFixture();
+    const result = await dispatch(handlers, {
+      agent: "harness-nobody", task: ASSIGNMENT, outputSchema: { type: "object" }, schemaMode: "strict",
+    });
+    expect(result?.block).toBe(true);
+    expect(guardCalls(calls)).toEqual([]);
+  });
+
+  test("no injection note when nothing was injected", async () => {
     const { handlers } = fixture();
     await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
     for (const input of [

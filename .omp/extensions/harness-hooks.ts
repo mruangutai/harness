@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, lstatSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync, type Stats } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 import { DigestSchemaBundleError, loadDigestSchemaBundle } from "./digest-schema.ts";
 
 const AGENT_MARKER = /^HARNESS_AGENT_ID: (harness-[a-z0-9-]+)$/gm;
@@ -369,16 +370,34 @@ function taskModelOverride(input: Dict): string | undefined {
 // only the hook's. Agent frontmatter cannot set schemaMode and OMP defaults to permissive, so a
 // dispatcher-supplied schema or mode would replace or loosen that contract. Refused wherever
 // it can appear, the main session included — the FEAT-65 collision came from the main session.
+// BUG-2305: OMP persists the hook's revision as the call itself, so a dispatcher may send the
+// injected pair back. A harness target carrying exactly its own bundle (key order aside) with
+// schemaMode "strict" changes nothing and is accepted; withDigestSchemas re-injects it anyway.
 const SCHEMA_CONTROLS = ["outputSchema", "schemaMode"];
-const SCHEMA_INJECTION_NOTE = "The hook injected outputSchema and schemaMode into this task call; "
-  + "never copy these fields into a task call.";
 const DIGEST_SCHEMA_DIR = join(gateRoot(), BIN, "digest-schemas");
 
+function isInjectedCopy(target: Dict): boolean {
+  const agent = text(target.agent);
+  if (!agent.startsWith("harness-") || target.schemaMode !== "strict" || !Object.hasOwn(target, "outputSchema")) {
+    return false;
+  }
+  try {
+    return isDeepStrictEqual(target.outputSchema, loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, agent));
+  } catch (error) {
+    // An unloadable bundle has no copy; the controls are refused like any other.
+    if (error instanceof DigestSchemaBundleError) return false;
+    throw error;
+  }
+}
+
 function schemaControlRefusal(input: Dict): string | undefined {
-  const found = SCHEMA_CONTROLS.filter((key) => Object.hasOwn(input, key));
-  if (Array.isArray(input.tasks)) {
-    input.tasks.forEach((item, index) => {
-      if (!item || typeof item !== "object") return;
+  const batch = Array.isArray(input.tasks);
+  const found = batch || !isInjectedCopy(input)
+    ? SCHEMA_CONTROLS.filter((key) => Object.hasOwn(input, key))
+    : [];
+  if (batch) {
+    (input.tasks as unknown[]).forEach((item, index) => {
+      if (!item || typeof item !== "object" || isInjectedCopy(item as Dict)) return;
       found.push(...SCHEMA_CONTROLS.filter((key) => Object.hasOwn(item, key))
         .map((key) => `tasks[${index}].${key}`));
     });
@@ -386,7 +405,7 @@ function schemaControlRefusal(input: Dict): string | undefined {
   return found.length
     ? `Harness dispatches never carry ${found.join(", ")}: the hook injects each harness `
       + "persona's strict digest schema itself. Remove the field and dispatch again."
-      + " Fields on earlier calls were hook-injected and must never be copied."
+      + " Only an unchanged copy of a harness target's own bundle with schemaMode strict is accepted."
     : undefined;
 }
 
@@ -1402,7 +1421,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (!currentAgent && !ompMainTask) return;
     const policyAgent = currentAgent || "Main";
     let revisedInput: Dict | undefined;
-    let schemasInjected = false;
     let reason: string | undefined;
     if (mutates) {
       reason = currentFeature
@@ -1461,7 +1479,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       if (!reason) {
         try {
           revisedInput = withDigestSchemas(input);
-          schemasInjected = revisedInput !== undefined;
         } catch (error) {
           if (!(error instanceof DigestSchemaBundleError)) throw error;
           reason = `Harness dispatch refused: ${error.message} A harness agent is never `
@@ -1565,11 +1582,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       }
     }
     if (reason) return { block: true, reason };
-    // #2240: OMP persists this revision as the call itself, so the dispatcher later reads the
-    // injected schema as fields it sent and copies them into its next call (refused).
-    if (revisedInput) {
-      return schemasInjected ? { input: revisedInput, additionalContext: SCHEMA_INJECTION_NOTE } : { input: revisedInput };
-    }
+    if (revisedInput) return { input: revisedInput };
   });
 
   pi.on("tool_result", async (event: Dict, ctx: any) => {
