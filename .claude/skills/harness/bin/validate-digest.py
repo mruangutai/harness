@@ -2502,18 +2502,22 @@ def _run_pool_file_lines(lines):
     `PASS <name>` or `FAIL <name>`, and prints `MUTATED <name>` only outside every block.
     Names may hold spaces, so the line's position decides, not its shape: a failing file's
     echoed `FAIL <case label>` lines sit inside its block and close nothing."""
-    named, open_blocks = [], []
-    for line in lines:
-        header = _RUN_POOL_HEADER.fullmatch(line)
-        if header:
-            open_blocks.append(header.group(1))
-        elif open_blocks and line in (f"PASS {open_blocks[-1]}", f"FAIL {open_blocks[-1]}"):
-            open_blocks.pop()
-            if line.startswith("FAIL "):
-                named.append(line)
-        elif not open_blocks and line.startswith("MUTATED "):
-            named.append(line)
-    return named
+    open_blocks = []
+    return [line for line in lines if _is_run_pool_file_line(line, open_blocks)]
+
+
+def _is_run_pool_file_line(line, open_blocks):
+    """Advance the stack of open block names over `line`; True when it is a file line."""
+    header = _RUN_POOL_HEADER.fullmatch(line)
+    if header:
+        open_blocks.append(header.group(1))
+        return False
+    if not open_blocks:
+        return line.startswith("MUTATED ")
+    if line not in (f"PASS {open_blocks[-1]}", f"FAIL {open_blocks[-1]}"):
+        return False
+    open_blocks.pop()
+    return line.startswith("FAIL ")
 
 
 def _print_independent_run(output):
