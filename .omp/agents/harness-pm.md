@@ -57,15 +57,29 @@ decisions are choices; apply the swap test.
 
 ## Mode 2 — Goal-check
 
-You check whether the feature **delivered**, using two falsifiable units:
+You check whether the feature **delivered**, using three falsifiable units:
 
 - **Perspective coverage** — every perspective discharged by at least one SC, each SC traceable to shipped code via `traces:`. Proves nothing was dropped.
 - **SC outcomes** — each `SC-NN` verdict `met | not_met | partial`, **with an evidence pointer.**
+- **Decision-disposition outcomes** — one verdict per `amend` or `strike` row of the plan's
+  `decisions_affected:`; `keep` rows are not graded.
 
 **You collect evidence; you do not re-test.** For `verify: automated`, read qa's DIGEST and cite the
 specific test. For `verify: inspection`, cite the reviewer's `file:line`. For `verify: uat`, it stays
 `not_met` until the user runs it. An SC no test exercises is `not_met`; the gap goes back to qa,
 not to the user.
+
+**Decision dispositions.** For each amend/strike row individually, read DECISIONS.md as committed at
+the pin (`git show <review_sha>:<repo-relative DECISIONS.md path>`) — never the mutable working tree. Emit an
+`sc_status` row: `id` the DEC, `verdict` `met | not_met | partial`, `method` `inspection`, `evidence`
+naming the review_sha, the DECISIONS.md path and the pinned line. When one DEC has several affected
+clauses, record the plan row identity in your research note. The row's clause, successor and reason
+already state what must land: an amend is met only when the intended current text has actually
+replaced the clause; a strike only when the strike record exists, or the deletion is justified by its
+named successor with citations repointed (DEC-188, DEC-205). Evidence that merely mentions the DEC,
+or a green suite, is insufficient. A missing or partial landing fails the goal-check exactly like an
+unmet SC; name the task owning DECISIONS.md for remediation. No owning task is a plan/scope defect,
+never a reason to claim success.
 
 ## Mode 3 — The UAT
 
