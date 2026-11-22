@@ -21,6 +21,21 @@
       "cycles_used": 0,
       "ended_at": "2026-11-22T20:30:35+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T20:48:35+00:00",
+      "tokens": 41338,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-validate-validator/digest.md",
+        "sha256": "c1b22789bc202e5a8bb4320de0c37e2ec5ab45417826dedf7b0ff40f4d030f0f"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T20:57:23+00:00"
     }
   ],
   "judgements": [
@@ -30,6 +45,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "The operator judged it plan up front, because the inventory sets how far T-02 reaches. Two dependent tasks across guidance and gate code, one a gate refactor."
+    },
+    {
+      "at": "2026-11-22T20:48:35+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Build landed main-session-direct at ffe320f5, SIMPLIFY empty, spend 1 run / 0 cycles / 0 rework minutes; handoff-build Next is the one validate run over 125a04f8"
     }
   ],
   "mission": "plan",
