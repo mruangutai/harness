@@ -36,6 +36,8 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from harness_config_support import build_config, write_config  # noqa: E402
 import json
 import os
 import subprocess
@@ -66,7 +68,14 @@ teams:
 """
 
 
-def project(harness_json='{"schema_version": 1}', manifest="schema_version: 1\n"):
+def version_two(overrides=None):
+    """A valid built config, explicitly aged to schema_version 2 — the shape this tool migrates."""
+    document = build_config(overrides)
+    document["schema_version"] = 2
+    return document
+
+
+def project(harness_json=None, manifest="schema_version: 1\n"):
     """A fixture that REACHES the manifest comparison.
 
     It must carry a templates dir. Without one the script exits early citing an
@@ -78,14 +87,13 @@ def project(harness_json='{"schema_version": 1}', manifest="schema_version: 1\n"
     d = tempfile.mkdtemp()
     os.makedirs(os.path.join(d, ".harness"))
     with open(os.path.join(d, ".harness", "harness.json"), "w") as f:
-        f.write(harness_json)
+        f.write(harness_json or json.dumps(version_two()))
     with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
         f.write(manifest)
 
     tdir = os.path.join(d, "_templates")
     os.makedirs(tdir)
-    with open(os.path.join(tdir, "harness.json"), "w") as f:
-        f.write('{"schema_version": 2}')
+    write_config(os.path.join(tdir, "harness.json"))
     with open(os.path.join(tdir, "team-config.yaml"), "w") as f:
         f.write(TEMPLATE_MANIFEST)
     return d
@@ -247,10 +255,9 @@ check("--check never rewrites team-config.yaml (safe_dump would strip its commen
 # any other nested object (test_kinds, etc.) — see the module docstring for the read
 # (upgrade-config.py:79-83, :86-88) that establishes this without any production
 # change. Assert the VALUE, not mere presence.
-budgets_root = project(harness_json=json.dumps({"schema_version": 1, "budgets": {}}))
-with open(os.path.join(budgets_root, "_templates", "harness.json"), "w") as f:
-    json.dump({"schema_version": 2,
-               "budgets": {"orchestrator_context_warn_tokens": 200000}}, f)
+budgets_project = version_two()
+del budgets_project["budgets"]["orchestrator_context_warn_tokens"]
+budgets_root = project(harness_json=json.dumps(budgets_project))
 r = run(budgets_root)
 merged_budgets = json.load(open(os.path.join(budgets_root, ".harness", "harness.json")))
 check("a new budgets key (orchestrator_context_warn_tokens) propagates from the "
@@ -272,27 +279,24 @@ check("a new budgets key (orchestrator_context_warn_tokens) propagates from the 
 # its own boundary must not have it reset to the template's null on a later upgrade: that
 # would silently re-grade every pre-panel plan it had correctly exempted, which is the
 # migration failure this case exists to keep closed.
-era_gap = project(harness_json=json.dumps({"schema_version": 1}))
-with open(os.path.join(era_gap, "_templates", "harness.json"), "w") as f:
-    json.dump({"schema_version": 2, "panel_era_start": None}, f)
+era_gap_project = version_two()
+del era_gap_project["panel_era_start"]
+era_gap = project(harness_json=json.dumps(era_gap_project))
 r = run(era_gap)
 merged_era = json.load(open(os.path.join(era_gap, ".harness", "harness.json")))
-check("panel_era_start ARRIVES in a schema-1 project through the real merge, at the "
+check("panel_era_start ARRIVES in a schema-2 project through the real merge, at the "
       "template's null",
       ran_clean(r)
       and "panel_era_start" in merged_era
       and merged_era["panel_era_start"] is None,
       f"exit {r.returncode}; merged={merged_era}; stderr={r.stderr.strip()[-300:]}")
 
-era_set = project(harness_json=json.dumps({"schema_version": 1,
-                                           "panel_era_start": "2026-08-31"}))
-with open(os.path.join(era_set, "_templates", "harness.json"), "w") as f:
-    json.dump({"schema_version": 2, "panel_era_start": None}, f)
+era_set = project(harness_json=json.dumps(version_two({"panel_era_start": "2026-01-15"})))
 r = run(era_set)
 kept_era = json.load(open(os.path.join(era_set, ".harness", "harness.json")))
 check("a project's OWN panel_era_start survives the upgrade and is not reset to the "
       "template's null",
-      ran_clean(r) and kept_era.get("panel_era_start") == "2026-08-31",
+      ran_clean(r) and kept_era.get("panel_era_start") == "2026-01-15",
       f"exit {r.returncode}; merged={kept_era}; stderr={r.stderr.strip()[-300:]}")
 
 def main():

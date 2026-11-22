@@ -1,0 +1,4 @@
+# T-01 RED: the two non-config readers through the validating loader; 2026-11-22T19:44:56Z
+$ digest_schema.load_schema("harness-qa"); run_identity.read_marker(<plan run dir>)
+digest_schema.load_schema -> DigestSchemaError /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.claude/skills/harness/bin/digest-schemas/common.json: digest schema cannot be loaded: /Users/molchairuan
+run_identity.read_marker -> MarkerUnreadable cannot read run identity marker .harness/harness/features/FEAT-2297-harness-json-schema/runs/2026-11-22-01-plan-product/.run-identity.json: .harness/harness/features/FEAT-2297-harness-json-schema/runs

@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:harness:config:harness.json:3",
+  "title": "harness.json, schema_version 3",
+  "description": "The sole shape and default contract for harness.json (FEAT-2297 D-01). harness_config.py applies each `default` only where its key is absent, then validates. Keys starting with `_` are unchecked prose everywhere except the operational `_matrix_provenance`.",
+  "type": "object",
+  "properties": {
+    "schema_version": {"const": 3, "default": 3},
+    "panel_era_start": {"$ref": "#/$defs/date_or_null", "default": null},
+    "seam_era_start": {"$ref": "#/$defs/date_or_null", "default": null},
+    "decision_dispositions_era_start": {
+      "anyOf": [{"type": "null"}, {"type": "string", "format": "harness-instant"}],
+      "default": null
+    },
+    "_matrix_provenance": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {"$ref": "#/$defs/change_type_or_prose"},
+      "patternProperties": {"^_": true},
+      "additionalProperties": {
+        "type": "object",
+        "required": ["removed", "added", "signed"],
+        "properties": {
+          "removed": {"type": "array", "items": {"$ref": "#/$defs/kind"}},
+          "added": {"type": "array", "items": {"$ref": "#/$defs/kind"}},
+          "signed": {"$ref": "#/$defs/decision"}
+        },
+        "patternProperties": {"^_": true},
+        "additionalProperties": false
+      }
+    },
+    "test_matrix": {
+      "type": "object",
+      "default": {
+        "logic": {"always": ["unit"]},
+        "api": {"always": ["unit", "functional"],
+                "when": [{"kind": "integration", "if": "touches_db_or_external"}]},
+        "cross_module": {"always": ["unit", "functional", "integration"]},
+        "frontend": {"always": ["unit", "component"], "when": [{"kind": "ui", "if": "has_interaction_flow"}]},
+        "feature": {"always": ["unit", "functional", "integration"],
+                    "when": [{"kind": "ui", "if": "has_interaction_flow"}]},
+        "bugfix": {"always": [], "when": [
+          {"kind": "unit", "if": "touches_runtime_code"},
+          {"kind": "integration", "if": "fix_confined_to_tests_and_contract_docs"},
+          {"kind": "__bug_class__", "if": "match_bug_class"}]},
+        "ai_behavior": {"always": ["eval"]},
+        "config": {"always": [], "when": [{"kind": "integration", "if": "touches_config_shape"}]},
+        "scaffolding": {"always": []},
+        "docs": {"always": []}
+      },
+      "propertyNames": {"$ref": "#/$defs/change_type_or_prose"},
+      "patternProperties": {"^_": true},
+      "additionalProperties": {
+        "type": "object",
+        "required": ["always"],
+        "properties": {
+          "always": {"type": "array", "items": {"$ref": "#/$defs/kind"}},
+          "when": {"type": "array", "default": [], "items": {"$ref": "#/$defs/when"}}
+        },
+        "patternProperties": {"^_": true},
+        "additionalProperties": false
+      }
+    },
+    "test_kinds": {
+      "type": "object",
+      "default": {
+        "unit": {"detect": "tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py",
+                 "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**|dist/**|build/**",
+                 "cmd": null, "status": "unresolved"},
+        "functional": {"detect": "tests/functional/**",
+                       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
+                       "cmd": null, "status": "unresolved"},
+        "integration": {"detect": "tests/integration/**",
+                        "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
+                        "cmd": null, "status": "unresolved"},
+        "component": {"detect": "**/*.spec.tsx|**/*.stories.tsx|**/*.stories.ts",
+                      "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
+                      "cmd": null, "status": "unresolved"},
+        "ui": {"detect": "tests/e2e/**|e2e/**|**/*.e2e.spec.ts", "exclude": ".claude/worktrees/**|node_modules/**",
+               "cmd": null, "status": "unresolved"},
+        "eval": {"detect": "evals/**|tests/**eval**", "exclude": ".claude/worktrees/**|node_modules/**|.venv/**",
+                 "cmd": null, "status": "unresolved"},
+        "typecheck": {"detect": "**/*.ts|**/*.tsx", "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
+                      "cmd": null, "status": "unresolved"}
+      },
+      "propertyNames": {"anyOf": [{"$ref": "#/$defs/kind"}, {"pattern": "^_"}]},
+      "patternProperties": {"^_": true},
+      "additionalProperties": {"$ref": "#/$defs/test_kind"}
+    },
+    "commit_attribution": {
+      "type": "object",
+      "default": {},
+      "properties": {
+        "agent_prefix": {"$ref": "#/$defs/text", "default": "[harness:<step-id>]"},
+        "human_prefix": {"$ref": "#/$defs/text", "default": "[harness:human]"}
+      },
+      "patternProperties": {"^_": true},
+      "additionalProperties": false
+    },
+    "dirty_tree_whitelist": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/text"},
+      "default": [".harness/**", ".claude/worktrees/**"]
+    },
+    "log_retention_days": {"$ref": "#/$defs/count", "default": 30},
+    "budgets": {
+      "type": "object",
+      "default": {},
+      "properties": {
+        "max_total_cycles": {"$ref": "#/$defs/count", "default": 10},
+        "max_total_runs": {"$ref": "#/$defs/count", "default": 20},
+        "orchestrator_context_warn_tokens": {"$ref": "#/$defs/positive", "default": 200000},
+        "plan_phase_warn_minutes": {"$ref": "#/$defs/positive", "default": 90},
+        "rework_round_minutes": {"$ref": "#/$defs/positive", "default": 45},
+        "preload_warn_words": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "universal": {"$ref": "#/$defs/positive", "default": 1900},
+            "agent": {"$ref": "#/$defs/positive", "default": 5500}
+          },
+          "patternProperties": {"^_": true},
+          "additionalProperties": false
+        }
+      },
+      "patternProperties": {"^_": true},
+      "additionalProperties": false
+    },
+    "gates": {
+      "type": "object",
+      "default": {},
+      "properties": {
+        "review": {"enum": ["blocking", "advisory", "advisory_unless_high"], "default": "advisory_unless_high"}
+      },
+      "patternProperties": {"^_": true},
+      "additionalProperties": false
+    },
+    "github": {
+      "type": "object",
+      "default": {},
+      "properties": {
+        "sync": {"type": "boolean", "default": false},
+        "repo": {
+          "anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[^\\s/]+/[^\\s/]+$"}],
+          "default": null
+        },
+        "board": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/board"}], "default": null},
+        "issue_types": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "Bug": {"$ref": "#/$defs/text"},
+            "Feature": {"$ref": "#/$defs/text"},
+            "Task": {"$ref": "#/$defs/text"},
+            "parent": {"$ref": "#/$defs/text"}
+          },
+          "patternProperties": {"^_": true},
+          "additionalProperties": false
+        }
+      },
+      "patternProperties": {"^_": true},
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"sync": {"const": true}}, "required": ["sync"]},
+          "then": {"properties": {"repo": {"type": "string"}}}
+        },
+        {
+          "if": {"properties": {"board": {"type": "object"}}, "required": ["board"]},
+          "then": {"properties": {"repo": {"type": "string"}}}
+        }
+      ]
+    }
+  },
+  "patternProperties": {"^_": true},
+  "additionalProperties": false,
+  "$defs": {
+    "text": {"type": "string", "minLength": 1},
+    "count": {"type": "integer", "minimum": 0},
+    "positive": {"type": "integer", "minimum": 1},
+    "decision": {"type": "string", "pattern": "^DEC-[0-9]+$"},
+    "date_or_null": {"anyOf": [{"type": "null"}, {"type": "string", "format": "harness-date"}]},
+    "change_type_or_prose": {
+      "anyOf": [
+        {"enum": ["logic", "api", "cross_module", "frontend", "feature", "bugfix", "ai_behavior", "config",
+                  "scaffolding", "docs"]},
+        {"pattern": "^_"}
+      ]
+    },
+    "kind": {
+      "enum": ["unit", "functional", "integration", "component", "ui", "eval", "typecheck",
+               "omp_session_accessor", "handoff_comprehension", "issue_types_live"]
+    },
+    "condition": {
+      "enum": ["touches_runtime_code", "touches_db_or_external", "has_interaction_flow", "touches_config_shape",
+               "fix_confined_to_tests_and_contract_docs", "match_bug_class"]
+    },
+    "when": {
+      "type": "object",
+      "required": ["kind", "if"],
+      "properties": {
+        "kind": {"anyOf": [{"$ref": "#/$defs/kind"}, {"const": "__bug_class__"}]},
+        "if": {"$ref": "#/$defs/condition"}
+      },
+      "patternProperties": {"^_": true},
+      "additionalProperties": false,
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "__bug_class__"}}, "required": ["kind"]},
+         "then": {"properties": {"if": {"const": "match_bug_class"}}}},
+        {"if": {"properties": {"if": {"const": "match_bug_class"}}, "required": ["if"]},
+         "then": {"properties": {"kind": {"const": "__bug_class__"}}}}
+      ]
+    },
+    "test_kind": {
+      "type": "object",
+      "required": ["detect", "exclude", "cmd", "status"],
+      "properties": {
+        "detect": {"$ref": "#/$defs/text"},
+        "exclude": {"type": "string"},
+        "cmd": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/text"}]},
+        "status": {"enum": ["active", "excluded", "unresolved", "locally_run"]},
+        "excluded_because": {"$ref": "#/$defs/text"},
+        "signed": {"$ref": "#/$defs/decision"},
+        "runner_note": {"$ref": "#/$defs/text"}
+      },
+      "patternProperties": {"^_": true},
+      "additionalProperties": false,
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "excluded"}}, "required": ["status"]},
+         "then": {"required": ["excluded_because", "signed"]}},
+        {"if": {"properties": {"status": {"const": "locally_run"}}, "required": ["status"]},
+         "then": {"required": ["runner_note"], "properties": {"cmd": {"$ref": "#/$defs/text"}}}}
+      ]
+    },
+    "board": {
+      "type": "object",
+      "required": ["owner", "number", "station_field", "stations"],
+      "properties": {
+        "owner": {"$ref": "#/$defs/text"},
+        "number": {"anyOf": [{"type": "integer"}, {"type": "string", "pattern": "^\\s*[0-9]+\\s*$"}]},
+        "station_field": {"$ref": "#/$defs/text"},
+        "stations": {"const": ["backlog", "plan", "ready", "building", "review", "done"]}
+      },
+      "patternProperties": {"^_": true},
+      "additionalProperties": false
+    }
+  }
+}

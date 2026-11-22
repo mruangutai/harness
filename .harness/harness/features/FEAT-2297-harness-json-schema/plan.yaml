@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai
   status: approved
 drafted_at: '2026-11-22T15:19:52Z'
-status: plan
+status: building
 source_issues:
 - 2297
 panel:
@@ -244,7 +244,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
   depends_on: []
-  status: ready
+  status: done
   files:
   - .claude/skills/harness/bin/artifact_accessors.py#load_harness_json
   - create: true
@@ -264,9 +264,11 @@ tasks:
   - create: true
     path: tests/integration/test-harness-config-upgrade.py
   - tests/integration/test-upgrade-config.py#project
+  - .claude/skills/harness/bin/run_identity.py#read_marker
+  - .claude/skills/harness/bin/digest_schema.py#SchemaStore
   verify: |
     python3 tests/unit/test-harness-config.py && python3 tests/integration/test-harness-config-upgrade.py
-  intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Create the schema and harness_config.py behind artifact_accessors.load_harness_json. Keep exactly one path or text source, optional context, and ArtifactAccessError as the one public failure boundary. Share strict duplicate-key/nonfinite/object decoding through a new load_json_mapping(path=None, *, text=None, context=None); caller migrations are owned by T-03. Schema documents themselves use that strict generic read, never the validated config loader. Cache the checked local Draft202012Validator/referencing registry, not config data; prohibit remote ref retrieval and fail closed on absent dependency or invalid schema. Return a fresh mapping per call. Deterministically choose the first error by key path then rule and report source, key path and schema validator keyword/message; version 2 names upgrade-config.py. Missing file refuses, unlike missing optional key.
+  intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Create the schema and harness_config.py behind artifact_accessors.load_harness_json. Keep exactly one path or text source, optional context, and ArtifactAccessError as the one public failure boundary. Share strict duplicate-key/nonfinite/object decoding through a new load_json_mapping(path=None, *, text=None, context=None); caller migrations are owned by T-03. Schema documents themselves use that strict generic read, never the validated config loader. Cache the checked local Draft202012Validator/referencing registry, not config data; prohibit remote ref retrieval and fail closed on absent dependency or invalid schema. Return a fresh mapping per call. Deterministically choose the first error by key path then rule and report source, key path and schema validator keyword/message; version 2 names upgrade-config.py. Missing file refuses, unlike missing optional key. Because the validating loader refuses non-config JSON, migrate digest_schema.SchemaStore._load_one and run_identity.read_marker to strict load_json_mapping in this task, preserving their non-config contracts (operator ruling 2026-11-22; T-03 classifies both sites).
 
     Apply defaults only where absent, preserving explicit null and never repairing wrong present values. Require current structural records before defaults could hide absent required fields, then validate the resulting document. All structural objects reject unknown keys except unchecked underscore-prefixed prose; operational _matrix_provenance is reserved and validated. Root defaults: schema_version 3; panel_era_start null; seam_era_start null; decision_dispositions_era_start null; _matrix_provenance {}; commit_attribution agent_prefix [harness:<step-id>] and human_prefix [harness:human]; dirty_tree_whitelist entries .harness/** and .claude/worktrees/**; log_retention_days 30; gates.review advisory_unless_high; github sync false, repo null, board null, issue_types {}; budgets max_total_cycles 10, max_total_runs 20, orchestrator_context_warn_tokens 200000, plan_phase_warn_minutes 90, rework_round_minutes 45, preload_warn_words universal 1900 and agent 5500. These objects and their missing scalar leaves default recursively. Explicit null is accepted only for eras, repo, board and kind cmd. Version is const 3 excluding bool. Date eras are real YYYY-MM-DD dates or null; dispositions era is null or a real timezone-qualified ISO-8601 instant checked for calendar/time/offset validity.
 
@@ -343,8 +345,6 @@ tasks:
     quote: '"rows"'
   - create: true
     path: tests/integration/test-harness-config-readers.py
-  - .claude/skills/harness/bin/digest_schema.py#SchemaStore
-  - .claude/skills/harness/bin/run_identity.py#read_marker
   - .harness/factory/fleet.yaml
   verify: |
     python3 tests/integration/test-harness-config-readers.py
@@ -358,7 +358,7 @@ tasks:
 
     Update check-plan-routes canonical accessor recognition for strict load_json_mapping without allowing it for ordinary harness.json readers. Maintain canonical-reader-classification.json for every changed/new JSON/YAML read, including T-01 schema/generic reads, repair/report bypasses and non-config routes; all ordinary harness.json entries use remedy artifact_accessors.load_harness_json, including remote product_config, rather than documented source route. Use exact real AST reader symbols/categories and main-session-direct execution metadata; keep documented advisory TypeScript exception budgets-only. Add a bounded --all default config-reader integration suite covering every reader/indirect refusal boundary with valid defaults, malformed and missing config, source diagnosis and a no-action sentinel. Exercise gates as real subprocesses and check-state''s report, remote invalid text without checkout fallback, success-only memo behavior, generic schema/run-identity/shipped-comparison regressions, and governed-command/compound repair-prefix counterexamples. Parameterize common malformed-shape cases centrally; do not duplicate an entire schema conformance suite per reader. New CLI cases must discriminate pre-change fail-open behavior before production edits. Keep permanent reader integration coverage synthetic: an invalid remote fleet member must retain its diagnosed refusal and make the aggregate fail, without local-checkout fallback or failure suppression; valid members must not mask another member''s failure.
 
-    Migrate digest_schema.SchemaStore._load_one and run_identity.read_marker to strict load_json_mapping, preserving their non-config contracts; classify both changed reader sites here. Remove only the mruangutai/harness-factory-smoke member from .harness/factory/fleet.yaml under the superseding operator ruling. Preserve Kaya and all other fleet settings; do not modify the smoke repository. Do not weaken validation or suppress any remaining fleet refusal. Exact shipped membership and preservation evidence belongs only to T-10''s bounded feature-only receipt, not the permanent reader integration suite.'
+    digest_schema.SchemaStore._load_one and run_identity.read_marker already read through strict load_json_mapping (moved into T-01 by operator ruling); classify both changed reader sites here. Remove only the mruangutai/harness-factory-smoke member from .harness/factory/fleet.yaml under the superseding operator ruling. Preserve Kaya and all other fleet settings; do not modify the smoke repository. Do not weaken validation or suppress any remaining fleet refusal. Exact shipped membership and preservation evidence belongs only to T-10''s bounded feature-only receipt, not the permanent reader integration suite.'
 - id: T-04
   title: Reduce unit validation duplicates and migrate every unit fixture
   traces:

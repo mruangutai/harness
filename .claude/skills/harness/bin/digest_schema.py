@@ -84,7 +84,7 @@ class SchemaStore:
     def _load_one(self, stem):
         path = self._path(stem)
         try:
-            document = artifact_accessors.load_harness_json(path)
+            document = artifact_accessors.load_json_mapping(path)
         except artifact_accessors.ArtifactAccessError as error:
             raise DigestSchemaError(f"{path}: digest schema cannot be loaded: {error}") from error
         try:

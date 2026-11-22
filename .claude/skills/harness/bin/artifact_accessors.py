@@ -73,15 +73,28 @@ def _load_json_bytes(path, context):
     return _parse_json_mapping(text, context)
 
 
-def load_harness_json(path=None, *, text=None, context=None):
-    """Read a strict harness JSON mapping from exactly one path or in-memory text source."""
-    if path is None and text is None:
-        raise ArtifactAccessError("harness.json: supply exactly one source")
-    if path is not None and text is not None:
-        raise ArtifactAccessError("harness.json: supply exactly one source")
+def load_json_mapping(path=None, *, text=None, context=None):
+    """THE strict generic JSON mapping read (FEAT-2297 D-04), from exactly one path or text
+    source: duplicate keys at any depth, NaN/Infinity and a non-mapping root are refused. For
+    JSON artifacts that are not a project's harness.json, and for raw inputs a repair or
+    migration must read before they can validate. It never applies the config schema."""
+    if (path is None) == (text is None):
+        raise ArtifactAccessError(f"{context or 'JSON'}: supply exactly one source")
     if text is not None:
-        return _parse_json_mapping(text, context or "in-memory harness.json")
-    return _load_json_bytes(path, str(path))
+        return _parse_json_mapping(text, context or "in-memory JSON")
+    return _load_json_bytes(path, context or str(path))
+
+
+def load_harness_json(path=None, *, text=None, context=None):
+    """THE validated harness.json read (FEAT-2297 D-01): strict decode, then the version-3
+    schema's defaults for absent keys, then validation. Any failure is ArtifactAccessError
+    naming the source; a missing file is refused, unlike a missing optional key."""
+    if (path is None) == (text is None):
+        raise ArtifactAccessError("harness.json: supply exactly one source")
+    label = context or ("in-memory harness.json" if text is not None else str(path))
+    document = load_json_mapping(path, text=text, context=label)
+    import harness_config  # here, not at import: the schema needs jsonschema, most readers do not
+    return harness_config.validated(document, label)
 
 
 class FeatureJsonError(Exception):

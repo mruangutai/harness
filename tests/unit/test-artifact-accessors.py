@@ -12,7 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(ROOT / "tests"))
 import artifact_accessors as accessors  # noqa: E402
+from harness_config_support import build_config  # noqa: E402
 
 
 class SystemPythonCompatibilityContracts(unittest.TestCase):
@@ -98,11 +100,10 @@ class JsonContracts(unittest.TestCase):
                 self.assertIn(context, str(caught.exception))
 
     def test_harness_json_accepts_explicit_text_source_with_context(self):
+        config = build_config({"log_retention_days": 7})
         document = accessors.load_harness_json(
-            text='{"nested": {"value": 7}}',
-            context="mruangutai/harness@main:.harness/harness.json",
-        )
-        self.assertEqual({"nested": {"value": 7}}, document)
+            text=json.dumps(config), context="mruangutai/harness@main:.harness/harness.json")
+        self.assertEqual(config, document)
 
     def test_harness_json_text_source_has_path_contract(self):
         cases = (

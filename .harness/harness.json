@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "_panel_era_start_note": "The date the adversarial plan panel (FEAT-45) became available in THIS project. INV-32 does not grade a plan signed before it, because a plan signed before the panel existed cannot carry a record of one. null means this project has no pre-panel era, so every approved plan is graded \u2014 the right value for a project onboarded after FEAT-45. Each repository's harness.json is its own, read from that repository's own default branch, so this MUST be per-project: a hardcoded date would export one repository's history as another's gate (BUG-1071 panel finding F2).",
   "panel_era_start": "2026-08-31",
   "_seam_era_start_note": "The date the graded phase seam (BUG-1723, INV-43) became available in THIS project. INV-43 does not grade a succession judgement recorded before it \u2014 the record cannot be re-recorded to satisfy a rule that did not exist when it was written (DEC-227) \u2014 and reports it as a note instead. null means the project never predated the seam.",

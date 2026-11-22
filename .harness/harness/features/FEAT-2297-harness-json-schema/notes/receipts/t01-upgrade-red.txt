@@ -1,0 +1,68 @@
+# T-01 RED: upgrade integration tests vs the unchanged upgrade-config.py (new loader in place); 2026-11-22T19:39:36Z
+$ python3 tests/integration/test-harness-config-upgrade.py -v
+test_an_invalid_candidate_is_never_written (__main__.Upgrade.test_an_invalid_candidate_is_never_written) ... 
+  test_an_invalid_candidate_is_never_written (__main__.Upgrade.test_an_invalid_candidate_is_never_written) [wrong present value] ... FAIL
+test_check_reports_the_gap_and_writes_nothing (__main__.Upgrade.test_check_reports_the_gap_and_writes_nothing) ... FAIL
+test_config_only_migrates_a_product_without_touching_a_manifest (__main__.Upgrade.test_config_only_migrates_a_product_without_touching_a_manifest) ... FAIL
+test_control_plane_upgrade_still_reports_its_manifest (__main__.Upgrade.test_control_plane_upgrade_still_reports_its_manifest) ... FAIL
+test_repeat_is_idempotent (__main__.Upgrade.test_repeat_is_idempotent) ... ERROR
+
+======================================================================
+ERROR: test_repeat_is_idempotent (__main__.Upgrade.test_repeat_is_idempotent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-upgrade.py", line 77, in test_repeat_is_idempotent
+    upgraded, backup = self.config.read_bytes(), self.backup.read_bytes()
+                                                 ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/pathlib/__init__.py", line 976, in read_bytes
+    with self.open(mode='rb', buffering=0) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/pathlib/__init__.py", line 970, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp_3xckgrk/.harness/harness.json.harness-bak'
+
+======================================================================
+FAIL: test_an_invalid_candidate_is_never_written (__main__.Upgrade.test_an_invalid_candidate_is_never_written) [wrong present value]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-upgrade.py", line 104, in test_an_invalid_candidate_is_never_written
+    self.assertIn("gates.review" if name == "wrong present value" else "schema_version",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  result.stdout)
+                  ^^^^^^^^^^^^^^
+AssertionError: 'gates.review' not found in 'upgrade-config: cannot read config (/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpebv0qbij/.harness/harness.json: schema_version: 2 is the previous harness.json shape; run upgrade-config.py <project-root> to migrate it to 3 [const])\n'
+
+======================================================================
+FAIL: test_check_reports_the_gap_and_writes_nothing (__main__.Upgrade.test_check_reports_the_gap_and_writes_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-upgrade.py", line 87, in test_check_reports_the_gap_and_writes_nothing
+    self.assertIn("schema_version 2 -> 3", result.stdout)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'schema_version 2 -> 3' not found in 'upgrade-config: cannot read config (/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpjkmmtskj/.harness/harness.json: schema_version: 2 is the previous harness.json shape; run upgrade-config.py <project-root> to migrate it to 3 [const])\n'
+
+======================================================================
+FAIL: test_config_only_migrates_a_product_without_touching_a_manifest (__main__.Upgrade.test_config_only_migrates_a_product_without_touching_a_manifest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-upgrade.py", line 62, in test_config_only_migrates_a_product_without_touching_a_manifest
+    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : upgrade-config: cannot read config (/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp9oplfsfq/.harness/harness.json: schema_version: 2 is the previous harness.json shape; run upgrade-config.py <project-root> to migrate it to 3 [const])
+
+
+======================================================================
+FAIL: test_control_plane_upgrade_still_reports_its_manifest (__main__.Upgrade.test_control_plane_upgrade_still_reports_its_manifest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-upgrade.py", line 114, in test_control_plane_upgrade_still_reports_its_manifest
+    self.assertIn("team-config.yaml: schema_version 1 ->", result.stdout)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'team-config.yaml: schema_version 1 ->' not found in 'upgrade-config: cannot read config (/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp1hp17jp5/.harness/harness.json: schema_version: 2 is the previous harness.json shape; run upgrade-config.py <project-root> to migrate it to 3 [const])\n'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.345s
+
+FAILED (failures=4, errors=1)
+exit=1
