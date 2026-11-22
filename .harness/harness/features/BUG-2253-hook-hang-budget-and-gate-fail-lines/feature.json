@@ -36,6 +36,13 @@
       "cycles_used": 1,
       "tokens": null,
       "ended_at": "2026-11-22T01:40:03+00:00"
+    },
+    {
+      "id": "2026-11-21-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-22T01:42:29+00:00"
     }
   ],
   "mission": "patch",
@@ -53,6 +60,13 @@
       "kind": "amendment",
       "decision": "T-01.verify",
       "reason": "reuse the file's existing --only <group> selector instead of adding a second selector flag; operator approved"
+    },
+    {
+      "at": "2026-11-22T01:42:29+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 1",
+      "reason": "c0 FAIL: SC-01 space names and SC-02 watchdog fixed in c1168ccf/6cbdc417; re-gate at 2e96b583 within 1-round budget"
     }
   ],
   "rework": {
