@@ -37,6 +37,7 @@ BROKEN = {
 def _module(name, relative):
     spec = importlib.util.spec_from_file_location(name, BIN / relative)
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module  # dataclasses resolve string annotations through sys.modules
     spec.loader.exec_module(module)
     return module
 

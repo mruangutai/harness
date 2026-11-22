@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-2297-harness-json-schema",
   "branch": "feat/FEAT-2297-harness-json-schema",
-  "pr": null,
+  "pr": 2395,
   "review_sha": "fa6a38009e54f4380daebd59a78629a68de7c1d0",
   "cycles_used": 2,
   "max_total_cycles": 10,
@@ -230,6 +230,13 @@
       "kind": "amendment",
       "decision": "SC-08 amended: delegated advisor review/authorization; operator acceptance post-hoc",
       "reason": "Advisor ruling #6 under the operator's delegation: kaya#29 reviewed and authorized by the advisor; personal acceptance asked in the ship briefing; decline remedy: revert kaya .harness/harness.json to d96b4484."
+    },
+    {
+      "at": "2026-11-22T22:53:01.787293+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.verify",
+      "reason": "Same command as a one-line scalar instead of a literal block: T-10 was 51 machine-field lines, over DEC-182's 50 (CI plan-route gate). No semantic change."
     }
   ],
   "mission": "plan",

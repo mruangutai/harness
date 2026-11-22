@@ -568,13 +568,6 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
   depends_on:
-  - T-01
-  - T-02
-  - T-03
-  - T-04
-  - T-05
-  - T-06
-  - T-07
   - T-08
   status: done
   files:
