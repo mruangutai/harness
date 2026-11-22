@@ -541,7 +541,7 @@ tasks:
   - T-01
   - T-03
   - T-10
-  status: ready
+  status: building
   files:
   - path: .harness/harness/features/FEAT-2297-harness-json-schema/notes/kaya-config-v3.json
     create: true
