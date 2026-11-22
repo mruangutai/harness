@@ -81,7 +81,7 @@
         "eval": {"detect": "evals/**|tests/**eval**", "exclude": ".claude/worktrees/**|node_modules/**|.venv/**",
                  "cmd": null, "status": "unresolved"},
         "typecheck": {"detect": "**/*.ts|**/*.tsx", "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
-                      "cmd": null, "status": "unresolved"}
+                      "cmd": null, "status": "unresolved", "classifies_tests": false}
       },
       "propertyNames": {"anyOf": [{"$ref": "#/$defs/kind"}, {"pattern": "^_"}]},
       "patternProperties": {"^_": true},
