@@ -2291,8 +2291,13 @@ def _state_yaml_unknown_keys(doc, shown):
 # DEC-159: the handoff note is working memory for a successor — five fixed
 # sections including ## Done when, hard-capped, denied at write while the author can still fix it.
 # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
+# BUG-2295: one note per phase, superseded, never appended (succession.md). RE_HANDOFF still
+# routes `-c<N>` names here and into Edit reconstruction, so this refusal cannot be bypassed.
+_RE_HANDOFF_CYCLE = re.compile(r"^(.*/notes/handoff-[a-z0-9-]+?)-c[0-9]+\.md$")
+
+
 def _rule_handoff(rel, content, lines, shown, absolute_path):
-    problems = []
+    problems = _handoff_cycle_problems(rel)
     if len(lines) > 60:
         problems.append(f"handoff note is {len(lines)} lines — cap is 60. It is intent, trust,"
                         f" dead ends, a working set and ## Done when, not a narrative; history lives on disk.")
@@ -2301,6 +2306,15 @@ def _rule_handoff(rel, content, lines, shown, absolute_path):
     if not problems:
         return []
     return [_head(shown, "handoff shape (DEC-159)."), *(f"  {m}" for m in problems)]
+
+
+def _handoff_cycle_problems(rel):
+    m = _RE_HANDOFF_CYCLE.match(rel)
+    if not m:
+        return []
+    canonical = "notes/" + m.group(1).rsplit("/notes/", 1)[1] + ".md"
+    return [f"cycle-suffixed handoff name refused — one note per phase, superseded, never"
+            f" appended (succession.md, DEC-159). Supersede {canonical} instead."]
 
 
 def _handoff_section_problems(lines):
