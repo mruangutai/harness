@@ -1,4 +1,5 @@
 """`apply` / `add-tasks`: the locked union merge and its self-checks. (FEAT-70)"""
+import datetime
 import sys
 import yaml
 
@@ -250,6 +251,8 @@ def apply_merge(base_bytes, proposal_text, verb="apply"):
     if base_bytes is None:
         return MergeResult(_seed_new_plan(proposal_text), [], [], False)
     base_doc, prop_doc, base_text = _merge_inputs(base_bytes, proposal_text)
+    # Before either rendering path (and the last-writer-wins switch) can produce bytes.
+    _refuse_drafted_at_write(base_doc, prop_doc)
 
     if not UNION_MERGE:
         # Step 5, off: today's last-writer-wins, verbatim.
@@ -334,13 +337,43 @@ def _seed_new_plan(proposal_text):
                 "  apply seeds a fixed pending mapping; only the main session may approve it through sign-approval.",
             ],
         )
+    _refuse_drafted_at_write({}, prop_doc)
     lines = proposal_text.splitlines(keepends=True)
     for index, line in enumerate(lines):
         if FEATURE_LINE_RE.match(line):
-            lines[index + 1:index + 1] = ["approval:\n", "  status: pending\n"]
+            lines[index + 1:index + 1] = ["approval:\n", "  status: pending\n",
+                                          f"{DRAFTED_AT}: '{_creation_instant()}'\n"]
             return "".join(lines).encode("utf-8")
     raise harness_merge.MergeRefusal(
         5, ["UNPARSEABLE: proposal carries no top-level feature: key to anchor approval."]
+    )
+
+
+# FEAT-2229: `drafted_at` IS WRITER-OWNED CREATION PROVENANCE. `apply` stamps it once, when it
+# creates a plan, with the writer's own UTC clock — never the signature date or a file mtime —
+# and it decides whether `check` requires `decisions_affected:` (the era cutover). So no caller
+# may supply it: not on creation (a backdated stamp would buy a pre-era exemption), not on an
+# existing plan (rewrite, forward-date, null, or insertion into an undated legacy plan). A
+# proposal carrying the base's unchanged stamp is accepted; the base's bytes are what stay.
+DRAFTED_AT = "drafted_at"
+
+
+def _creation_instant():
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _refuse_drafted_at_write(base_doc, prop_doc):
+    """Refuse (8) a proposal whose drafted_at is not exactly the base's existing stamp."""
+    if DRAFTED_AT not in prop_doc:
+        return
+    if DRAFTED_AT in base_doc and prop_doc[DRAFTED_AT] == base_doc[DRAFTED_AT]:
+        return
+    raise harness_merge.MergeRefusal(
+        8,
+        [f"REFUSED: the proposal carries {DRAFTED_AT}: {prop_doc[DRAFTED_AT]!r} "
+         f"(base: {base_doc.get(DRAFTED_AT, '<absent>')!r}).",
+         f"  {DRAFTED_AT} is writer-stamped creation provenance: apply stamps it once when it "
+         "creates a plan, and no caller may supply, rewrite, null or insert it."],
     )
 
 

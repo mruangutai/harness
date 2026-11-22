@@ -1,8 +1,11 @@
 """`check`: every anchor and trace in a plan resolved at plan exit (DEC-232). (FEAT-70)"""
+import datetime
 import os
 import re
 import sys
 
+import artifact_accessors
+import factory_config
 import harness_boundary
 import harness_yaml
 import plan_anchors
@@ -136,7 +139,8 @@ def _code_root(args, root, resolved_plan):
 
 
 def _check_inputs(args):
-    """(resolved plan path, root, code root or None, tasks) — or the exit-2/exit-5 refusal."""
+    """(resolved plan path, root, code root or None, plan doc, tasks) — or the exit-2/exit-5
+    refusal."""
     resolved_plan = _resolve_plan(args.file)
     root = os.path.abspath(args.root)
     if not os.path.isfile(os.path.join(root, harness_boundary.MARKER)):
@@ -147,7 +151,7 @@ def _check_inputs(args):
         doc = harness_yaml.load_file(resolved_plan)
     except harness_yaml.YamlParseError as exc:
         _die(5, f"plan-merge: {resolved_plan} does not load: {exc}")
-    return resolved_plan, root, code_root, _check_tasks(doc, resolved_plan)
+    return resolved_plan, root, code_root, doc, _check_tasks(doc, resolved_plan)
 
 
 def _brief_text(resolved_plan):
@@ -173,6 +177,200 @@ def _check_all(tasks, root, brief_text, routes):
         if not task_failures:
             print(f"OK {task.get('id')} {count} anchor(s) resolved")
     return failures, total
+
+
+# ---------------------------------------------------------------------------
+# FEAT-2229: decision dispositions on an eligible pending draft (SC-02, SC-03).
+#
+# A draft is ELIGIBLE when its approval is pending, its feature station is not terminal, it
+# carries the writer's `drafted_at` stamp (union._seed_new_plan), and --root's harness.json
+# configures `decision_dispositions_era_start` with the stamp at or after it — null meaning
+# every stamped draft. A plan with no stamp is a pre-writer legacy plan, and a project with no
+# era key has not adopted the rule; neither is newly refused. A malformed era or stamp is a
+# FAIL, never an implicit exemption. Approved and terminal work is history: its quoted clause
+# may legitimately be gone once the amendment it planned has landed.
+#
+# These are the MECHANICAL checks only: every row's dec indexed; keep/amend never on a STRUCK
+# entry; the clause an exact substring of that decision's own section; an amend/strike
+# successor resolvable; a task owning the segment's DECISIONS.md to carry an amend/strike.
+# Whether the rows are COMPLETE, and whether a strike is justified, is the scope reader's.
+ERA_KEY = "decision_dispositions_era_start"
+# The established DECISIONS-INDEX.md row (check-plan-routes._decisions_index); a ruling that
+# opens with STRUCK — in any case, `Struck under DEC-188` included — marks the entry struck.
+INDEX_ROW_RE = re.compile(r"^- (DEC-\d+) @\S+ \[[^\]]*\] refs:[^:]*:: (.*)$")
+FENCE_RE = re.compile(r"^\s*(```|~~~)")
+
+
+def _instant(value):
+    """A timezone-qualified datetime from an ISO-8601 string, or None."""
+    if not isinstance(value, str):
+        return None
+    try:
+        when = datetime.datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return when if when.tzinfo is not None else None
+
+
+def _era(root):
+    """(configured, era instant or None, FAIL line or None) from --root's own harness.json —
+    the supplied root, never a discovered one. A missing file or key is unconfigured."""
+    path = os.path.join(root, ".harness", "harness.json")
+    if not os.path.isfile(path):
+        return False, None, None
+    try:
+        config = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError as exc:
+        return True, None, f"FAIL {ERA_KEY}: {exc}, so the era is unknown"
+    if ERA_KEY not in config:
+        return False, None, None
+    value = config[ERA_KEY]
+    when = _instant(value)
+    if value is not None and when is None:
+        return True, None, (f"FAIL {ERA_KEY}: {value!r} in {path} is not a timezone-qualified "
+                            "ISO-8601 instant")
+    return True, when, None
+
+
+def _is_draft(doc):
+    approval = doc.get("approval")
+    return (isinstance(approval, dict) and approval.get("status") == "pending"
+            and doc.get("status") not in factory_config.FINISHED_STATIONS)
+
+
+def _eligibility(doc, root):
+    """(eligible, FAIL lines) for the disposition requirement on this plan."""
+    if not _is_draft(doc) or doc.get("drafted_at") is None:
+        return False, []
+    drafted = _instant(doc["drafted_at"])
+    if drafted is None:
+        return False, [f"FAIL drafted_at: {doc['drafted_at']!r} is not a timezone-qualified "
+                       "ISO-8601 instant"]
+    configured, era, fault = _era(root)
+    if fault is not None:
+        return False, [fault]
+    return configured and (era is None or drafted >= era), []
+
+
+def _read_text(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read()
+    except OSError:
+        return None
+
+
+def _struck_by_dec(index_text):
+    """{DEC-NNN: struck?} from DECISIONS-INDEX.md text."""
+    rows = (INDEX_ROW_RE.match(line) for line in index_text.splitlines())
+    return {m.group(1): m.group(2).lstrip().lower().startswith("struck") for m in rows if m}
+
+
+def _heading_level(line, dec=None):
+    """The `#` count of a markdown heading line (naming `dec` when given), else 0."""
+    m = re.match(r"^(#+)\s", line)
+    if m is None or (dec is not None and re.match(rf"#+\s+{re.escape(dec)}(?!\d)", line) is None):
+        return 0
+    return len(m.group(1))
+
+
+def _section_end(lines, start, level):
+    """The index of the next heading at `level` or shallower after `start`, fences skipped."""
+    in_fence = False
+    for at in range(start + 1, len(lines)):
+        if FENCE_RE.match(lines[at]):
+            in_fence = not in_fence
+        elif not in_fence and 0 < _heading_level(lines[at]) <= level:
+            return at
+    return len(lines)
+
+
+class _Authority:
+    """One segment's decision record: `.harness/<segment>/docs/DECISIONS.md` and its index
+    under --root — harness's own, or a served segment's central documents, never another's."""
+
+    def __init__(self, root, segment):
+        self.rel = os.path.join(".harness", segment, "docs", "DECISIONS.md")
+        self.index_rel = os.path.join(".harness", segment, "docs", "DECISIONS-INDEX.md")
+        index_text = _read_text(os.path.join(root, self.index_rel))
+        self.lines = (_read_text(os.path.join(root, self.rel)) or "").splitlines(keepends=True)
+        self.struck = None if index_text is None else _struck_by_dec(index_text)
+
+    def section(self, dec):
+        """The text of `dec`'s own heading section, or None when no heading names it."""
+        for start, line in enumerate(self.lines):
+            level = _heading_level(line, dec)
+            if level:
+                return "".join(self.lines[start:_section_end(self.lines, start, level)])
+        return None
+
+
+def _owns_decisions(tasks, rel):
+    """True when some task's normalized files: path is the segment's DECISIONS.md."""
+    return any(os.path.normpath(str(plan_anchors.path_of(entry))) == rel
+               for task in tasks if isinstance(task, dict) for entry in task.get("files") or [])
+
+
+def _successor_fault(row, authority, plan_ids):
+    successor = row.get("successor")
+    if successor in plan_ids or successor in authority.struck:
+        return None
+    return (f"successor {successor} is neither a decisions: id of this plan nor indexed in "
+            f"{authority.index_rel}")
+
+
+def _replacement_faults(row, ctx):
+    """The amend/strike-only faults: an unresolved successor and no DECISIONS.md owner."""
+    if row.get("disposition") not in ("amend", "strike"):
+        return []
+    authority, plan_ids, owned = ctx
+    faults = [_successor_fault(row, authority, plan_ids)]
+    if not owned:
+        faults.append(f"no task's files: names {authority.rel}, so no task carries this "
+                      f"{row.get('disposition')}")
+    return [fault for fault in faults if fault]
+
+
+def _row_faults(row, ctx):
+    """Every mechanical fault of one well-formed row, as messages."""
+    authority = ctx[0]
+    dec, disposition = row.get("dec"), row.get("disposition")
+    if dec not in authority.struck:
+        return [f"not indexed in {authority.index_rel}"]
+    faults = []
+    if authority.struck[dec] and disposition in ("keep", "amend"):
+        faults.append(f"is STRUCK, so it cannot be {disposition}ed — only struck")
+    section = authority.section(dec)
+    if section is None or str(row.get("clause")) not in section:
+        faults.append(f"clause {row.get('clause')!r} is not verbatim in {dec}'s own section of "
+                      f"{authority.rel}")
+    return faults + _replacement_faults(row, ctx)
+
+
+def _rows_faults(rows, ctx):
+    lines = []
+    for index, row in enumerate(rows):
+        if isinstance(row, dict):
+            where = f"FAIL decisions_affected[{index}] {row.get('dec')}"
+            lines += [f"{where}: {fault}" for fault in _row_faults(row, ctx)]
+    return lines
+
+
+def _disposition_faults(doc, tasks, resolved_plan, root):
+    """FAIL lines for an eligible draft's decisions_affected; [] for every other plan."""
+    eligible, faults = _eligibility(doc, root)
+    if not eligible:
+        return faults
+    if not isinstance(doc.get("decisions_affected"), list):
+        return ["FAIL decisions_affected: an eligible pending draft must record its decision "
+                "dispositions (`[]` claims none)"]
+    authority = _Authority(root, harness_boundary.plan_segment(resolved_plan))
+    if authority.struck is None:
+        return [f"FAIL decisions_affected: {authority.index_rel} is unreadable under {root}, so "
+                "no row can be checked"]
+    plan_ids = {d.get("id") for d in doc.get("decisions") or [] if isinstance(d, dict)}
+    ctx = (authority, plan_ids, _owns_decisions(tasks, authority.rel))
+    return _rows_faults(doc["decisions_affected"], ctx)
 
 
 def _overlap_lines(tasks):
@@ -221,13 +419,14 @@ def _report(failures, tasks, summary):
 
 
 def cmd_check(args):
-    resolved_plan, root, code_root, tasks = _check_inputs(args)
+    resolved_plan, root, code_root, doc, tasks = _check_inputs(args)
     routes = _Routes(root, code_root)
     anchor_root = code_root or root
     brief_text, brief_fault = _brief_text(resolved_plan)
     # The gate first: a plan it cannot load exits 5 before any OK line or resolver spawn.
     gate_failures = _route_gate_failures(resolved_plan, root, routes)
     task_failures, total = _check_all(tasks, anchor_root, brief_text, routes)
+    task_failures += _disposition_faults(doc, tasks, resolved_plan, root)
     _report(_preface(routes, brief_fault) + task_failures + gate_failures, tasks,
             f"CHECK {resolved_plan} against {anchor_root}: {len(tasks)} task(s), {total} "
             "anchor(s) resolved")

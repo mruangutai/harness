@@ -373,6 +373,64 @@ def _validate_plan_verify_shape(doc, tasks, path):
 
 
 
+# FEAT-2229: a plan's `decisions_affected:` block — one row per prior decision the plan bears
+# on, keep/amend/strike. Absence stays legal HERE: older plans must keep loading, and whether a
+# draft must carry the block is `plan-merge.py check`'s era question, not a loader rule.
+DISPOSITION_FIELDS = ("dec", "disposition", "clause", "successor", "reason")
+DISPOSITIONS = ("keep", "amend", "strike")
+DEC_ID_RE = re.compile(r"DEC-\d+")
+SUCCESSOR_RE = re.compile(r"(?:D|DEC)-\d+")
+
+
+def _nonempty_text(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _successor_fault(row):
+    """The successor rule: `none` for keep; a D or DEC identifier for amend/strike."""
+    successor = row["successor"]
+    if row["disposition"] == "keep":
+        return None if successor == "none" else f"successor {successor!r} must be none for keep"
+    if isinstance(successor, str) and SUCCESSOR_RE.fullmatch(successor):
+        return None
+    return f"successor {successor!r} must be a D-NN or DEC-NNN id for {row['disposition']}"
+
+
+# (field, legal?, what a legal value is), checked in order; the successor depends on the
+# disposition, so it is checked last on its own.
+_DISPOSITION_VALUE_RULES = (
+    ("dec", lambda v: isinstance(v, str) and DEC_ID_RE.fullmatch(v) is not None, "a DEC-NNN id"),
+    ("disposition", lambda v: v in DISPOSITIONS, f"one of {DISPOSITIONS}"),
+    ("clause", _nonempty_text, "nonempty verbatim text"),
+    ("reason", lambda v: _nonempty_text(v) and "\n" not in v, "one nonempty line"),
+)
+
+
+def _disposition_row_fault(row):
+    """The first shape fault of one row, or None."""
+    if not isinstance(row, dict):
+        return f"{row!r} is not a mapping"
+    if set(row) != set(DISPOSITION_FIELDS):
+        return f"keys {sorted(map(str, row))} must be exactly {list(DISPOSITION_FIELDS)}"
+    for field, legal, what in _DISPOSITION_VALUE_RULES:
+        if not legal(row[field]):
+            return f"{field} {row[field]!r} must be {what}"
+    return _successor_fault(row)
+
+
+def _validate_decisions_affected(doc, path):
+    if "decisions_affected" not in doc:
+        return
+    rows = doc["decisions_affected"]
+    if not isinstance(rows, list):
+        raise PlanSchemaError(path, "`decisions_affected:` must be a list of disposition rows "
+                                    "(`[]` claims none)")
+    for index, row in enumerate(rows):
+        fault = _disposition_row_fault(row)
+        if fault is not None:
+            raise PlanSchemaError(path, f"decisions_affected[{index}]: {fault}")
+
+
 
 def validate_plan_doc(doc, path):
     """Validate an ALREADY-PARSED plan document, returning it, or raise PlanSchemaError.
@@ -397,6 +455,7 @@ def validate_plan_doc(doc, path):
     _validate_plan_tasks(tasks, path)
     _validate_plan_verify_shape(doc, tasks, path)
     _validate_plan_depends_on(tasks, path)
+    _validate_decisions_affected(doc, path)
     return doc
 
 
