@@ -304,7 +304,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Direct enforcement cutover includes canonical policy, grant manifests, decision docs and tests.
     depends_on: [T-01, T-02]
-    status: ready
+    status: building
     files:
       - tests/unit/test-code-grade.py#check_self_grading
       - tests/integration/test-check-domain-grant.py#case
