@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2297-harness-json-schema",
   "branch": "feat/FEAT-2297-harness-json-schema",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "47d2e50243ad7fb080e13ef48115756d7d3b7c61",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -37,6 +37,13 @@
       "tokens": null,
       "ended_at": "2026-11-22T16:08:30+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-22T22:16:05+00:00"
     }
   ],
   "judgements": [
