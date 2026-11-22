@@ -74,6 +74,27 @@
       "kind": "amendment",
       "decision": "T-01.intent",
       "reason": "Operator ruling 2026-11-22: move the two non-config reader migrations into T-01."
+    },
+    {
+      "at": "2026-11-22T20:19:53.619707+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "fable-advisor ruling (operator delegate): five unowned suites broken by T-01..T-03 fallout, green on main 0bdcabbf, join T-03 files and verify; fixture/data repairs only."
+    },
+    {
+      "at": "2026-11-22T20:19:55.678514+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.verify",
+      "reason": "fable-advisor ruling (operator delegate): five unowned suites broken by T-01..T-03 fallout, green on main 0bdcabbf, join T-03 files and verify; fixture/data repairs only."
+    },
+    {
+      "at": "2026-11-22T20:21:52.638545+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "fable-advisor ruling: harness_config duplicated feature_schema's jsonschema guard (D-12 one-guard rule); T-03 routes it through feature_schema.jsonschema so test-harness-yaml passes unedited."
     }
   ],
   "mission": "plan",

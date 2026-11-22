@@ -224,23 +224,19 @@ def _instant(value):
 
 
 def _era(root):
-    """(configured, era instant or None, FAIL line or None) from --root's own harness.json —
-    the supplied root, never a discovered one. A missing file or key is unconfigured."""
+    """(era instant or None, FAIL line or None) from --root's own validated harness.json — the
+    supplied root, never a discovered one. The schema defaults an absent era to null, meaning
+    every draft is in era (FEAT-2297); a missing or invalid config is a FAIL line."""
     path = os.path.join(root, ".harness", "harness.json")
-    if not os.path.isfile(path):
-        return False, None, None
     try:
-        config = artifact_accessors.load_harness_json(path)
+        value = artifact_accessors.load_harness_json(path)[ERA_KEY]
     except artifact_accessors.ArtifactAccessError as exc:
-        return True, None, f"FAIL {ERA_KEY}: {exc}, so the era is unknown"
-    if ERA_KEY not in config:
-        return False, None, None
-    value = config[ERA_KEY]
+        return None, f"FAIL {ERA_KEY}: {exc}, so the era is unknown"
     when = _instant(value)
     if value is not None and when is None:
-        return True, None, (f"FAIL {ERA_KEY}: {value!r} in {path} is not a timezone-qualified "
-                            "ISO-8601 instant")
-    return True, when, None
+        return None, (f"FAIL {ERA_KEY}: {value!r} in {path} is not a timezone-qualified "
+                      "ISO-8601 instant")
+    return when, None
 
 
 def _is_draft(doc):
@@ -257,10 +253,10 @@ def _eligibility(doc, root):
     if drafted is None:
         return False, [f"FAIL drafted_at: {doc['drafted_at']!r} is not a timezone-qualified "
                        "ISO-8601 instant"]
-    configured, era, fault = _era(root)
+    era, fault = _era(root)
     if fault is not None:
         return False, [fault]
-    return configured and (era is None or drafted >= era), []
+    return era is None or drafted >= era, []
 
 
 def _read_text(path):

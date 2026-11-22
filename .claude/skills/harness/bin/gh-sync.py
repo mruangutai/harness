@@ -185,10 +185,7 @@ def skip(msg, build_entry=None):
     resolution, only for the `open` command) and no remote-mutating call has yet
     succeeded this run, record the Build-entry outcome before exiting: `build_entry`
     if given, else "recovery-required" (D-04 — a run that stopped before any
-    remote write). `_NO_RECORD` is the explicit "record nothing" sentinel (D-09):
-    the parameter's own default already means "recovery-required", so passing
-    nothing cannot ALSO mean "record nothing" — a caller wanting silence must say
-    so explicitly. Once a remote create has already succeeded this run, a later
+    remote write). Once a remote create has already succeeded this run, a later
     skip is a partial mirror (D-04) and records nothing here, regardless of
     `build_entry` — the field must stay absent, not be overwritten.
 
@@ -200,7 +197,6 @@ def skip(msg, build_entry=None):
     """
     feat_dir = _BUILD_ENTRY["feat_dir"]
     if (feat_dir is not None and not _BUILD_ENTRY["remote_written"]
-            and build_entry is not _NO_RECORD
             and os.path.isfile(os.path.join(feat_dir, "feature.json"))):
         record_build_entry(feat_dir, build_entry or "recovery-required")
     print(f"gh-sync: SKIP — {msg}")
@@ -208,7 +204,6 @@ def skip(msg, build_entry=None):
 
 
 _BUILD_ENTRY = {"feat_dir": None, "remote_written": False}
-_NO_RECORD = object()
 
 
 def die(msg):
@@ -294,20 +289,13 @@ def _provenance_preflight(doc, repo, feat_dir):
                f"{feature_schema.recovery_command_line(feat_dir, doc, repo)}")
 
 
-def _unbound_project_config(root, feat_dir, doc, local_status):
-    """Read optional owner onboarding without weakening bound-product resolution."""
-    path = os.path.join(root, ".harness", "harness.json")
-    if not os.path.isfile(path):
-        _provenance_preflight(doc, None, feat_dir)
-        if local_status:
-            return None
-        skip("no .harness/harness.json — project not onboarded")
+def _unbound_project_config(root):
+    """The owner's validated harness.json. Missing or invalid is a refusal naming the
+    diagnosis (FEAT-2297) — never "project not onboarded"."""
     try:
-        config = artifact_accessors.load_harness_json(path)
+        return artifact_accessors.load_harness_json(os.path.join(root, ".harness", "harness.json"))
     except artifact_accessors.ArtifactAccessError as error:
-        _provenance_preflight(doc, None, feat_dir)
-        skip(f"harness.json unreadable ({error})")
-    return config
+        refuse(f"harness.json could not be read: {error}")
 
 
 def load_config(root, feat_dir, command):
@@ -320,16 +308,7 @@ def load_config(root, feat_dir, command):
     local_status = command == "status"
     replacement = command == "recover-mirror"
     if not bound:
-        config = _unbound_project_config(root, feat_dir, doc, local_status)
-        if config is None:
-            return None, None, {}
-        github = config.get("github") or {}
-        if isinstance(github, dict) and github.get("sync") and (
-                not github.get("repo") or "/" not in str(github["repo"])):
-            _provenance_preflight(doc, github.get("repo"), feat_dir)
-            skip("github.repo is not pinned in this project's harness.json; for a fleet member, "
-                 "that file lives in the member's own repository on its default branch",
-                 build_entry=_NO_RECORD)
+        github = _unbound_project_config(root)["github"]
     repo, board, issue_types = feature_schema.resolve_binding(doc, root)
     _BUILD_ENTRY["repo"] = repo
     if not replacement:

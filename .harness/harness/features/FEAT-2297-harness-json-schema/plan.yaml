@@ -314,7 +314,7 @@ tasks:
   depends_on:
   - T-01
   - T-02
-  status: ready
+  status: done
   files:
   - .claude/skills/harness/bin/board-station.py#main
   - .claude/skills/harness/bin/board_lifecycle.py#_own_repo
@@ -346,8 +346,14 @@ tasks:
   - create: true
     path: tests/integration/test-harness-config-readers.py
   - .harness/factory/fleet.yaml
+  - tests/integration/test-check-state.py
+  - tests/integration/test-plan-merge.py
+  - tests/integration/test-harness-yaml.py
+  - tests/integration/test-gh-sync-board-add.py
+  - tests/integration/test-corpus-non-regression.py
+  - .claude/skills/harness/bin/harness_config.py#_schema_and_validator
   verify: |
-    python3 tests/integration/test-harness-config-readers.py
+    python3 tests/integration/test-harness-config-readers.py && python3 tests/integration/test-check-state.py && python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-harness-yaml.py && python3 tests/integration/test-gh-sync-board-add.py && python3 tests/integration/test-corpus-non-regression.py
   intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Migrate each owned ordinary Python harness.json read to artifact_accessors.load_harness_json and eliminate per-reader shape/default interpretation. Reuse returned validated config; keep operational policy and normalization, not duplicate schema validation. Remove missing-file preflight skips and catches that turn ArtifactAccessError into {}, None, false-dash tuples, UNBUDGETED or a successful skip. In particular migrate module-scope gh-close-gate, board-station.main, board_lifecycle._own_repo, branch-create-gate._github_config and its obsolete _CONFIG_READER fallback program, check-skill-weight._budget/report, code-grade._load_test_kinds, factory_config.product_config, feature-record._budgets_for, feature_schema._owner_mirror_binding, gate_policy._load_config/load_policy, gh-sync._unbound_project_config, gh_board.load_board, layout_migration._declared_segments, merge-gate._github_config, plan_merge.check._era, post-merge-sweep._read_build_receipt, validate-digest._load_test_kinds/_load_matrix_inputs and wayfind.cfg. Preserve a schema failure''s source/path/rule through existing public wrapper types. Ordinary CLI errors are nonzero diagnosed refusals; hook gates may use their established structured deny protocol or exit 2, but must actually block the host action and retain the diagnosis. Do not alter malformed hook-payload or unrelated runner-spawn policies.
 
     Stop indirect fail-open behavior in factory_decompose._issue_type_overrides and plan_merge.guards._legal_stations; an invalid product/owner config must not become default type overrides or a fallback station mandate. Inspect the callers of these paths and route their error through the same command refusal boundary rather than an unhandled traceback. Preserve factory_config.product_config remote source/ref context, no local fallback, successful-result memoization and no failure caching. Keep board_for requiring a board as a domain precondition even though absent github.board defaults null. Replace validate_board schema duplication with domain normalization only, retaining its existing public name for in-memory consumers; normalize integer-valued JSON board numbers and padded decimal strings to int and stations to tuple idempotently. Valid explicit null board/sync-off remain no-write states, and external transport/card-write best-effort policies remain unchanged.

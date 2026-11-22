@@ -118,32 +118,17 @@ def main(argv):
         return 0
     root = _d
 
-    # VARIABLE-FIRST FORM (test-check-plan-routes.py case_20's escape, exactly how
-    # gh-sync.py's load_config reads harness.json at gh-sync.py:122-123): the path is
-    # assembled into a variable on this line, and only the NEXT statement tests it.
+    # VARIABLE-FIRST FORM (test-check-plan-routes.py case_20's escape): the path is assembled
+    # into a variable on this line, and only the NEXT statement reads it. A missing or invalid
+    # config is refused with its diagnosis (FEAT-2297) — never "nothing written".
     harness_json_path = os.path.join(root, ".harness", "harness.json")
-    if not os.path.isfile(harness_json_path):
-        out("no .harness/harness.json — nothing written")
-        return 0
     try:
-        cfg = artifact_accessors.load_harness_json(harness_json_path)
-    except artifact_accessors.ArtifactAccessError:
-        out("harness.json is unreadable — nothing written")
-        return 0
-    if not isinstance(cfg, dict):
-        out("harness.json is not a JSON mapping — nothing written")
-        return 0
-
-    github = cfg.get("github")
-    if not isinstance(github, dict):
-        out("no github block configured — nothing written")
-        return 0
-    if not github.get("sync"):
+        github = artifact_accessors.load_harness_json(harness_json_path)["github"]
+    except artifact_accessors.ArtifactAccessError as exc:
+        err(f"harness.json could not be read — nothing written: {exc}")
+        return 2
+    if not github["sync"]:
         out("github.sync is not enabled — nothing written")
-        return 0
-    repo = github.get("repo")
-    if not repo or "/" not in str(repo):
-        out("github.repo is not pinned — nothing written")
         return 0
 
     try:
@@ -168,8 +153,8 @@ def main(argv):
     # turns that into this tool's own exit-2 refusal, naming the six.
     #
     # PLACED HERE, NOT AT ARGUMENT-PARSE TIME, AND THE POSITION IS LOAD-BEARING: every
-    # environmental no-op above — no harness root, no harness.json, sync off, no repo, no board —
-    # exits 0 having written nothing, and that contract must not become an exit 2 just because
+    # environmental no-op above — no harness root, sync off, no board — exits 0 having written
+    # nothing (a missing or invalid harness.json is a refusal, FEAT-2297), and that contract must not become an exit 2 just because
     # the station argument was also wrong. A refusal is only owed when a write was actually about
     # to happen.
     if station not in factory_config.station_names(board):
@@ -178,7 +163,7 @@ def main(argv):
         return 2
 
     try:
-        gh_board.set_station(board, repo, issue_number, station)
+        gh_board.set_station(board, github["repo"], issue_number, station)
     except (gh_board.BoardError, factory_gh.GhError) as exc:  # see module docstring, D-02
         err(f"ERROR - #{issue_number} -> {station}: {exc}")
         return 0

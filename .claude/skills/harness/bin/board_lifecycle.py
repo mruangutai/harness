@@ -282,20 +282,14 @@ def _out(line):
 
 
 def _own_repo(root):
-    """`harness.json`'s `github.repo`, or None on any unreadable/malformed shape — mirrors
-    board-station.py:134's own `github.get("repo")` read of the same key, kept as a second,
-    independent read here because `gh_board.load_board` returns only the board, never the repo
-    name, and this module needs both."""
+    """`harness.json`'s `github.repo` (None when unpinned), read through the validated loader
+    beside `gh_board.load_board`, which returns only the board. A missing or invalid config is a
+    FleetError — the same refusal load_board raises for this checkout — never "no repo"."""
     path = os.path.join(root, ".harness", "harness.json")
     try:
-        cfg = artifact_accessors.load_harness_json(path)
-    except artifact_accessors.ArtifactAccessError:
-        return None
-    github = cfg.get("github")
-    if not isinstance(github, dict):
-        return None
-    repo = github.get("repo")
-    return repo if isinstance(repo, str) and repo else None
+        return artifact_accessors.load_harness_json(path)["github"]["repo"]
+    except artifact_accessors.ArtifactAccessError as error:
+        raise artifact_accessors.FleetError("owner config unreadable", path, str(error)) from error
 
 
 def _resolve_board(root, repo_arg):

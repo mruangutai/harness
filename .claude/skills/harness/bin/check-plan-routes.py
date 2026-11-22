@@ -937,8 +937,13 @@ READER_CALL_CATEGORIES = {
 CANONICAL_ACCESSOR_NAMES = {
     "load_feature_json", "load_harness_json", "load_plan", "load_fleet",
     "manifest_domains", "load_frontmatter", "load_omp_config",
-    "read_hook_payload", "parse_gh_json",
+    "read_hook_payload", "parse_gh_json", "load_json_mapping",
 }
+# load_json_mapping is the strict JSON-mapping read for NON-config JSON (FEAT-2297). harness.json
+# is configuration: its canonical remedy is the validating load_harness_json, so a canonical row
+# reading it through load_json_mapping is a finding; only a ruled exemption may read it raw.
+CONFIG_ARTIFACT = "harness.json"
+GENERIC_JSON_REMEDY = "artifact_accessors.load_json_mapping"
 LEGAL_READER_EXEMPTIONS = {
     "harness_yaml_primitive",
     "in_memory_validation",
@@ -1284,8 +1289,6 @@ _CLASSIFICATION_REMEDY_OVERRIDES = {
     # captured broader route labels. These overrides remain part of the permanent audit.
     ".claude/skills/harness/bin/factory_config.py::product_config::json_string#1":
         "artifact_accessors.load_harness_json",
-    ".claude/skills/harness/bin/upgrade-config.py::load_json::json_file#1":
-        "artifact_accessors.load_harness_json",
 }
 
 
@@ -1430,6 +1433,12 @@ def _classified_disposition_findings(row, live, candidates):
         return [
             f"{row.get('id')}: observed state={state}; expected disposition=canonical "
             f"remedy={_row_remedy(row)}. PLAN AMENDMENT REQUIRED"
+        ]
+    if (disposition == "canonical" and row.get("artifact") == CONFIG_ARTIFACT
+            and _row_remedy(row) == GENERIC_JSON_REMEDY):
+        return [
+            f"{row.get('id')}: harness.json read through {GENERIC_JSON_REMEDY}; configuration "
+            f"reads use {READER_CATEGORY_REMEDIES['json_file']}. PLAN AMENDMENT REQUIRED"
         ]
     return _migration_row_findings(row, live, candidates)
 

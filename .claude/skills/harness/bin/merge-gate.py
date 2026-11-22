@@ -239,24 +239,19 @@ def repo_pinned(repo):
 
 
 def _github_config(root):
-    """The `github` mapping of root's harness.json; an unreadable configuration reads as empty."""
-    try:
-        config_path = os.path.join(root, ".harness", "harness.json")
-        return artifact_accessors.load_harness_json(config_path).get("github") or {}
-    except artifact_accessors.ArtifactAccessError:
-        return {}
+    """The validated `github` block of root's harness.json. A missing or invalid config raises
+    ArtifactAccessError — it never reads as sync off; each caller refuses in its own protocol."""
+    return artifact_accessors.load_harness_json(os.path.join(root, ".harness", "harness.json"))["github"]
 
 
-def _read_request():
-    """Read configuration and the hook payload, preserving silent parse failure."""
-    github = _github_config(ROOT)
+def _read_command():
+    """The hook payload's command, or None on a malformed payload (silent, as before)."""
     try:
         payload = artifact_accessors.read_hook_payload(
             sys.stdin.read(), "merge-gate hook payload")
-        command = (payload.get("tool_input") or {}).get("command") or ""
     except artifact_accessors.ArtifactAccessError:
         return None
-    return github, command
+    return (payload.get("tool_input") or {}).get("command") or ""
 
 
 def _print_unverified(branch, failure):
@@ -517,7 +512,10 @@ def _recheck(root, base, main, number, repo, head):
 
 
 def _verified_merge(root, feature, number):
-    github = _github_config(root)
+    try:
+        github = _github_config(root)
+    except artifact_accessors.ArtifactAccessError as error:
+        raise DistillRefusal(f"harness.json could not be read: {error}") from error
     repo = github.get("repo") or ""
     head, branch, base = _pr_metadata(number, repo)
     main = _fetch_main(root, base)
@@ -573,11 +571,16 @@ def distill_main(argv):
 
 
 def main():
-    request = _read_request()
-    if request is None:
+    command = _read_command()
+    # Recognise first (FEAT-2297): only a merge reads the config, so a repair command passes.
+    if command is None or not merge_ref(command):
         return
-    github, command = request
-    if not merge_ref(command):
+    try:
+        github = _github_config(ROOT)
+    except artifact_accessors.ArtifactAccessError as error:
+        deny(f"merge-gate: harness.json could not be read, so this merge is denied: {error}. "
+             f"Repair it (python3 .claude/skills/harness/bin/upgrade-config.py <project-root>) "
+             f"and re-run the merge.")
         return
     try:
         _evaluate_merge(command, github)

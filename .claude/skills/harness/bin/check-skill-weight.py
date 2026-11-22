@@ -28,7 +28,6 @@ AGENTS_REL = Path(".omp") / "agents"
 SKILLS_REL = Path(".claude") / "skills"
 CONFIG_REL = ".harness/harness.json"   # config path, not a root probe (test-check-plan-routes case_20)
 BUDGET_KEY = "preload_warn_words"
-BUDGET_FIELDS = ("universal", "agent")
 
 
 @dataclass
@@ -51,11 +50,10 @@ class Report:
         return sum(self.agent_words(a) for a in self.agents)
 
     def notes(self) -> list[str]:
-        """Over-budget findings, phrased for check-state's note channel."""
+        """Over-budget findings, phrased for check-state's note channel. With no budget the
+        config could not be read, and that diagnosis is already in `errors`."""
         if self.budget is None:
-            return [f"preload weight is UNBUDGETED — budgets.{BUDGET_KEY} is absent or malformed "
-                    f"in {CONFIG_REL}; {self.total_words} words preload across "
-                    f"{len(self.agents)} agents and nothing is watching them"]
+            return []
         out = []
         uni = self.universal_words
         if uni > self.budget["universal"]:
@@ -75,21 +73,9 @@ def _frontmatter(path: Path) -> dict:
     return metadata
 
 
-def _budget(root: Path) -> dict[str, int] | None:
-    path = root / CONFIG_REL
-    if not path.is_file():
-        return None
-    raw = artifact_accessors.load_harness_json(path)
-    block = (raw.get("budgets") or {}).get(BUDGET_KEY)
-    if not isinstance(block, dict):
-        return None
-    out = {}
-    for key in BUDGET_FIELDS:
-        value = block.get(key)
-        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-            return None
-        out[key] = value
-    return out
+def _budget(root: Path) -> dict[str, int]:
+    """budgets.preload_warn_words from the validated config (the schema defaults it)."""
+    return artifact_accessors.load_harness_json(root / CONFIG_REL)["budgets"][BUDGET_KEY]
 
 
 def scan(root: Path) -> Report:

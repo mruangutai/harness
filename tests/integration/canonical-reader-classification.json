@@ -43,6 +43,20 @@
       "task": "none"
     },
     {
+      "artifact": "harness.json",
+      "category": "load_json_mapping",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "team",
+      "exemption": "module_internal_format",
+      "file": ".claude/skills/harness/bin/artifact_accessors.py",
+      "id": ".claude/skills/harness/bin/artifact_accessors.py::load_harness_json::load_json_mapping#1",
+      "reason": "The canonical config accessor reads the strict JSON mapping it then validates against the harness.json schema.",
+      "remedy": "none",
+      "symbol": "load_harness_json",
+      "task": "none"
+    },
+    {
       "artifact": "hook payload",
       "category": "json_string",
       "dec174_category": "hook_or_gate",
@@ -575,7 +589,7 @@
       "file": ".claude/skills/harness/bin/digest_schema.py",
       "id": ".claude/skills/harness/bin/digest_schema.py::SchemaStore._load_one::load_harness_json#1",
       "reason": "",
-      "remedy": "artifact_accessors.load_harness_json",
+      "remedy": "artifact_accessors.load_json_mapping",
       "symbol": "SchemaStore._load_one",
       "task": "none"
     },
@@ -1091,7 +1105,7 @@
       "id": ".claude/skills/harness/bin/gate_policy.py::_load_config::json_file#1",
       "reason": "",
       "remedy": "artifact_accessors.load_harness_json",
-      "symbol": "_load_config",
+      "symbol": "load_policy",
       "task": "T-03"
     },
     {
@@ -1386,6 +1400,19 @@
       "task": "T-03"
     },
     {
+      "artifact": "bin/config-schemas/harness.json schema",
+      "category": "load_json_mapping",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/harness_config.py",
+      "id": ".claude/skills/harness/bin/harness_config.py::_schema_and_validator::load_json_mapping#1",
+      "reason": "",
+      "remedy": "artifact_accessors.load_json_mapping",
+      "symbol": "_schema_and_validator",
+      "task": "none"
+    },
+    {
       "artifact": "pyyaml",
       "category": "pyyaml",
       "dec174_category": "none",
@@ -1556,7 +1583,7 @@
       "id": ".claude/skills/harness/bin/merge-gate.py::_read_request::json_file#2",
       "reason": "",
       "remedy": "artifact_accessors.read_hook_payload",
-      "symbol": "_read_request",
+      "symbol": "_read_command",
       "task": "T-06"
     },
     {
@@ -1842,22 +1869,36 @@
       "file": ".claude/skills/harness/bin/run_identity.py",
       "id": ".claude/skills/harness/bin/run_identity.py::read_marker::json_file#1",
       "reason": "",
-      "remedy": "artifact_accessors.load_harness_json",
+      "remedy": "artifact_accessors.load_json_mapping",
       "symbol": "read_marker",
       "task": "T-03"
     },
     {
       "artifact": "harness.json migration input",
-      "category": "json_file",
+      "category": "load_json_mapping",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "team",
+      "exemption": "test_or_migration_corpus",
+      "file": ".claude/skills/harness/bin/upgrade-config.py",
+      "id": ".claude/skills/harness/bin/upgrade-config.py::load_json::load_json_mapping#1",
+      "reason": "The upgrader reads the config it repairs: an old or invalid harness.json must stay readable so it can be fixed; its merged candidate is validated before any write.",
+      "remedy": "none",
+      "symbol": "load_json",
+      "task": "none"
+    },
+    {
+      "artifact": "merged harness.json candidate",
+      "category": "load_harness_json",
       "dec174_category": "none",
       "disposition": "canonical",
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/upgrade-config.py",
-      "id": ".claude/skills/harness/bin/upgrade-config.py::load_json::json_file#1",
+      "id": ".claude/skills/harness/bin/upgrade-config.py::main::load_harness_json#1",
       "reason": "",
-      "remedy": "documented source route",
-      "symbol": "load_json",
-      "task": "T-02"
+      "remedy": "artifact_accessors.load_harness_json",
+      "symbol": "main",
+      "task": "none"
     },
     {
       "artifact": "upgrade migration corpus",
@@ -2237,7 +2278,7 @@
       "file": ".claude/skills/harness/bin/check_state/ctx.py",
       "id": ".claude/skills/harness/bin/check_state/ctx.py::comparison_record::load_harness_json#1",
       "reason": "",
-      "remedy": "artifact_accessors.load_harness_json",
+      "remedy": "artifact_accessors.load_json_mapping",
       "symbol": "comparison_record",
       "task": "none"
     },
@@ -2543,6 +2584,7 @@
     ".claude/skills/harness/bin/handoff_done_when.py",
     ".claude/skills/harness/bin/handoff_policy.py",
     ".claude/skills/harness/bin/harness_boundary.py",
+    ".claude/skills/harness/bin/harness_config.py",
     ".claude/skills/harness/bin/harness_merge.py",
     ".claude/skills/harness/bin/harness_yaml.py",
     ".claude/skills/harness/bin/inflight_registry.py",

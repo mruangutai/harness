@@ -53,13 +53,14 @@ def _refuse_remote(uri):
 def _schema_and_validator():
     global _checked
     if _checked is None:
-        try:
-            import jsonschema
-            import referencing
-            import referencing.jsonschema
-        except ImportError as error:
-            raise ArtifactAccessError(
-                f"harness.json: cannot validate: {error} (install jsonschema)") from error
+        # jsonschema's ONE guard lives in feature_schema (D-12's one-guard rule); imported here,
+        # lazily, so an artifact_accessors importer that never validates pays nothing for it.
+        import feature_schema
+        jsonschema = feature_schema.jsonschema
+        if jsonschema is None:
+            raise ArtifactAccessError(f"harness.json: {feature_schema.UNAVAILABLE_MESSAGE}")
+        import referencing
+        import referencing.jsonschema
         schema = load_json_mapping(SCHEMA_PATH)
         try:
             jsonschema.Draft202012Validator.check_schema(schema)

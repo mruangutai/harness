@@ -42,46 +42,21 @@ class BoardError(Exception):
 
 
 def load_board(root):
-    """The board config from `harness.json`'s `github.board`, validated, or None.
+    """The board config from the validated `harness.json`'s `github.board`, or None when the
+    board is null — the schema's default for an absent key, and the shape `templates/harness.json`
+    ships (D-07). The returned mapping is `factory_config.validate_board`'s normalisation:
+    `number` an int, `stations` a tuple.
 
-    **`github.board: null` is the only DECLARED no-board path** — the shape
-    `templates/harness.json` ships (D-07). It is NOT the only path returning None, and an earlier
-    version of this docstring said it was: measured 2026-08-19, five of six non-error paths mean
-    "no board". The four undeclared ones return None without raising — no `github` key at all,
-    `github` not a mapping, the whole file not a mapping, and the file absent or unparseable.
-    The last is arguably correct: a project with no `harness.json` genuinely has no board.
-
-    EXACTLY ONE unusable shape RAISES `artifact_accessors.FleetError` naming the harness.json
-    path and the offending key: a `github` block that IS a mapping and carries no `board` key
-    (indistinguishable from a typo — never treated the same as an explicit null). A `board`
-    present but not a mapping, or carrying any field `factory_config.validate_board` rejects
-    (`owner`, `number`, `station_field`, `stations`), raises as well. A caller that wants to
+    A missing or invalid harness.json raises `artifact_accessors.FleetError` carrying the
+    loader's diagnosis (FEAT-2297) — it is never read as "no board". A caller that wants to
     catch this must catch `artifact_accessors.FleetError`.
-
-    Field validation itself — including the digit-string-to-int coercion for `number` — is
-    delegated ENTIRELY to `factory_config.validate_board`, the one board validator in the tree
-    (FEAT-24 D-05); nothing here re-implements or re-coerces any of it. The returned mapping is
-    exactly what that function returns: `owner`, `number` (normalised to an int), `station_field`
-    and `stations`.
     """
     path = os.path.join(root, ".harness", "harness.json")
     try:
-        cfg = artifact_accessors.load_harness_json(path)
-    except artifact_accessors.ArtifactAccessError:
-        return None
-    if not isinstance(cfg, dict):
-        return None
-    github = cfg.get("github")
-    if not isinstance(github, dict):
-        return None
-    if "board" not in github:
-        raise artifact_accessors.FleetError(
-            "board key missing", "github.board", f"declare github.board in {path}",
-        )
-    board = github["board"]
-    if board is None:
-        return None
-    return factory_config.validate_board(board, "github.board", path)
+        board = artifact_accessors.load_harness_json(path)["github"]["board"]
+    except artifact_accessors.ArtifactAccessError as error:
+        raise artifact_accessors.FleetError("owner config unreadable", path, str(error)) from error
+    return None if board is None else factory_config.validate_board(board)
 
 
 def derive_station(plan_doc):

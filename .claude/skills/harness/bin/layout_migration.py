@@ -164,20 +164,17 @@ def validate_table(table):
 def _declared_segments(root):
     """The segments that may hold a migrated repo root: every fleet-declared
     repository's name-after-owner (the same rule factory_config.workspace_path owns),
-    plus harness's own segment from harness.json github.repo when present. A parse
-    failure raises — the fleet IS the applicability marker, so an unreadable fleet at
-    an applicable root is a tree defect, reported loudly by the caller."""
+    plus harness's own segment from the validated harness.json github.repo when set. A
+    fleet or config that does not load raises — the fleet IS the applicability marker, so
+    an unreadable input at an applicable root is a tree defect, reported loudly by the
+    caller (INV-27 CANNOT RUN)."""
     fleet = artifact_accessors.load_fleet(os.path.join(root, MARKER)) or {}
     segs = {str(r.get("name", "")).split("/", 1)[-1]
             for r in (fleet.get("repos") or []) if isinstance(r, dict) and r.get("name")}
-    try:
-        hj = artifact_accessors.load_harness_json(
-            os.path.join(root, ".harness", "harness.json"))
-        own = ((hj.get("github") or {}).get("repo") or "")
-        if own:
-            segs.add(own.split("/", 1)[-1])
-    except artifact_accessors.ArtifactAccessError:
-        pass  # a product-shaped or minimal tree has no harness.json; the fleet rules
+    own = artifact_accessors.load_harness_json(
+        os.path.join(root, ".harness", "harness.json"))["github"]["repo"]
+    if own:
+        segs.add(own.split("/", 1)[-1])
     return {s for s in segs if s}
 
 
