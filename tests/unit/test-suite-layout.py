@@ -352,10 +352,10 @@ finally:
 # Case 11: the guard covers actual discovery, derived at test time and never copied. Only a
 # running kind that classifies tests detects test files; a static source check such as
 # typecheck (`classifies_tests: false`, FEAT-2257) selects production source and is skipped.
+# The predicate is code_grade's own, so hygiene and complexity classification cannot drift.
 def _running_kinds(test_kinds_cfg):
     return {name: cfg for name, cfg in test_kinds_cfg.items()
-            if cfg.get("status") in ("active", "locally_run")
-            and cfg.get("classifies_tests", True)}
+            if code_grade._classifies_tests(cfg)}
 
 
 def _is_inside_tests(pattern):
