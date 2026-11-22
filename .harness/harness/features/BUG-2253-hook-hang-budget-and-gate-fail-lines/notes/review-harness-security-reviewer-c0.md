@@ -1,0 +1,16 @@
+# PASS — no new privilege or refusal-policy bypass; two low advisories
+
+Reviewed immutable `3dd8bb677bb2936361e3952030fc24f15bf9afc6..21e064c9475e35a4abfdd71b5b5cdd23517c0659`; both commit identities resolved. Inspected the complete 14-file diff, including records, for input/output, credentials and policy changes. No checkout created; no tests, grading, builds or lint executed (QA owns execution).
+
+**Scope IN (T-01, SC-01/SC-02):** subprocess output crosses into operator diagnostics; fixtures execute temporary programs and kill processes. Gate selection, list-form argv, 1800s runner timeout and return-2 disagreement refusal are unchanged (`validate-digest.py:2431-2493`). Summary text never authorizes a return. Temporary executable content is repository-authored, interpolated strings use Python repr, and destinations are under a private temporary directory; no new shell interpolation, network/dependency surface or credential found. All six timeout arguments use the shared constant. Supplied product documents are explicitly absent per BRIEF; none substituted.
+
+## Low advisories — operator decision, not security blockers
+
+- **Diagnostic attribution / SC-01:** `validate-digest.py:2496-2508` fullmatches one non-whitespace filename token. A test with existing checkout write access can mutate `private data.txt`; run_pool prints `MUTATED private data.txt` (`run_pool.py:127-136`), which is omitted from the new summary if buried above the tail. Refusal still holds, and the actor already has write/code-execution access, so this is low audit-attribution loss, not escalation. The simplification distinguishes case labels but also excludes legitimate whitespace-bearing paths.
+- **Watchdog containment / SC-02:** `test-validate-digest.py:6533-6593` uses a one-shot timer thread, not an independent parent process/group watchdog. With a missing timeout and child startup delayed beyond two seconds, the PID file is absent when the timer fires, its error is swallowed, and there is no later kill; the probe can wait for the fixture's 3600-second sleep. This is a local regression-containment advisory, not an attacker privilege gain. Current fixture spawns no descendants; process-group cleanup is nevertheless not implemented. Timing only the real helper avoids charging setup load, but `TimeoutExpired` proves a running child, not readiness-file execution.
+
+## Evidence limits / open questions
+
+Supplied `notes/receipts/red.txt:1` names base `3769919f155aee2013b6539ec3cf3d6ed4f9f49b`, not this assignment's immutable base, and reports several setup-shaped `FileNotFoundError` block results. `green.txt` reports successful runs but no exact fixed commit identity. QA/operator must reconcile provenance and genuine blocked-child coverage; this review does not promote those receipts to exact-base/pin verification. Reusing `--only run_bug2253_cases` is operator-approved and introduces no security-policy change.
+
+Threat boundaries: runner output → diagnostic text (T: attribution partially unmitigated; E: refusal preserved); test child → watchdog (D: delayed-start containment unmitigated). No must-fix security findings. QA's assigned check remains `python3 tests/integration/test-validate-digest.py --only run_bug2253_cases`.

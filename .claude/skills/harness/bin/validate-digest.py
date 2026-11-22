@@ -2492,18 +2492,37 @@ def check_qa_matrix_claim(agent, obj, payload):
     return 2
 
 
-_RUN_POOL_FILE_LINE = re.compile(r"(?:FAIL|MUTATED) \S+")
+_RUN_POOL_HEADER = re.compile(r"----- (.+) \(exit -?\d+, \d+\.\d+s\) -----")
+
+
+def _run_pool_file_lines(lines):
+    """run_pool's own FAIL/MUTATED file lines, in order, duplicates kept.
+
+    run_pool closes each file's block — opened by `----- <name> (exit N, Ss) -----` — with
+    `PASS <name>` or `FAIL <name>`, and prints `MUTATED <name>` only outside every block.
+    Names may hold spaces, so the line's position decides, not its shape: a failing file's
+    echoed `FAIL <case label>` lines sit inside its block and close nothing."""
+    named, open_blocks = [], []
+    for line in lines:
+        header = _RUN_POOL_HEADER.fullmatch(line)
+        if header:
+            open_blocks.append(header.group(1))
+        elif open_blocks and line in (f"PASS {open_blocks[-1]}", f"FAIL {open_blocks[-1]}"):
+            open_blocks.pop()
+            if line.startswith("FAIL "):
+                named.append(line)
+        elif not open_blocks and line.startswith("MUTATED "):
+            named.append(line)
+    return named
 
 
 def _print_independent_run(output):
     """The red re-run's evidence: every FAIL/MUTATED file line, then the last 20 lines.
 
     #2253: run_pool prints files in completion order, so the tail shows the slowest file,
-    which usually PASSED; the failing ones sit above it. Name them first. Only run_pool's
-    own one-token `FAIL <file>` / `MUTATED <file>` lines count: a failing file's echoed
-    output carries `FAIL <case label>` lines of its own, which are not files."""
+    which usually PASSED; the failing ones sit above it. Name them first."""
     lines = output.splitlines()
-    named = [line for line in lines if _RUN_POOL_FILE_LINE.fullmatch(line)]
+    named = _run_pool_file_lines(lines)
     if named:
         print("Failing or mutated files:", file=sys.stderr)
         for line in named:

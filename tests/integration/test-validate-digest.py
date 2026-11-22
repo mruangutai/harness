@@ -6385,7 +6385,8 @@ def _bug2253_stub(root, name, stdout_lines, stderr_lines, code=1):
         f"sys.exit({code})\n"))
 
 
-_BUG2253_BURIED = ["FAIL test-a.py", "MUTATED test-b.py", "MUTATED test-d.py", "FAIL test-e.py"]
+_BUG2253_BURIED = ["FAIL test-a.py", "FAIL my test.py", "MUTATED notes/my file.md",
+                   "MUTATED test-d.py", "FAIL test-e.py"]
 _BUG2253_PASSING = [f"PASS test-p{i}.py" for i in range(25)]
 
 
@@ -6399,19 +6400,25 @@ def _bug2253_listed_before_tail(err):
 
 
 def _bug2253_buried_case(tmp):
-    """(gate) run_pool's FAIL/MUTATED file lines buried above a 20-line passing tail, on
-    stdout and stderr, are listed before the unchanged tail. A failing file's own echoed
-    `FAIL <case label>` lines, and a `FAILED…` word, are not file lines and stay out."""
+    """(gate) run_pool's FAIL/MUTATED file lines — names with spaces included — buried above
+    a 20-line passing tail, on stdout and stderr, are listed before the unchanged tail. A
+    failing file's own echoed `FAIL <case label>` / `MUTATED …` lines sit inside its block
+    and stay out, as does a `FAILED…` word."""
     stub = _bug2253_stub(tmp, "buried.py",
                          ["----- test-a.py (exit 1, 0.10s) -----", "FAIL  [x] some case: detail",
-                          "FAIL test-a.py", "MUTATED test-b.py", "FAILED-NOT-A-FILE-LINE"] + _BUG2253_PASSING,
-                         ["MUTATED test-d.py", "FAIL test-e.py"] + [f"stderr tail {i}" for i in range(22)])
+                          "MUTATED inner-echo.txt", "FAIL test-a.py",
+                          "----- my test.py (exit 1, 0.20s) -----", "FAIL my test.py",
+                          "FAILED-NOT-A-FILE-LINE"] + _BUG2253_PASSING + ["MUTATED notes/my file.md"],
+                         ["MUTATED test-d.py", "----- test-e.py (exit 2, 1.00s) -----", "FAIL test-e.py"]
+                         + [f"stderr tail {i}" for i in range(22)])
     r = _bug919_fire(stub)
     ok = (r.returncode == 2 and _bug2253_listed_before_tail(r.stderr)
-          and "some case" not in r.stderr and "FAILED-NOT-A-FILE-LINE" not in r.stderr
+          and "some case" not in r.stderr and "inner-echo" not in r.stderr
+          and "FAILED-NOT-A-FILE-LINE" not in r.stderr
           and "  stderr tail 2\n" in r.stderr and "  stderr tail 1\n" not in r.stderr)
     return ("a red re-run names every FAIL/MUTATED file buried above the 20-line tail, "
-            "once, in order, before the unchanged tail — and no case line", ok, r.stderr)
+            "names with spaces included, once, in order, before the unchanged tail — "
+            "and no echoed case line", ok, r.stderr)
 
 
 def _bug2253_quiet_case(tmp):
@@ -6516,6 +6523,7 @@ def _bug2253_budget_observation_cases(tmp):
 
 
 _BUG2253_BLOCKER = ("#!/usr/bin/env python3\nimport os, time\n"
+                    "time.sleep(float(os.environ.get('BUG2253_DELAY', '0')))\n"
                     "open(os.environ['BUG2253_READY'], 'w').write(str(os.getpid()))\n"
                     "time.sleep(3600)\n")
 
@@ -6531,30 +6539,37 @@ def _bug2253_blocking_validate(tmp):
 
 
 def _bug2253_watchdog(ready, seconds=2.0):
-    """Kill the blocked child (its pid is in `ready`) if the call has not timed it out by
-    `seconds`: a site whose timeout ignores the shared budget then fails this probe with
-    `outcome=returned` instead of waiting out a literal of its own."""
+    """From `seconds` on, and until the returned `stop()`, kill the blocked child the moment
+    its pid appears in `ready`: a site whose timeout ignores the shared budget fails this
+    probe with `outcome=returned`, however late its child starts. `stop()` ends the watch
+    and returns whether the watchdog killed anything."""
     import signal, threading
+    done, killed = threading.Event(), []
 
-    def kill():
-        try:
-            os.kill(int(open(ready).read()), signal.SIGKILL)
-        except (OSError, ValueError):
-            pass
-    timer = threading.Timer(seconds, kill)
-    timer.start()
-    return timer
+    def watch():
+        if done.wait(seconds):
+            return
+        while not killed and not done.is_set():
+            try:
+                os.kill(int(open(ready).read()), signal.SIGKILL)
+                killed.append(True)
+            except (OSError, ValueError):  # not started, or pid not written yet: poll again
+                done.wait(0.05)
+    thread = threading.Thread(target=watch, daemon=True)
+    thread.start()
+
+    def stop():
+        done.set()
+        thread.join()
+        return bool(killed)
+    return stop
 
 
 def _bug2253_block_probe(tmp, run, collaborators, target, budget=1.0):
-    """(outcome, seconds inside the real call) for the REAL `target` launching a child that
-    blocks, with the shared budget rebound to `budget`. Only the call is timed, so fixture
-    setup and host load before it never count against the budget. `outcome` is "timeout",
-    "returned", or the name of whatever else the run raised.
-
-    `TimeoutExpired` is itself the proof of a genuine hang: only subprocess.run raises it,
-    and only for a child still running at the budget — a child that failed to start would
-    have exited instead. The pid file exists for the watchdog, not as a pass condition."""
+    """(outcome, seconds inside the real call, child was ready) for the REAL `target`
+    launching a child that blocks, with the shared budget rebound to `budget`. Only the
+    call is timed, so fixture setup and host load before it never count against the
+    budget. `outcome` is "timeout", "returned", or the name of whatever else was raised."""
     from unittest import mock
     ready = os.path.join(tmp, f"ready-{target}-{time.monotonic_ns()}")
     real, spent = globals()[target], []
@@ -6566,7 +6581,7 @@ def _bug2253_block_probe(tmp, run, collaborators, target, budget=1.0):
         finally:
             spent.append(time.monotonic() - start)
 
-    timer = _bug2253_watchdog(ready)
+    stop = _bug2253_watchdog(ready)
     outcome = "returned"
     try:
         with _bug2253_patched(**collaborators, **_bug2253_doubles(target, timed),
@@ -6578,28 +6593,51 @@ def _bug2253_block_probe(tmp, run, collaborators, target, budget=1.0):
     except Exception as exc:  # reported in the row; a non-timeout is this case's failure
         outcome = type(exc).__name__
     finally:
-        timer.cancel()
-    return outcome, spent[0] if spent else None
+        stop()
+    return outcome, spent[0] if spent else None, os.path.exists(ready)
 
 
 def _bug2253_block_cases(tmp):
-    """(budget) At every site a hook that really blocks dies inside the budget (1s, plus
-    0.5s to kill and reap). A site that ignores the shared budget is killed by the 2s
-    watchdog instead and fails with `outcome=returned`."""
+    """(budget) At every site a hook that really blocks — its child started and wrote its
+    pid — dies inside the budget (1s, plus 0.5s to kill and reap). A site that ignores the
+    shared budget is killed by the watchdog instead and fails with `outcome=returned`."""
     rows = []
     for site, run, collaborators, target in _bug2253_site_drivers(tmp):
-        outcome, spent = _bug2253_block_probe(tmp, run, collaborators, target)
+        outcome, spent, ready = _bug2253_block_probe(tmp, run, collaborators, target)
         rows.append((f"{site}: a blocked hook times out within the budget",
-                     outcome == "timeout" and spent is not None and spent < 1.5,
-                     f"outcome={outcome} spent={spent}"))
+                     outcome == "timeout" and ready and spent is not None and spent < 1.5,
+                     f"outcome={outcome} ready={ready} spent={spent}"))
     return rows
+
+
+def _bug2253_containment_case(tmp):
+    """(budget) The watchdog contains what the probe guards against: a call whose own
+    timeout (60s) ignores the budget, launching a child that starts only after the 2s
+    deadline, is still killed as soon as the child appears — no 3600s sleeper survives."""
+    ready = os.path.join(tmp, f"ready-containment-{time.monotonic_ns()}")
+    blocker = _bug2253_blocking_validate(tmp)
+    stop = _bug2253_watchdog(ready)
+    start = time.monotonic()
+    try:
+        r = subprocess.run([blocker], timeout=60, capture_output=True,
+                           env={**os.environ, "BUG2253_READY": ready, "BUG2253_DELAY": "2.5"})
+        outcome = f"exit {r.returncode}"
+    except subprocess.TimeoutExpired:
+        outcome = "timeout"
+    finally:
+        killed = stop()
+    elapsed = time.monotonic() - start
+    return ("a late-starting child under a timeout that ignores the budget is killed by the watchdog",
+            killed and outcome == f"exit {-9}" and elapsed < 10,
+            f"outcome={outcome} killed={killed} elapsed={elapsed:.2f}s")
 
 
 def run_bug2253_cases():
     tmp = tempfile.mkdtemp(prefix="vd-bug2253-")
     try:
         rows = ([_bug2253_buried_case(tmp), _bug2253_quiet_case(tmp)]
-                + _bug2253_budget_observation_cases(tmp) + _bug2253_block_cases(tmp))
+                + _bug2253_budget_observation_cases(tmp) + _bug2253_block_cases(tmp)
+                + [_bug2253_containment_case(tmp)])
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     fails = 0

@@ -3,7 +3,7 @@
   "branch": "feat/BUG-2253-hook-hang-budget-and-gate-fail-lines",
   "pr": null,
   "review_sha": "21e064c9475e35a4abfdd71b5b5cdd23517c0659",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -21,6 +21,21 @@
       "tokens": null,
       "ended_at": "2026-11-22T01:11:43+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T01:26:01+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-02-validate-validator/digest.md",
+        "sha256": "8c6a794c7291a09f4d2a86213747c07301acc485706092bf4b50ee27d33c95f0"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-22T01:40:03+00:00"
     }
   ],
   "mission": "patch",
