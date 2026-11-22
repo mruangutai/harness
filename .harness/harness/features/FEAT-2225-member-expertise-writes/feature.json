@@ -173,6 +173,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-21T23:57:25+00:00"
+    },
+    {
+      "id": "r-20261121-12-validate-c5-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T23:57:59+00:00",
+      "tokens": 36619,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-12-validate-c5-validator/digest.md",
+        "sha256": "edea2045374dffedb5344f0ab5873a3b99f2fb33cca940ae25b8ebdfa96ad944"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T00:13:21+00:00"
     }
   ],
   "judgements": [
@@ -308,6 +323,20 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "r-11 FAIL only on the dispatch's own diff-stat acceptance (dirty feature.json/plan.yaml bookkeeping, G-06); C4-F1 fix 8257a2e0 verified by orchestrator: T-02 verify rc0, test-gen-decisions-index rc0; pin tip, validate c5"
+    },
+    {
+      "at": "2026-11-21T23:57:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate c5 over the index-fixed tip: confirm C4-F1 resolved, F2 ruled boundary, F1/F3 closed",
+      "reason": "r-11 fix verified (T-02 verify rc0); c5 is the confirmatory panel the ruling authorized, over a tip whose code tree is still identical to 219690d0"
+    },
+    {
+      "at": "2026-11-22T00:13:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "c5 PASS over 7065b650: C4-F1 resolved, matrix green, SC-01..06 met, F2 ruled boundary (#2251); panel clean, feature ready for the operator's ship decision"
     }
   ],
   "mission": "plan",
