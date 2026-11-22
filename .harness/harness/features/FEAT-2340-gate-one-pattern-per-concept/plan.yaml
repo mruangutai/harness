@@ -5,7 +5,7 @@ approval:
   approved_by: operator
   status: approved
 drafted_at: '2026-11-22T20:17:23Z'
-status: building
+status: review
 source_issues: [2340]
 panel:
   last_run: r-20261122-1-plan-product
