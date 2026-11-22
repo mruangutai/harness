@@ -915,26 +915,40 @@ def _handoff_cycle_suffix_cases(results, root, notes, valid):
         _record_handoff_result(
             results, f"handoff canonical {phase} accepted",
             fire_write_payload(root, target, _handoff_text(valid)), 0)
-    for phase, cycle in (("build", "1"), ("validate", "12"), ("plan", "305")):
-        suffixed = os.path.join(notes, f"handoff-{phase}-c{cycle}.md")
-        needles = (f"notes/handoff-{phase}.md", "supersede")
-        _record_handoff_result(
-            results, f"handoff {phase}-c{cycle} Write refused",
-            fire_write_payload(root, suffixed, _handoff_text(valid)), 2, needles)
-        with open(suffixed, "w") as f:
-            f.write(_handoff_text(valid))
-        before = open(suffixed, "rb").read()
-        edit = {"tool_name": "Edit",
-                "tool_input": {"file_path": suffixed,
-                               "old_string": "Scope: build complete",
-                               "new_string": "Scope: build complete and verified"}}
-        _record_handoff_result(
-            results, f"handoff {phase}-c{cycle} Edit refused",
-            subprocess.run([HOOK], input=json.dumps(edit), capture_output=True,
-                           text=True, env=_env(root)), 2, needles)
-        results.append((f"handoff {phase}-c{cycle} refused Edit leaves file unchanged",
-                        open(suffixed, "rb").read() == before, "file bytes changed"))
-        os.unlink(suffixed)
+    for stem, phase in (("build-c1", "build"), ("validate-c12", "validate"),
+                        ("plan-c305", "plan"), ("Build-c1", "build"),
+                        ("build-C1", "build"), ("VALIDATE-C12", "validate")):
+        _handoff_cycle_refusal_case(results, root, notes, stem, phase, valid)
+
+
+def _record_cycle_refusal(results, name, result, phase):
+    """The refusal names the canonical note LOWERCASED, compared case-sensitively —
+    _record_handoff_result folds case, which would let `notes/handoff-Build.md` pass."""
+    canonical = f"notes/handoff-{phase}.md"
+    _record_handoff_result(results, name, result, 2, (canonical, "supersede"))
+    results.append((f"{name} names {canonical} exactly", canonical in result.stderr,
+                     result.stderr.strip()[:180]))
+
+
+def _handoff_cycle_refusal_case(results, root, notes, stem, phase, valid):
+    suffixed = os.path.join(notes, f"handoff-{stem}.md")
+    _record_cycle_refusal(
+        results, f"handoff {stem} Write refused",
+        fire_write_payload(root, suffixed, _handoff_text(valid)), phase)
+    with open(suffixed, "w") as f:
+        f.write(_handoff_text(valid))
+    before = open(suffixed, "rb").read()
+    edit = {"tool_name": "Edit",
+            "tool_input": {"file_path": suffixed,
+                           "old_string": "Scope: build complete",
+                           "new_string": "Scope: build complete and verified"}}
+    _record_cycle_refusal(
+        results, f"handoff {stem} Edit refused",
+        subprocess.run([HOOK], input=json.dumps(edit), capture_output=True,
+                       text=True, env=_env(root)), phase)
+    results.append((f"handoff {stem} refused Edit leaves file unchanged",
+                    open(suffixed, "rb").read() == before, "file bytes changed"))
+    os.unlink(suffixed)
 
 
 def _report_handoff_results(results):

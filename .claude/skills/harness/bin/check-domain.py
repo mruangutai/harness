@@ -2293,7 +2293,7 @@ def _state_yaml_unknown_keys(doc, shown):
 # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
 # BUG-2295: one note per phase, superseded, never appended (succession.md). RE_HANDOFF still
 # routes `-c<N>` names here and into Edit reconstruction, so this refusal cannot be bypassed.
-_RE_HANDOFF_CYCLE = re.compile(r"^.*/(notes/handoff-[a-z0-9-]+?)-c[0-9]+\.md$")
+_RE_HANDOFF_CYCLE = re.compile(r"^.*/(notes/handoff-[a-z0-9-]+?)-c[0-9]+\.md$", _I)
 
 
 def _rule_handoff(rel, content, lines, shown, absolute_path):
@@ -2312,7 +2312,7 @@ def _handoff_cycle_problems(rel):
     m = _RE_HANDOFF_CYCLE.match(rel)
     if not m:
         return []
-    canonical = m.group(1) + ".md"
+    canonical = m.group(1).lower() + ".md"
     return [f"cycle-suffixed handoff name refused — one note per phase, superseded, never"
             f" appended (succession.md, DEC-159). Supersede {canonical} instead."]
 
