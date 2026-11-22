@@ -1,0 +1,3 @@
+subject test file sha256 42a2e8dcf47dbf2585b1d4e5fb087d42971f2793f37e8c53a9abda9e25d9212e
+3dd8bb67: clean detached checkout + the unit file above; command: python3 tests/unit/test-validate-digest-run-pool-lines.py; streams unit-red-3dd8bb67.stdout/.stderr; Ran 7 tests in 0.024s FAILED (errors=7) 
+b228c3a2: clean detached checkout + the unit file above; command: python3 tests/unit/test-validate-digest-run-pool-lines.py; streams unit-red-b228c3a2.stdout/.stderr; Ran 7 tests in 0.001s FAILED (failures=1) 

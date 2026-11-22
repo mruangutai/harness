@@ -32,8 +32,9 @@ tasks:
   - .claude/skills/harness/bin/validate-digest.py
   - tests/integration/test-validate-digest.py
   - tests/integration/canonical-reader-classification.json
+  - tests/unit/test-validate-digest-run-pool-lines.py
   verify: |
-    python3 tests/integration/test-validate-digest.py --only run_bug2253_cases
+    python3 tests/integration/test-validate-digest.py --only run_bug2253_cases && python3 tests/unit/test-validate-digest-run-pool-lines.py
   intent: |
     Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2253-hook-hang-budget-and-gate-fail-lines. All relative edits stay inside it. DEC-174 forbids engineering-team execution of this gate task. Consult applicable PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md if present; all three are absent at intake. Do not invent guidance. Settled scope is /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-BUG-2253-hook-hang-budget-and-gate-fail-lines-2026-11-21.md.
     Add regressions first in the existing test file. Add a narrow --patch-2253-regressions selector running only these cases while retaining the ordinary suite entrypoint. The literal verify must finish under 60 seconds, exit 0, with every selected case passing and no FAIL lines. Execute the same new regressions against isolated exact base and fixed subjects, preserving bootstrap and sibling imports. Record exact commands, base/fix commit identities, test identities, exits, stdout and stderr as durable QA evidence. Each SC requires a genuine defect-exposing base failure and fix pass, not setup errors, source-text assertions or unchanged base tests.

@@ -119,6 +119,20 @@
       "kind": "regate",
       "decision": "validate cycle 3",
       "reason": "c2 FAIL: same-name PASS echo fixed in 3c6fb908 (no pairing); operator-extended round 3"
+    },
+    {
+      "at": "2026-11-22T13:41:06.118657+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Operator (validate c3 ESCALATE): close the unit floor now; add tests/unit/test-validate-digest-run-pool-lines.py for the gate's run_pool parsers; closes #2281"
+    },
+    {
+      "at": "2026-11-22T13:41:12.317378+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Operator (validate c3 ESCALATE): verify also runs the new unit file for the run_pool parsers"
     }
   ],
   "rework": {
