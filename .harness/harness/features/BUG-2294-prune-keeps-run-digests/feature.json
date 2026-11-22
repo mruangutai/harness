@@ -21,6 +21,21 @@
       "cycles_used": 0,
       "ended_at": "2026-11-22T15:01:22+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T15:16:47+00:00",
+      "tokens": 41390,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-02-validate-validator/digest.md",
+        "sha256": "c67e9a448b59c9730232f756d9675e61fbdd6d0c486be33a47cab57d860e7363"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T15:24:06+00:00"
     }
   ],
   "judgements": [
@@ -30,6 +45,20 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "The cause is known: the pruner predates the rule that pins each run's digest. The diff is bounded to the pruner, its unit test and the ship command text, with no new interface, schema or gate."
+    },
+    {
+      "at": "2026-11-22T15:16:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Resumed at the build seam after the main-session-direct T-01 build; spend is within the 1-round/45-min ruling and the next step is the validate panel"
+    },
+    {
+      "at": "2026-11-22T15:24:08+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "SEC-01 reproduced by probe: intermediate run symlinks let prune delete a kept run's ui/ and an outside ui/; substance med inside the 1-round ruling; T-01 is main-session-direct so the fix returns to Main"
     }
   ],
   "mission": "patch",
