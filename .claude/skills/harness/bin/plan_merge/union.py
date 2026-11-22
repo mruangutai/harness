@@ -338,6 +338,7 @@ def _seed_new_plan(proposal_text):
             ],
         )
     _refuse_drafted_at_write({}, prop_doc)
+    _refuse_illegal_dispositions(prop_doc)
     lines = proposal_text.splitlines(keepends=True)
     for index, line in enumerate(lines):
         if FEATURE_LINE_RE.match(line):
@@ -375,6 +376,19 @@ def _refuse_drafted_at_write(base_doc, prop_doc):
          f"  {DRAFTED_AT} is writer-stamped creation provenance: apply stamps it once when it "
          "creates a plan, and no caller may supply, rewrite, null or insert it."],
     )
+
+
+def _refuse_illegal_dispositions(prop_doc):
+    """Refuse (5) a new plan whose decisions_affected block breaks the row schema. Creation has
+    no base for `_verify_schema_preserved` to compare against, so the disposition rule — the
+    same harness_yaml function the reader applies — runs on the proposal before the first write,
+    as set-key's schema refusal does for an existing plan."""
+    try:
+        harness_yaml.validate_decisions_affected(prop_doc, "the proposal")
+    except harness_yaml.PlanSchemaError as exc:
+        raise harness_merge.MergeRefusal(
+            5, [f"ILLEGAL PLAN: refusing to create a plan with a malformed decisions_affected "
+                f"block — {exc}"])
 
 
 def _merge_inputs(base_bytes, proposal_text):

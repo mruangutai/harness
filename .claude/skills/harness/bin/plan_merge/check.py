@@ -198,7 +198,9 @@ ERA_KEY = "decision_dispositions_era_start"
 # The established DECISIONS-INDEX.md row (check-plan-routes._decisions_index); a ruling that
 # opens with STRUCK — in any case, `Struck under DEC-188` included — marks the entry struck.
 INDEX_ROW_RE = re.compile(r"^- (DEC-\d+) @\S+ \[[^\]]*\] refs:[^:]*:: (.*)$")
-FENCE_RE = re.compile(r"^\s*(```|~~~)")
+# A fence opens with a run of three or more backticks or tildes and closes only on a run of the
+# same character at least as long, so a ``` line inside a ```` fence stays inside it.
+FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
 
 
 def _instant(value):
@@ -274,15 +276,26 @@ def _heading_level(line, dec=None):
     return len(m.group(1))
 
 
-def _section_end(lines, start, level):
-    """The index of the next heading at `level` or shallower after `start`, fences skipped."""
-    in_fence = False
-    for at in range(start + 1, len(lines)):
-        if FENCE_RE.match(lines[at]):
-            in_fence = not in_fence
-        elif not in_fence and 0 < _heading_level(lines[at]) <= level:
-            return at
-    return len(lines)
+def _fence_after(line, fence):
+    """The open fence's opening run after `line`, or None outside any fence."""
+    m = FENCE_RE.match(line)
+    if m is None:
+        return fence
+    run = m.group(1)
+    if fence is None:
+        return run
+    return None if run[0] == fence[0] and len(run) >= len(fence) else fence
+
+
+def _real_headings(lines):
+    """[(index, level)] for every heading line outside a fence, fences tracked from the top
+    of the file — a fenced `## DEC-NN` example is never a heading."""
+    headings, fence = [], None
+    for at, line in enumerate(lines):
+        if fence is None and _heading_level(line):
+            headings.append((at, _heading_level(line)))
+        fence = _fence_after(line, fence)
+    return headings
 
 
 class _Authority:
@@ -294,14 +307,17 @@ class _Authority:
         self.index_rel = os.path.join(".harness", segment, "docs", "DECISIONS-INDEX.md")
         index_text = _read_text(os.path.join(root, self.index_rel))
         self.lines = (_read_text(os.path.join(root, self.rel)) or "").splitlines(keepends=True)
+        self.headings = _real_headings(self.lines)
         self.struck = None if index_text is None else _struck_by_dec(index_text)
 
     def section(self, dec):
-        """The text of `dec`'s own heading section, or None when no heading names it."""
-        for start, line in enumerate(self.lines):
-            level = _heading_level(line, dec)
-            if level:
-                return "".join(self.lines[start:_section_end(self.lines, start, level)])
+        """The text of `dec`'s own heading section up to the next real heading at its level or
+        shallower, or None when no real heading names it."""
+        for pos, (start, level) in enumerate(self.headings):
+            if _heading_level(self.lines[start], dec):
+                end = next((at for at, deeper in self.headings[pos + 1:] if deeper <= level),
+                           len(self.lines))
+                return "".join(self.lines[start:end])
         return None
 
 

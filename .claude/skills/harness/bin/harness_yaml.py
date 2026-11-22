@@ -418,7 +418,9 @@ def _disposition_row_fault(row):
     return _successor_fault(row)
 
 
-def _validate_decisions_affected(doc, path):
+def validate_decisions_affected(doc, path):
+    """The disposition block's shape rule alone — `validate_plan_doc` applies it to every plan,
+    and plan creation (plan_merge.union._seed_new_plan) to the proposal before its first write."""
     if "decisions_affected" not in doc:
         return
     rows = doc["decisions_affected"]
@@ -455,7 +457,7 @@ def validate_plan_doc(doc, path):
     _validate_plan_tasks(tasks, path)
     _validate_plan_verify_shape(doc, tasks, path)
     _validate_plan_depends_on(tasks, path)
-    _validate_decisions_affected(doc, path)
+    validate_decisions_affected(doc, path)
     return doc
 
 

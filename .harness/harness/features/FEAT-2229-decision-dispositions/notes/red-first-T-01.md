@@ -103,3 +103,26 @@ python3 tests/integration/test-plan-decision-dispositions.py # 91/91 passed
 exit 0, ~0.4 s and ~12 s. Regression: `python3 tests/integration/test-plan-merge.py` exit 0 with
 `case_create_path_approval` unchanged (it asserts approval/content, not exact bytes, so the
 new stamp needed no expectation change); `tests/unit/test-harness-yaml-corpus.py` 16/16.
+
+## Validate c1 fix (F1 high, F2 med) — red → green
+
+Regressions added first to `tests/integration/test-plan-decision-dispositions.py`
+(`case_fenced_heading_is_not_a_section`, `case_creation_validates_dispositions`), run against
+the c1 source (worktree HEAD 98305097) → exit 1, **92/98 passed**:
+
+- FAIL a clause only in a fenced DEC-10 example fails the DEC-10 row (F2)
+- FAIL a nested-fence DEC-10 example is still fenced (F2, ```` fence holding ``` lines)
+- FAIL DEC-11's section runs past its fenced examples (F2 end-scan)
+- FAIL creation refuses a malformed decisions_affected row (F1: `[{dec: DEC-10}]` was APPLIED)
+- FAIL the refused malformed creation writes no file (F1)
+- FAIL creation with a valid row still creates (F1 control; failed only because the malformed
+  plan had been written, so the second apply hit CONFLICT)
+
+Fix: `plan_merge/union.py` `_refuse_illegal_dispositions` runs
+`harness_yaml.validate_decisions_affected` (the reader's own rule, made public) on the creation
+proposal before the write — exit 5, no file. `plan_merge/check.py` locates headings only outside
+fences tracked from the top of the file (`_real_headings`, `_fence_after`: a fence closes only on
+a same-character run at least as long), and bounds a section at the next real heading.
+
+Green: T-01 verify exit 0 — unit 40/40, integration 98/98; `test-plan-merge.py` exit 0;
+`test-checker-structure-locks.py` ALL PASS.

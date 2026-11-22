@@ -246,6 +246,52 @@ def case_clause_location():
                 ["decisions_affected[0] DEC-10", "clause"])
 
 
+# F2 (validate c1): fenced examples inside DEC-11 impersonate DEC-10's heading — once with a
+# plain fence, once with a four-backtick fence whose inner ``` lines must not close it.
+FENCED_DECISIONS_MD = """# Decision Log
+
+## DEC-11 — Eleven
+
+Only eleven says this.
+
+```markdown
+## DEC-10 — an example heading
+Only the example says this.
+```
+
+````markdown
+```
+## DEC-10 — a nested example heading
+Nested example only.
+```
+````
+
+Eleven continues after its examples.
+
+## DEC-10 — Ten
+
+The ten clause is here.
+"""
+
+
+def _fenced_docs(root):
+    write(os.path.join(root, DOCS_REL), FENCED_DECISIONS_MD)
+
+
+def case_fenced_heading_is_not_a_section():
+    expect_fail("a clause only in a fenced DEC-10 example fails the DEC-10 row",
+                plan_text([row(clause="Only the example says this.")]),
+                ["decisions_affected[0] DEC-10", "clause"], setup=_fenced_docs)
+    expect_fail("a nested-fence DEC-10 example is still fenced",
+                plan_text([row(clause="Nested example only.")]),
+                ["decisions_affected[0] DEC-10", "clause"], setup=_fenced_docs)
+    expect_pass("the real DEC-10 section's clause passes beside fenced impostors",
+                plan_text([row(clause="The ten clause is here.")]), setup=_fenced_docs)
+    expect_pass("DEC-11's section runs past its fenced examples",
+                plan_text([row(dec="DEC-11", clause="Eleven continues after its examples.")]),
+                setup=_fenced_docs)
+
+
 def case_successors():
     expect_fail("an amend to a D id this plan lacks fails",
                 plan_text([row(disposition="amend", successor="D-09")]),
@@ -387,6 +433,24 @@ def case_creation_refuses_backdating():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_creation_validates_dispositions():
+    """F1 (validate c1): a malformed decisions_affected row is refused at creation, unwritten."""
+    root, plan = _writer_root()
+    try:
+        bad = _bare_plan() + "decisions_affected:\n- dec: DEC-10\n"
+        r = run("apply", "--file", plan, "--proposal", _proposal(root, bad))
+        check("creation refuses a malformed decisions_affected row",
+              r.returncode != 0 and "decisions_affected" in r.stdout + r.stderr,
+              r.stdout + r.stderr)
+        check("the refused malformed creation writes no file", not os.path.exists(plan))
+        good = _bare_plan() + yaml.safe_dump({"decisions_affected": [row()]}, sort_keys=False)
+        r = run("apply", "--file", plan, "--proposal", _proposal(root, good))
+        check("creation with a valid row still creates", r.returncode == 0 and os.path.exists(plan),
+              r.stdout + r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 STAMPED = ("schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
            "drafted_at: '2026-11-21T12:30:00Z'\n# a comment the writer must keep\n"
            + _bare_plan().split("feature: FEAT-99-fixture\n", 1)[1])
@@ -493,10 +557,11 @@ def case_ordinary_edits():
 
 def main():
     for case in (case_valid_controls, case_missing_block, case_unindexed_dec, case_struck,
-                 case_clause_location, case_successors, case_ownership,
-                 case_each_failure_keeps_other_checks, case_served_segment_authority, case_era,
-                 case_malformed_instants, case_history_skipped, case_creation_stamp,
-                 case_creation_refuses_backdating, case_set_key_reservation,
+                 case_clause_location, case_fenced_heading_is_not_a_section, case_successors,
+                 case_ownership, case_each_failure_keeps_other_checks,
+                 case_served_segment_authority, case_era, case_malformed_instants,
+                 case_history_skipped, case_creation_stamp, case_creation_refuses_backdating,
+                 case_creation_validates_dispositions, case_set_key_reservation,
                  case_apply_reservation, case_alternate_rendering_path, case_ordinary_edits):
         case()
     failed = [name for name, ok in RESULTS if not ok]
