@@ -93,7 +93,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 forbids dispatching the gates, their adapter or their tests through the enforcement being changed; metadata identifies expertise only and Main executes.
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py#hook_guard
       - {path: .claude/skills/harness/bin/check-domain.py, quote: '_bootstrap_boundary.run_hook_body(__file__, "check-domain", "check_domain_body")'}
@@ -135,7 +135,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: Main executes the all-direct DEC-174 feature and .omp/agents is unowned; execution_agent is not authorization to dispatch protected work.
     depends_on: [T-01]
-    status: building
+    status: done
     files:
       - {path: .omp/rules/harness-constraints.md, create: true}
       - {path: .omp/agents/harness-product-lead.md, quote: 'HARNESS_AGENT_ID: harness-product-lead'}
@@ -157,7 +157,7 @@ tasks:
     execution_agent: harness-documentor
     execution_reason: Main completes the entirely direct DEC-174 enforcement feature and records its policy amendments without outsourcing protected execution.
     depends_on: [T-01, T-02]
-    status: building
+    status: done
     files:
       - {path: .harness/harness/docs/DECISIONS.md, quote: '## DEC-100 — All four platform unknowns resolved empirically'}
       - {path: .harness/harness/docs/DECISIONS-INDEX.md, quote: '- DEC-100 @'}
