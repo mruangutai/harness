@@ -752,13 +752,16 @@ A refusal outranks an unavailable line in the same output; omp discards `additio
 blocked call, so beside a refusal the notices follow the denial in the refusal reason. The four gates that fire on every call
 — `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py`, `validate-digest.py` — resolve
 their own failure as **unavailable**, because failing them closed would wedge every agent on one
-gate's bug. The three narrow command gates — `gh-close-gate.py`, `branch-create-gate.py`,
+gate's bug. Three narrow command gates — `gh-close-gate.py`, `branch-create-gate.py`,
 `plan-sign-gate.py` — match their command first, with the standard library and before any
 dependency loads; an unrelated command is untouched, and a guarded one whose gate cannot run —
 an unreadable or malformed `harness.json` included — is **refused** by name, while a readable
 config with sync off still exempts it (the extension's `narrowGateApplies` decides when the gate
 cannot start or finish, so a timeout refuses only a guarded command).
-`merge-gate.py` refuses its own failures at exit 2.
+`merge-gate.py` is the fourth narrow gate: bootstrap-first (DEC-234), it refuses its own caught
+failures (a broken root at exit 2, for any command), and when its process cannot start or finish
+— a timeout included — `narrowGateApplies`, a port of its `merge_ref`, refuses only a matching
+`git merge` or `gh pr merge` (`--abort`, `--continue` and `--quit` exempt).
 
 **Asynchronous, bounded, parallel (DEC-100).** Every Python policy process — gate or helper — is
 spawned asynchronously and awaited, so a pending process never freezes OMP's event loop and a

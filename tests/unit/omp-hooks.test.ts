@@ -2271,6 +2271,33 @@ describe("OMP task lifecycle adapter", () => {
     expect(open.calls.map((call) => call.script)).toContain("merge-gate.py");
   });
 
+  // FEAT-2337 (DEC-100): Main's merge path reads merge-gate's failure through the same narrow
+  // classification. The `\bmerge\b` pre-screen still only spares a spawn; whether a gate that
+  // could not answer refuses is merge_ref's call, so an abort, a search or an echo stays allowed.
+  test("FEAT-2337: Main's merge is refused when merge-gate times out; a command it does not guard is not", async () => {
+    const timedOut: hooks.PolicyProcess = { status: null, signal: "SIGKILL", stdout: "", stderr: "", timedOut: true };
+    const seen: unknown[] = [];
+    const { handlers } = fixture({
+      mergeGate: (payload) => {
+        seen.push((payload.tool_input as Record<string, unknown>).command);
+        return hooks.classifyPolicyRun("merge-gate.py", payload, timedOut);
+      },
+    });
+    await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    const call = async (command: string) =>
+      handlers.get("tool_call")?.({ toolName: "bash", toolCallId: "m", input: { command } }, mainCtx());
+    const guarded = ["git merge feat/x", "gh pr merge 42 --squash", "bash -c 'git -C /x merge feat/y'"];
+    const unguarded = ["git merge --abort", "echo merge", "rg merge src/"];
+    for (const command of guarded) {
+      expect(await call(command)).toEqual({
+        block: true,
+        reason: expect.stringMatching(/^merge-gate: BLOCKED — the gate could not run \(exceeded its 30-second budget/),
+      });
+    }
+    for (const command of unguarded) expect(await call(command)).toBeUndefined();
+    expect(seen).toEqual([...guarded, ...unguarded]);
+  });
+
   // -------------------------------------------------------------------------
   // FEAT-2274 (D-01, SC-01, SC-07, SC-09): a broad gate that could not run is not a pass.
   // The call proceeds, and the handler says so in passive additionalContext, phase-tagged
@@ -2529,6 +2556,8 @@ describe("classifyPolicyRun", () => {
       "gh-close-gate.py": "gh issue close 728 --repo x/y",
       "branch-create-gate.py": "git checkout -b FEAT-9999-runtime-probe",
       "plan-sign-gate.py": "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml",
+      // FEAT-2337 (DEC-100): merge-gate.py is a narrow gate.
+      "merge-gate.py": "git merge feat/x",
     };
     for (const [script, command] of Object.entries(guarded)) {
       const gate = script.slice(0, -3);
@@ -2551,7 +2580,7 @@ describe("classifyPolicyRun", () => {
   });
 
   test("every other script keeps its non-blocking error contract and still throws a spawn error", () => {
-    for (const script of ["inflight_registry.py", "feature-record.py", "digest_destination.py", "merge-gate.py"]) {
+    for (const script of ["inflight_registry.py", "feature-record.py", "digest_destination.py"]) {
       expect(classify(script, {}, crashes[0][1]))
         .toEqual({ blocked: false, reason: "Traceback: boom", stdout: "" });
       expect(classify(script, {}, { status: 3, signal: null, stdout: "", stderr: "" }))
@@ -2691,7 +2720,65 @@ describe("narrowGateApplies", () => {
 
   test("a script that is not a narrow gate guards nothing", () => {
     expect(hooks.narrowGateApplies("check-domain.py", "gh issue close 5")).toBe(false);
-    expect(hooks.narrowGateApplies("merge-gate.py", "git merge x")).toBe(false);
+    expect(hooks.narrowGateApplies("bash-write-guard.py", "git merge x")).toBe(false);
+  });
+
+  // FEAT-2337 (DEC-100): merge-gate.py's applicability is a port of its `merge_ref` at 352ceebe,
+  // never mainMergeGate's `\bmerge\b` pre-screen, which also matches an abort, a search or an echo.
+  const nest = (command: string, layers: number): string =>
+    layers ? nest(`bash -c ${JSON.stringify(command)}`, layers - 1) : command;
+  const MERGES: Array<[string, boolean]> = [
+    ["git merge feat/x", true],
+    ["git merge", true],
+    ["git merge --squash feat/x", true],
+    ["git merge -m 'not --abort' feat/x", true],
+    ["git merge -X theirs feat/x", true],
+    ["git merge feat/x --abort", true],
+    ["git -C /repo merge feat/x", true],
+    ["git -c core.pager=cat merge feat/x", true],
+    ["git --work-tree /w --git-dir /w/.git merge feat/x", true],
+    ["git --no-pager merge feat/x", true],
+    ["git --abort merge feat/x", true],
+    ["/usr/bin/git merge feat/x", true],
+    ["\\git merge feat/x", true],
+    ['git "merge" feat/x', true],
+    ["cd /x && git merge feat/x", true],
+    ["echo git merge feat/x", true],
+    ["gh pr merge 12 --squash", true],
+    ["gh pr merge --auto", true],
+    ["/opt/homebrew/bin/gh pr merge 7", true],
+    ["true; gh pr merge 7", true],
+    ["bash -c 'git merge feat/x'", true],
+    ['sh -c "gh pr merge 12 --squash"', true],
+    ['eval "git merge feat/x"', true],
+    ["grep -rn 'git merge' docs/", true],
+    [nest("git merge feat/x", 3), true],
+    ['git merge feat/x "unclosed', true],
+    ["git merge --abort", false],
+    ["git merge --continue", false],
+    ["git merge --quit", false],
+    ["git merge -s ours --abort", false],
+    ["git -C /repo merge --abort", false],
+    ["bash -c 'git merge --abort'", false],
+    [nest("git merge feat/x", 4), false],
+    ["echo merge", false],
+    ['echo "merge', false],
+    ["rg merge src/", false],
+    ["git status", false],
+    ["git log --grep merge", false],
+    ["git mergetool", false],
+    ["git merge-base main HEAD", false],
+    ["git -C merge status", false],
+    ["gh pr view 12", false],
+    ["gh merge pr 12", false],
+    ["gh pr list --search merge", false],
+    ["python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7", false],
+  ];
+  test("FEAT-2337: merge-gate.py guards merge_ref's merges, not every command that says merge", () => {
+    const mismatched = MERGES
+      .filter(([command, applies]) => hooks.narrowGateApplies("merge-gate.py", command) !== applies)
+      .map(([command, applies]) => `${applies ? "missed" : "overmatched"}: ${JSON.stringify(command)}`);
+    expect(mismatched).toEqual([]);
   });
 });
 
@@ -4231,6 +4318,11 @@ describe("FEAT-2337 async bounded policy runtime", () => {
     ["a matching narrow command is refused", "gh-close-gate.py", "gh issue close 7 --repo x/y",
       (result) => result.blocked && /budget/.test(result.reason ?? "")],
     ["an unrelated narrow command is allowed silently", "gh-close-gate.py", "git status",
+      (result) => !result.blocked && result.unavailable === undefined && result.reason === undefined],
+    // merge-gate.py is a narrow gate: its timeout refuses only the merge it guards.
+    ["a guarded merge is refused", "merge-gate.py", "git merge feat/x",
+      (result) => result.blocked && /^merge-gate: BLOCKED/.test(result.reason ?? "") && /budget/.test(result.reason ?? "")],
+    ["unrelated Bash is allowed silently past merge-gate", "merge-gate.py", "echo merge",
       (result) => !result.blocked && result.unavailable === undefined && result.reason === undefined],
     ["a helper keeps its non-blocking reason", "inflight_registry.py", "",
       (result) => !result.blocked && /budget/.test(result.reason ?? "")],

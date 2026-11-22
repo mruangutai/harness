@@ -10,13 +10,15 @@ nothing here stubs the runner. Credential-free: the narrow gates' github.sync fi
 The shared adapter failure matrix runs in full on ONE broad gate (check-domain) and ONE narrow
 gate (gh-close-gate); every other gate gets a smoke case. The narrow gates' applicability
 corpora (`APPLICABILITY_CORPUS` in their own suites) are checked against BOTH classifiers:
-the Python gate (observed as exit 2 under an injected dependency failure) and the extension's
-`narrowGateApplies`, including with the gate unable to start at all.
+the Python gate (observed as exit 2 under an injected dependency failure; merge-gate, which
+refuses everything on a broken root, as a deny on a healthy root owing a receipt) and the
+extension's `narrowGateApplies`, including with the gate unable to start at all.
 
 FEAT-2337 (D-01) adds the bounded, concurrent runtime: a heartbeat while a real gate runs, real
 copied gates past a budget shortened in the COPY's source (broad, matching and unrelated narrow,
-helper; killed with no orphan), the five real Bash gates overlapping and combined in declared
-order, and the benchmark's assertion/exit wiring. Modes:
+merge-gate included, helper; killed with no orphan), merge-gate ending abnormally, the five real
+Bash gates overlapping and combined in declared order, and the benchmark's assertion/exit
+wiring. Modes:
 
     (no argument)        every regression, the FEAT-2337 ones included; no timing threshold
     --feat2337           only the FEAT-2337 regressions; no timing threshold
@@ -45,17 +47,19 @@ TESTS = _anchor_tests
 STARTED = time.monotonic()
 NOTICE_PHRASE = "nothing was checked"
 BROAD = ["check-domain.py", "bash-write-guard.py", "dispatch-guard.py", "validate-digest.py"]
-NARROW = ["gh-close-gate.py", "branch-create-gate.py", "plan-sign-gate.py"]
+NARROW = ["gh-close-gate.py", "branch-create-gate.py", "plan-sign-gate.py", "merge-gate.py"]
 NARROW_SUITES = {
     "gh-close-gate.py": "test-gh-close-gate.py",
     "branch-create-gate.py": "test-branch-create-gate.py",
     "plan-sign-gate.py": "test-plan-sign-gate.py",
+    "merge-gate.py": "test-merge-gate.py",
 }
 MATCHING = {
     "gh-close-gate.py": "gh issue close 728 --repo x/y",
     "branch-create-gate.py": "git checkout -b FEAT-9999-runtime-probe",
     "plan-sign-gate.py": "python3 .claude/skills/harness/bin/plan-merge.py sign-approval "
                          "--file plan.yaml --by x --date 2026-11-22",
+    "merge-gate.py": "git merge feature/test",
 }
 UNRELATED = "git status"
 
@@ -200,10 +204,11 @@ def gate_file(root, script):
     return os.path.join(root, ".claude", "skills", "harness", "bin", script)
 
 
-def drive(root, cases):
-    """Run every case through the copied extension in ONE Bun process."""
+def drive(root, cases, env=None):
+    """Run every case through the copied extension in ONE Bun process; `env` adds variables."""
     r = subprocess.run(["bun", "run", "driver.ts"], cwd=root, input=json.dumps(cases),
-                       capture_output=True, text=True, timeout=120)
+                       capture_output=True, text=True, timeout=120,
+                       env=dict(os.environ, **(env or {})))
     if r.returncode != 0:
         raise RuntimeError(f"driver exit {r.returncode}: {r.stderr[-800:]}")
     return json.loads(r.stdout.strip().splitlines()[-1])
@@ -299,6 +304,40 @@ def plant_dependency_failure(root):
     with open(path, "a", encoding="utf-8") as f:
         f.write("\n\ndef resolve_root(bin_dir, strict=True):\n"
                 "    raise RuntimeError('FEAT-2274 injected dependency failure')\n")
+
+
+def plant_owed_merge(root):
+    """A HEALTHY root where merge-gate refuses every merge it reads (the test-merge-gate fixture):
+    the checked-out branch feature/test belongs to a feature owing its Build-entry receipt. Returns
+    the environment that pins merge-gate to this root and makes gh unreachable, so a PR head falls
+    back to that branch."""
+    feature = os.path.join(root, ".harness", "harness", "features", "FEAT-9001-runtime-merge")
+    os.makedirs(feature)
+    with open(os.path.join(feature, "feature.json"), "w") as f:
+        json.dump({"feature_id": "FEAT-9001-runtime-merge", "branch": "feature/test",
+                   "github": {}}, f)
+    with open(os.path.join(feature, "plan.yaml"), "w") as f:
+        f.write("status: plan\ntasks:\n  - id: T-01\n    title: Fixture task\n"
+                "    change_type: test\n    execution_mode: main-session-direct\n"
+                "    files: [fixture.py]\n    status: ready\n    verify: python3 test.py\n"
+                "    intent: Exercise the merge gate fixture.\n")
+    for argv in (["checkout", "-q", "-b", "feature/test"],
+                 ["-c", "user.email=t@example.invalid", "-c", "user.name=T",
+                  "commit", "-q", "--allow-empty", "-m", "fixture"]):
+        subprocess.run(["git", "-C", root, *argv], check=True)
+    return {"HARNESS_PROJECT_DIR": root, "GH_BIN": "/nonexistent/feat2337-gh"}
+
+
+def python_leg(script):
+    """The root and environment a narrow gate's Python corpus leg runs in. The three stdlib-first
+    gates match before their dependencies load, so a dependency failure refuses exactly their
+    commands; merge-gate resolves its root first and refuses everything on a broken one, so it
+    reads its corpus on a healthy root where every merge it reads is refused."""
+    root = make_root()
+    if script == "merge-gate.py":
+        return root, plant_owed_merge(root)
+    plant_dependency_failure(root)
+    return root, None
 
 
 ADAPTER_FAULTS = [
@@ -398,9 +437,39 @@ TIMEOUT_CASES = [
     ("an unrelated narrow gh-close-gate command is allowed silently", "gh-close-gate.py", UNRELATED,
      lambda r: r.get("blocked") is False and r.get("unavailable") is None
      and r.get("reason") is None),
+    ("a guarded merge is refused by a timed-out merge-gate", "merge-gate.py",
+     MATCHING["merge-gate.py"],
+     lambda r: r.get("blocked") is True and "budget" in (r.get("reason") or "")),
+    ("unrelated Bash is allowed silently past a timed-out merge-gate", "merge-gate.py",
+     "echo merge",
+     lambda r: r.get("blocked") is False and r.get("unavailable") is None
+     and r.get("reason") is None),
     ("helper inflight_registry keeps its non-blocking reason", "inflight_registry.py", UNRELATED,
      lambda r: r.get("blocked") is False and "budget" in (r.get("reason") or "")),
 ]
+
+
+MERGE_FAULTS = [
+    ("unexpected termination (SIGKILL)", plant_killed),
+    ("startup failure before the guard", plant_startup_failure),
+    ("missing interpreter", plant_missing_interpreter),
+]
+
+
+def run_merge_gate_abnormal(label, plant):
+    """merge-gate ending abnormally is a narrow gate's failure (DEC-100): the merge it guards is
+    refused by name, and a merge-word command that is no merge, like unrelated Bash, passes."""
+    root = make_root()
+    plant(root, "merge-gate.py")
+    commands = [MATCHING["merge-gate.py"], "git merge --abort", "rg merge src/", UNRELATED]
+    merge, *others = drive(root, [case(root, "merge-gate.py", bash_payload(root, c))
+                                  for c in commands])
+    check(f"FEAT-2337 merge-gate {label}: the guarded merge is refused",
+          merge.get("blocked") is True
+          and (merge.get("reason") or "").startswith("merge-gate: BLOCKED"), repr(merge))
+    check(f"FEAT-2337 merge-gate {label}: every command it does not guard is allowed silently",
+          all(r.get("blocked") is False and r.get("unavailable") is None
+              and r.get("reason") is None for r in others), repr(others))
 
 
 def run_timeout_case(label, script, command, holds):
@@ -537,6 +606,8 @@ def run_feat2337():
     run_heartbeat()
     for row in TIMEOUT_CASES:
         run_timeout_case(*row)
+    for row in MERGE_FAULTS:
+        run_merge_gate_abnormal(*row)
     run_overlap()
     run_composition()
     for row in VERDICT_CASES:
@@ -750,14 +821,14 @@ for script, suite in NARROW_SUITES.items():
           and any(not e[1] for e in entries), repr(entries)[:200])
     if not isinstance(entries, list):
         continue
-    py_root = make_root()
-    plant_dependency_failure(py_root)
+    py_root, py_env = python_leg(script)
     start_root = make_root()
     plant_startup_failure(start_root, script)
     cases = []
     for command, _should in entries:
         cases.append({"kind": "applies", "script": script, "command": command})
-    py = drive(py_root, [case(py_root, script, bash_payload(py_root, c)) for c, _ in entries])
+    py = drive(py_root, [case(py_root, script, bash_payload(py_root, c)) for c, _ in entries],
+               py_env)
     ts = drive(start_root, cases)
     started = drive(start_root, [case(start_root, script, bash_payload(start_root, c))
                                  for c, _ in entries])

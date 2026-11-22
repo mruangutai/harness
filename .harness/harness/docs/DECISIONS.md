@@ -1399,14 +1399,19 @@ group, and the timeout resolves exactly as any other failure to run, below:
   Bash command exits 0 without meeting their dependencies; a guarded command whose gate cannot run
   — including a `harness.json` that is missing, unparseable or not a mapping, a `github:` block
   that is not a mapping, or a gate killed at the budget — is refused by name at exit 2, while a
-  readable config that turns sync off still exempts it. When the gate process cannot start or
-  finish, the extension's `narrowGateApplies` makes the same applicability call, so an unrelated
-  command stays allowed silently. `merge-gate.py` refuses its own failures at exit 2 as before.
-- **Every other policy process keeps its own convention.** `merge-gate.py`'s process and the
-  helpers (registry, digest destination, expertise, yield and lifecycle calls) are awaited: a
-  delayed answer is never an early authorization, release or injection. Past the budget each
-  returns its existing non-blocking reason rather than throwing; a process that cannot start
-  still throws, and a helper's empty output still means what it meant.
+  readable config that turns sync off still exempts it. `merge-gate.py` is the fourth narrow gate:
+  it stays bootstrap-first (DEC-234), resolving its root before it reads the command, and refuses
+  its own caught failures — a broken root (any command) or an internal defect at exit 2, an
+  unreadable feature record by a structured deny. When a narrow gate's process cannot start or
+  finish, or is killed at the budget, the extension's
+  `narrowGateApplies` makes the gate's applicability call — for `merge-gate.py` a port of its
+  `merge_ref`: `git merge` or `gh pr merge`, nested to depth 3, with `--abort`, `--continue` and
+  `--quit` exempt — so only the matching command is refused and any other stays allowed silently.
+- **Every other policy process keeps its own convention.** The helpers (registry, digest
+  destination, expertise, yield and lifecycle calls) are awaited: a delayed answer is never an
+  early authorization, release or injection. Past the budget each returns its existing
+  non-blocking reason rather than throwing; a process that cannot start still throws, and a
+  helper's empty output still means what it meant.
 
 The five Bash gates — `gh-close-gate.py`, `branch-create-gate.py`, `bash-write-guard.py`,
 `plan-sign-gate.py`, `merge-gate.py` — start together as five independent processes, each with

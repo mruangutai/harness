@@ -206,9 +206,9 @@ function shellWords(line: string): string[] | undefined {
 const commandName = (token: string): string =>
   token.replace(/^[\\'"$()`]+|[\\'"$()`]+$/g, "").split("/").pop() ?? "";
 
-// Python's `str.split()` word count: a token that still reads as a command line is re-scanned.
-const carriesCommandLine = (token: string): boolean =>
-  token.split(/[\s\x1c-\x1f\x85]+/).filter(Boolean).length >= 3;
+// Python's `str.split()` words: a token that still reads as a command line is re-scanned.
+const pyWords = (line: string): string[] => line.split(/[\s\x1c-\x1f\x85]+/).filter(Boolean);
+const carriesCommandLine = (token: string): boolean => pyWords(token).length >= 3;
 
 const NESTED_DEPTH = 3;
 
@@ -330,10 +330,47 @@ function signsAsMain(raw: string, depth = 0): boolean {
     && tokens.some((token) => carriesCommandLine(token) && signsAsMain(token, depth + 1)));
 }
 
+// merge-gate.py `merge_ref`: every token is scanned for a `gh pr merge`, or a `git` whose first
+// word past its global options is `merge` and whose first operand comes before any `--abort`,
+// `--continue` or `--quit`; a token holding more than one word is read again as a command line,
+// to the gate's depth. Where shlex raises, the gate reads whitespace words, and so does this.
+const GIT_GLOBALS_WITH_VALUES = ["-C", "-c", "--work-tree", "--git-dir", "--namespace", "--config-env", "--super-prefix", "--attr-source"];
+const MERGE_OPTIONS_WITH_VALUES = ["-F", "--file", "--cleanup", "--into-name", "-m", "--message", "-s", "--strategy", "-X", "--strategy-option"];
+const MERGE_EXEMPT = ["--abort", "--continue", "--quit"];
+
+// `first_subcommand` / `merge_target`: the index of the first token that is neither an option nor
+// the value of one in `values`, `tokens.length` when there is none, -1 once an `exempt` one leads.
+function firstOperand(tokens: string[], values: string[], exempt: string[] = []): number {
+  for (let index = 0; index < tokens.length;) {
+    if (exempt.includes(tokens[index])) return -1;
+    if (!tokens[index].startsWith("-")) return index;
+    index += values.includes(tokens[index]) ? 2 : 1;
+  }
+  return tokens.length;
+}
+
+function directMerge(tokens: string[]): boolean {
+  return tokens.some((token, index) => {
+    const rest = tokens.slice(index + 1);
+    const name = commandName(token);
+    if (name === "gh") return rest[0] === "pr" && rest[1] === "merge";
+    if (name !== "git") return false;
+    const at = firstOperand(rest, GIT_GLOBALS_WITH_VALUES);
+    return rest[at] === "merge" && firstOperand(rest.slice(at + 1), MERGE_OPTIONS_WITH_VALUES, MERGE_EXEMPT) >= 0;
+  });
+}
+
+function mergesRef(line: string, depth = 0): boolean {
+  const tokens = shellWords(line) ?? pyWords(line);
+  return directMerge(tokens) || (depth < NESTED_DEPTH
+    && tokens.some((token) => pyWords(token).length > 1 && mergesRef(token, depth + 1)));
+}
+
 const NARROW_GATES: Record<string, (command: string) => boolean> = {
   "gh-close-gate.py": (command) => ghCloses(command),
   "branch-create-gate.py": createsBranch,
   "plan-sign-gate.py": (command) => signsAsMain(command),
+  "merge-gate.py": (command) => mergesRef(command),
 };
 
 // Whether `command` is one the narrow gate `script` guards. False for any other script.
@@ -1671,7 +1708,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
 
   // FEAT-2225: a non-governed Bash merge reaches merge-gate.py (a distill candidate must go through
   // merge-gate.py merge-distill) while every other Main call stays outside governed domains. The
-  // word prefilter only spares a spawn; merge-gate.py parses the command itself.
+  // word prefilter only spares a spawn; merge-gate.py parses the command itself. A merge-gate that
+  // could not answer is read as the narrow gate it is (FEAT-2337, DEC-100): classifyPolicyRun
+  // refuses only a command merge_ref's port guards, so Main and governed runs share one reading.
   const mainMergeGate = async (cwd: string, command: string, ctx: any): Promise<{ block: true; reason: string } | undefined> => {
     if (!/\bmerge\b/.test(command)) return undefined;
     const result = await policyRunner(cwd, "merge-gate.py", [], {
