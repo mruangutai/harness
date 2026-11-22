@@ -1,0 +1,14 @@
+schema_version: 2
+run_id: r-20261121-7-validate-c2-validator
+run_uid: f2834a8df1814034a7a81948aa1b53c3
+feature: FEAT-2225-member-expertise-writes
+squad: validator
+host: harness-validator-lead
+status: failed
+review_sha: 238058677e6bbeafd5f05cefa9db2ffb76686418
+steps:
+- {id: qa, persona: harness-qa, status: complete, verdict: PASS, dispatched_at: seq-1, completed_at: seq-2, cycles: 0, artifact: notes/review-harness-qa-c2.md}
+- {id: code, persona: harness-code-reviewer, status: complete, verdict: FAIL, dispatched_at: seq-1, completed_at: seq-2, cycles: 0, artifact: notes/review-harness-code-reviewer-c2.md}
+- {id: security, persona: harness-security-reviewer, status: complete, verdict: FAIL, dispatched_at: seq-1, completed_at: seq-2, cycles: 0, artifact: notes/review-harness-security-reviewer-c2.md}
+- {id: ui, persona: harness-ui-reviewer, status: complete, verdict: PASS, dispatched_at: seq-1, completed_at: seq-2, cycles: 0, artifact: notes/review-harness-ui-reviewer-c2.md}
+- {id: goalcheck, persona: harness-pm, status: complete, verdict: FAIL, dispatched_at: seq-1, completed_at: seq-2, cycles: 0, artifact: notes/research-FEAT-2225-member-expertise-writes-goalcheck-validate-c2.md}
