@@ -1,16 +1,14 @@
-# Handoff — FEAT-2229-decision-dispositions, validate (FAIL) → fix (main-session-direct segment) — written at 5eb1302a, seq-6
+# Handoff — FEAT-2229-decision-dispositions, validate c2 (FAIL) → fix round 2 (main-session-direct segment) — written at bf0ef996, seq-7
 
 ## Next
 
-The validate run `r-20261121-validate-validator` returned FAIL at pin 1ef1edbf with three `must_fix` findings, every one citing T-01 or T-02 (`execution_mode: main-session-direct`, DEC-174): no squad dev owns them, so the fix is one main-session segment inside the rework ruling (round 1 of 3, 12 of 90 minutes spent at close). Fix all three test-first on top of 5eb1302a, in one `[harness:fix-c1]` commit (or one per task); re-run both signed verifies verbatim plus the full unit and integration runners; then re-delegate the orchestrator, which re-closes the FAIL run with `run-end --cycles-used 1` (P-11), re-pins `review_sha`, runs `gh-sync.py status review` and dispatches the second validate over the new pin.
+The validate c2 run `r-20261121-validate-c2-validator` returned FAIL at pin a8b8df61 with ONE `must_fix` finding, F3 = SEC-C2-01, citing T-01 (`execution_mode: main-session-direct`, DEC-174): no squad dev owns it, so the fix is one main-session segment inside the rework ruling (round 2 of 3; 27 of 90 rework minutes spent at close; cycles 1/10). Fix it test-first on top of bf0ef996 in one `[harness:fix-c2]` commit; re-run T-01's signed verify verbatim plus the full unit and integration runners; then re-delegate the orchestrator, which re-pins `review_sha` to a commit containing the fix, runs `gh-sync.py status review`, and dispatches validate c3 over the new pin (`run-start --regate`).
 
-RULE for each fix: the pinned behaviour the reader named must become red under a new fixture, then green. LEAVE everything else: D-01/DEC-254 content, `_is_draft` reading `FINISHED_STATIONS`, pm Mode 2's `<repo-relative DECISIONS.md path>` placeholder, the `## The gate` placement, every simplify leave note (L-1..L-4) and briefing row (B-1, B-2), the `create: true` plan-check behaviour on landed plans.
+RULE: a closing fence is a run of the fence character at least as long as the opener followed by whitespace only (CommonMark 4.5); a same-character run carrying an info string (` ```python `) inside an open fence is CONTENT and keeps the fence open. LEAVE everything else: the F1/F2 fixes (3bff5623), F-01 (c8a8e174), D-01/DEC-254 content, `_is_draft` reading `FINISHED_STATIONS`, pm Mode 2's `<repo-relative DECISIONS.md path>` placeholder, the `## The gate` placement, simplify leaves L-1..L-4 and briefing rows B-1/B-2, the `create: true` plan-check behaviour on landed plans, and the 34 s vs 30 s integration duration (advisory only).
 
-1. **F1 — T-01 / SC-01 / high.** `.claude/skills/harness/bin/plan_merge/union.py` `_seed_new_plan` (pinned :324-346) returns creation bytes after `_parsed_proposal` (YAML + anchors, :392-400) without `harness_yaml.validate_plan_doc`; an otherwise valid new-plan proposal carrying `decisions_affected: [{dec: DEC-10}]` is written and reported APPLIED, and only the next load refuses it. Fix: validate the parsed proposal's disposition shape before the creation write (the existing `set-key` refusal path is the model), refuse with no file written. Fixture: a CLI `apply` against an absent base with that malformed row → nonzero exit, no plan file; a valid-row control still creates. Verified premise: `union.py` calls `validate_plan_doc` only via `_verify_schema_preserved` (:51,:78), which creation never reaches — read at 5eb1302a.
-2. **F2 — T-01 / SC-02 / med.** `plan_merge/check.py` `_Authority.section` (pinned :299-305) locates the DEC heading over every physical line with no fence state, while `_section_end` (:277-285) tracks fences only from that start. A fenced example `## DEC-10` inside DEC-11's section (before the real `## DEC-10`) is taken as DEC-10's section, so a clause present only in DEC-11's example satisfies a DEC-10 row; the end scan may also mistake the example's closing fence for an opener. Fix: skip fenced lines when locating the heading, and track fences consistently (same `FENCE_RE`, :201) from the top of the file. Fixture: a DECISIONS.md with the fenced impersonating heading → `plan-merge.py check` fails the row naming the wrong-section clause; the real-section control passes.
-3. **F-01 — T-02 / SC-07 / med.** `tests/integration/test-plan-team.py:481-483` asserts pm Mode 2's strike test only up to `a strike only when the strike record exists`; deleting the alternative at `.omp/agents/harness-pm.md:78-79` — `or the deletion is justified by its named successor with citations repointed (DEC-188, DEC-205)` — leaves every pattern matched. Fix: an owner-scoped assertion for that alternative and a mutation witness in `notes/red-first-T-02.md`'s style that reddens when it is deleted. Test-only change; the instruction text stays.
+1. **F3 — T-01 / SC-02 / substance / med.** `.claude/skills/harness/bin/plan_merge/check.py` `_fence_after` (pinned :279-287) closes an open fence on ANY same-character run at least as long as the opener, so a literal ` ```python ` content line inside an open ` ``` ` text fence closes it in the scanner while Markdown keeps the block open; a following fenced `## DEC-10` example plus spoof clause is then selected as DEC-10's section (`_real_headings` :290-298, `_Authority.section` :312-320) before the genuine DEC-10. Fix: `FENCE_RE` (:203) or `_fence_after` must distinguish opener from closer — a closer is the run followed by optional whitespace to end of line, nothing else; an opener may carry an info string. Fixture, in `tests/integration/test-plan-decision-dispositions.py` beside `case_fenced_heading_is_not_a_section` (:281-290, setup `_fenced_docs` :277): a DECISIONS.md where DEC-11's fence contains a ` ```python ` content line, then `## DEC-10` and a spoof clause, the real fence closes later, and the genuine DEC-10 follows → `plan-merge.py check` fails the DEC-10 row for the spoof clause; a genuine-section positive control passes. Record red-then-green in `notes/red-first-T-01.md` (append a F3 section; same style). Reader evidence: notes/review-harness-code-reviewer-c2.md F3 (REASONED, not executed — the red fixture is the first execution); notes/review-harness-security-reviewer-c2.md SEC-C2-01.
 
-Verify verbatim after the fixes (T-01, T-02 signed `verify:`):
+Verify verbatim after the fix (T-01 signed `verify:`, also re-run T-02's for the shared runner):
 
 ```
 set -eu
@@ -19,37 +17,37 @@ python3 tests/integration/test-plan-decision-dispositions.py
 python3 tests/integration/test-plan-team.py
 ```
 
-plus `python3 tests/integration/test-plan-merge.py`, `python3 tests/integration/test-checker-structure-locks.py`, and `code-grade.py --base dfa52536 --head HEAD`, all with `HARNESS_AGENT_TYPE` unset.
+plus the full unit and integration runners, `python3 tests/integration/test-plan-merge.py`, and `code-grade.py --base dfa52536 --head HEAD`, all with `HARNESS_AGENT_TYPE` unset (`env -u HARNESS_AGENT_TYPE`).
 
 ## Trust
 
-- Pin `review_sha` = 1ef1edbf4cd13eed110e5a187fe45b2ce0438d43 (station commit; code-identical to seam 108662c4); HEAD 5eb1302a differs only in `feature.json` — `git -C <worktree> log --oneline -3` — verified-at 5eb1302a
-- T-03 landed 6c4da464 (DEC-254 @ DECISIONS.md:8253, DEC-188 rewritten @ :5290; index regenerated; SPEC folded); literal verify rc 0; pm graded the DEC-188 amend row **met** at the pin — `runs/r-20261121-t03-product/digest.md`, `notes/research-FEAT-2229-decision-dispositions-goalcheck-validate-c1.md` §Decision-disposition outcome — verified-at 1ef1edbf
-- SIMPLIFY `r-20261121-simplify-build-eng` PASS, empty apply; briefing rows B-1 (index grammar triplicated across check.py / check-plan-routes.py / gen-decisions-index.py), B-2 (SPEC/DECISIONS prose duplication); leaves L-1..L-4 — `runs/r-20261121-simplify-build-eng/digest.md` — verified-at 6c4da464
-- Validate readers: qa PASS (matrix_ok true, fail_first for SC-01/02/03/07), security PASS, ui PASS (self-scoped census), code FAIL (F1, F2), pm goalcheck FAIL (SC-01/02/07 partial, SC-03..06 met, DEC-188 met) — `runs/r-20261121-validate-validator/digest.md`, `notes/review-harness-*-c1.md` — verified-at 1ef1edbf
-- Five suites rc 0 and code-grade rc 0 (83 passing) measured by the orchestrator at 6c4da464 — verified-at 6c4da464
-- Station: tasks T-01..T-03 `done` in plan.yaml; feature station `building` again (`gh-sync.py status building` at 5eb1302a wrote #2278/#2279/#2280 → building) — plan.yaml:7 — verified-at 5eb1302a
-- Spend at close of validate: 6 runs, 64 min, 0 cycles, rework 12 min / 0 rounds; `max_total_cycles` 10 — feature.json `spend` output of close-run — verified-at 5eb1302a
+- Pin `review_sha` = a8b8df6196c6107b76cbd941bf2266b3e71476d6 (station commit; code-identical to fix seam c8a8e174, `git diff --stat c8a8e174 a8b8df61 -- . ':!.harness'` empty); HEAD bf0ef996 differs only in `feature.json` — `git -C <worktree> log --oneline -4` — verified-at bf0ef996
+- F3 premise: `_fence_after` returns `None` for any same-char run `>= len(fence)` with no end-of-line check — check.py:279-287 — verified-at bf0ef996
+- Validate c2 readers: qa PASS (matrix_ok true; unit 62 files, integration 89 files, rc 0; signed verifies rc 0; fail-first reproduced for SC-01/02/03/07 and the F1/F2/F-01 fixes), code PASS-advisory with F3, security PASS-advisory with SEC-C2-01 (same defect), ui PASS (38-object census, no UI), pm goalcheck FAIL (SC-02 not_met; SC-01/03/04/05/06/07 and DEC-188 met; perspectives operator pass, reader partial, maintainer pass) — `runs/r-20261121-validate-c2-validator/digest.md`, `notes/review-harness-*-c2.md`, `notes/research-FEAT-2229-decision-dispositions-goalcheck-validate-c2.md` — verified-at a8b8df61
+- c2 lead reported `cycles_used: 1` (one same-run pm evidence-completion send-back), closed as 1; feature `cycles_used` 1/10 — feature.json runs[6], close-run spend output — verified-at bf0ef996
+- F1/F2 (3bff5623) and F-01 (c8a8e174) closed by c2: SC-01 and SC-07 met at the pin — c2 digest `sc_status` — verified-at a8b8df61
+- Station: tasks T-01..T-03 `done`; feature station `building` again (`gh-sync.py status building` after c2 close wrote #2229/#2277/#2278/#2279/#2280 → building) — plan.yaml:7 — verified-at bf0ef996 (uncommitted at write; committed with this note)
+- Spend at close of c2: 7 runs, 79 min wall, 425808 tokens, rework 27 min / 1 round, cycles 1/10 — close-run spend output — verified-at bf0ef996
 
 ## Dead ends
 
-- No `fix` dispatch to harness-validator-lead for these findings: the owning tasks resolve to NOBODY (`check-domain.py --resolve` on union.py/check.py → harness-dev-ops is the simplify apply lane only; T-01's `files:` are main-session-direct by the signed plan) — plan.yaml T-01/T-02 `execution_reason` — verified-at dfa52536
-- Do not re-run the validate panel over 1ef1edbf (SC-13); the next validate needs a new pin that contains the fixes — build-phase.md step 5 — source
-- Do not renumber or touch DEC-254; it was unallocated on main at d6d426ad and is now T-03's — DECISIONS.md:8253 — verified-at 6c4da464
-- `plan-merge.py check` on this plan reports T-01's `create: true` rows as existing files: pre-existing post-landing tool behaviour (also FEAT-2225), backlog candidate, not a finding — notes/receipt-main-session-T-01-T-02.md §Known — source
+- No `fix` dispatch to harness-validator-lead for F3: T-01's `files:` are main-session-direct by the signed plan and `check-domain.py --resolve` on check.py gives no squad dev — plan.yaml T-01 `execution_reason` — verified-at dfa52536
+- Do not re-run the validate panel over a8b8df61 or 1ef1edbf (SC-13); validate c3 needs a new pin containing the F3 fix — build-phase.md step 5 — source
+- The c1 FAIL run's `cycles_used` stays 0: `run-end --cycles-used 1` is refused because its authentic digest says 0 (P-11 is superseded by the evidence-bound attribution check); check-state reports no FEAT-2229 violation at 0 — feature-record.py run-end output "cycles_used disagrees with authentic digest evidence" — verified-at c8a8e174
+- Do not renumber or touch DEC-254 — DECISIONS.md:8253 — verified-at 6c4da464
+- `plan-merge.py check` on this plan reports T-01's `create: true` rows as existing files: pre-existing post-landing tool behaviour, backlog candidate, not a finding — notes/receipt-main-session-T-01-T-02.md §Known — source
 
 ## Working set
 
-- .harness/harness/features/FEAT-2229-decision-dispositions/runs/r-20261121-validate-validator/digest.md
-- .harness/harness/features/FEAT-2229-decision-dispositions/notes/review-harness-code-reviewer-c1.md (F1, F2)
-- .harness/harness/features/FEAT-2229-decision-dispositions/notes/research-FEAT-2229-decision-dispositions-goalcheck-validate-c1.md (F-01)
-- .harness/harness/features/FEAT-2229-decision-dispositions/plan.yaml (T-01:129-241, T-02:243-332)
+- .harness/harness/features/FEAT-2229-decision-dispositions/runs/r-20261121-validate-c2-validator/digest.md
+- .harness/harness/features/FEAT-2229-decision-dispositions/notes/review-harness-code-reviewer-c2.md (F3)
+- .claude/skills/harness/bin/plan_merge/check.py (:203, :279-320)
+- tests/integration/test-plan-decision-dispositions.py (:249-290)
 - /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/references/build-phase.md (step 6)
 
 ## Done when
 
-Scope: F1, F2, F-01 fixed test-first on top of 5eb1302a and committed, both signed verifies and the full runners green, orchestrator re-delegated for cycle attribution, re-pin, status review and the second validate
-Authority: brief-perspective:.harness/harness/features/FEAT-2229-decision-dispositions/BRIEF.md#operator
+Scope: F3 fixed test-first on top of bf0ef996 and committed, T-01's signed verify and the full runners green, orchestrator re-delegated for re-pin, status review and validate c3
 Authority: brief-perspective:.harness/harness/features/FEAT-2229-decision-dispositions/BRIEF.md#reader
 Authority: brief-perspective:.harness/harness/features/FEAT-2229-decision-dispositions/BRIEF.md#code maintainer
 Authority: plan-task:T-01.verify

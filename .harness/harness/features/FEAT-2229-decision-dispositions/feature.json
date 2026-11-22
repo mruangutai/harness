@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-2229-decision-dispositions",
   "pr": null,
   "review_sha": "a8b8df6196c6107b76cbd941bf2266b3e71476d6",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -100,6 +100,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-22T02:36:13+00:00"
+    },
+    {
+      "id": "r-20261121-validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T02:46:15+00:00",
+      "tokens": 59337,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-validate-c2-validator/digest.md",
+        "sha256": "cff09c987ced46d788b26004c39f7c919922d4c19b2456de8da04be86111c943"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-22T03:00:54+00:00"
     }
   ],
   "judgements": [
@@ -137,6 +152,27 @@
       "kind": "continue",
       "decision": "main-session-fix",
       "reason": "must_fix cites only T-01/T-02 (main-session-direct): F1 union.py creation bypass, F2 fenced heading, F-01 deletion-insensitive test; fix segment returns to the main session inside rework ruling round 1"
+    },
+    {
+      "at": "2026-11-22T02:46:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "fix-c1 landed main-session-direct (3bff5623, c8a8e174) for F1/F2/F-01; validate cycle 2 over pin a8b8df61 inside rework round 1"
+    },
+    {
+      "at": "2026-11-22T02:46:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "fix-c1 landed main-session-direct (3bff5623, c8a8e174) for F1/F2/F-01; validate cycle 2 over pin a8b8df61 inside rework round 1"
+    },
+    {
+      "at": "2026-11-22T03:00:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "main-session-fix-round-2",
+      "reason": "c2 must_fix is one substance/med finding F3 (check.py closing fence accepts an info-string suffix) citing only T-01 (main-session-direct); rework round 2 of 3"
     }
   ],
   "mission": "plan",
