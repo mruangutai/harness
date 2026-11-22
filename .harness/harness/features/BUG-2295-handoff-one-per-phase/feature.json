@@ -2,7 +2,7 @@
   "feature_id": "BUG-2295-handoff-one-per-phase",
   "branch": "feat/BUG-2295-handoff-one-per-phase",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "a544f90d38294587dbb343b55a7cde7fad500380",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
