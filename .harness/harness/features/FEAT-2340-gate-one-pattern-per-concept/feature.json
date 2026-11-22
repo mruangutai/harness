@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-2340-gate-one-pattern-per-concept",
   "branch": "feat/FEAT-2340-gate-one-pattern-per-concept",
-  "pr": null,
+  "pr": 2358,
   "review_sha": "125a04f847db18bcc2ead0b9003a6b2826f9cd55",
   "cycles_used": 0,
   "max_total_cycles": 10,
