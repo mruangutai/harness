@@ -240,7 +240,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers extension enforcement and its tests.
     depends_on: []
-    status: building
+    status: done
     files:
       - .omp/extensions/harness-hooks.ts#runPolicy
       - path: tests/unit/omp-hooks.test.ts
@@ -268,7 +268,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers digest/shared gates and all their standing tests.
     depends_on: [T-01]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py#check_qa_matrix_claim
       - .claude/skills/harness/bin/check-integration-shards.py#discover_expected
@@ -304,7 +304,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Direct enforcement cutover includes canonical policy, grant manifests, decision docs and tests.
     depends_on: [T-01, T-02]
-    status: building
+    status: done
     files:
       - tests/unit/test-code-grade.py#check_self_grading
       - tests/integration/test-check-domain-grant.py#case
