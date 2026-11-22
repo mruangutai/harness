@@ -948,7 +948,13 @@ def observations_log_guard(rel, agent_name):
 # has exactly one writer" route denial so the accurate reason is given first; every
 # OTHER plan.yaml write still falls through to that denial unchanged.
 # ---------------------------------------------------------------------------
-_PLAN_YAML_ROUTE_RE = re.compile(r"^(\.harness/[^/]+/features/[^/]+)/plan\.yaml$")
+# ONE plan.yaml path grammar, compiled twice with deliberately different flags. This
+# route guard is case-SENSITIVE: a mixed-case Plan.yaml beside PLAN.md is not a
+# conversion and falls through to the shape refusal instead (F-04,
+# test-check-domain-approval.py). RE_PLAN_YAML below compiles the same text with
+# re.IGNORECASE because a spelling is not a route for the shape rules.
+_PLAN_YAML_PATTERN = r"^(?P<feature_dir>\.harness/[^/]+/features/[^/]+)/plan\.yaml$"
+_PLAN_YAML_ROUTE_RE = re.compile(_PLAN_YAML_PATTERN)
 
 
 def legacy_plan_conversion_guard(rel, agent_name):
@@ -957,7 +963,7 @@ def legacy_plan_conversion_guard(rel, agent_name):
     m = _PLAN_YAML_ROUTE_RE.match(rel)
     if not m:
         return
-    feature_dir = m.group(1)
+    feature_dir = m.group("feature_dir")
     try:
         if os.path.exists(_claimed_abs(target)):
             return  # plan.yaml already exists -- not a conversion, the generic route denial applies
@@ -1459,12 +1465,12 @@ def _done_when_boundary_errors():
     return (ImportError, harness_boundary.RepoModuleError)
 
 
-# THE VERB IS MODE-DEPENDENT, and this was a review finding. In PRE the write is genuinely
+# THE DIAGNOSTIC LABEL IS MODE-DEPENDENT, and this was a review finding. In PRE the write is genuinely
 # refused. In POST it already LANDED — exit 2 there only carries stderr back to the agent —
 # so "BLOCKED" states something that did not happen, on every post route, not merely the
 # sweep. An agent told its write was blocked when the file is on disk will do the wrong
 # thing about it. Same messages, one honest verb.
-VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"
+SHAPE_DIAGNOSTIC_LABEL = "OVER BUDGET (already written)" if _post else "BLOCKED"
 
 # THE SHAPE-GATE PATTERNS, named ONCE. Four state files plus CLAUDE.md (DEC-181) — the
 # count is deliberately not written into this sentence, because the last one that did
@@ -1474,24 +1480,25 @@ VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"
 # whole file. Measured by review on a 200 MB non-state path: 228 ms, against 37 ms once the
 # pattern is consulted first. Two uses, one definition — duplicating them as a fast-path
 # guard would create exactly the silent drift `test-check-state.py` case (o) exists to catch.
-_I = re.IGNORECASE
-RE_FEATURE_JSON = re.compile(r"^\.harness/[^/]+/features/[^/]+/feature\.json$", _I)
+RE_FEATURE_JSON = re.compile(r"^\.harness/[^/]+/features/[^/]+/feature\.json$", re.IGNORECASE)
 # NOT imported from harness_boundary.RE_STATE_YAML (issue #1106), even though the pattern
 # text is identical there for bash-write-guard.py's use: the shape phase's import of
 # harness_boundary must stay ABSORBING (comment above, near the top of this file) — a
 # fail-closed import here would block the MAIN SESSION, the only tier that can repair a
-# broken harness_boundary.py. test-check-domain.py asserts the two pattern strings match
-# byte-for-byte so this respelling cannot silently drift.
-RE_STATE_YAML   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/state\.yaml$", _I)
-RE_HANDOFF      = re.compile(r"^\.harness/[^/]+/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$",
-                             _I)
-RE_STATE_MD     = re.compile(r"^\.harness/[^/]+/features/[^/]+/STATE\.md$", _I)
+# broken harness_boundary.py. tests/integration/test-check-domain-artifact.py asserts the two
+# pattern strings match byte-for-byte so this respelling cannot silently drift.
+RE_STATE_YAML   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/state\.yaml$", re.IGNORECASE)
+# One handoff grammar: `phase` is the non-greedy stem and `cycle` the optional `-c<N>`
+# suffix that _handoff_cycle_problems refuses (BUG-2295).
+RE_HANDOFF      = re.compile(r"^\.harness/[^/]+/features/[^/]+/notes/handoff-(?P<phase>[a-z0-9-]+?)"
+                             r"(?:-c(?P<cycle>[0-9]+))?\.md$", re.IGNORECASE)
+RE_STATE_MD     = re.compile(r"^\.harness/[^/]+/features/[^/]+/STATE\.md$", re.IGNORECASE)
 # CLAUDE.md (issue #139). Not a state file, and included here anyway because this is
 # where the four-route machinery already lives — the alternative was a fifth gate.
-RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$", _I)
+RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$", re.IGNORECASE)
 # Same non-import rationale as RE_STATE_YAML above.
-RE_RUN_DIGEST   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$", _I)
-RE_PLAN_YAML    = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$", _I)
+RE_RUN_DIGEST   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$", re.IGNORECASE)
+RE_PLAN_YAML    = re.compile(_PLAN_YAML_PATTERN, re.IGNORECASE)
 try:
     import harness_boundary as _shape_boundary
     RE_RUN_IDENTITY = _shape_boundary.RE_RUN_IDENTITY
@@ -1502,7 +1509,7 @@ except (ImportError, AttributeError):
 # RE_RUN_DIGEST is deliberately absent from SHAPE_PATTERNS and the post-hoc sweep globs (FEAT-50).
 # That rule needs the content that existed BEFORE a whole-file Write. After the write, comparing
 # the file with itself cannot fire and would advertise enforcement that does not exist. It carries
-# `_I` anyway, for the same reason every pattern here does (F-04, below): a spelling is not a route.
+# `re.IGNORECASE` anyway, for the same reason every pattern here does (F-04, below): a spelling is not a route.
 #
 # plan.yaml IS PRESENT NOW, AND THAT REVERSES DEC-182 (FEAT-41 T-09, REQ-05). What stood here
 # argued the file was deliberately absent because it carries neither a budget nor a vocabulary
@@ -1584,7 +1591,7 @@ def _head(shown, text):
     # agent's worktree told an agent whose own file is 74 lines that "CLAUDE.md is 114
     # lines". That is the same unattributable-finding defect DEC-180 fixed for the
     # sweep generally, surviving in the one path where stripping erases everything.
-    return f"check-domain: {VERB} — {shown}: {text}"
+    return f"check-domain: {SHAPE_DIAGNOSTIC_LABEL} — {shown}: {text}"
 
 
 def deny(out, shown, msgs):
@@ -2291,9 +2298,8 @@ def _state_yaml_unknown_keys(doc, shown):
 # DEC-159: the handoff note is working memory for a successor — five fixed
 # sections including ## Done when, hard-capped, denied at write while the author can still fix it.
 # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
-# BUG-2295: one note per phase, superseded, never appended (succession.md). RE_HANDOFF still
+# BUG-2295: one note per phase, superseded, never appended (succession.md). RE_HANDOFF
 # routes `-c<N>` names here and into Edit reconstruction, so this refusal cannot be bypassed.
-_RE_HANDOFF_CYCLE = re.compile(r"^.*/(notes/handoff-[a-z0-9-]+?)-c[0-9]+\.md$", _I)
 
 
 def _rule_handoff(rel, content, lines, shown, absolute_path):
@@ -2309,10 +2315,10 @@ def _rule_handoff(rel, content, lines, shown, absolute_path):
 
 
 def _handoff_cycle_problems(rel):
-    m = _RE_HANDOFF_CYCLE.match(rel)
-    if not m:
+    m = RE_HANDOFF.match(rel)
+    if not m or m.group("cycle") is None:
         return []
-    canonical = m.group(1).lower() + ".md"
+    canonical = f"notes/handoff-{m.group('phase')}.md".lower()
     return [f"cycle-suffixed handoff name refused — one note per phase, superseded, never"
             f" appended (succession.md, DEC-159). Supersede {canonical} instead."]
 
