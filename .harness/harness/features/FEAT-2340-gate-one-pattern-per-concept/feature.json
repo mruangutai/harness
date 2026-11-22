@@ -32,5 +32,36 @@
       "reason": "The operator judged it plan up front, because the inventory sets how far T-02 reaches. Two dependent tasks across guidance and gate code, one a gate refactor."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2340-gate-one-pattern-per-concept/.harness/harness/features/FEAT-2340-gate-one-pattern-per-concept/notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "8c8604750b2ebf15dafd645620ab1597891da19461520d2a75028b16df5bc2ce",
+    "T-02": "1b4b1ea6d58ccfa8792faac842e6df3330bb711f729fdb51bb0b51e88b13402b"
+  },
+  "github": {
+    "milestone": 126,
+    "parent": 2352,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2353,
+      "T-02": 2354
+    },
+    "source_issues": [
+      2340
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
