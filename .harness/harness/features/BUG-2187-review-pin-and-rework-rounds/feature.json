@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2187-review-pin-and-rework-rounds",
   "branch": "feat/BUG-2187-review-pin-and-rework-rounds",
-  "pr": null,
+  "pr": 2254,
   "review_sha": "edd9098c0413fd9e77ef63787f9e85f82c7f9673",
   "cycles_used": 2,
   "max_total_cycles": 10,
