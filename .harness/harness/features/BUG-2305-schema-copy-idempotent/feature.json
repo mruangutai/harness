@@ -1,0 +1,78 @@
+{
+  "feature_id": "BUG-2305-schema-copy-idempotent",
+  "branch": "feat/BUG-2305-schema-copy-idempotent",
+  "pr": null,
+  "review_sha": "297913318472d066ecb9d5eb3f83ee2ca82c3ad7",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T16:04:48+00:00",
+      "tokens": 37199,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-patch-product/digest.md",
+        "sha256": "2c656b6a07c3d34ae1a6cf49681aa4e37793d849f11e33a90847e9fa5d634660"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T16:13:45+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T16:58:43+00:00",
+      "tokens": 64713,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-02-validate-validator/digest.md",
+        "sha256": "ddedc3e7f7fe9516e9478a61917a5e3af27073d45f829b8030424af12181f62d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T17:07:17+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T16:04:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "The cause is known: OMP persists the hook's revised call, and the refusal does not recognise its own injection. The diff is bounded to one hook file and its unit test, and it narrows an existing check."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2305-schema-copy-idempotent/.harness/harness/features/BUG-2305-schema-copy-idempotent/notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "7942c0695c8f7062bf0f4577ee50e631557348de4c30894d72deabc3084ef1b7"
+  },
+  "github": {
+    "milestone": 121,
+    "parent": 2312,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2314
+    },
+    "source_issues": [
+      2305
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

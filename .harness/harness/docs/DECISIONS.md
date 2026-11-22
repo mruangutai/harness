@@ -7950,12 +7950,17 @@ keys refused. This narrow optional property restores neither optional Markdown t
 live-return parsing.
 
 **Dispatch owns schema delivery.** Before any claim side effect, the OMP task hook refuses
-dispatcher-supplied `outputSchema` or `schemaMode` at the top level or in any `tasks[]` item and
-names the forbidden location. It loads the target Harness persona's canonical schema, resolves and
-projects a ref-free provider bundle, and injects that bundle with `schemaMode: strict`. A missing
-persona, unreadable or malformed schema, unresolved reference, directory escape, cycle, or
-unsupported projection keyword refuses the dispatch; there is no loose fallback. Non-Harness
-dispatches retain their own contract.
+dispatcher-supplied `outputSchema` or `schemaMode` and names the forbidden field and its `tasks[]`
+location. The one exception is a flat Harness call or an individual Harness `tasks[]` item that
+carries both fields, with `outputSchema` structurally equal (key order aside) to the bundle the hook
+would inject for that same target and `schemaMode: strict`; that unchanged copy is accepted and
+the canonical bundle re-injected in its place. A changed schema, any other mode, either field
+alone, any batch-top-level control and any control on a non-Harness target stay refused, and an
+accepted copy never masks another item's refusal. The hook loads the target Harness persona's
+canonical schema, resolves and projects a ref-free provider bundle, and injects that bundle with
+`schemaMode: strict`. A missing persona, unreadable or malformed schema, unresolved reference,
+directory escape, cycle, or unsupported projection keyword refuses the dispatch; there is no loose
+fallback. Non-Harness dispatches retain their own contract.
 
 **Yield owns live validation.** The hook passes YieldTool `data` directly to
 `validate-digest.py --hook`. The validator applies the canonical schema and then the existing
