@@ -509,10 +509,12 @@ def _aligned_items(key, side):
 
 
 def _union_key_head(key, base, prop, base_item_ranges, prop_item_ranges):
-    """The key's head lines from whichever side carries it, base first; None when neither does."""
+    """The key's head lines from whichever side carries it, base first; None when neither does.
+    An EMPTY base list yields to a proposal that adds items (#2349): its head may be the inline
+    `key: []`, and block items appended under that line do not load."""
     base_lines, base_ranges, _base_doc = base
     prop_lines, prop_ranges, _prop_doc = prop
-    if key in base_ranges:
+    if key in base_ranges and (base_item_ranges or not prop_item_ranges):
         return _key_head(base_lines, base_ranges[key], base_item_ranges)
     if key in prop_ranges:
         return _key_head(prop_lines, prop_ranges[key], prop_item_ranges)

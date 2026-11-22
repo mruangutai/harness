@@ -16,3 +16,6 @@ On a **code surface**: redundant conjuncts, comments that narrate a change inste
 the present fact, and pipelines with a simpler equivalent — but **only where the simpler form
 preserves the anchoring semantics the original fought for**. An anchor that took rounds to get
 right is not complexity to be trimmed.
+Does any new name hide behaviour behind an alias or abbreviation? A flag alias such as `_I` for
+`re.IGNORECASE`, or a constant named for how it is built rather than what it means, makes the
+reader resolve the alias before they can judge the behaviour.
