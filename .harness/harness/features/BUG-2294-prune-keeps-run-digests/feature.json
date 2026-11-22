@@ -3,7 +3,7 @@
   "branch": "feat/BUG-2294-prune-keeps-run-digests",
   "pr": null,
   "review_sha": "88bf039f6ff31edbb1d5a4b2f6620762e3cc095a",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -36,6 +36,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-22T15:24:06+00:00"
+    },
+    {
+      "id": "2026-11-22-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T15:32:47+00:00",
+      "tokens": 62022,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-03-validate-validator/digest.md",
+        "sha256": "72088f1d248246272e7a828e9c2a64e2428f3e4c0d331beb3de427a64c63a191"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-22T15:41:39+00:00"
     }
   ],
   "judgements": [
@@ -59,6 +74,20 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "SEC-01 reproduced by probe: intermediate run symlinks let prune delete a kept run's ui/ and an outside ui/; substance med inside the 1-round ruling; T-01 is main-session-direct so the fix returns to Main"
+    },
+    {
+      "at": "2026-11-22T15:32:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL SEC-01 fixed main-session-direct at e51277a4 (symlink regressions red 4 then green 25/25); re-gate the whole panel over 88bf039f; the fix spent the ruling's one round"
+    },
+    {
+      "at": "2026-11-22T15:41:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "c2 panel clean over 88bf039f: SEC-01 closed, qa executed 25/25, SC-01..03 met both perspectives; the reported cycle is PM's in-run evidence sendback; SEC-C2-Q1 goes to the briefing as backlog"
     }
   ],
   "mission": "patch",
