@@ -40,7 +40,9 @@ export function gatePath(script: string): string {
 }
 
 type Dict = Record<string, unknown>;
-type PolicyResult = { blocked: boolean; reason?: string; stdout: string };
+// `unavailable` (FEAT-2274, D-01): a broad gate could not run, so nothing was checked. It is
+// never a block; the handler reports it as passive context naming the gate.
+type PolicyResult = { blocked: boolean; reason?: string; unavailable?: string; stdout: string };
 type PolicyRunner = (
   cwd: string,
   script: string,
@@ -120,32 +122,275 @@ function parseDecision(stdout: string): string | undefined {
   return undefined;
 }
 
-function runPolicy(
-  cwd: string,
-  script: string,
-  args: string[],
-  payload: Dict,
-): PolicyResult {
-  const proc = spawnSync(gatePath(script), args, {
-    cwd,
-    // The child inherits the host environment and NOTHING IS ADDED to it (FEAT-42 T-20).
-    // A root override used to be injected here, set to the host process working directory.
-    // Every script this helper invokes now derives its own root from its own file location,
-    // so handing it one is redundant — and worse: a feature worktree carries the harness
-    // marker, so a wrong-but-plausible cwd probes VALID and is honoured in preference to the
-    // script's own derivation. That is the fail-open this feature closes, reopened from
-    // outside the directory the invariant scans. Once a parent sets it every descendant
-    // inherits it, which is how one bad value reaches a whole process tree.
-    env: { ...process.env },
-    input: JSON.stringify(payload),
-    encoding: "utf8",
+// --- FEAT-2274 (C2/C3): the extension's reading of the three narrow gates' commands ---------
+//
+// Consulted ONLY when a narrow gate's own process could not run, to decide whether the command
+// was one it guards (refuse) or not (allow silently). Each matcher mirrors its Python gate's at
+// 1e0b014 — gh-close-gate `denies`, branch-create-gate `_branch_name`, plan-sign-gate `denies` —
+// and agreement is held by the shared spelling corpora, not by a shared dependency.
+
+// Python's `shlex.shlex(line, posix=True, punctuation_chars=True)` with `whitespace_split`, the
+// tokenizer both Python gates read a command with: quotes resolved, `#` comments dropped, runs of
+// `();<>|&` split out and then discarded as operators. Undefined where shlex raises (an unclosed
+// quote, a trailing escape), which sends the caller to its text fallback as the gate does.
+const SHELL_WHITESPACE = " \t\r\n";
+const SHELL_PUNCTUATION = "();<>|&";
+const SHELL_OPERATORS = [";", "&", "&&", "|", "||", "(", ")", "<", ">", ">>", "\n"];
+
+function shellWords(line: string): string[] | undefined {
+  const words: string[] = [];
+  let index = 0;
+  let pushback = "";
+  const read = (): string => {
+    const char = pushback || (index < line.length ? line[index++] : "");
+    pushback = "";
+    return char;
+  };
+  const skipComment = (): void => {
+    const end = line.indexOf("\n", index);
+    index = end < 0 ? line.length : end + 1;
+  };
+  for (let atEnd = false; !atEnd;) {
+    let state = " ";
+    let token = "";
+    let quoted = false;
+    let escapedState = " ";
+    for (;;) {
+      const char = read();
+      if (state === " ") {
+        if (!char) { atEnd = true; break; }
+        if (SHELL_WHITESPACE.includes(char)) continue;
+        if (char === "#") skipComment();
+        else if (char === "\\") { escapedState = "a"; state = char; }
+        else if (SHELL_PUNCTUATION.includes(char)) { token = char; state = "c"; }
+        else if (char === "'" || char === '"') state = char;
+        else { token = char; state = "a"; }
+      } else if (state === "'" || state === '"') {
+        quoted = true;
+        if (!char) return undefined;
+        if (char === state) state = "a";
+        else if (char === "\\" && state === '"') { escapedState = state; state = char; }
+        else token += char;
+      } else if (state === "\\") {
+        if (!char) return undefined;
+        // Inside double quotes only the quote and the escape itself may be escaped.
+        if ((escapedState === "'" || escapedState === '"') && char !== "\\" && char !== escapedState) token += "\\";
+        token += char;
+        state = escapedState;
+      } else {
+        if (!char) { atEnd = true; break; }
+        if (SHELL_WHITESPACE.includes(char)) { state = " "; break; }
+        if (char === "#") { skipComment(); state = " "; break; }
+        if (state === "c") {
+          if (SHELL_PUNCTUATION.includes(char)) { token += char; continue; }
+          pushback = char;
+          state = " ";
+          break;
+        }
+        if (char === "'" || char === '"') state = char;
+        else if (char === "\\") { escapedState = "a"; state = char; }
+        else if (SHELL_PUNCTUATION.includes(char)) { pushback = char; state = " "; break; }
+        else token += char;
+      }
+    }
+    if (!token && !quoted) break;
+    words.push(token);
+  }
+  return words.filter((word) => !SHELL_OPERATORS.includes(word));
+}
+
+// The command a token names: `os.path.basename(tok.strip("\\'\"$()`"))`.
+const commandName = (token: string): string =>
+  token.replace(/^[\\'"$()`]+|[\\'"$()`]+$/g, "").split("/").pop() ?? "";
+
+// Python's `str.split()` word count: a token that still reads as a command line is re-scanned.
+const carriesCommandLine = (token: string): boolean =>
+  token.split(/[\s\x1c-\x1f\x85]+/).filter(Boolean).length >= 3;
+
+const NESTED_DEPTH = 3;
+
+// gh-close-gate.py `denies`: `gh issue close`, or a `gh api` call that closes an issue.
+const GH_ISSUE_PATH = /repos\/[^/\s]+\/[^/\s]+\/issues\/\p{Nd}+/u;
+const GH_RAW_CLOSE = /(^|[;&|(]|\s)gh\s+issue\s+close(\s|$)/;
+const GH_RAW_API = /(^|[;&|(]|\s)gh\s+api(\s|$)/;
+const GH_RAW_STATE = /state=["']?closed/;
+const GH_MUTATES = ["PATCH", "POST", "PUT", "DELETE"];
+
+function ghApiCloses(rest: string[]): boolean {
+  const joined = rest.join(" ");
+  if (joined.includes("closeIssue")) return true;
+  if (!GH_ISSUE_PATH.test(joined)) return false;
+  if (joined.includes("state=closed")) return true;
+  return rest.includes("--input") || rest.some((argument, index) =>
+    (argument === "-X" || argument === "--method")
+    && index + 1 < rest.length && GH_MUTATES.includes(rest[index + 1].toUpperCase()));
+}
+
+function ghCloses(line: string, depth = 0): boolean {
+  const tokens = shellWords(line);
+  if (!tokens) {
+    return GH_RAW_CLOSE.test(line)
+      || (GH_RAW_API.test(line) && GH_ISSUE_PATH.test(line) && GH_RAW_STATE.test(line));
+  }
+  const direct = tokens.some((token, index) => {
+    if (commandName(token) !== "gh") return false;
+    const rest = tokens.slice(index + 1);
+    return (rest[0] === "issue" && rest[1] === "close") || (rest[0] === "api" && ghApiCloses(rest));
   });
+  return direct || (depth < NESTED_DEPTH
+    && tokens.some((token) => carriesCommandLine(token) && ghCloses(token, depth + 1)));
+}
+
+// branch-create-gate.py `_branch_name`: a detector per creation form, then its name extractor.
+// Python's `.` never crosses a newline; `[^\n]` keeps that where JavaScript's `.` would differ.
+const BRANCH_FORMS: Array<[RegExp, RegExp, number]> = [
+  [/git( +-[cC] +[^ ]+)* +checkout +([^;&|]* )?-[bB]/, /[^\n]*checkout +([^;&|]* )?-[bB] *=?([^ ;&|]+)[^\n]*/, 2],
+  [/git( +-[cC] +[^ ]+)* +switch +([^;&|]* )?(-[cC]|--create)/, /[^\n]*switch +([^;&|]* )?(-[cC]|--create) *=?([^ ;&|]+)[^\n]*/, 3],
+  [/git +worktree +add +([^;&|]* )?-[bB]/, /[^\n]*worktree +add +([^;&|]* )?-[bB] *=?([^ ;&|]+)[^\n]*/, 2],
+  [/git( +-[cC] +[^ ]+)* +branch +[^ -]/, /[^\n]*git( +-[cC] +[^ ]+)* +branch +([^ ;&|-][^ ;&|]*)[^\n]*/, 2],
+];
+
+function createsBranch(command: string): boolean {
+  const form = BRANCH_FORMS.find(([detector]) => detector.test(command));
+  return Boolean(form && form[1].exec(command)?.[form[2]]);
+}
+
+// plan-sign-gate.py `denies`: a main-session-only verb of a gated tool, or the tool reached
+// through a wrapper whose argv the gate cannot read.
+const SIGN_GATED: Record<string, string[]> = {
+  "plan-merge.py": ["sign-approval"],
+  "feature-record.py": ["raise-cycles", "set-rework"],
+};
+const SIGN_RAW = Object.entries(SIGN_GATED).map(([tool, verbs]) => {
+  const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&");
+  return new RegExp(`${escape(tool)}["'\\s]+(?:--["'\\s]+)*(${verbs.map(escape).join("|")})(\\s|$)`);
+});
+const SIGN_INDIRECT = ["xargs", "parallel"];
+const SIGN_INTERPRETERS = ["python", "python3", "python2", "env", "nice", "time", "nohup", "stdbuf"];
+const isSignTool = (token: string): boolean => Object.hasOwn(SIGN_GATED, commandName(token));
+
+// `as_bash_reads_it`: rejoin continued lines, and treat every `$(...)`, backtick and braced
+// expansion as the whitespace it may become. An unclosed `$(` consumes the rest of the line.
+function asBashReadsIt(line: string): string {
+  const joined = line.replace(/\\\r?\n/g, "");
+  let out = "";
+  for (let index = 0; index < joined.length;) {
+    if (joined.startsWith("$(", index)) {
+      out += " ";
+      let depth = 0;
+      let end = joined.length + 1;
+      for (let scan = index + 1; scan < joined.length; scan += 1) {
+        if (joined[scan] === "(") depth += 1;
+        else if (joined[scan] === ")") depth -= 1;
+        if (depth === 0) { end = scan + 1; break; }
+      }
+      index = end;
+    } else if (joined[index] === "`") {
+      out += " ";
+      const end = joined.indexOf("`", index + 1);
+      index = end < 0 ? joined.length : end + 1;
+    } else {
+      out += joined[index];
+      index += 1;
+    }
+  }
+  return out.replace(/"?\$\{[^{}]*\}"?/g, " ");
+}
+
+function signToolIndirectly(tokens: string[]): boolean {
+  return tokens.some((token, index) => {
+    if (commandName(token) === "find") {
+      return tokens.slice(index + 1).some((flag, offset) =>
+        (flag === "-exec" || flag === "-execdir")
+        && tokens.slice(index + offset + 2, index + offset + 4).some(isSignTool));
+    }
+    if (!SIGN_INDIRECT.includes(commandName(token))) return false;
+    let rest = tokens.slice(index + 1);
+    while (rest.length && rest[0].startsWith("-")) rest = rest.slice(1);
+    if (rest.length && SIGN_INTERPRETERS.includes(commandName(rest[0]))) rest = rest.slice(1);
+    return rest.length > 0 && isSignTool(rest[0]);
+  });
+}
+
+function signsAsMain(raw: string, depth = 0): boolean {
+  const line = asBashReadsIt(raw);
+  const tokens = shellWords(line);
+  if (!tokens) return SIGN_RAW.some((pattern) => pattern.test(line));
+  if (signToolIndirectly(tokens)) return true;
+  const direct = tokens.some((token, index) => {
+    if (!isSignTool(token)) return false;
+    let at = index + 1;
+    while (tokens[at] === "--") at += 1;
+    return at < tokens.length && SIGN_GATED[commandName(token)].includes(tokens[at]);
+  });
+  return direct || (depth < NESTED_DEPTH
+    && tokens.some((token) => carriesCommandLine(token) && signsAsMain(token, depth + 1)));
+}
+
+const NARROW_GATES: Record<string, (command: string) => boolean> = {
+  "gh-close-gate.py": (command) => ghCloses(command),
+  "branch-create-gate.py": createsBranch,
+  "plan-sign-gate.py": (command) => signsAsMain(command),
+};
+
+// Whether `command` is one the narrow gate `script` guards. False for any other script.
+export function narrowGateApplies(script: string, command: string): boolean {
+  return Object.hasOwn(NARROW_GATES, script) && NARROW_GATES[script](command);
+}
+
+// The four gates whose own failure is reported rather than enforced (DEC-100, amended by D-01).
+const BROAD_GATES = ["check-domain.py", "bash-write-guard.py", "dispatch-guard.py", "validate-digest.py"];
+
+// How a gate process ended, as spawnSync reports it; `error` also carries a spawnSync throw.
+export type PolicyProcess = {
+  status: number | null;
+  signal?: string | null;
+  stdout?: string | null;
+  stderr?: string | null;
+  error?: Error;
+};
+
+function failureDetail(proc: PolicyProcess, stderr: string): string {
+  if (proc.error) return `could not be started: ${proc.error.message}`;
+  if (proc.signal) return `was terminated by ${proc.signal}`;
+  if (proc.status === null) return "ended with no exit status";
+  const last = stderr.split("\n").map((line) => line.trim()).filter(Boolean).pop();
+  return `exited ${proc.status}${last ? `: ${last}` : ""}`;
+}
+
+// One gate process's answer. A structured deny or exit 2 is a refusal from every script. Past
+// that, a broad gate's declared or apparent failure (any other exit, a signal, no start) is
+// `unavailable`; a narrow gate's failure refuses only a command it guards; every other script
+// keeps its non-blocking error contract, and a spawn error still throws from it.
+export function classifyPolicyRun(script: string, payload: Dict, proc: PolicyProcess): PolicyResult {
   const stdout = proc.stdout || "";
   const stderr = (proc.stderr || "").trim();
   const structuredReason = parseDecision(stdout);
   if (structuredReason) return { blocked: true, reason: structuredReason, stdout };
   if (proc.status === 2) {
     return { blocked: true, reason: stderr || `${script} denied the operation.`, stdout };
+  }
+  const gate = script.replace(/\.py$/, "");
+  const failed = proc.error !== undefined || proc.status !== 0;
+  if (BROAD_GATES.includes(script)) {
+    const declared = jsonLines(stdout).find((line) => line.decision === "unavailable");
+    if (declared) {
+      const why = text(declared.reason) || "no reason given";
+      return { blocked: false, unavailable: why.includes(gate) ? why : `${gate}: ${why}`, stdout };
+    }
+    return failed
+      ? { blocked: false, unavailable: `${gate} ${failureDetail(proc, stderr)}`, stdout }
+      : { blocked: false, stdout };
+  }
+  if (failed && Object.hasOwn(NARROW_GATES, script)) {
+    const command = text(((payload as Dict | undefined)?.tool_input as Dict | undefined)?.command);
+    if (!narrowGateApplies(script, command)) return { blocked: false, stdout };
+    return {
+      blocked: true,
+      reason: `${gate}: BLOCKED — the gate could not run (${failureDetail(proc, stderr)}); `
+        + "the command it guards is refused rather than left unchecked.",
+      stdout,
+    };
   }
   if (proc.error) throw proc.error;
   if (proc.status !== 0) {
@@ -154,6 +399,49 @@ function runPolicy(
     return { blocked: false, reason: stderr || `${script} exited ${proc.status}`, stdout };
   }
   return { blocked: false, stdout };
+}
+
+export function runPolicy(
+  cwd: string,
+  script: string,
+  args: string[],
+  payload: Dict,
+): PolicyResult {
+  let proc: PolicyProcess;
+  try {
+    proc = spawnSync(gatePath(script), args, {
+      cwd,
+      // The child inherits the host environment and NOTHING IS ADDED to it (FEAT-42 T-20).
+      // A root override used to be injected here, set to the host process working directory.
+      // Every script this helper invokes now derives its own root from its own file location,
+      // so handing it one is redundant — and worse: a feature worktree carries the harness
+      // marker, so a wrong-but-plausible cwd probes VALID and is honoured in preference to the
+      // script's own derivation. That is the fail-open this feature closes, reopened from
+      // outside the directory the invariant scans. Once a parent sets it every descendant
+      // inherits it, which is how one bad value reaches a whole process tree.
+      env: { ...process.env },
+      input: JSON.stringify(payload),
+      encoding: "utf8",
+    });
+  } catch (error) {
+    proc = { status: null, error: error instanceof Error ? error : new Error(String(error)) };
+  }
+  return classifyPolicyRun(script, payload, proc);
+}
+
+type GatePhase = "pre" | "post" | "dispatch" | "yield";
+
+// The runner a handler hands its gates: every unavailable answer leaves one notice, tagged with
+// its phase so omp's identical-context dedup never folds a pre notice into a post one.
+function reportingRunner(runner: PolicyRunner, phase: GatePhase, notices: string[]): PolicyRunner {
+  return (cwd, script, args, payload) => {
+    const result = runner(cwd, script, args, payload);
+    if (result.unavailable !== undefined) {
+      notices.push(`Harness: ${script.replace(/\.py$/, "")} (${phase}) could not run; `
+        + `nothing was checked. ${result.unavailable}`);
+    }
+    return result;
+  };
 }
 
 function runtimeLineage(ctx?: any): { agentId: string; parentAgentId: string } {
@@ -1189,7 +1477,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     });
     const granted = !answer.blocked && !answer.reason
       && jsonLines(answer.stdout).some((line) => line.authorized === true);
-    return granted ? undefined : answer.reason || "validate-digest.py --distill-authority granted no authority.";
+    return granted ? undefined : answer.reason || answer.unavailable
+      || "validate-digest.py --distill-authority granted no authority.";
   };
 
   const applyExpertise = (toolCallId: string, params: Dict, cwd: string) => {
@@ -1237,11 +1526,11 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
 
   // The post-write check on the file expertise_apply landed, as an Edit of that exact path: the
   // destination the host resolved for this call, never one the caller's input names.
-  const appliedPost = (cwd: string, agent: string, toolCallId: string, ctx: any): PolicyResult[] => {
+  const appliedPost = (cwd: string, agent: string, toolCallId: string, ctx: any, runner: PolicyRunner): PolicyResult[] => {
     const destination = appliedDestinations.get(toolCallId);
     appliedDestinations.delete(toolCallId);
     if (!destination) return [];
-    return [policyRunner(cwd, "check-domain.py", ["--post"], {
+    return [runner(cwd, "check-domain.py", ["--post"], {
       ...basePayload(agent, "PostToolUse", cwd, ctx),
       tool_name: "Edit",
       tool_input: { file_path: destination },
@@ -1260,6 +1549,21 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     });
     return result.blocked ? { block: true, reason: result.reason || "merge-gate.py denied the merge." } : undefined;
   };
+
+  // FEAT-2274 (C4): a Harness persona is spawned through `task` and nothing else — eval `agent()`
+  // and workpool carry none of the task path's claim, schema or dispatch checks. Every caller,
+  // Main included, and independent of this session's own identity. Which targets a caller may
+  // spawn at all is native `spawns` policy, not this hook's.
+  pi.on("before_subagent_spawn", async (event: Dict) => {
+    const agent = text(event.agent);
+    if (!agent.startsWith("harness-") || event.invocationKind === "task") return undefined;
+    return {
+      block: true,
+      reason: `Harness refuses spawning ${agent} through ${text(event.invocationKind) || "an unnamed route"}: `
+        + "a Harness persona is dispatched with the task tool only, which carries its claim, digest "
+        + "schema and dispatch checks. Dispatch it with the task tool.",
+    };
+  });
 
   pi.on("before_agent_start", async (event: Dict, ctx: any) => {
     const detected = detectHarnessAgent(event.systemPrompt);
@@ -1404,6 +1708,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     let revisedInput: Dict | undefined;
     let schemasInjected = false;
     let reason: string | undefined;
+    // FEAT-2274: one notice per gate invocation that could not run, in the order they ran.
+    const notices: string[] = [];
+    const preGate = reportingRunner(policyRunner, "pre", notices);
     if (mutates) {
       reason = currentFeature
         ? authorizationRefusal(ctx.cwd, policyAgent)
@@ -1419,7 +1726,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     }
     if (!reason) {
       reason = firstBlock(preDomain(
-        ctx.cwd, policyAgent, toolName, effectiveInput, policyRunner, runtimeCtx, currentFeature,
+        ctx.cwd, policyAgent, toolName, effectiveInput, preGate, runtimeCtx, currentFeature,
       ));
     }
     if (!reason && toolName === "bash") {
@@ -1436,11 +1743,11 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       // check (that is #1103's own scope), so this script was the ONLY thing standing between
       // an agent and forging a signature, and on this host it was never invoked.
       reason = firstBlock([
-        policyRunner(ctx.cwd, "gh-close-gate.py", [], payload),
-        policyRunner(ctx.cwd, "branch-create-gate.py", [], payload),
-        policyRunner(ctx.cwd, "bash-write-guard.py", [], payload),
-        policyRunner(ctx.cwd, "plan-sign-gate.py", [], payload),
-        policyRunner(ctx.cwd, "merge-gate.py", [], payload),
+        preGate(ctx.cwd, "gh-close-gate.py", [], payload),
+        preGate(ctx.cwd, "branch-create-gate.py", [], payload),
+        preGate(ctx.cwd, "bash-write-guard.py", [], payload),
+        preGate(ctx.cwd, "plan-sign-gate.py", [], payload),
+        preGate(ctx.cwd, "merge-gate.py", [], payload),
       ]);
       // #1103: the identity signal cmd_sign_approval (plan-merge.py) now checks on its own,
       // rather than only the text-parsing denylist above. This is the SAME `currentAgent` the
@@ -1471,7 +1778,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       const receipts: ClaimReceipt[] = [];
       if (!reason) {
         for (const dispatch of normalizeTaskDispatches(input)) {
-          const result = policyRunner(ctx.cwd, "dispatch-guard.py", [], {
+          const result = reportingRunner(policyRunner, "dispatch", notices)(ctx.cwd, "dispatch-guard.py", [], {
             ...basePayload(policyAgent, "PreToolUse", ctx.cwd, ctx),
             tool_name: "Task",
             tool_input: dispatch,
@@ -1550,7 +1857,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       } else if (currentAgent && runGate.state !== "ready" && (digest as Dict).VERDICT !== "BLOCKED") {
         reason = `${heldReason()} This run may yield only a BLOCKED digest.`;
       } else {
-        const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
+        const result = reportingRunner(policyRunner, "yield", notices)(ctx.cwd, "validate-digest.py", ["--hook"], {
           ...basePayload(policyAgent, "SubagentStop", ctx.cwd, runtimeCtx),
           stop_hook_active: false,
           digest_object: digest,
@@ -1567,9 +1874,12 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (reason) return { block: true, reason };
     // #2240: OMP persists this revision as the call itself, so the dispatcher later reads the
     // injected schema as fields it sent and copies them into its next call (refused).
-    if (revisedInput) {
-      return schemasInjected ? { input: revisedInput, additionalContext: SCHEMA_INJECTION_NOTE } : { input: revisedInput };
-    }
+    const context = [...(schemasInjected ? [SCHEMA_INJECTION_NOTE] : []), ...notices];
+    if (!revisedInput && !context.length) return undefined;
+    return {
+      ...(revisedInput ? { input: revisedInput } : {}),
+      ...(context.length ? { additionalContext: context.join("\n") } : {}),
+    };
   });
 
   pi.on("tool_result", async (event: Dict, ctx: any) => {
@@ -1705,19 +2015,25 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     // idempotent, so the post gate judges the same files the pre gate did either way.
     const rooted = currentAgent && ["write", "edit", "ast_edit"].includes(toolName)
       ? rootCall(ctx.cwd, toolName, input) : {};
+    const notices: string[] = [];
+    const postGate = reportingRunner(policyRunner, "post", notices);
     const reason = rooted.reason ?? firstBlock(toolName === "expertise_apply"
-      ? appliedPost(ctx.cwd, policyAgent, text(event.toolCallId), ctx)
-      : postDomain(ctx.cwd, policyAgent, toolName, rooted.input ?? input, policyRunner, ctx, currentFeature));
+      ? appliedPost(ctx.cwd, policyAgent, text(event.toolCallId), ctx, postGate)
+      : postDomain(ctx.cwd, policyAgent, toolName, rooted.input ?? input, postGate, ctx, currentFeature));
     const content = Array.isArray(event.content) ? event.content : [];
     const appended = advisories.map((advisoryText) => ({ type: "text", text: advisoryText }));
+    // FEAT-2274: a post gate that could not run is passive context beside the result, never an
+    // error and never a rewrite of the tool's own content.
+    const context = notices.length ? { additionalContext: notices.join("\n") } : {};
     if (!reason) {
-      if (appended.length === 0) return;
+      if (appended.length === 0) return notices.length ? context : undefined;
       // No isError key AT ALL: a normal tool result must not become an error.
-      return { content: [...content, ...appended] };
+      return { content: [...content, ...appended], ...context };
     }
     return {
       content: [...content, { type: "text", text: `Harness post-write check: ${reason}` }, ...appended],
       isError: true,
+      ...context,
     };
   });
 

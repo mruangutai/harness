@@ -76,3 +76,11 @@ shell parser — the Python gate's own matcher hoisted above its bootstrap, and 
 enforced by tests: the existing spelling/exemption corpora in test-gh-close-gate.py,
 test-branch-create-gate.py and test-plan-sign-gate.py are exercised against both classifiers
 (in test-omp-native-gate-runtime.py), including unrelated-command controls that must not match.
+
+## Builder-side additions outside T-01's `files:` (recorded for review)
+
+- `tests/integration/canonical-reader-classification.json`: three `exempt` rows for the narrow
+  gates' stdlib-only `_payload_command` pre-read (`in_memory_validation`, `hook_or_gate`). C2's
+  applicability read adds one raw `json.loads` per narrow gate before any library loads, which
+  `check-plan-routes.py --canonical-reader-audit` otherwise reports as an unaccounted reader site
+  (asserted by test-check-plan-routes `canonical_reader_live_audit_is_zero`). No other row changes.

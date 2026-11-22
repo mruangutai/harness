@@ -60,6 +60,61 @@ def gate(command, root=None):
     return (r.returncode, doc.get("permissionDecision"), doc.get("permissionDecisionReason"))
 
 
+# ---------------- THE APPLICABILITY CORPUS (FEAT-2274 SC-02) ---------------------------------
+# (command, should_match): whether the gate's own matcher treats the command as an issue close
+# it guards. ONE pure literal, so another suite reads it with ast.literal_eval without running
+# this file, and the Python gate and the extension's classifier are held to the same spellings.
+# Every entry mirrors a case asserted below; the unrelated controls must never start matching.
+APPLICABILITY_CORPUS = [
+    ("gh issue close 728 --repo x/y", True),
+    ("gh api -X PATCH repos/o/r/issues/9 -f state=closed", True),
+    ("cd /tmp && gh issue close 728", True),
+    ("FOO=1 gh issue close 728", True),
+    ("echo hi | gh issue close 728", True),
+    ("true; gh issue close 728", True),
+    ("gh api -f state=closed -X PATCH repos/o/r/issues/9", True),
+    ("gh api repos/o/r/issues/9 -X PATCH -f state=closed", True),
+    ("gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d", True),
+    ('gh "issue" close 5', True),
+    ("gh 'issue' 'close' 5", True),
+    ("/opt/homebrew/bin/gh issue close 5", True),
+    ("/usr/bin/env gh issue close 5", True),
+    ("\\gh issue close 5", True),
+    ('eval "gh issue close 5"', True),
+    ("bash -c 'gh issue close 5'", True),
+    ('sh -c "gh issue close 5"', True),
+    ("x=$(gh issue close 5)", True),
+    ("$(echo gh) issue close 5", True),
+    ('gh api -X PATCH repos/o/r/issues/5 -f state="closed"', True),
+    ("gh api --method PATCH repos/o/r/issues/5 --input -", True),
+    ('gh api graphql -f query="mutation{closeIssue(input:{issueId:\"x\"}){clientMutationId}}"',
+     True),
+    ('gh issue close "5', True),
+    ("echo it's here; gh issue close 5", True),
+    ("echo 'gh issue close is refused here'", True),
+    ("echo gh issue close", True),
+    ("gh issue view 728", False),
+    ("gh issue list --repo o/r --state closed", False),
+    ("git status", False),
+    ("python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes", False),
+    ("python3 .claude/skills/harness/bin/gh-sync.py ship d", False),
+    ("gh api repos/o/r/issues/9", False),
+    ("echo it's fine", False),
+    ("git commit -m \"don't close the loop\"", False),
+    ("cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\n"
+     "gh issue comment 8 --repo o/r --body-file /tmp/x.md", False),
+    ("G=gh; $G issue close 5", False),
+    ("gh pr close 5", False),
+    ("gh issue close-milestone 5", False),
+    ("gh api repos/o/r/issues/5 --jq .state", False),
+    ("gh api -X GET repos/o/r/issues/5", False),
+    ("git commit -m 'closes the loop'", False),
+    ("gh issue edit 5 --add-label wontfix", False),
+    ("echo hi", False),
+    ("git branch -d x", False),
+]
+
+
 # ---------------- the plain deny, and its three clauses ------------------------------------
 rc, decision, reason = gate("gh issue close 728 --repo x/y")
 check("gh issue close is DENIED, as a structured permissionDecision at exit 0",
@@ -250,19 +305,92 @@ _rc, _d, _ = gate("gh issue close 728", root=_noroot)
 check("no harness.json at all: the gate exits 0 with no output",
       _rc == 0 and _d is None, f"rc={_rc} decision={_d!r}")
 
-# FEAT-65: no guard here — typed boundaries only. A defect in the shared resolver is loud
-# (traceback, nonzero), never a silent pass-through; the DEC-234 prologue absorbs only a
-# missing module or a strict "no root" refusal.
-_mbin = os.path.join(tempfile.mkdtemp(), "bin")
-shutil.copytree(BIN, _mbin)
-with open(os.path.join(_mbin, "harness_boundary.py"), "a", encoding="utf-8") as _f:
-    _f.write("\n\ndef resolve_root(bin_dir, strict=True):\n    raise RuntimeError('FEAT-65 injected')\n")
-_r = subprocess.run([os.path.join(_mbin, "gh-close-gate.py")],
-                    input=json.dumps({"tool_input": {"command": "gh issue close 728"}}),
-                    capture_output=True, text=True, env=dict(os.environ, HARNESS_PROJECT_DIR=_root()))
-check("FEAT-65: an unexpected resolver defect is loud and nonzero, not absorbed by the prologue",
-      _r.returncode not in (0, 2) and "FEAT-65 injected" in _r.stderr and not _r.stdout.strip(),
-      f"rc={_r.returncode} stderr={_r.stderr[-200:]!r}")
+# ---------------- THE CORPUS AGREES WITH THE HEALTHY GATE ------------------------------------
+# A mislabelled corpus row would teach the failure-mode cases below the wrong answer, so each
+# row is first held to what the working gate actually decides on it.
+for _cmd, _match in APPLICABILITY_CORPUS:
+    _rc, _d, _ = gate(_cmd)
+    check(f"corpus row agrees with the healthy gate ({'match' if _match else 'unrelated'}): "
+          f"{_cmd!r}", _rc == 0 and _d == ("deny" if _match else None),
+          f"rc={_rc} decision={_d!r}")
+
+# ---------------- MATCHING PRECEDES FAIL-CLOSED EXECUTION (FEAT-2274 SC-02) -----------------
+# The gate decides applicability from the payload command alone, before root resolution and
+# before any library or config load. A command it guards is REFUSED when the gate itself cannot
+# run, with a named refusal; an unrelated command passes untouched under the identical fault.
+_REFUSAL_HEAD = "gh-close-gate: BLOCKED — the gate could not run ("
+_REFUSAL_TAIL = "); the command it guards is refused rather than left unchecked."
+
+
+def _faulted_bin(module=None, text=""):
+    """A disposable copy of the bin, with `text` appended to `module` when one is named."""
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(BIN, mbin)
+    if module:
+        with open(os.path.join(mbin, module), "a", encoding="utf-8") as f:
+            f.write(text)
+    return mbin
+
+
+def _run_in(mbin, command, project_dir):
+    return subprocess.run([os.path.join(mbin, "gh-close-gate.py")],
+                          input=json.dumps({"tool_input": {"command": command}}),
+                          capture_output=True, text=True,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=project_dir))
+
+
+def _named_refusal(r, detail):
+    return (r.returncode == 2 and not r.stdout.strip()
+            and _REFUSAL_HEAD + detail in r.stderr and _REFUSAL_TAIL in r.stderr)
+
+
+# FEAT-65's injected resolver defect, kept: it is no longer a loud exit 1 that the extension
+# reads as "not blocking", but a named refusal for a guarded command — and nothing at all for
+# an unrelated one, which never reaches the resolver.
+_mbin = _faulted_bin("harness_boundary.py",
+                     "\n\ndef resolve_root(bin_dir, strict=True):\n"
+                     "    raise RuntimeError('FEAT-65 injected')\n")
+_r = _run_in(_mbin, "gh issue close 728", _root())
+check("FEAT-65: an unexpected resolver defect REFUSES a matching close at exit 2, named",
+      _named_refusal(_r, "RuntimeError: FEAT-65 injected"),
+      f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
+for _cmd, _match in APPLICABILITY_CORPUS:
+    _r = _run_in(_mbin, _cmd, _root())
+    if _match:
+        check(f"resolver defect: a matching command is refused, named: {_cmd!r}",
+              _named_refusal(_r, "RuntimeError: FEAT-65 injected"),
+              f"rc={_r.returncode} stderr={_r.stderr[-300:]!r}")
+    else:
+        check(f"resolver defect: an unrelated command passes untouched: {_cmd!r}",
+              _r.returncode == 0 and not _r.stdout.strip() and not _r.stderr.strip(),
+              f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
+
+# NO ROOT AT ALL. The override names a directory without the marker and the copied bin derives
+# none either: today's "refusing to run" exit 2 stays for a close, and an unrelated command,
+# which the gate never had any business with, passes.
+_mbin = _faulted_bin()
+_noroot_dir = tempfile.mkdtemp()
+_r = _run_in(_mbin, "gh issue close 728", _noroot_dir)
+check("no harness root: a matching close is refused at exit 2, named",
+      _named_refusal(_r, "no harness root could be resolved from "),
+      f"rc={_r.returncode} stderr={_r.stderr[-300:]!r}")
+_r = _run_in(_mbin, "git status", _noroot_dir)
+check("no harness root: an unrelated command exits 0 untouched",
+      _r.returncode == 0 and not _r.stdout.strip() and not _r.stderr.strip(),
+      f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
+
+# THE GATE'S OWN BODY FAILS after the root resolves: its config read raises.
+_mbin = _faulted_bin("artifact_accessors.py",
+                     "\n\ndef load_harness_json(*args, **kwargs):\n"
+                     "    raise RuntimeError('FEAT-2274 body injected')\n")
+_r = _run_in(_mbin, "gh api -X PATCH repos/o/r/issues/9 -f state=closed", _root())
+check("body failure: a matching close is refused at exit 2, named",
+      _named_refusal(_r, "RuntimeError: FEAT-2274 body injected"),
+      f"rc={_r.returncode} stderr={_r.stderr[-300:]!r}")
+_r = _run_in(_mbin, "gh pr close 5", _root())
+check("body failure: an unrelated command exits 0 untouched",
+      _r.returncode == 0 and not _r.stdout.strip() and not _r.stderr.strip(),
+      f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

@@ -120,12 +120,20 @@ if __name__ == "__main__":
     # the import-path isolation above), then re-runs this file as module
     # `dispatch_guard_body`, under whose name the bootstrap is skipped and the body reads
     # the environment and stdin the bootstrap fixed. The guard module is imported from the
-    # same declared bin directory the body imports from. A tree without it runs unguarded.
+    # same declared bin directory the body imports from. A tree without it runs unguarded,
+    # and says so first as the unavailable outcome (FEAT-2274), spelled inline for the same
+    # reason check-domain.py's is.
     _bootstrap_sys.path.insert(0, _bootstrap_os.environ["HARNESS_GUARD_BIN_DIR"])
     try:
         import harness_boundary as _bootstrap_boundary
-    except (ImportError, SyntaxError):
+    except (ImportError, SyntaxError) as _bootstrap_error:
         _bootstrap_boundary = None
+        import json as _bootstrap_json
+        print(_bootstrap_json.dumps({
+            "decision": "unavailable", "gate": "dispatch-guard",
+            "reason": f"harness_boundary.py could not be imported "
+                      f"({type(_bootstrap_error).__name__}: {_bootstrap_error}); "
+                      f"the hook ran unguarded"}), flush=True)
     if _bootstrap_boundary is not None:
         _bootstrap_sys.exit(_bootstrap_boundary.run_hook_body(__file__, "dispatch-guard", "dispatch_guard_body"))
 
@@ -133,6 +141,18 @@ if __name__ == "__main__":
 import sys, json, os
 
 sys.path.insert(0, os.environ.get("HARNESS_GUARD_BIN_DIR") or ".")
+
+
+def _unavailable(reason):
+    """FEAT-2274: this dispatch passes unchecked — the one unavailable line on stdout. A tree
+    without harness_boundary.py was already reported by the bootstrap."""
+    try:
+        import harness_boundary
+    except (ImportError, SyntaxError):
+        return
+    harness_boundary.emit_unavailable(__file__, reason)
+
+
 import artifact_accessors
 try:
     d = artifact_accessors.read_hook_payload(
@@ -142,6 +162,7 @@ except artifact_accessors.ArtifactAccessError as e:
         e.__cause__, json.JSONDecodeError) else e
     print(f"dispatch-guard: unreadable hook payload ({detail}) — passing through.",
           file=sys.stderr)
+    _unavailable(f"unreadable hook payload ({detail})")
     sys.exit(0)
 
 agent = d.get("agent_type") or ""
@@ -275,6 +296,7 @@ try:
 except ImportError as exc:
     print("dispatch-guard: registry libraries unavailable (%s) — passing through." % (exc,),
           file=sys.stderr)
+    _unavailable("registry libraries unavailable (%s)" % (exc,))
     sys.exit(0)
 
 # BUG-124 T-02 — the run-dir shape check. MUST sit here: it needs hb.run_dir_refs,
@@ -316,43 +338,6 @@ if refs:
                   "form.", file=sys.stderr)
             sys.exit(2)
 
-
-# THE ALLOWLIST. A persona may dispatch only what its own frontmatter `spawns:` names.
-# Until now that list was org documentation the playbooks restated as prose ("delegate to a
-# lead, never a member"; "no lead is in another lead's spawns"; a task outside your squad
-# escalates); the reviewer≠author independence of DEC-175 rests on it. Read from the
-# DISPATCHER's file at the owner root. Fails OPEN when that file or its key cannot be read
-# (a checkout without the persona is not a violation), loudly; only a persona present in
-# the file and absent from its list blocks (DEC-100). `spawns: []` is a real, empty list.
-if not omp_main:
-    try:
-        _owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
-                                      strict=False)
-        _dispatcher_file = os.path.join(_owner_root, ".omp", "agents", agent + ".md")
-        _fm = open(_dispatcher_file, encoding="utf-8").read().split("---", 2)[1]
-        _m = re.search(r"(?m)^spawns:[ \t]*(\[[^\]\n]*\])?[ \t]*$((?:\n[ \t]*-[^\n]*)*)", _fm)
-        if _m is None:
-            raise ValueError("no spawns key")
-        if _m.group(1) is not None:
-            _allowed = [s.strip().strip("'\"") for s in _m.group(1)[1:-1].split(",")
-                        if s.strip()]
-        else:
-            _allowed = [ln.strip()[1:].strip().strip("'\"")
-                        for ln in _m.group(2).splitlines() if ln.strip()]
-    except (hb.AmbiguousWorktree, OSError, IndexError, ValueError) as exc:
-        print("dispatch-guard: spawns allowlist unreadable for %s (%s) -- passing through."
-              % (agent, exc), file=sys.stderr)
-    else:
-        if dispatched not in _allowed:
-            print("dispatch-guard: BLOCKED -- %s may not dispatch %s; its spawns: list is %s."
-                  % (agent, dispatched, ", ".join(_allowed) or "empty"), file=sys.stderr)
-            print("  A persona dispatches only what its frontmatter names. A task owned by",
-                  file=sys.stderr)
-            print("  another squad is an ESCALATE to the orchestrator, which routes it to the",
-                  file=sys.stderr)
-            print("  owning lead; a member is reached through its lead, never directly.",
-                  file=sys.stderr)
-            sys.exit(2)
 
 # The checkout whose registry holds this dispatch's claims — the one resolver every reader
 # uses. BUG-1898: this once matched a linked worktree's basename by EQUALITY, so a
@@ -912,6 +897,8 @@ except (reg.UnreadableRegistry, reg.harness_merge.MergeRefusal, OSError) as exc:
     # The registry's own failure classes (FEAT-65): unreadable, lock refused, unwritable.
     print("dispatch-guard: claim step failed (%s: %s) — passing through, the dispatch is NOT "
           "blocked." % (type(exc).__name__, exc), file=sys.stderr)
+    hb.emit_unavailable(__file__, "claim step failed (%s: %s); no single-flight claim was "
+                        "checked or recorded" % (type(exc).__name__, exc))
     sys.exit(0)
 
 sys.exit(0)

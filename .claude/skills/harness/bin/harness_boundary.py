@@ -587,16 +587,29 @@ def _as_repo_module_failure(module_name, path, fn, *args):
         raise RepoModuleError(module_name, path, error) from error
 
 
-def hook_guard(main, name, fail="open"):
+def emit_unavailable(script_path, reason):
+    """The ONE unavailable outcome (FEAT-2274 C1): a broad gate that could not check the call
+    prints one standalone JSON line on stdout, `{"decision": "unavailable", "gate": <script
+    stem>, "reason": <text>}`, and still exits 0. The gate is named from the script path, never
+    from the stderr label (validate-digest reports `validate-digest`, though it says
+    `check-digest`), so the extension can tell the operator which gate checked nothing."""
+    import json
+    gate = os.path.splitext(os.path.basename(script_path))[0]
+    print(json.dumps({"decision": "unavailable", "gate": gate, "reason": reason}), flush=True)
+
+
+def hook_guard(main, name, fail="open", script=None):
     """A hook's own-failure posture, spelled ONCE (FEAT-64; wired by FEAT-65). Runs `main()`
     and returns its result unchanged. An Exception escaping main is the hook's OWN defect —
     an unreadable payload shape, a missing sibling, a bug — never the agent's contract
     violation, and the verdict on it is fixed at the call site: `fail="open"` prints the
     pass-through line and returns 0 (DEC-100: only exit 2 blocks; check-domain.py set the
-    precedent that a hook must not wedge every agent on its own bug); `fail="closed"` prints
-    BLOCKED and returns 2 for the one hook whose safety layer cannot run without the module
-    that failed. KeyboardInterrupt and SystemExit are BaseException, not Exception, and are
-    never caught here: a hook that exits deliberately keeps its own exit code."""
+    precedent that a hook must not wedge every agent on its own bug), and with `script` given
+    also emits the unavailable outcome (FEAT-2274) so the pass-through is visible as one;
+    `fail="closed"` prints BLOCKED and returns 2 for the one hook whose safety layer cannot
+    run without the module that failed. KeyboardInterrupt and SystemExit are BaseException,
+    not Exception, and are never caught here: a hook that exits deliberately keeps its own
+    exit code."""
     try:
         return main()
     except Exception as error:
@@ -607,23 +620,27 @@ def hook_guard(main, name, fail="open"):
             return 2
         print(f"{name}: the hook failed internally ({detail}) — passing through; this is not "
               f"a pass, nothing was checked.", file=sys.stderr)
+        if script is not None:
+            emit_unavailable(script, f"the hook failed internally ({detail})")
         return 0
 
 
-def run_hook_body(path, name, run_name, fail="open"):
+def run_hook_body(path, name, run_name, fail="open", report=True):
     """`hook_guard` for a hook whose body is module-level flow (FEAT-65: check-domain.py,
     bash-write-guard.py, dispatch-guard.py). The hook's bootstrap runs once under
     `__main__`, then calls this: the same file is executed again as a module named
     `run_name`, under which the bootstrap is skipped and the body runs on the argv,
     environment and stdin the bootstrap fixed. The body's own `sys.exit` calls are
-    SystemExit and pass through the guard untouched; a normal fall-off returns 0."""
+    SystemExit and pass through the guard untouched; a normal fall-off returns 0. The guard
+    reports an own failure as `path`'s unavailable outcome; `report=False` is for a mode
+    whose stdout is a CLI answer rather than a hook's (check-domain.py --resolve)."""
     import runpy
 
     def body():
         runpy.run_path(path, run_name=run_name)
         return 0
 
-    return hook_guard(body, name, fail=fail)
+    return hook_guard(body, name, fail=fail, script=path if report else None)
 
 
 def call_repo_module(module, attr, *args, **kwargs):

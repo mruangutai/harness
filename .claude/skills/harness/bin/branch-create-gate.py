@@ -42,6 +42,83 @@ import json
 import re
 import shutil
 import subprocess
+import traceback
+
+GATE = "branch-create-gate"
+
+
+def _branch_name(command):
+    forms = (
+        (
+            r"git( +-[cC] +[^ ]+)* +checkout +([^;&|]* )?-[bB]",
+            r".*checkout +([^;&|]* )?-[bB] *=?([^ ;&|]+).*",
+            2,
+        ),
+        (
+            r"git( +-[cC] +[^ ]+)* +switch +([^;&|]* )?(-[cC]|--create)",
+            r".*switch +([^;&|]* )?(-[cC]|--create) *=?([^ ;&|]+).*",
+            3,
+        ),
+        (
+            r"git +worktree +add +([^;&|]* )?-[bB]",
+            r".*worktree +add +([^;&|]* )?-[bB] *=?([^ ;&|]+).*",
+            2,
+        ),
+        (
+            r"git( +-[cC] +[^ ]+)* +branch +[^ -]",
+            r".*git( +-[cC] +[^ ]+)* +branch +([^ ;&|-][^ ;&|]*).*",
+            2,
+        ),
+    )
+    for detector, extractor, group in forms:
+        if re.search(detector, command):
+            match = re.search(extractor, command)
+            return match.group(group) if match else ""
+    return None
+
+
+# ---- APPLICABILITY FIRST (FEAT-2274 C2) -----------------------------------------------------
+# The command is matched with the standard library alone, before root resolution and before any
+# library or config load: a command that creates no branch exits 0 here and never meets a
+# dependency, so a broken root or sibling module cannot refuse unrelated Bash. A branch creation
+# runs the rest closed — an own failure refuses it by name rather than leaving it unchecked.
+# Copied, not shared, in gh-close-gate.py and plan-sign-gate.py for DEC-234's reason: it runs
+# before the trusted bin path is there to import a helper from.
+def _payload_command(text):
+    """tool_input.command from the raw payload, or "" when there is none to read. A lenient
+    stdlib read for applicability only: read_hook_payload in _command stays the authority."""
+    try:
+        payload = json.loads(text)
+    except (ValueError, RecursionError):
+        return ""
+    tool_input = payload.get("tool_input") if isinstance(payload, dict) else None
+    command = tool_input.get("command") if isinstance(tool_input, dict) else None
+    return command if isinstance(command, str) else ""
+
+
+def _unrunnable(detail):
+    """The named refusal for a guarded command the gate could not check; exit status 2."""
+    print(f"{GATE}: BLOCKED — the gate could not run ({detail}); the command it guards is "
+          f"refused rather than left unchecked.", file=_bootstrap_sys.stderr)
+    return 2
+
+
+def _refuse_on_crash(kind, error, trace):
+    """sys.excepthook for a guarded command: the traceback stays loud, the verdict is the
+    refusal. No broad catch (the FEAT-65 census holds every hook at zero) and the body keeps
+    the shape the canonical-reader inventory records. os._exit, because the interpreter exits 1
+    after any excepthook returns."""
+    traceback.print_exception(kind, error, trace)
+    status = _unrunnable(f"{kind.__name__}: {error}")
+    _bootstrap_sys.stdout.flush()
+    _bootstrap_sys.stderr.flush()
+    _bootstrap_os._exit(status)
+
+
+_payload_text = _bootstrap_sys.stdin.read()
+if not _branch_name(_payload_command(_payload_text)):
+    raise SystemExit(0)
+_bootstrap_sys.excepthook = _refuse_on_crash
 
 
 # ACCEPTED DUPLICATION (FEAT-61 D-09, DEC-234). This prologue is copied, not shared, in
@@ -64,18 +141,13 @@ def _resolve_root():
 
 root = _resolve_root()
 if not root or not _bootstrap_os.path.isdir(root):
-    print(
-        f"branch-create-gate.py: no harness root could be resolved from "
-        f"{_bootstrap_bin} — refusing to run",
-        file=_bootstrap_sys.stderr,
-    )
-    raise SystemExit(2)
+    raise SystemExit(_unrunnable(f"no harness root could be resolved from {_bootstrap_bin}"))
 
 import artifact_accessors as _artifact_accessors
 import feature_corpus as _feature_corpus
 
 GH = _bootstrap_os.environ.get("GH_BIN") or "gh"
-input_text = _bootstrap_sys.stdin.read().rstrip("\n")
+input_text = _payload_text.rstrip("\n")
 
 
 # A PROGRAM, NOT PROSE (FEAT-65 c1, CR-01): this string runs through a clean interpreter, so its
@@ -144,36 +216,6 @@ def _command():
     return result.stdout.rstrip("\n")
 
 
-def _branch_name(command):
-    forms = (
-        (
-            r"git( +-[cC] +[^ ]+)* +checkout +([^;&|]* )?-[bB]",
-            r".*checkout +([^;&|]* )?-[bB] *=?([^ ;&|]+).*",
-            2,
-        ),
-        (
-            r"git( +-[cC] +[^ ]+)* +switch +([^;&|]* )?(-[cC]|--create)",
-            r".*switch +([^;&|]* )?(-[cC]|--create) *=?([^ ;&|]+).*",
-            3,
-        ),
-        (
-            r"git +worktree +add +([^;&|]* )?-[bB]",
-            r".*worktree +add +([^;&|]* )?-[bB] *=?([^ ;&|]+).*",
-            2,
-        ),
-        (
-            r"git( +-[cC] +[^ ]+)* +branch +[^ -]",
-            r".*git( +-[cC] +[^ ]+)* +branch +([^ ;&|-][^ ;&|]*).*",
-            2,
-        ),
-    )
-    for detector, extractor, group in forms:
-        if re.search(detector, command):
-            match = re.search(extractor, command)
-            return match.group(group) if match else ""
-    return None
-
-
 def deny(reason):
     print(json.dumps({
         "hookSpecificOutput": {
@@ -203,17 +245,24 @@ if flow:
         deny(f'Branch "{name}" cannot be checked against the flows: {_refusal}')
         raise SystemExit(0)
     try:
-        _flows = [e["id"] for e in _feature_corpus.population(root)]
+        _matched = [e for e in _feature_corpus.population(root) if e["id"].startswith(flow)]
     except _feature_corpus.CorpusError as _ce:
         deny(f'Branch "{name}" cannot be checked against the flows, because the feature '
              f"corpus could not be read: {_ce}")
         raise SystemExit(0)
-    if not any(f.startswith(flow) for f in _flows):
+    if not _matched:
         deny(
             f'Branch "{name}" names flow {flow}, but no '
             f".harness/*/features/{flow}* exists here or in the main corpus. Flows are created "
             "by /harness-plan — plan first, then branch."
         )
+        raise SystemExit(0)
+    # A RECORD THAT WILL NOT READ CANNOT VOUCH FOR ITS FLOW (#2107). The corpus keeps a malformed
+    # feature.json as an entry carrying its error — a github.parent of "²" is one — so the
+    # directory alone would wave the branch through on a record nothing else can read.
+    if all(e["error"] for e in _matched):
+        deny(f'Branch "{name}" names flow {flow}, but its feature.json cannot be read, so the '
+             f'flow cannot be confirmed: {_matched[0]["error"]}')
         raise SystemExit(0)
     print(json.dumps({
         "systemMessage": f"[work-tracking] Branch maps to flow {flow}."

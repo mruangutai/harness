@@ -5363,14 +5363,16 @@ def run_feat65_guard_cases():
                        "yield hook payload: invalid JSON: ")
     return _feat65_report([
         ("a defect reading the payload passes through with exactly the hook_guard line",
-         payload_defect.stderr == line and payload_defect.stdout == ""
+         payload_defect.stderr == line and _unavailable_gates(payload_defect) == ["validate-digest"]
          and _feat65_guarded(payload_defect, line), payload_defect),
         ("an unreadable payload is the hook's own failure and takes the same template",
          unreadable_payload.stderr.startswith(unreadable_head)
+         and _unavailable_gates(unreadable_payload) == ["validate-digest"]
          and _feat65_guarded(unreadable_payload, line[line.index(" — passing through"):]),
          unreadable_payload),
         ("a defect in the registry errand is no longer reported in its own sentence",
-         _feat65_guarded(registry_defect, line), registry_defect),
+         _feat65_guarded(registry_defect, line)
+         and _unavailable_gates(registry_defect) == ["validate-digest"], registry_defect),
         ("KeyboardInterrupt escapes the guard",
          _feat65_escaped(interrupt) and "KeyboardInterrupt" in interrupt.stderr, interrupt),
         ("a deliberate SystemExit keeps its own exit code",
@@ -5392,6 +5394,86 @@ def _feat65_report(cases):
                   f"{result.stderr.strip()[:400]!r}")
     print(f"\n{len(cases) - fails}/{len(cases)} FEAT-65 guard cases passed.")
     return fails
+
+
+# --- FEAT-2274 C1: an unavailable check is a visible outcome, not a silent exit 0 ----------
+# One stdout line {"decision": "unavailable", "gate": "validate-digest", "reason": ...} when the
+# hook could not check the return: its own crash (above), a persona with no schema, a payload
+# with no agent identity, or the claim registry missing on an otherwise passing return. A
+# normal pass, a non-governed pass-through and every contract refusal emit none.
+
+def _unavailable_gates(result):
+    """Gate names of the unavailable lines on stdout, in order."""
+    gates = []
+    for out_line in result.stdout.splitlines():
+        try:
+            obj = json.loads(out_line)
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and obj.get("decision") == "unavailable":
+            gates.append(obj.get("gate"))
+    return gates
+
+
+def _f2274_fire(payload, validate=None, root=None):
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root or _isolated_root())
+    return subprocess.run([validate or VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
+                          capture_output=True, text=True, env=env)
+
+
+def _f2274_registry_missing():
+    root = tempfile.mkdtemp(prefix="vd-f2274-")
+    os.makedirs(os.path.join(root, ".harness"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as handle:
+        handle.write("schema_version: 1\n")
+    iso = isolated_bin(root)
+    os.remove(os.path.join(iso, "inflight_registry.py"))
+    return _f2274_fire({"agent_type": "harness-backend-dev",
+                        "digest_object": fixture("harness-backend-dev", DEV_NA)},
+                       validate=os.path.join(iso, "validate-digest.py"), root=root)
+
+
+def run_feat2274_unavailable_cases():
+    dev = fixture("harness-backend-dev", DEV_NA)
+    no_schema = _f2274_fire({"agent_type": "harness-nonexistent", "digest_object": dev})
+    no_identity = _f2274_fire({"digest_object": dev})
+    no_identity_rerun = _f2274_fire({"digest_object": dev, "stop_hook_active": True})
+    registry_missing = _f2274_registry_missing()
+    valid = _f2274_fire({"agent_type": "harness-backend-dev", "digest_object": dev})
+    foreign = _f2274_fire({"agent_type": "Explore", "digest_object": "not a digest"})
+    rerun = _f2274_fire({"agent_type": "harness-qa", "stop_hook_active": True,
+                         "digest_object": fixture("harness-qa", QA_REAL_FAIL_MISSING_MATRIX)})
+    refusals = [_f2274_fire({"agent_type": "harness-qa", **extra})
+                for extra in ({}, {"digest_object": None}, {"digest_object": "   \n"},
+                              {"digest_object": ["x"]})]
+    contract = _f2274_fire({"agent_type": "harness-backend-dev", "digest_object": fixture(
+        "harness-backend-dev", DEV_NA.replace("VERDICT: BLOCKED", "VERDICT: PASS"))})
+    unavailable = ["validate-digest"]
+    return _feat65_report([
+        ("[f2274] a persona with no schema passes through visibly unavailable",
+         no_schema.returncode == 0 and "no schema for harness-nonexistent" in no_schema.stderr
+         and _unavailable_gates(no_schema) == unavailable, no_schema),
+        ("[f2274] a payload with no agent identity passes through visibly unavailable",
+         no_identity.returncode == 0 and "no agent_type" in no_identity.stderr
+         and _unavailable_gates(no_identity) == unavailable, no_identity),
+        ("[f2274] stop_hook_active does not change the missing-identity outcome",
+         no_identity_rerun.returncode == 0
+         and _unavailable_gates(no_identity_rerun) == unavailable, no_identity_rerun),
+        ("[f2274] a missing claim registry on a passing return is visibly unavailable, once",
+         registry_missing.returncode == 0 and "inflight_registry unavailable" in registry_missing.stderr
+         and _unavailable_gates(registry_missing) == unavailable, registry_missing),
+        ("[f2274] a valid governed digest is a normal pass with no unavailable line",
+         valid.returncode == 0 and valid.stdout == "", valid),
+        ("[f2274] a non-governed agent passes through with no unavailable line",
+         foreign.returncode == 0 and foreign.stdout == "", foreign),
+        ("[f2274] stop_hook_active with an identity passes with no unavailable line",
+         rerun.returncode == 0 and rerun.stdout == "", rerun),
+        ("[f2274] absent/null/blank/non-object digest_object stays a contract refusal",
+         all(r.returncode == 2 and OBJECT_INSTRUCTION in r.stderr and _unavailable_gates(r) == []
+             for r in refusals), next((r for r in refusals if r.returncode != 2), refusals[0])),
+        ("[f2274] a contract violation is a refusal, never unavailable",
+         contract.returncode == 2 and _unavailable_gates(contract) == [], contract),
+    ])
 
 
 # ---------------------------------------------------------------------------
@@ -6477,6 +6559,7 @@ def main(argv=None):
     checks = (
         run_canonical_reader_strictness_cases,
         run_feat65_guard_cases,
+        run_feat2274_unavailable_cases,
         run_cli_cases,
         run_dec156_worktree_red_case,
         run_bug919_qa_matrix_cases,

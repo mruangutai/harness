@@ -487,6 +487,86 @@ def case_10_library_missing():
         shutil.rmtree(root, ignore_errors=True)
         shutil.rmtree(tmp, ignore_errors=True)
 
+
+def _unavailable_gates(result):
+    """FEAT-2274 C1: gate names of the `decision: unavailable` lines on stdout, in order."""
+    gates = []
+    for out_line in result.stdout.splitlines():
+        try:
+            obj = json.loads(out_line)
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and obj.get("decision") == "unavailable":
+            gates.append(obj.get("gate"))
+    return gates
+
+
+def _f2274_bin_without(*removed):
+    """A copied bin tree missing `removed`, so the copied guard imports the copy."""
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(BIN_DIR, mbin)
+    for name in removed:
+        os.remove(os.path.join(mbin, name))
+    return os.path.join(mbin, "dispatch-guard.py")
+
+
+def case_f2274_unavailable_outcome():
+    """FEAT-2274 C1: every way dispatch-guard could not check a dispatch is ONE stdout line
+    {"decision": "unavailable", "gate": "dispatch-guard", ...} at exit 0 — its own crash, an
+    unreadable payload, the registry library missing (guarded or with harness_boundary itself
+    gone), and the registry's own claim-step failure. A normal pass, the non-governed
+    pass-throughs and every deliberate refusal emit none, so the three stay distinguishable."""
+    want = ["dispatch-guard"]
+    root = _checkout()
+    try:
+        env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+        payload = _task("harness-pm", "harness-product-lead", root)
+        unavailable = {
+            "an own crash": _feat65_fire(
+                root, "inflight_registry.py",
+                "def live_claim(root, agent, now=None, feature=None):\n"
+                "    raise RuntimeError('FEAT-2274 injected')\n"),
+            "an unreadable payload": fire("this is not json at all"),
+            "the claim step's own registry failure": _feat65_fire(
+                root, "inflight_registry.py",
+                "def live_claim(root, agent, now=None, feature=None):\n"
+                "    raise UnreadableRegistry(['/x'])\n"),
+        }
+        for label, removed in (("the registry library missing", ("inflight_registry.py",)),
+                               ("harness_boundary itself missing", ("harness_boundary.py",))):
+            unavailable[label] = subprocess.run(
+                [_f2274_bin_without(*removed)], input=json.dumps(payload),
+                capture_output=True, text=True, env=dict(os.environ, **env))
+        for label, r in unavailable.items():
+            check(f"f2274: {label} passes through as exactly one unavailable line",
+                  r.returncode == 0 and _unavailable_gates(r) == want,
+                  f"exit {r.returncode}, stdout={r.stdout!r}, stderr={r.stderr[-200:]!r}")
+        quiet = {
+            "a normal governed pass": fire(
+                {"agent_type": "harness-eng-lead",
+                 "tool_input": {"subagent_type": "harness-backend-dev", "prompt": FEATURE_LINE}},
+                env=env),
+            "a non-harness caller": fire({"agent_type": "general-purpose",
+                                          "tool_input": {"model": "haiku"}}),
+            "the main session": fire({"tool_input": {"subagent_type": "general-purpose"}}),
+            "a non-harness dispatched target": fire(
+                {"agent_type": "harness-eng-lead",
+                 "tool_input": {"subagent_type": "general-purpose", "prompt": FEATURE_LINE}}),
+        }
+        for label, r in quiet.items():
+            check(f"f2274: {label} exits 0 with no unavailable line",
+                  r.returncode == 0 and _unavailable_gates(r) == [],
+                  f"exit {r.returncode}, stdout={r.stdout!r}, stderr={r.stderr[-200:]!r}")
+        refused = fire({"agent_type": "harness-eng-lead",
+                        "tool_input": {"model": "opus", "subagent_type": "harness-backend-dev",
+                                       "prompt": FEATURE_LINE}})
+        check("f2274: a deliberate refusal is exit 2 with no unavailable line",
+              refused.returncode == 2 and "BLOCKED" in refused.stderr
+              and _unavailable_gates(refused) == [], refused.stderr[-200:])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 # ---------------------------------------------------------------------------
 # FEAT-42 T-18 — the DECLARED feature, issue #742.
 # ---------------------------------------------------------------------------
@@ -1100,54 +1180,53 @@ def _fire_from(root, dispatched, dispatcher):
                 env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
 
 
-def case_27_spawns_allowlist():
-    """A persona dispatches only what its frontmatter `spawns:` names. Refused: the
-    orchestrator reaching a member directly, a lead reaching a peer lead, a lead reaching a
-    persona outside its list. Allowed: a lead reaching its own member. A member with
-    `spawns: []` may dispatch nothing. The refusal names both personas and the list."""
+def case_27_spawn_targets_are_native_authority():
+    """FEAT-2274 C5: dispatch-guard no longer keeps a spawns: allowlist; OMP's native
+    assertDepthAndSpawnAllowed is the one authority on who may spawn whom. A dispatch the
+    deleted allowlist refused — and nothing else did — now passes this gate: the orchestrator
+    reaching a member, a lead reaching a peer lead, a member with `spawns: []` reaching a lead.
+    Every case is otherwise valid (feature line, tree root, registered lead run), so exit 0 is
+    the gate's pass, not a crash: no BLOCKED text and no unavailable line."""
+    def passes(name, r):
+        check(name, r.returncode == 0 and "BLOCKED" not in r.stderr
+              and "may not dispatch" not in r.stderr and _unavailable_gates(r) == [],
+              f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+
     root = _checkout()
     _register_lead_run(root, "harness-product-lead", "FEAT-90-one-root-fixture")
     try:
-        r = _fire_from(root, "harness-backend-dev", "harness-orchestrator")
-        check("case 27a: orchestrator -> member is refused", r.returncode == 2, r.stderr)
-        check("case 27a: the refusal names dispatcher, target and the list",
-              all(s in r.stderr for s in ("harness-orchestrator", "harness-backend-dev",
-                                          "harness-eng-lead")), r.stderr)
-        r = _fire_from(root, "harness-product-lead", "harness-orchestrator")
-        check("case 27b: orchestrator -> lead is allowed", r.returncode == 0, r.stderr)
+        passes("case 27a: orchestrator -> member is not refused by dispatch-guard",
+               _fire_from(root, "harness-backend-dev", "harness-orchestrator"))
+        passes("case 27b: orchestrator -> lead still passes",
+               _fire_from(root, "harness-product-lead", "harness-orchestrator"))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
     root = _checkout()
+    _register_lead_run(root, "harness-validator-lead", "FEAT-90-one-root-fixture")
     try:
         shutil.copyfile(os.path.join(FEATURE_TREE_ROOT, ".omp", "agents",
                                      "harness-validator-lead.md"),
                         os.path.join(root, ".omp", "agents", "harness-validator-lead.md"))
-        r = _fire_from(root, "harness-validator-lead", "harness-eng-lead")
-        check("case 27c: lead -> peer lead is refused", r.returncode == 2, r.stderr)
-        r = _fire_from(root, "harness-backend-dev", "harness-eng-lead")
-        check("case 27d: lead -> own member is allowed", r.returncode == 0, r.stderr)
+        # The validator lead holds no shell, so its otherwise-valid start declares the tree
+        # root that _task spells only for the product lead, and a validate mission (a plan
+        # panel would need a pending plan this fixture does not carry).
+        peer = _task("harness-validator-lead", "harness-eng-lead", root)
+        peer["tool_input"]["prompt"] = peer["tool_input"]["prompt"].replace(
+            FEATURE_LINE, FEATURE_LINE + "\nHARNESS-FEATURE-TREE-ROOT: " + root, 1).replace(
+            "HARNESS-MISSION: plan", "HARNESS-MISSION: validate")
+        passes("case 27c: lead -> peer lead is not refused by dispatch-guard",
+               fire(peer, env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}))
+        passes("case 27d: lead -> own member still passes",
+               _fire_from(root, "harness-backend-dev", "harness-eng-lead"))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
     root = _checkout()
+    _register_lead_run(root, "harness-product-lead", "FEAT-90-one-root-fixture")
     try:
-        r = _fire_from(root, "harness-product-lead", "harness-backend-dev")
-        check("case 27e: a member with spawns: [] dispatches nothing",
-              r.returncode == 2 and "empty" in r.stderr, r.stderr)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
-
-
-def case_28_missing_dispatcher_file_passes_through_loudly():
-    """FAIL OPEN. A checkout without the dispatcher's agent file cannot evaluate the list;
-    the dispatch proceeds and stderr says the allowlist was unreadable (DEC-100)."""
-    root = _checkout()
-    os.remove(os.path.join(root, ".omp", "agents", "harness-eng-lead.md"))
-    try:
-        r = _fire_from(root, "harness-backend-dev", "harness-eng-lead")
-        check("case 28: unreadable allowlist is not refused", r.returncode == 0, r.stderr)
-        check("case 28: and says so", "spawns allowlist unreadable" in r.stderr, r.stderr)
+        passes("case 27e: a member with spawns: [] is not refused by dispatch-guard",
+               _fire_from(root, "harness-product-lead", "harness-backend-dev"))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -1553,8 +1632,8 @@ def main():
     case_22_derived_vocabulary_matches_invented_squad()
     case_23_broken_derivation_distinguished_from_grant_less()
     case_24_duplicate_hook_keys_are_rejected()
-    case_27_spawns_allowlist()
-    case_28_missing_dispatcher_file_passes_through_loudly()
+    case_27_spawn_targets_are_native_authority()
+    case_f2274_unavailable_outcome()
     case_29_name_parameter_refused()
     case_30_schema_controls_are_not_the_guards()
     case_30_repository_header_binds_exact_factory_claim()
