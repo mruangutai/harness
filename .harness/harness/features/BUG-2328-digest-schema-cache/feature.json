@@ -1,0 +1,63 @@
+{
+  "feature_id": "BUG-2328-digest-schema-cache",
+  "branch": "none",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:00:55+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-patch-product/digest.md",
+        "sha256": "ded2ca7962afa01f9237e6cd45639d4fb2771d252f31044b109190b095945a01"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T19:05:59+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T19:00:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "The cause is known and measured: the BUNDLES map in digest-schema.ts keeps each bundle for the process lifetime. The diff is one library file and one test block, and it removes code."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2328-digest-schema-cache/.harness/harness/features/BUG-2328-digest-schema-cache/notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "327c5bdff49415e3e50850b57c67fb61a7d0726c0ac9a0d8ca606d423a77a519"
+  },
+  "github": {
+    "milestone": 123,
+    "parent": 2335,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2336
+    },
+    "source_issues": [
+      2328
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
