@@ -5,9 +5,15 @@ A private repository holds three commits: an empty-suite commit, the TESTED comm
 (test-a..d), and a later HEAD (drops test-d, adds test-e), plus an untracked working-tree
 test-f. Expected coverage must come from the supplied tested commit only, so a validator
 reading HEAD, the working tree, or the manifests' own selections fails these cases.
+
+FEAT-2337 SC-05: the importable discovery and evidence seams take an explicit `kind`; `unit`
+reads the same tested commit's top-level tests/unit/test-*.py, while the CLI keeps its
+integration-only, four-shard defaults and refuses any `--kind` option.
 """
+import importlib.util
 import json
 import os
+import sys
 from pathlib import Path
 import shutil
 import subprocess
@@ -23,6 +29,9 @@ TESTED = ["tests/integration/test-a.py", "tests/integration/test-b.py",
           "tests/integration/test-c.py", "tests/integration/test-d.py"]
 HEAD_ONLY = "tests/integration/test-e.py"
 WORKTREE_ONLY = "tests/integration/test-f.py"
+UNIT_TESTED = "tests/unit/test-unit.py"
+UNIT_HEAD_ONLY = "tests/unit/test-head-unit.py"
+UNIT_WORKTREE_ONLY = "tests/unit/test-worktree-unit.py"
 failures = []
 
 
@@ -60,15 +69,19 @@ def repository():
         shutil.copy2(ROOT / BIN / name, root / BIN / name)
     write(root, "tests/integration/helper.py")
     write(root, "tests/integration/nested/test-deep.py")
-    write(root, "tests/unit/test-unit.py")
+    write(root, UNIT_TESTED)
+    write(root, "tests/unit/nested/test-deep-unit.py")
+    write(root, "tests/unit/helper.py")
     empty = commit(root, "empty suite")
     for rel in TESTED:
         write(root, rel)
     tested = commit(root, "tested")
     (root / TESTED[3]).unlink()
     write(root, HEAD_ONLY)
+    write(root, UNIT_HEAD_ONLY)
     head = commit(root, "head")
     write(root, WORKTREE_ONLY)
+    write(root, UNIT_WORKTREE_ONLY)
     return root, empty, tested, head
 
 
@@ -192,6 +205,70 @@ def coverage_cases(repo, empty, tested, head):
            f"{TESTED[3]}: omitted")
 
 
+def load_gate(repo):
+    """The fixture's own copy, imported with its root, the way a validator reuses the seams."""
+    saved_path, saved_env = list(sys.path), os.environ.get("HARNESS_PROJECT_DIR")
+    os.environ["HARNESS_PROJECT_DIR"] = str(repo)
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "fixture_check_integration_shards", repo / BIN / "check-integration-shards.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.path[:] = saved_path
+        if saved_env is None:
+            os.environ.pop("HARNESS_PROJECT_DIR", None)
+        else:
+            os.environ["HARNESS_PROJECT_DIR"] = saved_env
+
+
+def unit_receipt(sha, paths):
+    doc = manifest(sha, 1, paths)
+    doc.update(kind="unit", shard_count=1)
+    return {"manifest-unit.json": doc}
+
+
+def _seam_defects(module, repo, sha, paths):
+    expected, error = module.discover_expected(str(repo), sha, kind="unit")
+    return [error] if error else module.evidence_defects(unit_receipt(sha, paths), sha, 1,
+                                                         expected, kind="unit")
+
+
+UNIT_SEAM_ROWS = (
+    ("an exact unit receipt at the tested commit passes", [UNIT_TESTED], 0, ""),
+    ("a HEAD-only unit file is unexpected", [UNIT_TESTED, UNIT_HEAD_ONLY], 1,
+     f"{UNIT_HEAD_ONLY}: unexpected"),
+    ("a working-tree-only unit file is unexpected", [UNIT_TESTED, UNIT_WORKTREE_ONLY], 1,
+     f"{UNIT_WORKTREE_ONLY}: unexpected"),
+    ("an omitted unit file is refused", [], 1, f"{UNIT_TESTED}: omitted"),
+)
+
+
+def _discovery_checks(module, repo, tested):
+    unit = module.discover_expected(str(repo), tested, kind="unit")
+    check("unit discovery reads only the tested commit's top-level tests/unit/test-*.py",
+          unit == ([UNIT_TESTED], None), repr(unit))
+    default = module.discover_expected(str(repo), tested)
+    check("discovery without a kind keeps the integration default", default == (TESTED, None),
+          repr(default))
+
+
+def kind_seam_cases(repo, tested, head):
+    module = load_gate(repo)
+    _discovery_checks(module, repo, tested)
+    for label, paths, status, needle in UNIT_SEAM_ROWS:
+        defects = _seam_defects(module, repo, tested, paths)
+        text = " | ".join(message for _status, message in defects)
+        check(f"{label}: exit {status}", module.exit_status(defects) == status, text)
+        check(f"{label}: diagnostic '{needle}'", needle in text, text)
+    expect("the CLI has no --kind option", gate(repo, tested, exact(tested),
+           extra=("--kind", "unit")), 2, "unrecognized argument '--kind'")
+    expect("unit receipts are refused under the CLI's integration default", gate(
+        repo, head, {f"shard-{i}/manifest.json": dict(manifest(head, i, []), kind="unit")
+                     for i in range(1, 5)}), 1, "kind 'unit' is not integration")
+
+
 def main():
     repo, empty, tested, head = repository()
     try:
@@ -200,6 +277,7 @@ def main():
         conclusion_cases(repo, tested)
         manifest_cases(repo, tested, head)
         coverage_cases(repo, empty, tested, head)
+        kind_seam_cases(repo, tested, head)
     finally:
         shutil.rmtree(repo, ignore_errors=True)
     print(f"{len(failures)} failed")
