@@ -430,7 +430,7 @@ def seed_owner(owner, entry, repo):
     feature_dir = os.path.join(owner, ".harness", "harness", "features", DFEAT)
     write(os.path.join(owner, ".harness", "team-config.yaml"), "agents: {}\n")
     write(os.path.join(owner, ".harness", "harness.json"),
-          {"github": {"sync": True, "repo": "acme/widgets", "board": None}})
+          build_config({"github": {"sync": True, "repo": "acme/widgets"}}))
     write(os.path.join(owner, ".gitignore"), "*.lock\n")
     write(os.path.join(feature_dir, "feature.json"),
           {"feature_id": DFEAT, "branch": DBRANCH, "github": github})

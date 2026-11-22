@@ -272,8 +272,6 @@ def _enforce_receipt(feature_schema, github, feat_dir, document, root):
             return None
         return (f"merge-gate: {feat}: {problem}. Run: "
                 f"{feature_schema.recovery_command_line(feat_dir, document, github.get('repo'))}")
-    if not bound and not repo_pinned(github.get("repo")):
-        return f"merge-gate: {feat} has github.sync true with github.repo NOT pinned, so the mirror records nothing here and no receipt can ever be written for it (D-09). NO COMMAND CLEARS THIS BY ITSELF. Pin github.repo in {root}/.harness/harness.json to the value of gh repo view --json nameWithOwner -q .nameWithOwner, or set github.sync to false, and then re-run the Build entry."
     try:
         repo, _board, _types = feature_schema.resolve_binding(document, root)
     except artifact_accessors.FleetError as error:

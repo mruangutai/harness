@@ -68,14 +68,7 @@ teams:
 """
 
 
-def version_two(overrides=None):
-    """A valid built config, explicitly aged to schema_version 2 — the shape this tool migrates."""
-    document = build_config(overrides)
-    document["schema_version"] = 2
-    return document
-
-
-def project(harness_json=None, manifest="schema_version: 1\n"):
+def project(overrides=None, manifest="schema_version: 1\n", drop=()):
     """A fixture that REACHES the manifest comparison.
 
     It must carry a templates dir. Without one the script exits early citing an
@@ -86,8 +79,15 @@ def project(harness_json=None, manifest="schema_version: 1\n"):
     """
     d = tempfile.mkdtemp()
     os.makedirs(os.path.join(d, ".harness"))
+    legacy = build_config(overrides)
+    legacy["schema_version"] = 2  # a valid build, visibly aged to the version this tool migrates
+    for *parents, key in drop:  # then a key the upgrade must restore is taken out
+        target = legacy
+        for parent in parents:
+            target = target[parent]
+        del target[key]
     with open(os.path.join(d, ".harness", "harness.json"), "w") as f:
-        f.write(harness_json or json.dumps(version_two()))
+        json.dump(legacy, f)
     with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
         f.write(manifest)
 
@@ -255,9 +255,7 @@ check("--check never rewrites team-config.yaml (safe_dump would strip its commen
 # any other nested object (test_kinds, etc.) — see the module docstring for the read
 # (upgrade-config.py:79-83, :86-88) that establishes this without any production
 # change. Assert the VALUE, not mere presence.
-budgets_project = version_two()
-del budgets_project["budgets"]["orchestrator_context_warn_tokens"]
-budgets_root = project(harness_json=json.dumps(budgets_project))
+budgets_root = project(drop=[("budgets", "orchestrator_context_warn_tokens")])
 r = run(budgets_root)
 merged_budgets = json.load(open(os.path.join(budgets_root, ".harness", "harness.json")))
 check("a new budgets key (orchestrator_context_warn_tokens) propagates from the "
@@ -279,9 +277,7 @@ check("a new budgets key (orchestrator_context_warn_tokens) propagates from the 
 # its own boundary must not have it reset to the template's null on a later upgrade: that
 # would silently re-grade every pre-panel plan it had correctly exempted, which is the
 # migration failure this case exists to keep closed.
-era_gap_project = version_two()
-del era_gap_project["panel_era_start"]
-era_gap = project(harness_json=json.dumps(era_gap_project))
+era_gap = project(drop=[("panel_era_start",)])
 r = run(era_gap)
 merged_era = json.load(open(os.path.join(era_gap, ".harness", "harness.json")))
 check("panel_era_start ARRIVES in a schema-2 project through the real merge, at the "
@@ -291,7 +287,7 @@ check("panel_era_start ARRIVES in a schema-2 project through the real merge, at 
       and merged_era["panel_era_start"] is None,
       f"exit {r.returncode}; merged={merged_era}; stderr={r.stderr.strip()[-300:]}")
 
-era_set = project(harness_json=json.dumps(version_two({"panel_era_start": "2026-01-15"})))
+era_set = project({"panel_era_start": "2026-01-15"})
 r = run(era_set)
 kept_era = json.load(open(os.path.join(era_set, ".harness", "harness.json")))
 check("a project's OWN panel_era_start survives the upgrade and is not reset to the "

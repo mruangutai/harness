@@ -8400,7 +8400,8 @@ closed vocabularies. Eight signed choices:
   consulting sync.
 - **One fixture builder (D-06).** `tests/harness_config_support.py` builds every test config,
   TypeScript included through builder-generated fixtures; each superseded reader-specific test is
-  disposed, and the affected test files shrink on net against the pinned base.
+  disposed. Measured from the merge-base with main, the pre-existing affected test files shrink on
+  net, and every new contract test, helper and fixture is enumerated with its line price.
 - **Kaya by PR (D-07).** Kaya's configuration migrates through a validated payload in a dedicated PR
   to `mruangutai/kaya` main, landing only on the operator's review and explicit merge authorization.
 - **The one lenient host read (D-08).** DEC-198's TypeScript `resolveBudgetNumber` fallback remains
@@ -8422,8 +8423,12 @@ of duplicated tests, not a larger parallel suite. A product's default branch is 
 **Tradeoff accepted:** a version-2 or hand-edited file now stops every reader until it is repaired
 or upgraded. The hooks need an importable `jsonschema`; a gate or the post-merge sweep that hardens
 its import path restores the interpreter's own path after its first-party imports so a user-site
-installation still resolves.
+installation still resolves. D-06's total-negative gate was replaced by pre-existing-negative plus
+the enumerated price of new coverage: new central-contract coverage was mispredicted as free at plan
+time. INV-13 is retired, because the loader now enforces what it checked: an absent `github` block
+takes the default and sync without a pinned repo is invalid.
 
-**Record:** FEAT-2297 (#2297); D-01 to D-08 approved by Mike Ruangutai on 2026-11-22. Amends DEC-221
-(offline advisory reads) and DEC-254 (an absent era key). Refs: DEC-174, DEC-187, DEC-198, DEC-212,
-DEC-217.
+**Record:** FEAT-2297 (#2297); D-01 to D-08 approved by Mike Ruangutai on 2026-11-22, and the D-06
+measurement amended under his delegation to the plan's advisor. Amends DEC-221 (offline advisory
+reads) and DEC-254 (an absent era key). Retires INV-13 (DEC-138's mirror-limbo check). Refs:
+DEC-138, DEC-174, DEC-187, DEC-198, DEC-212, DEC-217.

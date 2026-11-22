@@ -17,6 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
+sys.path.insert(0, str(ROOT / "tests"))
+from harness_config_support import write_config  # noqa: E402
 TOOL = Path(os.environ.get("PRUNE_RUN_EVIDENCE_BIN") or BIN / "prune-run-evidence.py")
 CHECK_STATE = BIN / "check-state.py"
 FAILURES = []
@@ -201,9 +203,7 @@ def blocked_feature(root):
     (root / ".harness" / "factory").mkdir(parents=True)
     (root / ".harness" / "factory" / "fleet.yaml").write_text(
         "schema: factory-fleet/1\nrepos:\n  - name: org/x\n    default_branch: main\nworkspace_root: /nonexistent\n")
-    (root / ".harness" / "harness.json").write_text(json.dumps(
-        {"github": {"sync": False, "repo": None}, "budgets": {"max_total_cycles": 10, "max_total_runs": 20},
-         "panel_era_start": None, "seam_era_start": None}))
+    write_config(root / ".harness" / "harness.json")
     feat = root / ".harness" / "harness" / "features" / "FEAT-9-thing"
     (feat / "runs").mkdir(parents=True)
     (feat / "plan.yaml").write_text("schema: plan/1\nfeature: FEAT-9-thing\nstatus: review\nstation_only: true\ntasks: []\n")

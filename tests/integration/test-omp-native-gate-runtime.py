@@ -18,6 +18,8 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from harness_config_support import write_config  # noqa: E402
 import ast
 import json
 import os
@@ -103,8 +105,7 @@ def make_root():
     os.makedirs(os.path.join(d, ".agents"))
     os.symlink(os.path.join("..", ".claude", "skills"), os.path.join(d, ".agents", "skills"))
     os.makedirs(os.path.join(d, ".harness"))
-    with open(os.path.join(d, ".harness", "harness.json"), "w") as f:
-        json.dump({"github": {"sync": True, "repo": "o/r"}}, f)
+    write_config(os.path.join(d, ".harness", "harness.json"), {"github": {"sync": True, "repo": "o/r"}})
     with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
         f.write("agents: {}\n")
     with open(os.path.join(d, "driver.ts"), "w") as f:

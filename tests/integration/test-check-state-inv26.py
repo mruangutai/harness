@@ -305,7 +305,7 @@ def case_v():
     # --- A BROKEN BOARD IS AN INVALID CONFIG (FEAT-2297). It once made load_board return None
     # and INV-26 vacuous; then INV-26 reported CANNOT RUN and the gate continued. Now the one
     # loader refuses the document, check-state reports that single config violation, and no
-    # config-dependent invariant runs on top of a config it could not read — INV-26 and INV-13
+    # config-dependent invariant runs on top of a config it could not read — INV-26 and INV-37
     # stay silent rather than grading a board that does not validate.
     _broken = {"owner": "org", "number": 3, "station_field": "status"}
     with tempfile.TemporaryDirectory() as tmp:
@@ -317,7 +317,7 @@ def case_v():
         results.append(("an unusable board declaration is the config violation, with no "
                         "config-dependent invariant continuing",
                         c == 1 and not _tb and len(_config) == 1 and "board" in _config[0]
-                        and not _lines(out) and "INV-13" not in out,
+                        and not _lines(out) and "INV-37" not in out,
                         "exit=%s traceback=%s config=%r stdout_tail=%r"
                         % (c, _tb, _config, out[-300:])))
 

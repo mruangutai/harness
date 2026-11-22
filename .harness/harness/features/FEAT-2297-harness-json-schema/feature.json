@@ -116,6 +116,55 @@
       "kind": "amendment",
       "decision": "T-07.files",
       "reason": "Advisor ruling: T-01 regression \u2014 sweep scrubs user-site so feature_schema caches jsonschema=None and every receipt read refuses; restore the original path after first-party imports, as branch-create-gate/gh-close-gate."
+    },
+    {
+      "at": "2026-11-22T21:27:12.949184+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.verify",
+      "reason": "Ruling #4: base is git merge-base <review-ref> origin/main at measurement time; the fixed c1724230 pin counted features merged since."
+    },
+    {
+      "at": "2026-11-22T21:27:15.467728+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.intent",
+      "reason": "Ruling #4: merge-base base; Gate A pre-existing affected files strictly negative; Gate B every new file enumerated with SC/D coverage; total reported, not gated."
+    },
+    {
+      "at": "2026-11-22T21:27:17.816403+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Ruling #4 minimal-document budget fixture + census check; ruling (a) dead unpinned branches and vacuous INV-13 retired with its references; DEC-255 records the D-06 amendment."
+    },
+    {
+      "at": "2026-11-22T21:28:21.549389+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "seams.py and the handoff docstring narrate a past crash that did abort INV-13; history stays accurate, so neither file changes."
+    },
+    {
+      "at": "2026-11-22T21:31:58.667680+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Pin the signed 152-row inventory: it exists only untracked in the main checkout; a verbatim sha256-checked copy makes the disposition check reproducible in any clone."
+    },
+    {
+      "at": "2026-11-22T21:32:19.431173+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Retiring INV-13 changes the --list retired catalogue that test-check-state-table pins (contract test update)."
+    },
+    {
+      "at": "2026-11-22T21:38:15.783045+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "T-10 disposition evidence exposed two census gaps (IfExp/own-literal helper writes) hiding 3 raw fixtures, plus 3 raw configs merged from main after the inventory; all migrated to the builder."
     }
   ],
   "mission": "plan",

@@ -3,7 +3,7 @@
 
 Registered in `.omp/extensions/harness-hooks.ts`. New branches must name
 either an existing Harness flow or an open issue in the pinned GitHub repository
-(DEC-144). The gate self-disables when GitHub synchronization is off or unpinned.
+(DEC-144). The gate self-disables when GitHub synchronization is off.
 
 WAS A .sh (issue #1674). The shell version spread one decision across root, config,
 payload and output interpreter launches plus external text filters. This native entry

@@ -3742,8 +3742,7 @@ def check_prior_validator(td, guarded, failures):
 
 
 def write_review_config(config, review):
-    with open(config, "w") as f:
-        json.dump({"gates": {"review": review}}, f)
+    write_config(config, {"gates": {"review": review}})
 
 
 def check_code_grade_state(validator, config, feature_dir, failures):

@@ -396,10 +396,12 @@ class WriterContract(unittest.TestCase):
     def test_writer_makes_backup_and_writes_mapping(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "harness.json"
-            path.write_text('{"schema_version": 1}\n', encoding="utf-8")
-            accessors.write_harness_json(path, {"schema_version": 2})
-            self.assertEqual({"schema_version": 2}, json.loads(path.read_text(encoding="utf-8")))
-            self.assertEqual('{"schema_version": 1}\n', path.with_name("harness.json.harness-bak").read_text(encoding="utf-8"))
+            path.write_text(json.dumps(build_config()), encoding="utf-8")
+            before = path.read_text(encoding="utf-8")
+            updated = build_config({"log_retention_days": 3})
+            accessors.write_harness_json(path, updated)
+            self.assertEqual(updated, json.loads(path.read_text(encoding="utf-8")))
+            self.assertEqual(before, path.with_name("harness.json.harness-bak").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

@@ -42,10 +42,17 @@ CLASSIFIED = {
 }
 
 
-def budget_expectation():
+def budget_configs():
     return {"default": build_config(),
             "context_150000": build_config({"budgets": {"orchestrator_context_warn_tokens": 150000}}),
             "plan_30": build_config({"budgets": {"plan_phase_warn_minutes": 30}})}
+
+
+def budget_expectation():
+    """The checked-in entries: each builder config cut to the version and budgets that TypeScript
+    reads. Every other key is a schema default, so the cut loads back to the identical config."""
+    return {key: {"schema_version": config["schema_version"], "budgets": config["budgets"]}
+            for key, config in budget_configs().items()}
 
 
 def _names_config(text):
@@ -103,15 +110,33 @@ class Census:
             except SyntaxError as error:
                 self.findings.append(f"{relative}: cannot be parsed, so its producers are unknown ({error})")
         self.by_name = {Path(r).stem: m for r, m in self.modules.items()}
-        self.writers = {}  # function name -> (path parameter, content parameter)
+        # (module, function) -> (path index, path parameter, content index, content parameter, own value).
+        # A write of an expression over a parameter is checked at each call site's argument; a write
+        # of anything else is the helper's own value, checked in the helper's own module.
+        self.writers = {}
         for module in self.modules.values():
             for path, value, node in self._raw_writes(module):
                 scope = module.scope_of(node)
                 params = [a.arg for a in scope.args.args] if hasattr(scope, "args") else []
                 path_params = [n.id for n in ast.walk(path) if isinstance(n, ast.Name) and n.id in params] if path else []
-                if path_params and isinstance(value, ast.Name) and value.id in params:
-                    at = path_params[0]
-                    self.writers[scope.name] = (params.index(at), at, params.index(value.id), value.id)
+                if not path_params:
+                    continue
+                at = path_params[0]
+                content = [n.id for n in ast.walk(value) if isinstance(n, ast.Name)
+                           and n.id in params and n.id != at] if value is not None else []
+                self.writers[(module.relative, scope.name)] = (
+                    (params.index(at), at, params.index(content[0]), content[0], None)
+                    if content else (params.index(at), at, None, None, (module, value)))
+
+    def _writer(self, module, func):
+        """The writer a call reaches: defined here, imported by name, or called as `module.helper`."""
+        if isinstance(func, ast.Name):
+            origin = module.imports.get(func.id)
+            other = origin and self.by_name.get(origin[0].rsplit(".", 1)[-1])
+            return self.writers.get((module.relative, func.id)) or (
+                other and self.writers.get((other.relative, origin[1])))
+        other = isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and self.by_name.get(func.value.id)
+        return other and self.writers.get((other.relative, func.attr))
 
     # --- what a site writes, and where -------------------------------------------------------
     def _raw_writes(self, module):
@@ -200,22 +225,23 @@ class Census:
                     payloads = keyword.value.values if isinstance(keyword.value, ast.Dict) else [keyword.value]
                     for value in payloads:
                         yield "remote-payload", node, value
-            name = getattr(node.func, "id", getattr(node.func, "attr", None))
-            if name in self.writers:
-                path_at, path_name, value_at, value_name = self.writers[name]
+            writer = self._writer(module, node.func)
+            if writer:
+                path_at, path_name, value_at, value_name, own = writer
                 args = {**dict(enumerate(node.args)), **{k.arg: k.value for k in node.keywords}}
                 path = args.get(path_at, args.get(path_name))
                 if self._mentions_config(module, path):
-                    yield "indirect-write", node, args.get(value_at, args.get(value_name))
+                    yield "indirect-write", node, own or (module, args.get(value_at, args.get(value_name)))
 
     def run(self):
         for relative in sorted(self.modules):
             module, ordinals = self.modules[relative], {}
             for kind, node, value in self.producers(module):
+                source, value = value if isinstance(value, tuple) else (module, value)
                 key = (module.symbol(node), kind)
                 ordinals[key] = ordinals.get(key, 0) + 1
                 site = f"{relative}::{key[0]}::{kind}#{ordinals[key]}"
-                if not self._reaches(module, value) and site not in CLASSIFIED:
+                if not self._reaches(source, value) and site not in CLASSIFIED:
                     self.findings.append(f"{site} (line {node.lineno}): a harness.json producer that "
                                          "does not reach build_config/write_config")
         for relative, text in sorted(self.ts.items()):
@@ -243,8 +269,10 @@ def budget_fixture_findings(text):
     except ValueError as error:
         return [f"{BUDGET_FIXTURE}: not JSON ({error})"]
     expected = budget_expectation()
-    return [f"{BUDGET_FIXTURE}: `{key}` is missing or stale against build_config" for key in expected
-            if actual.get(key) != expected[key]] + [
+    findings = [f"{BUDGET_FIXTURE}: `{key}` does not load to the builder's config"
+                for key, config in budget_configs().items() if build_config(expected[key]) != config]
+    return findings + [f"{BUDGET_FIXTURE}: `{key}` is missing or stale against build_config" for key in expected
+                       if actual.get(key) != expected[key]] + [
             f"{BUDGET_FIXTURE}: `{key}` is not a generated entry" for key in actual if key not in expected]
 
 
@@ -307,6 +335,22 @@ def put(path, text):
 def test(tmp):
     put(tmp + "/.harness/harness.json", "{}")
 """),
+    "helper that raw-writes an expression of its parameter": ("tests/integration/test-ifexp.py", """
+import json
+def write(path, content):
+    with open(path, "w") as stream:
+        stream.write(content if isinstance(content, str) else json.dumps(content))
+def test(tmp):
+    write(tmp + "/.harness/harness.json", {"github": {"sync": True}})
+"""),
+    "helper that raw-writes its own literal to its path parameter": ("tests/integration/test-own.py", """
+import json
+def write_review_config(config, review):
+    with open(config, "w") as f:
+        json.dump({"gates": {"review": review}}, f)
+def test(tmp):
+    write_review_config(tmp + "/.harness/harness.json", "strict")
+"""),
     "inline TypeScript config": ("tests/unit/new.test.ts",
                                  'writeFileSync(join(dir, "harness.json"), JSON.stringify({ budgets }));\n'),
 }
@@ -319,6 +363,11 @@ def test(tmp):
     broken["gates"]["review"] = "strict"
     with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
         f.write(json.dumps(broken))
+def seed(path):
+    with open(path, "w") as f:
+        f.write(json.dumps(build_config()))
+def test_seed(tmp):
+    seed(os.path.join(tmp, ".harness", "harness.json"))
 """)
 
 
