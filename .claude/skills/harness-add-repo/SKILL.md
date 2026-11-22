@@ -107,8 +107,8 @@ outbound after your plan approval)"**
   `"github": { "sync": true, "repo": "<owner/name>" }` into the repository's own
   `.harness/harness.json`; land it on its default branch through step 1.
 - **No** → write `"github": { "sync": false, "repo": null }` into that same product config — an
-  explicit off, not an absence. INV-13 treats a missing block as "never asked" and nags; an explicit
-  false is a decision.
+  explicit off. An absent block means the same thing under the schema default (DEC-256), but the
+  written value records that the question was asked.
 
 The project board follows the mirror question because it needs the repo pinned. Skip it entirely when
 `github.sync` is false.

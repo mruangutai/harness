@@ -33,3 +33,15 @@ Versioned control-plane templates (`harness.json`, `team-config.yaml`) carry `sc
 `bin/check-state.py` reports a gap against an instantiated copy; `/harness-init --upgrade`
 merges new entries while preserving project values, especially `domain` globs and verified
 `test_kinds.*.cmd`. Artifact templates are not all versioned or upgraded by that procedure.
+
+**`harness.json` is validated, not merely versioned (DEC-256).** `bin/config-schemas/harness.json`
+is the one definition of its shape, defaults, conditional requirements and closed vocabularies;
+the `harness.json` template here is an instance of that schema, not a second definition. Look a
+default or an allowed value up in the schema, never in this directory.
+
+**Version 3 is a breaking upgrade.** A version-2 `harness.json` no longer loads: every reader
+refuses it by name until it is upgraded. `bin/upgrade-config.py <root>` is what `--upgrade` runs:
+`--check` previews the change, and `--config-only --templates <this directory>` upgrades a product
+checkout, which has neither these templates nor a `team-config.yaml`. The result is validated before
+it replaces the file. A fleet member's upgraded file counts only once it is committed to that
+member's default branch.

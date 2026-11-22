@@ -83,7 +83,7 @@ import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 import harness_yaml  # noqa: E402  (local import, after sys.path fix-up)
 import feature_schema
 import digest_record
-from harness_boundary import CONTRACT_REFUSAL_CODE  # noqa: E402
+from harness_boundary import CONTRACT_REFUSAL_CODE, root_above  # noqa: E402
 
 JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject")
 MISSIONS = ("patch", "plan")
@@ -956,21 +956,16 @@ def _read_doc(path):
 
 
 def _budgets_for(feature_json):
-    """`budgets` from the nearest `.harness/harness.json` above the feature dir, else {}."""
-    here = os.path.dirname(os.path.abspath(feature_json))
-    while True:
-        candidate = os.path.join(here, ".harness", "harness.json")
-        if os.path.isfile(candidate):
-            try:
-                doc = artifact_accessors.load_harness_json(candidate)
-                budgets = doc.get("budgets")
-                return budgets if isinstance(budgets, dict) else {}
-            except artifact_accessors.ArtifactAccessError:
-                return {}
-        parent = os.path.dirname(here)
-        if parent == here:
-            return {}
-        here = parent
+    """`budgets` from the validated harness.json of the checkout holding the feature (the
+    manifest probe, never a bare `.harness` directory — B-7). A missing or invalid config
+    refuses with its diagnosis (FEAT-2297) — never empty budgets."""
+    root = root_above(os.path.dirname(os.path.abspath(feature_json)))
+    if root is None:
+        sys.exit(f"feature-record: no harness checkout above {feature_json}, so no budgets")
+    try:
+        return artifact_accessors.load_harness_json(os.path.join(root, ".harness", "harness.json"))["budgets"]
+    except artifact_accessors.ArtifactAccessError as error:
+        sys.exit(f"feature-record: {error}")
 
 
 DEFAULT_REWORK_ROUND_MINUTES = 45

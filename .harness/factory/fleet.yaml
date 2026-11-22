@@ -18,14 +18,6 @@ schema: factory-fleet/1
 # to no repository declared in fleet.yaml". Louder, not quieter. Re-adding the entry is a
 # decision, not a convenience.
 repos:
-  - name: mruangutai/harness-factory-smoke
-    default_branch: main
-    # A KEPT FIXTURE, not a served product. It exists so the board-lifecycle tooling can be
-    # exercised against the real GitHub API on a repository that is not the harness itself and
-    # not a live product — FEAT-33 SC-01's create path in particular, which no runner can reach
-    # (`provision`'s create branch only fires when the declared project number does not exist,
-    # and no fake can prove GitHub accepts the mutation). Its board and stations live in its own
-    # `.harness/harness.json` on `main`, like every other member's.
   - name: mruangutai/kaya
     default_branch: main
 workspace_root: /Users/molchairuangutai/GitHub/harness-factories

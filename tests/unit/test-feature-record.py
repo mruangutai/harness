@@ -20,8 +20,10 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".claude/skills/harness/bin"
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(ROOT / "tests"))
 import feature_schema  # noqa: E402
 import feature_json_write  # noqa: E402
+from harness_config_support import write_config  # noqa: E402
 
 CLI = BIN / "feature-record.py"
 # datetime.now(timezone.utc).isoformat(timespec="seconds") — the one shape this tool writes.
@@ -974,7 +976,7 @@ class RulingsTest(FeatureRecordCase):
         harness.json, an absolute path elsewhere), and a directory rather than a file."""
         outside = self.tmp / "elsewhere.md"
         outside.write_text("not this feature's\n", encoding="utf-8")
-        (self.tmp / ".harness" / "harness.json").write_text("{}\n", encoding="utf-8")
+        write_config(self.tmp / ".harness" / "harness.json")
         before = self.write(base_doc(max_total_cycles=5))
         for decision in ("DEC-300", "notes/none.md", "../../harness.json",
                          str(outside), "notes"):
@@ -1348,8 +1350,9 @@ class ProposeReworkTest(FeatureRecordCase):
     def setUp(self):
         super().setUp()
         (self.tmp / ".harness").mkdir(exist_ok=True)
-        (self.tmp / ".harness" / "harness.json").write_text(json.dumps(
-            {"budgets": {"max_total_cycles": 4, "rework_round_minutes": 45}}), encoding="utf-8")
+        (self.tmp / ".harness" / "team-config.yaml").write_text("agents: {}\n", encoding="utf-8")
+        write_config(self.tmp / ".harness" / "harness.json",
+                     {"budgets": {"max_total_cycles": 4, "rework_round_minutes": 45}})
 
     def plan(self, tasks):
         body = "schema: plan/1\nfeature: FEAT-77-record\napproval:\n  status: pending\ntasks:\n"

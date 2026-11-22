@@ -18,7 +18,9 @@ TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 MODULE = os.path.join(ROOT, ".claude", "skills", "harness", "bin", "check-skill-weight.py")
 sys.path.insert(0, os.path.dirname(MODULE))
+sys.path.insert(0, os.path.dirname(TESTS_DIR))
 import artifact_accessors
+from harness_config_support import build_config, write_config
 
 _spec = importlib.util.spec_from_file_location("check_skill_weight", MODULE)
 csw = importlib.util.module_from_spec(_spec)
@@ -37,12 +39,8 @@ def _tree(agents: dict[str, list[str]], skills: dict[str, int], budget=None) -> 
         d = root / ".claude" / "skills" / name
         d.mkdir(parents=True)
         (d / "SKILL.md").write_text(" ".join(["w"] * words) + "\n", encoding="utf-8")
-    cfg = root / ".harness"
-    cfg.mkdir()
-    doc = {"budgets": {}}
-    if budget is not None:
-        doc["budgets"]["preload_warn_words"] = budget
-    (cfg / "harness.json").write_text(json.dumps(doc), encoding="utf-8")
+    write_config(root / ".harness" / "harness.json",
+                 {} if budget is None else {"budgets": {"preload_warn_words": budget}})
     return root
 
 
@@ -77,19 +75,18 @@ class WeightTests(unittest.TestCase):
         self.assertIn("a preloads 150 words (budget 120)", notes[1])
         self.assertEqual(csw.main([str(root)]), 0)
 
-    def test_budget_must_come_from_harness_json(self):
-        for bad in (None, 1900, {"universal": 1900}, {"universal": 0, "agent": 5},
-                    {"universal": "1900", "agent": 5500}):
-            root = _tree({"a": ["u"]}, {"u": 10}, bad)
-            r = csw.scan(root)
-            self.assertIsNone(r.budget, bad)
-            self.assertEqual(len(r.notes()), 1)
-            self.assertIn("UNBUDGETED", r.notes()[0])
-        root = _tree({"a": ["u"]}, {"u": 10}, None)
-        (root / ".harness" / "harness.json").write_text(
-            '{"budgets": {}, "budgets": {}}', encoding="utf-8")
-        with self.assertRaises(artifact_accessors.ArtifactAccessError):
-            csw._budget(root)
+    def test_absent_budget_uses_the_documented_defaults(self):
+        root = _tree({"a": ["u"]}, {"u": 10})
+        self.assertEqual(csw.scan(root).budget, {"universal": 1900, "agent": 5500})
+
+    def test_malformed_present_budget_refuses(self):
+        for bad in (1900, {"universal": 0, "agent": 5}, {"universal": "1900", "agent": 5500}):
+            root = _tree({"a": ["u"]}, {"u": 10})
+            config = build_config()
+            config["budgets"]["preload_warn_words"] = bad
+            (root / ".harness" / "harness.json").write_text(json.dumps(config), encoding="utf-8")
+            with self.assertRaises(artifact_accessors.ArtifactAccessError, msg=repr(bad)):
+                csw._budget(root)
 
     def test_missing_skill_is_an_error(self):
         root = _tree({"a": ["u", "ghost"]}, {"u": 10}, {"universal": 1, "agent": 1})

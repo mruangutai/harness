@@ -45,22 +45,20 @@ OUTCOMES = ("converted", "skipped-dirty", "excluded")
 
 # The planning-baseline checker (git archive 652e70d4 .claude/skills/harness/bin) run once against
 # a fresh f58_sparse_fixture clone, normalised by `finding_keys`. Recorded 2026-10-05.
+# FEAT-2297 retired six keys, each a consequence of harness.json's schema defaults (an absent key
+# reads as its declared default): INV-32/INV-43 "no panel/seam era key" (absent era = null),
+# INV-22 "run counting INACTIVE" x3 (absent max_total_runs = 20) and INV-42 "UNBUDGETED" (absent
+# preload_warn_words = its default). Measured on a v3 clone: 9 kept, 0 added.
 BASELINE_KEYS = {
     ("VIOLATION", "-", ("FEAT-1-alpha",)),
     ("VIOLATION", "-", ("FEAT-10-kaya-app",)),
     ("VIOLATION", "-", ("FEAT-2-beta",)),
     ("VIOLATION", "INV-29", ()),
     ("VIOLATION", "INV-31", ()),
-    ("VIOLATION", "INV-32", ()),
     ("VIOLATION", "INV-34", ("FEAT-1-alpha",)),
     ("VIOLATION", "INV-34", ("FEAT-10-kaya-app",)),
     ("VIOLATION", "INV-34", ("FEAT-2-beta",)),
-    ("VIOLATION", "INV-43", ()),
     ("note", "-", ()),
-    ("note", "INV-22", ("FEAT-1-alpha",)),
-    ("note", "INV-22", ("FEAT-10-kaya-app",)),
-    ("note", "INV-22", ("FEAT-2-beta",)),
-    ("note", "INV-42", ()),
 }
 FEATURE_ID = re.compile(r"\b(?:FEAT|BUG)-\d+(?:-[a-z0-9]+)*")
 

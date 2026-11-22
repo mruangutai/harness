@@ -10,6 +10,7 @@ ROOT = os.path.abspath(os.path.join(TESTS, "..", ".."))
 sys.path.insert(0, TESTS)
 
 from check_state_support import SCRIPT, _root_env
+from harness_config_support import write_config
 
 
 def _run_state(content):
@@ -20,6 +21,7 @@ def _run_state(content):
         os.makedirs(run_dir, exist_ok=True)
         with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w") as handle:
             handle.write("agents: {}\n")
+        write_config(os.path.join(tmp, ".harness", "harness.json"))
         with open(os.path.join(run_dir, "state.yaml"), "w") as handle:
             handle.write(content)
         result = subprocess.run(

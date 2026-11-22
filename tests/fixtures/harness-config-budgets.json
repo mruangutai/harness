@@ -1,0 +1,44 @@
+{
+  "default": {
+    "schema_version": 3,
+    "budgets": {
+      "max_total_cycles": 10,
+      "max_total_runs": 20,
+      "orchestrator_context_warn_tokens": 200000,
+      "plan_phase_warn_minutes": 90,
+      "rework_round_minutes": 45,
+      "preload_warn_words": {
+        "universal": 1900,
+        "agent": 5500
+      }
+    }
+  },
+  "context_150000": {
+    "schema_version": 3,
+    "budgets": {
+      "orchestrator_context_warn_tokens": 150000,
+      "max_total_cycles": 10,
+      "max_total_runs": 20,
+      "plan_phase_warn_minutes": 90,
+      "rework_round_minutes": 45,
+      "preload_warn_words": {
+        "universal": 1900,
+        "agent": 5500
+      }
+    }
+  },
+  "plan_30": {
+    "schema_version": 3,
+    "budgets": {
+      "plan_phase_warn_minutes": 30,
+      "max_total_cycles": 10,
+      "max_total_runs": 20,
+      "orchestrator_context_warn_tokens": 200000,
+      "rework_round_minutes": 45,
+      "preload_warn_words": {
+        "universal": 1900,
+        "agent": 5500
+      }
+    }
+  }
+}

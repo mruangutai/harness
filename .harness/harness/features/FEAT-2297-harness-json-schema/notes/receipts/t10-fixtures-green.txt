@@ -1,0 +1,27 @@
+== python3 tests/integration/test-harness-config-fixtures.py -> exit 0
+0 finding(s)
+== python3 tests/unit/test-artifact-accessors.py -> exit 0
+Ran 25 tests in 0.142s
+
+OK
+== python3 tests/unit/test-prune-run-evidence.py -> exit 0
+PASS - prune names each symlink it skipped
+PASS - a kept run, an outside run and an outside ui/ reached through links keep their ui/ bytes
+all checks passed
+== python3 tests/integration/test-upgrade-config.py -> exit 1
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-upgrade-config.py", line 262, in <module>
+    budgets_root = project(harness_json=json.dumps(budgets_project))
+TypeError: project() got an unexpected keyword argument 'harness_json'
+== python3 tests/integration/test-merge-gate.py -> exit 0
+ok    FEAT-2225 merge-distill refuses a PR that changes no Expertise
+ok    FEAT-2225 a shipped feature's distill candidate is not exempt
+ALL PASSED
+== python3 tests/integration/test-validate-digest.py -> exit 0
+ok    [sentinel] every unrelated live claim is byte-identical after the suite
+
+ALL PASSED.
+== python3 tests/integration/test-omp-native-gate-runtime.py -> exit 0
+ok    plan-sign-gate.py startup failure: 'git branch -d x' -> allowed
+
+445 passed, 0 failed in 14.4s
+== python3 tests/integration/test-upgrade-config.py (after drop= rewrite) -> exit 0

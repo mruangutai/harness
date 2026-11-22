@@ -384,26 +384,6 @@ def main():
         check("no board configured: the issue lifecycle still ran — T-01 and T-02 are recorded",
               t1R is not None and t2R is not None, str(docR))
 
-    # --- an UNUSABLE board config (github.board missing station_field) is a LOUD failure of the
-    #     WHOLE invocation — exit 2, the offending key on stderr — not an environmental
-    #     precondition and not a skipped station write (FEAT-24 T-04, Part B item 4).
-    with tempfile.TemporaryDirectory() as tmpW:
-        install_gh(tmpW, FAKE_GH_STATIONS)
-        featW = stage_station(
-            tmpW, "FEAT-88-unusable-board",
-            [("T-01", "done")],
-            issues={},
-        )
-        json.dump(
-            {"github": {"sync": True, "repo": "implentio/fake",
-                         "board": {"owner": "mruangutai", "number": 3}}},
-            open(os.path.join(tmpW, ".harness", "harness.json"), "w"),
-        )
-        r = run(["open", featW], tmpW, {"FACTORY_GH": os.path.join(tmpW, "gh")})
-        check("an unusable board config is a loud failure, not a skipped station write",
-              r.returncode == 2 and "station_field" in r.stderr and "station_field" not in r.stdout,
-              f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
-
     # =============================================================================================
     # FEAT-41 T-16 — start-task's PLAN WRITE fails loudly, and writes no card when it does.
     # The case T-06 introduced the behaviour for and could not land, because this suite was red.

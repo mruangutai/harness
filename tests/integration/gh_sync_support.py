@@ -16,6 +16,8 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from harness_config_support import build_config, write_config  # noqa: E402
 import importlib.util
 import json
 import os
@@ -78,7 +80,7 @@ def stage(tmp, sync=True, repo="implentio/fake", phrase="reliable csv export",
     g = {"sync": sync, "board": None}
     if repo:
         g["repo"] = repo
-    json.dump({"github": g}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
+    write_config(os.path.join(tmp, ".harness", "harness.json"), {"github": g})
     h1 = f"# BRIEF — {feat_name} — {phrase}" if phrase else f"# BRIEF — {feat_name}"
     open(os.path.join(feat, "BRIEF.md"), "w").write(f"""{h1}
 
@@ -621,9 +623,9 @@ def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True, 
     g = {"sync": sync}
     if repo:
         g["repo"] = repo
-    g["board"] = ({"owner": "mruangutai", "number": 3, "station_field": "Status",
+    g["board"] = ({"owner": "implentio", "number": 3, "station_field": "Status",
                     "stations": list(stations or FULL_STATIONS)} if board else None)
-    json.dump({"github": g}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
+    write_config(os.path.join(tmp, ".harness", "harness.json"), {"github": g})
 
 
 def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, approval=None,
@@ -746,10 +748,10 @@ def stage_fleet(tmp, feat_name="FEAT-9000-fleet", script=FAKE_GH_STATIONS):
         target.write("schema: factory-fleet/1\nrepos:\n"
                      "  - name: product/app\n    default_branch: release\n"
                      f"workspace_root: {tmp}/members\n")
-    product = {"github": {"sync": True, "repo": "product/app",
-                         "board": {"owner": "product", "number": 9, "station_field": "Status",
-                                   "stations": list(FULL_STATIONS)},
-                         "issue_types": {"Task": "Product work"}}}
+    product = build_config({"github": {"sync": True, "repo": "product/app",
+                                       "board": {"owner": "product", "number": 9, "station_field": "Status",
+                                                 "stations": list(FULL_STATIONS)},
+                                       "issue_types": {"Task": "Product work"}}})
     install_gh(tmp, script.replace('"number":3', '"number":9').replace("implentio/fake", "product/app"),
                product_configs={"product/app@release": product})
     path = os.path.join(feat, "feature.json")

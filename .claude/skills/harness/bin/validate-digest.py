@@ -1507,7 +1507,10 @@ def _matrix_requires_no_kind(root, feature_dir, test_kinds):
     `always` AND `when:` kinds are all explicitly `status: excluded`. Unlike `_matrix_floor`, the
     conditional half counts (a `when:` kind is qa's judgement, DEC-212), and a null `cmd` on an
     active kind is misconfigured, never an inferred skip (DEC-187)."""
-    matrix, tasks = _load_matrix_inputs(root, feature_dir)
+    try:
+        matrix, tasks = _load_matrix_inputs(root, feature_dir)
+    except artifact_accessors.ArtifactAccessError:
+        return False  # fails closed: the gate stays binding, and _qa_kinds_errors names the cause
     if matrix is None:
         return False
     started = _started_tasks(tasks)
@@ -1637,7 +1640,11 @@ def _qa_kinds_errors(seen, verdict, feature_dir):
     test_kinds = _load_test_kinds(qa_root)[0] if qa_root else None
     err = _qa_kind_errors(kinds, verdict, test_kinds) if isinstance(kinds, list) and kinds else []
     if verdict == "PASS" and seen.get("matrix_ok") is True and feature_dir and qa_root:
-        err += _matrix_floor_errors(kinds, _matrix_floor(qa_root, feature_dir, test_kinds))
+        try:
+            err += _matrix_floor_errors(kinds, _matrix_floor(qa_root, feature_dir, test_kinds))
+        except artifact_accessors.ArtifactAccessError as exc:
+            err.append(f"matrix_ok: true but harness.json could not be read ({exc}), so the "
+                       f"matrix floor is unknown — repair harness.json and rerun.")
     return err
 
 
@@ -1645,16 +1652,16 @@ _MATRIX_UNSTARTED = ("todo",)
 
 
 def _load_matrix_inputs(root, feature_dir):
-    """`(test_matrix, tasks)` from the checkout's harness.json and the plan, or `(None, None)`."""
+    """`(test_matrix, tasks)` from the checkout's validated harness.json and the plan, or
+    `(None, None)` when the plan cannot be read. A missing or invalid config raises
+    ArtifactAccessError — it is a refusal, never an underivable floor (FEAT-2297)."""
+    matrix = artifact_accessors.load_harness_json(
+        os.path.join(root, ".harness", "harness.json"))["test_matrix"]
     try:
-        matrix = artifact_accessors.load_harness_json(
-            os.path.join(root, ".harness", "harness.json")).get("test_matrix")
         tasks = artifact_accessors.load_plan(os.path.join(feature_dir, "plan.yaml")).get("tasks")
     except (OSError, artifact_accessors.ArtifactAccessError, harness_yaml.YamlParseError):
         return None, None
-    if not isinstance(matrix, dict) or not isinstance(tasks, list):
-        return None, None
-    return matrix, tasks
+    return (matrix, tasks) if isinstance(tasks, list) else (None, None)
 
 
 def _always_kinds(matrix, task):

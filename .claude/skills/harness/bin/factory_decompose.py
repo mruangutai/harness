@@ -367,12 +367,9 @@ def _task_labels(task, feat_id, state):
 
 def _issue_type_overrides(fleet, repo):
     """The target repository's OWN github.issue_types overrides. Capability is per target
-    repository and is never inherited; a FleetError (the repo's harness.json is unreadable
-    or invalid) yields {} so the defaults apply rather than aborting the run."""
-    try:
-        return gh_issue_types.overrides_from_config(factory_config.product_config(fleet, repo))
-    except artifact_accessors.FleetError:
-        return {}
+    repository and is never inherited. An unreadable or invalid product config raises FleetError
+    to the command's refusal boundary (FEAT-2297) — never default overrides."""
+    return gh_issue_types.overrides_from_config(factory_config.product_config(fleet, repo))
 
 
 def _print_issue_types_state(repo, state, message):

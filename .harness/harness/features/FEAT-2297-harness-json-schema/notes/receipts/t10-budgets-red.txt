@@ -1,0 +1,5 @@
+FAIL  tests/fixtures/harness-config-budgets.json: `default` is missing or stale against build_config
+FAIL  tests/fixtures/harness-config-budgets.json: `context_150000` is missing or stale against build_config
+FAIL  tests/fixtures/harness-config-budgets.json: `plan_30` is missing or stale against build_config
+3 finding(s)
+exit=1

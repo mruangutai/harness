@@ -20,9 +20,10 @@ import subprocess
 import sys
 import shutil
 import tempfile
-from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, copy_check_state, make_fixture, run,
+from check_state_support import (SCRIPT, copy_check_state, make_fixture, run,
     _HOOKS_REL_T, _hb, _root_env)
 from git_support import add_worktree, commit_feature, commit_files, init_repo
+from harness_config_support import write_config
 
 
 def case_u():
@@ -189,8 +190,7 @@ def case_x():
     def build(tmp, marker=True, overrides=None, evidence=True):
         h = os.path.join(tmp, ".harness")
         os.makedirs(h, exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write(HARNESS_JSON_SYNC_OFF)
+        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
         with open(os.path.join(h, "team-config.yaml"), "w") as f:
             f.write(STUBS[".harness/team-config.yaml"])
         if evidence:
@@ -282,26 +282,21 @@ def case_x():
         build(tmp)
         import shutil
         bindir = os.path.join(tmp, "binx")
-        os.makedirs(bindir)
-        copy_check_state(bindir)              # FEAT-69: the entry and its package
-        # EVERY MODULE EXCEPT layout_migration.py, STATED AS THAT RATHER THAN AS A LIST.
+        # EVERY FILE EXCEPT layout_migration.py, STATED AS THAT RATHER THAN AS A LIST.
         #
         # This was an explicit list of the script's imports, and the list was the defect. It
         # named harness_yaml, then harness_boundary when FEAT-42 T-12 added it, and each time
         # the script gained an import this case went red for the WRONG module — the script
         # refusing on a missing dependency before any invariant ran, reported as "INV-27 did
-        # not say CANNOT RUN". FEAT-41 T-07 hit it again with factory_config, whose own
-        # transitive closure is seven modules (factory_cli, factory_gh, gh_cost_log,
-        # gh_issues ...), none of which this case has anything to say about.
+        # not say CANNOT RUN". FEAT-41 T-07 hit it again with factory_config; FEAT-2297 again
+        # with the config schema the loader reads from config-schemas/, a directory a `*.py`
+        # copy never carried.
         #
         # The case's actual premise is "a bin directory complete but for layout_migration.py",
-        # so that is what is built. Self-maintaining: a new import needs no edit here, and the
-        # one absence under test cannot be diluted by an unrelated one.
-        for _f in sorted(os.listdir(os.path.dirname(SCRIPT))):
-            if not _f.endswith(".py") or _f == "layout_migration.py":
-                continue
-            shutil.copy(os.path.join(os.path.dirname(SCRIPT), _f),
-                        os.path.join(bindir, _f))
+        # so that is what is built. Self-maintaining: a new import or data file needs no edit
+        # here, and the one absence under test cannot be diluted by an unrelated one.
+        shutil.copytree(os.path.dirname(SCRIPT), bindir,
+                        ignore=shutil.ignore_patterns("layout_migration.py", "__pycache__"))
         env = dict(os.environ)
         env = _root_env(tmp, env)
         r = subprocess.run([os.path.join(bindir, "check-state.py")],
@@ -661,8 +656,7 @@ def _inv31_fixture(tmp, hooks_path=None, post_merge="executable"):
     subprocess.run(["git", "init", "-q"], cwd=tmp, capture_output=True)
     h = os.path.join(tmp, ".harness")
     os.makedirs(os.path.join(h, "harness", "features"), exist_ok=True)
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        f.write('{"github": {"sync": false}}\n')
+    write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
     hooks_dir = os.path.join(tmp, _HOOKS_REL_T)
     os.makedirs(hooks_dir, exist_ok=True)
     if post_merge != "absent":

@@ -230,7 +230,6 @@ SELF_GRADING_ALLOWLIST = {
     ("test-code-grade-cli.py", "test_diff_and_determinism"): 2,       # SC-15 item 10
     ("test-code-grade.py", "check_commit_resolution"): 2,             # SC-15 item 11
     ("test-code-grade.py", "check_changed_function_resolution"): 2,   # SC-15 item 12
-    ("test-gate-policy.py", "check_policy_loading"): 2,               # SC-15 item 14
     ("validate-digest.py", "reviewed_python_change"): 2,              # SC-15 item 15
     # Pre-existing legacy debt, never gated by the FEAT-43 diff (7ccfae8..a643e44): confirmed by
     # running `code-grade.py --base 7ccfae8..a643e44` and checking each qualname is absent from
@@ -634,16 +633,6 @@ def check_classify_precedence():
     return failures
 
 
-def check_classify_rejects_bad_test_kinds():
-    failures = 0
-    for bad in (None, [], {"unit": "not-a-mapping"}, {"unit": {"status": "active"}}):
-        try:
-            code_grade.classify([_grade_stub("fn", 4, path="src/prod.py")], bad)
-        except code_grade.TestKindsError:
-            continue
-        failures += check(True, False, f"malformed test_kinds {bad!r} must raise TestKindsError")
-    return failures
-
 def check_pre_image_resolution_priority():
     """Characterizes the priority _resolve_pre_image enforces: a qualname match wins
     over a body-hash match, a body-hash match wins when no name matches, and a missing
@@ -979,7 +968,6 @@ def main():
         check_is_test_path_honors_classifies_tests,
         check_classify_grade_two_is_reasoned,
         check_classify_precedence,
-        check_classify_rejects_bad_test_kinds,
     )
     failures = sum(fn() for fn in checks)
     if failures:

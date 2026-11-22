@@ -23,6 +23,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import ast
 import contextlib
 import io
@@ -37,6 +38,7 @@ import yaml
 import factory_config as fc
 import harness_boundary as hb
 import artifact_accessors as accessors
+from harness_config_support import build_config, write_config  # noqa: E402
 
 FAILS = 0
 RAN = 0
@@ -99,44 +101,21 @@ def deep_copy(d):
 SIX_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
 
 
-def full_stations(*, drop=None, extra=None, replace=None):
-    """The station DECLARATION, which FEAT-41 T-01 makes an ordered LOWERCASE LIST rather than a
-    mapping of six keys to six operator-chosen column names. There are no per-station overrides
-    any more, and that absence is the point: the column name is DERIVED by
-    factory_config.station_column, so a fixture cannot express a renamed column because the
-    declaration cannot either.
-
-    drop removes one station, extra appends one, replace substitutes the whole list — the three
-    shapes the rejection cases need.
-    """
-    if replace is not None:
-        # NOT list(replace) — that would turn a MAPPING into its list of keys, i.e. into the
-        # valid declaration, and the pre-FEAT-41-mapping rejection case would pass while
-        # asserting nothing. replace is substituted verbatim, whatever its container.
-        return replace
-    st = list(SIX_STATIONS)
-    if drop is not None:
-        st.remove(drop)
-    if extra is not None:
-        st.append(extra)
-    return st
-
-
-def board_dict(number, **station_kwargs):
-    """A valid board mapping. stations is the ordered lowercase list mandated by FEAT-41 T-01
-    (was a six-key mapping under FEAT-24 T-02 / D-06, widened to six by FEAT-33 T-02)."""
+def board_dict(number):
+    """A valid board mapping: the stations declaration is the ordered lowercase list mandated by
+    FEAT-41 T-01. Every malformed shape is the harness.json schema's to refuse (FEAT-2297)."""
     return {
-        "owner": "mruangutai",
+        "owner": "implentio",
         "number": number,
         "station_field": "Status",
-        "stations": full_stations(**station_kwargs),
+        "stations": list(SIX_STATIONS),
     }
 
 
 def config_doc(board):
-    """The shape product_config returns: a full document with a github block holding board —
-    never a bare board mapping, because that is what the real remote file looks like."""
-    return {"github": {"board": board}}
+    """A valid product harness.json carrying `board`, built by the shared fixture builder — the
+    whole document product_config reads, never a bare board mapping."""
+    return build_config({"github": {"repo": "acme/product", "board": board}})
 
 
 # --- 1. a well-formed fleet loads and its values round-trip -----------------------------
@@ -289,30 +268,14 @@ for name, mutate in [
             check(name, True)
         except Exception as e:
             check(name, False, f"raised {type(e).__name__}: {e}")
-# REMOVED from this loop: (14b) repos[].board.stations empty value, (14c) repos[].board.number is
-# a bool. Both drove board shapes through load_fleet, a path that is gone. (14b)'s coverage
-# relocates to "board_for raises naming the file and the key: a station value is empty" below.
-# (14c)'s coverage relocates to the direct validate_board() bool-rejection case below (kept under
-# its own name, driven through the surviving public validator directly rather than through
-# board_for, since it is testing validate_board's own isinstance/bool guard, not the remote-read
-# plumbing).
-
-# --- (14c) RELOCATED: validate_board still rejects a bool for number, driven directly -------
-_bool_board = board_dict(3)
-_bool_board["number"] = True
-try:
-    fc.validate_board(_bool_board, "github.board", "test-path")
-    check("(14c) repos[].board.number is a bool, not an int", False, "did not raise")
-except accessors.FleetError:
-    check("(14c) repos[].board.number is a bool, not an int", True)
-except Exception as e:
-    check("(14c) repos[].board.number is a bool, not an int", False, f"{type(e).__name__}: {e}")
+# (14b)/(14c) drove board shapes through load_fleet, a path that is gone; board shape is now the
+# harness.json schema's (FEAT-2297), so no reader-level shape case survives here.
 
 # --- (6)/(28b) RELOCATED: a digit string is now VALID and is coerced to an int (item 2c) -----
 _digit_board = board_dict(3)
 _digit_board["number"] = "3"
 try:
-    _digit_result = fc.validate_board(_digit_board, "github.board", "test-path")
+    _digit_result = fc.validate_board(_digit_board)
     _digit_ok = (_digit_result["number"] == 3 and isinstance(_digit_result["number"], int)
                  and not isinstance(_digit_result["number"], bool))
 except Exception as e:
@@ -398,7 +361,7 @@ check("load_fleet still requires repos[].name, repos[].default_branch and worksp
 # comparison — which is where a wrong capitalisation can still be caught.
 _list_board = board_dict(3)
 try:
-    _result = fc.validate_board(_list_board, "github.board", "test-path")
+    _result = fc.validate_board(_list_board)
     _stations = _result["stations"]
     _ok = (
         _result is _list_board
@@ -409,101 +372,6 @@ except Exception as e:
     _ok, _stations = False, f"{type(e).__name__}: {e}"
 check("validate_board accepts the ordered lowercase station list, returns the board, and "
       "carries stations as a tuple of the six", _ok, _stations)
-
-for _key in SIX_STATIONS:
-    _board = board_dict(3, drop=_key)
-    try:
-        fc.validate_board(_board, "github.board", "test-path")
-        check(f"validate_board rejects a station list missing {_key}", False, "did not raise")
-    except accessors.FleetError as e:
-        check(f"validate_board rejects a station list missing {_key}",
-              "github.board.stations" in str(e), str(e))
-    except Exception as e:
-        check(f"validate_board rejects a station list missing {_key}", False,
-              f"{type(e).__name__}: {e}")
-
-# (a) T-01's own case: a declaration that RENAMES one station is refused, and the message names
-# the offending key. This is the shape an operator reaches for first — the board column is called
-# "Icebox", so they rename the station to match — and it is exactly what FEAT-41 forbids: the six
-# names are fixed and the COLUMN is derived from them, never the other way round.
-for _key in SIX_STATIONS:
-    _renamed = [("icebox" if s == _key else s) for s in SIX_STATIONS]
-    _board = board_dict(3, replace=_renamed)
-    try:
-        fc.validate_board(_board, "github.board", "test-path")
-        check(f"validate_board refuses a declaration that renames {_key}", False, "did not raise")
-    except accessors.FleetError as e:
-        check(f"validate_board refuses a declaration that renames {_key}",
-              "github.board.stations" in str(e), str(e))
-    except Exception as e:
-        check(f"validate_board refuses a declaration that renames {_key}", False,
-              f"{type(e).__name__}: {e}")
-
-# (b) the six names in a different ORDER is refused. The list is ordered because the order IS the
-# workflow; a set comparison here would pass and is the reason this case is written per-rotation
-# rather than once.
-for _shift in range(1, 6):
-    _rotated = list(SIX_STATIONS[_shift:]) + list(SIX_STATIONS[:_shift])
-    _board = board_dict(3, replace=_rotated)
-    try:
-        fc.validate_board(_board, "github.board", "test-path")
-        check(f"validate_board refuses the six names rotated by {_shift}", False, "did not raise")
-    except accessors.FleetError as e:
-        check(f"validate_board refuses the six names rotated by {_shift}",
-              "github.board.stations" in str(e), str(e))
-    except Exception as e:
-        check(f"validate_board refuses the six names rotated by {_shift}", False,
-              f"{type(e).__name__}: {e}")
-
-# A MAPPING is now the wrong shape outright — this is the pre-FEAT-41 declaration, and it must be
-# refused rather than silently accepted by an implementation that only checks membership.
-_mapping_board = board_dict(3, replace={k: k.capitalize() for k in SIX_STATIONS})
-try:
-    fc.validate_board(_mapping_board, "github.board", "test-path")
-    check("validate_board refuses the pre-FEAT-41 six-key MAPPING", False, "did not raise")
-except accessors.FleetError as e:
-    check("validate_board refuses the pre-FEAT-41 six-key MAPPING",
-          "github.board.stations" in str(e), str(e))
-except Exception as e:
-    check("validate_board refuses the pre-FEAT-41 six-key MAPPING", False,
-          f"{type(e).__name__}: {e}")
-
-# The remedy line must name the exact list to write, or the operator cannot act on the refusal.
-try:
-    fc.validate_board(board_dict(3, drop="done"), "github.board", "test-path")
-    _remedy_ok, _remedy = False, "did not raise"
-except accessors.FleetError as e:
-    _remedy = str(e)
-    _remedy_ok = all(s in _remedy for s in SIX_STATIONS)
-check("validate_board's stations remedy names all six station names to write",
-      _remedy_ok, _remedy)
-
-# The five-station declaration .harness/harness.json carried before FEAT-33 widened it, now in
-# list form. Kept because the file really held this shape once and a reader may still have it.
-_five_pre_widening = board_dict(3, replace=["backlog", "ready", "building", "review", "done"])
-try:
-    fc.validate_board(_five_pre_widening, "github.board", "test-path")
-    check("(X) validate_board rejects the five-station declaration carried before FEAT-33",
-          False, "did not raise")
-except accessors.FleetError as e:
-    check("(X) validate_board rejects the five-station declaration carried before FEAT-33",
-          "github.board.stations" in str(e), str(e))
-except Exception as e:
-    check("(X) validate_board rejects the five-station declaration carried before FEAT-33",
-          False, f"{type(e).__name__}: {e}")
-
-# abandoned is NOT a seventh station. It names no board column and never reaches the board, so a
-# declaration that adds it is refused exactly like any other extension.
-_seven_board = board_dict(3, extra="abandoned")
-try:
-    fc.validate_board(_seven_board, "github.board", "test-path")
-    check("(X) validate_board rejects a seventh station that adds abandoned", False,
-          "did not raise")
-except accessors.FleetError:
-    check("(X) validate_board rejects a seventh station that adds abandoned", True)
-except Exception as e:
-    check("(X) validate_board rejects a seventh station that adds abandoned", False,
-          f"{type(e).__name__}: {e}")
 
 # THE TIE TO feature-schema.json IS GONE BECAUSE THE KEY IS (FEAT-41 T-07), and what replaces it
 # is an assertion about that absence.
@@ -649,76 +517,24 @@ for _bad in (*fc.TERMINAL_STATIONS, "Done", "Icebox", "", "DONE"):
 # station_names returns the validated tuple, and is the accessor every other module uses instead
 # of reaching into board["stations"] itself.
 try:
-    _names = fc.station_names(fc.validate_board(board_dict(3), "github.board", "test-path"))
+    _names = fc.station_names(fc.validate_board(board_dict(3)))
     _names_ok = _names == fc.MANDATED_STATIONS and isinstance(_names, tuple)
 except Exception as e:
     _names_ok, _names = False, f"{type(e).__name__}: {e}"
 check("station_names returns the six mandated stations as a tuple", _names_ok, _names)
 
-# --- board_for: the eight malformed shapes, driven through product_config + board_for ---------
-# The SAME eight shapes T-04 drives through gh_board.load_board, driven here through the OTHER
-# surviving validate_board caller, so the one validator is proved loud from both entry points.
-
-
-def board_for_raise_case(shape_name, doc, present, absent=None,
-                          repo="mruangutai/harness", branch="main"):
-    with tempfile.TemporaryDirectory() as td:
-        fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
-        with patched_file_at_ref(lambda r, p, ref, _doc=doc: json.dumps(_doc)):
-            try:
-                fc.board_for(fleet, repo)
-                ok, msg = False, "did not raise"
-            except accessors.FleetError as e:
-                msg = str(e)
-                ok = (f"{repo}@{branch}:.harness/harness.json" in msg) and (present in msg)
-                if absent is not None:
-                    ok = ok and (absent not in msg)
-            except Exception as e:
-                ok, msg = False, f"{type(e).__name__}: {e}"
-    check(f"board_for raises naming the file and the key: {shape_name}", ok, msg)
-
-
-_b_owner_missing = board_dict(3)
-del _b_owner_missing["owner"]
-_b_number_not_int = board_dict(3)
-_b_number_not_int["number"] = 2.5  # a FLOAT, never a digit string — item 2c makes "3" valid.
-_b_station_field_missing = board_dict(3)
-_b_station_field_missing["station_field"] = ""
-_b_stations_missing = board_dict(3)
-del _b_stations_missing["stations"]
-_b_stations_key_set_wrong = board_dict(3, drop="done")
-_b_station_value_empty = board_dict(3, replace=list(SIX_STATIONS[:-1]) + [""])
-
-board_for_raise_case("no board key", {"github": {}}, present="github.board")
-board_for_raise_case("board is not a mapping", {"github": {"board": "not-a-mapping"}},
-                      present="github.board")
-# THE where-CONTRACT PAIR (item 2a) is pinned on THIS shape — "owner missing" — matching T-04's
-# load_board case on the SAME shape, so the contract is proved at both entry points.
-board_for_raise_case("owner missing", config_doc(_b_owner_missing),
-                      present="github.board.owner", absent="github.board.board")
-board_for_raise_case("number not an int", config_doc(_b_number_not_int),
-                      present="github.board.number")
-board_for_raise_case("station_field missing", config_doc(_b_station_field_missing),
-                      present="github.board.station_field")
-board_for_raise_case("stations missing", config_doc(_b_stations_missing),
-                      present="github.board.stations")
-board_for_raise_case("stations key set wrong", config_doc(_b_stations_key_set_wrong),
-                      present="github.board.stations")
-board_for_raise_case("a station value is empty", config_doc(_b_station_value_empty),
-                      present="github.board.stations")
-
-# --- board_for raises when the product config declares no board (github block absent) --------
+# --- board_for: a board is an OPERATIONAL precondition, not a schema one -------------------
+# The schema defaults an absent github.board to null, so a member config without a board is VALID;
+# the factory still cannot serve a repository with no board, and board_for refuses it by name.
 with tempfile.TemporaryDirectory() as td:
     fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
-    with patched_file_at_ref(lambda r, p, ref: json.dumps({})):
+    with patched_file_at_ref(lambda r, p, ref: json.dumps(build_config())):
         try:
             fc.board_for(fleet, "mruangutai/harness")
             ok, msg = False, "did not raise"
         except accessors.FleetError as e:
-            ok, msg = True, str(e)
-        except Exception as e:
-            ok, msg = False, f"{type(e).__name__}: {e}"
-    check("board_for raises when the product config declares no board", ok, msg)
+            ok, msg = "github.board" in str(e), str(e)
+    check("board_for refuses a valid member config whose board is null", ok, msg)
 
 # --- board_for resolves through product_config (relocates old (26), and (1)'s owner round-trip)
 with tempfile.TemporaryDirectory() as td:
@@ -745,7 +561,7 @@ with tempfile.TemporaryDirectory() as td:
     with patched_file_at_ref(_stub):
         _b1 = fc.board_for(fleet, "mruangutai/harness")
         _b2 = fc.board_for(fleet, "mruangutai/sample-product")
-        _ok = (_b1["number"] == 3 and _b1["owner"] == "mruangutai"
+        _ok = (_b1["number"] == 3 and _b1["owner"] == "implentio"
                and _b2["number"] == 2
                and tuple(_b2["stations"]) == fc.MANDATED_STATIONS)
     check("board_for resolves through product_config", _ok, (_b1, _b2))
@@ -778,23 +594,6 @@ except Exception as e:
     _remote_ok, _remote_doc = False, f"{type(e).__name__}: {e}"
 check("product_config remote harness.json text is accepted by load_harness_json",
       _remote_ok, _remote_doc)
-# T-03: remote contents must take the canonical strict parser, not json.loads directly.
-with tempfile.TemporaryDirectory() as td:
-    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
-    fc.clear_product_config_memo()
-    _strict_remote = json.dumps(config_doc(board_dict(3)))[:-1] + ',"strict_probe":NaN}'
-    with patched_file_at_ref(lambda r, p, ref: _strict_remote):
-        try:
-            fc.product_config(fleet, "mruangutai/harness")
-            _strict_ok, _strict_detail = False, "did not raise"
-        except accessors.FleetError as e:
-            _strict_detail = str(e)
-            _strict_ok = "mruangutai/harness" in _strict_detail
-        except Exception as e:
-            _strict_ok, _strict_detail = False, f"{type(e).__name__}: {e}"
-    check("product_config rejects non-finite remote harness.json through the strict accessor",
-          _strict_ok, _strict_detail)
-
 
 # (ii) a failing remote read raises FleetError naming repo, path and ref.
 with tempfile.TemporaryDirectory() as td:
@@ -824,53 +623,6 @@ with tempfile.TemporaryDirectory() as td:
     check("product_config raises naming repo, path and ref when the remote read fails",
           _ok, _msg)
 
-# (ii-b) the remote content is not JSON at all.
-with tempfile.TemporaryDirectory() as td:
-    _d = deep_copy(good_fleet_dict())
-    _d["repos"][0]["default_branch"] = "trunk-not-json"
-    fleet = accessors.load_fleet(write_fleet(td, _d))
-
-    with patched_file_at_ref(lambda r, p, ref: "not { valid json at all"):
-        try:
-            fc.product_config(fleet, "mruangutai/harness")
-            _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
-            _msg = "did not raise"
-        except accessors.FleetError as e:
-            _msg = str(e)
-            _type_ok = True
-            _repo_ok = "mruangutai/harness" in _msg
-            _path_ok = ".harness/harness.json" in _msg
-            _ref_ok = "trunk-not-json" in _msg
-        except Exception as e:
-            _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
-            _msg = f"{type(e).__name__}: {e}"
-    check("product_config raises naming repo, path and ref when the remote content is not JSON",
-          _type_ok and _repo_ok and _path_ok and _ref_ok, _msg)
-
-# (ii-c) the remote content is JSON but not a mapping (a list here).
-with tempfile.TemporaryDirectory() as td:
-    _d = deep_copy(good_fleet_dict())
-    _d["repos"][0]["default_branch"] = "trunk-not-mapping"
-    fleet = accessors.load_fleet(write_fleet(td, _d))
-
-    with patched_file_at_ref(lambda r, p, ref: json.dumps([1, 2, 3])):
-        try:
-            fc.product_config(fleet, "mruangutai/harness")
-            _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
-            _msg = "did not raise"
-        except accessors.FleetError as e:
-            _msg = str(e)
-            _type_ok = True
-            _repo_ok = "mruangutai/harness" in _msg
-            _path_ok = ".harness/harness.json" in _msg
-            _ref_ok = "trunk-not-mapping" in _msg
-        except Exception as e:
-            _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
-            _msg = f"{type(e).__name__}: {e}"
-    check("product_config raises naming repo, path and ref when the remote content is a JSON "
-          "list, not a mapping",
-          _type_ok and _repo_ok and _path_ok and _ref_ok, _msg)
-
 # (iii) never falls back to a checkout, even when one exists on disk with a DIFFERENT board.
 with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
     fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
@@ -879,8 +631,7 @@ with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
     _checkout_board = board_dict(9)
     _checkout_dir = fc.workspace_path(fleet, _repo)
     os.makedirs(os.path.join(_checkout_dir, ".harness"), exist_ok=True)
-    with open(os.path.join(_checkout_dir, ".harness", "harness.json"), "w", encoding="utf-8") as f:
-        json.dump(config_doc(_checkout_board), f)
+    write_config(os.path.join(_checkout_dir, ".harness", "harness.json"), config_doc(_checkout_board))
     with patched_file_at_ref(lambda r, p, ref, _b=_remote_board: json.dumps(config_doc(_b))):
         _result = fc.board_for(fleet, _repo)
         _ok = _result["number"] == 3
@@ -897,8 +648,8 @@ with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
     _stale_checkout_board = board_dict(777333)
     _checkout_dir = fc.workspace_path(fleet, _repo)
     os.makedirs(os.path.join(_checkout_dir, ".harness"), exist_ok=True)
-    with open(os.path.join(_checkout_dir, ".harness", "harness.json"), "w", encoding="utf-8") as f:
-        json.dump(config_doc(_stale_checkout_board), f)
+    write_config(os.path.join(_checkout_dir, ".harness", "harness.json"),
+                 config_doc(_stale_checkout_board))
 
     _stub_calls = []
 

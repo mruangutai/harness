@@ -111,84 +111,18 @@ FLEET_PATH = os.path.join(
 
 
 
-def validate_board(board, where, path):
-    """Validate one board mapping and return it. This is the ONLY board validator in the tree
-    (FEAT-24 T-02) — gh_board.load_board imports and calls this function directly rather than
-    keeping a second copy of these rules.
+def validate_board(board):
+    """Normalise one schema-validated `github.board` mapping in place and return it. The shape
+    rules (required fields, number form, the six ordered stations) live in the harness.json
+    schema (FEAT-2297); this keeps only the domain normalisation every consumer relies on.
 
-    `where` is the FULL key prefix under which `board` was found, supplied entirely by the
-    caller — never appended to here. board_for below passes "github.board" (a fleet member's own
-    .harness/harness.json carries its board at that key); there is no fleet-level caller any
-    more. Every message below names the key as f"{where}.<field>", so a caller passing
-    "github.board" produces messages like "github.board.owner" — never "github.board.board.owner",
-    which is not a key that exists in any file.
-
-    Raises FleetError naming the offending field: `where` itself (not a mapping), "<where>.owner",
-    "<where>.number", "<where>.station_field", "<where>.stations".
-
-    `number` accepts an int, or a string whose stripped form is entirely digits — that string is
-    coerced to an int. A bool, a float and a non-digit string are all rejected. On success this
-    function MUTATES board["number"] to the coerced int, so a caller reading `board["number"]`
-    after this call always sees a normalised int, and RETURNS the validated `board` mapping —
-    callers consume the return value; this function does not raise-only.
-    """
-    key_base = where
-    if not isinstance(board, dict):
-        raise artifact_accessors.FleetError(
-            "fleet key invalid", key_base, f"set {key_base}: {{...}} as a mapping in {path}"
-        )
-    if not board.get("owner"):
-        raise artifact_accessors.FleetError(
-            "fleet key invalid", f"{key_base}.owner",
-            f"set it to the GitHub owner or org in {path}",
-        )
-    number = board.get("number")
-    if isinstance(number, bool):
-        raise artifact_accessors.FleetError(
-            "fleet key invalid", f"{key_base}.number",
-            f"set it to the Projects v2 board number in {path}",
-        )
-    elif isinstance(number, int):
-        coerced = number
-    elif isinstance(number, str) and number.strip().isdigit():
-        coerced = int(number.strip())
-    else:
-        raise artifact_accessors.FleetError(
-            "fleet key invalid", f"{key_base}.number",
-            f"set it to the Projects v2 board number in {path}",
-        )
-    board["number"] = coerced
-    if not board.get("station_field"):
-        raise artifact_accessors.FleetError(
-            "fleet key invalid", f"{key_base}.station_field",
-            f"set it to the Projects v2 field name that carries the station in {path}",
-        )
-    # THE DECLARATION IS AN ORDERED LOWERCASE SEQUENCE, CHECKED FOR EQUALITY, NOT MEMBERSHIP
-    # (FEAT-41 T-01). A mapping is the pre-FEAT-41 shape and is refused here rather than
-    # tolerated, because a tolerated mapping is how two vocabularies survived in one tree. The
-    # comparison is on the ORDER too: the order is the workflow, so a rotation is refused.
-    #
-    # A TUPLE IS ACCEPTED ALONGSIDE A LIST BECAUSE THIS FUNCTION MUST BE IDEMPOTENT. It mutates
-    # board["stations"] to a tuple below, product_config MEMOISES the document it returns, and
-    # board_for re-validates that same memoised mapping on every call — so a second board_for
-    # revalidates a board this function already normalised. Accepting only `list` made the SECOND
-    # call raise on a board the FIRST call had just approved. No parsed JSON or YAML file can
-    # produce a tuple, so this widens nothing an operator can write.
-    stations = board.get("stations")
-    if (
-        not isinstance(stations, (list, tuple))
-        or list(stations) != list(MANDATED_STATIONS)
-    ):
-        raise artifact_accessors.FleetError(
-            "fleet key invalid", f"{key_base}.stations",
-            "set it to the ordered list "
-            f"{list(MANDATED_STATIONS)} in {path} — these six names are FIXED and may not be "
-            "renamed, reordered or extended; the board's column names are derived from them, so "
-            "extra columns you add to the board are untouched by the harness",
-        )
-    # The returned board carries stations as a TUPLE, so no caller can append to the validated
-    # declaration and every consumer reads the same immutable six.
-    board["stations"] = tuple(stations)
+    `number` becomes an int — the schema admits an integer, an integer-valued float, or a
+    whitespace-padded digit string. `stations` becomes a tuple, so no caller can append to the
+    declaration. IDEMPOTENT: product_config memoises the document and board_for normalises that
+    same mapping on every call, so a second call must accept what the first produced."""
+    number = board["number"]
+    board["number"] = int(number.strip() if isinstance(number, str) else number)
+    board["stations"] = tuple(board["stations"])
     return board
 
 
@@ -224,10 +158,10 @@ def product_config(fleet, repo_name):
     Resolves the entry through repo_entry, takes default_branch from it, and calls
     factory_gh.file_at_ref(repo_name, ".harness/harness.json", default_branch).
 
-    Any failure — a GhError from factory_gh.file_at_ref, a JSON parse failure, or a document that
-    does not parse to a mapping — raises FleetError naming the repository, the path and the ref,
-    via the human-readable form "<repo_name>@<default_branch>:.harness/harness.json". There is no
-    fallback to workspace_path and no default.
+    Any failure — a GhError from factory_gh.file_at_ref, or text the validated harness.json
+    loader refuses — raises FleetError naming the repository, the path and the ref via the
+    human-readable form "<repo_name>@<default_branch>:.harness/harness.json", and carrying the
+    loader's diagnosis. There is no fallback to workspace_path and no default.
 
     Successful results are memoised per (repo_name, ref) for the life of the process, so a tool
     calling board_for twice makes one network call. A failing read is NEVER memoised and never
@@ -254,7 +188,7 @@ def product_config(fleet, repo_name):
     except artifact_accessors.ArtifactAccessError as e:
         raise artifact_accessors.FleetError(
             "product config invalid", human_path,
-            f"{repo_name}'s {_PRODUCT_CONFIG_PATH} at {ref} does not parse as JSON",
+            f"repair {repo_name}'s {_PRODUCT_CONFIG_PATH} at {ref}: {e}",
         ) from e
 
     _product_config_memo[memo_key] = doc
@@ -290,26 +224,18 @@ def product_config_report(fleet):
 
 
 def board_for(fleet, repo_name):
-    """Return repo_name's own board mapping, read from its product configuration
-    (product_config above) at the key github.board, validated by validate_board. Raises
-    FleetError when the github block or the board key is absent — for a fleet member a board is
-    REQUIRED, and an explicit null is an error too, because a repository the factory serves with
-    no board is a misconfiguration, not a declaration — and raises whatever validate_board raises
-    when the board mapping itself is malformed."""
+    """Return repo_name's own board mapping, read from its validated product configuration
+    (product_config above) at github.board and normalised by validate_board. The schema defaults
+    an absent board to null, but for a fleet member a board is REQUIRED — a repository the
+    factory serves with no board is a misconfiguration — so null raises FleetError."""
     entry = repo_entry(fleet, repo_name)
-    default_branch = entry["default_branch"]
-    where = "github.board"
-    path = f"{repo_name}@{default_branch}:{_PRODUCT_CONFIG_PATH}"
-
-    doc = product_config(fleet, repo_name)
-    github = doc.get("github")
-    board = github.get("board") if isinstance(github, dict) else None
+    board = product_config(fleet, repo_name)["github"]["board"]
     if board is None:
         raise artifact_accessors.FleetError(
-            "product config missing board", where,
-            f"declare {where} in {path}",
+            "product config missing board", "github.board",
+            f"declare github.board in {repo_name}@{entry['default_branch']}:{_PRODUCT_CONFIG_PATH}",
         )
-    return validate_board(board, where, path)
+    return validate_board(board)
 
 
 def station_names(board):

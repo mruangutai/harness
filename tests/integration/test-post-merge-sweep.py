@@ -66,6 +66,7 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import concurrent.futures
 import functools
 import json
@@ -79,6 +80,7 @@ import tempfile
 
 from git_support import (add_worktree, commit_all, commit_feature, commit_files, feature_rel,
                          init_repo, quiet_git)
+from harness_config_support import write_config
 
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = _anchor_bin
@@ -98,12 +100,12 @@ REAL_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(BIN_
 BIN_ENTRIES = sorted(
     f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
 )
-# The entry scripts' sibling packages (check_state/, plan_merge/ — FEAT-69/FEAT-70), linked as
-# directories so a fixture entry finds the package beside it.
+# The entry scripts' sibling directories, linked so a fixture entry finds them beside it:
+# packages (check_state/, plan_merge/ — FEAT-69/FEAT-70) and data (config-schemas/ — the
+# validated harness.json read needs the schema, FEAT-2297).
 BIN_PACKAGES = sorted(
     d for d in os.listdir(BIN_DIR)
     if os.path.isdir(os.path.join(BIN_DIR, d)) and d != "__pycache__"
-    and os.path.exists(os.path.join(BIN_DIR, d, "__init__.py"))
 )
 
 _ROOT_RE = re.compile(r"^post-merge-sweep: resolved repository root: (.+)$", re.M)
@@ -292,8 +294,8 @@ def _seed_bootstrap_repo(path):
         f.write("probe\n")
     with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
         f.write("schema: team-config/1\n")
-    with open(os.path.join(path, ".harness", "harness.json"), "w") as f:
-        json.dump({"github": {"sync": True, "repo": "acme/repo-x", "board": None}}, f)
+    write_config(os.path.join(path, ".harness", "harness.json"),
+                 {"github": {"sync": True, "repo": "acme/repo-x", "board": None}})
     commit_all(path, "bootstrap", git=_template_git)
     return path
 
@@ -990,8 +992,8 @@ def _t07_sweep(tmp, feature, entry, sync=True):
         with open(feature_path, "w") as f:
             json.dump(document, f)
     if not sync:
-        with open(os.path.join(repo, ".harness", "harness.json"), "w") as f:
-            json.dump({"github": {"sync": False, "repo": "acme/repo-x", "board": None}}, f)
+        write_config(os.path.join(repo, ".harness", "harness.json"),
+                     {"github": {"sync": False, "repo": "acme/repo-x", "board": None}})
     subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
     subprocess.run(["git", "commit", "-qm", "set receipt"], cwd=repo, capture_output=True)
     dest = _add_wt(repo, feature)
@@ -1070,56 +1072,33 @@ def case_unproven_mirror_retention():
 
 
 
-def _write_duplicate_artifact(repo, feature, duplicate_feature):
-    if duplicate_feature:
-        path = os.path.join(
-            repo, ".harness", "harness", "features", feature, "feature.json")
-        content = (
-            '{"feature_id":"' + feature + '","branch":"other",'
-            '"branch":"feature/test","github":{"build_entry":"opened"}}')
-    else:
-        path = os.path.join(repo, ".harness", "harness.json")
-        content = (
-            '{"github":{"sync":false},"github":{"sync":true,'
-            '"repo":"acme/repo-x","board":null}}')
+def _write_duplicate_feature(repo, feature):
+    path = os.path.join(repo, ".harness", "harness", "features", feature, "feature.json")
     with open(path, "w") as stream:
-        stream.write(content)
+        stream.write('{"feature_id":"' + feature + '","branch":"other",'
+                     '"branch":"feature/test","github":{"build_entry":"opened"}}')
 
 
-def _duplicate_receipt_failure(duplicate_feature):
+def case_duplicate_receipt_inputs():
+    """Duplicate feature.json keys are an unreadable receipt: the worktree is kept. (The
+    harness.json duplicate-key twin is the central loader's case since FEAT-2297.)"""
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
         sweep = _install_fixture_bin(repo)
         feature = "FEAT-9001-fixture-non-era"
         _commit_feature(repo, feature, "Done", milestone=9)
-        _write_duplicate_artifact(repo, feature, duplicate_feature)
+        _write_duplicate_feature(repo, feature)
         subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-qm", "set duplicate"], cwd=repo,
-            capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "set duplicate"], cwd=repo, capture_output=True)
         dest = _add_wt(repo, feature)
         _, gh_env = _stub_gh(tmp)
         _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
-        run = subprocess.run(
-            [sweep], cwd=repo, capture_output=True, text=True,
-            env=_sweep_env(repo, gh_env))
+        run = subprocess.run([sweep], cwd=repo, capture_output=True, text=True,
+                             env=_sweep_env(repo, gh_env))
         if os.path.isdir(dest):
-            return None
-        artifact = "feature.json" if duplicate_feature else "harness.json"
-        return (
-            f"duplicate {artifact} keys keep the worktree",
-            False,
-            f"stdout={run.stdout!r} dest={dest}",
-        )
-
-
-def case_duplicate_receipt_inputs():
-    failures = []
-    for duplicate_feature in (False, True):
-        failure = _duplicate_receipt_failure(duplicate_feature)
-        if failure:
-            failures.append(failure)
-    return failures
+            return []
+        return [("duplicate feature.json keys keep the worktree", False,
+                 f"stdout={run.stdout!r} dest={dest}")]
 
 
 

@@ -1,0 +1,313 @@
+{
+  "feature_id": "FEAT-2297-harness-json-schema",
+  "branch": "feat/FEAT-2297-harness-json-schema",
+  "pr": 2395,
+  "review_sha": "15d6748457f534fdd29fc87d15613cda0983f52b",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-22T15:06:05+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-plan-product/digest.md",
+        "sha256": "5a083e9054962b47c7045e2c5fdd7fe0d0a1d73f7674ed0c46e934f1c66670e9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T15:42:44+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-02-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T15:47:14+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-02-plan-product/digest.md",
+        "sha256": "659f5cf620de4885143fa29a1b3d44ef6d4e1caab0f3761d5e8f4deeccfeaf51"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-22T16:08:30+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-22T22:16:05+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-validator/digest.md",
+        "sha256": "e39ca6319b3e8e653cfebc99f83799c7f8c31d07c282bb9c47325aeec9a2dee1"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-22T22:34:34+00:00"
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T22:37:13+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c1-validator/digest.md",
+        "sha256": "c4d87d3a9dc668fe616564b9e7320a578d7b05c1a366716369c75eee34ad5aca"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T22:48:11+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T15:06:04+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Cause known and files nameable, but it adds a new schema and enforcement surface (check-state rule, fail-closed validation in every reader) that gates and other features read."
+    },
+    {
+      "at": "2026-11-22T19:44:08.531556+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.intent",
+      "reason": "Operator ruling 2026-11-22: move the two non-config reader migrations into T-01."
+    },
+    {
+      "at": "2026-11-22T19:44:24.747749+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Operator ruling 2026-11-22: move the two non-config reader migrations into T-01."
+    },
+    {
+      "at": "2026-11-22T19:44:30.153494+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "Operator ruling 2026-11-22: move the two non-config reader migrations into T-01."
+    },
+    {
+      "at": "2026-11-22T19:44:35.271669+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "Operator ruling 2026-11-22: move the two non-config reader migrations into T-01."
+    },
+    {
+      "at": "2026-11-22T20:19:53.619707+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "fable-advisor ruling (operator delegate): five unowned suites broken by T-01..T-03 fallout, green on main 0bdcabbf, join T-03 files and verify; fixture/data repairs only."
+    },
+    {
+      "at": "2026-11-22T20:19:55.678514+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.verify",
+      "reason": "fable-advisor ruling (operator delegate): five unowned suites broken by T-01..T-03 fallout, green on main 0bdcabbf, join T-03 files and verify; fixture/data repairs only."
+    },
+    {
+      "at": "2026-11-22T20:21:52.638545+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "fable-advisor ruling: harness_config duplicated feature_schema's jsonschema guard (D-12 one-guard rule); T-03 routes it through feature_schema.jsonschema so test-harness-yaml passes unedited."
+    },
+    {
+      "at": "2026-11-22T20:30:25.023087+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-04.files",
+      "reason": "fable-advisor ruling: T-03's config-read branch dropped _classified_disposition_findings to grade 3 (test-code-grade pin); T-04 splits it by disposition, behaviour-preserving."
+    },
+    {
+      "at": "2026-11-22T20:58:27.846642+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-06.files",
+      "reason": "Advisor ruling: T-03 regression \u2014 feature_schema exec failure crashed check-state via harness_config; load it through harness_boundary.load_repo_module, map RepoModuleError to ArtifactAccessError (63.a)."
+    },
+    {
+      "at": "2026-11-22T21:09:06.386100+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.files",
+      "reason": "Advisor ruling: T-01 regression \u2014 sweep scrubs user-site so feature_schema caches jsonschema=None and every receipt read refuses; restore the original path after first-party imports, as branch-create-gate/gh-close-gate."
+    },
+    {
+      "at": "2026-11-22T21:27:12.949184+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.verify",
+      "reason": "Ruling #4: base is git merge-base <review-ref> origin/main at measurement time; the fixed c1724230 pin counted features merged since."
+    },
+    {
+      "at": "2026-11-22T21:27:15.467728+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.intent",
+      "reason": "Ruling #4: merge-base base; Gate A pre-existing affected files strictly negative; Gate B every new file enumerated with SC/D coverage; total reported, not gated."
+    },
+    {
+      "at": "2026-11-22T21:27:17.816403+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Ruling #4 minimal-document budget fixture + census check; ruling (a) dead unpinned branches and vacuous INV-13 retired with its references; DEC-255 records the D-06 amendment."
+    },
+    {
+      "at": "2026-11-22T21:28:21.549389+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "seams.py and the handoff docstring narrate a past crash that did abort INV-13; history stays accurate, so neither file changes."
+    },
+    {
+      "at": "2026-11-22T21:31:58.667680+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Pin the signed 152-row inventory: it exists only untracked in the main checkout; a verbatim sha256-checked copy makes the disposition check reproducible in any clone."
+    },
+    {
+      "at": "2026-11-22T21:32:19.431173+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Retiring INV-13 changes the --list retired catalogue that test-check-state-table pins (contract test update)."
+    },
+    {
+      "at": "2026-11-22T21:38:15.783045+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "T-10 disposition evidence exposed two census gaps (IfExp/own-literal helper writes) hiding 3 raw fixtures, plus 3 raw configs merged from main after the inventory; all migrated to the builder."
+    },
+    {
+      "at": "2026-11-22T21:44:02.796283+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Kaya payload prep proved upgrade-config needs --templates in a product checkout; SPEC, templates README and checkout-upgrade.md now give the working command."
+    },
+    {
+      "at": "2026-11-22T21:53:27.898685+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Simplify pass before pin: grade fixes, functools.cache, repo pattern aligned with feature_schema, drift test pinning three runtime vocabularies, shared EXCLUDED_KIND."
+    },
+    {
+      "at": "2026-11-22T21:56:14.339456+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Grade pass: the feat59 (63.a) predicate becomes a named helper so the changed test function meets the test bar without a written reason."
+    },
+    {
+      "at": "2026-11-22T22:15:12.220071+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-09.files",
+      "reason": "Advisor's SC-08 review: the template and live era-start prose note kept pre-DEC-254-amendment wording (absent = not adopted); corrected to absent = null (DEC-256)."
+    },
+    {
+      "at": "2026-11-22T22:36:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "SC-08 amended: delegated advisor review/authorization; operator acceptance post-hoc",
+      "reason": "Advisor ruling #6 under the operator's delegation: kaya#29 reviewed and authorized by the advisor; personal acceptance asked in the ship briefing; decline remedy: revert kaya .harness/harness.json to d96b4484."
+    },
+    {
+      "at": "2026-11-22T22:53:01.787293+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.verify",
+      "reason": "Same command as a one-line scalar instead of a literal block: T-10 was 51 machine-field lines, over DEC-182's 50 (CI plan-route gate). No semantic change."
+    },
+    {
+      "at": "2026-11-22T22:57:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "fix-c1-validator FAIL discharged by green PR CI run 45080316265",
+      "reason": "Sole must_fix was green PR CI incl. test-corpus-real-owner.py; run 45080316265 success at be1a0f99 (review 15d67484 + re-pin). Advisor ruling #7: no re-validation for the test-loader/depends_on delta."
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "79720d544a9e08ecb44677abf165d8f64571f6c67a00de1acf22d0f866d9d327",
+    "T-02": "2b0ec50c9ee976b9f55942a0a9fa3fe76b403d3c7d51e79623aee1f549fd0d25",
+    "T-03": "59bd7d90c15dd8f3b8ec2bd175fe79cc6738a78700ad53a11287834256e20be7",
+    "T-04": "a9bd0288f1d46c1e9dda040f329e21884333c84f14a8cc4fdaf1ed57bcc73b35",
+    "T-05": "c85e595a44be4ed3754657a883827f74aa36eaf873e80027a9bf2e34e13d4275",
+    "T-06": "eaf1b2404e616293eec13a68e0da7ec141650eb0c197df7d9a22fe86378341b6",
+    "T-07": "91a655788398c31c072256a48450485ae0ddf87d75d9dc2090ec86d8c4b6aea7",
+    "T-08": "9345f7cbc7c0e311f1cb9704c1df69e8fc076234fe3e8b22df5721e640ff26ce",
+    "T-09": "16b9a0c5349e23aa67043db25790601bad684419afe14b2874f915c1fe098d42",
+    "T-10": "4d935c4bab18f1be62390a7c92dad788ffa11a0e37037496059b99306e17d867"
+  },
+  "github": {
+    "milestone": 120,
+    "parent": 2311,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 2313,
+      "T-02": 2315,
+      "T-03": 2316,
+      "T-04": 2317,
+      "T-05": 2318,
+      "T-06": 2319,
+      "T-07": 2320,
+      "T-08": 2321,
+      "T-09": 2322,
+      "T-10": 2323
+    },
+    "source_issues": [
+      2297
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "T-06": true,
+      "T-07": true,
+      "T-08": true,
+      "T-09": true,
+      "T-10": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

@@ -24,6 +24,7 @@ import sys
 import tempfile
 
 from check_state_support import SCRIPT, _root_env
+from harness_config_support import write_config
 
 FAILS = []
 
@@ -82,9 +83,7 @@ def two_feature_tree(tmp):
     os.makedirs(os.path.join(h, "factory"))
     with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
         f.write("schema: factory-fleet/1\nrepos:\n  - name: org/x\n    default_branch: main\nworkspace_root: /nonexistent\n")
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        f.write('{"github": {"sync": false, "repo": null}, "budgets": {"max_total_cycles": 10, '
-                '"max_total_runs": 20}, "panel_era_start": null, "seam_era_start": null}\n')
+    write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
     return h
 
 
@@ -97,16 +96,16 @@ with tempfile.TemporaryDirectory() as tmp:
           code == 0 and "VIOLATION" not in out and "note " not in out and not err.strip(),
           f"code={code} err={err[-200:]!r}")
     check("--list names every active row once, in table order, INV-35 first and INV-44 last",
-          rows and rows[0] == "INV-35" and rows[-5] == "INV-44" and len(rows) == len(set(rows)),
+          rows and rows[0] == "INV-35" and rows[-6] == "INV-44" and len(rows) == len(set(rows)),
           f"rows={rows}")
     check("every row is an INV-N identity — the OMP port check is INV-45, the digest-verdict "
           "cross-check INV-46 (ruling 2026-09-21)",
           all(re.match(r"^INV-\d+$", r) for r in rows) and "INV-45" in rows and "INV-46" in rows
           and rows.index("INV-46") == rows.index("INV-15") + 1, f"rows={rows}")
     check("--list carries the retired numbers, marked retired, never as runnable rows",
-          rows[-4:] == ["INV-9", "INV-10", "INV-28", "INV-30"]
+          rows[-5:] == ["INV-9", "INV-10", "INV-13", "INV-28", "INV-30"]
           and all("retired" in l for l in out.splitlines()
-                  if l.startswith(("INV-9 ", "INV-10 ", "INV-28 ", "INV-30 "))),
+                  if l.startswith(("INV-9 ", "INV-10 ", "INV-13 ", "INV-28 ", "INV-30 "))),
           out[-600:])
     check("--list shows each row's scope, reads and authority",
           re.search(r"^INV-26\s+repo\s+.*gh:board", out, re.M) is not None

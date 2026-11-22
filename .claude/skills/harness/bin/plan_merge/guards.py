@@ -79,9 +79,10 @@ def _legal_stations(resolved):
     day it landed.
 
     The board is read from the harness.json of the checkout the plan belongs to. A checkout with
-    no board declared — every test fixture, and any project that has not onboarded a board — is
-    NOT a licence to accept anything: the mandate still applies, because MANDATED_STATIONS is
-    what a declaration is checked against in the first place.
+    no board declared (github.board null) is NOT a licence to accept anything: the mandate still
+    applies, because MANDATED_STATIONS is what a declaration is checked against in the first
+    place. A missing or invalid config is NOT a null board: it exits 2 naming the loader's
+    diagnosis (FEAT-2297), before any lock — never a fallback to the mandate.
 
     THE ROOT PROBE NAMES THE MANIFEST, NEVER THE `.harness` DIRECTORY. A probe for the directory
     resolves $HOME as a root in the global install — B-7 verbatim — and
@@ -91,17 +92,12 @@ def _legal_stations(resolved):
     whichever checkout happens to be running the tool.
     """
     root = _harness_root(os.path.dirname(os.path.abspath(resolved)))
-    stations = None
-    if root is not None:
-        try:
-            board = gh_board.load_board(root)
-            if board is not None:
-                stations = factory_config.station_names(board)
-        except artifact_accessors.FleetError:
-            # An unusable board declaration is not this tool's error to report — the state gate
-            # and every board writer already name it loudly. Fall back to the mandate so a
-            # station write is still validated rather than waved through.
-            stations = None
+    try:
+        board = gh_board.load_board(root) if root is not None else None
+    except artifact_accessors.FleetError as error:
+        print(f"plan-merge: {error}", file=sys.stderr)
+        sys.exit(2)
+    stations = factory_config.station_names(board) if board is not None else None
     if stations is None:
         stations = factory_config.MANDATED_STATIONS
     return tuple(stations) + factory_config.TERMINAL_STATIONS

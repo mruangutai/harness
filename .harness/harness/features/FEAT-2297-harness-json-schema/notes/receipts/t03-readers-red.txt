@@ -1,0 +1,750 @@
+# T-03 RED: reader suite vs every unchanged reader and gate at a286ba35 (first draft of the suite; two expectations later corrected: merge-gate sync-off outcome, layout fleet fixture)
+$ python3 tests/integration/test-harness-config-readers.py
+..FFFFFFFFFFFFFFF.FFEFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF.
+======================================================================
+ERROR: test_non_config_json_reads_are_not_schema_validated (__main__.GenericReads.test_non_config_json_reads_are_not_schema_validated)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 262, in test_non_config_json_reads_are_not_schema_validated
+    self.assertEqual(1, ctx.comparison_record(str(feat / "feature.json"))["anything"])
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable
+
+======================================================================
+ERROR: test_every_reader_acts_on_a_valid_default_config (__main__.Readers.test_every_reader_acts_on_a_valid_default_config) (reader='validate-digest._load_matrix_inputs')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 188, in test_every_reader_acts_on_a_valid_default_config
+    self.assertTrue(expected(value), value)
+                    ~~~~~~~~^^^^^^^
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 159, in <lambda>
+    "validate-digest._load_matrix_inputs": (_matrix_inputs, lambda v: v[0]["logic"] == {"always": ["unit"], "when": []}),
+                                                                      ~~~~^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='branch-create-gate.py', command='git checkout -b feat/FEAT-9-x', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'colour' not found in "branch-create-gate: BLOCKED — the gate could not run (harness.json could not be read: harness.json: cannot validate: No module named 'jsonschema' (install jsonschema)); the command it guards is refused rather than left unchecked.\n"
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='branch-create-gate.py', command='python3 .claude/skills/harness/bin/upgrade-config.py . --config-only && git checkout -b feat/FEAT-9-x', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'colour' not found in "branch-create-gate: BLOCKED — the gate could not run (harness.json could not be read: harness.json: cannot validate: No module named 'jsonschema' (install jsonschema)); the command it guards is refused rather than left unchecked.\n"
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='branch-create-gate.py', command="bash -c 'git checkout -b feat/FEAT-9-x'", config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'colour' not found in "branch-create-gate: BLOCKED — the gate could not run (harness.json could not be read: harness.json: cannot validate: No module named 'jsonschema' (install jsonschema)); the command it guards is refused rather than left unchecked.\n"
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command='gh pr merge 12 --squash', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'colour' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command='gh pr merge 12 --squash', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'upgrade-config.py' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command='gh pr merge 12 --squash', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'invalid JSON' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command='gh pr merge 12 --squash', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'No such file' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command='python3 .claude/skills/harness/bin/upgrade-config.py . --config-only && gh pr merge 12 --squash', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'colour' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command='python3 .claude/skills/harness/bin/upgrade-config.py . --config-only && gh pr merge 12 --squash', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'upgrade-config.py' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command='python3 .claude/skills/harness/bin/upgrade-config.py . --config-only && gh pr merge 12 --squash', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'invalid JSON' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command='python3 .claude/skills/harness/bin/upgrade-config.py . --config-only && gh pr merge 12 --squash', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'No such file' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command="bash -c 'gh pr merge 12 --squash'", config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'colour' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command="bash -c 'gh pr merge 12 --squash'", config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'upgrade-config.py' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command="bash -c 'gh pr merge 12 --squash'", config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'invalid JSON' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis (__main__.Gates.test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis) (gate='merge-gate.py', command="bash -c 'gh pr merge 12 --squash'", config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 295, in test_governed_actions_are_blocked_on_a_broken_config_with_its_diagnosis
+    self.assertIn(token, output)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+AssertionError: 'No such file' not found in '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}\n'
+
+======================================================================
+FAIL: test_valid_sync_off_keeps_its_policy_outcome (__main__.Gates.test_valid_sync_off_keeps_its_policy_outcome) (gate='branch-create-gate.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 310, in test_valid_sync_off_keeps_its_policy_outcome
+    self.assertFalse(blocked, output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : branch-create-gate: BLOCKED — the gate could not run (harness.json could not be read: harness.json: cannot validate: No module named 'jsonschema' (install jsonschema)); the command it guards is refused rather than left unchecked.
+
+
+======================================================================
+FAIL: test_valid_sync_off_keeps_its_policy_outcome (__main__.Gates.test_valid_sync_off_keeps_its_policy_outcome) (gate='merge-gate.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 310, in test_valid_sync_off_keeps_its_policy_outcome
+    self.assertFalse(blocked, output)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "merge-gate: the changed paths of this gh merge could not be read (gh pr diff failed (GraphQL: Could not resolve to a PullRequest with the number of 12. (repository.pullRequest))), so it is denied rather than guessed to be an ordinary merge; a merge that changes Expertise must run: python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root <feature-worktree> --feature <feature-id> --pr 12"}}
+
+
+======================================================================
+FAIL: test_every_reader_acts_on_a_valid_default_config (__main__.Readers.test_every_reader_acts_on_a_valid_default_config) (reader='layout_migration._declared_segments')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 187, in test_every_reader_acts_on_a_valid_default_config
+    self.assertEqual("ok", state, value)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'ok' != 'refused'
+- ok
++ refused
+ : FleetError: fleet file invalid: /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp_sckt5b4/.harness/factory/fleet.yaml — does not load: failed to parse YAML in /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp_sckt5b4/.harness/factory/fleet.yaml: [Errno 2] No such file or directory: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp_sckt5b4/.harness/factory/fleet.yaml' 
+
+======================================================================
+FAIL: test_every_reader_acts_on_a_valid_default_config (__main__.Readers.test_every_reader_acts_on_a_valid_default_config) (reader='post-merge-sweep._read_build_receipt')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 188, in test_every_reader_acts_on_a_valid_default_config
+    self.assertTrue(expected(value), value)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='board-station.main', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : board-station.main accepted a unknown key config: 0
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='board-station.main', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : board-station.main accepted a version 2 config: 0
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='board-station.main', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : board-station.main accepted a not JSON config: 0
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='board-station.main', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : board-station.main accepted a missing config: 0
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='board_lifecycle._own_repo', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : board_lifecycle._own_repo accepted a unknown key config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='board_lifecycle._own_repo', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : board_lifecycle._own_repo accepted a version 2 config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='board_lifecycle._own_repo', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : board_lifecycle._own_repo accepted a not JSON config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='board_lifecycle._own_repo', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : board_lifecycle._own_repo accepted a missing config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='check-skill-weight._budget', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : check-skill-weight._budget accepted a missing config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='feature-record._budgets_for', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : feature-record._budgets_for accepted a unknown key config: {}
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='feature-record._budgets_for', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : feature-record._budgets_for accepted a version 2 config: {}
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='feature-record._budgets_for', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : feature-record._budgets_for accepted a not JSON config: {}
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='feature-record._budgets_for', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : feature-record._budgets_for accepted a missing config: {}
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gate_policy.load_policy', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 176, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertIn(token, str(detail))
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'colour' not found in "GatePolicyError: invalid gate policy for config: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpdp06n7uo/.harness/harness.json' "
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gate_policy.load_policy', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 176, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertIn(token, str(detail))
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'upgrade-config.py' not found in "GatePolicyError: invalid gate policy for config: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpxjjg2wdy/.harness/harness.json' "
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gate_policy.load_policy', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 176, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertIn(token, str(detail))
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'invalid JSON' not found in "GatePolicyError: invalid gate policy for config: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpzwnq0k7l/.harness/harness.json' "
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gate_policy.load_policy', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 176, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertIn(token, str(detail))
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'No such file' not found in "GatePolicyError: invalid gate policy for config: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpmx_cdsfe/.harness/harness.json' "
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gh-sync._unbound_project_config', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : gh-sync._unbound_project_config accepted a unknown key config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gh-sync._unbound_project_config', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : gh-sync._unbound_project_config accepted a version 2 config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gh-sync._unbound_project_config', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : gh-sync._unbound_project_config accepted a not JSON config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gh-sync._unbound_project_config', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : gh-sync._unbound_project_config accepted a missing config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gh_board.load_board', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : gh_board.load_board accepted a unknown key config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gh_board.load_board', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : gh_board.load_board accepted a version 2 config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gh_board.load_board', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : gh_board.load_board accepted a not JSON config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='gh_board.load_board', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : gh_board.load_board accepted a missing config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='layout_migration._declared_segments', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 176, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertIn(token, str(detail))
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'colour' not found in "FleetError: fleet file invalid: /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmptc43ijpw/.harness/factory/fleet.yaml — does not load: failed to parse YAML in /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmptc43ijpw/.harness/factory/fleet.yaml: [Errno 2] No such file or directory: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmptc43ijpw/.harness/factory/fleet.yaml' "
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='layout_migration._declared_segments', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 176, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertIn(token, str(detail))
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'upgrade-config.py' not found in "FleetError: fleet file invalid: /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpii3tpqpe/.harness/factory/fleet.yaml — does not load: failed to parse YAML in /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpii3tpqpe/.harness/factory/fleet.yaml: [Errno 2] No such file or directory: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpii3tpqpe/.harness/factory/fleet.yaml' "
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='layout_migration._declared_segments', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 176, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertIn(token, str(detail))
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'invalid JSON' not found in "FleetError: fleet file invalid: /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpcoepwmxu/.harness/factory/fleet.yaml — does not load: failed to parse YAML in /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpcoepwmxu/.harness/factory/fleet.yaml: [Errno 2] No such file or directory: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpcoepwmxu/.harness/factory/fleet.yaml' "
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='plan_merge.check._era', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : plan_merge.check._era accepted a missing config: (False, None)
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='plan_merge.guards._legal_stations', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : plan_merge.guards._legal_stations accepted a unknown key config: ('backlog', 'plan', 'ready', 'building', 'review', 'done', 'abandoned', 'rejected')
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='plan_merge.guards._legal_stations', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : plan_merge.guards._legal_stations accepted a version 2 config: ('backlog', 'plan', 'ready', 'building', 'review', 'done', 'abandoned', 'rejected')
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='plan_merge.guards._legal_stations', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : plan_merge.guards._legal_stations accepted a not JSON config: ('backlog', 'plan', 'ready', 'building', 'review', 'done', 'abandoned', 'rejected')
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='plan_merge.guards._legal_stations', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : plan_merge.guards._legal_stations accepted a missing config: ('backlog', 'plan', 'ready', 'building', 'review', 'done', 'abandoned', 'rejected')
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='post-merge-sweep._read_build_receipt', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : post-merge-sweep._read_build_receipt accepted a unknown key config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='post-merge-sweep._read_build_receipt', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : post-merge-sweep._read_build_receipt accepted a version 2 config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='post-merge-sweep._read_build_receipt', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : post-merge-sweep._read_build_receipt accepted a not JSON config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='post-merge-sweep._read_build_receipt', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : post-merge-sweep._read_build_receipt accepted a missing config: None
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='validate-digest._load_matrix_inputs', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : validate-digest._load_matrix_inputs accepted a unknown key config: (None, None)
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='validate-digest._load_matrix_inputs', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : validate-digest._load_matrix_inputs accepted a version 2 config: (None, None)
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='validate-digest._load_matrix_inputs', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : validate-digest._load_matrix_inputs accepted a not JSON config: (None, None)
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='validate-digest._load_matrix_inputs', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : validate-digest._load_matrix_inputs accepted a missing config: (None, None)
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='probe-issue-types._load_config', config='unknown key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : probe-issue-types._load_config accepted a unknown key config: {'schema_version': 3, 'panel_era_start': None, 'seam_era_start': None, 'decision_dispositions_era_start': None, '_matrix_provenance': {}, 'test_matrix': {'logic': {'always': ['unit'], 'when': []}, 'api': {'always': ['unit', 'functional'], 'when': [{'kind': 'integration', 'if': 'touches_db_or_external'}]}, 'cross_module': {'always': ['unit', 'functional', 'integration'], 'when': []}, 'frontend': {'always': ['unit', 'component'], 'when': [{'kind': 'ui', 'if': 'has_interaction_flow'}]}, 'feature': {'always': ['unit', 'functional', 'integration'], 'when': [{'kind': 'ui', 'if': 'has_interaction_flow'}]}, 'bugfix': {'always': [], 'when': [{'kind': 'unit', 'if': 'touches_runtime_code'}, {'kind': 'integration', 'if': 'fix_confined_to_tests_and_contract_docs'}, {'kind': '__bug_class__', 'if': 'match_bug_class'}]}, 'ai_behavior': {'always': ['eval'], 'when': []}, 'config': {'always': [], 'when': [{'kind': 'integration', 'if': 'touches_config_shape'}]}, 'scaffolding': {'always': [], 'when': []}, 'docs': {'always': [], 'when': []}}, 'test_kinds': {'unit': {'detect': 'tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py', 'exclude': '.claude/worktrees/**|node_modules/**|vendor/**|.venv/**|dist/**|build/**', 'cmd': None, 'status': 'unresolved'}, 'functional': {'detect': 'tests/functional/**', 'exclude': '.claude/worktrees/**|node_modules/**|vendor/**|.venv/**', 'cmd': None, 'status': 'unresolved'}, 'integration': {'detect': 'tests/integration/**', 'exclude': '.claude/worktrees/**|node_modules/**|vendor/**|.venv/**', 'cmd': None, 'status': 'unresolved'}, 'component': {'detect': '**/*.spec.tsx|**/*.stories.tsx|**/*.stories.ts', 'exclude': '.claude/worktrees/**|node_modules/**|dist/**|build/**', 'cmd': None, 'status': 'unresolved'}, 'ui': {'detect': 'tests/e2e/**|e2e/**|**/*.e2e.spec.ts', 'exclude': '.claude/worktrees/**|node_modules/**', 'cmd': None, 'status': 'unresolved'}, 'eval': {'detect': 'evals/**|tests/**eval**', 'exclude': '.claude/worktrees/**|node_modules/**|.venv/**', 'cmd': None, 'status': 'unresolved'}, 'typecheck': {'detect': '**/*.ts|**/*.tsx', 'exclude': '.claude/worktrees/**|node_modules/**|dist/**|build/**', 'cmd': None, 'status': 'unresolved'}}, 'commit_attribution': {'agent_prefix': '[harness:<step-id>]', 'human_prefix': '[harness:human]'}, 'dirty_tree_whitelist': ['.harness/**', '.claude/worktrees/**'], 'log_retention_days': 30, 'budgets': {'max_total_cycles': 10, 'max_total_runs': 20, 'orchestrator_context_warn_tokens': 200000, 'plan_phase_warn_minutes': 90, 'rework_round_minutes': 45, 'preload_warn_words': {'universal': 1900, 'agent': 5500}}, 'gates': {'review': 'advisory_unless_high'}, 'github': {'sync': False, 'repo': None, 'board': None, 'issue_types': {}}, 'colour': 'blue'}
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='probe-issue-types._load_config', config='version 2')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : probe-issue-types._load_config accepted a version 2 config: {'schema_version': 2, 'panel_era_start': None, 'seam_era_start': None, 'decision_dispositions_era_start': None, '_matrix_provenance': {}, 'test_matrix': {'logic': {'always': ['unit'], 'when': []}, 'api': {'always': ['unit', 'functional'], 'when': [{'kind': 'integration', 'if': 'touches_db_or_external'}]}, 'cross_module': {'always': ['unit', 'functional', 'integration'], 'when': []}, 'frontend': {'always': ['unit', 'component'], 'when': [{'kind': 'ui', 'if': 'has_interaction_flow'}]}, 'feature': {'always': ['unit', 'functional', 'integration'], 'when': [{'kind': 'ui', 'if': 'has_interaction_flow'}]}, 'bugfix': {'always': [], 'when': [{'kind': 'unit', 'if': 'touches_runtime_code'}, {'kind': 'integration', 'if': 'fix_confined_to_tests_and_contract_docs'}, {'kind': '__bug_class__', 'if': 'match_bug_class'}]}, 'ai_behavior': {'always': ['eval'], 'when': []}, 'config': {'always': [], 'when': [{'kind': 'integration', 'if': 'touches_config_shape'}]}, 'scaffolding': {'always': [], 'when': []}, 'docs': {'always': [], 'when': []}}, 'test_kinds': {'unit': {'detect': 'tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py', 'exclude': '.claude/worktrees/**|node_modules/**|vendor/**|.venv/**|dist/**|build/**', 'cmd': None, 'status': 'unresolved'}, 'functional': {'detect': 'tests/functional/**', 'exclude': '.claude/worktrees/**|node_modules/**|vendor/**|.venv/**', 'cmd': None, 'status': 'unresolved'}, 'integration': {'detect': 'tests/integration/**', 'exclude': '.claude/worktrees/**|node_modules/**|vendor/**|.venv/**', 'cmd': None, 'status': 'unresolved'}, 'component': {'detect': '**/*.spec.tsx|**/*.stories.tsx|**/*.stories.ts', 'exclude': '.claude/worktrees/**|node_modules/**|dist/**|build/**', 'cmd': None, 'status': 'unresolved'}, 'ui': {'detect': 'tests/e2e/**|e2e/**|**/*.e2e.spec.ts', 'exclude': '.claude/worktrees/**|node_modules/**', 'cmd': None, 'status': 'unresolved'}, 'eval': {'detect': 'evals/**|tests/**eval**', 'exclude': '.claude/worktrees/**|node_modules/**|.venv/**', 'cmd': None, 'status': 'unresolved'}, 'typecheck': {'detect': '**/*.ts|**/*.tsx', 'exclude': '.claude/worktrees/**|node_modules/**|dist/**|build/**', 'cmd': None, 'status': 'unresolved'}}, 'commit_attribution': {'agent_prefix': '[harness:<step-id>]', 'human_prefix': '[harness:human]'}, 'dirty_tree_whitelist': ['.harness/**', '.claude/worktrees/**'], 'log_retention_days': 30, 'budgets': {'max_total_cycles': 10, 'max_total_runs': 20, 'orchestrator_context_warn_tokens': 200000, 'plan_phase_warn_minutes': 90, 'rework_round_minutes': 45, 'preload_warn_words': {'universal': 1900, 'agent': 5500}}, 'gates': {'review': 'advisory_unless_high'}, 'github': {'sync': False, 'repo': None, 'board': None, 'issue_types': {}}}
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='probe-issue-types._load_config', config='not JSON')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : probe-issue-types._load_config accepted a not JSON config: {}
+
+======================================================================
+FAIL: test_every_reader_refuses_each_broken_config_naming_its_source (__main__.Readers.test_every_reader_refuses_each_broken_config_naming_its_source) (reader='probe-issue-types._load_config', config='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 175, in test_every_reader_refuses_each_broken_config_naming_its_source
+    self.assertEqual("refused", state, f"{reader} accepted a {shape} config: {detail!r}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'refused' != 'ok'
+- refused
++ ok
+ : probe-issue-types._load_config accepted a missing config: {}
+
+======================================================================
+FAIL: test_an_invalid_member_fails_the_aggregate_beside_a_valid_one (__main__.RemoteProductConfig.test_an_invalid_member_fails_the_aggregate_beside_a_valid_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 245, in test_an_invalid_member_fails_the_aggregate_beside_a_valid_one
+    self.assertIn("upgrade-config.py", report["acme/app"]["detail"])
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'upgrade-config.py' not found in "product config invalid: acme/app@main:.harness/harness.json — acme/app's .harness/harness.json at main does not parse as JSON"
+
+======================================================================
+FAIL: test_invalid_remote_text_is_refused_with_its_diagnosis_and_no_local_fallback (__main__.RemoteProductConfig.test_invalid_remote_text_is_refused_with_its_diagnosis_and_no_local_fallback)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 228, in test_invalid_remote_text_is_refused_with_its_diagnosis_and_no_local_fallback
+    self.assertIn("colour", str(caught.exception))
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'colour' not found in "product config invalid: acme/app@main:.harness/harness.json — acme/app's .harness/harness.json at main does not parse as JSON"
+
+======================================================================
+FAIL: test_issue_type_overrides_refuse_rather_than_default (__main__.RemoteProductConfig.test_issue_type_overrides_refuse_rather_than_default)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/tests/integration/test-harness-config-readers.py", line 251, in test_issue_type_overrides_refuse_rather_than_default
+    with self.assertRaises(artifact_accessors.FleetError):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: FleetError not raised
+
+----------------------------------------------------------------------
+Ran 12 tests in 18.140s
+
+FAILED (failures=67, errors=2)

@@ -7,6 +7,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from harness_config_support import build_config  # noqa: E402
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 BIN = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 GATE = os.path.join(BIN, "merge-gate.py")
@@ -24,8 +27,10 @@ def fixture(feature="FEAT-9001-fixture-non-era", entry=None, repo="acme/widgets"
     os.makedirs(os.path.join(root, ".harness"))
     with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
         f.write("agents: {}\n")
+    config = build_config({"github": {"sync": sync, "repo": repo or "acme/widgets"}})
+    config["github"]["repo"] = repo  # repo=None with sync on is a deliberate schema violation
     with open(os.path.join(root, ".harness", "harness.json"), "w") as f:
-        json.dump({"github": {"sync": sync, "repo": repo, "board": None}}, f)
+        json.dump(config, f)
     directory = os.path.join(root, ".harness", "harness", "features", feature)
     os.makedirs(directory)
     document = {"feature_id": feature, "branch": "feature/test", "github": {}}
@@ -163,7 +168,9 @@ r, d, reason, _ = denial("git merge feature/test")
 check("T-05 non-era absent build_entry denies naming feature and re-run command",
       d == "deny" and "FEAT-9001-fixture-non-era" in reason and "gh-sync.py open" in reason, reason)
 r, d, reason, _ = denial("git merge feature/test", repo=None)
-check("T-05 unpinned repo absent build_entry denies naming the configuration fix", d == "deny" and "NOT pinned" in reason and "open" not in reason.lower(), reason)
+check("T-05 unpinned repo with sync on is an invalid config: the merge is denied with the loader's "
+      "diagnosis and the repair command",
+      d == "deny" and "github.repo" in reason and "upgrade-config.py" in reason, reason)
 for entry, name in (("opened", "T-05 opened allows"), ("not-applicable", "T-05 not-applicable allows"), ("recovered-terminal", "T-05 recovered-terminal allows")):
     root, _ = fixture(entry=entry)
     r, d, _ = gate("git merge feature/test", root)
@@ -352,12 +359,10 @@ if raw_result.stdout.strip():
 
 root, _ = fixture()
 with open(os.path.join(root, ".harness", "harness.json"), "w") as stream:
-    stream.write(
-        '{"github":{"sync":false},"github":{"sync":true,"repo":"acme/widgets"}}')
+    stream.write(json.dumps(build_config())[:-1] + ',"github":{"sync":true,"repo":"acme/widgets"}}')
 r, d, reason = gate("git merge feature/test", root)
-if d is not None:
-    check("duplicate harness.json keys disable merge policy rather than choosing one",
-          False, f"rc={r.returncode} reason={reason!r}")
+check("duplicate harness.json keys deny the merge with the loader's diagnosis rather than "
+      "choosing one", d == "deny" and "duplicate key" in reason, f"rc={r.returncode} reason={reason!r}")
 
 root, directory = fixture()
 with open(os.path.join(directory, "feature.json"), "w") as stream:
@@ -476,7 +481,7 @@ def seed_owner(owner, entry, repo):
     feature_dir = os.path.join(owner, ".harness", "harness", "features", DFEAT)
     write(os.path.join(owner, ".harness", "team-config.yaml"), "agents: {}\n")
     write(os.path.join(owner, ".harness", "harness.json"),
-          {"github": {"sync": True, "repo": "acme/widgets", "board": None}})
+          build_config({"github": {"sync": True, "repo": "acme/widgets"}}))
     write(os.path.join(owner, ".gitignore"), "*.lock\n")
     write(os.path.join(feature_dir, "feature.json"),
           {"feature_id": DFEAT, "branch": DBRANCH, "github": github})

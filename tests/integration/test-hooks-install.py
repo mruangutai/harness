@@ -42,6 +42,7 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import json
 import os
 import re
@@ -52,6 +53,7 @@ import tempfile
 
 from git_support import (MAINTENANCE_OFF, add_worktree, commit_feature, commit_files,
                          feature_rel, init_repo)
+from harness_config_support import write_config
 
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = _anchor_bin
@@ -62,13 +64,13 @@ REAL_SHIM = os.path.join(REAL_ROOT, ".claude", "skills", "harness", "hooks", "po
 BIN_ENTRIES = sorted(
     f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
 )
-# The entry scripts' sibling packages (check_state/, plan_merge/ — FEAT-69/FEAT-70). An entry copied
-# without its package imports nothing, and gh-sync ship's set-feature-station would fail inside the
-# fixture for a reason the sweep is not testing.
+# The entry scripts' sibling directories: packages (check_state/, plan_merge/ — FEAT-69/FEAT-70)
+# and data (config-schemas/, digest-schemas/ — FEAT-2297: the config loader validates against
+# config-schemas/harness.json). An entry copied without them fails inside the fixture for a
+# reason the sweep is not testing.
 BIN_PACKAGES = sorted(
     d for d in os.listdir(BIN_DIR)
     if os.path.isdir(os.path.join(BIN_DIR, d)) and d != "__pycache__"
-    and os.path.exists(os.path.join(BIN_DIR, d, "__init__.py"))
 )
 
 # The two literal command strings SKILL.md's per-clone step carries. Asserted verbatim present
@@ -143,8 +145,8 @@ def _bootstrap_origin(path, github_repo="acme/repo-x"):
         f.write("probe\n")
     with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
         f.write("schema: team-config/1\n")
-    with open(os.path.join(path, ".harness", "harness.json"), "w") as f:
-        json.dump({"github": {"sync": True, "repo": github_repo, "board": None}}, f)
+    write_config(os.path.join(path, ".harness", "harness.json"),
+                 {"github": {"sync": True, "repo": github_repo, "board": None}})
     _install_real_bin_and_hook(path)
     subprocess.run(["git", "add", "-A"], cwd=path, capture_output=True)
     subprocess.run(["git", "commit", "-qm", "bootstrap"], cwd=path, capture_output=True)

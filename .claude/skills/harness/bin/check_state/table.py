@@ -1,5 +1,5 @@
 """THE INVARIANT TABLE: the one place a row is declared and the one place discretion lives. (FEAT-69)"""
-from check_state.board import inv_13, inv_21, inv_24, inv_26, inv_37
+from check_state.board import inv_21, inv_24, inv_26, inv_37
 from check_state.brief import inv_38, inv_41, inv_49
 from check_state.corpus import inv_52
 from check_state.feature_record import (
@@ -184,10 +184,6 @@ INVARIANTS = (
         Inv("INV-26", inv_26, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON, "gh:auth", "gh:board"),
             "the board agrees with the plan on disk for every mirrored card", "DEC-203"),
     )),
-    Group("mirror-config", (
-        Inv("INV-13", inv_13, "repo", (_HARNESS_JSON,),
-            "the GitHub mirror is configured or explicitly off, never limbo", "DEC-138"),
-    )),
     Group("layout", (
         Inv("INV-27", inv_27, "repo", ("path:.claude/skills/harness/bin/layout_migration.py",),
             "every layout surface speaks one language (layout_migration.scan)", "DEC-174"),
@@ -240,6 +236,7 @@ INVARIANTS = (
 RETIRED = {
     "INV-9": "DEC-233 — host enforcement moved to OMP; INV-45 grades the port surface",
     "INV-10": "check-docs.sh struck — a decision the tree contradicts is removed, not marked stale",
+    "INV-13": "DEC-256 — the validated loader defaults an absent github block and refuses sync without a pinned repo",
     "INV-28": "DEC-252 — a shipped feature is checked for nothing; gh-sync.py ship records the PR",
     "INV-30": "DEC-252 — a shipped feature is checked for nothing; gh-sync.py ship closes the milestone",
 }

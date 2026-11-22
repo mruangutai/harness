@@ -32,6 +32,8 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 sys.path.insert(0, HERE)  # the module imports harness_yaml, which lives beside it
+sys.path.insert(0, os.path.dirname(TESTS_DIR))
+from harness_config_support import write_config  # noqa: E402
 
 results = []
 
@@ -73,6 +75,7 @@ def build(root, marker=True, features_evidence=("legacy",), docs_evidence=("lega
     """Write a fixture tree. forms maps reader relpath -> legacy|migrated|both|neither|
     unreadable|absent; unnamed readers default to legacy."""
     forms = dict(forms or {})
+    write_config(os.path.join(root, ".harness", "harness.json"), {"github": {"sync": False}})
     if "legacy" in features_evidence:
         p = os.path.join(root, ".harness", "features", "FEAT-01-x")
         os.makedirs(p, exist_ok=True)
@@ -355,8 +358,6 @@ def _parity(label, build_kwargs, extra=None):
     """One parity comparison: the REAL gate vs render(), over the same tree."""
     with tempfile.TemporaryDirectory() as tmp:
         build(tmp, **build_kwargs)
-        with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
-            f.write('{"github": {"sync": false, "repo": null}}')
         if extra:
             extra(tmp)
         # BOTH NAMES, AND THE MARKER (FEAT-42 T-12). check-state.py resolves its root through

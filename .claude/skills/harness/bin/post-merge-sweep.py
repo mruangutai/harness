@@ -12,6 +12,7 @@ import boundary and makes the lifecycle policy visible to Python tooling.
 import os as _bootstrap_os
 import site as _bootstrap_site
 import sys as _bootstrap_sys
+_bootstrap_original_path = list(_bootstrap_sys.path)
 
 _bootstrap_bin = _bootstrap_os.path.dirname(
     _bootstrap_os.path.abspath(__file__))
@@ -54,8 +55,13 @@ sys.path.insert(0, BIN_DIR)
 import harness_boundary    # noqa: E402  (FEAT-42 T-09: the one root resolver)
 import worktree_terminal   # noqa: E402  (D-02: the one shared eligibility predicate)
 import factory_config      # noqa: E402
-import feature_schema       # noqa: E402
 import artifact_accessors    # noqa: E402
+# The hardened path served the first-party imports above. feature_schema holds jsonschema's one
+# guard, and the validated harness.json read needs it, so it imports on the interpreter's own path
+# (user site included), as in branch-create-gate and gh-close-gate. BIN_DIR stays first, so
+# feature_schema itself still loads from bin; only third-party resolution widens.
+sys.path[:] = [BIN_DIR] + [entry for entry in _bootstrap_original_path if entry != BIN_DIR]
+import feature_schema       # noqa: E402
 
 
 # THE REPOSITORY ROOT COMES FROM harness_boundary.root_from_script(BIN_DIR), and main() below

@@ -14,6 +14,9 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from harness_config_support import build_config, write_config  # noqa: E402
+import artifact_accessors  # noqa: E402
 import json
 import os
 import shutil
@@ -85,15 +88,9 @@ def copy_check_state(dst_bin):
     """Copy the entry (executable) and the package into `dst_bin`."""
     copy_executable_package(SCRIPT, "check_state", dst_bin)
 
-HARNESS_JSON_SYNC_ON = """{
-  "github": {"sync": true, "repo": "org/repo"}
-}
-"""
-
-HARNESS_JSON_SYNC_OFF = """{
-  "github": {"sync": false, "repo": null}
-}
-"""
+# Serialized builder output, so a caller that writes one directly still writes a valid config.
+HARNESS_JSON_SYNC_ON = json.dumps(build_config({"github": {"sync": True, "repo": "org/repo"}}), indent=2) + "\n"
+HARNESS_JSON_SYNC_OFF = json.dumps(build_config({"github": {"sync": False, "repo": None}}), indent=2) + "\n"
 
 
 def feature_json(parent_line, line_count=None):
@@ -149,11 +146,14 @@ def _root_env(tmp, env=None, **extra):
 
 def make_fixture(tmp, harness_json, parent_line):
     """Fixtures sit at .harness/harness/features/FEAT-TEST/ — one segment name,
-    used consistently across every builder in this file (FEAT-21 T-06)."""
+    used consistently across every builder in this file (FEAT-21 T-06).
+
+    `harness_json` is the JSON text of builder overrides (a full config is its own override).
+    Only a valid config can be built: a test of a broken one corrupts the written file itself."""
     h = os.path.join(tmp, ".harness")
     os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        f.write(harness_json)
+    write_config(os.path.join(h, "harness.json"),
+                 artifact_accessors.load_json_mapping(text=harness_json, context="make_fixture harness_json"))
     with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
         f.write(feature_json(parent_line))
     return h

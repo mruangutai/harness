@@ -28,6 +28,7 @@ import tempfile
 import yaml
 import artifact_accessors
 from check_state_support import copy_executable_package
+from harness_config_support import write_config
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -187,6 +188,7 @@ def _fixture_checker(root, script):
     has a checker to find by the written path alone."""
     os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
     write(os.path.join(root, ".harness", "team-config.yaml"), "teams: []\n")
+    write_config(os.path.join(root, ".harness", "harness.json"))
     bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
     os.makedirs(bin_dir, exist_ok=True)
     write(os.path.join(bin_dir, "check-state.py"), script)

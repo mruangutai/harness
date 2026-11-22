@@ -68,7 +68,7 @@ def case_absent_own_card_is_added_then_set():
     code, out, log = _start_task(absent=[326])
     adds = [line for line in log if "project item-add" in line]
     lookup = _index(log, "projectItems(first: 100)", "number=326")
-    add = _index(log, "project item-add 3", "--owner mruangutai",
+    add = _index(log, "project item-add 3", "--owner implentio",
                  "--url https://github.com/implentio/fake/issues/326")
     edit = _index(log, "project item-edit", "--id ADDED_326", "OPT_BUILDING")
     check("a.1 start-task exits 0 for an issue with no project item", code == 0, out)

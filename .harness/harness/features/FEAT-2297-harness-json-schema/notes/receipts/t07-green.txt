@@ -1,0 +1,24 @@
+# T-07 GREEN: signed verify exit 0 in 8s (bounded census 29 -> 0; test-harness-config-readers OK)
+
+# per-suite status after migration (all exit 0, 0 FAIL, 0 Traceback)
+test-validate-digest: ALL PASSED.
+test-validate-digest-shadows: 46 of 46 cases passed
+test-factory-integration: 131/131 checks passed.
+test-code-grade-cli: PASS test-code-grade-cli
+test-post-merge-sweep: EXIT=0
+test-check-skill-weight: OK
+test-feature-corpus: OK
+test-plan-sign-gate: all checks passed.
+test-plan-decision-dispositions: 127/127 passed
+test-hooks-install: EXIT=0
+test-lead-start-return: 60 of 60 cases passed
+test-layout-migration: ok   - case 22: real root's harness/features surface is CLEAN with migrated evid
+test-run-unit-tests-kinds: PASS manual live probes are layout-valid 
+
+# T-01 regression fixed under advisor-signed amendment of T-07 files
+post-merge-sweep.py scrubbed user-site before 'import feature_schema', so jsonschema cached None and every validated receipt read refused ('SKIP removal ... jsonschema is REQUIRED') on machines where jsonschema is user-site only. RED: test-post-merge-sweep 14 FAIL, test-hooks-install e-green 2 FAIL (t07-red.txt). Fix mirrors branch-create-gate/gh-close-gate: first-party imports on the hardened path, then restore the interpreter path with BIN_DIR first, then import feature_schema. Trade-off: only third-party resolution widens (same exposure the gates accepted in T-03). GREEN: both suites pass; canonical-reader audit 0 unresolved; test-harness-yaml one-guard OK.
+
+# dispositions
+DELETED: validate-digest check_missing_test_kinds + check_malformed_test_kinds (4104-4152), check_config_errors '{} gates must raise' (4913-4920), _duplicate_harness_config_failures (5131-5140); post-merge-sweep harness.json duplicate-key branch (feature.json retention case kept, flag removed); code-grade-cli duplicate-key slice (242-249) and its config-restore rewrite; check-skill-weight duplicate-key slice (88-92); plan-decision-dispositions missing-era (477) + malformed/date-only era (483-486); run-unit-tests-kinds empty-detect only (missing mandatory live-probe registrations KEPT as semantic roster coverage - schema validation cannot see roster completeness).
+REWRITTEN: check-skill-weight absent preload -> documented defaults 1900/5500, malformed present -> refused ({'universal':1900} is now valid: defaults fill absent inner keys); validate-digest-shadows service->api, widget->frontend (matrix rows and plan consumers together; excluded/active-null/empty-floor cases preserved), excluded functional kind signed DEC-163; code-grade-cli invented 'configured' kind -> enum kind 'functional' (kind names are a closed enum).
+FIXTURE FIXES the census cannot see (roots with NO harness.json): layout-migration build(), validate-digest _t09_root/_append_registration/qa-modes root, _isolated_root now declares runnable unit+integration (BUG-1756 claims). Bin-copy fixtures (hooks-install, post-merge-sweep) now carry every bin subdirectory (config-schemas/ was missing).

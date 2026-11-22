@@ -19,8 +19,9 @@ import subprocess
 import sys
 import shutil
 import tempfile
-from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, check_state_mutant,
+from check_state_support import (SCRIPT, check_state_mutant,
                                  check_state_owner, isolated_bin, run, _root_env)
+from harness_config_support import write_config
 
 
 # Every task main-session-direct: the plan-keyed exemption (DEC-174), the ONE way a feature
@@ -62,8 +63,7 @@ def case_g():
         h = os.path.join(tmp, ".harness")
         fd = os.path.join(h, "harness", "features", feat)
         os.makedirs(os.path.join(fd, "notes"), exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write(HARNESS_JSON_SYNC_OFF)
+        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
         with open(os.path.join(fd, "feature.json"), "w") as f:
             json.dump({"feature_id": feat}, f)
         for n in notes:
@@ -187,8 +187,7 @@ def _handoff_fixture(tmp, status, notes, feat="FEAT-TEST"):
     h = os.path.join(tmp, ".harness")
     fdir = os.path.join(h, "harness", "features", feat)
     os.makedirs(os.path.join(fdir, "notes"), exist_ok=True)
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        f.write(HARNESS_JSON_SYNC_OFF)
+    write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
     with open(os.path.join(fdir, "feature.json"), "w") as f:
         json.dump({"feature_id": feat}, f)
     with open(os.path.join(fdir, "plan.yaml"), "w") as f:
@@ -210,8 +209,6 @@ def _shape_lines(out, needle):
 
 def _feat54_fixture_case(tmp, note, name="handoff-plan.md"):
     fdir = _handoff_fixture(tmp, "Building", {name: note})
-    with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
-        json.dump({"github": {"sync": False, "repo": None}}, f)
     with open(os.path.join(fdir, "plan.yaml"), "w") as f:
         f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: building\ntasks:\n"
                 "  - id: T-03\n    title: Fixture task\n    traces: [REQ-01]\n"

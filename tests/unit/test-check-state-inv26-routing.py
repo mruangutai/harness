@@ -14,7 +14,8 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
-import json
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from harness_config_support import build_config, write_config  # noqa: E402
 import os
 import tempfile
 import types
@@ -106,10 +107,9 @@ def _run(features, cards, bindings=None, fail=None, owner_sync=True, gh_ok=True)
     gb, fs, log = _modules(cards, bindings if bindings is not None else {"org/prod": _PROD}, fail)
     real_load = board.harness_boundary.load_repo_module
     with tempfile.TemporaryDirectory() as root:
-        cj = {"github": {"sync": owner_sync, "repo": _OWNER[0], "board": _OWNER[1]}}
+        cj = build_config({"github": {"sync": owner_sync, "repo": _OWNER[0], "board": _OWNER[1]}})
         os.makedirs(os.path.join(root, ".harness"))
-        with open(os.path.join(root, ".harness", "harness.json"), "w") as f:
-            json.dump(cj, f)
+        write_config(os.path.join(root, ".harness", "harness.json"), cj)
         ctx = _Ctx(root, cj, features, gh_ok)
         board.harness_boundary.load_repo_module = {"gh_board": gb, "feature_schema": fs}.get
         try:

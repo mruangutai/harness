@@ -42,6 +42,7 @@ import sys
 import tempfile
 
 from gh_sync_support import install_gh
+from harness_config_support import write_config
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -97,9 +98,7 @@ def build_harness_json(tmp, repo, issue_types):
     g = {"sync": True, "board": None, "repo": repo}
     if issue_types:
         g["issue_types"] = issue_types
-    os.makedirs(os.path.join(tmp, ".harness"), exist_ok=True)
-    with open(os.path.join(tmp, ".harness", "harness.json"), "w", encoding="utf-8") as f:
-        json.dump({"github": g}, f)
+    write_config(os.path.join(tmp, ".harness", "harness.json"), {"github": g})
 
 
 def stage(tmp, feat_name="FEAT-88-backlog", repo="owner/name", issue_types=None):

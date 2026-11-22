@@ -15,6 +15,7 @@ import sys
 import tempfile
 
 from check_state_support import SCRIPT, _root_env
+from harness_config_support import write_config
 
 FAILS = []
 
@@ -67,8 +68,7 @@ def tree(tmp):
     os.makedirs(os.path.join(tmp, ".harness"))
     with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w") as f:
         f.write("agents: {}\n")
-    with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
-        f.write('{"github": {"sync": false, "repo": null}}\n')
+    write_config(os.path.join(tmp, ".harness", "harness.json"), {"github": {"sync": False}})
     feature(tmp, "FEAT-1-dropped", "abandoned", ["validate-c1-validator", "fix-c2-eng"])
     feature(tmp, "FEAT-2-clean", "abandoned", [])
     feature(tmp, "FEAT-3-live", "review", ["validate-c1-validator"])

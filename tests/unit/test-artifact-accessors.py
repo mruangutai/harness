@@ -12,7 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(ROOT / "tests"))
 import artifact_accessors as accessors  # noqa: E402
+from harness_config_support import build_config  # noqa: E402
 
 
 class SystemPythonCompatibilityContracts(unittest.TestCase):
@@ -98,11 +100,10 @@ class JsonContracts(unittest.TestCase):
                 self.assertIn(context, str(caught.exception))
 
     def test_harness_json_accepts_explicit_text_source_with_context(self):
+        config = build_config({"log_retention_days": 7})
         document = accessors.load_harness_json(
-            text='{"nested": {"value": 7}}',
-            context="mruangutai/harness@main:.harness/harness.json",
-        )
-        self.assertEqual({"nested": {"value": 7}}, document)
+            text=json.dumps(config), context="mruangutai/harness@main:.harness/harness.json")
+        self.assertEqual(config, document)
 
     def test_harness_json_text_source_has_path_contract(self):
         cases = (
@@ -395,10 +396,12 @@ class WriterContract(unittest.TestCase):
     def test_writer_makes_backup_and_writes_mapping(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "harness.json"
-            path.write_text('{"schema_version": 1}\n', encoding="utf-8")
-            accessors.write_harness_json(path, {"schema_version": 2})
-            self.assertEqual({"schema_version": 2}, json.loads(path.read_text(encoding="utf-8")))
-            self.assertEqual('{"schema_version": 1}\n', path.with_name("harness.json.harness-bak").read_text(encoding="utf-8"))
+            path.write_text(json.dumps(build_config()), encoding="utf-8")
+            before = path.read_text(encoding="utf-8")
+            updated = build_config({"log_retention_days": 3})
+            accessors.write_harness_json(path, updated)
+            self.assertEqual(updated, json.loads(path.read_text(encoding="utf-8")))
+            self.assertEqual(before, path.with_name("harness.json.harness-bak").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

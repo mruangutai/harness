@@ -25,6 +25,7 @@ from gh_sync_support import (
     FAKE_GH, FAKE_GH_SHIP, FAKE_GH_STATIONS, add_plan_station, calls, check, edits_to,
     install_gh, read_feature_json, read_plan_station, report, run, ship_env, stage, stage_ship,
     stage_station, write_feature_json, write_validate_handoff)
+from harness_config_support import write_config
 
 
 def main():
@@ -252,7 +253,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpF:
         install_gh(tmpF)
         featF = stage(tmpF, feat_name="FEAT-06-abandon-skip")
-        json.dump({"github": {"sync": False}}, open(os.path.join(tmpF, ".harness", "harness.json"), "w"))
+        write_config(os.path.join(tmpF, ".harness", "harness.json"), {"github": {"sync": False}})
         reasonF = os.path.join(tmpF, "reason.txt")
         open(reasonF, "w").write("does not matter, sync is off")
         r = run(["abandon", featF, "--reason-file", reasonF, "--yes"], tmpF)

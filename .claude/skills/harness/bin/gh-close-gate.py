@@ -235,20 +235,6 @@ REASON = (
     "cannot tell tracked from untracked, by design."
 )
 
-# ---- config gate: github.sync on -- else pass through instantly. Only a READABLE config with
-# sync off exempts (FEAT-2274 V1): the command already matched, so a harness.json that cannot be
-# read, or whose github block is not a mapping, refuses it by name rather than passing unchecked.
-config_path = os.path.join(ROOT, ".harness", "harness.json")
-try:
-    g = _artifact_accessors.load_harness_json(config_path).get("github", {})
-except _artifact_accessors.ArtifactAccessError as error:
-    raise SystemExit(_unrunnable(f"harness.json could not be read: {error}"))
-if not isinstance(g, dict):
-    raise SystemExit(_unrunnable(
-        f"harness.json github block is not a mapping: {type(g).__name__} in {config_path}"))
-if not g.get("sync"):
-    sys.exit(0)
-
 try:
     payload = _artifact_accessors.read_hook_payload(
         _payload_text, "gh-close-gate hook payload")
@@ -256,7 +242,19 @@ try:
 except _artifact_accessors.ArtifactAccessError:
     sys.exit(0)
 
-if denies(cmd):
+# ---- recognise first (FEAT-2297): a command that closes no issue passes without reading the
+# config at all, so upgrade-config.py and check-state.py stay reachable while it is broken.
+if not denies(cmd):
+    sys.exit(0)
+
+# ---- config gate: only a VALID config with sync off exempts (FEAT-2274 V1). The command already
+# matched, so a missing or invalid harness.json refuses it with the diagnosis, before sync is read.
+config_path = os.path.join(ROOT, ".harness", "harness.json")
+try:
+    sync = _artifact_accessors.load_harness_json(config_path)["github"]["sync"]
+except _artifact_accessors.ArtifactAccessError as error:
+    raise SystemExit(_unrunnable(f"harness.json could not be read: {error}"))
+if sync:
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",

@@ -28,6 +28,8 @@ BIN = ROOT / ".claude/skills/harness/bin"
 CHECK = Path(os.environ.get("CHECK_STATE_BIN") or BIN / "check-state.py")
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(HERE.parent))
+from harness_config_support import build_config  # noqa: E402
 import f58_sparse_fixture as F  # noqa: E402
 
 ACTIVE = "FEAT-1-alpha"              # landed by the fixture; no plan.yaml, so never shipped
@@ -298,8 +300,8 @@ class RetiredMirrorChecks(Case):
                               if l.strip().startswith(("VIOLATION", "note")) and inv in l], out)
 
     def test_no_milestone_or_pull_request_check_runs_for_a_shipped_feature(self):
-        self.commit({".harness/harness.json": json.dumps(
-                        {"github": {"sync": True, "repo": "acme/widget", "board": None}}) + "\n",
+        self.commit({".harness/harness.json": json.dumps(build_config(
+                        {"github": {"sync": True, "repo": "acme/widget", "board": None}})) + "\n",
                      **feature_files(SHIPPED, STRICT_VALID_DONE,
                                      {"github": {"milestone": 3, "repo": "acme/widget"}})})
         gh_log = os.path.join(self.fx.base, "gh.log")

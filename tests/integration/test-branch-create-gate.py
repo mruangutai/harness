@@ -20,6 +20,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import ast
 import json
 import os
@@ -27,6 +28,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+
+from harness_config_support import build_config, write_config  # noqa: E402
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -192,9 +195,8 @@ def run_assertion_3():
 def _fixture(github_block):
     d = tempfile.mkdtemp()
     os.makedirs(os.path.join(d, ".harness"))
-    doc = {} if github_block is None else {"github": github_block}
-    with open(os.path.join(d, ".harness", "harness.json"), "w") as f:
-        json.dump(doc, f)
+    write_config(os.path.join(d, ".harness", "harness.json"),
+                 {} if github_block is None else {"github": github_block})
     # THE MARKER MAKES IT A ROOT (FEAT-42 T-14). branch-create-gate.py resolves through
     # harness_boundary.resolve_root, which honours the override only when
     # .harness/team-config.yaml is readable underneath it. A fixture holding only
@@ -208,7 +210,7 @@ def _fixture(github_block):
 def run_assertion_4():
     cmd = "git check" + "out -b feat/FEAT-99-nope"
 
-    # sync absent entirely (no github block at all) -> exit 0, no output
+    # no github block at all: the schema default is sync off -> exit 0, no output
     root = _fixture(None)
     r = fire(cmd, root=root)
     check("self-gate: no github block at all -> exit 0, no stdout",
@@ -216,17 +218,18 @@ def run_assertion_4():
           f"exit={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
 
     # sync explicitly false -> exit 0, no output
-    root = _fixture({"sync": False, "repo": "mruangutai/harness"})
+    root = _fixture({"sync": False, "repo": "acme/widgets"})
     r = fire(cmd, root=root)
     check("self-gate: github.sync false -> exit 0, no stdout",
           r.returncode == 0 and r.stdout.strip() == "",
           f"exit={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
 
-    # sync true but repo unpinned (the "-" sentinel) -> exit 0, no output
-    root = _fixture({"sync": True})
+    # sync true with the repo unpinned is an INVALID config (FEAT-2297): the matching branch
+    # creation is refused with the loader's diagnosis, never self-gated through.
+    root = _config_root(lambda c: json.dumps({**c, "github": {**c["github"], "sync": True}}))
     r = fire(cmd, root=root)
-    check("self-gate: github.sync true, repo unpinned (\"-\" sentinel) -> exit 0, no stdout",
-          r.returncode == 0 and r.stdout.strip() == "",
+    check("github.sync true with repo unpinned: the branch creation is refused at exit 2 naming "
+          "github.repo", _named_refusal(r, _CONFIG_READ) and "github.repo" in r.stderr,
           f"exit={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
 
 
@@ -266,14 +269,12 @@ def run_assertion_5():
 def run_assertion_6():
     cmd = "git check" + "out -b feat/FEAT-99-nope"
 
-    config_root = _fixture(None)
-    with open(os.path.join(config_root, ".harness", "harness.json"), "w") as stream:
-        stream.write(
-            '{"github":{"sync":false},"github":{"sync":true,"repo":"acme/widgets"}}')
+    config_root = _config_root(
+        lambda c: json.dumps(c)[:-1] + ',"github":{"sync":true,"repo":"acme/widgets"}}')
     config_result = fire(cmd, root=config_root)
-    if config_result.stdout.strip():
-        check("duplicate harness.json keys disable branch policy rather than choosing one",
-              False, f"stdout={config_result.stdout!r} stderr={config_result.stderr!r}")
+    check("duplicate harness.json keys refuse the branch creation at exit 2 rather than choosing "
+          "one", _named_refusal(config_result, _CONFIG_READ) and "duplicate key" in config_result.stderr,
+          f"stdout={config_result.stdout!r} stderr={config_result.stderr!r}")
 
     payload_root = _fixture({"sync": True, "repo": "acme/widgets"})
     payload = (
@@ -412,48 +413,45 @@ def run_issue_2107():
 # itself passed. Both encoded the contract V1 names as wrong: a failed config read let a branch
 # creation through unchecked. Each shape now refuses a matching command by name at exit 2.
 _CONFIG_READ = "harness.json could not be read: "
-_CONFIG_BLOCK = "harness.json github block is not a mapping: "
 _CONFIG_FAULTS = (
-    ("no harness.json", None, _CONFIG_READ),
-    ("not JSON", "{nope", _CONFIG_READ),
-    ("a top-level document that is not an object", "[1, 2]", _CONFIG_READ),
-    ("duplicate keys", '{"github":{"sync":false},"github":{"sync":true,"repo":"o/r"}}',
-     _CONFIG_READ),
-    ("a github block that is a list", '{"github": [1, 2]}', _CONFIG_BLOCK),
-    ("a github block that is an empty list", '{"github": []}', _CONFIG_BLOCK),
-    ("a github block that is null", '{"github": null}', _CONFIG_BLOCK),
+    ("no harness.json", None),
+    ("not JSON", lambda c: json.dumps(c)[:-1]),
+    ("a top-level document that is not an object", lambda c: json.dumps([c])),
+    ("duplicate keys", lambda c: json.dumps(c)[:-1] + ',"github":{"sync":true,"repo":"o/r"}}'),
+    ("a github block that is a list", lambda c: json.dumps({**c, "github": [1, 2]})),
+    ("a github block that is null", lambda c: json.dumps({**c, "github": None})),
 )
 _CONFIG_CONTROLS = (
-    ("github.sync false", '{"github": {"sync": false, "repo": "acme/widgets"}}'),
-    ("github.sync true, repo unpinned", '{"github": {"sync": true}}'),
-    ("no github block", "{}"),
+    ("github.sync false", lambda c: json.dumps({**c, "github": {"sync": False, "repo": "acme/widgets"}})),
+    ("no github block", lambda c: json.dumps({k: v for k, v in c.items() if k != "github"})),
 )
 
 
-def _config_root(body):
-    """A marked root whose harness.json holds `body` verbatim, or none at all when None."""
+def _config_root(derive):
+    """A marked root whose harness.json is `derive(valid builder config)` as text, or none at
+    all when `derive` is None — every invalid config is a visibly corrupted valid one."""
     root = _fixture(None)
     path = os.path.join(root, ".harness", "harness.json")
     os.remove(path)
-    if body is not None:
+    if derive is not None:
         with open(path, "w", encoding="utf-8") as f:
-            f.write(body)
+            f.write(derive(build_config()))
     return root
 
 
-def _config_fault_case(label, body, detail):
-    root = _config_root(body)
+def _config_fault_case(label, derive):
+    root = _config_root(derive)
     r = _run_in(os.path.dirname(GATE), "git check" + "out -b fix/123-typo", root)
     check(f"config fault ({label}): a matching branch creation is refused at exit 2, named",
-          _named_refusal(r, detail), f"rc={r.returncode} stderr={r.stderr[-300:]!r}")
+          _named_refusal(r, _CONFIG_READ), f"rc={r.returncode} stderr={r.stderr[-300:]!r}")
     r = _run_in(os.path.dirname(GATE), "git status", root)
     check(f"config fault ({label}): an unrelated command exits 0 untouched", _untouched(r),
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
 
 
-def _config_control_case(label, body):
-    r = _run_in(os.path.dirname(GATE), "git check" + "out -b fix/123-typo", _config_root(body))
-    check(f"readable config, {label}: a matching branch creation exits 0 untouched",
+def _config_control_case(label, derive):
+    r = _run_in(os.path.dirname(GATE), "git check" + "out -b fix/123-typo", _config_root(derive))
+    check(f"valid config, {label}: a matching branch creation exits 0 untouched",
           _untouched(r), f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
 
 
@@ -465,10 +463,10 @@ def _broad_catches(path):
 
 
 def run_config_faults():
-    for label, body, detail in _CONFIG_FAULTS:
-        _config_fault_case(label, body, detail)
-    for label, body in _CONFIG_CONTROLS:
-        _config_control_case(label, body)
+    for label, derive in _CONFIG_FAULTS:
+        _config_fault_case(label, derive)
+    for label, derive in _CONFIG_CONTROLS:
+        _config_control_case(label, derive)
     hits = _broad_catches(GATE)
     check("the gate's config read carries no broad catch", hits == [], f"lines: {hits}")
 

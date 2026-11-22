@@ -63,6 +63,8 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 DECOMPOSE = os.path.join(BIN_DIR, "factory_decompose.py")
+sys.path.insert(0, os.path.dirname(TESTS_DIR))
+from harness_config_support import build_config  # noqa: E402
 
 REPO = "acme/widget"
 FEAT = "FEAT-91-factory-types"
@@ -194,10 +196,11 @@ def board_dict():
 
 
 def harness_json_b64(issue_types=None):
-    github = {"board": board_dict()}
+    github = {"repo": REPO, "board": board_dict()}
     if issue_types:
         github["issue_types"] = issue_types
-    return base64.b64encode(json.dumps({"github": github}).encode("utf-8")).decode("ascii")
+    config = build_config({"github": github})
+    return base64.b64encode(json.dumps(config).encode("utf-8")).decode("ascii")
 
 
 def build_fleet(tmp):

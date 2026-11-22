@@ -1,4 +1,4 @@
-"""The GitHub mirror agrees with disk: INV-13/21/24/26/37. (FEAT-69)"""
+"""The GitHub mirror agrees with disk: INV-21/24/26/37. (FEAT-69)"""
 import os, re
 import artifact_accessors
 import feature_corpus
@@ -748,21 +748,4 @@ def inv_26(ctx):
     bad += _bbad
     _owner = (_repo26, _inv26_board) if _inv26_board else None
     bad += _inv26_check(ctx, _gb, _fs, _owner, _gh_bin, ctx.plan_docs)
-    return bad, warn
-
-# --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
-# (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
-# silently, which reads exactly like a working mirror to anyone not tailing logs.
-# A missing `github` block means the project predates the feature: surface it once.
-def inv_13(ctx):
-    bad, warn = [], []
-    cj = ctx.cj
-    if cj:
-        gh_ = cj.get("github")
-        if gh_ is None:
-            warn.append("harness.json has no `github` block — predates DEC-138. Run "
-                        "/harness-init --upgrade to decide the Issues mirror once (sync on/off).")
-        elif gh_.get("sync") and not gh_.get("repo"):
-            bad.append("github.sync is ON but github.repo is not pinned — every sync will "
-                       "silently SKIP. Pin the repo (from `gh repo view`) or turn sync off.")
     return bad, warn

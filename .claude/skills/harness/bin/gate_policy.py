@@ -22,38 +22,15 @@ class GatePolicyError(ValueError):
         super().__init__(f"invalid gate policy for {gate}: {value!r}")
 
 
-def _load_config(harness_json_path):
-    try:
-        return artifact_accessors.load_harness_json(harness_json_path)
-    except artifact_accessors.ArtifactAccessError as error:
-        raise GatePolicyError("config", harness_json_path) from error
-
-
-def _require_gates(config):
-    try:
-        gates = config["gates"]
-    except (KeyError, TypeError) as error:
-        raise GatePolicyError("gates", None) from error
-    if not isinstance(gates, dict):
-        raise GatePolicyError("gates", gates)
-    return gates
-
-
-def _resolve_gate(gates, gate, vocabulary):
-    try:
-        value = gates[gate]
-    except KeyError as error:
-        raise GatePolicyError(gate, None) from error
-    if not isinstance(value, str) or value not in vocabulary:
-        raise GatePolicyError(gate, value)
-    return value
-
-
 def load_policy(harness_json_path):
-    """Return the configured review gate, rejecting every missing or invalid input loudly."""
-    gates = _require_gates(_load_config(harness_json_path))
-    return {gate: _resolve_gate(gates, gate, vocabulary)
-            for gate, vocabulary in GATE_VOCABULARIES.items()}
+    """Return the configured gate policy from the validated config. The schema enumerates each
+    gate's vocabulary and defaults it; a missing or invalid config raises GatePolicyError carrying
+    the loader's diagnosis (FEAT-2297)."""
+    try:
+        gates = artifact_accessors.load_harness_json(harness_json_path)["gates"]
+    except artifact_accessors.ArtifactAccessError as error:
+        raise GatePolicyError("config", str(error)) from error
+    return {gate: gates[gate] for gate in GATE_VOCABULARIES}
 
 
 def evaluate_review(policy, must_fix, severity_max):

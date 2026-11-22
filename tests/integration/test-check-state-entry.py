@@ -22,6 +22,7 @@ import tempfile
 import harness_yaml
 from check_state_support import (HARNESS_JSON_SYNC_OFF, HARNESS_JSON_SYNC_ON, SCRIPT, check_state_source,
     make_fixture, run, _run_with_gh, _run_with_gh_streams)
+from harness_config_support import build_config, write_config
 
 
 def case_a():
@@ -91,8 +92,7 @@ def case_e():
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
         os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write(HARNESS_JSON_SYNC_OFF)
+        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
         with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write(RUNS_WITH_VALIDATOR_ENTRY)
         code, out = run(tmp)
@@ -114,8 +114,7 @@ def case_f():
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
         os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write(HARNESS_JSON_SYNC_OFF)
+        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
         with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("runs: [ {id: a, squad: b ## eaten\nnext_key: 1\n")
         code, out = run(tmp)
@@ -148,8 +147,7 @@ def case_k():
             h = os.path.join(tmp, ".harness")
             rundir = os.path.join(h, "harness", "features", "FEAT-TEST", "runs", "2026-08-05-01-product")
             os.makedirs(rundir, exist_ok=True)
-            with open(os.path.join(h, "harness.json"), "w") as f:
-                f.write(HARNESS_JSON_SYNC_OFF)
+            write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
             with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
                 json.dump(
                     {"feature_id": "FEAT-TEST", "review_sha": "none", "runs": []}, f)
@@ -201,37 +199,6 @@ def case_t():
         return ok
 
 
-def case_r():
-    """(r) A project with NO harness.json must not CRASH check-state.
-
-    Pre-existing, reproduced on main before it was fixed: `cj` was assigned only inside
-    `if cfg:`, so an absent harness.json left the name unbound and every later consumer
-    raised NameError. A crash exits 1 — the same code a real violation exits — so /harness
-    entry reported "violations found" for a missing config, with a traceback where the
-    diagnosis should be. check-state.py's own header records the identical shape being
-    fixed once already, for a bad _selfdir.
-
-    Found while landing DEC-182, because a plan.yaml fixture legitimately carries none.
-    """
-    with tempfile.TemporaryDirectory() as tmp:
-        h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"))
-        # deliberately NO harness.json
-        _code, out = run(tmp)
-        # ASSERT ON WHAT A HEALTHY RUN PRODUCES, not on the absence of a traceback.
-        # The first draft checked `"NameError" not in out` — and `run()` returns STDOUT
-        # ONLY, while a traceback goes to STDERR, so it searched a stream that could never
-        # contain the thing it looked for. It reported ok against the crashing build.
-        # A crash produces NO invariant output at all, so the presence of the diagnosis
-        # this fixture is supposed to earn is the discriminator.
-        ok = "harness.json missing" in out
-        print(f"{'ok' if ok else 'FAIL'} - case (r): no harness.json is DIAGNOSED, not a "
-              f"crash (a crash prints nothing to stdout)")
-        if not ok:
-            print(f"       | stdout was: {out.strip()[:200]!r}")
-        return ok
-
-
 FLEET_YAML = """schema: factory-fleet/1
 repos:
   - name: acme/widget
@@ -249,8 +216,7 @@ def _factory_tree(tmp, features, fleet=FLEET_YAML):
     """
     h = os.path.join(tmp, ".harness")
     os.makedirs(h, exist_ok=True)
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        f.write(HARNESS_JSON_SYNC_OFF)
+    write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
     if fleet is not None:
         os.makedirs(os.path.join(h, "factory"), exist_ok=True)
         with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
@@ -512,15 +478,16 @@ def case_no_root_replays_resolver_stderr():
 
 def case_canonical_reader_rejects_duplicate_harness_json():
     """The enforcement reader must not inherit json.loads' last-key-wins behavior."""
-    duplicate = (
-        '{"github":{"sync":false,"repo":null},'
-        '"github":{"sync":true,"repo":"org/repo"}}\n')
+    duplicate = (json.dumps(build_config({"github": {"sync": False}}))[:-1]
+                 + ',"github":{"sync":true,"repo":"org/repo"}}\n')
     with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, duplicate, "  parent: 40")
+        h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: 40")
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write(duplicate)
         code, out = run(tmp)
         ok = (
             code == 1
-            and "harness.json is not valid JSON" in out
+            and "harness.json is invalid" in out
             and "duplicate key" in out
         )
         if not ok:
@@ -540,7 +507,6 @@ def main():
     results.append(case_f())
     results.append(case_k())
     results.append(case_o())
-    results.append(case_r())
     results.append(case_s())
     results.append(case_t())
     results.append(case_no_root_replays_resolver_stderr())

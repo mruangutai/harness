@@ -5,6 +5,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import importlib.util
 import json
 import os
@@ -19,11 +20,11 @@ spec = importlib.util.spec_from_file_location("gate_policy", os.path.join(HERE, 
 gate_policy = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = gate_policy
 spec.loader.exec_module(gate_policy)
+from harness_config_support import build_config, write_config  # noqa: E402
 
 
-FIXTURE_POLICY = {"gates": {"review": "advisory_unless_high"}}
-# FEAT-61 T-04: the keys load_policy stopped reading. An old harness.json still carrying them,
-# with any value at all, must load exactly as a review-only one does.
+# FEAT-61 T-04 removed these gate keys from the vocabulary; under the harness.json schema
+# (FEAT-2297) a config still carrying them is invalid and refused, never silently ignored.
 REMOVED_GATE_KEYS = {"qa_gate": "sometimes", "uat": ["blocking"], "merge": None}
 
 
@@ -49,47 +50,25 @@ def expect_policy_error(call, gate, value, label):
     return 1
 
 
-def write_fixture(directory, name, payload):
-    path = os.path.join(directory, name)
-    with open(path, "w", encoding="utf-8") as fixture:
-        json.dump(payload, fixture)
-    return path
-
-
 def check_policy_loading():
     failures = 0
     with tempfile.TemporaryDirectory() as directory:
-        fixture_path = write_fixture(directory, "harness.json", FIXTURE_POLICY)
-        failures += check(gate_policy.load_policy(fixture_path), {"review": "advisory_unless_high"},
-                          "loader resolves review by name from a review-only fixture")
-        legacy = {"gates": dict(FIXTURE_POLICY["gates"], **REMOVED_GATE_KEYS)}
-        failures += check(gate_policy.load_policy(write_fixture(directory, "legacy.json", legacy)),
-                          {"review": "advisory_unless_high"},
-                          "loader ignores removed gate keys whatever their values")
-        invalid = {"gates": {"review": "sometimes"}}
-        failures += expect_policy_error(
-            lambda: gate_policy.load_policy(write_fixture(directory, "invalid.json", invalid)),
-            "review", "sometimes", "unrecognised review policy")
-        invalid_shape = {"gates": {"review": ["blocking"]}}
-        failures += expect_policy_error(
-            lambda: gate_policy.load_policy(write_fixture(directory, "invalid-shape.json", invalid_shape)),
-            "review", ["blocking"], "non-string review policy")
-        failures += expect_policy_error(
-            lambda: gate_policy.load_policy(write_fixture(directory, "missing-gates.json", {})),
-            "gates", None, "absent gates block")
-        failures += expect_policy_error(
-            lambda: gate_policy.load_policy(write_fixture(directory, "missing-key.json", {"gates": {}})),
-            "review", None, "absent review gate")
-        malformed_path = os.path.join(directory, "malformed.json")
-        with open(malformed_path, "w", encoding="utf-8") as fixture:
-            fixture.write("{")
-        failures += expect_policy_error(
-            lambda: gate_policy.load_policy(malformed_path),
-            "config", malformed_path, "unparseable configuration")
-        unreadable_path = os.path.join(directory, "not-present.json")
-        failures += expect_policy_error(
-            lambda: gate_policy.load_policy(unreadable_path),
-            "config", unreadable_path, "unreadable configuration")
+        valid = os.path.join(directory, "harness.json")
+        write_config(valid, {"gates": {"review": "blocking"}})
+        failures += check(gate_policy.load_policy(valid), {"review": "blocking"},
+                          "loader resolves review by name from the validated config")
+        legacy = build_config({"gates": {"review": "blocking"}})
+        legacy["gates"].update(REMOVED_GATE_KEYS)
+        legacy_path = os.path.join(directory, "legacy.json")
+        with open(legacy_path, "w", encoding="utf-8") as fixture:
+            json.dump(legacy, fixture)
+        try:
+            gate_policy.load_policy(legacy_path)
+            print("FAIL removed gate keys are refused: did not raise")
+            failures += 1
+        except gate_policy.GatePolicyError as error:
+            failures += check((error.gate, "qa_gate" in str(error.value)), ("config", True),
+                              "removed gate keys are refused, naming the key")
     return failures
 
 

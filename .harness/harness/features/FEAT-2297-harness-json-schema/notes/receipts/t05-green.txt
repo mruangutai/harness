@@ -1,0 +1,24 @@
+# T-05 GREEN: signed verify exit 0 in 47s
+0 finding(s)
+ALL PASSED
+91/91 cases passed.
+ALL PASSED
+
+# per-suite status after migration
+test-gh-close-gate: ALL PASSED
+test-branch-create-gate: 91/91 cases passed.
+test-merge-gate: ALL PASSED
+test-gh-sync-open: ALL PASSED
+test-board-station: all pass
+test-board-lifecycle: all checks passed.
+test-factory-issue-types: ALL PASSED
+test-gh-issue-types: ALL PASSED
+test-gh-backlog-issue-types: ALL PASSED
+test-gh-sync-abandon: ALL PASSED
+test-gh-sync-start-task: ALL PASSED
+
+# dispositions
+DELETED: board-lifecycle #1897 'board declared, repo absent' and clause-4 'repo empty' cases (both now schema-invalid configs); board-station case 2b (missing board now defaults null); gh-sync-start-task unusable-board case (incomplete board refused by the schema).
+UPDATED to refusal-with-diagnosis + no governed action: gh-close-gate duplicate-key + config faults; branch-create-gate unpinned + duplicate-key + config faults; merge-gate unpinned + duplicate-key; gh-sync-open unpinned (x2) + not_onboarded.
+branch-create-gate 'AttributeError expectation' row: no such expectation exists in the file at the pinned base or now; already discharged by FEAT-2274's migration, nothing to delete.
+gh-sync-open previously CRASHED mid-run at stage(repo=None) (ArtifactAccessError), so its pre-edit '2 FAIL' under-reported; every case now runs.

@@ -12,6 +12,17 @@ Run both commands in the target checkout:
 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/merge-gitignore.py .
 ```
 
+A fleet member's product checkout carries neither the templates nor a `team-config.yaml`, so
+replace the first command there with:
+
+```bash
+<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/upgrade-config.py . --config-only \
+  --templates <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates
+```
+
+Version 3 is a breaking upgrade (DEC-256): until a member's upgraded `harness.json` lands on
+its default branch, every Harness reader refuses that member.
+
 - `harness.json` is **merged**: new template entries are added and every project value is kept.
   Preserve `test_kinds.*.cmd` above all: dev-ops verified those by running them; re-imposing
   the template's `null` would turn a working active gate into `BLOCKED`, not a soft skip

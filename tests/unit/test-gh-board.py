@@ -15,7 +15,9 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import json
+from harness_config_support import write_config  # noqa: E402
 import os
 import stat
 import sys
@@ -44,9 +46,7 @@ def check(name, cond, detail=""):
 
 
 def write_harness_json(root, github):
-    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "harness.json"), "w") as f:
-        json.dump({"schema_version": 1, "github": github}, f)
+    write_config(os.path.join(root, ".harness", "harness.json"), {"github": github})
 
 
 def fake_gh(tmp, payload):
@@ -78,98 +78,24 @@ FULL_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
 
 
 def full_board(**overrides):
-    board = {"owner": "mruangutai", "number": 3, "station_field": "Status",
+    board = {"owner": "implentio", "number": 7, "station_field": "Status",
               "stations": list(FULL_STATIONS)}
     board.update(overrides)
     return board
 
 
-def raised_exc(root):
-    """Call load_board(root), returning the raised FleetError, or None if it did not raise."""
-    try:
-        gh_board.load_board(root)
-    except artifact_accessors.FleetError as exc:
-        return exc
-    return None
-
-
+# Board SHAPE is the harness.json schema's (FEAT-2297): an invalid board never reaches
+# load_board's caller as a board. What stays here is the domain behaviour on a valid config.
 with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": True, "repo": "o/r", "board": None})
     check("load_board: an explicit null board is accepted and returns None",
           gh_board.load_board(tmp) is None)
 
 with tempfile.TemporaryDirectory() as tmp:
-    path = os.path.join(tmp, ".harness", "harness.json")
-    write_harness_json(tmp, {"sync": True, "repo": "o/r"})
-    exc = raised_exc(tmp)
-    check("load_board raises naming the file and the key: no board key",
-          exc is not None and "github.board" in str(exc) and path in str(exc), str(exc))
-
-with tempfile.TemporaryDirectory() as tmp:
-    path = os.path.join(tmp, ".harness", "harness.json")
-    write_harness_json(tmp, {"board": "not-a-mapping"})
-    exc = raised_exc(tmp)
-    check("load_board raises naming the file and the key: board is not a mapping",
-          exc is not None and "github.board" in str(exc) and path in str(exc), str(exc))
-
-with tempfile.TemporaryDirectory() as tmp:
-    path = os.path.join(tmp, ".harness", "harness.json")
-    board = full_board()
-    del board["owner"]
-    write_harness_json(tmp, {"board": board})
-    exc = raised_exc(tmp)
-    exc_text = str(exc) if exc else ""
-    check("load_board raises naming the file and the key: owner missing",
-          exc is not None and "github.board.owner" in exc_text and path in exc_text
-          and "github.board.board" not in exc_text, exc_text)
-
-with tempfile.TemporaryDirectory() as tmp:
-    path = os.path.join(tmp, ".harness", "harness.json")
-    write_harness_json(tmp, {"board": full_board(number=2.5)})
-    exc = raised_exc(tmp)
-    check("load_board raises naming the file and the key: number not an int",
-          exc is not None and "github.board.number" in str(exc) and path in str(exc), str(exc))
-
-with tempfile.TemporaryDirectory() as tmp:
-    path = os.path.join(tmp, ".harness", "harness.json")
-    board = full_board()
-    del board["station_field"]
-    write_harness_json(tmp, {"board": board})
-    exc = raised_exc(tmp)
-    check("load_board raises naming the file and the key: station_field missing",
-          exc is not None and "github.board.station_field" in str(exc) and path in str(exc),
-          str(exc))
-
-with tempfile.TemporaryDirectory() as tmp:
-    path = os.path.join(tmp, ".harness", "harness.json")
-    board = full_board()
-    del board["stations"]
-    write_harness_json(tmp, {"board": board})
-    exc = raised_exc(tmp)
-    check("load_board raises naming the file and the key: stations missing",
-          exc is not None and "github.board.stations" in str(exc) and path in str(exc), str(exc))
-
-with tempfile.TemporaryDirectory() as tmp:
-    path = os.path.join(tmp, ".harness", "harness.json")
-    board = full_board(stations=["backlog", "ready", "building"])
-    write_harness_json(tmp, {"board": board})
-    exc = raised_exc(tmp)
-    check("load_board raises naming the file and the key: station list incomplete",
-          exc is not None and "github.board.stations" in str(exc) and path in str(exc), str(exc))
-
-with tempfile.TemporaryDirectory() as tmp:
-    path = os.path.join(tmp, ".harness", "harness.json")
-    board = full_board(stations=list(FULL_STATIONS[:-1]) + [""])
-    write_harness_json(tmp, {"board": board})
-    exc = raised_exc(tmp)
-    check("load_board raises naming the file and the key: a station value is empty",
-          exc is not None and "github.board.stations" in str(exc) and path in str(exc), str(exc))
-
-with tempfile.TemporaryDirectory() as tmp:
-    write_harness_json(tmp, {"board": full_board(number="3")})
+    write_harness_json(tmp, {"repo": "o/r", "board": full_board(number=" 7 ")})
     b = gh_board.load_board(tmp)
-    check("load_board: digit string '3' -> int 3",
-          b is not None and b["number"] == 3 and isinstance(b["number"], int),
+    check("load_board: a padded digit string is normalised to an int and stations to a tuple",
+          b["number"] == 7 and isinstance(b["number"], int) and b["stations"] == FULL_STATIONS,
           repr(b))
 
 # ---------------- derive_station ----------------

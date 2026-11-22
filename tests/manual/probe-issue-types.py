@@ -38,6 +38,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.abspath(os.path.join(_HERE, "..", ".."))
 _BIN = os.path.join(_ROOT, ".claude", "skills", "harness", "bin")
 sys.path.insert(0, _BIN)
+import artifact_accessors  # noqa: E402
 import gh_issue_types  # noqa: E402
 
 # Deliberately hardcoded, never GH_SYNC_GH: this script must never see a fixture gh.
@@ -55,12 +56,12 @@ def _skip(reason):
 
 
 def _load_config():
-    path = os.path.join(_ROOT, ".harness", "harness.json")
+    """The validated harness.json. Missing or invalid is a refusal (exit 2), never `{}`."""
     try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        return {}
+        return artifact_accessors.load_harness_json(os.path.join(_ROOT, ".harness", "harness.json"))
+    except artifact_accessors.ArtifactAccessError as error:
+        _verdict(f"REFUSED {error}")
+        sys.exit(2)
 
 
 def _classify(repo):
@@ -164,10 +165,8 @@ def main():
     target = args.create_in
 
     cfg = _load_config()
-    github_cfg = cfg.get("github") or {}
-    configured_repo = github_cfg.get("repo")
-    repo_resolvable = bool(configured_repo) and "/" in str(configured_repo)
-    repo = configured_repo if repo_resolvable else None
+    github_cfg = cfg["github"]
+    repo = github_cfg["repo"]
     tag = f" ({repo})" if repo else ""
 
     # Host gate: applies on EVERY invocation, opt-in or not.
@@ -178,8 +177,8 @@ def main():
 
     if target is None:
         # Configured-repository availability gate: exempt when the opt-in was given.
-        if not github_cfg.get("sync") or not repo_resolvable:
-            _skip(f"github.sync is disabled or github.repo is not pinned{tag}")
+        if not github_cfg["sync"]:
+            _skip(f"github.sync is disabled{tag}")
         _report_or_skip(repo, lambda declared: _print_capability_present(repo, declared))
         return
 

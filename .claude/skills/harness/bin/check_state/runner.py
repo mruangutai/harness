@@ -323,6 +323,11 @@ def main(root, argv):
     # the dirty tree through the context's one process boundary and its one git top level.
     # Building it prints nothing, so a selector error still exits before any finding.
     ctx = Ctx(root, keep=pre.keep, scoped=pre.scoped, owner=pre.owner)
+    # A MISSING OR INVALID harness.json GRADES NOTHING (FEAT-2297): every config-dependent row
+    # would otherwise run on defaults nobody declared. The violation is printed for --only and
+    # --changed alike (never the silent clean-selective path), with no traceback.
+    if not ctx.cj_valid:
+        return _main_report(ctx.bad, pre.notes, changed=False)
     selection, code = _main_selection(ctx, only, changed)
     if code is not None:
         return code

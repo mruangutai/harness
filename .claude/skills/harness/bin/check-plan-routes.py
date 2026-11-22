@@ -937,8 +937,13 @@ READER_CALL_CATEGORIES = {
 CANONICAL_ACCESSOR_NAMES = {
     "load_feature_json", "load_harness_json", "load_plan", "load_fleet",
     "manifest_domains", "load_frontmatter", "load_omp_config",
-    "read_hook_payload", "parse_gh_json",
+    "read_hook_payload", "parse_gh_json", "load_json_mapping",
 }
+# load_json_mapping is the strict JSON-mapping read for NON-config JSON (FEAT-2297). harness.json
+# is configuration: its canonical remedy is the validating load_harness_json, so a canonical row
+# reading it through load_json_mapping is a finding; only a ruled exemption may read it raw.
+CONFIG_ARTIFACT = "harness.json"
+GENERIC_JSON_REMEDY = "artifact_accessors.load_json_mapping"
 LEGAL_READER_EXEMPTIONS = {
     "harness_yaml_primitive",
     "in_memory_validation",
@@ -1284,8 +1289,6 @@ _CLASSIFICATION_REMEDY_OVERRIDES = {
     # captured broader route labels. These overrides remain part of the permanent audit.
     ".claude/skills/harness/bin/factory_config.py::product_config::json_string#1":
         "artifact_accessors.load_harness_json",
-    ".claude/skills/harness/bin/upgrade-config.py::load_json::json_file#1":
-        "artifact_accessors.load_harness_json",
 }
 
 
@@ -1411,27 +1414,42 @@ def _unmigrated_row_findings(row, live, candidates):
     ]
 
 
-def _classified_disposition_findings(row, live, candidates):
-    disposition = row.get("disposition")
-    if disposition not in {"canonical", "migrate", "exempt"}:
-        return [
-            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
-            f"remedy={row.get('remedy', 'unknown')}: illegal disposition "
-            f"{disposition!r}. PLAN AMENDMENT REQUIRED"
-        ]
-    if disposition == "exempt":
-        findings = _unmigrated_row_findings(row, live, candidates)
-        exemption = _exemption_finding(row)
-        if exemption:
-            findings.append(exemption)
-        return findings
+def _exempt_row_findings(row, live, candidates):
+    findings = _unmigrated_row_findings(row, live, candidates)
+    exemption = _exemption_finding(row)
+    if exemption:
+        findings.append(exemption)
+    return findings
+
+
+def _canonical_row_findings(row, live, candidates):
     state = _migration_row_state(row, live, candidates)
-    if disposition == "canonical" and state != "canonical":
+    if state != "canonical":
         return [
             f"{row.get('id')}: observed state={state}; expected disposition=canonical "
             f"remedy={_row_remedy(row)}. PLAN AMENDMENT REQUIRED"
         ]
+    if row.get("artifact") == CONFIG_ARTIFACT and _row_remedy(row) == GENERIC_JSON_REMEDY:
+        return [
+            f"{row.get('id')}: harness.json read through {GENERIC_JSON_REMEDY}; configuration "
+            f"reads use {READER_CATEGORY_REMEDIES['json_file']}. PLAN AMENDMENT REQUIRED"
+        ]
     return _migration_row_findings(row, live, candidates)
+
+
+def _classified_disposition_findings(row, live, candidates):
+    disposition = row.get("disposition")
+    if disposition == "exempt":
+        return _exempt_row_findings(row, live, candidates)
+    if disposition == "canonical":
+        return _canonical_row_findings(row, live, candidates)
+    if disposition == "migrate":
+        return _migration_row_findings(row, live, candidates)
+    return [
+        f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+        f"remedy={row.get('remedy', 'unknown')}: illegal disposition "
+        f"{disposition!r}. PLAN AMENDMENT REQUIRED"
+    ]
 
 
 def _classified_row_finding(row, task_files, live, candidates):
@@ -1982,7 +2000,7 @@ ROW_FAMILIES = {
     "seams": ("INV-17",),
     "brief": ("INV-38", "INV-41", "INV-49"),
     "worktrees": ("INV-25", "INV-27", "INV-29", "INV-31"),
-    "board": ("INV-13", "INV-21", "INV-24", "INV-26", "INV-37"),
+    "board": ("INV-21", "INV-24", "INV-26", "INV-37"),
     "host": ("INV-19", "INV-42", "INV-45", "INV-48"),
     "corpus": ("INV-52",),
 }

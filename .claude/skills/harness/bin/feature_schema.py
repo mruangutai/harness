@@ -519,8 +519,8 @@ def _bound_mirror_binding(bound, root):
     fleet = artifact_accessors.load_fleet(os.path.join(root, ".harness", "factory", "fleet.yaml"))
     factory_config.repo_entry(fleet, bound)
     config = factory_config.product_config(fleet, bound)
-    github = config.get("github")
-    if not isinstance(github, dict) or github.get("repo") != bound or not github.get("sync"):
+    github = config["github"]
+    if github["repo"] != bound or not github["sync"]:
         raise artifact_accessors.FleetError("invalid product mirror", bound,
                                           "github.sync must be enabled and github.repo must match factory.repo")
     return bound, factory_config.board_for(fleet, bound), gh_issue_types.overrides_from_config(config)
@@ -528,22 +528,17 @@ def _bound_mirror_binding(bound, root):
 
 def _owner_mirror_binding(root):
     import artifact_accessors
-    import gh_board
+    import factory_config
     import gh_issue_types
     path = os.path.join(root, ".harness", "harness.json")
     try:
         config = artifact_accessors.load_harness_json(path)
     except artifact_accessors.ArtifactAccessError as error:
         raise artifact_accessors.FleetError("owner config unreadable", path, str(error)) from error
-    github = config.get("github") or {}
-    if not isinstance(github, dict):
-        raise artifact_accessors.FleetError("invalid owner mirror", path, "github must be a mapping")
-    repo = github.get("repo")
-    if not github.get("sync"):
-        return repo, None, gh_issue_types.overrides_from_config(config)
-    if not isinstance(repo, str) or not _REPOSITORY.fullmatch(repo):
-        raise artifact_accessors.FleetError("invalid owner mirror", path, "github.repo must be owner/name")
-    return repo, gh_board.load_board(root), gh_issue_types.overrides_from_config(config)
+    github = config["github"]
+    board = github["board"] if github["sync"] else None
+    return (github["repo"], None if board is None else factory_config.validate_board(board),
+            gh_issue_types.overrides_from_config(config))
 
 
 def effective_recorded_repo(doc, bound_repo):

@@ -54,15 +54,13 @@ def cfg():
             "onboarded project.")
     p = os.path.join(r, ".harness", "harness.json")
     try:
-        gh = artifact_accessors.load_harness_json(p).get("github") or {}
+        gh = artifact_accessors.load_harness_json(p)["github"]
     except artifact_accessors.ArtifactAccessError as e:
         die(f"cannot read {p} ({e})")
-    if not gh.get("sync"):
+    if not gh["sync"]:
         die("github.sync is off — wayfinding runs in local-markdown mode "
             "(.harness/efforts/<slug>/MAP.md). This script is the tracker mode only.")
-    if not gh.get("repo"):
-        die("github.sync is on but github.repo is not pinned — fix harness.json (DEC-138).")
-    return gh["repo"]
+    return gh["repo"]  # the schema requires a pinned owner/name repo whenever sync is on
 
 
 def gh_json(args, allow_fail=False):

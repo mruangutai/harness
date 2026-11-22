@@ -79,9 +79,9 @@ def is_shipped(feature_dir):
 def comparison_record(path):
     """A shipped feature.json as raw comparison data: the parsed mapping, or None. Never a
     finding -- a shipped record is read only so another feature's claims can be compared with it.
-    The canonical JSON-mapping read, without the feature schema the strict loader adds."""
+    The canonical strict JSON-mapping read, without the feature schema the strict loader adds."""
     try:
-        return artifact_accessors.load_harness_json(path)
+        return artifact_accessors.load_json_mapping(path)
     except (artifact_accessors.ArtifactAccessError, RecursionError):
         return None
 
@@ -119,8 +119,6 @@ def approved(txt):
 
 def has_approval_block(txt):
     return bool(txt) and re.search(r"^##\s+Approval\s*$", txt, re.M) is not None
-
-_MISSING = object()
 
 # THE STEMS ARE LOWERCASE LITERALS AND ARE DELIBERATELY NOT DERIVED FROM THE STATION NAMES.
 # The next editor's first instinct is to build the filename from the station; do not. The stems
@@ -333,36 +331,18 @@ class Ctx:
         return station_of(self.plan_docs.get(feat))
 
     def _load_config(self):
-        # `cj` is the parsed harness.json, consumed below by the test_kinds, github.sync and
-        # gh-config checks. The JSON-validity violation is kept on its own merit — a config
-        # that does not parse silently disables every check that reads it.
-        # BOUND UNCONDITIONALLY. `cj` used to be assigned only inside the `if cfg:` below, so a
-        # project with NO harness.json reached the consumers further down with the name unbound and
-        # died with `NameError: name 'cj' is not defined`. That is a CRASH, and a crash exits 1 —
-        # the same code a real violation exits — so /harness entry reported "violations found" for
-        # an absent config file, with a traceback where a diagnosis should be.
-        #
-        # Pre-existing and reproduced on main at the same fixture before being fixed here; found
-        # while landing DEC-182 because a plan.yaml fixture legitimately carries no harness.json.
-        # Fixed in passing rather than left in a file this change already opens: check-state.py is
-        # a DEC-174 carve-out, so the next person to touch it pays the full carve-out cost, and
-        # leaving a known landmine for them is worse than a two-line diff here. The absent-config
-        # case is already reported by the INV-1 check above; this only stops the crash.
-        H, bad = self.H, self.bad
-        cj = self.cj = {}
-        cfg = read(os.path.join(H, "harness.json"))
-        # `cj_valid` is False only when harness.json EXISTS and does not parse: the one finding
-        # below covers that, and every other reader of the config (the era boundaries, INV-22's
-        # budget, INV-37's sync flag) reads `cj` and stays quiet about it (FEAT-63 T-01).
-        self.cj_valid = bool(cfg)
-        if cfg:
-            try:
-                cj = self.cj = artifact_accessors.load_harness_json(
-                    text=cfg, context=os.path.join(H, "harness.json"))
-            except artifact_accessors.ArtifactAccessError as e:
-                cj = self.cj = {}
-                self.cj_valid = False
-                bad.append(f".harness/harness.json is not valid JSON: {e}")
+        # `cj` is the validated harness.json, read ONCE here and consumed by every
+        # config-dependent check. A missing or invalid config is one exact violation and
+        # `cj_valid` False: runner.main then stops before any config-dependent grading, so
+        # no check ever runs on defaults it invented (FEAT-2297). `cj` stays bound (to {})
+        # so construction itself never crashes on the failure it is reporting.
+        path = os.path.join(self.H, "harness.json")
+        try:
+            self.cj = artifact_accessors.load_harness_json(path)
+            self.cj_valid = True
+        except artifact_accessors.ArtifactAccessError as e:
+            self.cj, self.cj_valid = {}, False
+            self.bad.append(f".harness/harness.json is invalid: {e}")
 
     def _assert_seam_rows(self):
         # EVERY STATION IN THE VOCABULARY HAS A SEAM ROW, asserted here rather than trusted. The two
@@ -406,8 +386,7 @@ class Ctx:
         self._load_config()
         self._load_eras()
         self._assert_seam_rows()
-        self.default_cycles = (_int_field((self.cj.get("budgets") or {}).get("max_total_cycles"))
-                               if isinstance(self.cj, dict) else None)
+        self.default_cycles = self.cj["budgets"]["max_total_cycles"] if self.cj_valid else None
         self._load_hash_module()
 
         # Per-feature caches filled on first use: the feature.json record (INV-6 family, INV-15's
@@ -462,32 +441,10 @@ class Ctx:
         return os.path.join(self.feature_dir(feat), tail)
 
     def _era_start_for(self, inv, key, what):
-        """The YYYY-MM-DD boundary before which `inv` grades nothing, or None: no config at all
-        (INV-1 reports that; grade everything, the fail-CLOSED direction), null (this project has
-        no pre-`what` era — the template default), or an unreadable value (reported, exempts
-        nothing). A config that predates the key is a VIOLATION, not a silent default: defaulting
-        to "grade everything" reddens every pre-era record in an un-upgraded project, and
-        defaulting to "exempt everything" disables the invariant there without saying so; so it
-        says so, once, and names the command that fixes it."""
-        if not self.cj_valid:
-            # The JSON-validity violation is raised on its own merit further down (`cj`).
-            # (FEAT-63: `cj` is now loaded BEFORE the eras, so "further down" reads as
-            # "in _load_config"; an absent config is INV-1's finding. Neither resolves an era.)
-            return None
-        raw = self.cj.get(key, _MISSING)
-        if raw is _MISSING:
-            self.bad.append(f"{inv}: .harness/harness.json has no `{key}`, so no {what} era can be "
-                       f"resolved. Run /harness-init --upgrade (upgrade-config.py) against this "
-                       f"clone's own harness.json, then set it to the date the {what} became available "
-                       f"here, or null if this project never predated it.")
-            return None
-        if raw is None:
-            return None
-        if isinstance(raw, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", raw.strip()):
-            return raw.strip()
-        self.bad.append(f"{inv}: .harness/harness.json `{key}` is {raw!r}, which is neither null nor a "
-                   f"YYYY-MM-DD date. Nothing is exempted while it is unreadable.")
-        return None
+        """The YYYY-MM-DD boundary before which `inv` grades nothing, or None: null (this project
+        has no pre-`what` era — the schema default) or no valid config (reported by
+        _load_config, and runner.main grades nothing then). `inv` and `what` name the caller."""
+        return self.cj[key] if self.cj_valid else None
 
     def _record_doc(self, feat, fy):
         """The parsed feature.json document, or None and the INV-6 finding that explains why:

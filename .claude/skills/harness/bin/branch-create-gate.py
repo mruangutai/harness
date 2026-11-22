@@ -3,7 +3,7 @@
 
 Registered in `.omp/extensions/harness-hooks.ts`. New branches must name
 either an existing Harness flow or an open issue in the pinned GitHub repository
-(DEC-144). The gate self-disables when GitHub synchronization is off or unpinned.
+(DEC-144). The gate self-disables when GitHub synchronization is off.
 
 WAS A .sh (issue #1674). The shell version spread one decision across root, config,
 payload and output interpreter launches plus external text filters. This native entry
@@ -14,6 +14,7 @@ import io as _bootstrap_io
 import os as _bootstrap_os
 import site as _bootstrap_site
 import sys as _bootstrap_sys
+_bootstrap_original_path = list(_bootstrap_sys.path)
 
 _bootstrap_bin = _bootstrap_os.path.dirname(
     _bootstrap_os.path.abspath(__file__))
@@ -145,25 +146,24 @@ if not root or not _bootstrap_os.path.isdir(root):
 
 import artifact_accessors as _artifact_accessors
 import feature_corpus as _feature_corpus
+# The hardened path served the first-party imports above; third-party imports the validated
+# config read makes later (jsonschema) resolve on the interpreter's own path, as in gh-close-gate.
+_bootstrap_sys.path[:] = _bootstrap_original_path
 
 GH = _bootstrap_os.environ.get("GH_BIN") or "gh"
 input_text = _payload_text.rstrip("\n")
 
 
 def _github_config():
-    """(sync, repo) from a READABLE harness.json. The branch creation already matched, so a
-    config that cannot be read, or whose github block is not a mapping, is not "sync off": it
-    refuses the command by name rather than letting it through unchecked (FEAT-2274 V1)."""
+    """(sync, repo) from the validated harness.json. The branch creation already matched, so a
+    missing or invalid config is not "sync off": it refuses the command naming the diagnosis
+    rather than letting it through unchecked (FEAT-2274 V1, FEAT-2297)."""
     config_path = _bootstrap_os.path.join(root, ".harness", "harness.json")
     try:
-        github = _artifact_accessors.load_harness_json(config_path).get("github", {})
+        github = _artifact_accessors.load_harness_json(config_path)["github"]
     except _artifact_accessors.ArtifactAccessError as error:
         raise SystemExit(_unrunnable(f"harness.json could not be read: {error}"))
-    if not isinstance(github, dict):
-        raise SystemExit(_unrunnable(
-            f"harness.json github block is not a mapping: {type(github).__name__} in "
-            f"{config_path}"))
-    return str(bool(github.get("sync"))).lower(), github.get("repo") or "-"
+    return str(github["sync"]).lower(), github["repo"] or "-"
 
 
 SYNC, REPO = _github_config()

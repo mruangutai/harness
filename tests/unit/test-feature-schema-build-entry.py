@@ -24,7 +24,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(ROOT / "tests"))
 import feature_schema  # noqa: E402
+from harness_config_support import write_config  # noqa: E402
 
 failures = []
 
@@ -252,8 +254,7 @@ if callable(resolve):
     with tempfile.TemporaryDirectory() as tmp:
         directory = Path(tmp, ".harness")
         directory.mkdir()
-        Path(directory, "harness.json").write_text(
-            json.dumps({"github": {"sync": False, "repo": None, "board": None}}), encoding="utf-8")
+        write_config(Path(directory, "harness.json"))
         check("unbound sync-off retains legal null board", resolve({}, tmp) == (None, None, {}))
         for malformed in ("", "owner", "../owner/product", 12, False):
             try:
