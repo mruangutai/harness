@@ -1,0 +1,75 @@
+{
+  "feature_id": "FEAT-2229-decision-dispositions",
+  "branch": "feat/FEAT-2229-decision-dispositions",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261121-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T01:00:37+00:00",
+      "tokens": 77810,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-plan-product/digest.md",
+        "sha256": "e5798cebbfcb22ffb0e85c06e9fce0b6be0a43aa2bdce644ef3cd52f7783ff3d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T01:23:41+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T01:23:51+00:00",
+      "tokens": 59705,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-simplify-eng/digest.md",
+        "sha256": "1ee4ae08e232670d82b60c6ad4af97eefa1ce05e3919781f79db57293ab13e9b"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T01:29:25+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-plan-c2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T01:29:26+00:00",
+      "tokens": 70008,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-plan-c2-product/digest.md",
+        "sha256": "5aa93c91cbca6df3dd9683c6c01fe256c50860b6168e0cc4fbebf4f496e20ad2"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T01:38:23+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T01:00:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "adds a new plan.yaml schema block and new enforcement in plan-merge.py check (DEC-174 main-session-direct), plus template, scope-reader and goal-check changes, so it fails the no-new-schema-or-enforcement-surface test"
+    },
+    {
+      "at": "2026-11-22T01:23:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "plan run returned FAIL on scope's substance finding (T-01 drafted_at mutation seam), applied at apply; DEC-195 plan-flow simplify pass runs next, then pm re-apply and scope re-panel over T-01 in a new product run"
+    }
+  ],
+  "mission": "plan"
+}

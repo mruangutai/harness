@@ -1,0 +1,5 @@
+# Observations — harness-orchestrator — FEAT-2229-decision-dispositions
+
+- 2026-11-21: plan-phase.md sequences plan team then nothing, but DEC-195 places the four-angle simplify pass between draft and reviews on a plan flow; the product lead flagged the gap mid-run via IRC. Ran it after the panel (eng lead, flag-only, 0 cycles) and folded its one accepted finding in a second product run that also re-paneled scope over the substance-finding task. Order was reviews → simplify → re-panel, inverse of DEC-195's text; cost one extra product run.
+- 2026-11-21: product lead returned FAIL (worst-wins from scope's c1 FAIL, resolved at apply) with must_fix []; the routing table has no row for that shape. Treated it as the substance re-panel plan-phase.md owes, registered the follow-on run with --regate continue.
+- 2026-11-21: run-start on the first run emitted check-state VIOLATIONs for missing BRIEF/plan.yaml before pm had drafted them — expected noise on a plan mission's first cycle, not gating.
