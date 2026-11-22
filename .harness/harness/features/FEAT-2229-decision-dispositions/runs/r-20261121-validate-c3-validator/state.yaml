@@ -1,0 +1,48 @@
+schema_version: 2
+run_id: r-20261121-validate-c3-validator
+run_uid: d6d14cbb5edc420c924b0a1dcc701dfe
+feature: FEAT-2229-decision-dispositions
+squad: validator
+host: harness-validator-lead
+status: failed
+steps:
+- id: qa
+  persona: harness-qa
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: ../../notes/review-harness-qa-c3.md
+- id: code
+  persona: harness-code-reviewer
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: ../../notes/review-harness-code-reviewer-c3.md
+- id: security
+  persona: harness-security-reviewer
+  status: complete
+  verdict: FAIL
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: ../../notes/review-harness-security-reviewer-c3.md
+- id: ui
+  persona: harness-ui-reviewer
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: ../../notes/review-harness-ui-reviewer-c3.md
+- id: goalcheck
+  persona: harness-pm
+  status: complete
+  verdict: FAIL
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: ../../notes/research-FEAT-2229-decision-dispositions-goalcheck-validate-c3.md
