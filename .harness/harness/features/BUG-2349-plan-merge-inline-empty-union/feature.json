@@ -32,5 +32,32 @@
       "reason": "The cause is known (_union_key_head keeps the base inline [] head and appends block items under it); diff bounded to plan_merge/union.py and its test; no interface, schema or enforcement surface"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2349-plan-merge-inline-empty-union/.harness/harness/features/BUG-2349-plan-merge-inline-empty-union/notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "50839c42ffc66f2788ddbc0b22fc4d41433b22e0e18b61a7ff0f71219ed950c9"
+  },
+  "github": {
+    "milestone": 125,
+    "parent": 2350,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2351
+    },
+    "source_issues": [
+      2349
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

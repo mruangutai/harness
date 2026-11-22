@@ -1,9 +1,11 @@
 schema: plan/1
 feature: BUG-2349-plan-merge-inline-empty-union
 approval:
-  status: pending
+  date: '2026-11-22'
+  approved_by: fable-advisor (delegated by Mike Ruangutai)
+  status: approved
 drafted_at: '2026-11-22T20:10:42Z'
-status: plan
+status: ready
 source_issues: [2349]
 lanes:
   resolved_at: e239d88156c508c948d49cd31238ea13b3b39865

@@ -40,6 +40,6 @@ No applicable null-runner kind: integration is active and discovers tests/integr
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: fable-advisor (delegated by Mike Ruangutai)
+date: 2026-11-22
