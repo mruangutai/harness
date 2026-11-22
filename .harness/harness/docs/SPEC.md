@@ -677,9 +677,10 @@ Three details are non-negotiable, and getting any of them wrong makes the hook f
 1. **No agent-name matcher and no agent-name argument.** One registration serves all 16 agents.
    Identity comes from **`agent_type` in the hook payload**, which is present whenever the caller is
    a subagent. The script dispatches on it.
-2. **Only `exit 2` blocks.** Any other non-zero exit is treated as a *non-blocking* error and **the
-   write proceeds**. A script that exits 1 on violation silently permits every out-of-domain write
-   while appearing to enforce — the exact silent corruption this hook exists to prevent.
+2. **Only a refusal blocks: `exit 2`, or a structured deny.** A script that exits 1 on violation
+   permits every out-of-domain write while appearing to enforce — the exact silent corruption this
+   hook exists to prevent. A gate's *own* failure is a third outcome, neither allow nor deny; see
+   "Refusal, unavailable, allow" below.
 3. **There is no `$FILE` variable.** The tool input arrives as **JSON on stdin**; the target path
    must be parsed from it. Only `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_PLUGIN_ROOT}` and
    `${CLAUDE_PLUGIN_DATA}` are interpolated into the `command` string.
@@ -737,6 +738,37 @@ This inverts an earlier framing that treated the hook as load-bearing and serial
 >
 > This does **not** rescue the parallel-safety claim — the `Bash` bypass above is unaffected by any hook.
 > Serialization remains the mechanism.
+
+**Refusal, unavailable, allow (DEC-100).** Under OMP the extension (`.omp/extensions/harness-hooks.ts`)
+reads every gate run as exactly one of three outcomes:
+
+| Outcome | What the gate does | What the agent sees |
+|---|---|---|
+| **Refusal** | `exit 2`, or a structured deny on stdout | the call is blocked, with the gate's reason |
+| **Unavailable** | its own failure: one stdout line `{"decision": "unavailable", "gate": "<script stem>", "reason": …}` at exit 0; the extension synthesizes the same for an abnormal exit, a signal, a missing gate or interpreter, or a spawn error | the call proceeds, with passive context `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` on every occurrence, phase-tagged (pre, post, dispatch, yield), never deduplicated, never an error result |
+| **Allow** | `exit 0` and nothing else | nothing |
+
+A refusal outranks an unavailable line in the same output. The four gates that fire on every call
+— `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py`, `validate-digest.py` — resolve
+their own failure as **unavailable**, because failing them closed would wedge every agent on one
+gate's bug. The three narrow command gates — `gh-close-gate.py`, `branch-create-gate.py`,
+`plan-sign-gate.py` — match their command first, with the standard library and before any
+dependency loads; an unrelated command is untouched, and a guarded one whose gate cannot run is
+**refused** by name (the extension's `narrowGateApplies` decides when the gate cannot start at all).
+`merge-gate.py` fails closed.
+
+**Spawn policy is omp's, plus one route rule (DEC-118, DEC-204).** Which personas a dispatcher may
+spawn is its `.omp/agents/<persona>.md` `spawns:` list, enforced natively by omp on every spawn
+route; `dispatch-guard.py` keeps no copy of it and checks only what omp cannot (model and name
+overrides, the feature marker, run and claim state). A `harness-*` target is spawned through `task`
+only: the extension's `before_subagent_spawn` handler refuses an eval `agent()` or workpool route to
+one, for every caller including Main.
+
+**Project constraints reach governed personas by rule, not by AGENTS.md.** omp gives task
+subagents no AGENTS.md, so `.omp/rules/harness-constraints.md` (`agents: [harness-*]`,
+`alwaysApply: true`) carries its hard constraints — worktree-only work, decision discipline,
+verified claims, no shell wait loops, DEC-174 — to every governed persona and not to the main
+session, which keeps reading AGENTS.md.
 
 ### 4.3 Reviewer verdict mapping
 

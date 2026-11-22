@@ -157,7 +157,7 @@ tasks:
     execution_agent: harness-documentor
     execution_reason: Main completes the entirely direct DEC-174 enforcement feature and records its policy amendments without outsourcing protected execution.
     depends_on: [T-01, T-02]
-    status: ready
+    status: building
     files:
       - {path: .harness/harness/docs/DECISIONS.md, quote: '## DEC-100 — All four platform unknowns resolved empirically'}
       - {path: .harness/harness/docs/DECISIONS-INDEX.md, quote: '- DEC-100 @'}
