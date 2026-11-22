@@ -2493,31 +2493,47 @@ def check_qa_matrix_claim(agent, obj, payload):
 
 
 _RUN_POOL_HEADER = re.compile(r"----- (.+) \(exit -?\d+, \d+\.\d+s\) -----")
+_RUN_POOL_MUTATION_NOTE = "A file under the watched directory changed while the suite ran"
 
 
 def _run_pool_file_lines(lines):
     """run_pool's own FAIL/MUTATED file lines, in order, duplicates kept.
 
-    run_pool closes each file's block — opened by `----- <name> (exit N, Ss) -----` — with
-    `PASS <name>` or `FAIL <name>`, and prints `MUTATED <name>` only outside every block.
-    Names may hold spaces, so the line's position decides, not its shape: a failing file's
-    echoed `FAIL <case label>` lines sit inside its block and close nothing."""
+    Names may hold spaces and a file's captured output is echoed verbatim, so a line's
+    position decides, not its shape. run_pool closes each file's block — opened by
+    `----- <name> (exit N, Ss) -----` — with `PASS <name>` or `FAIL <name>`; it prints its
+    `MUTATED <name>` lines together, directly above its own mutation note."""
     open_blocks = []
-    return [line for line in lines if _is_run_pool_file_line(line, open_blocks)]
+    failed = {i for i, line in enumerate(lines) if _closes_failed_block(line, open_blocks)}
+    keep = failed | _run_pool_mutated_indexes(lines)
+    return [line for i, line in enumerate(lines) if i in keep]
 
 
-def _is_run_pool_file_line(line, open_blocks):
-    """Advance the stack of open block names over `line`; True when it is a file line."""
+def _closes_failed_block(line, open_blocks):
+    """Advance the stack of open block names over `line`; True when it closes one as FAIL.
+
+    A closing line pops back to its own header, so header-shaped lines a file merely echoed
+    (never closed) cannot hide the real close."""
     header = _RUN_POOL_HEADER.fullmatch(line)
     if header:
         open_blocks.append(header.group(1))
         return False
-    if not open_blocks:
-        return line.startswith("MUTATED ")
-    if line not in (f"PASS {open_blocks[-1]}", f"FAIL {open_blocks[-1]}"):
+    verdict, _, name = line.partition(" ")
+    if verdict not in ("PASS", "FAIL") or name not in open_blocks:
         return False
-    open_blocks.pop()
-    return line.startswith("FAIL ")
+    del open_blocks[len(open_blocks) - 1 - open_blocks[::-1].index(name):]
+    return verdict == "FAIL"
+
+
+def _run_pool_mutated_indexes(lines):
+    """Indexes of the MUTATED lines run directly above run_pool's mutation note."""
+    found = set()
+    for i in (i for i, line in enumerate(lines) if line.startswith(_RUN_POOL_MUTATION_NOTE)):
+        j = i - 1
+        while j >= 0 and lines[j].startswith("MUTATED "):
+            found.add(j)
+            j -= 1
+    return found
 
 
 def _print_independent_run(output):

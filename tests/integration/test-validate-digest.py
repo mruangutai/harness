@@ -6385,40 +6385,64 @@ def _bug2253_stub(root, name, stdout_lines, stderr_lines, code=1):
         f"sys.exit({code})\n"))
 
 
-_BUG2253_BURIED = ["FAIL test-a.py", "FAIL my test.py", "MUTATED notes/my file.md",
-                   "MUTATED test-d.py", "FAIL test-e.py"]
 _BUG2253_PASSING = [f"PASS test-p{i}.py" for i in range(25)]
+_BUG2253_NOTE = ("A file under the watched directory changed while the suite ran; this violates "
+                 "REQ-01. A concurrent hand edit or agent edit is indistinguishable.")
+_BUG2253_TAIL = [f"stderr tail {i}" for i in range(22)]
 
 
-def _bug2253_listed_before_tail(err):
-    """Every buried file line appears once under the one heading, in order, before the tail."""
+def _bug2253_listed_case(tmp, name, stdout_lines, stderr_lines, expected, absent):
+    """Fire the gate over a red re-run printing these lines. True when the `expected` file
+    lines appear once each under the one heading, in order, before the unchanged tail (its
+    last 20 lines); no `absent` text appears anywhere."""
+    r = _bug919_fire(_bug2253_stub(tmp, name, stdout_lines, stderr_lines))
+    err = r.stderr
     head = err.find("Failing or mutated files:")
-    listed = [err.find(f"  {line}\n", head) for line in _BUG2253_BURIED]
-    return (err.count("Failing or mutated files:") == 1 and head != -1
+    listed = [err.find(f"  {line}\n", head) for line in expected]
+    return (r.returncode == 2 and err.count("Failing or mutated files:") == 1 and head != -1
             and -1 not in listed and listed == sorted(listed)
-            and listed[-1] < err.find("Tail of the independent run:"))
+            and all(err.count(f"  {line}\n") == 1 for line in expected)
+            and listed[-1] < err.find("Tail of the independent run:")
+            and "  stderr tail 2\n" in err and "  stderr tail 1\n" not in err
+            and not any(text in err for text in absent)), err
 
 
 def _bug2253_buried_case(tmp):
     """(gate) run_pool's FAIL/MUTATED file lines — names with spaces included — buried above
-    a 20-line passing tail, on stdout and stderr, are listed before the unchanged tail. A
-    failing file's own echoed `FAIL <case label>` / `MUTATED …` lines sit inside its block
-    and stay out, as does a `FAILED…` word."""
-    stub = _bug2253_stub(tmp, "buried.py",
-                         ["----- test-a.py (exit 1, 0.10s) -----", "FAIL  [x] some case: detail",
-                          "MUTATED inner-echo.txt", "FAIL test-a.py",
-                          "----- my test.py (exit 1, 0.20s) -----", "FAIL my test.py",
-                          "FAILED-NOT-A-FILE-LINE"] + _BUG2253_PASSING + ["MUTATED notes/my file.md"],
-                         ["MUTATED test-d.py", "----- test-e.py (exit 2, 1.00s) -----", "FAIL test-e.py"]
-                         + [f"stderr tail {i}" for i in range(22)])
-    r = _bug919_fire(stub)
-    ok = (r.returncode == 2 and _bug2253_listed_before_tail(r.stderr)
-          and "some case" not in r.stderr and "inner-echo" not in r.stderr
-          and "FAILED-NOT-A-FILE-LINE" not in r.stderr
-          and "  stderr tail 2\n" in r.stderr and "  stderr tail 1\n" not in r.stderr)
+    a 20-line passing tail are listed before the unchanged tail. A failing file's echoed
+    `FAIL <case label>` / `MUTATED …` lines are not run_pool's, and stay out."""
+    ok, err = _bug2253_listed_case(
+        tmp, "buried.py",
+        ["----- test-a.py (exit 1, 0.10s) -----", "FAIL  [x] some case: detail",
+         "MUTATED inner-echo.txt", "FAIL test-a.py",
+         "----- my test.py (exit 1, 0.20s) -----", "FAIL my test.py",
+         "FAILED-NOT-A-FILE-LINE"] + _BUG2253_PASSING
+        + ["MUTATED notes/my file.md", "MUTATED test-b.py", _BUG2253_NOTE],
+        ["----- test-e.py (exit 2, 1.00s) -----", "FAIL test-e.py"] + _BUG2253_TAIL,
+        ["FAIL test-a.py", "FAIL my test.py", "MUTATED notes/my file.md", "MUTATED test-b.py",
+         "FAIL test-e.py"],
+        ["some case", "inner-echo", "FAILED-NOT-A-FILE-LINE"])
     return ("a red re-run names every FAIL/MUTATED file buried above the 20-line tail, "
             "names with spaces included, once, in order, before the unchanged tail — "
-            "and no echoed case line", ok, r.stderr)
+            "and no echoed case line", ok, err)
+
+
+def _bug2253_echoed_header_case(tmp):
+    """(gate) A file that echoes run_pool-shaped headers it never closes — in a failing and
+    in a passing block — hides neither its own FAIL, nor a later file's FAIL, nor the
+    MUTATED lines above run_pool's note."""
+    ok, err = _bug2253_listed_case(
+        tmp, "echoed.py",
+        ["----- outer.py (exit 1, 0.30s) -----", "----- fixture.py (exit 1, 0.01s) -----",
+         "FAIL outer.py",
+         "----- ok.py (exit 0, 0.10s) -----", "----- echoed fixture.py (exit 0, 0.00s) -----",
+         "PASS ok.py",
+         "----- later.py (exit 1, 0.40s) -----", "FAIL later.py"] + _BUG2253_PASSING
+        + ["MUTATED notes/x y.md", _BUG2253_NOTE],
+        _BUG2253_TAIL,
+        ["FAIL outer.py", "FAIL later.py", "MUTATED notes/x y.md"],
+        ["fixture.py"])
+    return ("echoed, never-closed headers hide no FAIL or MUTATED file line", ok, err)
 
 
 def _bug2253_quiet_case(tmp):
@@ -6530,7 +6554,7 @@ _BUG2253_BLOCKER = ("#!/usr/bin/env python3\nimport os, time\n"
 
 def _bug2253_blocking_validate(tmp):
     """A VALIDATE path whose hook AND sibling digest_destination.py block forever after
-    writing their pid: the launched command is the only thing replaced."""
+    signalling readiness: the launched command is the only thing replaced."""
     bin_dir = os.path.join(tmp, "blocking-bin")
     os.makedirs(bin_dir, exist_ok=True)
     for name in ("validate-digest.py", "digest_destination.py"):
@@ -6538,23 +6562,34 @@ def _bug2253_blocking_validate(tmp):
     return os.path.join(bin_dir, "validate-digest.py")
 
 
-def _bug2253_watchdog(ready, seconds=2.0):
-    """From `seconds` on, and until the returned `stop()`, kill the blocked child the moment
-    its pid appears in `ready`: a site whose timeout ignores the shared budget fails this
-    probe with `outcome=returned`, however late its child starts. `stop()` ends the watch
-    and returns whether the watchdog killed anything."""
+def _bug2253_children():
+    """Pids of this process's direct children, the `ps` asked excluded."""
+    ps = subprocess.Popen(["ps", "-A", "-o", "pid=,ppid="], stdout=subprocess.PIPE, text=True)
+    out, _ = ps.communicate()
+    rows = (line.split() for line in out.splitlines())
+    return [int(pid) for pid, ppid in rows if int(ppid) == os.getpid() and int(pid) != ps.pid]
+
+
+def _bug2253_watchdog(seconds=2.0):
+    """From `seconds` on, and until the returned `stop()`, SIGKILL every direct child of
+    this process. The probe runs one hook at a time, so that child is the probed one; no
+    readiness handshake is needed, so a child stalled before it signals is contained too.
+    A site whose timeout ignores the shared budget therefore fails the probe with
+    `outcome=returned`. `stop()` ends the watch and returns whether it killed anything."""
     import signal, threading
     done, killed = threading.Event(), []
 
     def watch():
         if done.wait(seconds):
             return
-        while not killed and not done.is_set():
-            try:
-                os.kill(int(open(ready).read()), signal.SIGKILL)
-                killed.append(True)
-            except (OSError, ValueError):  # not started, or pid not written yet: poll again
-                done.wait(0.05)
+        while not done.is_set():
+            for pid in _bug2253_children():
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                    killed.append(pid)
+                except OSError:  # exited between the listing and the kill
+                    pass
+            done.wait(0.05)
     thread = threading.Thread(target=watch, daemon=True)
     thread.start()
 
@@ -6581,7 +6616,7 @@ def _bug2253_block_probe(tmp, run, collaborators, target, budget=1.0):
         finally:
             spent.append(time.monotonic() - start)
 
-    stop = _bug2253_watchdog(ready)
+    stop = _bug2253_watchdog()
     outcome = "returned"
     try:
         with _bug2253_patched(**collaborators, **_bug2253_doubles(target, timed),
@@ -6610,34 +6645,38 @@ def _bug2253_block_cases(tmp):
     return rows
 
 
-def _bug2253_containment_case(tmp):
-    """(budget) The watchdog contains what the probe guards against: a call whose own
-    timeout (60s) ignores the budget, launching a child that starts only after the 2s
-    deadline, is still killed as soon as the child appears — no 3600s sleeper survives."""
-    ready = os.path.join(tmp, f"ready-containment-{time.monotonic_ns()}")
+def _bug2253_containment_cases(tmp):
+    """(budget) The watchdog contains what the probe guards against — a call whose own
+    timeout (60s) ignores the budget — with no help from the child: one that would signal
+    only after the 2s deadline, and one that never signals, both die at the deadline,
+    before readiness. No 3600s sleeper survives."""
     blocker = _bug2253_blocking_validate(tmp)
-    stop = _bug2253_watchdog(ready)
-    start = time.monotonic()
-    try:
-        r = subprocess.run([blocker], timeout=60, capture_output=True,
-                           env={**os.environ, "BUG2253_READY": ready, "BUG2253_DELAY": "2.5"})
-        outcome = f"exit {r.returncode}"
-    except subprocess.TimeoutExpired:
-        outcome = "timeout"
-    finally:
-        killed = stop()
-    elapsed = time.monotonic() - start
-    return ("a late-starting child under a timeout that ignores the budget is killed by the watchdog",
-            killed and outcome == f"exit {-9}" and elapsed < 10,
-            f"outcome={outcome} killed={killed} elapsed={elapsed:.2f}s")
+    rows = []
+    for label, delay in (("a late-starting", "2.5"), ("a never-ready", "3600")):
+        ready = os.path.join(tmp, f"ready-containment-{time.monotonic_ns()}")
+        stop = _bug2253_watchdog()
+        start = time.monotonic()
+        try:
+            r = subprocess.run([blocker], timeout=60, capture_output=True,
+                               env={**os.environ, "BUG2253_READY": ready, "BUG2253_DELAY": delay})
+            outcome = f"exit {r.returncode}"
+        except subprocess.TimeoutExpired:
+            outcome = "timeout"
+        finally:
+            killed = stop()
+        elapsed = time.monotonic() - start
+        rows.append((f"{label} child under a timeout that ignores the budget dies at the watchdog deadline",
+                     killed and outcome == "exit -9" and not os.path.exists(ready) and elapsed < 5,
+                     f"outcome={outcome} killed={killed} ready={os.path.exists(ready)} elapsed={elapsed:.2f}s"))
+    return rows
 
 
 def run_bug2253_cases():
     tmp = tempfile.mkdtemp(prefix="vd-bug2253-")
     try:
-        rows = ([_bug2253_buried_case(tmp), _bug2253_quiet_case(tmp)]
+        rows = ([_bug2253_buried_case(tmp), _bug2253_echoed_header_case(tmp), _bug2253_quiet_case(tmp)]
                 + _bug2253_budget_observation_cases(tmp) + _bug2253_block_cases(tmp)
-                + [_bug2253_containment_case(tmp)])
+                + _bug2253_containment_cases(tmp))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     fails = 0
