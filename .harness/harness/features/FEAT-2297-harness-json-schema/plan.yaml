@@ -415,7 +415,7 @@ tasks:
   - T-01
   - T-02
   - T-03
-  status: ready
+  status: done
   files:
   - tests/integration/test-gh-close-gate.py#check
   - tests/integration/test-branch-create-gate.py#check

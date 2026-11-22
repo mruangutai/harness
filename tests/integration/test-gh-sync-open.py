@@ -13,6 +13,7 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import json
 import os
 import re
@@ -22,6 +23,7 @@ import contextlib
 import io
 from unittest.mock import patch
 import harness_merge
+from harness_config_support import build_config, write_config
 
 from gh_sync_support import (
     FAKE_GH, FAKE_GH_ATTACH_FAILS, FAKE_GH_STATIONS, FULL_STATIONS, SYNC, calls, check,
@@ -318,7 +320,7 @@ def fleet_bound_command_cases():
 def _install_product(tmp, configs):
     script = FAKE_GH_STATIONS.replace('"number":3', '"number":9').replace(
         "implentio/fake", "product/app")
-    install_gh(tmp, script, product_configs=configs)
+    install_gh(tmp, script, product_configs={ref: build_config(doc) for ref, doc in configs.items()})
 
 
 def _product(**github):
@@ -326,6 +328,15 @@ def _product(**github):
             "board": {"owner": "product", "number": 9, "station_field": "Status",
                       "stations": list(FULL_STATIONS)}}
     return {"github": {**base, **github}}
+
+
+def _write_unpinned(root):
+    """github.sync true with no repo: a visibly corrupted valid build, which the schema refuses."""
+    config = build_config({"github": {"sync": False}})
+    config["github"]["sync"] = True
+    config["github"].pop("repo", None)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump(config, f)
 
 
 # BUG-20261006 fix c1 (SC-01): a bound target whose configuration is missing, unreadable or
@@ -722,21 +733,23 @@ def main():
         r = run(["open", feat], tmp, {"GH_SYNC_GH": os.path.join(tmp, "no-such-gh")})
         check("gh missing -> SKIP, exit 0", r.returncode == 0 and "SKIP" in r.stdout, r.stdout)
 
-        json.dump({"github": {"sync": False}}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
+        write_config(os.path.join(tmp, ".harness", "harness.json"), {"github": {"sync": False}})
         r = run(["open", feat], tmp)
         check("sync disabled -> SKIP, exit 0", r.returncode == 0 and "SKIP" in r.stdout, r.stdout)
 
-        json.dump({"github": {"sync": True}}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
+        _write_unpinned(tmp)
         r = run(["open", feat], tmp)
-        check("repo unpinned -> SKIP, exit 0", r.returncode == 0 and "not pinned" in r.stdout, r.stdout)
+        check("sync on with repo unpinned is an invalid config -> REFUSED at exit 2 naming github.repo",
+              r.returncode == 2 and "harness.json could not be read" in r.stdout
+              and "github.repo" in r.stdout, r.stdout + r.stderr)
 
         # --- caller errors exit 1
         r = run(["open", os.path.join(tmp, "nope")], tmp)
         check("bad feature dir -> ERROR, exit 1", r.returncode == 1, r.stdout)
 
         # --- the real open
-        json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
-                  open(os.path.join(tmp, ".harness", "harness.json"), "w"))
+        write_config(os.path.join(tmp, ".harness", "harness.json"),
+                     {"github": {"sync": True, "repo": "implentio/fake", "board": None}})
         r = run(["open", feat], tmp)
         log = calls(tmp)
         check("open exits 0", r.returncode == 0, r.stdout + r.stderr)
@@ -1192,21 +1205,21 @@ def main():
         os.makedirs(featM)
         with open(os.path.join(tmpM, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
-        with open(os.path.join(tmpM, ".harness", "harness.json"), "w") as f:
-            json.dump({"github": {"sync": False, "repo": None}}, f)
+        write_config(os.path.join(tmpM, ".harness", "harness.json"), {"github": {"sync": False}})
         rM = run(["open", featM], tmpM)
         check("migrated_depth: a segment-deep feature dir resolves the root rather than skipping",
               "project not onboarded" not in (rM.stdout + rM.stderr), rM.stdout + rM.stderr)
 
-    # not_onboarded: NO harness.json anywhere above the feature dir — the fallback branch
-    # must still reach skip() with the message gh-sync.py prints today (taken from source).
+    # not_onboarded: NO harness.json anywhere above the feature dir. A missing config is a read
+    # failure (FEAT-2297), so open refuses with the loader's diagnosis and writes no record.
     with tempfile.TemporaryDirectory() as tmpN:
         featN = os.path.join(tmpN, ".harness", "features", "FEAT-78-bare")
         os.makedirs(featN)
         rN = run(["open", featN], tmpN)
-        check("not_onboarded: no harness.json above -> the fallback reaches skip() at exit 0",
-              rN.returncode == 0
-              and "no .harness/harness.json — project not onboarded" in (rN.stdout + rN.stderr),
+        check("not_onboarded: no harness.json above -> REFUSED at exit 2, naming the unreadable "
+              "config, with no feature.json written",
+              rN.returncode == 2 and "harness.json could not be read" in rN.stdout
+              and not os.path.exists(os.path.join(featN, "feature.json")),
               rN.stdout + rN.stderr)
 
     # ---------- T-02 (FEAT-26): source_issues mirrored from plan.yaml into feature.json,
@@ -1326,9 +1339,9 @@ def main():
               "rc=%s github=%s" % (r.returncode, ghC5))
 
     # ---------- T-02: gh-sync.py open records the Build-entry outcome ----------
-    # D-04: a run failing AFTER any remote create records NOTHING (field absent). D-09:
-    # github.sync true with github.repo unpinned records NOTHING via the explicit _NO_RECORD
-    # sentinel; not-applicable belongs to the sync-not-enabled skip alone.
+    # D-04: a run failing AFTER any remote create records NOTHING (field absent). github.sync
+    # true with github.repo unpinned is an invalid config (FEAT-2297): open refuses and records
+    # nothing; not-applicable belongs to the sync-not-enabled skip alone.
     with tempfile.TemporaryDirectory() as tmpT2a:
         install_gh(tmpT2a, FAKE_GH)
         featT2a = stage(tmpT2a, feat_name="FEAT-70-t02-opened")
@@ -1352,12 +1365,13 @@ def main():
 
     with tempfile.TemporaryDirectory() as tmpT2c:
         install_gh(tmpT2c, FAKE_GH)
-        featT2c = stage(tmpT2c, repo=None, feat_name="FEAT-70-t02-unpinned")
+        featT2c = stage(tmpT2c, feat_name="FEAT-70-t02-unpinned")
+        _write_unpinned(tmpT2c)
         rT2c = run(["open", featT2c], tmpT2c)
         docT2c = read_feature_json(os.path.join(featT2c, "feature.json"))
         ghT2c = docT2c.get("github") or {}
-        check("T-02 unpinned repo records nothing",
-              rT2c.returncode == 0 and "build_entry" not in ghT2c,
+        check("T-02 unpinned repo is refused at exit 2 and records nothing",
+              rT2c.returncode == 2 and "build_entry" not in ghT2c,
               f"rc={rT2c.returncode} github={ghT2c!r}")
 
     with tempfile.TemporaryDirectory() as tmpT2d:

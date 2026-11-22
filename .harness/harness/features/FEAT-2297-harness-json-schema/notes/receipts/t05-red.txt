@@ -1,0 +1,65 @@
+# T-05 RED at 7f32a267 (pre-edit): signed verify exit 1
+FAIL  tests/integration/test-board-lifecycle.py::write_root::raw-write#1 (line 57): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-board-station.py::write_harness_json::raw-write#1 (line 57): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-branch-create-gate.py::_fixture::raw-write#1 (line 196): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-branch-create-gate.py::run_assertion_6::raw-write#1 (line 270): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-branch-create-gate.py::_config_root::raw-write#1 (line 439): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-backlog-issue-types.py::build_harness_json::raw-write#1 (line 101): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-close-gate.py::<module>::raw-write#1 (line 279): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-close-gate.py::_root::raw-write#1 (line 40): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-close-gate.py::_config_root::raw-write#1 (line 420): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-issue-types.py::build_harness_json::raw-write#1 (line 162): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-sync-abandon.py::main::raw-write#1 (line 255): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-sync-open.py::main::raw-write#1 (line 725): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-sync-open.py::main::raw-write#2 (line 729): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-sync-open.py::main::raw-write#3 (line 739): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-sync-open.py::main::raw-write#4 (line 1195): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-sync-open.py::_install_product::remote-payload#1 (line 321): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-gh-sync-start-task.py::main::raw-write#1 (line 400): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-merge-gate.py::<module>::raw-write#1 (line 303): a harness.json producer that does not reach build_config/write_config
+FAIL  tests/integration/test-merge-gate.py::fixture::raw-write#1 (line 27): a harness.json producer that does not reach build_config/write_config
+19 finding(s)
+
+# per-suite pre-edit status
+## test-gh-close-gate: 3 FAIL lines
+FAIL  config fault (a github block that is a list): a matching close is refused at exit 2, named
+FAIL  config fault (a github block that is an empty list): a matching close is refused at exit 2, named
+FAIL  config fault (a github block that is null): a matching close is refused at exit 2, named
+## test-branch-create-gate: 5 FAIL lines
+FAIL  self-gate: github.sync true, repo unpinned ("-" sentinel) -> exit 0, no stdout
+FAIL  config fault (a github block that is a list): a matching branch creation is refused at exit 2, named
+FAIL  config fault (a github block that is an empty list): a matching branch creation is refused at exit 2, named
+FAIL  config fault (a github block that is null): a matching branch creation is refused at exit 2, named
+FAIL  readable config, github.sync true, repo unpinned: a matching branch creation exits 0 untouched
+## test-merge-gate: 2 FAIL lines
+FAIL  T-05 unpinned repo absent build_entry denies naming the configuration fix
+FAIL  duplicate harness.json keys disable merge policy rather than choosing one
+## test-gh-sync-open: 2 FAIL lines
+FAIL  repo unpinned -> SKIP, exit 0
+FAIL  not_onboarded: no harness.json above -> the fallback reaches skip() at exit 0
+## test-gh-sync-abandon: 0 FAIL lines
+## test-gh-sync-start-task: 1 FAIL lines
+FAIL  an unusable board config is a loud failure, not a skipped station write
+## test-board-station: 12 FAIL lines
+FAIL  board-station moves the named issue to the named station — rc=2 stdout='' stderr='board-station: harness.json could not be read — nothing written: /private/var/folders/y3/nd_jssrd5dq8lbds73f
+FAIL  the field-set invocation actually carries the issue number and the station — []
+FAIL  an explicitly null board still exits 0 having written nothing — rc=2 stdout='' log=[]
+FAIL  an unusable board config exits 2 with one line naming the key — rc=2 stderr='board-station: harness.json could not be read — nothing written: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m
+FAIL  board-station reports a failed item-add as a BoardError on stderr naming issue and station, and exits 0 — rc=2 stderr='board-station: harness.json could not be read — nothing written: /priva
+FAIL  board-station with github.sync false writes nothing and exits 0 — rc=2 stdout='' log=[]
+## test-board-lifecycle: 151 FAIL lines
+FAIL  complete board: exits 0 — rc=2 stdout='' stderr='factory: board_lifecycle: owner config unreadable: /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp6gjfj7_e/root/.harness/harness.json — 
+FAIL  complete board: reports nothing to do — ''
+FAIL  complete board: a second consecutive run also performs zero mutations — rc=2 log=[]
+FAIL  missing options: exits 0 and calls updateProjectV2Field exactly once — rc=2 stdout='' log=[]
+FAIL  missing options: sends existing options first, in existing order, then the additions, and never touches createProjectV2Field — []
+FAIL  SC-08: no argv the fake receives contains the string 'Abandoned' — []
+## test-gh-issue-types: 0 FAIL lines
+## test-gh-backlog-issue-types: 0 FAIL lines
+## test-factory-issue-types: 32 FAIL lines
+FAIL  CASE A: decompose exits 0 so step 6 is reached
+FAIL  CASE A: the parent is typed IT_feature via an updateIssue argv carrying I_nodeNone
+FAIL  CASE A: T-01 (bugfix) is typed IT_bug via an updateIssue argv carrying I_nodeNone
+FAIL  CASE A: T-02 (config) is typed IT_task via an updateIssue argv carrying I_nodeNone
+FAIL  CASE A: T-03 (feature change_type — D-18, never IT_feature) is typed IT_task via an updateIssue argv carrying I_nodeNone
+FAIL  CASE B: every create argv still carries --label harness

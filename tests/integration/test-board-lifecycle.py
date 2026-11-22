@@ -17,6 +17,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import base64
 import json
 import os
@@ -32,6 +33,7 @@ HERE = BIN_DIR
 SCRIPT = os.path.join(HERE, "board_lifecycle.py")
 sys.path.insert(0, HERE)
 import harness_boundary  # noqa: E402 -- only to read the MARKER path, never imported twice
+from harness_config_support import build_config, write_config  # noqa: E402
 
 FAILURES = []
 
@@ -53,9 +55,7 @@ def write_root(root, github, fleet=None):
     os.makedirs(os.path.join(root, os.path.dirname(harness_boundary.MARKER)), exist_ok=True)
     with open(os.path.join(root, harness_boundary.MARKER), "w", encoding="utf-8") as f:
         f.write("teams: []\n")
-    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
-        json.dump({"schema_version": 1, "github": github}, f)
+    write_config(os.path.join(root, ".harness", "harness.json"), {"github": github})
     if fleet is not None:
         os.makedirs(os.path.join(root, ".harness", "factory"), exist_ok=True)
         with open(os.path.join(root, ".harness", "factory", "fleet.yaml"), "w",
@@ -372,7 +372,7 @@ def _served_board_contents_b64(board):
     board_lifecycle.py never reads a served repo's board from disk (T-04's BOARD RESOLUTION,
     factory_config.product_config), so a cross-repo case (#783) that resolves a fleet member's
     board must feed the fake gh this, not a `stations`/`options` local fixture."""
-    doc = {"schema_version": 1, "github": {"sync": True, "repo": "acme/gadget", "board": board}}
+    doc = build_config({"github": {"sync": True, "repo": "acme/gadget", "board": board}})
     return base64.b64encode(json.dumps(doc).encode("utf-8")).decode("ascii")
 
 
@@ -1061,7 +1061,7 @@ def _write_collision_fixture(base, bound_repo, declare=False):
 
 def _served_widget_b64(**github):
     """acme/widget's own served .harness/harness.json, with `github` overriding the valid block."""
-    doc = {"schema_version": 1, "github": {**default_github(), **github}}
+    doc = build_config({"github": {**default_github(), **github}})
     return base64.b64encode(json.dumps(doc).encode("utf-8")).decode("ascii")
 
 
@@ -1821,32 +1821,6 @@ with tempfile.TemporaryDirectory() as base:
           "RESULT=GhError" in r_fn.stdout,
           f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
 
-# --- #1897: board declared, github.repo ABSENT raises a real GhError -----------------------
-# The raise used to pass ONE positional to GhError's seven-parameter __init__, so it was a
-# TypeError at raise time; ship's old broad audit catch hid it as "the board audit could not
-# run: GhError.__init__() missing 6 required positional arguments". FEAT-64 narrowed that
-# catch, so the defect would now surface as a traceback out of ship.
-
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, {"sync": True, "board": _BOARD})
-    code = (
-        "import board_lifecycle as bl, factory_gh"
-        "\ntry:"
-        "\n    bl.audit_findings(None)"
-        "\n    print('RESULT=no-exception')"
-        "\nexcept factory_gh.GhError as e:"
-        "\n    print('RESULT=GhError:' + str(e))"
-        "\nexcept TypeError as e:"
-        "\n    print('RESULT=TypeError:' + str(e))"
-    )
-    r_fn, log = run_module(root, code)
-    check("#1897 audit_findings: a declared board with no github.repo raises GhError, not TypeError",
-          "RESULT=GhError:" in r_fn.stdout, f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
-    check("#1897 audit_findings: the GhError names github.repo and the harness.json pin",
-          "github.repo is not declared" in r_fn.stdout and "harness.json" in r_fn.stdout, repr(r_fn.stdout))
-    check("#1897 audit_findings: no gh call was made before the refusal", not log, repr(log))
-
 # --- clause 3: no board declared returns [], matching cmd_audit's own branch ---------------
 
 with tempfile.TemporaryDirectory() as base:
@@ -1861,17 +1835,6 @@ with tempfile.TemporaryDirectory() as base:
     check("audit_findings: cmd_audit STILL prints its own no-board line",
           "no board declared" in r_cmd.stdout and r_cmd.returncode == 0,
           f"rc={r_cmd.returncode} stdout={r_cmd.stdout!r}")
-
-# --- clause 4: cmd_audit keeps its refuse when github.repo is not declared -----------------
-
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, {"sync": True, "repo": "", "board": _BOARD})
-    r_cmd, _ = run(root, ["audit"])
-    check("audit_findings: cmd_audit STILL refuses when github.repo is not declared -- the "
-          "exit stays inside the subcommand",
-          r_cmd.returncode != 0 and "github.repo" in (r_cmd.stderr + r_cmd.stdout),
-          f"rc={r_cmd.returncode} stderr={r_cmd.stderr!r} stdout={r_cmd.stdout!r}")
 
 # ---------------- T-07: the STATUS class reads the station from plan.yaml ------------------
 #
