@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2274-omp-native-gate-policy",
   "branch": "feat/FEAT-2274-omp-native-gate-policy",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "649612d8bc0add67014613f208180a3344a6ac02",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [

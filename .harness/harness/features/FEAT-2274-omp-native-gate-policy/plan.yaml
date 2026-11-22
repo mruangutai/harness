@@ -4,7 +4,7 @@ approval:
   date: '2026-11-22'
   approved_by: Mike Ruangutai
   status: approved
-status: building
+status: review
 source_issues: [2274]
 panel:
   last_run: r-20261121-1-plan-product
