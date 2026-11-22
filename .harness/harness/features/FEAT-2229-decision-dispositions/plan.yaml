@@ -133,7 +133,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 governs the plan gate and its tests; the era cutover and creation writer are one enforcement change.
     depends_on: []
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/harness_yaml.py#validate_plan_doc
     - .claude/skills/harness/bin/plan_merge/check.py#cmd_check
