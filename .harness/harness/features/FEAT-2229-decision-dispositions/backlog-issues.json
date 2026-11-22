@@ -1,0 +1,30 @@
+{
+  "chore:Consolidate DEC index-row parsing into one reader (plan_merge/check.py, check-plan-routes.py, gen-decisions-index.py disagree on STRUCK)": {
+    "number": 2285,
+    "typed": true
+  },
+  "chore:Keep the decision-disposition contract in DEC-254; reduce SPEC and DEC-188 to summaries plus links": {
+    "number": 2286,
+    "typed": true
+  },
+  "bug:qa digest validator refuses FAIL for mandatory coverage gaps while suite and matrix are green": {
+    "number": 2287,
+    "typed": true
+  },
+  "enhancement:plan_merge check: regression case for the tilde fence closer-length rule": {
+    "number": 2288,
+    "typed": true
+  },
+  "enhancement:plan_merge check: regression case for a tilde closer carrying an info string": {
+    "number": 2289,
+    "typed": true
+  },
+  "chore:Security reviewer is asked for actual-CLI controls but holds a git-diff-only Bash grant": {
+    "number": 2290,
+    "typed": true
+  },
+  "enhancement:plan_merge check: decide whether '## DEC-10-' (trailing hyphen) names DEC-10": {
+    "number": 2291,
+    "typed": true
+  }
+}

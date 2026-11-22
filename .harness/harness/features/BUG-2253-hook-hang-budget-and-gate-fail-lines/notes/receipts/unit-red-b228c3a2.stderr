@@ -1,0 +1,21 @@
+...F...
+======================================================================
+FAIL: test_no_echo_hides_a_genuine_failure (__main__.FileLines.test_no_echo_hides_a_genuine_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.a7Xh35A5kS/u/tests/unit/test-validate-digest-run-pool-lines.py", line 47, in test_no_echo_hides_a_genuine_failure
+    self.assertEqual(vd._run_pool_file_lines(lines), ["FAIL outer.py", "FAIL later.py"])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != ['FAIL outer.py', 'FAIL later.py']
+
+Second list contains 2 additional elements.
+First extra element 0:
+'FAIL outer.py'
+
+- []
++ ['FAIL outer.py', 'FAIL later.py']
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.001s
+
+FAILED (failures=1)

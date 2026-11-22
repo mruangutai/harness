@@ -2487,10 +2487,64 @@ def check_qa_matrix_claim(agent, obj, payload):
           f"an independent re-run of run-unit-tests.py at this checkout exited "
           f"{result.returncode} — the gate reported evidence it did not have (issue "
           f"#919). Re-run the suite yourself, fix what fails, and return again once "
-          f"it is genuinely green. Tail of the independent run:", file=sys.stderr)
-    for line in ((result.stdout or "") + (result.stderr or "")).splitlines()[-20:]:
-        print(f"  {line}", file=sys.stderr)
+          f"it is genuinely green.", file=sys.stderr)
+    _print_independent_run((result.stdout or "") + (result.stderr or ""))
     return 2
+
+
+_RUN_POOL_HEADER = re.compile(r"----- (.+) \(exit -?\d+, \d+\.\d+s\) -----")
+_RUN_POOL_MUTATION_NOTE = "A file under the watched directory changed while the suite ran"
+
+
+def _run_pool_file_lines(lines):
+    """run_pool's own FAIL/MUTATED file lines, in order, duplicates kept.
+
+    A file's captured output is echoed verbatim between run_pool's header and its close, so
+    no pairing of headers with closes survives every echo. The rule only ever errs toward
+    listing: `FAIL <name>` counts once any earlier `----- <name> (exit N, Ss) -----` header
+    named that file, and nothing — no echoed PASS, header or close — un-names it. run_pool
+    prints its `MUTATED <name>` lines together, directly above its own mutation note."""
+    headed = set()
+    failed = {i for i, line in enumerate(lines) if _is_failed_file_line(line, headed)}
+    keep = failed | _run_pool_mutated_indexes(lines)
+    return [line for i, line in enumerate(lines) if i in keep]
+
+
+def _is_failed_file_line(line, headed):
+    """Record a header's file name in `headed`; True for `FAIL <name>` of a headed file."""
+    header = _RUN_POOL_HEADER.fullmatch(line)
+    if header:
+        headed.add(header.group(1))
+        return False
+    verdict, _, name = line.partition(" ")
+    return verdict == "FAIL" and name in headed
+
+
+def _run_pool_mutated_indexes(lines):
+    """Indexes of the MUTATED lines run directly above run_pool's mutation note."""
+    found = set()
+    for i in (i for i, line in enumerate(lines) if line.startswith(_RUN_POOL_MUTATION_NOTE)):
+        j = i - 1
+        while j >= 0 and lines[j].startswith("MUTATED "):
+            found.add(j)
+            j -= 1
+    return found
+
+
+def _print_independent_run(output):
+    """The red re-run's evidence: every FAIL/MUTATED file line, then the last 20 lines.
+
+    #2253: run_pool prints files in completion order, so the tail shows the slowest file,
+    which usually PASSED; the failing ones sit above it. Name them first."""
+    lines = output.splitlines()
+    named = _run_pool_file_lines(lines)
+    if named:
+        print("Failing or mutated files:", file=sys.stderr)
+        for line in named:
+            print(f"  {line}", file=sys.stderr)
+    print("Tail of the independent run:", file=sys.stderr)
+    for line in lines[-20:]:
+        print(f"  {line}", file=sys.stderr)
 
 
 def _exact_run_identity(d):

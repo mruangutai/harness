@@ -1,0 +1,20 @@
+# FEAT-2229 pinned code review — c1
+
+**FAIL: T-01's creation writer accepts malformed disposition rows; a second, medium exact-section defect remains.** Both belong to main-session-direct T-01. No findings against T-02 or harness-documentor T-03.
+
+Reviewed `dfa52536..1ef1edbf4cd13eed110e5a187fe45b2ce0438d43`, using the full diff and pinned `git show` sources, not working-tree source. BRIEF, plan decisions, implementation receipt, T-03 and simplify digests consulted first. Stage 1 fails; Stage 2 qualitative review is withheld. Mandatory static Python grading alone ran: exit 0, PASSING 83, no below-bar or grade-2 records. No tests/build/lint/formatter or runtime probes ran; failure scenarios below are **REASONED from pinned control flow**, not reproduced executions. Human-tagged commits: none.
+
+## Findings (ranked)
+
+- **F1 — substance / high / T-01 / SC-01:** `.claude/skills/harness/bin/plan_merge/union.py:329-346` creation calls `_parsed_proposal` (YAML parsing plus anchor checks), inserts approval/provenance, and returns bytes without disposition-schema validation. Given an otherwise valid new-plan proposal with `decisions_affected: [{dec: DEC-10}]`, `apply` writes the malformed block and reports APPLIED; the shared plan reader subsequently rejects that same file for missing fields. `harness_merge.py:160-167` writes returned bytes without schema validation, and creation bypasses `_verify_schema_preserved`. The malformed-row refusal test covers set-key, while creation tests cover only legal rows. **Must fix:** reject malformed present blocks before creation writes, using the shared schema authority; add actual CLI creation refusal coverage asserting no destination file, plus valid creation controls.
+- **F2 — substance / med / T-01 / SC-02:** `.claude/skills/harness/bin/plan_merge/check.py:299-305` searches every physical line for a decision heading without tracking fences. If DEC-11 contains a fenced example headed `## DEC-10` before the real DEC-10, a DEC-10 row can match a clause occurring only in DEC-11's example. `_section_end:277-285` begins fence tracking inside that example and can additionally consume subsequent real sections after mistaking the closing fence for an opening fence. The checker therefore accepts neighboring-section text as DEC-10 authority. Locate real headings outside fences and retain fence kind/length consistently when bounding sections; add that wrong-section CLI counterexample. Advisory at original medium severity, not a separate blocking request.
+
+## Inspection criteria at the supplied pin
+
+- **SC-04 met:** `.claude/skills/harness/teams/plan.yaml:59,103` authoring plus independent scope/omission/DEC-188 judgment; `references/patch-lane.md:20` preserves check and no panel; template carries five fields and explicit empty list.
+- **SC-05 met (instruction inspection):** `.omp/agents/harness-pm.md:72-85` individual pinned grades, skip keep, landing evidence and owning-task remediation; `teams/validate.yaml:120` delegates; `.omp/agents/harness-validator-lead.md:104` preserves failures despite clean QA. This does not claim actual pm landing execution.
+- **SC-06 met:** `.harness/harness/docs/DECISIONS.md:5290,8253` amends DEC-188 and records DEC-254 without reopening its distinction/exclusions; `DECISIONS-INDEX.md:237` resolves DEC-254; `SPEC.md:2009,2287` integrates declaration and existing sc_status evidence/routing. Product `docs/spec.md`, `docs/decisions.md`, `docs/architecture.md` are absent as settled; no replacement authority invented.
+
+The exact classification fixture diff is `tests/integration/canonical-reader-classification.json`, not `tests/fixtures/...`. `tests/integration/test-plan-merge.py` has no change in this range. Bookkeeping/receipts were inspected; no scope-creep finding. Settled simplify leave notes and the preexisting create:true/landed-plan issue are not reopened.
+
+Open questions: none. QA should run the signed T-01/T-02 commands after fixes, with the two added CLI counterexamples, then re-pin for completion of Stage 2.

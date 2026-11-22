@@ -56,7 +56,12 @@ steps:
       by consult-when, and `depends_on` in a topological order. Capture and print stdout from
       every task-changing `plan-merge.py` invocation. Only when the captured output contains its
       exact `APPROVAL-RESET:` receipt, run `gh-sync.py status <feature-dir> plan` after the local
-      reset has landed. No `APPROVAL-RESET:` receipt means no remote call. Then run
+      reset has landed. No `APPROVAL-RESET:` receipt means no remote call. Every new draft
+      carries a `decisions_affected:` block whose rows have exactly `dec`, `disposition`
+      (keep, amend or strike), `clause`, `successor` and `reason`; write the explicit empty list
+      `decisions_affected: []` when no existing decision is affected. Quote each clause verbatim
+      from DECISIONS.md; every amend or strike names a resolvable successor (a D-NN in this plan or
+      a DEC-NNN), and some task owns DECISIONS.md in its `files:`. Then run
       `plan-merge.py check --file <plan.yaml> --root <checkout root>` before you return; a plan
       that does not pass it is not drafted. Do not write `panel:` or `approval:`.
 
@@ -95,6 +100,12 @@ steps:
       downgrade the mission — never another cycle). Preserve your own severity (info, low, med, high, critical, or unrated); unrated
       is gating-equivalent to high and must not be reassigned. A finding you cannot classify
       is one question with your recommendation, not the heavier kind by default.
+      Judge `decisions_affected:` semantically: search the actual touched surfaces and the
+      decisions that govern them independently of the plan's own list, and flag an omitted
+      affected decision or an unjustified empty list. Apply DEC-188: a flat contradiction is
+      struck, but a decision merely dated, narrowed or partly overtaken is amended, unless the
+      operator expressly authorizes a softer strike. Leave mechanically resolvable defects (row
+      shape, verbatim clause, successor resolution, owning task) to `plan-merge.py check`.
     on_fail:
       loop_back:
         max_cycles: 1

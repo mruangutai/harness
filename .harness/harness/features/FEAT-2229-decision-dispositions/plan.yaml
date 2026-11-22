@@ -1,0 +1,353 @@
+schema: plan/1
+feature: FEAT-2229-decision-dispositions
+approval:
+  date: '2026-11-21'
+  approved_by: Mike Ruangutai
+  status: approved
+status: done
+source_issues: [2229]
+panel:
+  last_run: r-20261121-plan-c2-product
+  cycle: 2
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: status skipped; cycle-1 findings were task-scoped proportionality, so no
+      substance re-panel is due.
+  - reader: design
+    status: skipped
+    persona: harness-ui-reviewer
+    reason: status skipped; cycle-1 reader self-scoped out on this non-UI feature; no
+      UI surface changed.
+  - reader: goalcheck
+    status: skipped
+    persona: harness-pm
+    reason: status skipped; SC-09 grades once at plan exit, already completed at c1
+      exit with note on disk.
+  findings:
+  - id: PF-c88b62ae6436394172862e6428eac2a5
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-01 leaves drafted_at writable through existing noncreation mutation routes, allowing an in-era draft to evade disposition checks.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-2bc89398c22b9f62d967c3328f9de49f
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's harness-spec-driven SKILL.md edit duplicates a drafting contract no SC pins and the operator never settled; template, plan-team draft prompt, patch-lane reference and the mechanical check already cover every drafting path.
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-3365a51199f5e4de1ead53de2474079d
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's harness-validator-lead disposition-only survival clause is either redundant with the existing unmet-SC path or a special-case patch on a general hole; confirm which before building it.
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-12d7a5ea690a75eec77b08ae0a10db24
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02 copies the full per-row grading contract into teams/validate.yaml's goalcheck prompt, where the existing convention is a thin prompt delegating detail to harness-pm Mode 2.
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+lanes:
+  resolved_at: e839075e7b6445bb519984b2351a8eb05d49fbfd
+  rows:
+    - surface: .claude/skills/**
+      lane: main-session-direct
+      reason: DEC-174 enforcement and otherwise unowned shipped skill contracts
+    - surface: .omp/agents/**
+      lane: main-session-direct
+      reason: Canonical roles have no squad write grant
+    - surface: .harness/harness.json
+      lane: main-session-direct
+      reason: Era activation is part of the DEC-174 gate cutover
+    - surface: tests/**
+      lane: main-session-direct
+      reason: Gate regressions and their coupled prompt wiring tests stay outside self-hosted execution
+    - surface: .harness/harness/docs/**
+      lane: team
+      agent: harness-documentor
+decisions:
+  - id: D-01
+    choice: Every future drafted plan records five-field decision dispositions checked at draft time and graded individually by pm at validate.
+    because: A single approval-gated record exposes omitted decision work without reviving general stale-decision detection; creation provenance preserves older plans and row grades reuse the existing return schema.
+    dec: DEC-254
+decisions_affected:
+- dec: DEC-188
+  disposition: amend
+  clause: The enforcement is a human reading a diff.
+  successor: D-01
+  reason: Replace the human-only enforcement assertion with the bounded drafting gate and pinned pm landing check while preserving strike versus amend.
+- dec: DEC-73
+  disposition: keep
+  clause: pm cannot manufacture evidence, only report what others produced.
+  successor: none
+  reason: Disposition grading reuses evidence collection and the existing outcome vocabulary without making a suite prove a decision edit.
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful;
+  successor: none
+  reason: The plan is self-hosted but enforcement implementation and its tests are main-session-direct.
+- dec: DEC-179
+  disposition: keep
+  clause: The ungranted surface is still allowed;
+  successor: none
+  reason: Each owned or unowned surface has an explicit lane and the existing resolver remains authoritative.
+- dec: DEC-182
+  disposition: keep
+  clause: nothing in it is prose for a human
+  successor: none
+  reason: Add typed YAML data through the existing writer and loader rather than a parallel prose record.
+- dec: DEC-205
+  disposition: keep
+  clause: An entry states current truth directly.
+  successor: none
+  reason: Amendment rewrites the affected current truth and does not restore dated amendment subsections or general decision audits.
+- dec: DEC-227
+  disposition: keep
+  clause: every new key is optional, so
+  successor: none
+  reason: Preserve the no-retroactive-grading rationale by activating only new drafts and leaving all old plans untouched.
+- dec: DEC-228
+  disposition: keep
+  clause: A reader is never asked to find by reading what a script finds by running
+  successor: none
+  reason: The script handles resolvable row defects while scope retains completeness and strike judgment; patch gains no panel.
+tasks:
+  - id: T-01
+    title: Add forward-only disposition schema and draft checking
+    traces: [SC-01, SC-02, SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 governs the plan gate and its tests; the era cutover and creation writer are one enforcement change.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/harness_yaml.py#validate_plan_doc
+    - .claude/skills/harness/bin/plan_merge/check.py#cmd_check
+    - .claude/skills/harness/bin/plan_merge/union.py#_seed_new_plan
+    - .claude/skills/harness/bin/plan_merge/panel.py#_set_top_key
+    - .claude/skills/harness/bin/plan_merge/union.py#_merge_plain_key
+    - path: .harness/harness.json
+      quote: '"seam_era_start"'
+    - path: .claude/skills/harness/templates/harness.json
+      quote: '"seam_era_start"'
+    - path: tests/unit/test-decision-disposition-schema.py
+      create: true
+    - path: tests/integration/test-plan-decision-dispositions.py
+      create: true
+    - tests/integration/test-plan-merge.py#case_create_path_approval
+    verify: |
+      set -eu
+      python3 tests/unit/test-decision-disposition-schema.py
+      python3 tests/integration/test-plan-decision-dispositions.py
+    intent: 'PRODUCT checkout is /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2229-decision-dispositions.
+      Keep every relative-path edit inside this worktree. Read PRODUCT/AGENTS.md and
+      the relevant plan/state sections of PRODUCT/.harness/harness/docs/SPEC.md, DECISIONS.md
+      sections DEC-174, DEC-179, DEC-182, DEC-188, DEC-205 and DEC-227, and its DECISIONS-INDEX.md.
+      PRODUCT/docs/spec.md, docs/decisions.md and docs/architecture.md are absent; do
+      not invent those documents or an architecture contract. This task changes the
+      existing plan writer and drafting gate, not validate-time enforcement.
+
+      Write red tests before source changes. In harness_yaml.validate_plan_doc validate
+      decisions_affected when present as a list of mappings with exactly dec, disposition,
+      clause, successor and reason. Dec is a DEC identifier, disposition is keep, amend
+      or strike, clause is nonempty verbatim source text, reason is one nonempty line,
+      and successor is none for keep or a D identifier or DEC identifier for amend/strike.
+      Do not make absence globally illegal in the shared loader, since older plans remain
+      readable. Keep duplicate-key and existing schema behavior. Preserve list/row values
+      through the existing apply and set-key writers; use no new plan write route.
+
+      In plan_merge.union new-plan creation, stamp drafted_at once with a timezone-qualified
+      UTC creation instant generated by the writer, never the operator signature date
+      or file mtime. Existing plan edits never acquire or change this stamp as a side
+      effect; legacy plans with no drafted_at remain legacy. The new writer rejects
+      caller-supplied drafted_at on creation instead of allowing a backdated exemption.
+      This new optional provenance field is not a backfill. Add decision_dispositions_era_start
+      to project harness.json as the UTC activation instant of this cutover and document
+      its meaning beside the key; the new-install template uses null to mean no pre-disposition
+      era. Missing configuration in a pre-adoption project preserves legacy behavior.
+      Malformed configured instants or malformed non-null draft instants produce a diagnostic,
+      never an implicit exemption. The null-era new-install value requires the block
+      on all newly stamped drafts. Pre-activation stamped drafts and pre-writer undated
+      plans are not newly refused. This creation-writer boundary is the compatibility
+      contract; do not infer draft age from a later signature, task station, or a feature''s
+      start date.
+
+      Extend plan_merge.check.cmd_check, not a new command or validate script. On an
+      eligible pending draft require decisions_affected, accepting an explicit empty
+      list. Skip this new drafting rule for approved and terminal historical work so
+      amendments can remove their quoted pre-change clauses after signature. Resolve
+      the product''s decisions authority using the existing segment/root identity: this
+      product uses .harness/harness/docs/DECISIONS.md and DECISIONS-INDEX.md under --root;
+      a served segment uses its central segment documents, never an unrelated harness
+      decision corpus. Reuse existing anchor path normalization for ownership and the
+      established index format for STRUCK status, case-insensitively including title-case
+      Struck. For every row require an indexed dec; forbid keep/amend on STRUCK; locate
+      the exact decision heading''s section up to the next same-level heading and require
+      the clause as an exact substring without whitespace or markdown normalization.
+      A quote in a neighboring section does not satisfy it. For amend/strike require
+      successor to resolve either to this plan''s decisions id or an indexed DEC; do
+      not require a new D choice to have already landed in the index. Resolve row ownership
+      to a task whose normalized files anchor owns that segment''s DECISIONS.md. With
+      the single-file ownership convention that task is the remediation target; do not
+      add a sixth row field or put D ids in task traces. Report each failure with row
+      index and dec, retaining the existing nonzero check result and all unrelated route/anchor/trace
+      checks. Mechanical checks do not judge omission completeness or whether a strike
+      is justified.
+
+      Cover malformed block/row types, missing and extra keys, all legal dispositions,
+      keep-none and amend/strike successor syntax, lossless writer round trips and no
+      partial writes. The unit script tests this shape contract directly. The integration
+      script invokes the actual CLI with isolated temporary fixture roots and covers
+      each of the six mandatory failures independently, valid empty/keep/amend/strike
+      controls, STRUCK keep/amend versus permitted strike, missing D and missing DEC
+      successors, same-clause wrong-section and partial-match counterexamples, symbol/content
+      DECISIONS.md ownership anchors, and served-segment authority selection. Cover
+      new writer-stamped creation, rejected caller backdating, both sides of activation
+      including exact boundary, null and missing era configurations, invalid timestamps,
+      approved/landed history, legacy pending edits and byte preservation outside the
+      intentional edit. Assert no historical plan is stamped or backfilled. Isolate
+      inherited Harness root/persona environment in subprocess fixtures. Update existing
+      new-plan creation expectations only as needed for the new stamp; never weaken
+      signature, byte-preservation or refusal assertions. Keep each targeted verification
+      script under 30 seconds and require exit zero with no failed assertions; preserve
+      red-first receipts for SC-01 through SC-03. Do not run broad suites as part of
+      this task''s literal verify.
+
+
+      Reserve drafted_at as writer-owned provenance in plan_merge.panel._set_top_key
+      and all existing merge paths. Refuse caller attempts to rewrite or insert drafted_at
+      on an existing plan through set-key or apply/merge, including backdating, forward-dating,
+      nulling, and inserting it into an undated legacy plan; a merge carrying an unchanged
+      existing stamp may preserve it, never replace it. Guard both byte-preserving and
+      alternate merge rendering paths before any write. Do not infer protection from
+      creation-only refusal. Add actual CLI regressions for each route against stamped
+      in-era and undated legacy plans, asserting nonzero refusal and identical complete
+      plan bytes before/after each refusal, plus controls that ordinary edits preserve
+      the existing stamp or its absence. No new writer route.
+
+      '
+  - id: T-02
+    title: Integrate disposition authoring, scope review and pinned landing grades
+    traces: [SC-04, SC-05, SC-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: Canonical .omp roles and shipped skill/template/team instructions are unowned; prompt wiring regressions accompany the enforcement cutover.
+    depends_on: [T-01]
+    status: done
+    files:
+    - path: .claude/skills/harness/templates/plan.yaml
+      quote: 'decisions:'
+    - path: .claude/skills/harness/teams/plan.yaml
+      quote: 'id: scope'
+    - path: .claude/skills/harness/teams/validate.yaml
+      quote: 'id: goalcheck'
+    - path: .claude/skills/harness/references/patch-lane.md
+      quote: exactly one task
+    - path: .omp/agents/harness-pm.md
+      quote: '## Mode 2'
+    - path: .omp/agents/harness-validator-lead.md
+      quote: '## The gate'
+    - path: tests/integration/test-plan-team.py
+      quote: scope = steps_by_id
+    verify: |
+      python3 tests/integration/test-plan-team.py
+    intent: 'PRODUCT checkout is /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2229-decision-dispositions.
+      Keep relative-path edits in this worktree. Consult PRODUCT/AGENTS.md, PRODUCT/.harness/harness/docs/SPEC.md
+      planning and validate sections, DECISIONS.md DEC-73, DEC-174, DEC-182, DEC-188,
+      DEC-205 and DEC-228, and DECISIONS-INDEX.md. PRODUCT/docs/spec.md, docs/decisions.md
+      and docs/architecture.md are absent; do not invent replacements. Follow the approved
+      feature BRIEF SC-04, SC-05 and SC-07 and T-01''s five-field and forward-only contract.
+
+      Add decisions_affected to the shipped plan template with the exact five row fields
+      dec, disposition, clause, successor and reason; make the instantiated no-affected-decision
+      value an explicit empty list, and document the example without requiring fake
+      decision ids. Explain drafted_at is writer-owned provenance, not a user-filled
+      date. Do not change approval or panel authority. The patch-lane reference requires
+      the same block and check while retaining exactly one task and no pre-build panel.
+
+      Update the plan team''s draft prompt to require the five-field decisions_affected
+      block on every new draft, with an explicit empty list where appropriate, verbatim
+      source clauses, resolvable amend/strike successors and a DECISIONS.md-owning task,
+      followed by the existing plan-merge.py check. Update only its scope reader prompt
+      for semantic judgment: search the actual touched surfaces and governing decisions
+      independently of the plan''s own list, flag omissions or an unjustified empty
+      list, and apply DEC-188, where a flat contradiction is struck but a merely dated,
+      narrowed or partly overtaken decision is amended unless the operator expressly
+      authorizes a softer strike. Leave mechanically resolvable defects to the existing
+      check. Preserve every existing reader, routing and proportionality obligation.
+
+      Extend canonical harness-pm Mode 2 with a third falsifiable unit beside perspective
+      coverage and SC outcomes: decision-disposition outcomes. For every amend/strike
+      row individually read DECISIONS.md from git show at the supplied review_sha, never
+      from the mutable working tree; do not grade keep rows. Reuse the existing sc_status
+      row contract with id naming the DEC and verdict met, not_met or partial, method
+      inspection and an evidence pointer including review_sha, DECISIONS.md path and
+      pinned line. Include the plan row identity in the durable research note if a DEC
+      has several affected clauses. An amend requires the intended current text to have
+      actually replaced the clause; a strike requires the strike record, or deletion
+      justified by its named successor and repointed citations under DEC-188/205. Explain
+      how the clause, successor and reason establish what must land without adding a
+      post-change-text field. Evidence merely mentioning the DEC or a green suite is
+      insufficient. Missing or partial landing makes the goal-check FAIL just like an
+      unmet SC; identify the canonical task owning that DECISIONS.md file for remediation.
+      A missing owner is a plan/scope defect, not a reason to claim success. Collect
+      pinned inspection evidence; do not re-test or create a new validate-time script
+      or digest schema.
+
+      Add only a thin pointer in teams/validate.yaml''s existing goalcheck prompt to
+      canonical harness-pm Mode 2 decision-disposition grading at the supplied review_sha;
+      do not duplicate its row-level grading or remediation contract. In harness-validator-lead''s
+      existing assessment instructions, consume pm''s failed or partial decision-disposition
+      sc_status outcomes as must_fix against the DECISIONS.md-owning task named by pm;
+      clean QA cannot erase that failed landing. This is only wiring the new disposition
+      outcome producer to the existing must_fix gate; do not repair or redesign general
+      unmet-SC synthesis or add a second gate.
+
+      Add fail-first static regression assertions in test-plan-team.py for each instruction
+      at its actual owner: template five-field/empty-list contract; patch drafting/check
+      obligations; plan draft prompt; scope omission/empty-list/DEC-188/operator-authorization
+      clauses; pm third unit, per-row pin/verdict/method/evidence/keep-skipping/failure-routing;
+      validate goalcheck reference to canonical Mode 2 at the supplied pin; validator
+      preservation of those failures. Each obligation has an independent assertion scoped
+      to its prompt or section, not a file-global keyword count. Mutation witnesses
+      deleting each obligation independently must redden its corresponding assertion;
+      do not treat static checks as proof of agent conduct. Keep the script under 60
+      seconds, exit zero with no FAIL lines on the completed task, and retain red receipts
+      for SC-07. The actual feature validate run must grade this plan''s amend row using
+      the new Mode 2 contract.
+
+      '
+  - id: T-03
+    title: Record schema authority and the bounded DEC-188 amendment
+    traces: [SC-04, SC-05, SC-06]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - {path: .harness/harness/docs/DECISIONS.md, quote: '## DEC-188'}
+      - {path: .harness/harness/docs/DECISIONS-INDEX.md, quote: 'DEC-188'}
+      - {path: .harness/harness/docs/SPEC.md, quote: 'Goal-checking is distributed'}
+    verify: |
+      set -euo pipefail
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      PRODUCT checkout is /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2229-decision-dispositions. Keep all edits inside it. Consult PRODUCT/AGENTS.md, its .harness/harness/docs/SPEC.md plan and validate sections, DECISIONS-INDEX.md and DECISIONS.md DEC-73, DEC-174, DEC-179, DEC-182, DEC-188, DEC-205, DEC-227 and DEC-228. PRODUCT/docs/spec.md, docs/decisions.md and docs/architecture.md are absent; report that absence and do not create them. This task owns the DECISIONS.md edit promised by the DEC-188 amend row; failing landing evidence routes here.
+      Add DEC-254 for this plan's D-01, recording the approved five-field schema, bounded plan-merge.py check, scope-versus-script split, individual pm validation grades, writer-stamped draft provenance and per-project decision_dispositions_era_start compatibility boundary, including patch plans. The tradeoff is explicit: only future writer-created drafts must carry the record, legacy undated drafts are grandfathered without backfill, and semantic completeness/strike appropriateness and actual landing remain human/pm judgments rather than generalized stale-decision inference. If DEC-254 has been allocated by another feature before this task executes, report the collision for plan amendment rather than overwrite it or silently choose another number. Do not add blast-radius boilerplate to every entry.
+      Rewrite DEC-188's assertion that enforcement is only a human reading a diff and nothing mechanical checks striking: current truth is that eligible pending drafts get the exact five-field/section/index/successor/ownership checks and validate's pm grades the listed amend/strike edits at review_sha. Its general stale-decision detector remains removed; flat contradictions are struck, softer changes are amended and softer strikes need the operator's authorization. Do not strike DEC-188 wholesale, revive stale markers, restore propagation checks, or append dated amendment history. Keep all other listed keep dispositions substantively intact, including DEC-205's current-truth editing rule and single decision-file anchor-rot check; the new mechanical gate grades plans, not general decision freshness.
+      Fold the new declaration and evidence contract into SPEC's existing plan-state description and goal-check/validation sections rather than append a duplicate feature narrative. Document the exact row fields, empty-list claim, error boundary, creation era, patch inclusion, skip-keep rule, pinned outcome evidence and failure-to-owning-task route; reference the canonical instructions for detail. Regenerate DECISIONS-INDEX.md with the existing generator, including changed source anchors and a discoverable new DEC-254 summary. No new validate script or relied_on_by field; do not require reciprocal links or add a reciprocal-link check. The literal verify must exit zero with no diff; reviewers additionally inspect all three files using git show at review_sha for SC-06 and the feature's actual DEC-188 disposition grade.

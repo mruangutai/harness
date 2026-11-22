@@ -1,0 +1,88 @@
+schema_version: 2
+run_uid: 6dc6a5ff5e024135a0d9e0f03ccef895
+run_id: 2026-11-22-07-validate-validator
+feature: BUG-2253-hook-hang-budget-and-gate-fail-lines
+squad: validator
+host: harness-validator-lead
+status: complete
+review_sha: 7e590f735af90220baec7013c7ce8eafc2163bce
+base_sha: 3dd8bb677bb2936361e3952030fc24f15bf9afc6
+steps:
+  - id: qa
+    persona: harness-qa
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/review-harness-qa-c8.md]
+    artifact: notes/review-harness-qa-c8.md
+    note: Three integration cases and seven unit tests pass; SC-02 inspected.
+    evidence:
+      verify_command: python3 tests/integration/test-validate-digest.py --only run_bug2253_cases && python3 tests/unit/test-validate-digest-run-pool-lines.py
+      executed_at_pin: 7e590f735af90220baec7013c7ce8eafc2163bce
+      integration_cases: 3
+      unit_tests: 7
+      exit_code: 0
+      elapsed_seconds: 1
+      matrix_ok: true
+      layout: converged
+      managed_pin_removed: true
+  - id: code
+    persona: harness-code-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/review-harness-code-reviewer-c8.md]
+    artifact: notes/review-harness-code-reviewer-c8.md
+    note: Six named-budget calls intact; no unrelated timeout changes or dead helpers.
+    evidence:
+      production_changed_from_previous_pass: false
+      unit_changed_from_previous_pass: false
+      supplied_code_grade_passing: 21
+  - id: security
+    persona: harness-security-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/review-harness-security-reviewer-c8.md]
+    artifact: notes/review-harness-security-reviewer-c8.md
+    note: No new bypass; accepted Low and excluded Info advisories retained.
+  - id: ui
+    persona: harness-ui-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/review-harness-ui-reviewer-c8.md]
+    artifact: notes/review-harness-ui-reviewer-c8.md
+    evidence:
+      changed_paths: 101
+      python_paths: 3
+      record_paths: 98
+      visual_paths: 0
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/research-BUG-2253-hook-hang-budget-and-gate-fail-lines-goalcheck-validate-c8.md]
+    artifact: notes/research-BUG-2253-hook-hang-budget-and-gate-fail-lines-goalcheck-validate-c8.md
+    note: Both amended perspectives met; operator amendment and receipt subjects verified.

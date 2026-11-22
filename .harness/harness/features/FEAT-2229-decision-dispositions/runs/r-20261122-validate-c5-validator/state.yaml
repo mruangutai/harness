@@ -1,0 +1,89 @@
+schema_version: 2
+run_id: r-20261122-validate-c5-validator
+run_uid: af525e26b1314cea8bde5af3cc45b26b
+feature: FEAT-2229-decision-dispositions
+squad: validator
+host: harness-validator-lead
+status: blocked
+review_sha: c163d5ea0fb17da27b3455559f317d67852981c7
+steps:
+- id: qa
+  persona: harness-qa
+  depends_on: []
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  redispatched_at: seq-3
+  recompleted_at: seq-4
+  cycles: 1
+  artifact: ../../notes/review-harness-qa-c5.md
+  note: Two unique low substance backlog gaps classified; no execution rerun.
+  evidence:
+    matrix_ok: true
+    unit_files: 62
+    integration_files: 89
+    t01_verify_exit: 0
+    m6_both_result: 128/130 exit 1
+    m6_each_result: 129/130 exit 1
+    m8_result: 129/130 exit 1
+    identifier_mutant_result: 122/130 exit 1
+    pin_result: 130/130 exit 0
+- id: code
+  persona: harness-code-reviewer
+  depends_on: []
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: ../../notes/review-harness-code-reviewer-c5.md
+  evidence:
+    code_grade_exit: 0
+    passing_records: 101
+- id: security
+  persona: harness-security-reviewer
+  depends_on: []
+  mutates_repo: false
+  status: blocked
+  verdict: BLOCKED
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: ../../notes/review-harness-security-reviewer-c5.md
+  evidence:
+    cli_observations_executed: 0
+    refusal: bash-write-guard read-only python open
+    pin_removed: true
+- id: ui
+  persona: harness-ui-reviewer
+  depends_on: []
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: ../../notes/review-harness-ui-reviewer-c5.md
+  evidence:
+    changed_paths: 57
+    in_scope: false
+- id: goalcheck
+  persona: harness-pm
+  depends_on: []
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  redispatched_at: seq-3
+  recompleted_at: seq-5
+  cycles: 1
+  artifact: ../../notes/research-FEAT-2229-decision-dispositions-goalcheck-validate-c5.md
+  note: QA evidence hold discharged; stale note corrected under proper live claim.
+  evidence:
+    sc02: met
+    security_runtime: undetermined
+    peer_revival_claim_refusal: resolved_by_governed_task

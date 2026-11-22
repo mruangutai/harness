@@ -101,6 +101,8 @@ them into **one actionable set**:
 
 - `must_fix` non-empty **or** `severity_max >= high` → `FAIL`
 - otherwise → `PASS` with notes — logged, surfaced, **not blocking**
+- pm's `not_met` or `partial` decision-disposition `sc_status` rows are `must_fix`, routed to the
+  DECISIONS.md-owning task pm names; clean QA cannot erase a failed landing.
 
 Style and opinion never gate. A permanent minor nit that loops to `max_cycles` is a defect in the
 process, not diligence.

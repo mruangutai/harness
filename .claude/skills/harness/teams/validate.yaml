@@ -117,7 +117,8 @@ steps:
       `## Done when — by perspective`: ONE line per declared perspective — pass, partial,
       or fail — each citing the SCs that carry it and the evidence in the diff or its tests.
       A perspective the diff does not discharge is a fail, not an omission. Write the note to
-      your output path. You grade; you do not fix, and you do not re-plan.
+      your output path. Also grade decision dispositions per canonical harness-pm Mode 2 at the
+      supplied {{review_sha}}. You grade; you do not fix, and you do not re-plan.
 
 # The lead's consolidated DIGEST is the deliverable. It must:
 #   - merge the five panels into ONE actionable must-fix set, de-duplicated
