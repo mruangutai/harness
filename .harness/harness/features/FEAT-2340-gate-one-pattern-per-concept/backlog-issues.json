@@ -70,5 +70,9 @@
   "bug:handoff_done_when.py brief-sc resolver matches only 'SC-NN:' lines, never a by-perspective '- SC-NN (perspective):' line (:167)": {
     "number": 2377,
     "typed": true
+  },
+  "chore:Run FEAT-2340 distill after a host restart (expertise_apply registered): fresh HARNESS-MISSION distill re-judging against then-current main; pm's preserved judgements at .harness/harness/features/FEAT-2340-gate-one-pattern-per-concept/notes/research-FEAT-2340-gate-one-pattern-per-concept-distill-product.md, run record 167d2f4e; check G-04 against the recorded baseline before re-applying": {
+    "number": 2384,
+    "typed": true
   }
 }

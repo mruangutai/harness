@@ -75,6 +75,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "expertise_apply is unregistered in this host session (started before the FEAT-2225 hook landed); the shell route is guard-refused, so no distill squad can apply ops until the host restarts"
+    },
+    {
+      "at": "2026-11-22T21:16:47+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "distill-deferred",
+      "reason": "Host session started 2026-11-21 07:15, before c62ab0a1 (FEAT-2225); expertise_apply unregistered for all personas, shell and replay routes guard-refused; advisor-ruled deferral"
     }
   ],
   "mission": "plan",
