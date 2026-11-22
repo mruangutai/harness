@@ -1,0 +1,80 @@
+schema_version: 2
+run_id: fix-c1-validator
+run_uid: ab6ec891df024a7089a48b459f7d65f7
+feature: FEAT-2297-harness-json-schema
+squad: validator
+host: harness-validator-lead
+status: failed
+review_sha: fa6a38009e54f4380daebd59a78629a68de7c1d0
+head_sha: fa6a38009e54f4380daebd59a78629a68de7c1d0
+steps:
+  - id: qa
+    persona: harness-qa
+    depends_on: []
+    status: complete
+    verdict: FAIL
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: notes/review-harness-qa-c2.md
+    evidence:
+      unit_files: 65
+      unit_passed: 65
+      integration_files: 95
+      integration_passed: 94
+      sole_red: tests/integration/test-corpus-real-owner.py
+      disposition: E-OWNER_PR_CI
+      tested_commit: fa6a38009e54f4380daebd59a78629a68de7c1d0
+      manifests:
+        - runs/fix-c1-validator/qa/manifest-unit.json
+        - runs/fix-c1-validator/qa/manifest-integration.json
+  - id: code
+    persona: harness-code-reviewer
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: notes/review-harness-code-reviewer-c2.md
+    evidence:
+      stages: [spec_pass, quality_pass]
+      code_grade: pass
+  - id: security
+    persona: harness-security-reviewer
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: notes/review-harness-security-reviewer-c2.md
+    evidence:
+      mode: static
+      in_scope: true
+  - id: ui
+    persona: harness-ui-reviewer
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: notes/review-harness-ui-reviewer-c2.md
+    evidence:
+      in_scope: false
+      changed_objects: 175
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: notes/research-FEAT-2297-harness-json-schema-goalcheck-validate-c2.md
+    evidence:
+      perspectives_met: 3
+      sc_met: 10
+      decision_dispositions_met: [DEC-221, DEC-254]
+      fresh_qa_reconciled_by: harness-validator-lead

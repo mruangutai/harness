@@ -57,8 +57,16 @@
       "id": "fix-c1-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-22T22:37:13+00:00"
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T22:37:13+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c1-validator/digest.md",
+        "sha256": "c4d87d3a9dc668fe616564b9e7320a578d7b05c1a366716369c75eee34ad5aca"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T22:48:11+00:00"
     }
   ],
   "judgements": [
