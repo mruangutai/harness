@@ -20,6 +20,8 @@ ROOT = HERE.parents[1]
 BIN = ROOT / ".claude/skills/harness/bin"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(HERE.parent))
+from harness_config_support import build_config  # noqa: E402
 import f58_sparse_fixture as F  # noqa: E402
 import feature_corpus as fc  # noqa: E402
 import layout_migration  # noqa: E402
@@ -35,7 +37,7 @@ teams:
           - { path: .harness/*/features/**, upsert: true }
           - { path: ".", read: true }
 """
-GITHUB_ON = '{"github": {"sync": true, "repo": "o/r", "board": null}}\n'
+GITHUB_ON = json.dumps(build_config({"github": {"sync": True, "repo": "o/r", "board": None}})) + "\n"
 
 
 def repair(checkout):
@@ -320,8 +322,8 @@ class BoardStatus(Case):
         record["github"] = {"repo": "o/r", "issues": {"T-01": 501}, "parent": 500}
         self.fx.commit_owner({f"{self.OTHER}/feature.json": json.dumps(record) + "\n",
                               f"{self.OTHER}/plan.yaml": self.PLAN,
-                              ".harness/harness.json": json.dumps({"github": {
-                                  "sync": True, "repo": "o/r", "board": self.board}}) + "\n"},
+                              ".harness/harness.json": json.dumps(build_config({"github": {
+                                  "sync": True, "repo": "o/r", "board": self.board}})) + "\n"},
                              "FEAT-2-beta is building")
         self.wt = repair(self.fx.add_worktree(ACTIVE))
 
@@ -465,7 +467,8 @@ class Discovery(Case):
         self.fx.commit_owner({".harness/factory/fleet.yaml":
                               "schema: factory-fleet/1\nworkspace_root: /tmp/f2114-ws\n"
                               "repos:\n  - name: o/kaya\n    default_branch: main\n",
-                              ".harness/harness.json": '{"github": {"repo": "o/harness"}}\n'},
+                              ".harness/harness.json": json.dumps(build_config(
+                                  {"github": {"repo": "o/harness"}})) + "\n"},
                              "declare the segments")
         wt = repair(self.fx.add_worktree("FEAT-99-new"))
         self.assertEqual(F.feature_dirs_on_disk(wt), [])

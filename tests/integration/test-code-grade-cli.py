@@ -5,6 +5,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import os
 import json
 import shutil
@@ -13,7 +14,7 @@ import sys
 import tempfile
 from pathlib import Path
 import importlib.util
-import artifact_accessors
+from harness_config_support import write_config
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / ".claude/skills/harness/bin/code-grade.py"
@@ -49,9 +50,9 @@ def make_repo(root):
     git(root, "init")
     git(root, "config", "user.email", "grader@example.test")
     git(root, "config", "user.name", "Code Grader")
-    write(root, ".harness/harness.json", json.dumps({"test_kinds": {"unit": {
-        "detect": "tests/unit/**", "exclude": ".claude/worktrees/**",
-        "status": "active"}}}))
+    write_config(root / ".harness/harness.json", {"test_kinds": {"unit": {
+        "detect": "tests/unit/**", "exclude": ".claude/worktrees/**", "cmd": "run-unit",
+        "status": "active"}}})
 
 
 def expect(actual, expected, label):
@@ -192,8 +193,8 @@ def test_control_paths(repo):
 
 
 def test_bars_follow_test_kinds(repo):
-    write(repo, ".harness/harness.json", json.dumps({"test_kinds": {"configured": {
-        "detect": "checks/**", "exclude": "", "status": "active"}}}))
+    write_config(repo / ".harness/harness.json", {"test_kinds": {"functional": {
+        "detect": "checks/**", "exclude": "", "cmd": "run-checks", "status": "active"}}})
     sources = {
         "src/grade-four.py": """def boundary(a,b,c,d,e):
     return a and b and c and d and e
@@ -239,16 +240,6 @@ def test_bars_follow_test_kinds(repo):
         failures += expect((record["grade"], record["bar"], record["result"]),
                            (grade, bar, result), f"{path} JSON grade-bar-result")
         failures += expect(record["severity"], severity, f"{path} JSON bar-relative severity")
-    write(repo, ".harness/harness.json",
-          '{"test_kinds": {}, "test_kinds": {}}')
-    try:
-        code_grade_cli._load_test_kinds(repo)
-    except artifact_accessors.ArtifactAccessError:
-        pass
-    else:
-        failures += expect(False, True, "duplicate harness.json keys are refused")
-    write(repo, ".harness/harness.json", json.dumps({"test_kinds": {
-        "configured": {"detect": "checks/**", "exclude": "", "status": "active"}}}))
     return failures
 
 

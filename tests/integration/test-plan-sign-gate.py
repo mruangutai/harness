@@ -18,12 +18,15 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+
+from harness_config_support import write_config  # noqa: E402
 
 BIN = _anchor_bin
 GATE = os.environ.get("PLAN_SIGN_GATE_BIN") or os.path.join(BIN, "plan-sign-gate.py")
@@ -51,8 +54,7 @@ def _root():
     """
     d = tempfile.mkdtemp()
     os.makedirs(os.path.join(d, ".harness"))
-    with open(os.path.join(d, ".harness", "harness.json"), "w") as f:
-        json.dump({"schema_version": 1}, f)
+    write_config(os.path.join(d, ".harness", "harness.json"))
     with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
         f.write("agents: {}\n")
     return d

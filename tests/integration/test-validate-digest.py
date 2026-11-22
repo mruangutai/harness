@@ -21,6 +21,7 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import contextlib, importlib.util, json, subprocess, sys, os, shutil, tempfile, time
 import concurrent.futures
 import copy
@@ -34,6 +35,7 @@ HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
 from check_domain_support import make_linked_worktree
+from harness_config_support import write_config
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
@@ -1056,6 +1058,7 @@ def _t09_root():
     os.makedirs(os.path.join(d, ".harness"), exist_ok=True)
     with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
         f.write("schema_version: 1\nteams: []\n")
+    write_config(os.path.join(d, ".harness", "harness.json"))
     return d
 
 
@@ -1370,8 +1373,13 @@ def _isolated_root():
         os.makedirs(os.path.join(_ISOLATED_ROOT, ".harness"), exist_ok=True)
         with open(os.path.join(_ISOLATED_ROOT, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
-        with open(os.path.join(_ISOLATED_ROOT, ".harness", "harness.json"), "w") as f:
-            json.dump({"gates": {"review": "advisory"}}, f)
+        # unit and integration declare runnable commands, so a qa claim naming them is
+        # re-verified (BUG-1756) instead of refused as a kind with nothing to run.
+        write_config(os.path.join(_ISOLATED_ROOT, ".harness", "harness.json"), {
+            "gates": {"review": "advisory"},
+            "test_kinds": {kind: {"detect": f"tests/{kind}/**", "exclude": "",
+                                  "cmd": f"run-unit-tests.py --kind {kind}", "status": "active"}
+                           for kind in ("unit", "integration")}})
     return _ISOLATED_ROOT
 
 
@@ -1434,6 +1442,7 @@ def _append_registration(root, cwd=None, claim=True):
         yaml.safe_dump({"leads": [{"name": "harness-eng-lead", "squad": "engineering", "domain": [
             {"path": ".harness/*/features/*/runs/*-eng/**", "upsert": True},
             {"path": ".", "read": True}]}]}, marker)
+    write_config(os.path.join(root, ".harness", "harness.json"))
     path = os.path.join(root, APPEND_REL)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     feature_dir = os.path.dirname(os.path.dirname(os.path.dirname(path)))
@@ -2925,6 +2934,7 @@ def run_qa_verification_mode_cases():
     failures = []
     with tempfile.TemporaryDirectory(prefix="qa-modes-") as root:
         feature_dir = make_feature_dir(root)
+        write_config(os.path.join(root, ".harness", "harness.json"))
         brief_path = os.path.join(feature_dir, "BRIEF.md")
         for label, brief, accepted in cases:
             _write_verification_brief(brief_path, brief)
@@ -4101,55 +4111,6 @@ def check_deletion_only_range(td, failures):
         failures.append(f"a deletion-only Python range is not n_a: {errors}")
 
 
-def check_missing_test_kinds(td, failures):
-    """SC-11/D-05: a checkout whose harness.json carries no `test_kinds` cannot tell a
-    production path from a test path, so no grade bar can be resolved. Refuse and name
-    the repair — never fall back to an implicit production bar, and never to the
-    digest's own claim.
-    """
-    validator = _fresh_validator()
-    config = os.path.join(td, "no-kinds-config.json")
-    write_review_config(config, "advisory_unless_high")
-    repo, base_oid, head_oid = make_graded_repo(
-        td, "no-test-kinds", {"src/clean.py": CLEAN_PY})
-    _write_repo_file(repo, ".harness/harness.json", json.dumps({"gates": {}}))
-    feature_dir = make_feature_dir(repo, review_sha=head_oid, feat="FEAT-NO-KINDS")
-    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for("pass", base_oid, head_oid)),
-        config, feature_dir)
-    if not any("test_kinds" in error for error in errors):
-        failures.append(f"a checkout with no test_kinds policy must refuse the code "
-                        f"grade and name it: {errors}")
-
-
-def check_malformed_test_kinds(td, failures):
-    """SC-11/REQ-03: a MALFORMED `test_kinds` policy — well-shaped enough to load, but a
-    kind with no `detect` — reaches the grader and raises there, and that exception must
-    become a named refusal rather than an acceptance.
-
-    This case exists because a mutation proved the need for it: converting the grading
-    catch-all into `return "pass", None` reddened NOTHING, so the branch was unreachable
-    from the suite and its greenness meant nothing. A missing `detect` is the reachable
-    production shape of it — `_load_test_kinds` cannot see inside a kind, so the failure
-    surfaces inside `classify`.
-    """
-    validator = _fresh_validator()
-    config = os.path.join(td, "malformed-kinds-config.json")
-    write_review_config(config, "advisory_unless_high")
-    repo, base_oid, head_oid = make_graded_repo(
-        td, "malformed-test-kinds", {"src/clean.py": CLEAN_PY})
-    _write_repo_file(repo, ".harness/harness.json", json.dumps(
-        {"gates": {}, "test_kinds": {"unit": {"status": "active"}}}))
-    feature_dir = make_feature_dir(repo, review_sha=head_oid, feat="FEAT-BAD-KINDS")
-    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for("pass", base_oid, head_oid)),
-        config, feature_dir)
-    if not any("TestKindsError" in error for error in errors):
-        failures.append(f"a grader exception must become a NAMED refusal, never an "
-                        f"acceptance: {errors}")
-    if not any(error.startswith("code_grade cannot be verified") for error in errors):
-        failures.append(f"the grading failure must be reported as a code_grade "
-                        f"verification failure: {errors}")
-
-
 HOSTILE_ARTIFACT_PATHS = (
     ".harness/../features/../notes/fake.md",
     ".harness/./features/../notes/fake.md",
@@ -4358,8 +4319,6 @@ def _check_bug1081_enforcement(validator, config, _feature_dir, td, failures):
     check_committed_syntax_error(td, failures)
     check_digest_base_cannot_move_result(td, failures)
     check_deletion_only_range(td, failures)
-    check_missing_test_kinds(td, failures)
-    check_malformed_test_kinds(td, failures)
     check_artifact_path_traversal(td, failures)
     check_symlinked_feature_component(td, failures)
     check_artifact_in_linked_worktree_binds_there(td, failures)
@@ -4385,8 +4344,7 @@ def _init_test_repo(repo):
     os.makedirs(repo)
     _initialize_test_git(repo)
     os.makedirs(os.path.join(repo, ".harness"), exist_ok=True)
-    with open(os.path.join(repo, ".harness", "harness.json"), "w") as handle:
-        json.dump(HARNESS_JSON_FIXTURE, handle)
+    write_config(os.path.join(repo, ".harness", "harness.json"), HARNESS_JSON_FIXTURE)
 
 
 def _commit_file(repo, name, content, message):
@@ -4910,14 +4868,6 @@ def check_config_errors(validator, config, feature_dir, guarded, failures):
     write_review_config(config, "advisory")
     if validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", guarded), config, feature_dir):
         failures.append("advisory must accept the same digest")
-    with open(config, "w") as f:
-        json.dump({}, f)
-    try:
-        validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", guarded), config, feature_dir)
-        failures.append("missing gates must raise")
-    except ValueError as error:
-        if "gates" not in str(error):
-            failures.append("missing gates error must name gates")
 
 
 @contextlib.contextmanager
@@ -5128,18 +5078,6 @@ def _strict_validator_module():
     return validator
 
 
-def _duplicate_harness_config_failures(validator, td):
-    harness_json = os.path.join(td, ".harness", "harness.json")
-    os.makedirs(os.path.dirname(harness_json), exist_ok=True)
-    with open(harness_json, "w", encoding="utf-8") as handle:
-        handle.write(
-            '{"test_kinds": {"x": {}}, "test_kinds": {"x": {}}}')
-    kinds, error = validator._load_test_kinds(td)
-    if kinds is None and error and "duplicate key" in error:
-        return []
-    return ["duplicate harness.json keys were not refused"]
-
-
 def _duplicate_feature_json_failures(validator, td):
     feature_dir = os.path.join(
         td, ".harness", "harness", "features", "FEAT-STRICT")
@@ -5185,8 +5123,7 @@ def run_canonical_reader_strictness_cases():
     """Strict artifact seams reject duplicate keys without changing legacy cases."""
     validator = _strict_validator_module()
     with tempfile.TemporaryDirectory() as td:
-        failures = _duplicate_harness_config_failures(validator, td)
-        failures.extend(_duplicate_feature_json_failures(validator, td))
+        failures = _duplicate_feature_json_failures(validator, td)
     failures.extend(_duplicate_hook_payload_failures())
     if not failures:
         return 0

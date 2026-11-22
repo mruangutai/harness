@@ -20,6 +20,8 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 VALIDATE = os.path.join(REPO_ROOT, ".claude", "skills", "harness", "bin", "validate-digest.py")
+sys.path.insert(0, os.path.dirname(HERE))
+from harness_config_support import write_config  # noqa: E402
 
 RESULTS = []
 
@@ -48,12 +50,14 @@ def _commit(repo, name, content, message):
     return _git(repo, "rev-parse", "HEAD")
 
 
+# Builder overrides for every checkout's harness.json (test_kinds replaces the default roster).
 HARNESS_JSON = {
     "gates": {"review": "advisory_unless_high"},
     "test_kinds": {
         "unit": {"detect": "test_*.py", "exclude": "", "cmd": "true", "status": "active"},
         "functional": {"detect": "tests/functional/**", "exclude": "", "cmd": None,
-                       "status": "excluded", "excluded_because": "no service API"},
+                       "status": "excluded", "excluded_because": "no service API",
+                       "signed": "DEC-163"},
     },
 }
 
@@ -69,8 +73,7 @@ def _checkout(td, human_messages=()):
     _git(repo, "init", "-q", "-b", "main")
     _git(repo, "config", "user.email", "t@example.com")
     _git(repo, "config", "user.name", "t")
-    with open(os.path.join(repo, ".harness", "harness.json"), "w") as fh:
-        json.dump(HARNESS_JSON, fh)
+    write_config(os.path.join(repo, ".harness", "harness.json"), HARNESS_JSON)
     with open(os.path.join(repo, ".harness", "team-config.yaml"), "w") as fh:
         fh.write("agents: {}\n")
     base = _commit(repo, "readme.txt", "a\n", "A")
@@ -131,8 +134,7 @@ def _errors(v, persona, obj, feature_dir, config):
 
 def _config(td):
     path = os.path.join(td, "harness.json")
-    with open(path, "w") as fh:
-        json.dump({"gates": {"review": "advisory_unless_high"}}, fh)
+    write_config(path, {"gates": {"review": "advisory_unless_high"}})
     return path
 
 
@@ -176,12 +178,12 @@ def case_dirty_tree():
         check("dirty: BLOCKED is the honest return and is accepted",
               not any("pinnable" in e for e in errs), str(errs))
         _git(repo, "checkout", "--", "readme.txt")
-        with open(os.path.join(repo, ".harness", "harness.json"), "a") as fh:
+        with open(os.path.join(repo, ".harness", "team-config.yaml"), "a") as fh:
             fh.write("\n")
         errs = _errors(v, "harness-code-reviewer", _review(head, human=[]), fd, cfg)
         check("dirty: a change under .harness/ does not count",
               not any("pinnable" in e for e in errs), str(errs))
-        _git(repo, "checkout", "--", ".harness/harness.json")
+        _git(repo, "checkout", "--", ".harness/team-config.yaml")
         with open(os.path.join(repo, "scratch.txt"), "w") as fh:
             fh.write("untracked\n")
         errs = _errors(v, "harness-code-reviewer", _review(head, human=[]), fd, cfg)
@@ -321,7 +323,7 @@ def case_grade_2_names():
         _git(repo, "init", "-q", "-b", "main")
         _git(repo, "config", "user.email", "t@example.com")
         _git(repo, "config", "user.name", "t")
-        _write(os.path.join(repo, ".harness", "harness.json"), json.dumps(HARNESS_JSON))
+        write_config(os.path.join(repo, ".harness", "harness.json"), HARNESS_JSON)
         _write(os.path.join(repo, ".harness", "team-config.yaml"), "agents: {}\n")
         base = _commit(repo, "readme.txt", "a\n", "A")
         _git(repo, "update-ref", "refs/remotes/origin/main", base)
@@ -370,8 +372,8 @@ MATRIX_JSON = dict(HARNESS_JSON, test_kinds=dict(
     "cross_module": {"always": ["unit", "functional"]},
     "docs": {"always": []},
     "bugfix": {"always": [], "when": [{"kind": "unit", "if": "touches_runtime_code"}]},
-    "service": {"always": ["functional"]},
-    "widget": {"always": ["component"]},
+    "api": {"always": ["functional"]},
+    "frontend": {"always": ["component"]},
 })
 
 
@@ -392,7 +394,7 @@ def case_matrix_floor():
     v = _validator()
     with tempfile.TemporaryDirectory() as td:
         repo, fd, head, _ = _checkout(td)
-        _write(os.path.join(repo, ".harness", "harness.json"), json.dumps(MATRIX_JSON))
+        write_config(os.path.join(repo, ".harness", "harness.json"), MATRIX_JSON)
         cfg = _config(td)
         _write(os.path.join(fd, "plan.yaml"), _plan_with([("logic", "done")]))
         errs = _errors(v, "harness-qa", _qa([UNIT_SATISFIED]), fd, cfg)
@@ -424,7 +426,7 @@ _NO_SUITE = _with(_qa([]), suite="n/a")
 def _qa_floor_errors(td, change_types, obj=_NO_SUITE):
     """#2139: the qa errors for `obj` over a plan of `change_types`; None writes no plan."""
     repo, fd, _head, _ = _checkout(td)
-    _write(os.path.join(repo, ".harness", "harness.json"), json.dumps(MATRIX_JSON))
+    write_config(os.path.join(repo, ".harness", "harness.json"), MATRIX_JSON)
     if change_types is not None:
         _write(os.path.join(fd, "plan.yaml"), _plan_with(change_types))
     return _errors(_validator(), "harness-qa", obj, fd, _config(td))
@@ -437,7 +439,7 @@ def _declined(errs, field):
 def case_qa_empty_floor_suite():
     """#2139: qa `suite: n/a` + PASS is honest only where the computed matrix floor is empty."""
     docs = [("docs", "done")]
-    for label, plan in (("empty floor", docs), ("explicitly excluded kind", [("service", "done")])):
+    for label, plan in (("empty floor", docs), ("explicitly excluded kind", [("api", "done")])):
         with tempfile.TemporaryDirectory() as td:
             errs = _qa_floor_errors(td, plan)
             check(f"{label}: suite n/a with kinds [] and matrix_ok true is accepted", not errs, str(errs))
@@ -456,7 +458,7 @@ _STILL_GATED = (
     ("conditional bugfix row", [("bugfix", "done")]),
     ("unknown change_type", [("doc", "done")]),
     ("no started task", [("docs", "todo")]),
-    ("active kind with null cmd", [("widget", "done")]),
+    ("active kind with null cmd", [("frontend", "done")]),
     ("unresolvable floor", None),
 )
 

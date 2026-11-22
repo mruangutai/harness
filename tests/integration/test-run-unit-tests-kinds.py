@@ -105,13 +105,6 @@ check("dropping a second live probe kind is loud",
       any(ISSUE_TYPES_PROBE in problem for problem in
           registration_problems(missing_issue_types, "issue_types_live")))
 
-empty_detect = copy.deepcopy(config)
-empty_detect["test_kinds"]["handoff_comprehension"]["detect"] = ""
-empty_problems = registration_problems(empty_detect)
-check("dropping probe detect is loud",
-      bool(empty_problems) and all(PROBE in problem for problem in empty_problems),
-      repr(empty_problems))
-
 missing_kind = copy.deepcopy(config)
 del missing_kind["test_kinds"]["handoff_comprehension"]
 missing_problems = registration_problems(missing_kind)

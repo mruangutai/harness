@@ -40,6 +40,8 @@ ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 sys.path.insert(0, BIN_DIR)
 from isolated_bin import isolated_bin  # noqa: E402
+sys.path.insert(0, os.path.dirname(TESTS_DIR))
+from harness_config_support import write_config  # noqa: E402
 
 FEATURE = "BUG-2110-lead-start-fixture"
 LEADS = {"harness-eng-lead": ("engineering", "eng"),
@@ -120,8 +122,7 @@ def make_root(runs, plan=None):
     os.makedirs(feature_dir(root))
     with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as handle:
         handle.write(team_config())
-    with open(os.path.join(root, ".harness", "harness.json"), "w") as handle:
-        json.dump({"gates": {"review": "advisory"}}, handle)
+    write_config(os.path.join(root, ".harness", "harness.json"), {"gates": {"review": "advisory"}})
     for persona in PERSONAS:
         shutil.copyfile(os.path.join(ROOT, ".omp", "agents", persona + ".md"),
                         os.path.join(root, ".omp", "agents", persona + ".md"))

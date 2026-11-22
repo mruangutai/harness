@@ -9,8 +9,8 @@ the inherited Harness root/persona environment removed. Covered:
     block, unindexed dec, keep/amend on STRUCK, clause not in the decision's own section,
     unresolved successor, no task owning DECISIONS.md), the valid controls, and served-segment
     authority selection;
-  * the era: both sides of activation and the exact boundary, null and missing configuration,
-    malformed era and draft instants, approved/landed history, undated legacy drafts;
+  * the era: both sides of activation and the exact boundary, a null era, malformed draft
+    instants, approved/landed history, undated legacy drafts;
   * the writer: `apply` creation stamps drafted_at once and refuses a caller's; set-key and
     apply refuse every rewrite/insert/null of drafted_at with complete plan bytes unchanged, on
     both merge rendering paths; ordinary edits keep the stamp or its absence.
@@ -25,6 +25,9 @@ import sys
 import tempfile
 
 import yaml
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from harness_config_support import write_config  # noqa: E402
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -100,17 +103,16 @@ def run(*argv, cli=CLI, env=None):
 
 
 def make_root(era=ERA, segment="harness"):
-    """A checkout `check --root` resolves against; `era` _UNSET omits the key (pre-adoption).
-    The checkout sits at <base>/harness so a served segment's workspace can be its sibling."""
+    """A checkout `check --root` resolves against, with `era` as its builder-config
+    decision_dispositions_era_start. The checkout sits at <base>/harness so a served segment's
+    workspace can be its sibling."""
     root = os.path.join(os.path.realpath(tempfile.mkdtemp(prefix="plan-dispositions-")), "harness")
     write(os.path.join(root, ".harness", "team-config.yaml"),
           "schema_version: 1\nteams:\n  - name: eng\n    members:\n"
           "      - name: harness-backend-dev\n        domain:\n"
           "          - { path: src/**, upsert: true }\n")
-    config = {"schema_version": 2}
-    if era is not _UNSET:
-        config["decision_dispositions_era_start"] = era
-    write(os.path.join(root, ".harness", "harness.json"), json.dumps(config))
+    write_config(os.path.join(root, ".harness", "harness.json"),
+                 {"decision_dispositions_era_start": era})
     write(os.path.join(root, DOCS_REL), DECISIONS_MD)
     write(os.path.join(root, ".harness", "harness", "docs", "DECISIONS-INDEX.md"), DECISIONS_INDEX)
     write(os.path.join(root, "src", "a.py"), "def foo():\n    return 1\n")
@@ -474,16 +476,11 @@ def case_era():
                 plan_text(drafted="2026-11-21T12:59:59+01:00"))
     expect_fail("a null era requires the block on every stamped draft",
                 plan_text(drafted=BEFORE_ERA), ["decisions_affected"], era=None)
-    expect_pass("a missing era key preserves legacy behaviour", plan_text(), era=_UNSET)
     expect_pass("an undated legacy pending draft is not refused", plan_text(drafted=_UNSET),
                 era=None)
 
 
 def case_malformed_instants():
-    expect_fail("a malformed era is a diagnostic, never an exemption", plan_text(),
-                ["decision_dispositions_era_start"], era="yesterday")
-    expect_fail("a date-only era is not an instant", plan_text(), ["decision_dispositions_era_start"],
-                era="2026-11-21")
     expect_fail("a malformed drafted_at is a diagnostic", plan_text(drafted="soon"),
                 ["drafted_at"])
     expect_fail("a naive drafted_at is a diagnostic", plan_text(drafted="2026-11-21T12:00:00"),

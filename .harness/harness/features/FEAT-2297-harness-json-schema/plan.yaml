@@ -477,7 +477,7 @@ tasks:
   - T-01
   - T-02
   - T-03
-  status: ready
+  status: done
   files:
   - tests/integration/test-validate-digest.py#obj_of
   - tests/integration/test-validate-digest-shadows.py#check
@@ -492,6 +492,7 @@ tasks:
   - tests/integration/test-lead-start-return.py#check
   - tests/integration/test-layout-migration.py#check
   - tests/integration/test-run-unit-tests-kinds.py#check
+  - .claude/skills/harness/bin/post-merge-sweep.py#_bootstrap_original_path
   verify: |
     python3 tests/integration/test-harness-config-fixtures.py tests/integration/test-validate-digest.py tests/integration/test-validate-digest-shadows.py tests/integration/test-factory-integration.py tests/integration/test-code-grade-cli.py tests/integration/test-post-merge-sweep.py tests/integration/test-check-skill-weight.py tests/integration/test-feature-corpus.py tests/integration/test-plan-sign-gate.py tests/integration/test-plan-decision-dispositions.py tests/integration/test-hooks-install.py tests/integration/test-lead-start-return.py tests/integration/test-layout-migration.py tests/integration/test-run-unit-tests-kinds.py && python3 tests/integration/test-harness-config-readers.py
   intent: Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. In validate-digest delete absent test_kinds/gates reader refusal and missing-detect/duplicate-key reader-specific checks now covered by the loader; keep runner-spawn failure semantics and grade/matrix enforcement. In validate-digest-shadows migrate service/widget matrix entries and their plan consumers together to supported change types, preserving distinct active-null/excluded/empty-floor cases. Delete code-grade-cli duplicate config key checks, check-skill-weight duplicate checks, plan-decision-dispositions missing-era/malformed-era reader cases and only the harness-config branch of post-merge-sweep duplicate-artifact tests. Preserve the adjacent feature.json malformed-retention case. check-skill-weight absent preload values uses documented defaults, malformed present values refuses. In test-run-unit-tests-kinds retain missing mandatory live-probe registration assertions as semantic roster coverage with that reason in the receipt; delete only empty-detect shape duplication. Migrate real upgrade fixtures in T-01 only; do not take ownership of test-upgrade-config again. Preserve all five factory subprocess behavior groups, remote identity/binding checks and no-default-mutations. Census inherited SparseFixture/gh-sync fan-out and every valid inline override; files whose writers only delegate need no redundant edit, but every undisposed source row remains a failure.

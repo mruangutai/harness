@@ -109,6 +109,13 @@
       "kind": "amendment",
       "decision": "T-06.files",
       "reason": "Advisor ruling: T-03 regression \u2014 feature_schema exec failure crashed check-state via harness_config; load it through harness_boundary.load_repo_module, map RepoModuleError to ArtifactAccessError (63.a)."
+    },
+    {
+      "at": "2026-11-22T21:09:06.386100+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.files",
+      "reason": "Advisor ruling: T-01 regression \u2014 sweep scrubs user-site so feature_schema caches jsonschema=None and every receipt read refuses; restore the original path after first-party imports, as branch-create-gate/gh-close-gate."
     }
   ],
   "mission": "plan",

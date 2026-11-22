@@ -45,10 +45,12 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import json
 import os
 
 import factory_config
+from harness_config_support import build_config, write_config
 import re
 import stat
 import subprocess
@@ -506,10 +508,10 @@ def default_board(owner="acme", number=9, station_field="Status", stations=None)
 
 
 def default_product_configs(repo=REPO, board=None):
-    """The {repo_name: {"github": {"board": ...}}} shape the fake gh's `contents` endpoint
-    (state["product_configs"]) serves — the full-shaped document `product_config` itself
-    returns, never a bare board mapping."""
-    return {repo: {"github": {"board": board or default_board()}}}
+    """The {repo_name: harness.json} shape the fake gh's `contents` endpoint
+    (state["product_configs"]) serves — a full builder document naming its own repository,
+    never a bare board mapping."""
+    return {repo: build_config({"github": {"repo": repo, "board": board or default_board()}})}
 
 
 def write_state(path, **overrides):
@@ -1232,8 +1234,8 @@ with tempfile.TemporaryDirectory() as td:
     cwd = os.path.join(td, "cwd")
     os.makedirs(cwd, exist_ok=True)
     two_board_product_configs = {
-        **default_product_configs(repo=REPO, board=default_board(number=served_number)),
-        **default_product_configs(repo=other_repo, board=default_board(number=other_number)),
+        name: build_config({"github": {"repo": name, "board": default_board(number=number)}})
+        for name, number in ((REPO, served_number), (other_repo, other_number))
     }
     gh_state = write_state(
         os.path.join(td, "gh_state.json"), next_issue=500,
@@ -1402,11 +1404,8 @@ BOARD_LIFECYCLE = os.path.join(BIN_DIR, "board_lifecycle.py")
 
 with tempfile.TemporaryDirectory() as td:
     root = make_root(td)
-    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
-        json.dump({"schema_version": 1, "github": {
-            "sync": True, "repo": "acme/widget", "board": default_board(),
-        }}, f)
+    write_config(os.path.join(root, ".harness", "harness.json"),
+                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
     gh = os.path.join(td, "fake_gh.py")
     write_exec(gh, _FAKE_GH_SRC)
     state_path = write_state(os.path.join(td, "gh_state.json"))
@@ -1450,11 +1449,8 @@ with tempfile.TemporaryDirectory() as td:
 
 with tempfile.TemporaryDirectory() as td:
     root = make_root(td)
-    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
-        json.dump({"schema_version": 1, "github": {
-            "sync": True, "repo": "acme/widget", "board": default_board(),
-        }}, f)
+    write_config(os.path.join(root, ".harness", "harness.json"),
+                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
     gh = os.path.join(td, "fake_gh.py")
     write_exec(gh, _FAKE_GH_SRC)
     # ONE fixture carrying exactly one finding: a closed issue with a null close reason (REASON)
@@ -1493,11 +1489,8 @@ with tempfile.TemporaryDirectory() as td:
 
 with tempfile.TemporaryDirectory() as td:
     root = make_root(td)
-    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
-        json.dump({"schema_version": 1, "github": {
-            "sync": True, "repo": "acme/widget", "board": default_board(),
-        }}, f)
+    write_config(os.path.join(root, ".harness", "harness.json"),
+                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
     gh = os.path.join(td, "fake_gh.py")
     write_exec(gh, _FAKE_GH_SRC)
     # plan.yaml: active station `review`; feature.json records parent #950 but the board reads
@@ -1549,11 +1542,8 @@ with tempfile.TemporaryDirectory() as td:
 
 with tempfile.TemporaryDirectory() as td:
     root = make_root(td)
-    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
-        json.dump({"schema_version": 1, "github": {
-            "sync": True, "repo": "acme/widget", "board": default_board(),
-        }}, f)
+    write_config(os.path.join(root, ".harness", "harness.json"),
+                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
     gh = os.path.join(td, "fake_gh.py")
     write_exec(gh, _FAKE_GH_SRC)
     state_path = write_state(os.path.join(td, "gh_state.json"), issues={
@@ -1599,11 +1589,8 @@ with tempfile.TemporaryDirectory() as td:
 
 with tempfile.TemporaryDirectory() as td:
     root = make_root(td)
-    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
-        json.dump({"schema_version": 1, "github": {
-            "sync": True, "repo": "acme/widget", "board": default_board(),
-        }}, f)
+    write_config(os.path.join(root, ".harness", "harness.json"),
+                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
     gh = os.path.join(td, "fake_gh.py")
     write_exec(gh, _FAKE_GH_SRC)
     old_title = "T-9 — Add the retitle command"
