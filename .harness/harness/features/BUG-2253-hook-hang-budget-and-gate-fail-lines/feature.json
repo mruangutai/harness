@@ -31,6 +31,13 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "causes located: six hard timeout=3 hook calls in test-validate-digest.py; gate prints only a 20-line pooled tail. Bounded to two files; main-session-direct per DEC-174 (gate)"
+    },
+    {
+      "at": "2026-11-22T01:14:16.840632+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "reuse the file's existing --only <group> selector instead of adding a second selector flag; operator approved"
     }
   ],
   "rework": {

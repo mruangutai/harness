@@ -1022,6 +1022,13 @@ def run_cli_cases():
 # a case's own keys win, and a case about a missing value passes it as None.
 HOOK_IDENTITY = {"harness_feature": "FEAT-90-hook-case", "harness_agent_id": "Test.Run"}
 
+# #2253: THE HANG BUDGET for hook calls whose registration or checkout metadata is a FIFO,
+# a dangling symlink or 10,000-deep JSON. A hook that blocks on one must FAIL the case, never
+# hang the suite, so the call carries a timeout. 30s is load headroom, not a performance
+# claim: a healthy call returns in ~0.1s, but the former literal 3s was exceeded by a host
+# at load ~125 alone (BUG-2187 validate cycle 2). One constant, read at call time.
+HOOK_HANG_BUDGET_S = 30
+
 
 def _governed(payload):
     return {**HOOK_IDENTITY, **payload}
@@ -3023,7 +3030,7 @@ def _replace_feature_registration(record, contents):
 def _restored_registration_return(root, record, original, agent, obj, **kwargs):
     os.remove(record)
     _write_verification_brief(record, original)
-    result = _t09_fire(root, agent, obj, timeout=3, **kwargs)
+    result = _t09_fire(root, agent, obj, timeout=HOOK_HANG_BUDGET_S, **kwargs)
     return result.returncode == 0 and _reg_module().live_claims(root, agent) == []
 
 
@@ -3056,7 +3063,7 @@ def _qa_record_read_failure_case(label, contents):
         reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
                             HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
         claim_before = reg.live_claims(root, "harness-qa")
-        result = _t09_fire(root, "harness-qa", obj, timeout=3)
+        result = _t09_fire(root, "harness-qa", obj, timeout=HOOK_HANG_BUDGET_S)
         ok = (result.returncode == 2 and "fail_first" in result.stderr
               and reg.live_claims(root, "harness-qa") == claim_before
               and _read_bytes(obj["artifact"]) == b"inspection assessment\n")
@@ -3276,8 +3283,9 @@ def _unknown_checkout_identity_case(agent, contents):
             before, obj, artifact, kwargs, original_git = _claimed_checkout_return(agent, checkout, feature_dir, owner)
             _corrupt_checkout_git(checkout, contents)
             runtime_root = checkout if contents in ("missing-owner", "unknown-admin-fifo") else owner
-            result = _t09_fire(runtime_root, agent, obj, timeout=3, **kwargs)
-            startup_ok = agent != "harness-eng-lead" or _lead_binding_result(runtime_root, timeout=3).returncode == 2
+            result = _t09_fire(runtime_root, agent, obj, timeout=HOOK_HANG_BUDGET_S, **kwargs)
+            startup_ok = (agent != "harness-eng-lead"
+                          or _lead_binding_result(runtime_root, timeout=HOOK_HANG_BUDGET_S).returncode == 2)
             ok = (startup_ok and result.returncode == 2 and _reg_module().live_claims(checkout, agent) == before
                   and _read_bytes(artifact) == b"checkout assessment\n")
             assert _restored_checkout_return(runtime_root, checkout, agent, original_git, obj, kwargs), "same job must accept after metadata restoration"
@@ -3305,8 +3313,9 @@ def _symlinked_checkout_identity_case(agent, source):
             checkout, feature_dir = _single_registered_checkout(owner, td)
             before, obj, artifact, kwargs, original_git = _claimed_checkout_return(agent, checkout, feature_dir, owner)
             pointer, original = _symlinked_git_pointer(checkout, source)
-            result = _t09_fire(checkout, agent, obj, timeout=3, **kwargs)
-            startup_ok = agent != "harness-eng-lead" or _lead_binding_result(checkout, timeout=3).returncode == 2
+            result = _t09_fire(checkout, agent, obj, timeout=HOOK_HANG_BUDGET_S, **kwargs)
+            startup_ok = (agent != "harness-eng-lead"
+                          or _lead_binding_result(checkout, timeout=HOOK_HANG_BUDGET_S).returncode == 2)
             ok = (startup_ok and result.returncode == 2 and _reg_module().live_claims(checkout, agent) == before
                   and _read_bytes(artifact) == b"checkout assessment\n")
             os.remove(pointer)
@@ -6354,6 +6363,233 @@ def _run_groups_with_sentinels(checks):
             inflight_registry.release(ROOT, feature=_SENTINEL_FEATURE, claim_id=claim_id)
 
 
+# ---------------------------------------------------------------------------------------
+# #2253. (1) The gate's #919 refusal printed only the last 20 lines of a pooled re-run;
+# run_pool prints files in completion order, so that tail named the slowest PASSING file
+# and the failing one sat above it. (2) Six hook calls carried a hard 3s hang budget that
+# host load (~125) alone exceeded; the budget is now one constant, and a real hang must
+# still die inside it.
+
+def _bug2253_stub(root, name, stdout_lines, stderr_lines, code=1):
+    path = os.path.join(root, name)
+    with open(path, "w") as f:
+        f.write("#!/usr/bin/env python3\nimport sys\n"
+                f"sys.stdout.write({chr(10).join(stdout_lines + [''])!r})\n"
+                f"sys.stderr.write({chr(10).join(stderr_lines + [''])!r})\n"
+                f"sys.exit({code})\n")
+    os.chmod(path, 0o755)
+    return path
+
+
+_BUG2253_BURIED = ["FAIL test-a.py", "MUTATED test-b.py", "MUTATED test-d.py", "FAIL test-e.py"]
+
+
+def _bug2253_gate_cases(tmp):
+    """(gate) Failing and mutated files buried above a 20-line passing tail, on stdout and
+    stderr, are listed once under the heading, in order, before the unchanged tail; a red
+    re-run with no such line keeps the tail alone."""
+    passing = [f"PASS test-p{i}.py" for i in range(25)]
+    stub = _bug2253_stub(tmp, "buried.py",
+                         ["----- test-a.py (exit 1, 0.10s) -----", "FAIL test-a.py",
+                          "MUTATED test-b.py", "FAILED-NOT-A-FILE-LINE"] + passing,
+                         ["MUTATED test-d.py", "FAIL test-e.py"] + [f"stderr tail {i}" for i in range(22)])
+    r = _bug919_fire(stub)
+    err = r.stderr
+    head = err.find("Failing or mutated files:")
+    tail_at = err.find("  stderr tail 2\n")
+    listed = [err.find(f"  {line}\n", head) for line in _BUG2253_BURIED]
+    buried_ok = (r.returncode == 2 and err.count("Failing or mutated files:") == 1
+                 and head != -1 and all(i != -1 for i in listed) and listed == sorted(listed)
+                 and listed[-1] < tail_at and "FAILED-NOT-A-FILE-LINE" not in err
+                 and "  stderr tail 21\n" in err and "  PASS test-p24.py" not in err)
+    quiet = _bug2253_stub(tmp, "quiet.py", passing, ["Traceback: runner crashed"])
+    q = _bug919_fire(quiet)
+    quiet_ok = (q.returncode == 2 and "Failing or mutated files:" not in q.stderr
+                and "  Traceback: runner crashed" in q.stderr and "  PASS test-p24.py" in q.stderr)
+    return [("a red re-run names every FAIL/MUTATED file buried above the 20-line tail, "
+             "once, in order, before the unchanged tail", buried_ok, err),
+            ("a red re-run with no FAIL/MUTATED line keeps the tail alone", quiet_ok, q.stderr)]
+
+
+class _Bug2253Stop(Exception):
+    """Raised by a recording double once the call under test has been observed."""
+
+
+@contextlib.contextmanager
+def _bug2253_globals(**names):
+    """Rebind this module's globals for the block, restoring every one afterwards."""
+    g = globals()
+    saved = {name: g.get(name, _Bug2253Stop) for name in names}
+    g.update(names)
+    try:
+        yield
+    finally:
+        for name, value in saved.items():
+            if value is _Bug2253Stop:
+                g.pop(name, None)
+            else:
+                g[name] = value
+
+
+def _bug2253_fake_result(code=2):
+    return subprocess.CompletedProcess([], code, "", "")
+
+
+def _bug2253_site_drivers(tmp):
+    """(site, run, collaborators) for the six hook-call sites: `run()` drives the REAL
+    enclosing function; `collaborators` stub only its fixture work, so the target call is
+    the one the function itself makes."""
+    record = os.path.join(tmp, "record.json")
+    open(record, "w").write("{}")
+    reg = type("Reg", (), {"claim_run_start": lambda *a, **k: None,
+                           "live_claims": lambda *a, **k: []})()
+    checkout = {"_append_root": lambda: (tmp, None), "_remove_append_root": lambda root: None,
+                "_single_registered_checkout": lambda owner, td: (tmp, tmp),
+                "_claimed_checkout_return": lambda *a: ([], {}, record, {}, b""),
+                "_corrupt_checkout_git": lambda *a: None,
+                "_symlinked_git_pointer": lambda *a: (record, b"{}")}
+    qa = {"_t09_root": lambda: tempfile.mkdtemp(dir=tmp),
+          "_qa_registered_inspection_return": lambda root: (record, {"artifact": record}),
+          "_replace_feature_registration": lambda *a: None, "_reg_module": lambda: reg}
+    return [
+        ("registration-restored", lambda: _restored_registration_return(tmp, record, b"{}", "harness-qa", {}),
+         {}, "_t09_fire"),
+        ("qa-record-read-failure", lambda: _qa_record_read_failure_case("probe", b"{"), qa, "_t09_fire"),
+        ("unknown-checkout-fire", lambda: _unknown_checkout_identity_case("harness-eng-lead", "x"),
+         checkout, "_t09_fire"),
+        ("unknown-checkout-lead-binding", lambda: _unknown_checkout_identity_case("harness-eng-lead", "x"),
+         checkout, "_lead_binding_result"),
+        ("symlinked-checkout-fire", lambda: _symlinked_checkout_identity_case("harness-eng-lead", "caller"),
+         checkout, "_t09_fire"),
+        ("symlinked-checkout-lead-binding", lambda: _symlinked_checkout_identity_case("harness-eng-lead", "caller"),
+         checkout, "_lead_binding_result"),
+    ]
+
+
+def _bug2253_observed_timeout(run, collaborators, target):
+    """The `timeout` the enclosing function passes to `target`. Every call before the
+    budgeted one returns a passing control; the budgeted one is recorded and stops the run."""
+    seen = []
+
+    def record(*args, timeout=None, **kwargs):
+        if timeout is None:
+            return _bug2253_fake_result(0)
+        seen.append(timeout)
+        raise _Bug2253Stop()
+
+    other = "_lead_binding_result" if target == "_t09_fire" else "_t09_fire"
+    doubles = {target: record, other: lambda *a, **k: _bug2253_fake_result(2 if k.get("timeout") else 0)}
+    with _bug2253_globals(**collaborators, **doubles):
+        try:
+            run()
+        except _Bug2253Stop:
+            pass
+    return seen[0] if seen else None
+
+
+def _bug2253_budget_observation_cases(tmp):
+    """(budget) Each site passes the one shared budget: 30 by default, and whatever the
+    constant is rebound to — so no site keeps a literal of its own."""
+    rows = []
+    for site, run, collaborators, target in _bug2253_site_drivers(tmp):
+        observed = [_bug2253_observed_timeout(run, collaborators, target)]
+        for budget in (0.05, 0.10):
+            with _bug2253_globals(HOOK_HANG_BUDGET_S=budget):
+                observed.append(_bug2253_observed_timeout(run, collaborators, target))
+        rows.append((f"{site} passes the shared hang budget (default 30, then 0.05, 0.10)",
+                     observed == [30, 0.05, 0.10], f"observed={observed}"))
+    return rows
+
+
+_BUG2253_BLOCKER = ("#!/usr/bin/env python3\nimport os, sys, time\n"
+                    "open(os.environ['BUG2253_READY'], 'w').write(str(os.getpid()))\n"
+                    "time.sleep(3600)\n")
+
+
+def _bug2253_blocking_validate(tmp):
+    """A VALIDATE path whose hook AND sibling digest_destination.py block forever after
+    signalling readiness: the launched command is the only thing replaced."""
+    bin_dir = os.path.join(tmp, "blocking-bin")
+    os.makedirs(bin_dir, exist_ok=True)
+    for name in ("validate-digest.py", "digest_destination.py"):
+        path = os.path.join(bin_dir, name)
+        open(path, "w").write(_BUG2253_BLOCKER)
+        os.chmod(path, 0o755)
+    return os.path.join(bin_dir, "validate-digest.py")
+
+
+def _bug2253_watchdog(ready, seconds=2.0):
+    """Kill the blocked child if the call under test has not timed it out by `seconds`, so
+    a missing timeout fails this probe instead of hanging the suite."""
+    import signal, threading
+
+    def kill():
+        try:
+            os.kill(int(open(ready).read()), signal.SIGKILL)
+        except (OSError, ValueError):
+            pass
+    timer = threading.Timer(seconds, kill)
+    timer.start()
+    return timer
+
+
+def _bug2253_block_probe(tmp, run, collaborators, target, budget=1.0):
+    """(outcome, elapsed, child was ready) for the REAL `target` launching a child that
+    blocks, with the shared budget rebound to `budget`. Only the budgeted call is real; an
+    unbudgeted control call the function makes first passes, as in the observation double.
+    `outcome` is "timeout", "returned", or the name of whatever else the run raised."""
+    from unittest import mock
+    ready = os.path.join(tmp, f"ready-{target}-{time.monotonic_ns()}")
+    real = globals()[target]
+    other = "_lead_binding_result" if target == "_t09_fire" else "_t09_fire"
+    doubles = {
+        target: lambda *a, timeout=None, **k: (real(*a, timeout=timeout, **k) if timeout is not None
+                                               else _bug2253_fake_result(0)),
+        other: lambda *a, **k: _bug2253_fake_result(2 if k.get("timeout") else 0)}
+    timer = _bug2253_watchdog(ready)
+    start = time.monotonic()
+    outcome = "returned"
+    try:
+        with _bug2253_globals(**collaborators, **doubles, HOOK_HANG_BUDGET_S=budget,
+                              VALIDATE=_bug2253_blocking_validate(tmp)), \
+                mock.patch.dict(os.environ, {"BUG2253_READY": ready}):
+            run()
+    except subprocess.TimeoutExpired:
+        outcome = "timeout"
+    except Exception as exc:  # the probe reports it; a non-timeout is this case's failure
+        outcome = type(exc).__name__
+    finally:
+        timer.cancel()
+    return outcome, time.monotonic() - start, os.path.exists(ready)
+
+
+def _bug2253_block_cases(tmp):
+    """(budget) At every site a hook that really blocks dies inside the budget (1s, plus
+    0.5s of scheduling tolerance), and the child had started: a genuine hang, not a launch
+    failure. A site with no timeout is killed by the 2s watchdog and fails here."""
+    rows = []
+    for site, run, collaborators, target in _bug2253_site_drivers(tmp):
+        outcome, elapsed, ready = _bug2253_block_probe(tmp, run, collaborators, target)
+        rows.append((f"{site}: a blocked hook times out within the budget",
+                     outcome == "timeout" and ready and elapsed < 1.5,
+                     f"outcome={outcome} ready={ready} elapsed={elapsed:.2f}s"))
+    return rows
+
+
+def run_bug2253_cases():
+    tmp = tempfile.mkdtemp(prefix="vd-bug2253-")
+    try:
+        rows = (_bug2253_gate_cases(tmp) + _bug2253_budget_observation_cases(tmp)
+                + _bug2253_block_cases(tmp))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    fails = 0
+    for label, ok, detail in rows:
+        print(f"{'ok  ' if ok else 'FAIL'}  [bug2253] {label}" + ("" if ok else f"\n      {detail[:600]}"))
+        fails += not ok
+    return fails
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     checks = (
@@ -6392,6 +6628,7 @@ def main(argv=None):
         run_member_expertise_authority_cases,
         run_member_expertise_f2_cases,
         run_member_expertise_committed_tamper_cases,
+        run_bug2253_cases,
     )
     # `--only <group>` runs one group by its function name. test-suite-claim-preservation.py's
     # mutant pass reads only the [bug1898] lines, and without this it paid for every group.

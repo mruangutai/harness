@@ -2487,8 +2487,17 @@ def check_qa_matrix_claim(agent, obj, payload):
           f"an independent re-run of run-unit-tests.py at this checkout exited "
           f"{result.returncode} — the gate reported evidence it did not have (issue "
           f"#919). Re-run the suite yourself, fix what fails, and return again once "
-          f"it is genuinely green. Tail of the independent run:", file=sys.stderr)
-    for line in ((result.stdout or "") + (result.stderr or "")).splitlines()[-20:]:
+          f"it is genuinely green.", file=sys.stderr)
+    lines = ((result.stdout or "") + (result.stderr or "")).splitlines()
+    # #2253: run_pool prints files in completion order, so the tail shows the slowest file,
+    # which usually PASSED; the failing ones sit above it. Name them first.
+    named = [line for line in lines if line.startswith(("FAIL ", "MUTATED "))]
+    if named:
+        print("Failing or mutated files:", file=sys.stderr)
+        for line in named:
+            print(f"  {line}", file=sys.stderr)
+    print("Tail of the independent run:", file=sys.stderr)
+    for line in lines[-20:]:
         print(f"  {line}", file=sys.stderr)
     return 2
 
