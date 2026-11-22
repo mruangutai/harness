@@ -43,6 +43,6 @@ Unit is active with a runnable command and detects tests/unit/omp-hooks.test.ts.
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-11-22

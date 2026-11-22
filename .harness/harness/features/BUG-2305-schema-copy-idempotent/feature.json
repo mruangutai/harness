@@ -32,5 +32,32 @@
       "reason": "The cause is known: OMP persists the hook's revised call, and the refusal does not recognise its own injection. The diff is bounded to one hook file and its unit test, and it narrows an existing check."
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2305-schema-copy-idempotent/.harness/harness/features/BUG-2305-schema-copy-idempotent/notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "7942c0695c8f7062bf0f4577ee50e631557348de4c30894d72deabc3084ef1b7"
+  },
+  "github": {
+    "milestone": 121,
+    "parent": 2312,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2314
+    },
+    "source_issues": [
+      2305
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

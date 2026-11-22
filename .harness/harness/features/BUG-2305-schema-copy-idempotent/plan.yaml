@@ -1,9 +1,11 @@
 schema: plan/1
 feature: BUG-2305-schema-copy-idempotent
 approval:
-  status: pending
+  date: '2026-11-22'
+  approved_by: operator
+  status: approved
 drafted_at: '2026-11-22T16:10:07Z'
-status: plan
+status: ready
 source_issues: [2305]
 lanes:
   resolved_at: d085503ec2daf07f940e95189af40e010704b2df
