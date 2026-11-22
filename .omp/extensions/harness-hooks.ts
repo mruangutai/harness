@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { closeSync, existsSync, lstatSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync, type Stats } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,12 +44,14 @@ type Dict = Record<string, unknown>;
 // `unavailable` (FEAT-2274, D-01): a broad gate could not run, so nothing was checked. It is
 // never a block; the handler reports it as passive context naming the gate.
 type PolicyResult = { blocked: boolean; reason?: string; unavailable?: string; stdout: string };
+// FEAT-2337 (D-01): every policy answer is awaited. Nothing reads a gate's answer before it
+// arrives, and the host's event loop keeps running while the process does.
 type PolicyRunner = (
   cwd: string,
   script: string,
   args: string[],
   payload: Dict,
-) => PolicyResult;
+) => Promise<PolicyResult>;
 
 function debug(message: string): void {
   if (process.env.HARNESS_HOOK_DEBUG === "1") console.error(`[harness-hooks] ${message}`);
@@ -342,16 +344,18 @@ export function narrowGateApplies(script: string, command: string): boolean {
 // The four gates whose own failure is reported rather than enforced (DEC-100, amended by D-01).
 const BROAD_GATES = ["check-domain.py", "bash-write-guard.py", "dispatch-guard.py", "validate-digest.py"];
 
-// How a gate process ended, as spawnSync reports it; `error` also carries a spawnSync throw.
+// How a gate process ended; `error` is a spawn failure, `timedOut` a kill at the budget.
 export type PolicyProcess = {
   status: number | null;
   signal?: string | null;
   stdout?: string | null;
   stderr?: string | null;
   error?: Error;
+  timedOut?: boolean;
 };
 
 function failureDetail(proc: PolicyProcess, stderr: string): string {
+  if (proc.timedOut) return `exceeded its ${POLICY_TIMEOUT_MS / 1000}-second budget and was killed`;
   if (proc.error) return `could not be started: ${proc.error.message}`;
   if (proc.signal) return `was terminated by ${proc.signal}`;
   if (proc.status === null) return "ended with no exit status";
@@ -394,6 +398,7 @@ export function classifyPolicyRun(script: string, payload: Dict, proc: PolicyPro
     };
   }
   if (proc.error) throw proc.error;
+  if (proc.timedOut) return { blocked: false, reason: `${script} ${failureDetail(proc, stderr)}`, stdout };
   if (proc.status !== 0) {
     // Preserve each existing policy script's non-blocking error contract. Safety-
     // critical internal failures are converted to exit 2 inside those scripts.
@@ -402,15 +407,41 @@ export function classifyPolicyRun(script: string, payload: Dict, proc: PolicyPro
   return { blocked: false, stdout };
 }
 
-export function runPolicy(
-  cwd: string,
-  script: string,
-  args: string[],
-  payload: Dict,
-): PolicyResult {
-  let proc: PolicyProcess;
+// FEAT-2337 (D-01, DEC-100): the one budget a Python policy process gets, the same 30 seconds as
+// validate-digest's HOOK_HANG_BUDGET_S. Not configurable: no harness.json key, no environment
+// override. Past it the process and everything it started are killed and the answer is a
+// timeout, which classifyPolicyRun reads like any other failure to run.
+export const POLICY_TIMEOUT_MS = 30_000;
+
+function killGroup(pid: number | undefined): void {
+  if (pid === undefined) return;
   try {
-    proc = spawnSync(gatePath(script), args, {
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    // The group is already gone.
+  }
+}
+
+// One policy process, settled exactly once by whichever comes first: a spawn error, the close of
+// its pipes, or the budget. The child leads its own process group so that one SIGKILL reaches
+// what it started too: a grandchild holding an inherited pipe would otherwise keep `close` from
+// ever firing, and a child ignoring SIGTERM is not asked twice. The timer is cleared on every
+// settlement.
+function spawnPolicy(executable: string, args: string[], cwd: string, input: string | undefined): Promise<PolicyProcess> {
+  const { promise, resolve } = Promise.withResolvers<PolicyProcess>();
+  let stdout = "";
+  let stderr = "";
+  let settled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const settle = (proc: PolicyProcess): void => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    resolve({ ...proc, stdout, stderr });
+  };
+  let child: ChildProcess;
+  try {
+    child = spawn(executable, args, {
       cwd,
       // The child inherits the host environment and NOTHING IS ADDED to it (FEAT-42 T-20).
       // A root override used to be injected here, set to the host process working directory.
@@ -421,28 +452,90 @@ export function runPolicy(
       // outside the directory the invariant scans. Once a parent sets it every descendant
       // inherits it, which is how one bad value reaches a whole process tree.
       env: { ...process.env },
-      input: JSON.stringify(payload),
-      encoding: "utf8",
+      stdio: "pipe",
+      detached: true,
     });
   } catch (error) {
-    proc = { status: null, error: error instanceof Error ? error : new Error(String(error)) };
+    settle({ status: null, error: error instanceof Error ? error : new Error(String(error)) });
+    return promise;
   }
+  child.stdout?.setEncoding("utf8").on("data", (chunk: string) => { stdout += chunk; });
+  child.stderr?.setEncoding("utf8").on("data", (chunk: string) => { stderr += chunk; });
+  // A gate that exits without reading its input closes the pipe under the write.
+  child.stdin?.on("error", () => {});
+  child.on("error", (error) => settle({ status: null, error }));
+  // Whatever the child left running would hold its pipes open past its own exit.
+  child.on("exit", () => killGroup(child.pid));
+  child.on("close", (status, signal) => settle({ status, signal }));
+  timer = setTimeout(() => {
+    killGroup(child.pid);
+    child.stdout?.destroy();
+    child.stderr?.destroy();
+    settle({ status: null, signal: "SIGKILL", timedOut: true });
+  }, POLICY_TIMEOUT_MS);
+  child.stdin?.end(input);
+  return promise;
+}
+
+export async function runPolicy(
+  cwd: string,
+  script: string,
+  args: string[],
+  payload: Dict,
+): Promise<PolicyResult> {
+  const proc = await spawnPolicy(gatePath(script), args, cwd, JSON.stringify(payload));
   return classifyPolicyRun(script, payload, proc);
 }
 
 type GatePhase = "pre" | "post" | "dispatch" | "yield";
 
-// The runner a handler hands its gates: every unavailable answer leaves one notice, tagged with
-// its phase so omp's identical-context dedup never folds a pre notice into a post one.
+// One notice per unavailable answer, tagged with its phase so omp's identical-context dedup
+// never folds a pre notice into a post one.
+function noteUnavailable(notices: string[], phase: GatePhase, script: string, result: PolicyResult): void {
+  if (result.unavailable === undefined) return;
+  notices.push(`Harness: ${script.replace(/\.py$/, "")} (${phase}) could not run; `
+    + `nothing was checked. ${result.unavailable}`);
+}
+
+// The runner a handler hands its gates: every unavailable answer leaves one notice.
 function reportingRunner(runner: PolicyRunner, phase: GatePhase, notices: string[]): PolicyRunner {
-  return (cwd, script, args, payload) => {
-    const result = runner(cwd, script, args, payload);
-    if (result.unavailable !== undefined) {
-      notices.push(`Harness: ${script.replace(/\.py$/, "")} (${phase}) could not run; `
-        + `nothing was checked. ${result.unavailable}`);
-    }
+  return async (cwd, script, args, payload) => {
+    const result = await runner(cwd, script, args, payload);
+    noteUnavailable(notices, phase, script, result);
     return result;
   };
+}
+
+// FEAT-2337 (D-01): the five Bash gates, in the order their answers combine. Each stays its own
+// process with its own applicability decision (DEC-234); no classifier skips one and no
+// dispatcher merges them. All five are launched before any answer is read, then every outcome
+// is read in this order whatever order they finished in: the first refusal leads, every gate
+// that could not run leaves its notice, and a runner that failed outright refuses the call (as a
+// thrown hook does) without hiding a sibling's refusal or notice.
+const BASH_GATES = ["gh-close-gate.py", "branch-create-gate.py", "bash-write-guard.py", "plan-sign-gate.py", "merge-gate.py"];
+
+async function bashGateRefusal(
+  runner: PolicyRunner,
+  cwd: string,
+  payload: Dict,
+  notices: string[],
+): Promise<string | undefined> {
+  const launch = async (script: string) => runner(cwd, script, [], payload);
+  const outcomes = await Promise.allSettled(BASH_GATES.map(launch));
+  const answers: PolicyResult[] = [];
+  const failures: string[] = [];
+  outcomes.forEach((outcome, index) => {
+    const script = BASH_GATES[index];
+    if (outcome.status === "fulfilled") {
+      noteUnavailable(notices, "pre", script, outcome.value);
+      answers.push(outcome.value);
+      return;
+    }
+    const why = outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason);
+    failures.push(`Harness: ${script.replace(/\.py$/, "")} (pre) failed before answering, so the call is refused: ${why}`);
+  });
+  const refusal = firstBlock(answers);
+  return refusal || failures.length ? [refusal, ...failures].filter(Boolean).join("\n") : undefined;
 }
 
 function runtimeLineage(ctx?: any): { agentId: string; parentAgentId: string } {
@@ -491,14 +584,14 @@ function domainTarget(target: unknown): DomainTarget {
 // around a refused scheme and an allowed URI never exempts a sibling file in the same call.
 // An ast_edit entry may be a directory or glob; it is judged as given, so one reaching outside
 // the agent's domain is refused rather than expanded (#2028).
-function fileDomain(
+async function fileDomain(
   cwd: string,
   toolName: string,
   input: Dict,
   runner: PolicyRunner,
   args: string[],
   base: Dict,
-): PolicyResult[] {
+): Promise<PolicyResult[]> {
   const targets: Array<[unknown, Dict]> = toolName === "write"
     ? [[input.path, { file_path: input.path, content: input.content }]]
     : toolName === "edit"
@@ -509,16 +602,19 @@ function fileDomain(
           .filter((filePath) => filePath !== "")
           .map((filePath): [unknown, Dict] => [filePath, { file_path: filePath }])
         : [];
-  return targets.flatMap(([target, toolInput]): PolicyResult[] => {
+  const results: PolicyResult[] = [];
+  for (const [target, toolInput] of targets) {
     const decision = domainTarget(target);
-    if (decision.kind === "allowed") return [];
-    if (decision.kind === "refused") return [{ blocked: true, reason: decision.reason, stdout: "" }];
-    return [runner(cwd, "check-domain.py", args, {
-      ...base,
-      tool_name: toolName === "write" ? "Write" : "Edit",
-      tool_input: toolInput,
-    })];
-  });
+    if (decision.kind === "allowed") continue;
+    results.push(decision.kind === "refused"
+      ? { blocked: true, reason: decision.reason, stdout: "" }
+      : await runner(cwd, "check-domain.py", args, {
+        ...base,
+        tool_name: toolName === "write" ? "Write" : "Edit",
+        tool_input: toolInput,
+      }));
+  }
+  return results;
 }
 
 function preDomain(
@@ -529,7 +625,7 @@ function preDomain(
   runner: PolicyRunner,
   ctx?: any,
   feature?: string,
-): PolicyResult[] {
+): Promise<PolicyResult[]> {
   const base = {
     ...basePayload(agent, "PreToolUse", cwd, ctx),
     ...(feature ? { harness_feature: feature } : {}),
@@ -537,7 +633,7 @@ function preDomain(
   return fileDomain(cwd, toolName, input, runner, [], base);
 }
 
-function postDomain(
+async function postDomain(
   cwd: string,
   agent: string,
   toolName: string,
@@ -545,11 +641,11 @@ function postDomain(
   runner: PolicyRunner,
   ctx?: any,
   feature?: string,
-): PolicyResult[] {
+): Promise<PolicyResult[]> {
   const base = basePayload(agent, "PostToolUse", cwd, ctx);
   if (toolName !== "bash") return fileDomain(cwd, toolName, input, runner, ["--post"], base);
   // #2026: the Bash sweep narrows to the run's own feature's checkouts when it is named.
-  return [runner(cwd, "check-domain.py", ["--post"], {
+  return [await runner(cwd, "check-domain.py", ["--post"], {
     ...base,
     ...(feature ? { harness_feature: feature } : {}),
     tool_name: "Bash",
@@ -941,17 +1037,22 @@ export function taskResultTokens(details: unknown): number | undefined {
   return measured ? sum : undefined;
 }
 
-function releaseClaim(
+async function releaseClaim(
   runner: PolicyRunner,
   cwd: string,
   receipt: ClaimReceipt,
-): void {
-  runner(cwd, "inflight_registry.py", [
+): Promise<void> {
+  await runner(cwd, "inflight_registry.py", [
     "release",
     "--claim-id", receipt.claimId,
     "--feature", receipt.feature,
     "--root", receipt.root,
   ], {});
+}
+
+// Receipts are released one at a time, in the order they were taken, each awaited.
+async function releaseClaims(runner: PolicyRunner, cwd: string, receipts: ClaimReceipt[]): Promise<void> {
+  for (const receipt of receipts) await releaseClaim(runner, cwd, receipt);
 }
 
 function messageText(message: unknown): string {
@@ -1320,7 +1421,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // identity is read from the assignment, never from later output), or, for a restart or
   // revival that carries no marker, the ONE live claim bound to this exact runtime id.
   // Never persona, dispatch name, cwd or session: a guess binds a run to a stranger.
-  const resolveFeature = (ctx: { cwd: string }, prompt: unknown): RunAnswer => {
+  const resolveFeature = async (ctx: { cwd: string }, prompt: unknown): Promise<RunAnswer> => {
     if (currentFeature) return { ok: true };
     const assigned = promptFeature(prompt);
     if (assigned.conflict) {
@@ -1330,7 +1431,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       setFeature(assigned.feature);
       return { ok: true };
     }
-    const found = parseRunAnswer(policyRunner(ctx.cwd, "inflight_registry.py", [
+    const found = parseRunAnswer(await policyRunner(ctx.cwd, "inflight_registry.py", [
       "find-run", "--agent-id", runtimeAgentId, "--root", ctx.cwd,
     ], {}));
     if (found.ok) setFeature(found.feature);
@@ -1339,13 +1440,13 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
 
   // The run-start claim (T-01's one locked step): reuse this id's claim, bind the unique
   // receipt its parent's dispatch left, or create one. A refusal holds the run.
-  const startRun = (ctx: { cwd: string }, prompt: unknown): RunAnswer => {
+  const startRun = async (ctx: { cwd: string }, prompt: unknown): Promise<RunAnswer> => {
     if (!runtimeAgentId || !runtimeParentAgentId) {
       return { ok: false, cause: "runtime-lineage", retryable: false, message: MISSING_CAPABILITY };
     }
-    const feature = resolveFeature(ctx, prompt);
+    const feature = await resolveFeature(ctx, prompt);
     if (!feature.ok) return feature;
-    return parseRunAnswer(policyRunner(ctx.cwd, "inflight_registry.py", [
+    return parseRunAnswer(await policyRunner(ctx.cwd, "inflight_registry.py", [
       "run-start",
       "--root", ctx.cwd,
       "--feature", String(currentFeature),
@@ -1366,7 +1467,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // A validated answer is kept for the run (keyed by run id, feature and checkout, and dropped at
   // every run boundary); a refusal or an unusable answer is never kept and never guessed past.
   let featureRootCache: { key: string; root: string } | undefined;
-  const featureRoot = (cwd: string): { root: string } | { reason: string } => {
+  const featureRoot = async (cwd: string): Promise<{ root: string } | { reason: string }> => {
     const key = JSON.stringify([runtimeAgentId, currentFeature, cwd]);
     if (featureRootCache?.key === key) return { root: featureRootCache.root };
     const refused = (why: string) => ({
@@ -1374,7 +1475,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     });
     let answer: PolicyResult;
     try {
-      answer = policyRunner(cwd, "inflight_registry.py", [
+      answer = await policyRunner(cwd, "inflight_registry.py", [
         "feature-root", "--feature", String(currentFeature), "--root", cwd,
       ], {});
     } catch (error) {
@@ -1391,53 +1492,65 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
 
   // A governed call's input rooted in its worktree: undefined when there is nothing to root or
   // the feature has no worktree (the resolver answers the checkout itself).
-  const rootCall = (cwd: string, toolName: string, input: Dict): { input?: Dict; reason?: string } => {
+  const rootCall = async (cwd: string, toolName: string, input: Dict): Promise<{ input?: Dict; reason?: string }> => {
     if (!needsRoot(toolName, input)) return {};
-    const resolved = featureRoot(cwd);
+    const resolved = await featureRoot(cwd);
     if ("reason" in resolved) return { reason: resolved.reason };
     return resolved.root === cwd ? {} : { input: rootedInput(toolName, input, resolved.root) };
   };
 
   // A child is released by its runtime id wherever its claim lives, and a call's receipts
   // once all of that call's children have settled.
-  const settleRun = (callKey: string | undefined, agentId: string, cwd: string): void => {
+  const settleRun = async (callKey: string | undefined, agentId: string, cwd: string): Promise<void> => {
     // One registry step finds the claim bound to this runtime id, wherever it lives, and
     // releases it by feature + id under that registry's lock. A child that never governed
     // (a scout, a sonic) holds none, and nothing is released for it.
-    policyRunner(cwd, "inflight_registry.py", ["release-run", "--agent-id", agentId, "--root", cwd], {});
+    await policyRunner(cwd, "inflight_registry.py", ["release-run", "--agent-id", agentId, "--root", cwd], {});
     if (!callKey) return;
     const pending = pendingTaskCalls.get(callKey);
     if (!pending) return;
     pending.settled.add(agentId);
     if (pending.settled.size < pending.total) return;
+    // Taken off the map before the first release is awaited, so a concurrent settlement of the
+    // same call can never release these receipts twice.
     pendingTaskCalls.delete(callKey);
-    pending.receipts.forEach((receipt) => releaseClaim(policyRunner, cwd, receipt));
+    await releaseClaims(policyRunner, cwd, pending.receipts);
   };
 
-  // Open the run gate: claim this exact id, or hold the run with the refusal's reason.
-  const openRun = (ctx: { cwd: string }, prompt: unknown): RunAnswer => {
+  // Open the run gate: claim this exact id, or hold the run with the refusal's reason. The gate
+  // stays unready (every tool refused) until every answer it depends on has arrived, and a second
+  // opening while one is in flight joins it rather than claiming again.
+  let opening: Promise<RunAnswer> | undefined;
+  const claimRun = async (ctx: { cwd: string }, prompt: unknown): Promise<RunAnswer> => {
     runGate = { state: "unready" };
     digestBinding = undefined;
     featureRootCache = undefined;
-    const started = startRun(ctx, prompt);
-    runGate = started.ok ? { state: "ready" } : { state: "held", reason: heldRunReason(started) };
-    if (started.ok && (currentAgent === "harness-eng-lead" || currentAgent === "harness-product-lead" || currentAgent === "harness-validator-lead")) {
-      const result = policyRunner(ctx.cwd, "digest_destination.py", [], {
-        ...basePayload(String(currentAgent), "SubagentStart", ctx.cwd, {
-          agent: { id: runtimeAgentId, parentId: runtimeParentAgentId },
-        }),
-        harness_feature: currentFeature,
-      });
-      const bound = jsonLines(result.stdout).reverse().find((answer) => answer.ok === true);
-      if (!result.blocked && bound?.binding) digestBinding = bound.binding as DigestBinding;
+    const started = await startRun(ctx, prompt);
+    try {
+      if (started.ok && (currentAgent === "harness-eng-lead" || currentAgent === "harness-product-lead" || currentAgent === "harness-validator-lead")) {
+        const result = await policyRunner(ctx.cwd, "digest_destination.py", [], {
+          ...basePayload(String(currentAgent), "SubagentStart", ctx.cwd, {
+            agent: { id: runtimeAgentId, parentId: runtimeParentAgentId },
+          }),
+          harness_feature: currentFeature,
+        });
+        const bound = jsonLines(result.stdout).reverse().find((answer) => answer.ok === true);
+        if (!result.blocked && bound?.binding) digestBinding = bound.binding as DigestBinding;
+      }
+    } finally {
+      runGate = started.ok ? { state: "ready" } : { state: "held", reason: heldRunReason(started) };
     }
     return started;
+  };
+  const openRun = (ctx: { cwd: string }, prompt: unknown): Promise<RunAnswer> => {
+    opening ??= claimRun(ctx, prompt).finally(() => { opening = undefined; });
+    return opening;
   };
 
   // Exact runtime lineage through the registry: the one claim authorization every governed
   // mutation passes, expertise_apply included.
-  const authorizationRefusal = (cwd: string, agent: string): string | undefined => {
-    const authorization = policyRunner(cwd, "inflight_registry.py", [
+  const authorizationRefusal = async (cwd: string, agent: string): Promise<string | undefined> => {
+    const authorization = await policyRunner(cwd, "inflight_registry.py", [
       "authorize",
       "--agent", agent,
       "--feature", String(currentFeature),
@@ -1452,7 +1565,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
 
   // FEAT-2225: the caller expertise_apply serves — a ready governed run under a trusted distill
   // assignment whose exact runtime lineage the registry authorizes. Nothing is read from arguments.
-  const applyCallerRefusal = (cwd: string): string | undefined => {
+  const applyCallerRefusal = async (cwd: string): Promise<string | undefined> => {
     if (!currentAgent) {
       return "expertise_apply is only for a governed Harness persona; this session carries no Harness identity.";
     }
@@ -1466,10 +1579,10 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
 
   // Where the persona's own file lands: the run's feature root from the one resolver, the file
   // from tier and segment, the containment recheck, and for a supersession the main base.
-  const applyPlacement = (cwd: string, params: Dict): { root: string; rel: string; base?: string } => {
+  const applyPlacement = async (cwd: string, params: Dict): Promise<{ root: string; rel: string; base?: string }> => {
     const destination = applyDestination(params.tier, params.repository, String(currentAgent));
     if ("reason" in destination) refuseApply(destination.reason);
-    const resolved = featureRoot(cwd);
+    const resolved = await featureRoot(cwd);
     if ("reason" in resolved) refuseApply(resolved.reason);
     const root = realpathSync(resolved.root);
     const misplaced = placementRefusal(root, destination.rel);
@@ -1486,8 +1599,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // F1: REGISTERED distill authority, never the HARNESS-MISSION marker alone. validate-digest.py
   // derives it from this exact run's live claim and its registered distill lineage (the lineage
   // it already checks for yields); only exit 0 with `{"authorized": true}` grants it.
-  const distillAuthorityRefusal = (root: string): string | undefined => {
-    const answer = policyRunner(root, "validate-digest.py", ["--distill-authority"], {
+  const distillAuthorityRefusal = async (root: string): Promise<string | undefined> => {
+    const answer = await policyRunner(root, "validate-digest.py", ["--distill-authority"], {
       agent_type: currentAgent,
       harness_feature: currentFeature,
       harness_agent_id: runtimeAgentId,
@@ -1500,14 +1613,14 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       || "validate-digest.py --distill-authority granted no authority.";
   };
 
-  const applyExpertise = (toolCallId: string, params: Dict, cwd: string) => {
-    const refusal = applyArgumentRefusal(params) ?? applyCallerRefusal(cwd);
+  const applyExpertise = async (toolCallId: string, params: Dict, cwd: string) => {
+    const refusal = applyArgumentRefusal(params) ?? await applyCallerRefusal(cwd);
     if (refusal) refuseApply(refusal);
-    const placed = applyPlacement(cwd, params);
-    const unauthorized = distillAuthorityRefusal(placed.root);
+    const placed = await applyPlacement(cwd, params);
+    const unauthorized = await distillAuthorityRefusal(placed.root);
     if (unauthorized) refuseApply(unauthorized);
     const supersedes = (params.supersedes as string[] | undefined) ?? [];
-    const result = policyRunner(placed.root, "expertise-merge.py", [
+    const result = await policyRunner(placed.root, "expertise-merge.py", [
       "member-ops",
       "--root", placed.root,
       "--feature", String(currentFeature),
@@ -1545,11 +1658,11 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
 
   // The post-write check on the file expertise_apply landed, as an Edit of that exact path: the
   // destination the host resolved for this call, never one the caller's input names.
-  const appliedPost = (cwd: string, agent: string, toolCallId: string, ctx: any, runner: PolicyRunner): PolicyResult[] => {
+  const appliedPost = async (cwd: string, agent: string, toolCallId: string, ctx: any, runner: PolicyRunner): Promise<PolicyResult[]> => {
     const destination = appliedDestinations.get(toolCallId);
     appliedDestinations.delete(toolCallId);
     if (!destination) return [];
-    return [runner(cwd, "check-domain.py", ["--post"], {
+    return [await runner(cwd, "check-domain.py", ["--post"], {
       ...basePayload(agent, "PostToolUse", cwd, ctx),
       tool_name: "Edit",
       tool_input: { file_path: destination },
@@ -1559,9 +1672,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // FEAT-2225: a non-governed Bash merge reaches merge-gate.py (a distill candidate must go through
   // merge-gate.py merge-distill) while every other Main call stays outside governed domains. The
   // word prefilter only spares a spawn; merge-gate.py parses the command itself.
-  const mainMergeGate = (cwd: string, command: string, ctx: any): { block: true; reason: string } | undefined => {
+  const mainMergeGate = async (cwd: string, command: string, ctx: any): Promise<{ block: true; reason: string } | undefined> => {
     if (!/\bmerge\b/.test(command)) return undefined;
-    const result = policyRunner(cwd, "merge-gate.py", [], {
+    const result = await policyRunner(cwd, "merge-gate.py", [], {
       ...basePayload("Main", "PreToolUse", cwd, ctx),
       tool_name: "Bash",
       tool_input: { command },
@@ -1596,7 +1709,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (detectedMission) currentMission = detectedMission;
     setFeature(detectedFeature);
     if (!currentAgent) return;
-    const started = openRun(ctx, event.prompt);
+    const started = await openRun(ctx, event.prompt);
     if (runGate.state === "held") {
       return {
         message: {
@@ -1611,7 +1724,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     // Only once the run holds its claim: reconcile's locked writer reads a corrupt registry
     // as empty and rewrites it, which would erase the very file a refusal leaves as found.
     if (!claimsReconciled) {
-      policyRunner(ctx.cwd, "inflight_registry.py", [
+      await policyRunner(ctx.cwd, "inflight_registry.py", [
         "reconcile",
         "--feature", String(currentFeature),
         "--root", ctx.cwd,
@@ -1620,7 +1733,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     }
     if (expertiseInjected) return;
 
-    const result = policyRunner(ctx.cwd, "inject-expertise.py", [], {
+    const result = await policyRunner(ctx.cwd, "inject-expertise.py", [], {
       ...basePayload(currentAgent, "SubagentStart", ctx.cwd, ctx),
     });
     if (result.blocked || !result.stdout.trim()) return;
@@ -1678,7 +1791,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   pi.on("agent_start", async (_event: Dict, ctx: any) => {
     const assignment = runtimeAgentId ? "" : adoptPersistedRun(ctx);
     if (!currentAgent || runGate.state === "ready") return;
-    openRun({ cwd: text(ctx?.cwd) || sessionCwd }, assignment ?? "");
+    await openRun({ cwd: text(ctx?.cwd) || sessionCwd }, assignment ?? "");
   });
 
   pi.on("message_update", async (event: Dict) => {
@@ -1726,24 +1839,25 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const policyAgent = currentAgent || "Main";
     let revisedInput: Dict | undefined;
     let reason: string | undefined;
-    // FEAT-2274: one notice per gate invocation that could not run, in the order they ran.
+    // FEAT-2274: one notice per gate invocation that could not run, in the order the gates are
+    // declared (FEAT-2337: the concurrent Bash gates too, whatever order they finished in).
     const notices: string[] = [];
     const preGate = reportingRunner(policyRunner, "pre", notices);
     if (mutates) {
       reason = currentFeature
-        ? authorizationRefusal(ctx.cwd, policyAgent)
+        ? await authorizationRefusal(ctx.cwd, policyAgent)
         : "Harness child mutation policy requires runtime child, parent, and feature identity.";
     }
     // BUG-1016: after claim readiness and mutation authorization, before any domain gate, so
     // every gate judges the input the tool will actually run with.
     let effectiveInput = input;
     if (!reason && currentAgent) {
-      const rooted = rootCall(ctx.cwd, toolName, input);
+      const rooted = await rootCall(ctx.cwd, toolName, input);
       reason = rooted.reason;
       if (rooted.input) effectiveInput = revisedInput = rooted.input;
     }
     if (!reason) {
-      reason = firstBlock(preDomain(
+      reason = firstBlock(await preDomain(
         ctx.cwd, policyAgent, toolName, effectiveInput, preGate, runtimeCtx, currentFeature,
       ));
     }
@@ -1760,13 +1874,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       // merely the evadable one #1103 documents. `cmd_sign_approval` itself has no identity
       // check (that is #1103's own scope), so this script was the ONLY thing standing between
       // an agent and forging a signature, and on this host it was never invoked.
-      reason = firstBlock([
-        preGate(ctx.cwd, "gh-close-gate.py", [], payload),
-        preGate(ctx.cwd, "branch-create-gate.py", [], payload),
-        preGate(ctx.cwd, "bash-write-guard.py", [], payload),
-        preGate(ctx.cwd, "plan-sign-gate.py", [], payload),
-        preGate(ctx.cwd, "merge-gate.py", [], payload),
-      ]);
+      reason = await bashGateRefusal(policyRunner, ctx.cwd, payload, notices);
       // #1103: the identity signal cmd_sign_approval (plan-merge.py) now checks on its own,
       // rather than only the text-parsing denylist above. This is the SAME `currentAgent` the
       // payload just carried to every one of those four scripts — never derived from `command`,
@@ -1795,7 +1903,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       const receipts: ClaimReceipt[] = [];
       if (!reason) {
         for (const dispatch of normalizeTaskDispatches(input)) {
-          const result = reportingRunner(policyRunner, "dispatch", notices)(ctx.cwd, "dispatch-guard.py", [], {
+          const result = await reportingRunner(policyRunner, "dispatch", notices)(ctx.cwd, "dispatch-guard.py", [], {
             ...basePayload(policyAgent, "PreToolUse", ctx.cwd, ctx),
             tool_name: "Task",
             tool_input: dispatch,
@@ -1803,7 +1911,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
             supervisor_pid: process.pid,
           });
           if (result.blocked) {
-            receipts.forEach((receipt) => releaseClaim(policyRunner, ctx.cwd, receipt));
+            await releaseClaims(policyRunner, ctx.cwd, receipts);
             reason = result.reason || "Harness dispatch policy denied the task.";
             break;
           }
@@ -1835,12 +1943,11 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
                 "--root", receipt.root,
               ];
 
-              const attached = policyRunner(
+              const attached = await policyRunner(
                 ctx.cwd, "inflight_registry.py", args, {},
               );
               if (attached.blocked || attached.reason) {
-                receipts.forEach((claimed) =>
-                  releaseClaim(policyRunner, ctx.cwd, claimed));
+                await releaseClaims(policyRunner, ctx.cwd, receipts);
                 receipts.length = 0;
                 reason = attached.reason || "Harness could not bind the child runtime lineage.";
                 break;
@@ -1874,7 +1981,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       } else if (currentAgent && runGate.state !== "ready" && (digest as Dict).VERDICT !== "BLOCKED") {
         reason = `${heldReason()} This run may yield only a BLOCKED digest.`;
       } else {
-        const result = reportingRunner(policyRunner, "yield", notices)(ctx.cwd, "validate-digest.py", ["--hook"], {
+        const result = await reportingRunner(policyRunner, "yield", notices)(ctx.cwd, "validate-digest.py", ["--hook"], {
           ...basePayload(policyAgent, "SubagentStop", ctx.cwd, runtimeCtx),
           stop_hook_active: false,
           digest_object: digest,
@@ -1915,9 +2022,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         // The call failed as a whole: no child of it ran, so its receipts are released.
         const pending = pendingTaskCalls.get(key);
         pendingTaskCalls.delete(key);
-        pending?.receipts.forEach((receipt) => releaseClaim(policyRunner, ctx.cwd, receipt));
+        await releaseClaims(policyRunner, ctx.cwd, pending?.receipts ?? []);
       } else {
-        settledRunIds(event.details).forEach((agentId) => settleRun(key, agentId, ctx.cwd));
+        for (const agentId of settledRunIds(event.details)) await settleRun(key, agentId, ctx.cwd);
       }
     }
     // FEAT-44: computed BEFORE the early return below. That return fires whenever
@@ -1973,7 +2080,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         if (!spendFeatureJson) {
           // The same resolution the reconcile call makes: the checkout assigned to this
           // feature, which may be a worktree rather than ctx.cwd.
-          const rooted = policyRunner(ctx.cwd, "inflight_registry.py", [
+          const rooted = await policyRunner(ctx.cwd, "inflight_registry.py", [
             "feature-root", "--feature", currentFeature, "--root", ctx.cwd,
           ], {});
           const featureRoot = rooted.stdout.trim().split("\n").pop() || "";
@@ -1987,11 +2094,11 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           // here: spend still runs and the gate below is untouched.
           const tokens = taskResultTokens(event.details);
           if (tokens !== undefined) {
-            policyRunner(ctx.cwd, "feature-record.py", [
+            await policyRunner(ctx.cwd, "feature-record.py", [
               "stamp-tokens", "--file", spendFeatureJson, "--tokens", String(tokens),
             ], {});
           }
-          const measured = policyRunner(ctx.cwd, "feature-record.py", [
+          const measured = await policyRunner(ctx.cwd, "feature-record.py", [
             "spend", "--file", spendFeatureJson,
           ], {});
           const spend = parseSpend(measured.stdout);
@@ -2031,12 +2138,12 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     // BUG-1016: the host may hand back the original or the revised input; rooting is
     // idempotent, so the post gate judges the same files the pre gate did either way.
     const rooted = currentAgent && ["write", "edit", "ast_edit"].includes(toolName)
-      ? rootCall(ctx.cwd, toolName, input) : {};
+      ? await rootCall(ctx.cwd, toolName, input) : {};
     const notices: string[] = [];
     const postGate = reportingRunner(policyRunner, "post", notices);
     const reason = rooted.reason ?? firstBlock(toolName === "expertise_apply"
-      ? appliedPost(ctx.cwd, policyAgent, text(event.toolCallId), ctx, postGate)
-      : postDomain(ctx.cwd, policyAgent, toolName, rooted.input ?? input, postGate, ctx, currentFeature));
+      ? await appliedPost(ctx.cwd, policyAgent, text(event.toolCallId), ctx, postGate)
+      : await postDomain(ctx.cwd, policyAgent, toolName, rooted.input ?? input, postGate, ctx, currentFeature));
     const content = Array.isArray(event.content) ? event.content : [];
     const appended = advisories.map((advisoryText) => ({ type: "text", text: advisoryText }));
     // FEAT-2274: a post gate that could not run is passive context beside the result, never an
@@ -2057,12 +2164,13 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // BUG-1898 defect D: OMP publishes a child's lifecycle on the session EventBus — the
   // `pi.events` an extension holds — for a first run and for every message-woken turn
   // alike. `pi.on` is the hook dispatcher and never carried it, so no child was ever
-  // released here. A settled child is released by its own runtime id and nothing else.
-  pi.events.on("task:subagent:lifecycle", (data: unknown) => {
+  // released here. A settled child is released by its own runtime id and nothing else. The
+  // bus awaits an async listener (and reports its failure), so the settlement is returned.
+  pi.events.on("task:subagent:lifecycle", async (data: unknown) => {
     const event = (data && typeof data === "object" ? data : {}) as Dict;
     const agentId = text(event.id);
     if (!agentId || !SETTLED_STATUSES.includes(text(event.status))) return;
-    settleRun(text(event.parentToolCallId) || undefined, agentId, sessionCwd);
+    await settleRun(text(event.parentToolCallId) || undefined, agentId, sessionCwd);
   });
 
   pi.on("agent_end", async () => {
