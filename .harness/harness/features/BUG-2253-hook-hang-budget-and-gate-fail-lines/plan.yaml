@@ -27,7 +27,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 main-session gate ownership includes validate-digest.py and coupled tests and inventory
   depends_on: []
-  status: ready
+  status: done
   files:
   - .claude/skills/harness/bin/validate-digest.py
   - tests/integration/test-validate-digest.py
