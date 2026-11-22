@@ -135,7 +135,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: Main executes the all-direct DEC-174 feature and .omp/agents is unowned; execution_agent is not authorization to dispatch protected work.
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
       - {path: .omp/rules/harness-constraints.md, create: true}
       - {path: .omp/agents/harness-product-lead.md, quote: 'HARNESS_AGENT_ID: harness-product-lead'}

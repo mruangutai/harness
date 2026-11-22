@@ -56,6 +56,12 @@ reviewer's output, so calibration lives here.
 | `harness-security-reviewer` | auth, secrets, injection, OWASP, STRIDE |
 | `harness-ui-reviewer` | visual fidelity vs `DESIGN.md`, accessibility, dark/light parity |
 
+**Outside your squad → escalate.** Work another squad owns is not yours to dispatch: escalate it to
+the orchestrator, which routes it to the owning lead. A member of another squad is reached through
+its lead, never directly. Your `spawns:` list is the one authority for whom you dispatch and omp
+refuses any target outside it; the `pm` you host for `validate` and the owning dev you host for a
+`fix` are on that list by design.
+
 ## Hosting `validate` — one turn, one SHA, one list
 
 `{qa ∥ code-reviewer ∥ security-reviewer ∥ ui-reviewer ∥ pm(goalcheck)} → you assess`
