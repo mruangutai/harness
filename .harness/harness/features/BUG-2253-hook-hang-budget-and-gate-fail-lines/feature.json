@@ -2,7 +2,7 @@
   "feature_id": "BUG-2253-hook-hang-budget-and-gate-fail-lines",
   "branch": "feat/BUG-2253-hook-hang-budget-and-gate-fail-lines",
   "pr": null,
-  "review_sha": "21e064c9475e35a4abfdd71b5b5cdd23517c0659",
+  "review_sha": "2e96b583dadaff642873566c3234dde6af0eda74",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
