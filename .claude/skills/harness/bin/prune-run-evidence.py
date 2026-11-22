@@ -9,9 +9,12 @@ evidence that still means something is
     reader's judgement lives in that run's directory, so this keeps the last PASS of every reader, and
   * every run whose results.json names the shipped `review_sha` as served_bundle_commit,
 
-plus anything named with --keep. Every other `runs/<id>/` directory under the feature is deleted
-in the ship commit; the digests and notes that cite them stay (a pointer to pruned evidence is a
-pointer to history, which the ship PR carries).
+plus anything named with --keep. For every other run only its `runs/<id>/ui/` is deleted in the
+ship commit; a run without ui/ is left as it is. The run directory and every non-UI file in it —
+digest.md, state.yaml, .run-identity.json — survive, because #2177 pins each recorded run's
+digest as check-state cycle evidence (#2294). Pruning twice is a no-op the second time. A run
+entry or a ui/ that is a symlink is never followed into a deletion: it is printed as
+`skipped runs/<id> (symlink)` and left alone.
 
   prune-run-evidence.py --feature FEAT-NN-slug [--root DIR] [--keep RUN-ID ...] [--dry-run]
 
@@ -114,14 +117,33 @@ def _load_record(args):
     return feature_dir, record
 
 
-def _prune(feature_dir, present, keep, dry_run):
-    verb = "would remove" if dry_run else "removed"
+def _ui_targets(feature_dir, present, keep):
+    """(targets, skipped) for the runs outside `keep`: a real ui/ lane under a real run directory
+    is a target — the only thing prune deletes. A run entry or a ui/ that is a symlink is never
+    followed into a deletion; it is reported as skipped instead (#2294 SEC-01)."""
+    targets, skipped = [], []
     for name in present:
+        run_dir = os.path.join(feature_dir, "runs", name)
         if name in keep:
             continue
-        print(f"{verb} runs/{name}")
+        if os.path.islink(run_dir):
+            skipped.append(f"runs/{name}")
+        elif os.path.islink(os.path.join(run_dir, "ui")):
+            skipped.append(f"runs/{name}/ui")
+        elif os.path.isdir(os.path.join(run_dir, "ui")):
+            targets.append(f"runs/{name}/ui")
+    return targets, skipped
+
+
+def _prune(feature_dir, present, keep, dry_run):
+    verb = "would remove" if dry_run else "removed"
+    targets, skipped = _ui_targets(feature_dir, present, keep)
+    for relative in skipped:
+        print(f"skipped {relative} (symlink)")
+    for relative in targets:
+        print(f"{verb} {relative}")
         if not dry_run:
-            shutil.rmtree(os.path.join(feature_dir, "runs", name))
+            shutil.rmtree(os.path.join(feature_dir, relative))
     kept = sorted(keep & set(present))
     print(f"kept {len(kept)} of {len(present)} run(s): {', '.join(kept) or '-'}")
 

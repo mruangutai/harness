@@ -8025,8 +8025,10 @@ is therefore a function of station, applied by the command that moves the statio
 - **Ship keeps the record and drops the rest.** `prune-run-evidence.py` keeps every validator-squad
   validate or fix run (`validate-…`, `fix-cN-…`) recorded PASS — the validator-lead hosts the fix
   team too, so after a failed validate a reader's last PASS lives in a fix run — and every run
-  whose `results.json` names the shipped `review_sha`; it deletes engineering, product,
-  reconciliation and distill run directories, and refuses a feature whose `review_sha` is unset,
+  whose `results.json` names the shipped `review_sha`. For every other run (engineering, product,
+  reconciliation, distill) it deletes only `runs/<id>/ui/`, never the run directory, `digest.md`,
+  `state.yaml` or `.run-identity.json`, because #2177 pins each recorded run's digest as
+  check-state cycle evidence. It refuses a feature whose `review_sha` is unset,
   empty or a `PLACEHOLDER_UNSET` value. `/harness-ship` runs it before the ship PR. Trace ZIPs are never
   committed at all (`runs/*/ui/traces/` is ignored); the gate reads them from disk.
 - **A checkout at a pin is disposable and keyed to one reader.** A validator that needs the tree

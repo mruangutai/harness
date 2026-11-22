@@ -46,7 +46,9 @@ Read `.omp/commands/harness.md` and follow it with **mission: ship**. The differ
 
   It keeps every validator-squad validate or fix run recorded PASS (a reader's judgement lives in
   that run's directory, so that is the last PASS of every reader) and every run whose
-  `results.json` names the shipped `review_sha`; it deletes the other `runs/<id>/` directories
-  (eng, product, reconciliation, distill) and refuses a feature whose `review_sha` is unset,
-  empty or a placeholder. Commit the removal as `[harness:human] <flow-id>: prune run evidence at
-  ship`. Digests and notes that cite pruned runs stay — the PR carries the history.
+  `results.json` names the shipped `review_sha`; for every other run (eng, product,
+  reconciliation, distill) it deletes only `runs/<id>/ui/`, and refuses a feature whose
+  `review_sha` is unset, empty or a placeholder. Every run directory, `digest.md`, `state.yaml`
+  and `.run-identity.json` survives — check-state pins each recorded run's digest as cycle
+  evidence (#2177). Commit the removal as `[harness:human] <flow-id>: prune run evidence at
+  ship`.
