@@ -5287,7 +5287,7 @@ kind a violation rather than a warning, because a warning is what already failed
 
 ---
 
-## DEC-188 — A contradicted decision is struck, not marked: detection is replaced by deletion
+## DEC-188 — A flat contradiction is struck, not marked; declared edits get bounded draft checks and pinned landing grades
 
 **The operator's rule, 2026-08-09.** If an existing decision is one the tree absolutely goes
 against, with zero room for interpretation, it is **struck from the record and removed from every
@@ -5304,15 +5304,27 @@ that supersedes the wording. The natural host, DEC-161, had already been deleted
 to put the declaration. A convention with no valid place to record the thing it requires is not a
 convention.
 
-**What is traded away, stated plainly rather than softened.** The repo loses the only mechanism that
-catches a doc statement a later decision falsified. That gap is not theoretical here: the checker was
-built in the first place because, after twelve decisions were recorded, SPEC and BUILD still held
-**ten** statements those decisions had already falsified — and the SPEC/DECISIONS/BUILD split had
-been created to prevent exactly that, and did not.
+**What is traded away, stated plainly rather than softened.** There is no general detector of doc
+statements a later decision falsified. That gap is not theoretical here: the removed checker was
+built because, after twelve decisions were recorded, SPEC and BUILD still held **ten** statements
+those decisions had already falsified — and the SPEC/DECISIONS/BUILD split had been created to
+prevent exactly that, and did not.
 
-The new rule replaces detection with deletion: nothing survives to contradict, because the
-contradicted decision is struck. **This holds only while the striking actually happens every time,
-and nothing mechanical now checks that it did.** The enforcement is a human reading a diff.
+The rule replaces general detection with deletion, but human-only enforcement is no longer true.
+Under DEC-254, an eligible pending draft carries `decisions_affected:` with exactly `dec`,
+`disposition`, `clause`, `successor` and `reason` per row. The shared loader checks row shape;
+`plan-merge.py check` requires the block, accepts `[]`, resolves each DEC in the segment's index,
+forbids keep/amend of STRUCK entries, and matches the clause exactly within that decision's own
+heading section, not a neighboring section. Amend/strike successors must resolve to a plan-local
+decision or indexed DEC, and a task's normalized `files:` anchor must own that segment's
+DECISIONS.md. Draft eligibility is writer-creation-era gated; approved and terminal history skip
+these new drafting checks. This checks a plan, not the freshness of the decision corpus.
+
+At validate, pm individually grades the listed amend/strike edits in DECISIONS.md at `review_sha`,
+skipping keep rows. A missing or partial landing fails goal-check and becomes validator `must_fix`
+against the DECISIONS.md-owning task, even with clean QA. The scope reader still judges omissions
+and strike appropriateness; pm judges actual landing from pinned evidence. Neither the removed
+propagation checker nor generalized stale-decision inference returns.
 
 **The rule does not generalize by itself.** It applies to a flat contradiction with no room for
 interpretation. Anything softer than that — a decision that is merely dated, narrowed, or partly
@@ -8237,3 +8249,78 @@ external main writers; ordinary non-distill merge behavior is unchanged.
 **Verification limit:** no TypeScript typecheck is configured (`cmd: null`, unresolved); no
 typecheck success is claimed. Executable host and boundary evidence belongs to the implementation
 tasks, not this documentation ruling.
+
+## DEC-254 — New drafts declare five-field decision dispositions; bounded draft checks and pinned pm grades prove the promised edits
+
+**Chose:** every future writer-created plan, including a one-task `patch`, declares
+`decisions_affected:` as a list. `[]` explicitly claims that no existing decision is affected; it
+is not an omission exemption. Each row has exactly five fields:
+
+| Field | Contract |
+|---|---|
+| `dec` | A `DEC-NN` identifier for the existing decision. |
+| `disposition` | `keep`, `amend` or `strike`. |
+| `clause` | Nonempty verbatim source text from that decision's own section. |
+| `successor` | The string `none` for keep; a `D-NN` in this plan's `decisions:` or an indexed `DEC-NN` for amend/strike. |
+| `reason` | One nonempty line explaining the disposition. |
+
+**One record, existing machinery.** `harness_yaml.validate_plan_doc` validates the block's shape
+when present; absence remains legal in the shared loader so legacy plans stay readable. Existing
+`plan-merge.py` writers preserve the typed rows without a parallel write route. Its existing
+`check` verb requires the block on eligible pending drafts, resolves each `dec` in the product
+segment's DECISIONS-INDEX.md, rejects keep/amend of an already STRUCK entry (case-insensitively),
+and finds `clause` as an exact substring within the named heading's section, up to the next
+same-level or shallower heading. No whitespace or markdown normalization or neighboring-section
+quote substitutes for the declared text. An amend/strike successor resolves to this plan's
+decision id or an indexed DEC; a new D choice need not already be indexed. Each
+amend/strike also needs a task whose normalized `files:` anchor owns that segment's DECISIONS.md.
+The single-file owner is the remediation task, not a sixth row field or a D id in `traces:`.
+Authority comes from the existing segment/root identity: Harness uses
+`.harness/harness/docs/DECISIONS.md` and its index under `--root`; served products use their
+central segment documents, never an unrelated decision corpus. Row failures name their list
+index and DEC and retain the existing nonzero check result and unrelated anchor/route/trace checks.
+
+**Creation, not signature, determines the era.** New-plan creation stamps `drafted_at` once from
+the writer's UTC clock. Callers cannot supply it on creation or insert, rewrite, backdate,
+forward-date or null it later through set-key or apply/merge; an unchanged existing stamp may be
+preserved. Ordinary edits neither stamp an undated legacy plan nor change an existing stamp.
+This decision adds the per-project `decision_dispositions_era_start` key in `harness.json`: a
+timezone-qualified UTC activation instant. The drafting requirement applies when approval is
+pending, the station is nonterminal, and the writer stamp is at or after activation, including
+the exact boundary. New-install templates use `null`, meaning every newly stamped draft is in
+scope; a missing key preserves pre-adoption behavior. The eligible-draft path diagnoses malformed
+non-null draft instants or configured era instants rather than treating them as exemptions.
+Pre-activation stamped drafts and pre-writer undated plans are grandfathered without backfill;
+approved and terminal history skip this new drafting rule because the quoted pre-change clause
+may rightly disappear after signature. Neither signature date, mtime nor feature start substitutes
+for creation provenance.
+
+**Script versus judgment.** The plan team's scope reader independently searches touched surfaces
+and their governing decisions, challenges omissions and unjustified empty lists, and applies
+DEC-188: strike a flat contradiction; amend a merely dated, narrowed or partly overtaken ruling
+unless the operator expressly authorizes a softer strike. The script handles resolvable defects,
+not semantic completeness or strike justification. A patch carries the same block and check but
+gains no pre-build panel. Canonical authoring and scope instructions live in
+`.claude/skills/harness/teams/plan.yaml`; the patch contract is in
+`.claude/skills/harness/references/patch-lane.md`.
+
+**Landing is a separate falsifiable outcome.** At validate, canonical `harness-pm` Mode 2
+(`.omp/agents/harness-pm.md`) grades every amend/strike row individually from DECISIONS.md as
+committed at the supplied `review_sha`, never the mutable working tree; keep rows are skipped.
+Existing `sc_status` rows carry `id` naming the DEC, `verdict: met | not_met | partial`,
+`method: inspection`, and evidence naming the pin, decision-file path and pinned line. Multiple
+clauses of one DEC retain plan-row identity in the durable research note. Clause, successor and
+reason define what must land: amend means the intended current text replaced the clause; strike
+means a strike record, or deletion justified by its named successor with citations repointed under
+DEC-188/205. Merely mentioning the DEC or passing a suite proves neither. Missing/partial landing
+fails goal-check; `.omp/agents/harness-validator-lead.md` routes it as `must_fix` to the named
+DECISIONS.md-owning task. No owner is a plan/scope defect, not success.
+
+**Tradeoff accepted:** forward-only declarations leave old undated work untouched and cannot prove
+their own completeness. Human scope judgment and pm's pinned landing inspection remain necessary.
+No general stale-decision detector, propagation check, reciprocal-link check, new validate script
+or digest field is added. DEC-205's current-truth rewrite rule and sole decision-file anchor-rot
+check remain intact: the new mechanical rule grades plans, not general decision freshness.
+
+**Record:** amends DEC-188's human-only enforcement assertion. Refs: DEC-73, DEC-174, DEC-179,
+DEC-182, DEC-188, DEC-205, DEC-227, DEC-228, DEC-229, DEC-232.

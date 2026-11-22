@@ -338,7 +338,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
       - {path: .harness/harness/docs/DECISIONS.md, quote: '## DEC-188'}
       - {path: .harness/harness/docs/DECISIONS-INDEX.md, quote: 'DEC-188'}
