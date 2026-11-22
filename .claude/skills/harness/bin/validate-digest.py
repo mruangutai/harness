@@ -2398,13 +2398,14 @@ def _printable(text):
 def _receipt_refusal(agent, problems, repairs):
     print(f"check-digest: REFUSED {agent}'s VERDICT: PASS with suite: pass and matrix_ok: true — "
           "its runner receipts do not establish the claim (issue #919, FEAT-2337). Nothing was "
-          "re-run: the receipts QA recorded for this validate run are the evidence.",
+          "re-run: the receipts QA recorded for this validate or fix run are the evidence.",
           file=sys.stderr)
     print("Receipt problems:", file=sys.stderr)
     for problem in problems:
         print(f"  - {_printable(problem)}", file=sys.stderr)
     print("Repair: from the trusted checkout at review_sha (or a descendant that changes only "
-          "the feature's own directory), run each command below, then return again:",
+          "the feature's own directory; in a fix run, at its clean HEAD descending from "
+          "review_sha), run each command below, then return again:",
           file=sys.stderr)
     for repair in repairs:
         print(f"  {_printable(repair)}", file=sys.stderr)
@@ -2445,8 +2446,9 @@ def _registered_review(root, record, payload):
 
 
 def _receipt_context(agent, payload, ctx):
-    """Fill `ctx` with this QA return's trusted checkout, run directory, review commit and
-    feature directory, or raise _Untrusted; `ctx` keeps whatever resolved before a refusal."""
+    """Fill `ctx` with this QA return's trusted checkout, run directory, review commit, feature
+    directory and lineage rule, or raise _Untrusted; `ctx` keeps whatever resolved before a
+    refusal."""
     run = _run_identity(payload, agent)
     owner = _root_or_none()
     if owner is None:
@@ -2462,6 +2464,7 @@ def _receipt_context(agent, payload, ctx):
     ctx["run_dir"] = os.path.join(feature_dir, "runs", run_id)
     ctx["review"] = _registered_review(root, record, payload)
     ctx["feature_rel"] = os.path.relpath(feature_dir, root).replace(os.sep, "/")
+    ctx["lineage"] = _fix_lineage if _fix_run(run_id, payload) else _lineage
 
 
 def _shard_evidence():
@@ -2536,9 +2539,55 @@ def _lineage(root, review, tested, feature_rel):
             if not path.startswith(feature_rel + "/")]
 
 
+# DEC-255, the fix-run ruling (FEAT-2337 notes/answers-2026-11-22-fix-run-receipts.md): a fix
+# run (teams/fix.yaml, build-phase step 6) has QA test the dev's fixed tip inside the same
+# validator-lead run, and the orchestrator re-pins only after the lead returns. Its registered run
+# id carries feature-record.py's token-bounded `fix-` shape as `fix-c<N>-validator`, and its
+# dispatch declares `HARNESS-MISSION: fix`. Both are runtime-derived and must agree; the digest,
+# the receipts and anything the lead writes never classify the run.
+_FIX_RUN = re.compile(r"(?:^|-)fix-c[0-9]+-validator$")
+
+
+def _fix_run(run_id, payload):
+    """True for a fix run, False for any other; _Untrusted when the registered run id and the
+    dispatch-forwarded harness_mission disagree, one present without the other."""
+    mission = payload.get("harness_mission")
+    by_mission = isinstance(mission, str) and mission.strip() == "fix"
+    by_slug = bool(_FIX_RUN.search(run_id))
+    if by_slug != by_mission:
+        raise _Untrusted(f"the registered run {run_id} {'is' if by_slug else 'is not'} a fix run "
+                         f"(fix-c<N>-validator) but the dispatch's harness_mission is "
+                         f"{mission!r} — a fix run needs both, and neither alone classifies it")
+    return by_slug
+
+
+def _dirty_paths(root):
+    """Every tracked change and untracked, unignored file in `root`'s working tree."""
+    out = _receipt_git(root, "status", "--porcelain=v1", "-z", "--no-renames",
+                       "--untracked-files=all").stdout
+    return sorted({entry[3:] for entry in out.split("\0") if entry})
+
+
+def _fix_lineage(root, review, tested, feature_rel):
+    """Why `tested` is not a fix run's evidence; [] if it is. The fixed tip may change code: it
+    must be the trusted checkout's own HEAD, descend from review_sha, and stand in a working tree
+    clean outside `feature_rel`/ (the run's own record and receipts live there)."""
+    head = _receipt_git(root, "rev-parse", "--verify", "HEAD^{commit}").stdout.strip()
+    problems = [] if tested == head else [
+        f"tested_commit {tested} is not the checkout's HEAD {head} — a fix run's receipt is "
+        f"recorded at its fixed tip"]
+    if _receipt_git(root, "merge-base", "--is-ancestor", review, tested).returncode != 0:
+        problems.append(f"review_sha {review} is not an ancestor of tested_commit {tested} (an "
+                        f"older or divergent commit)")
+    return problems + [f"the working tree is not clean outside the feature's own directory "
+                       f"{feature_rel}/: {path}" for path in _dirty_paths(root)
+                       if not path.startswith(feature_rel + "/")]
+
+
 def _kind_problems(ctx, kind, shards, lineage):
-    """Every problem with `kind`'s receipt. Lineage results are shared across kinds through
-    `lineage`, keyed by the resolved (review, tested, feature directory) tuple."""
+    """Every problem with `kind`'s receipt. Lineage results — ctx's validate or fix rule — are
+    shared across kinds through `lineage`, keyed by the resolved (review, tested, feature
+    directory) tuple."""
     path = os.path.join(ctx["run_dir"], "qa", f"manifest-{kind}.json")
     doc, problem = _read_receipt(path, ctx["run_dir"], shards)
     if problem:
@@ -2547,7 +2596,7 @@ def _kind_problems(ctx, kind, shards, lineage):
     if tested:
         key = (ctx["review"], tested, ctx["feature_rel"])
         if key not in lineage:
-            lineage[key] = _lineage(ctx["root"], *key)
+            lineage[key] = ctx["lineage"](ctx["root"], *key)
         problems += [f"{path}: {why}" for why in lineage[key]]
     basis = tested or ctx["review"]
     expected, error = shards.discover_expected(ctx["root"], basis, kind=kind)
@@ -2574,6 +2623,18 @@ def _receipt_problems(agent, obj, payload, ctx):
             [kind for kind in kinds if found[kind]])
 
 
+def _checked_receipts(agent, obj, payload, ctx):
+    """(problems, kinds needing repair). An unresolved identity or unreadable evidence is itself
+    the problem, repaired for every claimed kind — every kind when none is claimed."""
+    try:
+        return _receipt_problems(agent, obj, payload, ctx)
+    except _Untrusted as why:
+        problem = f"no trusted receipt location: {why}"
+    except _evidence_failures() as error:
+        problem = f"the receipt evidence could not be read ({type(error).__name__}: {error})"
+    return [problem], _claimed_receipt_kinds(_digest_of(obj)) or list(RECEIPT_KINDS)
+
+
 def check_qa_matrix_claim(agent, obj, payload):
     """Issue #919: verify an unconditional qa PASS against QA's own runner receipts rather
     than trusting the claim on its own strength, and never by running the suite again.
@@ -2591,14 +2652,7 @@ def check_qa_matrix_claim(agent, obj, payload):
     if not _qa_claims_unconditional_pass(obj):
         return 0
     ctx = {}
-    try:
-        problems, kinds = _receipt_problems(agent, obj, payload, ctx)
-    except _Untrusted as why:
-        problems = [f"no trusted receipt location: {why}"]
-        kinds = _claimed_receipt_kinds(_digest_of(obj)) or list(RECEIPT_KINDS)
-    except _evidence_failures() as error:
-        problems = [f"the receipt evidence could not be read ({type(error).__name__}: {error})"]
-        kinds = _claimed_receipt_kinds(_digest_of(obj)) or list(RECEIPT_KINDS)
+    problems, kinds = _checked_receipts(agent, obj, payload, ctx)
     if not problems:
         return 0
     checkout = ctx.get("root", _UNRESOLVED_CHECKOUT)

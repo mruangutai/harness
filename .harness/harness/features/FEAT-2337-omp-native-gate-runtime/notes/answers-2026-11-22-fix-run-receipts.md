@@ -40,3 +40,12 @@ pin, and `harness_review_pin` cannot override it. So a fix-run `code` step re-ve
 fixed tip is also refused. FEAT-2337 did not create this and does not fix it: DEC-255 names it
 as an open question, filed as a backlog bug. Fixing only the QA receipt binding does not make a
 fix run pass end to end.
+
+## Follow-up ruling — "clean working tree" (fable-advisor, `AdvisorB4CleanTree`)
+
+The builder implemented "clean" as: no tracked modifications and no untracked, unignored files
+*outside* the trusted feature's own directory. **Confirmed as written.** A literal whole-tree
+check can never pass during a live fix run: run registration leaves the tracked `feature.json`
+dirty until the orchestrator re-pins, and run notes land in the feature directory. Dirt under the
+feature directory cannot alter what the suite executed at HEAD. The fix rule is still stricter
+than the validate rule, which never inspects the working tree.

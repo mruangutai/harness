@@ -1903,12 +1903,13 @@ def _rx_receipt(root, kind, run_id=RX_RUN):
     return os.path.join(root, RX_FEATURE_REL, "runs", run_id, "qa", f"manifest-{kind}.json")
 
 
-def _rx_record(root, kinds=("unit", "integration")):
+def _rx_record(root, kinds=("unit", "integration"), run_id=RX_RUN):
     """QA's production command, once per kind, at the checkout's HEAD."""
-    shutil.rmtree(os.path.dirname(_rx_receipt(root, "unit")), ignore_errors=True)
+    shutil.rmtree(os.path.dirname(_rx_receipt(root, "unit", run_id)), ignore_errors=True)
     for kind in kinds:
         subprocess.run([sys.executable, os.path.join(root, RX_BIN, "run-unit-tests.py"),
-                        "--kind", kind, "--shard", "1/1", "--manifest", _rx_receipt(root, kind)],
+                        "--kind", kind, "--shard", "1/1", "--manifest",
+                        _rx_receipt(root, kind, run_id)],
                        cwd=root, capture_output=True, text=True, timeout=120,
                        env=dict(os.environ, HARNESS_PROJECT_DIR=root))
 
@@ -2349,8 +2350,73 @@ def _rx_lineage_case(root, pin, row):
     _rx_expect(label, _rx_fire(root), want, list(needles) + repair)
 
 
+# FEAT-2337 fix-run ruling (notes/answers-2026-11-22-fix-run-receipts.md): a fix run is the
+# registered run id `fix-c<N>-validator` AND the dispatch-forwarded harness_mission `fix`.
+RX_FIX_RUN = "2026-11-22-01-fix-c1-validator"
+RX_MISSION = "harness_mission"
+
+
+def _rx_code(root, pin):
+    _rx_commit(root, "code", {"src/app.py": "x = 1\n"})
+
+
+def _rx_dirt(rel, text="uncommitted\n"):
+    return lambda root, pin: _mx_write(os.path.join(root, rel), text)
+
+
+# (label, registered run id, harness_mission, before recording, after recording, exit, needles)
+RX_FIX = (
+    ("a fix run whose code-changing descendant is HEAD is accepted", RX_FIX_RUN, "fix",
+     _rx_code, None, 0, ()),
+    ("a fix run recorded at the exact pin is accepted", RX_FIX_RUN, "fix", None, None, 0, ()),
+    ("a fix run's uncommitted note in its own feature directory is accepted", RX_FIX_RUN, "fix",
+     _rx_code, _rx_dirt(RX_FEATURE_REL + "/notes/fix.md"), 0, ()),
+    ("a fix run whose tested_commit is not HEAD is refused", RX_FIX_RUN, "fix", _rx_code,
+     lambda r, p: _rx_commit(r, "later", {"src/later.py": "y = 2\n"}), 2,
+     ("is not the checkout's HEAD",)),
+    ("a fix run on history divergent from the pin is refused", RX_FIX_RUN, "fix",
+     lambda r, p: _rx_at_seed(r, p, {"src/app.py": "x = 1\n"}), None, 2, ("is not an ancestor",)),
+    ("a fix run with a modified tracked file is refused", RX_FIX_RUN, "fix", _rx_code,
+     _rx_dirt("docs/readme.md"), 2, ("not clean", "docs/readme.md")),
+    ("a fix run with an untracked file is refused", RX_FIX_RUN, "fix", _rx_code,
+     _rx_dirt("src/scratch.py"), 2, ("not clean", "src/scratch.py")),
+    ("a validate-slug run with code changes is still refused", RX_RUN, None, _rx_code, None, 2,
+     ("src/app.py", "outside")),
+    ("a validate-slug run dispatched as validate with code changes is still refused", RX_RUN,
+     "validate", _rx_code, None, 2, ("src/app.py", "outside")),
+    ("a fix slug whose dispatch carries no mission is refused", RX_FIX_RUN, None, _rx_code, None,
+     2, (RX_MISSION, RX_FIX_RUN)),
+    ("a fix slug dispatched as validate is refused", RX_FIX_RUN, "validate", _rx_code, None, 2,
+     (RX_MISSION, "'validate'")),
+    ("a validate slug dispatched as fix is refused", RX_RUN, "fix", _rx_code, None, 2,
+     (RX_MISSION, RX_RUN)),
+    ("a fix mission on a run id without the fix- token is refused",
+     "2026-11-22-01-hotfix-c1-validator", "fix", _rx_code, None, 2, (RX_MISSION, "hotfix")),
+)
+
+
+def _rx_fix_case(root, pin, row):
+    label, run_id, mission, before, after, want, needles = row
+    _mx_git(root, "checkout", "-q", "-B", RX_SCENARIO, pin)
+    _mx_git(root, "clean", "-fdq")
+    _rx_register(root, pin, [_rx_run(run_id)])
+    try:
+        for step in (before, _rx_recorder(run_id), after):
+            (step or (lambda r, p: None))(root, pin)
+        repair = [_rx_repair(root, "unit", run_id)] if want == 2 else []
+        _rx_expect(label, _rx_fire(root, harness_mission=mission), want, list(needles) + repair)
+    finally:
+        _mx_git(root, "checkout", "-q", "--", "docs")
+        _rx_register(root, pin)
+
+
+def _rx_recorder(run_id):
+    return lambda root, pin: _rx_record(root, run_id=run_id)
+
+
 def run_feat2337_qa_receipt_cases():
-    """FEAT-2337 SC-05/06/07: trusted exact-coverage receipts replace the #919 rerun."""
+    """FEAT-2337 SC-05/06/07: trusted exact-coverage receipts replace the #919 rerun; a fix run
+    (fix-c<N>-validator AND harness_mission fix) binds its receipts to the clean HEAD instead."""
     root, pin = _rx_repo()
     try:
         _rx_record(root)
@@ -2364,6 +2430,8 @@ def run_feat2337_qa_receipt_cases():
         _rx_shim_cases(root)
         for row in RX_LINEAGE:
             _rx_lineage_case(root, pin, row)
+        for row in RX_FIX:
+            _rx_fix_case(root, pin, row)
     finally:
         shutil.rmtree(root, ignore_errors=True)
     return _rx_report("feat2337")
