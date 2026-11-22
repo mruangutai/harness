@@ -135,6 +135,65 @@ def explicit_keep_cases():
         records_intact("an explicit --keep prune leaves every run record byte-identical", feat, records)
 
 
+def outside_ui(base, sha):
+    """A directory outside the feature holding a real ui/ lane."""
+    (base / "ui" / "evidence").mkdir(parents=True)
+    (base / "ui" / "evidence" / "shot.webp").write_bytes(b"RIFF outside")
+    (base / "ui" / "results.json").write_text(json.dumps({"served_bundle_commit": sha}))
+    return base
+
+
+def tree_bytes(path):
+    return {str(p.relative_to(path)): p.read_bytes() for p in sorted(path.rglob("*")) if p.is_file()}
+
+
+def linked_feature(root):
+    """A kept run, a prunable run, and three link shapes: a run symlink to the kept run, a run
+    symlink to an outside directory holding ui/, and a real run whose ui/ links outside."""
+    feat = feature(root, [("validate-c2-validator", "PASS", "c" * 40), ("build-c0-eng", "PASS", "a" * 40)])
+    runs = feat / "runs"
+    (runs / "build-alias").symlink_to("validate-c2-validator", target_is_directory=True)
+    (runs / "evil-alias").symlink_to(outside_ui(root / "outside-run", "b" * 40), target_is_directory=True)
+    (runs / "ui-link-run").mkdir()
+    (runs / "ui-link-run" / "digest.md").write_text("digest ui-link-run\n")
+    (runs / "ui-link-run" / "ui").symlink_to(outside_ui(root / "outside-ui", "d" * 40) / "ui", target_is_directory=True)
+    return feat, [runs / "validate-c2-validator" / "ui", root / "outside-run" / "ui", root / "outside-ui" / "ui"]
+
+
+def through_link(stdout, verb):
+    return [line for line in stdout.splitlines() if line.startswith(verb)
+            and any(f"runs/{name}" in line for name in ("build-alias", "evil-alias", "ui-link-run"))]
+
+
+def symlink_dry_run(root, destinations, before):
+    dry = tool(root, "--feature", "FEAT-9-thing", "--dry-run")
+    check("dry-run names no deletion target through a symlink", dry.returncode == 0 and not through_link(dry.stdout, "would remove")
+          and "would remove runs/build-c0-eng/ui" in dry.stdout, dry.stdout + dry.stderr)
+    check("dry-run leaves every link destination's ui/ byte-identical", [tree_bytes(d) for d in destinations] == before)
+
+
+def symlink_prune(root, feat, destinations, before):
+    pruned = tool(root, "--feature", "FEAT-9-thing")
+    check("prune removes no ui/ through a symlink and still prunes the real run",
+          pruned.returncode == 0 and not through_link(pruned.stdout, "removed")
+          and not (feat / "runs" / "build-c0-eng" / "ui").exists(), pruned.stdout + pruned.stderr)
+    skips = [f"skipped runs/{name} (symlink)" for name in ("build-alias", "evil-alias", "ui-link-run/ui")]
+    check("prune names each symlink it skipped", all(line in pruned.stdout for line in skips), pruned.stdout)
+    after = [tree_bytes(d) for d in destinations]
+    check("a kept run, an outside run and an outside ui/ reached through links keep their ui/ bytes",
+          after == before and all(after), str([sorted(a) for a in after]))
+
+
+def symlink_cases():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        checkout(root)
+        feat, destinations = linked_feature(root)
+        before = [tree_bytes(d) for d in destinations]
+        symlink_dry_run(root, destinations, before)
+        symlink_prune(root, feat, destinations, before)
+
+
 def blocked_feature(root):
     """FEAT-2229's shape: ten recorded validator runs, each digest hash-bound as cycle_evidence,
     the last BLOCKED, no PASS validate/fix run, no UI lane anywhere — an empty keep set under a
@@ -236,6 +295,7 @@ def main():
         refusal_cases(root)
     explicit_keep_cases()
     blocked_no_ui_cases()
+    symlink_cases()
     print(f"{len(FAILURES)} failure(s)" if FAILURES else "all checks passed")
     return 1 if FAILURES else 0
 

@@ -101,3 +101,114 @@ rc=0
 ```
 
 check-state invocation in the FEAT-2229-shaped case: real .claude/skills/harness/bin/check-state.py --feature FEAT-9-thing --only INV-7 (the cycle-evidence row), cwd at the temp fixture root, CLAUDE_PROJECT_DIR and HARNESS_PROJECT_DIR cleared from the inherited env and then set to that root. Unscoped repo-level rows (INV-27 readers, INV-31 hooks) report on fixture scaffolding unrelated to run evidence, so the run is narrowed to the row that reads cycle_evidence.
+
+## c1 fix
+
+Must-fix: SEC-01 (notes/must-fix-c1.md). Before the fix, a run entry that is a directory symlink entered `present`, and `_ui_targets` followed it. `rmtree(runs/<alias>/ui)` then deleted the link target's real ui/, whether that target was a kept run or a directory outside the feature. A `ui` that was itself a symlink was handed to `rmtree`. The fix: a run entry or a ui/ that is a symlink is never a target; prune prints `skipped runs/<id> (symlink)` or `skipped runs/<id>/ui (symlink)` and leaves it alone. The keep set, `--keep`, the refusals, the CLI and the return codes are unchanged.
+
+Test file: tests/unit/test-prune-run-evidence.py (sha256 7f4274f8e272d112c29405dc4690fce6498bc99d8a6550ecdc8f85f1522cdd23). New checks in `symlink_cases`, which uses the fixture `linked_feature`: runs/build-alias -> validate-c2-validator (a kept run), runs/evil-alias -> <tmp>/outside-run (which holds ui/), and runs/ui-link-run/ui -> <tmp>/outside-ui/ui.
+- `dry-run names no deletion target through a symlink`
+- `dry-run leaves every link destination's ui/ byte-identical`
+- `prune removes no ui/ through a symlink and still prunes the real run`
+- `prune names each symlink it skipped`
+- `a kept run, an outside run and an outside ui/ reached through links keep their ui/ bytes`
+
+### RED — pruner pinned at 70981edd
+Subject: git show 70981edd6f9f110965a0148b4490ed2673d262dc:.claude/skills/harness/bin/prune-run-evidence.py (sha256 d3f2c38e2a54a8fa6c55fde020efcebaa5907a74733421acdc50ea975a332fe9). It was copied to prune-run-evidence-c1base.py beside the live bin, so the sibling imports resolve, and deleted after the run.
+
+```
+set +e; unset CLAUDE_PROJECT_DIR HARNESS_PROJECT_DIR HARNESS_AGENT_TYPE
+B=.claude/skills/harness/bin/prune-run-evidence-c1base.py; git show 70981edd:.claude/skills/harness/bin/prune-run-evidence.py > $B
+PRUNE_RUN_EVIDENCE_BIN=$PWD/$B python3 tests/unit/test-prune-run-evidence.py; echo rc=$?; rm $B
+```
+Exit: 1, with 4 assertion failures and no setup or import error. The 20 earlier checks pass against this subject. The dry run printed `would remove` for build-alias, evil-alias and ui-link-run. During the prune, rmtree on the ui/ symlink raised OSError (that traceback is in the prune check's output). The kept run's ui/ and the outside run's ui/ were deleted (`[[], [], [...]]`). Full stdout and stderr:
+
+```
+PASS - dry-run names exactly the ui/ lanes it would drop — no kept run, no run without ui/
+PASS - dry-run changes no bytes
+PASS - dry-run leaves every run record byte-identical
+PASS - keeps the ui/ of every PASS validator validate/fix run and any run bound to the pin; drops eng, failed, reconciliation, distill ui/
+PASS - kept runs' UI evidence is byte-identical
+PASS - exit 0 and names the ui/ it removed
+PASS - every run directory, digest.md, state.yaml, .run-identity.json and non-UI sentinel survives prune
+PASS - a second prune succeeds and removes nothing more
+PASS - a repeated prune still leaves every run record byte-identical
+PASS - refuses the placeholder review_sha 'none' — nothing shipped, nothing pruned
+PASS - refuses an empty review_sha
+PASS - refuses a --keep that names no run directory
+PASS - refuses an unknown feature
+PASS - refuses a feature.json with a duplicate key through the canonical reader, pruning nothing (#1993)
+PASS - an explicit --keep of an otherwise pruned run keeps its ui/
+PASS - an explicit --keep prune leaves every run record byte-identical
+PASS - FEAT-2229 shape: check-state is clean before prune
+PASS - FEAT-2229 shape: an empty keep set still exits 0
+PASS - FEAT-2229 shape: every cycle_evidence digest survives prune at its recorded hash
+PASS - FEAT-2229 shape: check-state is still clean after prune
+FAIL - dry-run names no deletion target through a symlink
+       would remove runs/build-alias/ui
+would remove runs/build-c0-eng/ui
+would remove runs/evil-alias/ui
+would remove runs/ui-link-run/ui
+kept 1 of 5 run(s): validate-c2-validator
+
+PASS - dry-run leaves every link destination's ui/ byte-identical
+FAIL - prune removes no ui/ through a symlink and still prunes the real run
+       removed runs/build-alias/ui
+removed runs/build-c0-eng/ui
+removed runs/evil-alias/ui
+removed runs/ui-link-run/ui
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2294-prune-keeps-run-digests/.claude/skills/harness/bin/prune-run-evidence-c1base.py", line 149, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2294-prune-keeps-run-digests/.claude/skills/harne
+FAIL - prune names each symlink it skipped
+       removed runs/build-alias/ui
+removed runs/build-c0-eng/ui
+removed runs/evil-alias/ui
+removed runs/ui-link-run/ui
+
+FAIL - a kept run, an outside run and an outside ui/ reached through links keep their ui/ bytes
+       [[], [], ['evidence/shot.webp', 'results.json']]
+4 failure(s)
+rc=1
+```
+
+### GREEN — fixed pruner
+Subject: the worktree's .claude/skills/harness/bin/prune-run-evidence.py (sha256 3ce3bb40d97f8cb7c3274826f6cc4f3db653f38eadca8de76a0411a5aef02af9).
+
+```
+set +e; unset CLAUDE_PROJECT_DIR HARNESS_PROJECT_DIR HARNESS_AGENT_TYPE
+python3 tests/unit/test-prune-run-evidence.py; echo rc=$?
+```
+Exit: 0, all 25 checks PASS, no FAIL lines. Full stdout and stderr:
+
+```
+PASS - dry-run names exactly the ui/ lanes it would drop — no kept run, no run without ui/
+PASS - dry-run changes no bytes
+PASS - dry-run leaves every run record byte-identical
+PASS - keeps the ui/ of every PASS validator validate/fix run and any run bound to the pin; drops eng, failed, reconciliation, distill ui/
+PASS - kept runs' UI evidence is byte-identical
+PASS - exit 0 and names the ui/ it removed
+PASS - every run directory, digest.md, state.yaml, .run-identity.json and non-UI sentinel survives prune
+PASS - a second prune succeeds and removes nothing more
+PASS - a repeated prune still leaves every run record byte-identical
+PASS - refuses the placeholder review_sha 'none' — nothing shipped, nothing pruned
+PASS - refuses an empty review_sha
+PASS - refuses a --keep that names no run directory
+PASS - refuses an unknown feature
+PASS - refuses a feature.json with a duplicate key through the canonical reader, pruning nothing (#1993)
+PASS - an explicit --keep of an otherwise pruned run keeps its ui/
+PASS - an explicit --keep prune leaves every run record byte-identical
+PASS - FEAT-2229 shape: check-state is clean before prune
+PASS - FEAT-2229 shape: an empty keep set still exits 0
+PASS - FEAT-2229 shape: every cycle_evidence digest survives prune at its recorded hash
+PASS - FEAT-2229 shape: check-state is still clean after prune
+PASS - dry-run names no deletion target through a symlink
+PASS - dry-run leaves every link destination's ui/ byte-identical
+PASS - prune removes no ui/ through a symlink and still prunes the real run
+PASS - prune names each symlink it skipped
+PASS - a kept run, an outside run and an outside ui/ reached through links keep their ui/ bytes
+all checks passed
+rc=0
+```
