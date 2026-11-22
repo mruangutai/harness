@@ -14,11 +14,11 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 
 <!-- measured:begin -->
 - base `0bdcabbfc585a9357554817684d1b8a19d69038a` (`git merge-base HEAD origin/main`)
-- review `d7d1fb8d7073f004580a69e71de28a06dffbebf4`
+- review `b93e1a12b9c7ea35f2f4ed227d98ace2925a1301`
 
 | File | Base | Review | Delta |
 |---|---|---|---|
-| `.harness/harness/features/FEAT-2297-harness-json-schema/notes/check-config-reduction.py` | new | 253 | +253 |
+| `.harness/harness/features/FEAT-2297-harness-json-schema/notes/check-config-reduction.py` | new | 255 | +255 |
 | `tests/fixtures/harness-config-budgets.json` | new | 44 | +44 |
 | `tests/harness_config_support.py` | new | 65 | +65 |
 | `tests/integration/canonical-reader-classification.json` | 2599 | 2641 | +42 |
@@ -88,8 +88,8 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/unit/test-wayfind.py` | 156 | 155 | -1 |
 
 - Gate A, pre-existing affected files: -588
-- Gate B, new files enumerated below: +1452
-- Reported total, both populations: +864
+- Gate B, new files enumerated below: +1454
+- Reported total, both populations: +866
 <!-- measured:end -->
 
 ## New coverage
