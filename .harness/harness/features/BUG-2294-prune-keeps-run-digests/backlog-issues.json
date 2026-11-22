@@ -1,0 +1,14 @@
+{
+  "enhancement:prune-run-evidence: authorize the feature directory by realpath containment; reject linked ancestors and traversal in --feature": {
+    "number": 2306,
+    "typed": true
+  },
+  "chore:prune-run-evidence tests: cover a symlink named in --keep, symlinked children inside a real ui/, and digest bytes of the ui-link run": {
+    "number": 2307,
+    "typed": true
+  },
+  "chore:qa in gate-only mode writes reader logs into the validator run directory outside its domain grant": {
+    "number": 2308,
+    "typed": true
+  }
+}
