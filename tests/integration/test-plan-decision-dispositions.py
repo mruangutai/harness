@@ -383,6 +383,36 @@ def case_unclosed_fence_runs_to_end():
                        "```text\n## DEC-10 — a spoof heading\n" + SPOOF + "\n")
 
 
+def _fenced_spoof(opener, inner, closer):
+    """DEC-11 holding a fence `opener` .. `closer` with an `inner` run, a spoof DEC-10 heading
+    and clause inside it, then the genuine DEC-10."""
+    return ("## DEC-11 — Eleven\n\n" + opener + "\n" + inner + "## DEC-10 — a spoof heading\n"
+            + SPOOF + "\n" + closer + "\n\n## DEC-10 — Ten\n\n" + REAL_TEN + "\n")
+
+
+def case_closer_must_match_opener_character():
+    """Rule 4 (M6): a ``` run never closes a ~~~ fence, nor a ~~~ run a ``` fence."""
+    _spoof_and_control("rule 4 ~~~ in ```", _fenced_spoof("```text", "~~~\n", "```"))
+    _spoof_and_control("rule 4 ``` in ~~~", _fenced_spoof("~~~text", "```\n", "~~~"))
+
+
+def case_tilde_info_string_may_hold_backticks():
+    """Rule 3 (M8): the no-backtick-in-info rule is the backtick opener's alone; a ~~~ opener
+    whose info string holds a backtick still opens a fence."""
+    _spoof_and_control("rule 3 tilde", _fenced_spoof("~~~ a`b", "", "~~~"))
+
+
+def case_heading_names_the_full_identifier():
+    """SEC-C4-01: `## DEC-10x` (or any identifier continuation) is never DEC-10's heading; the
+    real shapes `## DEC-10 — …`, `## DEC-10: …` and `## DEC-10 (…)` all are."""
+    for spoof in ("DEC-10x — not DEC-10", "DEC-10_a", "DEC-10-1 — another id", "DEC-10.5"):
+        _spoof_and_control(f"identifier {spoof!r}", f"## {spoof}\n\n{SPOOF}\n\n## DEC-10 — Ten\n\n"
+                           + REAL_TEN + "\n")
+    for real in ("DEC-10: Ten", "DEC-10 (Ten)", "DEC-10"):
+        expect_pass(f"identifier: `## {real}` is DEC-10's heading",
+                    plan_text([row(clause=REAL_TEN)]), setup=_docs(f"## {real}\n\n{REAL_TEN}\n"))
+
+
 def case_successors():
     expect_fail("an amend to a D id this plan lacks fails",
                 plan_text([row(disposition="amend", successor="D-09")]),
@@ -652,6 +682,8 @@ def main():
                  case_info_string_run_does_not_close_a_fence,
                  case_overindented_fence_lines_are_content, case_heading_indentation_limits,
                  case_backtick_info_string_cannot_open, case_unclosed_fence_runs_to_end,
+                 case_closer_must_match_opener_character,
+                 case_tilde_info_string_may_hold_backticks, case_heading_names_the_full_identifier,
                  case_successors,
                  case_ownership, case_each_failure_keeps_other_checks,
                  case_served_segment_authority, case_era, case_malformed_instants,

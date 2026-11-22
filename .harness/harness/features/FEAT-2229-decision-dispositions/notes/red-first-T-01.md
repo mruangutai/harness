@@ -164,3 +164,41 @@ heading lookup and section end. `_opener` refuses a backtick opener whose info s
 
 Green: unit 40/40, integration 113/113, `test-plan-team.py` 184/184 (acceptance chain exit 0);
 `test-plan-merge.py` exit 0. Touched functions grade 4–5.
+
+## Validate c4 round (operator ruling 2026-11-22) — red → green
+
+### Item 1: tilde coverage, test-only (red by mutation, production unchanged)
+
+New actual-CLI spoof cases with real-clause controls: `case_closer_must_match_opener_character`
+(a `~~~` run inside a ```` ```text ```` fence, and a ```` ``` ```` run inside a `~~~text` fence) and
+`case_tilde_info_string_may_hold_backticks` (`~~~ a`b` opener holding a spoof `## DEC-10`).
+
+| Run of `test-plan-decision-dispositions.py` | Result for the new tilde assertions |
+|---|---|
+| unmutated source | all 6 PASS |
+| M6 applied (`closes = len(run) >= len(fence) and not info.strip()` — closer character ignored) | FAIL `rule 4 ~~~ in ```` and FAIL `rule 4 ``` in ~~~` (spoof accepted); 120/130 |
+| M8 applied (`_opener`: `None if "`" in info` — rule applied to tildes too) | FAIL `rule 3 tilde` (spoof accepted); 121/130 |
+| mutation reverted | all 6 PASS |
+
+(The mutant counts include the 8 SEC-C4-01 failures below, which were still red at that point.)
+
+### Item 2: SEC-C4-01, `## DEC-10x` impersonating DEC-10
+
+`case_heading_names_the_full_identifier`: spoof headings `DEC-10x — not DEC-10`, `DEC-10_a`,
+`DEC-10-1 — another id`, `DEC-10.5` each placed before the real `## DEC-10 — Ten`; plus positive
+shapes `## DEC-10: Ten`, `## DEC-10 (Ten)`, `## DEC-10`. Red against the source as received
+(122/130): all 8 spoof/control assertions FAIL (the spoof section was selected); the 3 positive
+shapes PASS.
+
+Fix: `plan_merge/check.py` `_heading_level` matches `dec` followed by `DEC_ID_END` —
+line end, whitespace, `:`, `(`, an em/en dash, or `-` plus whitespace — replacing `(?!\d)`.
+
+Full-corpus proof: the real DECISIONS.md has 223 `DEC-` headings, and each matches its own id.
+All 220 indexed DECs resolve to a section. The real `plan-merge.py check` was run against
+`--root` = this worktree on a temporary copy of this feature's plan (pending, `drafted_at` after
+the era, one row per indexed DEC — 217 keep and 3 struck→strike — quoting each real heading line). It
+reported **0 `decisions_affected` failures**. The copy was deleted. The only FAILs are the two
+known `create: true` "already exists" lines, which are on the backlog.
+
+Green: unit 40/40, integration 130/130, `test-plan-team.py` 184/184 (acceptance chain exit 0);
+`test-plan-merge.py` exit 0.

@@ -206,6 +206,10 @@ INDEX_ROW_RE = re.compile(r"^- (DEC-\d+) @\S+ \[[^\]]*\] refs:[^:]*:: (.*)$")
 # fence runs to the end of the file. A heading is 1-6 `#` then a space, tab or line end.
 FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)")
 HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:[ \t]|$)")
+# What may follow a DEC-NNN in its heading: line end, whitespace, `:`, `(`, an em/en dash, or a
+# hyphen followed by a space — never an identifier continuation (a letter, digit, `_`, `.`, or
+# a hyphen joined to more identifier).
+DEC_ID_END = r"(?=$|\s|[:(\u2014\u2013]|-\s)"
 
 
 def _instant(value):
@@ -274,10 +278,12 @@ def _struck_by_dec(index_text):
 
 
 def _heading_level(line, dec=None):
-    """The `#` count of an ATX heading line (naming `dec` when given), else 0."""
+    """The `#` count of an ATX heading line (naming `dec` when given), else 0. A heading names
+    `dec` only on the FULL identifier: `## DEC-10x`, `## DEC-10_a`, `## DEC-10-1` and
+    `## DEC-10.5` are not DEC-10 (SEC-C4-01)."""
     m = HEADING_RE.match(line)
     if m is None or (dec is not None and re.match(
-            rf" {{0,3}}#{{1,6}}[ \t]+{re.escape(dec)}(?!\d)", line) is None):
+            rf" {{0,3}}#{{1,6}}[ \t]+{re.escape(dec)}{DEC_ID_END}", line) is None):
         return 0
     return len(m.group(1))
 
