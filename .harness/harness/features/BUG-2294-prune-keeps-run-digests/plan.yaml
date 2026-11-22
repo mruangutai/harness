@@ -70,7 +70,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Operator-authorized whole-patch direct route includes the NOBODY layer-0 ship command under DEC-174 and DEC-179.
     depends_on: []
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/prune-run-evidence.py
     - tests/unit/test-prune-run-evidence.py
