@@ -1,0 +1,12 @@
+# UI review — PASS, scoped out
+
+No built user-facing visual UI exists in the pinned diff; visual accessibility review is not applicable.
+
+- **Provenance:** direct Git object inspection confirmed review SHA `21e064c9475e35a4abfdd71b5b5cdd23517c0659` and immutable base `3dd8bb677bb2936361e3952030fc24f15bf9afc6`; reviewed that exact range, not HEAD. No checkout created.
+- **Measured census:** 14 changed files: 2 Python, 6 Markdown, 2 JSON, 2 YAML, 2 text receipts. Two executable-source changes are the digest gate's terminal diagnostic formatter and integration hook-budget/regression machinery; the other 12 files are feature planning, approval, evidence, and run records. No HTML/CSS/SCSS/LESS/JSX/TSX/Vue/Svelte or rendered/interactive component changes. Pinned tree lookup finds no feature `DESIGN.md`; its two repository-wide DESIGN objects are an unrelated feature contract and a template.
+- **Adjacent operator surface:** `.claude/skills/harness/bin/validate-digest.py` adds textual `Failing or mutated files:` before `Tail of the independent run:`, retaining the refusal remedy and last-20-line slice. SC-01's diagnostics are terminal operator behavior, not a visual/dark-light contract. Source shows the documented one-token full-line regex rather than a bare prefix. No visual obligations inferred.
+- **Simplify observations:** integration diff times the real helper call and uses the ready PID file for watchdog cleanup rather than a pass assertion; selector amendment uses existing `--only run_bug2253_cases`. Correctness and watchdog sufficiency belong to code/QA review, not visual certification.
+- **Accessibility/theme/focus/layout:** not applicable: plain terminal text, no colour-only state encoding or visual controls. No rendered accessibility or layout pass is claimed.
+- **Evidence limit / nonblocking QA question:** supplied `notes/receipts/red.txt` names base `3769919f155aee2013b6539ec3cf3d6ed4f9f49b`, not this review's immutable base; green names a working tree without an exact SHA. QA should reconcile provenance against the assigned range before treating these as exact-base/fix receipts. Observed receipt reports are not independently rerun or certified here.
+
+Read pinned BRIEF, plan, simplify pass, signature amendment, intake, and supplied red/green receipts. No source/test changes, checks, builds, lint, or rendering executed. Open questions: QA receipt provenance only (nonblocking for this scoped-out visual review).

@@ -1,0 +1,202 @@
+{
+  "feature_id": "BUG-2253-hook-hang-budget-and-gate-fail-lines",
+  "branch": "feat/BUG-2253-hook-hang-budget-and-gate-fail-lines",
+  "pr": 2282,
+  "review_sha": "7e590f735af90220baec7013c7ce8eafc2163bce",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-21-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T01:05:26+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-01-patch-product/digest.md",
+        "sha256": "6c1059ab87b6373b3a1985e527e9631462b11234f92e22952a824b03dbc0b5f9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T01:11:43+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T01:26:01+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-02-validate-validator/digest.md",
+        "sha256": "8c6a794c7291a09f4d2a86213747c07301acc485706092bf4b50ee27d33c95f0"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-22T01:40:03+00:00"
+    },
+    {
+      "id": "2026-11-21-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T01:42:29+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-03-validate-validator/digest.md",
+        "sha256": "4c41cec033a482ff96b6ea9b08459d6f67f5395c1a7be149abb49e69f76304af"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-22T01:51:03+00:00"
+    },
+    {
+      "id": "2026-11-21-04-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T03:48:37+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-04-validate-validator/digest.md",
+        "sha256": "205ce160003cf09dd834fb7b662a9bdc15bb6c6c0edcf48832a75357047005fa"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-22T03:56:38+00:00"
+    },
+    {
+      "id": "2026-11-22-05-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-22T13:33:01+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-05-validate-validator/digest.md",
+        "sha256": "0ff05ddb31ad1bd2b9af383e9d98cc1609a41b72104195cbd86ff6e1c324af43"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T13:39:45+00:00"
+    },
+    {
+      "id": "2026-11-22-06-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T13:42:21+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-06-validate-validator/digest.md",
+        "sha256": "d697f07ce4182813777d3c17bcd17dedb03f3c577ff174f76b022bd5fccedd8b"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T13:52:19+00:00"
+    },
+    {
+      "id": "2026-11-22-07-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T14:12:23+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-07-validate-validator/digest.md",
+        "sha256": "94c6f7d8ec635a12951dec10b88c9a31fe6086c63b31958c42e0fee00be6777f"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T14:20:22+00:00"
+    }
+  ],
+  "mission": "patch",
+  "judgements": [
+    {
+      "at": "2026-11-22T01:05:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "causes located: six hard timeout=3 hook calls in test-validate-digest.py; gate prints only a 20-line pooled tail. Bounded to two files; main-session-direct per DEC-174 (gate)"
+    },
+    {
+      "at": "2026-11-22T01:14:16.840632+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "reuse the file's existing --only <group> selector instead of adding a second selector flag; operator approved"
+    },
+    {
+      "at": "2026-11-22T01:42:29+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 1",
+      "reason": "c0 FAIL: SC-01 space names and SC-02 watchdog fixed in c1168ccf/6cbdc417; re-gate at 2e96b583 within 1-round budget"
+    },
+    {
+      "at": "2026-11-22T03:48:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL: echoed headers and pre-readiness containment fixed in 03204c96/b228c3a2; operator-extended round 2"
+    },
+    {
+      "at": "2026-11-22T13:33:01+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 3",
+      "reason": "c2 FAIL: same-name PASS echo fixed in 3c6fb908 (no pairing); operator-extended round 3"
+    },
+    {
+      "at": "2026-11-22T13:41:06.118657+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Operator (validate c3 ESCALATE): close the unit floor now; add tests/unit/test-validate-digest-run-pool-lines.py for the gate's run_pool parsers; closes #2281"
+    },
+    {
+      "at": "2026-11-22T13:41:12.317378+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Operator (validate c3 ESCALATE): verify also runs the new unit file for the run_pool parsers"
+    },
+    {
+      "at": "2026-11-22T14:09:38.774753+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "Operator 2026-11-22: after load analysis (#2283) drop SC-02 behavioral regressions; SC-02 by inspection; intent states validated gate rule"
+    }
+  ],
+  "rework": {
+    "rounds": 3,
+    "wall_clock_minutes": 85,
+    "decision": "notes/rework-extension-2026-11-21.md#round-3--after-validate-cycle-2-fail-run-2026-11-21-04-validate-validator"
+  },
+  "signed_task_hashes": {
+    "T-01": "a9cf4115952b85826d0a27c5c2b94a8c04169b0aebc6b8efea606b7fd4c184f8"
+  },
+  "github": {
+    "milestone": 116,
+    "parent": 2275,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2276
+    },
+    "source_issues": [
+      2253
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

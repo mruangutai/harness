@@ -1,0 +1,69 @@
+schema_version: 2
+run_id: 2026-11-21-02-validate-validator
+run_uid: 4379f24e48bc49c29eccfb1891c2ca0a
+feature: BUG-2253-hook-hang-budget-and-gate-fail-lines
+squad: validator
+host: harness-validator-lead
+status: failed
+review_sha: 21e064c9475e35a4abfdd71b5b5cdd23517c0659
+steps:
+- id: qa
+  persona: harness-qa
+  status: complete
+  verdict: FAIL
+  cycles: 1
+  dispatched_at: seq-1
+  completed_at: seq-2
+  redispatched_at: seq-3
+  recompleted_at: seq-4
+  artifact: .harness/harness/features/BUG-2253-hook-hang-budget-and-gate-fail-lines/notes/review-harness-qa-c1.md
+  evidence:
+    targeted_cases: 14
+    targeted_exit: 0
+    targeted_seconds: 6.7
+    integration_files: 88
+    integration_exit: 0
+    integration_seconds: 122.5
+    matrix_ok: false
+    unit_state: missing
+  note: Corrected c0 assurance; green suites do not discharge both SCs.
+- id: code
+  persona: harness-code-reviewer
+  status: complete
+  verdict: FAIL
+  cycles: 0
+  dispatched_at: seq-1
+  completed_at: seq-2
+  artifact: .harness/harness/features/BUG-2253-hook-hang-budget-and-gate-fail-lines/notes/review-harness-code-reviewer-c0.md
+  evidence:
+    code_grade: pass
+    grading_provenance: supplied_byte_equivalent_range
+    grading_cases: 21
+    grading_correction: grading-update.md
+- id: security
+  persona: harness-security-reviewer
+  status: complete
+  verdict: PASS
+  cycles: 0
+  dispatched_at: seq-1
+  completed_at: seq-2
+  artifact: .harness/harness/features/BUG-2253-hook-hang-budget-and-gate-fail-lines/notes/review-harness-security-reviewer-c0.md
+- id: ui
+  persona: harness-ui-reviewer
+  status: complete
+  verdict: PASS
+  cycles: 0
+  dispatched_at: seq-1
+  completed_at: seq-2
+  artifact: .harness/harness/features/BUG-2253-hook-hang-budget-and-gate-fail-lines/notes/review-harness-ui-reviewer-c0.md
+  evidence:
+    in_scope: false
+    diff_files: 14
+- id: goalcheck
+  persona: harness-pm
+  status: complete
+  verdict: FAIL
+  cycles: 0
+  dispatched_at: seq-1
+  completed_at: seq-2
+  artifact: .harness/harness/features/BUG-2253-hook-hang-budget-and-gate-fail-lines/notes/research-BUG-2253-hook-hang-budget-and-gate-fail-lines-goalcheck-validate-c0.md

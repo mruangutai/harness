@@ -1022,6 +1022,13 @@ def run_cli_cases():
 # a case's own keys win, and a case about a missing value passes it as None.
 HOOK_IDENTITY = {"harness_feature": "FEAT-90-hook-case", "harness_agent_id": "Test.Run"}
 
+# #2253: THE HANG BUDGET for hook calls whose registration or checkout metadata is a FIFO,
+# a dangling symlink or 10,000-deep JSON. A hook that blocks on one must FAIL the case, never
+# hang the suite, so the call carries a timeout. 30s is load headroom, not a performance
+# claim: a healthy call returns in ~0.1s, but the former literal 3s was exceeded by a host
+# at load ~125 alone (BUG-2187 validate cycle 2). One constant, read at call time.
+HOOK_HANG_BUDGET_S = 30
+
 
 def _governed(payload):
     return {**HOOK_IDENTITY, **payload}
@@ -3023,7 +3030,7 @@ def _replace_feature_registration(record, contents):
 def _restored_registration_return(root, record, original, agent, obj, **kwargs):
     os.remove(record)
     _write_verification_brief(record, original)
-    result = _t09_fire(root, agent, obj, timeout=3, **kwargs)
+    result = _t09_fire(root, agent, obj, timeout=HOOK_HANG_BUDGET_S, **kwargs)
     return result.returncode == 0 and _reg_module().live_claims(root, agent) == []
 
 
@@ -3056,7 +3063,7 @@ def _qa_record_read_failure_case(label, contents):
         reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
                             HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
         claim_before = reg.live_claims(root, "harness-qa")
-        result = _t09_fire(root, "harness-qa", obj, timeout=3)
+        result = _t09_fire(root, "harness-qa", obj, timeout=HOOK_HANG_BUDGET_S)
         ok = (result.returncode == 2 and "fail_first" in result.stderr
               and reg.live_claims(root, "harness-qa") == claim_before
               and _read_bytes(obj["artifact"]) == b"inspection assessment\n")
@@ -3276,8 +3283,9 @@ def _unknown_checkout_identity_case(agent, contents):
             before, obj, artifact, kwargs, original_git = _claimed_checkout_return(agent, checkout, feature_dir, owner)
             _corrupt_checkout_git(checkout, contents)
             runtime_root = checkout if contents in ("missing-owner", "unknown-admin-fifo") else owner
-            result = _t09_fire(runtime_root, agent, obj, timeout=3, **kwargs)
-            startup_ok = agent != "harness-eng-lead" or _lead_binding_result(runtime_root, timeout=3).returncode == 2
+            result = _t09_fire(runtime_root, agent, obj, timeout=HOOK_HANG_BUDGET_S, **kwargs)
+            startup_ok = (agent != "harness-eng-lead"
+                          or _lead_binding_result(runtime_root, timeout=HOOK_HANG_BUDGET_S).returncode == 2)
             ok = (startup_ok and result.returncode == 2 and _reg_module().live_claims(checkout, agent) == before
                   and _read_bytes(artifact) == b"checkout assessment\n")
             assert _restored_checkout_return(runtime_root, checkout, agent, original_git, obj, kwargs), "same job must accept after metadata restoration"
@@ -3305,8 +3313,9 @@ def _symlinked_checkout_identity_case(agent, source):
             checkout, feature_dir = _single_registered_checkout(owner, td)
             before, obj, artifact, kwargs, original_git = _claimed_checkout_return(agent, checkout, feature_dir, owner)
             pointer, original = _symlinked_git_pointer(checkout, source)
-            result = _t09_fire(checkout, agent, obj, timeout=3, **kwargs)
-            startup_ok = agent != "harness-eng-lead" or _lead_binding_result(checkout, timeout=3).returncode == 2
+            result = _t09_fire(checkout, agent, obj, timeout=HOOK_HANG_BUDGET_S, **kwargs)
+            startup_ok = (agent != "harness-eng-lead"
+                          or _lead_binding_result(checkout, timeout=HOOK_HANG_BUDGET_S).returncode == 2)
             ok = (startup_ok and result.returncode == 2 and _reg_module().live_claims(checkout, agent) == before
                   and _read_bytes(artifact) == b"checkout assessment\n")
             os.remove(pointer)
@@ -6354,6 +6363,115 @@ def _run_groups_with_sentinels(checks):
             inflight_registry.release(ROOT, feature=_SENTINEL_FEATURE, claim_id=claim_id)
 
 
+# ---------------------------------------------------------------------------------------
+# #2253. The gate's #919 refusal printed only the last 20 lines of a pooled re-run;
+# run_pool prints files in completion order, so that tail named the slowest PASSING file
+# and the failing one sat above it. (The same issue's 3s hook budget is HOOK_HANG_BUDGET_S.)
+
+def _bug2253_executable(path, source):
+    _write_verification_brief(path, source)
+    os.chmod(path, 0o755)
+    return path
+
+
+def _bug2253_stub(root, name, stdout_lines, stderr_lines, code=1):
+    """A RUN_UNIT_TESTS_BIN stand-in printing exactly these lines and exiting `code`."""
+    return _bug2253_executable(os.path.join(root, name), (
+        "#!/usr/bin/env python3\nimport sys\n"
+        f"sys.stdout.write({chr(10).join(stdout_lines + [''])!r})\n"
+        f"sys.stderr.write({chr(10).join(stderr_lines + [''])!r})\n"
+        f"sys.exit({code})\n"))
+
+
+_BUG2253_PASSING = [f"PASS test-p{i}.py" for i in range(25)]
+_BUG2253_NOTE = ("A file under the watched directory changed while the suite ran; this violates "
+                 "REQ-01. A concurrent hand edit or agent edit is indistinguishable.")
+_BUG2253_TAIL = [f"stderr tail {i}" for i in range(22)]
+
+
+def _bug2253_listed_in_order(err, expected):
+    """The `expected` lines appear once each under the one heading, in order, before the tail."""
+    head = err.find("Failing or mutated files:")
+    listed = [err.find(f"  {line}\n", head) for line in expected]
+    return (err.count("Failing or mutated files:") == 1 and head != -1
+            and -1 not in listed and listed == sorted(listed)
+            and all(err.count(f"  {line}\n") == 1 for line in expected)
+            and listed[-1] < err.find("Tail of the independent run:"))
+
+
+def _bug2253_listed_case(tmp, name, stdout_lines, stderr_lines, expected, absent):
+    """Fire the gate over a red re-run printing these lines. (ok, stderr): ok when the
+    `expected` file lines are listed in order before the unchanged tail (the last 20 lines,
+    `stderr tail 2..21`) and no `absent` text appears anywhere."""
+    r = _bug919_fire(_bug2253_stub(tmp, name, stdout_lines, stderr_lines))
+    err = r.stderr
+    tail_ok = "  stderr tail 2\n" in err and "  stderr tail 1\n" not in err
+    clean = not any(text in err for text in absent)
+    return r.returncode == 2 and _bug2253_listed_in_order(err, expected) and tail_ok and clean, err
+
+
+def _bug2253_buried_case(tmp):
+    """(gate) run_pool's FAIL/MUTATED file lines — names with spaces included — buried above
+    a 20-line passing tail are listed before the unchanged tail. A failing file's echoed
+    `FAIL <case label>` / `MUTATED …` lines are not run_pool's, and stay out."""
+    ok, err = _bug2253_listed_case(
+        tmp, "buried.py",
+        ["----- test-a.py (exit 1, 0.10s) -----", "FAIL  [x] some case: detail",
+         "MUTATED inner-echo.txt", "FAIL test-a.py",
+         "----- my test.py (exit 1, 0.20s) -----", "FAIL my test.py",
+         "FAILED-NOT-A-FILE-LINE"] + _BUG2253_PASSING
+        + ["MUTATED notes/my file.md", "MUTATED test-b.py", _BUG2253_NOTE],
+        ["----- test-e.py (exit 2, 1.00s) -----", "FAIL test-e.py"] + _BUG2253_TAIL,
+        ["FAIL test-a.py", "FAIL my test.py", "MUTATED notes/my file.md", "MUTATED test-b.py",
+         "FAIL test-e.py"],
+        ["some case", "inner-echo", "FAILED-NOT-A-FILE-LINE"])
+    return ("a red re-run names every FAIL/MUTATED file buried above the 20-line tail, "
+            "names with spaces included, once, in order, before the unchanged tail — "
+            "and no echoed case line", ok, err)
+
+
+def _bug2253_echoed_header_case(tmp):
+    """(gate) A file that echoes run_pool-shaped lines — headers it never closes, in a
+    failing and in a passing block, and a `PASS <its own name>` before its real close —
+    hides neither its own FAIL, nor a later file's FAIL, nor the MUTATED lines above
+    run_pool's note."""
+    ok, err = _bug2253_listed_case(
+        tmp, "echoed.py",
+        ["----- outer.py (exit 1, 0.30s) -----", "----- fixture.py (exit 1, 0.01s) -----",
+         "PASS outer.py", "FAIL outer.py",
+         "----- ok.py (exit 0, 0.10s) -----", "----- echoed fixture.py (exit 0, 0.00s) -----",
+         "PASS ok.py",
+         "----- later.py (exit 1, 0.40s) -----", "PASS later.py", "FAIL later.py"] + _BUG2253_PASSING
+        + ["MUTATED notes/x y.md", _BUG2253_NOTE],
+        _BUG2253_TAIL,
+        ["FAIL outer.py", "FAIL later.py", "MUTATED notes/x y.md"],
+        ["fixture.py"])
+    return ("echoed run_pool-shaped lines — unclosed headers, a same-name PASS — hide no FAIL "
+            "or MUTATED file line", ok, err)
+
+
+def _bug2253_quiet_case(tmp):
+    """(gate) A red re-run with no FAIL/MUTATED line — a runner crash — keeps the tail alone."""
+    stub = _bug2253_stub(tmp, "quiet.py", _BUG2253_PASSING, ["Traceback: runner crashed"])
+    r = _bug919_fire(stub)
+    ok = (r.returncode == 2 and "Failing or mutated files:" not in r.stderr
+          and "  Traceback: runner crashed" in r.stderr and "  PASS test-p24.py" in r.stderr)
+    return ("a red re-run with no FAIL/MUTATED line keeps the tail alone", ok, r.stderr)
+
+
+def run_bug2253_cases():
+    tmp = tempfile.mkdtemp(prefix="vd-bug2253-")
+    try:
+        rows = [_bug2253_buried_case(tmp), _bug2253_echoed_header_case(tmp), _bug2253_quiet_case(tmp)]
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    fails = 0
+    for label, ok, detail in rows:
+        print(f"{'ok  ' if ok else 'FAIL'}  [bug2253] {label}" + ("" if ok else f"\n      {detail[:600]}"))
+        fails += not ok
+    return fails
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     checks = (
@@ -6392,6 +6510,7 @@ def main(argv=None):
         run_member_expertise_authority_cases,
         run_member_expertise_f2_cases,
         run_member_expertise_committed_tamper_cases,
+        run_bug2253_cases,
     )
     # `--only <group>` runs one group by its function name. test-suite-claim-preservation.py's
     # mutant pass reads only the [bug1898] lines, and without this it paid for every group.

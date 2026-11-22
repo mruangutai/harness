@@ -1,0 +1,72 @@
+EEEEEEE
+======================================================================
+ERROR: test_echoed_case_lines_inside_a_block_are_not_files (__main__.FileLines.test_echoed_case_lines_inside_a_block_are_not_files)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.ve6vuzKav5/u/tests/unit/test-validate-digest-run-pool-lines.py", line 41, in test_echoed_case_lines_inside_a_block_are_not_files
+    self.assertEqual(vd._run_pool_file_lines(lines), ["FAIL a.py"])
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'validate_digest_run_pool_lines' has no attribute '_run_pool_file_lines'
+
+======================================================================
+ERROR: test_failing_files_listed_in_order_with_duplicates_passing_files_not (__main__.FileLines.test_failing_files_listed_in_order_with_duplicates_passing_files_not)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.ve6vuzKav5/u/tests/unit/test-validate-digest-run-pool-lines.py", line 32, in test_failing_files_listed_in_order_with_duplicates_passing_files_not
+    self.assertEqual(vd._run_pool_file_lines(lines), ["FAIL a.py", "FAIL c.py", "FAIL a.py"])
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'validate_digest_run_pool_lines' has no attribute '_run_pool_file_lines'
+
+======================================================================
+ERROR: test_names_with_spaces_are_listed (__main__.FileLines.test_names_with_spaces_are_listed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.ve6vuzKav5/u/tests/unit/test-validate-digest-run-pool-lines.py", line 36, in test_names_with_spaces_are_listed
+    self.assertEqual(vd._run_pool_file_lines(lines), ["FAIL my test.py", "MUTATED notes/my file.md"])
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'validate_digest_run_pool_lines' has no attribute '_run_pool_file_lines'
+
+======================================================================
+ERROR: test_no_echo_hides_a_genuine_failure (__main__.FileLines.test_no_echo_hides_a_genuine_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.ve6vuzKav5/u/tests/unit/test-validate-digest-run-pool-lines.py", line 47, in test_no_echo_hides_a_genuine_failure
+    self.assertEqual(vd._run_pool_file_lines(lines), ["FAIL outer.py", "FAIL later.py"])
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'validate_digest_run_pool_lines' has no attribute '_run_pool_file_lines'
+
+======================================================================
+ERROR: test_only_mutated_lines_directly_above_run_pools_note_count (__main__.FileLines.test_only_mutated_lines_directly_above_run_pools_note_count)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.ve6vuzKav5/u/tests/unit/test-validate-digest-run-pool-lines.py", line 52, in test_only_mutated_lines_directly_above_run_pools_note_count
+    self.assertEqual(vd._run_pool_file_lines(lines), ["MUTATED x.txt", "MUTATED y z.txt"])
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'validate_digest_run_pool_lines' has no attribute '_run_pool_file_lines'
+
+======================================================================
+ERROR: test_a_run_with_no_file_line_keeps_the_tail_alone (__main__.Report.test_a_run_with_no_file_line_keeps_the_tail_alone)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.ve6vuzKav5/u/tests/unit/test-validate-digest-run-pool-lines.py", line 70, in test_a_run_with_no_file_line_keeps_the_tail_alone
+    out = self.report("Traceback: runner crashed\n")
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.ve6vuzKav5/u/tests/unit/test-validate-digest-run-pool-lines.py", line 59, in report
+    vd._print_independent_run(output)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'validate_digest_run_pool_lines' has no attribute '_print_independent_run'
+
+======================================================================
+ERROR: test_buried_files_are_named_before_the_unchanged_tail (__main__.Report.test_buried_files_are_named_before_the_unchanged_tail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.ve6vuzKav5/u/tests/unit/test-validate-digest-run-pool-lines.py", line 64, in test_buried_files_are_named_before_the_unchanged_tail
+    out = self.report("\n".join(block("slow fail.py", 1) + passing) + "\n")
+  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.ve6vuzKav5/u/tests/unit/test-validate-digest-run-pool-lines.py", line 59, in report
+    vd._print_independent_run(output)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'validate_digest_run_pool_lines' has no attribute '_print_independent_run'
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.024s
+
+FAILED (errors=7)

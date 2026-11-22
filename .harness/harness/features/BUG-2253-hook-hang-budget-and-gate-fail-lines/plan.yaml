@@ -1,0 +1,45 @@
+schema: plan/1
+feature: BUG-2253-hook-hang-budget-and-gate-fail-lines
+approval:
+  date: '2026-11-21'
+  approved_by: Mike Ruangutai
+  status: approved
+status: review
+source_issues: [2253]
+lanes:
+  resolved_at: 3dd8bb677bb2936361e3952030fc24f15bf9afc6
+  rows:
+  - surface: .claude/skills/harness/bin/validate-digest.py
+    lane: main-session-direct
+    reason: DEC-174 digest gate ownership
+  - surface: tests/integration/test-validate-digest.py
+    lane: main-session-direct
+    reason: DEC-174 coupled gate tests
+  - surface: tests/integration/canonical-reader-classification.json
+    lane: main-session-direct
+    reason: DEC-174 coupled gate reader inventory
+decisions: []
+tasks:
+- id: T-01
+  title: Bound hook hangs and preserve failing-file diagnoses
+  traces: [SC-01, SC-02]
+  change_type: bugfix
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 main-session gate ownership includes validate-digest.py and coupled tests and inventory
+  depends_on: []
+  status: done
+  files:
+  - .claude/skills/harness/bin/validate-digest.py
+  - tests/integration/test-validate-digest.py
+  - tests/integration/canonical-reader-classification.json
+  - tests/unit/test-validate-digest-run-pool-lines.py
+  verify: |
+    python3 tests/integration/test-validate-digest.py --only run_bug2253_cases && python3 tests/unit/test-validate-digest-run-pool-lines.py
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2253-hook-hang-budget-and-gate-fail-lines. All relative edits stay inside it. DEC-174 forbids engineering-team execution of this gate task. Consult applicable PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md if present; all three are absent at intake. Do not invent guidance. Settled scope is /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-BUG-2253-hook-hang-budget-and-gate-fail-lines-2026-11-21.md.
+    Add regressions first in the existing test file, selected by the existing --only run_bug2253_cases group, plus tests/unit/test-validate-digest-run-pool-lines.py for the gate's parsers; the ordinary suite entrypoint stays. The literal verify must finish under 60 seconds, exit 0, with every selected case passing and no FAIL lines. Execute the SC-01 regressions against isolated exact base and fixed subjects, preserving bootstrap and sibling imports. Record exact commands, base/fix commit identities, test identities, exits, stdout and stderr as durable QA evidence. SC-01 requires a genuine defect-exposing base failure and fix pass, not setup errors, source-text assertions or unchanged base tests.
+    Define HOOK_HANG_BUDGET_S = 30 in tests/integration/test-validate-digest.py and replace all six timeout=3 arguments in _restored_registration_return, _qa_record_read_failure_case, _unknown_checkout_identity_case and _symlinked_checkout_identity_case, including both lead-binding calls. Add a rationale comment naming registration FIFO, dangling symlink and 10,000-deep JSON: blocking must fail rather than hang the test; 30 seconds is load headroom, not a performance claim. Leave every other timeout unchanged.
+    SC-02 is verified by inspection, with no behavioral regression: the six sites pass timeout=HOOK_HANG_BUDGET_S and no timeout=3 remains among them. Operator ruling 2026-11-22 after the load analysis (#2283): the 3s failures were host oversubscription by concurrent pooled suites, so test machinery tolerating load is out of scope; the hang budget is a constant change only. Keep real FIFO/symlink/deep-JSON safety cases intact. No new scripts or infrastructure.
+    In validate-digest.py check_qa_matrix_claim only on a nonzero independent re-run, combine stdout and stderr as today and collect run_pool's own file lines, preserving order and duplicates: FAIL <name> once any earlier run_pool header named that file (no echoed PASS, header or close un-names it), and the MUTATED <name> lines directly above run_pool's mutation note. If any exist print the one-line heading Failing or mutated files: then all these lines before the existing last-20-line tail. Otherwise preserve tail alone after the existing refusal. Do not change tail content, refusal code, fail-open/fail-closed policy, suite-kind selection, 1800s timeout or any other gate rule.
+    SC-01 regression uses existing RUN_UNIT_TESTS_BIN stub and genuine QA claim path. Emit multiple distinct FAIL and MUTATED file lines on stdout and stderr, all above more than 20 passing tail lines in the combined output, then exit nonzero. Assert every complete matching line appears in order before the tail, heading occurs once, tail remains unchanged and refusal status is unchanged. Add nonzero output without matching lines and assert tail-only fallback and no heading. The buried-file case must fail against exact base gate; fallback is retained safety, not claimed base-red evidence.
+    Maintain only affected existing tests/integration/canonical-reader-classification.json entries if the canonical-reader audit requires maintenance after the gate edit. No new readers or unrelated reclassification. This inventory is owned because gate edits can invalidate reader classification. Run feature-scoped route check and canonical-reader audit after edits and record necessity of maintenance. No changes to run_pool.py or run-unit-tests.py formats, other timeouts, other gate rules, bookkeeping or approvals. The in-file rationale supplies the bounded documentation update.

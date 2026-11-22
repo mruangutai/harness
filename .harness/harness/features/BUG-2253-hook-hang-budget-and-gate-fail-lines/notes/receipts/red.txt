@@ -1,0 +1,32 @@
+subject: clean detached checkout of base 3769919f155aee2013b6539ec3cf3d6ed4f9f49b (production gate unchanged); test file = the final tests (at the pin) with the six call sites reverted to timeout=3 and HOOK_HANG_BUDGET_S removed
+command: python3 tests/integration/test-validate-digest.py --only run_bug2253_cases
+gate diff vs base: ''
+exit=1
+FAIL  [bug2253] a red re-run names every FAIL/MUTATED file buried above the 20-line tail, once, in order, before the unchanged tail — and no case line
+      harness-qa reported VERDICT: PASS with suite: pass and matrix_ok: true, but an independent re-run of run-unit-tests.py at this checkout exited 1 — the gate reported evidence it did not have (i
+ok    [bug2253] a red re-run with no FAIL/MUTATED line keeps the tail alone
+FAIL  [bug2253] registration-restored passes the shared hang budget (default 30, then 0.05, 0.10)
+      observed=[3, 3, 3]
+FAIL  [bug2253] qa-record-read-failure passes the shared hang budget (default 30, then 0.05, 0.10)
+      observed=[3, 3, 3]
+FAIL  [bug2253] unknown-checkout-fire passes the shared hang budget (default 30, then 0.05, 0.10)
+      observed=[3, 3, 3]
+FAIL  [bug2253] unknown-checkout-lead-binding passes the shared hang budget (default 30, then 0.05, 0.10)
+      observed=[3, 3, 3]
+FAIL  [bug2253] symlinked-checkout-fire passes the shared hang budget (default 30, then 0.05, 0.10)
+      observed=[3, 3, 3]
+FAIL  [bug2253] symlinked-checkout-lead-binding passes the shared hang budget (default 30, then 0.05, 0.10)
+      observed=[3, 3, 3]
+FAIL  [bug2253] registration-restored: a blocked hook times out within the budget
+      outcome=returned spent=2.0122835829970427
+FAIL  [bug2253] qa-record-read-failure: a blocked hook times out within the budget
+      outcome=timeout spent=2.0095824580057524
+FAIL  [bug2253] unknown-checkout-fire: a blocked hook times out within the budget
+      outcome=FileNotFoundError spent=2.0053688749903813
+FAIL  [bug2253] unknown-checkout-lead-binding: a blocked hook times out within the budget
+      outcome=FileNotFoundError spent=2.008729458990274
+FAIL  [bug2253] symlinked-checkout-fire: a blocked hook times out within the budget
+      outcome=FileNotFoundError spent=2.004613999975845
+FAIL  [bug2253] symlinked-checkout-lead-binding: a blocked hook times out within the budget
+      outcome=FileNotFoundError spent=2.003442957997322
+13 FAILING.
