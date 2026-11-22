@@ -1,0 +1,64 @@
+schema: plan/1
+feature: BUG-2295-handoff-one-per-phase
+approval:
+  status: pending
+drafted_at: '2026-11-22T19:04:40Z'
+status: plan
+source_issues: [2295]
+lanes:
+  resolved_at: dd04e52a898109fdbe09cf5fa14e1148161734d0
+  rows:
+    - surface: .claude/skills/harness/bin/check-domain.py
+      lane: main-session-direct
+      reason: DEC-174 enforcement script changes are main-owned.
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: main-session-direct
+      reason: Keep the coupled ship-gate comment in the one direct patch task.
+    - surface: tests/integration/test-check-domain-post.py
+      lane: main-session-direct
+      reason: DEC-174 includes the enforcement regression tests.
+decisions: []
+decisions_affected:
+  - dec: DEC-174
+    disposition: keep
+    clause: it builds directly.
+    successor: none
+    reason: Main executes the enforcement patch and its coupled regression directly.
+  - dec: DEC-225
+    disposition: keep
+    clause: with no panel and no goal-check run
+    successor: none
+    reason: Retain the one-task patch lane with the operator-confirmed DEC-174 direct carve-out.
+  - dec: DEC-252
+    disposition: keep
+    clause: A shipped feature is checked for nothing
+    successor: none
+    reason: Correct the obsolete INV-17 comment without altering the ship prerequisite or shipped history.
+  - dec: DEC-254
+    disposition: keep
+    clause: 'Each row has exactly five fields:'
+    successor: none
+    reason: Declare the existing binding decisions explicitly without amending them.
+tasks:
+  - id: T-01
+    title: Refuse cycle-suffixed handoff writes and correct the ship comment
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves enforcement scripts and their regression tests to main; the coupled comment remains in this single bounded patch.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-domain.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - tests/integration/test-check-domain-post.py
+    verify: |
+      set -eu
+      python3 tests/integration/test-check-domain-post.py
+    intent: |
+      Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2295-handoff-one-per-phase on branch feat/BUG-2295-handoff-one-per-phase. Keep every relative-path edit inside that worktree. Main owns this complete DEC-174 task, not an engineering lead. Read this feature BRIEF and the operator-settled grilling at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-handoff-one-per-phase-2026-11-22.md. PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are read inputs; all three are absent at intake. Do not invent guidance or substitute unrelated documents. Source issue 2295 is historical symptom evidence; its claim about INV-17 at done is superseded by DEC-252.
+      First add regression cases beside _handoff_grammar_cases and _handoff_pointer_cases in tests/integration/test-check-domain-post.py, reusing check_domain_support helpers including fire_write_payload and _handoff_text and the existing Edit/post-edit harness. Assert that valid handoff-build-c1.md, handoff-validate-c12.md and another phase cycle name are refused with the specific unsuffixed notes/handoff-<phase>.md path and instruction to supersede it. Exercise both Write payloads and Edit reconstruction, including an existing suffixed target. Assert canonical handoff-build.md and handoff-validate.md remain accepted with valid contents. Retain cap, missing-section and Done when coverage and assert suffixed names refuse even when all content checks pass. Demonstrate the new filename assertions fail against pre-fix production code for the intended reason, then implement the fix; record fail-first output for qa. Do not create tests/unit/test-check-domain.py; it does not exist.
+      In .claude/skills/harness/bin/check-domain.py enforce the terminal -c followed by one or more digits immediately before .md in the existing handoff shape rule. Refuse these paths and tell the author to supersede the corresponding notes/handoff-<phase>.md. Keep RE_HANDOFF broad enough to route these filenames into the rule and into Edit reconstruction; narrowing the routing regex to exclude them would bypass enforcement. Preserve every existing handoff cap, required-section and Done when check and existing unrelated filenames. Do not scan, rename, delete or rewrite historical notes.
+      In .claude/skills/harness/bin/gh-sync.py correct only the stale cmd_ship comment asserting INV-17 demands notes/handoff-validate.md at done. Explain that ship retains this preventive prerequisite and the shared main-session-direct exemption, while DEC-252 removes shipped features from check-state subjects. Keep the executable cmd_ship predicate, exemption call, diagnostics and side effects unchanged. This comment is the bounded documentation correction; no broader docs or policy rewrite is needed.
+      Preserve already-shipped FEAT-2225 cycle c2/c3/c5 and FEAT-2229 cycle c3/c4/c5 notes byte-for-byte and at their existing paths. Do not key ship on recorded validate runs, accept cycle-suffixed names, change note contents or comprehension requirements, touch issue 2294 prune, add dependencies, create a public interface or widen scope. Existing rules and DEC-174, DEC-225, DEC-252 and DEC-254 remain in force with no DEC amendment.
+      After implementation run the literal verify from the PRODUCT checkout; expected result under 60 seconds is exit 0 with every case passing and no FAIL lines. Main owns this production verification, not PM intake. Supply qa fail-first and final evidence for SC-01 and SC-02 and reviewer pinned comparisons for SC-03 and SC-04 against baseline dd04e52a. If scope becomes unbounded or requires a new public interface, stop and report rather than silently expand.

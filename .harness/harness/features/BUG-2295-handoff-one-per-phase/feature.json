@@ -1,0 +1,36 @@
+{
+  "feature_id": "BUG-2295-handoff-one-per-phase",
+  "branch": "feat/BUG-2295-handoff-one-per-phase",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:00:50+00:00",
+      "tokens": 40422,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-patch-product/digest.md",
+        "sha256": "bfba6046ea043edb3b14aa1845a5f504a16cc56350ef85640a329aa9f57f72b7"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:06:35+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T19:00:50+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "The cause is known: the convention is documented but the handoff write rule never enforced it. The diff is bounded to the existing rule, its test and a stale comment, and it tightens a rule rather than adding a surface."
+    }
+  ],
+  "mission": "patch"
+}
