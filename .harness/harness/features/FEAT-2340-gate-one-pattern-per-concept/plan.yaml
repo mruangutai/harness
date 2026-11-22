@@ -136,7 +136,7 @@ tasks:
     execution_agent: harness-documentor
     execution_reason: Documentation consult-when fits but each guidance path resolves to NOBODY under DEC-179; Main executes directly.
     depends_on: []
-    status: ready
+    status: done
     files:
       - {path: .agents/skills/harness-simplify/references/angle-reuse.md, quote: 'Flag work that re-implements something the tree already has.'}
       - {path: .agents/skills/harness-simplify/references/angle-simplification.md, quote: 'Flag unnecessary complexity the change adds.'}
@@ -168,7 +168,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 requires Main execution; execution_agent records expertise only, using FEAT-2274 spelling, not authorization for team dispatch.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - {path: .claude/skills/harness/bin/check-domain.py, quote: 'def _handoff_cycle_problems(rel):'}
     verify: |
