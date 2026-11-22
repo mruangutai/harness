@@ -1603,7 +1603,8 @@ production command, the commit rule and the trust boundary; in short:
   does. `kinds: []` is refused, never read as every kind.
 - **Which commit.** A validate run's receipt is at `review_sha` or a descendant changing only the
   feature's own directory; a fix run's (`fix-c<N>-validator` with `harness_mission: fix`) is at
-  the trusted checkout's clean HEAD, a descendant of `review_sha`.
+  the trusted checkout's HEAD, a descendant of `review_sha`, with the tree clean outside the
+  feature's own directory.
 - **Refusal and repair.** An invalid receipt refuses the PASS at exit 2, naming every bad file
   and the exact command that rewrites it; there is no fallback run. QA's grant covers
   `runs/*/qa/manifest-*.json` only.

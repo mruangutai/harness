@@ -40,10 +40,11 @@ Running the matrix is yours; `validate-digest.py` no longer runs it again. A `PA
 `suite: pass` and `matrix_ok: true` is accepted only with a runner receipt for every satisfied
 claimed active `unit`/`integration` kind, at your validator-lead run's
 `runs/<run-id>/qa/manifest-<kind>.json`, written by DEC-255's production runner command from your
-managed review-pin checkout (a fix run: the fixed tip, clean). An empty `kinds:` is refused,
-never read as "all". Each kind runs once; a receipt is never hand-edited. A refusal names every
-bad receipt and the exact repair command — run it, never route around it. The steps and who
-commits what: `<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-qa.md` § Runner receipts.
+managed review-pin checkout (a fix run: the fixed tip, clean outside the feature's own
+directory). An empty `kinds:` is refused, never read as "all". Each kind runs once; a receipt is
+never hand-edited. A refusal names every bad receipt and the exact repair command — run it, never
+route around it. The steps and who commits what:
+`<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-qa.md` § Runner receipts.
 
 **Candidate versus installed.** When the diff changes a gate or hook, the copy enforcing your own
 run is the installed control-plane one, not the candidate at the pin. Record the host launcher's

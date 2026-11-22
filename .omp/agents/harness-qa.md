@@ -57,8 +57,8 @@ You still run the matrix; `validate-digest.py` no longer runs it again. An uncon
    `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/runs/<run-id>/qa/`.
 2. From your managed review-pin checkout, run each satisfied active `unit`/`integration` kind
    **once** with DEC-255's production runner command, writing that absolute
-   `qa/manifest-<kind>.json`. In a fix run the checkout is the fixed tip, clean, and the run is
-   the fix run (`fix-c<N>-validator`).
+   `qa/manifest-<kind>.json`. In a fix run the checkout is the fixed tip, clean outside the
+   feature's own directory (DEC-255), and the run is the fix run (`fix-c<N>-validator`).
 3. Keep the tested commit and the runner's full output in your note, beside the named SC and
    fail-first evidence. A receipt is the runner's own file: **never hand-edit one green**.
 4. A refusal names every bad receipt and the exact command that repairs it. Run that command

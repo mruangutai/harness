@@ -98,12 +98,13 @@ orchestrator records it as the new `review_sha` on return. A `form` finding stil
 regression, is `must_fix` for the orchestrator's next round inside the rework ruling; a new finding
 CLASS — scope change, emergent SC — is `open_questions`, the one thing that reaches the operator.
 
-In a fix run QA records its receipts at the fixed tip, clean, in this fix run's own
-`runs/fix-c<N>-validator/qa/`. The check recognizes a fix run only when that registered run id
-and the dispatch's `harness_mission: fix` agree, and then accepts a code-changing descendant of
-`review_sha` that equals the checkout's HEAD (DEC-255). A fix run does not yet pass end to end: a
-code reviewer whose reviewed head is the fixed tip is still refused against the recorded pin
-(DEC-255's open question, #2356) — report that refusal, never work around it.
+In a fix run QA records its receipts at the fixed tip, clean outside the feature's own directory,
+in this fix run's own `runs/fix-c<N>-validator/qa/`. The check recognizes a fix run only when
+that registered run id and the dispatch's `harness_mission: fix` agree, and then accepts a
+code-changing descendant of `review_sha` that equals the checkout's HEAD (DEC-255). A fix run
+does not yet pass end to end: a code reviewer whose reviewed head is the fixed tip is still
+refused against the recorded pin (DEC-255's open question, #2356) — report that refusal, never
+work around it.
 
 ## Assessing — what you actually add
 

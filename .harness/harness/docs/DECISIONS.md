@@ -8428,9 +8428,12 @@ registered run: QA runs under the validate or fix team.
 - **Fix run:** the registered run id has the shape `fix-c<N>-validator` and the dispatch-forwarded
   `harness_mission` is `fix`. Both must be present and agree, and neither is ever read from the
   digest, a receipt or anything the lead writes. `tested_commit` must equal the trusted
-  checkout's own `git rev-parse HEAD`, with a clean working tree, and descend from `review_sha`.
-  Code changes are allowed, because that fixed tip becomes the next pin. QA records the fix run's
-  receipts at that tip, in the fix run's own `runs/<fix-run-id>/qa/`.
+  checkout's own `git rev-parse HEAD` and descend from `review_sha`, and the working tree must be
+  clean outside the feature's own directory: no tracked modification and no untracked, unignored
+  file anywhere else. Dirt inside that directory is expected, because the live run record and
+  notes sit there during the run, and it cannot change what the suite ran at HEAD. Code changes
+  are allowed, because that fixed tip becomes the next pin. QA records the fix run's receipts at
+  that tip, in the fix run's own `runs/<fix-run-id>/qa/`.
 
 Coverage, exit, all-pass and empty-claim rules are the same in both.
 
