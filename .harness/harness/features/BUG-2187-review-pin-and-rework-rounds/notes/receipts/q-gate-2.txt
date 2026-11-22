@@ -1,0 +1,6 @@
+# Q-GATE-2 disposition evidence (main session, quiet host)
+host load during QA c2: ~125 (QA note); during these runs: 12.92, 30.94, 29.83
+command: python3 tests/integration/test-validate-digest.py   (at pin edd9098c production) -> exit 0, TimeoutExpired 0
+command: same file in a clean detached checkout of base 5bd9efd4 -> exit 0, TimeoutExpired 0
+validate-digest.py imports check_state.brief, code_grade, gate_policy; this diff changes only check_state/feature_record.py and feature-record.py and adds no import.
+The failing callers (:3026, :3059, :3462) spawn validate-digest --hook with timeout=3 against an empty temp root: no feature, so neither INV-33 nor spend runs.
