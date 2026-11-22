@@ -1,3 +1,7 @@
+# The dev-only TypeScript toolchain (package.json, bun.lock). Installed by
+# `bun install --frozen-lockfile`; the manifest, lockfile and tsconfig.json stay tracked.
+node_modules/
+
 # OS
 .DS_Store
 

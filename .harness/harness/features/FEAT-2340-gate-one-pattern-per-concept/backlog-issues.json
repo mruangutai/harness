@@ -1,0 +1,78 @@
+{
+  "chore:Group F feature tree/artifact prefix: one grammar with named variants across check-domain, harness_boundary, feature_corpus, check_state/runner, check-instruction-paths, handoff_done_when, validate-digest": {
+    "number": 2360,
+    "typed": true
+  },
+  "chore:Group J feature.json destination matchers: check-domain, feature_json_write, factory_decompose (deliberately broader), harness_boundary": {
+    "number": 2361,
+    "typed": true
+  },
+  "chore:Group Y plan.yaml destination matchers: check-domain, plan_merge/guards, harness_boundary": {
+    "number": 2362,
+    "typed": true
+  },
+  "chore:Group O observation note: reconcile check-domain route guard (any .md) with observations-merge (harness-[a-z0-9-]+.md)": {
+    "number": 2363,
+    "typed": true
+  },
+  "chore:Group E expertise path/tier matchers: check-expertise, check-instruction-paths, expertise-merge, merge-gate, harness_boundary": {
+    "number": 2364,
+    "typed": true
+  },
+  "chore:Decide Group S run state.yaml bootstrap respelling (check-domain/harness_boundary): keep the exception or allow a shared source (DEC-234)": {
+    "number": 2365,
+    "typed": true
+  },
+  "chore:Group G run digest matchers: check-domain/harness_boundary identical pair plus validate-digest root-capturing variant": {
+    "number": 2366,
+    "typed": true
+  },
+  "chore:Decide the feature-slug respelling (check-domain _FEATURE_ID_RE vs dispatch-guard FEATURE_RE): keep the bootstrap exception or allow a shared source (DEC-234); consolidate the looser feature-worktree/feature_corpus pair": {
+    "number": 2367,
+    "typed": true
+  },
+  "chore:Identical distill-run token regex in feature-record, dispatch-guard, validate-digest; validate/fix token overlap with prune-run-evidence": {
+    "number": 2368,
+    "typed": true
+  },
+  "chore:Identical shell-assignment prefix regex in bash-write-guard and harness_yaml": {
+    "number": 2369,
+    "typed": true
+  },
+  "chore:Identical perspective-heading pattern text in check_state/brief and handoff_done_when (flags differ by search scope)": {
+    "number": 2370,
+    "typed": true
+  },
+  "chore:Identical expertise-section regex in check-expertise and expertise-merge": {
+    "number": 2371,
+    "typed": true
+  },
+  "chore:Identical persona matcher in expertise-merge and inject-expertise; segment matchers differ in first-character constraint": {
+    "number": 2372,
+    "typed": true
+  },
+  "chore:DEC-id matchers in check-skill-refs, harness_yaml, gen-decisions-index: consolidate preserving anchoring/capture differences": {
+    "number": 2373,
+    "typed": true
+  },
+  "chore:Short-name renames outside check-domain.py (SEV, OPS, SEP, RAW, _WHAT, PIN, ...) per the model-the-domain naming rule": {
+    "number": 2374,
+    "typed": true
+  },
+  "enhancement:Mechanical lint for flag aliases and duplicate matchers per path concept (deferred by FEAT-2340)": {
+    "number": 2375,
+    "typed": true
+  },
+  "bug:qa digest contract cannot express a signed regression-only automated SC without fail_first (validate-digest.py:1619-1624)": {
+    "number": 2376,
+    "typed": true
+  },
+  "bug:handoff_done_when.py brief-sc resolver matches only 'SC-NN:' lines, never a by-perspective '- SC-NN (perspective):' line (:167)": {
+    "number": 2377,
+    "typed": true
+  },
+  "chore:Run FEAT-2340 distill after a host restart (expertise_apply registered): fresh HARNESS-MISSION distill re-judging against then-current main; pm's preserved judgements at .harness/harness/features/FEAT-2340-gate-one-pattern-per-concept/notes/research-FEAT-2340-gate-one-pattern-per-concept-distill-product.md, run record 167d2f4e; check G-04 against the recorded baseline before re-applying": {
+    "number": 2384,
+    "typed": true
+  }
+}

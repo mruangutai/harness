@@ -1,0 +1,73 @@
+schema_version: 2
+run_id: r-20261122-1-plan-product
+feature: FEAT-2257-typescript-typecheck
+squad: product
+host: harness-product-lead
+status: complete
+run_uid: 910fbe31e3934f0faf5ea3020f5c1917
+steps:
+  - id: draft
+    persona: harness-pm
+    depends_on: []
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/research-typecheck-plan.md
+    evidence:
+      plan_check: exit-0
+  - id: scope
+    persona: harness-code-reviewer
+    depends_on: [draft]
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-3
+    completed_at: seq-4
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/review-harness-code-reviewer-plan-c1.md
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: [draft]
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-3
+    completed_at: seq-4
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/runs/r-20261122-1-plan-product/panel-c1.md
+  - id: design
+    persona: harness-ui-reviewer
+    depends_on: [draft]
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-3
+    completed_at: seq-4
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/review-harness-ui-reviewer-plan-c1.md
+  - id: apply
+    persona: harness-pm
+    depends_on: [scope, should-not-exist, design]
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-5
+    completed_at: seq-6
+    redispatched_at: seq-9
+    recompleted_at: seq-10
+    redispatches: 2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/research-panel-apply.md
+    evidence:
+      tool_pause: BUG-2349-released-6657f194
+      scope_ruling: ALTITUDE-1-approved-Main-advisor
+      plan_check: exit-0-4-tasks-18-anchors
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: [apply]
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-11
+    completed_at: seq-12
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/research-FEAT-2257-typescript-typecheck-goalcheck-plan.md
+    evidence:
+      perspectives: [operator-pass, code-maintainer-pass, reader-pass]

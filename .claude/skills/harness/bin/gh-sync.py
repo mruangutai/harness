@@ -2562,9 +2562,11 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     # checked HERE, not only in the sweep that happens to call it. A `git pull` fires the
     # post-merge sweep the moment a feature's PR merges — while its validate may still be in
     # flight — and the cards it moves to Done and the milestone it closes cannot be unwritten.
-    # INV-17 demands notes/handoff-validate.md at done; refusing before the first write is the
-    # only ordering under which that invariant is preventive rather than forensic. The DEC-174
-    # exemption is the same predicate INV-17 applies, imported rather than restated.
+    # Under DEC-252 a shipped feature is never an INV-17 subject (SEAM_NOTES['done'] is
+    # empty), so check-state never asks for notes/handoff-validate.md after done. This check
+    # is therefore the sole, preventive prerequisite: it refuses before the first irreversible
+    # write. The DEC-174 main-session-direct exemption is the shared handoff_policy predicate,
+    # imported rather than restated.
     #
     # A REFUSAL (exit 1), NOT A SKIP, for the reason given above the worktree check: the sweep
     # reads a SKIP as "nothing went wrong" and removes the worktree.

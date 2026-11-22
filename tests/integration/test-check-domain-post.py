@@ -906,6 +906,51 @@ def _handoff_worktree_cases(results, root):
         ))
 
 
+def _handoff_cycle_suffix_cases(results, root, notes, valid):
+    """BUG-2295: one note per phase, superseded, never appended (DEC-159). A
+    cycle-suffixed name is refused even when every content check passes, through Write
+    and through Edit reconstruction; canonical names stay accepted."""
+    for phase in ("build", "validate", "plan"):
+        target = os.path.join(notes, f"handoff-{phase}.md")
+        _record_handoff_result(
+            results, f"handoff canonical {phase} accepted",
+            fire_write_payload(root, target, _handoff_text(valid)), 0)
+    for stem, phase in (("build-c1", "build"), ("validate-c12", "validate"),
+                        ("plan-c305", "plan"), ("Build-c1", "build"),
+                        ("build-C1", "build"), ("VALIDATE-C12", "validate")):
+        _handoff_cycle_refusal_case(results, root, notes, stem, phase, valid)
+
+
+def _record_cycle_refusal(results, name, result, phase):
+    """The refusal names the canonical note LOWERCASED, compared case-sensitively —
+    _record_handoff_result folds case, which would let `notes/handoff-Build.md` pass."""
+    canonical = f"notes/handoff-{phase}.md"
+    _record_handoff_result(results, name, result, 2, (canonical, "supersede"))
+    results.append((f"{name} names {canonical} exactly", canonical in result.stderr,
+                     result.stderr.strip()[:180]))
+
+
+def _handoff_cycle_refusal_case(results, root, notes, stem, phase, valid):
+    suffixed = os.path.join(notes, f"handoff-{stem}.md")
+    _record_cycle_refusal(
+        results, f"handoff {stem} Write refused",
+        fire_write_payload(root, suffixed, _handoff_text(valid)), phase)
+    with open(suffixed, "w") as f:
+        f.write(_handoff_text(valid))
+    before = open(suffixed, "rb").read()
+    edit = {"tool_name": "Edit",
+            "tool_input": {"file_path": suffixed,
+                           "old_string": "Scope: build complete",
+                           "new_string": "Scope: build complete and verified"}}
+    _record_cycle_refusal(
+        results, f"handoff {stem} Edit refused",
+        subprocess.run([HOOK], input=json.dumps(edit), capture_output=True,
+                       text=True, env=_env(root)), phase)
+    results.append((f"handoff {stem} refused Edit leaves file unchanged",
+                    open(suffixed, "rb").read() == before, "file bytes changed"))
+    os.unlink(suffixed)
+
+
 def _report_handoff_results(results):
     fails = 0
     for name, ok, detail in results:
@@ -929,6 +974,7 @@ def run_handoff_done_when():
         _handoff_validator_exception_case(results, root, valid)
         _handoff_existing_edit_cases(results, root, target, missing, valid)
         _handoff_line_cap_cases(results, root, target, valid)
+        _handoff_cycle_suffix_cases(results, root, notes, valid)
         _handoff_worktree_cases(results, root)
     return _report_handoff_results(results)
 

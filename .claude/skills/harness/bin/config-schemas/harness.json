@@ -221,7 +221,8 @@
         "status": {"enum": ["active", "excluded", "unresolved", "locally_run"]},
         "excluded_because": {"$ref": "#/$defs/text"},
         "signed": {"$ref": "#/$defs/decision"},
-        "runner_note": {"$ref": "#/$defs/text"}
+        "runner_note": {"$ref": "#/$defs/text"},
+        "classifies_tests": {"type": "boolean"}
       },
       "patternProperties": {"^_": true},
       "additionalProperties": false,

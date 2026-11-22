@@ -1,0 +1,191 @@
+schema: plan/1
+feature: FEAT-2340-gate-one-pattern-per-concept
+approval:
+  date: '2026-11-22'
+  approved_by: operator
+  status: approved
+drafted_at: '2026-11-22T20:17:23Z'
+status: done
+source_issues: [2340]
+panel:
+  last_run: r-20261122-1-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - disposition: resolved
+    id: PF-fee65e0b3e6f0b4b7dae160d9a142676
+    kind: substance
+    reader: scope
+    resolved_by: T-02
+    severity: med
+    summary: T-02 verification loses timeout receipts and lacks an aggregate deadline.
+  - disposition: resolved
+    id: PF-bb5500c92fdee2e4ba87141aaf2396cb
+    kind: form
+    reader: scope
+    resolved_by: T-02
+    severity: med
+    summary: SC-03 claims existing multi-cycle regression coverage that the cited suite does not contain.
+  - disposition: resolved
+    id: PF-8e525443bca2a4b93860ade43e50b604
+    kind: form
+    reader: scope
+    resolved_by: T-02
+    severity: low
+    summary: decisions_affected omits keep dispositions for three directly refactored contracts.
+  - disposition: resolved
+    id: PF-26d7495059a59d5eccd61711c5bd0888
+    kind: substance
+    reader: should-not-exist
+    resolved_by: T-02
+    severity: med
+    summary: T-02 verify hand-rolls a parallel suite runner duplicating run_pool.py and losing its private-TMPDIR isolation
+  - disposition: resolved
+    id: PF-ef5d4f47d2be59676374c1e07a072321
+    kind: substance
+    reader: should-not-exist
+    resolved_by: T-02
+    severity: med
+    summary: SHAPE_REFUSAL_LABEL misnames the POST-mode value 'OVER BUDGET (already written)', which is not a refusal
+  - disposition: resolved
+    id: PF-1fef2d0cfe0c6465f0c9c7475072923c
+    kind: form
+    reader: should-not-exist
+    resolved_by: T-02
+    severity: low
+    summary: Ship-time backlog-routing sentence duplicated in T-02 intent; BRIEF Out of scope already owns it
+lanes:
+  resolved_at: e239d88156c508c948d49cd31238ea13b3b39865
+  rows:
+    - surface: .agents/skills/harness-simplify/references/angle-reuse.md
+      lane: main-session-direct
+      reason: DEC-179 resolver returns NOBODY.
+    - surface: .agents/skills/harness-simplify/references/angle-simplification.md
+      lane: main-session-direct
+      reason: DEC-179 resolver returns NOBODY.
+    - surface: .agents/skills/harness-craft/references/model-the-domain.md
+      lane: main-session-direct
+      reason: DEC-179 resolver returns NOBODY.
+    - surface: .claude/skills/harness/bin/check-domain.py
+      lane: main-session-direct
+      reason: DEC-174 requires Main to execute gate changes.
+decisions: []
+decisions_affected:
+- clause: the artifact under change is the artifact doing the checking
+  dec: DEC-174
+  disposition: keep
+  reason: Main executes the gate refactor; planning alone is self-hosted.
+  successor: none
+- clause: matcher that drifts from the guard is the failure mode
+  dec: DEC-179
+  disposition: keep
+  reason: Resolve every file through the existing guard and declare unowned guidance main-session-direct without a second route matcher.
+  successor: none
+- clause: Four independent readers is the load-bearing part.
+  dec: DEC-195
+  disposition: keep
+  reason: Extend existing angle questions without changing procedure, ownership or reader count.
+  successor: none
+- clause: The prologue itself is unchanged and stays copied.
+  dec: DEC-234
+  disposition: keep
+  reason: Naming guidance preserves justified bootstrap respellings and no prologue changes.
+  successor: none
+- clause: A principle that shaped a decision is named in the artifact under
+  dec: DEC-235
+  disposition: keep
+  reason: Extend the existing model-the-domain leaf without changing frontmatter, generated index, delivery or citation contract; research records principles applied.
+  successor: none
+- clause: superseded never appended
+  dec: DEC-159
+  disposition: keep
+  reason: Preserve phase handoff naming and cycle supersession semantics.
+  successor: none
+- clause: PreToolUse` on `Write` is unchanged and still blocks.
+  dec: DEC-180
+  disposition: keep
+  reason: Preserve pre prevention and post reporting with a mode-neutral shape diagnostic label.
+  successor: none
+- clause: single-writer route denial that covers every other `plan.yaml` write.
+  dec: DEC-182
+  disposition: keep
+  reason: Preserve legacy conversion guard order and case-sensitive route versus case-insensitive shape denial.
+  successor: none
+tasks:
+  - id: T-01
+    title: Land prevention questions and the single-home naming rule
+    traces: [SC-01, SC-04]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_agent: harness-documentor
+    execution_reason: Documentation consult-when fits but each guidance path resolves to NOBODY under DEC-179; Main executes directly.
+    depends_on: []
+    status: done
+    files:
+      - {path: .agents/skills/harness-simplify/references/angle-reuse.md, quote: 'Flag work that re-implements something the tree already has.'}
+      - {path: .agents/skills/harness-simplify/references/angle-simplification.md, quote: 'Flag unnecessary complexity the change adds.'}
+      - {path: .agents/skills/harness-craft/references/model-the-domain.md, quote: "Name the structure in the domain's own vocabulary"}
+    verify: |
+      python3 - <<'PY'
+      from pathlib import Path
+      checks = {
+          '.agents/skills/harness-simplify/references/angle-reuse.md': ['Does the diff add a second matcher, constant or helper for a concept that already has one?'],
+          '.agents/skills/harness-simplify/references/angle-simplification.md': ['Does any new name hide behaviour behind an alias or abbreviation?'],
+          '.agents/skills/harness-craft/references/model-the-domain.md': ['Spell flags out', 'One pattern per path concept', 'Name constants for what they mean', 'bootstrap'],
+      }
+      for name, needles in checks.items():
+          text = Path(name).read_text()
+          for needle in needles:
+              assert needle in text, (name, needle)
+      print('PASS: all prevention clauses present')
+      PY
+    intent: |
+      PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2340-gate-one-pattern-per-concept. Main executes directly; every relative edit stays in this feature worktree. Applicable product docs/spec.md, docs/decisions.md and docs/architecture.md were absent at planning; report absence and do not invent them. AGENTS.md explicitly maps specification and decisions to .harness/harness/docs/SPEC.md section 4.2 and .harness/harness/docs/DECISIONS.md; consult DEC-174, DEC-179, DEC-195, DEC-234 and DEC-235 there. Read Destination and Settled in /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-gate-naming-one-pattern-2026-11-22.md and sections 1-4 and 7 of this feature's notes/inventory-Inv2340.md; section 5 is outside scope.
+      Edit only the three files in files. Extend angle-reuse.md code-surface guidance with the exact question Does the diff add a second matcher, constant or helper for a concept that already has one? Mention regex as an example of matcher and retain existing cost/evidence requirements. Extend angle-simplification.md code-surface guidance with the exact question Does any new name hide behaviour behind an alias or abbreviation? Use a flag alias as the example and retain the anchoring-semantics warning.
+      Beside model-the-domain.md's existing naming paragraph add three bullets beginning Spell flags out, One pattern per path concept, and Name constants for what they mean. Require re.IGNORECASE rather than _I; named groups for variants; and semantic names rather than construction details. In the same leaf explicitly permit justified bootstrap respellings when importing would break repair independence or no import seam exists. This leaf is the naming bullets' single home; do not edit codebase-design or copy the bullets elsewhere. Do not touch frontmatter or generated indexes, create any implementation file or document, or add mechanical lint. These guidance changes are the durable documentation change record, with no separate changelog.
+      Run verify verbatim within 60 seconds, requiring exit 0 and the PASS line. This presence check is not a new lint or a substitute for pinned-content inspection. Commit prevention before T-02 starts.
+  - id: T-02
+    title: Refactor same-file gate matchers without changing decisions
+    traces: [SC-02, SC-03, SC-04]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 requires Main execution; execution_agent records expertise only, using FEAT-2274 spelling, not authorization for team dispatch.
+    depends_on: [T-01]
+    status: done
+    files:
+      - {path: .claude/skills/harness/bin/check-domain.py, quote: 'def _handoff_cycle_problems(rel):'}
+    verify: |
+      python3 -u - <<'CHECK_DOMAIN_POOL'
+      import glob, os, sys
+      suites = sorted(glob.glob('tests/integration/test-check-domain*.py'))
+      assert suites, 'No check-domain integration suites discovered'
+      os.environ.pop('HARNESS_AGENT_TYPE', None)
+      os.environ['PYTHONUNBUFFERED'] = '1'
+      os.execv(sys.executable, [sys.executable, '-u', '.claude/skills/harness/bin/run_pool.py', *suites])
+      CHECK_DOMAIN_POOL
+    intent: |
+      PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2340-gate-one-pattern-per-concept. Main alone executes after committed T-01; every relative edit stays inside this worktree. Applicable product docs/spec.md, docs/decisions.md and docs/architecture.md were absent at planning; report absence and do not invent replacements. AGENTS.md explicitly maps specification and decisions to .harness/harness/docs/SPEC.md section 4.2 and .harness/harness/docs/DECISIONS.md; consult DEC-159, DEC-174, DEC-179, DEC-180, DEC-182, DEC-195, DEC-234 and DEC-235. Read harness-tdd-enforcement before editing. This structural scaffolding refactor changes no behavior; the configured empty floor is TDD-exempt. Integration evidence is added above that floor; there are no check-domain unit suites. Do not add or rewrite tests.
+      Read Settled in /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-gate-naming-one-pattern-2026-11-22.md and inventory sections 1-4 and 7 in this feature's notes/inventory-Inv2340.md. Change only .claude/skills/harness/bin/check-domain.py. Before edits run verify and retain exit, stdout and stderr receipts in existing run evidence; repeat the exact verify after edits. An unchanged green baseline is expected, not a fail-first claim. Any behavioral divergence fails the refactor rather than authorizing test changes.
+      Delete _I; replace all eight executable uses with explicit re.IGNORECASE wherever compilation remains. The removed cycle compilation's flag semantics move into RE_HANDOFF; do not keep a duplicate solely to count eight replacements. Update the explanatory comment that mentions _I. Preserve RE_STATE_YAML and RE_RUN_DIGEST pattern literals, declaration-line placement on their original physical lines, and aligned assignment spacing exactly, changing only their trailing flag arguments. Do not wrap or realign the declaration block. Correct the stale test-check-domain.py comment to tests/integration/test-check-domain-artifact.py.
+      Merge RE_HANDOFF and _RE_HANDOFF_CYCLE into one RE_HANDOFF for the existing full feature-notes path grammar with re.IGNORECASE, named non-greedy phase and optional cycle groups. _handoff_cycle_problems uses RE_HANDOFF and returns no cycle problem unless cycle matched; canonical is notes/handoff- plus phase plus .md, lowercased. Preserve the exact refusal text and route behavior: handoff-x-c1-c2.md yields notes/handoff-x-c1.md; mixed-case phase/cycle yields the same lowercased canonical diagnostic; non-cycle handoffs remain accepted. Delete the obsolete cycle pattern. Keep the RE_HANDOFF name so all route comments stay true.
+      Define one plan.yaml pattern-text constant with named feature_dir using the existing path grammar and compile it twice: case-sensitive _PLAN_YAML_ROUTE_RE, and re.IGNORECASE RE_PLAN_YAML. Document the intentional consumer flag asymmetry locally; legacy_plan_conversion_guard reads feature_dir by name. Do not change the mixed-case Plan.yaml beside PLAN.md refusal, route order or accepted path languages.
+      Rename live VERB and its diagnostic consumer to SHAPE_DIAGNOSTIC_LABEL, retaining the expression and exact BLOCKED versus OVER BUDGET (already written) bytes. Do not edit fixtures/prior-check-domain.fixture. Preserve _FEATURE_ID_RE byte-for-byte equal to dispatch-guard.py FEATURE_RE and keep its bootstrap comment. Leave _FEATURE_DIR_RE, STAMP, SWEEP_WINDOW_S and RE_RUN_IDENTITY including its fallback untouched. RE_FEATURE_JSON, RE_STATE_MD and RE_CLAUDE_MD change only their _I flag arguments. No other imports, symbols, files, tests, documents, cross-file consolidation, external short renames or mechanical lint changes are authorized.
+      Run verify verbatim under Main's host-supervised 55-second aggregate deadline, with unbuffered Python output. Require exit 0 and inspect the full attributed output for no FAIL lines, including failures printed by suites that return zero. No suite timings were measured; do not promise completion within the deadline. run_pool.py emits completed-suite exit and combined stdout/stderr receipts as futures complete, but buffers each suite until completion and has no internal timeout. On a deadline failure retain available completed-suite output plus the host timeout receipt; identify incomplete suites as unverified, and explicitly state that their buffered partial output is unavailable. Timeout or FAIL output fails verification and must be remediated without adding files, rewriting tests or silently extending the deadline. Use no second runner or shell timeout wrapper.
+      Existing post, approval, artifact and grant suites provide single-cycle canonical-name, mixed-case exit-status, literal-equality and strict-feature-id regression evidence. They do not establish multi-cycle canonicalization or legacy-versus-shape diagnostic ordering. Supply pinned-content reviewer pointers at final review_sha for those SC-02 edges: compare the non-greedy phase/optional-cycle matching and canonical construction to baseline for handoff-x-c1-c2.md and mixed-case variants, and inspect both plan matcher flags and guard order for mixed-case Plan.yaml beside PLAN.md. Supply SC-02 and SC-04 baseline comparisons against e239d88156c508c948d49cd31238ea13b3b39865; working-tree success is not committed-content proof.

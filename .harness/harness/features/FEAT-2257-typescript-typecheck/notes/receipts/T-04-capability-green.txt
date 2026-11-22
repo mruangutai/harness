@@ -1,0 +1,17 @@
+# T-04 capability green (precondition BEFORE any typecheck status flip), HEAD a9bcb3f9ce4e82a3b41b9f202790e837720bfa6a + working tree; code_grade.py sha256 cac739f539200c5b; live typecheck status: unresolved
+## python3 tests/unit/test-code-grade.py
+PASS test-code-grade
+# rc=0
+## python3 tests/unit/test-suite-layout.py
+# rc=0
+PASS lines: 51
+PASS classifies_tests: hygiene skips a flagged kind's broad patterns 
+PASS classifies_tests: hygiene still refuses the same patterns when the flag is absent 
+PASS classifies_tests: offenders ignore production source a flagged kind detects 
+PASS classifies_tests: offenders report it when the flag is absent 
+PASS classifies_tests: the control candidate inherits the flag 
+## activation reproduction on a config copy (flag false)
+config copy: typecheck active, cmd set, classifies_tests false
+offenders: []
+hygiene_uncertified: []
+positive control candidate: .harness/tools/test_dir/gen.py

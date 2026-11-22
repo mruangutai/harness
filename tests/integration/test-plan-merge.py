@@ -5073,6 +5073,64 @@ def case_2102_panel_readers_hold_the_four_slots():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def _apply_to_inline_empty(base, proposal_text):
+    """Apply `proposal_text` over `base`; (result, reloaded plan or None, text after)."""
+    root, plan = fixture_root()
+    try:
+        write(plan, base)
+        proposal = os.path.join(root, "proposal.yaml")
+        write(proposal, proposal_text)
+        r = run_apply(plan, proposal)
+        after = read(plan)
+        try:
+            loaded = yaml.safe_load(after)
+        except yaml.YAMLError:
+            loaded = None
+        return r, loaded, after
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2349_inline_empty_decisions_gains_items():
+    """#2349: a base `decisions: []` accepts a proposal adding D-01. The splice kept the
+    inline head and appended block items under it, so apply refused its own merge (exit 5)."""
+    base = render_plan(ids(1, 2)) + "\ndecisions: []\n"
+    r, loaded, after = _apply_to_inline_empty(
+        base, "decisions:\n" + decision_block("D-01", "Adopt x"))
+    check("2349: apply adds a decision to an inline-empty decisions list (exit 0)",
+          r.returncode == 0, f"rc={r.returncode} {r.stdout}{r.stderr}")
+    check("2349: the written plan reloads with D-01 and its fields, tasks untouched",
+          isinstance(loaded, dict)
+          and loaded.get("decisions") == [{"id": "D-01", "choice": "Adopt x"}]
+          and [t["id"] for t in loaded.get("tasks") or []] == ids(1, 2), repr(after))
+
+
+def case_2349_inline_empty_tasks_gains_items():
+    """#2349: the same defect on the other union key — a base `tasks: []` gains T-01."""
+    base = ("schema: plan/1\nfeature: FEAT-99-fixture\n\n" + DEFAULT_APPROVAL
+            + "\ntasks: []\n")
+    r, loaded, after = _apply_to_inline_empty(base, "tasks:\n" + task_block("T-01"))
+    check("2349: apply adds a task to an inline-empty tasks list (exit 0)",
+          r.returncode == 0, f"rc={r.returncode} {r.stdout}{r.stderr}")
+    check("2349: the written plan reloads with T-01 and its fields",
+          isinstance(loaded, dict)
+          and loaded.get("tasks") == [{"id": "T-01", "title": "Task T-01", "status": "ready"}],
+          repr(after))
+
+
+def case_2349_nonempty_flow_base_still_refused():
+    """#2349 control: the fix is for an EMPTY inline list only. A non-empty flow-style base
+    list still cannot be aligned one dash per item, so apply refuses (exit 5) and writes
+    nothing."""
+    base = render_plan(ids(1, 2)) + "\ndecisions: [{id: D-01, choice: a}]\n"
+    r, _loaded, after = _apply_to_inline_empty(
+        base, "decisions:\n" + decision_block("D-02"))
+    check("2349: a non-empty flow-style decisions base is still refused (exit 5)",
+          r.returncode == 5 and "not one dash per item" in r.stdout + r.stderr,
+          f"rc={r.returncode} {r.stdout}{r.stderr}")
+    check("2349: the refused base is byte identical", after == base, repr(after))
+
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -5207,6 +5265,9 @@ CASES = (
     case_2096_no_brief_signature_means_no_plan_signature,
     case_2096_a_line_break_in_the_signer_stays_on_one_brief_line,
     case_2102_panel_readers_hold_the_four_slots,
+    case_2349_inline_empty_decisions_gains_items,
+    case_2349_inline_empty_tasks_gains_items,
+    case_2349_nonempty_flow_base_still_refused,
 )
 
 
