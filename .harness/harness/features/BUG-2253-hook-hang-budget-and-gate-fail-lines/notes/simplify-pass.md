@@ -25,3 +25,18 @@ Two of the simplify-pass changes above were unsound and are superseded:
 - **Readiness dropped as a pass condition → restored.** The blocked-hook rows again require the child to have written its pid. The one-shot timer is replaced by a polling watchdog: from 2s until the probe ends it kills the child the moment its pid appears, so a late-starting child under a timeout that ignores the budget cannot survive. A containment case proves this with a 2.5s-delayed child under a 60s timeout.
 
 Call-only timing stays (validated as sound). Receipts: `receipts/red-c2.*` and `receipts/green-c2.*`, with exact subject SHAs, a subject hash and separate streams. The cycle-1 receipts are left unchanged.
+
+## Rework 2 after validate cycle 1 regate (FAIL, run 2026-11-21-03-validate-validator)
+
+The operator extended the budget to 2 rounds / 70 min (`notes/rework-extension-2026-11-21.md`).
+
+- **SC-01, echoed headers.** A file's echoed header-shaped line used to open a block that never closed, so the real `FAIL` was lost. Now:
+  - A `PASS`/`FAIL <name>` line pops back to its own header (`_closes_failed_block`), which discards stray echoed headers.
+  - `MUTATED` lines are taken as the run directly above run_pool's mutation note (`_run_pool_mutated_indexes`), not by block depth.
+  - Regression: `_bug2253_echoed_header_case`, with unclosed echoed headers inside a failing block and inside a passing block.
+- **SC-02, readiness-independent containment.** At the 2s deadline the watchdog now kills every direct child of the test process, with no pid handshake. The probe runs one hook at a time, so that child is the probed one. Readiness stays a pass condition of the block rows. Regression: `_bug2253_containment_cases`, with a 2.5s-delayed child and a never-ready child under a 60s timeout. Both must die before readiness, within 5s.
+- Receipts:
+  - `receipts/red-c3.*`: exact base, 14 failing.
+  - `receipts/discriminate-c3.*`: the cycle-1 gate 6cbdc417 under the final tests; only the echoed-header case fails.
+  - `receipts/green-c3.*`: fix b228c3a2, clean; the group and the full file pass.
+- The unit-kind advisory is filed as #2281, per the operator.
