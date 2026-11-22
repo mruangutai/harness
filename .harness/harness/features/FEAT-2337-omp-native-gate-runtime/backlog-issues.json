@@ -1,0 +1,6 @@
+{
+  "bug:plan-merge.py apply reports APPLIED/0 while its own check cannot load the written verify scalar": {
+    "number": 2344,
+    "typed": true
+  }
+}

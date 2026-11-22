@@ -64,5 +64,40 @@
       "reason": "Cause known, files nameable, but B adds enforcement surfaces: QA receipt contract, gate timeouts, a new #919 decision; operator-confirmed"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2337-omp-native-gate-runtime/.harness/harness/features/FEAT-2337-omp-native-gate-runtime/notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "283192d46ba48be4856ce32164de22deb21156eff8f1b6fb3b1de04d2bf2c6c3",
+    "T-02": "fdf90126b5ad7067ab57d28daf7fdcc0b40eb5410a41100e35500f51c40ee656",
+    "T-03": "f5b66fa1e8ca3f421882324d8844ac13664b37e78bbb92b1fdefef235949c54a"
+  },
+  "github": {
+    "milestone": 124,
+    "parent": 2345,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2346,
+      "T-02": 2347,
+      "T-03": 2348
+    },
+    "source_issues": [
+      2337
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

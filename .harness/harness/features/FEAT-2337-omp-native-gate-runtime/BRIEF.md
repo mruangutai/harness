@@ -69,6 +69,6 @@ Every governed Bash call starts five Python gates synchronously and sequentially
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike Ruangutai (delegated to fable-advisor)
+date: 2026-11-22
