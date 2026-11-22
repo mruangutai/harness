@@ -6391,20 +6391,25 @@ _BUG2253_NOTE = ("A file under the watched directory changed while the suite ran
 _BUG2253_TAIL = [f"stderr tail {i}" for i in range(22)]
 
 
-def _bug2253_listed_case(tmp, name, stdout_lines, stderr_lines, expected, absent):
-    """Fire the gate over a red re-run printing these lines. True when the `expected` file
-    lines appear once each under the one heading, in order, before the unchanged tail (its
-    last 20 lines); no `absent` text appears anywhere."""
-    r = _bug919_fire(_bug2253_stub(tmp, name, stdout_lines, stderr_lines))
-    err = r.stderr
+def _bug2253_listed_in_order(err, expected):
+    """The `expected` lines appear once each under the one heading, in order, before the tail."""
     head = err.find("Failing or mutated files:")
     listed = [err.find(f"  {line}\n", head) for line in expected]
-    return (r.returncode == 2 and err.count("Failing or mutated files:") == 1 and head != -1
+    return (err.count("Failing or mutated files:") == 1 and head != -1
             and -1 not in listed and listed == sorted(listed)
             and all(err.count(f"  {line}\n") == 1 for line in expected)
-            and listed[-1] < err.find("Tail of the independent run:")
-            and "  stderr tail 2\n" in err and "  stderr tail 1\n" not in err
-            and not any(text in err for text in absent)), err
+            and listed[-1] < err.find("Tail of the independent run:"))
+
+
+def _bug2253_listed_case(tmp, name, stdout_lines, stderr_lines, expected, absent):
+    """Fire the gate over a red re-run printing these lines. (ok, stderr): ok when the
+    `expected` file lines are listed in order before the unchanged tail (the last 20 lines,
+    `stderr tail 2..21`) and no `absent` text appears anywhere."""
+    r = _bug919_fire(_bug2253_stub(tmp, name, stdout_lines, stderr_lines))
+    err = r.stderr
+    tail_ok = "  stderr tail 2\n" in err and "  stderr tail 1\n" not in err
+    clean = not any(text in err for text in absent)
+    return r.returncode == 2 and _bug2253_listed_in_order(err, expected) and tail_ok and clean, err
 
 
 def _bug2253_buried_case(tmp):
