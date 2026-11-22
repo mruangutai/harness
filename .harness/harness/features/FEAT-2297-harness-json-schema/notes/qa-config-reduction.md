@@ -392,8 +392,17 @@ fails.
 run, which includes this file against a version-3 owner checkout, is the authoritative evidence for
 this case, and ship requires it green. The local red is recorded as pre-merge environment state,
 not waived. Pre-upgrading the shared main checkout was rejected: other live sessions depend on it,
-and an upgrade is triggered per project, never as a side effect of another run. CI run: recorded
-in the ship record once green.
+and an upgrade is triggered per project, never as a side effect of another run.
+
+**Discharged.** PR #2395 CI run
+[45080316265](https://github.com/mruangutai/harness/actions/runs/45080316265) ended `success`
+at head `be1a0f99`, which is review_sha `15d67484` plus a ledger-only re-pin commit. Every job
+passed, including `PASS test-corpus-real-owner.py` (shard 4) and `PASS test-harness-config-readers.py`
+(shard 1); no file failed. The earlier run, 45079815601, was red on two defects that local checks
+missed: T-10 at 51 DEC-182 items, and the readers test's module loader under CI's Python. Both are
+fixed in `15d67484`. Advisor ruling #7 (under the operator's delegation) disposed this post-validation
+delta without another validator run, conditional on this green run. That discharges
+`fix-c1-validator`'s sole must-fix, so its FAIL verdict is not the record's last word.
 
 Earlier evidence in this run was superseded and repeated. One integration run was invalidated
 (`MUTATED harness_config.py`) by an edit made during it. Later runs found three real defects,

@@ -237,6 +237,13 @@
       "kind": "amendment",
       "decision": "T-10.verify",
       "reason": "Same command as a one-line scalar instead of a literal block: T-10 was 51 machine-field lines, over DEC-182's 50 (CI plan-route gate). No semantic change."
+    },
+    {
+      "at": "2026-11-22T22:57:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "fix-c1-validator FAIL discharged by green PR CI run 45080316265",
+      "reason": "Sole must_fix was green PR CI incl. test-corpus-real-owner.py; run 45080316265 success at be1a0f99 (review 15d67484 + re-pin). Advisor ruling #7: no re-validation for the test-loader/depends_on delta."
     }
   ],
   "mission": "plan",
