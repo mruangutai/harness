@@ -6370,25 +6370,27 @@ def _run_groups_with_sentinels(checks):
 # host load (~125) alone exceeded; the budget is now one constant, and a real hang must
 # still die inside it.
 
-def _bug2253_stub(root, name, stdout_lines, stderr_lines, code=1):
-    path = os.path.join(root, name)
-    with open(path, "w") as f:
-        f.write("#!/usr/bin/env python3\nimport sys\n"
-                f"sys.stdout.write({chr(10).join(stdout_lines + [''])!r})\n"
-                f"sys.stderr.write({chr(10).join(stderr_lines + [''])!r})\n"
-                f"sys.exit({code})\n")
+def _bug2253_executable(path, source):
+    _write_verification_brief(path, source)
     os.chmod(path, 0o755)
     return path
 
 
+def _bug2253_stub(root, name, stdout_lines, stderr_lines, code=1):
+    """A RUN_UNIT_TESTS_BIN stand-in printing exactly these lines and exiting `code`."""
+    return _bug2253_executable(os.path.join(root, name), (
+        "#!/usr/bin/env python3\nimport sys\n"
+        f"sys.stdout.write({chr(10).join(stdout_lines + [''])!r})\n"
+        f"sys.stderr.write({chr(10).join(stderr_lines + [''])!r})\n"
+        f"sys.exit({code})\n"))
+
+
 _BUG2253_BURIED = ["FAIL test-a.py", "MUTATED test-b.py", "MUTATED test-d.py", "FAIL test-e.py"]
-
-
 _BUG2253_PASSING = [f"PASS test-p{i}.py" for i in range(25)]
 
 
 def _bug2253_listed_before_tail(err):
-    """Every buried line appears once under the one heading, in order, before the tail."""
+    """Every buried file line appears once under the one heading, in order, before the tail."""
     head = err.find("Failing or mutated files:")
     listed = [err.find(f"  {line}\n", head) for line in _BUG2253_BURIED]
     return (err.count("Failing or mutated files:") == 1 and head != -1
@@ -6397,18 +6399,19 @@ def _bug2253_listed_before_tail(err):
 
 
 def _bug2253_buried_case(tmp):
-    """(gate) Failing and mutated files buried above a 20-line passing tail, on stdout and
-    stderr, are listed before the unchanged tail; a `FAILED…` line is not a file line."""
+    """(gate) run_pool's FAIL/MUTATED file lines buried above a 20-line passing tail, on
+    stdout and stderr, are listed before the unchanged tail. A failing file's own echoed
+    `FAIL <case label>` lines, and a `FAILED…` word, are not file lines and stay out."""
     stub = _bug2253_stub(tmp, "buried.py",
-                         ["----- test-a.py (exit 1, 0.10s) -----", "FAIL test-a.py",
-                          "MUTATED test-b.py", "FAILED-NOT-A-FILE-LINE"] + _BUG2253_PASSING,
+                         ["----- test-a.py (exit 1, 0.10s) -----", "FAIL  [x] some case: detail",
+                          "FAIL test-a.py", "MUTATED test-b.py", "FAILED-NOT-A-FILE-LINE"] + _BUG2253_PASSING,
                          ["MUTATED test-d.py", "FAIL test-e.py"] + [f"stderr tail {i}" for i in range(22)])
     r = _bug919_fire(stub)
     ok = (r.returncode == 2 and _bug2253_listed_before_tail(r.stderr)
-          and "FAILED-NOT-A-FILE-LINE" not in r.stderr
+          and "some case" not in r.stderr and "FAILED-NOT-A-FILE-LINE" not in r.stderr
           and "  stderr tail 2\n" in r.stderr and "  stderr tail 1\n" not in r.stderr)
     return ("a red re-run names every FAIL/MUTATED file buried above the 20-line tail, "
-            "once, in order, before the unchanged tail", ok, r.stderr)
+            "once, in order, before the unchanged tail — and no case line", ok, r.stderr)
 
 
 def _bug2253_quiet_case(tmp):
@@ -6421,35 +6424,44 @@ def _bug2253_quiet_case(tmp):
 
 
 class _Bug2253Stop(Exception):
-    """Raised by a recording double once the call under test has been observed."""
+    """Raised by the recording double once the budgeted call has been observed."""
 
 
-@contextlib.contextmanager
-def _bug2253_globals(**names):
-    """Rebind this module's globals for the block, restoring every one afterwards."""
-    g = globals()
-    saved = {name: g.get(name, _Bug2253Stop) for name in names}
-    g.update(names)
-    try:
-        yield
-    finally:
-        for name, value in saved.items():
-            if value is _Bug2253Stop:
-                g.pop(name, None)
-            else:
-                g[name] = value
+def _bug2253_patched(**names):
+    """This module's globals rebound for a block. An unknown name raises, so a misspelled
+    collaborator can never leave the real fixture function running."""
+    from unittest import mock
+    return mock.patch.multiple(sys.modules[__name__], **names)
+
+
+def _bug2253_budget(seconds):
+    """HOOK_HANG_BUDGET_S rebound to `seconds`. Created if absent, so a tree that never
+    defined the constant fails per site (literal observed, hang not cut short) rather than
+    crashing the group."""
+    from unittest import mock
+    return mock.patch.object(sys.modules[__name__], "HOOK_HANG_BUDGET_S", seconds, create=True)
 
 
 def _bug2253_fake_result(code=2):
     return subprocess.CompletedProcess([], code, "", "")
 
 
+def _bug2253_doubles(target, budgeted):
+    """`target`'s budgeted call goes to `budgeted`; its unbudgeted control call passes
+    (exit 0); the other hook call — budgeted, run first at the lead-binding sites — returns
+    the refusal (exit 2) those functions expect."""
+    other = "_lead_binding_result" if target == "_t09_fire" else "_t09_fire"
+    return {target: lambda *a, timeout=None, **k: (budgeted(*a, timeout=timeout, **k)
+                                                   if timeout is not None else _bug2253_fake_result(0)),
+            other: lambda *a, **k: _bug2253_fake_result(2)}
+
+
 def _bug2253_site_drivers(tmp):
-    """(site, run, collaborators) for the six hook-call sites: `run()` drives the REAL
-    enclosing function; `collaborators` stub only its fixture work, so the target call is
-    the one the function itself makes."""
+    """(site, run, collaborators, target) for the six hook-call sites. `run()` drives the
+    REAL enclosing function; `collaborators` stub only its fixture work; `target` names the
+    budgeted call (`_t09_fire` or `_lead_binding_result`) the function itself makes."""
     record = os.path.join(tmp, "record.json")
-    open(record, "w").write("{}")
+    _write_verification_brief(record, "{}")
     reg = type("Reg", (), {"claim_run_start": lambda *a, **k: None,
                            "live_claims": lambda *a, **k: []})()
     checkout = {"_append_root": lambda: (tmp, None), "_remove_append_root": lambda root: None,
@@ -6460,35 +6472,28 @@ def _bug2253_site_drivers(tmp):
     qa = {"_t09_root": lambda: tempfile.mkdtemp(dir=tmp),
           "_qa_registered_inspection_return": lambda root: (record, {"artifact": record}),
           "_replace_feature_registration": lambda *a: None, "_reg_module": lambda: reg}
+    unknown = lambda: _unknown_checkout_identity_case("harness-eng-lead", "x")
+    symlinked = lambda: _symlinked_checkout_identity_case("harness-eng-lead", "caller")
     return [
-        ("registration-restored", lambda: _restored_registration_return(tmp, record, b"{}", "harness-qa", {}),
-         {}, "_t09_fire"),
+        ("registration-restored",
+         lambda: _restored_registration_return(tmp, record, b"{}", "harness-qa", {}), {}, "_t09_fire"),
         ("qa-record-read-failure", lambda: _qa_record_read_failure_case("probe", b"{"), qa, "_t09_fire"),
-        ("unknown-checkout-fire", lambda: _unknown_checkout_identity_case("harness-eng-lead", "x"),
-         checkout, "_t09_fire"),
-        ("unknown-checkout-lead-binding", lambda: _unknown_checkout_identity_case("harness-eng-lead", "x"),
-         checkout, "_lead_binding_result"),
-        ("symlinked-checkout-fire", lambda: _symlinked_checkout_identity_case("harness-eng-lead", "caller"),
-         checkout, "_t09_fire"),
-        ("symlinked-checkout-lead-binding", lambda: _symlinked_checkout_identity_case("harness-eng-lead", "caller"),
-         checkout, "_lead_binding_result"),
+        ("unknown-checkout-fire", unknown, checkout, "_t09_fire"),
+        ("unknown-checkout-lead-binding", unknown, checkout, "_lead_binding_result"),
+        ("symlinked-checkout-fire", symlinked, checkout, "_t09_fire"),
+        ("symlinked-checkout-lead-binding", symlinked, checkout, "_lead_binding_result"),
     ]
 
 
 def _bug2253_observed_timeout(run, collaborators, target):
-    """The `timeout` the enclosing function passes to `target`. Every call before the
-    budgeted one returns a passing control; the budgeted one is recorded and stops the run."""
+    """The `timeout` the enclosing function passes to `target`'s budgeted call."""
     seen = []
 
     def record(*args, timeout=None, **kwargs):
-        if timeout is None:
-            return _bug2253_fake_result(0)
         seen.append(timeout)
         raise _Bug2253Stop()
 
-    other = "_lead_binding_result" if target == "_t09_fire" else "_t09_fire"
-    doubles = {target: record, other: lambda *a, **k: _bug2253_fake_result(2 if k.get("timeout") else 0)}
-    with _bug2253_globals(**collaborators, **doubles):
+    with _bug2253_patched(**collaborators, **_bug2253_doubles(target, record)):
         try:
             run()
         except _Bug2253Stop:
@@ -6503,33 +6508,32 @@ def _bug2253_budget_observation_cases(tmp):
     for site, run, collaborators, target in _bug2253_site_drivers(tmp):
         observed = [_bug2253_observed_timeout(run, collaborators, target)]
         for budget in (0.05, 0.10):
-            with _bug2253_globals(HOOK_HANG_BUDGET_S=budget):
+            with _bug2253_budget(budget):
                 observed.append(_bug2253_observed_timeout(run, collaborators, target))
         rows.append((f"{site} passes the shared hang budget (default 30, then 0.05, 0.10)",
                      observed == [30, 0.05, 0.10], f"observed={observed}"))
     return rows
 
 
-_BUG2253_BLOCKER = ("#!/usr/bin/env python3\nimport os, sys, time\n"
+_BUG2253_BLOCKER = ("#!/usr/bin/env python3\nimport os, time\n"
                     "open(os.environ['BUG2253_READY'], 'w').write(str(os.getpid()))\n"
                     "time.sleep(3600)\n")
 
 
 def _bug2253_blocking_validate(tmp):
     """A VALIDATE path whose hook AND sibling digest_destination.py block forever after
-    signalling readiness: the launched command is the only thing replaced."""
+    writing their pid: the launched command is the only thing replaced."""
     bin_dir = os.path.join(tmp, "blocking-bin")
     os.makedirs(bin_dir, exist_ok=True)
     for name in ("validate-digest.py", "digest_destination.py"):
-        path = os.path.join(bin_dir, name)
-        open(path, "w").write(_BUG2253_BLOCKER)
-        os.chmod(path, 0o755)
+        _bug2253_executable(os.path.join(bin_dir, name), _BUG2253_BLOCKER)
     return os.path.join(bin_dir, "validate-digest.py")
 
 
 def _bug2253_watchdog(ready, seconds=2.0):
-    """Kill the blocked child if the call under test has not timed it out by `seconds`, so
-    a missing timeout fails this probe instead of hanging the suite."""
+    """Kill the blocked child (its pid is in `ready`) if the call has not timed it out by
+    `seconds`: a site whose timeout ignores the shared budget then fails this probe with
+    `outcome=returned` instead of waiting out a literal of its own."""
     import signal, threading
 
     def kill():
@@ -6543,45 +6547,51 @@ def _bug2253_watchdog(ready, seconds=2.0):
 
 
 def _bug2253_block_probe(tmp, run, collaborators, target, budget=1.0):
-    """(outcome, elapsed, child was ready) for the REAL `target` launching a child that
-    blocks, with the shared budget rebound to `budget`. Only the budgeted call is real; an
-    unbudgeted control call the function makes first passes, as in the observation double.
-    `outcome` is "timeout", "returned", or the name of whatever else the run raised."""
+    """(outcome, seconds inside the real call) for the REAL `target` launching a child that
+    blocks, with the shared budget rebound to `budget`. Only the call is timed, so fixture
+    setup and host load before it never count against the budget. `outcome` is "timeout",
+    "returned", or the name of whatever else the run raised.
+
+    `TimeoutExpired` is itself the proof of a genuine hang: only subprocess.run raises it,
+    and only for a child still running at the budget — a child that failed to start would
+    have exited instead. The pid file exists for the watchdog, not as a pass condition."""
     from unittest import mock
     ready = os.path.join(tmp, f"ready-{target}-{time.monotonic_ns()}")
-    real = globals()[target]
-    other = "_lead_binding_result" if target == "_t09_fire" else "_t09_fire"
-    doubles = {
-        target: lambda *a, timeout=None, **k: (real(*a, timeout=timeout, **k) if timeout is not None
-                                               else _bug2253_fake_result(0)),
-        other: lambda *a, **k: _bug2253_fake_result(2 if k.get("timeout") else 0)}
+    real, spent = globals()[target], []
+
+    def timed(*args, **kwargs):
+        start = time.monotonic()
+        try:
+            return real(*args, **kwargs)
+        finally:
+            spent.append(time.monotonic() - start)
+
     timer = _bug2253_watchdog(ready)
-    start = time.monotonic()
     outcome = "returned"
     try:
-        with _bug2253_globals(**collaborators, **doubles, HOOK_HANG_BUDGET_S=budget,
-                              VALIDATE=_bug2253_blocking_validate(tmp)), \
+        with _bug2253_patched(**collaborators, **_bug2253_doubles(target, timed),
+                              VALIDATE=_bug2253_blocking_validate(tmp)), _bug2253_budget(budget), \
                 mock.patch.dict(os.environ, {"BUG2253_READY": ready}):
             run()
     except subprocess.TimeoutExpired:
         outcome = "timeout"
-    except Exception as exc:  # the probe reports it; a non-timeout is this case's failure
+    except Exception as exc:  # reported in the row; a non-timeout is this case's failure
         outcome = type(exc).__name__
     finally:
         timer.cancel()
-    return outcome, time.monotonic() - start, os.path.exists(ready)
+    return outcome, spent[0] if spent else None
 
 
 def _bug2253_block_cases(tmp):
     """(budget) At every site a hook that really blocks dies inside the budget (1s, plus
-    0.5s of scheduling tolerance), and the child had started: a genuine hang, not a launch
-    failure. A site with no timeout is killed by the 2s watchdog and fails here."""
+    0.5s to kill and reap). A site that ignores the shared budget is killed by the 2s
+    watchdog instead and fails with `outcome=returned`."""
     rows = []
     for site, run, collaborators, target in _bug2253_site_drivers(tmp):
-        outcome, elapsed, ready = _bug2253_block_probe(tmp, run, collaborators, target)
+        outcome, spent = _bug2253_block_probe(tmp, run, collaborators, target)
         rows.append((f"{site}: a blocked hook times out within the budget",
-                     outcome == "timeout" and ready and elapsed < 1.5,
-                     f"outcome={outcome} ready={ready} elapsed={elapsed:.2f}s"))
+                     outcome == "timeout" and spent is not None and spent < 1.5,
+                     f"outcome={outcome} spent={spent}"))
     return rows
 
 

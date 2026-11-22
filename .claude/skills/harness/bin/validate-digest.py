@@ -2492,13 +2492,18 @@ def check_qa_matrix_claim(agent, obj, payload):
     return 2
 
 
+_RUN_POOL_FILE_LINE = re.compile(r"(?:FAIL|MUTATED) \S+")
+
+
 def _print_independent_run(output):
     """The red re-run's evidence: every FAIL/MUTATED file line, then the last 20 lines.
 
     #2253: run_pool prints files in completion order, so the tail shows the slowest file,
-    which usually PASSED; the failing ones sit above it. Name them first."""
+    which usually PASSED; the failing ones sit above it. Name them first. Only run_pool's
+    own one-token `FAIL <file>` / `MUTATED <file>` lines count: a failing file's echoed
+    output carries `FAIL <case label>` lines of its own, which are not files."""
     lines = output.splitlines()
-    named = [line for line in lines if line.startswith(("FAIL ", "MUTATED "))]
+    named = [line for line in lines if _RUN_POOL_FILE_LINE.fullmatch(line)]
     if named:
         print("Failing or mutated files:", file=sys.stderr)
         for line in named:
