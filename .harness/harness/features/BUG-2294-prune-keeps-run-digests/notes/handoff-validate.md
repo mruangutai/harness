@@ -1,4 +1,4 @@
-# Handoff — BUG-2294-prune-keeps-run-digests, validate → ship — written at 7a24bb70c01aafb358ef709805e70f9f9c0fbe58, seq-2
+# Handoff — BUG-2294-prune-keeps-run-digests, validate → ship — written at 7a24bb70c01aafb358ef709805e70f9f9c0fbe58, seq-3
 
 ## Next
 
