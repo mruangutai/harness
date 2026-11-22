@@ -1,0 +1,66 @@
+schema: plan/1
+feature: BUG-2349-plan-merge-inline-empty-union
+approval:
+  date: '2026-11-22'
+  approved_by: fable-advisor (delegated by Mike Ruangutai)
+  status: approved
+drafted_at: '2026-11-22T20:10:42Z'
+status: review
+source_issues: [2349]
+lanes:
+  resolved_at: e239d88156c508c948d49cd31238ea13b3b39865
+  rows:
+    - surface: .claude/skills/harness/bin/plan_merge/union.py
+      lane: main-session-direct
+      reason: DEC-174 enforcement writer carve-out
+    - surface: tests/integration/test-plan-merge.py
+      lane: main-session-direct
+      reason: DEC-174 includes enforcement tests
+decisions: []
+decisions_affected: []
+tasks:
+  - id: T-01
+    title: Repair inline-empty union head selection and prove round-trips
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 forbids execution through the enforcement writer being changed
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/plan_merge/union.py
+    - tests/integration/test-plan-merge.py
+    - tests/unit/test-plan-merge-union-head.py
+    verify: |
+      set -eu
+      : "${BUG2349_TOOL_ROOT:?Set to the fixed checkout before merge and merged owner checkout after merge}"
+      cd "$BUG2349_TOOL_ROOT"
+      git rev-parse HEAD
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-plan-merge.py
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-plan-merge-union-head.py
+      python3 - <<'PY'
+      import os, pathlib, subprocess, sys, tempfile, yaml
+      tool = pathlib.Path(os.environ['BUG2349_TOOL_ROOT']).resolve() / '.claude/skills/harness/bin/plan-merge.py'
+      with tempfile.TemporaryDirectory(prefix='bug2349-repro-') as tmp:
+          root = pathlib.Path(tmp)
+          subprocess.run(['git', 'init', '-q', str(root)], check=True)
+          target = root / '.harness/features/FEAT-9-x/plan.yaml'
+          target.parent.mkdir(parents=True)
+          target.write_text('decisions: []\n')
+          proposal = root / 'proposal.yaml'
+          proposal.write_text('decisions:\n- id: D-01\n  choice: x\n')
+          result = subprocess.run([sys.executable, str(tool), 'apply', '--file', str(target), '--proposal', str(proposal)], cwd=root, capture_output=True, text=True)
+          print(result.stdout, end=''); print(result.stderr, end='', file=sys.stderr)
+          assert result.returncode == 0, result.returncode
+          loaded = yaml.safe_load(target.read_text())
+          assert loaded['decisions'] == [{'id': 'D-01', 'choice': 'x'}], loaded
+          assert yaml.safe_load(yaml.safe_dump(loaded)) == loaded
+          print('BUG-2349 scratch round-trip PASS:', loaded)
+      PY
+    intent: |
+      PRODUCT checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2349-plan-merge-inline-empty-union. All edits, including edits delegated by main, remain inside this feature worktree. Product read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent at intake; report that missing guidance rather than inventing content or substituting Harness documents for product guidance. The settled intake is /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-plan-merge-inline-empty-union-2026-11-22.md.
+      This is a main-session-direct DEC-174 task, not permission for a governed build agent to execute changes. Limit the entire implementation/test diff to the two owned files; do not perform adjacent cleanup, change another verb/refusal/formatting contract, or edit FEAT-2257. Record the bounded change and receipts in existing feature notes rather than expanding production documentation scope.
+      First add separate case_* CLI regression coverage in tests/integration/test-plan-merge.py using its check, render_plan, run_apply and fixture_root helpers. For each base key decisions: [] and tasks: [], supply a proposal with a new valid item, assert exit 0, reload the written YAML and assert the item and its fields survived. Demonstrate each case fails against the pre-fix union.py at e239d88156c508c948d49cd31238ea13b3b39865, preserving raw red receipts before changing production. Add explicit non-empty flow-style base decisions: [a] coverage asserting exit 5 and the alignment refusal. Register the new cases in the existing runner.
+      In _union_key_head select the proposal key head when base_item_ranges is empty and prop_item_ranges is non-empty. Otherwise retain existing base-first key-head selection, proposal fallback and absent-key behavior. Do not relax _aligned_items or rewrite _merge_union_key. Confirm both inline-empty cases go green and the non-empty flow-style refusal remains green. QA applies the configured bugfix matrix including any applicable unit floor as well as this integration regression.
+      Run the literal verify block after the fix with BUG2349_TOOL_ROOT set to this worktree. Preserve exit status, command, checkout SHA, stdout/stderr and reloaded value in feature evidence. This runs a distinct fresh scratch-repo reproduction of issue 2349, not merely the suite. Expected result is suite exit 0 without failed checks and scratch round-trip PASS. Keep the focused verify under 60 seconds; do not silently omit any required proof.
+      Ship obligation owned by main: after merge rerun the same literal verify block with BUG2349_TOOL_ROOT explicitly set to the surviving merged owner checkout, never the removed worktree. Preserve a second receipt identifying the merged tool SHA and scratch round-trip. Do not claim SC-04 complete on tests alone or on the pre-merge receipt only. At review inspect the pinned source and implementation/test diff against e239d88156c508c948d49cd31238ea13b3b39865 for SC-03. No panel or goal-check is added to this patch.
