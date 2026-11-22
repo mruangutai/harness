@@ -66,6 +66,6 @@ Maintainers can merge TypeScript changes without a compiler checking the OMP ext
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: fable-advisor (delegated by Mike Ruangutai)
+date: 2026-11-22

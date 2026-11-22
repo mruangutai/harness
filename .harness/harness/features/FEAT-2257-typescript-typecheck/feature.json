@@ -32,5 +32,44 @@
       "reason": "The cause is known and the files can be named, but a new CI check plus an active test kind that QA's gate reads is a new enforcement surface, so the patch rule's third condition fails."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "777829c91c64b492c9b047443efb9c2e33655aa35af7458e6940e3a17ba0cb2c",
+    "T-02": "9e64d51226145bcafb683a753be04e758f8a304f968440a778d34957cb5a8ce9",
+    "T-03": "281133e5af0023fe8c536cf916e14fdf7e2e26b77ba802c45b517952e07e32e6",
+    "T-04": "d67d305e09366f17ba7937f14a6aa91c068d64b82aebc3ee4fa848430d9e04b5"
+  },
+  "github": {
+    "milestone": 127,
+    "parent": 2378,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 2379,
+      "T-02": 2380,
+      "T-03": 2381,
+      "T-04": 2382
+    },
+    "source_issues": [
+      2257
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
