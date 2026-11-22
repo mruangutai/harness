@@ -186,6 +186,13 @@
       "kind": "amendment",
       "decision": "T-10.files",
       "reason": "Grade pass: the feat59 (63.a) predicate becomes a named helper so the changed test function meets the test bar without a written reason."
+    },
+    {
+      "at": "2026-11-22T22:15:12.220071+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-09.files",
+      "reason": "Advisor's SC-08 review: the template and live era-start prose note kept pre-DEC-254-amendment wording (absent = not adopted); corrected to absent = null (DEC-256)."
     }
   ],
   "mission": "plan",

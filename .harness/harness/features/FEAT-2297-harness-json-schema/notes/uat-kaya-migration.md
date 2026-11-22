@@ -36,8 +36,32 @@ no recorded reviews; neither fact grants merge authority.
 
 ## Review and authorization
 
-Pending.
+**Authorized: squash-merge**, given 2026-11-22 by the plan's advisor (`fable-advisor`, agent
+`AmendmentRuling`, request #5; transcript `history://AmendmentRuling`). It acted under the operator's
+standing instruction for this run: "take this all the way to clean and green merge. defer questions,
+approvals to the fable-advisor." The advisor reviewed the PR diff itself (`d96b448..a399287`, one
+file): version 2→3; exactly seven `status: "unresolved"` additions; every `cmd` still null and
+every `_reason` kept; no detect/exclude/cmd/era/board/repo value touched; merge state clean.
+
+**For the operator's attention:** SC-08 reads "I review … and authorize its merge". That review
+was delegated here; this receipt does not claim the operator reviewed the PR personally.
 
 ## Landing
 
-Pending. A prepared payload or an open PR is not a main landing.
+| Fact | Value |
+|---|---|
+| PR state | MERGED, 2026-11-22T22:14:24Z, squash |
+| Merge commit (Kaya `main`) | `b9dec8df1de9c065bca3122c371a206d6f46c048` |
+| Remote blob `.harness/harness.json` at `main` | `a3992874936d7fc934253107c874384b4204815b` (the validated payload) |
+
+Read back through the fleet reader at the candidate code,
+`factory_config.product_config(load_fleet(".harness/factory/fleet.yaml"), "mruangutai/kaya")`, after
+clearing its memo: valid, `schema_version` 3, every kind `unresolved`, `github.repo`
+`mruangutai/kaya`, board 9. `product_config_report` now reports Kaya `ok: true`; before T-09 it
+was the version-2 refusal recorded in `notes/qa-config-reduction.md`.
+
+Kaya's merged file carries the template's prose note on `decision_dispositions_era_start` in its
+pre-amendment wording ("an absent key means the project has not adopted it"). It is unvalidated
+prose. The Harness template and this repository's config now say an absent key means the same as
+null (DEC-256). `upgrade-config.py` keeps present project values, notes included, so Kaya's copy
+changes only when someone edits it.

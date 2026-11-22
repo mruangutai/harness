@@ -541,12 +541,14 @@ tasks:
   - T-01
   - T-03
   - T-10
-  status: building
+  status: done
   files:
   - path: .harness/harness/features/FEAT-2297-harness-json-schema/notes/kaya-config-v3.json
     create: true
   - path: .harness/harness/features/FEAT-2297-harness-json-schema/notes/uat-kaya-migration.md
     create: true
+  - .claude/skills/harness/templates/harness.json
+  - .harness/harness.json
   verify: |
     MANUAL — Operator review and explicit merge authorization for the actual Kaya PR must exist before the remote-main landing receipt can be produced.
   intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Start only after T-10 local cumulative proof and the configured local unit/integration evidence have passed at the candidate pin. Do not publish the Kaya PR early or wait for Kaya to gather local proof; this conservative ordering avoids merging an external migration before local contract evidence is ready. SC-08 remains a mandatory independent ship gate. This is an explicitly external main-session operation, not a delegated product-code task. The owned Harness-local payload and receipt are the only local files written; the remote mutation is mruangutai/kaya:.harness/harness.json on a dedicated branch targeting main. Do not list an out-of-root Kaya file as a Harness anchor or broaden plan_anchors. The real fleet checkout /Users/molchairuangutai/GitHub/harness-factories/kaya is a read input, origin https://github.com/mruangutai/kaya.git, observed main HEAD 6303f9f8a60127df461c20bb45d4531c5aaf8af9. The other /Users/molchairuangutai/GitHub/kaya checkout is not the authorized product write location. Read current remote main and blob identity freshly before preparing the payload; preserve concurrent project changes and refuse a stale source SHA.
