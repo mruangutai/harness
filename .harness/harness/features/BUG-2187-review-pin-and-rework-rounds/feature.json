@@ -1,0 +1,117 @@
+{
+  "feature_id": "BUG-2187-review-pin-and-rework-rounds",
+  "branch": "feat/BUG-2187-review-pin-and-rework-rounds",
+  "pr": 2254,
+  "review_sha": "edd9098c0413fd9e77ef63787f9e85f82c7f9673",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-21-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T22:57:16+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-01-patch-product/digest.md",
+        "sha256": "07641038fd1b23d0a481e7a1261134f099e755199e0a9c18e6d02e787e3ac062"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-21T23:03:19+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-21-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-21T23:18:57+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-02-validate-validator/digest.md",
+        "sha256": "00a1bc4a61de33fdf4d716d5c14fde80660f4b6ea86a43c9c6da5fda02614abf"
+      },
+      "cycles_used": 2,
+      "tokens": null,
+      "ended_at": "2026-11-21T23:48:52+00:00"
+    },
+    {
+      "id": "2026-11-21-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-21T23:57:43+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-03-validate-validator/digest.md",
+        "sha256": "a002886f9538495449a841d5c0b6e025ba70c9b5141a5961d2ed8cc04a7e177d"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T00:13:11+00:00"
+    }
+  ],
+  "mission": "patch",
+  "judgements": [
+    {
+      "at": "2026-11-21T22:57:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "causes located: inv_33 byte compare includes station lines; no pin verb; spend counts only fix- runs. Bounded diff, one new verb; main-session-direct per DEC-174"
+    },
+    {
+      "at": "2026-11-21T23:11:45.767761+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "canonical-reader audit: INV-33's new plan-text reader needs its classification row (in_memory_validation, as worktree_terminal._read_landed_plan_yaml)"
+    },
+    {
+      "at": "2026-11-21T23:48:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix then validate cycle 2",
+      "reason": "Cycle 1 ESCALATE: SC-01/SC-02 regression gaps (tests only) and Q-GATE run-unit-tests exit 1 to reproduce; fix main-session-direct inside the 1-round ruling."
+    },
+    {
+      "at": "2026-11-22T00:31:21+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "ship: Q-GATE-2 accepted as pre-existing, out of scope",
+      "reason": "test-validate-digest.py 3s hard timeouts at host load ~125; file untouched, passes alone at pin and base under normal load; backlog issue filed; CI runs the full suite."
+    }
+  ],
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "notes/operator-signature-2026-11-21.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "e9852d8ebba5f8d58d51e45c46ef2a315f21c3a5fe317ea46d91d5dc451ffbad"
+  },
+  "github": {
+    "milestone": 115,
+    "parent": 2249,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2250
+    },
+    "source_issues": [
+      2187,
+      2201,
+      2167,
+      2222
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

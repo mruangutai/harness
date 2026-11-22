@@ -1,0 +1,60 @@
+schema: plan/1
+feature: BUG-2187-review-pin-and-rework-rounds
+approval:
+  date: '2026-11-21'
+  approved_by: Mike Ruangutai
+  status: approved
+status: review
+source_issues: [2187, 2201, 2167, 2222]
+lanes:
+  resolved_at: 5bd9efd411a4b4a7a6a09dcf7517946c75c5f220
+  rows:
+  - surface: .claude/skills/harness/bin/check_state/feature_record.py
+    lane: main-session-direct
+    reason: DEC-174 check-state gate
+  - surface: .claude/skills/harness/bin/feature-record.py
+    lane: main-session-direct
+    reason: DEC-174 coupled ledger fix
+  - surface: tests/integration/test-check-state-records.py
+    lane: main-session-direct
+    reason: DEC-174 gate tests
+  - surface: tests/integration/canonical-reader-classification.json
+    lane: main-session-direct
+    reason: DEC-174 gate reader inventory
+  - surface: tests/unit/test-feature-record.py
+    lane: main-session-direct
+    reason: DEC-174 coupled ledger tests
+  - surface: .claude/skills/harness/references/build-phase.md
+    lane: main-session-direct
+    reason: DEC-174 coupled pin guidance
+  - surface: .claude/skills/harness/SKILL.md
+    lane: main-session-direct
+    reason: DEC-174 coupled pin guidance
+decisions: []
+tasks:
+- id: T-01
+  title: Correct station-insensitive review pins and recorded rework counting
+  traces: [SC-01, SC-02, SC-03]
+  change_type: bugfix
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 requires direct execution for the INV-33 check-state gate and its coupled tests and guidance
+  depends_on: []
+  status: done
+  files:
+  - .claude/skills/harness/bin/check_state/feature_record.py
+  - .claude/skills/harness/bin/feature-record.py
+  - tests/integration/test-check-state-records.py
+  - tests/integration/canonical-reader-classification.json
+  - tests/unit/test-feature-record.py
+  - .claude/skills/harness/references/build-phase.md
+  - .claude/skills/harness/SKILL.md
+  verify: |
+    python3 tests/integration/test-check-state-records.py && python3 tests/unit/test-feature-record.py
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2187-review-pin-and-rework-rounds; all relative edits stay inside it. DEC-174 routes the INV-33 check-state gate and coupled tests/guidance main-session-direct, not through an implementation team. Consult applicable PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md if present; all three are absent at intake. Do not invent contents or substitute guidance from another checkout. Read settled intent at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-BUG-2187-review-pin-and-rework-rounds-2026-11-21.md.
+    Add regressions before production edits. For each SC execute the same new regression against an isolated exact base subject and the fixed subject, preserving sibling imports and repository fixtures. Record full commands, base/fix commit identities, regression identities, exits, stdout and stderr in durable QA evidence. Red must expose the named defect, never a setup/import error. Existing safety assertions may pass at base; each SC's new defect-exposing regression must fail there. Do not claim intake gates or the unchanged base suite prove red-first.
+    In check_state/feature_record.py change INV-33 comparison to equality of loaded pinned and disk plan documents, removing only the top-level status and the status field of each task. Reuse existing plan-loading facilities and preserve legacy PLAN.md behavior. Do not recursively remove status or ignore any other reviewed-content field. Serialization-only changes and station-only writes must not produce STALE; every other loaded-content difference must retain STALE and existing finding details. Preserve changed-then-restored acceptance, no-validator-run requirement, placeholder behavior and all five deliberate silences: no git work tree, unresolved pin, absent disk plan, plan absent at pinned path and terminal station. Update obsolete byte-comparison comments. Extend existing inv32.* integration cases with station-only and reformat acceptance and other-content/nested-status counterexamples plus the existing silence boundaries. SC-01 red is the new station-only case falsely reporting STALE on base.
+    Add feature-record.py pin-review --file <feature.json> [--sha <sha>]. Default omitted sha to HEAD; resolve in the target feature's repository to a full commit object id, accepting commit-resolving refs and refusing noncommits or unresolved values before mutation. Use feature_json_write.write_feature_json through the existing shared write path to change only review_sha, preserving locking, schema checks and refusal codes. Success output is APPLIED pin-review <full-commit-id>; invalid commit output begins REFUSED: and exits nonzero. Retain writer refusal semantics, with no mutation on any refusal. Extend tests/unit/test-feature-record.py with actual CLI default-HEAD, explicit-ref/full-id and noncommit/unresolved refusal cases, asserting unchanged bytes on refusal and preservation of unrelated fields. SC-02 red is the missing pin-review verb on base.
+    Update build-phase.md and harness SKILL.md wherever they instruct pinning or recording review_sha to name feature-record.py pin-review --file <feature.json>, using --sha <seam-commit> when specifying that commit. Keep set-tasks-done, commit seam, pin, status review order and the fix-loop repin; replace the now-false claim that any plan write makes the pin stale with reviewed-content change semantics. Do not reorder the seam merely because station order no longer matters. Preserve frozen/external pin exceptions. In the unit suite add narrow guidance assertions for the changed pin instructions in both documents; do not demand base failure from already-correct safety text.
+    In spend_for count judgements with kind regate and timestamp at or after the first validate run's started_at. Use the existing judgement timestamp field and validate-run classification. Count recorded judgements, not fix runs, when this window contains any regate judgement; otherwise use precisely the existing fix-run window/count fallback, including the no-validate result and distill exclusion. Do not sum both sources. Preserve cycles_used and all unrelated spend fields, elapsed/cost calibration and hook consumer semantics. Unit regressions cover direct main-session fixes without fix runs, multiple regates, equality at start, earlier regates, non-regate judgements, competing fix counts and legacy empty-window fallback. SC-03 red is direct-fix regate undercount on base; fallback safety may already pass there.
+    Do not change INV-6, other invariants, gh-sync station writes, cycles_used semantics, harness-hooks.ts, shipped judgements, feature.json or STATE.md. No backfill. Run the literal verify from PRODUCT checkout with existing Python dependencies; expected exit 0, every case passing, no FAIL output, under 60 seconds. Deliver authentic SC-01 integration and SC-02/SC-03 unit base-red/fix-green evidence; if duration exceeds the limit report it honestly rather than dropping assertions.

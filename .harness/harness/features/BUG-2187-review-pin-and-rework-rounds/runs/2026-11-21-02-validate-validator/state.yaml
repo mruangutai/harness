@@ -1,0 +1,85 @@
+schema_version: 2
+run_id: 2026-11-21-02-validate-validator
+run_uid: 852044481a0a4770a07fe674495655c1
+feature: BUG-2187-review-pin-and-rework-rounds
+squad: validator
+host: harness-validator-lead
+status: failed
+review_sha: 1b35414bfc865786baffe0418528deeeef141272
+steps:
+- id: qa
+  persona: harness-qa
+  depends_on: []
+  mutates_repo: false
+  status: complete
+  verdict: ESCALATE
+  dispatched_at: seq-1
+  completed_at: seq-2
+  redispatched_at: seq-3
+  recompleted_at: seq-4
+  cycles: 1
+  artifact: notes/review-harness-qa-c2.md
+  evidence:
+    verify_exit: 0
+    unit_tests: 128
+    integration_cases: 44
+    exact_verify_seconds: 52.6
+    canonical_reader_audit_exit: 0
+    checker_structure_locks_exit: 0
+    code_grade_exit: 0
+    base_red_subject: ee550318
+    unit_kind_files: 61
+    integration_kind_files: 87
+    independent_hook_exit: 1
+  note: Exact-pin execution green; independent hook refused PASS with exit 1 and no identifiable failing case.
+- id: code
+  persona: harness-code-reviewer
+  depends_on: []
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: notes/review-harness-code-reviewer-c0.md
+- id: security
+  persona: harness-security-reviewer
+  depends_on: []
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: notes/review-harness-security-reviewer-c0.md
+- id: ui
+  persona: harness-ui-reviewer
+  depends_on: []
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: notes/review-harness-ui-reviewer-c0.md
+  evidence:
+    changed_paths: 20
+    rendered_surfaces: 0
+- id: goalcheck
+  persona: harness-pm
+  depends_on: []
+  mutates_repo: false
+  status: complete
+  verdict: FAIL
+  dispatched_at: seq-1
+  completed_at: seq-2
+  redispatched_at: seq-3
+  recompleted_at: seq-4
+  cycles: 1
+  artifact: notes/research-BUG-2187-review-pin-and-rework-rounds-goalcheck-validate-c1.md
+  evidence:
+    sc_01: partial
+    sc_02: partial
+    sc_03: met
+    g_01: resolved
+  note: Provenance resolved; explicit SC-01/02 safety regression requirements remain unmet.

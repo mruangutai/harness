@@ -33,12 +33,17 @@ VERBS
   set-mission   write mission: patch | plan (SC-01) AND append the `kind: mission` judgement
                 deciding it, from --by / --reason, in the same locked write — so a mission
                 never exists without the entry check-state.py INV-40 demands (SC-21).
+  pin-review    write review_sha as the full id of --sha (default HEAD), resolved in the
+                feature's repository; refuses (exit 2), writing nothing, a sha that is not a
+                commit (#2167).
   propose-rework read-only: print {rounds, minutes, basis} — the baseline ruling the main
                 session shows the operator at signature (patch: 1 round; plan: tasks/3,
                 floor 2, cap max_total_cycles; minutes = rounds x budgets.rework_round_minutes).
   spend         read-only: print one JSON object {runs, wall_clock_minutes, tokens, phase,
                 rework_minutes, rework_rounds} — the last two are the rework window, from
                 the first validate run; the ruling is compared to those, never the whole.
+                A round is a `regate` judgement in the window; a window with none counts its
+                `fix-` runs instead (#2222).
                 Minutes are elapsed time (concurrent runs counted once); tokens are a sum.
 
 THE OPERATOR'S RULINGS ARE MAIN-SESSION-ONLY. set-rework and raise-cycles are gated by
@@ -144,9 +149,14 @@ def _attributed_cycles(runs):
     return total
 
 
+def _judgements_of(doc, kind):
+    """Every judgement entry of `kind` (the stored kind compared stripped), in ledger order."""
+    return [e for e in (doc.get("judgements") or [])
+            if isinstance(e, dict) and str(e.get("kind", "")).strip() == kind]
+
+
 def _kind_count(doc, kind):
-    return sum(1 for e in (doc.get("judgements") or [])
-               if isinstance(e, dict) and str(e.get("kind", "")).strip() == kind)
+    return len(_judgements_of(doc, kind))
 
 
 def _owed_regate(doc, runs):
@@ -581,6 +591,32 @@ def cmd_set_mission(args):
     sys.exit(0)
 
 
+def _commit_id(path, sha):
+    """`sha` resolved to a full commit id in the repository holding `path`, or the exit-2
+    refusal. A tree, a blob or an unresolved name is refused: readers diff a commit."""
+    import code_grade
+    repo = os.path.dirname(os.path.abspath(path))
+    try:
+        # The one resolver: validate-digest.py resolves the recorded pin through it too.
+        return code_grade.commit_oid(repo, sha)
+    except ValueError:
+        _exit_refused([f"REFUSED: {sha!r} does not resolve to a commit in {repo}.",
+                       "  review_sha pins the commit the readers diff; nothing was written."])
+
+
+def cmd_pin_review(args):
+    """#2167: the pin is a ledger write like every other, never a hand edit of feature.json."""
+    full = _commit_id(args.file, args.sha)
+
+    def mutate(doc):
+        doc["review_sha"] = full
+        return doc
+
+    _apply(args.file, mutate)
+    print(f"APPLIED pin-review {full}")
+    sys.exit(0)
+
+
 def _parse_iso(value):
     if not isinstance(value, str):
         return None
@@ -628,16 +664,46 @@ FIX_RUN = re.compile(r"(?:^|-)fix-")
 DISTILL_RUN = re.compile(r"(?:^|-)distill-")
 
 
+def _regate_stamps(doc):
+    """The parsed `at` of every `regate` judgement; an unparsable stamp is left out."""
+    stamps = (_parse_iso(j.get("at")) for j in _judgements_of(doc, "regate"))
+    return [at for at in stamps if at is not None]
+
+
+def _not_before(at, opened):
+    """`at >= opened`, False when one is naive and the other aware: they do not compare, and a
+    hand-written naive stamp must not crash `spend`, which the hook calls."""
+    return (at.tzinfo is None) == (opened.tzinfo is None) and at >= opened
+
+
+def _window_opened(runs, first_validate):
+    """The first validate run's start, or None when there is no validate run or no start."""
+    return _parse_iso(runs[first_validate].get("started_at")) if first_validate is not None else None
+
+
+def _regate_rounds(doc, opened):
+    """The `regate` judgements recorded at or after `opened`, or None when the window has no
+    start (no validate run, or one with no `started_at`) or holds no regate (#2222)."""
+    if opened is None:
+        return None
+    return sum(1 for at in _regate_stamps(doc) if _not_before(at, opened)) or None
+
+
 def spend_for(doc):
     """The spend summary for a parsed feature.json (pure; used by `spend`).
 
     `wall_clock_minutes` is the whole feature — the lagging figure the briefing reports.
     `rework_minutes` and `rework_rounds` are the REWORK WINDOW: every run from the first
-    validate run onward except feature-close distill runs, and the count of fix runs in it.
+    validate run onward except feature-close distill runs, and the rounds within it.
     Minutes are elapsed time, the union of the runs' intervals; tokens are a sum. The operator's
     `rework.wall_clock_minutes` ruling is a budget for rework, so the hook compares it to
     the window, never to the whole — before this split a 60-minute plan run and a 40-minute
     build ate 100 of a 120-minute ruling before the first fix round existed.
+
+    A round is one `regate` judgement in the window ("each round is one cycles_used and one
+    regate judgement", build-phase.md), so a fix the main session builds directly, which has no
+    `fix-` run, still counts (#2222). A window holding no regate — a ledger from before regates
+    were recorded — keeps the count of its `fix-` runs. The two are never summed.
     """
     runs = [entry for entry in _runs(doc) if isinstance(entry, dict)]
     seconds = _elapsed_seconds(runs)
@@ -650,11 +716,13 @@ def spend_for(doc):
               if not DISTILL_RUN.search(str(entry.get("id", "")))]
     github = doc.get("github")
     has_build_entry = isinstance(github, dict) and "build_entry" in github
+    rounds = _regate_rounds(doc, _window_opened(runs, first_validate))
+    if rounds is None:
+        rounds = sum(1 for entry in window if FIX_RUN.search(str(entry.get("id", ""))))
     return {"runs": len(runs), "wall_clock_minutes": seconds // 60, "tokens": tokens,
             "phase": "build" if has_build_entry else "plan",
             "rework_minutes": _elapsed_seconds(window) // 60,
-            "rework_rounds": sum(1 for entry in window
-                                 if FIX_RUN.search(str(entry.get("id", ""))))}
+            "rework_rounds": rounds}
 
 
 def cmd_spend(args):
@@ -1065,6 +1133,11 @@ def main():
     p.add_argument("--by", required=True, help="the persona that judged the mission")
     p.add_argument("--reason", required=True, help="one line, at most 240 characters")
     p.set_defaults(func=cmd_set_mission)
+
+    p = with_file(sub.add_parser("pin-review",
+                                 help="pin review_sha to a commit (default HEAD) as a full id"))
+    p.add_argument("--sha", default="HEAD", help="the commit the readers diff; default HEAD")
+    p.set_defaults(func=cmd_pin_review)
 
     p = with_file(sub.add_parser("spend", help="print the feature's measured spend as JSON"))
     p.set_defaults(func=cmd_spend)

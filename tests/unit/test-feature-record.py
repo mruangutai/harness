@@ -1209,6 +1209,136 @@ class SpendTest(FeatureRecordCase):
         self.write(base_doc(runs=[self.timed("a", "10:30", "10:00"), self.timed("b", "11:00", "11:10")]))
         self.assertEqual(10, self.spend()["wall_clock_minutes"])
 
+    # #2222: a round is a recorded `regate` judgement ("each round is one cycles_used and one
+    # regate judgement", build-phase.md). A fix the main session builds directly has no
+    # `fix-` run, so counting runs read BUG-2239's ESCALATE -> fix -> PASS round as 0.
+    @staticmethod
+    def judged(kind, at):
+        return {"at": f"2026-09-11T{at}:00+00:00", "by": "harness-orchestrator", "kind": kind,
+                "decision": "d", "reason": "r"}
+
+    def direct_fix_runs(self):
+        """Intake, a validate run that sent work back, and the re-validation after a fix the
+        main session built directly: no `fix-` run anywhere."""
+        return [self.timed("2026-09-11-01-patch-product", "10:00", "10:20"),
+                self.timed("2026-09-11-04-validate-validator", "12:00", "12:30"),
+                self.timed("2026-09-11-05-validate-validator", "13:00", "13:15")]
+
+    def rounds(self, runs, judgements):
+        self.write(base_doc(runs=runs, judgements=judgements, github={"build_entry": "opened"}))
+        return self.spend()["rework_rounds"]
+
+    def test_a_direct_fix_round_counts_its_regate_judgement(self):
+        self.assertEqual(1, self.rounds(self.direct_fix_runs(), [self.judged("regate", "12:35")]))
+
+    def test_every_regate_in_the_window_is_a_round(self):
+        self.assertEqual(2, self.rounds(self.direct_fix_runs(), [
+            self.judged("regate", "12:35"), self.judged("regate", "13:20")]))
+
+    def test_the_window_opens_exactly_at_the_first_validate_start(self):
+        """A regate stamped AT the first validate start counts; a plan-phase regate before it
+        and a non-regate judgement inside it do not."""
+        self.assertEqual(1, self.rounds(self.direct_fix_runs(), [
+            self.judged("regate", "10:10"), self.judged("regate", "12:00"),
+            self.judged("continue", "12:40"), self.judged("mission", "12:45")]))
+
+    def test_regates_replace_the_fix_run_count_never_add_to_it(self):
+        """Two `fix-` runs and one regate in the window: the judgement is the round."""
+        self.assertEqual(1, self.rounds(self.REWORK_RUNS, [self.judged("regate", "12:30")]))
+
+    def test_a_window_without_a_regate_keeps_the_fix_run_count(self):
+        """Ledgers from before regates were recorded keep their figure."""
+        self.assertEqual(2, self.rounds(self.REWORK_RUNS, [self.judged("mission", "12:30")]))
+
+    def test_no_validate_run_means_no_round_whatever_was_judged(self):
+        self.assertEqual(0, self.rounds(self.direct_fix_runs()[:1], [self.judged("regate", "10:10")]))
+
+    def test_a_naive_regate_stamp_neither_crashes_spend_nor_counts(self):
+        """A hand-written stamp with no offset cannot be ordered against an aware validate
+        start: `spend` (which the hook calls) still answers, falling back to fix runs."""
+        naive = dict(self.judged("regate", "12:35"), at="2026-09-11T12:35:00")
+        self.assertEqual(0, self.rounds(self.direct_fix_runs(), [naive]))
+
+
+class PinReviewTest(FeatureRecordCase):
+    """#2167: `pin-review` records `review_sha` through the ledger writer, never a hand edit.
+    The fixture is a real git repository, because the verb resolves the sha there."""
+
+    def setUp(self):
+        super().setUp()
+        for cmd in (["init", "-q"], ["config", "user.email", "t@example.com"],
+                    ["config", "user.name", "t"]):
+            self.git(*cmd)
+        self.before = self.write(base_doc())
+        self.git("add", "-A")
+        self.git("commit", "-qm", "seam")
+        self.head = self.git("rev-parse", "HEAD")
+
+    def git(self, *args):
+        return subprocess.run(["git", "-C", str(self.tmp), *args], check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+    def pin(self, *sha):
+        return self.run_cli("pin-review", "--file", str(self.path), *sha)
+
+    def test_an_omitted_sha_pins_head_as_a_full_commit_id(self):
+        result = self.pin()
+        self.assert_ok(result)
+        self.assertEqual(f"APPLIED pin-review {self.head}", result.stdout.strip().splitlines()[0])
+        self.assertEqual(self.head, self.load()["review_sha"])
+        self.assert_clean()
+
+    def test_a_ref_or_short_sha_resolves_to_the_full_commit_id(self):
+        for ref in (self.head[:8], "HEAD", self.git("branch", "--show-current")):
+            self.write(base_doc())
+            self.assert_ok(self.pin("--sha", ref))
+            self.assertEqual(self.head, self.load()["review_sha"], ref)
+
+    def test_every_other_field_is_carried_through_unchanged(self):
+        """The pin moves `review_sha` and nothing else: runs, judgements, mission, the cycle
+        budget and the rework ruling come back exactly as they were."""
+        doc = base_doc(cycles_used=1, mission="patch", runs=[
+            {"id": "2026-09-11-01-patch-product", "squad": "product", "verdict": "PASS",
+             "agent": "harness-product-lead", "started_at": "2026-09-11T10:00:00+00:00",
+             "ended_at": "2026-09-11T10:20:00+00:00"}],
+            judgements=[{"at": "2026-09-11T09:59:00+00:00", "by": "harness-orchestrator",
+                         "kind": "mission", "decision": "patch", "reason": "r"}])
+        self.write(doc)
+        self.assert_ok(self.pin())
+        self.assertEqual({**doc, "review_sha": self.head}, self.load())
+
+    def test_the_write_goes_through_the_shared_writers_destination_contract(self):
+        """feature_json_write refuses a feature.json outside `.harness/*/features/*/` before
+        it locks anything; a verb that wrote the file itself would pin it anyway."""
+        stray = self.tmp / "elsewhere" / "feature.json"
+        stray.parent.mkdir()
+        stray.write_text(json.dumps(base_doc(), indent=2) + "\n", encoding="utf-8")
+        before = stray.read_bytes()
+        result = self.run_cli("pin-review", "--file", str(stray))
+        self.assertNotEqual(0, result.returncode, result.stdout)
+        self.assertNotIn("APPLIED", result.stdout)
+        self.assertEqual(before, stray.read_bytes())
+
+    def test_a_non_commit_or_unresolved_sha_is_refused_without_a_write(self):
+        """A tree, an absent object, an unknown name and an option-shaped value: exit 2,
+        REFUSED on stderr, feature.json byte-identical."""
+        for argv in (("--sha", self.git("rev-parse", "HEAD^{tree}")), ("--sha", "0" * 40),
+                     ("--sha", "no-such-ref"), ("--sha=--git-dir",)):
+            result = self.pin(*argv)
+            self.assertEqual(2, result.returncode, f"{argv}: {result.stderr}")
+            self.assertTrue(result.stderr.startswith("REFUSED:"), f"{argv}: {result.stderr!r}")
+            self.assertEqual(self.before, self.path.read_bytes(), argv)
+
+    def test_the_pin_guidance_names_only_verbs_the_cli_has(self):
+        """Both documents that tell the orchestrator to pin `review_sha` name the verb, and every
+        `feature-record.py <verb>` they name exists: guidance pointing at a missing verb sends
+        the reader back to a hand edit."""
+        verbs = set(re.search(r"\{([^}]*)\}", self.run_cli("--help").stdout).group(1).split(","))
+        for doc in (BIN.parent / "references" / "build-phase.md", BIN.parent / "SKILL.md"):
+            named = set(re.findall(r"feature-record\.py (\w[\w-]*)", doc.read_text(encoding="utf-8")))
+            self.assertIn("pin-review", named, doc.name)
+            self.assertEqual(set(), named - verbs, doc.name)
+
 
 class ProposeReworkTest(FeatureRecordCase):
     """`propose-rework`: the baseline the main session shows the operator at signature.
