@@ -2,7 +2,7 @@
   "feature_id": "BUG-2294-prune-keeps-run-digests",
   "branch": "feat/BUG-2294-prune-keeps-run-digests",
   "pr": null,
-  "review_sha": "e51277a4ce11c91f2252026ae4dd6e0fbf12a503",
+  "review_sha": "88bf039f6ff31edbb1d5a4b2f6620762e3cc095a",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
