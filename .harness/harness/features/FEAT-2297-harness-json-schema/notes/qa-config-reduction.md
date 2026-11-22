@@ -13,8 +13,8 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 ## Measurement
 
 <!-- measured:begin -->
-- base `0bdcabbfc585a9357554817684d1b8a19d69038a` (`git merge-base HEAD origin/main`)
-- review `e2370cc81a3780904a7ab25569116eb71519d649`
+- base `9e7eb5dabe9da6a30197a6de9a011960787b05a0` (`git merge-base HEAD origin/main`)
+- review `1363dbd3ba61954430c4f8bf668c3d3dfa0e3896`
 
 | File | Base | Review | Delta |
 |---|---|---|---|
@@ -30,7 +30,7 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/integration/test-branch-create-gate.py` | 502 | 500 | -2 |
 | `tests/integration/test-check-skill-weight.py` | 151 | 148 | -3 |
 | `tests/integration/test-check-state-entry.py` | 558 | 524 | -34 |
-| `tests/integration/test-check-state-feat59.py` | 1278 | 1263 | -15 |
+| `tests/integration/test-check-state-feat59.py` | 1278 | 1267 | -11 |
 | `tests/integration/test-check-state-handoff.py` | 740 | 737 | -3 |
 | `tests/integration/test-check-state-inv26.py` | 854 | 851 | -3 |
 | `tests/integration/test-check-state-inv37-offline.py` | 273 | 274 | +1 |
@@ -62,7 +62,7 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/integration/test-merge-gate.py` | 678 | 683 | +5 |
 | `tests/integration/test-omp-native-gate-runtime.py` | 427 | 428 | +1 |
 | `tests/integration/test-plan-decision-dispositions.py` | 700 | 697 | -3 |
-| `tests/integration/test-plan-merge.py` | 5241 | 5243 | +2 |
+| `tests/integration/test-plan-merge.py` | 5302 | 5304 | +2 |
 | `tests/integration/test-plan-sign-gate.py` | 779 | 781 | +2 |
 | `tests/integration/test-post-merge-sweep.py` | 1225 | 1204 | -21 |
 | `tests/integration/test-run-unit-tests-kinds.py` | 137 | 130 | -7 |
@@ -70,13 +70,13 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/integration/test-validate-digest-shadows.py` | 497 | 499 | +2 |
 | `tests/integration/test-validate-digest.py` | 6683 | 6619 | -64 |
 | `tests/manual/probe-issue-types.py` | 190 | 189 | -1 |
-| `tests/unit/omp-hooks.test.ts` | 4135 | 4143 | +8 |
+| `tests/unit/omp-hooks.test.ts` | 4137 | 4145 | +8 |
 | `tests/unit/test-artifact-accessors.py` | 405 | 408 | +3 |
 | `tests/unit/test-check-state-inv26-routing.py` | 204 | 204 | +0 |
 | `tests/unit/test-check-state-inv35.py` | 104 | 106 | +2 |
 | `tests/unit/test-check-state-inv37-local-binding.py` | 175 | 175 | +0 |
 | `tests/unit/test-check-state-shipped-ctx.py` | 223 | 225 | +2 |
-| `tests/unit/test-code-grade.py` | 826 | 814 | -12 |
+| `tests/unit/test-code-grade.py` | 849 | 837 | -12 |
 | `tests/unit/test-factory-config.py` | 1291 | 1042 | -249 |
 | `tests/unit/test-feature-record.py` | 1831 | 1834 | +3 |
 | `tests/unit/test-feature-schema-build-entry.py` | 267 | 268 | +1 |
@@ -87,9 +87,9 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/unit/test-prune-run-evidence.py` | 304 | 304 | +0 |
 | `tests/unit/test-wayfind.py` | 156 | 155 | -1 |
 
-- Gate A, pre-existing affected files: -588
+- Gate A, pre-existing affected files: -584
 - Gate B, new files enumerated below: +1557
-- Reported total, both populations: +969
+- Reported total, both populations: +973
 <!-- measured:end -->
 
 ## New coverage
