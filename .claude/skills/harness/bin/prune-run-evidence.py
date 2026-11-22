@@ -9,9 +9,10 @@ evidence that still means something is
     reader's judgement lives in that run's directory, so this keeps the last PASS of every reader, and
   * every run whose results.json names the shipped `review_sha` as served_bundle_commit,
 
-plus anything named with --keep. Every other `runs/<id>/` directory under the feature is deleted
-in the ship commit; the digests and notes that cite them stay (a pointer to pruned evidence is a
-pointer to history, which the ship PR carries).
+plus anything named with --keep. For every other run only its `runs/<id>/ui/` is deleted in the
+ship commit; a run without ui/ is left as it is. The run directory and every non-UI file in it —
+digest.md, state.yaml, .run-identity.json — survive, because #2177 pins each recorded run's
+digest as check-state cycle evidence (#2294). Pruning twice is a no-op the second time.
 
   prune-run-evidence.py --feature FEAT-NN-slug [--root DIR] [--keep RUN-ID ...] [--dry-run]
 
@@ -114,14 +115,18 @@ def _load_record(args):
     return feature_dir, record
 
 
+def _ui_targets(feature_dir, present, keep):
+    """The runs outside `keep` that still carry a ui/ lane — the only thing prune deletes."""
+    return [name for name in present
+            if name not in keep and os.path.isdir(os.path.join(feature_dir, "runs", name, "ui"))]
+
+
 def _prune(feature_dir, present, keep, dry_run):
     verb = "would remove" if dry_run else "removed"
-    for name in present:
-        if name in keep:
-            continue
-        print(f"{verb} runs/{name}")
+    for name in _ui_targets(feature_dir, present, keep):
+        print(f"{verb} runs/{name}/ui")
         if not dry_run:
-            shutil.rmtree(os.path.join(feature_dir, "runs", name))
+            shutil.rmtree(os.path.join(feature_dir, "runs", name, "ui"))
     kept = sorted(keep & set(present))
     print(f"kept {len(kept)} of {len(present)} run(s): {', '.join(kept) or '-'}")
 

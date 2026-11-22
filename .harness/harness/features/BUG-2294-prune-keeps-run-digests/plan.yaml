@@ -5,7 +5,7 @@ approval:
   approved_by: operator
   status: approved
 drafted_at: '2026-11-22T14:55:30Z'
-status: ready
+status: building
 source_issues: [2294]
 lanes:
   resolved_at: c1724230c4d931ad46d433c8ba93df8cf312f898
