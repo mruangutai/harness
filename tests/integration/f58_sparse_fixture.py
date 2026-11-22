@@ -17,10 +17,15 @@ cannot reach the fixture, and with `core.hooksPath` pointed at an empty director
 installs hooks itself.
 """
 import contextlib
+import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from harness_config_support import build_config  # noqa: E402
 
 # Non-feature paths every record-bearing checkout must keep. Fixture assertions import this; the
 # production derivation never reads it — it derives the cone from tracked directories alone.
@@ -79,7 +84,7 @@ def _owner_files():
         ".agents/skills/demo/SKILL.md": "skill\n",
         ".claude/skills/harness/bin/tool.py": "# tool\n",
         ".harness/team-config.yaml": "teams: {}\n",
-        ".harness/harness.json": "{}\n",
+        ".harness/harness.json": json.dumps(build_config(), indent=2) + "\n",
         ".harness/README.md": "harness readme\n",
         ".harness/harness/docs/DECISIONS.md": "# decisions\n",
         ".harness/harness/expertise/pm.md": "expertise\n",

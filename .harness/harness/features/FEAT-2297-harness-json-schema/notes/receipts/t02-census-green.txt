@@ -1,0 +1,8 @@
+# T-02 GREEN: census after delegation; 2026-11-22T19:51:32Z
+$ python3 tests/integration/test-harness-config-fixtures.py tests/integration/check_state_support.py tests/integration/f58_sparse_fixture.py tests/integration/gh_sync_support.py
+0 finding(s)
+exit=0
+
+# Full default census (terminal gate is T-10; legacy producers migrate in T-03..T-07)
+$ python3 tests/integration/test-harness-config-fixtures.py
+81 finding(s)

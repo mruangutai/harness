@@ -292,7 +292,7 @@ tasks:
   execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
   depends_on:
   - T-01
-  status: ready
+  status: done
   files:
   - tests/integration/check_state_support.py#make_fixture
   - tests/integration/f58_sparse_fixture.py#_owner_files
