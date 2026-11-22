@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2349-plan-merge-inline-empty-union",
   "branch": "none",
-  "pr": null,
+  "pr": 2355,
   "review_sha": "0174f364483df5c8d49f04e35d2308e5dca33257",
   "cycles_used": 0,
   "max_total_cycles": 10,
