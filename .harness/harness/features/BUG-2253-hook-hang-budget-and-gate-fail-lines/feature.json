@@ -101,8 +101,16 @@
       "id": "2026-11-22-07-validate-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-22T14:12:23+00:00"
+      "verdict": "PASS",
+      "started_at": "2026-11-22T14:12:23+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-07-validate-validator/digest.md",
+        "sha256": "94c6f7d8ec635a12951dec10b88c9a31fe6086c63b31958c42e0fee00be6777f"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T14:20:22+00:00"
     }
   ],
   "mission": "patch",
