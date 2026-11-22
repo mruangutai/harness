@@ -69,6 +69,13 @@
       "kind": "regate",
       "decision": "continue",
       "reason": "plan run returned FAIL on scope's substance finding (T-01 drafted_at mutation seam), applied at apply; DEC-195 plan-flow simplify pass runs next, then pm re-apply and scope re-panel over T-01 in a new product run"
+    },
+    {
+      "at": "2026-11-22T01:49:46+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-plan seq-3 Next matches PLAN: signed, build_entry opened, station ready, spend 37 min / 3 runs / 0 cycles; enter build, return T-01+T-02 main-session-direct segments"
     }
   ],
   "mission": "plan",

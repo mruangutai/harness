@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-2229-decision-dispositions
-- run: .harness/harness/features/FEAT-2229-decision-dispositions/runs/r-20261121-plan-c2-product/state.yaml
+- run: none
 - squad: none
-- status: idle
-- station: ready (signed 2026-11-21; plan seam handed off in notes/handoff-plan.md, build not started)
+- status: awaiting_user
+- station: building (entered 2026-11-21 at dfa52536; T-01, T-02 main-session-direct segments pending per notes/handoff-build.md; T-03 team task next)
 
 ## Open Questions
 
