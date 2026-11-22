@@ -16,3 +16,15 @@ The round fixes the two counterexamples the panel confirmed by execution:
 Each fix gets a regression for its counterexample.
 
 Unit-kind coverage advisory: the operator chose to file a separate issue. It is not in scope for this round.
+
+## Round 3 — after validate cycle 2 (FAIL, run 2026-11-21-04-validate-validator)
+
+SC-02 is met. SC-01 has one counterexample left: a captured `PASS <name>` echoed inside a file's own block closes it early, and the genuine `FAIL <name>` is dropped.
+
+The operator (Mike Ruangutai) chose the recommended disposition: **round 3, about 15 minutes**. The budget becomes 3 rounds / 85 min.
+
+The fix stops pairing headers with closes. A `FAIL <name>` line counts when any earlier run_pool header named that file. A `PASS` never removes anything. `MUTATED` keeps the note-adjacency rule. Echoes then cannot hide a genuine failure. The accepted cost is possible over-listing of an echoed `FAIL <name>` whose name also has a header, a kind of over-report the panel rated Low.
+
+The regression adds the same-name PASS echo.
+
+Process safeguard (operator-accepted): before each dispatch, check the call's arguments for `outputSchema`/`schemaMode` and drop them.
