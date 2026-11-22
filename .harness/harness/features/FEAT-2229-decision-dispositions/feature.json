@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2229-decision-dispositions",
   "branch": "feat/FEAT-2229-decision-dispositions",
   "pr": null,
-  "review_sha": "46d0c4bce7cec18e0aabec56a490981496970cc0",
+  "review_sha": "c163d5ea0fb17da27b3455559f317d67852981c7",
   "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
@@ -245,6 +245,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "c4 ESCALATE at 46d0c4bc: F3-I production closed, all SCs met but SC-02 partial on two test-only regression gaps (M6 closer character, M8 tilde info) citing T-01; rework ruling 3/3 rounds spent, so stop and return them to the operator"
+    },
+    {
+      "at": "2026-11-22T13:38:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "operator ruling notes/answers-2026-11-22-c4-ruling.md Q1: one round beyond the spent rework ruling (M6/M8 tilde tests plus SEC-C4-01), landed main-session-direct as c163d5ea; Q2 confirms the backlog set; proceed to validate c5"
     }
   ],
   "mission": "plan",
