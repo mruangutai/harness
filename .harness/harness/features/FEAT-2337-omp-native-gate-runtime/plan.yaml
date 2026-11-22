@@ -240,7 +240,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers extension enforcement and its tests.
     depends_on: []
-    status: ready
+    status: building
     files:
       - .omp/extensions/harness-hooks.ts#runPolicy
       - path: tests/unit/omp-hooks.test.ts
@@ -268,7 +268,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers digest/shared gates and all their standing tests.
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/validate-digest.py#check_qa_matrix_claim
       - .claude/skills/harness/bin/check-integration-shards.py#discover_expected
