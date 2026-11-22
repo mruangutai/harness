@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2295-handoff-one-per-phase",
   "branch": "feat/BUG-2295-handoff-one-per-phase",
-  "pr": null,
+  "pr": 2341,
   "review_sha": "7d76c1cea576822760e8bc42432f8c01fc3c8031",
   "cycles_used": 0,
   "max_total_cycles": 10,
@@ -81,6 +81,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "c1 FAIL fixed main-session-direct at c4c93ef1 inside the 1-round ruling; readers re-grade over pin 7d76c1ce as validate c2; successor continues the ship mission from the c1 digest and STATE"
+    },
+    {
+      "at": "2026-11-22T19:58:28+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Advisor (operator-delegated) skipped distill at ship; the flag-parity lesson is recorded in red-first-T-01.md and c2 reader notes"
     }
   ],
   "mission": "patch",
