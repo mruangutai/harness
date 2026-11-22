@@ -1,0 +1,70 @@
+{
+  "chore:Expertise: add the local-default-branch boundary clause to the live-yield sentence in SPEC 5.3 and DEC-253": {
+    "number": 2255,
+    "typed": true
+  },
+  "chore:Persist raw fail-first gate output under the run dir or notes instead of volatile /tmp": {
+    "number": 2256,
+    "typed": true
+  },
+  "chore:Configure a TypeScript typecheck for .omp/extensions/harness-hooks.ts": {
+    "number": 2257,
+    "typed": true
+  },
+  "chore:Centralize the distill run-id rule and the lead tuple in one shared module (dispatch-guard, host hook, validate-digest)": {
+    "number": 2258,
+    "typed": true
+  },
+  "chore:Drop the host's Expertise destination mirror in favour of the core receipt destination": {
+    "number": 2259,
+    "typed": true
+  },
+  "chore:Unify Expertise receipt reads and matching at one expertise-merge core seam": {
+    "number": 2260,
+    "typed": true
+  },
+  "chore:Flatten one-caller dispatch helpers in dispatch-guard while keeping lazy destination loading": {
+    "number": 2261,
+    "typed": true
+  },
+  "chore:Reuse _split_words in bash-write-guard's HEAD-move loop": {
+    "number": 2262,
+    "typed": true
+  },
+  "chore:Shared git fixture cleanup helper across the expertise-merge, merge-gate and member-expertise suites": {
+    "number": 2263,
+    "typed": true
+  },
+  "enhancement:Structured cap-refusal metadata on the shared merge exception": {
+    "number": 2264,
+    "typed": true
+  },
+  "enhancement:One shared shell-command parser for the Harness guards": {
+    "number": 2265,
+    "typed": true
+  },
+  "enhancement:Regenerate DECISIONS-INDEX.md whenever DECISIONS.md is edited, or gate the stale index early": {
+    "number": 2266,
+    "typed": true
+  },
+  "enhancement:Let a validator-lead fix run host harness-documentor for docs must-fixes": {
+    "number": 2267,
+    "typed": true
+  },
+  "chore:Reconcile cycles_used with main-session-direct fix rounds recorded only as regate": {
+    "number": 2268,
+    "typed": true
+  },
+  "chore:Control-plane check-state cannot audit a feature that lives only in a worktree": {
+    "number": 2269,
+    "typed": true
+  },
+  "chore:Allow run-start --regate after a run closed BLOCKED with findings so the round counts": {
+    "number": 2270,
+    "typed": true
+  },
+  "chore:A run id that differs from its run-dir slug trips INV-8 for the whole run": {
+    "number": 2271,
+    "typed": true
+  }
+}

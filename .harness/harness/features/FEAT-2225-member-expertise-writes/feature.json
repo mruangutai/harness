@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-2225-member-expertise-writes",
   "branch": "feat/FEAT-2225-member-expertise-writes",
-  "pr": null,
+  "pr": 2252,
   "review_sha": "7065b650ab3b94bae3175978bfd0cf0d62478c89",
   "cycles_used": 1,
   "max_total_cycles": 10,
@@ -337,6 +337,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "c5 PASS over 7065b650: C4-F1 resolved, matrix green, SC-01..06 met, F2 ruled boundary (#2251); panel clean, feature ready for the operator's ship decision"
+    },
+    {
+      "at": "2026-11-22T00:32:33+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Operator skipped feature-close distillation at ship; lessons carried as backlog #2255-#2271 and hardening #2251"
     }
   ],
   "mission": "plan",
