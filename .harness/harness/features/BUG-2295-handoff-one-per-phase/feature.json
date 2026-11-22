@@ -1,0 +1,121 @@
+{
+  "feature_id": "BUG-2295-handoff-one-per-phase",
+  "branch": "feat/BUG-2295-handoff-one-per-phase",
+  "pr": 2341,
+  "review_sha": "7d76c1cea576822760e8bc42432f8c01fc3c8031",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:00:50+00:00",
+      "tokens": 40422,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-patch-product/digest.md",
+        "sha256": "bfba6046ea043edb3b14aa1845a5f504a16cc56350ef85640a329aa9f57f72b7"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:06:35+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T19:21:18+00:00",
+      "tokens": 45184,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-02-validate-validator/digest.md",
+        "sha256": "85d34ba1fc0511e35d22c52867ba52976c5a69cda64f5e99b429e8e1b40e7c97"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:32:08+00:00"
+    },
+    {
+      "id": "2026-11-22-03-validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:40:04+00:00",
+      "tokens": 42987,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-03-validate-c2-validator/digest.md",
+        "sha256": "7a6d3146d16b54194d02ab1e3413905ece628b373d9d0af190748550838b31d9"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:50:37+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T19:00:50+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "The cause is known: the convention is documented but the handoff write rule never enforced it. The diff is bounded to the existing rule, its test and a stale comment, and it tightens a rule rather than adding a surface."
+    },
+    {
+      "at": "2026-11-22T19:32:10+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "fix-main-session-direct",
+      "reason": "validate FAIL: one substance finding (mixed-case cycle names bypass refusal), verified by probe at the pin; T-01 is main-session-direct so the fix returns to main inside the 1-round ruling"
+    },
+    {
+      "at": "2026-11-22T19:40:04+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL fixed main-session-direct at c4c93ef1 inside the 1-round ruling; readers re-grade over pin 7d76c1ce as validate c2; successor continues the ship mission from the c1 digest and STATE"
+    },
+    {
+      "at": "2026-11-22T19:40:04+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "c1 FAIL fixed main-session-direct at c4c93ef1 inside the 1-round ruling; readers re-grade over pin 7d76c1ce as validate c2; successor continues the ship mission from the c1 digest and STATE"
+    },
+    {
+      "at": "2026-11-22T19:58:28+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Advisor (operator-delegated) skipped distill at ship; the flag-parity lesson is recorded in red-first-T-01.md and c2 reader notes"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2295-handoff-one-per-phase/.harness/harness/features/BUG-2295-handoff-one-per-phase/notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "39f22d5773761f8158bb8f85ee6b87cdea95aa0138a6290ecc0c8dfb7c78349a"
+  },
+  "github": {
+    "milestone": 122,
+    "parent": 2333,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2334
+    },
+    "source_issues": [
+      2295
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
