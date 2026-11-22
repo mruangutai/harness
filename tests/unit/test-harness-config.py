@@ -155,6 +155,7 @@ REFUSED = [
     ("repo with whitespace", ("github", "repo"), "acme /w", None),
     ("repo without owner", ("github", "repo"), "widgets", None),
     ("repo GitHub would refuse", ("github", "repo"), "a!/b", None),
+    ("repo with a trailing newline", ("github", "repo"), "acme/w\n", None),
     ("sync without repo", ("github", "repo"), DELETE, SYNCED),
     ("board without repo", ("github", "repo"), None, {"github": {"repo": "a/b", "board": BOARD}}),
     ("reordered stations", ("github", "board", "stations"),
@@ -182,6 +183,8 @@ REFUSED = [
     ("excluded without reason", ("test_kinds", "eval", "excluded_because"), DELETE,
      {"test_kinds": {"eval": EXCLUDED}}),
     ("excluded unsigned", ("test_kinds", "eval", "signed"), "187", {"test_kinds": {"eval": EXCLUDED}}),
+    ("signed with a trailing newline", ("test_kinds", "eval", "signed"), "DEC-187\n",
+     {"test_kinds": {"eval": EXCLUDED}}),
     ("locally run without note", ("test_kinds", "ui", "runner_note"), DELETE, {"test_kinds": {"ui": LOCAL}}),
     ("locally run without cmd", ("test_kinds", "ui", "cmd"), None, {"test_kinds": {"ui": LOCAL}}),
 ]
@@ -210,7 +213,8 @@ class Refusals(unittest.TestCase):
 
     def test_nested_duplicate_and_nonfinite_values_are_refused(self):
         for text in ('{"schema_version": 3, "budgets": {"max_total_runs": 1, "max_total_runs": 2}}',
-                     '{"schema_version": 3, "budgets": {"max_total_runs": NaN}}'):
+                     '{"schema_version": 3, "budgets": {"max_total_runs": NaN}}',
+                     '[{"schema_version": 3}]'):
             with self.subTest(text), self.assertRaises(accessors.ArtifactAccessError):
                 accessors.load_harness_json(text=text, context="case")
 

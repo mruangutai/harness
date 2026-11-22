@@ -141,7 +141,7 @@
       "properties": {
         "sync": {"type": "boolean", "default": false},
         "repo": {
-          "anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*/(?!\\.{1,2}$)[A-Za-z0-9_.-]+$"}],
+          "anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*/(?!\\.{1,2}$)[A-Za-z0-9_.-]+$", "not": {"pattern": "\\s"}}],
           "default": null
         },
         "board": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/board"}], "default": null},
@@ -178,7 +178,7 @@
     "text": {"type": "string", "minLength": 1},
     "count": {"type": "integer", "minimum": 0},
     "positive": {"type": "integer", "minimum": 1},
-    "decision": {"type": "string", "pattern": "^DEC-[0-9]+$"},
+    "decision": {"type": "string", "pattern": "^DEC-[0-9]+$", "not": {"pattern": "\\s"}},
     "date_or_null": {"anyOf": [{"type": "null"}, {"type": "string", "format": "harness-date"}]},
     "change_type_or_prose": {
       "anyOf": [

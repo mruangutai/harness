@@ -45,8 +45,9 @@ until `upgrade-config.py` migrates it (templates README § Versioning).
 - **Smoke entry removed (T-03):** `mruangutai/harness-factory-smoke` left `.harness/factory/fleet.yaml`
   under the operator's 2026-11-22 OQ-SMOKE ruling (BRIEF.md, Verification gaps). The repository
   itself is untouched.
-- **Kaya (T-09, D-07):** migration PR, operator review and merge SHA recorded in
-  `notes/receipts/t09-kaya.txt`.
+- **Kaya (T-09, D-07):** PR, authorization pointer, merge SHA and remote-main readback in
+  `notes/uat-kaya-migration.md`. Review and authorization were by the plan's advisor under the
+  operator's run-level delegation (SC-08 amendment in BRIEF.md), not by the operator personally.
 
 ## Receipts
 

@@ -104,6 +104,20 @@ class Upgrade(unittest.TestCase):
                 self.assertEqual(original, self.config.read_bytes())
                 self.assertFalse(self.backup.exists())
 
+    def test_a_missing_or_unparseable_source_is_diagnosed_and_nothing_is_written(self):
+        for name, source, needle in (("missing", None, "harness.json"),
+                                     ("unparseable", '{"schema_version": 2,', "cannot read config")):
+            with self.subTest(name):
+                self.config.unlink(missing_ok=True)
+                if source is not None:
+                    self.config.write_text(source, encoding="utf-8")
+                result = self.run_cli("--config-only")
+                self.assertEqual(1, result.returncode, result.stdout + result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertIn(needle, result.stdout)
+                self.assertEqual(source, self.config.read_text(encoding="utf-8") if self.config.exists() else None)
+                self.assertFalse(self.backup.exists())
+
     def test_control_plane_upgrade_still_reports_its_manifest(self):
         self.write(self.product())
         (self.root / ".harness" / "team-config.yaml").write_text("schema_version: 1\nteams: []\n")

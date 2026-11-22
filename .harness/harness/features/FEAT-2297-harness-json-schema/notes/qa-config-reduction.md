@@ -388,6 +388,13 @@ schema_version: 2 is the previous harness.json shape; run upgrade-config.py`. Th
 case reads a version-3 file there; PR CI is the confirming run. No other unit or integration file
 fails.
 
+**Disposition (advisor ruling #6, E-OWNER, under the operator's delegation).** PR CI's integration
+run, which includes this file against a version-3 owner checkout, is the authoritative evidence for
+this case, and ship requires it green. The local red is recorded as pre-merge environment state,
+not waived. Pre-upgrading the shared main checkout was rejected: other live sessions depend on it,
+and an upgrade is triggered per project, never as a side effect of another run. CI run: recorded
+in the ship record once green.
+
 Earlier evidence in this run was superseded and repeated. One integration run was invalidated
 (`MUTATED harness_config.py`) by an edit made during it. Later runs found three real defects,
 each fixed and re-proven: DEC-256's index ruling over the 30-word cap; the schema's `test_kinds`

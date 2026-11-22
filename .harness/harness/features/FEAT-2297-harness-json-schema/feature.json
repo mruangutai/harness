@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-2297-harness-json-schema",
   "pr": null,
   "review_sha": "47d2e50243ad7fb080e13ef48115756d7d3b7c61",
-  "cycles_used": 1,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -42,8 +42,16 @@
       "id": "validate-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-22T22:16:05+00:00"
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-22T22:16:05+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-validator/digest.md",
+        "sha256": "e39ca6319b3e8e653cfebc99f83799c7f8c31d07c282bb9c47325aeec9a2dee1"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-22T22:34:34+00:00"
     }
   ],
   "judgements": [
@@ -200,6 +208,13 @@
       "kind": "amendment",
       "decision": "T-09.files",
       "reason": "Advisor's SC-08 review: the template and live era-start prose note kept pre-DEC-254-amendment wording (absent = not adopted); corrected to absent = null (DEC-256)."
+    },
+    {
+      "at": "2026-11-22T22:36:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "SC-08 amended: delegated advisor review/authorization; operator acceptance post-hoc",
+      "reason": "Advisor ruling #6 under the operator's delegation: kaya#29 reviewed and authorized by the advisor; personal acceptance asked in the ship briefing; decline remedy: revert kaya .harness/harness.json to d96b4484."
     }
   ],
   "mission": "plan",
