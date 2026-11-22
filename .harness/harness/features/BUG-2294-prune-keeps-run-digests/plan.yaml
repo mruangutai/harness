@@ -1,0 +1,88 @@
+schema: plan/1
+feature: BUG-2294-prune-keeps-run-digests
+approval:
+  date: '2026-11-22'
+  approved_by: operator
+  status: approved
+drafted_at: '2026-11-22T14:55:30Z'
+status: review
+source_issues: [2294]
+lanes:
+  resolved_at: c1724230c4d931ad46d433c8ba93df8cf312f898
+  rows:
+  - surface: .claude/skills/harness/bin/prune-run-evidence.py
+    lane: main-session-direct
+    reason: Operator permits the whole one-task patch to run directly with its ungranted ship command.
+  - surface: tests/unit/test-prune-run-evidence.py
+    lane: main-session-direct
+    reason: Keep regression and production change in the same operator-authorized direct task.
+  - surface: .omp/commands/harness-ship.md
+    lane: main-session-direct
+    reason: DEC-174 and DEC-179 require direct execution of the layer-0 command granted to nobody.
+  - surface: .harness/harness/docs/DECISIONS.md
+    lane: main-session-direct
+    reason: Main-authorized DEC-238 amendment and coupled index belong to the same direct patch task.
+  - surface: .harness/harness/docs/DECISIONS-INDEX.md
+    lane: main-session-direct
+    reason: Main-authorized DEC-238 amendment and coupled index belong to the same direct patch task.
+decisions:
+  - id: D-01
+    choice: Narrow DEC-238 ship pruning to UI directories while preserving every run record and existing keep rules.
+    because: Deleting whole runs destroys digests pinned by cycle_evidence even when the keep set is empty.
+    dec: DEC-238
+decisions_affected:
+- dec: DEC-238
+  disposition: amend
+  clause: "it deletes engineering, product,\n  reconciliation and distill run directories"
+  successor: D-01
+  reason: Replace whole-run deletion with UI-only deletion while preserving the ship keep-selection and refusal policy.
+- dec: DEC-174
+  disposition: keep
+  clause: it builds directly.
+  successor: none
+  reason: The entire one-task patch runs directly in the main session under the operator-authorized route.
+- dec: DEC-225
+  disposition: keep
+  clause: with no panel and no goal-check run
+  successor: none
+  reason: This bounded patch retains one intake and one task without adding document readers or goal-check.
+- dec: DEC-179
+  disposition: keep
+  clause: an ungranted surface becomes a DECLARED main-session step
+  successor: none
+  reason: Declare the ungranted ship-command surface before signature rather than fail a team dispatch.
+- dec: DEC-254
+  disposition: keep
+  clause: 'Each row has exactly five fields:'
+  successor: none
+  reason: Record the DEC-238 amendment explicitly and give T-01 ownership of its decision document.
+- dec: DEC-187
+  disposition: keep
+  clause: never a skip and never a FAIL.
+  successor: none
+  reason: Use the active unit kind for the regressions without resting any criterion on a null or excluded runner.
+adequacy_notes: Exactly one T-01 traces every SC and owns the three grilling files plus Main-authorized DEC-238 documentation and its regenerated index. Operator measurement grants the pruner to harness-backend-dev or harness-dev-ops and its unit test additionally to harness-qa, but .omp/commands/harness-ship.md is NOBODY at layer 0. The operator explicitly permits the whole patch main-session-direct; DEC-174 and DEC-179 support this declared route instead of an invalid team assignment or forbidden task split. DEC-225 team is the ordinary patch default, not authority to route an ungranted command to a team. Main owns build directly, with no engineering lead. Main ruled that the DEC-238 amendment and index are within the settled UI-only decision; preserve its keep selection and Abandon prunes/INV-51 bullet. The one amend row has a T-01-owned DECISIONS.md; every other cited DEC is keep. No new interface, schema or enforcement surface. Unit evidence covers SC-01 and SC-02 with future assertion-level fail-first receipts; SC-03 is pinned inspection. No implementation evidence exists at intake.
+tasks:
+  - id: T-01
+    title: Prune only obsolete UI evidence while preserving every run record
+    traces: [SC-01, SC-02, SC-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: Operator-authorized whole-patch direct route includes the NOBODY layer-0 ship command under DEC-174 and DEC-179.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/prune-run-evidence.py
+    - tests/unit/test-prune-run-evidence.py
+    - .omp/commands/harness-ship.md
+    - .harness/harness/docs/DECISIONS.md
+    - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 tests/unit/test-prune-run-evidence.py
+    intent: |
+      Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2294-prune-keeps-run-digests. Keep every relative-path edit inside that worktree. Main-session-direct is operator-authorized for this entire one-task patch because .omp/commands/harness-ship.md is a NOBODY layer-0 surface under DEC-174 and DEC-179; do not delegate build to an engineering lead. Source issue is 2294. Read /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-prune-keeps-digests-2026-11-22.md for the settled behavior. Consult PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md if present; all three requested paths are absent at intake, so do not invent or substitute product guidance. They are read inputs, never owned output files. Live Harness tooling contracts are the control-plane /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin copies, not stale worktree tooling.
+      Before production edits, add regressions in tests/unit/test-prune-run-evidence.py and demonstrate a genuine failing assertion against the exact base pruner at c1724230c4d931ad46d433c8ba93df8cf312f898, then passing against the fixed subject. Preserve sibling imports and isolate the subjects and fixture root; clear inherited CLAUDE_PROJECT_DIR and HARNESS_PROJECT_DIR before setting any deliberate fixture-root override. Record exact subject identities, commands, test names, exits and stdout/stderr durably for QA fail_first on SC-01 and SC-02. Setup, import and collection failures are not defect evidence. Intake has not implemented or run these tests and must not be cited as fail-first evidence.
+      In prune-run-evidence.py change only destructive scope and its matching messages/docstring: for each present run outside keep, target runs/<id>/ui/ and delete that directory if present. A run without ui/ is a successful no-op, never delete its parent. Dry-run identifies actual UI deletion targets and writes nothing. Repeating prune succeeds without deleting any non-UI content. Preserve every run directory and all non-UI contents, specifically digest.md, state.yaml and .run-identity.json. Kept UI directories are untouched. Keep _passing_validate_runs, pin-run selection, --keep validation, all refusal rules, CLI arguments, return semantics and ship invocation unchanged. Do not solve this by expanding the keep set or removing the tool.
+      Migrate the existing whole-directory-removal assertions to compare UI-directory membership while checking all run records remain. Exercise UI-bearing kept and non-kept runs, absent ui/, explicit --keep of an otherwise non-kept run, dry-run, repeat pruning and existing refusal cases. For each existing digest, checkpoint, identity and extra non-UI sibling sentinel, compare bytes before and after; do not infer preservation from counts. Retain existing selectors and failure accounting, and require the literal verify to finish under 60 seconds with exit 0, all checks passed and no FAIL lines.
+      Add the FEAT-2229-shaped regression entirely to the existing unit-test file: ten recorded runs with hash-bound cycle_evidence paths runs/<id>/digest.md, final validator run BLOCKED, no UI lane anywhere, no PASS validator validate/fix run and no explicit keep, yielding an empty keep set despite a valid review_sha. Use valid digest records with consistent verdict/cycle metadata, state.yaml and .run-identity.json where applicable. Invoke the real feature-scoped check-state.py on the isolated fixture before and after prune, requiring exit 0 and no VIOLATION output both times; assert every digest path and byte hash independently. Read tests/integration/check_state_support.py root isolation and test-check-state-table.py cycle-evidence fixture as references only, without editing gate scripts or their tests. The new regression must fail on the original whole-run deletion, not on fixture setup or unrelated corpus state. Do not rerun the historical real-feature incident or missing-evidence scan.
+      Update only the pruning prose in .omp/commands/harness-ship.md to say that runs outside the unchanged keep set lose only ui/, while all digests, state.yaml, .run-identity.json and run directories survive. Preserve both existing dry-run and prune command invocations verbatim, current step placement, placeholder-pin refusals and commit instruction. Update the pruner docstring and test descriptions to the same UI-only semantics. SC-03 is inspection of git show at review_sha and the pinned diff from the stated base, not an automated fail-first claim for unchanged behavior. Main authorized both decision-document paths inside this same task as a consequence of the operator UI-only ruling. In .harness/harness/docs/DECISIONS.md amend only DEC-238 ship deletion wording under D-01: keep selection is unchanged; every other run loses only runs/<id>/ui/, never digest.md, state.yaml or .run-identity.json, because issue 2177 pins every recorded run digest as check-state evidence. Leave the Abandon prunes bullet and INV-51, disposable checkouts and prototypes unchanged. Regenerate .harness/harness/docs/DECISIONS-INDEX.md with the existing gen-decisions-index.py after the decision edit, preserving its hand-authored ruling summaries and changing only what the amended decision requires. SC-03 inspection must read both decision documents using git show at review_sha and the pinned base diff. The original three production/test/command files remain owned; the two decision files are additional bounded documentation within T-01, not a second task or a new policy choice. Do not change keep rules, restore shipped evidence, fix issue 2295, alter handoff naming, add schemas/interfaces/gates, sign artifacts, add tasks, run a panel or perform goal-check.

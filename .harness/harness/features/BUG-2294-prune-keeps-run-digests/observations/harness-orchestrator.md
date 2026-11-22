@@ -1,0 +1,8 @@
+# Observations — harness-orchestrator — BUG-2294-prune-keeps-run-digests
+
+- 2026-11-22: Security reviewer SEC-01 (run-dir symlink lets rmtree(alias/ui) delete a kept or outside ui/) was marked static inference; a 30-line probe reproduced it at the pin and showed the base refused (rmtree on symlink). Narrowing a deletion target to a child path can newly expose link-following that the parent-path deletion rejected.
+- 2026-11-22: The handoff shape gate refused brief-sc:SC-NN authorities although BRIEF lists `- SC-01 (operator): ...` bullets; brief-perspective pointers resolved. Either the SC resolver wants a different line shape or the BRIEF format drifted.
+- 2026-11-22: The task tool call to the validator lead carried outputSchema/schemaMode injected by the host hook despite the dispatch instruction not to carry them; the lead returned a valid digest regardless.
+- 2026-11-22: A main-session-direct fix round cannot be attributed to the FAIL run it answers: run-end requires --digest evidence whose `cycles_used` equals the new count, and the c1 digest says 0. The round lands only as the `regate` judgement on the next run-start, which `spend` counts as rework_rounds; feature `cycles_used` then carries whatever the next lead reports (here 1, an in-run goal-check sendback). Two figures, two meanings.
+- 2026-11-22: run-start refused `--succession` on the c2 validate open because the seq-1 handoff already had its succession recorded at the c1 open; a dispatch that says "record your succession judgement" is satisfied by the existing entry, and a second one is refused as unowed.
+- 2026-11-22: Guessing the tail of a short sha for a "written at" line is a forgery risk; rev-parse the full id before writing it. Caught by re-reading my own note.
