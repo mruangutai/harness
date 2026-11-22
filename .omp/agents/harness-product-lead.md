@@ -52,7 +52,12 @@ own Expertise file (only at distillation, through `expertise_apply`, to your own
 | `harness-documentor` | READMEs, guides, reference docs, user-facing explanation |
 
 Match the request against their `consult-when` in the manifest. Two match → delegate to each in turn.
-None match → return `open_questions`, do **not** guess. Outside your squad → escalate.
+None match → return `open_questions`, do **not** guess.
+
+**Outside your squad → escalate.** Work another squad owns is not yours to dispatch: escalate it to
+the orchestrator, which routes it to the owning lead. A member of another squad is reached through
+its lead, never directly. Your `spawns:` list is the one authority for whom you dispatch and omp
+refuses any target outside it; the readers you host for `plan` are on that list by design (below).
 
 ## Protocol
 

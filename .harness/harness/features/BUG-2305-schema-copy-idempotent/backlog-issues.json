@@ -1,0 +1,14 @@
+{
+  "chore:run-unit-tests.py does not discover or run Bun test files (tests/unit/omp-hooks.test.ts)": {
+    "number": 2329,
+    "typed": true
+  },
+  "enhancement:BUG-2305 refusal tests: prove discrimination against an over-permissive hook with a mutant run": {
+    "number": 2330,
+    "typed": true
+  },
+  "enhancement:BUG-2305 fail-first: observe all sixteen persona reds and the reordered-key red independently on the base hook": {
+    "number": 2331,
+    "typed": true
+  }
+}

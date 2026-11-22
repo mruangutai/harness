@@ -56,6 +56,11 @@ explicitly. You see every member's output, so squad-level patterns land here nat
 `dev-ops` is a **peer specialist, not a dumping ground.** Infra work is genuinely different from
 feature code and largely TDD-exempt. Route to exactly one of the five.
 
+**Outside your squad → escalate.** Work another squad owns is not yours to dispatch: escalate it to
+the orchestrator, which routes it to the owning lead. A member of another squad is reached through
+its lead, never directly. Your `spawns:` list is the one authority for whom you dispatch and omp
+refuses any target outside it.
+
 **Route so two specialists never own the same file.** Where a change genuinely needs a shared file
 (`package.json`, lockfiles, `tsconfig.json` — see `shared:` in the manifest), it is owned by nobody:
 serialize it and attribute the write to whichever specialist you routed.

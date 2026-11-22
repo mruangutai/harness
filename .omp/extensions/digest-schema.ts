@@ -291,10 +291,9 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-const BUNDLES = new Map<string, DigestSchema>();
-
-// The ref-free, projected strict schema for `persona`, loaded once per canonical schema
-// directory and canonical persona for the life of the process. A failed load is not cached.
+// The ref-free, projected strict schema for `persona`, read from the schema files on every call.
+// Never cached across calls (#2328): a long-running host must inject the contract on disk now,
+// not the one it first loaded. A load is a few small JSON files per dispatch.
 export function loadDigestSchemaBundle(schemaDir: string, persona: string): DigestSchema {
   const canonical = canonicalDigestPersona(persona);
   let root: string;
@@ -305,14 +304,9 @@ export function loadDigestSchemaBundle(schemaDir: string, persona: string): Dige
     throw new DigestSchemaBundleError(
       `digest schema directory ${schemaDir} cannot be resolved (${error.code}): ${error.message}`, { cause: error });
   }
-  const key = `${root}\0${canonical}`;
-  const cached = BUNDLES.get(key);
-  if (cached) return cached;
   const loader = new BundleLoader(root);
   const file = join(root, `${canonical}.json`);
-  const bundle = deepFreeze(loader.project(loader.document(file, undefined), { file, pointer: "" }, []));
-  BUNDLES.set(key, bundle);
-  return bundle;
+  return deepFreeze(loader.project(loader.document(file, undefined), { file, pointer: "" }, []));
 }
 
 // OMP loads every *.ts directly under .omp/extensions as an extension and reports one that

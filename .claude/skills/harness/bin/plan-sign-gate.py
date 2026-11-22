@@ -61,40 +61,14 @@ _bootstrap_sys.path[:] = [
     if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
 ]
 
-
-# ACCEPTED DUPLICATION (FEAT-61 D-09, DEC-234). This prologue is copied, not shared, in
-# branch-create-gate.py, gh-close-gate.py, merge-gate.py, run-unit-tests.py: it runs BEFORE the
-# trusted bin path is on sys.path, so no helper can be imported to hold it — the code below IS
-# what creates the import seam. Change all five together; never replace one with an import.
-def _resolve_root():
-    """Resolve through the trusted sibling with isolated import semantics."""
-    try:
-        _bootstrap_sys.path.insert(0, _bootstrap_bin)
-        with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
-            import harness_boundary
-            return harness_boundary.resolve_root(_bootstrap_bin)
-    except (ModuleNotFoundError, ValueError):
-        # FEAT-64: the module did not import (a missing first-party sibling), or resolve_root
-        # refused (strict: no MARKER anywhere) -- the two shapes "no root" takes, matching
-        # check-state.py's copy. The four gate copies narrow the same way in FEAT-65.
-        return ""
-
-
-ROOT = _resolve_root()
-if not ROOT or not _bootstrap_os.path.isdir(ROOT):
-    print(
-        f"plan-sign-gate.py: no harness root could be resolved from "
-        f"{_bootstrap_bin} — refusing to run",
-        file=_bootstrap_sys.stderr,
-    )
-    raise SystemExit(2)
-import artifact_accessors as _artifact_accessors
-_bootstrap_sys.path[:] = _bootstrap_original_path
-
+import json
 import os
 import re
 import shlex
 import sys
+import traceback
+
+GATE = "plan-sign-gate"
 
 VERB = "sign-approval"
 TOOL = "plan-merge.py"
@@ -103,77 +77,6 @@ RECORD_TOOL = "feature-record.py"
 # verb absent under its tool is open. Adding a row is the whole act of gating a new verb.
 GATED = {TOOL: (VERB,), RECORD_TOOL: ("raise-cycles", "set-rework")}
 
-# THE REFUSAL NAMES A COMMAND THE READER CAN RUN. The native bootstrap resolves the
-# harness root through this file's own directory, so when the tool is confirmed on disk
-# underneath it the message carries the ABSOLUTE path and is copy-pasteable from any cwd;
-# otherwise it falls back to the repo-relative form. It never asserts a path it could not confirm.
-def _tool_path(tool):
-    rel = os.path.join(".claude", "skills", "harness", "bin", tool)
-    abs_path = os.path.join(ROOT, rel) if ROOT else ""
-    return abs_path if abs_path and os.path.isfile(abs_path) else rel
-
-
-TOOL_PATH = _tool_path(TOOL)
-
-# ONE refusal SHAPE, used verbatim for EVERY denial; only the verb, what it writes and the
-# tool's open verbs vary. A second wording would drift and the operator would learn two
-# different answers to one question.
-#
-# IT NAMES THE VERB LITERALLY rather than saying "the verb": a refusal logged without the
-# command that triggered it must still say what was refused. When the verb is UNDETERMINABLE
-# (indirection) every gated verb of the tool is named, so the line still says what it protects.
-WRITES = {
-    VERB: "the approval signature, which is the USER'S (DEC-120)",
-    "raise-cycles": "a raise of max_total_cycles, which is the OPERATOR'S budget decision "
-                    "(DEC-157, SC-15)",
-    "set-rework": "the operator's rework ruling (SC-15)",
-}
-OPEN_VERBS = {
-    TOOL: "apply, add-tasks, set-task-station and set-feature-station",
-    RECORD_TOOL: "run-start, run-end, judgement, set-mission, spend and propose-rework",
-}
-WRITTEN_FILE = {TOOL: ("the approval block", "plan.yaml"),
-                RECORD_TOOL: ("feature.json", "feature.json")}
-
-
-def reason(tool, verbs):
-    named = " / ".join(verbs)
-    writes = "; ".join(WRITES[v] for v in verbs)
-    by_hand, file_arg = WRITTEN_FILE[tool]
-    count = "one verb" if len(verbs) == 1 else "these verbs"
-    return (
-        f"Refused: {named} writes {writes},\n"
-        f"relayed by the main session alone. An agent may ask for it and be refused; it cannot\n"
-        f"write it.\n"
-        f"\n"
-        f"Return awaiting_user with what you need decided. Do not call {named}, and do not\n"
-        f"edit {by_hand} by hand — the main session runs {named} itself once the user has\n"
-        f"given their word:\n"
-        f"  python3 {_tool_path(tool)} {verbs[0]} --file <{file_arg}> ...\n"
-        f"\n"
-        f"Every other verb of this tool stays open to you: {OPEN_VERBS[tool]}.\n"
-        f"This gate refuses {count}, not the tool."
-    )
-
-
-# The one wording every pre-FEAT-59 reader of this file knows; kept as the name for the
-# signature's refusal so a log line grepped for it still finds it.
-REASON = reason(TOOL, (VERB,))
-
-try:
-    payload = _artifact_accessors.read_hook_payload(
-        sys.stdin.read(), "plan-sign-gate hook payload")
-except _artifact_accessors.ArtifactAccessError:
-    sys.exit(0)
-
-# AN ABSENT OR EMPTY agent_type IS THE MAIN SESSION, and that exemption is the mechanism
-# rather than a named branch — check-domain.py's approval_guard records the same reasoning
-# for the same reason, and issue #132 records what happened the last time that file grew a
-# second carve-out to keep in sync.
-if not (payload.get("agent_type") or ""):
-    sys.exit(0)
-
-cmd = (payload.get("tool_input") or {}).get("command") or ""
 
 # Shell operators shlex hands back as their own tokens. They are separators, never words.
 OPS = {";", "&", "&&", "|", "||", "(", ")", "<", ">", ">>", "\n"}
@@ -425,6 +328,149 @@ def denies(line, depth=0):
         return indirect, GATED[indirect]
     return _direct_denial(toks) or _nested_denial(toks, depth)
 
+
+# ---- APPLICABILITY FIRST (FEAT-2274 C2) -----------------------------------------------------
+# The command is matched with the standard library alone, before root resolution and before any
+# library load: a main-session payload or a command naming no gated verb exits 0 here and never
+# meets a dependency, so a broken root or sibling module cannot refuse unrelated Bash. A gated
+# verb from an agent runs the rest closed — an own failure refuses it by name rather than
+# leaving it unchecked. Copied, not shared, in gh-close-gate.py and branch-create-gate.py for
+# DEC-234's reason: it runs before the trusted bin path is there to import a helper from.
+def _payload_command(text):
+    """An agent payload's tool_input.command, or "" when there is none to read or the payload
+    is the main session's (absent or empty agent_type, exempt by the mechanism). A lenient stdlib
+    read for applicability only: read_hook_payload below stays the authority."""
+    try:
+        payload = json.loads(text)
+    except (ValueError, RecursionError):
+        return ""
+    if not isinstance(payload, dict) or not payload.get("agent_type"):
+        return ""
+    tool_input = payload.get("tool_input")
+    command = tool_input.get("command") if isinstance(tool_input, dict) else None
+    return command if isinstance(command, str) else ""
+
+
+def _unrunnable(detail):
+    """The named refusal for a guarded command the gate could not check; exit status 2."""
+    print(f"{GATE}: BLOCKED — the gate could not run ({detail}); the command it guards is "
+          f"refused rather than left unchecked.", file=sys.stderr)
+    return 2
+
+
+def _refuse_on_crash(kind, error, trace):
+    """sys.excepthook for a guarded command: the traceback stays loud, the verdict is the
+    refusal. No broad catch (the FEAT-65 census holds every hook at zero) and the body stays at
+    module level, where the canonical-reader inventory records its reads. os._exit, because
+    the interpreter exits 1 after any excepthook returns."""
+    traceback.print_exception(kind, error, trace)
+    status = _unrunnable(f"{kind.__name__}: {error}")
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(status)
+
+
+_payload_text = sys.stdin.read()
+if not denies(_payload_command(_payload_text)):
+    sys.exit(0)
+sys.excepthook = _refuse_on_crash
+
+
+# ACCEPTED DUPLICATION (FEAT-61 D-09, DEC-234). This prologue is copied, not shared, in
+# branch-create-gate.py, gh-close-gate.py, merge-gate.py, run-unit-tests.py: it runs BEFORE the
+# trusted bin path is on sys.path, so no helper can be imported to hold it — the code below IS
+# what creates the import seam. Change all five together; never replace one with an import.
+def _resolve_root():
+    """Resolve through the trusted sibling with isolated import semantics."""
+    try:
+        _bootstrap_sys.path.insert(0, _bootstrap_bin)
+        with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
+            import harness_boundary
+            return harness_boundary.resolve_root(_bootstrap_bin)
+    except (ModuleNotFoundError, ValueError):
+        # FEAT-64: the module did not import (a missing first-party sibling), or resolve_root
+        # refused (strict: no MARKER anywhere) -- the two shapes "no root" takes, matching
+        # check-state.py's copy. The four gate copies narrow the same way in FEAT-65.
+        return ""
+
+
+ROOT = _resolve_root()
+if not ROOT or not _bootstrap_os.path.isdir(ROOT):
+    raise SystemExit(_unrunnable(f"no harness root could be resolved from {_bootstrap_bin}"))
+import artifact_accessors as _artifact_accessors
+_bootstrap_sys.path[:] = _bootstrap_original_path
+
+# THE REFUSAL NAMES A COMMAND THE READER CAN RUN. The native bootstrap resolves the
+# harness root through this file's own directory, so when the tool is confirmed on disk
+# underneath it the message carries the ABSOLUTE path and is copy-pasteable from any cwd;
+# otherwise it falls back to the repo-relative form. It never asserts a path it could not confirm.
+def _tool_path(tool):
+    rel = os.path.join(".claude", "skills", "harness", "bin", tool)
+    abs_path = os.path.join(ROOT, rel) if ROOT else ""
+    return abs_path if abs_path and os.path.isfile(abs_path) else rel
+
+
+TOOL_PATH = _tool_path(TOOL)
+
+# ONE refusal SHAPE, used verbatim for EVERY denial; only the verb, what it writes and the
+# tool's open verbs vary. A second wording would drift and the operator would learn two
+# different answers to one question.
+#
+# IT NAMES THE VERB LITERALLY rather than saying "the verb": a refusal logged without the
+# command that triggered it must still say what was refused. When the verb is UNDETERMINABLE
+# (indirection) every gated verb of the tool is named, so the line still says what it protects.
+WRITES = {
+    VERB: "the approval signature, which is the USER'S (DEC-120)",
+    "raise-cycles": "a raise of max_total_cycles, which is the OPERATOR'S budget decision "
+                    "(DEC-157, SC-15)",
+    "set-rework": "the operator's rework ruling (SC-15)",
+}
+OPEN_VERBS = {
+    TOOL: "apply, add-tasks, set-task-station and set-feature-station",
+    RECORD_TOOL: "run-start, run-end, judgement, set-mission, spend and propose-rework",
+}
+WRITTEN_FILE = {TOOL: ("the approval block", "plan.yaml"),
+                RECORD_TOOL: ("feature.json", "feature.json")}
+
+
+def reason(tool, verbs):
+    named = " / ".join(verbs)
+    writes = "; ".join(WRITES[v] for v in verbs)
+    by_hand, file_arg = WRITTEN_FILE[tool]
+    count = "one verb" if len(verbs) == 1 else "these verbs"
+    return (
+        f"Refused: {named} writes {writes},\n"
+        f"relayed by the main session alone. An agent may ask for it and be refused; it cannot\n"
+        f"write it.\n"
+        f"\n"
+        f"Return awaiting_user with what you need decided. Do not call {named}, and do not\n"
+        f"edit {by_hand} by hand — the main session runs {named} itself once the user has\n"
+        f"given their word:\n"
+        f"  python3 {_tool_path(tool)} {verbs[0]} --file <{file_arg}> ...\n"
+        f"\n"
+        f"Every other verb of this tool stays open to you: {OPEN_VERBS[tool]}.\n"
+        f"This gate refuses {count}, not the tool."
+    )
+
+
+# The one wording every pre-FEAT-59 reader of this file knows; kept as the name for the
+# signature's refusal so a log line grepped for it still finds it.
+REASON = reason(TOOL, (VERB,))
+
+try:
+    payload = _artifact_accessors.read_hook_payload(
+        _payload_text, "plan-sign-gate hook payload")
+except _artifact_accessors.ArtifactAccessError:
+    sys.exit(0)
+
+# AN ABSENT OR EMPTY agent_type IS THE MAIN SESSION, and that exemption is the mechanism
+# rather than a named branch — check-domain.py's approval_guard records the same reasoning
+# for the same reason, and issue #132 records what happened the last time that file grew a
+# second carve-out to keep in sync.
+if not (payload.get("agent_type") or ""):
+    sys.exit(0)
+
+cmd = (payload.get("tool_input") or {}).get("command") or ""
 
 
 _denied = denies(cmd)

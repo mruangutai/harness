@@ -1,0 +1,90 @@
+schema: plan/1
+feature: BUG-2305-schema-copy-idempotent
+approval:
+  date: '2026-11-22'
+  approved_by: operator
+  status: approved
+drafted_at: '2026-11-22T16:10:07Z'
+status: done
+source_issues: [2305]
+lanes:
+  resolved_at: d085503ec2daf07f940e95189af40e010704b2df
+  rows:
+  - surface: .omp/extensions/harness-hooks.ts
+    lane: main-session-direct
+    reason: NOBODY owns this hook surface; DEC-174 and DEC-179 require declared direct execution.
+  - surface: tests/unit/omp-hooks.test.ts
+    lane: main-session-direct
+    reason: Owners are harness-backend-dev / harness-dev-ops / harness-qa; DEC-174 keeps the hook regression in the same direct task.
+  - surface: .harness/harness/docs/DECISIONS.md
+    lane: main-session-direct
+    reason: Owner is harness-documentor; the conditional DEC-237 amendment belongs to the one direct patch task.
+  - surface: .harness/harness/docs/DECISIONS-INDEX.md
+    lane: main-session-direct
+    reason: Owner is harness-documentor; regenerate the index coupled to the DEC-237 amendment in the same task.
+decisions:
+- id: D-01
+  choice: Narrow DEC-237 caller-control refusal only for a deep-equal canonical Harness persona bundle paired with strict mode, then re-inject both canonical values.
+  because: OMP persists revised input, so an unchanged copy must not be confused with tampering; silently overwriting differences would conceal it.
+  dec: DEC-237
+decisions_affected:
+- dec: DEC-237
+  disposition: amend
+  clause: 'dispatcher-supplied `outputSchema` or `schemaMode` at the top level or in any `tasks[]` item and
+
+    names the forbidden location.'
+  successor: D-01
+  reason: Permit only the unchanged strict Harness-target pair while retaining all other refusals and canonical strict injection.
+- dec: DEC-174
+  disposition: keep
+  clause: it builds directly.
+  successor: none
+  reason: Main executes the whole hook and regression patch directly without an engineering lead.
+- dec: DEC-179
+  disposition: keep
+  clause: an ungranted surface becomes a DECLARED main-session step
+  successor: none
+  reason: Declare the NOBODY hook path and all coupled files before signature rather than discover an invalid team route mid-build.
+- dec: DEC-225
+  disposition: keep
+  clause: with no panel and no goal-check run
+  successor: none
+  reason: Retain one bounded patch intake and exactly T-01 while the DEC-174 carve-out governs its direct execution.
+- dec: DEC-188
+  disposition: keep
+  clause: 'Anything softer than that — a decision that is merely dated, narrowed, or partly
+
+    overtaken — is amended'
+  successor: none
+  reason: Only the dispatch-refusal clause is narrowed; the remaining DEC-237 live-digest contract is retained.
+- dec: DEC-254
+  disposition: keep
+  clause: 'Each row has exactly five fields:'
+  successor: none
+  reason: Record the required amendment explicitly and give its decision document and coupled index to T-01.
+adequacy_notes: One T-01 traces all four SCs and owns the hook, its unit test and the required DEC-237 amendment with coupled index regeneration. The supplied baseline confirmation at origin/main 7f9cc9d8 is accepted without rerunning it. No separate BUG-2239/#2240 note decision exists; DEC-237 blanket refusal is the partly overtaken clause. This creates no public API, schema or enforcement surface. Whole-task main-session-direct follows DEC-174 and DEC-179 rather than DEC-225 ordinary team default. Main retains build and orchestration. Typecheck is null/unresolved and explicitly disclosed in BRIEF; existing issue 2257 owns that standing gap. Intake runs only the requested plan validators, with no implementation or tests.
+tasks:
+- id: T-01
+  title: Accept exact copied strict persona schemas and retain every other refusal
+  traces: [SC-01, SC-02, SC-03, SC-04]
+  change_type: bugfix
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 requires direct hook and regression work; DEC-179 declares the NOBODY hook surface in the same one-task patch.
+  depends_on: []
+  status: done
+  files:
+  - .omp/extensions/harness-hooks.ts
+  - tests/unit/omp-hooks.test.ts
+  - .harness/harness/docs/DECISIONS.md
+  - .harness/harness/docs/DECISIONS-INDEX.md
+  verify: |
+    set -eu
+    bun test tests/unit/omp-hooks.test.ts
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2305-schema-copy-idempotent. Every relative-path edit stays inside that worktree. Main owns the entire task under DEC-174 and DEC-179, with no engineering-lead dispatch. Source issue is 2305. Read the operator-settled /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-schema-copy-idempotent-2026-11-22.md and this feature BRIEF. Consult PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md if present; all three are absent at intake, so do not invent or substitute guidance. These paths are read inputs, not owned files. Supplied source baseline origin/main 7f9cc9d8 confirms refusal before injection and the obsolete note; do not re-confirm that investigation.
+    Before production edits, extend tests/unit/omp-hooks.test.ts using its existing sixteen-persona injection case as the persona set. Through the registered task hook, capture an injected bundle for each persona, independently copy it, and pass the copy back with schemaMode strict in a flat harness-* call and a tasks[] item. Assert each persona and shape independently. Include reordered object keys to distinguish structural deep equality from JSON string or object-identity equality, a multi-item batch with accepted copies at different item positions, and a later invalid item after an accepted copy. Preserve existing no-control injection, top-level/non-harness refusal, bundle-load/projection failure and other unrelated coverage. Demonstrate genuine failing exact-copy and obsolete-note assertions against the pre-fix production subject at 7f9cc9d8, then passing after the fix; setup, import and collection failures do not prove the defect. Record exact test names, source identity, commands, exits and output durably in the feature notes for QA fail_first. Intake has not executed regressions.
+    In .omp/extensions/harness-hooks.ts narrow schemaControlRefusal only for flat harness-* targets and individual harness-* tasks[] items where both caller fields are present, outputSchema is deep-equal to loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, agent) for that same target, and schemaMode is exactly the string strict. Use structural equality without object-key-order sensitivity. Accept and pass through the existing withDigestSchemas path so the canonical bundle and strict mode are re-injected; do not trust caller object identity or silently overwrite a difference. Schema loading/projection errors must still refuse before claims or other dispatch side effects. Keep existing canonical schema loading and projection, personas, aliases and downstream digest validation unchanged; do not modify digest-schema.ts or persona schemas.
+    Keep field-presence-based refusal for every other schema control: changed outputSchema, any mode other than strict including permissive, outputSchema without schemaMode, schemaMode without outputSchema, all batch-top-level fields and both fields on every non-harness target. Refusal must name the offending outputSchema or schemaMode and batch item location when applicable. Test changed schema with strict mode, exact schema with permissive and representative other non-strict values including null, boolean, number and object, each lone field, top-level batch controls individually and together even when copied exactly, and non-harness controls individually and together. Exercise each target-level refusal in flat and tasks[] form. A wrong-persona bundle is a changed schema, never an accepted copy. Retain existing refusal assertions rather than deleting or narrowing them.
+    Remove SCHEMA_INJECTION_NOTE, its additionalContext emission and obsolete persistence-advice comments from the hook. Remove INJECTION_NOTE and its expectations from the test and assert successful dispatch responses no longer contain that note; retain unrelated additionalContext behavior if present. Do not change OMP revised-input persistence or suppress unrelated context as a workaround.
+    Amend only DEC-237 Dispatch owns schema delivery in .harness/harness/docs/DECISIONS.md: replace blanket caller-control refusal with the exact-copy canonical bundle plus strict pair exception on Harness flat/items; retain field/location diagnostics for changed schemas, non-strict modes, incomplete pairs, batch top-level and non-harness controls, then canonical re-injection and fail-closed loading. Preserve unrelated live-yield, schema authority and durable-record clauses. This narrowing is D-01 under DEC-188, not a strike or a new DEC; no separate BUG-2239/#2240 note decision exists. Regenerate .harness/harness/docs/DECISIONS-INDEX.md using the existing gen-decisions-index.py workflow so source anchors remain correct; do not hand-edit generated locations. SC-04 inspection reads both documents committed at review_sha, not the mutable tree.
+    Run the literal verify from the PRODUCT checkout after the change; expected result is completion in under 60 seconds, exit 0, every test passing and no failing assertions. Record fail-first and final evidence for SC-01 through SC-03. Preserve all out-of-scope boundaries, especially non-harness and batch-top-level refusal, OMP host behavior and issue 2295. Do not add retries, compatibility fallbacks, new dependencies or broader dispatch-policy changes.

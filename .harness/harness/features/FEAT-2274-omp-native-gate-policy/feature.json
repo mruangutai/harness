@@ -1,0 +1,147 @@
+{
+  "feature_id": "FEAT-2274-omp-native-gate-policy",
+  "branch": "feat/FEAT-2274-omp-native-gate-policy",
+  "pr": 2324,
+  "review_sha": "242f9714d426415611bea796dd30a807f14c4193",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261121-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-22T01:09:52+00:00",
+      "tokens": 83926,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-1-plan-product/digest.md",
+        "sha256": "04c353464c95e3b1302921339550416652f0ac26e2a9c56ce08f95a2b444106d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T01:33:55+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-2-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T01:34:09+00:00",
+      "tokens": 43621,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-2-simplify-eng/digest.md",
+        "sha256": "8ebaf4200555731d4b85bfc6ee2e5ab5ec676f56c4768c1f27113492b45cf2bf"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T01:39:20+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-3-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T01:39:21+00:00",
+      "tokens": 45032,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-3-simplify-apply-product/digest.md",
+        "sha256": "4589781b8ea047f9ef9029682641b8cea25449a1880e835ddc4dd8780d0323f1"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T01:44:50+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-4-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T15:49:22+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-4-validate-validator/digest.md",
+        "sha256": "9aa7ad1abd97203cf704c37616f674e9d0795342f6dcdbfc9dc2dc973d1eee22"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T16:02:57+00:00"
+    },
+    {
+      "id": "r-20261122-5-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T16:13:58+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-5-validate-validator/digest.md",
+        "sha256": "1e4d18eb08940db21d58c60777552c47f5b4cc459b32bfa55db1df0d879ae40b"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T16:32:17+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T01:09:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Cause known, diff bounded, but A adds enforcement surfaces (before_subagent_spawn handler, unavailable gate contract, rule file to every governed persona) and amends DEC-100; main-session-direct under DEC-174."
+    },
+    {
+      "at": "2026-11-22T16:13:58+00:00",
+      "by": "main",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL V1-V7 fixed in 242f9714 (fix round 1, main-session-direct); re-validate the new pin"
+    },
+    {
+      "at": "2026-11-22T18:49:36+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Operator skipped feature-close distillation at ship; lessons are carried by DEC-100/SPEC \u00a74.2 text and the fix-round notes"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "715e151048b87ebf9f9b9b01dce6f44d306ed5f5c435cb1c0651924b56687b4f",
+    "T-02": "3492575d26942d6d5118bca23bf5b1bbdeef0c529bfc6d56fa246e0f95e09bd6",
+    "T-03": "030ee391271b9039b234bdd29353113d7cdb60398907ab1f544cb0aa745c814a"
+  },
+  "github": {
+    "milestone": 118,
+    "parent": 2298,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2299,
+      "T-02": 2300,
+      "T-03": 2301
+    },
+    "source_issues": [
+      2274
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

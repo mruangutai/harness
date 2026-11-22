@@ -60,8 +60,8 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    `HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>` — first, because the dispatch gate keys its claim
    on it — then the title `FEAT-NN · <step or task id> · <what, 3–6 words>` (DEC-142). A whole
    team goes to its named lead, which hosts the DAG via `harness-team`; a single task goes to
-   the lead that owns the persona. `dispatch-guard` refuses a target outside your `spawns:`
-   (the three leads) and any `name:` parameter (DEC-147); cross-squad leads are two dispatches
+   the lead that owns the persona. omp refuses a target outside your `spawns:` (the three
+   leads) and `dispatch-guard` refuses any `name:` parameter (DEC-147); cross-squad leads are two dispatches
    you sequence (DEC-118). Pass paths, never content; pin `review_sha` with
    `feature-record.py pin-review` before any validator run over code (INV-6). A dispatch asking
    a question names where the answer belongs:
