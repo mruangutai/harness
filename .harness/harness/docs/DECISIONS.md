@@ -8373,8 +8373,9 @@ DEC-182, DEC-188, DEC-205, DEC-227, DEC-228, DEC-229, DEC-232.
 ## DEC-255 — harness.json is one validated version-3 contract
 
 **Chose:** `.claude/skills/harness/bin/config-schemas/harness.json` (Draft 2020-12) is the sole
-shape and default contract for `harness.json` version 3, and it alone holds the default values and
-closed vocabularies. Eight signed choices:
+shape and default contract for `harness.json` version 3 and holds its default values and closed
+vocabularies. The three runtime copies of a vocabulary (board stations, review policies, issue-type
+override keys) are pinned to it by a drift test. Eight signed choices:
 
 - **One loader (D-01).** Every ordinary Python config read goes through
   `artifact_accessors.load_harness_json(path | text, context)`: strict decode, the schema's defaults

@@ -172,6 +172,13 @@
       "kind": "amendment",
       "decision": "T-10.files",
       "reason": "Kaya payload prep proved upgrade-config needs --templates in a product checkout; SPEC, templates README and checkout-upgrade.md now give the working command."
+    },
+    {
+      "at": "2026-11-22T21:53:27.898685+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Simplify pass before pin: grade fixes, functools.cache, repo pattern aligned with feature_schema, drift test pinning three runtime vocabularies, shared EXCLUDED_KIND."
     }
   ],
   "mission": "plan",

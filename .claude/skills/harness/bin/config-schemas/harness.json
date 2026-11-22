@@ -141,7 +141,7 @@
       "properties": {
         "sync": {"type": "boolean", "default": false},
         "repo": {
-          "anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[^\\s/]+/[^\\s/]+$"}],
+          "anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*/(?!\\.{1,2}$)[A-Za-z0-9_.-]+$"}],
           "default": null
         },
         "board": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/board"}], "default": null},

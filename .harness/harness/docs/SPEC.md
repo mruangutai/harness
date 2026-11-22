@@ -89,9 +89,11 @@ Also present: `.harness/harness.json` (config — gates, `test_matrix`, `test_ki
 `.harness/expertise/` (§5), `.harness/features/` (§11).
 
 **`harness.json` is one validated contract (DEC-255).** Its shape, defaults, conditional
-requirements and closed vocabularies are written only in
+requirements and closed vocabularies are written in
 `.claude/skills/harness/bin/config-schemas/harness.json`; this document names its boundaries and
-never restates its values. Every Python reader loads it through
+never restates its values. Three runtime modules keep a copy of one vocabulary: the board stations,
+the review policies and the issue-type override keys. `tests/unit/test-harness-config.py`
+(`RuntimeProjections`) pins each copy to the schema. Every Python reader loads the file through
 `artifact_accessors.load_harness_json(path | text, context)`: a strict decode, the schema's
 `default`s for absent keys, then validation.
 

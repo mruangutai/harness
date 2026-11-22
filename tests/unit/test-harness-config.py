@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tests"))
-from harness_config_support import build_config  # noqa: E402
+from harness_config_support import EXCLUDED_KIND as EXCLUDED, build_config  # noqa: E402
 import artifact_accessors as accessors  # noqa: E402
 
 TEMPLATE = ROOT / ".claude" / "skills" / "harness" / "templates" / "harness.json"
@@ -52,8 +52,6 @@ DELETE = object()
 BOARD = {"owner": "acme", "number": 7, "station_field": "Status",
          "stations": ["backlog", "plan", "ready", "building", "review", "done"]}
 SYNCED = {"github": {"sync": True, "repo": "acme/widgets", "board": BOARD}}
-EXCLUDED = {"detect": "e/**", "exclude": "", "cmd": None, "status": "excluded",
-            "excluded_because": "no evals here", "signed": "DEC-187"}
 LOCAL = {"detect": "p.py", "exclude": "", "cmd": "p.py", "status": "locally_run",
          "runner_note": "needs credentials"}
 
@@ -156,6 +154,7 @@ REFUSED = [
     ("attribution prefix", ("commit_attribution", "agent_prefix"), "", None),
     ("repo with whitespace", ("github", "repo"), "acme /w", None),
     ("repo without owner", ("github", "repo"), "widgets", None),
+    ("repo GitHub would refuse", ("github", "repo"), "a!/b", None),
     ("sync without repo", ("github", "repo"), DELETE, SYNCED),
     ("board without repo", ("github", "repo"), None, {"github": {"repo": "a/b", "board": BOARD}}),
     ("reordered stations", ("github", "board", "stations"),
@@ -240,6 +239,23 @@ class Sources(unittest.TestCase):
              "--overrides-json", '{"log_retention_days": 7}'],
             capture_output=True, text=True, check=True).stdout
         self.assertEqual(build_config({"log_retention_days": 7}), json.loads(printed))
+
+
+class RuntimeProjections(unittest.TestCase):
+    def test_runtime_copies_of_schema_vocabularies_are_equal_to_it(self):
+        """Three runtime modules keep their own copy of a schema vocabulary; a drifted copy either
+        refuses valid config or acts on values the schema no longer admits."""
+        import factory_config
+        import gate_policy
+        import gh_issue_types
+        import harness_config
+        schema = json.loads(Path(harness_config.SCHEMA_PATH).read_text(encoding="utf-8"))
+        self.assertEqual(schema["$defs"]["board"]["properties"]["stations"]["const"],
+                         list(factory_config.MANDATED_STATIONS))
+        self.assertEqual(set(schema["properties"]["gates"]["properties"]["review"]["enum"]),
+                         gate_policy.GATE_VOCABULARIES["review"])
+        self.assertEqual(list(schema["properties"]["github"]["properties"]["issue_types"]["properties"]),
+                         list(gh_issue_types.LEGAL_OVERRIDE_KEYS))
 
 
 if __name__ == "__main__":

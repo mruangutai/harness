@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import datetime
+import functools
 import os
 import re
 
@@ -18,7 +19,6 @@ SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config-s
 VERSION = 3
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _INSTANT = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]{1,6})?)?(Z|[+-][0-9]{2}:[0-9]{2})")
-_checked = None  # (schema, validator) once the schema has loaded and checked
 
 
 def _is_date(value):
@@ -50,36 +50,43 @@ def _refuse_remote(uri):
     raise referencing.exceptions.NoSuchResource(ref=uri)
 
 
+def _jsonschema():
+    """jsonschema through its ONE guard in feature_schema (D-12's one-guard rule), loaded lazily so
+    an artifact_accessors importer that never validates pays nothing for it. A sibling that fails
+    while executing is RepoModuleError (the loader's one typed failure), refused as an unreadable
+    config rather than escaping as whatever it raised."""
+    import harness_boundary
+    try:
+        feature_schema = harness_boundary.load_repo_module("feature_schema")
+    except harness_boundary.RepoModuleError as error:
+        raise ArtifactAccessError(f"harness.json cannot be validated: {error}") from error
+    if feature_schema.jsonschema is None:
+        raise ArtifactAccessError(f"harness.json: {feature_schema.UNAVAILABLE_MESSAGE}")
+    return feature_schema.jsonschema
+
+
+def _format_checker(jsonschema):
+    formats = jsonschema.FormatChecker(formats=())
+    formats.checks("harness-date")(lambda value: not isinstance(value, str) or _is_date(value))
+    formats.checks("harness-instant")(lambda value: not isinstance(value, str) or _is_instant(value))
+    return formats
+
+
+@functools.cache
 def _schema_and_validator():
-    global _checked
-    if _checked is None:
-        # jsonschema's ONE guard lives in feature_schema (D-12's one-guard rule); loaded here,
-        # lazily, so an artifact_accessors importer that never validates pays nothing for it. A
-        # sibling that fails while executing is RepoModuleError (the loader's one typed failure),
-        # refused as an unreadable config rather than escaping as whatever it raised.
-        import harness_boundary
-        try:
-            feature_schema = harness_boundary.load_repo_module("feature_schema")
-        except harness_boundary.RepoModuleError as error:
-            raise ArtifactAccessError(f"harness.json cannot be validated: {error}") from error
-        jsonschema = feature_schema.jsonschema
-        if jsonschema is None:
-            raise ArtifactAccessError(f"harness.json: {feature_schema.UNAVAILABLE_MESSAGE}")
-        import referencing
-        import referencing.jsonschema
-        schema = load_json_mapping(SCHEMA_PATH)
-        try:
-            jsonschema.Draft202012Validator.check_schema(schema)
-        except jsonschema.SchemaError as error:
-            raise ArtifactAccessError(f"{SCHEMA_PATH}: invalid schema: {error.message}") from error
-        formats = jsonschema.FormatChecker(formats=())
-        formats.checks("harness-date")(lambda value: not isinstance(value, str) or _is_date(value))
-        formats.checks("harness-instant")(lambda value: not isinstance(value, str) or _is_instant(value))
-        registry = referencing.Registry(retrieve=_refuse_remote).with_resource(
-            schema["$id"], referencing.Resource(schema, referencing.jsonschema.DRAFT202012))
-        _checked = schema, jsonschema.Draft202012Validator(
-            schema, registry=registry, format_checker=formats)
-    return _checked
+    """(schema, validator), built once the schema has loaded and checked; a failure is not cached."""
+    jsonschema = _jsonschema()
+    import referencing
+    import referencing.jsonschema
+    schema = load_json_mapping(SCHEMA_PATH)
+    try:
+        jsonschema.Draft202012Validator.check_schema(schema)
+    except jsonschema.SchemaError as error:
+        raise ArtifactAccessError(f"{SCHEMA_PATH}: invalid schema: {error.message}") from error
+    registry = referencing.Registry(retrieve=_refuse_remote).with_resource(
+        schema["$id"], referencing.Resource(schema, referencing.jsonschema.DRAFT202012))
+    return schema, jsonschema.Draft202012Validator(
+        schema, registry=registry, format_checker=_format_checker(jsonschema))
 
 
 def _resolve(node, schema):
@@ -88,20 +95,30 @@ def _resolve(node, schema):
     return node
 
 
-def _fill_defaults(value, node, schema):
-    node = _resolve(node, schema)
-    if not isinstance(value, dict) or not isinstance(node, dict):
-        return
+def _children(value, node):
+    """(item, schema) for every key of `value` the schema describes: a named property, or an
+    entry of a map whose entries share one schema (underscore prose excepted)."""
     properties = node.get("properties", {})
-    for key, child in properties.items():
-        if key not in value and "default" in child:
-            value[key] = copy.deepcopy(child["default"])
     entries = node.get("additionalProperties")
     for key, item in value.items():
         if key in properties:
-            _fill_defaults(item, properties[key], schema)
+            yield item, properties[key]
         elif isinstance(entries, dict) and not key.startswith("_"):
-            _fill_defaults(item, entries, schema)
+            yield item, entries
+
+
+def _set_absent(value, properties):
+    for key, child in properties.items():
+        if key not in value and "default" in child:
+            value[key] = copy.deepcopy(child["default"])
+
+
+def _fill_defaults(value, node, schema):
+    node = _resolve(node, schema)
+    if isinstance(value, dict) and isinstance(node, dict):
+        _set_absent(value, node.get("properties", {}))
+        for item, child in _children(value, node):
+            _fill_defaults(item, child, schema)
 
 
 def _key_path(error):
@@ -121,18 +138,24 @@ def _rank(error):
     return _key_path(error), error.validator
 
 
+def _typed_branch(error):
+    """The errors of the one `anyOf` branch whose type the value matched, or None if not one."""
+    branches = {}
+    for sub in error.context:
+        branches.setdefault(sub.relative_schema_path[0], []).append(sub)
+    matched = [subs for subs in branches.values() if not any(
+        sub.validator == "type" and sub.absolute_path == error.absolute_path for sub in subs)]
+    return matched[0] if len(matched) == 1 else None
+
+
 def _specific(error):
     """An `anyOf` failure, narrowed to the one branch whose type the value matched — so a bad
     board names its broken field, not the whole object. Ambiguous or untyped: left as is."""
     while error.validator == "anyOf" and error.context:
-        branches = {}
-        for sub in error.context:
-            branches.setdefault(sub.relative_schema_path[0], []).append(sub)
-        matched = [subs for subs in branches.values() if not any(
-            sub.validator == "type" and sub.absolute_path == error.absolute_path for sub in subs)]
-        if len(matched) != 1:
+        branch = _typed_branch(error)
+        if branch is None:
             break
-        error = min(matched[0], key=_rank)
+        error = min(branch, key=_rank)
     return error
 
 

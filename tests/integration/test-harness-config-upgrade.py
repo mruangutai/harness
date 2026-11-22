@@ -14,13 +14,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tests"))
-from harness_config_support import build_config  # noqa: E402
+from harness_config_support import EXCLUDED_KIND as EXCLUDED, build_config  # noqa: E402
 import artifact_accessors as accessors  # noqa: E402
 
 SCRIPT = ROOT / ".claude" / "skills" / "harness" / "bin" / "upgrade-config.py"
 TEMPLATES = ROOT / ".claude" / "skills" / "harness" / "templates"
-EXCLUDED = {"detect": "e/**", "exclude": "", "cmd": None, "status": "excluded",
-            "excluded_because": "no evals here", "signed": "DEC-187"}
 
 
 def version_two(overrides=None):

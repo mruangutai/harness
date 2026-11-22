@@ -74,66 +74,85 @@ def row_lines(text, span):
     return [line.strip() for line in picked if line.strip()]
 
 
-def disposition_findings(rows, table, file_table):
-    findings, seen, retained = [], collections.Counter(), 0
-    keyed = collections.Counter((r["path"] + ":" + r["span"], r["cls"]) for r in rows if r["cls"] != "UNAFFECTED")
-    for cells in table:
-        if len(cells) < 5:
-            findings.append(f"disposition row has fewer than five cells: {cells}")
-            continue
-        ident, cls, verdict, coverage, reason = cells[:5]
-        if (ident, cls) not in keyed:
-            findings.append(f"disposition names no inventory row: {ident} {cls}")
-        elif seen[(ident, cls)] >= keyed[(ident, cls)]:
-            findings.append(f"inventory row disposed more often than it is listed: {ident} {cls}")
-        elif verdict not in ALLOWED[cls] or not coverage:
-            findings.append(f"{ident} {cls}: disposition {verdict!r} needs one of "
-                            f"{sorted(ALLOWED[cls])} and a named replacement coverage")
-        retained += verdict == "RETAINED"
-        if verdict == "RETAINED" and "signed" not in reason.lower():
-            findings.append(f"{ident}: a retention must name its signed reason")
-        seen[(ident, cls)] += 1
-    findings += [f"inventory row not disposed: {i} {c}" for (i, c), n in sorted(keyed.items()) if seen[(i, c)] < n]
-    if retained > SIGNED_RETENTIONS:
-        findings.append(f"{retained} REMOVABLE retentions; only {SIGNED_RETENTIONS} were signed")
+def _cell_finding(cells, keyed, seen):
+    """What is wrong with one disposition row, or None."""
+    ident, cls, verdict, coverage, reason = cells[:5]
+    if (ident, cls) not in keyed:
+        return f"disposition names no inventory row: {ident} {cls}"
+    if seen[(ident, cls)] > keyed[(ident, cls)]:
+        return f"inventory row disposed more often than it is listed: {ident} {cls}"
+    if verdict not in ALLOWED[cls] or not coverage:
+        return f"{ident} {cls}: disposition {verdict!r} needs one of {sorted(ALLOWED[cls])} and a named replacement coverage"
+    if verdict == "RETAINED" and "signed" not in reason.lower():
+        return f"{ident}: a retention must name its signed reason"
+    return None
+
+
+def _coverage_findings(rows, complete, file_table):
+    """Too many retentions, or an inventory file nobody assessed."""
+    retained = sum(cells[2] == "RETAINED" for cells in complete)
     assessed = {cells[0] for cells in file_table if len(cells) > 1 and cells[1]}
-    findings += [f"inventory file not assessed: {p}" for p in sorted({r["path"] for r in rows} - assessed)]
-    return findings
+    return ([f"{retained} REMOVABLE retentions; only {SIGNED_RETENTIONS} were signed"] if retained > SIGNED_RETENTIONS else []) \
+        + [f"inventory file not assessed: {p}" for p in sorted({r["path"] for r in rows} - assessed)]
+
+
+def _undisposed(keyed, seen):
+    return [f"inventory row not disposed: {i} {c}" for (i, c), n in sorted(keyed.items()) if seen[(i, c)] < n]
+
+
+def disposition_findings(rows, table, file_table):
+    keyed = collections.Counter((r["path"] + ":" + r["span"], r["cls"]) for r in rows if r["cls"] != "UNAFFECTED")
+    complete = [cells for cells in table if len(cells) >= 5]
+    findings = [f"disposition row has fewer than five cells: {cells}" for cells in table if len(cells) < 5]
+    seen = collections.Counter()
+    for cells in complete:
+        seen[(cells[0], cells[1])] += 1
+        findings.append(_cell_finding(cells, keyed, seen))
+    return list(filter(None, findings)) + _undisposed(keyed, seen) + _coverage_findings(rows, complete, file_table)
+
+
+def _still_stands(before, after):
+    """True when the non-blank lines `before` (two or more) appear as one block in `after`."""
+    if after is None or len(before) < 2:
+        return False
+    now = [line.strip() for line in after.splitlines() if line.strip()]
+    return any(now[i:i + len(before)] == before for i in range(len(now) - len(before) + 1))
 
 
 def stale_findings(rows, table, span_text, review_text):
     """A deleted or rewritten row whose inventoried text still stands verbatim at the review ref."""
     verdicts = {(c[0], c[1]): c[2] for c in table if len(c) >= 3}
-    findings = []
-    for r in rows:
-        ident, cls = r["path"] + ":" + r["span"], r["cls"]
-        if not (cls == "UPDATE-BEHAVIOR" or verdicts.get((ident, cls)) == "DELETED"):
-            continue
-        before, after = span_text(r["path"], r["span"]), review_text(r["path"])
-        if after is None or len(before) < 2:
-            continue
-        now = [line.strip() for line in after.splitlines() if line.strip()]
-        if any(now[i:i + len(before)] == before for i in range(len(now) - len(before) + 1)):
-            findings.append(f"stale assertion: {ident} ({cls}) still stands verbatim at the review ref")
-    return findings
+    judged = [r for r in rows if r["cls"] == "UPDATE-BEHAVIOR"
+              or verdicts.get((r["path"] + ":" + r["span"], r["cls"])) == "DELETED"]
+    return [f"stale assertion: {r['path']}:{r['span']} ({r['cls']}) still stands verbatim at the review ref"
+            for r in judged if _still_stands(span_text(r["path"], r["span"]), review_text(r["path"]))]
+
+
+def _escaped(path, base, review):
+    return (not measured(path) and base is None and review is not None
+            and path.endswith(CODE) and bool(TEST_LIKE.search(path)))
+
+
+def _unenumerated(path, review, enumerated):
+    lines, covers = enumerated.get(path, (None, ""))
+    return lines != review or not COVERS.search(covers)
+
+
+def _gate_b(inside, enumerated):
+    return [f"Gate B: new {p} ({a} lines) is not enumerated with its exact line count and the SC/D it covers"
+            for p, (b, a) in sorted(inside.items()) if b is None and a is not None and _unenumerated(p, a, enumerated)]
+
+
+def _escapes(changes):
+    return [f"test/helper escaped the measured roots: {p}" for p, (b, a) in sorted(changes.items()) if _escaped(p, b, a)]
 
 
 def delta_findings(changes, enumerated):
     """changes: path -> (base_lines | None, review_lines | None) for every changed path."""
-    findings = [f"test/helper escaped the measured roots: {p}" for p, (b, a) in sorted(changes.items())
-                if not measured(p) and b is None and a is not None and p.endswith(CODE) and TEST_LIKE.search(p)]
     inside = {p: v for p, v in changes.items() if measured(p)}
     gate_a = sum((a or 0) - b for b, a in inside.values() if b is not None)
-    if gate_a >= 0:
-        findings.append(f"Gate A: pre-existing affected test/helper files net {gate_a:+d}; must be negative")
-    for path, (base, review) in sorted(inside.items()):
-        if base is not None or review is None:
-            continue
-        lines, covers = enumerated.get(path, (None, ""))
-        if lines != review or not COVERS.search(covers):
-            findings.append(f"Gate B: new {path} ({review} lines) is not enumerated with its exact "
-                            f"line count and the SC/D it covers")
-    return findings, gate_a
+    gate = [f"Gate A: pre-existing affected test/helper files net {gate_a:+d}; must be negative"] if gate_a >= 0 else []
+    return _escapes(changes) + gate + _gate_b(inside, enumerated), gate_a
 
 
 def fleet_findings(base_text, review_text):
@@ -190,35 +209,35 @@ def line_count(text):
     return None if text is None else len(text.splitlines())
 
 
+def _measured_row(path, base, review):
+    shown = lambda count, absent: absent if count is None else count
+    return f"| `{path}` | {shown(base, 'new')} | {shown(review, 'deleted')} | {(review or 0) - (base or 0):+d} |"
+
+
 def measurement(base, review, command, changes, gate_a):
-    out = [BEGIN, f"- base `{base}` (`{command}`)", f"- review `{review}`", "",
-           "| File | Base | Review | Delta |", "|---|---|---|---|"]
     inside = sorted(p for p in changes if measured(p))
-    for p in inside:
-        b, a = changes[p]
-        out.append(f"| `{p}` | {b if b is not None else 'new'} | {a if a is not None else 'deleted'} "
-                   f"| {(a or 0) - (b or 0):+d} |")
-    new = sum(a for b, a in (changes[p] for p in inside) if b is None and a)
-    out += ["", f"- Gate A, pre-existing affected files: {gate_a:+d}",
-            f"- Gate B, new files enumerated below: {new:+d}",
-            f"- Reported total, both populations: {gate_a + new:+d}", END]
-    return "\n".join(out)
+    new = sum(changes[p][1] or 0 for p in inside if changes[p][0] is None)
+    return "\n".join([BEGIN, f"- base `{base}` (`{command}`)", f"- review `{review}`", "",
+                      "| File | Base | Review | Delta |", "|---|---|---|---|",
+                      *(_measured_row(p, *changes[p]) for p in inside), "",
+                      f"- Gate A, pre-existing affected files: {gate_a:+d}",
+                      f"- Gate B, new files enumerated below: {new:+d}",
+                      f"- Reported total, both populations: {gate_a + new:+d}", END])
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--review-ref", required=True)
-    parser.add_argument("--receipt", required=True)
-    parser.add_argument("--base")
-    args = parser.parse_args(argv)
-    broken = self_control_failures()
-    if broken:
-        print("\n".join(f"SELF-CONTROL FAILED  {name}" for name in broken))
-        return 1
-    review = git("rev-parse", "--verify", f"{args.review_ref}^{{commit}}").strip()
-    command = f"git merge-base {args.review_ref} origin/main"
-    base = git("rev-parse", "--verify", f"{args.base or git('merge-base', review, 'origin/main').strip()}^{{commit}}").strip()
-    command = "--base" if args.base else command
+def _commit(ref):
+    return git("rev-parse", "--verify", f"{ref}^{{commit}}").strip()
+
+
+def resolve_refs(review_ref, base):
+    """(base, review, how the base was chosen): an explicit --base, else the merge-base with main."""
+    review = _commit(review_ref)
+    if base:
+        return _commit(base), review, "--base"
+    return _commit(git("merge-base", review, "origin/main").strip()), review, f"git merge-base {review_ref} origin/main"
+
+
+def signed_rows(review):
     inventory = show(review, INVENTORY)
     if inventory is None or hashlib.sha256(inventory.encode()).hexdigest() != INVENTORY_SHA256:
         raise SystemExit(f"check-config-reduction: {INVENTORY} is missing or not the signed inventory")
@@ -226,28 +245,68 @@ def main(argv=None):
     counts = {c: sum(r["cls"] == c for r in rows) for c in SIGNED_ROWS}
     if counts != SIGNED_ROWS or len({r["path"] for r in rows}) != SIGNED_FILES:
         raise SystemExit(f"check-config-reduction: inventory parses to {counts}, not the signed rows")
+    return rows
+
+
+def receipt_inputs(receipt):
+    """(disposition rows, file rows, new file -> (line count, covers)) from the receipt's tables."""
+    found = tables(receipt)
+    enumerated = {c[0]: (int(c[1]) if c[1].isdigit() else None, c[2]) for c in found.get("New coverage", []) if len(c) >= 3}
+    return found.get("Dispositions", []), found.get("Files", []), enumerated
+
+
+def write_measurement(path, receipt, block):
+    if BEGIN not in receipt or END not in receipt:
+        return [f"{path} has no {BEGIN} … {END} measurement block"]
+    head, rest = receipt.split(BEGIN, 1)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(head + block + rest.split(END, 1)[1])
+    return []
+
+
+def _args(argv):
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--review-ref", required=True)
+    parser.add_argument("--receipt", required=True)
+    parser.add_argument("--base")
+    return parser.parse_args(argv)
+
+
+def changed_lines(base, review):
+    """path -> (base line count | None, review line count | None) for every path the diff changes."""
+    return {p: (line_count(show(base, p)), line_count(show(review, p)))
+            for p in git("diff", "--no-renames", "--name-only", base, review).split()}
+
+
+def _row_findings(rows, table, files, review):
+    spans = {}
+    span = lambda p, s: row_lines(spans.setdefault(p, show(INVENTORY_REF, p) or ""), s)
+    return disposition_findings(rows, table, files) + stale_findings(rows, table, span, lambda p: show(review, p))
+
+
+def evaluate(args):
+    """(findings, the OK line) for one run; the receipt's measurement block is rewritten."""
+    base, review, command = resolve_refs(args.review_ref, args.base)
     with open(args.receipt, encoding="utf-8") as handle:
         receipt = handle.read()
-    found = tables(receipt)
-    table, files = found.get("Dispositions", []), found.get("Files", [])
-    enumerated = {c[0]: (int(c[1]) if c[1].isdigit() else None, c[2])
-                  for c in found.get("New coverage", []) if len(c) >= 3}
-    base_spans = {}
-    span = lambda p, s: row_lines(base_spans.setdefault(p, show(INVENTORY_REF, p) or ""), s)
-    paths = git("diff", "--no-renames", "--name-only", base, review).split()
-    changes = {p: (line_count(show(base, p)), line_count(show(review, p))) for p in paths}
+    table, files, enumerated = receipt_inputs(receipt)
+    changes = changed_lines(base, review)
     gated, gate_a = delta_findings(changes, enumerated)
-    findings = (disposition_findings(rows, table, files)
-                + stale_findings(rows, table, span, lambda p: show(review, p)) + gated
-                + fleet_findings(show(base, FLEET), show(review, FLEET)))
-    if BEGIN not in receipt or END not in receipt:
-        findings.append(f"{args.receipt} has no {BEGIN} … {END} measurement block")
-    else:
-        head, rest = receipt.split(BEGIN, 1)
-        with open(args.receipt, "w", encoding="utf-8") as handle:
-            handle.write(head + measurement(base, review, command, changes, gate_a) + rest.split(END, 1)[1])
-    print("\n".join(f"FAIL  {f}" for f in findings) or f"OK  base {base[:12]} review {review[:12]} "
-          f"Gate A {gate_a:+d}; {sum(counts.values())} rows disposed; {SIGNED_FILES} files assessed")
+    findings = (_row_findings(signed_rows(review), table, files, review) + gated
+                + fleet_findings(show(base, FLEET), show(review, FLEET))
+                + write_measurement(args.receipt, receipt, measurement(base, review, command, changes, gate_a)))
+    return findings, (f"OK  base {base[:12]} review {review[:12]} Gate A {gate_a:+d}; "
+                      f"{sum(SIGNED_ROWS.values())} rows disposed; {SIGNED_FILES} files assessed")
+
+
+def main(argv=None):
+    args = _args(argv)
+    broken = self_control_failures()
+    if broken:
+        print("\n".join(f"SELF-CONTROL FAILED  {name}" for name in broken))
+        return 1
+    findings, ok = evaluate(args)
+    print("\n".join(f"FAIL  {f}" for f in findings) or ok)
     return 1 if findings else 0
 
 

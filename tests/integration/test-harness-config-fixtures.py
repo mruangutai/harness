@@ -98,6 +98,23 @@ class _Module:
         return []
 
 
+def _into(call, handle):
+    """True when `call` is `handle.write(...)` or `json.dump(value, handle)`."""
+    if call.func.attr == "write":
+        target = call.func.value
+    else:
+        target = call.args[1] if call.func.attr == "dump" and len(call.args) > 1 else None
+    return isinstance(target, ast.Name) and target.id == handle
+
+
+def _handle_write(block, handle):
+    """The value a `with open(...) as handle` block writes or dumps into `handle`, or None."""
+    for node in ast.walk(block):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.args and _into(node, handle):
+            return node.args[0]
+    return None
+
+
 class Census:
     def __init__(self, sources):
         self.modules, self.ts, self.findings = {}, {}, []
@@ -110,23 +127,26 @@ class Census:
             except SyntaxError as error:
                 self.findings.append(f"{relative}: cannot be parsed, so its producers are unknown ({error})")
         self.by_name = {Path(r).stem: m for r, m in self.modules.items()}
-        # (module, function) -> (path index, path parameter, content index, content parameter, own value).
-        # A write of an expression over a parameter is checked at each call site's argument; a write
-        # of anything else is the helper's own value, checked in the helper's own module.
         self.writers = {}
         for module in self.modules.values():
             for path, value, node in self._raw_writes(module):
-                scope = module.scope_of(node)
-                params = [a.arg for a in scope.args.args] if hasattr(scope, "args") else []
-                path_params = [n.id for n in ast.walk(path) if isinstance(n, ast.Name) and n.id in params] if path else []
-                if not path_params:
-                    continue
-                at = path_params[0]
-                content = [n.id for n in ast.walk(value) if isinstance(n, ast.Name)
-                           and n.id in params and n.id != at] if value is not None else []
-                self.writers[(module.relative, scope.name)] = (
-                    (params.index(at), at, params.index(content[0]), content[0], None)
-                    if content else (params.index(at), at, None, None, (module, value)))
+                self._record_writer(module, path, value, node)
+
+    def _record_writer(self, module, path, value, node):
+        """(module, function) -> (path index, path parameter, content index, content parameter,
+        own value) for a function that raw-writes to a path parameter. A write of an expression
+        over a parameter is checked at each call site's argument; a write of anything else is the
+        helper's own value, checked in the helper's own module."""
+        scope = module.scope_of(node)
+        params = [a.arg for a in scope.args.args] if hasattr(scope, "args") else []
+        at = next((n.id for n in ast.walk(path) if isinstance(n, ast.Name) and n.id in params), None) if path else None
+        if at is None:
+            return
+        content = [n.id for n in ast.walk(value) if isinstance(n, ast.Name)
+                   and n.id in params and n.id != at] if value is not None else []
+        self.writers[(module.relative, scope.name)] = (
+            (params.index(at), at, params.index(content[0]), content[0], None)
+            if content else (params.index(at), at, None, None, (module, value)))
 
     def _writer(self, module, func):
         """The writer a call reaches: defined here, imported by name, or called as `module.helper`."""
@@ -164,15 +184,7 @@ class Census:
         if isinstance(parent, ast.Call) and isinstance(parent.func, ast.Attribute) and parent.func.attr == "dump":
             return parent.args[0]
         if isinstance(parent, ast.withitem) and isinstance(parent.optional_vars, ast.Name):
-            handle = parent.optional_vars.id
-            for node in ast.walk(module.parents[parent]):
-                if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-                        and node.args and (
-                            node.func.attr == "write" and isinstance(node.func.value, ast.Name)
-                            and node.func.value.id == handle
-                            or node.func.attr == "dump" and len(node.args) > 1
-                            and isinstance(node.args[1], ast.Name) and node.args[1].id == handle)):
-                    return node.args[0]
+            return _handle_write(module.parents[parent], parent.optional_vars.id)
         return None
 
     # --- name resolution -----------------------------------------------------------------------
@@ -184,14 +196,17 @@ class Census:
                 return True
             if isinstance(sub, ast.Name) and (module.relative, sub.id) not in seen:
                 seen.add((module.relative, sub.id))
-                values = module.assigned(sub.id, module.scope_of(sub))
-                if any(self._resolve(module, value, test, seen) for value in values):
-                    return True
-                origin = module.imports.get(sub.id)
-                other = origin and self.by_name.get(origin[0].rsplit(".", 1)[-1])
-                if other and any(self._resolve(other, v, test, seen) for v in other.assigned(origin[1], other.tree)):
+                if any(self._resolve(owner, value, test, seen) for owner, value in self._values_of(module, sub)):
                     return True
         return False
+
+    def _values_of(self, module, name):
+        """(module, expression) for every value `name` is assigned here or in the module it is imported from."""
+        yield from ((module, value) for value in module.assigned(name.id, module.scope_of(name)))
+        origin = module.imports.get(name.id)
+        other = origin and self.by_name.get(origin[0].rsplit(".", 1)[-1])
+        if other:
+            yield from ((other, value) for value in other.assigned(origin[1], other.tree))
 
     def _mentions_config(self, module, node):
         return node is not None and self._resolve(
@@ -215,23 +230,31 @@ class Census:
                 yield "raw-write", node, value
         for node in ast.walk(module.tree):
             if isinstance(node, ast.Dict):
-                for key, value in zip(node.keys, node.values):
-                    if isinstance(key, ast.Constant) and _names_config(key.value):
-                        yield "mapping-entry", node, value
-            if not isinstance(node, ast.Call):
-                continue
-            for keyword in node.keywords:
-                if keyword.arg == "product_configs":
-                    payloads = keyword.value.values if isinstance(keyword.value, ast.Dict) else [keyword.value]
-                    for value in payloads:
-                        yield "remote-payload", node, value
-            writer = self._writer(module, node.func)
-            if writer:
-                path_at, path_name, value_at, value_name, own = writer
-                args = {**dict(enumerate(node.args)), **{k.arg: k.value for k in node.keywords}}
-                path = args.get(path_at, args.get(path_name))
-                if self._mentions_config(module, path):
-                    yield "indirect-write", node, own or (module, args.get(value_at, args.get(value_name)))
+                yield from self._mapping_entries(node)
+            elif isinstance(node, ast.Call):
+                yield from self._remote_payloads(node)
+                yield from self._indirect_writes(module, node)
+
+    @staticmethod
+    def _mapping_entries(node):
+        for key, value in zip(node.keys, node.values):
+            if isinstance(key, ast.Constant) and _names_config(key.value):
+                yield "mapping-entry", node, value
+
+    @staticmethod
+    def _remote_payloads(node):
+        for keyword in (k for k in node.keywords if k.arg == "product_configs"):
+            payloads = keyword.value.values if isinstance(keyword.value, ast.Dict) else [keyword.value]
+            yield from (("remote-payload", node, value) for value in payloads)
+
+    def _indirect_writes(self, module, node):
+        writer = self._writer(module, node.func)
+        if not writer:
+            return
+        path_at, path_name, value_at, value_name, own = writer
+        args = {**dict(enumerate(node.args)), **{k.arg: k.value for k in node.keywords}}
+        if self._mentions_config(module, args.get(path_at, args.get(path_name))):
+            yield "indirect-write", node, own or (module, args.get(value_at, args.get(value_name)))
 
     def run(self):
         for relative in sorted(self.modules):
@@ -245,12 +268,16 @@ class Census:
                     self.findings.append(f"{site} (line {node.lineno}): a harness.json producer that "
                                          "does not reach build_config/write_config")
         for relative, text in sorted(self.ts.items()):
-            fixtures = set(re.findall(r"(?:const|let)\s+(\w+)\s*=[^;]*harness-config-budgets\.json", text))
-            for number, call in enumerate(_ts_calls(text, "writeFileSync"), 1):
-                if "harness.json" in call and not any(re.search(rf"\b{name}\b", call) for name in fixtures):
-                    self.findings.append(f"{relative}::writeFileSync#{number}: an inline TypeScript "
-                                         "harness.json that is not read from the checked-in budget fixture")
+            self.findings += _ts_findings(relative, text)
         return self.findings
+
+
+def _ts_findings(relative, text):
+    fixtures = set(re.findall(r"(?:const|let)\s+(\w+)\s*=[^;]*harness-config-budgets\.json", text))
+    return [f"{relative}::writeFileSync#{number}: an inline TypeScript harness.json that is not read "
+            "from the checked-in budget fixture"
+            for number, call in enumerate(_ts_calls(text, "writeFileSync"), 1)
+            if "harness.json" in call and not any(re.search(rf"\b{name}\b", call) for name in fixtures)]
 
 
 def _ts_calls(text, name):

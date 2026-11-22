@@ -24,6 +24,9 @@ if str(BIN) not in sys.path:
 import artifact_accessors  # noqa: E402
 
 MINIMAL = {"schema_version": 3}
+# A complete excluded kind (override input): the conditional fields an `excluded` status requires.
+EXCLUDED_KIND = {"detect": "e/**", "exclude": "", "cmd": None, "status": "excluded",
+                 "excluded_because": "no evals here", "signed": "DEC-187"}
 
 
 def _merged(base, overrides):

@@ -75,12 +75,12 @@ def load_json(path):
 
 def migrate_statuses(project):
     """Version 2 -> 3: name each status-less kind's state from its cmd. Returns what it set."""
-    inferred = []
-    for name, kind in (project.get("test_kinds") or {}).items():
-        if isinstance(kind, dict) and not name.startswith("_") and "status" not in kind:
-            kind["status"] = "active" if kind.get("cmd") else "unresolved"
-            inferred.append(f"test_kinds.{name}.status = {kind['status']}")
-    return inferred
+    kinds = project.get("test_kinds") or {}
+    statusless = [name for name, kind in kinds.items()
+                  if isinstance(kind, dict) and not name.startswith("_") and "status" not in kind]
+    for name in statusless:
+        kinds[name]["status"] = "active" if kinds[name].get("cmd") else "unresolved"
+    return [f"test_kinds.{name}.status = {kinds[name]['status']}" for name in statusless]
 
 
 def merge(project, template, path=(), added=None):

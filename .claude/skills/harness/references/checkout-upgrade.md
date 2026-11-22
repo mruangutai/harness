@@ -17,7 +17,7 @@ replace the first command there with:
 
 ```bash
 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/upgrade-config.py . --config-only \
-  --templates <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/templates
+  --templates <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates
 ```
 
 Version 3 is a breaking upgrade (DEC-255): until a member's upgraded `harness.json` lands on
