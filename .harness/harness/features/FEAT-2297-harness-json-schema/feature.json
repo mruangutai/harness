@@ -179,6 +179,13 @@
       "kind": "amendment",
       "decision": "T-10.files",
       "reason": "Simplify pass before pin: grade fixes, functools.cache, repo pattern aligned with feature_schema, drift test pinning three runtime vocabularies, shared EXCLUDED_KIND."
+    },
+    {
+      "at": "2026-11-22T21:56:14.339456+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Grade pass: the feat59 (63.a) predicate becomes a named helper so the changed test function meets the test bar without a written reason."
     }
   ],
   "mission": "plan",

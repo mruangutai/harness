@@ -1147,6 +1147,14 @@ def _feat63_oversized_record(tmp):
     _write(fy, json.dumps(doc, indent=2) + "\n")
 
 
+def _diagnosed_import_failure(out, err):
+    """Exactly one config violation, naming feature_schema and its error; no INV-23 row; no crash."""
+    config = [l for l in out.splitlines() if "VIOLATION" in l and "harness.json is invalid" in l]
+    return (len(config) == 1 and "feature_schema" in config[0]
+            and "RuntimeError: FEAT-61 T-03 injected exec failure" in config[0]
+            and not _lines(out, "INV-23") and "Traceback" not in err)
+
+
 def case_feat63_inv23_import_boundary():
     """A feature_schema that fails to import is never a crash and never a 300-line guess. Since
     FEAT-2297 the config loader itself depends on it (jsonschema's one guard lives there), so the
@@ -1157,13 +1165,9 @@ def case_feat63_inv23_import_boundary():
         _fixture(tmp, _in_era(), BRIEF_NEW)
         _feat63_oversized_record(tmp)
         _code, out, err = _run_from(iso, tmp)
-    config = [l for l in out.splitlines() if "VIOLATION" in l and "harness.json is invalid" in l]
     return [
         ("(63.a) an unimportable feature_schema is the diagnosed config violation naming the failure",
-         len(config) == 1 and "feature_schema" in config[0]
-         and "RuntimeError: FEAT-61 T-03 injected exec failure" in config[0]
-         and not _lines(out, "INV-23") and "Traceback" not in err,
-         out[:800] + err[-400:]),
+         _diagnosed_import_failure(out, err), out[:800] + err[-400:]),
         ("(63.b) the 300-line fallback is gone — nothing is graded against a guessed budget",
          not [l for l in out.splitlines() if "INV-23" in l and "budget is 300" in l], out[:800]),
     ]
