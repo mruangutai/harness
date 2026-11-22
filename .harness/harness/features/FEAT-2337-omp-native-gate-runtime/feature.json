@@ -1,0 +1,68 @@
+{
+  "feature_id": "FEAT-2337-omp-native-gate-runtime",
+  "branch": "feat/FEAT-2337-omp-native-gate-runtime",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261122-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:14:52+00:00",
+      "tokens": 80000,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-1-plan-product/digest.md",
+        "sha256": "1fe7a9c1cdf96227c31f4d794526b1db4981340da7c5daaf73bf50fc691da960"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:47:30+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-2-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:47:53+00:00",
+      "tokens": 42426,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-simplify-eng/digest.md",
+        "sha256": "f62166cd51830108b45e7297cce82253ccd45d56c9fe1a84fd5f785d6f29439e"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:52:14+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-3-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:52:15+00:00",
+      "tokens": 37312,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-3-simplify-apply-product/digest.md",
+        "sha256": "32cee3ece2de172e9a88513700b051c87abd019cc644061552112ac969684048"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:58:34+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T19:14:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Cause known, files nameable, but B adds enforcement surfaces: QA receipt contract, gate timeouts, a new #919 decision; operator-confirmed"
+    }
+  ],
+  "mission": "plan"
+}
