@@ -97,10 +97,10 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | File | Lines | Covers |
 |---|---|---|
 | `tests/harness_config_support.py` | 68 | D-06, SC-04: the one fixture builder |
-| `tests/unit/test-harness-config.py` | 262 | D-01, D-02, D-03, SC-01: schema defaults, refusals and sources |
+| `tests/unit/test-harness-config.py` | 266 | D-01, D-02, D-03, SC-01: schema defaults, refusals and sources |
 | `tests/integration/test-harness-config-fixtures.py` | 424 | D-06, SC-04: builder-reach census and budget-fixture freshness |
 | `tests/integration/test-harness-config-readers.py` | 327 | D-01, D-04, SC-02, SC-10: every reader and gate refuses; check-state reports |
-| `tests/integration/test-harness-config-upgrade.py` | 118 | D-05, SC-03: config-only 2-to-3 upgrade |
+| `tests/integration/test-harness-config-upgrade.py` | 132 | D-05, SC-03: config-only 2-to-3 upgrade |
 | `tests/fixtures/harness-config-budgets.json` | 44 | D-06, D-08, SC-04: builder-generated TypeScript budget configs |
 | `.harness/harness/features/FEAT-2297-harness-json-schema/notes/check-config-reduction.py` | 314 | D-06, SC-05: this release-evidence checker |
 
