@@ -10,5 +10,9 @@
   "bug:merge-gate.py misses gh global options (gh -R o/r pr merge N) and Main's merge pre-screen misses shlex-stitched spellings": {
     "number": 2359,
     "typed": true
+  },
+  "chore:document that features editing team-config.yaml are red on test-check-plan-routes.py in linked worktrees until merge (intended deviation detector); dispatches disclose and pair clone evidence": {
+    "number": 2387,
+    "typed": true
   }
 }
