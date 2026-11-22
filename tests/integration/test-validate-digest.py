@@ -37,7 +37,7 @@ HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
 from check_domain_support import make_linked_worktree
-from harness_config_support import write_config
+from harness_config_support import build_config, write_config
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
@@ -1828,10 +1828,11 @@ RX_TEAM_CONFIG = yaml.safe_dump({"teams": [], "leads": [{
     "name": RX_LEAD, "squad": "validator", "domain": [
         {"path": ".harness/*/features/*/runs/*-validator/**", "upsert": True},
         {"path": ".", "read": True}]}]})
-RX_POLICY = json.dumps({"test_kinds": {
-    "unit": {"cmd": "run-unit-tests.py --kind unit", "status": "active"},
-    "integration": {"cmd": "run-unit-tests.py --kind integration", "status": "active"},
-    "smoke": {"cmd": "smoke.py", "status": "active"}}})
+RX_POLICY = json.dumps(build_config({"test_kinds": {
+    "unit": {"detect": "tests/unit/**", "exclude": "", "cmd": "run-unit-tests.py --kind unit", "status": "active"},
+    "integration": {"detect": "tests/integration/**", "exclude": "",
+                    "cmd": "run-unit-tests.py --kind integration", "status": "active"},
+    "functional": {"detect": "tests/functional/**", "exclude": "", "cmd": "functional.py", "status": "active"}}}))
 RX_DURATIONS = json.dumps({"schema": 1, "source_run_url": "https://example.invalid/run/1",
                            "source_commit": "0" * 40, "default_seconds": 1.0, "weights": {}})
 RX_IGNORE = ("*.lock\n__pycache__/\n.harness/.inflight-claims.json\n"
@@ -2105,7 +2106,7 @@ def _rx_control_cases(root):
         for label, text in (("a PASS naming no kind is refused — no default to every kind",
                              QA_UNCONDITIONAL_PASS),
                             ("an unsupported kind cannot stand in for unit or integration",
-                             _qa_claiming("smoke"))):
+                             _qa_claiming("functional"))):
             _rx_expect(label, _rx_fire(root, text=text), 2,
                        ["names no satisfied unit or integration kind",
                         _rx_repair(root, "unit"), _rx_repair(root, "integration")])
