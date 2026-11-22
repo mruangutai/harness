@@ -1,0 +1,14 @@
+schema_version: 2
+run_id: r-20261122-1-plan-product
+run_uid: 47f0ca0e6a9f4d36881af4cd452e8888
+feature: FEAT-2340-gate-one-pattern-per-concept
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - {id: draft, persona: harness-pm, status: complete, verdict: PASS, cycles: 0, dispatched_at: seq-1, completed_at: seq-2}
+  - {id: scope, persona: harness-code-reviewer, status: complete, verdict: PASS, cycles: 0, dispatched_at: seq-3, completed_at: seq-4}
+  - {id: should-not-exist, persona: fable-advisor, status: complete, verdict: PASS, cycles: 0, dispatched_at: seq-3, completed_at: seq-4}
+  - {id: design, persona: harness-ui-reviewer, status: complete, verdict: PASS, cycles: 0, dispatched_at: seq-3, completed_at: seq-4}
+  - {id: apply, persona: harness-pm, status: complete, verdict: PASS, cycles: 0, dispatched_at: seq-5, completed_at: seq-6}
+  - {id: goalcheck, persona: harness-pm, status: complete, verdict: PASS, cycles: 0, dispatched_at: seq-7, completed_at: seq-8}

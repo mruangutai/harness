@@ -1,0 +1,602 @@
+----- test-check-domain.py (exit 0, 3.98s) -----
+ok    schema_version 1 preserves undeclared step key compatibility
+ok    schema_version 2 refuses an undeclared step key, names it and gives its route
+ok    schema_version 2 names a missing required step key
+ok    three identifier evidence keys are accepted
+ok    an evidence key containing a space is refused as an undeclared step key
+ok    a nested evidence mapping is refused as an undeclared step key
+ok    a declared step field with the wrong type is distinguished from an undeclared key
+ok    all 22 declared step keys are individually present and accepted
+ok    a duplicate key in run-state-schema.json is refused as unreadable, never last-wins
+ok    a step schema without its properties keeps its natural KeyError at the catch boundary
+ok    a schema without steps keeps its natural KeyError at the catch boundary
+ok    schema_version floor accepts creation at version 2
+ok    schema_version floor refuses creation at version 1
+ok    schema_version floor refuses creation without the field
+ok    schema_version floor refuses string 2 and names the type
+ok    schema_version floor allows an existing version-1 update
+ok    schema_version floor refuses a version-2 checkpoint downgrade
+ok    a defect reading the payload passes through with exactly the hook_guard line
+ok    a defect in a governed rule is visibly unavailable, once
+ok    a defect in the feature-checkout rule is no longer absorbed: it is named on stderr
+ok    a defect in the claim rule is no longer classified locally: it is named on stderr
+ok    a --resolve defect passes through the same guard and answers no route
+ok    KeyboardInterrupt escapes the guard
+ok    a deliberate SystemExit keeps its own exit code
+ok    an unreadable payload passes through as one unavailable line
+ok    a tree without harness_boundary.py says unavailable once and still fails open
+ok    a normal governed pass emits no unavailable line
+ok    the main session's ungoverned pass emits no unavailable line
+ok    a deliberate denial is exit 2 with no unavailable line
+
+29/29 T-06 check-domain cases passed.
+coverage tokens: undeclared step key; schema_version floor
+ALL PASSED
+PASS test-check-domain.py
+----- test-check-domain-approval.py (exit 0, 4.77s) -----
+ok    T-09 1: an AGENT's Edit of plan.yaml is DENIED
+ok    T-09 1: the denial names set-task-station — the write an agent will actually attempt
+ok    T-09 1: the denial STATES THE REASON — one writer, because stations are validated before they land
+ok    T-09 1: the denial names the writer script by the basename that EXISTS on disk
+ok    T-09 1: the denial does NOT carry the STATE.md ROUTING sentence
+ok    T-09 2: an Edit with NO agent_type is denied too — the shape gate binds every author
+ok    T-09 3: a Write of plan.yaml is DENIED
+ok    T-09 4: NEGATIVE CONTROL — BRIEF.md beside it is NOT denied by this rule
+ok    T-09 5: a Bash write landing an ILLEGAL station value is REPORTED by the post sweep
+ok    T-09 5: and the report names the FILE as well as the offending value
+ok    T-09 6: NEGATIVE CONTROL — a Bash write landing a LEGAL station value is NOT reported
+ok    T-09 7: a plan.yaml carrying NO top-level status is NOT reported — the un-migrated shape is legal
+ok    T-09 8 / F-04: a Write of Plan.yaml is DENIED — on a case-insensitive filesystem it lands on the same inode as plan.yaml
+ok    T-09 8 / F-04: a Write of PLAN.YAML is DENIED — on a case-insensitive filesystem it lands on the same inode as plan.yaml
+ok    T-09 8 / F-04: a Write of plan.YAML is DENIED — on a case-insensitive filesystem it lands on the same inode as plan.yaml
+ok    T-09 8 NEGATIVE CONTROL: plan.yaml.bak is still ALLOWED — the rule is anchored, not a substring match
+ok    T-09 8 NEGATIVE CONTROL: myplan.yaml is still ALLOWED — the rule is anchored, not a substring match
+ok    T-09 9: a Write to a SYMLINK whose name is not plan.yaml is DENIED — the write lands in the plan, so the link is a route
+ok    T-09 9: the refusal names the feature's plan.yaml, the file the write would reach
+ok    T-09 9 NEGATIVE CONTROL: a symlink to a file that is not the plan is still ALLOWED — links are followed to a shape test, not refused as a class
+ok    T-09 9: the POST reporter follows the link and the vocabulary net speaks — a landed illegal station is reported even though the path written carries no rules
+ok    T-09 11: a Write through a hardlink to plan.yaml is DENIED — identity and resolution are different questions and the plan needs both answered
+ok    T-09 11: a Write through an innocent file under a LINKED parent directory is DENIED — identity and resolution are different questions and the plan needs both answered
+ok    T-09 11: a Write through a symlink chain longer than the hop cap is DENIED — identity and resolution are different questions and the plan needs both answered
+ok    T-09 11: a Write through a hardlink to a file that is NOT the plan is still ALLOWED — identity and resolution are different questions and the plan needs both answered
+ok    T-09 10: feature.json over budget is DENIED — the canonical control, proving the body really violates it
+ok    T-09 10: Feature.json over budget is DENIED — the SPELLING is not a way past a budget
+ok    T-09 10: handoff-build.md over budget is DENIED — the canonical control, proving the body really violates it
+ok    T-09 10: Handoff-Build.md over budget is DENIED — the SPELLING is not a way past a budget
+ok    T-09 10: STATE.md over budget is DENIED — the canonical control, proving the body really violates it
+ok    T-09 10: State.md over budget is DENIED — the SPELLING is not a way past a budget
+ok    T-09 10 NEGATIVE CONTROL: Feature.json within budget is still ALLOWED — the fold widened what is measured, not what is refused
+ok    T-09 10 NEGATIVE CONTROL: Handoff-Build.md within budget is still ALLOWED — the fold widened what is measured, not what is refused
+ok    T-09 10 NEGATIVE CONTROL: State.md within budget is still ALLOWED — the fold widened what is measured, not what is refused
+ok    T-09 12: a NUL-bearing path is REFUSED at exit 2, not exit 1 — exit 1 is non-blocking here, so a crash is a fail-OPEN
+ok    T-09 12: and it does not crash — no traceback reaches the operator
+ok    T-09 12 NEGATIVE CONTROL: a path that does not exist yet is still ALLOWED — realpath is non-strict, so absence is not unresolvable
+ok    T-09 12: a symlink LOOP is allowed, not refused — realpath resolves it rather than raising, which the old docstring had backwards
+ok    1: a governed agent flipping approval.status is DENIED
+ok    1: the denial names the approval mapping
+ok    1: the denial names the plan-merge route
+ok    2 (T-09): adding a task through Write is DENIED BY THE ROUTE RULE, not the approval guard — plan.yaml has one writer
+ok    3: the orchestrator flipping approval is DENIED too
+ok    4 (T-09): the MAIN SESSION's editor write is DENIED TOO — the shape gate binds every author, and signing is a verb now
+ok    5a: a targeted Edit of the signature is DENIED
+ok    5b: the mid-line-start evasion is DENIED
+ok    5c: the accidental replace_all sweep is DENIED
+ok    5d: an Edit INTRODUCING an approval block at column zero is DENIED
+ok    5e (T-09): an Edit touching only a task body is DENIED by the route rule
+ok    6 (T-09): a plan.yaml that does not exist yet is DENIED too — creation goes through apply, not Write
+ok    7 (T-09): an unparseable proposal is DENIED by the route rule — the shape gate never parses, so unparseable and legal are refused alike
+ok    7: and stderr SAYS the parse failed
+ok    8 (T-09): a whitespace-only reflow is DENIED by the route rule, though still NOT by the approval guard
+ok    9 (T-09): dropping the entry from main_session.writes stops the APPROVAL denial but not the ROUTE denial
+ok    10a (T-09): no main_session key at all -> still DENIED by the route rule
+ok    10a: and stderr says the exclusion list was unreadable
+ok    10b (T-09): an empty writes list -> still DENIED by the route rule
+ok    10b: and stderr says the exclusion list was unreadable
+ok    11: a fragment-less entry (.harness/logs/**) contributes NO fragment denial
+ok    12: flipping BRIEF.md's ## Approval body is DENIED
+ok    12: the denial names the ## Approval heading
+ok    12: changing only ## Goal, leaving ## Approval identical, is ALLOWED
+ok    13: flipping PLAN.md's ## Approval body is DENIED
+ok    14: the real record carries the plan.yaml approval: entry
+ok    14: and still carries the BRIEF.md ## Approval entry
+ok    14: and still carries the PLAN.md ## Approval entry
+
+28/28 T-14 cases passed.
+PASS test-check-domain-approval.py
+----- test-check-domain-worktree.py (exit 0, 6.15s) -----
+ok    a write INTO an out-of-place worktree is REFUSED, and the verdict names where worktrees belong
+ok    the same session's in-domain write still PASSES
+ok    a session ROOTED in an out-of-place worktree is REFUSED its own in-domain write
+ok    the ROOT-SIDE verdict names .claude/worktrees and does NOT say `git worktree remove`
+ok    a session rooted in a LEGITIMATE worktree is unaffected
+ok    SC-07: the legitimate worktree is writable FROM OUTSIDE it, through DEC-143's prefix stripping
+ok    a scratch path outside any worktree still PASSES
+ok    F-A: a .git pointer that is not valid UTF-8 REFUSES the write (it must not read as not-a-worktree)
+ok    F-A: a .git pointer that is a bare word, no gitdir: REFUSES the write (it must not read as not-a-worktree)
+ok    F-A: a .git pointer that is a gitdir: that is not a worktrees entry REFUSES the write (it must not read as not-a-worktree)
+ok    F-A: a .git pointer that is an empty file REFUSES the write (it must not read as not-a-worktree)
+ok    F-A: with the pointer restored, the in-domain write still PASSES
+ok    a MISSING harness_boundary.py blocks the write and NAMES the module
+ok    with the module absent AND no manifest, DEC-101 still fails OPEN, loudly
+ok    #556 control: from a clean cwd the out-of-domain write is REFUSED
+ok    #556: a harness_boundary.py in the CWD does not become the gate's resolver
+
+16/16 worktree-boundary cases passed.
+
+ok    baseline: the main checkout refuses an over-budget STATE.md with the SHAPE reason naming DEC-150
+ok    SC-09: at ONE level the shape refusal still names DEC-150 (it did at eeabc59 and must not regress)
+ok    at TWO levels the write route refuses on SHAPE, naming DEC-150 — asserted on the WORDING, because the domain refusal also exits 2
+ok    the sweep reaches a file inside a TWO-LEVEL registered worktree (invisible at eeabc59, and invisible SILENTLY)
+ok    ...and the finding names the WORKTREE it came from, not the stripped path
+ok    D-09's ACCEPTED COST, asserted: a directory under the segment with NO pointer pair is not swept
+ok    SC-02b accept: a governed write inside <segment>/<repo>/<id> exits 0
+ok    SC-02b refuse: a linked worktree OUTSIDE the layout is refused, and the message NAMES where worktrees belong
+
+8/8 deep-layout shape cases passed.
+
+ok    sweep/clean-tracked A: worktree creation reports nothing
+ok    sweep/clean-tracked B: a modified file is still caught, exit 2
+ok    sweep/clean-tracked C: an untracked file is still caught
+      red proof: original reported 0 FEAT-OLD line(s), mutant 2
+ok    sweep/clean-tracked RED: removing the skip makes case A red
+ok    [bug895] wrong-checkout: worktree session writing into main is refused
+ok    [bug895] wrong-checkout NEGATIVE CONTROL: same session, own checkout, still allowed
+ok    [bug895] wrong-checkout NEGATIVE CONTROL: an unrelated scratch path is untouched
+ok    [bug895] wrong-checkout-red
+
+4/4 bug895 wrong-checkout cases passed.
+ok    [feat61] matching path in the wrong checkout is refused in the route's own words
+ok    [feat61] matching path inside its own worktree is allowed
+ok    [feat61] matching path with no linked worktree is allowed
+ok    [feat61] a non-feature path is never bound, even beside a linked worktree
+ok    [feat61] two prefix-matching worktrees refuse and name both candidates
+ok    [feat61] an unexpected core failure passes through hook_guard, named, and the allowance stands
+
+6/6 FEAT-61 T-03 adapter cases passed.
+ok    [b2] blank Scope: in a handoff note — absolute claimed path, cwd repo root
+ok    [b2] blank Scope: in a handoff note — relative claimed path, cwd repo root
+ok    [b2] blank Scope: in a handoff note — absolute claimed path, cwd outside
+ok    [b2] blank Scope: in a handoff note — relative claimed path, cwd outside
+ok    [b2] ungranted agent writing harness docs — absolute claimed path, cwd repo root
+ok    [b2] ungranted agent writing harness docs — relative claimed path, cwd repo root
+ok    [b2] ungranted agent writing harness docs — absolute claimed path, cwd outside
+ok    [b2] ungranted agent writing harness docs — relative claimed path, cwd outside
+ok    [b2] granted agent writing harness docs — absolute claimed path, cwd repo root
+ok    [b2] granted agent writing harness docs — relative claimed path, cwd repo root
+ok    [b2] granted agent writing harness docs — absolute claimed path, cwd outside
+ok    [b2] granted agent writing harness docs — relative claimed path, cwd outside
+
+12/12 b2 cwd-independence cases passed.
+PASS test-check-domain-worktree.py
+----- test-check-domain-claims.py (exit 0, 6.40s) -----
+PASS  [bug1304] relative main-checkout write is refused
+PASS  [bug1304] relative main is allowed by the frozen pre-change hook
+PASS  [bug1304] absolute main-checkout write is refused
+PASS  [bug1304] absolute main is allowed by the frozen pre-change hook
+PASS  [bug1304] sibling-checkout write is refused
+PASS  [bug1304] sibling is allowed by the frozen pre-change hook
+PASS  [bug1304] relative held-worktree write is allowed
+PASS  [bug1304] absolute held-worktree write is allowed
+PASS  [bug1304] unbound agent remains allowed
+PASS  [bug1304] scratch write remains allowed
+PASS  [bug1304] unresolved owner-root claim remains unbound
+PASS  [bug1304] owner-root matching claim refuses main write
+PASS  [bug1304] owner-root matching claim is allowed by the frozen pre-change hook
+PASS  [bug1304] two claims still allow either held worktree
+PASS  [bug1304] malformed checkout pointer refuses with a nonempty claim set
+PASS  [bug1304] malformed checkout is allowed by the frozen pre-change hook
+PASS  [bug1304] exact runtime lineage allows its own worktree
+PASS  [bug1304] exact runtime lineage refuses a same-persona sibling worktree
+PASS  [bug1304] the sibling refusal names the runtime identity it judged (#1882)
+PASS  [bug1304] an identity-less refusal says so (#1882)
+PASS  [bug1304] second runtime lineage retains its own worktree
+PASS  [bug1304] ambiguous claim refuses and names candidates
+PASS  [bug1304] ambiguous claim is allowed by the frozen pre-change hook
+PASS  [bug1304] short-form worktree claim refuses main write
+PASS  [bug1304] short-form is allowed by the frozen pre-change hook
+PASS  [bug1304] ten-day-old claim with a live supervisor still refuses
+PASS  [bug1304] aged claim is allowed by the frozen pre-change hook
+PASS  [bug1304] fresh claim whose supervisor has exited no longer binds
+PASS  [bug1304] unreadable registry refuses and names file
+PASS  [bug1304] unreadable registry is allowed by the frozen pre-change hook
+PASS  [bug1304] readable empty registry remains allowed
+PASS  [bug1304] readable member allows despite unrelated unreadable registry
+PASS  [bug1304] outside partial claim set refuses unreadable registry
+PASS  [bug1304] partial unreadable is allowed by the frozen pre-change hook
+PASS  [bug1304] repository-bound child can repeat Write in its own product
+PASS  [bug1304] repository-bound child can Edit in its own product
+PASS  [bug1304] repository-bound child cannot cross into another product
+PASS  [bug1304] repository binding includes the immediate parent
+PASS  [bug1304] repository-bound child writes its own product's control-plane segment
+PASS  [bug1304] repository-bound child cannot write another product's control-plane segment
+PASS  [bug1304] repository-bound child cannot reach another product's segment by changing its case
+PASS  [bug1304] same-role siblings retain distinct valid product claims
+PASS  [bug1304] product write without a repository claim fails closed
+PASS  [bug1304] released repository claim fails closed
+PASS  [bug1304] stale repository claim fails closed
+PASS  [bug1304] ambiguous repository claim fails closed
+PASS  [bug1304] reused active runtime identity fails as collision
+PASS  [bug1304] unreadable repository registry fails closed
+PASS  [bug1304] repository refusal does not expose registry paths or claim ids
+PASS  [bug1304] worktree-registry binding allows the planning worktree's control-plane segment
+PASS  [bug1304] worktree-registry binding allows the product checkout
+PASS  [bug1304] worktree-registry binding still refuses a stranger's lineage
+PASS test-check-domain-claims.py
+----- test-check-domain-artifact.py (exit 0, 7.16s) -----
+ok    feature-checkout-main
+ok    feature-checkout-main short prefix
+ok    feature-checkout-inside binding skipped after worktree strip
+ok    feature-checkout-absent
+ok    feature-checkout-red
+ok    digest-clobber
+ok    digest-append
+ok    digest-unreadable
+ok    digest rule is PRE-Write-only
+ok    digest-clobber-red
+ok    state-run-id-collision
+ok    state-run-id-upsert-allowed
+ok    state-no-prior-run-id-refused
+ok    state-new-file-allowed
+ok    state-run-id-collision-red
+ok    state-unreadable-prior-denied
+ok    state-no-incoming-run-id-refused
+ok    state-prior-unparseable-refused
+ok    SC-15 PAIR: foreign product cwd allows its feature-worktree receipt and refuses its product twin
+
+19/19 FEAT-50 artifact-integrity cases passed.
+ok    bug1106 Edit route: replacing a run's digest.md via Edit is REFUSED
+ok    bug1106 Edit route: the refused digest Edit left the file untouched
+ok    bug1106 Edit route NEGATIVE CONTROL: a genuine append via Edit is ALLOWED
+ok    bug1106 Edit route: a state.yaml run_id collision via Edit is REFUSED
+ok    bug1106 Edit route: the refused state.yaml Edit left the file untouched
+ok    bug1106 Edit route NEGATIVE CONTROL: a same-run_id checkpoint upsert via Edit is ALLOWED
+ok    bug1106 Edit route: an unmatched old_string fails closed
+ok    bug1106 Edit route: a non-unique old_string fails closed
+ok    bug1106 Edit route NEGATIVE CONTROL: an unrelated file's Edit is still unaffected (no PRE check runs at all for it)
+
+9/9 bug1106 Edit-route cases passed.
+ok    [bug1305-digest] digest Edit append repair remains allowed
+ok    [bug1305-digest] digest Edit insertion is refused with complete-block append route
+ok    [bug1305-digest] a complete corrected block repairs an invalid digest append-only
+ok    [bug1305-digest] cross-run digest replacement remains refused
+ok    [bug1305-digest] digest Write append remains allowed
+ok    [bug1305-digest] digest Write append remains allowed beside identity witness
+
+6/6 BUG-1305 digest cases passed.
+ok    bug1106: RE_RUN_DIGEST is found in both check-domain.py and harness_boundary.py
+ok    bug1106: RE_RUN_DIGEST's pattern text is byte-identical in both files
+ok    bug1106: RE_STATE_YAML is found in both check-domain.py and harness_boundary.py
+ok    bug1106: RE_STATE_YAML's pattern text is byte-identical in both files
+
+4/4 bug1106 pattern-consistency cases passed.
+ok    [bug1305] absent-prior Edit refuses unverifiable witness identity
+ok    [bug1305] unmatched state Edit refuses unverifiable witness identity
+ok    [bug1305] omp file-path-only state Edit fails closed
+ok    [bug1305] uniquely reconstructable state Edit remains allowed
+ok    [bug1305] digest absent-prior Edit fails closed
+ok    [bug1305] digest unmatched Edit fails closed
+ok    [bug1305] digest omp file-path-only Edit fails closed
+ok    [bug1305] handoff absent-prior Edit fails closed
+ok    [bug1305] handoff unmatched Edit fails closed
+ok    [bug1305] handoff omp file-path-only Edit fails closed
+ok    [bug1305] foreign first Write is refused by witness
+ok    [bug1305] foreign Edit is refused by witness
+ok    [bug1305] witness outranks an unparseable prior
+ok    [bug1305] witness outranks legacy run_id ladder
+ok    [bug1305] recovering owner with absent prior is allowed
+ok    [bug1305] recovering owner with zero-byte prior is allowed
+ok    [bug1305] unreadable witness fails closed
+ok    [bug1305] Write of existing witness is refused
+ok    [bug1305] Edit of existing witness is refused
+ok    [bug1305] unmatched Edit of existing witness is refused
+ok    [bug1305] run_uid is a legal checkpoint key beside identity witness
+ok    [bug1305] Write creating false witness is refused
+ok    [bug1305] Edit creating false witness is refused
+ok    [bug1305] POST mints uid and matching witness
+ok    [bug1305] second POST is byte stable
+ok    [bug1305] POST preserves supplied uid bytes
+ok    [bug1305] POST leaves malformed checkpoint untouched
+
+27/27 BUG-1305 marker cases passed.
+ok    [bug1305-identity] modal collision Write omitting uid is refused
+ok    [bug1305-identity] modal collision Edit removing uid is refused
+ok    [bug1305-identity] different minted uid is refused
+ok    [bug1305-identity] different minted uid Edit is refused
+ok    [bug1305-identity] run_id disagreement keeps Issue 1124 precedence
+ok    [bug1305-identity] DEC-154 resumed owner with same uid remains allowed across sessions
+ok    [bug1305-identity] recovering owner with absent checkpoint remains allowed
+ok    [bug1305-identity] recovering owner with zero-byte checkpoint remains allowed
+ok    [bug1305-identity] legacy checkpoint without uid remains allowed
+ok    [bug1305-identity] legacy checkpoint accepts incoming uid
+
+10/10 BUG-1305 identity cases passed.
+ok    [2056] main session: a feature artifact in the main checkout is refused, naming the worktree
+ok    [2056] main session: the same artifact inside the feature's worktree is allowed
+ok    [2056] main session: a non-feature path in the main checkout is untouched
+ok    [bug151-selfcheck] printed-fail-zero-total
+ok    [bug151-selfcheck] printed-ok-zero-total
+ok    [bug151-selfcheck] printed-fail-nonzero-total
+ok    [bug151-selfcheck] printed-ok-nonzero-total
+ok    [bug151-selfcheck] indented-fail-does-not-count
+ok    [bug151-selfcheck] two-printed-one-counted-agrees-on-zeroness
+ok    [bug151-selfcheck] wiring-seam-catches-print-fail-return-zero
+PASS test-check-domain-artifact.py
+----- test-check-domain-worktree-parity.py (exit 0, 7.42s) -----
+ok    the fixture worktree is a REAL linked worktree, parsed and legitimate
+ok    the roster walk finds exactly 16 agents carrying a name and a list domain
+ok    tests/unit grants harness-backend-dev
+ok    tests/integration grants harness-backend-dev
+ok    tests/unit grants harness-dev-ops
+ok    tests/integration grants harness-dev-ops
+ok    tests/unit grants harness-qa
+ok    tests/integration grants harness-qa
+ok    tests/unit denies harness-frontend-dev
+ok    tests/unit denies harness-ai-dev
+ok    tests/unit denies harness-data-engineer
+ok    harness-qa cannot write governed bin shell
+ok    tests/unit grants are identical in a linked worktree
+ok    harness-ai-dev: in-worktree grant equals root grant, and names harness-ai-dev
+ok    harness-backend-dev: in-worktree grant equals root grant, and names harness-backend-dev
+ok    harness-code-reviewer: in-worktree grant equals root grant, and names harness-code-reviewer
+ok    harness-data-engineer: in-worktree grant equals root grant, and names harness-data-engineer
+ok    harness-dev-ops: in-worktree grant equals root grant, and names harness-dev-ops
+ok    harness-documentor: in-worktree grant equals root grant, and names harness-documentor
+ok    harness-eng-lead: in-worktree grant equals root grant, and names harness-eng-lead
+ok    harness-frontend-dev: in-worktree grant equals root grant, and names harness-frontend-dev
+ok    harness-orchestrator: in-worktree grant equals root grant, and names harness-orchestrator
+ok    harness-pm: in-worktree grant equals root grant, and names harness-pm
+ok    harness-product-lead: in-worktree grant equals root grant, and names harness-product-lead
+ok    harness-qa: in-worktree grant equals root grant, and names harness-qa
+ok    harness-security-reviewer: in-worktree grant equals root grant, and names harness-security-reviewer
+ok    harness-ui-reviewer: in-worktree grant equals root grant, and names harness-ui-reviewer
+ok    harness-validator-lead: in-worktree grant equals root grant, and names harness-validator-lead
+ok    harness-visual-designer: in-worktree grant equals root grant, and names harness-visual-designer
+ok    SC-02c harness-ai-dev: DEEP-layout grant equals root grant, and names harness-ai-dev
+ok    SC-02c harness-backend-dev: DEEP-layout grant equals root grant, and names harness-backend-dev
+ok    SC-02c harness-code-reviewer: DEEP-layout grant equals root grant, and names harness-code-reviewer
+ok    SC-02c harness-data-engineer: DEEP-layout grant equals root grant, and names harness-data-engineer
+ok    SC-02c harness-dev-ops: DEEP-layout grant equals root grant, and names harness-dev-ops
+ok    SC-02c harness-documentor: DEEP-layout grant equals root grant, and names harness-documentor
+ok    SC-02c harness-eng-lead: DEEP-layout grant equals root grant, and names harness-eng-lead
+ok    SC-02c harness-frontend-dev: DEEP-layout grant equals root grant, and names harness-frontend-dev
+ok    SC-02c harness-orchestrator: DEEP-layout grant equals root grant, and names harness-orchestrator
+ok    SC-02c harness-pm: DEEP-layout grant equals root grant, and names harness-pm
+ok    SC-02c harness-product-lead: DEEP-layout grant equals root grant, and names harness-product-lead
+ok    SC-02c harness-qa: DEEP-layout grant equals root grant, and names harness-qa
+ok    SC-02c harness-security-reviewer: DEEP-layout grant equals root grant, and names harness-security-reviewer
+ok    SC-02c harness-ui-reviewer: DEEP-layout grant equals root grant, and names harness-ui-reviewer
+ok    SC-02c harness-validator-lead: DEEP-layout grant equals root grant, and names harness-validator-lead
+ok    SC-02c harness-visual-designer: DEEP-layout grant equals root grant, and names harness-visual-designer
+ok    the depth is not load-bearing: <segment>/a/b/c/<id> resolves like the root
+ok    WORKTREE_REL_RE no longer exists on harness_boundary
+ok    linked_worktrees returns [] for a checkout with no worktrees
+ok    linked_worktrees returns exactly the two registered checkouts, as realpaths
+
+49/49 worktree grant-parity cases passed.
+
+PASS test-check-domain-worktree-parity.py
+----- test-check-domain-grant.py (exit 0, 8.41s) -----
+ok    a scratch script in /tmp
+ok    /var/folders temp dir (macOS mktemp)
+ok    an absolute path in another checkout
+ok    documentor writing the moved harness docs
+ok    documentor writing its own expertise
+ok    a shared path in the harness base is now REFUSED (product-shaped target)
+ok    documentor may not write source
+ok    documentor may not write another agent's expertise
+ok    documentor may not write bin/
+ok    a repo path reached via .. still blocks
+ok    a repo path reached via a long .. chain still blocks
+ok    the pre-move docs path is REFUSED after the migration
+
+12/12 cases passed.
+
+ok    SC-05 pair: permitted allowed AND forbidden blocked, one manifest
+ok    a MALFORMED manifest blocks the write (fail closed, not half-enforced)
+ok    a DUPLICATE key in the manifest blocks the write
+ok    an ABSENT manifest still fails OPEN, loudly (DEC-101 carve-out intact)
+ok    F-01: a manifest that is not valid UTF-8 BLOCKS (was exit 1 = fail open)
+ok    M-02: a manifest that parses to a non-mapping (empty) BLOCKS, not crashes
+ok    M-02: a manifest that parses to a non-mapping (bare scalar) BLOCKS, not crashes
+ok    M-02: a manifest that parses to a non-mapping (bare list) BLOCKS, not crashes
+ok    F-01: a manifest that is a DIRECTORY does not crash the guard
+ok    a newly created, well-formed version-2 state.yaml with checkpoint keys passes
+ok    a DUPLICATE top-level key is blocked with the DEC-156 message
+ok    a NESTED duplicate key is blocked (column-0 regex could not see it)
+ok    MALFORMED state.yaml is blocked with a parse-error message
+ok    a non-checkpoint top-level key is still blocked (DEC-154 vocabulary intact)
+ok    a YAML-truthy key (`on:`) beside a string key denies cleanly, no raise
+ok    ...and the denial explains the unquoted-key cause, not just 'True'
+ok    SC-08: with PyYAML missing, the FIRST hook invocation PERMITS the write
+ok    [partial SC-08] the install command reaches stderr (NOT proof the user sees it — D-14b)
+ok    SC-08: the install command reaches a channel the user SEES (systemMessage)
+ok    SC-08: ...and records the marker
+ok    SC-08: a SECOND write in the SAME session is permitted, silently
+ok    SC-09 mechanism: a DIFFERENT session is BLOCKED while PyYAML is missing
+ok    D-14a: the block SAYS WHY and carries the install command
+ok    grant: a malformed state.yaml is ALLOWED (no fallback — BRIEF Goal :20-21)
+ok    grant: a well-formed state.yaml is allowed too (the grant is not selective)
+ok    with a parser, the shape gate still BLOCKS the same content
+ok    the marker self-unlinks once PyYAML imports again
+
+27/27 T-12 cases passed.
+--- FEAT-15 T-01..T-04 + symlink escape: fleet, bases, mirror, resolve ---
+ok    (a)+(b) PAIR: with no fleet the owned write passes; with a broken fleet the SAME write is refused
+ok    (a) with no fleet, a scratch path outside the root still gets no verdict
+ok    (c) a fleet that parses but omits workspace_root refuses the owned write
+ok    (d) PAIR: a well-formed fleet leaves both verdicts unchanged
+ok    (e) the lazy factory_config import leaks nothing to stderr on a passing write
+ok    (f) PAIR: in a product checkout, src/** grants the owner and refuses a persona without it
+ok    (g) PAIR: src/** refuses <root>/src/main.py and permits <workspace>/widget/src/main.py
+ok    (h) PAIR: a .harness/** grant permits it in root and refuses it in a product checkout
+ok    (i) a path under workspace_root for an undeclared repo is refused, naming the fleet
+ok    (j) a scratch path outside both bases still gets no verdict
+ok    A PAIR: a product-shaped glob is REFUSED in the harness root and PERMITTED in the product checkout
+ok    B PAIR: a control-plane glob is PERMITTED in the harness root and REFUSED in the product checkout
+ok    C harness base: explicit Harness entries resolve, including AGENTS.md, .agents/** and .omp/**
+ok    C harness base: .harness/*/docs/** was NOT widened to docs/** — the same persona permitted .harness/harness/docs/guide.md is REFUSED docs/guide.md
+ok    C product base: product README.md, docs/ and .github/ remain writable, while Harness grants to .agents/ and .omp/ stay checkout-local
+ok    T-04 resolve PAIR: a product path names the src/** owner, the SAME path in the harness root resolves to NOBODY
+ok    T-04 resolve: a path under workspace_root for an undeclared repo resolves to NOBODY, never silence
+ok    T-04 resolve, LIVE tree: .harness/harness/docs/SPEC.md names harness-documentor — the named entries hold target-side
+ok    SYMLINK PAIR: a link out of a granted directory is REFUSED at its real target, and the ordinary granted write still PASSES
+ok    SYMLINK: the refusal names the REAL target, not the link path — an agent told it may not write the docs path would file a bug against the wrong file
+
+20/20 fleet cases passed.
+
+ok    (a) --resolve: a singly-granted path returns exactly one agent
+ok    (b) --resolve: a doubly-granted path returns both grantees
+ok    (c) --resolve: an ungranted path prints the literal NOBODY
+ok    (d) --resolve: the ungranted call exits 0 and stdout is not empty
+ok    (e) --resolve: an open pipe on stdin still answers within 10s
+ok    (f) --resolve: closed stdin is byte-identical to an open pipe
+ok    (g) no --resolve: an out-of-domain Write still exits 2
+ok    (h) no --resolve: an in-domain Write still exits 0
+ok    (i) VF-1: HARNESS_RESOLVE_PATH set in the env does NOT disable the hook
+ok    (j) VF-1: an EMPTY HARNESS_RESOLVE_PATH does NOT disable the hook
+
+10/10 --resolve cases passed.
+
+ok    schema/a legal ten-key document is ALLOWED
+ok    schema/an illegal document is DENIED and the offending key is NAMED
+ok    schema/the copied unbroken hook DENIES the illegal document
+ok    schema/a CRASHING schema module DENIES the write rather than letting it through
+ok    schema/the live feature_schema.py was never written (bytes and mtime unchanged)
+ok    Write to the observations log is BLOCKED — only observations-merge.py may write it
+ok    a path that merely mentions 'observations', outside observations/, still writes
+ok    creating plan.yaml beside a shipped PLAN.md is BLOCKED (DEC-182: never converted)
+ok    a FRESH feature's first plan.yaml write is not the legacy-conversion denial (only plan.yaml's own single-writer route denial fires)
+ok    a first write into a malformed feature dir name is BLOCKED
+ok    a first write into a well-formed feature dir name writes
+ok    an EXISTING malformed-name feature dir is grandfathered — only the first write is checked
+
+7/7 shadow-check cases passed.
+ok    feature-id regex parity: check-domain._FEATURE_ID_RE == dispatch-guard.FEATURE_RE
+PASS test-check-domain-grant.py
+----- test-check-domain-post.py (exit 0, 10.46s) -----
+--- #132: shape coverage on all four write routes ---
+ok    route 2 — post Edit on an over-budget file exits 2
+ok    route 2 — the PRE hook reports NO shape finding on that same Edit
+ok    route 3 — post Bash sweeps and finds the over-budget file
+ok    route 4 — the MAIN SESSION is no longer exempt from the shape gate
+ok    feature.json at 301 lines IS over the 300 budget
+ok    feature.json at 300 lines is NOT over the 300 budget
+ok    the SWEEP reaches and enforces handoff cap (DEC-159)
+ok    the SWEEP reaches and enforces handoff missing sections
+ok    the SWEEP reaches and enforces state.yaml checkpoint keys (DEC-154)
+ok    the SWEEP reaches and enforces STATE.md sections (SPEC 2)
+ok    the sweep reaches a file inside .claude/worktrees/ (and was silent before it)
+ok    a reported file is NOT re-reported on the next sweep
+ok    CLAUDE.md at 81 lines IS over the 80 budget, on Write AND Edit
+ok    CLAUDE.md at 80 lines is NOT over the 80 budget, on Write AND Edit
+ok    the SWEEP reaches CLAUDE.md (route 3)
+ok    post Edit on a worktree file names the WORKTREE it came from
+ok    post Edit (state file) on a worktree file names the WORKTREE it came from
+ok    pre Write on a worktree file names the WORKTREE it came from
+ok    the sweep still names the worktree it came from
+ok    a WITHIN-budget file exits 0 on post Edit
+ok    a WITHIN-budget file exits 0 on post Bash
+ok    post mode does NOT re-run the domain check
+ok    the PRE hook still blocks that same ungranted path
+ok    the sweep skips an over-budget file older than SWEEP_WINDOW_S
+ok    the same file, freshly touched, IS found
+ok    a write made during the sweep remains visible to the next sweep
+ok    an unreadable candidate leaves the mark unadvanced (no permanent blind spot)
+ok    a sweep finding names the file it is about
+ok    a post payload with NO agent_type still gets the shape gate
+ok    hook_event_name alone selects post mode (no --post flag)
+
+30/30 post-mode cases passed.
+
+--- #2026: the Bash sweep is scoped to the run's own feature ---
+ok    a governed sweep does not report a sibling feature's worktree
+ok    the unnamed sweep still reports it, its mark untouched by the governed one
+ok    a governed sweep reports its own feature's worktree
+      red proof: original denials 1, mutant 0 (exit 2 vs 0)
+ok    SC-07 write path: a Write whose runs entry omits agent exits 2
+ok    SC-07 write path: the denial names the key 'agent'
+ok    SC-07 write path: the denial names the offending index
+ok    SC-07 write path: the same Write CARRYING agent is permitted
+ok    SC-07 write path RED: the agent rule is load-bearing at the hook
+ok    handoff Done when missing 
+ok    handoff Done when valid 
+ok    handoff zero Scope 
+ok    handoff two Scope 
+ok    handoff blank Scope 
+ok    handoff Scope after Authority 
+ok    handoff zero Authority 
+ok    handoff five Authority 
+ok    handoff stray prose 
+ok    handoff nested heading cannot truncate 
+ok    handoff duplicate heading cannot truncate 
+ok    handoff plan resolves 
+ok    handoff plan unresolved 
+ok    handoff brief resolves 
+ok    handoff brief unresolved 
+ok    handoff finding resolves 
+ok    handoff finding unresolved 
+ok    handoff approval resolves 
+ok    handoff approval unresolved 
+ok    handoff unknown authority docs:whatever 
+ok    handoff unknown authority check-domain.py:1523 
+ok    handoff approval rejects invalid ATX bad-nospace.md 
+ok    handoff approval rejects invalid ATX bad-seven.md 
+ok    handoff unsafe authority 'finding:/tmp/review.md#F-02' 
+ok    handoff unsafe authority 'finding:../review.md#F-02' 
+ok    handoff unsafe authority 'finding:.harness/harness/features/FEAT-90-fixture/notes/\x00review.md#F-02' 
+ok    handoff unsafe authority 'approval:/tmp/review.md#Approval' 
+ok    handoff unsafe authority 'approval:../review.md#Approval' 
+ok    handoff finding symlink escape 
+ok    handoff approval symlink escape 
+ok    handoff finding special target 
+ok    handoff approval special target 
+ok    handoff valid reconstructable PRE-Edit remains allowed 
+ok    handoff pre-Edit blocks invalid candidate 
+ok    handoff blocked pre-Edit leaves file unchanged 
+ok    handoff pre-Edit unreadable existing file fails closed 
+ok    handoff validator exception fails closed 
+ok    handoff edit without Done when 
+ok    handoff edit with Done when 
+ok    handoff 60-line boundary 
+ok    handoff 61-line boundary 
+ok    handoff no per-section cap 
+ok    handoff canonical build accepted 
+ok    handoff canonical validate accepted 
+ok    handoff canonical plan accepted 
+ok    handoff build-c1 Write refused 
+ok    handoff build-c1 Write refused names notes/handoff-build.md exactly 
+ok    handoff build-c1 Edit refused 
+ok    handoff build-c1 Edit refused names notes/handoff-build.md exactly 
+ok    handoff build-c1 refused Edit leaves file unchanged 
+ok    handoff validate-c12 Write refused 
+ok    handoff validate-c12 Write refused names notes/handoff-validate.md exactly 
+ok    handoff validate-c12 Edit refused 
+ok    handoff validate-c12 Edit refused names notes/handoff-validate.md exactly 
+ok    handoff validate-c12 refused Edit leaves file unchanged 
+ok    handoff plan-c305 Write refused 
+ok    handoff plan-c305 Write refused names notes/handoff-plan.md exactly 
+ok    handoff plan-c305 Edit refused 
+ok    handoff plan-c305 Edit refused names notes/handoff-plan.md exactly 
+ok    handoff plan-c305 refused Edit leaves file unchanged 
+ok    handoff Build-c1 Write refused 
+ok    handoff Build-c1 Write refused names notes/handoff-build.md exactly 
+ok    handoff Build-c1 Edit refused 
+ok    handoff Build-c1 Edit refused names notes/handoff-build.md exactly 
+ok    handoff Build-c1 refused Edit leaves file unchanged 
+ok    handoff build-C1 Write refused 
+ok    handoff build-C1 Write refused names notes/handoff-build.md exactly 
+ok    handoff build-C1 Edit refused 
+ok    handoff build-C1 Edit refused names notes/handoff-build.md exactly 
+ok    handoff build-C1 refused Edit leaves file unchanged 
+ok    handoff VALIDATE-C12 Write refused 
+ok    handoff VALIDATE-C12 Write refused names notes/handoff-validate.md exactly 
+ok    handoff VALIDATE-C12 Edit refused 
+ok    handoff VALIDATE-C12 Edit refused names notes/handoff-validate.md exactly 
+ok    handoff VALIDATE-C12 refused Edit leaves file unchanged 
+ok    handoff worktree-only main root has no feature dir 
+ok    handoff worktree-only feature dir resolves 
+ok    handoff worktree-only unresolvable pointer refused 
+ok    handoff worktree-only brief-sc pointer refused 
+PASS test-check-domain-post.py
+pool: 8 workers, 8 files, 10.46s wall
+slowest: test-check-domain-post.py 10.46s, test-check-domain-grant.py 8.41s, test-check-domain-worktree-parity.py 7.42s
