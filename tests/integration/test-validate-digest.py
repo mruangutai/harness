@@ -6433,21 +6433,23 @@ def _bug2253_buried_case(tmp):
 
 
 def _bug2253_echoed_header_case(tmp):
-    """(gate) A file that echoes run_pool-shaped headers it never closes — in a failing and
-    in a passing block — hides neither its own FAIL, nor a later file's FAIL, nor the
-    MUTATED lines above run_pool's note."""
+    """(gate) A file that echoes run_pool-shaped lines — headers it never closes, in a
+    failing and in a passing block, and a `PASS <its own name>` before its real close —
+    hides neither its own FAIL, nor a later file's FAIL, nor the MUTATED lines above
+    run_pool's note."""
     ok, err = _bug2253_listed_case(
         tmp, "echoed.py",
         ["----- outer.py (exit 1, 0.30s) -----", "----- fixture.py (exit 1, 0.01s) -----",
-         "FAIL outer.py",
+         "PASS outer.py", "FAIL outer.py",
          "----- ok.py (exit 0, 0.10s) -----", "----- echoed fixture.py (exit 0, 0.00s) -----",
          "PASS ok.py",
-         "----- later.py (exit 1, 0.40s) -----", "FAIL later.py"] + _BUG2253_PASSING
+         "----- later.py (exit 1, 0.40s) -----", "PASS later.py", "FAIL later.py"] + _BUG2253_PASSING
         + ["MUTATED notes/x y.md", _BUG2253_NOTE],
         _BUG2253_TAIL,
         ["FAIL outer.py", "FAIL later.py", "MUTATED notes/x y.md"],
         ["fixture.py"])
-    return ("echoed, never-closed headers hide no FAIL or MUTATED file line", ok, err)
+    return ("echoed run_pool-shaped lines — unclosed headers, a same-name PASS — hide no FAIL "
+            "or MUTATED file line", ok, err)
 
 
 def _bug2253_quiet_case(tmp):

@@ -2499,30 +2499,25 @@ _RUN_POOL_MUTATION_NOTE = "A file under the watched directory changed while the 
 def _run_pool_file_lines(lines):
     """run_pool's own FAIL/MUTATED file lines, in order, duplicates kept.
 
-    Names may hold spaces and a file's captured output is echoed verbatim, so a line's
-    position decides, not its shape. run_pool closes each file's block — opened by
-    `----- <name> (exit N, Ss) -----` — with `PASS <name>` or `FAIL <name>`; it prints its
-    `MUTATED <name>` lines together, directly above its own mutation note."""
-    open_blocks = []
-    failed = {i for i, line in enumerate(lines) if _closes_failed_block(line, open_blocks)}
+    A file's captured output is echoed verbatim between run_pool's header and its close, so
+    no pairing of headers with closes survives every echo. The rule only ever errs toward
+    listing: `FAIL <name>` counts once any earlier `----- <name> (exit N, Ss) -----` header
+    named that file, and nothing — no echoed PASS, header or close — un-names it. run_pool
+    prints its `MUTATED <name>` lines together, directly above its own mutation note."""
+    headed = set()
+    failed = {i for i, line in enumerate(lines) if _is_failed_file_line(line, headed)}
     keep = failed | _run_pool_mutated_indexes(lines)
     return [line for i, line in enumerate(lines) if i in keep]
 
 
-def _closes_failed_block(line, open_blocks):
-    """Advance the stack of open block names over `line`; True when it closes one as FAIL.
-
-    A closing line pops back to its own header, so header-shaped lines a file merely echoed
-    (never closed) cannot hide the real close."""
+def _is_failed_file_line(line, headed):
+    """Record a header's file name in `headed`; True for `FAIL <name>` of a headed file."""
     header = _RUN_POOL_HEADER.fullmatch(line)
     if header:
-        open_blocks.append(header.group(1))
+        headed.add(header.group(1))
         return False
     verdict, _, name = line.partition(" ")
-    if verdict not in ("PASS", "FAIL") or name not in open_blocks:
-        return False
-    del open_blocks[len(open_blocks) - 1 - open_blocks[::-1].index(name):]
-    return verdict == "FAIL"
+    return verdict == "FAIL" and name in headed
 
 
 def _run_pool_mutated_indexes(lines):
