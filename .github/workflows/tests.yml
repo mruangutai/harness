@@ -66,6 +66,16 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 
+      # THE PINNED TYPESCRIPT TOOLCHAIN (FEAT-2257). `--frozen-lockfile` refuses a package.json
+      # and bun.lock that disagree instead of regenerating the lock, so CI compiles with exactly
+      # the reviewed compiler. Then strict, no-emit checking of every tracked .ts file, on every
+      # pull request, inside this job, which the required `integration` context needs (DEC-183).
+      - name: Install TypeScript toolchain
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
       # NO `actions/setup-python`, BY OWNER DECISION. The job runs on whatever python3
       # `ubuntu-latest` ships. What that gives up is stated rather than discovered: the version
       # is no longer pinned, so a runner-image bump changes the interpreter under the suite
@@ -372,6 +382,11 @@ jobs:
       # Same runtime and dependencies as `checks`, for the reasons recorded there.
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
+
+      # The integration kind carries the real-compiler regression (FEAT-2257), so each shard
+      # installs the same frozen toolchain as `checks`.
+      - name: Install TypeScript toolchain
+        run: bun install --frozen-lockfile
 
       - name: Install PyYAML and jsonschema
         run: python3 -m pip install --upgrade pyyaml jsonschema

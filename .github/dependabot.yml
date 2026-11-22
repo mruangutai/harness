@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # The dev-only TypeScript toolchain (package.json / bun.lock, FEAT-2257): weekly update PRs,
+  # each reviewed and run through the same frozen-lockfile typecheck as any other change.
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
