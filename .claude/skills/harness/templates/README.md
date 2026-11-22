@@ -41,6 +41,7 @@ default or an allowed value up in the schema, never in this directory.
 
 **Version 3 is a breaking upgrade.** A version-2 `harness.json` no longer loads: every reader
 refuses it by name until it is upgraded. `bin/upgrade-config.py <root>` is what `--upgrade` runs:
-`--check` previews the change, `--config-only` upgrades a product checkout that has no
-`team-config.yaml`, and the result is validated before it replaces the file. A fleet member's
-upgraded file counts only once it is committed to that member's default branch.
+`--check` previews the change, and `--config-only --templates <this directory>` upgrades a product
+checkout, which has neither these templates nor a `team-config.yaml`. The result is validated before
+it replaces the file. A fleet member's upgraded file counts only once it is committed to that
+member's default branch.

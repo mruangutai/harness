@@ -165,6 +165,13 @@
       "kind": "amendment",
       "decision": "T-10.files",
       "reason": "T-10 disposition evidence exposed two census gaps (IfExp/own-literal helper writes) hiding 3 raw fixtures, plus 3 raw configs merged from main after the inventory; all migrated to the builder."
+    },
+    {
+      "at": "2026-11-22T21:44:02.796283+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-10.files",
+      "reason": "Kaya payload prep proved upgrade-config needs --templates in a product checkout; SPEC, templates README and checkout-upgrade.md now give the working command."
     }
   ],
   "mission": "plan",

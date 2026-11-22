@@ -110,8 +110,9 @@ never restates its values. Every Python reader loads it through
 - The Bash gates recognize their governed command before reading config (§4.2): an unrelated
   command never reads it, and a matched one is refused on a missing or invalid file before sync is
   consulted.
-- A version-2 file does not load. `upgrade-config.py` (run by `harness-init --upgrade`; `--config-only`
-  for a product checkout) migrates it and validates the result before its atomic write.
+- A version-2 file does not load. `upgrade-config.py` (run by `harness-init --upgrade`; in a product
+  checkout, `--config-only --templates <control-plane templates>`) migrates it and validates the
+  result before its atomic write.
 - The one lenient reader is DEC-198's TypeScript advisory budget fallback.
 
 ### 2.1 The question round-trip
