@@ -2,5 +2,9 @@
   "bug:plan-merge.py apply reports APPLIED/0 while its own check cannot load the written verify scalar": {
     "number": 2344,
     "typed": true
+  },
+  "bug:fix-run code-reviewer digest refused: _head_is_pin_error binds reviewed head to the old review_sha before the orchestrator re-pins": {
+    "number": 2356,
+    "typed": true
   }
 }
