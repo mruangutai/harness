@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2297-harness-json-schema",
   "branch": "feat/FEAT-2297-harness-json-schema",
   "pr": 2395,
-  "review_sha": "fa6a38009e54f4380daebd59a78629a68de7c1d0",
+  "review_sha": "15d6748457f534fdd29fc87d15613cda0983f52b",
   "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
