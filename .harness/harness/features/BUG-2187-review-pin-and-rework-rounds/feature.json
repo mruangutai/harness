@@ -75,6 +75,13 @@
       "kind": "regate",
       "decision": "fix then validate cycle 2",
       "reason": "Cycle 1 ESCALATE: SC-01/SC-02 regression gaps (tests only) and Q-GATE run-unit-tests exit 1 to reproduce; fix main-session-direct inside the 1-round ruling."
+    },
+    {
+      "at": "2026-11-22T00:31:21+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "ship: Q-GATE-2 accepted as pre-existing, out of scope",
+      "reason": "test-validate-digest.py 3s hard timeouts at host load ~125; file untouched, passes alone at pin and base under normal load; backlog issue filed; CI runs the full suite."
     }
   ],
   "rework": {
