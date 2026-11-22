@@ -315,7 +315,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers both code_grade paths, suite-layout enforcement and tests, template/live policy, compiler regression and activation
     depends_on: [T-01, T-02, T-03]
-    status: building
+    status: review
     files:
     - path: .harness/harness.json
       quote: '"_test_kinds_note"'

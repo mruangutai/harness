@@ -1,0 +1,12 @@
+# T-04 regression red-first against UNRESOLVED config, HEAD a716db699719f12611b6aea9503b366cfee864f2 + new test file; bun 1.3.14, Version 7.0.2
+PASS tracked .ts discovery is non-empty
+PASS the four settled sources are tracked
+PASS every tracked .ts is in the compiler's file list
+PASS no tracked source suppresses the compiler
+PASS bun run typecheck passes on the real tree
+PASS the clean copy passes the same command
+PASS one deliberate type error fails the same command, naming the poisoned file
+FAIL test_kinds.typecheck is active with exactly this command and no _reason
+      | {'detect': '**/*.ts|**/*.tsx', 'exclude': '.claude/worktrees/**|node_modules/**|dist/**|build/**', 'cmd': None, '_reason': 'unset — dev-ops has not run detection yet. Not in the matrix; available for qa to add.', 'status': 'unresolved', 'classifies_tests': False}
+FAIL test-typescript-typecheck.py (1)
+# rc=1 (0s)
