@@ -71,5 +71,40 @@
       "reason": "plan run returned FAIL on scope's substance finding (T-01 drafted_at mutation seam), applied at apply; DEC-195 plan-flow simplify pass runs next, then pm re-apply and scope re-panel over T-01 in a new product run"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 3,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2229-decision-dispositions/.harness/harness/features/FEAT-2229-decision-dispositions/notes/answers-2026-11-21-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "26ffc8aaf3342951e0529fa4edaa83ddddcf838983864e337c4b234507dd163f",
+    "T-02": "9b2dd995313a169ba9b0bdc4d464c97e8f67d322906bcb1dd5e29aadf6d44181",
+    "T-03": "f7b2544c304e5ce1434b21fbbcf641f1dea92ab7f447faa3057162597bf3846e"
+  },
+  "github": {
+    "milestone": 117,
+    "parent": 2277,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2278,
+      "T-02": 2279,
+      "T-03": 2280
+    },
+    "source_issues": [
+      2229
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

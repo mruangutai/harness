@@ -1,8 +1,10 @@
 schema: plan/1
 feature: FEAT-2229-decision-dispositions
 approval:
-  status: pending
-status: plan
+  date: '2026-11-21'
+  approved_by: Mike Ruangutai
+  status: approved
+status: ready
 source_issues: [2229]
 panel:
   last_run: r-20261121-plan-c2-product
