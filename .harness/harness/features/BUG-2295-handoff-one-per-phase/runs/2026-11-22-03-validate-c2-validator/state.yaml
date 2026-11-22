@@ -1,0 +1,68 @@
+schema_version: 2
+run_id: 2026-11-22-03-validate-c2-validator
+run_uid: 6b8d26e0edcb4c59b62e7d11619a11ed
+feature: BUG-2295-handoff-one-per-phase
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: qa
+    persona: harness-qa
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/review-harness-qa-c2.md
+    evidence:
+      matrix_ok: true
+      green_assertions: 117
+      red_assertions: 12
+      unit_files: 63
+      integration_files: 91
+  - id: code
+    persona: harness-code-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/review-harness-code-reviewer-c2.md
+    evidence:
+      review_sha: 7d76c1cea576822760e8bc42432f8c01fc3c8031
+      fix_ancestor: c4c93ef1fdbcb3b047c14eabe964c6a47cd30c57
+      source_delta_since_fix: empty
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/review-harness-security-reviewer-c2.md
+    evidence:
+      in_scope: true
+      changed_paths: 18
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/review-harness-ui-reviewer-c2.md
+    evidence:
+      in_scope: false
+      changed_paths: 18
+  - id: goalcheck
+    persona: harness-pm
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/research-BUG-2295-handoff-one-per-phase-goalcheck-validate-c2.md
+    evidence:
+      operator: pass
+      code_maintainer: pass
+      keep_dispositions: preserved

@@ -1,0 +1,6 @@
+{
+  "chore:DEC-252 commentary says the validate handoff is demanded nowhere, but gh-sync cmd_ship requires it for non-exempt plans (DECISIONS.md:8224-8226)": {
+    "number": 2342,
+    "typed": true
+  }
+}

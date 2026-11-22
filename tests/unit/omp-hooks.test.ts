@@ -1708,7 +1708,6 @@ describe("OMP task lifecycle adapter", () => {
     DIGEST_PERSONAS.forEach((persona, index) => {
       const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona);
       expect(revised.tasks[index]).toEqual({ ...tasks[index], outputSchema: bundle, schemaMode: "strict" });
-      expect(revised.tasks[index].outputSchema).toBe(bundle);
     });
     expect(revised.tasks[16]).toBe(scout);
     // BUG-2305: a successful dispatch carries no note telling the dispatcher about the fields.
@@ -1759,12 +1758,12 @@ describe("OMP task lifecycle adapter", () => {
         const flat = await dispatch(handlers, flatInput);
         expect({ persona, block: flat?.block, reason: flat?.reason }).toEqual({ persona, block: undefined, reason: undefined });
         expect(flat).toEqual({ input: { ...flatInput, outputSchema: bundle, schemaMode: "strict" } });
-        expect(flat?.input.outputSchema).toBe(bundle);
+        expect(flat?.input.outputSchema).not.toBe(copy);
         const item = { agent: persona, name: "Three", task: ASSIGNMENT, outputSchema: copy, schemaMode: "strict" };
         const batch = await dispatch(handlers, { context: "shared", tasks: [item] });
         expect({ persona, block: batch?.block, reason: batch?.reason }).toEqual({ persona, block: undefined, reason: undefined });
         expect(batch).toEqual({ input: { context: "shared", tasks: [{ ...item, outputSchema: bundle, schemaMode: "strict" }] } });
-        expect(batch?.input.tasks[0].outputSchema).toBe(bundle);
+        expect(batch?.input.tasks[0].outputSchema).not.toBe(copy);
       }
       expect(guardCalls(calls)).toHaveLength(5);
     }
@@ -2752,11 +2751,24 @@ describe("loadDigestSchemaBundle", () => {
     }
   });
 
-  test("a repeat load, an alias and another path to the same directory return the cached bundle", () => {
+  test("a repeat load, an alias and another path to the same directory give the same contract", () => {
     const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev");
-    expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev")).toBe(bundle);
-    expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "main-session")).toBe(bundle);
-    expect(loadDigestSchemaBundle(join(DIGEST_SCHEMA_DIR, "..", "digest-schemas"), "backend-dev")).toBe(bundle);
+    expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev")).toEqual(bundle);
+    expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "main-session")).toEqual(bundle);
+    expect(loadDigestSchemaBundle(join(DIGEST_SCHEMA_DIR, "..", "digest-schemas"), "backend-dev")).toEqual(bundle);
+  });
+
+  // #2328: a long-running process must inject the contract on disk now, not the one it first read.
+  test("a schema file changed on disk is reflected by the next load", () => {
+    const entry = (required: string[]) => ({ type: "object", additionalProperties: false, required,
+      properties: Object.fromEntries(required.map((name) => [name, { type: "string" }])) });
+    const persona = { type: "object", additionalProperties: false, required: ["x"],
+      properties: { x: { $ref: "common.json#/$defs/entry" } } };
+    const projected = (required: string[]) => ({ ...persona, properties: { x: entry(required) } });
+    const dir = schemaDir({ "harness-qa.json": persona, "common.json": { $defs: { entry: entry(["op"]) } } });
+    expect(loadDigestSchemaBundle(dir, "harness-qa")).toEqual(projected(["op"]));
+    writeFileSync(join(dir, "common.json"), JSON.stringify({ $defs: { entry: entry(["op", "persona"]) } }));
+    expect(loadDigestSchemaBundle(dir, "harness-qa")).toEqual(projected(["op", "persona"]));
   });
 
   test("canonicalises personas with digest_schema.py's own table", () => {

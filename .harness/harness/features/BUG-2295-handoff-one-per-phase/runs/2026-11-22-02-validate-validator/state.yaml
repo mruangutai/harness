@@ -1,0 +1,55 @@
+schema_version: 2
+run_id: 2026-11-22-02-validate-validator
+run_uid: 6645c119f03b456e9968f6e360cc4f10
+feature: BUG-2295-handoff-one-per-phase
+squad: validate-validator
+host: harness-validator-lead
+status: failed
+steps:
+  - id: qa
+    persona: harness-qa
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/review-harness-qa-c1.md
+    evidence:
+      matrix_ok: true
+      integration_exit: 0
+      unit_exit: 0
+      red_exit: 1
+      red_assertions: 6
+      green_assertions: 96
+  - id: code
+    persona: harness-code-reviewer
+    status: complete
+    verdict: FAIL
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/review-harness-code-reviewer-c1.md
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/review-harness-security-reviewer-c1.md
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/review-harness-ui-reviewer-c1.md
+  - id: goalcheck
+    persona: harness-pm
+    status: complete
+    verdict: FAIL
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: ../../notes/research-BUG-2295-handoff-one-per-phase-goalcheck-validate-c1.md
