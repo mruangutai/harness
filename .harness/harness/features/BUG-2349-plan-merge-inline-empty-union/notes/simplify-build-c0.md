@@ -11,3 +11,14 @@ Four parallel read-only `reviewer` dispatches, one angle each (harness-simplify,
 | altitude | S2349Altitude | no findings: the behavior lives at the authoritative shared union-head selector |
 
 Nothing to apply. No deviation from the signed T-01 intent.
+
+## Rework round 1 — `git diff 2a476ca0 a0e8dd0d -- tests/unit/test-plan-merge-union-head.py`
+
+| Angle | Reader | Result |
+|---|---|---|
+| reuse | S2349c1Reuse | no findings: no importable helper or fixture is re-implemented |
+| simplification | S2349c1Simplify | no findings: the dynamic load is required by the red receipt path; the helper removes repetition |
+| efficiency | S2349c1Efficiency | no findings: one module load and three small in-process merges |
+| altitude | S2349c1Altitude | no findings: the head rule is bound at the in-process unit boundary; CLI behavior stays in integration |
+
+Nothing to apply.
