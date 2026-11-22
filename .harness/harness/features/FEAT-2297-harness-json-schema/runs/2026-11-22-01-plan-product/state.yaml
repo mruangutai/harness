@@ -1,0 +1,82 @@
+schema_version: 2
+run_id: 2026-11-22-01-plan-product
+run_uid: 9e6a59963e4247e6818b9aa94f37e4d8
+feature: FEAT-2297-harness-json-schema
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: draft
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-config-contract.md
+    evidence:
+      check: 'exit 0; 10 tasks; 101 anchors; 0 failures'
+      approval: pending
+  - id: scope
+    persona: harness-code-reviewer
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/review-harness-code-reviewer-plan-c0.md
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/runs/2026-11-22-01-plan-product/panel-c0.md
+  - id: design
+    persona: harness-ui-reviewer
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/review-harness-ui-reviewer-plan-c0.md
+  - id: apply
+    persona: harness-pm
+    depends_on: [scope, should-not-exist, design]
+    mutates_repo: true
+    status: complete
+    verdict: ESCALATE
+    cycles: 0
+    dispatched_at: seq-5
+    completed_at: seq-6
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-config-contract.md
+    evidence:
+      check: 'record-panel exit 0; final check exit 0; 10 tasks; 101 anchors'
+      open_scope: OQ-SMOKE
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: [apply]
+    mutates_repo: false
+    status: complete
+    verdict: ESCALATE
+    lead_verdict: ESCALATE
+    cycles: 0
+    dispatched_at: seq-7
+    completed_at: seq-8
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-FEAT-2297-harness-json-schema-goalcheck-plan.md
+    evidence:
+      operator: partial
+      code_maintainer: pass_plan_coverage
+      reader: pass_plan_coverage
+      open_scope: OQ-SMOKE
+      process_gap: GAP-SIMPLIFY
+    note: Plan coverage assessed; scope decision and mandatory simplify remain for Main before signature.

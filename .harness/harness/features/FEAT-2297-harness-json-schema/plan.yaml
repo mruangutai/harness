@@ -1,0 +1,583 @@
+schema: plan/1
+feature: FEAT-2297-harness-json-schema
+approval:
+  date: '2026-11-22'
+  approved_by: Mike Ruangutai
+  status: approved
+drafted_at: '2026-11-22T15:19:52Z'
+status: plan
+source_issues:
+- 2297
+panel:
+  last_run: 2026-11-22-02-plan-product
+  cycle: 2
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-0e5fde30a1bb8c0f4c0c98df2b7e3648
+    severity: med
+    reader: harness-code-reviewer
+    kind: substance
+    summary: T-10 offline cumulative proof unnecessarily waits for the external Kaya merge.
+    disposition: resolved
+    resolved_by: T-10
+  - id: PF-33de4de80995172c7301b7ed85ba661a
+    severity: high
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-03's gate_policy repair-command recognizer solves a Bash lockout the gates need not create; scope invalid-config denial to each gate's governed command shapes instead.
+    disposition: resolved
+    scope: task
+    resolved_by: T-03
+  - id: PF-a622d798c2cd8d491a4aaf0a7237c53a
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: No task dispositions harness-factory-smoke's remote config, which fail-closed product_config will start validating.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-2af39701ef1ecea1a714cb8e8e8f4ff5
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-10's pinned-SHA reduction checker is one-shot release tooling installed as a permanent integration test.
+    disposition: resolved
+    scope: task
+    resolved_by: T-10
+  - id: PF-f2eb6a78ab4847f824618c391b74ae7b
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: Routing omp-hooks.test.ts fixtures through the Python builder CLI buys nothing the advisory TS reader can feel.
+    disposition: resolved
+    scope: task
+    resolved_by: T-04
+  - id: PF-b333638793f0f9efb9615e6728bd4b25
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: Creating CHANGELOG.md with a single entry invents a third change-record convention.
+    disposition: resolved
+    scope: task
+    resolved_by: T-08
+  - id: PF-8a97d160584dc826071f2bc43a934c56
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: The fixture census's six --scope flags encode this plan's task boundaries into permanent machinery.
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-cf64486a252238601dc1f2111a023df8
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-09's dependency on T-08 serializes the only human-latency step behind the entire test-reduction grind.
+    disposition: resolved
+    scope: task
+    resolved_by: T-09
+  - id: PF-877923987af16e3258ccff177e999d6f
+    severity: med
+    reader: harness-code-reviewer
+    kind: substance
+    summary: T-03 simultaneously prohibits and requires removing smoke fleet membership.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-f42c986b5ce6aa471d698de51d1ff16d
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: T-03's intent still carries the superseded pre-ruling paragraph forbidding fleet-membership removal and prescribing an expected full-fleet aggregate failure, contradicting its own removal directive two paragraphs later.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-37db11b709264518077155d42f27d2a2
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: Asserting exact fleet composition (excludes smoke, retains Kaya) in the permanent reader integration suite encodes a transient operational fact as an evergreen test.
+    disposition: resolved
+    scope: task
+    resolved_by: T-10
+  - id: PF-f46b3f746baa373ffc63bdf975d9eefc
+    severity: info
+    reader: should-not-exist
+    kind: substance
+    summary: Disposition delta otherwise resolves the prior remote-config finding without excess and without weakening all-reader/fleet refusal.
+    disposition: resolved
+    resolved_by: T-03
+lanes:
+  resolved_at: c1724230c4d931ad46d433c8ba93df8cf312f898
+  rows:
+  - surface: '**'
+    lane: main-session-direct
+    reason: DEC-174 and all thirteen settled choices require direct main-session execution for this self-hosted enforcement
+      migration
+decisions:
+- id: D-01
+  choice: Publish Draft 2020-12 config-schemas/harness.json as the sole version-3 shape/default contract; all ordinary Python
+    config reads validate through load_harness_json and invalid or missing files fail closed.
+  because: One portable contract replaces duplicated reader checks and silent policy disablement.
+  dec: none
+- id: D-02
+  choice: Absent optional configuration uses schema-declared template defaults, never live Harness project values; missing
+    schema_version defaults 3 and missing decision_dispositions_era_start defaults null; present invalid or legacy shapes
+    are refused.
+  because: New optional keys must not require fleet-wide edits, while omission must not disguise an invalid present structure.
+  dec: none
+- id: D-03
+  choice: Close structural keys and the ten change types, six conditions, ten registered kind names and four statuses; require
+    complete present kind/board/matrix records and conditionally pinned github.repo; retain unchecked underscore prose except
+    operational _matrix_provenance.
+  because: Typos become mechanical errors without treating prose as config, and conditional requirements are signed rather
+    than developer-inferred.
+  dec: none
+- id: D-04
+  choice: Retain load_harness_json path/text/context API and ArtifactAccessError; introduce strict load_json_mapping for non-config
+    artifacts and named raw repair/report inputs, never a permissive switch on the config loader.
+  because: Three existing non-config callers must remain strict JSON readers without accidentally receiving config defaults
+    or schema rejection.
+  dec: none
+- id: D-05
+  choice: Upgrade version 2 to 3 explicitly, infer absent kind status active for nonempty cmd and unresolved for
+    null cmd, preserve project values, validate before atomic replacement and support config-only product migration;
+    Bash gates recognize their governed actions before loading config and refuse matched actions on invalid or missing
+    input before consulting sync.
+  because: Existing config-independent governed-command recognition keeps repair/report and unrelated commands reachable
+    without a new allowlist or permission to execute governed actions on invalid input.
+  dec: none
+- id: D-06
+  choice: One schema-valid fixture builder serves every fixture including inline and TypeScript test configs; dispose every
+    inventory row and require negative net physical lines across all affected test/helper files versus the pinned base.
+  because: Central validation earns deletion of duplicated tests, not merely a larger parallel suite.
+  dec: none
+- id: D-07
+  choice: Prepare a validated Kaya payload from the real fleet checkout and remote main, publish a dedicated PR to mruangutai/kaya
+    main, and require operator mruangutai review and explicit merge authorization before recording a remote-main landing.
+  because: Default-branch authority is the product contract and repository protections or prior approvals cannot be inferred
+    from inaccessible APIs.
+  dec: none
+- id: D-08
+  choice: Keep the existing TypeScript resolveBudgetNumber fallback only for advisory budgets; Python advisory readers still
+    refuse invalid config, and all implementation tasks stay main-session-direct.
+  because: The operator retained DEC-198 advisory host behavior without extending that exemption to Python enforcement.
+  dec: DEC-198
+decisions_affected:
+- dec: DEC-13
+  disposition: keep
+  clause: '**Tradeoff accepted:** projects can sit on a stale org until someone runs the upgrade.'
+  successor: none
+  reason: Upgrade remains explicit and user-triggered, not a deploy side effect.
+- dec: DEC-35
+  disposition: keep
+  clause: '**Tradeoff accepted:** `test_kinds.cmd` is per-project and must be detected at init by `dev-ops`.'
+  successor: none
+  reason: The schema checks data vocabulary without implementing condition evaluation or inventing runners.
+- dec: DEC-160
+  disposition: keep
+  clause: harness.json key must say so.
+  successor: none
+  reason: The signed feature decision explicitly declares the configuration contract and version transition.
+- dec: DEC-174
+  disposition: keep
+  clause: '| grilling, BRIEF, PLAN, review panel, goal-check | **yes, keep it** | none of it depends on the code being changed;
+    FEAT-05''s grilling and plan were good work and caused none of the day''s trouble |'
+  successor: none
+  reason: Planning stays self-hosted while every implementation task remains main-session-direct.
+- dec: DEC-187
+  disposition: keep
+  clause: '`unresolved` is the template default and means nobody has decided yet; it blocks.'
+  successor: none
+  reason: Migration preserves unresolved null runners; structural validation is not a waiver of QA semantics.
+- dec: DEC-198
+  disposition: keep
+  clause: 'returned by `resolveContextWarnTokens` on every miss path: file missing, unreadable, not JSON, no'
+  successor: none
+  reason: The named budgets-only TypeScript fallback remains unchanged.
+- dec: DEC-212
+  disposition: keep
+  clause: '`config` change type: `{"kind": "integration", "if": "touches_config_shape"}`.'
+  successor: none
+  reason: The config-shape change carries integration evidence in addition to the runtime feature unit floor.
+- dec: DEC-217
+  disposition: keep
+  clause: '`unit` when `touches_runtime_code`, and `integration` when'
+  successor: none
+  reason: No condition evaluator is introduced and both relevant test-kind floors are retained.
+- dec: DEC-221
+  disposition: amend
+  clause: 'Other offline advisory reads retain their existing
+
+    non-gating behavior; that does not excuse an unresolvable bound target.'
+  successor: D-08
+  reason: Invalid harness.json now refuses even Python advisory reads; retain best-effort transport behavior and only the
+    named TypeScript budgets exception.
+- dec: DEC-254
+  disposition: amend
+  clause: scope; a missing key preserves pre-adoption behavior.
+  successor: D-02
+  reason: Version-3 schema defaults absent era to null; replace only this omitted-key exemption and preserve explicit era
+    boundaries and historical plan grandfathering.
+tasks:
+- id: T-01
+  title: Create the schema validated loader repair upgrade and fixture builder
+  traces:
+  - SC-01
+  - SC-03
+  - SC-04
+  - SC-09
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on: []
+  status: ready
+  files:
+  - .claude/skills/harness/bin/artifact_accessors.py#load_harness_json
+  - create: true
+    path: .claude/skills/harness/bin/harness_config.py
+  - create: true
+    path: .claude/skills/harness/bin/config-schemas/harness.json
+  - .claude/skills/harness/bin/upgrade-config.py#load_json
+  - path: .harness/harness.json
+    quote: '"schema_version"'
+  - path: .claude/skills/harness/templates/harness.json
+    quote: '"schema_version"'
+  - create: true
+    path: tests/harness_config_support.py
+  - create: true
+    path: tests/unit/test-harness-config.py
+  - tests/unit/test-artifact-accessors.py#JsonContracts
+  - create: true
+    path: tests/integration/test-harness-config-upgrade.py
+  - tests/integration/test-upgrade-config.py#project
+  verify: |
+    python3 tests/unit/test-harness-config.py && python3 tests/integration/test-harness-config-upgrade.py
+  intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Create the schema and harness_config.py behind artifact_accessors.load_harness_json. Keep exactly one path or text source, optional context, and ArtifactAccessError as the one public failure boundary. Share strict duplicate-key/nonfinite/object decoding through a new load_json_mapping(path=None, *, text=None, context=None); caller migrations are owned by T-03. Schema documents themselves use that strict generic read, never the validated config loader. Cache the checked local Draft202012Validator/referencing registry, not config data; prohibit remote ref retrieval and fail closed on absent dependency or invalid schema. Return a fresh mapping per call. Deterministically choose the first error by key path then rule and report source, key path and schema validator keyword/message; version 2 names upgrade-config.py. Missing file refuses, unlike missing optional key.
+
+    Apply defaults only where absent, preserving explicit null and never repairing wrong present values. Require current structural records before defaults could hide absent required fields, then validate the resulting document. All structural objects reject unknown keys except unchecked underscore-prefixed prose; operational _matrix_provenance is reserved and validated. Root defaults: schema_version 3; panel_era_start null; seam_era_start null; decision_dispositions_era_start null; _matrix_provenance {}; commit_attribution agent_prefix [harness:<step-id>] and human_prefix [harness:human]; dirty_tree_whitelist entries .harness/** and .claude/worktrees/**; log_retention_days 30; gates.review advisory_unless_high; github sync false, repo null, board null, issue_types {}; budgets max_total_cycles 10, max_total_runs 20, orchestrator_context_warn_tokens 200000, plan_phase_warn_minutes 90, rework_round_minutes 45, preload_warn_words universal 1900 and agent 5500. These objects and their missing scalar leaves default recursively. Explicit null is accepted only for eras, repo, board and kind cmd. Version is const 3 excluding bool. Date eras are real YYYY-MM-DD dates or null; dispositions era is null or a real timezone-qualified ISO-8601 instant checked for calendar/time/offset validity.
+
+    Use schema numeric integer semantics, excluding bool; retention and max_total_cycles/max_total_runs are nonnegative, other budget leaves positive. Stop config numeric-string budget coercion; do not change feature.json budget override parsing. Review enum is blocking/advisory/advisory_unless_high. github.repo is null or owner/name without whitespace; sync true requires explicitly present non-null repo; a non-null board requires repo even with sync false. A present non-null board requires owner and station_field nonempty strings, number integer-valued JSON number or whitespace-padded decimal digit string, and exact ordered stations backlog, plan, ready, building, review, done. Do not add a positive board-number requirement. Do not default an incomplete board. github.issue_types has only optional Bug, Feature, Task, parent keys with nonempty strings; absence means current built-in type mapping.
+
+    Closed change types: logic, api, cross_module, frontend, feature, bugfix, ai_behavior, config, scaffolding, docs. Closed kinds: unit, functional, integration, component, ui, eval, typecheck, omp_session_accessor, handoff_comprehension, issue_types_live. Closed conditions: touches_runtime_code, touches_db_or_external, has_interaction_flow, touches_config_shape, fix_confined_to_tests_and_contract_docs, match_bug_class. Each present test_matrix row requires always array, optional when defaults []; each when entry requires kind and if, no other structural keys. __bug_class__ is allowed only paired with match_bug_class, which requires that sentinel. A present test_matrix map retains its entry population: do not synthesize missing rows. Whole-map absence uses the existing template matrix values: logic unit; api unit+functional with integration/touches_db_or_external; cross_module unit+functional+integration; frontend unit+component with ui/has_interaction_flow; feature unit+functional+integration with ui/has_interaction_flow; bugfix empty always with unit/touches_runtime_code, integration/fix_confined_to_tests_and_contract_docs and __bug_class__/match_bug_class; ai_behavior eval; config empty always with integration/touches_config_shape; scaffolding/docs empty always. Do not evaluate predicates or reconcile evidence.
+
+    Each present test_kinds entry requires detect, exclude, cmd and status; status-less present entries are invalid. detect is nonempty string, exclude string (empty allowed), cmd null or nonempty string; statuses active/excluded/unresolved/locally_run. Excluded requires nonempty excluded_because and signed DEC identifier; locally_run requires nonempty cmd and runner_note. Active/unresolved null cmd remains structurally legal and is still BLOCKED by existing QA semantics. A present test_kinds map retains its population. Whole-map absence uses the seven baseline template kinds, their existing detect/exclude values and null cmd, with status unresolved. Preserve per-project matrix rows, commands, reasons, excludes, detect and statuses. _matrix_provenance defaults {}; each present change-type entry requires removed/added arrays of allowed kinds and signed DEC identifier. No new closure/evaluator policy replaces the existing QA semantic checks.
+
+    Add tests/harness_config_support.py as the only fixture builder/writer, with build_config(overrides=None), write_config(path, overrides=None), and a CLI --overrides-json accepting JSON and emitting the validated JSON config. TypeScript budget fixtures are checked-in outputs of this same builder, not a second builder and not runtime Python subprocesses in Bun. Start from schema_version 3 and merge overrides recursively, replacing lists, then invoke the canonical loader to get schema defaults and validation. Never copy live project commands, github identity or era dates. Expose no unchecked-config builder. Tests create deliberate invalid configs by corrupting the valid result. Before production edits the helper can call the old loader on this minimal base, so new assertions must visibly fail on unknown keys/default absence rather than missing imports. Unit coverage exercises all default leaves, each required/conditional field, enum members and near-misses, underscore prose versus operational provenance, explicit null distinctions, nested duplicate/nonfinite values, old version, missing file, wrong source count and caller mutation isolation.
+
+    Upgrade-config raw source/template input uses load_json_mapping; preserve strict decoding. Migrate 2 to 3, filling absent per-kind status active for nonempty cmd or unresolved for null cmd, preserving recorded statuses/reasons/commands/globs/era values. Validate the candidate through load_harness_json before write_harness_json backup/atomic replacement; failed validation leaves original unchanged. Add --config-only to skip team-config reporting for product-only upgrades, never install a manifest. Keep normal control-plane manifest reporting and --check semantics. Update live and template version to 3; template baseline kinds receive status unresolved and honest null-runner wording. Existing live values and statuses stay unchanged. New integration upgrade tests exercise real CLI --config-only, ordinary control-plane reporting, failed candidate non-write, backup preservation, version-specific diagnostics and idempotent repeat. Migrate existing test-upgrade-config fixtures through the one builder; old-version migration cases explicitly corrupt schema_version/status after constructing valid base. Focused test gates are the phase boundary; broad legacy suites run after later fixture tasks, with no version-2 compatibility shim.'
+- id: T-02
+  title: Fold shared fixture writers into the one builder and census fixture bypasses
+  traces:
+  - SC-04
+  - SC-05
+  - SC-10
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on:
+  - T-01
+  status: ready
+  files:
+  - tests/integration/check_state_support.py#make_fixture
+  - tests/integration/f58_sparse_fixture.py#_owner_files
+  - tests/integration/gh_sync_support.py#stage
+  - path: tests/integration/test-harness-config-fixtures.py
+    create: true
+  verify: |
+    python3 tests/integration/test-harness-config-fixtures.py tests/integration/check_state_support.py tests/integration/f58_sparse_fixture.py tests/integration/gh_sync_support.py
+  intent: Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Replace config-writing bodies and constants in check_state_support.make_fixture and HARNESS_JSON_SYNC_ON/OFF, f58_sparse_fixture._owner_files and gh_sync_support.stage/write_harness_json_board/stage_fleet with delegation to the builder. Preserve their public fixture call semantics while migrating their callers in later tasks; raw strings must be parsed as override objects only for valid cases, with deliberate invalid cases explicitly handled at their test site, never silently repaired. Preserve generated feature-record provenance, stage wrappers and fake GitHub payload behavior. Add a fixture census integration test accepting optional positional source file paths, defaulting to every tracked test source. Paths bound the files examined without named task partitions; always execute its bypass negative controls. A full invocation derives its population independently of this plan's file lists, account for constants, aliases, indirect writes, rewrites, remote encoded payloads and inline TypeScript configs. Require each actual valid-config producer to reach the one helper; explicitly classify non-config data, validated stubs and valid-base-plus-corruption cases with source/symbol evidence. Exercise a new inline bypass and each inherited writer as negative controls; a test based only on counting helper imports is insufficient. Keep the classification in the test rather than a second fixture schema. When the TypeScript source or its generated fixture is selected, regenerate the expected default/context_150000/plan_30 JSON mapping in memory through build_config and compare every value with tests/fixtures/harness-config-budgets.json; fail on missing/stale entries. Verify a drift mutant fails. Before T-04 creates that fixture, bounded support-only invocation does not select it; default full census remains the terminal gate. No permanent --scope enum or task-to-file partition table. Reuse source analysis conventions already used by canonical reader checks; no broad new framework.
+- id: T-03
+  title: Migrate every reader and indirect refusal boundary without losing repair access
+  traces:
+  - SC-02
+  - SC-06
+  - SC-10
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on:
+  - T-01
+  - T-02
+  status: ready
+  files:
+  - .claude/skills/harness/bin/board-station.py#main
+  - .claude/skills/harness/bin/board_lifecycle.py#_own_repo
+  - .claude/skills/harness/bin/branch-create-gate.py#_github_config
+  - .claude/skills/harness/bin/check-skill-weight.py#_budget
+  - .claude/skills/harness/bin/check_state/ctx.py#Ctx
+  - .claude/skills/harness/bin/check_state/runner.py#main
+  - .claude/skills/harness/bin/code-grade.py#_load_test_kinds
+  - .claude/skills/harness/bin/factory_config.py#product_config
+  - .claude/skills/harness/bin/factory_decompose.py#_issue_type_overrides
+  - .claude/skills/harness/bin/feature-record.py#_budgets_for
+  - .claude/skills/harness/bin/feature_schema.py#_owner_mirror_binding
+  - .claude/skills/harness/bin/gate_policy.py#load_policy
+  - .claude/skills/harness/bin/gh-sync.py#_unbound_project_config
+  - .claude/skills/harness/bin/gh_board.py#load_board
+  - .claude/skills/harness/bin/layout_migration.py#_declared_segments
+  - .claude/skills/harness/bin/merge-gate.py#_github_config
+  - .claude/skills/harness/bin/plan_merge/check.py#_era
+  - .claude/skills/harness/bin/plan_merge/guards.py#_legal_stations
+  - .claude/skills/harness/bin/post-merge-sweep.py#_read_build_receipt
+  - .claude/skills/harness/bin/validate-digest.py#_load_matrix_inputs
+  - .claude/skills/harness/bin/wayfind.py#cfg
+  - .claude/skills/harness/bin/check-plan-routes.py#process_plan_yaml
+  - path: .claude/skills/harness/bin/gh-close-gate.py
+    quote: '# ---- config gate'
+  - tests/manual/probe-issue-types.py#_load_config
+  - path: tests/integration/canonical-reader-classification.json
+    quote: '"rows"'
+  - create: true
+    path: tests/integration/test-harness-config-readers.py
+  - .claude/skills/harness/bin/digest_schema.py#SchemaStore
+  - .claude/skills/harness/bin/run_identity.py#read_marker
+  - .harness/factory/fleet.yaml
+  verify: |
+    python3 tests/integration/test-harness-config-readers.py
+  intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Migrate each owned ordinary Python harness.json read to artifact_accessors.load_harness_json and eliminate per-reader shape/default interpretation. Reuse returned validated config; keep operational policy and normalization, not duplicate schema validation. Remove missing-file preflight skips and catches that turn ArtifactAccessError into {}, None, false-dash tuples, UNBUDGETED or a successful skip. In particular migrate module-scope gh-close-gate, board-station.main, board_lifecycle._own_repo, branch-create-gate._github_config and its obsolete _CONFIG_READER fallback program, check-skill-weight._budget/report, code-grade._load_test_kinds, factory_config.product_config, feature-record._budgets_for, feature_schema._owner_mirror_binding, gate_policy._load_config/load_policy, gh-sync._unbound_project_config, gh_board.load_board, layout_migration._declared_segments, merge-gate._github_config, plan_merge.check._era, post-merge-sweep._read_build_receipt, validate-digest._load_test_kinds/_load_matrix_inputs and wayfind.cfg. Preserve a schema failure''s source/path/rule through existing public wrapper types. Ordinary CLI errors are nonzero diagnosed refusals; hook gates may use their established structured deny protocol or exit 2, but must actually block the host action and retain the diagnosis. Do not alter malformed hook-payload or unrelated runner-spawn policies.
+
+    Stop indirect fail-open behavior in factory_decompose._issue_type_overrides and plan_merge.guards._legal_stations; an invalid product/owner config must not become default type overrides or a fallback station mandate. Inspect the callers of these paths and route their error through the same command refusal boundary rather than an unhandled traceback. Preserve factory_config.product_config remote source/ref context, no local fallback, successful-result memoization and no failure caching. Keep board_for requiring a board as a domain precondition even though absent github.board defaults null. Replace validate_board schema duplication with domain normalization only, retaining its existing public name for in-memory consumers; normalize integer-valued JSON board numbers and padded decimal strings to int and stations to tuple idempotently. Valid explicit null board/sync-off remain no-write states, and external transport/card-write best-effort policies remain unchanged.
+
+    In check_state.ctx load config once through the validated loader, append the exact configuration violation on failure and mark cj_valid false. Ctx.comparison_record switches to strict load_json_mapping for shipped feature.json data. Raw config reads exist only to construct the diagnostic report, never populate working defaults. In runner.main stop config-dependent grading when cj_valid is false and render the configuration violation without a traceback, including --only and --changed cases. Do not change shipped-feature audit exemption or comparison-only population semantics. Missing decision-dispositions era is now default null, so plan_merge.check._era must no longer take an absent-key unconfigured branch for a valid v3 document.
+
+    Maintain repair reachability without a repair-command allowlist. OMP invokes these gates for every Bash call: extract the command using existing hook-payload behavior, then apply the existing config-independent governed-command recognizer before loading configuration: gh-close-gate.denies(cmd), branch-create-gate._branch_name(cmd), and merge-gate.merge_ref(command). An irrelevant command passes this gate without a config read; direct upgrade-config.py and check-state.py therefore remain reachable naturally. Every matched governed action must load through the validated accessor and deny with its diagnosis on missing/invalid input BEFORE consulting github.sync or repo and before any action/side effect. Valid explicit sync-off keeps its existing policy outcome only after validation. Preserve recognizer coverage for compound commands, nested shell forms, wrappers, control operators and malformed-command fallbacks already covered by the gate tests. A repair-looking prefix or substring never exempts a later governed action: upgrade-config.py followed by a close/branch/merge command, shell-wrapped actions and action-bearing redirections remain matched and denied on invalid config. Do not create a shared repair parser in gate_policy or deny all Bash. The upgrade/report scripts retain strict raw parsing and candidate validation. Central subprocess assertions cover invalid and missing configs, ordinary matched actions, repair/report-only and unrelated commands, compound repair-plus-action counterexamples, existing malformed-payload policy, and no-action sentinels. tests/manual/probe-issue-types._load_config also uses the validated accessor and refuses config failures instead of returning {}; credential absence and a valid disabled/unpinned configuration remain environmental skips.
+
+    Update check-plan-routes canonical accessor recognition for strict load_json_mapping without allowing it for ordinary harness.json readers. Maintain canonical-reader-classification.json for every changed/new JSON/YAML read, including T-01 schema/generic reads, repair/report bypasses and non-config routes; all ordinary harness.json entries use remedy artifact_accessors.load_harness_json, including remote product_config, rather than documented source route. Use exact real AST reader symbols/categories and main-session-direct execution metadata; keep documented advisory TypeScript exception budgets-only. Add a bounded --all default config-reader integration suite covering every reader/indirect refusal boundary with valid defaults, malformed and missing config, source diagnosis and a no-action sentinel. Exercise gates as real subprocesses and check-state''s report, remote invalid text without checkout fallback, success-only memo behavior, generic schema/run-identity/shipped-comparison regressions, and governed-command/compound repair-prefix counterexamples. Parameterize common malformed-shape cases centrally; do not duplicate an entire schema conformance suite per reader. New CLI cases must discriminate pre-change fail-open behavior before production edits. Keep permanent reader integration coverage synthetic: an invalid remote fleet member must retain its diagnosed refusal and make the aggregate fail, without local-checkout fallback or failure suppression; valid members must not mask another member''s failure.
+
+    Migrate digest_schema.SchemaStore._load_one and run_identity.read_marker to strict load_json_mapping, preserving their non-config contracts; classify both changed reader sites here. Remove only the mruangutai/harness-factory-smoke member from .harness/factory/fleet.yaml under the superseding operator ruling. Preserve Kaya and all other fleet settings; do not modify the smoke repository. Do not weaken validation or suppress any remaining fleet refusal. Exact shipped membership and preservation evidence belongs only to T-10''s bounded feature-only receipt, not the permanent reader integration suite.'
+- id: T-04
+  title: Reduce unit validation duplicates and migrate every unit fixture
+  traces:
+  - SC-01
+  - SC-04
+  - SC-05
+  - SC-09
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on:
+  - T-01
+  - T-02
+  - T-03
+  status: ready
+  files:
+  - tests/unit/test-factory-config.py#check
+  - tests/unit/test-gh-board.py#check
+  - tests/unit/test-gate-policy.py#check
+  - tests/unit/test-fleet-product-config.py#check
+  - tests/unit/test-code-grade.py#check_commit_resolution
+  - tests/unit/test-feature-record.py#base_doc
+  - tests/unit/test-wayfind.py#check
+  - tests/unit/test-feature-schema-build-entry.py#check
+  - tests/unit/test-check-state-shipped-ctx.py#check
+  - tests/unit/test-check-state-inv37-local-binding.py#check
+  - tests/unit/test-check-state-inv35.py#materialize_checker
+  - tests/unit/test-check-state-inv26-routing.py#check
+  - path: tests/unit/omp-hooks.test.ts
+    quote: import { beforeAll, describe, expect, test } from "bun:test";
+  - path: tests/fixtures/harness-config-budgets.json
+    create: true
+  verify: |
+    python3 tests/integration/test-harness-config-fixtures.py tests/unit/test-factory-config.py tests/unit/test-gh-board.py tests/unit/test-gate-policy.py tests/unit/test-fleet-product-config.py tests/unit/test-code-grade.py tests/unit/test-feature-record.py tests/unit/test-wayfind.py tests/unit/test-feature-schema-build-entry.py tests/unit/test-check-state-shipped-ctx.py tests/unit/test-check-state-inv37-local-binding.py tests/unit/test-check-state-inv35.py tests/unit/test-check-state-inv26-routing.py tests/unit/omp-hooks.test.ts tests/fixtures/harness-config-budgets.json && python3 tests/unit/test-gate-policy.py
+  intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Delete the listed factory-config board-shape/raw-JSON, gh-board shape, gate-policy shape, fleet-product-config raw-JSON and code-grade malformed-kind duplicate assertions. Retain one compact test-factory-config board_for no-board domain refusal from inventory 719-732, with its stated operational precondition reason, not reader-specific missing-key messages. Preserve board number/station normalization identity and tuple behavior, remote per-repo resolution and success-only memoization/failure recovery, review severity decisions, grading bars and feature overrides. gate-policy obsolete-key acceptance becomes refusal. Migrate all unit valid fixtures through the helper. Generate tests/fixtures/harness-config-budgets.json solely with build_config: default uses no overrides, context_150000 sets budgets.orchestrator_context_warn_tokens to 150000, and plan_30 sets budgets.plan_phase_warn_minutes to 30. omp-hooks.test.ts reads and clones these checked-in config objects without invoking Python/jsonschema at Bun runtime. Preserve absent-file, absent-key and advisory-threshold fallback tests by explicit field deletion or file omission after cloning the generated valid base; deliberate malformed cases visibly corrupt it. The census regenerates all three cases through the same builder and rejects stale/missing fixture values, including a drift negative control. No independent TypeScript builder or production hook change; Keep every non-config inflight schema_version fixture untouched. No weakening of TypeScript advisory behavior or new typecheck runner is permitted.'
+- id: T-05
+  title: Reduce GitHub reader checks and rewrite fail open assertions to refusal
+  traces:
+  - SC-02
+  - SC-04
+  - SC-05
+  - SC-10
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on:
+  - T-01
+  - T-02
+  - T-03
+  status: ready
+  files:
+  - tests/integration/test-gh-close-gate.py#check
+  - tests/integration/test-branch-create-gate.py#check
+  - tests/integration/test-merge-gate.py#check
+  - tests/integration/test-gh-sync-open.py#stage_recover
+  - tests/integration/test-gh-sync-abandon.py#main
+  - tests/integration/test-gh-sync-start-task.py#_without_build_entry
+  - tests/integration/test-board-station.py#check
+  - tests/integration/test-board-lifecycle.py#check
+  - tests/integration/test-gh-issue-types.py#build_brief
+  - tests/integration/test-gh-backlog-issue-types.py#build_harness_json
+  - tests/integration/test-factory-issue-types.py#install_gh
+  verify: |
+    python3 tests/integration/test-harness-config-fixtures.py tests/integration/test-gh-close-gate.py tests/integration/test-branch-create-gate.py tests/integration/test-merge-gate.py tests/integration/test-gh-sync-open.py tests/integration/test-gh-sync-abandon.py tests/integration/test-gh-sync-start-task.py tests/integration/test-board-station.py tests/integration/test-board-lifecycle.py tests/integration/test-gh-issue-types.py tests/integration/test-gh-backlog-issue-types.py tests/integration/test-factory-issue-types.py && python3 tests/integration/test-gh-close-gate.py && python3 tests/integration/test-branch-create-gate.py && python3 tests/integration/test-merge-gate.py
+  intent: Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Rewrite duplicate-config close/branch/merge policy-disable tests and missing-config close/open/branch fallbacks to actual refusal with the loader diagnosis and zero governed mutations, using each gate's actual host denial protocol rather than equating exit 0 with permission. Delete branch wrong-type AttributeError, board-station missing-board-as-error, board-lifecycle missing/empty-repo constructor-message duplicates and gh-sync-start-task incomplete-board duplicate. Missing board defaults null; sync true without repo now fails the signed conditional schema rule, so migrate old unpinned-sync fixture cases accordingly while preserving valid disabled-sync cases. Keep no-board domain operations and per-repository remote-board authority, no mutations on invalid/unavailable binding, issue-type capability outcomes and lifecycle projection behavior. Every remote fixture payload and override goes through the same builder before encoding.
+- id: T-06
+  title: Reduce check state duplicates while retaining plan and historical regressions
+  traces:
+  - SC-02
+  - SC-04
+  - SC-05
+  - SC-10
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on:
+  - T-01
+  - T-02
+  - T-03
+  status: ready
+  files:
+  - tests/integration/test-check-state-entry.py#case_a
+  - tests/integration/test-check-state-records.py#_inv32_plan
+  - tests/integration/test-check-state-inv26.py#_inv26_write_config
+  - tests/integration/test-check-state-plans.py#case_h
+  - tests/integration/test-check-state-feat59.py#_fixture
+  - tests/integration/test-check-state-handoff.py#case_g
+  - tests/integration/test-check-state-worktrees.py#case_u
+  - tests/integration/test-check-state-table.py#check
+  - tests/integration/test-check-state-shipped.py#check
+  - tests/integration/test-check-state-inv51.py#check
+  - tests/integration/test-check-state-inv37-offline.py#_root
+  verify: |
+    python3 tests/integration/test-harness-config-fixtures.py tests/integration/test-check-state-entry.py tests/integration/test-check-state-records.py tests/integration/test-check-state-inv26.py tests/integration/test-check-state-plans.py tests/integration/test-check-state-feat59.py tests/integration/test-check-state-handoff.py tests/integration/test-check-state-worktrees.py tests/integration/test-check-state-table.py tests/integration/test-check-state-shipped.py tests/integration/test-check-state-inv51.py tests/integration/test-check-state-inv37-offline.py && python3 tests/integration/test-harness-config-readers.py
+  intent: Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Delete reader-specific missing-file, malformed-era, missing-era, board-shape and boolean config-budget blocks listed by inventory. Supply valid builder configs to INV-32 fixtures that previously omitted harness.json, retaining their actual plan/panel assertions; the new centralized integration case separately proves missing-file refusal. Rewrite invalid-board continuation to the config violation and no config-dependent continuation; absent budget/key tests now assert max_total_runs 20 and preload defaults rather than inactive counting. Preserve feature-level budget overrides, explicit historical-era boundaries, explicit null boundaries, linked worktree/owner-root population, shipped-subject exemptions and comparisons, offline bound-target behavior, actual review pins, and distinct feature-record corruption cases. Migrate all twelve direct empty-config make_fixture calls in test-check-state-worktrees as well as shared constants and owner/remote configs; delegating shared constants alone is insufficient.
+- id: T-07
+  title: Finish inline fixture migration and delete the remaining reader duplicates
+  traces:
+  - SC-03
+  - SC-04
+  - SC-05
+  - SC-06
+  - SC-10
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on:
+  - T-01
+  - T-02
+  - T-03
+  status: ready
+  files:
+  - tests/integration/test-validate-digest.py#obj_of
+  - tests/integration/test-validate-digest-shadows.py#check
+  - tests/integration/test-factory-integration.py#check
+  - tests/integration/test-code-grade-cli.py#run
+  - tests/integration/test-post-merge-sweep.py#_extract_resolved_root
+  - tests/integration/test-check-skill-weight.py#_tree
+  - tests/integration/test-feature-corpus.py#repair
+  - tests/integration/test-plan-sign-gate.py#check
+  - tests/integration/test-plan-decision-dispositions.py#check
+  - tests/integration/test-hooks-install.py#_extract_resolved_root
+  - tests/integration/test-lead-start-return.py#check
+  - tests/integration/test-layout-migration.py#check
+  - tests/integration/test-run-unit-tests-kinds.py#check
+  verify: |
+    python3 tests/integration/test-harness-config-fixtures.py tests/integration/test-validate-digest.py tests/integration/test-validate-digest-shadows.py tests/integration/test-factory-integration.py tests/integration/test-code-grade-cli.py tests/integration/test-post-merge-sweep.py tests/integration/test-check-skill-weight.py tests/integration/test-feature-corpus.py tests/integration/test-plan-sign-gate.py tests/integration/test-plan-decision-dispositions.py tests/integration/test-hooks-install.py tests/integration/test-lead-start-return.py tests/integration/test-layout-migration.py tests/integration/test-run-unit-tests-kinds.py && python3 tests/integration/test-harness-config-readers.py
+  intent: Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. In validate-digest delete absent test_kinds/gates reader refusal and missing-detect/duplicate-key reader-specific checks now covered by the loader; keep runner-spawn failure semantics and grade/matrix enforcement. In validate-digest-shadows migrate service/widget matrix entries and their plan consumers together to supported change types, preserving distinct active-null/excluded/empty-floor cases. Delete code-grade-cli duplicate config key checks, check-skill-weight duplicate checks, plan-decision-dispositions missing-era/malformed-era reader cases and only the harness-config branch of post-merge-sweep duplicate-artifact tests. Preserve the adjacent feature.json malformed-retention case. check-skill-weight absent preload values uses documented defaults, malformed present values refuses. In test-run-unit-tests-kinds retain missing mandatory live-probe registration assertions as semantic roster coverage with that reason in the receipt; delete only empty-detect shape duplication. Migrate real upgrade fixtures in T-01 only; do not take ownership of test-upgrade-config again. Preserve all five factory subprocess behavior groups, remote identity/binding checks and no-default-mutations. Census inherited SparseFixture/gh-sync fan-out and every valid inline override; files whose writers only delegate need no redundant edit, but every undisposed source row remains a failure.
+- id: T-08
+  title: Land signed config decisions defaults and upgrade change record
+  traces:
+  - SC-07
+  change_type: docs
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on:
+  - T-01
+  - T-02
+  - T-03
+  - T-04
+  - T-05
+  - T-06
+  - T-07
+  status: ready
+  files:
+  - path: .harness/harness/docs/DECISIONS.md
+    quote: '# Harness — Decision Log'
+  - path: .harness/harness/docs/DECISIONS-INDEX.md
+    quote: <!-- index-contract v1 -->
+  - path: .harness/harness/docs/SPEC.md
+    quote: '# Harness — Specification'
+  - path: .claude/skills/harness/templates/README.md
+    quote: '# Templates'
+  - path: .harness/harness/features/FEAT-2297-harness-json-schema/notes/changes-config-contract.md
+    create: true
+  verify: |
+    python3 .agents/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+  intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Persist the operator-signed D-01 through D-08 choices in DECISIONS.md at the next unused decision identifier with feature/issue provenance; do not invent approval. Amend exactly the two decisions_affected amend clauses in place: DEC-221 offline advisory reads now refuse invalid harness.json in Python while retaining unrelated advisory transport behavior and the budgets-only TypeScript exception; DEC-254 absent version-3 decision_dispositions_era_start now defaults null rather than preserving pre-adoption omission, while explicit boundaries, drafted_at eligibility and approved/terminal/legacy plan grandfathering stay intact. Keep all declared keep clauses current. Regenerate DECISIONS-INDEX.md with the canonical generator after editing authority, including accurate source anchors; no general decision cleanup.
+
+    In SPEC state/test-config sections and templates/README.md document the schema path, loader API, boundary semantics and schema-field references for optional defaults, conditional requirements and closed vocabularies; do not duplicate their normative values, strict missing-file behavior, raw repair/report boundaries, config-independent governed-command recognition before validation/sync, config-only 2-to-3 upgrade and the existing TypeScript exception. Distinguish structural active-null validity from QA runner BLOCKED and Kaya''s honest unresolved statuses. Explain absent whole test maps use template defaults but present maps retain their entry populations; present status-less kind and partial board remain invalid. No claim of matrix condition evaluation or issue 2293 reconciliation. No new runtime behavior or tooling work. Use DECISIONS.md and the existing per-feature change-record convention instead of creating CHANGELOG.md. Include the version-3 upgrade warning and the operator-authorized removal of the smoke fleet entry with its repository untouched. Write notes/changes-config-contract.md as a compact source/pin index for the reviewer, naming changed decision clauses, schema/default API choices, exception and Kaya receipt pointers. For content inspection require git show at review_sha, not a mutable working-tree read.
+
+    Keep exact default values and vocabulary members solely in config-schemas/harness.json. SPEC explains validation boundaries; templates/README.md explains upgrade usage and references the schema; DECISIONS.md records rationale. Preserve SC-07 coverage through explicit schema references rather than copied normative lists.'
+- id: T-09
+  title: Land the validated Kaya migration through an operator approved PR
+  traces:
+  - SC-03
+  - SC-08
+  change_type: config
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on:
+  - T-01
+  - T-03
+  - T-10
+  status: ready
+  files:
+  - path: .harness/harness/features/FEAT-2297-harness-json-schema/notes/kaya-config-v3.json
+    create: true
+  - path: .harness/harness/features/FEAT-2297-harness-json-schema/notes/uat-kaya-migration.md
+    create: true
+  verify: |
+    MANUAL — Operator review and explicit merge authorization for the actual Kaya PR must exist before the remote-main landing receipt can be produced.
+  intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Start only after T-10 local cumulative proof and the configured local unit/integration evidence have passed at the candidate pin. Do not publish the Kaya PR early or wait for Kaya to gather local proof; this conservative ordering avoids merging an external migration before local contract evidence is ready. SC-08 remains a mandatory independent ship gate. This is an explicitly external main-session operation, not a delegated product-code task. The owned Harness-local payload and receipt are the only local files written; the remote mutation is mruangutai/kaya:.harness/harness.json on a dedicated branch targeting main. Do not list an out-of-root Kaya file as a Harness anchor or broaden plan_anchors. The real fleet checkout /Users/molchairuangutai/GitHub/harness-factories/kaya is a read input, origin https://github.com/mruangutai/kaya.git, observed main HEAD 6303f9f8a60127df461c20bb45d4531c5aaf8af9. The other /Users/molchairuangutai/GitHub/kaya checkout is not the authorized product write location. Read current remote main and blob identity freshly before preparing the payload; preserve concurrent project changes and refuse a stale source SHA.
+
+    Prepare notes/kaya-config-v3.json by running the config-only migration logic against a temporary copy of that remote config, using the authored Harness template/schema; validate through the one loader. Set version 3 and all seven missing statuses unresolved because commands are null; preserve every real cmd/detect/exclude/reason, explicit era, github.repo mruangutai/kaya and board 9. Do not install a team manifest, invent runner commands/exclusions, resolve Kaya issue 7 tooling, or mix open docs rename PRs 27/28. Publish a fresh-id branch and PR to main using GitHub branch/contents APIs with source blob compare-and-swap and the validated payload; record repo, original/main SHA, branch, PR URL, payload hash and proposed diff. No direct main push and no inference from inaccessible branch protection: both protection/ruleset APIs returned 403, prior PR 15 has no recorded reviews, and those facts grant no merge authority.
+
+    The operator @mruangutai must review the actual PR and explicitly authorize its merge through the main user channel. Do not mark UAT passed yourself. After that authorization the main session merges the PR, reads the merged remote main config through factory_config.product_config, and records PR URL, operator authorization pointer, merge SHA, remote blob SHA and schema validation result in notes/uat-kaya-migration.md. A prepared patch, open PR or local v3 config is not a main landing. Use fresh runtime branch id, not a fixed single-use branch. The checker for this task is intentionally operator-executed UAT; ship cannot claim SC-08 before this remote-main receipt exists.'
+- id: T-10
+  title: Prove complete fixture migration and negative cumulative test line delta
+  traces:
+  - SC-04
+  - SC-05
+  - SC-06
+  - SC-09
+  - SC-10
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 enforcement-layer migration and operator-settled direct execution
+  depends_on:
+  - T-01
+  - T-02
+  - T-03
+  - T-04
+  - T-05
+  - T-06
+  - T-07
+  - T-08
+  status: ready
+  files:
+  - path: .harness/harness/features/FEAT-2297-harness-json-schema/notes/check-config-reduction.py
+    create: true
+  - path: .harness/harness/features/FEAT-2297-harness-json-schema/notes/qa-config-reduction.md
+    create: true
+  verify: |
+    python3 .harness/harness/features/FEAT-2297-harness-json-schema/notes/check-config-reduction.py --base c1724230c4d931ad46d433c8ba93df8cf312f898 --review-ref HEAD --receipt .harness/harness/features/FEAT-2297-harness-json-schema/notes/qa-config-reduction.md
+  intent: 'Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Add bounded feature-only notes/check-config-reduction.py with --base, --review-ref and --receipt options and offline positive/negative self-controls executed on every invocation. This is a release-evidence checker, not a permanent discovered integration test or a runner prerequisite; no fixed historical base dependency enters the evergreen suite. Keep this tooling and its controls in the feature record, reachable with an explicit base after checkout history is fetched. Pin base c1724230c4d931ad46d433c8ba93df8cf312f898. Read test subjects at the supplied committed review ref with git show, not mutable working-tree contents, and fail if either requested ref/blob cannot be read. Derive the affected file population independently from git diff base..review-ref plus the complete tracked test fixture/reader census, not just this plan''s task list. Measure physical lines across the union of every affected existing/new/deleted test/helper file, including tests/harness_config_support.py, new schema/conformance/census tests, checked-in generated budget fixtures, this feature-only checker and all its control code, inline TypeScript test edits, manual probe and canonical-reader-classification.json; deleted files count to zero, new files from zero. Disallow escaping the count by moving tests/helpers elsewhere. Total candidate minus base must be strictly negative; a nonnegative total is failure, not a warning.
+
+    Write notes/qa-config-reduction.md with one disposition for each of the pinned inventory''s 30 REMOVABLE, 12 UPDATE-BEHAVIOR and 110 UPDATE-FIXTURE rows, preserving source-row identities even where shared-helper spans repeat. Each row names task/file/symbol replacement coverage, deleted versus retained material, and reason where retained. All 67 inventory files are assessed, including UNAFFECTED-only files: state why their non-config/path/prose/stub contracts remain. Only two REMOVABLE partial retentions were signed: factory board-required operation and mandatory live-probe registration semantics. Every UPDATE-BEHAVIOR invalid-config assertion must now prove refusal/no action, while optional missing budget/era/default cases prove the signed default. Keep unrelated runner-spawn, feature corruption and external transport behavior intact. Receipt contains both base and candidate refs, exact per-file physical line counts, total counts and negative delta, explicit builder/caller census, canonical reader coverage, and no unmeasured green-suite claims.
+
+    Test the checker itself with negative controls for an undisposed inventory row, stale fail-open assertion, and zero/positive line delta, plus positive controls. Do not merely search for a class-name count or use search errors as absence. Invoke the complete fixture census and bounded reader/schema regression tests after all predecessors. The main session/QA gathers configured live unit and integration evidence after all local tasks T-01 through T-08 and this checker have landed, before T-09 can publish or merge the external Kaya PR; record actual commands/results, candidate pin and fail-first receipts under the feature. T-09 changes only a payload/remote-UAT receipt, not the local test/helper population; repeat any evidence whose subject changes rather than waiting for external UAT. SC-08 is still mandatory, never waived by local proof. The smoke fleet entry is removed by T-03 under the operator ruling. In this bounded feature-only checker and notes/qa-config-reduction.md receipt, read .harness/factory/fleet.yaml at both supplied committed refs with git show; assert smoke is absent at the review ref, Kaya is retained unchanged, and the parsed review document equals the parsed base document with only the smoke repos entry removed, preserving every other member and setting. Keep these exact shipped-membership assertions out of the permanent reader integration suite, which retains synthetic remote-invalid/source-authority/no-failure-suppression coverage. Record actual remaining-fleet validation commands, source/ref context, diagnoses and exit outcomes without suppressing failures; this is a factual receipt, not a live-fleet assertion required to go green before Kaya migration. Neither a reported remaining-fleet refusal nor local proof waives Kaya''s mandatory SC-08 remote-main landing. Unrelated local unit/integration failures remain failures. A failure of local unit/integration evidence remains failure; task verify is the bounded cumulative artifact check, not a substitute for those matrix-kind runs. No implementation checks are executed during this planning assignment. Final content/decision grading uses review_sha and the operator carries SC-08 UAT.
+
+    Do not reimplement fixture-bypass or ordinary-reader-route controls in this checker: T-02 owns the fixture census negative controls and T-03 owns canonical reader route controls. Invoke those existing suites for cumulative evidence.'

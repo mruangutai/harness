@@ -1,0 +1,115 @@
+{
+  "feature_id": "FEAT-2297-harness-json-schema",
+  "branch": "feat/FEAT-2297-harness-json-schema",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-22T15:06:05+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-plan-product/digest.md",
+        "sha256": "5a083e9054962b47c7045e2c5fdd7fe0d0a1d73f7674ed0c46e934f1c66670e9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T15:42:44+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-02-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T15:47:14+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-02-plan-product/digest.md",
+        "sha256": "659f5cf620de4885143fa29a1b3d44ef6d4e1caab0f3761d5e8f4deeccfeaf51"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-22T16:08:30+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T15:06:04+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Cause known and files nameable, but it adds a new schema and enforcement surface (check-state rule, fail-closed validation in every reader) that gates and other features read."
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "79720d544a9e08ecb44677abf165d8f64571f6c67a00de1acf22d0f866d9d327",
+    "T-02": "2b0ec50c9ee976b9f55942a0a9fa3fe76b403d3c7d51e79623aee1f549fd0d25",
+    "T-03": "59bd7d90c15dd8f3b8ec2bd175fe79cc6738a78700ad53a11287834256e20be7",
+    "T-04": "a9bd0288f1d46c1e9dda040f329e21884333c84f14a8cc4fdaf1ed57bcc73b35",
+    "T-05": "c85e595a44be4ed3754657a883827f74aa36eaf873e80027a9bf2e34e13d4275",
+    "T-06": "eaf1b2404e616293eec13a68e0da7ec141650eb0c197df7d9a22fe86378341b6",
+    "T-07": "91a655788398c31c072256a48450485ae0ddf87d75d9dc2090ec86d8c4b6aea7",
+    "T-08": "9345f7cbc7c0e311f1cb9704c1df69e8fc076234fe3e8b22df5721e640ff26ce",
+    "T-09": "16b9a0c5349e23aa67043db25790601bad684419afe14b2874f915c1fe098d42",
+    "T-10": "4d935c4bab18f1be62390a7c92dad788ffa11a0e37037496059b99306e17d867"
+  },
+  "github": {
+    "milestone": 120,
+    "parent": 2311,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 2313,
+      "T-02": 2315,
+      "T-03": 2316,
+      "T-04": 2317,
+      "T-05": 2318,
+      "T-06": 2319,
+      "T-07": 2320,
+      "T-08": 2321,
+      "T-09": 2322,
+      "T-10": 2323
+    },
+    "source_issues": [
+      2297
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "T-06": true,
+      "T-07": true,
+      "T-08": true,
+      "T-09": true,
+      "T-10": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

@@ -1,0 +1,80 @@
+schema_version: 2
+run_id: 2026-11-22-02-plan-product
+run_uid: 2a1f5053752545b0ae170dfa16e44a48
+feature: FEAT-2297-harness-json-schema
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: apply
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-5
+    recompleted_at: seq-6
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c2.md
+    evidence:
+      check: 'record-panel and check exit 0; 10 tasks; 102 anchors; 0 failures'
+      substance_tasks: [T-03]
+      approval: pending
+  - id: scope
+    persona: harness-code-reviewer
+    depends_on: [apply]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    redispatches: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    redispatched_at: seq-7
+    recompleted_at: seq-8
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/review-harness-code-reviewer-plan-c2.md
+    evidence:
+      substance_tasks: [T-03]
+      contradiction_findings: closed
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: [apply]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/runs/2026-11-22-02-plan-product/panel-c1.md
+  - id: record-panel
+    persona: harness-pm
+    depends_on: [scope, should-not-exist]
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-9
+    completed_at: seq-10
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-plan-exit-c2.md
+    evidence:
+      record_panel: 'exit 0; cycle 2; 12 earlier finding identities retained resolved'
+      check: 'exit 0; 10 tasks; 102 anchors; 0 failures'
+      approval: pending
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: [record-panel]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-9
+    completed_at: seq-10
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-FEAT-2297-harness-json-schema-goalcheck-plan.md
+    evidence:
+      operator: pass_plan_coverage
+      code_maintainer: pass_plan_coverage
+      reader: pass_plan_coverage
+      simplify_gap: closed_by_main_artifact
+      operator_questions: none
