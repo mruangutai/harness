@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2294-prune-keeps-run-digests",
   "branch": "feat/BUG-2294-prune-keeps-run-digests",
-  "pr": null,
+  "pr": 2304,
   "review_sha": "88bf039f6ff31edbb1d5a4b2f6620762e3cc095a",
   "cycles_used": 1,
   "max_total_cycles": 10,
@@ -88,6 +88,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "c2 panel clean over 88bf039f: SEC-01 closed, qa executed 25/25, SC-01..03 met both perspectives; the reported cycle is PM's in-run evidence sendback; SEC-C2-Q1 goes to the briefing as backlog"
+    },
+    {
+      "at": "2026-11-22T16:02:25+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Operator skipped feature-close distillation at ship; the symlink lesson is carried by the regression and backlog B-1/B-2"
     }
   ],
   "mission": "patch",
