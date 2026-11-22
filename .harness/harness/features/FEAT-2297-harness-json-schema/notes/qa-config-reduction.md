@@ -14,7 +14,7 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 
 <!-- measured:begin -->
 - base `9e7eb5dabe9da6a30197a6de9a011960787b05a0` (`git merge-base HEAD origin/main`)
-- review `1363dbd3ba61954430c4f8bf668c3d3dfa0e3896`
+- review `31a46ae4a652f322488f1d8df23bfaf518ff652d`
 
 | File | Base | Review | Delta |
 |---|---|---|---|
