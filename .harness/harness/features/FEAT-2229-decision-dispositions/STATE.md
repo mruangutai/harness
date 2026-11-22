@@ -5,9 +5,9 @@
 - feature: FEAT-2229-decision-dispositions
 - run: none
 - squad: none
-- status: in_progress
-- station: building (re-entered 2026-11-21 at bf0ef996 after validate c2 r-20261121-validate-c2-validator FAIL at pin a8b8df61 with one must_fix F3 (T-01, check.py closing-fence suffix); fix segment main-session-direct per notes/handoff-fix.md seq-7; rework round 2 of 3, 27/90 min; T-01..T-03 done; cycles 1/10)
+- status: awaiting_user
+- station: building (re-entered 2026-11-21 after validate c3 r-20261121-validate-c3-validator FAIL at pin ab1e4246 with one must_fix F3-I (T-01/SC-02, check.py over-indented fence closer); F3 closed; stop ordered after c3, operator decides per notes/handoff-validate-c3.md seq-8; rework window measured 2 rounds / 38 min of 3 / 90; T-01..T-03 done; cycles 1/10)
 
 ## Open Questions
 
-- none
+- Q1 (blocking): fix F3-I in one more main-session-direct round (recommended; ruling has room by the record's measurement) or accept it as backlog and ship?
