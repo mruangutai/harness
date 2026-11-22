@@ -2497,7 +2497,7 @@ def _read_receipt(path, run_dir, shards):
     except OSError as error:
         return None, f"{path}: unreadable ({error})"
     try:
-        return json.loads(raw.decode("utf-8")), None
+        return artifact_accessors.strict_json_loads(raw.decode("utf-8")), None
     except (UnicodeDecodeError, ValueError) as error:
         return shards.Malformed(str(error)), None
 

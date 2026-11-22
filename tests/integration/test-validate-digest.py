@@ -2140,6 +2140,10 @@ RX_RAW_TAMPERS = (
 def _rx_tamper_cases(root):
     path = _rx_receipt(root, "unit")
     rows = [(label, _rx_edited(root, edit), needle) for label, edit, needle in RX_DOC_TAMPERS]
+    # A repeated key is not the runner's output: a lenient decode keeps the LAST value, so a
+    # stale `runner_exit: 1` ahead of the green one would read as green. Strict decoding refuses.
+    duplicated = b'{"runner_exit": 1, ' + json.dumps(_rx_doc(root, "unit")).encode()[1:]
+    rows.append(("a duplicated key", duplicated, "malformed JSON"))
     for label, content, needle in rows + list(RX_RAW_TAMPERS):
         with _rx_swapped(path, content):
             _rx_expect(f"{label} refuses the PASS", _rx_fire(root), 2,
