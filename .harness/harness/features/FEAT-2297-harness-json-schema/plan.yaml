@@ -574,7 +574,7 @@ tasks:
   - T-06
   - T-07
   - T-08
-  status: building
+  status: done
   files:
   - path: .harness/harness/features/FEAT-2297-harness-json-schema/notes/check-config-reduction.py
     create: true

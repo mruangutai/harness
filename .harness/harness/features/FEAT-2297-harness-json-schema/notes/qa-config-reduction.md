@@ -369,4 +369,27 @@ it does not waive SC-08's remote-main landing.
 
 ## Local matrix evidence
 
-Recorded at the candidate pin after T-01 to T-08 and this checker landed (see below).
+Candidate `6f493a25` (after T-01 to T-08, this checker, the simplify pass, and both merges of
+`origin/main` up to `837e7096`). Full logs: `notes/receipts/t10-matrix-unit.txt` and
+`notes/receipts/t10-matrix-integration.txt`.
+
+| Kind | Command | Result |
+|---|---|---|
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0: 65 files pass |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 1: 94 of 95 files pass; `test-corpus-real-owner.py` fails |
+| typecheck | `bun run typecheck` | exit 0 |
+
+**The one integration failure is attributed, not waived.** `test-corpus-real-owner.py` runs
+check-state against this repository's *owner* checkout, the main checkout at `main`. Until
+this feature merges, that checkout's `.harness/harness.json` is `schema_version` 2, which the
+candidate's loader refuses by design (DEC-256): `VIOLATION .harness/harness.json is invalid: …
+schema_version: 2 is the previous harness.json shape; run upgrade-config.py`. The candidate's own
+`.harness/harness.json` is version 3. In CI the owner checkout is the PR checkout itself, so the
+case reads a version-3 file there; PR CI is the confirming run. No other unit or integration file
+fails.
+
+Earlier evidence in this run was superseded and repeated. One integration run was invalidated
+(`MUTATED harness_config.py`) by an edit made during it. Later runs found three real defects,
+each fixed and re-proven: DEC-256's index ruling over the 30-word cap; the schema's `test_kinds`
+default missing `classifies_tests` after the merge; and FEAT-2337's receipt fixture, which was
+invalid under version 3.
