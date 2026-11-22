@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-2229-decision-dispositions",
   "pr": null,
   "review_sha": "c163d5ea0fb17da27b3455559f317d67852981c7",
-  "cycles_used": 2,
+  "cycles_used": 4,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -145,6 +145,21 @@
       },
       "cycles_used": 1,
       "ended_at": "2026-11-22T04:15:15+00:00"
+    },
+    {
+      "id": "r-20261122-validate-c5-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-22T13:38:52+00:00",
+      "tokens": 71912,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-validate-c5-validator/digest.md",
+        "sha256": "68ba1af6d5b542aa2017378650dcf407169928605c442f275255ff5009708b3d"
+      },
+      "cycles_used": 2,
+      "ended_at": "2026-11-22T14:00:24+00:00"
     }
   ],
   "judgements": [
@@ -252,6 +267,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "operator ruling notes/answers-2026-11-22-c4-ruling.md Q1: one round beyond the spent rework ruling (M6/M8 tilde tests plus SEC-C4-01), landed main-session-direct as c163d5ea; Q2 confirms the backlog set; proceed to validate c5"
+    },
+    {
+      "at": "2026-11-22T13:39:08+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "succeeding handoff-validate-c4.md seq-9 under answers-2026-11-22-c4-ruling.md: fix-c4 c163d5ea on disk at pin, one round authorized; continue to validate cycle 5 (SC-02: M6/M8, SEC-C4-01)"
     }
   ],
   "mission": "plan",
