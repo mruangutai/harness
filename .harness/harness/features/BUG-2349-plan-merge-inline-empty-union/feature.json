@@ -2,7 +2,7 @@
   "feature_id": "BUG-2349-plan-merge-inline-empty-union",
   "branch": "none",
   "pr": null,
-  "review_sha": "2a476ca04c3516bdac3e69dfe66cec7eb372e243",
+  "review_sha": "0174f364483df5c8d49f04e35d2308e5dca33257",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -36,6 +36,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-22T20:26:10+00:00"
+    },
+    {
+      "id": "2026-11-22-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T20:30:48+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-03-validate-validator/digest.md",
+        "sha256": "c8b0a8310d3f91b442367359792e6a8fb021ed355c3be82b7f96da192177ff79"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T20:41:29+00:00"
     }
   ],
   "judgements": [
