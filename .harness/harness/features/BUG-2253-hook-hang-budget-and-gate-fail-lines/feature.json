@@ -2,7 +2,7 @@
   "feature_id": "BUG-2253-hook-hang-budget-and-gate-fail-lines",
   "branch": "feat/BUG-2253-hook-hang-budget-and-gate-fail-lines",
   "pr": null,
-  "review_sha": "2e96b583dadaff642873566c3234dde6af0eda74",
+  "review_sha": "645febc89615f9a508a5cc66122a02a80ddabaac",
   "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
@@ -51,6 +51,13 @@
       "cycles_used": 1,
       "tokens": null,
       "ended_at": "2026-11-22T01:51:03+00:00"
+    },
+    {
+      "id": "2026-11-21-04-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-22T03:48:37+00:00"
     }
   ],
   "mission": "patch",
@@ -75,6 +82,13 @@
       "kind": "regate",
       "decision": "validate cycle 1",
       "reason": "c0 FAIL: SC-01 space names and SC-02 watchdog fixed in c1168ccf/6cbdc417; re-gate at 2e96b583 within 1-round budget"
+    },
+    {
+      "at": "2026-11-22T03:48:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL: echoed headers and pre-readiness containment fixed in 03204c96/b228c3a2; operator-extended round 2"
     }
   ],
   "rework": {
