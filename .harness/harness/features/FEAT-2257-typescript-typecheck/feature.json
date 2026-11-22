@@ -30,6 +30,20 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "The cause is known and the files can be named, but a new CI check plus an active test kind that QA's gate reads is a new enforcement surface, so the patch rule's third condition fails."
+    },
+    {
+      "at": "2026-11-22T21:10:32.151331+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Advisor, under operator delegation: untrack the stray vitest cache committed in 806a8558 (BUG-1756) so node_modules/ is genuinely ignored (SC-04)"
+    },
+    {
+      "at": "2026-11-22T21:10:32.606172+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Advisor condition: verify proves the untrack (git ls-files node_modules is empty), not just the ignore rule"
     }
   ],
   "mission": "plan",

@@ -1,0 +1,6 @@
+# T-01 literal verify (amended); pre-implementation HEAD bda50269 (base 0bdcabbf + main sync); bun 1.3.14, typescript Version 7.0.2; typescript 7.0.2 and @types/bun 1.4.5 resolved by 'bun add -d --exact'
+bun install v1.3.14 (0d9b296a)
+
+Checked 7 installs across 27 packages (no changes) [40.00ms]
+PASS frozen install, compiler configuration and ignored node_modules
+# rc=0
