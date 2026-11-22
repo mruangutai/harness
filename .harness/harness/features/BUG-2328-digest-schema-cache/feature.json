@@ -2,7 +2,7 @@
   "feature_id": "BUG-2328-digest-schema-cache",
   "branch": "none",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "1a26bc9fbb4c4ebadf9b9a6a268ca757aa358c00",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -21,6 +21,21 @@
       "tokens": null,
       "ended_at": "2026-11-22T19:05:59+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:16:46+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-02-validate-validator/digest.md",
+        "sha256": "9182fb86046e4caf6434640baef4192b3da995f22cdc591dc2def93fedab8e9f"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T19:23:49+00:00"
     }
   ],
   "judgements": [

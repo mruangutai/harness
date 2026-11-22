@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai
   status: approved
 drafted_at: '2026-11-22T19:03:58Z'
-status: building
+status: review
 source_issues: [2328]
 lanes:
   resolved_at: dd04e52a898109fdbe09cf5fa14e1148161734d0
@@ -47,7 +47,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 requires main to execute directly because this hook library injects every Harness dispatch digest contract; coupled tests remain in the same direct task.
   depends_on: []
-  status: ready
+  status: done
   files:
   - .omp/extensions/digest-schema.ts
   - tests/unit/omp-hooks.test.ts
