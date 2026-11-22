@@ -102,6 +102,13 @@
       "kind": "amendment",
       "decision": "T-04.files",
       "reason": "fable-advisor ruling: T-03's config-read branch dropped _classified_disposition_findings to grade 3 (test-code-grade pin); T-04 splits it by disposition, behaviour-preserving."
+    },
+    {
+      "at": "2026-11-22T20:58:27.846642+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-06.files",
+      "reason": "Advisor ruling: T-03 regression \u2014 feature_schema exec failure crashed check-state via harness_config; load it through harness_boundary.load_repo_module, map RepoModuleError to ArtifactAccessError (63.a)."
     }
   ],
   "mission": "plan",

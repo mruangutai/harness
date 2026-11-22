@@ -24,6 +24,7 @@ import tempfile
 import harness_yaml
 from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, feature_json, make_fixture,
     run)
+from harness_config_support import write_config
 
 
 def case_h():
@@ -41,8 +42,7 @@ def case_h():
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
         os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write(HARNESS_JSON_SYNC_OFF)
+        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
         document = harness_yaml.load_str(
             "feature_id: FEAT-TEST\n"
             "review_sha: none\n"
@@ -73,8 +73,7 @@ def case_i():
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
         os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write(HARNESS_JSON_SYNC_OFF)
+        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
         document = harness_yaml.load_str(
             "feature_id: FEAT-TEST\n"
             "review_sha: 1ce886a\n"
@@ -106,8 +105,7 @@ def case_j():
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
         os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write(HARNESS_JSON_SYNC_OFF)
+        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
         document = harness_yaml.load_str(
             "feature_id: FEAT-TEST\n"
             "review_sha: none\n"
@@ -139,12 +137,11 @@ def case_l():
       (3) a feature declaring max_total_runs: 30 silences it,
       (4) and the exit code is UNCHANGED, because this must never gate.
     """
-    def build(tmp, n, declared="", budget='"budgets": {"max_total_runs": 20}'):
+    def build(tmp, n, declared="", budgets={"max_total_runs": 20}):
         h = os.path.join(tmp, ".harness")
         os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write('{\n  "github": {"sync": false, "repo": null}'
-                    + (",\n  " + budget if budget else "") + "\n}\n")
+        write_config(os.path.join(h, "harness.json"),
+                     {"github": {"sync": False}, **({} if budgets is None else {"budgets": budgets})})
         runs = "\n".join(f"  - {{ id: r{i}, squad: eng, verdict: PASS }}"
                          for i in range(n))
         source = (f"feature_id: FEAT-TEST\ncycles_used: 2\n"
@@ -161,21 +158,17 @@ def case_l():
         code_at, out_at = build(tmp, 20)
     with tempfile.TemporaryDirectory() as tmp:
         _code_raised, out_raised = build(tmp, 21, "max_total_runs: 30\n")
-    # (l5-l8) THE CONFIGURED VALUE MUST ACTUALLY BE READ, and a budget this check
-    # cannot resolve must SAY SO. The first version of case (l) asserted neither:
-    # a mutant hardcoding `_budget = 20` and never opening harness.json passed all
-    # four assertions, exit 0 (PR #142 review, HIGH 2). Reproduced before fixing.
-    # (l5) uses a DIFFERENT budget so a hardcoded 20 gives the wrong number in the
-    # message; (l6)-(l8) cover the shapes that used to disable the check in silence,
-    # including a shipped template example that omitted the budgets block entirely.
+    # (l5-l7) THE CONFIGURED VALUE MUST ACTUALLY BE READ. The first version of case (l) did
+    # not prove it: a mutant hardcoding `_budget = 20` and never opening harness.json passed
+    # all four assertions, exit 0 (PR #142 review, HIGH 2). (l5) uses a DIFFERENT budget so a
+    # hardcoded 20 gives the wrong number in the message; (l6)-(l7) are the shapes that once
+    # disabled the check, which the schema now fills with the default 20 (FEAT-2297).
     with tempfile.TemporaryDirectory() as tmp:
-        _c, out_b5 = build(tmp, 7, budget='"budgets": {"max_total_runs": 5}')
+        _c, out_b5 = build(tmp, 7, budgets={"max_total_runs": 5})
     with tempfile.TemporaryDirectory() as tmp:
-        _c, out_nokey = build(tmp, 21, budget='"budgets": {}')
+        _c, out_nokey = build(tmp, 21, budgets={})
     with tempfile.TemporaryDirectory() as tmp:
-        _c, out_noblock = build(tmp, 21, budget="")
-    with tempfile.TemporaryDirectory() as tmp:
-        _c, out_bool = build(tmp, 21, budget='"budgets": {"max_total_runs": true}')
+        _c, out_noblock = build(tmp, 21, budgets=None)
 
     for name, ok, detail in (
         ("(l1) 21 runs against a 20 budget is NOTED",
@@ -188,12 +181,10 @@ def case_l():
          code_over == code_at, f"over={code_over} at={code_at}"),
         ("(l5) the CONFIGURED value is read — budget 5 with 7 runs names 5, not 20",
          "7 runs recorded against a 5-run budget" in out_b5, out_b5),
-        ("(l6) budgets present but key missing is REPORTED INACTIVE, never silent",
-         "run counting is INACTIVE" in out_nokey, out_nokey),
-        ("(l7) no budgets block at all (the shape an under-specified template example shipped) is REPORTED INACTIVE",
-         "run counting is INACTIVE" in out_noblock, out_noblock),
-        ("(l8) a boolean budget is REJECTED, not treated as an int (bool subclasses int)",
-         "run counting is INACTIVE" in out_bool, out_bool),
+        ("(l6) budgets present but key missing counts against the default 20",
+         "21 runs recorded against a 20-run budget" in out_nokey, out_nokey),
+        ("(l7) no budgets block at all counts against the default 20",
+         "21 runs recorded against a 20-run budget" in out_noblock, out_noblock),
     ):
         print(f"{'ok' if ok else 'FAIL'} - case {name}")
         if not ok:
@@ -404,8 +395,7 @@ def _inv6_feature(runs_yaml, review_sha="none", approval=""):
     tmp = tempfile.mkdtemp()
     h = os.path.join(tmp, ".harness")
     os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        f.write(HARNESS_JSON_SYNC_OFF)
+    write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
     source = f"feature_id: FEAT-TEST\nreview_sha: {review_sha}\n{approval}runs:\n{runs_yaml}"
     document = harness_yaml.load_str(source, "INV-6 feature fixture")
     with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:

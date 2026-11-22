@@ -445,7 +445,7 @@ tasks:
   - T-01
   - T-02
   - T-03
-  status: ready
+  status: done
   files:
   - tests/integration/test-check-state-entry.py#case_a
   - tests/integration/test-check-state-records.py#_inv32_plan
@@ -458,6 +458,7 @@ tasks:
   - tests/integration/test-check-state-shipped.py#check
   - tests/integration/test-check-state-inv51.py#check
   - tests/integration/test-check-state-inv37-offline.py#_root
+  - .claude/skills/harness/bin/harness_config.py#_schema_and_validator
   verify: |
     python3 tests/integration/test-harness-config-fixtures.py tests/integration/test-check-state-entry.py tests/integration/test-check-state-records.py tests/integration/test-check-state-inv26.py tests/integration/test-check-state-plans.py tests/integration/test-check-state-feat59.py tests/integration/test-check-state-handoff.py tests/integration/test-check-state-worktrees.py tests/integration/test-check-state-table.py tests/integration/test-check-state-shipped.py tests/integration/test-check-state-inv51.py tests/integration/test-check-state-inv37-offline.py && python3 tests/integration/test-harness-config-readers.py
   intent: Product is Harness in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema. Before execution read /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/notes/research-apply-plan-c1.md section Shared task contract, /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2297-harness-json-schema/.harness/harness/features/FEAT-2297-harness-json-schema/BRIEF.md and plan.yaml D-01 through D-08; those shared execution, authority, fixture and verification rules are mandatory inputs to this task and its future dispatch. Delete reader-specific missing-file, malformed-era, missing-era, board-shape and boolean config-budget blocks listed by inventory. Supply valid builder configs to INV-32 fixtures that previously omitted harness.json, retaining their actual plan/panel assertions; the new centralized integration case separately proves missing-file refusal. Rewrite invalid-board continuation to the config violation and no config-dependent continuation; absent budget/key tests now assert max_total_runs 20 and preload defaults rather than inactive counting. Preserve feature-level budget overrides, explicit historical-era boundaries, explicit null boundaries, linked worktree/owner-root population, shipped-subject exemptions and comparisons, offline bound-target behavior, actual review pins, and distinct feature-record corruption cases. Migrate all twelve direct empty-config make_fixture calls in test-check-state-worktrees as well as shared constants and owner/remote configs; delegating shared constants alone is insufficient.

@@ -18,22 +18,26 @@ import os
 import subprocess
 import sys
 import tempfile
-from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, _root_env, _run_with_gh,
+from check_state_support import (SCRIPT, _root_env, _run_with_gh,
     _run_with_gh_streams)
+from harness_config_support import build_config, write_config
 
 
 _SENTINEL = object()
 
 
 def _inv26_write_config(root, board_override):
+    """A valid builder config with the complete board; `board_override` replaces it after the
+    build, so a deliberately broken board is a visible corruption of a valid config."""
     h = os.path.join(root, ".harness")
     os.makedirs(h, exist_ok=True)
-    board = {"owner": "org", "number": 3, "station_field": "status",
-             "stations": ["backlog", "plan", "ready", "building", "review", "done"]}
+    config = build_config({"github": {"sync": True, "repo": "org/repo", "board": {
+        "owner": "org", "number": 3, "station_field": "status",
+        "stations": ["backlog", "plan", "ready", "building", "review", "done"]}}})
     if board_override is not _SENTINEL:
-        board = board_override
+        config["github"]["board"] = board_override
     with open(os.path.join(h, "harness.json"), "w") as f:
-        json.dump({"github": {"sync": True, "repo": "org/repo", "board": board}}, f)
+        json.dump(config, f)
     return h
 
 
@@ -298,33 +302,28 @@ def case_v():
     # `grep -qxF` — exact, whole line, after the `ok - ` prefix is stripped. Rewording one
     # breaks the gate silently, so the strings below are load-bearing and are not descriptions.
 
-    # --- THE INVERSE OF THE OLD BEHAVIOUR (FEAT-24 T-05). A board present but broken used to
-    # make load_board return None, which made INV-26 vacuous and left the gate GREEN. Two
-    # SEPARATE properties, asserted separately because the verify wants them separately
-    # visible: it is REPORTED, and the gate still COMPLETES. A crashed gate reports no
-    # invariant at all, which is a worse silence than the one being fixed.
+    # --- A BROKEN BOARD IS AN INVALID CONFIG (FEAT-2297). It once made load_board return None
+    # and INV-26 vacuous; then INV-26 reported CANNOT RUN and the gate continued. Now the one
+    # loader refuses the document, check-state reports that single config violation, and no
+    # config-dependent invariant runs on top of a config it could not read — INV-26 and INV-13
+    # stay silent rather than grading a board that does not validate.
     _broken = {"owner": "org", "number": 3, "station_field": "status"}
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review",
                               board_override=_broken)
         c, out, err = _run_with_gh_streams(tmp, fake)
-        ls = [l for l in _lines(out) if "CANNOT RUN" in l]
-        results.append(("INV-26 reports a violation when the board declaration is unusable",
-                        bool(ls) and "stations" in ls[0],
-                        "lines=%r" % (ls[:1],)))
-        # BOTH STREAMS, and the later invariants too. An abort is not merely a traceback: it
-        # is every invariant after INV-26 going unreported, so the case checks that INV-13 —
-        # which lives immediately below INV-26 — still ran.
         _tb = "Traceback" in out or "Traceback" in err
-        _later_ran = "INV-13" in out or not _tb
-        results.append(("INV-26 completes the gate rather than aborting on an unusable board",
-                        not _tb and c == 1 and _later_ran,
-                        "exit=%s traceback=%s stderr_tail=%r"
-                        % (c, _tb, err[-200:])))
+        _config = [l for l in out.splitlines() if "harness.json is invalid" in l]
+        results.append(("an unusable board declaration is the config violation, with no "
+                        "config-dependent invariant continuing",
+                        c == 1 and not _tb and len(_config) == 1 and "board" in _config[0]
+                        and not _lines(out) and "INV-13" not in out,
+                        "exit=%s traceback=%s config=%r stdout_tail=%r"
+                        % (c, _tb, _config, out[-300:])))
 
-    # --- THE NULL TWIN. Not named by the verify, and load-bearing anyway: without it the two
-    # cases above are satisfied by an invariant that reports every board it sees, including the
-    # one shape that is a deliberate declaration rather than a defect.
+    # --- THE NULL TWIN. Load-bearing: without it the broken-board case above is satisfied by a
+    # loader that refuses every board it sees, including the one shape that is a deliberate
+    # declaration rather than a defect.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review",
                               board_override=None)
@@ -552,8 +551,7 @@ def case_w():
         h = os.path.join(tmp, ".harness")
         fd = os.path.join(h, "harness", "features", "FEAT-Z")
         os.makedirs(fd, exist_ok=True)
-        with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write(HARNESS_JSON_SYNC_OFF)
+        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
         with open(os.path.join(h, "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
         json.dump({"feature_id": "FEAT-Z", "branch": "b", "pr": None,
@@ -652,10 +650,9 @@ def _fleet_root(root, owner_sync=True, fleet=("org/prod", "org/broken")):
     """Owner harness.json (org/repo on project 3) and a fleet listing the bound products."""
     h = os.path.join(root, ".harness")
     os.makedirs(os.path.join(h, "factory"), exist_ok=True)
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        json.dump({"github": {"sync": owner_sync, "repo": "org/repo",
-                              "board": {"owner": "org", "number": 3, "station_field": "status",
-                                        "stations": _STATIONS}}}, f)
+    write_config(os.path.join(h, "harness.json"), {"github": {
+        "sync": owner_sync, "repo": "org/repo",
+        "board": {"owner": "org", "number": 3, "station_field": "status", "stations": _STATIONS}}})
     with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
         f.write("schema: factory-fleet/1\nrepos:\n")
         for name in fleet:

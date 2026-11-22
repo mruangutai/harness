@@ -24,6 +24,7 @@ import sys
 import tempfile
 
 from check_state_support import SCRIPT, _root_env
+from harness_config_support import write_config
 
 FAILS = []
 
@@ -82,9 +83,7 @@ def two_feature_tree(tmp):
     os.makedirs(os.path.join(h, "factory"))
     with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
         f.write("schema: factory-fleet/1\nrepos:\n  - name: org/x\n    default_branch: main\nworkspace_root: /nonexistent\n")
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        f.write('{"github": {"sync": false, "repo": null}, "budgets": {"max_total_cycles": 10, '
-                '"max_total_runs": 20}, "panel_era_start": null, "seam_era_start": null}\n')
+    write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
     return h
 
 

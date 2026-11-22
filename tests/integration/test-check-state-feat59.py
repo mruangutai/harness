@@ -36,11 +36,12 @@ import sys
 import subprocess
 import tempfile
 from check_state_support import run, isolated_bin, _root_env
+from harness_config_support import write_config
 
 FEAT = "FEAT-TEST"
 
-HARNESS_JSON = ('{\n  "github": {"sync": false, "repo": null},\n  "seam_era_start": null,\n'
-                '  "budgets": {"max_total_cycles": 10, "max_total_runs": 20}\n}\n')
+# Builder overrides for the fixture's harness.json; everything unnamed takes the schema default.
+CONFIG = {"github": {"sync": False}}
 
 # The new shape (C5): the heading, perspectives as `**name**` lines under it, SCs tagged
 # `(name)`. No `## Requirements`, no REQ-NN, no `## Goal` — the template drops them (SC-10).
@@ -95,15 +96,14 @@ HANDOFF_SEQ = ("# Handoff — FEAT-TEST, build → review — written at abc1234
                "## Done when\nPointer: brief-sc:SC-01\n")
 
 
-def _fixture(tmp, feature, brief=None, notes=None, harness_json=HARNESS_JSON, station=None):
+def _fixture(tmp, feature, brief=None, notes=None, config=CONFIG, station=None):
     """One feature at .harness/harness/features/FEAT-TEST with the given feature.json
     mapping, an optional BRIEF.md text, optional notes/{name: text}, and — when `station` is
     given — a minimal plan.yaml carrying that top-level status."""
     h = os.path.join(tmp, ".harness")
     fdir = os.path.join(h, "harness", "features", FEAT)
     os.makedirs(fdir, exist_ok=True)
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        f.write(harness_json)
+    write_config(os.path.join(h, "harness.json"), config)
     with open(os.path.join(fdir, "feature.json"), "w") as f:
         f.write(json.dumps(feature, indent=1) + "\n")
     if brief is not None:
@@ -132,9 +132,9 @@ def _notes(out, tag):
     return [l for l in _lines(out, tag) if l.startswith("  note")]
 
 
-def _check(feature, brief=None, notes=None, harness_json=HARNESS_JSON, station=None):
+def _check(feature, brief=None, notes=None, config=CONFIG, station=None):
     with tempfile.TemporaryDirectory() as tmp:
-        _fixture(tmp, feature, brief, notes, harness_json, station)
+        _fixture(tmp, feature, brief, notes, config, station)
         return run(tmp)
 
 
@@ -837,8 +837,8 @@ def case_inv43_scope():
     return results
 
 
-def _seam_era_json(value):
-    return HARNESS_JSON.replace('"seam_era_start": null', '"seam_era_start": ' + value)
+def _seam_era_config(value):
+    return {**CONFIG, "seam_era_start": json.loads(value)}
 
 
 _LATE43 = "2026-09-11T13:00:00+00:00"
@@ -846,7 +846,7 @@ _LATE43 = "2026-09-11T13:00:00+00:00"
 
 def _seam_era(era, **extra):
     """INV-43 (violations, notes) for a retrospective succession under `seam_era_start: era`."""
-    _, out = _seam(_LATE43, harness_json=_seam_era_json(era), **extra)
+    _, out = _seam(_LATE43, config=_seam_era_config(era), **extra)
     return _violations(out, "INV-43"), _notes(out, "INV-43"), out
 
 
@@ -862,19 +862,6 @@ def case_inv43_era_boundary():
     v, n, out = _seam_era('"2026-09-12"', station="abandoned")
     terminal = ("(43.m) the boundary is by date at a terminal station too", not v and len(n) == 1, out[:500])
     return [before, on, terminal]
-
-
-def case_inv43_era_config():
-    """A config without the key names the key and the upgrade; an unreadable value exempts
-    nothing and is named."""
-    _, out = _seam(_LATE43, harness_json=HARNESS_JSON.replace('  "seam_era_start": null,\n', ""))
-    v = [x for x in _violations(out, "INV-43") if "seam_era_start" in x]
-    missing = ("(43.n) a config without seam_era_start is a VIOLATION naming the key and the upgrade",
-               len(v) == 1 and "upgrade-config.py" in v[0], out[:600])
-    v, _, out = _seam_era('"yesterday"')
-    unreadable = ("(43.o) an unreadable seam_era_start exempts nothing and is named",
-                  len(v) == 2 and any("yesterday" in x for x in v), out[:600])
-    return [missing, unreadable]
 
 
 # ----------------------------------------------------------------------------- INV-41 ---
@@ -934,15 +921,13 @@ def case_inv41():
 
 # ----------------------------------------------------------------------------- INV-49 ---
 
-# A dedicated harness.json declaring test_kinds: `unit` is active (a real cmd); `integration`
-# is excluded (cmd: null, status: excluded) — the two shapes DEC-163 names as "no runner".
-_INV49_HARNESS_JSON = (
-    '{\n  "github": {"sync": false, "repo": null},\n  "seam_era_start": null,\n'
-    '  "budgets": {"max_total_cycles": 10, "max_total_runs": 20},\n'
-    '  "test_kinds": {\n'
-    '    "unit": {"cmd": "run-unit-tests.py --kind unit", "status": "active"},\n'
-    '    "integration": {"cmd": null, "status": "excluded"}\n'
-    '  }\n}\n')
+# A dedicated config declaring test_kinds: `unit` is active (a real cmd); `integration` is
+# excluded (cmd: null, status: excluded) — the two shapes DEC-163 names as "no runner".
+_INV49_CONFIG = {**CONFIG, "test_kinds": {
+    "unit": {"detect": "tests/unit/**", "exclude": "", "cmd": "run-unit-tests.py --kind unit",
+             "status": "active"},
+    "integration": {"detect": "tests/integration/**", "exclude": "", "cmd": None,
+                    "status": "excluded", "excluded_because": "no runner", "signed": "DEC-163"}}}
 
 _INV49_BASE = """# BRIEF — FEAT-TEST
 
@@ -967,7 +952,7 @@ date: 2026-09-11
 
 
 def _inv49_check(brief, station="building"):
-    return _check(_in_era(), brief, harness_json=_INV49_HARNESS_JSON, station=station)
+    return _check(_in_era(), brief, config=_INV49_CONFIG, station=station)
 
 
 def _inv49_with_gap(brief, sentence):
@@ -1028,7 +1013,7 @@ def case_inv49_no_plan_exempt():
 
 
 def case_inv49_old_shape_exempt():
-    _, out = _check(_legacy(), BRIEF_OLD, harness_json=_INV49_HARNESS_JSON)
+    _, out = _check(_legacy(), BRIEF_OLD, config=_INV49_CONFIG)
     return [("(49.g) an old-shape BRIEF is not graded", not _lines(out, "INV-49"), out[:400])]
 
 
@@ -1163,19 +1148,22 @@ def _feat63_oversized_record(tmp):
 
 
 def case_feat63_inv23_import_boundary():
-    """A feature_schema that fails to import is INV-23 CANNOT RUN, never a 300-line guess."""
+    """A feature_schema that fails to import is never a crash and never a 300-line guess. Since
+    FEAT-2297 the config loader itself depends on it (jsonschema's one guard lives there), so the
+    failure is the single diagnosed config violation naming the module and its error, and no
+    config-dependent invariant — INV-23 included — grades anything on top of it."""
     iso = _isolated({"feature_schema.py": _RAISING_MODULE})
     with tempfile.TemporaryDirectory() as tmp:
         _fixture(tmp, _in_era(), BRIEF_NEW)
         _feat63_oversized_record(tmp)
         _code, out, err = _run_from(iso, tmp)
-    # INV-23 is a NOTE-level row; its CANNOT RUN keeps the row's severity.
-    v23 = [l for l in _lines(out, "INV-23") if l.strip().startswith("note")]
+    config = [l for l in out.splitlines() if "VIOLATION" in l and "harness.json is invalid" in l]
     return [
-        ("(63.a) an unimportable feature_schema is INV-23 CANNOT RUN naming the failure",
-         len(v23) == 1 and "CANNOT RUN" in v23[0] and "feature_schema" in v23[0]
-         and "RuntimeError: FEAT-61 T-03 injected exec failure" in v23[0] and "Traceback" not in err,
-         out[:800]),
+        ("(63.a) an unimportable feature_schema is the diagnosed config violation naming the failure",
+         len(config) == 1 and "feature_schema" in config[0]
+         and "RuntimeError: FEAT-61 T-03 injected exec failure" in config[0]
+         and not _lines(out, "INV-23") and "Traceback" not in err,
+         out[:800] + err[-400:]),
         ("(63.b) the 300-line fallback is gone — nothing is graded against a guessed budget",
          not [l for l in out.splitlines() if "INV-23" in l and "budget is 300" in l], out[:800]),
     ]
@@ -1248,11 +1236,8 @@ def case_inv37_binding():
                 "build_entry": "opened"}
             factory = {"repo": "unknown/product"} if shape == "bound-owner-off" else {}
             factory["issues"] = {"T-01": 51}
-            config = json.dumps({"panel_era_start": None, "seam_era_start": None,
-                                 "github": {"repo": "acme/product",
-                                            "sync": shape != "bound-owner-off", "board": None}})
-            _fixture(tmp, _in_era(factory=factory, github=github),
-                     harness_json=config, station="ready")
+            config = {"github": {"repo": "acme/product", "sync": shape != "bound-owner-off"}}
+            _fixture(tmp, _in_era(factory=factory, github=github), config=config, station="ready")
             observed = subprocess.run([os.path.join(_anchor_bin, "check-state.py"), "--only", "INV-37"],
                                       cwd=tmp, env=_root_env(tmp), capture_output=True, text=True)
             findings = _violations(observed.stdout, "INV-37")
@@ -1270,7 +1255,7 @@ def main():
                         + case_feat1928_durable_digest_record() + case_refused_terminal_digest()
                         + case_inv41() + case_inv49() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
-                        + case_inv43_era_config() + case_inv44()
+                        + case_inv44()
                         + case_feat63_inv23_import_boundary() + case_inv47_member_verdicts()) else 1
 
 

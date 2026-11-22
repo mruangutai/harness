@@ -23,6 +23,7 @@ import tempfile
 from check_state_support import (SCRIPT, check_state_mutant, check_state_owner, isolated_bin,
                                  make_fixture, run, _HOOKS_REL_T,
     _root_env)
+from harness_config_support import write_config
 
 
 def _inv32_plan(panel_marker=True, finding=None, rulings=None, readers=None,
@@ -53,31 +54,17 @@ def _inv32_plan(panel_marker=True, finding=None, rulings=None, readers=None,
     return doc
 
 
-# BUG-1071 F2 — `era` plants `.harness/harness.json` so a case can exercise a PROJECT'S
-# OWN boundary. The default is `_NO_CONFIG`: no harness.json at all, which is what every
-# pre-existing INV-32 case above relies on. With no config there is no pre-panel era, so
-# every approved plan is graded and those cases keep asserting exactly what they always
-# asserted. `era=None` writes a config whose `panel_era_start` is null; `era="..."` writes
-# that date; `era=_NO_KEY` writes a config with the key absent entirely, which is the
-# un-upgraded project.
-_NO_CONFIG = object()
-
-
-_NO_KEY = object()
-
-
-def _inv32_run(doc, script=SCRIPT, era=_NO_CONFIG):
+# BUG-1071 F2 — `era` sets the project's own `panel_era_start` in a valid builder config. The
+# default None is the schema default: there is no pre-panel era, so every approved plan is graded
+# and the pre-existing INV-32 cases keep asserting exactly what they always asserted. A missing or
+# malformed boundary is now a config read failure, proven once by the central readers test.
+def _inv32_run(doc, script=SCRIPT, era=None):
     with tempfile.TemporaryDirectory() as tmp:
         root = os.path.join(tmp, ".harness", "harness", "features", "FEAT-INV32")
         os.makedirs(root, exist_ok=True)
         with open(os.path.join(root, "plan.yaml"), "w") as f:
             json.dump(doc, f)
-        if era is not _NO_CONFIG:
-            cfg = {"schema_version": 2}
-            if era is not _NO_KEY:
-                cfg["panel_era_start"] = era
-            with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
-                json.dump(cfg, f)
+        write_config(os.path.join(tmp, ".harness", "harness.json"), {"panel_era_start": era})
         env = _root_env(tmp)
         proc = subprocess.run([script], cwd=tmp, capture_output=True, text=True, env=env)
         return proc.returncode, proc.stdout, proc.stderr
@@ -284,7 +271,7 @@ def case_inv32():
 # so a hand-built .git pointer yields no top level and every INV-33 case would pass vacuously.
 # ==========================================================================================
 
-_INV32_HJ = '{"schema_version": 1, "github": {"sync": false}}\n'
+_INV32_HJ = '{"github": {"sync": false}}\n'
 
 
 def _inv33_repo(tmp):
@@ -646,6 +633,7 @@ def _inv32_run_with_mission(doc, mission):
             record["mission"] = mission
         with open(os.path.join(root, "feature.json"), "w") as f:
             json.dump(record, f)
+        write_config(os.path.join(tmp, ".harness", "harness.json"))
         proc = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True,
                               env=_root_env(tmp))
         return proc.returncode, proc.stdout, proc.stderr
@@ -766,46 +754,12 @@ def case_inv32_null_era_grades_everything():
     return ok
 
 
-def case_inv32_missing_era_key_is_a_violation():
-    """A config that predates the key is a VIOLATION naming it and the upgrade command,
-    never a silent default. Defaulting either way is wrong for somebody: 'grade
-    everything' reddens every pre-panel plan in an un-upgraded project, and 'exempt
-    everything' disables INV-32 there without saying so."""
-    _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2026-08-30"),
-                               era=_NO_KEY)
-    lines = [line for line in out.splitlines()
-             if "INV-32" in line and "VIOLATION" in line and "panel_era_start" in line]
-    ok = bool(lines) and any("--upgrade" in line for line in lines)
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 missing panel_era_start violates, naming "
-          f"the upgrade command"
-          + ("" if ok else f"\n      {out}"))
-    return ok
-
-
-def case_inv32_malformed_era_exempts_nothing():
-    """An unreadable boundary exempts nothing and says why. The plan below would be exempt
-    under a valid 2026-08-31, so this fails closed rather than falling back to it."""
-    _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2026-08-30"),
-                               era="last Tuesday")
-    cfg = [line for line in out.splitlines()
-           if "INV-32" in line and "VIOLATION" in line and "panel_era_start" in line]
-    ok = bool(cfg) and bool(_inv32_violations(out))
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 malformed panel_era_start exempts nothing"
-          + ("" if ok else f"\n      {out}"))
-    return ok
-
-
 def _bug1305_invariant_scaffold(tmp):
     subprocess.run(["git", "init", "-q"], cwd=tmp, check=True, capture_output=True)
     h = os.path.join(tmp, ".harness")
     os.makedirs(h, exist_ok=True)
-    with open(os.path.join(h, "harness.json"), "w") as fh:
-        json.dump({
-            "github": {"sync": False, "repo": None},
-            "panel_era_start": None,
-            "seam_era_start": None,
-            "budgets": {"max_total_runs": 20, "max_total_cycles": 20},
-        }, fh)
+    write_config(os.path.join(h, "harness.json"),
+                 {"github": {"sync": False}, "budgets": {"max_total_cycles": 20}})
     fleet_dir = os.path.join(h, "factory")
     os.makedirs(fleet_dir, exist_ok=True)
     with open(os.path.join(fleet_dir, "fleet.yaml"), "w") as fh:
@@ -921,8 +875,8 @@ def _t06_fixture(tmp, feature, station="review", build_entry=None, sync=True,
     h = os.path.join(tmp, ".harness")
     feat_dir = os.path.join(h, "harness", "features", feature)
     os.makedirs(feat_dir, exist_ok=True)
-    with open(os.path.join(h, "harness.json"), "w", encoding="utf-8") as f:
-        json.dump({"github": {"sync": sync, "repo": "acme/widgets", "board": None}}, f)
+    write_config(os.path.join(h, "harness.json"),
+                 {"github": {"sync": sync, "repo": "acme/widgets", "board": None}})
     github = {} if build_entry is None else {"build_entry": build_entry, "repo": "acme/widgets"}
     doc = {"feature_id": feature, "github": github}
     if factory_issues is not None:
@@ -1306,8 +1260,7 @@ _CASES = (
     case_inv32_era_boundary_is_exact, case_inv32_patch_mission_has_no_panel,
     case_inv32_patch_mission_exempts_only_one_task, case_inv32_undated_approval_fails,
     case_inv32_era_guard_is_load_bearing, case_inv32_era_comes_from_project_config,
-    case_inv32_null_era_grades_everything, case_inv32_missing_era_key_is_a_violation,
-    case_inv32_malformed_era_exempts_nothing, case_bug440_digest_verdict_reconciliation,
+    case_inv32_null_era_grades_everything, case_bug440_digest_verdict_reconciliation,
     case_bug1305_run_identity_invariant, case_t06_inv37_receipt, case_t06_recovery_command,
     case_historical_refusal_completion, case_inv7_counts_evidence_not_fail_verdicts,
     case_refusal_provenance_never_satisfies_live_validation)

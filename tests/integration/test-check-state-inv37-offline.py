@@ -18,6 +18,7 @@ import os
 import sys
 import tempfile
 from check_state_support import _run_with_gh_streams
+from harness_config_support import write_config
 
 BOUND = "FEAT-9002-bound-fixture"
 OWNER = "FEAT-9003-owner-fixture"
@@ -51,8 +52,8 @@ def _root(tmp, owner_sync=True, fleet=("org/prod",), online=False, remote=True):
     """Owner config (org/repo, no board), a fleet, and the fake gh with its world."""
     h = os.path.join(tmp, ".harness")
     os.makedirs(os.path.join(h, "factory"))
-    with open(os.path.join(h, "harness.json"), "w") as f:
-        json.dump({"github": {"sync": owner_sync, "repo": "org/repo", "board": None}}, f)
+    write_config(os.path.join(h, "harness.json"),
+                 {"github": {"sync": owner_sync, "repo": "org/repo", "board": None}})
     with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
         f.write("schema: factory-fleet/1\nrepos:\n")
         for name in fleet:

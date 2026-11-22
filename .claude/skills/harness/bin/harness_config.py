@@ -53,9 +53,15 @@ def _refuse_remote(uri):
 def _schema_and_validator():
     global _checked
     if _checked is None:
-        # jsonschema's ONE guard lives in feature_schema (D-12's one-guard rule); imported here,
-        # lazily, so an artifact_accessors importer that never validates pays nothing for it.
-        import feature_schema
+        # jsonschema's ONE guard lives in feature_schema (D-12's one-guard rule); loaded here,
+        # lazily, so an artifact_accessors importer that never validates pays nothing for it. A
+        # sibling that fails while executing is RepoModuleError (the loader's one typed failure),
+        # refused as an unreadable config rather than escaping as whatever it raised.
+        import harness_boundary
+        try:
+            feature_schema = harness_boundary.load_repo_module("feature_schema")
+        except harness_boundary.RepoModuleError as error:
+            raise ArtifactAccessError(f"harness.json cannot be validated: {error}") from error
         jsonschema = feature_schema.jsonschema
         if jsonschema is None:
             raise ArtifactAccessError(f"harness.json: {feature_schema.UNAVAILABLE_MESSAGE}")
