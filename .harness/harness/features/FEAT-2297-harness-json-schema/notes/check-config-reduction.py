@@ -16,6 +16,7 @@ entry. The measurement block of the receipt is rewritten on every run. Offline p
 negative self-controls run first, every time.
 """
 import argparse
+import collections
 import hashlib
 import re
 import subprocess
@@ -38,7 +39,8 @@ SMOKE, KAYA = "mruangutai/harness-factory-smoke", "mruangutai/kaya"
 ROW = re.compile(r"^\s*(?:-\s+)?`?(?P<path>[\w./-]+):(?P<span>[\d,–-]+)\s*\|\s*"
                  r"(?P<cls>REMOVABLE|UPDATE-BEHAVIOR|UPDATE-FIXTURE|UNAFFECTED)\s*\|.*\|\s*[~\d]+`?\s*$")
 TEST_LIKE = re.compile(r"(^|/)(test[-_][^/]*|[^/]*_test\.\w+|[^/]*\.test\.ts|[^/]*_support\.py"
-                       r"|conftest\.py)$|(^|/)fixtures/")
+                       r"|conftest\.py)$|(^|/)fixtures/[^/]*$")
+CODE = (".py", ".ts", ".js", ".json", ".yaml", ".yml", ".sh")
 COVERS = re.compile(r"\b(SC-\d\d|D-0\d)\b")
 BEGIN, END = "<!-- measured:begin -->", "<!-- measured:end -->"
 
@@ -73,8 +75,8 @@ def row_lines(text, span):
 
 
 def disposition_findings(rows, table, file_table):
-    findings, seen, retained = [], set(), 0
-    keyed = {(r["path"] + ":" + r["span"], r["cls"]): r for r in rows if r["cls"] != "UNAFFECTED"}
+    findings, seen, retained = [], collections.Counter(), 0
+    keyed = collections.Counter((r["path"] + ":" + r["span"], r["cls"]) for r in rows if r["cls"] != "UNAFFECTED")
     for cells in table:
         if len(cells) < 5:
             findings.append(f"disposition row has fewer than five cells: {cells}")
@@ -82,16 +84,16 @@ def disposition_findings(rows, table, file_table):
         ident, cls, verdict, coverage, reason = cells[:5]
         if (ident, cls) not in keyed:
             findings.append(f"disposition names no inventory row: {ident} {cls}")
-        elif (ident, cls) in seen:
-            findings.append(f"inventory row disposed twice: {ident} {cls}")
+        elif seen[(ident, cls)] >= keyed[(ident, cls)]:
+            findings.append(f"inventory row disposed more often than it is listed: {ident} {cls}")
         elif verdict not in ALLOWED[cls] or not coverage:
             findings.append(f"{ident} {cls}: disposition {verdict!r} needs one of "
                             f"{sorted(ALLOWED[cls])} and a named replacement coverage")
         retained += verdict == "RETAINED"
         if verdict == "RETAINED" and "signed" not in reason.lower():
             findings.append(f"{ident}: a retention must name its signed reason")
-        seen.add((ident, cls))
-    findings += [f"inventory row not disposed: {i} {c}" for i, c in sorted(set(keyed) - seen)]
+        seen[(ident, cls)] += 1
+    findings += [f"inventory row not disposed: {i} {c}" for (i, c), n in sorted(keyed.items()) if seen[(i, c)] < n]
     if retained > SIGNED_RETENTIONS:
         findings.append(f"{retained} REMOVABLE retentions; only {SIGNED_RETENTIONS} were signed")
     assessed = {cells[0] for cells in file_table if len(cells) > 1 and cells[1]}
@@ -119,7 +121,7 @@ def stale_findings(rows, table, span_text, review_text):
 def delta_findings(changes, enumerated):
     """changes: path -> (base_lines | None, review_lines | None) for every changed path."""
     findings = [f"test/helper escaped the measured roots: {p}" for p, (b, a) in sorted(changes.items())
-                if not measured(p) and b is None and a is not None and TEST_LIKE.search(p)]
+                if not measured(p) and b is None and a is not None and p.endswith(CODE) and TEST_LIKE.search(p)]
     inside = {p: v for p, v in changes.items() if measured(p)}
     gate_a = sum((a or 0) - b for b, a in inside.values() if b is not None)
     if gate_a >= 0:

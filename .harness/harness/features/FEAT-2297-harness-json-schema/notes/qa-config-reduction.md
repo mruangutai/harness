@@ -13,6 +13,83 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 ## Measurement
 
 <!-- measured:begin -->
+- base `0bdcabbfc585a9357554817684d1b8a19d69038a` (`git merge-base HEAD origin/main`)
+- review `d7d1fb8d7073f004580a69e71de28a06dffbebf4`
+
+| File | Base | Review | Delta |
+|---|---|---|---|
+| `.harness/harness/features/FEAT-2297-harness-json-schema/notes/check-config-reduction.py` | new | 253 | +253 |
+| `tests/fixtures/harness-config-budgets.json` | new | 44 | +44 |
+| `tests/harness_config_support.py` | new | 65 | +65 |
+| `tests/integration/canonical-reader-classification.json` | 2599 | 2641 | +42 |
+| `tests/integration/check_state_support.py` | 191 | 191 | +0 |
+| `tests/integration/f58_sparse_fixture.py` | 281 | 286 | +5 |
+| `tests/integration/gh_sync_support.py` | 1002 | 1004 | +2 |
+| `tests/integration/test-board-lifecycle.py` | 1919 | 1882 | -37 |
+| `tests/integration/test-board-station.py` | 348 | 322 | -26 |
+| `tests/integration/test-branch-create-gate.py` | 502 | 500 | -2 |
+| `tests/integration/test-check-skill-weight.py` | 151 | 148 | -3 |
+| `tests/integration/test-check-state-entry.py` | 558 | 524 | -34 |
+| `tests/integration/test-check-state-feat59.py` | 1278 | 1263 | -15 |
+| `tests/integration/test-check-state-handoff.py` | 740 | 737 | -3 |
+| `tests/integration/test-check-state-inv26.py` | 854 | 851 | -3 |
+| `tests/integration/test-check-state-inv37-offline.py` | 273 | 274 | +1 |
+| `tests/integration/test-check-state-inv51.py` | 95 | 95 | +0 |
+| `tests/integration/test-check-state-plans.py` | 1039 | 1029 | -10 |
+| `tests/integration/test-check-state-records.py` | 1328 | 1281 | -47 |
+| `tests/integration/test-check-state-shipped.py` | 370 | 372 | +2 |
+| `tests/integration/test-check-state-table.py` | 276 | 275 | -1 |
+| `tests/integration/test-check-state-worktrees.py` | 792 | 786 | -6 |
+| `tests/integration/test-check-state.py` | 82 | 84 | +2 |
+| `tests/integration/test-code-grade-cli.py` | 402 | 393 | -9 |
+| `tests/integration/test-corpus-non-regression.py` | 330 | 328 | -2 |
+| `tests/integration/test-factory-integration.py` | 1647 | 1634 | -13 |
+| `tests/integration/test-factory-issue-types.py` | 641 | 644 | +3 |
+| `tests/integration/test-feature-corpus.py` | 478 | 481 | +3 |
+| `tests/integration/test-gh-backlog-issue-types.py` | 384 | 383 | -1 |
+| `tests/integration/test-gh-close-gate.py` | 450 | 453 | +3 |
+| `tests/integration/test-gh-issue-types.py` | 510 | 509 | -1 |
+| `tests/integration/test-gh-sync-abandon.py` | 1250 | 1251 | +1 |
+| `tests/integration/test-gh-sync-board-add.py` | 101 | 101 | +0 |
+| `tests/integration/test-gh-sync-open.py` | 1529 | 1543 | +14 |
+| `tests/integration/test-gh-sync-start-task.py` | 696 | 676 | -20 |
+| `tests/integration/test-harness-config-fixtures.py` | new | 397 | +397 |
+| `tests/integration/test-harness-config-readers.py` | new | 327 | +327 |
+| `tests/integration/test-harness-config-upgrade.py` | new | 120 | +120 |
+| `tests/integration/test-hooks-install.py` | 525 | 527 | +2 |
+| `tests/integration/test-layout-migration.py` | 438 | 439 | +1 |
+| `tests/integration/test-lead-start-return.py` | 714 | 715 | +1 |
+| `tests/integration/test-merge-gate.py` | 678 | 683 | +5 |
+| `tests/integration/test-omp-native-gate-runtime.py` | 427 | 428 | +1 |
+| `tests/integration/test-plan-decision-dispositions.py` | 700 | 697 | -3 |
+| `tests/integration/test-plan-merge.py` | 5241 | 5243 | +2 |
+| `tests/integration/test-plan-sign-gate.py` | 779 | 781 | +2 |
+| `tests/integration/test-post-merge-sweep.py` | 1225 | 1204 | -21 |
+| `tests/integration/test-run-unit-tests-kinds.py` | 137 | 130 | -7 |
+| `tests/integration/test-upgrade-config.py` | 313 | 313 | +0 |
+| `tests/integration/test-validate-digest-shadows.py` | 497 | 499 | +2 |
+| `tests/integration/test-validate-digest.py` | 6683 | 6619 | -64 |
+| `tests/manual/probe-issue-types.py` | 190 | 189 | -1 |
+| `tests/unit/omp-hooks.test.ts` | 4135 | 4143 | +8 |
+| `tests/unit/test-artifact-accessors.py` | 405 | 408 | +3 |
+| `tests/unit/test-check-state-inv26-routing.py` | 204 | 204 | +0 |
+| `tests/unit/test-check-state-inv35.py` | 104 | 106 | +2 |
+| `tests/unit/test-check-state-inv37-local-binding.py` | 175 | 175 | +0 |
+| `tests/unit/test-check-state-shipped-ctx.py` | 223 | 225 | +2 |
+| `tests/unit/test-code-grade.py` | 826 | 814 | -12 |
+| `tests/unit/test-factory-config.py` | 1291 | 1042 | -249 |
+| `tests/unit/test-feature-record.py` | 1831 | 1834 | +3 |
+| `tests/unit/test-feature-schema-build-entry.py` | 267 | 268 | +1 |
+| `tests/unit/test-fleet-product-config.py` | 286 | 271 | -15 |
+| `tests/unit/test-gate-policy.py` | 125 | 104 | -21 |
+| `tests/unit/test-gh-board.py` | 484 | 410 | -74 |
+| `tests/unit/test-harness-config.py` | new | 246 | +246 |
+| `tests/unit/test-prune-run-evidence.py` | 304 | 304 | +0 |
+| `tests/unit/test-wayfind.py` | 156 | 155 | -1 |
+
+- Gate A, pre-existing affected files: -588
+- Gate B, new files enumerated below: +1452
+- Reported total, both populations: +864
 <!-- measured:end -->
 
 ## New coverage
@@ -25,7 +102,7 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/integration/test-harness-config-readers.py` | 327 | D-01, D-04, SC-02, SC-10: every reader and gate refuses; check-state reports |
 | `tests/integration/test-harness-config-upgrade.py` | 120 | D-05, SC-03: config-only 2-to-3 upgrade |
 | `tests/fixtures/harness-config-budgets.json` | 44 | D-06, D-08, SC-04: builder-generated TypeScript budget configs |
-| `.harness/harness/features/FEAT-2297-harness-json-schema/notes/check-config-reduction.py` | 253 | D-06, SC-05: this release-evidence checker |
+| `.harness/harness/features/FEAT-2297-harness-json-schema/notes/check-config-reduction.py` | 255 | D-06, SC-05: this release-evidence checker |
 
 ## Dispositions
 
