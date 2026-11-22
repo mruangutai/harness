@@ -138,7 +138,8 @@
       "detect": "**/*.ts|**/*.tsx",
       "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
       "cmd": null,
-      "_reason": "unset \u2014 dev-ops has not run detection yet. Not in the matrix; available for qa to add."
+      "_reason": "unset \u2014 dev-ops has not run detection yet. Not in the matrix; available for qa to add.",
+      "classifies_tests": false
     }
   },
   "_commit_attribution_note": "Recovery derives what landed from `git log` rather than trusting a state file, and review scope depends on telling human edits from agent commits (SPEC 15.3).",
