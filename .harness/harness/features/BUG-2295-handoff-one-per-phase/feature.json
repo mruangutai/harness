@@ -36,6 +36,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-22T19:32:08+00:00"
+    },
+    {
+      "id": "2026-11-22-03-validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:40:04+00:00",
+      "tokens": 42987,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-03-validate-c2-validator/digest.md",
+        "sha256": "7a6d3146d16b54194d02ab1e3413905ece628b373d9d0af190748550838b31d9"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:50:37+00:00"
     }
   ],
   "judgements": [
@@ -52,6 +67,20 @@
       "kind": "continue",
       "decision": "fix-main-session-direct",
       "reason": "validate FAIL: one substance finding (mixed-case cycle names bypass refusal), verified by probe at the pin; T-01 is main-session-direct so the fix returns to main inside the 1-round ruling"
+    },
+    {
+      "at": "2026-11-22T19:40:04+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL fixed main-session-direct at c4c93ef1 inside the 1-round ruling; readers re-grade over pin 7d76c1ce as validate c2; successor continues the ship mission from the c1 digest and STATE"
+    },
+    {
+      "at": "2026-11-22T19:40:04+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "c1 FAIL fixed main-session-direct at c4c93ef1 inside the 1-round ruling; readers re-grade over pin 7d76c1ce as validate c2; successor continues the ship mission from the c1 digest and STATE"
     }
   ],
   "mission": "patch",
