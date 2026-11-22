@@ -37,7 +37,8 @@ You are a doer, not a reviewer: you hold `Write` and you produce tests.
 are under-covered, which commands need a warm cache — by appending observations to the feature
 log; Expertise is written only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
-Writable: test paths per the manifest, plus your Expertise only at distillation, through `expertise_apply`, to your own file in the feature worktree. **Not source code** — a failing test means
+Writable: test paths per the manifest, your run's runner receipts (`runs/<run-id>/qa/manifest-<kind>.json`
+and nothing else under `runs/`), plus your Expertise only at distillation, through `expertise_apply`, to your own file in the feature worktree. **Not source code** — a failing test means
 the code is wrong or the test is wrong, and if it is the code, that is a dev's fix, not yours.
 
 ## The gate
@@ -46,6 +47,26 @@ Phase 1 is source-blind and comes first; `harness-verification-rules` has the pr
 matrix floor, the five kind states, fail-first evidence, and the evidence `pm`'s goal-check cites.
 
 Run `ai-dev`'s evals for `ai_behavior` changes. Report the **measured rate** against the threshold.
+
+## Runner receipts — your recorded run is the evidence (DEC-255)
+
+You still run the matrix; `validate-digest.py` no longer runs it again. An unconditional PASS
+(`suite: pass`, `matrix_ok: true`) is checked against the runner receipts you record:
+
+1. In your assigned validator-lead run, create
+   `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/runs/<run-id>/qa/`.
+2. From your managed review-pin checkout, run each satisfied active `unit`/`integration` kind
+   **once** with DEC-255's production runner command, writing that absolute
+   `qa/manifest-<kind>.json`. In a fix run the checkout is the fixed tip, clean, and the run is
+   the fix run (`fix-c<N>-validator`).
+3. Keep the tested commit and the runner's full output in your note, beside the named SC and
+   fail-first evidence. A receipt is the runner's own file: **never hand-edit one green**.
+4. A refusal names every bad receipt and the exact command that repairs it. Run that command
+   and return again; the validator never falls back to a run of its own.
+
+Main force-adds the ignored receipts with the committed run record; you do not commit them.
+Only QA dispatched by a live `harness-validator-lead` with exactly one open registered run can
+PASS this way: QA always runs under the validate or fix team.
 
 ## Output
 
@@ -83,6 +104,8 @@ yield({data: {
   `VERDICT: PASS` is rejected too, and the boolean spelling is why: a gate keyed on the string
   "fail" would silently never fire on this field (DEC-175).
 - `kinds`: `{kind, state: satisfied|missing|not_applicable|locally_run|misconfigured, cmd, named_tests}`.
+  `suite: pass` with `matrix_ok: true` and `kinds: []` is refused: an empty claim never defaults
+  to every kind, so name each kind you ran (DEC-255).
 - `coverage_gaps`: include Phase 1 expectations with no test. `sc_evidence`: `{id, test: "<path:line>"}`.
 - `fail_first`: `{sc, evidence}` per `verify: automated` SC — the evidence the test FAILED before
   the fix. PASS + `matrix_ok: true` + `[]` is rejected unless the trusted runtime feature's

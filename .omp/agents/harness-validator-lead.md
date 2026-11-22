@@ -76,6 +76,15 @@ Readers **self-scope**: `ui-reviewer` returns "not in scope" on a diff with no U
 correct, cheap outcome — not a failure. `qa` is gate-only here and writes `fail_first`: a green
 matrix with no evidence a test ever failed is `FAIL`, not `PASS` (SC-17).
 
+**QA's PASS rests on its runner receipts, not a rerun (DEC-255).** The return hook checks a qa
+`suite: pass`, `matrix_ok: true` against `runs/<your-run-id>/qa/manifest-<kind>.json`, which QA
+writes with the production runner from its review-pin checkout; the hook never runs the suite.
+That check binds to your live run, so dispatch QA from this run and keep exactly one open
+registered run. A refused PASS goes back to QA naming each bad receipt and the command that
+repairs it, and QA repairs by running that command. Never count the refusal as a pass, edit a
+receipt, or ask for a rerun instead; a red or missing kind is reported as it is. Main force-adds
+the receipts with the committed run record.
+
 ## Hosting `fix` — the author is your member, and still not your reviewer
 
 `dev(fix, test-first, commits) → {qa ∥ code-reviewer ∥ security-reviewer ∥ ui-reviewer} → you assess`
@@ -88,6 +97,13 @@ orchestrator records it as the new `review_sha` on return. A `form` finding stil
 `loop_back` to the dev before you close, never a new cycle; a `substance` finding still open, or a
 regression, is `must_fix` for the orchestrator's next round inside the rework ruling; a new finding
 CLASS — scope change, emergent SC — is `open_questions`, the one thing that reaches the operator.
+
+In a fix run QA records its receipts at the fixed tip, clean, in this fix run's own
+`runs/fix-c<N>-validator/qa/`. The check recognizes a fix run only when that registered run id
+and the dispatch's `harness_mission: fix` agree, and then accepts a code-changing descendant of
+`review_sha` that equals the checkout's HEAD (DEC-255). A fix run does not yet pass end to end: a
+code reviewer whose reviewed head is the fixed tip is still refused against the recorded pin
+(DEC-255's open question, #2356) — report that refusal, never work around it.
 
 ## Assessing — what you actually add
 

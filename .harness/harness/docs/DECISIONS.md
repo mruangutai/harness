@@ -1370,7 +1370,12 @@ ALLOWED_PATH_RESULT: SUCCEEDED
 Selective path blocking works, `exit 2` blocks, and the stderr reason reaches the agent.
 
 Only a refusal blocks: exit 2, or a structured deny. A gate's own failure is never a pass and never
-silent, and how it resolves depends on how much the gate guards:
+silent, and how it resolves depends on how much the gate guards. The OMP extension runs every
+Python policy process asynchronously, so a pending gate or helper never blocks OMP's event loop,
+under one named budget, `POLICY_TIMEOUT_MS = 30_000` in `.omp/extensions/harness-hooks.ts` — the
+same 30 seconds as `validate-digest.py`'s `HOOK_HANG_BUDGET_S`, with no `harness.json` key or
+environment override. A process still running at the budget is killed with its whole process
+group, and the timeout resolves exactly as any other failure to run, below:
 
 - **Gates that fire on every write, Bash call, dispatch or return fail open, visibly.** For
   `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py` and `validate-digest.py` an own
@@ -1379,7 +1384,8 @@ silent, and how it resolves depends on how much the gate guards:
   `harness_boundary.emit_unavailable` (`hook_guard(..., script=)`); diagnostics stay on stderr. The
   OMP extension's `classifyPolicyRun` synthesizes the same outcome when the gate cannot print one:
   an exit other than 0 or 2, termination by signal, a failure before the guard loads, a missing gate
-  or interpreter, a spawn error. The call proceeds, and the agent receives passive
+  or interpreter, a spawn error, or a kill at the 30-second budget. The call proceeds, and the
+  agent receives passive
   `additionalContext` — `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` —
   on every occurrence, tagged by phase (pre, post, dispatch, yield) and never deduplicated or
   cached; the tool result is not marked an error. A refusal outranks it: exit 2 or a structured
@@ -1391,10 +1397,23 @@ silent, and how it resolves depends on how much the gate guards:
   `branch-create-gate.py` and `plan-sign-gate.py` decide applicability from the payload command
   with the standard library, before root resolution or any library or config load, so an unrelated
   Bash command exits 0 without meeting their dependencies; a guarded command whose gate cannot run
-  — including a `harness.json` that is missing, unparseable or not a mapping, or a `github:` block
-  that is not a mapping — is refused by name at exit 2, while a readable config that turns sync off
-  still exempts it. When the gate process cannot start at all, the extension's
-  `narrowGateApplies` makes the same applicability call. `merge-gate.py` fails closed as before.
+  — including a `harness.json` that is missing, unparseable or not a mapping, a `github:` block
+  that is not a mapping, or a gate killed at the budget — is refused by name at exit 2, while a
+  readable config that turns sync off still exempts it. When the gate process cannot start or
+  finish, the extension's `narrowGateApplies` makes the same applicability call, so an unrelated
+  command stays allowed silently. `merge-gate.py` refuses its own failures at exit 2 as before.
+- **Every other policy process keeps its own convention.** `merge-gate.py`'s process and the
+  helpers (registry, digest destination, expertise, yield and lifecycle calls) are awaited: a
+  delayed answer is never an early authorization, release or injection. Past the budget each
+  returns its existing non-blocking reason rather than throwing; a process that cannot start
+  still throws, and a helper's empty output still means what it meant.
+
+The five Bash gates — `gh-close-gate.py`, `branch-create-gate.py`, `bash-write-guard.py`,
+`plan-sign-gate.py`, `merge-gate.py` — start together as five independent processes, each with
+its own copied prologue and applicability decision (DEC-234); no classifier skips one and no
+dispatcher merges them. Every outcome is collected and then read in that declared order whatever
+order they finished in: the first refusal leads, every unavailable notice survives, and one gate
+whose runner fails outright refuses the call without hiding a sibling's refusal or notice.
 
 A dispatch-guard failure lets the dispatch through, visibly unavailable. Under OMP the started
 child makes the authoritative claim at run start (DEC-204); a child that cannot claim refuses every
@@ -8366,3 +8385,73 @@ check remain intact: the new mechanical rule grades plans, not general decision 
 
 **Record:** amends DEC-188's human-only enforcement assertion. Refs: DEC-73, DEC-174, DEC-179,
 DEC-182, DEC-188, DEC-205, DEC-227, DEC-228, DEC-229, DEC-232.
+
+## DEC-255 — An unconditional qa PASS is verified against QA's own runner receipts, never by running the suite again
+
+**Chose:** issue #919's check on a qa return claiming `VERDICT: PASS` with `suite: pass` and
+`matrix_ok: true` reads the runner receipts QA recorded for its validator-lead run. It no longer
+starts another whole-suite run per claimed kind inside `validate-digest.py`. That rerun, its
+`RUN_UNIT_TESTS_BIN` seam and its pooled-output parser are deleted, with no fallback rerun. QA
+running the matrix it is required to run is unchanged; the validator running it a second time is
+what is removed.
+
+**One receipt per claimed kind, written by the production runner.** Each satisfied claimed
+active `unit` or `integration` kind needs `<feature dir>/runs/<run-id>/qa/manifest-<kind>.json`,
+written from QA's managed checkout by
+`python3 <checkout>/.claude/skills/harness/bin/run-unit-tests.py --kind <kind> --shard 1/1 --manifest <absolute feature-tree run dir>/qa/manifest-<kind>.json`.
+The receipt's schema is `run-unit-tests.py`'s `_write_manifest`, and what makes it valid is
+`check-integration-shards.py`'s `evidence_defects`; this entry does not copy their field lists.
+Expected files come from that script's `discover_expected` at the receipt's tested commit —
+git, never the receipt's own selection, HEAD or the working tree — the same implementation CI's
+integration aggregation runs. Coverage must be exact and every exit zero. A claim naming no
+satisfied unit or integration kind (`kinds: []`, or only unsupported kinds) is refused; an empty
+claim never defaults to every kind. An excluded kind needs no receipt.
+
+**Where to look comes from runtime identity, never from the digest.** The payload's exact
+feature, QA's own live claim, its dispatching parent's live `harness-validator-lead` claim in the
+same checkout, that lead's single open registered run, and the registered feature's `review_sha`
+(a dispatch `HARNESS-REVIEW-PIN` must agree with it) choose the one file read. A digest
+`artifact`, a receipt's own fields and an environment override never do. An unconditional qa
+PASS is therefore accepted only from QA dispatched by a live validator lead with exactly one open
+registered run: QA runs under the validate or fix team.
+
+**Which commit counts.**
+
+- **Validate run:** the receipt's `tested_commit` is `review_sha`, or a descendant whose every
+  intervening commit touches only the feature's own directory. Merges count against each parent
+  and renames on both sides, and a code change later reverted is still a change.
+- **Fix run:** the registered run id has the shape `fix-c<N>-validator` and the dispatch-forwarded
+  `harness_mission` is `fix`. Both must be present and agree, and neither is ever read from the
+  digest, a receipt or anything the lead writes. `tested_commit` must equal the trusted
+  checkout's own `git rev-parse HEAD`, with a clean working tree, and descend from `review_sha`.
+  Code changes are allowed, because that fixed tip becomes the next pin. QA records the fix run's
+  receipts at that tip, in the fix run's own `runs/<fix-run-id>/qa/`.
+
+Coverage, exit, all-pass and empty-claim rules are the same in both.
+
+**Invalid evidence refuses and names its repair.** A missing, symlinked, unreadable, malformed,
+red, incomplete or stale receipt, or an identity that does not resolve, refuses the PASS at exit
+2. The refusal names every problem file and prints the exact production command for each failing
+kind. QA repairs by running that command; it never hand-edits a receipt green, and the validator
+never falls back to a run of its own. An unexpected failure of the hook itself is still DEC-100's
+visibly unavailable outcome, not a verdict.
+
+**Receipts are committed with the run record.** `runs/**` is git-ignored, so main force-adds each
+`runs/<run-id>/qa/manifest-<kind>.json` with the committed closed run record, which keeps the
+evidence inspectable at the pin. QA's write grant is that path only:
+`.harness/*/features/*/runs/*/qa/manifest-*.json` (the template's `.harness/features/...`), never a
+run log, `state.yaml`, `digest.md` or another persona's artifact.
+
+**Tradeoff accepted:** this trusts recorded execution checked against git. It does not resist a
+deliberately fabricated complete receipt. PR CI, which runs the whole suite on the PR, is
+unchanged and is the deliberate backstop against forgery. If main omits the force-add, an
+accepted PASS has no committed receipt; main's close-time inspection of the run record is where
+that is noticed, not this check or CI.
+
+**Open question:** `validate-digest.py`'s `_head_is_pin_error` still requires a code reviewer's
+reviewed head to equal the recorded pin, so a fix run's `code` step re-verifying the fixed tip is
+refused. Receipt verification alone does not make a fix run pass end to end (#2356).
+
+**Record:** new ruling (FEAT-2337 D-02). DEC-174 kept the change main-session-direct, and
+DEC-234's copied prologues are untouched. Refs: DEC-100, DEC-127, DEC-174, DEC-187, DEC-205,
+DEC-208, DEC-218, DEC-234, DEC-237.

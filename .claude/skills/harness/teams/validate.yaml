@@ -34,6 +34,11 @@ steps:
   # to the orchestrator-sequenced qa SEGMENT that runs before this team, which is the
   # same persona doing the other of D-08's two jobs.
   #
+  # QA's run of the matrix is the ONLY run (DEC-255): it records one runner receipt per
+  # claimed unit/integration kind in this run's qa/ directory, and validate-digest checks
+  # those receipts instead of running the suite again. A receipt is the runner's output,
+  # not authored content; main force-adds it with the committed run record.
+  #
   # THE TWO JOBS MUST NOT COLLIDE ON DISK. The segment keeps the historical name
   # `notes/qa-c{{cycle}}.md`; this step takes the reviewer-style
   # `notes/review-harness-qa-c{{cycle}}.md`, matching the other reader steps and the
@@ -50,6 +55,12 @@ steps:
       which kinds the change type required, and `fail_first` — for EVERY `verify: automated`
       SC, the test that covers it and the evidence it FAILED before the fix (a receipt line
       or a path). A green suite with no fail-first evidence is `FAIL`, not `PASS` (SC-17).
+      Run each satisfied active unit/integration kind ONCE from your managed checkout at
+      {{review_sha}} with DEC-255's production runner command, recording its receipt at
+      this run's absolute `runs/<run-id>/qa/manifest-<kind>.json`; keep the tested commit and
+      full output in your note. A `suite: pass` PASS is checked against those receipts, never
+      by a second run, and `kinds: []` is refused. A refusal names each bad receipt and the
+      command that repairs it — run that command; never hand-edit a receipt.
       You are auditing a pinned SHA, not building on it — **author nothing**: no tests, no
       fixtures, no source. If a required kind has no test, that is a finding, not a gap for
       you to fill; the fix belongs to the dev that owns the task. If the matrix cannot be

@@ -34,6 +34,23 @@ different endpoint has one. Find the test exercising *this* change, or the kind 
 structural nesting in a config a gate script reads) **trips `touches_config_shape` and requires
 `integration`** (DEC-212) — a value tweak does not.
 
+## Your run is recorded once, as runner receipts (DEC-255)
+
+Running the matrix is yours; `validate-digest.py` no longer runs it again. A `PASS` with
+`suite: pass` and `matrix_ok: true` is accepted only with a runner receipt for every satisfied
+claimed active `unit`/`integration` kind, at your validator-lead run's
+`runs/<run-id>/qa/manifest-<kind>.json`, written by DEC-255's production runner command from your
+managed review-pin checkout (a fix run: the fixed tip, clean). An empty `kinds:` is refused,
+never read as "all". Each kind runs once; a receipt is never hand-edited. A refusal names every
+bad receipt and the exact repair command — run it, never route around it. The steps and who
+commits what: `<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-qa.md` § Runner receipts.
+
+**Candidate versus installed.** When the diff changes a gate or hook, the copy enforcing your own
+run is the installed control-plane one, not the candidate at the pin. Record the host launcher's
+path, version and hash beside the candidate's source pin, prove candidate behavior only with
+tests run from `review_sha`, and never claim the installed hook behaved as the candidate does.
+You still produce candidate receipts for main to commit; the host is not redeployed mid-run.
+
 ## Resolve each kind to exactly one of five states
 
 Read **two** signals, never just the exit code: what kind of failure, not merely whether it failed.
