@@ -34,7 +34,7 @@ Versioned control-plane templates (`harness.json`, `team-config.yaml`) carry `sc
 merges new entries while preserving project values, especially `domain` globs and verified
 `test_kinds.*.cmd`. Artifact templates are not all versioned or upgraded by that procedure.
 
-**`harness.json` is validated, not merely versioned (DEC-255).** `bin/config-schemas/harness.json`
+**`harness.json` is validated, not merely versioned (DEC-256).** `bin/config-schemas/harness.json`
 is the one definition of its shape, defaults, conditional requirements and closed vocabularies;
 the `harness.json` template here is an instance of that schema, not a second definition. Look a
 default or an allowed value up in the schema, never in this directory.

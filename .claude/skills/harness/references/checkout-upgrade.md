@@ -20,7 +20,7 @@ replace the first command there with:
   --templates <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates
 ```
 
-Version 3 is a breaking upgrade (DEC-255): until a member's upgraded `harness.json` lands on
+Version 3 is a breaking upgrade (DEC-256): until a member's upgraded `harness.json` lands on
 its default branch, every Harness reader refuses that member.
 
 - `harness.json` is **merged**: new template entries are added and every project value is kept.

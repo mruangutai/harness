@@ -1,0 +1,350 @@
+schema: plan/1
+feature: FEAT-2337-omp-native-gate-runtime
+approval:
+  date: '2026-11-22'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
+drafted_at: '2026-11-22T19:27:44Z'
+status: review
+source_issues: [2337]
+panel:
+  last_run: r-20261122-1-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-3d8e823f0f9d38ef1a42c281573f3061
+    severity: med
+    reader: harness-code-reviewer
+    kind: substance
+    summary: Reserve a separate idle-host acceptance benchmark outside pooled regression execution.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-824d7590b2bc4b64377128b7046a57fb
+    severity: med
+    reader: harness-code-reviewer
+    kind: form
+    summary: Complete the semantic decisions_affected sweep with governing keep dispositions.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-32f9ab833e46cf2b7f19a7d3b33ef185
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: Do not ship the fixed-base (dd04e52a) cumulative changed-test self-grading check in the DEFAULT suite; keep it as --feat2337/review-pin evidence for SC-08, or charter a base-agnostic standing gate under its own decision.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-c9a88d3ef0499bbfaab0f7c54861d13d
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: SC-04's gating serial-execution mutant is near-tautological given the benchmark's own serial-adapter arm; drop mutant-first sequencing, keep at most a cheap nonzero-exit wiring check.
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-2f1d1867659e669e4b8ac40671f3b8a9
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's 'zero fallback runner invocations with a process witness' verifies absence of code the same task deletes; acceptable only as a trivial PATH/argv shim, not bespoke process tracing.
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-6791a77be879985579cbf009ed6a751b
+    severity: info
+    reader: should-not-exist
+    kind: substance
+    summary: "Agreement: narrow QA manifest grant, copied-gate timeout fixtures, and\
+      \ standing-suite/doc migrations are verified necessary \u2014 do not trim as\
+      \ PM padding."
+    disposition: open
+lanes:
+  resolved_at: dd04e52a898109fdbe09cf5fa14e1148161734d0
+  rows:
+    - surface: .omp/extensions/harness-hooks.ts
+      lane: main-session-direct
+      reason: DEC-174 enforcement carve-out; resolver returns NOBODY.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 includes gate tests despite backend-dev, dev-ops and qa grants.
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 enforcement carve-out despite backend-dev and dev-ops grants.
+    - surface: .omp/agents/**
+      lane: main-session-direct
+      reason: Canonical role policy resolves NOBODY.
+    - surface: .claude/skills/harness-verification-rules/SKILL.md
+      lane: main-session-direct
+      reason: Canonical verification policy resolves NOBODY.
+    - surface: .claude/skills/harness/teams/**
+      lane: main-session-direct
+      reason: Canonical team policy resolves NOBODY.
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      reason: Canonical writable domains resolve NOBODY.
+    - surface: .claude/skills/harness/templates/team-config.yaml
+      lane: main-session-direct
+      reason: Canonical domain template resolves NOBODY.
+    - surface: .harness/harness/docs/**
+      lane: main-session-direct
+      reason: Direct enforcement contract cutover despite documentor grant.
+    - surface: README.md
+      lane: main-session-direct
+      reason: Direct enforcement guidance despite documentor grant.
+decisions:
+  - id: D-01
+    choice: Run every Python policy invocation asynchronously with one named 30-second constant and start the five Bash gates concurrently, preserving authority and combination order.
+    because: A synchronous helper can freeze OMP; skipping gates or a dispatcher changes the accepted enforcement boundary.
+    dec: DEC-100
+  - id: D-02
+    choice: Record a new receipt decision, proposed DEC-255, replacing the unrecorded issue-919 rerun with exact-coverage runner receipts, no fallback rerun and unchanged PR CI.
+    because: The accepted trust trade-off is recorded execution checked against git, not resistance to deliberately fabricated receipts.
+    dec: DEC-255
+decisions_affected:
+- dec: DEC-100
+  disposition: amend
+  clause: 'Only a refusal blocks: exit 2, or a structured deny. A gate''s own failure is never a pass and never
+
+    silent, and how it resolves depends on how much the gate guards:'
+  successor: D-01
+  reason: Add killed 30-second async timeouts in place while retaining broad, narrow and helper outcomes.
+- dec: DEC-174
+  disposition: keep
+  clause: not dispatched through a team run whose gates are the thing
+  successor: none
+  reason: Every implementation task including tests and associated policy remains main-session-direct.
+- dec: DEC-205
+  disposition: keep
+  clause: An entry states current truth directly.
+  successor: none
+  reason: Rewrite DEC-100 in place and add a new receipt ruling, never an amendment block or reused number.
+- dec: DEC-234
+  disposition: keep
+  clause: The prologue itself is unchanged and stays copied.
+  successor: none
+  reason: Concurrency does not move bootstrap or applicability authority into a dispatcher.
+- dec: DEC-254
+  disposition: keep
+  clause: 'Each row has exactly five fields:'
+  successor: none
+  reason: Declare verbatim dispositions and assign decision landing to T-03.
+- dec: DEC-120
+  disposition: keep
+  clause: 'Making the orchestrator a spawned agent gives each flow a fresh bounded context and lets N run
+
+    concurrently.'
+  successor: none
+  reason: Planning remains a product flow and only main records the operator signature.
+- dec: DEC-179
+  disposition: keep
+  clause: The ungranted surface is still allowed; what changes is that it is now
+  successor: none
+  reason: Resolve every literal file and declare its direct routing before signature.
+- dec: DEC-182
+  disposition: keep
+  clause: 'Each invented its own rule for what a
+
+    value may contain, and nothing reconciled them.'
+  successor: none
+  reason: Use real YAML through plan-merge, not another markdown plan convention.
+- dec: DEC-187
+  disposition: keep
+  clause: never a skip and never a FAIL.
+  successor: none
+  reason: Use active unit/integration evidence and disclose unresolved TypeScript checking.
+- dec: DEC-202
+  disposition: keep
+  clause: Changing provider therefore changes configuration, never prompts, tools, skills, spawn permissions,
+  successor: none
+  reason: Keep OMP authority and anchor only the real .claude authored tree.
+- dec: DEC-232
+  disposition: keep
+  clause: A stale anchor at build entry is re-resolved by
+  successor: none
+  reason: Use symbolic or quoted anchors and run plan exit resolution.
+- dec: DEC-127
+  disposition: keep
+  clause: so the agent is told nothing was checked.
+  successor: none
+  reason: Preserve visible own failures distinct from contract refusals.
+- dec: DEC-188
+  disposition: keep
+  clause: Anything softer than that
+  successor: none
+  reason: Amend partial timeout extension and grade pinned landing; do not strike.
+- dec: DEC-204
+  disposition: keep
+  clause: '**Release is exact and idempotent.**'
+  successor: none
+  reason: Await exact release and preserve lifecycle ordering.
+- dec: DEC-208
+  disposition: keep
+  clause: '**5. A lead''s digest file is located in the checkout the lead is running in.**'
+  successor: none
+  reason: Bind evidence to registered checkout and retain append-only records.
+- dec: DEC-211
+  disposition: keep
+  clause: '**The shared checkout is never a test fixture.**'
+  successor: none
+  reason: Keep complete isolated pooled suites; acceptance benchmark runs separately.
+- dec: DEC-213
+  disposition: keep
+  clause: The directory containing a test is its kind;
+  successor: none
+  reason: Reuse directory-based kind discovery.
+- dec: DEC-218
+  disposition: keep
+  clause: '**Chose:** EXACT RUNTIME LINEAGE is the OMP binding key.'
+  successor: none
+  reason: Bind receipt lookup and grants to exact live child and parent identity.
+- dec: DEC-233
+  disposition: keep
+  clause: '**Chose:** Harness runs under OMP alone.'
+  successor: none
+  reason: Preserve OMP-only lifecycle with no compatibility fallback.
+- dec: DEC-237
+  disposition: keep
+  clause: '**Only the validator renders a durable digest.**'
+  successor: none
+  reason: Preserve trusted return destination and validator-owned rendering.
+- dec: DEC-238
+  disposition: keep
+  clause: '**A checkout at a pin is disposable and keyed to one reader.**'
+  successor: none
+  reason: Preserve reader-specific pinned checkout and passing validate evidence retention.
+- dec: DEC-250
+  disposition: keep
+  clause: '**Scope is factory-only.**'
+  successor: none
+  reason: Leave factory-only authority, Harness self-development and main-session exemption unchanged.
+tasks:
+  - id: T-01
+    title: Make policy execution async and bounded and parallelize Bash gates
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-10]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 covers extension enforcement and its tests.
+    depends_on: []
+    status: done
+    files:
+      - .omp/extensions/harness-hooks.ts#runPolicy
+      - path: tests/unit/omp-hooks.test.ts
+        quote: 'describe("gatePath",'
+      - tests/integration/test-omp-native-gate-runtime.py#drive
+    verify: |
+      bash -o pipefail -c 'timeout 55 bash -o pipefail -c "bun test tests/unit/omp-hooks.test.ts --test-name-pattern FEAT-2337 && python3 tests/integration/test-omp-native-gate-runtime.py --feat2337"'
+    intent: 'PRODUCT and every edit: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2337-omp-native-gate-runtime. Never edit the control plane. Product docs/spec.md, docs/decisions.md and docs/architecture.md are absent at base dd04e52a898109fdbe09cf5fa14e1148161734d0; AGENTS.md Project map names this product''s .harness/harness/docs/SPEC.md and DECISIONS.md. Consult gate/test sections and DEC-100/174/234/202; no architecture guidance exists. Read the approved BRIEF and notes/research-FEAT-2337-omp-native-gate-runtime-plan-draft.md. This is main-session-direct, not a team implementation dispatch.
+
+      Write and observe failing tests before production edits, retaining red-first evidence for SC-01 through SC-04. Replace synchronous Python runPolicy execution with asynchronous child_process spawning and Promise-returning PolicyRunner. Keep executable/root, cwd, inherited environment, exact stdin JSON, stdout/stderr classification. Export one named 30000-millisecond constant in harness-hooks.ts matching HOOK_HANG_BUDGET_S=30; no config key, environment override or production timeout-injection seam. Forcibly kill on deadline; settle once and clear timers through error/close races and inherited open pipes, including a child ignoring graceful termination. Classify timeouts through existing semantics: broad visibly unavailable, matching narrow refused, unrelated narrow allowed, helpers retain throw/reason/empty-output conventions.
+
+      Migrate every direct and indirect caller: reportingRunner, fileDomain/preDomain/postDomain, releaseClaim, resolveFeature/startRun/openRun/settleRun, featureRoot/rootCall/authorizationRefusal, digest destination, expertise merge/appliedPost, mainMergeGate, startup/revival/reconcile/injection, dispatch attach and rollback, yield, post-result stamping/spend and lifecycle settlement. Await all helpers; replace async forEach cleanup with awaited iteration or collected promises, preserving registry/state ordering and claim-before-reconcile. Leave unrelated git spawn behavior alone. A delayed helper must not authorize, inject, release or report success prematurely.
+
+      After authorization/rooting/pre-domain, launch gh-close-gate.py, branch-create-gate.py, bash-write-guard.py, plan-sign-gate.py and merge-gate.py concurrently for every Bash command. No TS-classifier skipping or dispatcher. Collect every outcome then combine in that declared order, preserving first refusal, phase-specific unavailable notices including beside refusal, revised input/env and no-isError behavior. One transport failure/rejected promise must not cancel or hide siblings. Preserve independent processes and existing prologues/applicability boundaries.
+
+      Migrate every standing synchronous test runner in omp-hooks.test.ts and the real-process integration DRIVER to awaited results, keeping existing failure/applicability assertions. Add FEAT-2337-named table-driven Bun cases for heartbeat while child pending, single settlement/cleanup, delayed helper conventions, lifecycle readiness/rollback, all-five overlap, reversed completion order, and multiple unavailable results beside refusal. Add real copied-process timeout cases for broad, matching/unrelated narrow and helper outcomes; change clocks only inside fixture copies or fixture-local fake clocks. Apply SC-08 through T-03 cumulative self-grading to these tests.
+
+      Add supplemental --feat2337 and --benchmark modes to the existing runtime integration script; keep default full non-timing regression execution. Default and --feat2337 never enforce the timing threshold; acceptance timing runs only via dedicated --benchmark outside pooled suites. --feat2337 runs the new process/heartbeat/composition and cheap assertion/exit wiring checks, without acceptance timing with nonzero on any assertion, timeout, missing Bun or malformed evidence. --benchmark measures the production Bash handler''s five-gate portion with real Python gates, ls -la and harness-backend-dev; use a fixture-local serial adapter as same-pin counterfactual, not synthetic-only sleeps or a second production classifier. Exclude startup/authorization costs identically. In one Bun process on an otherwise idle host, use 3 warmups and 15 alternating sequential/parallel pairs. Emit samples, medians, ratio, host, Python/Bun versions and source SHA; assert parallel median at most 0.75 of sequential median. The historical approximately 180 ms is context, not a portable absolute threshold. Record a cheap failing-ratio input to this same assertion/exit path producing nonzero exit before accepting the fix; no serial-mutant sequence is required. QA persists stdout evidence under its run. Do not benchmark during planning.
+
+      The literal verify must finish with named new assertions, exit 0, no FAIL lines or orphan processes. Run full Bun and runtime integration suites again at final QA; focused modes never replace them. Apply the candidate-versus-installed identity rule in approved BRIEF Verification gaps. Each focused command must complete under 55 seconds and the combined focused verification under 60 seconds.'
+  - id: T-02
+    title: Replace reruns with trusted exact-coverage QA receipts and migrate standing suites
+    traces: [SC-05, SC-06, SC-07, SC-10]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 covers digest/shared gates and all their standing tests.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/validate-digest.py#check_qa_matrix_claim
+      - .claude/skills/harness/bin/check-integration-shards.py#discover_expected
+      - path: .claude/skills/harness/bin/check_state/feature_record.py
+        quote: '# INV-47 (#1884):'
+      - tests/integration/test-validate-digest.py#run_bug919_qa_matrix_cases
+      - tests/unit/test-validate-digest-run-pool-lines.py#FileLines
+      - tests/unit/test-integration-shard-validation.py#manifest
+      - tests/integration/test-integration-shard-aggregation.py#repository
+    verify: |
+      bash -o pipefail -c 'timeout 55 bash -o pipefail -c "python3 tests/integration/test-validate-digest.py --only run_feat2337_qa_receipt_cases && python3 tests/unit/test-integration-shard-validation.py && python3 tests/unit/test-validate-digest-run-pool-lines.py"'
+    intent: 'PRODUCT and every edit: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2337-omp-native-gate-runtime. Never edit the control plane. Product docs/spec.md, docs/decisions.md and docs/architecture.md are absent at base dd04e52a898109fdbe09cf5fa14e1148161734d0; AGENTS.md Project map names this product''s .harness/harness/docs/SPEC.md and DECISIONS.md. Read test/manifest/return sections and DEC-100/174/187/234. No architecture document exists. Read approved BRIEF, D-02 and the research note''s complete caller inventory. Main-session-direct and test-first.
+
+      Retain _qa_claims_unconditional_pass: only qa VERDICT PASS with suite pass and Boolean matrix_ok true triggers receipt verification. Preserve other schema, matrix-floor, fail-first, outer unavailable-hook and claim-release contracts. Delete the full-suite subprocess path, _resolve_run_unit_tests_bin, RUN_UNIT_TESTS_BIN, _reverify_suite, dead callers and pooled-rerun-only parser/reporter; no compatibility seam or fallback rerun. Only change check_state/feature_record.py''s stale issue-919 comment, not INV-47 behavior.
+
+      Bind lookup to payload harness_feature and trusted runtime lineage, never a digest-chosen artifact or root environment override. Reuse registered_feature/authorization_root and existing _run_identity/_require_own_claim/strict live-claim readers. Use digest_destination.registered_destination for the unique open registered harness-validator-lead run and corroborate the QA parent claim''s validator persona and feature checkout. Missing/ambiguous/mismatched identities refuse PASS. Resolve review_sha from the registered feature and reconcile harness_review_pin when both exist. Reuse resolve_reviewed_commit/commit_oid for review_sha and tested_commit, retaining option-like-revision rejection. Only read feature/runs/<registered-run-id>/qa/manifest-<kind>.json; reject symlink/traversal/foreign-root substitutions. Receipts may be uncommitted at QA return because main force-adds them with the closed run record; do not require a receipt inside its own tested_commit.
+
+      Require a schema-1 manifest for each satisfied claimed active unit/integration kind: matching kind, shard_index=1, shard_count=1, integer runner_exit=0 and exact selected/completed records with integer returncode=0. Empty claims refuse rather than defaulting to all; unsupported kinds cannot masquerade as supported. Existing matrix-floor/excluded/locally-run policy remains authoritative. tested_commit must equal review_sha or descend from it with every intervening change confined to the trusted feature''s own directory. Derive that directory from runtime identity, not this feature id. Use ancestry plus NUL-safe changed paths for each intervening commit including merge parents, renames/deletions; reject older/divergent commits, other features, and any outside-directory change even if later reverted. Final-tree equality or a separator-less prefix is insufficient. Keep identity and lineage evaluation cohesive within the existing validator; resolve identities once per validation call and reuse lineage results across kinds only for the same resolved review/tested-commit/feature-directory tuple. Leave batching and local helper shape to implementation; add no cross-module adapter.
+
+      Reuse check-integration-shards.py discover_expected/evidence_defects rather than reimplementing git-tree discovery or manifest coverage. Extend the importable seams with explicit optional kind defaulting to integration; unit selects exactly top-level tests/unit/test-*.py, integration preserves its top-level rule. Keep schema/type checks, shared Counter coverage, nonempty expectations and malformed/duplicate/extra/missing refusal. Preserve all current four-shard integration CLI defaults, upstream conclusion checks and CI workflow; no runner schema/config change is needed. run-unit-tests.py --kind <kind> --shard 1/1 --manifest already produces the data.
+
+      Every known missing/stale/red/incomplete/malformed/unreadable receipt or unresolved identity refuses with exit 2, names every relevant failed/missing file, and supplies the real repair command: python3 <trusted-checkout>/.claude/skills/harness/bin/run-unit-tests.py --kind <kind> --shard 1/1 --manifest <trusted-run>/qa/manifest-<kind>.json. Catch evidence failures as invalid evidence, not loud fail-open; retain the outer DEC-100 unexpected-own-failure boundary. No claim of protection against fabricated complete receipts: PR CI is the unchanged backstop.
+
+      Migrate the complete standing test-validate-digest.py inventory: #919 agreement/disagreement/non-PASS/missing-runner/red wiring; BUG-1756 kind forwarding/default/first-failure/spawn/timeout; #1185/#1883 wrong/ambiguous checkout; #2253 buried failures and misleading echoed output; FEAT-2274 unavailable matrix rerun site; all unconditional-QA fixtures, source mutants and all-persona paths affected by deleting the seam. Replace obsolete expectations while preserving no-wrong-checkout, all-file diagnostics, trigger, claim-release and source-wiring invariants; leave no dead groups. Convert test-validate-digest-run-pool-lines.py in place to receipt-refusal diagnostic tests and remove dead helper imports. Extend standing shard unit and CLI integration tests for explicit unit kind and unchanged integration defaults.
+
+      Add run_feat2337_qa_receipt_cases to the existing --only registry AND default suite. Positive controls use actual runner-generated receipts from isolated committed git fixtures, not handcrafted green JSON. Build on test-integration-shard-aggregation.py repository committed-repository fixture patterns; no shared fixture framework is needed. Table-drive exact pin, ledger-only descendant, code/foreign-feature changes, change-then-revert, divergent history, working-tree/HEAD drift, all malformed/incomplete/duplicate/wrong/red receipts, unsafe paths, missing pin/run, no kinds and non-QA/non-PASS controls. Assert zero fallback runner invocations using only a trivial PATH/argv shim reusing the existing argv-append stub pattern, with a positive control proving it works. No bespoke process tracing and no removed environment stub. Demonstrate each new behavior red on fixed base dd04e52a or a single-branch isolated mutant. Apply SC-08 through T-03 cumulative self-grading to these tests.
+
+      The literal verify must exit 0 with actual named cases and no FAIL lines, each command under 55 seconds and total under 60 seconds. Complete unit/integration, shard CLI and all-persona suites still run at final QA; focused modes are supplemental. Apply the candidate-versus-installed identity rule in approved BRIEF Verification gaps.'
+  - id: T-03
+    title: Land receipt grants, current decisions, operating guidance and cumulative test grading
+    traces: [SC-05, SC-06, SC-07, SC-08, SC-09, SC-10]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: Direct enforcement cutover includes canonical policy, grant manifests, decision docs and tests.
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - tests/unit/test-code-grade.py#check_self_grading
+      - tests/integration/test-check-domain-grant.py#case
+      - path: .harness/team-config.yaml
+        quote: '      - name: harness-qa'
+      - path: .claude/skills/harness/templates/team-config.yaml
+        quote: '      - name: harness-qa'
+      - path: .omp/agents/harness-qa.md
+        quote: '## The gate'
+      - path: .omp/agents/harness-validator-lead.md
+        quote: '## Hosting `validate`'
+      - path: .claude/skills/harness-verification-rules/SKILL.md
+        quote: '## The matrix is a floor'
+      - path: .claude/skills/harness/teams/validate.yaml
+        quote: '# validate — every reader over ONE pinned SHA'
+      - path: .claude/skills/harness/teams/fix.yaml
+        quote: '# fix — one rework cycle'
+      - path: .harness/harness/docs/SPEC.md
+        quote: '## 9. Test guardrails'
+      - path: .harness/harness/docs/DECISIONS.md
+        quote: '## DEC-100 — All four platform unknowns resolved empirically'
+      - path: .harness/harness/docs/DECISIONS-INDEX.md
+        quote: '- DEC-100 @'
+      - path: README.md
+        quote: '## Guardrails'
+    verify: |
+      bash -o pipefail -c 'timeout 55 bash -o pipefail -c "python3 tests/unit/test-code-grade.py --feat2337 && python3 tests/integration/test-check-domain-grant.py --only run_feat2337_receipt_grant_cases && python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md"'
+    intent: 'PRODUCT and every edit: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2337-omp-native-gate-runtime. Never edit the control plane or another host''s run bookkeeping. Product docs/spec.md, docs/decisions.md and docs/architecture.md are absent at base dd04e52a898109fdbe09cf5fa14e1148161734d0; AGENTS.md Project map names this product''s .harness/harness/docs/SPEC.md and DECISIONS.md. Read their test/manifest/return contracts and all decisions_affected entries. No architecture document exists. Read approved BRIEF and research note. This terminal main-session-direct task follows both code migrations, without redeploying the live host.
+
+      Give QA only .harness/*/features/*/runs/*/qa/manifest-*.json in the authored team-config and the equivalent layout-appropriate template grant beside its existing feature-note grants. Never widen to arbitrary run logs, lead digest.md, state.yaml or another persona''s artifacts; preserve feature/claim/worktree restrictions. Add table-driven real resolver/hook cases to test-check-domain-grant.py: own receipt allowed, sibling run state/digest/log refused, wrong feature/checkout claim refused, unrelated persona refused, authored/template convention exercised. Add supplemental --only run_feat2337_receipt_grant_cases while retaining default full execution. Do not solve issue-2308''s reader-log grant by opening whole runs.
+
+      Extend tests/unit/test-code-grade.py with cumulative changed-test self-grading using code_grade.gated_set/grade_source and code_grade.classify on gated plus informational records with the existing configured test_kinds load, not a second configuration read or bar calculation, against fixed base dd04e52a898109fdbe09cf5fa14e1148161734d0 and committed execution tip. Require every new/changed Python test function, including self-grading functions and informational changed records, grade >=3 without new allowlist exemptions. Preserve legacy grading/staleness checks; refactor new below-bar functions into table-driven pieces. Add --feat2337 mode for the new cumulative check plus a grade-2 mutant control, only in explicit --feat2337 mode, never in default suite. Default suite preserves legacy checks but must not evaluate a permanently growing diff from this feature base. Retain red-first proof that the grade-2 mutant is rejected. Python grading does not cover TypeScript; name Bun coverage separately. Run after task commits so the tip actually contains the tests being graded.
+
+      Rewrite DEC-100''s declared clause in place: all Python policy calls async, one named extension timeout of 30 seconds, over-budget processes killed, broad visibly unavailable, matching narrow refused and helper conventions preserved. Never append an amendment block or falsify historical evidence. Add a NEW receipt decision for issue 919, proposed DEC-255 after checking the number is unused; on a concurrent allocation use the next unused number and repoint new references. Record receipt path and production command; cite run-unit-tests.py _write_manifest and check-integration-shards.py evidence_defects as schema authorities instead of copying their field list. State exact-pin or feature-directory-only descendant identity, shared git-tree coverage verification, invalid-receipt refusal/repair, no fallback rerun, force-added receipts with run records, and unchanged PR CI as the deliberate anti-forgery backstop. Preserve DEC-174/205/234. Regenerate DECISIONS-INDEX.md through gen-decisions-index.py; write the new ruling tail in the established decision/index convention at <=30 words and require --stdout diff agreement. T-03 owns DECISIONS.md remediation for the amend disposition.
+
+      Fold operating instructions into harness-qa.md, harness-validator-lead.md, harness-verification-rules, validate.yaml and fix.yaml. Keep QA and main duties discoverable on each applicable role/team/verification surface, with references to the new receipt decision rather than independent repair-command copies. The T-02 refusal supplies the exact executable repair command; the new receipt decision states the rule and production command. QA creates its assigned validate run''s qa directory and runs each required active kind once from its managed review-pin checkout using that production command and the absolute assigned feature-tree run destination. Preserve tested commit/full logs and named SC/fail-first evidence; never hand-edit a receipt green. Repair invalid receipts by the displayed production command, not validator fallback or concealed failures. QA emits receipts; main force-adds ignored qa/manifest-<kind>.json with the committed closed run record. No digest schema field, timeout key or broad grant. Keep single-pin reader independence, matrix floor and direct implementation routing.
+
+      Update SPEC test/receipt sections and README Guardrails with async bounded execution, five independent parallel processes, the receipt trust boundary and new decision pointer, without duplicating its full authority. Sweep the research inventory so no obsolete #919 rerun contract remains on changed standing surfaces, including comments/docstrings; distinguish QA running its matrix (required) from validate-digest running it again (removed). Do not rewrite historical feature records. Land documentation of the candidate-versus-installed identity rule in approved BRIEF Verification gaps, including its host launcher path/version/hash and source-pin evidence obligations; do not redeploy the host. QA still produces candidate manifests for main to commit.
+
+      Literal verify: exit 0, named self-grade/grant cases and identical generated index, with pipefail as written. Focused commands each under 55 seconds, complete focused verification under 60 seconds. They supplement, never replace, final QA''s complete unit/integration kinds, Bun wrapper, full runtime and validate-digest suites, shard CLI regressions and existing layout gates, run after all commits. Generate full-suite production manifests for unit and integration in the validate run using the production command authority above. Report every red/missing kind honestly; preserve PR CI. No planning build/test execution.
+
+
+      After all task commits QA separately runs python3 tests/integration/test-omp-native-gate-runtime.py --benchmark from its managed review_sha checkout under the complete SC-04/T-01 acceptance protocol; persist stdout and all required evidence under its run. This remains a dedicated acceptance invocation, not pooled/default/focused execution. Explicitly run python3 tests/unit/test-code-grade.py --feat2337 at the committed review pin for SC-08 in addition to complete default suites. Read notes/research-FEAT-2337-omp-native-gate-runtime-plan-apply.md; its benchmark/grading/witness corrections supersede draft research.'

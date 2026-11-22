@@ -202,6 +202,7 @@ teams:
           - { path: tests/**, upsert: true }               # SEED — test root
           - { path: "**/*.test.*", upsert: true }          # SEED — colocated tests
           - { path: .harness/features/*/notes/qa-*.md, upsert: true }   # assessments (DEC-130)
+          - { path: .harness/features/*/runs/*/qa/manifest-*.json, upsert: true }   # runner receipts only (DEC-255)
           - { path: .harness/expertise/harness-qa.md, upsert: true }
           - { path: ".", read: true }
 

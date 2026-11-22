@@ -67,6 +67,14 @@ steps:
   # THE RE-VERIFY WAVE — four readers, one turn, over the tip the receipt names. Each
   # depends on `fix` and on nothing else, so they dispatch together after it lands.
   # No goal-check here: it runs once at validate exit (SC-09), not per cycle.
+  #
+  # qa's RUNNER receipts (not the dev's fix receipt) bind to THIS fix run (DEC-255). The
+  # check recognizes a fix run only when the registered run id is `fix-c<N>-validator` AND
+  # the dispatch carries `harness_mission: fix`; it then accepts a tested commit equal to
+  # the trusted checkout's HEAD that descends from review_sha, code changes included, with
+  # the tree clean outside the feature's own directory, since that tip is the next pin. A fix
+  # run still does not pass end to end: the code step's reviewed head is held to the recorded
+  # pin (DEC-255's open question, #2356).
   - id: qa
     persona: qa
     depends_on: [fix]
@@ -79,7 +87,13 @@ steps:
       was raised against. Write `matrix_ok`, the per-kind results, and `fail_first`: for
       every `verify: automated` SC the fix touches, the test and the evidence it FAILED
       before the fix — the receipt's failing run is that evidence. A green suite with no
-      fail-first evidence is `FAIL` (SC-17). Author nothing.
+      fail-first evidence is `FAIL` (SC-17). Run each satisfied active unit/integration
+      kind ONCE from a checkout of that fixed tip, clean outside the feature's own directory
+      (DEC-255), with DEC-255's production runner command, recording its runner receipt in
+      THIS fix run's absolute `runs/<fix-run-id>/qa/manifest-<kind>.json`; keep the tested
+      commit and full output in your note. A refusal names each bad runner receipt and the
+      command that repairs it — run that command; never hand-edit a runner receipt. Author
+      nothing.
 
   - id: code
     persona: code-reviewer

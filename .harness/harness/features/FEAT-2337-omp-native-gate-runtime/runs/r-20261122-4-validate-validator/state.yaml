@@ -1,0 +1,81 @@
+schema_version: 2
+run_id: r-20261122-4-validate-validator
+run_uid: 211d26cd5cf5483a8997f0360ba9adbc
+feature: FEAT-2337-omp-native-gate-runtime
+squad: validator
+host: harness-validator-lead
+status: failed
+verdict: ESCALATE
+review_sha: 6143625f5262f246d51d642662899a44a8d545d9
+steps:
+  - id: qa
+    persona: harness-qa
+    depends_on: []
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: ESCALATE
+    cycles: 0
+    mutates_repo: false
+    artifact: notes/review-harness-qa-c1.md
+    evidence:
+      unit_files: 64
+      integration_files: 91
+      integration_red_files: 1
+      benchmark_ratio: 0.302
+      matrix_ok: false
+  - id: code
+    persona: harness-code-reviewer
+    depends_on: []
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    verdict: FAIL
+    cycles: 1
+    mutates_repo: false
+    artifact: notes/review-harness-code-reviewer-c1-assessment.md
+    evidence:
+      code_grade: pass
+      passing_records: 152
+    note: Initial PASS superseded; GC-02 retained and GC-01 conditional violation rejected.
+  - id: security
+    persona: harness-security-reviewer
+    depends_on: []
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    cycles: 0
+    mutates_repo: false
+    artifact: notes/review-harness-security-reviewer-c1.md
+  - id: ui
+    persona: harness-ui-reviewer
+    depends_on: []
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    cycles: 0
+    mutates_repo: false
+    artifact: notes/review-harness-ui-reviewer-c1.md
+    evidence:
+      in_scope: false
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: []
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    verdict: FAIL
+    cycles: 1
+    mutates_repo: false
+    artifact: notes/research-FEAT-2337-omp-native-gate-runtime-goalcheck-validate-c1.md
+    evidence:
+      met_success_criteria: 9
+      partial_success_criteria: [SC-09]
+      partial_decisions: [DEC-255]
+    note: Final addendum replaces pending evidence and retracts mandatory GC-01 base movement.

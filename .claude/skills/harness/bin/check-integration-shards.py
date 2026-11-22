@@ -79,7 +79,10 @@ import sys
 
 RESULTS = ("success", "failure", "skipped", "cancelled", "missing")
 KIND = "integration"
-EXPECTED_PATH = re.compile(r"tests/integration/test-[^/]*\.py")
+# FEAT-2337 SC-05: the importable seams also validate one full-suite unit receipt. Each kind's
+# expected files are its top-level tests/<kind>/test-*.py; the CLI and CI stay integration-only.
+EXPECTED_PATHS = {"integration": re.compile(r"tests/integration/test-[^/]*\.py"),
+                  "unit": re.compile(r"tests/unit/test-[^/]*\.py")}
 OBJECT_ID = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 INCOMPLETE, MALFORMED = 1, 2
 
@@ -110,8 +113,12 @@ def conclusion_defects(checks, matrix):
     return _conclusion_defect("checks", checks) + _conclusion_defect("matrix", matrix)
 
 
-def integration_paths(names):
-    return sorted(name for name in names if EXPECTED_PATH.fullmatch(name))
+def expected_paths(names, kind=KIND):
+    """The top-level tests/<kind>/test-*.py among `names`; an unsupported kind is refused."""
+    if kind not in EXPECTED_PATHS:
+        raise ValueError(f"unsupported suite kind {kind!r}; expected one of "
+                         f"{', '.join(sorted(EXPECTED_PATHS))}")
+    return sorted(name for name in names if EXPECTED_PATHS[kind].fullmatch(name))
 
 
 def _is_normalized(path):
@@ -169,12 +176,12 @@ def _shape_defects(name, doc):
             + _completed_shape(name, doc.get("completed_files")))
 
 
-def _identity_defects(name, doc, tested_commit, shards):
+def _identity_defects(name, doc, tested_commit, shards, kind=KIND):
     problems = []
     if doc["tested_commit"] != tested_commit:
         problems.append(f"{name}: tested_commit {doc['tested_commit']} is not the supplied {tested_commit}")
-    if doc["kind"] != KIND:
-        problems.append(f"{name}: kind {doc['kind']!r} is not {KIND}")
+    if doc["kind"] != kind:
+        problems.append(f"{name}: kind {doc['kind']!r} is not {kind}")
     if doc["shard_count"] != shards:
         problems.append(f"{name}: shard_count {doc['shard_count']} is not {shards}")
     if not 1 <= doc["shard_index"] <= shards:
@@ -207,10 +214,10 @@ def _record_defects(name, doc):
     return problems
 
 
-def coverage_defects(manifests, expected):
+def coverage_defects(manifests, expected, kind=KIND):
     """Every expected path completed exactly once across all shards; nothing else completed."""
     if not expected:
-        return [f"tested commit has no tests/integration/test-*.py files to cover"]
+        return [f"tested commit has no tests/{kind}/test-*.py files to cover"]
     completed = Counter(record["path"] for _name, doc in manifests
                         for record in doc["completed_files"])
     problems = []
@@ -219,13 +226,14 @@ def coverage_defects(manifests, expected):
             problems.append(f"{path}: omitted (no completed record in any shard)")
         elif completed[path] > 1:
             problems.append(f"{path}: completed {completed[path]} times across shards")
-    problems += [f"{path}: unexpected (not in the tested commit's integration suite)"
+    problems += [f"{path}: unexpected (not in the tested commit's {kind} suite)"
                  for path in sorted(set(completed) - set(expected))]
     return problems
 
 
-def evidence_defects(docs, tested_commit, shards, expected):
-    """Validate named manifest documents against the independently discovered expected list."""
+def evidence_defects(docs, tested_commit, shards, expected, kind=KIND):
+    """Validate named manifest documents of `kind` against the independently discovered
+    expected list."""
     defects, manifests = [], []
     for name in sorted(docs):
         problems = _shape_defects(name, docs[name])
@@ -234,21 +242,21 @@ def evidence_defects(docs, tested_commit, shards, expected):
             manifests.append((name, docs[name]))
     incomplete = _shard_set_defects(manifests, shards)
     for name, doc in manifests:
-        incomplete += _identity_defects(name, doc, tested_commit, shards)
+        incomplete += _identity_defects(name, doc, tested_commit, shards, kind)
         incomplete += _record_defects(name, doc)
-    incomplete += coverage_defects(manifests, expected)
+    incomplete += coverage_defects(manifests, expected, kind)
     return defects + [(INCOMPLETE, problem) for problem in incomplete]
 
 
-def discover_expected(root, tested_commit):
-    """The tested commit's own top-level tests/integration/test-*.py files."""
+def discover_expected(root, tested_commit, kind=KIND):
+    """The tested commit's own top-level tests/<kind>/test-*.py files."""
     proc = subprocess.run(
         ["git", "-C", root, "ls-tree", "-r", "-z", "--full-tree", "--name-only", tested_commit],
         capture_output=True, text=True)
     if proc.returncode != 0:
         return None, (MALFORMED, f"cannot list tested commit {tested_commit}: "
                                  f"{proc.stderr.strip()}")
-    return integration_paths(proc.stdout.split("\0")), None
+    return expected_paths(proc.stdout.split("\0"), kind), None
 
 
 def _read_manifest(path):

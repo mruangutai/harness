@@ -25,7 +25,9 @@ _anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import contextlib, importlib.util, json, subprocess, sys, os, shutil, tempfile, time
 import concurrent.futures
 import copy
+import io
 import re
+import stat
 import yaml
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1774,6 +1776,12 @@ def _hook_binding_other_registry_refuses():
 
 
 
+# --- Issue #919, migrated by FEAT-2337 (SC-06/SC-07): an unconditional qa PASS (VERDICT: PASS,
+# suite: pass, matrix_ok: true) is checked against the runner receipts QA recorded for its
+# validate run — `run-unit-tests.py --kind <kind> --shard 1/1 --manifest
+# <feature>/runs/<run-id>/qa/manifest-<kind>.json` — and NEVER by running the suite again.
+# The receipts here are written by the real production runner in a private committed
+# checkout; nothing below hand-writes a green manifest.
 QA_UNCONDITIONAL_PASS = """
 VERDICT: PASS
 DIGEST:
@@ -1790,309 +1798,815 @@ artifact: a.md
 """
 
 
-def _bug919_stub_script(root, exit_code):
-    """A fast run-unit-tests.py stand-in for RUN_UNIT_TESTS_BIN — the real suite takes
-    minutes; this proves the wiring (which script ran, with which argv, what its exit
-    code did) instead. It is a PYTHON file, as the real runner has been since #1674
-    (BUG-1756): a spawn that hands it to bash cannot run it, so the agree case goes red
-    on the defect. Every invocation appends its argv to `<stub>.argv`, one line each."""
-    path = os.path.join(root, "stub-run-unit-tests-%d.py" % exit_code)
-    with open(path, "w") as f:
-        f.write("#!/usr/bin/env python3\nimport sys\n"
-                "open(sys.argv[0] + '.argv', 'a').write(' '.join(sys.argv[1:]) + '\\n')\n"
-                "print('STUB_RAN')\nsys.exit(%d)\n" % exit_code)
-    os.chmod(path, 0o755)
-    return path
+def _qa_claiming(*kinds):
+    """QA_UNCONDITIONAL_PASS whose `kinds:` reports each named kind satisfied."""
+    rows = "".join(f"    - {{ kind: {kind}, state: satisfied, cmd: \"python3 x --kind {kind}\", "
+                   f"named_tests: 2 }}\n" for kind in kinds)
+    return QA_UNCONDITIONAL_PASS.replace("  matrix_ok: true\n",
+                                         "  matrix_ok: true\n  kinds:\n" + rows)
 
 
-def _bug919_fire(stub_path, text=QA_UNCONDITIONAL_PASS, agent="harness-qa", extra_env=None):
-    root = _isolated_root()
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
-    if stub_path is not None:
-        env["RUN_UNIT_TESTS_BIN"] = stub_path
-    else:
-        env.pop("RUN_UNIT_TESTS_BIN", None)
-    if extra_env:
-        env.update(extra_env)
-    payload = {"agent_type": agent, "digest_object": fixture(agent, text)}
-    return subprocess.run([VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
-                          capture_output=True, text=True, env=env)
+QA_PASS_WITH_KINDS = _qa_claiming("unit", "integration")
+QA_BLOCKED_NA = QA_UNCONDITIONAL_PASS.replace("VERDICT: PASS", "VERDICT: BLOCKED").replace(
+    "matrix_ok: true", "matrix_ok: n/a").replace("suite: pass", "suite: n/a")
+QA_FAIL_RED = QA_UNCONDITIONAL_PASS.replace("VERDICT: PASS", "VERDICT: FAIL").replace(
+    "suite: pass", "suite: fail").replace("failures: 0", "failures: 1").replace(
+    "matrix_ok: true", "matrix_ok: false")
+
+RX_FEATURE = "FEAT-2337-rx-fixture"
+RX_FEATURE_REL = ".harness/harness/features/" + RX_FEATURE
+RX_RUN = "validate-validator"
+RX_LEAD, RX_LEAD_ID, RX_QA_ID = "harness-validator-lead", "Rx.Val", "Rx.Val.Qa"
+RX_BIN = ".claude/skills/harness/bin"
+RX_RUNNER_FILES = ("run-unit-tests.py", "harness_boundary.py", "run_identity.py",
+                   "artifact_accessors.py", "suite_layout.py", "run_pool.py")
+RX_PASSING, RX_FAILING = 'print("ok")\n', "raise SystemExit(1)\n"
+RX_SEED_FILES = {"tests/unit/test-u1.py": RX_PASSING, "tests/integration/test-i1.py": RX_PASSING,
+                 "docs/readme.md": "outside the feature\n"}
+RX_PIN_FILES = {"tests/unit/test-u2.py": RX_PASSING}
+RX_TEAM_CONFIG = yaml.safe_dump({"teams": [], "leads": [{
+    "name": RX_LEAD, "squad": "validator", "domain": [
+        {"path": ".harness/*/features/*/runs/*-validator/**", "upsert": True},
+        {"path": ".", "read": True}]}]})
+RX_POLICY = json.dumps({"test_kinds": {
+    "unit": {"cmd": "run-unit-tests.py --kind unit", "status": "active"},
+    "integration": {"cmd": "run-unit-tests.py --kind integration", "status": "active"},
+    "smoke": {"cmd": "smoke.py", "status": "active"}}})
+RX_DURATIONS = json.dumps({"schema": 1, "source_run_url": "https://example.invalid/run/1",
+                           "source_commit": "0" * 40, "default_seconds": 1.0, "weights": {}})
+RX_IGNORE = ("*.lock\n__pycache__/\n.harness/.inflight-claims.json\n"
+             + RX_FEATURE_REL + "/runs/*/qa/\n")
+RX_SCENARIO = "rx-scenario"
+# The trivial argv shim (the #919 stub pattern): every invocation appends its argv to
+# `<shim>.argv`. Installed where the trusted runner lives, it witnesses any fallback run.
+RX_SHIM = ("#!/usr/bin/env python3\nimport sys\n"
+           "open(sys.argv[0] + '.argv', 'a').write(' '.join(sys.argv[1:]) + '\\n')\n"
+           "print('SHIM_RAN')\n")
+PLAN_BASE = "dd04e52a898109fdbe09cf5fa14e1148161734d0"
+RX = []
+_RX_REG = []
 
 
-def _bug919_agree_case(green):
-    r = _bug919_fire(green)
-    return ("independent re-run agrees (exit 0) — accepted", r.returncode == 0,
-            f"exit={r.returncode} stderr={r.stderr!r}")
+def rx(name, ok, detail=""):
+    RX.append((name, ok, detail))
 
 
-def _bug919_disagree_case(red):
-    r = _bug919_fire(red)
-    ok = (r.returncode == 2 and "919" in r.stderr
-          and "independent re-run" in r.stderr.lower())
-    return ("independent re-run disagrees (exit 1) — the false-PASS is refused",
-            ok, f"exit={r.returncode} stderr={r.stderr!r}")
+def _rx_reg():
+    if not _RX_REG:
+        _RX_REG.append(_reg_module())
+    return _RX_REG[0]
 
 
-def _bug919_non_pass_case(green):
-    text = QA_UNCONDITIONAL_PASS.replace(
-        "VERDICT: PASS", "VERDICT: BLOCKED").replace(
-        "matrix_ok: true", "matrix_ok: n/a").replace("suite: pass", "suite: n/a")
-    r = _bug919_fire(green, text=text)
-    ok = r.returncode == 0 and "STUB_RAN" not in (r.stdout + r.stderr)
-    return ("a non-PASS verdict is never re-run — the stub was never asked to run",
-            ok, f"exit={r.returncode} out={r.stdout!r} err={r.stderr!r}")
+def _rx_write_all(root, files):
+    for rel, text in files.items():
+        _mx_write(os.path.join(root, rel), text)
 
 
-def _bug919_missing_script_case(tmp):
-    missing = os.path.join(tmp, "does-not-exist.sh")
-    r = _bug919_fire(missing)
-    ok = r.returncode == 0 and "could not independently re-run" in r.stderr.lower()
-    return ("a missing suite script fails OPEN, loudly — never blocks on our own gap",
-            ok, f"exit={r.returncode} stderr={r.stderr!r}")
+def _rx_run(run_id, **extra):
+    return {"id": run_id, "squad": "validator", "agent": RX_LEAD, "verdict": "PENDING",
+            "started_at": "2026-11-22T00:00:00+00:00", **extra}
 
 
-def _bug919_red_case(red):
-    mutant_source = _bug919_red_mutant()
-    if mutant_source is None:
-        return ("RED proof: with the qa wiring removed, the same false PASS is accepted",
-                False, "INCONCLUSIVE: the qa-wiring anchor was not found by its source text")
-    iso_root = tempfile.mkdtemp()
-    mutant = os.path.join(
-        isolated_bin(iso_root), ".validate-digest-bug919-red-%d.py" % os.getpid())
-    root = _isolated_root()
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root,
-              RUN_UNIT_TESTS_BIN=red)
-    payload = {"agent_type": "harness-qa", "digest_object": fixture("harness-qa", QA_UNCONDITIONAL_PASS)}
+def _rx_register(root, review_sha, runs=None):
+    _mx_write(os.path.join(root, RX_FEATURE_REL, "feature.json"), json.dumps({
+        "feature_id": RX_FEATURE, "review_sha": review_sha,
+        "runs": [_rx_run(RX_RUN)] if runs is None else runs}))
+
+
+def _rx_commit(root, message, files=None, remove=(), moves=()):
+    """One commit staging exactly these paths, so the tracked-dirty feature.json pin stays out."""
+    _rx_write_all(root, files or {})
+    for old, new in moves:
+        os.makedirs(os.path.dirname(os.path.join(root, new)), exist_ok=True)
+        _mx_git(root, "mv", old, new)
+    for rel in remove:
+        _mx_git(root, "rm", "-q", rel)
+    if files:
+        _mx_git(root, "add", "--", *files)
+    _mx_git(root, "commit", "-q", "-m", message)
+    return _mx_git(root, "rev-parse", "HEAD")
+
+
+def _rx_repo(pin_files=None, prefix="vd-rx-"):
+    """A private committed checkout: the production runner, a seed commit, then the PIN commit
+    adding `pin_files`; feature.json registers one open validator run and records the pin.
+    Returns (root, pin)."""
+    root = os.path.realpath(tempfile.mkdtemp(prefix=prefix))
+    os.makedirs(os.path.join(root, RX_BIN))
+    for name in RX_RUNNER_FILES:
+        shutil.copy2(_mx_bin(name), os.path.join(root, RX_BIN, name))
+    _rx_write_all(root, {".harness/team-config.yaml": RX_TEAM_CONFIG,
+                         ".harness/harness.json": RX_POLICY, ".gitignore": RX_IGNORE,
+                         "tests/integration/integration-durations.json": RX_DURATIONS,
+                         **RX_SEED_FILES})
+    _rx_register(root, "none")
+    _mx_git(root, "init", "-q", "-b", "main")
+    _mx_git(root, "add", "-A")
+    _mx_git(root, "commit", "-q", "-m", "seed")
+    pin = _rx_commit(root, "pin", dict(RX_PIN_FILES if pin_files is None else pin_files))
+    _rx_register(root, pin)
+    return root, pin
+
+
+def _rx_receipt(root, kind, run_id=RX_RUN):
+    return os.path.join(root, RX_FEATURE_REL, "runs", run_id, "qa", f"manifest-{kind}.json")
+
+
+def _rx_record(root, kinds=("unit", "integration"), run_id=RX_RUN):
+    """QA's production command, once per kind, at the checkout's HEAD."""
+    shutil.rmtree(os.path.dirname(_rx_receipt(root, "unit", run_id)), ignore_errors=True)
+    for kind in kinds:
+        subprocess.run([sys.executable, os.path.join(root, RX_BIN, "run-unit-tests.py"),
+                        "--kind", kind, "--shard", "1/1", "--manifest",
+                        _rx_receipt(root, kind, run_id)],
+                       cwd=root, capture_output=True, text=True, timeout=120,
+                       env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+
+
+def _rx_repair(root, kind, run_id=RX_RUN):
+    """The exact production repair command the refusal must print."""
+    return (f"python3 {os.path.join(root, RX_BIN, 'run-unit-tests.py')} --kind {kind} "
+            f"--shard 1/1 --manifest {_rx_receipt(root, kind, run_id)}")
+
+
+def _rx_claim(root, qa_id=RX_QA_ID, parent=RX_LEAD_ID, parent_persona=RX_LEAD):
+    reg = _rx_reg()
+    reg.claim_run_start(root, parent_persona, RX_FEATURE, parent, "Rx.Main",
+                        supervisor_pid=os.getpid(), cwd=root)
+    reg.claim_run_start(root, "harness-qa", RX_FEATURE, qa_id, parent,
+                        supervisor_pid=os.getpid(), cwd=root)
+
+
+def _rx_fire(root, text=QA_PASS_WITH_KINDS, agent="harness-qa", env=None, claim=True,
+             validate=None, owner=None, **overrides):
+    """Fire the yield hook as the host does for the fixture's QA run; an override of None
+    drops that payload key."""
+    if claim:
+        _rx_claim(root)
+    payload = {"agent_type": agent, "digest_object": fixture(agent, text), "cwd": root,
+               "harness_feature": RX_FEATURE, "harness_agent_id": RX_QA_ID,
+               "harness_parent_agent_id": RX_LEAD_ID, **overrides}
+    payload = {key: value for key, value in payload.items() if value is not None}
+    return subprocess.run([validate or VALIDATE, "--hook"], input=json.dumps(payload),
+                          capture_output=True, text=True, timeout=HOOK_HANG_BUDGET_S,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=owner or root, **(env or {})))
+
+
+def _rx_expect(label, result, want, needles=()):
+    """Exit `want`; a refusal is a REFUSED receipt refusal naming every needle; an
+    acceptance says nothing about receipts; neither is a crash."""
+    text = result.stderr
+    missing = [needle for needle in needles if needle not in text]
+    refused = "REFUSED" in text
+    ok = (result.returncode == want and not missing and "Traceback" not in text
+          and refused == (want == 2))
+    rx(label, ok, f"exit {result.returncode}; missing {missing!r}: {text.strip()[-1500:]}")
+
+
+def _rx_report(group):
+    fails = 0
+    for name, ok, detail in RX:
+        print(("ok    " if ok else "FAIL  ") + f"[{group}] {name}")
+        if not ok:
+            fails += 1
+            print("      | %s" % (detail,))
+    print(f"\n{len(RX) - fails}/{len(RX)} {group} cases passed.")
+    RX.clear()
+    return fails
+
+
+def _rx_clear(path):
+    if os.path.islink(path) or os.path.isfile(path) or _rx_is_fifo(path):
+        os.remove(path)
+    elif os.path.isdir(path):
+        shutil.rmtree(path)
+
+
+def _rx_is_fifo(path):
     try:
-        _install_mutant(mutant, mutant_source)
-        muted = subprocess.run([mutant, "--hook"], input=json.dumps(_governed(payload)),
-                               capture_output=True, text=True, env=env)
+        return stat.S_ISFIFO(os.lstat(path).st_mode)
+    except FileNotFoundError:
+        return False
+
+
+@contextlib.contextmanager
+def _rx_swapped(path, content):
+    """For one fire, replace a receipt with `content` bytes (None: remove it); restore after."""
+    with open(path, "rb") as handle:
+        original = handle.read()
+    _rx_clear(path)
+    try:
+        if content is not None:
+            with open(path, "wb") as handle:
+                handle.write(content)
+        yield path
     finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
-    real = _bug919_fire(red)
-    ok = (real.returncode == 2 and muted.returncode == 0
-          and "Traceback" not in muted.stderr)
-    detail = f"real={real.returncode} mutant={muted.returncode}: {muted.stderr}"
-    return ("RED proof: with the qa wiring removed, the same false PASS is accepted",
-            ok, detail)
+        _rx_clear(path)
+        with open(path, "wb") as handle:
+            handle.write(original)
 
 
-QA_PASS_WITH_KINDS = QA_UNCONDITIONAL_PASS.replace(
-    "  matrix_ok: true\n",
-    "  matrix_ok: true\n"
-    "  kinds:\n"
-    "    - { kind: unit, state: satisfied, cmd: \"python3 x --kind unit\", named_tests: 40 }\n"
-    "    - { kind: integration, state: satisfied, cmd: \"python3 x --kind integration\", named_tests: 72 }\n")
+def _rx_doc(root, kind="unit"):
+    with open(_rx_receipt(root, kind), encoding="utf-8") as handle:
+        return json.load(handle)
 
 
-def _bug1756_argv(stub):
-    """The argv lines the Python stub recorded, one per invocation."""
+def _rx_edited(root, edit, kind="unit"):
+    doc = _rx_doc(root, kind)
+    edit(doc)
+    return json.dumps(doc).encode()
+
+
+def _rx_entry(doc, path):
+    return next(record for record in doc["completed_files"] if record["path"] == path)
+
+
+def _rx_add(doc, path, returncode=0):
+    doc["selected_files"].append(path)
+    doc["completed_files"].append({"path": path, "returncode": returncode})
+
+
+def _rx_drop(doc, path):
+    doc["selected_files"].remove(path)
+    doc["completed_files"].remove(_rx_entry(doc, path))
+
+
+def _rx_duplicate(doc):
+    doc["selected_files"].append(doc["selected_files"][0])
+    doc["completed_files"].append(dict(doc["completed_files"][0]))
+
+
+def _rx_shim_argv(runner):
     try:
-        with open(stub + ".argv") as f:
-            return [l.rstrip("\n") for l in f if l.strip() or l == "\n"]
+        with open(runner + ".argv", encoding="utf-8") as handle:
+            return [line.rstrip("\n") for line in handle]
     except FileNotFoundError:
         return []
 
 
-def _bug1756_kinds_forwarded_case(green):
-    """SC-01: each claimed kind is one `--kind <k>` run of the Python runner, in order."""
-    r = _bug919_fire(green, text=QA_PASS_WITH_KINDS)
-    argv = _bug1756_argv(green)
-    ok = r.returncode == 0 and argv == ["--kind unit", "--kind integration"]
-    return ("BUG-1756 SC-01: a claim naming unit+integration runs the Python runner once per kind",
-            ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
+@contextlib.contextmanager
+def _rx_shimmed(root):
+    """The trusted runner replaced by the argv shim, restored to the real one afterwards."""
+    runner = os.path.join(root, RX_BIN, "run-unit-tests.py")
+    _bug2253_executable(runner, RX_SHIM)
+    try:
+        yield runner
+    finally:
+        shutil.copy2(_mx_bin("run-unit-tests.py"), runner)
+        _rx_clear(runner + ".argv")
 
 
-def _bug1756_first_failure_stops_case(tmp):
-    """SC-02: a runner that fails on the FIRST kind stops the rerun there — the second kind
-    never runs — and the refusal carries the runner's real tail."""
-    stub = os.path.join(tmp, "stub-fails-on-unit.py")
-    with open(stub, "w") as f:
-        f.write("#!/usr/bin/env python3\nimport sys\n"
-                "open(sys.argv[0] + '.argv', 'a').write(' '.join(sys.argv[1:]) + '\\n')\n"
-                "print('UNIT_TAIL_LINE' if 'unit' in sys.argv else 'INTEGRATION_RAN')\n"
-                "sys.exit(1 if 'unit' in sys.argv else 0)\n")
-    os.chmod(stub, 0o755)
-    r = _bug919_fire(stub, text=QA_PASS_WITH_KINDS)
-    argv = _bug1756_argv(stub)
-    ok = (r.returncode == 2 and argv == ["--kind unit"] and "UNIT_TAIL_LINE" in r.stderr
-          and "INTEGRATION_RAN" not in r.stderr)
-    return ("BUG-1756 SC-02: the first failing kind stops the rerun and its real tail is reported",
-            ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
+def _rx_old_validator():
+    """The plan base's validator, which still re-ran the suite, in an isolated bin; None in a
+    checkout without that history. Only the shim's positive control runs it."""
+    proc = subprocess.run(["git", "-C", REPO_ROOT, "show",
+                           f"{PLAN_BASE}:{RX_BIN}/validate-digest.py"],
+                          capture_output=True, text=True)
+    if proc.returncode != 0:
+        return None
+    old = os.path.join(isolated_bin(tempfile.mkdtemp(prefix="vd-rx-old-")), "validate-digest-old.py")
+    _install_mutant(old, proc.stdout)
+    return old
 
 
-def _bug1756_default_set_case(green):
-    """SC-03: a claim naming no kinds runs the runner once, bare, so its default set governs."""
-    r = _bug919_fire(green)
-    argv = _bug1756_argv(green)
-    ok = r.returncode == 0 and argv and argv[-1] == ""
-    return ("BUG-1756 SC-03: a claim naming no kinds runs the Python runner once with no --kind",
-            ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
+# --- FEAT-2337 group ------------------------------------------------------------------------
+
+def _rx_qa_claimed(root):
+    return bool(_rx_reg().live_claims(root, None, agent_id=RX_QA_ID))
 
 
-def _bug1756_in_process_reverify(green, raising):
-    """SC-04 at the exact seam: load the validator, make `subprocess.run` raise `raising`
-    when it is handed the runner, and call `check_qa_matrix_claim` directly. The directory
-    fixture the c0 review struck never reached `subprocess.run` (os.path.isfile refused it
-    first); this does. Returns (exit_code, stderr_text)."""
-    import importlib.util
-    import io
-    import contextlib
-    spec = importlib.util.spec_from_file_location("_bug1756_validator", VALIDATE)
-    validator = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(validator)
-    real_run = validator.subprocess.run
+def _rx_accept_cases(root, pin):
+    _rx_expect("a PASS whose unit and integration receipts are exact at the pin is accepted",
+               _rx_fire(root), 0)
+    rx("an accepted PASS releases QA's own claim", not _rx_qa_claimed(root))
+    _rx_expect("a dispatch pin agreeing with the registered review_sha is accepted",
+               _rx_fire(root, harness_review_pin=pin), 0)
+    with _rx_swapped(_rx_receipt(root, "integration"), None):
+        _rx_expect("only claimed kinds are read: a unit-only claim needs no integration receipt",
+                   _rx_fire(root, text=_qa_claiming("unit")), 0)
+        _rx_expect("a missing claimed receipt refuses the PASS", _rx_fire(root), 2,
+                   [_rx_receipt(root, "integration") + ": missing",
+                    _rx_repair(root, "integration")])
+        rx("a refused PASS keeps QA's own claim for the retry", _rx_qa_claimed(root))
 
-    def run_or_raise(argv, **kw):
-        if len(argv) > 1 and argv[1] == green:
+
+def _rx_controls():
+    """(label, digest text, persona) of returns the receipt check never reads."""
+    return (("a qa BLOCKED return reads no receipt", QA_BLOCKED_NA, "harness-qa"),
+            ("a failing-verdict qa return reads no receipt", QA_FAIL_RED, "harness-qa"),
+            ("a non-qa persona reads no receipt", DEV_NA, "harness-backend-dev"))
+
+
+def _rx_control_cases(root):
+    with _rx_swapped(_rx_receipt(root, "unit"), None), \
+            _rx_swapped(_rx_receipt(root, "integration"), None):
+        for label, text, agent in _rx_controls():
+            _rx_expect(label, _rx_fire(root, text=text, agent=agent), 0)
+        for label, text in (("a PASS naming no kind is refused — no default to every kind",
+                             QA_UNCONDITIONAL_PASS),
+                            ("an unsupported kind cannot stand in for unit or integration",
+                             _qa_claiming("smoke"))):
+            _rx_expect(label, _rx_fire(root, text=text), 2,
+                       ["names no satisfied unit or integration kind",
+                        _rx_repair(root, "unit"), _rx_repair(root, "integration")])
+
+
+# (label, edit of the runner-generated unit receipt, diagnostic needle)
+RX_DOC_TAMPERS = (
+    ("schema 2", lambda d: d.update(schema=2), "schema must be 1"),
+    ("an integration manifest under the unit name", lambda d: d.update(kind="integration"),
+     "kind 'integration' is not unit"),
+    ("shard 2/2", lambda d: d.update(shard_index=2, shard_count=2), "shard_count 2 is not 1"),
+    ("shard index 0", lambda d: d.update(shard_index=0), "shard_index 0 outside 1..1"),
+    ("a red runner exit", lambda d: d.update(runner_exit=1), "runner_exit 1"),
+    ("a string runner exit", lambda d: d.update(runner_exit="0"), "runner_exit must be an integer"),
+    ("a boolean record exit", lambda d: _rx_entry(d, "tests/unit/test-u1.py").update(
+        returncode=False), "returncode must be an integer"),
+    ("a red record", lambda d: _rx_entry(d, "tests/unit/test-u2.py").update(returncode=1),
+     "tests/unit/test-u2.py returned 1"),
+    ("an omitted file", lambda d: _rx_drop(d, "tests/unit/test-u2.py"),
+     "tests/unit/test-u2.py: omitted"),
+    ("a selection with no completed record", lambda d: d["completed_files"].pop(),
+     "selected but has no completed record"),
+    ("an extra file", lambda d: _rx_add(d, "tests/unit/test-extra.py"),
+     "tests/unit/test-extra.py: unexpected"),
+    ("a duplicate record", _rx_duplicate, "duplicated within shard 1"),
+    ("an abbreviated tested_commit", lambda d: d.update(tested_commit=d["tested_commit"][:12]),
+     "is not the supplied"),
+    ("an option-like tested_commit", lambda d: d.update(tested_commit="--all"), "does not resolve"),
+    ("an unknown tested_commit", lambda d: d.update(tested_commit="f" * 40), "does not resolve"),
+    ("a non-string tested_commit", lambda d: d.update(tested_commit=None),
+     "tested_commit must be a string"),
+)
+# (label, receipt bytes, diagnostic needle)
+RX_RAW_TAMPERS = (
+    ("malformed JSON", b"{not json", "malformed JSON"),
+    ("a non-object document", b"[1]", "manifest must be a JSON object"),
+    ("undecodable bytes", b"\xff\xfe", "malformed JSON"),
+)
+
+
+def _rx_tamper_cases(root):
+    path = _rx_receipt(root, "unit")
+    rows = [(label, _rx_edited(root, edit), needle) for label, edit, needle in RX_DOC_TAMPERS]
+    # A repeated key is not the runner's output: a lenient decode keeps the LAST value, so a
+    # stale `runner_exit: 1` ahead of the green one would read as green. Strict decoding refuses.
+    duplicated = b'{"runner_exit": 1, ' + json.dumps(_rx_doc(root, "unit")).encode()[1:]
+    rows.append(("a duplicated key", duplicated, "malformed JSON"))
+    for label, content, needle in rows + list(RX_RAW_TAMPERS):
+        with _rx_swapped(path, content):
+            _rx_expect(f"{label} refuses the PASS", _rx_fire(root), 2,
+                       [path, needle, _rx_repair(root, "unit")])
+
+
+def _rx_link_elsewhere(path, data):
+    target = path + ".elsewhere"
+    with open(target, "wb") as handle:
+        handle.write(data)
+    os.symlink(target, path)
+
+
+def _rx_path_cases(root):
+    path, data = _rx_receipt(root, "unit"), _rx_edited(root, lambda d: None)
+    rows = (("a missing receipt", lambda p: None, "missing"),
+            ("a directory at the receipt path", os.makedirs, "unreadable"),
+            ("a FIFO at the receipt path", os.mkfifo, "unreadable"),
+            ("a symlinked receipt", lambda p: _rx_link_elsewhere(p, data), "unsafe receipt path"))
+    for label, plant, needle in rows:
+        with _rx_swapped(path, None):
+            plant(path)
+            _rx_expect(f"{label} refuses the PASS", _rx_fire(root), 2,
+                       [path, needle, _rx_repair(root, "unit")])
+        _rx_clear(path + ".elsewhere")
+
+
+def _rx_symlinked_qa_case(root):
+    qa_dir = os.path.dirname(_rx_receipt(root, "unit"))
+    elsewhere = os.path.join(tempfile.mkdtemp(prefix="vd-rx-qa-"), "qa")
+    shutil.move(qa_dir, elsewhere)
+    os.symlink(elsewhere, qa_dir)
+    try:
+        _rx_expect("a symlinked qa directory refuses the PASS", _rx_fire(root), 2,
+                   ["unsafe receipt path", _rx_repair(root, "unit")])
+    finally:
+        os.remove(qa_dir)
+        shutil.move(elsewhere, qa_dir)
+
+
+def _rx_elsewhere_cases(root):
+    """Receipts anywhere but this registered run's qa/ — another run, another checkout named
+    by the digest's artifact — never stand in for the trusted ones."""
+    foreign, _pin = _rx_repo(prefix="vd-rx-foreign-")
+    other_run = os.path.dirname(_rx_receipt(root, "unit", "validate-c9-validator"))
+    try:
+        _rx_record(foreign)
+        shutil.copytree(os.path.dirname(_rx_receipt(root, "unit")), other_run)
+        artifact = fixture("harness-qa", QA_PASS_WITH_KINDS)
+        artifact["artifact"] = _rx_receipt(foreign, "unit")
+        with _rx_swapped(_rx_receipt(root, "unit"), None):
+            for label, text in (("a receipt in another run's directory", QA_PASS_WITH_KINDS),
+                                ("a digest artifact naming another checkout's receipt", artifact)):
+                _rx_expect(f"{label} is not this run's receipt", _rx_fire(root, text=text), 2,
+                           [_rx_receipt(root, "unit") + ": missing", _rx_repair(root, "unit")])
+    finally:
+        shutil.rmtree(foreign, ignore_errors=True)
+        shutil.rmtree(os.path.dirname(other_run), ignore_errors=True)
+
+
+def _rx_parent_not_validator(root):
+    _rx_claim(root, "Rx.Eng.Qa", "Rx.Eng", "harness-eng-lead")
+    return _rx_fire(root, claim=False, harness_agent_id="Rx.Eng.Qa",
+                    harness_parent_agent_id="Rx.Eng")
+
+
+def _rx_identity_fires(root, seed):
+    return (
+        ("a payload with no parent id", _rx_fire(root, harness_parent_agent_id=None),
+         "no exact feature, runtime id and parent"),
+        ("a parent the live claim does not record", _rx_fire(
+            root, harness_parent_agent_id="Rx.Other"), "another persona, checkout or parent"),
+        ("a QA run whose parent is not the validator lead", _rx_parent_not_validator(root),
+         "is not a live harness-validator-lead run"),
+        ("a runtime with no live claim", _rx_fire(root, claim=False,
+                                                  harness_agent_id="Rx.Ghost"),
+         "no live claim binds runtime Rx.Ghost"),
+        ("a dispatch pin disagreeing with review_sha", _rx_fire(root, harness_review_pin=seed),
+         "harness_review_pin"),
+    )
+
+
+def _rx_registration_rows(pin):
+    unique = "exactly one matching open registered lead run"
+    return (("no open validator run", pin, [], unique),
+            ("an ended validator run", pin, [_rx_run(RX_RUN, ended_at="2026-11-22T01:00:00Z")],
+             unique),
+            ("two open validator runs", pin, [_rx_run(RX_RUN), _rx_run("validate-c1-validator")],
+             unique),
+            ("an unpinned feature", "none", None, "no pinned review_sha"),
+            ("an unresolvable review_sha", "f" * 40, None, "does not resolve"))
+
+
+def _rx_identity_cases(root, pin):
+    seed = _mx_git(root, "rev-parse", pin + "^")
+    for label, result, needle in _rx_identity_fires(root, seed):
+        _rx_expect(f"{label} refuses the PASS", result, 2, [needle, "--shard 1/1 --manifest"])
+    try:
+        for label, review, runs, needle in _rx_registration_rows(pin):
+            _rx_register(root, review, runs)
+            _rx_expect(f"{label} refuses the PASS", _rx_fire(root), 2,
+                       [needle, "--shard 1/1 --manifest"])
+    finally:
+        _rx_register(root, pin)
+
+
+def _rx_old_validator_control(root, runner, env):
+    old = _rx_old_validator()
+    if old is None:
+        return
+    _rx_fire(root, validate=old, env=env)
+    argv = _rx_shim_argv(runner)
+    rx("positive control: the pre-FEAT-2337 validator's rerun is recorded by the shim",
+       argv == ["--kind unit", "--kind integration"], repr(argv))
+    _rx_clear(runner + ".argv")
+
+
+def _rx_shim_cases(root):
+    """Zero fallback runner invocations, witnessed by the argv shim at the trusted runner path
+    (its directory also first on PATH), with positive controls proving the shim records runs."""
+    with _rx_shimmed(root) as runner:
+        env = {"PATH": os.path.dirname(runner) + os.pathsep + os.environ.get("PATH", "")}
+        subprocess.run([sys.executable, runner, "--kind", "unit"], capture_output=True, timeout=30)
+        control = _rx_shim_argv(runner)
+        rx("positive control: the argv shim records a direct runner invocation",
+           control == ["--kind unit"], repr(control))
+        _rx_clear(runner + ".argv")
+        _rx_old_validator_control(root, runner, env)
+        _rx_expect("an accepted PASS is decided from receipts alone", _rx_fire(root, env=env), 0)
+        with _rx_swapped(_rx_receipt(root, "unit"), None):
+            refused = _rx_fire(root, env=env)
+        _rx_expect("a refused PASS is refused, never retried by running the suite", refused, 2,
+                   [_rx_repair(root, "unit")])
+        argv = _rx_shim_argv(runner)
+        rx("zero runner invocations across the accepted and refused returns", argv == [],
+           repr(argv))
+    rx("a receipt refusal is a refusal, never an unavailable outcome",
+       not _unavailable_gates(refused), refused.stdout)
+
+
+def _rx_ledger_merge(root, pin):
+    _rx_commit(root, "ledger a", {RX_FEATURE_REL + "/notes/a.md": "a\n"})
+    _mx_git(root, "checkout", "-q", "-B", "rx-side", pin)
+    _rx_commit(root, "ledger b", {RX_FEATURE_REL + "/notes/b.md": "b\n"})
+    _mx_git(root, "checkout", "-q", RX_SCENARIO)
+    _mx_git(root, "merge", "-q", "--no-ff", "-m", "merge ledger", "rx-side")
+
+
+def _rx_merge_code(root, pin):
+    _rx_commit(root, "ledger", {RX_FEATURE_REL + "/notes/a.md": "a\n"})
+    _mx_git(root, "checkout", "-q", "-B", "rx-side", pin)
+    _rx_commit(root, "code", {"src/app.py": "x = 1\n"})
+    _mx_git(root, "checkout", "-q", RX_SCENARIO)
+    _mx_git(root, "merge", "-q", "--no-ff", "-m", "merge code", "rx-side")
+
+
+def _rx_change_revert(root, pin):
+    _rx_commit(root, "code", {"src/app.py": "x = 1\n"})
+    _rx_commit(root, "revert", remove=("src/app.py",))
+
+
+def _rx_at_seed(root, pin, files=None):
+    _mx_git(root, "checkout", "-q", "-B", RX_SCENARIO, pin + "^")
+    if files:
+        _rx_commit(root, "divergent ledger", files)
+
+
+# (label, build(root, pin), record before building, exit, needles)
+RX_LINEAGE = (
+    ("a ledger-only descendant is accepted", lambda r, p: _rx_commit(
+        r, "ledger", {RX_FEATURE_REL + "/notes/qa.md": "qa\n"}), False, 0, ()),
+    ("a merge of ledger-only lines is accepted", _rx_ledger_merge, False, 0, ()),
+    ("HEAD moving past an exact-pin receipt does not move its expectation", lambda r, p: _rx_commit(
+        r, "later code", {"src/later.py": "y = 2\n"}), True, 0, ()),
+    ("a code change after the pin is refused", lambda r, p: _rx_commit(
+        r, "code", {"src/app.py": "x = 1\n"}), False, 2, ("src/app.py", "outside")),
+    ("another feature's ledger change is refused", lambda r, p: _rx_commit(
+        r, "foreign", {".harness/harness/features/FEAT-9-other/notes/x.md": "x\n"}), False, 2,
+     (".harness/harness/features/FEAT-9-other/notes/x.md",)),
+    ("a separator-less prefix sibling is not the feature directory", lambda r, p: _rx_commit(
+        r, "sibling", {RX_FEATURE_REL + "-shadow/notes/x.md": "x\n"}), False, 2,
+     (RX_FEATURE_REL + "-shadow/notes/x.md",)),
+    ("a code change followed by its revert is not ledger-only", _rx_change_revert, False, 2,
+     ("src/app.py",)),
+    ("a rename into the feature directory still changes its source", lambda r, p: _rx_commit(
+        r, "move", moves=(("docs/readme.md", RX_FEATURE_REL + "/notes/readme.md"),)), False, 2,
+     ("docs/readme.md",)),
+    ("a merge bringing in a code commit is refused", _rx_merge_code, False, 2, ("src/app.py",)),
+    ("an older commit than the pin is refused", _rx_at_seed, False, 2, ("is not review_sha",)),
+    ("a divergent commit is refused", lambda r, p: _rx_at_seed(
+        r, p, {RX_FEATURE_REL + "/notes/d.md": "d\n"}), False, 2, ("is not review_sha",)),
+    ("an untracked working-tree test the runner picked up is unexpected", lambda r, p: _mx_write(
+        os.path.join(r, "tests/unit/test-extra.py"), RX_PASSING), False, 2,
+     ("tests/unit/test-extra.py: unexpected",)),
+)
+
+
+def _rx_lineage_case(root, pin, row):
+    label, build, record_first, want, needles = row
+    _mx_git(root, "checkout", "-q", "-B", RX_SCENARIO, pin)
+    _mx_git(root, "clean", "-fdq")
+    if record_first:
+        _rx_record(root)
+    build(root, pin)
+    if not record_first:
+        _rx_record(root)
+    repair = [_rx_repair(root, "unit")] if want == 2 else []
+    _rx_expect(label, _rx_fire(root), want, list(needles) + repair)
+
+
+# FEAT-2337 fix-run ruling (notes/answers-2026-11-22-fix-run-receipts.md): a fix run is the
+# registered run id `fix-c<N>-validator` AND the dispatch-forwarded harness_mission `fix`.
+RX_FIX_RUN = "2026-11-22-01-fix-c1-validator"
+RX_MISSION = "harness_mission"
+
+
+def _rx_code(root, pin):
+    _rx_commit(root, "code", {"src/app.py": "x = 1\n"})
+
+
+def _rx_dirt(rel, text="uncommitted\n"):
+    return lambda root, pin: _mx_write(os.path.join(root, rel), text)
+
+
+# (label, registered run id, harness_mission, before recording, after recording, exit, needles)
+RX_FIX = (
+    ("a fix run whose code-changing descendant is HEAD is accepted", RX_FIX_RUN, "fix",
+     _rx_code, None, 0, ()),
+    ("a fix run recorded at the exact pin is accepted", RX_FIX_RUN, "fix", None, None, 0, ()),
+    ("a fix run's uncommitted note in its own feature directory is accepted", RX_FIX_RUN, "fix",
+     _rx_code, _rx_dirt(RX_FEATURE_REL + "/notes/fix.md"), 0, ()),
+    ("a fix run whose tested_commit is not HEAD is refused", RX_FIX_RUN, "fix", _rx_code,
+     lambda r, p: _rx_commit(r, "later", {"src/later.py": "y = 2\n"}), 2,
+     ("is not the checkout's HEAD",)),
+    ("a fix run on history divergent from the pin is refused", RX_FIX_RUN, "fix",
+     lambda r, p: _rx_at_seed(r, p, {"src/app.py": "x = 1\n"}), None, 2, ("is not an ancestor",)),
+    ("a fix run with a modified tracked file is refused", RX_FIX_RUN, "fix", _rx_code,
+     _rx_dirt("docs/readme.md"), 2, ("not clean", "docs/readme.md")),
+    ("a fix run with an untracked file is refused", RX_FIX_RUN, "fix", _rx_code,
+     _rx_dirt("src/scratch.py"), 2, ("not clean", "src/scratch.py")),
+    ("a validate-slug run with code changes is still refused", RX_RUN, None, _rx_code, None, 2,
+     ("src/app.py", "outside")),
+    ("a validate-slug run dispatched as validate with code changes is still refused", RX_RUN,
+     "validate", _rx_code, None, 2, ("src/app.py", "outside")),
+    ("a fix slug whose dispatch carries no mission is refused", RX_FIX_RUN, None, _rx_code, None,
+     2, (RX_MISSION, RX_FIX_RUN)),
+    ("a fix slug dispatched as validate is refused", RX_FIX_RUN, "validate", _rx_code, None, 2,
+     (RX_MISSION, "'validate'")),
+    ("a validate slug dispatched as fix is refused", RX_RUN, "fix", _rx_code, None, 2,
+     (RX_MISSION, RX_RUN)),
+    ("a fix mission on a run id without the fix- token is refused",
+     "2026-11-22-01-hotfix-c1-validator", "fix", _rx_code, None, 2, (RX_MISSION, "hotfix")),
+)
+
+
+def _rx_fix_case(root, pin, row):
+    label, run_id, mission, before, after, want, needles = row
+    _mx_git(root, "checkout", "-q", "-B", RX_SCENARIO, pin)
+    _mx_git(root, "clean", "-fdq")
+    _rx_register(root, pin, [_rx_run(run_id)])
+    try:
+        for step in (before, _rx_recorder(run_id), after):
+            (step or (lambda r, p: None))(root, pin)
+        repair = [_rx_repair(root, "unit", run_id)] if want == 2 else []
+        _rx_expect(label, _rx_fire(root, harness_mission=mission), want, list(needles) + repair)
+    finally:
+        _mx_git(root, "checkout", "-q", "--", "docs")
+        _rx_register(root, pin)
+
+
+def _rx_recorder(run_id):
+    return lambda root, pin: _rx_record(root, run_id=run_id)
+
+
+def run_feat2337_qa_receipt_cases():
+    """FEAT-2337 SC-05/06/07: trusted exact-coverage receipts replace the #919 rerun; a fix run
+    (fix-c<N>-validator AND harness_mission fix) binds its receipts to the clean HEAD instead."""
+    root, pin = _rx_repo()
+    try:
+        _rx_record(root)
+        _rx_accept_cases(root, pin)
+        _rx_control_cases(root)
+        _rx_tamper_cases(root)
+        _rx_path_cases(root)
+        _rx_symlinked_qa_case(root)
+        _rx_elsewhere_cases(root)
+        _rx_identity_cases(root, pin)
+        _rx_shim_cases(root)
+        for row in RX_LINEAGE:
+            _rx_lineage_case(root, pin, row)
+        for row in RX_FIX:
+            _rx_fix_case(root, pin, row)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return _rx_report("feat2337")
+
+
+# --- #919 / BUG-1756, migrated: the same claims, decided from receipts -------------------------
+
+def _bug919_red_case(root):
+    """RED proof: with the qa wiring removed, the same unproven PASS is accepted."""
+    label = "RED proof: with the qa wiring removed, the same unproven PASS is accepted"
+    mutant_source = _bug919_red_mutant()
+    if mutant_source is None:
+        rx(label, False, "INCONCLUSIVE: the qa-wiring anchor was not found by its source text")
+        return
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(isolated_bin(iso_root), ".validate-digest-bug919-red-%d.py" % os.getpid())
+    try:
+        _install_mutant(mutant, mutant_source)
+        muted = _rx_fire(root, text=_qa_claiming("unit"), validate=mutant)
+    finally:
+        shutil.rmtree(iso_root, ignore_errors=True)
+    real = _rx_fire(root, text=_qa_claiming("unit"))
+    rx(label, real.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr,
+       f"real={real.returncode} mutant={muted.returncode}: {muted.stderr[-400:]}")
+
+
+def _bug919_git_failure(root, raising):
+    """check_qa_matrix_claim in process while every git call raises `raising`."""
+    validator = _load_validator("_bug919_git_failure")
+    validator._root_or_none = lambda: root
+    real_run = subprocess.run
+
+    def run_or_raise(argv, *args, **kwargs):
+        if argv and argv[0] == "git":
             raise raising
-        return real_run(argv, **kw)
+        return real_run(argv, *args, **kwargs)
 
-    validator.subprocess.run = run_or_raise
+    _rx_claim(root)
     err = io.StringIO()
-    with contextlib.redirect_stderr(err):
-        try:
-            code = validator.check_qa_matrix_claim(
-                "harness-qa", fixture("harness-qa", QA_PASS_WITH_KINDS), {"harness_feature": None})
-        except Exception as exc:  # the fail-open contract broken: a crash, not a verdict
-            return None, f"{err.getvalue()}RAISED {type(exc).__name__}: {exc}"
+    subprocess.run = run_or_raise
+    try:
+        with contextlib.redirect_stderr(err):
+            code = validator.check_qa_matrix_claim("harness-qa", fixture(
+                "harness-qa", QA_PASS_WITH_KINDS), {"harness_feature": RX_FEATURE,
+                                                     "harness_agent_id": RX_QA_ID,
+                                                     "harness_parent_agent_id": RX_LEAD_ID})
+    finally:
+        subprocess.run = real_run
     return code, err.getvalue()
 
 
-def _bug1756_spawn_error_case(green):
-    """SC-04: an OSError raised BY the spawn (not by a missing file) fails OPEN with the
-    'could not independently re-run' line and exit 0, never a block or a traceback."""
-    os.environ["RUN_UNIT_TESTS_BIN"] = green
-    try:
-        code, err = _bug1756_in_process_reverify(green, OSError(8, "Exec format error"))
-    finally:
-        os.environ.pop("RUN_UNIT_TESTS_BIN", None)
-    ok = code == 0 and "could not independently re-run" in err.lower()
-    return ("BUG-1756 SC-04: a spawn OSError fails OPEN, loudly", ok, f"exit={code} stderr={err!r}")
+def _bug919_evidence_failure_cases(root):
+    """BUG-1756 SC-04, migrated: an evidence failure is invalid evidence — a refusal naming the
+    repair, never a crash and never the old loud fail-open pass."""
+    for label, raising in (("a git spawn OSError", OSError(8, "Exec format error")),
+                           ("a git timeout", subprocess.TimeoutExpired(["git"], 60))):
+        code, err = _bug919_git_failure(root, raising)
+        rx(f"BUG-1756 SC-04, migrated: {label} while reading receipts refuses, never fails open",
+           code == 2 and "could not be read" in err and _rx_repair(root, "unit") in err,
+           f"exit={code} stderr={err[-600:]!r}")
 
 
-def _bug1756_timeout_case(green):
-    """SC-04: a runner that exceeds the re-run timeout (subprocess.TimeoutExpired) fails
-    OPEN the same way — the gate never hangs the return and never blocks on its own gap."""
-    os.environ["RUN_UNIT_TESTS_BIN"] = green
-    try:
-        code, err = _bug1756_in_process_reverify(
-            green, subprocess.TimeoutExpired([sys.executable, green], 1800))
-    finally:
-        os.environ.pop("RUN_UNIT_TESTS_BIN", None)
-    ok = code == 0 and "could not independently re-run" in err.lower()
-    return ("BUG-1756 SC-04: a re-run timeout fails OPEN, loudly", ok, f"exit={code} stderr={err!r}")
-
-
-def _report_bug919_results(cases):
-    fails = 0
-    for name, ok, detail in cases:
-        if ok:
-            print(f"ok    [bug919] {name}")
-        else:
-            fails += 1
-            print(f"FAIL  [bug919] {name}\n      | {detail}")
-    print(f"\n{len(cases) - fails}/{len(cases)} bug919 qa-matrix-reverify cases passed.")
-    return fails
+def _bug919_kind_cases(root):
+    _rx_expect("BUG-1756 SC-01, migrated: a unit-only claim reads only the unit receipt",
+               _rx_fire(root, text=_qa_claiming("unit")), 0)
+    with _rx_swapped(_rx_receipt(root, "unit"), _rx_edited(
+            root, lambda d: _rx_entry(d, "tests/unit/test-u2.py").update(returncode=1))):
+        _rx_expect("BUG-1756 SC-02, migrated: every red kind is named, not only the first",
+                   _rx_fire(root), 2, ["tests/unit/test-u2.py returned 1",
+                                       "tests/integration/test-i2.py returned 1",
+                                       _rx_repair(root, "unit"), _rx_repair(root, "integration")])
+    _rx_expect("BUG-1756 SC-03, migrated: a claim naming no kinds is refused, not defaulted",
+               _rx_fire(root, text=QA_UNCONDITIONAL_PASS), 2,
+               ["names no satisfied unit or integration kind", _rx_repair(root, "integration")])
 
 
 def run_bug919_qa_matrix_cases():
-    """Issue #919: an unconditional qa PASS (VERDICT: PASS, suite: pass, matrix_ok:
-    true) is independently re-verified against a real run of the suite, rather than
-    trusted on the strength of the self-report alone."""
-    tmp = tempfile.mkdtemp(prefix="vd-bug919-")
-    os.makedirs(os.path.join(tmp, "k"))
-    green = _bug919_stub_script(tmp, 0)
-    red = _bug919_stub_script(tmp, 1)
-    cases = [
-        _bug919_agree_case(green),
-        _bug919_disagree_case(red),
-        _bug919_non_pass_case(green),
-        _bug919_missing_script_case(tmp),
-        _bug919_red_case(red),
-        _bug1756_default_set_case(green),
-        _bug1756_kinds_forwarded_case(_bug919_stub_script(os.path.join(tmp, "k"), 0)),
-        _bug1756_first_failure_stops_case(tmp),
-        _bug1756_spawn_error_case(green),
-        _bug1756_timeout_case(green),
-    ]
-    return _report_bug919_results(cases)
+    """Issue #919, migrated by FEAT-2337: agreement, disagreement, non-PASS, missing evidence
+    and the qa wiring, now asserted as receipt outcomes. The pin's integration test is red,
+    so the runner itself records the disagreement."""
+    root, _pin = _rx_repo({"tests/unit/test-u2.py": RX_PASSING,
+                           "tests/integration/test-i2.py": RX_FAILING})
+    try:
+        _rx_record(root)
+        _rx_expect("#919 agreement: a green receipt for every claimed kind is accepted",
+                   _rx_fire(root, text=_qa_claiming("unit")), 0)
+        _rx_expect("#919 disagreement: the runner's own red receipt refuses the false PASS",
+                   _rx_fire(root), 2, ["tests/integration/test-i2.py returned 1", "runner_exit 1",
+                                       _rx_repair(root, "integration")])
+        _rx_expect("#919 non-PASS: a BLOCKED return reads no receipt",
+                   _rx_fire(root, text=QA_BLOCKED_NA), 0)
+        with _rx_swapped(_rx_receipt(root, "unit"), None):
+            _rx_expect("#919 missing evidence refuses — a missing receipt never fails open",
+                       _rx_fire(root, text=_qa_claiming("unit")), 2,
+                       [_rx_receipt(root, "unit") + ": missing", _rx_repair(root, "unit")])
+            _bug919_red_case(root)
+        _bug919_kind_cases(root)
+        _bug919_evidence_failure_cases(root)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return _rx_report("bug919")
+
+
+def _rx_worktree(root, name, ref, branch=None):
+    path = os.path.join(os.path.dirname(root), name)
+    _mx_git(root, "worktree", "add", "-q", *(("-b", branch) if branch else ("--detach",)),
+            path, ref)
+    return os.path.realpath(path)
 
 
 def run_bug919_resolve_fallback_case():
-    """Code review of #1185, Finding 1 (high): a named feature whose worktree lookup
-    FAILS must resolve to None, never silently substitute owner_root — run-unit-tests.py
-    is a static, always-present path, so a wrong-root substitution here never 404s; it
-    just silently re-runs the suite against the wrong checkout and reports that
-    mismatched result as though it verified the claim."""
-    if HERE not in sys.path:
-        sys.path.insert(0, HERE)
-    import inflight_registry
-    spec = importlib.util.spec_from_file_location("_bug919_fallback_validator", VALIDATE)
-    validator = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(validator)
-
-    original_root_fn = validator._root_or_none
-    original_feature_root = inflight_registry.feature_root
-    validator._root_or_none = lambda: "/some/owner/root"
-    # FEAT-65: the lookup's own boundary class, not an arbitrary one — the fallback is
-    # typed now, and an unrelated exception is a defect that reaches hook_guard instead.
-    def _raise(root, feature):
-        raise OSError("no unambiguous worktree for %r" % feature)
-    inflight_registry.feature_root = _raise
-    saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    """Code review of #1185, migrated: a named feature whose checkout lookup FAILS (two
+    worktrees match it) refuses the PASS — it never falls back to the owner checkout, whose
+    receipts here are valid and would otherwise have accepted it."""
+    holder = os.path.realpath(tempfile.mkdtemp(prefix="vd-rx-ambiguous-"))
+    root, _pin = _rx_repo(prefix=os.path.join(holder, "owner-"))
     try:
-        resolved = validator._resolve_run_unit_tests_bin(
-            {"harness_feature": "some-ambiguous-feature"})
+        _rx_record(root)
+        _rx_expect("#1185: the owner checkout's receipts accept the PASS before the ambiguity",
+                   _rx_fire(root), 0)
+        for name in ("FEAT-2337", "FEAT-2337-rx"):
+            _rx_worktree(root, name, "HEAD")
+        _rx_expect("#1185: an ambiguous feature checkout refuses, never substitutes the owner",
+                   _rx_fire(root), 2, ["cannot resolve the feature checkout",
+                                       "--shard 1/1 --manifest"])
     finally:
-        validator._root_or_none = original_root_fn
-        inflight_registry.feature_root = original_feature_root
-        if saved_env is not None:
-            os.environ["RUN_UNIT_TESTS_BIN"] = saved_env
-    ok = resolved is None
-    if ok:
-        print("ok    [bug919] a feature_root lookup failure resolves to None, "
-              "never a silent owner_root substitution")
-    else:
-        print(f"FAIL  [bug919] a feature_root lookup failure resolves to None, "
-              f"never a silent owner_root substitution\n      | got {resolved!r}")
-    print("\n%d/1 bug919 fallback-resolution cases passed." % (1 if ok else 0,))
-    return 0 if ok else 1
+        shutil.rmtree(holder, ignore_errors=True)
+    return _rx_report("bug919/#1185")
+
+
+def _rx_feature_checkout(root, pin):
+    """The feature's own linked checkout (named for it), pinned, claimed and receipted there;
+    the owner's claims are released first, so each runtime is bound in exactly one registry."""
+    checkout = _rx_worktree(root, RX_FEATURE, pin, branch="feat/rx")
+    for runtime in (RX_QA_ID, RX_LEAD_ID):
+        _rx_reg().release(root, feature=RX_FEATURE, agent_id=runtime)
+    _rx_register(checkout, pin)
+    _rx_record(checkout)
+    _rx_claim(checkout)
+    return checkout
 
 
 def run_bug919_resolve_by_artifact_case():
-    """#1883, second site: the #919 re-run resolved the feature's checkout by WORKTREE NAME
-    and `feature_root` substitutes the owner root when no worktree is named after the
-    feature — the exact silent wrong-checkout re-run the docstring above refuses. Measured
-    2026-09-22: a qa re-return for FEAT-63 from a branch worktree named `process-gaps` was
-    re-run against the owner checkout on a stale branch and refused on THAT tree's failure.
-    The digest's own artifact line names the checkout; when it lies inside a linked
-    worktree, that worktree's runner is the one to re-run."""
-    spec = importlib.util.spec_from_file_location("_bug919_artifact_validator", VALIDATE)
-    validator = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(validator)
-    owner = tempfile.mkdtemp(prefix="vd-919-owner-")
-    os.makedirs(os.path.join(owner, ".harness"), exist_ok=True)
-    worktree = _linked_worktree_fixture(owner, "process-gaps")
-    artifact = (f"{worktree}/.harness/harness/features/FEAT-96-thing/notes/"
-                f"review-harness-qa-c2.md")
-    original_root_fn = validator._root_or_none
-    validator._root_or_none = lambda: owner
-    saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    """#1883, migrated: the receipts read are the trusted feature checkout's — the linked
+    worktree named for the feature — never the owner checkout's, and never the checkout a
+    digest's artifact names."""
+    holder = os.path.realpath(tempfile.mkdtemp(prefix="vd-rx-1883-"))
+    root, pin = _rx_repo(prefix=os.path.join(holder, "owner-"))
     try:
-        resolved = validator._resolve_run_unit_tests_bin(
-            {"harness_feature": "FEAT-96-thing"}, artifact)
+        bystander = _rx_worktree(root, "process-gaps", pin)
+        _rx_register(bystander, pin)
+        _rx_record(bystander)
+        artifact = fixture("harness-qa", QA_PASS_WITH_KINDS)
+        artifact["artifact"] = os.path.join(bystander, RX_FEATURE_REL, "notes", "qa.md")
+        _rx_expect("#1883: an artifact in another worktree of the family lends it no receipts",
+                   _rx_fire(root, text=artifact), 2, [_rx_receipt(root, "unit") + ": missing"])
+        checkout = _rx_feature_checkout(root, pin)
+        _rx_expect("#1883: the feature's own linked checkout supplies its receipts",
+                   _rx_fire(checkout, claim=False, owner=root), 0)
     finally:
-        validator._root_or_none = original_root_fn
-        if saved_env is not None:
-            os.environ["RUN_UNIT_TESTS_BIN"] = saved_env
-        shutil.rmtree(owner, ignore_errors=True)
-    expected = os.path.join(worktree, ".claude", "skills", "harness", "bin", "run-unit-tests.py")
-    ok = resolved is not None and os.path.realpath(resolved) == os.path.realpath(expected)
-    label = ("[bug919/#1883] the re-run resolves to the linked worktree holding the "
-             "digest's artifact, not the owner root")
-    print(f"ok    {label}" if ok else f"FAIL  {label}\n      | got {resolved!r}")
-    return 0 if ok else 1
+        shutil.rmtree(holder, ignore_errors=True)
+    return _rx_report("bug919/#1883")
 
 
 # --- DEC-173: "nothing happened" must have a truthful encoding -----------------
@@ -3037,11 +3551,37 @@ def _replace_feature_registration(record, contents):
         _write_verification_brief(record, contents)
 
 
+# FEAT-2337: these fixtures carry no runner receipts, so an unconditional qa PASS that the
+# digest contract accepts is then refused by the #919 receipt check alone. A corrupted record or
+# checkout must be refused BEFORE that check, or the refusal would prove nothing.
+RECEIPT_REFUSAL = "its runner receipts do not establish the claim"
+
+
+def _reaches_receipt_check(result):
+    """The contract accepted the qa PASS; only the receipt check refused it."""
+    return (result.returncode == 2 and RECEIPT_REFUSAL in result.stderr
+            and "does not satisfy the digest contract" not in result.stderr)
+
+
+def _refused_before_receipts(result, agent="harness-qa"):
+    """Exit 2 decided by the contract or identity, never merely by the absent receipts."""
+    return result.returncode == 2 and (agent != "harness-qa" or RECEIPT_REFUSAL not in result.stderr)
+
+
+def _restored_return_settles(result, claim_root, agent):
+    """After restoration a lead is accepted and released; a qa PASS passes the contract,
+    reaches the receipt check and, refused there, keeps its claim."""
+    claims = _reg_module().live_claims(claim_root, agent)
+    if agent == "harness-qa":
+        return _reaches_receipt_check(result) and claims != []
+    return result.returncode == 0 and claims == []
+
+
 def _restored_registration_return(root, record, original, agent, obj, **kwargs):
     os.remove(record)
     _write_verification_brief(record, original)
     result = _t09_fire(root, agent, obj, timeout=HOOK_HANG_BUDGET_S, **kwargs)
-    return result.returncode == 0 and _reg_module().live_claims(root, agent) == []
+    return _restored_return_settles(result, root, agent)
 
 
 @contextlib.contextmanager
@@ -3066,7 +3606,7 @@ def _qa_record_read_failure_case(label, contents):
     try:
         record, obj = _qa_registered_inspection_return(root)
         control = _t09_fire(root, "harness-qa", obj)
-        assert control.returncode == 0, control.stderr
+        assert _reaches_receipt_check(control), control.stderr
         original_record = _read_bytes(record)
         _replace_feature_registration(record, contents)
         reg = _reg_module()
@@ -3078,7 +3618,7 @@ def _qa_record_read_failure_case(label, contents):
               and reg.live_claims(root, "harness-qa") == claim_before
               and _read_bytes(obj["artifact"]) == b"inspection assessment\n")
         assert _restored_registration_return(root, record, original_record, "harness-qa", obj), \
-            "same QA job must accept and release after registration restoration"
+            "same QA job must pass the contract after registration restoration"
         print(f"{'ok' if ok else 'FAIL'} {label} record cannot bypass QA: "
               f"exit={result.returncode} {result.stderr.strip()[:300]}")
         return int(not ok)
@@ -3154,7 +3694,7 @@ def _qa_brief_authority_case(mode):
         with tempfile.TemporaryDirectory(prefix="qa-brief-target-") as foreign_root:
             record, obj = _qa_registered_inspection_return(root)
             control = _t09_fire(root, "harness-qa", obj)
-            assert control.returncode == 0, control.stderr
+            assert _reaches_receipt_check(control), control.stderr
             _corrupt_qa_brief(root, record, mode, foreign_root)
             reg = _reg_module()
             reg.claim_run_start(root, "harness-qa", HOOK_IDENTITY["harness_feature"],
@@ -3211,7 +3751,7 @@ def run_qa_ambiguous_checkout_case():
                             HOOK_IDENTITY["harness_agent_id"], "Test.Parent")
         before = reg.live_claims(root, "harness-qa")
         result = _t09_fire(root, "harness-qa", obj)
-        ok = (result.returncode == 2 and reg.live_claims(root, "harness-qa") == before
+        ok = (_refused_before_receipts(result) and reg.live_claims(root, "harness-qa") == before
               and _read_bytes(obj["artifact"]) == b"owner assessment\n")
         print(f"{'ok' if ok else 'FAIL'} ambiguous checkout cannot waive QA evidence: "
               f"exit={result.returncode} {result.stderr.strip()[:300]}")
@@ -3282,7 +3822,7 @@ def _restored_checkout_return(root, checkout, agent, original_git, obj, kwargs):
     os.remove(pointer)
     _write_verification_brief(pointer, original_git)
     result = _t09_fire(root, agent, obj, **kwargs)
-    return result.returncode == 0 and _reg_module().live_claims(checkout, agent) == []
+    return _restored_return_settles(result, checkout, agent)
 
 
 def _unknown_checkout_identity_case(agent, contents):
@@ -3296,9 +3836,9 @@ def _unknown_checkout_identity_case(agent, contents):
             result = _t09_fire(runtime_root, agent, obj, timeout=HOOK_HANG_BUDGET_S, **kwargs)
             startup_ok = (agent != "harness-eng-lead"
                           or _lead_binding_result(runtime_root, timeout=HOOK_HANG_BUDGET_S).returncode == 2)
-            ok = (startup_ok and result.returncode == 2 and _reg_module().live_claims(checkout, agent) == before
+            ok = (startup_ok and _refused_before_receipts(result, agent) and _reg_module().live_claims(checkout, agent) == before
                   and _read_bytes(artifact) == b"checkout assessment\n")
-            assert _restored_checkout_return(runtime_root, checkout, agent, original_git, obj, kwargs), "same job must accept after metadata restoration"
+            assert _restored_checkout_return(runtime_root, checkout, agent, original_git, obj, kwargs), "same job must settle after metadata restoration"
             print(f"{'ok' if ok else 'FAIL'} unknown {agent} physical checkout refuses: "
                   f"exit={result.returncode} {result.stderr.strip()[:300]}")
             return int(not ok)
@@ -3326,12 +3866,12 @@ def _symlinked_checkout_identity_case(agent, source):
             result = _t09_fire(checkout, agent, obj, timeout=HOOK_HANG_BUDGET_S, **kwargs)
             startup_ok = (agent != "harness-eng-lead"
                           or _lead_binding_result(checkout, timeout=HOOK_HANG_BUDGET_S).returncode == 2)
-            ok = (startup_ok and result.returncode == 2 and _reg_module().live_claims(checkout, agent) == before
+            ok = (startup_ok and _refused_before_receipts(result, agent) and _reg_module().live_claims(checkout, agent) == before
                   and _read_bytes(artifact) == b"checkout assessment\n")
             os.remove(pointer)
             _write_verification_brief(pointer, original)
             assert _restored_checkout_return(checkout, checkout, agent, original_git, obj, kwargs), \
-                "same job must accept after regular metadata restoration"
+                "same job must settle after regular metadata restoration"
             print(f"{'ok' if ok else 'FAIL'} {source} pointer symlink refuses {agent}: exit={result.returncode}")
             return int(not ok)
     finally:
@@ -3406,7 +3946,7 @@ def _qa_unknown_authorization_case(mode):
         before = reg.live_claims(root, "harness-qa")
         _corrupt_qa_authorization_context(root, feature_dir, mode)
         result = _t09_fire(root, "harness-qa", obj)
-        ok = (result.returncode == 2 and reg.live_claims(root, "harness-qa") == before
+        ok = (_refused_before_receipts(result) and reg.live_claims(root, "harness-qa") == before
               and _read_bytes(obj["artifact"]) == b"owner assessment\n")
         print(f"{'ok' if ok else 'FAIL'} {mode} authorization context cannot waive QA: "
               f"exit={result.returncode} {result.stderr.strip()[:300]}")
@@ -6449,9 +6989,10 @@ def _run_groups_with_sentinels(checks):
 
 
 # ---------------------------------------------------------------------------------------
-# #2253. The gate's #919 refusal printed only the last 20 lines of a pooled re-run;
-# run_pool prints files in completion order, so that tail named the slowest PASSING file
-# and the failing one sat above it. (The same issue's 3s hook budget is HOOK_HANG_BUDGET_S.)
+# #2253, migrated by FEAT-2337. The gate's old #919 refusal printed only the last 20 lines of a
+# pooled re-run, so the failing files sat buried above a passing tail. Receipt diagnostics read
+# the runner's own records: every failing file is named, in full, and nothing a test prints can
+# add or hide a name. (The same issue's 3s hook budget is HOOK_HANG_BUDGET_S.)
 
 def _bug2253_executable(path, source):
     _write_verification_brief(path, source)
@@ -6459,100 +7000,67 @@ def _bug2253_executable(path, source):
     return path
 
 
-def _bug2253_stub(root, name, stdout_lines, stderr_lines, code=1):
-    """A RUN_UNIT_TESTS_BIN stand-in printing exactly these lines and exiting `code`."""
-    return _bug2253_executable(os.path.join(root, name), (
-        "#!/usr/bin/env python3\nimport sys\n"
-        f"sys.stdout.write({chr(10).join(stdout_lines + [''])!r})\n"
-        f"sys.stderr.write({chr(10).join(stderr_lines + [''])!r})\n"
-        f"sys.exit({code})\n"))
+_BUG2253_FAILING = [f"tests/unit/test-f{i:02d}.py" for i in range(22)] + ["tests/unit/test-my fail.py"]
+_BUG2253_PASSING = [f"tests/unit/test-p{i}.py" for i in range(10)]
+_BUG2253_ECHO = "tests/unit/test-echo.py"
+# A failing test whose output mimics run_pool and the refusal itself: none of it may surface.
+_BUG2253_ECHO_SOURCE = ("print('FAIL tests/unit/test-ghost.py')\n"
+                        "print('----- tests/unit/test-ghost.py (exit 1, 0.10s) -----')\n"
+                        "print('tests/unit/test-ghost.py returned 1')\n"
+                        "print('PASS tests/unit/test-echo.py')\nraise SystemExit(1)\n")
 
 
-_BUG2253_PASSING = [f"PASS test-p{i}.py" for i in range(25)]
-_BUG2253_NOTE = ("A file under the watched directory changed while the suite ran; this violates "
-                 "REQ-01. A concurrent hand edit or agent edit is indistinguishable.")
-_BUG2253_TAIL = [f"stderr tail {i}" for i in range(22)]
+def _bug2253_repo():
+    files = {path: RX_FAILING for path in _BUG2253_FAILING}
+    files.update({path: RX_PASSING for path in _BUG2253_PASSING})
+    files[_BUG2253_ECHO] = _BUG2253_ECHO_SOURCE
+    root, _pin = _rx_repo(files, prefix="vd-bug2253-")
+    _rx_record(root, ("unit",))
+    return root
 
 
-def _bug2253_listed_in_order(err, expected):
-    """The `expected` lines appear once each under the one heading, in order, before the tail."""
-    head = err.find("Failing or mutated files:")
-    listed = [err.find(f"  {line}\n", head) for line in expected]
-    return (err.count("Failing or mutated files:") == 1 and head != -1
-            and -1 not in listed and listed == sorted(listed)
-            and all(err.count(f"  {line}\n") == 1 for line in expected)
-            and listed[-1] < err.find("Tail of the independent run:"))
+def _bug2253_named_once(err, paths):
+    """Every path's `returned 1` line appears exactly once, above the repair commands."""
+    repair = err.find("Repair:")
+    return all(err.count(f"{path} returned 1") == 1
+               and -1 < err.find(f"{path} returned 1") < repair for path in paths)
 
 
-def _bug2253_listed_case(tmp, name, stdout_lines, stderr_lines, expected, absent):
-    """Fire the gate over a red re-run printing these lines. (ok, stderr): ok when the
-    `expected` file lines are listed in order before the unchanged tail (the last 20 lines,
-    `stderr tail 2..21`) and no `absent` text appears anywhere."""
-    r = _bug919_fire(_bug2253_stub(tmp, name, stdout_lines, stderr_lines))
-    err = r.stderr
-    tail_ok = "  stderr tail 2\n" in err and "  stderr tail 1\n" not in err
-    clean = not any(text in err for text in absent)
-    return r.returncode == 2 and _bug2253_listed_in_order(err, expected) and tail_ok and clean, err
+def _bug2253_rows(root):
+    unit = _qa_claiming("unit")
+    buried = _rx_fire(root, text=unit)
+    with _rx_swapped(_rx_receipt(root, "unit"), _rx_edited(root, _bug2253_quiet)):
+        quiet = _rx_fire(root, text=unit)
+    return (
+        ("every failing file is named once — names with spaces included, none cut to a tail",
+         buried.returncode == 2 and _bug2253_named_once(buried.stderr, _BUG2253_FAILING)
+         and not any(f"{path} returned" in buried.stderr for path in _BUG2253_PASSING),
+         buried.stderr),
+        ("echoed run_pool-shaped output adds no file and hides none",
+         _bug2253_named_once(buried.stderr, [_BUG2253_ECHO]) and "test-ghost" not in buried.stderr,
+         buried.stderr),
+        ("a red runner exit with every record green is still named, with its receipt",
+         quiet.returncode == 2 and "runner_exit 1" in quiet.stderr
+         and _rx_receipt(root, "unit") in quiet.stderr and " returned " not in quiet.stderr,
+         quiet.stderr),
+    )
 
 
-def _bug2253_buried_case(tmp):
-    """(gate) run_pool's FAIL/MUTATED file lines — names with spaces included — buried above
-    a 20-line passing tail are listed before the unchanged tail. A failing file's echoed
-    `FAIL <case label>` / `MUTATED …` lines are not run_pool's, and stay out."""
-    ok, err = _bug2253_listed_case(
-        tmp, "buried.py",
-        ["----- test-a.py (exit 1, 0.10s) -----", "FAIL  [x] some case: detail",
-         "MUTATED inner-echo.txt", "FAIL test-a.py",
-         "----- my test.py (exit 1, 0.20s) -----", "FAIL my test.py",
-         "FAILED-NOT-A-FILE-LINE"] + _BUG2253_PASSING
-        + ["MUTATED notes/my file.md", "MUTATED test-b.py", _BUG2253_NOTE],
-        ["----- test-e.py (exit 2, 1.00s) -----", "FAIL test-e.py"] + _BUG2253_TAIL,
-        ["FAIL test-a.py", "FAIL my test.py", "MUTATED notes/my file.md", "MUTATED test-b.py",
-         "FAIL test-e.py"],
-        ["some case", "inner-echo", "FAILED-NOT-A-FILE-LINE"])
-    return ("a red re-run names every FAIL/MUTATED file buried above the 20-line tail, "
-            "names with spaces included, once, in order, before the unchanged tail — "
-            "and no echoed case line", ok, err)
-
-
-def _bug2253_echoed_header_case(tmp):
-    """(gate) A file that echoes run_pool-shaped lines — headers it never closes, in a
-    failing and in a passing block, and a `PASS <its own name>` before its real close —
-    hides neither its own FAIL, nor a later file's FAIL, nor the MUTATED lines above
-    run_pool's note."""
-    ok, err = _bug2253_listed_case(
-        tmp, "echoed.py",
-        ["----- outer.py (exit 1, 0.30s) -----", "----- fixture.py (exit 1, 0.01s) -----",
-         "PASS outer.py", "FAIL outer.py",
-         "----- ok.py (exit 0, 0.10s) -----", "----- echoed fixture.py (exit 0, 0.00s) -----",
-         "PASS ok.py",
-         "----- later.py (exit 1, 0.40s) -----", "PASS later.py", "FAIL later.py"] + _BUG2253_PASSING
-        + ["MUTATED notes/x y.md", _BUG2253_NOTE],
-        _BUG2253_TAIL,
-        ["FAIL outer.py", "FAIL later.py", "MUTATED notes/x y.md"],
-        ["fixture.py"])
-    return ("echoed run_pool-shaped lines — unclosed headers, a same-name PASS — hide no FAIL "
-            "or MUTATED file line", ok, err)
-
-
-def _bug2253_quiet_case(tmp):
-    """(gate) A red re-run with no FAIL/MUTATED line — a runner crash — keeps the tail alone."""
-    stub = _bug2253_stub(tmp, "quiet.py", _BUG2253_PASSING, ["Traceback: runner crashed"])
-    r = _bug919_fire(stub)
-    ok = (r.returncode == 2 and "Failing or mutated files:" not in r.stderr
-          and "  Traceback: runner crashed" in r.stderr and "  PASS test-p24.py" in r.stderr)
-    return ("a red re-run with no FAIL/MUTATED line keeps the tail alone", ok, r.stderr)
+def _bug2253_quiet(doc):
+    doc["runner_exit"] = 1
+    for record in doc["completed_files"]:
+        record["returncode"] = 0
 
 
 def run_bug2253_cases():
-    tmp = tempfile.mkdtemp(prefix="vd-bug2253-")
+    root = _bug2253_repo()
     try:
-        rows = [_bug2253_buried_case(tmp), _bug2253_echoed_header_case(tmp), _bug2253_quiet_case(tmp)]
+        rows = _bug2253_rows(root)
     finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(root, ignore_errors=True)
     fails = 0
     for label, ok, detail in rows:
-        print(f"{'ok  ' if ok else 'FAIL'}  [bug2253] {label}" + ("" if ok else f"\n      {detail[:600]}"))
+        print(f"{'ok  ' if ok else 'FAIL'}  [bug2253] {label}" + ("" if ok else f"\n      {detail[-1200:]}"))
         fails += not ok
     return fails
 
@@ -6566,6 +7074,7 @@ def main(argv=None):
         run_cli_cases,
         run_dec156_worktree_red_case,
         run_bug919_qa_matrix_cases,
+        run_feat2337_qa_receipt_cases,
         run_qa_verification_mode_cases,
         run_brief_citation_boundary_cases,
         run_qa_foreign_brief_case,

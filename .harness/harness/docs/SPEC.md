@@ -32,7 +32,7 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | Rules vs Expertise — which is which, who writes each | **6** | 0.3k |
 | Rule delivery via native `skills:` preload | **7** | 0.4k |
 | **The handoff contract** — three-part return, normative DIGEST schemas, conditional routing, malformed returns, git/PR lifecycle | **8** | 1.1k |
-| **Test guardrails** — the change-type matrix, `test_matrix`/`test_kinds`, the four resolution states, AI evals | **9** | 1.1k |
+| **Test guardrails** — the change-type matrix, `test_matrix`/`test_kinds`, the four resolution states, AI evals, sharded suites, QA's runner receipts | **9** | 1.1k |
 | The orchestrator — loop, hierarchy and spawn depth, canonical flow, CEO briefing, consolidated DIGEST, escalation, `max_cycles` exhaustion | **10** | 2.7k |
 | **Execution state** — `feature.json` (mission, judgement ledger, rework ruling, per-run spend), `state.yaml`, perspective/SC/FEAT/D/T levels, checkpoint-before-dispatch, success criteria and UAT | **11** | 2.3k |
 | Team YAML schema and the runner algorithm | **12** | 0.7k |
@@ -88,7 +88,7 @@ Also present: `.harness/harness.json` (config — gates, `test_matrix`, `test_ki
 `log_retention_days`), `.harness/team-config.yaml` (the team manifest, §3),
 `.harness/expertise/` (§5), `.harness/features/` (§11).
 
-**`harness.json` is one validated contract (DEC-255).** Its shape, defaults, conditional
+**`harness.json` is one validated contract (DEC-256).** Its shape, defaults, conditional
 requirements and closed vocabularies are written in
 `.claude/skills/harness/bin/config-schemas/harness.json`; this document names its boundaries and
 never restates its values. Three runtime modules keep a copy of one vocabulary: the board stations,
@@ -184,7 +184,7 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 | STATE points at a task absent from PLAN | halt — report inconsistency, offer repair |
 | PLAN task missing `change_type` | pm must fill it before the qa gate can apply |
 | template `schema_version` gap in the control-plane clone's own manifest | tell the user to run `harness-init` with `--upgrade` |
-| `.harness/harness.json` missing or refused by the loader | one violation naming the file and the loader's diagnosis; no config-dependent invariant runs on top of it — repair the file or run `upgrade-config.py` (DEC-255) |
+| `.harness/harness.json` missing or refused by the loader | one violation naming the file and the loader's diagnosis; no config-dependent invariant runs on top of it — repair the file or run `upgrade-config.py` (DEC-256) |
 | logs older than `log_retention_days` | prune opportunistically |
 
 ### 2.3 Writer ownership (concurrency safety)
@@ -775,20 +775,34 @@ reads every gate run as exactly one of three outcomes:
 | Outcome | What the gate does | What the agent sees |
 |---|---|---|
 | **Refusal** | `exit 2`, or a structured deny on stdout | the call is blocked, with the gate's reason |
-| **Unavailable** | its own failure: one stdout line `{"decision": "unavailable", "gate": "<script stem>", "reason": …}` at exit 0; the extension synthesizes the same for an abnormal exit, a signal, a missing gate or interpreter, or a spawn error | the call proceeds, with passive context `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` on every occurrence, phase-tagged (pre, post, dispatch, yield), never deduplicated, never an error result |
+| **Unavailable** | its own failure: one stdout line `{"decision": "unavailable", "gate": "<script stem>", "reason": …}` at exit 0; the extension synthesizes the same for an abnormal exit, a signal, a missing gate or interpreter, a spawn error, or a kill at the 30-second budget | the call proceeds, with passive context `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` on every occurrence, phase-tagged (pre, post, dispatch, yield), never deduplicated, never an error result |
 | **Allow** | `exit 0` and nothing else | nothing |
 
 A refusal outranks an unavailable line in the same output; omp discards `additionalContext` on a
 blocked call, so beside a refusal the notices follow the denial in the refusal reason. The four gates that fire on every call
 — `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py`, `validate-digest.py` — resolve
 their own failure as **unavailable**, because failing them closed would wedge every agent on one
-gate's bug. The three narrow command gates — `gh-close-gate.py`, `branch-create-gate.py`,
+gate's bug. Three narrow command gates — `gh-close-gate.py`, `branch-create-gate.py`,
 `plan-sign-gate.py` — match their command first, with the standard library and before any
 dependency loads; an unrelated command is untouched, and a guarded one whose gate cannot run —
 an unreadable or malformed `harness.json` included — is **refused** by name, while a readable
 config with sync off still exempts it (the extension's `narrowGateApplies` decides when the gate
-cannot start at all).
-`merge-gate.py` fails closed.
+cannot start or finish, so a timeout refuses only a guarded command).
+`merge-gate.py` is the fourth narrow gate: bootstrap-first (DEC-234), it refuses its own caught
+failures (a broken root at exit 2, for any command), and when its process cannot start or finish
+— a timeout included — `narrowGateApplies`, a port of its `merge_ref`, refuses only a matching
+`git merge` or `gh pr merge` (`--abort`, `--continue` and `--quit` exempt).
+
+**Asynchronous, bounded, parallel (DEC-100).** Every Python policy process — gate or helper — is
+spawned asynchronously and awaited, so a pending process never freezes OMP's event loop and a
+delayed helper is never an early authorization, release or injection. One named budget,
+`POLICY_TIMEOUT_MS = 30_000` in the extension (no `harness.json` key, no override), kills a
+process and its whole process group when it runs over; the timeout then resolves as the table
+above says, and helpers keep their own non-blocking conventions. The five Bash gates
+(`gh-close-gate.py`, `branch-create-gate.py`, `bash-write-guard.py`, `plan-sign-gate.py`,
+`merge-gate.py`) start together as five independent processes, each with its own prologue and
+applicability decision (DEC-234), and their outcomes combine in that declared order whatever
+order they finish in.
 
 **Spawn policy is omp's, plus one route rule (DEC-118, DEC-204).** Which personas a dispatcher may
 spawn is its `.omp/agents/<persona>.md` `spawns:` list, enforced natively by omp on every spawn
@@ -1584,6 +1598,41 @@ its content/filename-keyed test-process parse cache; syntax errors are not cache
 test-only reuse does not permit production caches across invocations or roots.
 `tests/integration/test-structure-audit-single-pass.py` independently checks one traversal
 per parsed AST through both entry paths without installing the test-side parse cache.
+
+### 9.3 QA's runner receipts — one recorded run, checked rather than repeated (DEC-255)
+
+QA runs the matrix; `validate-digest.py` no longer runs it a second time. A qa `VERDICT: PASS`
+with `suite: pass` and `matrix_ok: true` is checked against the runner receipts QA recorded:
+one schema-1 manifest per satisfied claimed active `unit`/`integration` kind, at
+`<feature dir>/runs/<run-id>/qa/manifest-<kind>.json` in QA's validator-lead run, written with
+`--shard 1/1 --manifest` by the runner of §9.2 from QA's managed checkout. DEC-255 holds the
+production command, the commit rule and the trust boundary; in short:
+
+- **The same validator CI runs.** Expected files and exact coverage come from
+  `check-integration-shards.py` (`discover_expected`, `evidence_defects`) at the receipt's
+  tested commit, never from the receipt's selection, HEAD or the working tree.
+- **Location from runtime identity.** The exact feature, QA's and its validator-lead parent's
+  live claims and the lead's one open registered run choose the file; a digest artifact never
+  does. `kinds: []` is refused, never read as every kind.
+- **Which commit.** A validate run's receipt is at `review_sha` or a descendant changing only the
+  feature's own directory; a fix run's (`fix-c<N>-validator` with `harness_mission: fix`) is at
+  the trusted checkout's HEAD, a descendant of `review_sha`, with the tree clean outside the
+  feature's own directory.
+- **Refusal and repair.** An invalid receipt refuses the PASS at exit 2, naming every bad file
+  and the exact command that rewrites it; there is no fallback run. QA's grant covers
+  `runs/*/qa/manifest-*.json` only.
+- **Committed with the run.** `runs/**` is ignored; main force-adds the receipts with the
+  committed closed run record.
+- **Trust boundary.** This checks recorded execution against git; it does not catch a
+  deliberately forged complete receipt. The PR CI suite of §9.2 is unchanged and is that
+  backstop.
+
+**Candidate versus installed.** When a feature changes these gates, the hooks enforcing its own
+validate run are the installed control-plane copies, not the candidate source under review. Its
+QA records the host launcher's path, version and hash and the candidate's source pin separately,
+proves candidate behavior with tests run from `review_sha`, and never claims the installed hook
+behaved as the candidate does. Candidate receipts are still produced for main to commit; the
+host is not redeployed mid-run.
 
 ---
 

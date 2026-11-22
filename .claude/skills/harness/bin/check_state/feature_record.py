@@ -485,7 +485,7 @@ def inv_23(ctx):
 # INV-47 (#1884): a validate run recorded PASS is graded against the member notes of ITS
 # cycle. FEAT-63's c2 was recorded PASS while notes/review-harness-qa-c2.md said BLOCKED —
 # the integration runner's exit 1 was real and CI caught it after the PASS. issue #919's
-# re-run fires only on a qa PASS, and INV-46 compares the run's digest with feature.json;
+# receipt check fires only on a qa PASS, and INV-46 compares the run's digest with feature.json;
 # nothing compared the lead's verdict with what its members returned. The note IS the
 # member's record (overwritten per cycle), so a FAIL or BLOCKED there under a PASS run means
 # the lead passed over a member it did not get to re-return. Cycle mapping is the run id's

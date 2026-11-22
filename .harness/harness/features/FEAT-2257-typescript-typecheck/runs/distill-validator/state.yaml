@@ -1,0 +1,90 @@
+schema_version: 2
+run_id: distill-validator
+feature: FEAT-2257-typescript-typecheck
+squad: validator
+host: harness-validator-lead
+status: complete
+run_uid: 34933db1e2c14c1d966dd034c73804ee
+steps:
+  - id: qa
+    persona: harness-qa
+    task: distill
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    depends_on: []
+    mutates_repo: true
+    on_fail: halt
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/qa-distill.md
+    evidence:
+      accepted: 0
+      rejected: 2
+      craft_before: [15, 15, 10, 1]
+      craft_after: [15, 15, 10, 1]
+      repository_before: [0, 11, 0, 0]
+      repository_after: [0, 11, 0, 0]
+  - id: code
+    persona: harness-code-reviewer
+    task: distill
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    depends_on: []
+    mutates_repo: true
+    on_fail: halt
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/review-harness-code-reviewer-distill.md
+    evidence:
+      accepted: 0
+      rejected: 1
+      craft_before: [15, 15, 10, 0]
+      craft_after: [15, 15, 10, 0]
+      repository_before: [3, 11, 0, 0]
+      repository_after: [3, 11, 0, 0]
+  - id: security
+    persona: harness-security-reviewer
+    task: distill
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    depends_on: []
+    mutates_repo: true
+    on_fail: halt
+    cycles: 0
+    dispatched_at: seq-5
+    completed_at: seq-6
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/review-harness-security-reviewer-distill.md
+    evidence:
+      accepted: 0
+      rejected: 0
+      own_candidates_rejected: 3
+      craft_before: [15, 15, 10, 0]
+      craft_after: [15, 15, 10, 0]
+      repository_before: [8, 9, 1, 0]
+      repository_after: [8, 9, 1, 0]
+  - id: ui
+    persona: harness-ui-reviewer
+    task: distill
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    depends_on: []
+    mutates_repo: true
+    on_fail: halt
+    cycles: 0
+    dispatched_at: seq-7
+    completed_at: seq-8
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/review-harness-ui-reviewer-distill.md
+    evidence:
+      accepted: 0
+      rejected: 0
+      own_candidates_rejected: 1
+      craft_before: [15, 15, 10, 0]
+      craft_after: [15, 15, 10, 0]
+      repository_before: [4, 0, 0, 0]
+      repository_after: [4, 0, 0, 0]

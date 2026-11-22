@@ -271,6 +271,7 @@ teams:
           # squad already follows rather than asking every future lead to remember.
           - { path: .harness/*/features/*/notes/qa-*.md, upsert: true }   # assessments; the 3 reviewers each own one, qa owned none
           - { path: .harness/*/features/*/notes/review-harness-qa-*.md, upsert: true }   # Q6
+          - { path: .harness/*/features/*/runs/*/qa/manifest-*.json, upsert: true }   # runner receipts only (DEC-255): no run log, state.yaml or digest.md
           - { path: .harness/expertise/harness-qa.md, upsert: true }
           - { path: .harness/*/expertise/harness-qa.md, upsert: true }  # repository tier, 40-line budget
           - { path: .harness/*/features/*/observations/harness-qa.md, upsert: true }   # hot layer (DEC-145)

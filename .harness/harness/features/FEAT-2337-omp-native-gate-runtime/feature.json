@@ -1,0 +1,140 @@
+{
+  "feature_id": "FEAT-2337-omp-native-gate-runtime",
+  "branch": "feat/FEAT-2337-omp-native-gate-runtime",
+  "pr": null,
+  "review_sha": "9d9d940b2504a028699228bf275d395e641741f0",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261122-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:14:52+00:00",
+      "tokens": 80000,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-1-plan-product/digest.md",
+        "sha256": "1fe7a9c1cdf96227c31f4d794526b1db4981340da7c5daaf73bf50fc691da960"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:47:30+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-2-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:47:53+00:00",
+      "tokens": 42426,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-simplify-eng/digest.md",
+        "sha256": "f62166cd51830108b45e7297cce82253ccd45d56c9fe1a84fd5f785d6f29439e"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:52:14+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-3-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:52:15+00:00",
+      "tokens": 37312,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-3-simplify-apply-product/digest.md",
+        "sha256": "32cee3ece2de172e9a88513700b051c87abd019cc644061552112ac969684048"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T19:58:34+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-4-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-22T21:12:17+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-4-validate-validator/digest.md",
+        "sha256": "ddcb458e16d5035bf207ebb5dfa1440b652d5c1bec298a9a5dbaa0f4571ac4e3"
+      },
+      "cycles_used": 2,
+      "tokens": null,
+      "ended_at": "2026-11-22T21:29:08+00:00"
+    },
+    {
+      "id": "r-20261122-5-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-22T21:34:02+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-5-validate-validator/digest.md",
+        "sha256": "27c8b21e2df0d92ab529b5c0083c6888f408708458337bb74e362698b3a740dc"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T21:45:20+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T19:14:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Cause known, files nameable, but B adds enforcement surfaces: QA receipt contract, gate timeouts, a new #919 decision; operator-confirmed"
+    },
+    {
+      "at": "2026-11-22T21:57:04+00:00",
+      "by": "main",
+      "kind": "regate",
+      "decision": "rework round 1: GC-02 docs fix re-gated by validate c2; CI-forced reader fix b2151327 merges on green CI",
+      "reason": "delegated rulings notes/answers-2026-11-22-manifest-gate.md and notes/answers-2026-11-22-post-validate-fix.md (fable-advisor)"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2337-omp-native-gate-runtime/.harness/harness/features/FEAT-2337-omp-native-gate-runtime/notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "283192d46ba48be4856ce32164de22deb21156eff8f1b6fb3b1de04d2bf2c6c3",
+    "T-02": "fdf90126b5ad7067ab57d28daf7fdcc0b40eb5410a41100e35500f51c40ee656",
+    "T-03": "f5b66fa1e8ca3f421882324d8844ac13664b37e78bbb92b1fdefef235949c54a"
+  },
+  "github": {
+    "milestone": 124,
+    "parent": 2345,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2346,
+      "T-02": 2347,
+      "T-03": 2348
+    },
+    "source_issues": [
+      2337
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

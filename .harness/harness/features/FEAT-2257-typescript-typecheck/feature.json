@@ -36,6 +36,36 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-22T21:35:21+00:00"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T21:41:59+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-product/digest.md",
+        "sha256": "2bffe22b784bcb0c6c92bf5d2c05aa223b37dd252d42f67ab711e91898739622"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T21:46:30+00:00"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T21:46:31+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-validator/digest.md",
+        "sha256": "c40100afbcdaf66db6c7db3e433c1378a19d89f2dd93f958d453b43d039769db"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T21:54:16+00:00"
     }
   ],
   "judgements": [

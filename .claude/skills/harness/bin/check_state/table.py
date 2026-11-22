@@ -236,7 +236,7 @@ INVARIANTS = (
 RETIRED = {
     "INV-9": "DEC-233 — host enforcement moved to OMP; INV-45 grades the port surface",
     "INV-10": "check-docs.sh struck — a decision the tree contradicts is removed, not marked stale",
-    "INV-13": "DEC-255 — the validated loader defaults an absent github block and refuses sync without a pinned repo",
+    "INV-13": "DEC-256 — the validated loader defaults an absent github block and refuses sync without a pinned repo",
     "INV-28": "DEC-252 — a shipped feature is checked for nothing; gh-sync.py ship records the PR",
     "INV-30": "DEC-252 — a shipped feature is checked for nothing; gh-sync.py ship closes the milestone",
 }

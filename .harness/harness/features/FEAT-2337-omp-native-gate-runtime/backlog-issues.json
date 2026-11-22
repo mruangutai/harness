@@ -1,0 +1,18 @@
+{
+  "bug:plan-merge.py apply reports APPLIED/0 while its own check cannot load the written verify scalar": {
+    "number": 2344,
+    "typed": true
+  },
+  "bug:fix-run code-reviewer digest refused: _head_is_pin_error binds reviewed head to the old review_sha before the orchestrator re-pins": {
+    "number": 2356,
+    "typed": true
+  },
+  "bug:merge-gate.py misses gh global options (gh -R o/r pr merge N) and Main's merge pre-screen misses shlex-stitched spellings": {
+    "number": 2359,
+    "typed": true
+  },
+  "chore:document that features editing team-config.yaml are red on test-check-plan-routes.py in linked worktrees until merge (intended deviation detector); dispatches disclose and pair clone evidence": {
+    "number": 2387,
+    "typed": true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "chore:Pin the Bun runtime in CI (setup-bun@v2 floats while typescript and @types/bun are pinned)": {
+    "number": 2389,
+    "typed": true
+  },
+  "chore:harness-hooks.ts passes member-ops ops as 'unknown as Dict'; PolicyRunner's payload type misstates the seam (fix may touch ~29 test reads; wontfix is a valid outcome)": {
+    "number": 2390,
+    "typed": true
+  }
+}
