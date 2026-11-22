@@ -2488,9 +2488,16 @@ def check_qa_matrix_claim(agent, obj, payload):
           f"{result.returncode} — the gate reported evidence it did not have (issue "
           f"#919). Re-run the suite yourself, fix what fails, and return again once "
           f"it is genuinely green.", file=sys.stderr)
-    lines = ((result.stdout or "") + (result.stderr or "")).splitlines()
-    # #2253: run_pool prints files in completion order, so the tail shows the slowest file,
-    # which usually PASSED; the failing ones sit above it. Name them first.
+    _print_independent_run((result.stdout or "") + (result.stderr or ""))
+    return 2
+
+
+def _print_independent_run(output):
+    """The red re-run's evidence: every FAIL/MUTATED file line, then the last 20 lines.
+
+    #2253: run_pool prints files in completion order, so the tail shows the slowest file,
+    which usually PASSED; the failing ones sit above it. Name them first."""
+    lines = output.splitlines()
     named = [line for line in lines if line.startswith(("FAIL ", "MUTATED "))]
     if named:
         print("Failing or mutated files:", file=sys.stderr)
@@ -2499,7 +2506,6 @@ def check_qa_matrix_claim(agent, obj, payload):
     print("Tail of the independent run:", file=sys.stderr)
     for line in lines[-20:]:
         print(f"  {line}", file=sys.stderr)
-    return 2
 
 
 def _exact_run_identity(d):

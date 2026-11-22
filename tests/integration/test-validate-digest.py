@@ -6384,31 +6384,40 @@ def _bug2253_stub(root, name, stdout_lines, stderr_lines, code=1):
 _BUG2253_BURIED = ["FAIL test-a.py", "MUTATED test-b.py", "MUTATED test-d.py", "FAIL test-e.py"]
 
 
-def _bug2253_gate_cases(tmp):
+_BUG2253_PASSING = [f"PASS test-p{i}.py" for i in range(25)]
+
+
+def _bug2253_listed_before_tail(err):
+    """Every buried line appears once under the one heading, in order, before the tail."""
+    head = err.find("Failing or mutated files:")
+    listed = [err.find(f"  {line}\n", head) for line in _BUG2253_BURIED]
+    return (err.count("Failing or mutated files:") == 1 and head != -1
+            and -1 not in listed and listed == sorted(listed)
+            and listed[-1] < err.find("Tail of the independent run:"))
+
+
+def _bug2253_buried_case(tmp):
     """(gate) Failing and mutated files buried above a 20-line passing tail, on stdout and
-    stderr, are listed once under the heading, in order, before the unchanged tail; a red
-    re-run with no such line keeps the tail alone."""
-    passing = [f"PASS test-p{i}.py" for i in range(25)]
+    stderr, are listed before the unchanged tail; a `FAILED…` line is not a file line."""
     stub = _bug2253_stub(tmp, "buried.py",
                          ["----- test-a.py (exit 1, 0.10s) -----", "FAIL test-a.py",
-                          "MUTATED test-b.py", "FAILED-NOT-A-FILE-LINE"] + passing,
+                          "MUTATED test-b.py", "FAILED-NOT-A-FILE-LINE"] + _BUG2253_PASSING,
                          ["MUTATED test-d.py", "FAIL test-e.py"] + [f"stderr tail {i}" for i in range(22)])
     r = _bug919_fire(stub)
-    err = r.stderr
-    head = err.find("Failing or mutated files:")
-    tail_at = err.find("  stderr tail 2\n")
-    listed = [err.find(f"  {line}\n", head) for line in _BUG2253_BURIED]
-    buried_ok = (r.returncode == 2 and err.count("Failing or mutated files:") == 1
-                 and head != -1 and all(i != -1 for i in listed) and listed == sorted(listed)
-                 and listed[-1] < tail_at and "FAILED-NOT-A-FILE-LINE" not in err
-                 and "  stderr tail 21\n" in err and "  PASS test-p24.py" not in err)
-    quiet = _bug2253_stub(tmp, "quiet.py", passing, ["Traceback: runner crashed"])
-    q = _bug919_fire(quiet)
-    quiet_ok = (q.returncode == 2 and "Failing or mutated files:" not in q.stderr
-                and "  Traceback: runner crashed" in q.stderr and "  PASS test-p24.py" in q.stderr)
-    return [("a red re-run names every FAIL/MUTATED file buried above the 20-line tail, "
-             "once, in order, before the unchanged tail", buried_ok, err),
-            ("a red re-run with no FAIL/MUTATED line keeps the tail alone", quiet_ok, q.stderr)]
+    ok = (r.returncode == 2 and _bug2253_listed_before_tail(r.stderr)
+          and "FAILED-NOT-A-FILE-LINE" not in r.stderr
+          and "  stderr tail 2\n" in r.stderr and "  stderr tail 1\n" not in r.stderr)
+    return ("a red re-run names every FAIL/MUTATED file buried above the 20-line tail, "
+            "once, in order, before the unchanged tail", ok, r.stderr)
+
+
+def _bug2253_quiet_case(tmp):
+    """(gate) A red re-run with no FAIL/MUTATED line — a runner crash — keeps the tail alone."""
+    stub = _bug2253_stub(tmp, "quiet.py", _BUG2253_PASSING, ["Traceback: runner crashed"])
+    r = _bug919_fire(stub)
+    ok = (r.returncode == 2 and "Failing or mutated files:" not in r.stderr
+          and "  Traceback: runner crashed" in r.stderr and "  PASS test-p24.py" in r.stderr)
+    return ("a red re-run with no FAIL/MUTATED line keeps the tail alone", ok, r.stderr)
 
 
 class _Bug2253Stop(Exception):
@@ -6579,8 +6588,8 @@ def _bug2253_block_cases(tmp):
 def run_bug2253_cases():
     tmp = tempfile.mkdtemp(prefix="vd-bug2253-")
     try:
-        rows = (_bug2253_gate_cases(tmp) + _bug2253_budget_observation_cases(tmp)
-                + _bug2253_block_cases(tmp))
+        rows = ([_bug2253_buried_case(tmp), _bug2253_quiet_case(tmp)]
+                + _bug2253_budget_observation_cases(tmp) + _bug2253_block_cases(tmp))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     fails = 0
