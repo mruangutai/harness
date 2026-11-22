@@ -1,9 +1,11 @@
 schema: plan/1
 feature: BUG-2295-handoff-one-per-phase
 approval:
-  status: pending
+  date: '2026-11-22'
+  approved_by: operator
+  status: approved
 drafted_at: '2026-11-22T19:04:40Z'
-status: plan
+status: ready
 source_issues: [2295]
 lanes:
   resolved_at: dd04e52a898109fdbe09cf5fa14e1148161734d0

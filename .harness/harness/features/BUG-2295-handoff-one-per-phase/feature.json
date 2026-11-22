@@ -32,5 +32,32 @@
       "reason": "The cause is known: the convention is documented but the handoff write rule never enforced it. The diff is bounded to the existing rule, its test and a stale comment, and it tightens a rule rather than adding a surface."
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2295-handoff-one-per-phase/.harness/harness/features/BUG-2295-handoff-one-per-phase/notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "39f22d5773761f8158bb8f85ee6b87cdea95aa0138a6290ecc0c8dfb7c78349a"
+  },
+  "github": {
+    "milestone": 122,
+    "parent": 2333,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2334
+    },
+    "source_issues": [
+      2295
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
