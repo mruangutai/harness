@@ -205,7 +205,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-179 root-file routes resolve NOBODY and this scaffolds a DEC-174 gate
     depends_on: []
-    status: building
+    status: review
     files:
     - path: package.json
       create: true
@@ -243,7 +243,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers tests of the OMP enforcement hook
     depends_on: [T-01]
-    status: ready
+    status: review
     files:
       - {path: tests/unit/omp-hooks.test.ts, quote: 'const digestCalls = (calls: Array<{ script: string }>)'}
     verify: |
@@ -264,7 +264,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 applies to required CI enforcement changes
     depends_on: [T-02]
-    status: ready
+    status: building
     files:
       - {path: .github/workflows/tests.yml, quote: 'needs: [checks, integration-shards]'}
       - {path: .github/dependabot.yml, create: true}
