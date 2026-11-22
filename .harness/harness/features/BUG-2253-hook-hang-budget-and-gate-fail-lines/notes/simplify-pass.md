@@ -40,3 +40,16 @@ The operator extended the budget to 2 rounds / 70 min (`notes/rework-extension-2
   - `receipts/discriminate-c3.*`: the cycle-1 gate 6cbdc417 under the final tests; only the echoed-header case fails.
   - `receipts/green-c3.*`: fix b228c3a2, clean; the group and the full file pass.
 - The unit-kind advisory is filed as #2281, per the operator.
+
+## Rework 3 after validate cycle 2 (FAIL, run 2026-11-21-04-validate-validator)
+
+SC-02 is met. For SC-01, a same-name `PASS` echoed inside a file's own block closed it early, which hid the genuine `FAIL`.
+
+Pairing headers with closes cannot survive every verbatim echo, so the gate no longer pairs (`_is_failed_file_line`). `FAIL <name>` counts once any earlier run_pool header named that file, and nothing un-names it. `MUTATED` keeps the note-adjacency rule. The rule errs only toward listing.
+
+The regression `_bug2253_echoed_header_case` adds same-name `PASS` echoes before both genuine closes.
+
+Receipts:
+- `receipts/red-c4.*`: exact base, 14 failing.
+- `receipts/discriminate-c4.*`: the cycle-2 gate b228c3a2 under the final tests; only the echo case fails.
+- `receipts/green-c4.*`: fix 3c6fb908, clean; the group and the full file pass.
