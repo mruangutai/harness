@@ -1,0 +1,44 @@
+{
+  "feature_id": "BUG-2253-hook-hang-budget-and-gate-fail-lines",
+  "branch": "feat/BUG-2253-hook-hang-budget-and-gate-fail-lines",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-21-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T01:05:26+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-21-01-patch-product/digest.md",
+        "sha256": "6c1059ab87b6373b3a1985e527e9631462b11234f92e22952a824b03dbc0b5f9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T01:11:43+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "mission": "patch",
+  "judgements": [
+    {
+      "at": "2026-11-22T01:05:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "causes located: six hard timeout=3 hook calls in test-validate-digest.py; gate prints only a 20-line pooled tail. Bounded to two files; main-session-direct per DEC-174 (gate)"
+    }
+  ],
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "notes/operator-signature-2026-11-21.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "a9cf4115952b85826d0a27c5c2b94a8c04169b0aebc6b8efea606b7fd4c184f8"
+  }
+}
