@@ -92,6 +92,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "Cause known, files nameable, but B adds enforcement surfaces: QA receipt contract, gate timeouts, a new #919 decision; operator-confirmed"
+    },
+    {
+      "at": "2026-11-22T21:57:04+00:00",
+      "by": "main",
+      "kind": "regate",
+      "decision": "rework round 1: GC-02 docs fix re-gated by validate c2; CI-forced reader fix b2151327 merges on green CI",
+      "reason": "delegated rulings notes/answers-2026-11-22-manifest-gate.md and notes/answers-2026-11-22-post-validate-fix.md (fable-advisor)"
     }
   ],
   "mission": "plan",
