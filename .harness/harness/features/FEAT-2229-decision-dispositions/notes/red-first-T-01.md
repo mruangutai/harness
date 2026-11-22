@@ -126,3 +126,19 @@ a same-character run at least as long), and bounds a section at the next real he
 
 Green: T-01 verify exit 0 — unit 40/40, integration 98/98; `test-plan-merge.py` exit 0;
 `test-checker-structure-locks.py` ALL PASS.
+
+## Validate c2 fix (F3 med, SC-02) — red → green
+
+Regression added first: `case_info_string_run_does_not_close_a_fence` — inside DEC-11, an outer
+```` ```text ```` fence holding a ```` ```python ```` line, a `## DEC-10` spoof heading and a spoof
+clause, then the outer closer, then the real DEC-10. Against the c2 source (HEAD 48cc5b6a) →
+exit 1, **99/100 passed**:
+
+- FAIL a clause after a ```python run inside an open fence fails the DEC-10 row
+
+Fix: `plan_merge/check.py` `_fence_after` closes an open fence only on a run of the opener's
+character at least as long followed by nothing but whitespace (CommonMark 4.5); a run carrying an
+info string is content. Openers may still carry info strings.
+
+Green: unit 40/40, integration 100/100, `test-plan-team.py` 184/184 (the acceptance chain exits
+0); `test-plan-merge.py` exit 0; `_fence_after` grade 4.

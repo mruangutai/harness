@@ -292,6 +292,36 @@ def case_fenced_heading_is_not_a_section():
                 setup=_fenced_docs)
 
 
+# F3 (validate c2): a ```python line inside an open ``` fence carries an info string, so it is
+# content (CommonMark 4.5), not a closer — the DEC-10 heading after it is still fenced.
+INFO_STRING_DECISIONS_MD = """# Decision Log
+
+## DEC-11 — Eleven
+
+```text
+```python
+## DEC-10 — a spoof heading
+Spoof clause after an info-string run.
+```
+
+## DEC-10 — Ten
+
+The ten clause is here.
+"""
+
+
+def _info_string_docs(root):
+    write(os.path.join(root, DOCS_REL), INFO_STRING_DECISIONS_MD)
+
+
+def case_info_string_run_does_not_close_a_fence():
+    expect_fail("a clause after a ```python run inside an open fence fails the DEC-10 row",
+                plan_text([row(clause="Spoof clause after an info-string run.")]),
+                ["decisions_affected[0] DEC-10", "clause"], setup=_info_string_docs)
+    expect_pass("the real DEC-10 clause passes beside the info-string spoof",
+                plan_text([row(clause="The ten clause is here.")]), setup=_info_string_docs)
+
+
 def case_successors():
     expect_fail("an amend to a D id this plan lacks fails",
                 plan_text([row(disposition="amend", successor="D-09")]),
@@ -557,7 +587,8 @@ def case_ordinary_edits():
 
 def main():
     for case in (case_valid_controls, case_missing_block, case_unindexed_dec, case_struck,
-                 case_clause_location, case_fenced_heading_is_not_a_section, case_successors,
+                 case_clause_location, case_fenced_heading_is_not_a_section,
+                 case_info_string_run_does_not_close_a_fence, case_successors,
                  case_ownership, case_each_failure_keeps_other_checks,
                  case_served_segment_authority, case_era, case_malformed_instants,
                  case_history_skipped, case_creation_stamp, case_creation_refuses_backdating,

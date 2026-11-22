@@ -277,14 +277,19 @@ def _heading_level(line, dec=None):
 
 
 def _fence_after(line, fence):
-    """The open fence's opening run after `line`, or None outside any fence."""
+    """The open fence's opening run after `line`, or None outside any fence.
+
+    CommonMark 4.5: an opener may carry an info string; a closer is a run of the opener's
+    character at least as long, followed only by whitespace. A run carrying an info string
+    (```python inside an open ``` fence) is content and keeps the fence open."""
     m = FENCE_RE.match(line)
     if m is None:
         return fence
     run = m.group(1)
     if fence is None:
         return run
-    return None if run[0] == fence[0] and len(run) >= len(fence) else fence
+    closes = run[0] == fence[0] and len(run) >= len(fence) and not line[m.end():].strip()
+    return None if closes else fence
 
 
 def _real_headings(lines):
