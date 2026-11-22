@@ -49,7 +49,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 reserves enforcement scripts and their regression tests to main; the coupled comment remains in this single bounded patch.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/gh-sync.py
