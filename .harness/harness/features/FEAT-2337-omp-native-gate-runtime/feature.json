@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-2337-omp-native-gate-runtime",
   "branch": "feat/FEAT-2337-omp-native-gate-runtime",
-  "pr": null,
+  "pr": 2391,
   "review_sha": "9d9d940b2504a028699228bf275d395e641741f0",
   "cycles_used": 2,
   "max_total_cycles": 10,
@@ -99,6 +99,13 @@
       "kind": "regate",
       "decision": "rework round 1: GC-02 docs fix re-gated by validate c2; CI-forced reader fix b2151327 merges on green CI",
       "reason": "delegated rulings notes/answers-2026-11-22-manifest-gate.md and notes/answers-2026-11-22-post-validate-fix.md (fable-advisor)"
+    },
+    {
+      "at": "2026-11-22T22:02:53+00:00",
+      "by": "fable-advisor",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Delegated ruling (AdvisorB8Distill): every digest expertise_update empty, no member observations; lessons live in #2387 and observations/harness-orchestrator.md for a later distill"
     }
   ],
   "mission": "plan",
