@@ -99,6 +99,13 @@
       "kind": "regate",
       "decision": "validate cycle 2",
       "reason": "c1 FAIL V1-V7 fixed in 242f9714 (fix round 1, main-session-direct); re-validate the new pin"
+    },
+    {
+      "at": "2026-11-22T18:49:36+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Operator skipped feature-close distillation at ship; lessons are carried by DEC-100/SPEC \u00a74.2 text and the fix-round notes"
     }
   ],
   "mission": "plan",
