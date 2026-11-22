@@ -272,13 +272,15 @@ check("github.sync false: the gate exits 0 with no output, even for gh issue clo
       "nothing where the mirror is off",
       _rc == 0 and _d is None, f"rc={_rc} decision={_d!r}")
 
+# MIGRATED (FEAT-2274 V1): this case once asserted only "no deny", which a gate exiting 0 on the
+# unreadable config also satisfied. A strict reader refusing duplicate keys is a config READ
+# failure, so a matching close is now refused at exit 2 rather than either copy being chosen.
 _duplicate_config_root = _root(sync=False)
 with open(os.path.join(_duplicate_config_root, ".harness", "harness.json"), "w") as _f:
     _f.write('{"github":{"sync":false},"github":{"sync":true,"repo":"o/r"}}')
 _rc, _d, _ = gate("gh issue close 728", root=_duplicate_config_root)
-if _d is not None:
-    check("duplicate harness.json keys disable close policy rather than choosing one",
-          False, f"rc={_rc} decision={_d!r}")
+check("duplicate harness.json keys refuse a matching close at exit 2 rather than choosing one",
+      _rc == 2 and _d is None, f"rc={_rc} decision={_d!r}")
 
 _duplicate_payload_root = _root()
 _duplicate_payload_env = dict(os.environ, HARNESS_PROJECT_DIR=_duplicate_payload_root)
@@ -301,9 +303,11 @@ _noroot = tempfile.mkdtemp()
 os.makedirs(os.path.join(_noroot, ".harness"))
 with open(os.path.join(_noroot, ".harness", "team-config.yaml"), "w") as _f:
     _f.write("agents: {}\n")
+# MIGRATED (FEAT-2274 V1): a missing harness.json at a resolved root is a config read failure,
+# not "sync off" — a matching close is refused at exit 2 instead of passing unchecked.
 _rc, _d, _ = gate("gh issue close 728", root=_noroot)
-check("no harness.json at all: the gate exits 0 with no output",
-      _rc == 0 and _d is None, f"rc={_rc} decision={_d!r}")
+check("no harness.json at all: a matching close is refused at exit 2",
+      _rc == 2 and _d is None, f"rc={_rc} decision={_d!r}")
 
 # ---------------- THE CORPUS AGREES WITH THE HEALTHY GATE ------------------------------------
 # A mislabelled corpus row would teach the failure-mode cases below the wrong answer, so each
@@ -391,6 +395,56 @@ _r = _run_in(_mbin, "gh pr close 5", _root())
 check("body failure: an unrelated command exits 0 untouched",
       _r.returncode == 0 and not _r.stdout.strip() and not _r.stderr.strip(),
       f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
+
+# ---------------- A CONFIG THAT CANNOT BE READ IS NOT "SYNC OFF" (FEAT-2274 V1) ---------------
+# Once a command matches, an unreadable or malformed harness.json refuses it by name: only a
+# READABLE config with sync off exempts. An unrelated command never reaches the config read.
+_CONFIG_READ = "harness.json could not be read: "
+_CONFIG_BLOCK = "harness.json github block is not a mapping: "
+_CONFIG_FAULTS = (
+    ("no harness.json", None, _CONFIG_READ),
+    ("not JSON", "{nope", _CONFIG_READ),
+    ("a document that is not a mapping", "[1, 2]", _CONFIG_READ),
+    ("a github block that is a list", '{"github": [1, 2]}', _CONFIG_BLOCK),
+    ("a github block that is an empty list", '{"github": []}', _CONFIG_BLOCK),
+    ("a github block that is null", '{"github": null}', _CONFIG_BLOCK),
+)
+
+
+def _config_root(body):
+    """A marked root whose harness.json holds `body` verbatim, or none at all when None."""
+    root = _root()
+    path = os.path.join(root, ".harness", "harness.json")
+    os.remove(path)
+    if body is not None:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(body)
+    return root
+
+
+def _untouched(r):
+    return r.returncode == 0 and not r.stdout.strip() and not r.stderr.strip()
+
+
+def _config_fault_case(label, body, detail):
+    root = _config_root(body)
+    r = _run_in(os.path.dirname(GATE), "gh issue close 728", root)
+    check(f"config fault ({label}): a matching close is refused at exit 2, named",
+          _named_refusal(r, detail), f"rc={r.returncode} stderr={r.stderr[-300:]!r}")
+    r = _run_in(os.path.dirname(GATE), "gh pr close 5", root)
+    check(f"config fault ({label}): an unrelated command exits 0 untouched", _untouched(r),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
+
+
+for _label, _body, _detail in _CONFIG_FAULTS:
+    _config_fault_case(_label, _body, _detail)
+
+# The control: a READABLE config with sync off is still the legitimate exemption.
+for _label, _body in (("github.sync false", '{"github": {"sync": false, "repo": "o/r"}}'),
+                      ("no github block", "{}")):
+    _r = _run_in(os.path.dirname(GATE), "gh issue close 728", _config_root(_body))
+    check(f"readable config, {_label}: a matching close exits 0 untouched", _untouched(_r),
+          f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

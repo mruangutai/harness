@@ -151,8 +151,10 @@ def _load_registry_module():
 
 # The dispatched personas every case names, plus the dispatchers: the spawns: allowlist
 # reads the DISPATCHER's file, and a checkout without it passes through loudly (case 28).
+# harness-pm is a dispatched target too (FEAT-2274 V2): a checkout without its grants file
+# is the unreadable-grants fault, now reported as unavailable, not a clean fixture.
 _PERSONAS = ("harness-backend-dev", "harness-product-lead",
-             "harness-eng-lead", "harness-orchestrator")
+             "harness-eng-lead", "harness-orchestrator", "harness-pm")
 
 
 def _checkout():
@@ -563,6 +565,80 @@ def case_f2274_unavailable_outcome():
         check("f2274: a deliberate refusal is exit 2 with no unavailable line",
               refused.returncode == 2 and "BLOCKED" in refused.stderr
               and _unavailable_gates(refused) == [], refused.stderr[-200:])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _f2274_v2_member_dispatch(root, prompt_tail="x"):
+    """A bash-holding member dispatch (eng lead -> backend dev) inside `root`."""
+    return fire({"agent_type": "harness-eng-lead", "tool_name": "Agent",
+                 "tool_input": {"subagent_type": "harness-backend-dev",
+                                "prompt": FEATURE_LINE + "\n" + prompt_tail}},
+                env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
+
+
+def _f2274_v2_check(label, r, want, receipt=True):
+    """The dispatch still passed (exit 0, claim receipt) and stdout carries exactly `want`."""
+    check(f"f2274 v2: {label}",
+          r.returncode == 0 and _unavailable_gates(r) == want
+          and (not receipt or "harness_claim" in r.stdout),
+          f"exit {r.returncode}, stdout={r.stdout!r}, stderr={r.stderr[-300:]!r}")
+
+
+def case_f2274_v2_failed_run_dir_vocabulary_is_unavailable():
+    """FEAT-2274 fix V2: a run-dir reference whose slug vocabulary could not be derived (the
+    manifest does not parse) went unchecked with stderr only. It still passes, and now says
+    so as exactly one unavailable line."""
+    root = _checkout()
+    try:
+        with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as fh:
+            fh.write("leads: [\n")
+        tail = ".harness/harness/features/BUG-92-run-dir-squad-fixture/runs/eng-t01/digest.md"
+        _f2274_v2_check("a failed run-dir vocabulary derivation is one unavailable line",
+                        _f2274_v2_member_dispatch(root, tail), ["dispatch-guard"])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f2274_v2_unreadable_tool_grants_are_unavailable():
+    """FEAT-2274 fix V2: a governed target whose tool grants cannot be read was assumed to
+    hold a shell, so its feature-tree-root check went unchecked with stderr only. It still
+    passes, and now says so as exactly one unavailable line."""
+    root = _checkout()
+    try:
+        os.remove(os.path.join(root, ".omp", "agents", "harness-backend-dev.md"))
+        _f2274_v2_check("unreadable target tool grants are one unavailable line",
+                        _f2274_v2_member_dispatch(root), ["dispatch-guard"])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f2274_v2_legitimate_passthroughs_stay_quiet():
+    """FEAT-2274 fix V2 controls: readable grants that simply lack Bash, a manifest that
+    declares no run-dir grant, and a non-governed target are checked answers, not gaps —
+    none emits an unavailable line."""
+    root = _checkout()
+    # As in case 21: the registered run's grant has no `/runs/` segment, so the manifest
+    # still declares no run-dir write grant for the run-dir control below.
+    _register_lead_run(root, "harness-product-lead", "FEAT-90-one-root-fixture",
+                       grant=".harness/*/features/*/**")
+    try:
+        env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+        _f2274_v2_check("a readable shell-less grant passes with no unavailable line",
+                        fire(_task("harness-product-lead", "harness-orchestrator", root),
+                             env=env), [])
+        tail = ".harness/harness/features/BUG-92-run-dir-squad-fixture/runs/eng-t01/digest.md"
+        grant_less = _f2274_v2_member_dispatch(root, tail)
+        _f2274_v2_check("a grant-less run-dir manifest passes with no unavailable line",
+                        grant_less, [])
+        check("f2274 v2: the grant-less control reached the declared-empty vocabulary",
+              "the manifest declares no run-dir write grant" in grant_less.stderr,
+              grant_less.stderr[-300:])
+        _f2274_v2_check("a non-governed target passes with no unavailable line",
+                        fire({"agent_type": "harness-eng-lead",
+                              "tool_input": {"subagent_type": "general-purpose",
+                                             "prompt": FEATURE_LINE}}, env=env),
+                        [], receipt=False)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -1634,6 +1710,9 @@ def main():
     case_24_duplicate_hook_keys_are_rejected()
     case_27_spawn_targets_are_native_authority()
     case_f2274_unavailable_outcome()
+    case_f2274_v2_failed_run_dir_vocabulary_is_unavailable()
+    case_f2274_v2_unreadable_tool_grants_are_unavailable()
+    case_f2274_v2_legitimate_passthroughs_stay_quiet()
     case_29_name_parameter_refused()
     case_30_schema_controls_are_not_the_guards()
     case_30_repository_header_binds_exact_factory_claim()

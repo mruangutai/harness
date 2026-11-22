@@ -20,6 +20,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+import ast
 import json
 import os
 import shutil
@@ -404,36 +405,72 @@ def run_issue_2107():
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
 
 
-def run_feat65_config_reader():
-    """FEAT-65 c1 (CR-01): the compatibility config reader — a program this gate runs through a
-    clean interpreter — recovers from its own boundary classes (no file, not JSON, a github
-    block that is not a mapping) with the same `false -` the shell gate printed, and carries
-    no broad catch for the census to miss."""
-    src = open(GATE, encoding="utf-8").read()
-    start = src.index('_CONFIG_READER = """') + len('_CONFIG_READER = """')
-    reader = src[start:src.index('"""', start)]
-    def run(body):
-        root = tempfile.mkdtemp()
-        os.makedirs(os.path.join(root, ".harness"))
-        if body is not None:
-            with open(os.path.join(root, ".harness", "harness.json"), "w") as f:
-                f.write(body)
-        return subprocess.run([sys.executable, "-I", "-", root], input=reader,
-                              capture_output=True, text=True)
-    for label, body in (("no harness.json", None), ("not JSON", "{nope"),
-                        ("a top-level document that is not an object", "[1, 2]")):
-        r = run(body)
-        check(f"FEAT-65 config reader recovers from {label} as `false -`",
-              r.returncode == 0 and r.stdout == "false -\n" and r.stderr == "",
-              f"rc={r.returncode} out={r.stdout!r} err={r.stderr[-200:]!r}")
-    # The exceptional path the gate runs this program FOR: a github block that is not a mapping
-    # exposes the helper's traceback, exactly as the shell gate did (see _github_config).
-    r = run('{"github": [1, 2]}')
-    check("FEAT-65 config reader keeps its traceback for a github block that is not a mapping",
-          r.returncode == 1 and r.stdout == "" and "AttributeError" in r.stderr,
-          f"rc={r.returncode} out={r.stdout!r} err={r.stderr[-200:]!r}")
-    check("FEAT-65 config reader carries no broad catch",
-          "except Exception" not in reader and "except:" not in reader, reader)
+# ============ A CONFIG THAT CANNOT BE READ IS NOT "SYNC OFF" (FEAT-2274 V1) ============
+# MIGRATED from FEAT-65 c1 (CR-01)'s config-reader case. That case held a compatibility reader
+# program to recovering from no file / not JSON / a non-object document as `false -` (sync off)
+# and to exiting 1 with a traceback on a github block that is not a mapping, while the gate
+# itself passed. Both encoded the contract V1 names as wrong: a failed config read let a branch
+# creation through unchecked. Each shape now refuses a matching command by name at exit 2.
+_CONFIG_READ = "harness.json could not be read: "
+_CONFIG_BLOCK = "harness.json github block is not a mapping: "
+_CONFIG_FAULTS = (
+    ("no harness.json", None, _CONFIG_READ),
+    ("not JSON", "{nope", _CONFIG_READ),
+    ("a top-level document that is not an object", "[1, 2]", _CONFIG_READ),
+    ("duplicate keys", '{"github":{"sync":false},"github":{"sync":true,"repo":"o/r"}}',
+     _CONFIG_READ),
+    ("a github block that is a list", '{"github": [1, 2]}', _CONFIG_BLOCK),
+    ("a github block that is an empty list", '{"github": []}', _CONFIG_BLOCK),
+    ("a github block that is null", '{"github": null}', _CONFIG_BLOCK),
+)
+_CONFIG_CONTROLS = (
+    ("github.sync false", '{"github": {"sync": false, "repo": "acme/widgets"}}'),
+    ("github.sync true, repo unpinned", '{"github": {"sync": true}}'),
+    ("no github block", "{}"),
+)
+
+
+def _config_root(body):
+    """A marked root whose harness.json holds `body` verbatim, or none at all when None."""
+    root = _fixture(None)
+    path = os.path.join(root, ".harness", "harness.json")
+    os.remove(path)
+    if body is not None:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(body)
+    return root
+
+
+def _config_fault_case(label, body, detail):
+    root = _config_root(body)
+    r = _run_in(os.path.dirname(GATE), "git check" + "out -b fix/123-typo", root)
+    check(f"config fault ({label}): a matching branch creation is refused at exit 2, named",
+          _named_refusal(r, detail), f"rc={r.returncode} stderr={r.stderr[-300:]!r}")
+    r = _run_in(os.path.dirname(GATE), "git status", root)
+    check(f"config fault ({label}): an unrelated command exits 0 untouched", _untouched(r),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
+
+
+def _config_control_case(label, body):
+    r = _run_in(os.path.dirname(GATE), "git check" + "out -b fix/123-typo", _config_root(body))
+    check(f"readable config, {label}: a matching branch creation exits 0 untouched",
+          _untouched(r), f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
+
+
+def _broad_catches(path):
+    tree = ast.parse(open(path, encoding="utf-8").read())
+    return [node.lineno for node in ast.walk(tree) if isinstance(node, ast.ExceptHandler)
+            and (node.type is None
+                 or isinstance(node.type, ast.Name) and node.type.id == "Exception")]
+
+
+def run_config_faults():
+    for label, body, detail in _CONFIG_FAULTS:
+        _config_fault_case(label, body, detail)
+    for label, body in _CONFIG_CONTROLS:
+        _config_control_case(label, body)
+    hits = _broad_catches(GATE)
+    check("the gate's config read carries no broad catch", hits == [], f"lines: {hits}")
 
 
 def main():
@@ -448,7 +485,7 @@ def main():
     run_no_root()
     run_body_failure()
     run_issue_2107()
-    run_feat65_config_reader()
+    run_config_faults()
 
     fails = 0
     for name, ok, detail in RESULTS:

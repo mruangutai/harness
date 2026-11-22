@@ -16,13 +16,29 @@ not the decision file — is the disposition record SC-08 asks for. Reviewers co
 | DEC-174 | retained | — | This feature was planned by the harness and executed main-session-direct, exactly as DEC-174 requires for changes to its own hooks, gates and their tests. |
 | DEC-233 | retained | — | OMP remains the only host; nothing here reintroduces a Claude adapter. |
 | DEC-237 | retained | — | The YieldTool object contract and hook-injected strict schemas are unchanged; DEC-208's rewrite now names DEC-237 as the current digest contract. |
+| DEC-193 | retained | — | Exactly two locations hold code under harness authority. T-02's rule carries the worktree-only constraint to governed personas, which restates DEC-193 for them and changes nothing it decides. |
+| DEC-120 | retained | — | Approval stays the operator's through Main; this feature signs nothing for itself. |
+| DEC-182 | retained | — | `plan.yaml` is still written only through `plan-merge.py`; this feature touched it only through that tool. |
+| DEC-187 | retained | — | functional and eval stay excluded test kinds; no SC rests on them. |
+| DEC-232 | retained | — | Plan anchors keep their `path` / `path#symbol` / quote forms; no anchor rule changed. |
+
+This table covers every decision the signed plan and the BRIEF cite: DEC-100, 120, 127, 174, 182, 187,
+193, 204, 208, 232, 233, 234 and 237. It also covers DEC-118, found during the build, and DEC-205,
+which governs the rewrite format (above).
 
 DEC-118 was not in the plan's list; T-03's intent requires amending any other consulted decision
 whose claim the implementation changed, rather than leaving it silently superseded.
 
-## Builder-side prose corrections outside T-03's `files:`
+## Paths changed outside the task `files:` lists
 
-T-01 made two skill sentences false; both now name omp as the authority that refuses a target
+Each serves the approved cutover and adds no product scope. They are recorded here because the
+signed plan cannot be re-scoped after signature.
+
+- `tests/integration/canonical-reader-classification.json` (T-01): three exempt rows for the
+  narrow gates' new stdlib applicability readers. The canonical-reader inventory refuses an
+  unclassified reader, so T-01 could not land without them. Rationale: `notes/t01-design.md`.
+
+T-01 also made two skill sentences false; both now name omp as the authority that refuses a target
 outside `spawns:`:
 
 - `.claude/skills/harness-zero-micro-management/SKILL.md` — "`dispatch-guard` refuses anything

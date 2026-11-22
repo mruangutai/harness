@@ -1114,59 +1114,73 @@ def _unavailable_lines(text):
     return found
 
 
-def case_feat2274_unavailable_outcome():
-    """FEAT-2274 C1: a broad gate's own failure is a visible `unavailable` outcome — one stdout
-    JSON line {decision, gate, reason}, exit 0 — named from the script path, never the label.
-    The closed guard is unchanged; a normal return emits nothing; SystemExit is untouched."""
-    mod = hb()
-    check("feat2274_emit_unavailable_exists", hasattr(mod, "emit_unavailable"))
-    if hasattr(mod, "emit_unavailable"):
-        with _captured_streams() as (out, _err):
-            mod.emit_unavailable("/x/bin/validate-digest.py", "no schema")
-        lines = out.getvalue().splitlines()
-        obj = json.loads(lines[0]) if len(lines) == 1 else None
-        check("feat2274_emitter_writes_exactly_one_json_line_with_exact_keys",
-              obj == {"decision": "unavailable", "gate": "validate-digest", "reason": "no schema"},
-              repr(out.getvalue()))
-    script = "/x/bin/check-domain.py"
+_F2274_SCRIPT = "/x/bin/check-domain.py"
+
+
+def _f2274_guarded(call):
+    """(rc, stdout, stderr) of `call()` under captured streams; (None, None, error) when the
+    API under test rejects the call's signature with TypeError."""
     try:
         with _captured_streams() as (out, err):
-            rc = mod.hook_guard(_raiser(RuntimeError("boom")), "label-not-gate", script=script)
+            rc = call()
     except TypeError as error:
-        rc, out, err = None, None, error
+        return None, None, error
+    return rc, out, err
+
+
+def _f2274_emitter_checks(mod):
+    check("feat2274_emit_unavailable_exists", hasattr(mod, "emit_unavailable"))
+    if not hasattr(mod, "emit_unavailable"):
+        return
+    with _captured_streams() as (out, _err):
+        mod.emit_unavailable("/x/bin/validate-digest.py", "no schema")
+    lines = out.getvalue().splitlines()
+    obj = json.loads(lines[0]) if len(lines) == 1 else None
+    check("feat2274_emitter_writes_exactly_one_json_line_with_exact_keys",
+          obj == {"decision": "unavailable", "gate": "validate-digest", "reason": "no schema"},
+          repr(out.getvalue()))
+
+
+def _f2274_open_guard_checks(mod):
+    rc, out, err = _f2274_guarded(lambda: mod.hook_guard(
+        _raiser(RuntimeError("boom")), "label-not-gate", script=_F2274_SCRIPT))
     got = _unavailable_lines(out.getvalue()) if out is not None else []
+    one = got[0] if len(got) == 1 else {}
     check("feat2274_hook_guard_open_emits_unavailable_once_and_returns_0",
-          rc == 0 and len(got) == 1 and got[0]["gate"] == "check-domain"
-          and "RuntimeError: boom" in got[0]["reason"], f"rc={rc!r} got={got!r} err={err!r}")
+          rc == 0 and one.get("gate") == "check-domain"
+          and "RuntimeError: boom" in one.get("reason", ""), f"rc={rc!r} got={got!r} err={err!r}")
     check("feat2274_hook_guard_open_keeps_its_stderr_diagnostic",
           out is not None and "passing through" in err.getvalue(), repr(err))
-    try:
-        with _captured_streams() as (out, err):
-            rc = mod.hook_guard(_raiser(RuntimeError("boom")), "x-hook", fail="closed",
-                                script=script)
-    except TypeError as error:
-        rc, out, err = None, None, error
+
+
+def _f2274_closed_guard_checks(mod):
+    rc, out, err = _f2274_guarded(lambda: mod.hook_guard(
+        _raiser(RuntimeError("boom")), "x-hook", fail="closed", script=_F2274_SCRIPT))
     check("feat2274_hook_guard_closed_unchanged_exit_2_no_unavailable",
           rc == 2 and out.getvalue() == "" and "BLOCKED" in err.getvalue(), f"rc={rc!r} err={err!r}")
-    try:
-        with _captured_streams() as (out, _err):
-            rc = mod.hook_guard(lambda: 0, "x-hook", script=script)
-    except TypeError as error:
-        rc, out = error, None
+
+
+def _f2274_quiet_guard_checks(mod):
+    rc, out, err = _f2274_guarded(lambda: mod.hook_guard(lambda: 0, "x-hook", script=_F2274_SCRIPT))
     check("feat2274_hook_guard_normal_return_emits_nothing",
-          rc == 0 and out.getvalue() == "", repr(rc))
-    with _captured_streams() as (out, _err):
-        rc = mod.hook_guard(_raiser(RuntimeError("boom")), "x-hook")
+          rc == 0 and out.getvalue() == "", f"rc={rc!r} err={err!r}")
+    rc, out, _err = _f2274_guarded(lambda: mod.hook_guard(_raiser(RuntimeError("boom")), "x-hook"))
     check("feat2274_hook_guard_without_script_emits_no_unavailable",
-          rc == 0 and out.getvalue() == "", repr(out.getvalue()))
+          rc == 0 and out.getvalue() == "", repr(out and out.getvalue()))
+
+
+def _f2274_system_exit_checks(mod):
     with _captured_streams() as (out, _err):
         try:
             escaped = _escapes(lambda: mod.hook_guard(_raiser(SystemExit(3)), "x-hook",
-                                                      script=script), SystemExit)
+                                                      script=_F2274_SCRIPT), SystemExit)
         except TypeError:
             escaped = False
     check("feat2274_hook_guard_lets_SystemExit_escape_without_unavailable",
           escaped and out.getvalue() == "", repr(out.getvalue()))
+
+
+def _f2274_run_hook_body_checks(mod):
     tmp = tempfile.mkdtemp()
     path = os.path.join(tmp, "hookish.py")
     with open(path, "w", encoding="utf-8") as fh:
@@ -1179,6 +1193,17 @@ def case_feat2274_unavailable_outcome():
               rc == 0 and [g["gate"] for g in got] == ["hookish"], repr(out.getvalue()))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_feat2274_unavailable_outcome():
+    """FEAT-2274 C1: a broad gate's own failure is a visible `unavailable` outcome — one stdout
+    JSON line {decision, gate, reason}, exit 0 — named from the script path, never the label.
+    The closed guard is unchanged; a normal return emits nothing; SystemExit is untouched."""
+    mod = hb()
+    for probe in (_f2274_emitter_checks, _f2274_open_guard_checks, _f2274_closed_guard_checks,
+                  _f2274_quiet_guard_checks, _f2274_system_exit_checks,
+                  _f2274_run_hook_body_checks):
+        probe(mod)
 
 
 def _feat64_pointer_read_checks(mod, tmp):

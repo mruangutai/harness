@@ -2205,8 +2205,12 @@ describe("OMP task lifecycle adapter", () => {
     });
     await start(handlers);
     const denied = fileCall("edit", { input: "[a/denied.ts#A1B2]\nPUT 1:\n+x\n[b/crashed.ts#C3D4]\nPUT 1:\n+y" });
-    expect(await handlers.get("tool_call")?.(denied, leadCtx()))
-      .toEqual({ block: true, reason: "a/denied.ts is outside your domain" });
+    // Pre: omp 19.1.0 drops additionalContext from a blocking tool_call result and hands the
+    // model only `reason`, so the sibling's notice rides in the reason, after the denial.
+    expect(await handlers.get("tool_call")?.(denied, leadCtx())).toEqual({
+      block: true,
+      reason: ["a/denied.ts is outside your domain", notice("check-domain", "pre")].join("\n"),
+    });
     // Post: the refusal is still an error, and the sibling's notice rides beside it.
     expect(await handlers.get("tool_result")?.(denied, leadCtx())).toEqual({
       content: [{ type: "text", text: "ok" }, { type: "text", text: "Harness post-write check: a/denied.ts is outside your domain" }],

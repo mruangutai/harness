@@ -321,6 +321,9 @@ if refs:
             print("dispatch-guard: run-dir shape check SKIPPED -- the run-dir vocabulary "
                   "derivation failed (manifest unreadable, unparseable, or PyYAML unavailable "
                   "to that python3).", file=sys.stderr)
+            hb.emit_unavailable(__file__, "the run-dir vocabulary could not be derived "
+                                "(manifest unreadable, unparseable, or PyYAML unavailable); "
+                                "the run-dir slug shape was not checked")
     else:
         bad = [ref for ref in refs if not hb.run_dir_slug_ok(ref, globs)]
         if bad:
@@ -442,6 +445,8 @@ try:
 except (OSError, ValueError, IndexError) as exc:
     print("dispatch-guard: could not read tool grants for %s (%s) -- passing through."
           % (dispatched, exc), file=sys.stderr)
+    hb.emit_unavailable(__file__, "could not read tool grants for %s (%s); the shell-less "
+                        "feature-tree-root check was not run" % (dispatched, exc))
     has_bash = True
 
 TREE_ROOT_PREFIX = "HARNESS-FEATURE-TREE-ROOT: "

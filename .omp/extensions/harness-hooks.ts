@@ -1871,7 +1871,10 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         reason = result.blocked ? result.reason : undefined;
       }
     }
-    if (reason) return { block: true, reason };
+    // FEAT-2274 V3: omp 19.1.0 returns a blocking tool_call result's `reason` alone and drops
+    // its additionalContext, so a sibling gate's could-not-run notice rides in the reason,
+    // after the denial that blocked the call.
+    if (reason) return { block: true, reason: [reason, ...notices].join("\n") };
     // #2240: OMP persists this revision as the call itself, so the dispatcher later reads the
     // injected schema as fields it sent and copies them into its next call (refused).
     const context = [...(schemasInjected ? [SCHEMA_INJECTION_NOTE] : []), ...notices];

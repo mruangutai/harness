@@ -1383,13 +1383,17 @@ silent, and how it resolves depends on how much the gate guards:
   `additionalContext` — `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` —
   on every occurrence, tagged by phase (pre, post, dispatch, yield) and never deduplicated or
   cached; the tool result is not marked an error. A refusal outranks it: exit 2 or a structured
-  deny blocks even when the same output also carries an unavailable line. Failing these gates
-  closed stays refused — one gate's bug would wedge every agent.
+  deny blocks even when the same output also carries an unavailable line. Beside a refusal the
+  notices are not lost: omp discards `additionalContext` on a blocked call, so they follow the
+  denial in the refusal reason. Failing these gates closed stays refused — one gate's bug would
+  wedge every agent.
 - **The narrow command gates fail closed, for the command they guard only.** `gh-close-gate.py`,
   `branch-create-gate.py` and `plan-sign-gate.py` decide applicability from the payload command
   with the standard library, before root resolution or any library or config load, so an unrelated
   Bash command exits 0 without meeting their dependencies; a guarded command whose gate cannot run
-  is refused by name at exit 2. When the gate process cannot start at all, the extension's
+  — including a `harness.json` that is missing, unparseable or not a mapping, or a `github:` block
+  that is not a mapping — is refused by name at exit 2, while a readable config that turns sync off
+  still exempts it. When the gate process cannot start at all, the extension's
   `narrowGateApplies` makes the same applicability call. `merge-gate.py` fails closed as before.
 
 A dispatch-guard failure lets the dispatch through, visibly unavailable. Under OMP the started

@@ -5337,50 +5337,87 @@ def _feat65_escaped(result, code=None):
     return exit_ok and "failed internally" not in result.stderr
 
 
-def run_feat65_guard_cases():
-    raise_rt = "    raise RuntimeError('FEAT-65 injected')\n"
-    payload_defect = _feat65_fire(
-        "artifact_accessors.py", "def read_hook_payload(text, context):\n" + raise_rt)
-    unreadable_payload = _feat65_fire(None, "", stdin="{not json")
-    registry_defect = _feat65_fire(
-        "inflight_registry.py",
-        "def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):\n"
-        + raise_rt)
-    interrupt = _feat65_fire(
-        "artifact_accessors.py",
-        "def read_hook_payload(text, context):\n    raise KeyboardInterrupt()\n")
-    deliberate_exit = _feat65_fire(
-        "artifact_accessors.py", "def read_hook_payload(text, context):\n    raise SystemExit(7)\n")
+_F65_RAISE = "    raise RuntimeError('FEAT-65 injected')\n"
+_F65_READ = "def read_hook_payload(text, context):\n"
+_F65_UNREADABLE_HEAD = ("check-digest: the hook failed internally (ArtifactAccessError: "
+                        "yield hook payload: invalid JSON: ")
+
+
+def _feat65_fire_guarded():
+    return {"payload_defect": _feat65_fire("artifact_accessors.py", _F65_READ + _F65_RAISE),
+            "unreadable_payload": _feat65_fire(None, "", stdin="{not json"),
+            "registry_defect": _feat65_fire(
+                "inflight_registry.py",
+                "def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):\n"
+                + _F65_RAISE)}
+
+
+def _feat65_fire_escapes():
     # The direct CLI reads its persona and text itself; a defect in the validator core must
     # stay a loud traceback, never a pass-through. The reviewer persona resolves the review
     # policy's root through harness_boundary on every validate() call.
     cli_defect = _feat65_fire(
-        "harness_boundary.py", "def resolve_root(bin_dir, strict=True):\n" + raise_rt,
+        "harness_boundary.py", "def resolve_root(bin_dir, strict=True):\n" + _F65_RAISE,
         argv=("harness-code-reviewer",),
         stdin=json.dumps({"VERDICT": "PASS", "DIGEST": {}, "artifact": "x.md"}))
+    return {"interrupt": _feat65_fire("artifact_accessors.py",
+                                      _F65_READ + "    raise KeyboardInterrupt()\n"),
+            "deliberate_exit": _feat65_fire("artifact_accessors.py",
+                                            _F65_READ + "    raise SystemExit(7)\n"),
+            "cli_defect": cli_defect}
+
+
+def _f65_unavailable(result):
+    return _unavailable_gates(result) == ["validate-digest"]
+
+
+def _f65_payload_defect_ok(result, line):
+    return result.stderr == line and _f65_unavailable(result) and _feat65_guarded(result, line)
+
+
+def _f65_unreadable_ok(result, line):
+    return (result.stderr.startswith(_F65_UNREADABLE_HEAD) and _f65_unavailable(result)
+            and _feat65_guarded(result, line[line.index(" — passing through"):]))
+
+
+def _f65_registry_ok(result, line):
+    return _feat65_guarded(result, line) and _f65_unavailable(result)
+
+
+def _f65_interrupt_ok(result, _line):
+    return _feat65_escaped(result) and "KeyboardInterrupt" in result.stderr
+
+
+def _f65_exit7_ok(result, _line):
+    return _feat65_escaped(result, 7)
+
+
+def _f65_cli_ok(result, _line):
+    return (_feat65_escaped(result) and result.returncode != 2
+            and "FEAT-65 injected" in result.stderr)
+
+
+_FEAT65_CASES = (
+    ("payload_defect",
+     "a defect reading the payload passes through with exactly the hook_guard line",
+     _f65_payload_defect_ok),
+    ("unreadable_payload",
+     "an unreadable payload is the hook's own failure and takes the same template",
+     _f65_unreadable_ok),
+    ("registry_defect", "a defect in the registry errand is no longer reported in its own sentence",
+     _f65_registry_ok),
+    ("interrupt", "KeyboardInterrupt escapes the guard", _f65_interrupt_ok),
+    ("deliberate_exit", "a deliberate SystemExit keeps its own exit code", _f65_exit7_ok),
+    ("cli_defect", "the direct CLI is not wrapped: a validator defect is loud and nonzero",
+     _f65_cli_ok),
+)
+
+
+def run_feat65_guard_cases():
+    results = {**_feat65_fire_guarded(), **_feat65_fire_escapes()}
     line = GUARD_LINE.format(detail="RuntimeError: FEAT-65 injected")
-    unreadable_head = ("check-digest: the hook failed internally (ArtifactAccessError: "
-                       "yield hook payload: invalid JSON: ")
-    return _feat65_report([
-        ("a defect reading the payload passes through with exactly the hook_guard line",
-         payload_defect.stderr == line and _unavailable_gates(payload_defect) == ["validate-digest"]
-         and _feat65_guarded(payload_defect, line), payload_defect),
-        ("an unreadable payload is the hook's own failure and takes the same template",
-         unreadable_payload.stderr.startswith(unreadable_head)
-         and _unavailable_gates(unreadable_payload) == ["validate-digest"]
-         and _feat65_guarded(unreadable_payload, line[line.index(" — passing through"):]),
-         unreadable_payload),
-        ("a defect in the registry errand is no longer reported in its own sentence",
-         _feat65_guarded(registry_defect, line)
-         and _unavailable_gates(registry_defect) == ["validate-digest"], registry_defect),
-        ("KeyboardInterrupt escapes the guard",
-         _feat65_escaped(interrupt) and "KeyboardInterrupt" in interrupt.stderr, interrupt),
-        ("a deliberate SystemExit keeps its own exit code",
-         _feat65_escaped(deliberate_exit, 7), deliberate_exit),
-        ("the direct CLI is not wrapped: a validator defect is loud and nonzero",
-         _feat65_escaped(cli_defect) and cli_defect.returncode != 2
-         and "FEAT-65 injected" in cli_defect.stderr, cli_defect),
-    ])
+    return _feat65_report([(name, pred(results[key], line), results[key])
+                           for key, name, pred in _FEAT65_CASES])
 
 
 def _feat65_report(cases):
@@ -5433,47 +5470,77 @@ def _f2274_registry_missing():
                        validate=os.path.join(iso, "validate-digest.py"), root=root)
 
 
-def run_feat2274_unavailable_cases():
+def _f2274_fire_unavailable():
     dev = fixture("harness-backend-dev", DEV_NA)
-    no_schema = _f2274_fire({"agent_type": "harness-nonexistent", "digest_object": dev})
-    no_identity = _f2274_fire({"digest_object": dev})
-    no_identity_rerun = _f2274_fire({"digest_object": dev, "stop_hook_active": True})
-    registry_missing = _f2274_registry_missing()
-    valid = _f2274_fire({"agent_type": "harness-backend-dev", "digest_object": dev})
-    foreign = _f2274_fire({"agent_type": "Explore", "digest_object": "not a digest"})
-    rerun = _f2274_fire({"agent_type": "harness-qa", "stop_hook_active": True,
-                         "digest_object": fixture("harness-qa", QA_REAL_FAIL_MISSING_MATRIX)})
+    return {"no_schema": _f2274_fire({"agent_type": "harness-nonexistent", "digest_object": dev}),
+            "no_identity": _f2274_fire({"digest_object": dev}),
+            "no_identity_rerun": _f2274_fire({"digest_object": dev, "stop_hook_active": True}),
+            "registry_missing": _f2274_registry_missing()}
+
+
+def _f2274_fire_passes():
+    dev = fixture("harness-backend-dev", DEV_NA)
+    return {"valid": _f2274_fire({"agent_type": "harness-backend-dev", "digest_object": dev}),
+            "foreign": _f2274_fire({"agent_type": "Explore", "digest_object": "not a digest"}),
+            "rerun": _f2274_fire({"agent_type": "harness-qa", "stop_hook_active": True,
+                                  "digest_object": fixture("harness-qa",
+                                                           QA_REAL_FAIL_MISSING_MATRIX)})}
+
+
+def _f2274_fire_refusals():
     refusals = [_f2274_fire({"agent_type": "harness-qa", **extra})
                 for extra in ({}, {"digest_object": None}, {"digest_object": "   \n"},
                               {"digest_object": ["x"]})]
     contract = _f2274_fire({"agent_type": "harness-backend-dev", "digest_object": fixture(
         "harness-backend-dev", DEV_NA.replace("VERDICT: BLOCKED", "VERDICT: PASS"))})
-    unavailable = ["validate-digest"]
-    return _feat65_report([
-        ("[f2274] a persona with no schema passes through visibly unavailable",
-         no_schema.returncode == 0 and "no schema for harness-nonexistent" in no_schema.stderr
-         and _unavailable_gates(no_schema) == unavailable, no_schema),
-        ("[f2274] a payload with no agent identity passes through visibly unavailable",
-         no_identity.returncode == 0 and "no agent_type" in no_identity.stderr
-         and _unavailable_gates(no_identity) == unavailable, no_identity),
-        ("[f2274] stop_hook_active does not change the missing-identity outcome",
-         no_identity_rerun.returncode == 0
-         and _unavailable_gates(no_identity_rerun) == unavailable, no_identity_rerun),
-        ("[f2274] a missing claim registry on a passing return is visibly unavailable, once",
-         registry_missing.returncode == 0 and "inflight_registry unavailable" in registry_missing.stderr
-         and _unavailable_gates(registry_missing) == unavailable, registry_missing),
-        ("[f2274] a valid governed digest is a normal pass with no unavailable line",
-         valid.returncode == 0 and valid.stdout == "", valid),
-        ("[f2274] a non-governed agent passes through with no unavailable line",
-         foreign.returncode == 0 and foreign.stdout == "", foreign),
-        ("[f2274] stop_hook_active with an identity passes with no unavailable line",
-         rerun.returncode == 0 and rerun.stdout == "", rerun),
-        ("[f2274] absent/null/blank/non-object digest_object stays a contract refusal",
-         all(r.returncode == 2 and OBJECT_INSTRUCTION in r.stderr and _unavailable_gates(r) == []
-             for r in refusals), next((r for r in refusals if r.returncode != 2), refusals[0])),
-        ("[f2274] a contract violation is a refusal, never unavailable",
-         contract.returncode == 2 and _unavailable_gates(contract) == [], contract),
-    ])
+    detail = next((r for r in refusals if r.returncode != 2), refusals[0])
+    return {"refusals": refusals, "refusals_detail": detail, "contract": contract}
+
+
+def _f2274_unavailable_with(result, text):
+    """Exit 0, `text` on stderr, and exactly one validate-digest unavailable line."""
+    return (result.returncode == 0 and text in result.stderr
+            and _unavailable_gates(result) == ["validate-digest"])
+
+
+def _f2274_quiet_pass(result):
+    return result.returncode == 0 and result.stdout == ""
+
+
+def _f2274_refused(result):
+    return result.returncode == 2 and _unavailable_gates(result) == []
+
+
+def _f2274_object_refusals(results):
+    return all(_f2274_refused(r) and OBJECT_INSTRUCTION in r.stderr for r in results)
+
+
+_F2274_CASES = (
+    ("no_schema", "[f2274] a persona with no schema passes through visibly unavailable",
+     lambda r: _f2274_unavailable_with(r, "no schema for harness-nonexistent")),
+    ("no_identity", "[f2274] a payload with no agent identity passes through visibly unavailable",
+     lambda r: _f2274_unavailable_with(r, "no agent_type")),
+    ("no_identity_rerun", "[f2274] stop_hook_active does not change the missing-identity outcome",
+     lambda r: _f2274_unavailable_with(r, "")),
+    ("registry_missing",
+     "[f2274] a missing claim registry on a passing return is visibly unavailable, once",
+     lambda r: _f2274_unavailable_with(r, "inflight_registry unavailable")),
+    ("valid", "[f2274] a valid governed digest is a normal pass with no unavailable line",
+     _f2274_quiet_pass),
+    ("foreign", "[f2274] a non-governed agent passes through with no unavailable line",
+     _f2274_quiet_pass),
+    ("rerun", "[f2274] stop_hook_active with an identity passes with no unavailable line",
+     _f2274_quiet_pass),
+    ("refusals", "[f2274] absent/null/blank/non-object digest_object stays a contract refusal",
+     _f2274_object_refusals),
+    ("contract", "[f2274] a contract violation is a refusal, never unavailable", _f2274_refused),
+)
+
+
+def run_feat2274_unavailable_cases():
+    results = {**_f2274_fire_unavailable(), **_f2274_fire_passes(), **_f2274_fire_refusals()}
+    return _feat65_report([(name, pred(results[key]), results.get(key + "_detail", results[key]))
+                           for key, name, pred in _F2274_CASES])
 
 
 # ---------------------------------------------------------------------------

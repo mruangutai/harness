@@ -235,12 +235,17 @@ REASON = (
     "cannot tell tracked from untracked, by design."
 )
 
-# ---- config gate: github.sync on -- else pass through instantly
+# ---- config gate: github.sync on -- else pass through instantly. Only a READABLE config with
+# sync off exempts (FEAT-2274 V1): the command already matched, so a harness.json that cannot be
+# read, or whose github block is not a mapping, refuses it by name rather than passing unchecked.
+config_path = os.path.join(ROOT, ".harness", "harness.json")
 try:
-    config_path = os.path.join(ROOT, ".harness", "harness.json")
-    g = _artifact_accessors.load_harness_json(config_path).get("github") or {}
-except _artifact_accessors.ArtifactAccessError:
-    g = {}
+    g = _artifact_accessors.load_harness_json(config_path).get("github", {})
+except _artifact_accessors.ArtifactAccessError as error:
+    raise SystemExit(_unrunnable(f"harness.json could not be read: {error}"))
+if not isinstance(g, dict):
+    raise SystemExit(_unrunnable(
+        f"harness.json github block is not a mapping: {type(g).__name__} in {config_path}"))
 if not g.get("sync"):
     sys.exit(0)
 

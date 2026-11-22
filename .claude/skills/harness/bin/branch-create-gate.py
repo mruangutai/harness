@@ -150,39 +150,20 @@ GH = _bootstrap_os.environ.get("GH_BIN") or "gh"
 input_text = _payload_text.rstrip("\n")
 
 
-# A PROGRAM, NOT PROSE (FEAT-65 c1, CR-01): this string runs through a clean interpreter, so its
-# handler is a real catch and the census counts it like any other. It absorbs exactly what the
-# read can raise — no file (OSError), not JSON (ValueError), a top-level document with no `.get`
-# (AttributeError) — and nothing else.
-_CONFIG_READER = """import json, os, sys
-try:
-    g = json.load(open(os.path.join(sys.argv[1], ".harness", "harness.json"))).get("github") or {}
-except (OSError, ValueError, AttributeError):
-    g = {}
-print(str(bool(g.get("sync"))).lower(),
-      g.get("repo") or "-")
-"""
-
-
 def _github_config():
+    """(sync, repo) from a READABLE harness.json. The branch creation already matched, so a
+    config that cannot be read, or whose github block is not a mapping, is not "sync off": it
+    refuses the command by name rather than letting it through unchecked (FEAT-2274 V1)."""
+    config_path = _bootstrap_os.path.join(root, ".harness", "harness.json")
     try:
-        config_path = _bootstrap_os.path.join(
-            root, ".harness", "harness.json")
-        github = (
-            _artifact_accessors.load_harness_json(config_path).get("github") or {})
-    except _artifact_accessors.ArtifactAccessError:
-        github = {}
-    try:
-        return str(bool(github.get("sync"))).lower(), github.get("repo") or "-"
-    except AttributeError:
-        # A `github:` block that is not a mapping has no .get (FEAT-65).
-        # The old helper exposed its traceback while the shell itself continued
-        # and self-gated. Preserve that exceptional path without paying for
-        # another interpreter on a valid configuration.
-        subprocess.run(
-            [_bootstrap_sys.executable, "-I", "-", root],
-            input=_CONFIG_READER, stdout=subprocess.PIPE, text=True)
-        return "", ""
+        github = _artifact_accessors.load_harness_json(config_path).get("github", {})
+    except _artifact_accessors.ArtifactAccessError as error:
+        raise SystemExit(_unrunnable(f"harness.json could not be read: {error}"))
+    if not isinstance(github, dict):
+        raise SystemExit(_unrunnable(
+            f"harness.json github block is not a mapping: {type(github).__name__} in "
+            f"{config_path}"))
+    return str(bool(github.get("sync"))).lower(), github.get("repo") or "-"
 
 
 SYNC, REPO = _github_config()

@@ -748,13 +748,16 @@ reads every gate run as exactly one of three outcomes:
 | **Unavailable** | its own failure: one stdout line `{"decision": "unavailable", "gate": "<script stem>", "reason": …}` at exit 0; the extension synthesizes the same for an abnormal exit, a signal, a missing gate or interpreter, or a spawn error | the call proceeds, with passive context `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` on every occurrence, phase-tagged (pre, post, dispatch, yield), never deduplicated, never an error result |
 | **Allow** | `exit 0` and nothing else | nothing |
 
-A refusal outranks an unavailable line in the same output. The four gates that fire on every call
+A refusal outranks an unavailable line in the same output; omp discards `additionalContext` on a
+blocked call, so beside a refusal the notices follow the denial in the refusal reason. The four gates that fire on every call
 — `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py`, `validate-digest.py` — resolve
 their own failure as **unavailable**, because failing them closed would wedge every agent on one
 gate's bug. The three narrow command gates — `gh-close-gate.py`, `branch-create-gate.py`,
 `plan-sign-gate.py` — match their command first, with the standard library and before any
-dependency loads; an unrelated command is untouched, and a guarded one whose gate cannot run is
-**refused** by name (the extension's `narrowGateApplies` decides when the gate cannot start at all).
+dependency loads; an unrelated command is untouched, and a guarded one whose gate cannot run —
+an unreadable or malformed `harness.json` included — is **refused** by name, while a readable
+config with sync off still exempts it (the extension's `narrowGateApplies` decides when the gate
+cannot start at all).
 `merge-gate.py` fails closed.
 
 **Spawn policy is omp's, plus one route rule (DEC-118, DEC-204).** Which personas a dispatcher may
