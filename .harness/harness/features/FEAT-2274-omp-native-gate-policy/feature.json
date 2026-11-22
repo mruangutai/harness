@@ -1,0 +1,68 @@
+{
+  "feature_id": "FEAT-2274-omp-native-gate-policy",
+  "branch": "feat/FEAT-2274-omp-native-gate-policy",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261121-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-22T01:09:52+00:00",
+      "tokens": 83926,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-1-plan-product/digest.md",
+        "sha256": "04c353464c95e3b1302921339550416652f0ac26e2a9c56ce08f95a2b444106d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T01:33:55+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-2-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T01:34:09+00:00",
+      "tokens": 43621,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-2-simplify-eng/digest.md",
+        "sha256": "8ebaf4200555731d4b85bfc6ee2e5ab5ec676f56c4768c1f27113492b45cf2bf"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T01:39:20+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-3-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T01:39:21+00:00",
+      "tokens": 45032,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-3-simplify-apply-product/digest.md",
+        "sha256": "4589781b8ea047f9ef9029682641b8cea25449a1880e835ddc4dd8780d0323f1"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T01:44:50+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T01:09:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Cause known, diff bounded, but A adds enforcement surfaces (before_subagent_spawn handler, unavailable gate contract, rule file to every governed persona) and amends DEC-100; main-session-direct under DEC-174."
+    }
+  ],
+  "mission": "plan"
+}
