@@ -13,8 +13,8 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 ## Measurement
 
 <!-- measured:begin -->
-- base `9e7eb5dabe9da6a30197a6de9a011960787b05a0` (`git merge-base HEAD origin/main`)
-- review `31a46ae4a652f322488f1d8df23bfaf518ff652d`
+- base `837e709670db5d884f5500a241bacda13e614399` (`git merge-base HEAD origin/main`)
+- review `1b904355a1b29876f9dce03b75d61bd7965ec0c4`
 
 | File | Base | Review | Delta |
 |---|---|---|---|
@@ -59,8 +59,8 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/integration/test-hooks-install.py` | 525 | 527 | +2 |
 | `tests/integration/test-layout-migration.py` | 438 | 439 | +1 |
 | `tests/integration/test-lead-start-return.py` | 714 | 715 | +1 |
-| `tests/integration/test-merge-gate.py` | 678 | 683 | +5 |
-| `tests/integration/test-omp-native-gate-runtime.py` | 427 | 428 | +1 |
+| `tests/integration/test-merge-gate.py` | 744 | 749 | +5 |
+| `tests/integration/test-omp-native-gate-runtime.py` | 840 | 841 | +1 |
 | `tests/integration/test-plan-decision-dispositions.py` | 700 | 697 | -3 |
 | `tests/integration/test-plan-merge.py` | 5302 | 5304 | +2 |
 | `tests/integration/test-plan-sign-gate.py` | 779 | 781 | +2 |
@@ -68,15 +68,15 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/integration/test-run-unit-tests-kinds.py` | 137 | 130 | -7 |
 | `tests/integration/test-upgrade-config.py` | 313 | 313 | +0 |
 | `tests/integration/test-validate-digest-shadows.py` | 497 | 499 | +2 |
-| `tests/integration/test-validate-digest.py` | 6683 | 6619 | -64 |
+| `tests/integration/test-validate-digest.py` | 7192 | 7129 | -63 |
 | `tests/manual/probe-issue-types.py` | 190 | 189 | -1 |
-| `tests/unit/omp-hooks.test.ts` | 4137 | 4145 | +8 |
+| `tests/unit/omp-hooks.test.ts` | 4541 | 4549 | +8 |
 | `tests/unit/test-artifact-accessors.py` | 405 | 408 | +3 |
 | `tests/unit/test-check-state-inv26-routing.py` | 204 | 204 | +0 |
 | `tests/unit/test-check-state-inv35.py` | 104 | 106 | +2 |
 | `tests/unit/test-check-state-inv37-local-binding.py` | 175 | 175 | +0 |
 | `tests/unit/test-check-state-shipped-ctx.py` | 223 | 225 | +2 |
-| `tests/unit/test-code-grade.py` | 849 | 837 | -12 |
+| `tests/unit/test-code-grade.py` | 993 | 981 | -12 |
 | `tests/unit/test-factory-config.py` | 1291 | 1042 | -249 |
 | `tests/unit/test-feature-record.py` | 1831 | 1834 | +3 |
 | `tests/unit/test-feature-schema-build-entry.py` | 267 | 268 | +1 |
@@ -87,9 +87,9 @@ its `path:range` and class at that pin; one span carries two classes and stays t
 | `tests/unit/test-prune-run-evidence.py` | 304 | 304 | +0 |
 | `tests/unit/test-wayfind.py` | 156 | 155 | -1 |
 
-- Gate A, pre-existing affected files: -584
+- Gate A, pre-existing affected files: -583
 - Gate B, new files enumerated below: +1557
-- Reported total, both populations: +973
+- Reported total, both populations: +974
 <!-- measured:end -->
 
 ## New coverage
