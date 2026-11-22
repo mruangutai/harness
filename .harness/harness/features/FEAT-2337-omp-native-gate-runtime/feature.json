@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-2337-omp-native-gate-runtime",
   "branch": "feat/FEAT-2337-omp-native-gate-runtime",
-  "pr": null,
+  "pr": 2391,
   "review_sha": "9d9d940b2504a028699228bf275d395e641741f0",
   "cycles_used": 2,
   "max_total_cycles": 10,
