@@ -1,0 +1,104 @@
+{
+  "feature_id": "FEAT-2257-typescript-typecheck",
+  "branch": "feat/FEAT-2257-typescript-typecheck",
+  "pr": 2386,
+  "review_sha": "45626d7964e732e8e21b594a78dcbed8fa0494a7",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261122-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T19:44:26+00:00",
+      "tokens": 102798,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-1-plan-product/digest.md",
+        "sha256": "6e4c04694076b2d8cf55e08e2d275f689c933b1308c1cba40767b0d4f0bc8f2b"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T21:04:00+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-22T21:22:44+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-validate-validator/digest.md",
+        "sha256": "7373d28d2bb72ab869a79e2d7ed6c721e228321479a6904d9a91e9123a4c10f9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-22T21:35:21+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-22T19:44:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "The cause is known and the files can be named, but a new CI check plus an active test kind that QA's gate reads is a new enforcement surface, so the patch rule's third condition fails."
+    },
+    {
+      "at": "2026-11-22T21:10:32.151331+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Advisor, under operator delegation: untrack the stray vitest cache committed in 806a8558 (BUG-1756) so node_modules/ is genuinely ignored (SC-04)"
+    },
+    {
+      "at": "2026-11-22T21:10:32.606172+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Advisor condition: verify proves the untrack (git ls-files node_modules is empty), not just the ignore rule"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2257-typescript-typecheck/.harness/harness/features/FEAT-2257-typescript-typecheck/notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "777829c91c64b492c9b047443efb9c2e33655aa35af7458e6940e3a17ba0cb2c",
+    "T-02": "9e64d51226145bcafb683a753be04e758f8a304f968440a778d34957cb5a8ce9",
+    "T-03": "281133e5af0023fe8c536cf916e14fdf7e2e26b77ba802c45b517952e07e32e6",
+    "T-04": "d67d305e09366f17ba7937f14a6aa91c068d64b82aebc3ee4fa848430d9e04b5"
+  },
+  "github": {
+    "milestone": 127,
+    "parent": 2378,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 2379,
+      "T-02": 2380,
+      "T-03": 2381,
+      "T-04": 2382
+    },
+    "source_issues": [
+      2257
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

@@ -1,0 +1,65 @@
+# T-04 literal verify after activation; HEAD a716db699719f12611b6aea9503b366cfee864f2 + working tree; bun 1.3.14, Version 7.0.2
+PASS test-code-grade
+PASS real layout is valid 
+PASS empty unit 
+PASS empty integration 
+PASS duplicate 
+PASS planted bin test 
+PASS nested test 
+PASS undiscoverable test name 
+PASS all layout violations reported 
+PASS unit detect matches template 
+PASS unit detect excludes .claude 
+PASS integration detect matches template 
+PASS integration detect excludes .claude 
+PASS manual tests are not actively detected 
+PASS case 1: rogue tracked file reported exactly once as the outside-tests finding 
+PASS case 1: legal manual probe file is not named by any finding 
+PASS case 1: exact one-element violation list with exceptions cleared 
+PASS case 2: untracked rogue file is not reported 
+PASS case 3: all three rogue files reported in sorted path order 
+PASS case 3: repeat call returns an identical list 
+PASS case 4: exactly one enumeration-failure finding 
+PASS case 4: no tracked-dependent finding is present 
+PASS case 5: non-git tree still returns exactly its four findings 
+PASS case 6: listed tracked rogue path is accepted 
+PASS case 6: glob entry refused as not an exact path 
+PASS case 6: duplicate entry refused as listed twice 
+PASS case 6: non-test-shaped entry refused as unnecessary 
+PASS case 6: untracked entry refused as no longer tracked 
+PASS case 7: fixture layout is clean with the synthetic entry listed 
+PASS case 7: synthetic registry entry is load-bearing when cleared 
+PASS case 7: live registry is empty 
+PASS case 7: real layout is clean with the live registry 
+PASS case 8: markdown probe record is not flagged 
+PASS case 8: python probe file is flagged 
+PASS case 9: repository not shipping suite_layout.py gets no outside-tests finding 
+PASS case 10: session_test.md flagged with no extension restriction 
+PASS case 10: run.test.jsonl flagged with no extension restriction 
+PASS b5 corpus: _is_inside_tests verdicts unchanged 
+PASS b5 structural: no unreachable dotdot comparison 
+PASS b4 corpus: _literal_key_present verdicts unchanged 
+PASS b4 structural: the tautological conjunct is absent 
+PASS case 11 behavioural: synthetic tracked set has no offenders 
+PASS case 11 behavioural: real tracked set has no offenders 
+PASS case 11 behavioural: positive control offender is detected 
+PASS b6 reachability: no candidate under a corpus-blind config 
+PASS b6 message: the no-candidate failure names both remedies 
+PASS case 11 hygiene: every running-kind detect pattern is certified 
+PASS classifies_tests: hygiene skips a flagged kind's broad patterns 
+PASS classifies_tests: hygiene still refuses the same patterns when the flag is absent 
+PASS classifies_tests: offenders ignore production source a flagged kind detects 
+PASS classifies_tests: offenders report it when the flag is absent 
+PASS classifies_tests: the control candidate inherits the flag 
+PASS tracked .ts discovery is non-empty
+PASS the four settled sources are tracked
+PASS every tracked .ts is in the compiler's file list
+PASS no tracked source suppresses the compiler
+PASS bun run typecheck passes on the real tree
+PASS the clean copy passes the same command
+PASS one deliberate type error fails the same command, naming the poisoned file
+PASS test_kinds.typecheck is active with exactly this command and no _reason
+PASS test-typescript-typecheck.py
+$ tsc --noEmit -p tsconfig.json
+PASS capability unit regressions, live layout, compiler regression, real typecheck, mirror parity and unchanged matrix/provenance
+# rc=0

@@ -1018,9 +1018,12 @@ predicate, including missing, wrong-repository and recovery-required refusals; t
 does not receive a second host Bash gate. This serializes Harness-controlled distill merges,
 not arbitrary external main writers; ordinary non-distill merges are unchanged.
 
-**Verification gap:** the TypeScript host-tool surface has no configured static typecheck
-(`cmd: null`, unresolved). No typecheck pass is claimed; implementation tasks supply executable
-host and boundary evidence. Index generation alone does not prove these behavioral claims.
+**Verification gap (narrowed by FEAT-2257):** a pinned, strict, no-emit compiler now checks every
+tracked TypeScript source through `bun run typecheck`. The command is the active
+`test_kinds.typecheck` kind and runs in the `checks` job under the required `integration` context
+on every pull request. The hooks still type OMP's `pi`/`ctx` as `any`, so the typecheck cannot
+validate calls into the real OMP extension API: implementation tasks keep supplying executable host
+and boundary evidence there, and index generation alone does not prove these behavioral claims.
 
 ### 5.4 Distillation and curation
 

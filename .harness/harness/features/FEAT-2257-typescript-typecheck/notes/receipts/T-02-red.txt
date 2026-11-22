@@ -1,0 +1,33 @@
+# T-02 red-first: bun run typecheck before any edit; HEAD 0eb5d06ed0554921f11da9db4e5b57809ec9bd26
+$ tsc --noEmit -p tsconfig.json
+tests/unit/omp-hooks.test.ts(1912,23): error TS2339: Property 'payload' does not exist on type '{ script: string; }'.
+tests/unit/omp-hooks.test.ts(1913,23): error TS2339: Property 'payload' does not exist on type '{ script: string; }'.
+tests/unit/omp-hooks.test.ts(1947,36): error TS2339: Property 'payload' does not exist on type '{ script: string; }'.
+tests/unit/omp-hooks.test.ts(2148,62): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '[{ op: string; target: string; section: string; entry: string; why: string; }]' is not assignable to type 'Record<string, unknown>'.
+      Index signature for type 'string' is missing in type '[{ op: string; target: string; section: string; entry: string; why: string; }]'.
+tests/unit/omp-hooks.test.ts(2148,69): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type '[{ op: string; target: string; section: string; entry: string; why: string; }]' is not assignable to type 'Record<string, unknown>'.
+      Index signature for type 'string' is missing in type '[{ op: string; target: string; section: string; entry: string; why: string; }]'.
+tests/unit/omp-hooks.test.ts(2914,17): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '{ kind: string; accessor: string; }' is not assignable to parameter of type 'SessionFileResolution'.
+      Type '{ kind: string; accessor: string; }' is not assignable to type '{ kind: "failed"; accessor: string; }'.
+        Types of property 'kind' are incompatible.
+          Type 'string' is not assignable to type '"failed"'.
+tests/unit/omp-hooks.test.ts(2915,64): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '{ kind: string; accessor: string; }' is not assignable to parameter of type 'SessionFileResolution'.
+      Type '{ kind: string; accessor: string; }' is not assignable to type '{ kind: "failed"; accessor: string; }'.
+        Types of property 'kind' are incompatible.
+          Type 'string' is not assignable to type '"failed"'.
+tests/unit/omp-hooks.test.ts(2916,44): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '{ kind: string; accessor: string; }' is not assignable to parameter of type 'SessionFileResolution'.
+      Type '{ kind: string; accessor: string; }' is not assignable to type '{ kind: "failed"; accessor: string; }'.
+        Types of property 'kind' are incompatible.
+          Type 'string' is not assignable to type '"failed"'.
+error: script "typecheck" exited with code 1
+# rc=1

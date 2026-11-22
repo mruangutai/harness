@@ -1,0 +1,9 @@
+# T-02 literal verify after the fixture typing fixes; base HEAD 0eb5d06ed0554921f11da9db4e5b57809ec9bd26 + working-tree test edit
+$ tsc --noEmit -p tsconfig.json
+bun test v1.3.14 (0d9b296a)
+ 186 pass
+ 0 fail
+ 1465 expect() calls
+Ran 186 tests across 1 file. [13.63s]
+PASS strict compiler and registered hook unit wrapper
+# rc=0

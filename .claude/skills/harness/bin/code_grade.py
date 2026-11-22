@@ -455,11 +455,23 @@ def _patterns(value):
     return [part.strip() for part in value.split("|") if part.strip()]
 
 
+def _classifies_tests(kind):
+    """A kind that runs — active or locally_run — and has not declared `classifies_tests:
+    false` (FEAT-2257). Absent means true."""
+    return kind.get("status") in ("active", "locally_run") and kind.get("classifies_tests", True)
+
+
 def _is_test_path(relative, test_kinds):
-    """Return True if `relative` matches a detect pattern of a kind that actually runs —
-    status active (CI-gated) or locally_run (host-gated, issue #1187) — and is not excluded.
-    A locally-run probe script is still test code and must sit at the lighter complexity
-    bar 3, not be graded as production code just because CI cannot run it."""
+    """Return True if `relative` is TEST code: it matches a detect pattern of a kind that
+    actually runs — status active (CI-gated) or locally_run (host-gated, issue #1187) — and
+    classifies tests, and is not excluded. A locally-run probe script is still test code and
+    must sit at the lighter complexity bar 3, not be graded as production code just because CI
+    cannot run it.
+
+    Detecting a path is not the same as classifying it (FEAT-2257, DEC-213). A kind whose
+    detect selects PRODUCTION source for a static check — typecheck over every tracked .ts —
+    declares `classifies_tests: false`, and its matches stay production code. The flag is
+    boolean and defaults to true, so every kind that omits it classifies as before."""
     if not isinstance(test_kinds, dict):
         raise TestKindsError("test_kinds policy must be a mapping of kind name to config")
     try:
@@ -468,7 +480,7 @@ def _is_test_path(relative, test_kinds):
             not any(fnmatch.fnmatch(relative, pattern)
                     for pattern in _patterns(kind.get("exclude", "")))
             for kind in test_kinds.values()
-            if kind.get("status") in ("active", "locally_run")
+            if _classifies_tests(kind)
         )
     except (TypeError, KeyError, AttributeError) as error:
         raise TestKindsError(f"malformed test_kinds policy: {error}") from error
