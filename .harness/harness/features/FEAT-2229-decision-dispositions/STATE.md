@@ -5,8 +5,8 @@
 - feature: FEAT-2229-decision-dispositions
 - run: none
 - squad: none
-- status: awaiting_user
-- station: building (entered 2026-11-21 at dfa52536; T-01, T-02 main-session-direct segments pending per notes/handoff-build.md; T-03 team task next)
+- status: in_progress
+- station: building (re-entered 2026-11-21 at 5eb1302a after validate r-20261121-validate-validator FAIL at pin 1ef1edbf; fix segment main-session-direct per notes/handoff-fix.md seq-6; rework round 1 of 3 pending; T-01..T-03 done; cycles 0/10)
 
 ## Open Questions
 

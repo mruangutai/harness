@@ -85,6 +85,21 @@
       "cycles_used": 0,
       "ended_at": "2026-11-22T02:22:40+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-22T02:23:49+00:00",
+      "tokens": 50181,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-validate-validator/digest.md",
+        "sha256": "56f6b8a469b6f16f548da76d2e95c82834daf2e1c2e7ca2cac62772e6ab858a3"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T02:36:13+00:00"
     }
   ],
   "judgements": [
@@ -115,6 +130,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "handoff-build seq-4 Next matches PLAN: T-01 447c2bd5, T-02 0716f498 landed main-session-direct, receipt d6d426ad; T-03 via product lead next, then simplify, pin, validate"
+    },
+    {
+      "at": "2026-11-22T02:36:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "main-session-fix",
+      "reason": "must_fix cites only T-01/T-02 (main-session-direct): F1 union.py creation bypass, F2 fenced heading, F-01 deletion-insensitive test; fix segment returns to the main session inside rework ruling round 1"
     }
   ],
   "mission": "plan",
