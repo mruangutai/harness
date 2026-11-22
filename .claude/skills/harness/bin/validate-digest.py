@@ -8,7 +8,7 @@ Schema per persona under bin/digest-schemas/, applied by digest_schema.py. This 
 parses no digest text. What stays here is what a schema cannot say: the VERDICT-bound
 gates (a declined or failed gate beside PASS), the mission pins, the dev receipt, the
 review binding and the mechanical code grade, the qa kind policy and matrix floor, the
-lead roll-up, the claim registry errand, the #919 suite re-run and, for a lead, the one
+lead roll-up, the claim registry errand, the #919 runner-receipt check and, for a lead, the one
 sanctioned append of the validated object to its durable digest.md (SC-07, DEC-208).
 
 Never guess a verdict: silent misrouting is worse than a halt. An LLM reader charitably
@@ -132,10 +132,10 @@ NOTHING_TO_GATE = {"dev": {"suite"}}
 # value it must then hold. Feature-close distillation (DEC-145) runs after the merge:
 # the readers judge Expertise candidates, review no diff and run no suite. Under the
 # build/validate contract two of them had no truthful return (#1855, measured on
-# FEAT-61): qa could not PASS without `suite: pass` — which then fired the #919 rerun
-# on a suite the dispatch forbade — and the code-reviewer could not bind `code_grade`
-# to a review_sha that is already an ancestor of the default branch, so it forged a
-# review note to satisfy the binding.
+# FEAT-61): qa could not PASS without `suite: pass` — which then fired the #919 suite check
+# (a rerun then; a runner-receipt check since FEAT-2337) on a suite the dispatch forbade —
+# and the code-reviewer could not bind `code_grade` to a review_sha that is already an
+# ancestor of the default branch, so it forged a review note to satisfy the binding.
 #
 # The mission rides in the DISPATCH (`HARNESS-MISSION: distill`, forwarded by the host
 # as `harness_mission`) exactly as the review pin does (#1677): the one text the
@@ -1571,8 +1571,9 @@ def _dev_receipt_errors(seen, verdict, artifact, feature_dir):
 
 
 # --- FEAT-59 SC-17: a green suite with no fail-first evidence is not a pass. Bound to the
-# same triple #919 re-verifies — VERDICT PASS + matrix_ok true — so `matrix_ok: n/a` and
-# every non-PASS verdict may truthfully carry `[]`. Entry shape is the schema's.
+# same triple the #919 receipt check verifies — VERDICT PASS + matrix_ok true — so
+# `matrix_ok: n/a` and every non-PASS verdict may truthfully carry `[]`. Entry shape is the
+# schema's.
 def _qa_errors(seen, verdict, feature_dir):
     return (_qa_fail_first_errors(seen, verdict == "PASS", feature_dir)
             + _qa_kinds_errors(seen, verdict, feature_dir)
@@ -1679,9 +1680,15 @@ def _matrix_floor(root, feature_dir, test_kinds):
     return sorted(floor - _excluded_kinds(test_kinds))
 
 
+def _satisfied_kind_names(kinds):
+    """Normalized names of the satisfied entries in a `kinds:` list, in claim order. The one
+    reading of a satisfied kind: the matrix floor and the receipt check both go through it."""
+    return (str(entry.get("kind", "")).strip() for entry in kinds
+            if isinstance(entry, dict) and entry.get("state") == "satisfied")
+
+
 def _satisfied_kinds(kinds):
-    return {str(entry.get("kind", "")).strip() for entry in kinds
-            if isinstance(entry, dict) and entry.get("state") == "satisfied"}
+    return set(_satisfied_kind_names(kinds))
 
 
 def _matrix_floor_errors(kinds, floor):
@@ -2354,197 +2361,309 @@ def _append_record(found, obj, target):
 
 def _qa_claims_unconditional_pass(obj):
     """True iff the return is VERDICT: PASS with suite: pass AND matrix_ok: true — the one
-    claim #919 exists to independently re-verify."""
+    claim the #919 receipt check verifies."""
     seen = obj.get("DIGEST") if isinstance(obj.get("DIGEST"), dict) else {}
     return (obj.get("VERDICT") == "PASS" and seen.get("suite") == "pass"
             and seen.get("matrix_ok") is True)
 
 
-def _artifact_holder(artifact):
-    """The linked worktree (or owner root) holding the digest's absolute artifact, or None
-    when the digest names none, a relative one, or one outside the family (#1883)."""
-    owner_root = _root_or_none()
-    if not isinstance(artifact, str) or not artifact.strip() or not owner_root:
-        return None
-    path = artifact.strip()
-    return _worktree_holding(owner_root, path) if os.path.isabs(path) else None
+# --- Issue #919, FEAT-2337 (D-02): an unconditional qa PASS is verified against the runner
+# receipts QA recorded for its validate run, never by running the suite again. Each satisfied
+# claimed unit/integration kind needs `<feature>/runs/<run-id>/qa/manifest-<kind>.json`, written
+# by `run-unit-tests.py --kind <kind> --shard 1/1 --manifest <that path>`. Where to look is
+# derived only from trusted runtime identity: the payload's exact feature, QA's own live
+# claim, its parent's live harness-validator-lead claim in the same checkout, that lead's
+# unique open registered run, and the registered feature's review_sha — never the digest's
+# artifact. check-integration-shards.py, the one implementation CI also runs, owns expected-file
+# discovery at the tested commit and exact coverage. A fabricated complete receipt is not
+# caught here; PR CI stays the backstop.
+RECEIPT_KINDS = ("unit", "integration")
+VALIDATOR_LEAD = "harness-validator-lead"
+RUNNER_REL = os.path.join(".claude", "skills", "harness", "bin", "run-unit-tests.py")
+SHARDS_BIN = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "check-integration-shards.py")
+_UNRESOLVED_CHECKOUT = "<trusted feature checkout>"
+_UNRESOLVED_RUN = "<trusted feature dir>/runs/<open harness-validator-lead run id>"
+_NO_RECEIPT_KIND = ("kinds: names no satisfied unit or integration kind, so no runner receipt "
+                    "can establish suite: pass — an empty or unsupported claim never defaults "
+                    "to every kind")
 
 
-def _resolve_run_unit_tests_bin(payload, artifact=None):
-    """The suite entrypoint to independently re-run, or None if it cannot be resolved.
-
-    RUN_UNIT_TESTS_BIN is test-only: it lets a fixture point this check at a fast stub
-    instead of spawning the real multi-minute suite for every hook-mode case.
-
-    A NAMED FEATURE MUST RESOLVE TO ITS OWN CHECKOUT, OR NOT AT ALL (code review of
-    #1185). check_artifact_file's owner_root/feature_root pattern falls back to
-    owner_root on any lookup failure, and that is safe THERE because a wrong root
-    means the specific run digest simply 404s, loudly. run-unit-tests.py is a static,
-    always-present path: a wrong-root fallback here never 404s, it just silently
-    re-runs the suite against the WRONG checkout and reports that mismatched result as
-    though it verified the claim — reproducing #919's exact failure mode inside the
-    gate built to close it. So a feature_root lookup failure returns None (cannot
-    resolve) rather than substituting owner_root; the caller's existing "could not
-    independently re-run" fail-open path is where that lands.
-    """
-    # THE ARTIFACT'S CHECKOUT FIRST (#1883). `feature_root` resolves by worktree NAME and
-    # substitutes the owner root when nothing is named after the feature — measured on a
-    # branch worktree called `process-gaps`: the suite re-ran against the owner checkout
-    # on a stale branch and refused a qa PASS on that tree's failure. The digest's own
-    # artifact line names the checkout it was written from; when that lies inside the
-    # owner's worktree family it is the checkout to re-run, deterministically.
-    run_bin = os.environ.get("RUN_UNIT_TESTS_BIN")
-    if run_bin:
-        return run_bin
-    holder = _artifact_holder(artifact)
-    if holder:
-        return os.path.join(holder, ".claude", "skills", "harness", "bin",
-                            "run-unit-tests.py")
-    owner_root = _root_or_none()
-    feature = payload.get("harness_feature")
-    if not feature:
-        base = owner_root
-    elif not owner_root:
-        base = None
-    else:
-        try:
-            sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-            import inflight_registry
-            base = inflight_registry.feature_root(owner_root, feature)
-        except (ImportError, OSError, ValueError):
-            base = None
-    if not base:
-        return None
-    return os.path.join(base, ".claude", "skills", "harness", "bin",
-                        "run-unit-tests.py")
+def _repair_command(checkout, run_dir, kind):
+    """The production command that writes `kind`'s receipt for this validate run."""
+    return (f"python3 {os.path.join(checkout, RUNNER_REL)} --kind {kind} --shard 1/1 "
+            f"--manifest {os.path.join(run_dir, 'qa', f'manifest-{kind}.json')}")
 
 
-def _claimed_kinds(seen):
-    """The test kinds the qa return's `kinds` names, in order, deduplicated — the matrix
-    the claim is about. Empty when the digest names none (the runner's default set then
-    governs)."""
-    entries = seen.get("kinds") if isinstance(seen.get("kinds"), list) else []
-    kinds = [str(entry.get("kind", "")).strip() for entry in entries if isinstance(entry, dict)]
-    return list(dict.fromkeys(k for k in kinds if k))
+def _printable(text):
+    """`text` with every control character escaped, so no receipt-supplied name forges a line."""
+    return "".join(ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii")
+                   for ch in str(text))
 
 
-def _reverify_suite(run_bin, kinds=()):
-    """Run the Python runner — with `sys.executable`, never a shell: run-unit-tests.py has
-    been a Python file since #1674 and bash reading it exited 2 on every honest PASS
-    (BUG-1756) — once per claimed kind (`--kind <k>`), or once bare when the claim names
-    none. Returns the first non-zero CompletedProcess, else the last one; None if it could
-    not be run at all (missing file, spawn failure, timeout) — every such case is our gap,
-    not theirs."""
-    if not run_bin or not os.path.isfile(run_bin):
-        return None
-    invocations = [["--kind", k] for k in kinds] or [[]]
-    result = None
-    for extra in invocations:
-        try:
-            result = subprocess.run([sys.executable, run_bin, *extra], capture_output=True,
-                                    text=True, timeout=1800)
-        except (OSError, subprocess.SubprocessError, ValueError):
-            return None
-        if result.returncode != 0:
-            return result
-    return result
-
-
-def check_qa_matrix_claim(agent, obj, payload):
-    """Issue #919: independently re-run the suite before trusting an unconditional
-    qa PASS, rather than trusting the claim on its own strength.
-
-    FEAT-37's qa gate reported the matrix green at a SHA where CI failed on the first
-    open PR: the qa note's discovered-script count was not read from a real run's own
-    output, and "ALL PASSED" was recorded anyway. `GATE_FAIL_VALUES` above can only catch a digest
-    that CONTRADICTS itself (`suite: fail` beside `VERDICT: PASS`); it cannot catch a
-    wrong-but-internally-consistent claim, because nothing before this re-executes the
-    thing being claimed. This does — the report is evidence only once it is checked.
-
-    FIRES ONLY on the highest-stakes claim: VERDICT: PASS with suite: pass AND
-    matrix_ok: true. A FAIL/BLOCKED/n/a claim already carries its own honesty
-    (`validate()` above already refuses `suite: fail` + PASS); re-running to confirm a
-    claimed failure buys nothing this hook is positioned to check for free.
-
-    FAIL OPEN, LOUDLY when the suite cannot be located or run at all (missing root,
-    missing script, a spawn OSError, a timeout) — check-domain.py's precedent: a hook
-    whose own execution environment is broken must never be the reason a legitimate qa
-    return is blocked. FAIL CLOSED when the suite DOES run and disagrees with the
-    claim — that disagreement is exactly the gap #919 exists to close.
-    """
-    if not _qa_claims_unconditional_pass(obj):
-        return 0
-    run_bin = _resolve_run_unit_tests_bin(payload, obj.get("artifact"))
-    result = _reverify_suite(run_bin, _claimed_kinds(obj.get("DIGEST") or {}))
-    if result is None:
-        print(f"check-digest: could not independently re-run the suite at {run_bin!r} "
-              f"— {agent}'s matrix_ok: true / suite: pass claim was NOT verified; this "
-              f"is our gap, not theirs.", file=sys.stderr)
-        return 0
-    if result.returncode == 0:
-        return 0
-    print(f"{agent} reported VERDICT: PASS with suite: pass and matrix_ok: true, but "
-          f"an independent re-run of run-unit-tests.py at this checkout exited "
-          f"{result.returncode} — the gate reported evidence it did not have (issue "
-          f"#919). Re-run the suite yourself, fix what fails, and return again once "
-          f"it is genuinely green.", file=sys.stderr)
-    _print_independent_run((result.stdout or "") + (result.stderr or ""))
+def _receipt_refusal(agent, problems, repairs):
+    print(f"check-digest: REFUSED {agent}'s VERDICT: PASS with suite: pass and matrix_ok: true — "
+          "its runner receipts do not establish the claim (issue #919, FEAT-2337). Nothing was "
+          "re-run: the receipts QA recorded for this validate or fix run are the evidence.",
+          file=sys.stderr)
+    print("Receipt problems:", file=sys.stderr)
+    for problem in problems:
+        print(f"  - {_printable(problem)}", file=sys.stderr)
+    print("Repair: from the trusted checkout at review_sha (or a descendant that changes only "
+          "the feature's own directory; in a fix run, at its clean HEAD descending from "
+          "review_sha), run each command below, then return again:",
+          file=sys.stderr)
+    for repair in repairs:
+        print(f"  {_printable(repair)}", file=sys.stderr)
     return 2
 
 
-_RUN_POOL_HEADER = re.compile(r"----- (.+) \(exit -?\d+, \d+\.\d+s\) -----")
-_RUN_POOL_MUTATION_NOTE = "A file under the watched directory changed while the suite ran"
+def _claimed_receipt_kinds(seen):
+    """Satisfied claimed kinds a receipt can prove, in claim order, read through the matrix
+    floor's own `_satisfied_kind_names`, so whatever counts as `unit` there needs a unit receipt
+    here."""
+    entries = seen.get("kinds") if isinstance(seen.get("kinds"), list) else []
+    return [kind for kind in dict.fromkeys(_satisfied_kind_names(entries)) if kind in RECEIPT_KINDS]
 
 
-def _run_pool_file_lines(lines):
-    """run_pool's own FAIL/MUTATED file lines, in order, duplicates kept.
-
-    A file's captured output is echoed verbatim between run_pool's header and its close, so
-    no pairing of headers with closes survives every echo. The rule only ever errs toward
-    listing: `FAIL <name>` counts once any earlier `----- <name> (exit N, Ss) -----` header
-    named that file, and nothing — no echoed PASS, header or close — un-names it. run_pool
-    prints its `MUTATED <name>` lines together, directly above its own mutation note."""
-    headed = set()
-    failed = {i for i, line in enumerate(lines) if _is_failed_file_line(line, headed)}
-    keep = failed | _run_pool_mutated_indexes(lines)
-    return [line for i, line in enumerate(lines) if i in keep]
+def _require_validator_parent(reg, owner, root, run):
+    """QA's dispatching parent is a live harness-validator-lead run in the same checkout."""
+    parent_root, parent = _claimed_run(reg, owner, run["parent_id"], run["feature"])
+    if parent.get("agent") != VALIDATOR_LEAD or os.path.realpath(parent_root) != root:
+        raise _Untrusted(f"parent run {run['parent_id']} is not a live {VALIDATOR_LEAD} run "
+                         f"in {root}")
 
 
-def _is_failed_file_line(line, headed):
-    """Record a header's file name in `headed`; True for `FAIL <name>` of a headed file."""
-    header = _RUN_POOL_HEADER.fullmatch(line)
-    if header:
-        headed.add(header.group(1))
-        return False
-    verdict, _, name = line.partition(" ")
-    return verdict == "FAIL" and name in headed
+def _registered_review(root, record, payload):
+    """The registered feature's review_sha as a commit, reconciled with a dispatch pin."""
+    recorded = record.get("review_sha")
+    if not isinstance(recorded, str) or recorded.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
+        raise _Untrusted("the registered feature has no pinned review_sha")
+    oid = resolve_reviewed_commit(root, recorded.strip())
+    if oid is None:
+        raise _Untrusted(f"registered review_sha {recorded!r} does not resolve to a commit "
+                         f"in {root}")
+    pin = payload.get("harness_review_pin")
+    if isinstance(pin, str) and pin.strip() and resolve_reviewed_commit(root, pin.strip()) != oid:
+        raise _Untrusted(f"the dispatch's harness_review_pin {pin!r} does not agree with the "
+                         f"registered review_sha {recorded}")
+    return oid.decode()
 
 
-def _run_pool_mutated_indexes(lines):
-    """Indexes of the MUTATED lines run directly above run_pool's mutation note."""
-    found = set()
-    for i in (i for i, line in enumerate(lines) if line.startswith(_RUN_POOL_MUTATION_NOTE)):
-        j = i - 1
-        while j >= 0 and lines[j].startswith("MUTATED "):
-            found.add(j)
-            j -= 1
-    return found
+def _receipt_context(agent, payload, ctx):
+    """Fill `ctx` with this QA return's trusted checkout, run directory, review commit, feature
+    directory and lineage rule, or raise _Untrusted; `ctx` keeps whatever resolved before a
+    refusal."""
+    run = _run_identity(payload, agent)
+    owner = _root_or_none()
+    if owner is None:
+        raise _Untrusted("no checkout root resolves from this vantage")
+    import digest_destination as dest
+    import inflight_registry as reg
+    root = ctx["root"] = dest.authorization_root(owner, run["feature"])
+    _require_own_claim(reg, owner, root, run)
+    _require_validator_parent(reg, owner, root, run)
+    run_id = dest.registered_destination(root, run["feature"], VALIDATOR_LEAD)[0]
+    record, feature_dir = dest.registered_feature(root, run["feature"])
+    feature_dir = os.path.realpath(feature_dir)
+    ctx["run_dir"] = os.path.join(feature_dir, "runs", run_id)
+    ctx["review"] = _registered_review(root, record, payload)
+    ctx["feature_rel"] = os.path.relpath(feature_dir, root).replace(os.sep, "/")
+    ctx["lineage"] = _fix_lineage if _fix_run(run_id, payload) else _lineage
 
 
-def _print_independent_run(output):
-    """The red re-run's evidence: every FAIL/MUTATED file line, then the last 20 lines.
+def _shard_evidence():
+    """check-integration-shards.py, loaded with this process's import path restored after its
+    bootstrap prologue (which trims sys.path and exits when no root resolves)."""
+    saved = list(sys.path)
+    try:
+        return harness_boundary.load_repo_module("check_integration_shards", SHARDS_BIN)
+    except SystemExit as stop:
+        raise _Untrusted(f"check-integration-shards.py could not load (exit {stop.code})") from None
+    finally:
+        sys.path[:] = saved
 
-    #2253: run_pool prints files in completion order, so the tail shows the slowest file,
-    which usually PASSED; the failing ones sit above it. Name them first."""
-    lines = output.splitlines()
-    named = _run_pool_file_lines(lines)
-    if named:
-        print("Failing or mutated files:", file=sys.stderr)
-        for line in named:
-            print(f"  {line}", file=sys.stderr)
-    print("Tail of the independent run:", file=sys.stderr)
-    for line in lines[-20:]:
-        print(f"  {line}", file=sys.stderr)
+
+def _read_receipt(path, run_dir, shards):
+    """(document, None) — a shards.Malformed for undecodable bytes — or (None, problem)."""
+    if os.path.realpath(path) != path:
+        return None, (f"{path}: unsafe receipt path — a symlink, or a path outside the trusted "
+                      f"run directory {run_dir}")
+    try:
+        with open(path, "rb", opener=harness_boundary.authorization_descriptor) as handle:
+            raw = handle.read()
+    except FileNotFoundError:
+        return None, f"{path}: missing — no receipt was recorded for this validate run"
+    except OSError as error:
+        return None, f"{path}: unreadable ({error})"
+    try:
+        return artifact_accessors.strict_json_loads(raw.decode("utf-8")), None
+    except (UnicodeDecodeError, ValueError) as error:
+        return shards.Malformed(str(error)), None
+
+
+def _tested_commit(root, path, doc):
+    """(tested commit oid or None, problems) for one receipt's `tested_commit`."""
+    value = doc.get("tested_commit") if isinstance(doc, dict) else None
+    if not isinstance(value, str):
+        return None, []
+    oid = resolve_reviewed_commit(root, value)
+    if oid is None:
+        return None, [f"{path}: tested_commit {value!r} does not resolve to a commit in {root}"]
+    return oid.decode(), []
+
+
+def _receipt_git(root, *args):
+    proc = subprocess.run(["git", "-C", root, *args], capture_output=True, encoding="utf-8",
+                          errors="surrogateescape", timeout=VERIFY_TIMEOUT_SECONDS)
+    if proc.returncode not in (0, 1):
+        raise OSError(f"git {args[0]} failed in {root}: {proc.stderr.strip()}")
+    return proc
+
+
+def _changed_paths(root, commit):
+    """Every path `commit` changes against each parent, renames split into both sides."""
+    out = _receipt_git(root, "diff-tree", "-r", "-z", "-m", "--root", "--no-commit-id",
+                       "--no-renames", "--name-only", commit).stdout
+    return sorted({path for path in out.split("\0") if path})
+
+
+def _lineage(root, review, tested, feature_rel):
+    """Why `tested` is not review_sha or a descendant changing only `feature_rel`/; [] if it is.
+    Every intervening commit counts — merges against each parent — so a change later reverted
+    is still a change."""
+    if tested == review:
+        return []
+    if _receipt_git(root, "merge-base", "--is-ancestor", review, tested).returncode != 0:
+        return [f"tested_commit {tested} is not review_sha {review} or a descendant of it (an "
+                f"older or divergent commit)"]
+    commits = _receipt_git(root, "rev-list", "--reverse", f"{review}..{tested}").stdout.split()
+    return [f"tested_commit {tested} descends from review_sha {review}, but commit {commit} "
+            f"changes {path}, outside the feature's own directory {feature_rel}/"
+            for commit in commits for path in _changed_paths(root, commit)
+            if not path.startswith(feature_rel + "/")]
+
+
+# DEC-255, the fix-run ruling (FEAT-2337 notes/answers-2026-11-22-fix-run-receipts.md): a fix
+# run (teams/fix.yaml, build-phase step 6) has QA test the dev's fixed tip inside the same
+# validator-lead run, and the orchestrator re-pins only after the lead returns. Its registered run
+# id carries feature-record.py's token-bounded `fix-` shape as `fix-c<N>-validator`, and its
+# dispatch declares `HARNESS-MISSION: fix`. Both are runtime-derived and must agree; the digest,
+# the receipts and anything the lead writes never classify the run.
+_FIX_RUN = re.compile(r"(?:^|-)fix-c[0-9]+-validator$")
+
+
+def _fix_run(run_id, payload):
+    """True for a fix run, False for any other; _Untrusted when the registered run id and the
+    dispatch-forwarded harness_mission disagree, one present without the other."""
+    mission = payload.get("harness_mission")
+    by_mission = isinstance(mission, str) and mission.strip() == "fix"
+    by_slug = bool(_FIX_RUN.search(run_id))
+    if by_slug != by_mission:
+        raise _Untrusted(f"the registered run {run_id} {'is' if by_slug else 'is not'} a fix run "
+                         f"(fix-c<N>-validator) but the dispatch's harness_mission is "
+                         f"{mission!r} — a fix run needs both, and neither alone classifies it")
+    return by_slug
+
+
+def _dirty_paths(root):
+    """Every tracked change and untracked, unignored file in `root`'s working tree."""
+    out = _receipt_git(root, "status", "--porcelain=v1", "-z", "--no-renames",
+                       "--untracked-files=all").stdout
+    return sorted({entry[3:] for entry in out.split("\0") if entry})
+
+
+def _fix_lineage(root, review, tested, feature_rel):
+    """Why `tested` is not a fix run's evidence; [] if it is. The fixed tip may change code: it
+    must be the trusted checkout's own HEAD, descend from review_sha, and stand in a working tree
+    clean outside `feature_rel`/ (the run's own record and receipts live there)."""
+    head = _receipt_git(root, "rev-parse", "--verify", "HEAD^{commit}").stdout.strip()
+    problems = [] if tested == head else [
+        f"tested_commit {tested} is not the checkout's HEAD {head} — a fix run's receipt is "
+        f"recorded at its fixed tip"]
+    if _receipt_git(root, "merge-base", "--is-ancestor", review, tested).returncode != 0:
+        problems.append(f"review_sha {review} is not an ancestor of tested_commit {tested} (an "
+                        f"older or divergent commit)")
+    return problems + [f"the working tree is not clean outside the feature's own directory "
+                       f"{feature_rel}/: {path}" for path in _dirty_paths(root)
+                       if not path.startswith(feature_rel + "/")]
+
+
+def _kind_problems(ctx, kind, shards, lineage):
+    """Every problem with `kind`'s receipt. Lineage results — ctx's validate or fix rule — are
+    shared across kinds through `lineage`, keyed by the resolved (review, tested, feature
+    directory) tuple."""
+    path = os.path.join(ctx["run_dir"], "qa", f"manifest-{kind}.json")
+    doc, problem = _read_receipt(path, ctx["run_dir"], shards)
+    if problem:
+        return [problem]
+    tested, problems = _tested_commit(ctx["root"], path, doc)
+    if tested:
+        key = (ctx["review"], tested, ctx["feature_rel"])
+        if key not in lineage:
+            lineage[key] = ctx["lineage"](ctx["root"], *key)
+        problems += [f"{path}: {why}" for why in lineage[key]]
+    basis = tested or ctx["review"]
+    expected, error = shards.discover_expected(ctx["root"], basis, kind=kind)
+    if error:
+        return problems + [f"{path}: {error[1]}"]
+    return problems + [message for _status, message in
+                       shards.evidence_defects({path: doc}, basis, 1, expected, kind=kind)]
+
+
+def _active_receipt_kinds(kinds, root):
+    excluded = _excluded_kinds(_load_test_kinds(root)[0])
+    return [kind for kind in kinds if kind not in excluded]
+
+
+def _receipt_problems(agent, obj, payload, ctx):
+    """(problems, kinds needing repair) for an unconditional qa PASS."""
+    _receipt_context(agent, payload, ctx)
+    kinds = _active_receipt_kinds(_claimed_receipt_kinds(_digest_of(obj)), ctx["root"])
+    if not kinds:
+        return [_NO_RECEIPT_KIND], list(RECEIPT_KINDS)
+    shards, lineage = _shard_evidence(), {}
+    found = {kind: _kind_problems(ctx, kind, shards, lineage) for kind in kinds}
+    return ([problem for kind in kinds for problem in found[kind]],
+            [kind for kind in kinds if found[kind]])
+
+
+def _checked_receipts(agent, obj, payload, ctx):
+    """(problems, kinds needing repair). An unresolved identity or unreadable evidence is itself
+    the problem, repaired for every claimed kind — every kind when none is claimed."""
+    try:
+        return _receipt_problems(agent, obj, payload, ctx)
+    except _Untrusted as why:
+        problem = f"no trusted receipt location: {why}"
+    except _evidence_failures() as error:
+        problem = f"the receipt evidence could not be read ({type(error).__name__}: {error})"
+    return [problem], _claimed_receipt_kinds(_digest_of(obj)) or list(RECEIPT_KINDS)
+
+
+def check_qa_matrix_claim(agent, obj, payload):
+    """Issue #919: verify an unconditional qa PASS against QA's own runner receipts rather
+    than trusting the claim on its own strength, and never by running the suite again.
+
+    FEAT-37's qa gate reported the matrix green at a SHA where CI failed on the first open
+    PR: "ALL PASSED" was recorded without a real run's own output. `GATE_FAIL_VALUES` above
+    catches only a digest that contradicts itself; this checks the recorded execution.
+
+    FIRES ONLY on the highest-stakes claim: VERDICT: PASS with suite: pass AND matrix_ok:
+    true. Every missing, unsafe, unreadable, malformed, red, incomplete or stale receipt, and
+    every unresolved identity, is invalid evidence: exit 2 naming each problem and the
+    production command that repairs it. An unexpected exception is still hook_guard's own
+    loud fail-open (DEC-100), never this check's verdict.
+    """
+    if not _qa_claims_unconditional_pass(obj):
+        return 0
+    ctx = {}
+    problems, kinds = _checked_receipts(agent, obj, payload, ctx)
+    if not problems:
+        return 0
+    checkout = ctx.get("root", _UNRESOLVED_CHECKOUT)
+    run_dir = ctx.get("run_dir", _UNRESOLVED_RUN)
+    return _receipt_refusal(agent, problems,
+                            [_repair_command(checkout, run_dir, kind) for kind in kinds])
 
 
 def _exact_run_identity(d):

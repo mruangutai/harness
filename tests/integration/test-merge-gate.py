@@ -74,6 +74,57 @@ def denial(command, **kwargs):
     return result, decision, reason, directory
 
 
+# FEAT-2337 (DEC-100): merge-gate.py is a narrow gate. This is the applicability its `merge_ref`
+# decides, (command, is a guarded merge). test-omp-native-gate-runtime.py reads it as a literal and
+# checks the extension's port (`narrowGateApplies`) against it, so every entry stays a plain pair.
+APPLICABILITY_CORPUS = [
+    ("git merge feature/test", True),
+    ("git merge", True),
+    ("git merge --no-ff feature/test", True),
+    ("git merge -m 'release --abort' feature/test", True),
+    ("git merge -F /tmp/message feature/test", True),
+    ("git merge feature/test --abort", True),
+    ("git -C /repo merge feature/test", True),
+    ("git -c core.pager=cat merge feature/test", True),
+    ("git --git-dir=/repo/.git --no-pager merge feature/test", True),
+    ("git --attr-source HEAD merge feature/test", True),
+    ("/usr/bin/git merge feature/test", True),
+    ('git "merge" feature/test', True),
+    ("cd /repo && git merge feature/test", True),
+    ("echo git merge feature/test", True),
+    ("gh pr merge 12 --squash", True),
+    ("/opt/homebrew/bin/gh pr merge 12", True),
+    ("true; gh pr merge --auto", True),
+    ("bash -c 'git merge feature/test'", True),
+    ('sh -c "gh pr merge 12 --squash"', True),
+    ('eval "git -C /repo merge feature/test"', True),
+    ("grep -rn 'git merge' docs/", True),
+    ('bash -c "sh -c \'bash -c \\"git merge feature/test\\"\'"', True),
+    ('git merge feature/test "unclosed', True),
+    ("git merge --abort", False),
+    ("git merge --continue", False),
+    ("git merge --quit", False),
+    ("git merge -s ours --abort", False),
+    ("git -C /repo merge --abort", False),
+    ("bash -c 'git merge --abort'", False),
+    # Four nested `bash -c` layers: past the gate's nesting depth of three.
+    ('bash -c "bash -c \\"bash -c \\\\\\"bash -c \\\\\\\\\\\\\\"git merge feature/test'
+     '\\\\\\\\\\\\\\"\\\\\\"\\""', False),
+    ("echo merge", False),
+    ('echo "merge', False),
+    ("rg merge src/", False),
+    ("git status", False),
+    ("git log --grep merge", False),
+    ("git mergetool", False),
+    ("git merge-base main HEAD", False),
+    ("git -C merge status", False),
+    ("gh pr view 12", False),
+    ("gh pr list --search merge", False),
+    ("python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7",
+     False),
+]
+
+
 for provenance in (None, "elsewhere/wrong"):
     root, directory = fixture(entry="opened")
     record = os.path.join(directory, "feature.json")
@@ -673,6 +724,21 @@ case_distill_replay_invalid()
 case_distill_build_entry()
 case_distill_identity()
 case_shipped_not_exempt()
+
+# FEAT-2337: the corpus against merge-gate.py itself, on a HEALTHY root (it refuses every command
+# on a broken one) whose checked-out branch owes its Build-entry receipt, with gh unreachable so a
+# PR head falls back to that branch: every guarded merge is refused and every other command passes.
+def case_applicability_corpus():
+    root, _ = fixture()
+    for command, guarded in APPLICABILITY_CORPUS:
+        r, d, reason = gate(command, root, "/nonexistent/feat2337-gh")
+        check(f"FEAT-2337 corpus: {command!r} is {'refused' if guarded else 'allowed'}",
+              r.returncode == 0 and d == ("deny" if guarded else None),
+              f"rc={r.returncode} decision={d} reason={reason!r} stderr={r.stderr[-300:]!r}")
+    shutil.rmtree(root, ignore_errors=True)
+
+
+case_applicability_corpus()
 
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))

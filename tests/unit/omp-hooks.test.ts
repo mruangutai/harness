@@ -207,8 +207,9 @@ describe("OMP task lifecycle adapter", () => {
       },
       ...toolApi(tools),
     };
-    const settle = (data: Record<string, unknown>) => lifecycle.forEach((handler) => handler(data));
-    const runner = (
+    const settle = (data: Record<string, unknown>) => Promise.all(lifecycle.map((handler) => handler(data)));
+    // FEAT-2337: a policy runner answers with a Promise, as runPolicy does.
+    const runner = async (
       cwd: string,
       script: string,
       args: string[],
@@ -1046,8 +1047,8 @@ describe("OMP task lifecycle adapter", () => {
       on(name: string, handler: Function) { handlers.set(name, handler); },
       events: { on: () => () => {} },
       ...toolApi(),
-    }, (cwd, script, args, payload) => {
-      const result = runner(cwd, script, args, payload);
+    }, async (cwd, script, args, payload) => {
+      const result = await runner(cwd, script, args, payload);
       const target = (payload.tool_input as Record<string, unknown> | undefined)?.file_path;
       return script === "check-domain.py" && target === forbidden
         ? { blocked: true, reason: `${forbidden} is outside your domain`, stdout: "" }
@@ -2272,6 +2273,33 @@ describe("OMP task lifecycle adapter", () => {
     expect(open.calls.map((call) => call.script)).toContain("merge-gate.py");
   });
 
+  // FEAT-2337 (DEC-100): Main's merge path reads merge-gate's failure through the same narrow
+  // classification. The `\bmerge\b` pre-screen still only spares a spawn; whether a gate that
+  // could not answer refuses is merge_ref's call, so an abort, a search or an echo stays allowed.
+  test("FEAT-2337: Main's merge is refused when merge-gate times out; a command it does not guard is not", async () => {
+    const timedOut: hooks.PolicyProcess = { status: null, signal: "SIGKILL", stdout: "", stderr: "", timedOut: true };
+    const seen: unknown[] = [];
+    const { handlers } = fixture({
+      mergeGate: (payload) => {
+        seen.push((payload.tool_input as Record<string, unknown>).command);
+        return hooks.classifyPolicyRun("merge-gate.py", payload, timedOut);
+      },
+    });
+    await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    const call = async (command: string) =>
+      handlers.get("tool_call")?.({ toolName: "bash", toolCallId: "m", input: { command } }, mainCtx());
+    const guarded = ["git merge feat/x", "gh pr merge 42 --squash", "bash -c 'git -C /x merge feat/y'"];
+    const unguarded = ["git merge --abort", "echo merge", "rg merge src/"];
+    for (const command of guarded) {
+      expect(await call(command)).toEqual({
+        block: true,
+        reason: expect.stringMatching(/^merge-gate: BLOCKED — the gate could not run \(exceeded its 30-second budget/),
+      });
+    }
+    for (const command of unguarded) expect(await call(command)).toBeUndefined();
+    expect(seen).toEqual([...guarded, ...unguarded]);
+  });
+
   // -------------------------------------------------------------------------
   // FEAT-2274 (D-01, SC-01, SC-07, SC-09): a broad gate that could not run is not a pass.
   // The call proceeds, and the handler says so in passive additionalContext, phase-tagged
@@ -2530,6 +2558,8 @@ describe("classifyPolicyRun", () => {
       "gh-close-gate.py": "gh issue close 728 --repo x/y",
       "branch-create-gate.py": "git checkout -b FEAT-9999-runtime-probe",
       "plan-sign-gate.py": "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml",
+      // FEAT-2337 (DEC-100): merge-gate.py is a narrow gate.
+      "merge-gate.py": "git merge feat/x",
     };
     for (const [script, command] of Object.entries(guarded)) {
       const gate = script.slice(0, -3);
@@ -2552,7 +2582,7 @@ describe("classifyPolicyRun", () => {
   });
 
   test("every other script keeps its non-blocking error contract and still throws a spawn error", () => {
-    for (const script of ["inflight_registry.py", "feature-record.py", "digest_destination.py", "merge-gate.py"]) {
+    for (const script of ["inflight_registry.py", "feature-record.py", "digest_destination.py"]) {
       expect(classify(script, {}, crashes[0][1]))
         .toEqual({ blocked: false, reason: "Traceback: boom", stdout: "" });
       expect(classify(script, {}, { status: 3, signal: null, stdout: "", stderr: "" }))
@@ -2692,7 +2722,65 @@ describe("narrowGateApplies", () => {
 
   test("a script that is not a narrow gate guards nothing", () => {
     expect(hooks.narrowGateApplies("check-domain.py", "gh issue close 5")).toBe(false);
-    expect(hooks.narrowGateApplies("merge-gate.py", "git merge x")).toBe(false);
+    expect(hooks.narrowGateApplies("bash-write-guard.py", "git merge x")).toBe(false);
+  });
+
+  // FEAT-2337 (DEC-100): merge-gate.py's applicability is a port of its `merge_ref` at 352ceebe,
+  // never mainMergeGate's `\bmerge\b` pre-screen, which also matches an abort, a search or an echo.
+  const nest = (command: string, layers: number): string =>
+    layers ? nest(`bash -c ${JSON.stringify(command)}`, layers - 1) : command;
+  const MERGES: Array<[string, boolean]> = [
+    ["git merge feat/x", true],
+    ["git merge", true],
+    ["git merge --squash feat/x", true],
+    ["git merge -m 'not --abort' feat/x", true],
+    ["git merge -X theirs feat/x", true],
+    ["git merge feat/x --abort", true],
+    ["git -C /repo merge feat/x", true],
+    ["git -c core.pager=cat merge feat/x", true],
+    ["git --work-tree /w --git-dir /w/.git merge feat/x", true],
+    ["git --no-pager merge feat/x", true],
+    ["git --abort merge feat/x", true],
+    ["/usr/bin/git merge feat/x", true],
+    ["\\git merge feat/x", true],
+    ['git "merge" feat/x', true],
+    ["cd /x && git merge feat/x", true],
+    ["echo git merge feat/x", true],
+    ["gh pr merge 12 --squash", true],
+    ["gh pr merge --auto", true],
+    ["/opt/homebrew/bin/gh pr merge 7", true],
+    ["true; gh pr merge 7", true],
+    ["bash -c 'git merge feat/x'", true],
+    ['sh -c "gh pr merge 12 --squash"', true],
+    ['eval "git merge feat/x"', true],
+    ["grep -rn 'git merge' docs/", true],
+    [nest("git merge feat/x", 3), true],
+    ['git merge feat/x "unclosed', true],
+    ["git merge --abort", false],
+    ["git merge --continue", false],
+    ["git merge --quit", false],
+    ["git merge -s ours --abort", false],
+    ["git -C /repo merge --abort", false],
+    ["bash -c 'git merge --abort'", false],
+    [nest("git merge feat/x", 4), false],
+    ["echo merge", false],
+    ['echo "merge', false],
+    ["rg merge src/", false],
+    ["git status", false],
+    ["git log --grep merge", false],
+    ["git mergetool", false],
+    ["git merge-base main HEAD", false],
+    ["git -C merge status", false],
+    ["gh pr view 12", false],
+    ["gh merge pr 12", false],
+    ["gh pr list --search merge", false],
+    ["python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7", false],
+  ];
+  test("FEAT-2337: merge-gate.py guards merge_ref's merges, not every command that says merge", () => {
+    const mismatched = MERGES
+      .filter(([command, applies]) => hooks.narrowGateApplies("merge-gate.py", command) !== applies)
+      .map(([command, applies]) => `${applies ? "missed" : "overmatched"}: ${JSON.stringify(command)}`);
+    expect(mismatched).toEqual([]);
   });
 });
 
@@ -2966,7 +3054,7 @@ describe("context advisory injection", () => {
       events: { on: () => () => {} },
       ...toolApi(),
     };
-    const runner = (_cwd: string, script: string) => {
+    const runner = async (_cwd: string, script: string) => {
       if (script === "check-domain.py" && opts.blockReason) {
         return { blocked: true, reason: opts.blockReason, stdout: "" };
       }
@@ -3238,7 +3326,7 @@ describe("spend advisory injection", () => {
       ...toolApi(),
     };
     const calls: Array<{ script: string; args: string[] }> = [];
-    const runner = (_cwd: string, script: string, args: string[]) => {
+    const runner = async (_cwd: string, script: string, args: string[]) => {
       calls.push({ script, args });
       if (script === "inflight_registry.py" && args[0] === "feature-root") {
         return { blocked: false, stdout: `${root}\n` };
@@ -3384,7 +3472,7 @@ describe("host-stamped tokens", () => {
       ...toolApi(),
     };
     const calls: Array<{ script: string; args: string[] }> = [];
-    const runner = (_cwd: string, script: string, args: string[]) => {
+    const runner = async (_cwd: string, script: string, args: string[]) => {
       calls.push({ script, args });
       if (script === "inflight_registry.py" && args[0] === "feature-root") {
         return { blocked: false, stdout: `${root}\n` };
@@ -3505,7 +3593,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
 
   function world(root = mkdtempSync(join(tmpdir(), "bug1898-"))) {
     const calls: Call[] = [];
-    const runner = (cwd: string, script: string, args: string[], payload: Record<string, unknown>) => {
+    const runner = async (cwd: string, script: string, args: string[], payload: Record<string, unknown>) => {
       calls.push({ script, args, payload });
       if (script === "inflight_registry.py") {
         return python([gatePath("inflight_registry.py"), ...args], cwd);
@@ -4134,4 +4222,320 @@ describe("FEAT-2225 expertise_apply through the real policyRunner into the real 
       expect([s.persona, existsSync(receiptPath(build.root, s.id))]).toEqual([s.persona, false]);
     }
   }, 60_000);
+});
+
+// FEAT-2337 (D-01, DEC-100): every Python policy call is awaited and bounded, and a Bash call's five
+// gates run at once. Real-process cases import a COPY of the extension whose gate tree holds only
+// planted scripts; a shortened budget is written into that copy's source, never passed as an option.
+describe("FEAT-2337 async bounded policy runtime", () => {
+  type Answer = { blocked: boolean; reason?: string; unavailable?: string; stdout: string };
+  // A planned answer, `after` microtask turns late: completion order without a wall clock.
+  type Gate = { answer?: Answer; sequence?: Answer[]; reject?: string; after: number };
+  type Outcome = Partial<Answer> & { threw?: string };
+  const EXTENSIONS = join(import.meta.dir, "..", "..", ".omp", "extensions");
+  const BASH_GATES = ["gh-close-gate.py", "branch-create-gate.py", "bash-write-guard.py", "plan-sign-gate.py", "merge-gate.py"];
+  const PASS: Answer = { blocked: false, stdout: "" };
+  const STARTED: Answer = { blocked: false, stdout: '{"ok": true}\n' };
+  const EXPERTISE: Answer = {
+    blocked: false, stdout: JSON.stringify({ hookSpecificOutput: { additionalContext: "injected expertise" } }),
+  };
+  const python = (...lines: string[]) => ["#!/usr/bin/env python3", ...lines, ""].join("\n");
+  const notice = (gate: string, why: string) => `Harness: ${gate} (pre) could not run; nothing was checked. ${why}`;
+  const failed = (gate: string) => `Harness: ${gate} (pre) failed before answering, so the call is refused: transport down`;
+  const refuse = (reason: string): Answer => ({ blocked: true, reason, stdout: "" });
+  const unavailable = (why: string): Answer => ({ blocked: false, unavailable: why, stdout: "" });
+  const ASSIGNMENT = {
+    prompt: "HARNESS-FEATURE: FEAT-90-long-run\nassignment",
+    systemPrompt: ["HARNESS_AGENT_ID: harness-backend-dev"],
+  };
+  const TASK = (task: string) => ({ agent: "harness-qa", task: `HARNESS-FEATURE: FEAT-90-long-run\n${task}` });
+  const RECEIPT: Answer = {
+    blocked: false,
+    stdout: JSON.stringify({ harness_claim: { root: "/repo", feature: "FEAT-90-long-run", agent: "harness-qa", claim_id: "c1" } }),
+  };
+
+  async function copiedRuntime(scripts: Record<string, string>, timeoutMs?: number) {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "feat2337-")));
+    const extensions = join(root, ".omp", "extensions");
+    cpSync(EXTENSIONS, extensions, { recursive: true });
+    const source = join(extensions, "harness-hooks.ts");
+    const original = readFileSync(source, "utf8");
+    const clocked = timeoutMs === undefined ? original
+      : original.replace(/^export const POLICY_TIMEOUT_MS = [0-9_]+;$/m, `export const POLICY_TIMEOUT_MS = ${timeoutMs};`);
+    expect(timeoutMs === undefined || clocked !== original).toBe(true);
+    writeFileSync(source, clocked);
+    const bin = join(root, ".agents", "skills", "harness", "bin");
+    mkdirSync(bin, { recursive: true });
+    for (const [name, body] of Object.entries(scripts)) writeFileSync(join(bin, name), body, { mode: 0o755 });
+    // Dynamic by necessity: the module under test is the per-case copy, chosen at run time.
+    return { root, bin, hooks: await import(source) };
+  }
+
+  // A process that ignores graceful termination and leaves a grandchild holding its pipes.
+  const HANG = python(
+    "import os, signal, subprocess, sys, time",
+    "signal.signal(signal.SIGTERM, signal.SIG_IGN)",
+    "kid = subprocess.Popen(['sleep', '8'])",
+    "open(os.path.abspath(__file__) + '.pids', 'w').write(f'{os.getpid()} {kid.pid}')",
+    "print('partial', flush=True)",
+    "time.sleep(8)",
+  );
+
+  const alive = (pid: number) => {
+    try { process.kill(pid, 0); return true; } catch { return false; }
+  };
+  // Real processes die on the OS's schedule, not a fake clock: poll briefly for the kill to land.
+  async function survivors(pidFile: string) {
+    const pids = readFileSync(pidFile, "utf8").trim().split(" ").map(Number);
+    for (let wait = 0; wait < 50 && pids.some(alive); wait += 1) await Bun.sleep(20);
+    return pids.filter(alive);
+  }
+
+  test("FEAT-2337: one named 30-second budget, and no synchronous Python policy spawn", () => {
+    const source = readFileSync(join(EXTENSIONS, "harness-hooks.ts"), "utf8");
+    expect(hooks.POLICY_TIMEOUT_MS).toBe(30_000);
+    expect(source.match(/POLICY_TIMEOUT_MS = /g)).toHaveLength(1);
+    expect(source.match(/spawnSync\("[^"]*"/g) ?? []).toEqual(['spawnSync("git"']);
+  });
+
+  // The heartbeat is a real interval on purpose: what is under test is that the real event loop
+  // keeps turning while a real child runs, which no fake clock can witness.
+  test("FEAT-2337: the event loop keeps running while a policy child is pending", async () => {
+    const { root, hooks: copy } = await copiedRuntime({
+      "check-domain.py": python("import sys, time", "sys.stdin.read()", "time.sleep(0.5)"),
+    });
+    let ticks = 0;
+    const beat = setInterval(() => { ticks += 1; }, 5);
+    const pending = copy.runPolicy(root, "check-domain.py", [], {});
+    const ticksAtReturn = ticks;
+    const result = await pending;
+    clearInterval(beat);
+    expect([ticksAtReturn, ticks >= 20, result]).toEqual([0, true, { blocked: false, stdout: "" }]);
+  }, 10_000);
+
+  // Each row: label, script, Bash command, and the DEC-100 outcome a timed-out process must take.
+  const TIMEOUTS: Array<[string, string, string, (result: Answer) => boolean]> = [
+    ["a broad gate is visibly unavailable", "bash-write-guard.py", "echo hi",
+      (result) => !result.blocked && /budget/.test(result.unavailable ?? "")],
+    ["a matching narrow command is refused", "gh-close-gate.py", "gh issue close 7 --repo x/y",
+      (result) => result.blocked && /budget/.test(result.reason ?? "")],
+    ["an unrelated narrow command is allowed silently", "gh-close-gate.py", "git status",
+      (result) => !result.blocked && result.unavailable === undefined && result.reason === undefined],
+    // merge-gate.py is a narrow gate: its timeout refuses only the merge it guards.
+    ["a guarded merge is refused", "merge-gate.py", "git merge feat/x",
+      (result) => result.blocked && /^merge-gate: BLOCKED/.test(result.reason ?? "") && /budget/.test(result.reason ?? "")],
+    ["unrelated Bash is allowed silently past merge-gate", "merge-gate.py", "echo merge",
+      (result) => !result.blocked && result.unavailable === undefined && result.reason === undefined],
+    ["a helper keeps its non-blocking reason", "inflight_registry.py", "",
+      (result) => !result.blocked && /budget/.test(result.reason ?? "")],
+  ];
+  test.each(TIMEOUTS)("FEAT-2337: past the budget %s, killed with no survivor", async (_label, script, command, holds) => {
+    const { root, bin, hooks: copy } = await copiedRuntime({ [script]: HANG }, 400);
+    const started = performance.now();
+    const result = await copy.runPolicy(root, script, [], { tool_input: { command } });
+    const elapsed = performance.now() - started;
+    expect([holds(result), elapsed < 3_000, await survivors(join(bin, `${script}.pids`))])
+      .toEqual([true, true, []]);
+  }, 15_000);
+
+  // A fixture-local clock: every timer the runner arms with the copy's budget must be cleared by
+  // the one settlement, whichever of error, exit, close or the deadline arrives first.
+  async function armedBudgets(budget: number, run: () => Promise<Outcome>) {
+    const realSet = globalThis.setTimeout;
+    const realClear = globalThis.clearTimeout;
+    const armed: unknown[] = [];
+    const cleared = new Set<unknown>();
+    globalThis.setTimeout = ((handler: () => void, ms?: number, ...rest: unknown[]) => {
+      const id = realSet(handler, ms, ...rest);
+      if (ms === budget) armed.push(id);
+      return id;
+    }) as typeof setTimeout;
+    globalThis.clearTimeout = ((id: Parameters<typeof clearTimeout>[0]) => {
+      cleared.add(id);
+      realClear(id);
+    }) as typeof clearTimeout;
+    try {
+      const outcome = await run().then((value) => value, (error: Error): Outcome => ({ threw: error.message }));
+      return { outcome, armed: armed.length, uncleared: armed.filter((id) => !cleared.has(id)).length };
+    } finally {
+      globalThis.setTimeout = realSet;
+      globalThis.clearTimeout = realClear;
+    }
+  }
+
+  const SETTLEMENTS: Array<[string, Record<string, string>, string, (outcome: Outcome) => boolean]> = [
+    ["a clean exit", { "check-domain.py": python("print('{}')") }, "check-domain.py",
+      (outcome) => outcome.blocked === false && outcome.unavailable === undefined],
+    ["a spawn error followed by close", {}, "check-domain.py",
+      (outcome) => /could not be started/.test(outcome.unavailable ?? "")],
+    ["a death by signal", { "check-domain.py": python("import os, signal", "os.kill(os.getpid(), signal.SIGKILL)") },
+      "check-domain.py", (outcome) => /terminated by SIGKILL/.test(outcome.unavailable ?? "")],
+    ["a deadline before close", { "check-domain.py": HANG }, "check-domain.py",
+      (outcome) => /budget/.test(outcome.unavailable ?? "")],
+    ["a helper spawn error", {}, "feature-record.py", (outcome) => typeof outcome.threw === "string"],
+  ];
+  test.each(SETTLEMENTS)("FEAT-2337: %s settles once and clears its timer", async (_label, scripts, script, holds) => {
+    const budget = 600;
+    const { root, hooks: copy } = await copiedRuntime(scripts, budget);
+    const seen = await armedBudgets(budget, () => copy.runPolicy(root, script, [], {}));
+    expect([holds(seen.outcome), seen.armed, seen.uncleared]).toEqual([true, 1, 0]);
+  }, 15_000);
+
+  // An injected-runner session. Gate scripts answer through `gates`; registry steps (by verb) and
+  // other helpers through `helpers`, defaulting to an immediate pass. `events` records each call's
+  // start and end, so a test can read what happened before the hook answered.
+  function host(gates: Record<string, Gate>, helpers: Record<string, Gate> = {}) {
+    const events: string[] = [];
+    const handlers = new Map<string, Function>();
+    const lifecycle: Function[] = [];
+    const answer = async (name: string, plan: Gate | undefined, fallback: Answer) => {
+      events.push(`start ${name}`);
+      for (let turn = 0; turn < (plan?.after ?? 0); turn += 1) await Promise.resolve();
+      events.push(`end ${name}`);
+      if (plan?.reject) throw new Error(plan.reject);
+      return plan?.sequence?.shift() ?? plan?.answer ?? fallback;
+    };
+    const runner = (_cwd: string, script: string, args: string[]) => {
+      const name = script === "inflight_registry.py" ? args[0] : script;
+      if (BASH_GATES.includes(script)) return answer(name, gates[script], PASS);
+      return answer(name, helpers[name], name === "run-start" ? STARTED : PASS);
+    };
+    registerHarnessHooks({
+      on(name: string, handler: Function) { handlers.set(name, handler); },
+      events: { on(_channel: string, handler: Function) { lifecycle.push(handler); return () => {}; } },
+      ...toolApi(),
+    }, runner);
+    const ctx = ompContext("/repo", "Lead.Dev", "Lead");
+    const begin = () => handlers.get("before_agent_start")?.(ASSIGNMENT, ctx);
+    const call = (toolName: string, input: Record<string, unknown>) =>
+      handlers.get("tool_call")?.({ toolName, toolCallId: `call-${toolName}`, input }, ctx);
+    const settle = (data: Record<string, unknown>) => Promise.all(lifecycle.map((handler) => handler(data)));
+    return { events, begin, call, settle };
+  }
+
+  // Later declared gates finish first, so completion order is the reverse of declared order.
+  const reversed = (answers: Record<string, Answer | string>) => Object.fromEntries(BASH_GATES.map((script, index) => {
+    const given = answers[script];
+    const after = (BASH_GATES.length - index) * 15;
+    return [script, typeof given === "string" ? { reject: given, after } : { answer: given, after }];
+  }));
+  const ENV = { command: "ls -la", env: { HARNESS_AGENT_TYPE: "harness-backend-dev" } };
+
+  const COMPOSITIONS: Array<[string, Record<string, Answer | string>, unknown]> = [
+    ["the first declared refusal wins whatever finishes first",
+      { "gh-close-gate.py": refuse("gh-close refused"), "plan-sign-gate.py": refuse("plan-sign refused") },
+      { block: true, reason: "gh-close refused" }],
+    ["every unavailable notice rides beside the refusal, in declared order",
+      { "branch-create-gate.py": unavailable("bcg broke"), "bash-write-guard.py": unavailable("bwg broke"),
+        "merge-gate.py": refuse("merge refused") },
+      { block: true, reason: ["merge refused", notice("branch-create-gate", "bcg broke"),
+        notice("bash-write-guard", "bwg broke")].join("\n") }],
+    ["unavailable notices without a refusal stay passive context",
+      { "branch-create-gate.py": unavailable("bcg broke"), "bash-write-guard.py": unavailable("bwg broke") },
+      { input: ENV, additionalContext: [notice("branch-create-gate", "bcg broke"),
+        notice("bash-write-guard", "bwg broke")].join("\n") }],
+    ["a rejected gate hides neither the refusal nor a sibling's notice",
+      { "gh-close-gate.py": refuse("gh-close refused"), "bash-write-guard.py": unavailable("bwg broke"),
+        "plan-sign-gate.py": "transport down" },
+      { block: true, reason: ["gh-close refused", failed("plan-sign-gate"), notice("bash-write-guard", "bwg broke")].join("\n") }],
+    ["a rejection alone still refuses and keeps the notices",
+      { "bash-write-guard.py": unavailable("bwg broke"), "merge-gate.py": "transport down" },
+      { block: true, reason: [failed("merge-gate"), notice("bash-write-guard", "bwg broke")].join("\n") }],
+    ["an unrelated command still runs every gate", {}, { input: ENV }],
+  ];
+  test.each(COMPOSITIONS)("FEAT-2337: Bash gates, %s", async (_label, answers, expected) => {
+    const session = host(reversed(answers));
+    await session.begin();
+    const result = await session.call("bash", { command: "ls -la" });
+    const gateEvents = session.events.filter((event) => BASH_GATES.some((gate) => event.endsWith(gate)));
+    expect(result).toEqual(expected);
+    expect(gateEvents).toEqual([
+      ...BASH_GATES.map((gate) => `start ${gate}`),
+      ...BASH_GATES.map((gate) => `end ${gate}`).reverse(),
+    ]);
+  });
+
+  // Real processes: each planted gate waits (at most 2 s) until all five have started.
+  const BARRIER = python(
+    "import os, sys, time",
+    "sys.stdin.read()",
+    "here = os.path.dirname(os.path.abspath(__file__))",
+    "open(os.path.abspath(__file__) + '.started', 'w').close()",
+    `gates = ${JSON.stringify(BASH_GATES)}`,
+    "until = time.monotonic() + 2",
+    "seen = lambda: all(os.path.exists(os.path.join(here, g + '.started')) for g in gates)",
+    "while not seen() and time.monotonic() < until: time.sleep(0.01)",
+    "open(os.path.abspath(__file__) + '.met', 'w').write('met' if seen() else 'alone')",
+  );
+  test("FEAT-2337: all five real gate processes start before any is allowed to finish", async () => {
+    const { root, bin, hooks: copy } = await copiedRuntime({
+      ...Object.fromEntries(BASH_GATES.map((gate) => [gate, BARRIER])),
+      "inflight_registry.py": python("print('{\"ok\": true}')"),
+      "inject-expertise.py": python("pass"),
+    });
+    const handlers = new Map<string, Function>();
+    copy.registerHarnessHooks({
+      on(name: string, handler: Function) { handlers.set(name, handler); },
+      events: { on: () => () => {} },
+      ...toolApi(),
+    });
+    const ctx = ompContext(root, "Lead.Dev", "Lead");
+    await handlers.get("before_agent_start")?.(ASSIGNMENT, ctx);
+    const result = await handlers.get("tool_call")?.({ toolName: "bash", toolCallId: "b", input: { command: "ls -la" } }, ctx);
+    expect(result?.block).toBeUndefined();
+    expect(BASH_GATES.map((gate) => readFileSync(join(bin, `${gate}.met`), "utf8"))).toEqual(BASH_GATES.map(() => "met"));
+  }, 20_000);
+
+  // A helper that answers late must not be read before it answers: each row delays one helper,
+  // and expertise injection is late in every row.
+  const DELAYED: Array<[string, Record<string, Gate>, (session: ReturnType<typeof host>) => Promise<unknown>, unknown]> = [
+    ["an authorization refusal is not an early allow", { authorize: { answer: refuse("lineage refused"), after: 20 } },
+      async (session) => { await session.begin(); return session.call("write", { path: "/repo/src/x.ts", content: "x" }); },
+      { block: true, reason: "lineage refused" }],
+    ["a yield refusal is not an early pass", { "validate-digest.py": { answer: refuse("children live"), after: 20 } },
+      async (session) => { await session.begin(); return session.call("yield", { data: PASS_DIGEST }); },
+      { block: true, reason: "children live" }],
+    ["an expertise answer is still injected", {},
+      async (session) => (await session.begin())?.message?.content,
+      "injected expertise"],
+  ];
+  test.each(DELAYED)("FEAT-2337: delayed helper, %s", async (_label, helpers, act, expected) => {
+    const session = host({}, { ...helpers, "inject-expertise.py": { answer: EXPERTISE, after: 20 } });
+    expect(await act(session)).toEqual(expected);
+  });
+
+  test("FEAT-2337: a run is held until its delayed run-start answers, then ready", async () => {
+    const session = host({}, { "run-start": { answer: STARTED, after: 30 } });
+    const opening = session.begin();
+    const early = await session.call("write", { path: "/repo/src/x.ts", content: "x" });
+    await opening;
+    const late = await session.call("write", { path: "/repo/src/x.ts", content: "x" });
+    expect([early?.block, String(early?.reason).includes("has not completed"), late]).toEqual([true, true, undefined]);
+    expect(session.events.indexOf("end run-start")).toBeLessThan(session.events.indexOf("start reconcile"));
+  });
+
+  test("FEAT-2337: a refused batch answers only after its earlier claim is released", async () => {
+    const session = host({}, {
+      "dispatch-guard.py": { sequence: [RECEIPT, refuse("second refused")], after: 5 },
+      release: { answer: PASS, after: 20 },
+    });
+    await session.begin();
+    const answered = await session.call("task", { tasks: [TASK("a"), TASK("b")] });
+    session.events.push("answered");
+    expect(answered).toEqual({ block: true, reason: "second refused" });
+    expect(session.events.slice(-3)).toEqual(["start release", "end release", "answered"]);
+  });
+
+  test("FEAT-2337: a lifecycle settlement resolves only after release-run and the call's receipt release", async () => {
+    const session = host({}, {
+      "dispatch-guard.py": { answer: RECEIPT, after: 5 },
+      "release-run": { answer: PASS, after: 20 },
+      release: { answer: PASS, after: 20 },
+    });
+    await session.begin();
+    expect((await session.call("task", TASK("a")))?.block).toBeUndefined();
+    await session.settle({ id: "Lead.Dev.Qa", status: "completed", parentToolCallId: "call-task" });
+    session.events.push("settled");
+    expect(session.events.slice(-5)).toEqual(["start release-run", "end release-run", "start release", "end release", "settled"]);
+  });
 });

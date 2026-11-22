@@ -4,6 +4,10 @@
 Each case builds in-memory manifests against an explicit expected file list and asserts the
 defect statuses (1 = valid but incomplete/failed, 2 = malformed evidence or unusable input)
 and that the diagnostic names the defect. The all-success exact-coverage control must pass.
+
+FEAT-2337 SC-05: the same seams take an explicit optional `kind`. `unit` validates one
+full-suite `--shard 1/1` receipt against top-level tests/unit/test-*.py; omitting `kind`
+keeps every integration default the CI aggregation relies on.
 """
 import copy
 import importlib.util
@@ -33,10 +37,10 @@ def load_gate():
     return module
 
 
-def manifest(index, paths, sha=SHA, rcs=None):
+def manifest(index, paths, sha=SHA, rcs=None, kind="integration", count=4):
     rcs = rcs or [0] * len(paths)
-    return {"schema": 1, "tested_commit": sha, "kind": "integration", "shard_index": index,
-            "shard_count": 4, "selected_files": list(paths), "runner_exit": 0,
+    return {"schema": 1, "tested_commit": sha, "kind": kind, "shard_index": index,
+            "shard_count": count, "selected_files": list(paths), "runner_exit": 0,
             "completed_files": [{"path": p, "returncode": rc} for p, rc in zip(paths, rcs)]}
 
 
@@ -162,13 +166,87 @@ def positive_cases(gate):
     defects = run(gate, docs)
     check("empty individual shards pass when the suite is covered", gate.exit_status(defects) == 0,
           repr(defects))
-    check("filter keeps only top-level tests/integration/test-*.py", gate.integration_paths([
-        "tests/integration/test-a.py", "tests/integration/sub/test-b.py",
-        "tests/integration/helper.py", "tests/unit/test-c.py", "tests/integration/test-d.txt",
-        "xtests/integration/test-e.py"]) == ["tests/integration/test-a.py"])
+    check("filter keeps only top-level tests/integration/test-*.py", gate.expected_paths(
+        FILTER_NAMES) == ["tests/integration/test-a.py"])
     before = copy.deepcopy(exact())
     run(gate, before)
     check("validation does not mutate evidence", before == exact())
+
+
+# FEAT-2337 SC-05: one unit receipt, shard 1/1, validated through the same seams.
+UNIT_EXPECTED = ["tests/unit/test-a.py", "tests/unit/test-b.py"]
+FILTER_NAMES = ["tests/integration/test-a.py", "tests/integration/sub/test-b.py",
+                "tests/integration/helper.py", "tests/unit/test-c.py", "tests/integration/test-d.txt",
+                "xtests/integration/test-e.py", "tests/unit/nested/test-f.py", "tests/unit/helper.py",
+                "xtests/unit/test-g.py"]
+
+
+def unit_receipt(**changes):
+    doc = manifest(1, UNIT_EXPECTED, kind="unit", count=1)
+    doc.update(changes)
+    return {"manifest-unit.json": doc}
+
+
+def _completed(paths, failing=()):
+    return [{"path": p, "returncode": 1 if p in failing else 0} for p in paths]
+
+
+# (label, docs, expected, kind or None for the default, exit status, diagnostic needle or None)
+UNIT_KIND_CASES = (
+    ("unit receipt with exact coverage passes", unit_receipt(), UNIT_EXPECTED, "unit", 0, None),
+    ("an integration manifest is refused as a unit receipt",
+     unit_receipt(kind="integration"), UNIT_EXPECTED, "unit", 1, "kind 'integration' is not unit"),
+    ("a unit manifest is still refused under the integration default",
+     unit_receipt(), UNIT_EXPECTED, None, 1, "kind 'unit' is not integration"),
+    ("a unit receipt for shard 1/2 is refused", unit_receipt(shard_count=2), UNIT_EXPECTED,
+     "unit", 1, "shard_count 2 is not 1"),
+    ("a second unit shard is an extra manifest", {**unit_receipt(), "manifest-2.json": manifest(
+        2, [], kind="unit", count=1)}, UNIT_EXPECTED, "unit", 1, "shard_index 2 outside 1..1"),
+    ("an omitted unit file is refused", unit_receipt(
+        selected_files=UNIT_EXPECTED[:1], completed_files=_completed(UNIT_EXPECTED[:1])),
+     UNIT_EXPECTED, "unit", 1, "tests/unit/test-b.py: omitted"),
+    ("an integration file in a unit receipt is unexpected", unit_receipt(
+        selected_files=UNIT_EXPECTED + ["tests/integration/test-a.py"],
+        completed_files=_completed(UNIT_EXPECTED + ["tests/integration/test-a.py"])),
+     UNIT_EXPECTED, "unit", 1,
+     "tests/integration/test-a.py: unexpected (not in the tested commit's unit suite)"),
+    ("an empty unit suite names the unit pattern", unit_receipt(
+        selected_files=[], completed_files=[]), [], "unit", 1, "no tests/unit/test-*.py"),
+    ("a red unit record is refused", unit_receipt(
+        completed_files=_completed(UNIT_EXPECTED, failing=UNIT_EXPECTED[1:])),
+     UNIT_EXPECTED, "unit", 1, "tests/unit/test-b.py returned 1"),
+    ("a malformed unit receipt is malformed evidence",
+     {"manifest-unit.json": "not an object"}, UNIT_EXPECTED, "unit", 2,
+     "manifest must be a JSON object"),
+)
+
+
+def _unit_case(gate, label, docs, expected, kind, status, needle):
+    defects = (gate.evidence_defects(docs, SHA, 1, expected, kind=kind) if kind
+               else gate.evidence_defects(docs, SHA, 1, expected))
+    text = " | ".join(message for _status, message in defects)
+    check(f"{label}: exit {status}", gate.exit_status(defects) == status, text or "no defects")
+    if needle is not None:
+        check(f"{label}: diagnostic names '{needle}'", needle in text, text or "no defects")
+
+
+def _unsupported_kind_refused(gate):
+    try:
+        gate.expected_paths(FILTER_NAMES, kind="Unit")
+    except ValueError as error:
+        return "Unit" in str(error), str(error)
+    return False, "accepted 'Unit'"
+
+
+def unit_kind_cases(gate):
+    for row in UNIT_KIND_CASES:
+        _unit_case(gate, *row)
+    check("unit filter keeps only top-level tests/unit/test-*.py",
+          gate.expected_paths(FILTER_NAMES, kind="unit") == ["tests/unit/test-c.py"])
+    check("the integration filter is the default", gate.expected_paths(FILTER_NAMES)
+          == gate.expected_paths(FILTER_NAMES, kind="integration"))
+    check("an unsupported kind cannot masquerade as a supported one",
+          *_unsupported_kind_refused(gate))
 
 
 def main():
@@ -178,7 +256,7 @@ def main():
         print(f"FAIL cannot load gate: {error}")
         return 1
     for group in (conclusion_cases, manifest_set_cases, field_cases, coverage_cases,
-                  positive_cases):
+                  positive_cases, unit_kind_cases):
         try:
             group(gate)
         except Exception as error:  # a missing API is a red case, not a crash

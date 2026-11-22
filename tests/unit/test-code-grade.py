@@ -279,6 +279,12 @@ def _check_self_graded_file(filename, repo_root, test_kinds):
     return failures, matched
 
 
+def _load_test_kinds(repo_root):
+    """The configured test_kinds policy every self-grading check classifies against."""
+    with (Path(repo_root) / ".harness" / "harness.json").open(encoding="utf-8") as stream:
+        return json.load(stream)["test_kinds"]
+
+
 def check_self_grading():
     """CR-01: every function `code_grade.grade_source` reports across SELF_GRADED_FILES — the full
     set of .py files this feature changed under bin/, production and test alike — must grade at or
@@ -289,8 +295,7 @@ def check_self_grading():
     and parse, so a rename or removal fails loudly instead of silently shrinking coverage.
     """
     repo_root = Path(HERE).resolve().parents[3]
-    with (repo_root / ".harness" / "harness.json").open(encoding="utf-8") as stream:
-        test_kinds = json.load(stream)["test_kinds"]
+    test_kinds = _load_test_kinds(repo_root)
     failures = 0
     matched_allowlist = set()
     for filename in SELF_GRADED_FILES:
@@ -300,6 +305,145 @@ def check_self_grading():
     failures += check(matched_allowlist, set(SELF_GRADING_ALLOWLIST),
                       "self-grading allowlist has no stale (renamed/removed) entries")
     return failures
+
+
+# FEAT-2337 SC-08: every new or changed Python test function in the feature grades >= 3, graded
+# from git between a FIXED feature base and the COMMITTED tip, with no allowlist at all. It runs
+# only under `--feat2337` (and at the review pin): a fixed base in the default suite would grade
+# a diff that grows with every later commit. The base is d04c765a, the recorded build-entry
+# baseline (plan base dd04e52a plus one upstream merge, BUG-2328/#2338, whose only Python test
+# change is another feature's) — the 2026-11-22 grading-base ruling in the feature's notes.
+FEAT2337_BASE = "d04c765aba6ba5044492a622625894085b99a2bc"
+
+# The self-grading additions must themselves be in the graded set: their absence means the tip
+# does not yet contain the tests being graded, which is not a pass.
+FEAT2337_SELF_GRADERS = (
+    ("tests/unit/test-code-grade.py", "check_feat2337_self_grading"),
+    ("tests/unit/test-code-grade.py", "check_feat2337_grade_two_mutant"),
+    ("tests/integration/test-check-domain-grant.py", "run_feat2337_receipt_grant_cases"),
+)
+
+
+def _base_bodies(repo_root, base, tip):
+    """{path: {(qualname, body hash)}} at `base` for every Python file changed up to `tip`,
+    renames followed, so a record is unchanged only when its name AND body both pre-exist."""
+    base_oid = code_grade.commit_oid(repo_root, base)
+    tip_oid = code_grade.commit_oid(repo_root, tip)
+    bodies = {}
+    for path, old_path in code_grade._changed_python_files(repo_root, base_oid, tip_oid):
+        source = code_grade._resolve_base_source(repo_root, base_oid, path, old_path)
+        bodies[path] = set(code_grade._body_hashes(source).items()) if source else set()
+    return bodies
+
+
+def _is_changed(repo_root, tip, record, before, after):
+    if record.path not in after:
+        after[record.path] = code_grade._body_hashes(
+            code_grade._git_show(repo_root, tip, record.path))
+    return (record.qualname, after[record.path][record.qualname]) not in before[record.path]
+
+
+def _changed_test_records(repo_root, base, tip, test_kinds):
+    """code_grade.classify() records of every new or changed function on a test path between
+    `base` and `tip`: gated_set's gated records plus its informational records whose body or
+    name changed. Untouched legacy functions in a changed file are not this check's subject."""
+    gated, informational = code_grade.gated_set(repo_root, base, tip)
+    before, after = _base_bodies(repo_root, base, tip), {}
+    changed = [record for record in gated + informational
+               if _is_changed(repo_root, tip, record, before, after)]
+    records, _result = code_grade.classify(changed, test_kinds)
+    return [record for record in records if record["bar"] == 3]
+
+
+def _print_graded(records, label):
+    for record in records:
+        verdict = "ok   " if record["result"] == "PASS" else "FAIL "
+        print(f"{verdict} {label}: {record['path']}:{record['qualname']} grade "
+              f"{record['grade']} (bar 3)")
+    return sum(record["result"] != "PASS" for record in records)
+
+
+def check_feat2337_self_grading():
+    """SC-08 at the committed tip: every changed test function grades >= 3, the self-grading
+    additions included. TypeScript tests are not Python-graded; Bun runs them."""
+    repo_root = Path(ROOT)
+    records = _changed_test_records(repo_root, FEAT2337_BASE, "HEAD",
+                                    _load_test_kinds(repo_root))
+    failures = _print_graded(records, "feat2337")
+    graded = {(record["path"], record["qualname"]) for record in records}
+    for key in FEAT2337_SELF_GRADERS:
+        failures += check(key in graded, True, f"the committed tip grades {key[0]}:{key[1]}")
+    print(f"feat2337: {len(records)} changed Python test functions graded from "
+          f"{FEAT2337_BASE[:8]} to HEAD; tests/unit/omp-hooks.test.ts is TypeScript, covered "
+          f"by Bun through tests/unit/test-omp-hooks.py, never by this grader")
+    return failures
+
+
+def _grade_two_source(name):
+    """A function with twelve branches: cyclomatic 13, which is grade 2 and nothing lower."""
+    body = "".join(f"    if value == {n}:\n        return {n}\n" for n in range(12))
+    return f"def {name}(value):\n{body}    return -1\n"
+
+
+_LEGACY_TEST = _grade_two_source("check_legacy") + "\n\ndef check_kept():\n    return 1\n"
+
+# (path, source at base or None, source at tip): the mutant is a NEW grade-2 test function;
+# an unchanged grade-2 legacy function and a new grade-2 production function sit beside it.
+FEAT2337_MUTANT_FILES = (
+    ("tests/unit/test-sample.py",
+     _LEGACY_TEST + "\n\ndef check_edited():\n    return 1\n",
+     _LEGACY_TEST + "\n\ndef check_edited():\n    return 2\n\n\n"
+     + _grade_two_source("check_mutant")),
+    ("bin/prod.py", None, _grade_two_source("prod_mutant")),
+)
+
+# Exactly these test functions are graded, with these results.
+FEAT2337_MUTANT_EXPECTED = {"check_mutant": "FAIL", "check_edited": "PASS"}
+
+
+def _mutant_repository(directory):
+    repo_root = Path(directory)
+    _git(repo_root, "init")
+    _git(repo_root, "config", "user.email", "grader@example.test")
+    _git(repo_root, "config", "user.name", "Code Grader")
+    for path, before, _after in FEAT2337_MUTANT_FILES:
+        if before is not None:
+            _write(repo_root, path, before)
+    base_ref = _commit(repo_root, "base")
+    for path, _before, after in FEAT2337_MUTANT_FILES:
+        _write(repo_root, path, after)
+    return repo_root, base_ref, _commit(repo_root, "tip")
+
+
+def check_feat2337_grade_two_mutant():
+    """The control: the same cumulative grader rejects a new grade-2 test function, and only it."""
+    failures = check(code_grade.grade_source(_grade_two_source("m"), "m.py")[0].grade, 2,
+                     "the mutant fixture grades exactly 2")
+    with tempfile.TemporaryDirectory() as directory:
+        repo_root, base_ref, tip_ref = _mutant_repository(directory)
+        records = _changed_test_records(repo_root, base_ref, tip_ref, _load_test_kinds(ROOT))
+    outcome = {record["qualname"]: record["result"] for record in records}
+    failures += check(outcome, FEAT2337_MUTANT_EXPECTED,
+                      "the cumulative grader rejects the grade-2 mutant and grades nothing else")
+    if outcome.get("check_mutant") == "FAIL":
+        print("ok    feat2337 control: the new grade-2 test function check_mutant is rejected")
+    return failures
+
+
+def feat2337_main():
+    failures = check_feat2337_grade_two_mutant() + check_feat2337_self_grading()
+    print(f"{failures} failures" if failures else "PASS test-code-grade --feat2337")
+    return failures
+
+
+def _cli(argv):
+    """Default: the standing suite. `--feat2337`: SC-08's feature-pinned grading only."""
+    if argv == ["--feat2337"]:
+        return feat2337_main()
+    if argv:
+        print("usage: test-code-grade.py [--feat2337]", file=sys.stderr)
+        sys.exit(2)
+    return main()
 
 
 def check_case_27_grade():
@@ -846,4 +990,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    sys.exit(1 if _cli(sys.argv[1:]) else 0)

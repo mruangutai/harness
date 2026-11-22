@@ -16,7 +16,8 @@ _anchor_sys.path.insert(0, _anchor_tests)
 import json, os, re, shutil, subprocess, sys, tempfile
 from isolated_bin import isolated_bin
 from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,
-    _legal_feature_json, drive, fire, fixture, fixture_fleet)
+    _legal_feature_json, _run_block_captured, drive, fire, fixture, fixture_fleet,
+    make_linked_worktree)
 import inflight_registry
 
 
@@ -1208,8 +1209,151 @@ def run_feature_id_regex_parity():
     return fails
 
 
-def main():
-    return drive(globals(), CASES)
+# ================= FEAT-2337: QA's runner-receipt grant (SC-06, DEC-255) =================
+# QA writes `runs/<run-id>/qa/manifest-<kind>.json` through the production runner and
+# nothing else under a run: not the lead's state.yaml or digest.md, not a log, not another
+# directory level. Each row fires the CANDIDATE hook at a throwaway copy of the REAL authored
+# manifest (or the real template, in its own unsegmented layout), so the grant under test is
+# the one that ships and the live checkout is never a fixture.
+FEAT2337_CONVENTIONS = {
+    "authored": (os.path.join(ROOT, ".harness", "team-config.yaml"),
+                 ".harness/harness/features/FEAT-9-receipt/runs"),
+    "template": (os.path.join(ROOT, ".claude", "skills", "harness", "templates",
+                              "team-config.yaml"),
+                 ".harness/features/FEAT-9-receipt/runs"),
+}
+
+# (convention, case, path under the feature's runs/, agent, expected exit)
+FEAT2337_GRANT_ROWS = (
+    ("authored", "QA writes its own unit receipt", "r-1-validator/qa/manifest-unit.json",
+     "harness-qa", 0),
+    ("authored", "QA writes its own integration receipt",
+     "r-1-validator/qa/manifest-integration.json", "harness-qa", 0),
+    ("authored", "QA may not write the run's state.yaml", "r-1-validator/state.yaml",
+     "harness-qa", 2),
+    ("authored", "QA may not write the lead's digest.md", "r-1-validator/digest.md",
+     "harness-qa", 2),
+    ("authored", "QA may not write a run log beside its receipt", "r-1-validator/qa/unit.log",
+     "harness-qa", 2),
+    ("authored", "QA may not write a sibling run's state.yaml", "r-0-eng/state.yaml",
+     "harness-qa", 2),
+    ("authored", "QA may not write a manifest outside qa/", "r-1-validator/manifest-unit.json",
+     "harness-qa", 2),
+    ("authored", "QA may not write a manifest nested below qa/",
+     "r-1-validator/qa/extra/manifest-unit.json", "harness-qa", 2),
+    ("authored", "an unrelated reader may not write QA's receipt",
+     "r-1-validator/qa/manifest-unit.json", "harness-code-reviewer", 2),
+    ("authored", "a dev may not write QA's receipt", "r-1-validator/qa/manifest-unit.json",
+     "harness-backend-dev", 2),
+    ("template", "QA writes its own receipt (template layout)",
+     "r-1-validator/qa/manifest-unit.json", "harness-qa", 0),
+    ("template", "QA may not write the run's state.yaml (template layout)",
+     "r-1-validator/state.yaml", "harness-qa", 2),
+    ("template", "QA may not write the lead's digest.md (template layout)",
+     "r-1-validator/digest.md", "harness-qa", 2),
+    ("template", "QA may not write a run log (template layout)", "r-1-validator/qa/unit.log",
+     "harness-qa", 2),
+    ("template", "an unrelated reader may not write QA's receipt (template layout)",
+     "r-1-validator/qa/manifest-unit.json", "harness-code-reviewer", 2),
+)
+
+# (case, path under the authored runs/, whether `--resolve` names harness-qa)
+FEAT2337_RESOLVE_ROWS = (
+    ("the resolver routes a receipt to harness-qa", "r-1-validator/qa/manifest-unit.json", True),
+    ("the resolver does not route run state to harness-qa", "r-1-validator/state.yaml", False),
+    ("the resolver does not route a run log to harness-qa", "r-1-validator/qa/unit.log", False),
+)
+
+
+def _feat2337_root(convention):
+    """A fixture root carrying a verbatim copy of the convention's real manifest."""
+    source, runs = FEAT2337_CONVENTIONS[convention]
+    with open(source, encoding="utf-8") as handle:
+        return fixture(handle.read()), runs
+
+
+def _feat2337_detail(result):
+    return f"exit {result.returncode}: {(result.stdout + result.stderr).strip()[:200]}"
+
+
+def _feat2337_grant_results(roots):
+    results = []
+    for convention, name, path, agent, want in FEAT2337_GRANT_ROWS:
+        root, runs = roots[convention]
+        result = fire(root, f"{runs}/{path}", content="{}", agent=agent)
+        results.append((f"[{convention}] {name}", result.returncode == want,
+                        _feat2337_detail(result)))
+    return results
+
+
+def _feat2337_resolve_results(roots):
+    root, runs = roots["authored"]
+    results = []
+    for name, path, routed in FEAT2337_RESOLVE_ROWS:
+        result = subprocess.run([HOOK, "--resolve", f"{runs}/{path}"], capture_output=True,
+                                text=True, env=_env(root))
+        names = result.stdout.split()
+        results.append((f"[authored] {name}",
+                        result.returncode == 0 and ("harness-qa" in names) == routed,
+                        f"exit {result.returncode}: {names}"))
+    return results
+
+
+def _feat2337_claim_results(roots):
+    """QA's live claim on one feature's worktree binds where its receipt may land. A refusal
+    must name the claim or checkout rule, so a missing grant cannot pass these rows."""
+    root, runs = roots["authored"]
+    own = make_linked_worktree(root, os.path.join(root, ".claude", "worktrees", "FEAT-9"), "A")
+    other = make_linked_worktree(root, os.path.join(root, ".claude", "worktrees", "FEAT-8"), "B")
+    inflight_registry.claim(own, "harness-qa", "harness-validator-lead", own,
+                            feature="FEAT-9-receipt")
+    receipt = f"{runs}/r-1-validator/qa/manifest-unit.json"
+    rows = (
+        ("a claimed QA writes the receipt in its own feature worktree",
+         os.path.join(own, receipt), 0, ""),
+        ("a claimed QA may not write another feature's receipt in that feature's worktree",
+         os.path.join(other, ".harness/harness/features/FEAT-8-other/runs/r-2-validator/qa/"
+                      "manifest-unit.json"), 2, "holds worktree claim"),
+        ("a claimed QA may not write its feature's receipt in the main checkout",
+         os.path.join(root, receipt), 2, "belongs in worktree"),
+    )
+    results = []
+    for name, destination, want, cause in rows:
+        result = fire(root, destination, content="{}", agent="harness-qa")
+        results.append((f"[authored] {name}",
+                        result.returncode == want and cause in result.stderr,
+                        _feat2337_detail(result)))
+    return results
+
+
+def run_feat2337_receipt_grant_cases():
+    roots = {convention: _feat2337_root(convention) for convention in FEAT2337_CONVENTIONS}
+    results = []
+    for collect in (_feat2337_grant_results, _feat2337_resolve_results, _feat2337_claim_results):
+        results += collect(roots)
+    for root, _runs in roots.values():
+        shutil.rmtree(root, ignore_errors=True)
+    fails = 0
+    for name, ok, detail in results:
+        print(f"ok    {name}" if ok else f"FAIL  {name}\n      | {detail}")
+        fails += 0 if ok else 1
+    print(f"\n{len(results) - fails}/{len(results)} FEAT-2337 receipt-grant cases passed.")
+    return fails
+
+
+def main(argv=None):
+    """Every case and block by default; `--only run_<block>` runs that one block (FEAT-2337)."""
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv:
+        return drive(globals(), CASES)
+    block = globals().get(argv[-1]) if len(argv) == 2 and argv[0] == "--only" else None
+    if not (callable(block) and argv[-1].startswith("run_")):
+        print(f"usage: {os.path.basename(__file__)} [--only run_<block>]", file=sys.stderr)
+        sys.exit(2)
+    total, verdict = _run_block_captured(block, argv[-1])
+    if verdict is not None:
+        print(f"FAIL  aggregation safeguard: {verdict}")
+    return total + (verdict is not None)
 
 
 if __name__ == "__main__":
