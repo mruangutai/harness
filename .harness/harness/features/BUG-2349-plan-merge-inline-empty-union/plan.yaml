@@ -28,14 +28,16 @@ tasks:
     depends_on: []
     status: review
     files:
-      - .claude/skills/harness/bin/plan_merge/union.py
-      - tests/integration/test-plan-merge.py
+    - .claude/skills/harness/bin/plan_merge/union.py
+    - tests/integration/test-plan-merge.py
+    - tests/unit/test-plan-merge-union-head.py
     verify: |
       set -eu
       : "${BUG2349_TOOL_ROOT:?Set to the fixed checkout before merge and merged owner checkout after merge}"
       cd "$BUG2349_TOOL_ROOT"
       git rev-parse HEAD
       env -u HARNESS_AGENT_TYPE python3 tests/integration/test-plan-merge.py
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-plan-merge-union-head.py
       python3 - <<'PY'
       import os, pathlib, subprocess, sys, tempfile, yaml
       tool = pathlib.Path(os.environ['BUG2349_TOOL_ROOT']).resolve() / '.claude/skills/harness/bin/plan-merge.py'

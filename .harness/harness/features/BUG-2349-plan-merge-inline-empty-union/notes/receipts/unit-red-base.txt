@@ -1,0 +1,13 @@
+# command: PLAN_MERGE_UNION=<git show e239d881:.claude/skills/harness/bin/plan_merge/union.py> python3 tests/unit/test-plan-merge-union-head.py
+# union.py sha256 2d595c8186b32802a144e369c3dc5e4fb6a892e4581357b2bfbd6586ab35bb3d (blob e239d881)
+FAIL decisions: [] gaining an item merges without a refusal MergeRefusal('MergeRefusal(5): UNPARSEABLE: the merged plan does not load — REFUSING to write it.;   failed to parse YAML in <merged plan>: while parsing a block mapping\n  in "<unicode string>", line 1, column 1:\n    schema: plan/1\n    ^\nexpected <block end>, but found \'<block sequence start>\'\n  in "<unicode string>", line 10, column 3:\n      - id: D-01\n      ^;   this is a splice defect, not a bad proposal: both inputs parsed.')
+FAIL decisions: [] gains the proposal's block head, not the inline [] None
+FAIL decisions: [] merged plan reloads with the added item None
+FAIL tasks: [] gaining an item merges without a refusal MergeRefusal('MergeRefusal(5): UNPARSEABLE: the merged plan does not load — REFUSING to write it.;   failed to parse YAML in <merged plan>: while parsing a block mapping\n  in "<unicode string>", line 1, column 1:\n    schema: plan/1\n    ^\nexpected <block end>, but found \'<block sequence start>\'\n  in "<unicode string>", line 6, column 3:\n      - id: T-01\n      ^;   this is a splice defect, not a bad proposal: both inputs parsed.')
+FAIL tasks: [] gains the proposal's block head, not the inline [] None
+FAIL tasks: [] merged plan reloads with the added item None
+PASS a decisions base with items merges D-02 
+PASS a decisions base with items keeps its own head line 
+PASS a decisions base with items carries D-01 then D-02 
+FAIL test-plan-merge-union-head.py
+# rc=1
