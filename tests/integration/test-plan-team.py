@@ -481,6 +481,9 @@ DISPOSITION_OBLIGATIONS = (
     ("pm Mode 2", "amend and strike landing tests",
      [r"an amend is met only when the intended current text has actually replaced",
       r"a strike only when the strike record exists"]),
+    ("pm Mode 2", "strike alternative: successor-justified deletion with repointed citations",
+     [r"or the deletion is justified by its named successor with citations repointed "
+      r"\(DEC-188, DEC-205\)"]),
     ("pm Mode 2", "mention or green suite is insufficient",
      [r"merely mentions the DEC, or a green suite, is insufficient"]),
     ("pm Mode 2", "failed landing fails the goal-check, routed to the owning task",

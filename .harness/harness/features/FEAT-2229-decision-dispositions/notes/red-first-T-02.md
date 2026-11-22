@@ -70,3 +70,21 @@ no FAIL lines, ~3.5 s wall.
 - `check-instruction-paths.py`: 0 violations (the pinned read names `<repo-relative DECISIONS.md path>`
   inside `git show` instead of an unanchored literal path).
 - `check-skill-weight.py`: exit 0.
+
+## Validate c1 F-01 — the strike alternative (test-only fix)
+
+Gap: case 10 checked pm Mode 2's strike test only up to "a strike only when the strike record
+exists". The alternative, "or the deletion is justified by its named successor with citations
+repointed (DEC-188, DEC-205)", had no assertion.
+
+Mutation: in a temp copy of the tracked tree (HEAD 98305097), the alternative clause was removed
+from `.omp/agents/harness-pm.md` by a whitespace-tolerant regex (1 substitution); harness-pm.md
+itself is unchanged.
+
+- Old test (HEAD) vs mutated pm: exit 0, `182/182 checks passed.` — the gap is reproduced: the
+  deletion went unnoticed.
+- New test vs mutated pm: exit 1, `1 of 183 FAILING.` —
+  `FAIL  (10) pm Mode 2: strike alternative: successor-justified deletion with repointed citations`.
+- New test vs the real worktree: exit 0, `184/184 checks passed.`, no FAIL lines; includes
+  `ok    (10m) pm Mode 2: deleting 'strike alternative: successor-justified deletion with repointed
+  citations' reddens its assertion`.
