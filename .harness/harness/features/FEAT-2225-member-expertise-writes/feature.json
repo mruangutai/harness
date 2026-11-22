@@ -1,0 +1,382 @@
+{
+  "feature_id": "FEAT-2225-member-expertise-writes",
+  "branch": "feat/FEAT-2225-member-expertise-writes",
+  "pr": null,
+  "review_sha": "7065b650ab3b94bae3175978bfd0cf0d62478c89",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261121-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T16:33:53+00:00",
+      "tokens": 80855,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-1-plan-product/digest.md",
+        "sha256": "76edddb3aeda7d1afd4fb08bbad2abf62aea1feb7cbf2a6ea9fa6c2b437965fc"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T17:13:21+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-2-plan-c2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T17:13:33+00:00",
+      "tokens": 25611,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-2-plan-c2-product/digest.md",
+        "sha256": "a92dd28d8821b2db3f2a570844398850dedddbd4da8b4d46d07bd6fad006ad70"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-21T17:21:42+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-3-t01-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T20:09:59+00:00",
+      "tokens": 67239,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-3-t01-eng/digest.md",
+        "sha256": "5cc14e81f3b1b121c51ed870f18b3ecd9a7e7284305d38fe0b108eb8af24df06"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T20:51:32+00:00"
+    },
+    {
+      "id": "r-20261121-4-t02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T20:52:19+00:00",
+      "tokens": 45789,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-4-t02-product/digest.md",
+        "sha256": "53a349cf85c117728dddf65cab61b13362fd19d7d9a4ad71cfb9226a3eccf8df"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T21:00:10+00:00"
+    },
+    {
+      "id": "r-20261121-5-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T21:49:02+00:00",
+      "tokens": 95157,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-5-simplify-eng/digest.md",
+        "sha256": "0334f7f6ddbd24e1fb993099bcc3f6949f78eb676d103ffc597b2b170e8436ec"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T22:14:04+00:00"
+    },
+    {
+      "id": "r-20261121-6-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-21T22:15:43+00:00",
+      "tokens": 87562,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-6-validate-validator/digest.md",
+        "sha256": "08c63991cb45f30cdd59495ca01b19a7dda4d5e630bf7a0c6f911a3f60223c6a"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T22:28:46+00:00"
+    },
+    {
+      "id": "r-20261121-7-validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T22:51:49+00:00",
+      "tokens": 48125,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-7-validate-c2-validator/digest.md",
+        "sha256": "e0d9184cb54a0b41cafca867ec0a0c5713e0a1eb286d3264e869ce8c786ea503"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T23:03:50+00:00"
+    },
+    {
+      "id": "r-20261121-8-validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T23:14:48+00:00",
+      "tokens": 46662,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-8-validate-c3-validator/digest.md",
+        "sha256": "4122d538d5768f1c8d92fa6992d97fad0cd36eded3c3e4ba678a314407171d9e"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T23:25:47+00:00"
+    },
+    {
+      "id": "r-20261121-9-amend-f2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T23:32:53+00:00",
+      "tokens": 48877,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-9-amend-f2-product/digest.md",
+        "sha256": "ba47a260fc4b40200ec5d2ab891bfa044cb66191538de0b99591bd5badc2105c"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T23:41:06+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261121-10-validate-c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T23:42:21+00:00",
+      "tokens": 72900,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-10-validate-c4-validator/digest.md",
+        "sha256": "ba74f1ae5422fd9c50494207281cdd685b8a211d63998da289a23164a6c470a5"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T23:53:19+00:00"
+    },
+    {
+      "id": "r-20261121-11-fix-c4-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-21T23:53:49+00:00",
+      "tokens": 40638,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-11-fix-c4-product/digest.md",
+        "sha256": "7d13fb2038c78ac24016eb7f40626eb8b2253853f84d8e954297aa66e373e3cd"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-21T23:57:25+00:00"
+    },
+    {
+      "id": "r-20261121-12-validate-c5-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-21T23:57:59+00:00",
+      "tokens": 36619,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261121-12-validate-c5-validator/digest.md",
+        "sha256": "edea2045374dffedb5344f0ab5873a3b99f2fb33cca940ae25b8ebdfa96ad944"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-22T00:13:21+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-21T16:33:50+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "cause known and files mostly nameable, but it adds new enforcement surface \u2014 a host tool, a digest schema field, a replay command, a merge-gate rule and a write-guard rule"
+    },
+    {
+      "at": "2026-11-21T17:13:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel T-04 with the scope reader over the applied text; no goal-check re-run (SC-09)",
+      "reason": "scope reader FAIL (PF-35d0f7a4, high substance) applied by pm inside run 1 but unread by the reader; re-panel T-04 only"
+    },
+    {
+      "at": "2026-11-21T20:09:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff seq-2 Next matches PLAN: signed, mirror opened, spend 47 min / 2 runs; proceed to build T-01"
+    },
+    {
+      "at": "2026-11-21T21:49:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-build seq-4 Next matches PLAN: T-03/T-04 landed main-session-direct at fd8ffcdf, tree clean; proceed to SIMPLIFY then pin and validate"
+    },
+    {
+      "at": "2026-11-21T22:14:13+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "SIMPLIFY BLOCKED only on 3 readers' host yield refusals (host defect); grade lifts landed f06b2e57, orchestrator re-ran code-grade and 6 gates rc0; pin and validate, F1 to panel"
+    },
+    {
+      "at": "2026-11-21T22:28:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "panel must_fix F1-F3 cite T-04 (main-session-direct) and T-01; no squad fix run can own F1/F3, so route one main-direct fix segment then re-validate (rework round 1 of 2)"
+    },
+    {
+      "at": "2026-11-21T22:51:49+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff-validate seq-6 Next matches PLAN: c1 must_fix F1-F3 landed main-session-direct at 06ab8282 (receipt-main-session-fix-c1.md), gates rc0; re-pinned 23805867, station review; validate c2 is rework round 1 of 2"
+    },
+    {
+      "at": "2026-11-21T23:03:52+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "c2 F1/F3 closed; F2 still open (verify-receipt anchors on HEAD; validate-digest passes no base) spans T-01+T-04 so one main-direct fix segment then validate c3 = rework round 2 of 2"
+    },
+    {
+      "at": "2026-11-21T23:04:05+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "form",
+      "reason": "QA-N2 (kind 'evidence', low): volatile T-01 raw logs and receipt-only configuration reds are an evidence-durability record qualification, not shipped-code behaviour; form, non-gating, carried as coverage_gaps as in c1"
+    },
+    {
+      "at": "2026-11-21T23:14:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 3 over 6d9e6053: re-judge F2, confirm F1/F3 closed",
+      "reason": "c2 FAIL on F2 only; main-direct fix 219690d0 anchors receipt chains on merge-base; rework round 2 of 2 under answers-2026-11-21-signoff.md; successor continues from handoff seq-7"
+    },
+    {
+      "at": "2026-11-21T23:14:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "c2 FAIL on F2 only; main-direct fix 219690d0 anchors receipt chains on merge-base; rework round 2 of 2 under answers-2026-11-21-signoff.md; successor continues from handoff seq-7"
+    },
+    {
+      "at": "2026-11-21T23:25:49+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "c3 FAIL: F2 open high (mutable local default refs self-authorize); rework ruling 2/2 exhausted; must_fix returned to operator"
+    },
+    {
+      "at": "2026-11-21T23:32:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "operator ruling Option 2 (answers-2026-11-21-f2-ruling.md): pm amends SC-03/T-04 intent, docs get the boundary clause, then one confirmatory validate",
+      "reason": "handoff seq-8 Next waited on the F2 ruling; ruling accepts F2 as a documented boundary (#2251); amend SC-03/T-04 under that approval, then confirmatory validate c4"
+    },
+    {
+      "at": "2026-11-21T23:32:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "handoff seq-8 Next waited on the F2 ruling; ruling accepts F2 as a documented boundary (#2251); amend SC-03/T-04 under that approval, then confirmatory validate c4"
+    },
+    {
+      "at": "2026-11-21T23:35:35.790499+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-04.intent",
+      "reason": "operator ruling 2026-11-21 (answers-2026-11-21-f2-ruling.md): F2 accepted as a documented boundary; close verification relative to local default branch; hardening #2251"
+    },
+    {
+      "at": "2026-11-21T23:41:08+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "SC-03/T-04/SPEC/DEC-253 amended under the F2 ruling (amendment judgement ledgered; signatures stand); commit, re-pin, station review, confirmatory validate c4"
+    },
+    {
+      "at": "2026-11-21T23:53:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "c4: F2 dispositioned as ruled boundary, F1/F3 closed; sole must_fix C4-F1 is the amendment run's own omission (DEC-253 index not regenerated, T-02 documentor) \u2014 not code rework under the spent ruling; one product fix run then validate c5"
+    },
+    {
+      "at": "2026-11-21T23:53:49+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix c4: documentor regenerates DECISIONS-INDEX.md (C4-F1, T-02) then validate c5 over the new tip",
+      "reason": "c4 FAIL only on C4-F1, a stale generated index left by the amendment run r-9; owner T-02 execution_agent harness-documentor (product squad), so the fix is a product run"
+    },
+    {
+      "at": "2026-11-21T23:57:27+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "r-11 FAIL only on the dispatch's own diff-stat acceptance (dirty feature.json/plan.yaml bookkeeping, G-06); C4-F1 fix 8257a2e0 verified by orchestrator: T-02 verify rc0, test-gen-decisions-index rc0; pin tip, validate c5"
+    },
+    {
+      "at": "2026-11-21T23:57:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate c5 over the index-fixed tip: confirm C4-F1 resolved, F2 ruled boundary, F1/F3 closed",
+      "reason": "r-11 fix verified (T-02 verify rc0); c5 is the confirmatory panel the ruling authorized, over a tip whose code tree is still identical to 219690d0"
+    },
+    {
+      "at": "2026-11-22T00:13:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "c5 PASS over 7065b650: C4-F1 resolved, matrix green, SC-01..06 met, F2 ruled boundary (#2251); panel clean, feature ready for the operator's ship decision"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "notes/answers-2026-11-21-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "1955706dc99bed1fc33d2725c6afe66095a1ea5d2c21d51cead1cb4c362628ce",
+    "T-02": "83c587d6b35527d7f573dd2f32d8324bf4e3cd4e1f9819507d0c7e2ade1d1f11",
+    "T-03": "0141f045c7f363ae733a499786d660e31e36ea696edfa1f4c911ef2580fb5a3d",
+    "T-04": "445206e4bba7f529e69ab2e3588ad07306dcb3999bab354922d0f135d8e7ed94"
+  },
+  "github": {
+    "milestone": 112,
+    "parent": 2233,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 2234,
+      "T-02": 2235,
+      "T-03": 2236,
+      "T-04": 2237
+    },
+    "source_issues": [
+      2225
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

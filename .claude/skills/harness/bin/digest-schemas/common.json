@@ -770,6 +770,26 @@
         }
       ]
     },
+    "expertise_persona": {
+      "enum": [
+        "harness-ai-dev",
+        "harness-backend-dev",
+        "harness-code-reviewer",
+        "harness-data-engineer",
+        "harness-dev-ops",
+        "harness-documentor",
+        "harness-eng-lead",
+        "harness-frontend-dev",
+        "harness-orchestrator",
+        "harness-pm",
+        "harness-product-lead",
+        "harness-qa",
+        "harness-security-reviewer",
+        "harness-ui-reviewer",
+        "harness-validator-lead",
+        "harness-visual-designer"
+      ]
+    },
     "expertise_write": {
       "type": "object",
       "additionalProperties": false,
@@ -778,9 +798,13 @@
         "target",
         "section",
         "entry",
-        "why"
+        "why",
+        "persona"
       ],
       "properties": {
+        "persona": {
+          "$ref": "common.json#/$defs/expertise_persona"
+        },
         "op": {
           "enum": [
             "add",
@@ -813,9 +837,13 @@
         "op",
         "target",
         "section",
-        "why"
+        "why",
+        "persona"
       ],
       "properties": {
+        "persona": {
+          "$ref": "common.json#/$defs/expertise_persona"
+        },
         "op": {
           "const": "drop"
         },

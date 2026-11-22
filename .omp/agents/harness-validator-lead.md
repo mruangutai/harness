@@ -7,6 +7,7 @@ tools:
 - grep
 - task
 - write
+- expertise_apply
 spawns:
 - harness-qa
 - harness-code-reviewer
@@ -44,7 +45,7 @@ reviewer's output, so calibration lives here.
 
 ## Domain
 
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` under `leads:` — your squad's run dir and your own Expertise.
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` under `leads:` — your squad's run dir, and your own Expertise only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
 ## Your squad
 

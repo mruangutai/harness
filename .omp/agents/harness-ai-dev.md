@@ -10,6 +10,7 @@ tools:
 - bash
 - web_search
 - web_fetch
+- expertise_apply
 spawns: []
 model: '@standard'
 thinking-level: medium
@@ -35,7 +36,7 @@ evals** that gate them.
 ## Expertise · Domain
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-ai-dev.md`, already in context. Track which prompt shapes work in this
-domain, which failure modes recur, what the model gets reliably wrong. You hold `Write`.
+domain, which failure modes recur, what the model gets reliably wrong. You hold `Write`; Expertise is written only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
 Writable paths and `evals/**` are in the manifest.
 

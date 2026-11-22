@@ -581,10 +581,10 @@ Body template (indented to keep the outline parseable):
   <one-line spawn summary>
 
   ## Expertise            ← POINTER; content is injected by the SubagentStart hook (§5.1)
-  Your expertise file is `.harness/expertise/harness-eng-lead.md`. It is already in your
-  context — you do not need to read it. Track architecture decisions, technical debt, risk
-  patterns, and which implementation approaches hold up in this codebase.
-  You have no Write tool: propose changes as `expertise_update` ops in your DIGEST (§5.3).
+  Your injected Expertise is read from the control plane; do not read it again.
+  Under a distill dispatch, apply your own accepted ops with `expertise_apply` in
+  `<HARNESS_FEATURE_TREE_ROOT>`, then report persona-bearing applied ops (§5.3).
+  You retain Write and own-file grants, but no Bash or Edit; nobody scribes for you.
 
   ## Domain               ← POINTER; the authoritative list is in team-config.yaml
   Your writable paths are declared in `.harness/team-config.yaml` under your entry and
@@ -875,7 +875,7 @@ insight:
 | Layer | Where |
 |---|---|
 | The rule | the `harness-expertise` skill — preloaded by all 16 agents via `skills:` (§7): mid-run, observations only, and never touch the Expertise file outside a distillation dispatch. The rules for *writing* it — the six-spawns test, entry format, ops schema and caps — are in `harness-distill`, **read by path at distillation and not preloaded** (DEC-158 move 2). Most observations fail the test, and `expertise_update: []` is the usual DIGEST. |
-| Visibility | every update rides the DIGEST as an explicit op with a `why` — so it is observable before it lands, not discovered later |
+| Visibility | every update rides the DIGEST as an already-applied, persona-bearing op with a `why`, checked against its receipt and resulting file |
 | Correction | curation (§5.4) catches what slipped through |
 
 ### 5.3 Updating — distillation-time only; reconcile at propose time, then apply
@@ -890,7 +890,8 @@ Updates are therefore **ops, not appends**, and every op names its target:
 
 ```yaml
 expertise_update:
-  - op: replace                 # add | replace | merge | drop
+  - persona: harness-backend-dev
+    op: replace                 # add | replace | drop; merge is replace + drop
     target: P-01
     section: Patterns
     entry: "Seed script no longer required before migrations (removed in #418)."
@@ -900,104 +901,99 @@ expertise_update:
 An op naming a nonexistent target is a **contract violation**: the applier rejects it and re-prompts
 once, then records `BLOCKED (contract violation)` — reusing §8.3 rather than guessing.
 
-**Who applies, by capability.** Read is uniform for all 16; writing splits across the 15 squad
-agents as follows (the orchestrator holds `Write` scoped to its own Expertise file, §3.1):
+**Who applies: every persona owns its pen** (DEC-253). All 16 retain `Write` and existing
+own-Expertise domain grants: orchestrator, three leads, nine doers (including qa), three reviewers.
+There is no write-less tier and no scribe route.
 
-| Agent tier | Reconciles | Applies |
+| Role | Applies | Checks |
 |---|---|---|
-| **9 doers** (have `Write`) | itself, at propose time | **itself**, in place — the domain hook scopes it to its own file, which **must therefore appear in that agent's `domain`** (see below). The op is still reported upward in the DIGEST for logging |
-| **3 leads + 3 reviewers** (no `Write`/`Edit`) | itself, at propose time | **the orchestrator**, which validates the op and applies it verbatim — it is a scribe, not an editor |
+| Member, including reviewer | its own accepted ops through `expertise_apply` | its receipt and resulting file |
+| Lead | only its own accepted ops through the same tool | every member's receipt against the actual file; exact active mixed-persona consolidation |
+| Orchestrator | only its own accepted ops through the same tool | confirms completion, never applies another persona's ops |
 
-> **Roster arithmetic, stated once because it was previously wrong:** 15 = **3 leads + 9 doers + 3
-> reviewers**. `qa` is a **doer** (it writes tests), so the doers are pm, visual-designer, documentor,
-> frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops, qa. The reviewers are code, security, ui.
-> Six agents are write-less, not seven.
+**Use the caller-bound host tool, not a shell CLI.** `expertise_apply` wraps the existing
+`expertise-merge.py member-ops` engine over DEC-199's `harness_merge` lock and atomic replacement.
+The host supplies persona, mission, feature, live runtime child/parent lineage and feature root;
+tool arguments cannot override identity or authorize an arbitrary path. Destinations are the caller's
+craft `.harness/expertise/<persona>.md` or repository
+`.harness/<declared-repo>/expertise/<persona>.md`, beneath `<HARNESS_FEATURE_TREE_ROOT>`.
+Control-plane, global, cross-persona, undeclared-repository and symlink-escape destinations refuse.
+An absent own file is created from the skeleton. Leads still have no Bash/Edit; reviewers still
+have no Edit or shell writes. Write and the existing grants remain; this is not a new direct
+file-tool denial. Direct mutating `expertise-merge.py` shell calls are governed writes blocked in
+favor of the caller-bound tool, including for dev-ops (DEC-151).
 
-No file ever has two writers: for the write-less tiers the orchestrator is the single writer;
-ownership stays logical rather than mechanical.
+**Existing CLI core, changed application authority.** The low-level `apply --entries` add-only and
+`ops --ops` JSON interfaces remain for the engine, not as governed personas' application instructions.
+The host passes ordinary `add`, `replace`, `drop` objects to `member-ops`; persona is outside the
+low-level op shape, whose unknown keys still refuse. DEC-219's section plus entry id is required:
+one batch resolves against one locked base snapshot and rebuilds sections in base order, checking
+caps on the final result. Replace does not move an entry; drop frees room for add. `merge` remains
+an authoring concept expressed as replace plus drop, never an accepted verb.
+The existing core refuses lock contention (6), conflicting text (7), cap overflow (8), invalid
+destination (9), missing target (10), ambiguous target (11) and malformed ops (12).
 
-**The apply is a union merge, not a whole-file write** — `bin/expertise-merge.py` (DEC-95's residue,
-closed). Whoever applies runs:
+**The DIGEST is an already-applied report, not a delivery mechanism or pending queue.**
+Every `expertise_update` item requires `persona`, with no `state`; ordinary runs and rejected
+candidates keep `[]`. The member reports only its own accepted ops after successful application.
+The engine persists ordered exact batches, originals or absence, before/after hashes, stable batch
+identities and caller lineage in feature-local
+`notes/expertise-receipt-<sha256-runtime-id>.json`. Receipts travel in the current PR.
+`verify-receipt` is read-only and checks the reconstructed final effect of active batches against
+the actual file, not whether a superseded intermediate replacement still survives. Leads verify
+these receipts and files, preserving exact mixed-persona ops; the orchestrator confirms, never applies.
+Fabricated, missing, unreceipted or file-inconsistent evidence refuses live yield and replay/merge,
+and durable close verifies against the default branch as the local repository records it.
+Unreceipted content hidden by deliberately moving default-branch refs (`git update-ref`,
+`git branch -f`, `git symbolic-ref`) is a stated close-time boundary, refused at
+`merge-gate.py merge-distill` against the live remote; hardening is tracked in #2251.
+Emitting an op alone is not completion.
 
-```bash
-.claude/skills/harness/bin/expertise-merge.py apply \
-    --file .harness/expertise/<agent>.md --entries <proposal.md|->
-```
+**Replay before merge in the still-live worktree.** Fetch/rebase current main, rebuild touched files
+from that exact main blob using `expertise-merge.py replay` with the feature root, feature and base,
+run `check-expertise`, then commit/push reconstruction and original receipts. Replay selects only
+this PR's receipt set, excluding receipts already on main; its `--check` mode is read-only.
+Identical adds preserve their ids. Different-text add collisions receive the first free positive
+numeric id for that prefix in that section, padded to at least two digits and excluding reserved
+ids; later references from the same runtime caller follow the mapping. Repeated replay is idempotent.
+Independent callers cannot silently overwrite each other. Same-entry replace/drop conflicts,
+changed or vanished main originals and cap overflow refuse with the file unchanged; the refusal
+names persona, run, destination, section/id and batch. The lead returns that evidence to the
+original member for re-judgment/curation, not to a substitute lead or main-session editor.
 
-It takes an exclusive lock on `<file>.lock`, reads the file, and writes back the **union** keyed by
-section plus entry id — existing order preserved, new ids appended in the proposal's order
-(`compute_union`, `expertise-merge.py:111-137`). On success it prints one `ADDED <id>` or
-`PRESERVED <id>` line per entry and a final `APPLIED <path>`, and the write is atomic
-(`tempfile.mkstemp` + `os.replace`, `:219-226`). Concurrency no longer costs entries: a second
-writer's additions survive the first's.
+**Recovery changes active batches, never historical receipts.** The original persona under a
+trusted distill invocation may authorize replacement through exact active batch `supersedes`
+references and a current-main base, including after re-dispatch with verified new child/parent
+lineage. Reconstruction omits the referenced whole batches, retains other active batches and
+applies the member's newly judged replacement; an explicitly judged empty withdrawal is allowed.
+Only successful authorized replacement changes active replay selection. Earlier receipts stay
+immutable inside the current PR. Missing, cross-persona/feature/destination, cyclic or ambiguous
+references refuse; a failed replacement cannot retire history. Replay refusal is exit 13,
+failed candidate format checking 14, and missing/mismatched/unauthorized receipt evidence 15.
+Close, against the default branch as the local repository records it, and replay retain receipt/file
+integrity after supersession; there is no independent queue.
 
-**Two things the union cannot do safely are refused, and the target file is left byte-identical**
-because both checks run before any write (`cmd_apply`, `:164-226`):
+**Harness-controlled distill merges serialize through `merge-gate.py merge-distill`.**
+Changed Expertise paths identify candidates and raw git/gh distill merges refuse. One owner-root
+`harness_merge` lock covers fresh main/head checks, replay/check-expertise and the synchronous
+internal gh merge. Stale base/head, unknown changed paths, absent receipts or unresolved replay
+refuse. Before its internal subprocess it reuses DEC-220's existing owner/binding/mirror-receipt
+predicate, including missing, wrong-repository and recovery-required refusals; that subprocess
+does not receive a second host Bash gate. This serializes Harness-controlled distill merges,
+not arbitrary external main writers; ordinary non-distill merges are unchanged.
 
-| Refusal | Reports | Exit |
-|---|---|---|
-| The same section + id carries **different text** on the two sides | `CONFLICT section=<s> id=<id>` plus both texts (`:186-192`) | **7** |
-| The union would exceed a section cap — Patterns 15, Gotchas 15, Outcomes 10, Open 5 (`CAPS`, `:32`) | `CAP EXCEEDED section=<s> cap=<n> union_size=<n>` (`:194-200`) | **8** |
-| The lock is not acquired within 10s | `LOCKED: could not acquire <path>` (`acquire_lock`, `:140-153`) | **6** |
-
-A refusal is the signal to reconcile by hand — nothing is applied partially. Both refusals, the union,
-the atomic write and a cap-drift detector that reads `check-expertise.py`'s own caps as text are
-covered at `test-expertise-merge.py:70-250`.
-
-**Replace and drop are a second subcommand, `ops`** (DEC-219). `apply --entries` stays add-only and
-an add-only proposal still goes through it unchanged; a proposal that rewrites or removes an entry
-runs:
-
-```bash
-.claude/skills/harness/bin/expertise-merge.py ops \
-    --file .harness/expertise/<agent>.md --ops <ops.json|->
-```
-
-`--ops` takes the DIGEST's `expertise_update` list as **JSON** — the same op objects this section
-opens with, verbs `add`, `replace` and `drop` (`cmd_ops`, `expertise-merge.py:549-598`). It shares
-`apply`'s lock file, its atomic write, and its exit **9** refusal of a `--file` that is not an
-Expertise file.
-
-**A target is keyed on section plus entry id, and both are required on every op** — an id is unique
-only inside its own section, so an op naming a bare `target` is refused rather than searched for
-(`_validate_target_section`, `:206-219`).
-
-**A replace rewrites the entry its key names without moving it.** A replace-only proposal therefore
-leaves the section's size and every ordinal exactly as it found them; only a `drop` shortens a
-section and only an `add` lengthens it (`_rebuild_section`, `:334-348`).
-
-**Order does not matter.** Every op resolves against **one base snapshot**, never against an earlier
-op's result, and each affected section is then rebuilt in base order — so the same proposal applied
-in any order yields the same file (`_resolve_all`, `:319-331`). Caps are checked **once, on the final
-state** against the same `CAPS` §5.2 states (`_check_caps`, `:375-382`), which is what makes a drop
-that frees room for an add legal inside one proposal.
-
-`merge` is an authoring concept, not a mechanism op: express it as a `replace` on the surviving id
-plus a `drop` of the absorbed one. `op: merge` is refused with that instruction (`_validate_verb`,
-`:157-167`).
-
-| Refusal `ops` adds beside `apply`'s 6, 7, 8 and 9 | Reports and exit |
-|---|---|
-| The op's section + id names no entry in the base file | **10 MISSING TARGET** `section=<s> id=<id>` (`:269-278`) |
-| The id appears twice in that section, or two ops in one proposal name the same target | **11 AMBIGUOUS TARGET** `section=<s> id=<id>` (`:258-266` plus `:305-316`) |
-| The payload is not a JSON list, or an op omits a required key, carries a forbidden one, names an unknown verb, gives an `entry` or `target` that is not a single-line string, or gives a `target` that does not match `ENTRY_RE`'s entry-id grammar — round-tripped through the exact line `render` would write for it, so the validator and the parser cannot diverge (`_validate_target_grammar`, `:191-203`) | **12 MALFORMED OPS** `op index=<i>: <reason>` (`:153-250` plus `:403-406`) |
-
-On success it prints one `ADDED`, `PRESERVED`, `REPLACED` or `DROPPED` line per op in op order, then
-a final `APPLIED <path>`.
-
-**It composes with hierarchy for free.** Under hierarchical mode a member's DIGEST goes to its lead,
-not the orchestrator — but `expertise_update` rides the **per-member block** the consolidated DIGEST
-already carries for `STATE.md` granularity (§2.3). No new channel. And because the DIGEST is
-persisted via `digest_ref` before the orchestrator acts (§11.4), an interrupted run can replay the
-update rather than lose it.
+**Verification gap:** the TypeScript host-tool surface has no configured static typecheck
+(`cmd: null`, unresolved). No typecheck pass is claimed; implementation tasks supply executable
+host and boundary evidence. Index generation alone does not prove these behavioral claims.
 
 ### 5.4 Distillation and curation
 
 **The standing step is feature-close distillation** (DEC-145), run by the orchestrator in mission
 ship, after the SCs pass and before the briefing: each lead is dispatched once to distill its
-members' observation logs into Expertise ops — cross-incident rules, feature IDs stripped, verified
-with `bin/check-expertise.py`; the orchestrator then distills the leads' logs (and its own) the
-same way. Observation logs stay under the feature dir, archived with the run, never injected. This
+members' observation logs into candidates — cross-incident rules, feature IDs stripped. Each member
+judges and applies its own accepted ops, verified with `bin/check-expertise.py`; each lead checks
+receipts and files. The orchestrator recommends curation to leads, who self-apply, and distills its
+own log. Observation logs stay under the feature dir, archived with the run, never injected. This
 is the only point in a flow where project Expertise changes.
 
 **On overflow the rule is condense, not truncate** — keep durable patterns, drop incidents;
@@ -1008,9 +1004,9 @@ above; application comes from whoever holds the pen.**
 
 | File | Overflow recommender | Applier |
 |---|---|---|
-| **doer** | its lead — reads the member's file + recent DIGESTs, giving it the cross-run view the member lacks; emits a `KEEP`/`DROP`/`MERGE` note | the **doer**, which applies the note verbatim **immediately** — recommendations are binding, since the lead saw the outcomes |
-| **reviewer** | its lead (same as above) | the **orchestrator** |
-| **lead** | the **orchestrator** — at the CEO briefing it holds all three leads' consolidated DIGESTs at once, so it has the cross-lead view leads have over members, at no extra spawn cost | the **orchestrator** — but it does **not** prune unilaterally: it spawns the lead **immediately** with its recommendation, the lead returns the actual condense ops, and the orchestrator applies them. Judgment stays with the only agent that knows what its entries mean; the pen stays with the writer |
+| **doer** | its lead — reads the file and recent DIGESTs; recommends `KEEP`/`DROP`/`MERGE` | the **doer**, which judges the concrete ops and self-applies through `expertise_apply` immediately |
+| **reviewer** | its lead (same as above) | the **reviewer**, through `expertise_apply`; no shell writes |
+| **lead** | the **orchestrator**, using its cross-lead view at the CEO briefing | the **lead**, re-dispatched immediately with the recommendation to judge and self-apply its own condense ops; orchestrator confirms, never prunes or scribes |
 
 **Escalated curation happens IMMEDIATELY, not at the next natural spawn.** If the member is no
 longer running, the lead **spawns it solely to apply the curation note** — a single-purpose spawn
@@ -1048,9 +1044,10 @@ be:
    members.**
 2. The addressed lead reads it at its next spawn and **acts on it immediately**, in how it delegates
    that run.
-3. It returns the durable part as an `expertise_update` op plus `feedback_absorbed: [<entry>]`; the
-   orchestrator applies the op (§5.3) and **clears the absorbed entry** — `feedback.md` holds only
-   unabsorbed items.
+3. At a distill dispatch the lead judges and self-applies the durable part through `expertise_apply`
+   (§5.3), returning persona-bearing applied ops plus `feedback_absorbed: [<entry>]`.
+   The orchestrator confirms the receipt against the file and **clears the absorbed entry**;
+   `feedback.md` holds only unabsorbed items. Ordinary runs do not write Expertise.
 
 **Feedback addresses LEADS only**, never a member directly — the same rule as delegation. You say
 *"frontend work keeps missing accessibility"*; `eng-lead` records it and enforces it in how it
@@ -2484,9 +2481,9 @@ the protection is uneven — which of the three matters depends on the file:
 | `logs/` | nothing |
 | the `## Approval` mapping | nothing |
 
-Expertise is safe because two concurrent close-outs each doing a whole-file write lost the other's
-entries, and the merge tool was built to stop it. The other two carry the same exposure and no
-mechanism, so the single-operator boundary is what still holds them.
+The core lock protects same-checkout updates; it does not alone reconcile separate worktrees.
+Feature-tree receipt replay and serialized Harness-controlled distill merges (§5.3) preserve
+concurrent learning. The other two paths still rely on the single-operator boundary.
 
 Separate checkouts are fine (§15.2).
 
@@ -2592,13 +2589,13 @@ git already refuses a dirty tree (`:550-566`).
 
 #### The honest residue, as it now stands
 
-- **Concurrent Expertise writes no longer silently lose entries.** The apply routes through
-  `bin/expertise-merge.py`, which union-merges under a lock (§5.3). Two worktrees editing the same
-  Expertise file still produce a **git** conflict at merge — that part is unchanged and is resolved by
-  hand.
-- **The global Expertise tier is shared across every worktree simultaneously** (`~/.harness/`). The
-  merge tool locks per file, so a concurrent apply to the same path serializes; nothing coordinates
-  two sessions doing anything else to that tier.
+- **Concurrent feature-tree Expertise reconciles by recorded ops**, not manual file-conflict
+  judgment: replay onto current main preserves independent adds with deterministic id renumbering,
+  then `merge-distill` serializes fresh checks through merge (§5.3). Same-entry replace/drop or cap
+  refusal returns to the original member, including authorized replacement batches after re-dispatch;
+  retained historical receipts remain checked. The lock does not govern arbitrary external merges.
+- **The global Expertise tier remains shared** (`~/.harness/`) but is outside `expertise_apply`
+  and feature replay destinations; no new cross-session coordination of that tier is claimed.
 - **`logs/` diverge** per worktree. Harmless, but the daily log stops being a single timeline.
 
 A `BLOCKED` feature therefore blocks *its worktree*, and you may work another (§10.5).

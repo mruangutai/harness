@@ -631,6 +631,34 @@
       "task": "none"
     },
     {
+      "artifact": "in-memory JSON payload",
+      "category": "json_string",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "team",
+      "exemption": "canonical_writer_transform",
+      "file": ".claude/skills/harness/bin/expertise-merge.py",
+      "id": ".claude/skills/harness/bin/expertise-merge.py::_decode_json::json_string#1",
+      "reason": "The locked expertise writer decodes member-ops and verify-receipt operation payloads before the transform.",
+      "remedy": "none",
+      "symbol": "_decode_json",
+      "task": "T-01"
+    },
+    {
+      "artifact": "Expertise application receipt",
+      "category": "json_string",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "team",
+      "exemption": "module_internal_format",
+      "file": ".claude/skills/harness/bin/expertise-merge.py",
+      "id": ".claude/skills/harness/bin/expertise-merge.py::parse_receipt::json_string#1",
+      "reason": "The Expertise writer reads back the receipts only it writes.",
+      "remedy": "none",
+      "symbol": "parse_receipt",
+      "task": "T-01"
+    },
+    {
       "artifact": "plan.yaml",
       "category": "load_plan",
       "dec174_category": "none",
@@ -1452,16 +1480,29 @@
     },
     {
       "artifact": "harness.json",
-      "category": "json_file",
+      "category": "load_harness_json",
       "dec174_category": "hook_or_gate",
       "disposition": "canonical",
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/merge-gate.py",
-      "id": ".claude/skills/harness/bin/merge-gate.py::_read_request::json_file#1",
+      "id": ".claude/skills/harness/bin/merge-gate.py::_github_config::load_harness_json#1",
       "reason": "",
       "remedy": "artifact_accessors.load_harness_json",
-      "symbol": "_read_request",
-      "task": "T-06"
+      "symbol": "_github_config",
+      "task": "T-04"
+    },
+    {
+      "artifact": "gh pr view metadata and replay --check output",
+      "category": "parse_gh_json",
+      "dec174_category": "hook_or_gate",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/merge-gate.py",
+      "id": ".claude/skills/harness/bin/merge-gate.py::_parse_json::parse_gh_json#1",
+      "reason": "",
+      "remedy": "artifact_accessors.parse_gh_json",
+      "symbol": "_parse_json",
+      "task": "T-04"
     },
     {
       "artifact": "hook payload",
@@ -1854,6 +1895,19 @@
       "remedy": "artifact_accessors.read_hook_payload",
       "symbol": "hook_mode",
       "task": "T-05"
+    },
+    {
+      "artifact": "hook payload",
+      "category": "json_file",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/validate-digest.py",
+      "id": ".claude/skills/harness/bin/validate-digest.py::_authority_request::json_file#1",
+      "reason": "",
+      "remedy": "artifact_accessors.read_hook_payload",
+      "symbol": "_authority_request",
+      "task": "T-04"
     },
     {
       "artifact": "plan.yaml",

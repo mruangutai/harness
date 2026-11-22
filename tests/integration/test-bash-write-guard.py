@@ -1439,13 +1439,16 @@ def _bug1304_bash_expertise(results, context):
     route = (
         "python3 .agents/skills/harness/bin/expertise-merge.py apply "
         f"--file {expertise} --entries -")
+    # FEAT-2225 (DEC-253) moved the sanctioned route: a governed agent records Expertise
+    # through the expertise_apply host tool, so the direct CLI call is now refused.
     _bug1304_bash_expect(
-        results, root, agent, "sanctioned expertise merge route remains allowed", route, 0)
+        results, root, agent, "direct expertise merge CLI is refused in favour of "
+        "expertise_apply", route, 2, "expertise_apply")
     redirect = f"echo x > {expertise}"
     response = _bug1304_bash_expect(
         results, root, agent,
         "direct expertise redirect is refused with sanctioned advice",
-        redirect, 2, "expertise-merge.py")
+        redirect, 2, "expertise_apply")
     results.extend((
         ("expertise refusal does not advise writing in worktree",
          "write it from a bound worktree" not in response.stderr, response.stderr[:180]),
@@ -1867,6 +1870,7 @@ def main():
     fails += run_bug895_wrong_checkout()
     fails += run_bug1106_bash_route()
     fails += run_bug1304_claim_set()
+    fails += run_feat2225_expertise_cli()
     return fails
 
 def run_bug895_wrong_checkout():
@@ -2016,6 +2020,105 @@ def run_bug1106_bash_route():
             print(f"FAIL  {name}\n      | {detail}")
     print(f"\n{len(results) - fails}/{len(results)} bug1106 Bash-route cases passed.")
     return fails
+
+
+# ======== FEAT-2225 T-04: governed Bash may not run the Expertise mutators ========
+# Every governed persona records Expertise through the `expertise_apply` host tool; the
+# CLI's mutating subcommands and the distill merge are the main session's. Refused ahead
+# of the reviewer and dev-ops branches, so the four personas below span every branch.
+F2225_CLI = ".claude/skills/harness/bin/expertise-merge.py"
+F2225_LINK = ".agents/skills/harness/bin/expertise-merge.py"
+F2225_GATE = ".agents/skills/harness/bin/merge-gate.py"
+F2225_MEMBER = ("member-ops --root /r --feature FEAT-1 --persona harness-qa --runtime-id A "
+                "--parent-id B --tier craft --ops -")
+F2225_PERSONAS = ("harness-eng-lead", "harness-code-reviewer", "harness-dev-ops",
+                  "harness-backend-dev")
+F2225_MUTATORS = (
+    ("direct executable: member-ops", f"{F2225_CLI} {F2225_MEMBER}"),
+    (".agents symlink spelling: apply", f"{F2225_LINK} apply --file x.md --entries - < e.md"),
+    ("python3 prefix: ops", f"python3 {F2225_LINK} ops --file x.md --ops ops.json"),
+    ("python3 flags, absolute path: replay",
+     f"python3 -u /abs/harness/{F2225_CLI} replay --root /r --feature F --base abc"),
+    ("env python3 prefix: member-ops", f"env python3 {F2225_LINK} {F2225_MEMBER}"),
+    ("/usr/bin/env with an assignment: apply",
+     f"/usr/bin/env PYTHONPATH=x python3 {F2225_CLI} apply --file x.md --entries -"),
+    ("bash -c nested: apply", f"bash -c 'python3 {F2225_LINK} apply --file x.md --entries -'"),
+    ("sh -c nested: replay", f'sh -c "{F2225_CLI} replay --root /r --feature F --base abc"'),
+    ("compound after cd: member-ops", f"cd /tmp && python3 {F2225_LINK} {F2225_MEMBER}"),
+    ("stdin heredoc: member-ops", f"python3 {F2225_LINK} {F2225_MEMBER} <<'EOF'\n[]\nEOF"),
+    ("merge-gate merge-distill", f"python3 {F2225_GATE} merge-distill --root /r --feature F --pr 7"),
+    ("bash -c nested merge-distill", f"bash -c '{F2225_GATE} merge-distill --root /r --feature F --pr 7'"),
+)
+F2225_READS = (
+    ("replay --check", f"python3 {F2225_LINK} replay --root /r --feature F --base abc --check"),
+    ("verify-receipt", f"python3 {F2225_LINK} verify-receipt --root /r --feature F --claimed -"),
+    ("subcommand --help", f"python3 {F2225_LINK} apply --help"),
+    ("top-level --help", f"{F2225_CLI} --help"),
+    ("nested replay --check", f"bash -c 'python3 {F2225_LINK} replay --root /r --feature F --base a --check'"),
+    ("reading the CLI source", f"grep -n member-ops {F2225_LINK}"),
+    ("the command quoted as text", f"echo 'python3 {F2225_LINK} apply'"),
+)
+
+
+def _f2225_fire(root, cmd, agent):
+    payload = {"tool_name": "Bash", "tool_input": {"command": cmd}}
+    if agent:
+        payload["agent_type"] = agent
+    return subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root))
+
+
+def _f2225_expect(results, root, agent, name, cmd, want):
+    r = _f2225_fire(root, cmd, agent)
+    advised = want == 0 or "expertise_apply" in r.stderr
+    results.append((f"feat2225 {agent or 'main session'}: {name}",
+                    r.returncode == want and advised,
+                    f"exit {r.returncode} (want {want}): {r.stderr.strip()[:240]}"))
+
+
+def _f2225_cli_matrix(results, root):
+    for agent in F2225_PERSONAS:
+        for name, cmd in F2225_MUTATORS:
+            _f2225_expect(results, root, agent, f"refused {name}", cmd, 2)
+        for name, cmd in F2225_READS:
+            _f2225_expect(results, root, agent, f"read allowed: {name}", cmd, 0)
+    for name, cmd in F2225_MUTATORS:
+        _f2225_expect(results, root, None, f"allowed {name}", cmd, 0)
+
+
+def _f2225_repository_tier(results, inflight_registry):
+    """A claimed agent's repository-tier Expertise write gets the expertise_apply advice."""
+    manifest = FIXTURE_MANIFEST.replace(
+        '          - { path: ".", read: true }',
+        '          - { path: .harness/expertise/**, upsert: true }\n'
+        '          - { path: .harness/*/expertise/**, upsert: true }\n'
+        '          - { path: ".", read: true }')
+    root = fixture(manifest)
+    first = os.path.join(root, ".claude", "worktrees", "FEAT-2225-A")
+    _linked_worktree(first, root, "A", manifest)
+    agent = "harness-backend-dev"
+    inflight_registry.claim(first, agent, "harness-eng-lead", first, feature="FEAT-2225-A-x")
+    target = os.path.join(root, ".harness", "harness", "expertise", f"{agent}.md")
+    r = _f2225_fire(root, f"echo x > {target}", agent)
+    advice = ("expertise_apply", "tier: repository", "repository: harness")
+    results.append(("feat2225 repository-tier Expertise redirect names expertise_apply "
+                    "with the repository tier",
+                    r.returncode == 2 and all(a in r.stderr for a in advice)
+                    and "expertise-merge.py" not in r.stderr,
+                    f"exit {r.returncode}: {r.stderr.strip()[:300]}"))
+
+
+def run_feat2225_expertise_cli():
+    """FEAT-2225 T-04: the Bash route refuses governed Expertise mutation."""
+    import inflight_registry
+    results = []
+    _f2225_cli_matrix(results, fixture(FIXTURE_MANIFEST))
+    _f2225_repository_tier(results, inflight_registry)
+    fails = [r for r in results if not r[1]]
+    for name, ok, detail in results:
+        print(f"ok    {name}" if ok else f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(results) - len(fails)}/{len(results)} FEAT-2225 expertise CLI cases passed.")
+    return len(fails)
 
 
 if __name__ == "__main__":

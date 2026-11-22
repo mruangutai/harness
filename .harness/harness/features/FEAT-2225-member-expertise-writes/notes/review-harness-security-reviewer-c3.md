@@ -1,0 +1,27 @@
+# FEAT-2225 security review — c3
+
+**FAIL — F2 remains high/substance, owners T-01 + T-04; F1/F3 remain CLOSED.** Reviewed `594af2a8..6d9e6053a6367c78f1e5848a6801e7ca09d82dd1`, including the c2→c3 resolver change. The original committed-tamper case now refuses, but mutable local default-branch refs can still self-authorize feature content. No source edits or suites/build/lint/format runs; bounded isolated core probes only.
+
+## F2: executed counterexample, not a main-checkout-only boundary
+
+Pinned `expertise-merge.py:1561-1587` resolves a local ref then computes `merge-base(ref, HEAD)`. On **`feat/probe`**, my temporary Git repository started at A containing G-01. An unreceipted deletion was committed as B; `member_ops` then legitimately added P-01. Normal verification refused 15. Moving **only `refs/remotes/origin/main` to B**, with `origin/HEAD` pointing to it, made `verify_receipt` return **`verified: true`**, with G-01 absent and the branch still **`feat/probe`**. Removing origin refs and moving local `main` to B produced the same acceptance. Thus equality of the resolved ref and feature HEAD does **not** establish that the caller is in the main checkout; feature branches can share that commit while retaining their identity.
+
+Actor/access/gain: a Bash-capable governed distiller (notably dev-ops, with its retained shell-write exemption) can delete its own G-01 using retained Write, commit, and repoint the local remote-tracking ref with `git update-ref refs/remotes/origin/main HEAD`. No remote push, protected-main access, identity spoof, checkout switch, or receipt fabrication is needed. `bash-write-guard.py:181-235,245-267` does not classify `update-ref` as a forbidden HEAD mover; the pre-existing dev-ops write exemption remains. The privilege delta is defeating the **new promised detection**, not acquiring file Write.
+
+The core bypass above was executed using source obtained by `git show <pin>:.../expertise-merge.py`, ordinary genuine receipts, and automatically removed temporary repositories. Live/durable propagation is **source-derived, not separately executed**: `validate-digest.py:2263-2284` passes no independent base and treats verifier exit 0 as success. This remains the same F2 under SC-02/SC-03 and SPEC §5.3 / DEC-253's unconditional close-integrity contract. Replay/current-main merge checks remain later containment, not close compliance. Ownership: T-01 resolver/integrity; T-04 live/durable consumer and boundary regression. No source fix proposed or applied.
+
+## Resolver judgment and controls
+
+- Missing `origin/HEAD`: `origin/main` fallback correctly refused the committed deletion; absent both, unchanged local `main` also refused. With all default refs absent, refusal was **15 / NO AUTHORIZED BASE**.
+- A valid remote ref outranks a moved local main: deletion still refused. A moved remote ref equal to B self-anchors as above; merely having a remote-tracking name is not independent authorization.
+- Explicit **nonancestor/diverged** base C sharing A with B correctly returned A and refused the deletion. Unrelated-history explicit base refused **15 / NO AUTHORIZED BASE**. Explicit B returned B and accepted; that is safe only if the explicit base supplier independently authorizes B, not a separate argument-injection finding (the digest supplies none).
+- **Merge-base design is acceptable for trusted diverged bases**, preserving the original write-chain origin while supersession reconstructs onto advanced main. Rejecting every nonancestor or anchoring directly on the advanced main blob would unnecessarily reject legitimate recovery. It does not solve mutable authority selection. Supersession controls remain supplied author evidence (`red-first-fix-c2-core.md`), not independently rerun here.
+- QA's former unchained-batch gap now has a discriminating fixture (`test-expertise-merge.py:1986-1997`): run-f is undone, run-a repeats the add, only run-f must refuse. The c2 core red note records that removing the `unchained` leg fails this check; independent mutation execution belongs to QA.
+
+## Other dispositions and scope
+
+**F1 CLOSED, T-04:** pinned host `harness-hooks.ts:1177-1200` still requires registered authority before member-ops; `validate-digest.py:1959-2029` binds exact claim/persona/checkout/parent and registered distill lineage; dispatch preflight remains at `dispatch-guard.py:834-878`. **F3 CLOSED, T-04:** real-host/core five-class, both-tier/all-verb assertions remain in `omp-hooks.test.ts:3376-3541`; all-16 config/grant checks remain separate. No new execution claimed for either.
+
+All 94 changed paths scoped: core/host/guards/schema/merge cross E/T boundaries; skills/personas/spec/decisions describe authority; feature records and tests are evidence surfaces. No visual/network endpoint or new dependency. Full-diff credential-pattern sweep found no credential material. SC-06 security inspection: SPEC §5.3 (`:904-978`) and DEC-253 (`:8181-8234`) require member ownership and refusal of unreceipted live/durable evidence; neither authorizes this exception.
+
+STRIDE: host→application E/T mitigated; mutable branch refs + bytes→live/durable acceptance T **unmitigated (F2)**; PR→fresh-main merge T mitigated for this example by replay/blob agreement and DEC-220. Open questions: none. Required disposition: retain F2 high/substance against T-01/T-04; do not treat the disclosed default-ref equality boundary as a signed waiver.

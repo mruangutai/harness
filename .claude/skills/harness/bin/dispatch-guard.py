@@ -459,17 +459,25 @@ except (OSError, ValueError, IndexError) as exc:
           % (dispatched, exc), file=sys.stderr)
     has_bash = True
 
-if not has_bash:
-    declared_root = None
+TREE_ROOT_PREFIX = "HARNESS-FEATURE-TREE-ROOT: "
+
+
+def _declared_tree_root():
     for prompt_line in prompt.splitlines():
         stripped = prompt_line.strip()
-        if stripped.startswith("HARNESS-FEATURE-TREE-ROOT: "):
-            declared_root = stripped[len("HARNESS-FEATURE-TREE-ROOT: "):]
-            break
+        if stripped.startswith(TREE_ROOT_PREFIX):
+            return stripped[len(TREE_ROOT_PREFIX):]
+    return None
+
+
+def _require_feature_tree_root(why):
+    """Exit 2 unless the task text names the declared feature's resolved tree root; `why`
+    says what makes this dispatch need it."""
+    declared_root = _declared_tree_root()
     if not declared_root:
-        print("dispatch-guard: BLOCKED -- %s holds no shell and requires "
+        print("dispatch-guard: BLOCKED -- %s %s and requires "
               "HARNESS-FEATURE-TREE-ROOT: from inflight_registry.py feature-root --feature %s."
-              % (dispatched, declared), file=sys.stderr)
+              % (dispatched, why, declared), file=sys.stderr)
         sys.exit(2)
     if not os.path.isabs(declared_root):
         print("dispatch-guard: BLOCKED -- HARNESS-FEATURE-TREE-ROOT value must be absolute: %r"
@@ -481,11 +489,14 @@ if not has_bash:
         print("dispatch-guard: BLOCKED -- feature tree for %s is ambiguous (%s)."
               % (declared, exc), file=sys.stderr)
         sys.exit(2)
-    else:
-        if os.path.realpath(declared_root) != os.path.realpath(expected_root):
-            print("dispatch-guard: BLOCKED -- declared feature-tree root %s disagrees with resolver %s."
-                  % (declared_root, expected_root), file=sys.stderr)
-            sys.exit(2)
+    if os.path.realpath(declared_root) != os.path.realpath(expected_root):
+        print("dispatch-guard: BLOCKED -- declared feature-tree root %s disagrees with resolver %s."
+              % (declared_root, expected_root), file=sys.stderr)
+        sys.exit(2)
+
+
+if not has_bash:
+    _require_feature_tree_root("holds no shell")
 
 # OMP is the only host (DEC-233). A dispatch that does not identify itself as OMP-supervised,
 # or carries no supervisor pid, cannot be claimed and so cannot be tracked: single-flight and
@@ -733,8 +744,138 @@ def _direct_orchestration_refusal():
             "  team, panel, patch) and harness-validator-lead (validate, fix).")
 
 
+# ---------------------------------------------------------------------------
+# FEAT-2225 T-04 — A BOUND DISTILL RUN CARRIES ITS MISSION TO EVERY GOVERNED CHILD. Members
+# apply their own Expertise only under trusted distill (validate-digest.py derives that from
+# the same registered run), so a child of a distill run that lacks the marker, declares
+# another mission, names another feature or omits its feature tree is refused before any
+# claim. The mission is DERIVED from the bound run, never from prose: a lead start's own
+# registered `distill-*` run (engineering leads included), or the dispatching lead's, reached
+# through that lead's runtime claim. F1: the converse holds too — a dispatch carrying the
+# distill marker with no bound `distill-*` run is refused, except the orchestrator of a
+# feature whose runs[] registers one. Every other dispatch keeps its prior outcome.
+# ---------------------------------------------------------------------------
+DISTILL_RUN_RE = re.compile(r"(?:^|-)distill-")  # feature-record.py DISTILL_RUN's token rule
+LEADS = ("harness-eng-lead",) + MISSION_LEADS
+
+
+def _registered_run_id(destinations, errors, feature, lead):
+    """`lead`'s one open registered run id in `feature`, or None when none is readable."""
+    try:
+        checkout = destinations.authorization_root(owner_root, feature)
+        return destinations.registered_destination(checkout, feature, lead)[0]
+    except errors:
+        return None
+
+
+def _dispatcher_feature():
+    """The feature the dispatching run's own runtime claim binds it to, else the declared one."""
+    agent_id = d.get("harness_agent_id")
+    if not isinstance(agent_id, str) or not agent_id:
+        return declared
+    try:
+        found = reg.find_run_claim(owner_root, agent_id)
+    except (reg.UnreadableRegistry, OSError):
+        return declared
+    claim = found.get("claim") or {}
+    bound = found.get("ok") and claim.get("agent") == agent
+    return found.get("feature") if bound else declared
+
+
+def _is_distill_run_id(run_id):
+    return isinstance(run_id, str) and bool(DISTILL_RUN_RE.search(run_id))
+
+
+def _distill_run_feature(destinations, errors, feature, lead):
+    run_id = _registered_run_id(destinations, errors, feature, lead)
+    return feature if _is_distill_run_id(run_id) else None
+
+
+def _bound_distill_feature(destinations, errors):
+    """The feature of the bound distill run this dispatch belongs to, or None."""
+    if dispatched in LEADS:
+        own = _distill_run_feature(destinations, errors, declared, dispatched)
+        if own:
+            return own
+    if agent in LEADS:
+        return _distill_run_feature(destinations, errors, _dispatcher_feature(), agent)
+    return None
+
+
+def _bound_distill_run():
+    """The feature of the bound distill run this dispatch belongs to, or None. Only a lead
+    start or a lead's dispatch can belong to one, so nothing else reads a registered run."""
+    involves_lead = dispatched in LEADS or agent in LEADS
+    if not involves_lead:
+        return None
+    destinations, errors = _destinations()
+    return _bound_distill_feature(destinations, errors)
+
+
+def _require_distill_feature(feature):
+    if feature != declared:
+        _refuse("dispatch-guard: BLOCKED — %s's bound distill run is for %s, but this dispatch "
+                "of %s declares %s." % (agent, feature, dispatched, declared),
+                "  A child of a distill run belongs to that run's feature tree; dispatch it with "
+                "HARNESS-FEATURE: %s." % (feature,))
+
+
+def _require_distill_mission():
+    mission, problem = _declared_mission()
+    if problem or mission != "distill":
+        _refuse("dispatch-guard: BLOCKED — the %s dispatch for %s is a child of a bound distill "
+                "run but %s." % (dispatched, declared, problem or "declares %r" % (mission,)),
+                "  Every governed child of a distill run, engineering and leaf personas included,",
+                "  carries exactly one line in its own task text, spelled",
+                "    HARNESS-MISSION: distill",
+                "  The mission comes from the registered distill run; no other phase applies.")
+
+
+def _declares_distill():
+    """Whether any HARNESS-MISSION line of this task text declares distill."""
+    return any(line == MISSION_PREFIX + " distill" for line in prompt.splitlines())
+
+
+def _orchestrator_distill_authority():
+    """F1: the orchestrator's distill authority is a `distill-*` run in its feature's runs[]."""
+    if dispatched != "harness-orchestrator":
+        return False
+    destinations, errors = _destinations()
+    try:
+        checkout = destinations.authorization_root(owner_root, declared)
+        record = destinations.registered_feature(checkout, declared)[0]
+    except errors:
+        return False
+    runs = record.get("runs")
+    return isinstance(runs, list) and any(
+        isinstance(run, dict) and _is_distill_run_id(run.get("id")) for run in runs)
+
+
+def _refuse_unbound_distill_marker():
+    """F1: the marker alone never grants distill authority; it must name a registered run."""
+    if not _declares_distill() or _orchestrator_distill_authority():
+        return
+    _refuse("dispatch-guard: BLOCKED — the %s dispatch for %s carries HARNESS-MISSION: distill, "
+            "but no registered distill-* run binds it." % (dispatched, declared),
+            "  Distill authority is registered, never declared: a lead start needs its own open",
+            "  `distill-*` run (feature-record.py run-start --id distill-<squad>), a member its",
+            "  dispatching lead's, and the orchestrator a `distill-*` run in the feature's runs[].",
+            "  An ordinary dispatch carries no distill marker.")
+
+
+def _distill_preflight():
+    feature = _bound_distill_run()
+    if feature is None:
+        _refuse_unbound_distill_marker()
+        return
+    _require_distill_feature(feature)
+    _require_distill_mission()
+    _require_feature_tree_root("is a child of a bound distill run")
+
+
 _direct_orchestration_refusal()
 _start_preflight()
+_distill_preflight()
 
 try:
     existing, expired = reg.live_claim(root, dispatched, feature=declared)

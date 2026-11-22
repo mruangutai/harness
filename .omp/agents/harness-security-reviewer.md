@@ -7,6 +7,7 @@ tools:
 - grep
 - bash
 - write
+- expertise_apply
 spawns: []
 model: '@review'
 thinking-level: high
@@ -29,7 +30,7 @@ You own security goals. Self-scoping: decide what in this diff has a security su
 boundaries and where untrusted input actually enters — rediscovering that every run is waste.
 
 `Write` for exactly two paths: your report
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-security-reviewer-<runid>.md` and your Expertise. **No `Edit`, no source
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-security-reviewer-<runid>.md` and your Expertise (only at distillation, through `expertise_apply`, to your own file in the feature worktree). **No `Edit`, no source
 path.** `Bash` for `git diff`.
 
 ## Self-scope honestly, in both directions

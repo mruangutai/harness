@@ -23,7 +23,7 @@ schema — the path feature-record.py close-run takes. Exit 0 = valid; exit 1 = 
 violation (reasons on stdout). Hook mode validates the payload's `digest_object`, the
 raw `data` of the yield, and rejects anything that is not a mapping.
 """
-import sys, re, os, subprocess
+import sys, re, os, subprocess, json
 
 # Same directory as this script; sys.path[0] is that directory under `python3 <path>`.
 # The placeholder vocabulary lives there so INV-6 and this check cannot drift (issue #16).
@@ -1111,11 +1111,13 @@ def _head_is_pin_error(root, reviewed, review_sha):
 
 
 def validate(persona, obj, config_path=None, feature_dir=None, branch_override=_BRANCH_UNSET,
-             review_pin=None, mission=None):
+             review_pin=None, mission=None, expertise=None):
     """Every contract error for one digest object — schema first, then the semantic
     gates — or [] when it is valid. `obj` is the returned value itself; anything that is
     not a mapping is one error naming the object shape. An unknown persona is refused,
-    never guessed; a schema that cannot load is OUR defect and raises."""
+    never guessed; a schema that cannot load is OUR defect and raises. `expertise` is the
+    trusted distill context the caller derived from the registered run, as
+    `(context, None)` or `(None, why-not)`; None means no context was established."""
     if not isinstance(obj, dict):
         return [OBJECT_REQUIRED]
     try:
@@ -1130,6 +1132,7 @@ def validate(persona, obj, config_path=None, feature_dir=None, branch_override=_
     err += _semantic_errors(canonical, family, verdict, seen, obj.get("artifact"), mission,
                             config_path=config_path, feature_dir=feature_dir,
                             branch_override=branch_override, review_pin=review_pin)
+    err += _expertise_errors(canonical, seen.get("expertise_update"), expertise)
     return err
 
 
@@ -1157,11 +1160,26 @@ def _schema_message(canonical, family, obj, path, message):
     same fault in its own single error (D-08(c): exactly one error per fault)."""
     parts = [] if path == "<root>" else path.split("/")
     digest = obj.get("DIGEST") if isinstance(obj.get("DIGEST"), dict) else {}
-    if len(parts) == 2 and parts[0] == "DIGEST" and _semantics_own(parts[1], digest, message):
+    if _is_digest_field(parts) and _semantics_own(parts[1], digest, message):
         return None
+    if _is_expertise_item(parts):
+        return _expertise_item_message(parts[2], _at(obj, parts))
+    return _reworded_message(canonical, family, parts, digest, message)
+
+
+def _is_digest_field(parts):
+    """`DIGEST/<field>`: a top-level DIGEST field."""
+    return len(parts) == 2 and parts[0] == "DIGEST"
+
+
+def _is_expertise_item(parts):
+    """`DIGEST/expertise_update/<index>`: one applied Expertise item."""
+    return len(parts) == 3 and parts[:2] == ["DIGEST", "expertise_update"]
+
+
+def _reworded_message(canonical, family, parts, digest, message):
     reworded = _structure_message(canonical, family, parts, message) or (
-        len(parts) == 2 and parts[0] == "DIGEST"
-        and _field_message(canonical, parts[1], digest, message))
+        _is_digest_field(parts) and _field_message(canonical, parts[1], digest, message))
     return reworded or f"{_location(parts)}: {message}"
 
 
@@ -1170,6 +1188,16 @@ def _semantics_own(field, digest, message):
     already reports naming the actionable field."""
     return (field in CONDITIONAL and _placeholder(digest.get(CONDITIONAL[field]))
             and not _placeholder(digest.get(field)) and _UNSET_PATTERN_RE.search(message))
+
+
+def _expertise_item_message(index, item):
+    """FEAT-2225: an applied item's shape, named — jsonschema's anyOf miss names nothing."""
+    keys = sorted(item) if isinstance(item, dict) else type(item).__name__
+    return (f"expertise_update[{index}] is not one applied op (got {keys}): each item carries "
+            "op (add|replace|drop), target, section (Patterns|Gotchas|Outcomes|Open), entry "
+            "(add/replace only), why, and persona — the canonical harness-* persona whose "
+            "expertise_apply call applied it. `state` and every other key are refused; "
+            "historical items without persona stay readable but no new return may omit it.")
 
 
 def _location(parts):
@@ -1895,6 +1923,365 @@ def _hook_feature_dir(artifact, feature):
         return None
 
 
+# --- FEAT-2225 T-04 (DEC-253): an applied Expertise op is EVIDENCE, never a claim. Members
+# apply their own ops through the host's `expertise_apply`, which records a receipt per
+# runtime under `<feature>/notes/expertise-receipt-<sha256(runtime id)>.json`. A nonempty
+# `expertise_update` lists ops ALREADY APPLIED, each naming the persona that applied it, and is
+# legal only under a trusted distill context DERIVED from the registered run — never from the
+# digest: the live runtime claim (exact feature, runtime and parent), the feature.json
+# `distill-*` run (the lead's own, or the dispatching lead's for a member), and the containing
+# feature checkout. Every item must match an active batch bound to this run — a leaf or the
+# orchestrator: its own runtime; a lead: its own runtime and its actual children, the receipts
+# whose host-bound parent is this run — and `expertise-merge.py verify-receipt` (read-only)
+# must agree with the file. Every active applied op of those runtimes must be reported:
+# nothing is invented, nothing silently cleared. Persona equality is never provenance.
+# Superseded batches drop out through T-01's authorized-replacement selection. The durable
+# digest.md (feature-record.py close-run) carries no runtime id, so there the lead's runtime is
+# the one receipt lineage that verifies every item; historical records are only read.
+DISTILL_RUN_RE = re.compile(r"(?:^|-)distill-")  # feature-record.py DISTILL_RUN's token rule
+DURABLE_RUN_RE = re.compile(
+    r"^(?P<root>.+)/\.harness/[^/]+/features/(?P<feature>[^/]+)/runs/(?P<run>[^/]+)/digest\.md$")
+EXPERTISE_MERGE_BIN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "expertise-merge.py")
+LEAD_PERSONAS = ("harness-eng-lead", "harness-product-lead", "harness-validator-lead")
+VERIFY_TIMEOUT_SECONDS = 60
+_NO_DISTILL = ("no trusted distill context was established for this return — applied ops are "
+               "legal only on a registered feature-close distill run")
+
+
+class _Untrusted(Exception):
+    """Why no trusted distill context, or no verifiable evidence, binds this return."""
+
+
+def _is_distill_run(run_id):
+    return isinstance(run_id, str) and bool(DISTILL_RUN_RE.search(run_id))
+
+
+def _claimed_run(reg, owner, runtime_id, feature):
+    """(registry root, claim) of the live claim bound to exactly `runtime_id` on `feature`."""
+    found = reg.find_run_claim(owner, runtime_id)
+    if not found.get("ok") or found.get("feature") != feature:
+        raise _Untrusted(f"no live claim binds runtime {runtime_id} to {feature}")
+    return found["root"], found["claim"]
+
+
+def _require_distill_run(dest, root, feature, lead):
+    run_id = dest.registered_destination(root, feature, lead)[0]
+    if not _is_distill_run(run_id):
+        raise _Untrusted(f"{lead}'s registered run {run_id!r} is not a feature-close distill run")
+
+
+def _require_feature_distill(dest, root, feature):
+    record, _feature_dir = dest.registered_feature(root, feature)
+    if not any(isinstance(run, dict) and _is_distill_run(run.get("id"))
+               for run in record.get("runs", [])):
+        raise _Untrusted(f"{feature} registers no feature-close distill run")
+
+
+def _require_distill_lineage(reg, dest, owner, root, run):
+    """A lead's own registered run, the orchestrator's feature, or a member's dispatching
+    lead's registered run must be a `distill-*` run."""
+    persona, feature = run["persona"], run["feature"]
+    if persona in LEAD_PERSONAS:
+        return _require_distill_run(dest, root, feature, persona)
+    if persona == "harness-orchestrator":
+        return _require_feature_distill(dest, root, feature)
+    _parent_root, parent = _claimed_run(reg, owner, run["parent_id"], feature)
+    if parent.get("agent") not in LEAD_PERSONAS:
+        raise _Untrusted(f"parent run {run['parent_id']} is not a lead's live run")
+    return _require_distill_run(dest, root, feature, parent["agent"])
+
+
+def _exact_text(value):
+    return isinstance(value, str) and bool(value) and value == value.strip()
+
+
+def _run_identity(d, persona):
+    """The exact feature, runtime id and parent the host supplied for this run, or raises."""
+    feature, runtime_id = _exact_run_identity(d)
+    parent_id = d.get("harness_parent_agent_id")
+    if feature is None or not _exact_text(parent_id):
+        raise _Untrusted("no exact feature, runtime id and parent identify this run")
+    return {"persona": persona, "feature": feature, "runtime_id": runtime_id,
+            "parent_id": parent_id}
+
+
+def _require_own_claim(reg, owner, root, run):
+    """The run's own live claim: this persona, this checkout, this host-bound parent."""
+    claim_root, claim = _claimed_run(reg, owner, run["runtime_id"], run["feature"])
+    held = (os.path.realpath(claim_root), claim.get("agent"), claim.get("parent_agent_id"))
+    if held != (root, run["persona"], run["parent_id"]):
+        raise _Untrusted(f"runtime {run['runtime_id']}'s live claim records another persona, "
+                         "checkout or parent")
+
+
+def _registered_distill_context(d, persona):
+    """F1: the REGISTERED distill authority of one exact run — its own live claim, its feature
+    checkout and its registered distill lineage. The HARNESS-MISSION marker plays no part."""
+    run = _run_identity(d, persona)
+    owner = _root_or_none()
+    if owner is None:
+        raise _Untrusted("no checkout root resolves from this vantage")
+    import digest_destination as dest
+    import inflight_registry as reg
+    root = dest.authorization_root(owner, run["feature"])
+    _require_own_claim(reg, owner, root, run)
+    _require_distill_lineage(reg, dest, owner, root, run)
+    return dict(run, root=root)
+
+
+def _live_context(d, persona, mission):
+    """The trusted context of a live yield: its dispatch's distill mission AND its registered
+    distill authority, or raises."""
+    if mission != "distill":
+        raise _Untrusted("its dispatch carries no HARNESS-MISSION: distill")
+    return _registered_distill_context(d, persona)
+
+
+def _durable_run(persona, path):
+    """(checkout root, feature, run id) a lead's run digest.md path names, or raises."""
+    match = DURABLE_RUN_RE.match(os.path.realpath(path))
+    if match is None or persona not in LEAD_PERSONAS:
+        raise _Untrusted(f"{path} is not a lead's registered run digest.md")
+    return match.group("root", "feature", "run")
+
+
+def _require_registered_run(dest, path, persona, root, feature, run_id):
+    """`path` is the digest.md of exactly one feature.json run of `persona` with `run_id`."""
+    record, feature_dir = dest.registered_feature(root, feature)
+    runs = [run for run in record.get("runs", [])
+            if isinstance(run, dict) and (run.get("id"), run.get("agent")) == (run_id, persona)]
+    expected = os.path.join(os.path.realpath(feature_dir), "runs", run_id, "digest.md")
+    if len(runs) != 1 or os.path.realpath(path) != expected:
+        raise _Untrusted(f"{path} is not {persona}'s registered run of {feature}")
+
+
+def _durable_context(persona, path):
+    """The trusted context of a lead's durable run digest.md, from its registered run."""
+    root, feature, run_id = _durable_run(persona, path)
+    import digest_destination as dest
+    _require_registered_run(dest, path, persona, root, feature, run_id)
+    if not _is_distill_run(run_id):
+        raise _Untrusted(f"registered run {run_id!r} is not a feature-close distill run")
+    return {"persona": persona, "feature": feature, "runtime_id": None, "parent_id": None,
+            "root": os.path.realpath(root)}
+
+
+def _evidence_failures():
+    """Every failure reading registry, receipt or merge-core evidence can raise. Each one means the
+    return cannot be trusted, so callers refuse on it rather than passing (fail closed)."""
+    import harness_merge
+    import inflight_registry
+    return (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError,
+            harness_boundary.RepoModuleError, harness_boundary.AmbiguousWorktree,
+            artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError,
+            artifact_accessors.FleetError, harness_yaml.YamlParseError,
+            inflight_registry.UnreadableRegistry, harness_merge.MergeRefusal)
+
+
+def _trusted(resolve, *args):
+    """`(context, None)`, or `(None, why)` when no trusted distill context binds the return."""
+    try:
+        return resolve(*args), None
+    except _Untrusted as why:
+        return None, str(why)
+    except _evidence_failures() as error:
+        return None, f"its registered run could not be read ({type(error).__name__}: {error})"
+
+
+def _digest_of(obj):
+    digest = obj.get("DIGEST") if isinstance(obj, dict) else None
+    return digest if isinstance(digest, dict) else {}
+
+
+def _hook_expertise(d, persona, obj, mission):
+    """The live context, resolved only when applied ops are claimed or the run is a distill."""
+    items = _digest_of(obj).get("expertise_update")
+    if not isinstance(items, list) or not (items or mission == "distill"):
+        return None
+    return _trusted(_live_context, d, persona, mission)
+
+
+def _cli_expertise(persona, path, obj):
+    """The durable context of a CLI digest.md, resolved only when it claims applied ops."""
+    if not path or not _digest_of(obj).get("expertise_update"):
+        return None
+    try:
+        canonical = digest_schema.canonical_persona(persona)
+    except digest_schema.DigestSchemaError:
+        return None
+    return _trusted(_durable_context, canonical, path)
+
+
+def _all_mappings(items):
+    return isinstance(items, list) and all(isinstance(item, dict) for item in items)
+
+
+def _untrusted_errors(items, why):
+    return [f"expertise_update lists {len(items)} applied op(s), but {why}. Return `[]` unless "
+            "this is a distill dispatch whose ops you applied with expertise_apply."] if items else []
+
+
+def _expertise_errors(canonical, items, expertise):
+    """FEAT-2225: refuse applied ops no trusted context and no verified receipt supports."""
+    context, why = expertise or (None, _NO_DISTILL)
+    if not _all_mappings(items):
+        return []
+    if context is None:
+        return _untrusted_errors(items, why)
+    if not items and context["runtime_id"] is None:
+        return []
+    return _verified_expertise_errors(canonical, items, context)
+
+
+def _verified_expertise_errors(canonical, items, context):
+    try:
+        return _foreign_persona_errors(canonical, items) or _evidence_errors(items, context)
+    except _Untrusted as why_not:
+        return [f"expertise_update cannot be verified: {why_not}. Nothing is trusted unverified."]
+    except _evidence_failures() as error:
+        return [f"expertise_update cannot be verified ({type(error).__name__}: {error}); "
+                "the return is refused rather than trusted."]
+
+
+def _foreign_persona_errors(canonical, items):
+    """A member or the orchestrator lists only the ops it applied itself."""
+    if canonical in LEAD_PERSONAS:
+        return []
+    foreign = sorted({str(item.get("persona")) for item in items} - {canonical})
+    return [f"expertise_update names {', '.join(foreign)}; a {canonical} return lists only the "
+            "ops it applied itself — consolidating others' is a lead's, and confirming is not "
+            "applying."] if foreign else []
+
+
+def _active_batches(context):
+    import harness_merge
+    try:
+        merge = harness_boundary.load_repo_module("expertise_merge", EXPERTISE_MERGE_BIN)
+        return merge.load_active(context["root"], context["feature"], None)[1]
+    except harness_boundary.RepoModuleError as error:
+        raise _Untrusted(f"expertise-merge.py could not be loaded ({error})") from error
+    except harness_merge.MergeRefusal as refusal:
+        raise _Untrusted("the feature's receipts are missing, unreadable or inconsistent: "
+                         + "; ".join(refusal.lines)) from refusal
+
+
+def _evidence_errors(items, context):
+    active = _active_batches(context)
+    if context["runtime_id"] is not None:
+        return _lineage_errors(items, context, active, context["runtime_id"])
+    attempts = [_lineage_errors(items, context, active, runtime)
+                for runtime in _durable_candidates(context["persona"], items, active)]
+    if any(not errors for errors in attempts):
+        return []
+    return min(attempts, key=len) if attempts else [
+        f"no applied receipt in {context['feature']}'s notes binds {context['persona']}'s run "
+        "or its children; expertise_update reports ops nothing applied."]
+
+
+def _durable_candidates(persona, items, active):
+    """The runtimes a durable lead record can belong to: its own receipts' runtimes and the
+    parents of its listed children's receipts. Each is tried as one whole lineage."""
+    children = {item.get("persona") for item in items} - {persona}
+    own = [entry["runtime_id"] for entry in active if entry["persona"] == persona]
+    parents = [entry["parent_id"] for entry in active if entry["persona"] in children]
+    return list(dict.fromkeys(own + parents))
+
+
+def _lineage_batches(active, runtime, lead):
+    """The active batches of `runtime` and, for a lead, of every runtime whose host-bound
+    parent it is — its actual children, never a same-persona stranger."""
+    return [entry for entry in active
+            if entry["runtime_id"] == runtime or (lead and entry["parent_id"] == runtime)]
+
+
+def _stranger_personas(batches, runtime, persona):
+    return sorted({entry["persona"] for entry in batches
+                   if entry["runtime_id"] == runtime and entry["persona"] != persona})
+
+
+def _lineage_errors(items, context, active, runtime):
+    """Every error of `items` against the batches of `runtime`'s lineage."""
+    persona = context["persona"]
+    mine = _lineage_batches(active, runtime, persona in LEAD_PERSONAS)
+    strangers = _stranger_personas(mine, runtime, persona)
+    if strangers:
+        return [f"runtime {runtime}'s receipt belongs to {', '.join(strangers)}, not {persona}."]
+    slots = _receipt_slots(mine)
+    errors = _assign_items(items, slots) + _unreported_errors(slots)
+    return errors or _receipt_errors(context, slots)
+
+
+def _receipt_slots(entries):
+    """{(runtime, destination): slot} — one verify-receipt call each, ops in recorded order."""
+    slots = {}
+    for entry in entries:
+        slot = slots.setdefault((entry["runtime_id"], entry["destination"]), {
+            "persona": entry["persona"], "parent_id": entry["parent_id"], "remaining": [],
+            "claimed": []})
+        slot["remaining"].extend(entry["ops"])
+    return slots
+
+
+def _matching_slot(slots, persona, op):
+    """The first slot of `persona` still holding exactly `op` unreported, or None."""
+    return next((slot for slot in slots.values()
+                 if slot["persona"] == persona and op in slot["remaining"]), None)
+
+
+def _unmatched_error(index, item):
+    return (f"expertise_update[{index}] ({item.get('persona')} {item.get('op')} "
+            f"{item.get('section')} {item.get('target')}) matches no applied receipt of this run "
+            "or its children — report only ops expertise_apply applied, exactly as applied.")
+
+
+def _assign_items(items, slots):
+    """Bind each item to the receipt slot that recorded it; unmatched items are errors."""
+    errors = []
+    for index, item in enumerate(items):
+        op = {key: value for key, value in item.items() if key != "persona"}
+        slot = _matching_slot(slots, item.get("persona"), op)
+        if slot is None:
+            errors.append(_unmatched_error(index, item))
+            continue
+        slot["remaining"].remove(op)
+        slot["claimed"].append(item)
+    return errors
+
+
+def _unreported_errors(slots):
+    return [f"{slot['persona']} (runtime {runtime}) applied {len(slot['remaining'])} active op(s) "
+            f"to {destination} that expertise_update does not report — report every applied op; "
+            "never clear one silently. A withdrawal is the member's own superseding re-judgment."
+            for (runtime, destination), slot in slots.items() if slot["remaining"]]
+
+
+def _receipt_errors(context, slots):
+    return [error for (runtime, destination), slot in slots.items() if slot["claimed"]
+            for error in _verify_receipt(context, runtime, destination, slot)]
+
+
+def _verify_receipt(context, runtime, destination, slot):
+    """T-01's read-only `verify-receipt`: ids, feature, exact ops, destination and the COMPLETE
+    file. No `--base` is passed on purpose: with none, the core anchors the write chain on the
+    merge-base of the checkout's HEAD with its default branch (`authorized_base`), never on HEAD,
+    and refuses (15, NO AUTHORIZED BASE) when that cannot resolve. Resolving a base here too would
+    duplicate the core's resolver; nothing here comes from a digest field."""
+    parts = destination.split("/")
+    tier = (["--tier", "craft"] if len(parts) == 3
+            else ["--tier", "repository", "--repository", parts[1]])
+    argv = [sys.executable, EXPERTISE_MERGE_BIN, "verify-receipt", "--root", context["root"],
+            "--feature", context["feature"], "--persona", slot["persona"],
+            "--runtime-id", runtime, "--parent-id", slot["parent_id"], *tier, "--claimed", "-"]
+    try:
+        proc = subprocess.run(argv, input=json.dumps(slot["claimed"]), capture_output=True,
+                              text=True, timeout=VERIFY_TIMEOUT_SECONDS)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return [f"verify-receipt could not run for {destination}: {error}"]
+    if proc.returncode == 0:
+        return []
+    detail = "; ".join((proc.stdout + proc.stderr).strip().splitlines()[:4])
+    return [f"{slot['persona']}'s applied ops to {destination} do not verify against its receipt "
+            f"and the file (verify-receipt exit {proc.returncode}): {detail}"]
 
 
 # --- SC-07 (DEC-156, DEC-208): the lead's durable record. The lead writes only the human
@@ -2316,7 +2703,8 @@ def _hook_options(d):
 
 def _validate_hook_object(d, agent, obj):
     try:
-        family = norm(digest_schema.canonical_persona(agent))
+        canonical = digest_schema.canonical_persona(agent)
+        family = norm(canonical)
     except digest_schema.DigestSchemaError:
         print(f"check-digest: no schema for {agent} — passing through rather than "
               f"blocking on our own gap.", file=sys.stderr)
@@ -2327,7 +2715,8 @@ def _validate_hook_object(d, agent, obj):
     try:
         errs = validate(agent, obj, review_pin=review_pin, mission=mission,
                         feature_dir=_hook_feature_dir(obj.get("artifact"),
-                                                      d.get("harness_feature")))
+                                                      d.get("harness_feature")),
+                        expertise=_hook_expertise(d, canonical, obj, mission))
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2
@@ -2350,6 +2739,42 @@ def _contract_refusal(errs):
     return 2
 
 
+# --- FEAT-2225 F1: registered distill authority, asked BEFORE any application. The host's
+# `expertise_apply` runs this after its own caller checks and before member-ops. The marker never
+# authorizes: authority is the same registered lineage a distill yield is checked against —
+# a lead's own open `distill-*` run, a member's dispatching lead's, or for the orchestrator a
+# `distill-*` run in the feature's runs[]. Not hook_guard-wrapped: every failure refuses.
+def _authority_refusal(why):
+    print("distill-authority: REFUSED " + " ".join(str(why).split()), file=sys.stderr)
+    return 2
+
+
+def _authority_request(text):
+    """(payload, canonical persona) of an authority request, or raises _Untrusted."""
+    try:
+        payload = artifact_accessors.read_hook_payload(text, "distill authority request")
+    except artifact_accessors.ArtifactAccessError as error:
+        raise _Untrusted(f"the request is not one JSON object ({error})") from error
+    persona = payload.get("agent_type")
+    if persona not in digest_schema.PERSONAS:
+        raise _Untrusted(f"agent_type {persona!r} is not a governed persona")
+    return payload, persona
+
+
+def distill_authority_mode():
+    """Exit 0 printing {"authorized": true} when the registered lineage grants this exact run
+    distill authority; exit 2 with one stderr line naming why not. Fails closed."""
+    try:
+        payload, persona = _authority_request(sys.stdin.read())
+    except _Untrusted as why:
+        return _authority_refusal(why)
+    context, why = _trusted(_registered_distill_context, payload, persona)
+    if context is None:
+        return _authority_refusal(why)
+    print(json.dumps({"authorized": True}))
+    return 0
+
+
 def cli_object(text, where):
     """`(mapping, None)` for CLI input, or `(None, error)`. One JSON object is the live
     shape; anything else is read as a durable digest.md and its last fenced mapping is the
@@ -2368,6 +2793,8 @@ def cli_object(text, where):
 if __name__ == "__main__":
     if "--hook" in sys.argv:
         sys.exit(harness_boundary.hook_guard(hook_mode, "check-digest"))
+    if "--distill-authority" in sys.argv:
+        sys.exit(distill_authority_mode())
     # F14: CLI mode crashed with UnicodeEncodeError under an ASCII locale (LC_ALL=C),
     # truncating the printed reasons before the operator saw them.
     try:
@@ -2388,7 +2815,8 @@ if __name__ == "__main__":
     else:
         text, where = sys.stdin.read(), "stdin"
     obj, error = cli_object(text, where)
-    errs = [error] if error else validate(args.persona, obj)
+    errs = [error] if error else validate(args.persona, obj,
+                                          expertise=_cli_expertise(args.persona, args.file, obj))
     if errs:
         print("VERDICT: BLOCKED (contract violation)")
         for e in errs: print(f"  - {e}")

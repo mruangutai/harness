@@ -237,9 +237,14 @@ def sc02_signed_plan_controls():
                    [lead_run(ENG)], "approved", ENG, lambda root, e=extra: prompt(root, extra=e),
                    False)
     for lead in LEADS:
+        suffix = LEADS[lead][1]
         start_case("control", f"SC-02/{lead.split('-')[1]}/distill",
-                   f"{lead} HARNESS-MISSION: distill still starts against an approved plan",
-                   [lead_run(lead)], "approved", lead, lambda root: prompt(root, "distill"), False)
+                   f"{lead} HARNESS-MISSION: distill still starts on its registered distill run",
+                   [lead_run(lead, f"distill-{suffix}")], "approved", lead,
+                   lambda root: prompt(root, "distill"), False)
+        start_case("refusal", f"SC-02/{lead.split('-')[1]}/distill-unregistered",
+                   f"{lead} HARNESS-MISSION: distill on a non-distill run is refused (FEAT-2225 F1)",
+                   [lead_run(lead)], "approved", lead, lambda root: prompt(root, "distill"), True)
 
 
 def sc02_mission_refusals():

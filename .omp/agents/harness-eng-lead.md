@@ -7,6 +7,7 @@ tools:
 - grep
 - task
 - write
+- expertise_apply
 spawns:
 - harness-frontend-dev
 - harness-backend-dev
@@ -40,7 +41,7 @@ explicitly. You see every member's output, so squad-level patterns land here nat
 
 ## Domain
 
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` under `leads:` — your squad's run dir and your own Expertise. Read anything.
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` under `leads:` — your squad's run dir, and your own Expertise only at distillation, through `expertise_apply`, to your own file in the feature worktree. Read anything.
 
 ## Your squad — five specialists, no catch-all
 

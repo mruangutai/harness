@@ -7,6 +7,7 @@ tools:
 - grep
 - task
 - write
+- expertise_apply
 spawns:
 - harness-pm
 - harness-visual-designer
@@ -40,7 +41,7 @@ ambiguous, how your members actually behave.
 ## Domain
 
 Your writable paths are in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` under `leads:` — your squad's run dir and your
-own Expertise file, nothing else. You may read anything.
+own Expertise file (only at distillation, through `expertise_apply`, to your own file in the feature worktree), nothing else. You may read anything.
 
 ## Your squad
 

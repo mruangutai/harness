@@ -9,41 +9,53 @@ user-invocable: false
 **Read this because your dispatch said "distill".** Not preloaded — these rules fire once per agent
 per feature (DEC-158). Mid-run observation logging is `harness-expertise`, which you already have.
 
-You touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md` **only when your dispatch explicitly says
-"distill"** — at feature close, under a curation note, or under the `harness-curate` skill. Then:
+You touch your own Expertise file in the **feature tree** (`<HARNESS_FEATURE_TREE_ROOT>`, see the
+layer table) **only when your dispatch explicitly says "distill"** — at feature close, under a
+curation note, or under the `harness-curate` skill. You apply only your own judgment to your own
+file; never another persona's. Then:
 
 1. Read your observations log(s) and your current Expertise (already in context).
 2. Extract what passes the test: *six spawns from now, would knowing this change what I do?*
    Most observations fail it — that is normal. Lead-relayed candidates: you are the sole judge;
    rejecting with a reason is a valid outcome. At a full section a new entry enters only by
    **displacing** one you judge weaker — never by merging into a survivor; nothing weaker, it dies.
-3. **Apply through the merge tool. Never write the file yourself.** Put your proposed entries in a
-   scratch file, then run:
+3. **Apply through the `expertise_apply` tool. Never write the file yourself, and never run
+   `expertise-merge.py` from a shell** — the host refuses it. Call:
 
+   ```yaml
+   expertise_apply:
+     tier: craft              # craft | repository
+     repository: <segment>    # repository tier only: the literal repo segment
+     ops: [...]               # your add/replace/drop ops (format below)
+     supersedes: [<batch id>] # optional: only when re-judging a refused or earlier batch
    ```
-   python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/expertise-merge.py apply \
-     --file <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md --entries <your scratch file>
-   ```
 
-   A **whole-file write** to an Expertise file is what loses another run's entries (DEC-125), and
-   two close-outs can be in flight at once — so this is not a style preference. The tool merges;
-   you no longer read-modify-write.
+   The host derives everything else — persona, feature, runtime lineage, feature-tree root and
+   destination (`<HARNESS_FEATURE_TREE_ROOT>/.harness/expertise/<you>.md` or
+   `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/expertise/<you>.md`); a
+   path argument does not exist. It returns one JSON object: before/after per-section counts,
+   per-op outcomes, a batch id and the receipt path. A **whole-file write** is what loses another
+   run's entries (DEC-125), so this is not a style preference.
 
-   The tool refuses without writing. Each exit wants a different response:
+   A nonzero result is a refusal and nothing was written. Each wants a different response:
 
-   | Exit | Subcommand | What it means | What you do |
-   | --- | --- | --- | --- |
-   | 6 | both | the lock is held | retry once, then report it upward |
-   | 7 | both | `CONFLICT` — the same entry id carries different text | a real conflict — resolve it yourself |
-   | 8 | both | `CAP EXCEEDED` | curate rather than append |
-   | 9 | both | `--file` is not an Expertise file | you named the wrong path — fix it, never work around it |
-   | 10 | `ops` | `MISSING TARGET` | rejected, never guessed at — a contract violation |
-   | 11 | both | `AMBIGUOUS TARGET` — the id appears twice in its section, or two ops in one proposal name the same section and id | |
-   | 12 | `ops` | `MALFORMED OPS` | |
+   | Exit | What it means | What you do |
+   | --- | --- | --- |
+   | 6 | the lock is held | retry once, then report it upward |
+   | 7 | `CONFLICT` — the same entry id carries different text | a real conflict — re-judge it yourself |
+   | 8 | `CAP EXCEEDED` | curate rather than append |
+   | 9 | destination refused | not yours to fix by path — report it upward |
+   | 10 | `MISSING TARGET` | rejected, never guessed at — a contract violation |
+   | 11 | `AMBIGUOUS TARGET` — the id appears twice in its section, or two ops name the same section and id | |
+   | 12 | `MALFORMED OPS` | |
+   | 13 | replay refusal | re-judge against current main, then re-apply with `supersedes` |
+   | 14 / 15 | candidate failed `check-expertise` / receipt evidence failed | fix the ops, re-apply |
 
-   Report the ops in your DIGEST's `expertise_update` as the receipt.
-4. Run `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py <file>` and fix every violation before
-   returning. Report per-section entry counts before and after.
+   Report the applied ops in your DIGEST's `expertise_update`, each item carrying
+   `persona: <your-agent-name>` and **no `state`** — they are already applied; the lead checks
+   them against your receipt and the resulting file.
+4. The tool runs `check-expertise` on the candidate; report per-section counts before and after
+   from its result.
 
 **Your DIGEST reviews no diff and ran no suite, and says so.** A distill dispatch carries
 `HARNESS-MISSION: distill` on its own line; the host forwards it and the digest validator then
@@ -63,8 +75,8 @@ Your Expertise is split by **what the knowledge is about**, not by what you were
 
 | Layer | Holds | Lives at | Budget |
 |---|---|---|---|
-| **Craft** | how you work, true wherever you work | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<agent>.md` | 150 lines |
-| **Repository** | what is true of ONE repository | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/<repo>/expertise/<agent>.md` | 40 lines |
+| **Craft** | how you work, true wherever you work | `<HARNESS_FEATURE_TREE_ROOT>/.harness/expertise/<agent>.md` | 150 lines |
+| **Repository** | what is true of ONE repository | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/expertise/<agent>.md` | 40 lines |
 
 A third, global tier lives in your home directory (`~/.harness`, same `expertise/<agent>.md`
 layout) and is injected ahead of both by `inject-expertise.py`; you never write it from a run.
@@ -121,22 +133,21 @@ and resolution never leaves that section. There is no whole-file lookup and no o
 
 ```yaml
 expertise_update:
-  - op: replace              # add | replace | merge | drop
+  - persona: harness-backend-dev
+    op: replace              # add | replace | merge | drop
     target: P-01
     section: Patterns
     entry: "WHEN running migrations DO run the seed script first — they fail on a clean DB."
     why: "three observations this feature, same root cause"
 ```
 
-`merge` is an authoring outcome, not a mechanism op. Express it as a replace on the surviving id
-plus a drop of the absorbed id; the tool refuses an `op: merge`. Apply the JSON form of the
-`expertise_update` list with:
+`merge` is an authoring outcome, not a mechanism op: a replace on the surviving id plus a
+drop of the absorbed id; the tool refuses an `op: merge`. The refusals are the table in step 3.
 
-```bash
-python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/expertise-merge.py ops --file <expertise file> --ops <path or ->
-```
-
-The refusals are the table in step 3. Add-only proposals may still use `apply --entries`, unchanged.
+**At merge your ops are replayed onto current main.** A replayed `add` whose id collides is
+renumbered automatically. A `replace`/`drop` whose target changed on main, or a cap overflow,
+is refused and returns through your lead to **you** to re-judge — re-apply with `supersedes`
+naming the refused batch; an empty withdrawal is also your judgment to make.
 
 At a section cap during distillation, condense until you are under it — distillation IS the
 curation step, so the old flag-and-stop rule does not apply to you here. If you genuinely cannot

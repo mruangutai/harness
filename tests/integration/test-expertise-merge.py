@@ -28,6 +28,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -270,7 +271,7 @@ def case_new_file(root):
     check("case6: a following apply still exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
 
 
-def case_cap_drift_detector():
+def case_cap_drift_detector(_root):
     """Case 8 — the caps this tool enforces and check-expertise.py's own CAPS mapping must
     agree, read as TEXT from both files rather than restated as a third literal here."""
     tool_src = open(CLI, encoding="utf-8").read()
@@ -737,7 +738,7 @@ def contract_drift(skill_text):
     return failures
 
 
-def case_contract_drift():
+def case_contract_drift(_root):
     """Case 17 — CONTRACT DRIFT DETECTOR (D-10, SC-09, T-03), the same idiom as case 8. The one
     statement this case exists to hold: every op verb the distillation contract names is either
     accepted by the ops subcommand or is merge, the verb the contract itself rewrites into a
@@ -1371,33 +1372,1046 @@ def case_duplicate_proposal_ids(root):
     )
 
 
+# ---------------------------------------------------------------------------------------------
+# FEAT-2225 T-01: member-ops, read-only receipt verification and replay, run as subprocesses
+# against fixture git repositories under the suite's temp root. Never a live Expertise file.
+# Each case is RED against the pre-change tool (the subcommands do not exist) and carries
+# named one-mechanism mutants in the T-01 receipt.
+# ---------------------------------------------------------------------------------------------
+PERSONA = "harness-backend-dev"
+FEATURE = "FEAT-9001-fixture"
+FEATURE_REL = ".harness/harness/features/" + FEATURE
+NOTES_REL = FEATURE_REL + "/notes"
+CRAFT_REL = ".harness/expertise/%s.md" % PERSONA
+REPO_REL = ".harness/harness/expertise/%s.md" % PERSONA
+SECTIONS4 = ("Patterns", "Gotchas", "Outcomes", "Open")
+BASE_DOC = [("Patterns", [("P-01", "alpha rule"), ("P-03", "gamma rule")]),
+            ("Gotchas", [("G-01", "watch one")]), ("Outcomes", []), ("Open", [])]
+
+
+def sh(cwd, *args):
+    return subprocess.run(
+        ["git", "-C", cwd, "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+         "-c", "commit.gpgsign=false", *args],
+        capture_output=True, text=True, timeout=30, check=True).stdout.strip()
+
+
+def head(co):
+    return sh(co, "rev-parse", "HEAD")
+
+
+def commit_all(co, message):
+    sh(co, "add", "-A")
+    sh(co, "commit", "-q", "-m", message)
+    return head(co)
+
+
+def new_checkout(parent, name, craft=None):
+    co = os.path.join(parent, name)
+    os.makedirs(os.path.join(co, FEATURE_REL))
+    with open(os.path.join(co, FEATURE_REL, "BRIEF.md"), "w", encoding="utf-8") as fh:
+        fh.write("fixture\n")
+    with open(os.path.join(co, ".gitignore"), "w", encoding="utf-8") as fh:
+        fh.write("*.lock\n")
+    if craft is not None:
+        os.makedirs(os.path.join(co, ".harness", "expertise"))
+        write_file(os.path.join(co, CRAFT_REL), craft)
+    sh(co, "init", "-q", "-b", "main")
+    commit_all(co, "base")
+    return co
+
+
+def clone(src, parent, name):
+    dst = os.path.join(parent, name)
+    subprocess.run(["git", "clone", "-q", src, dst], capture_output=True, timeout=30, check=True)
+    return dst
+
+
+def fetch_head(co, src):
+    sh(co, "fetch", "-q", src, "HEAD")
+    return sh(co, "rev-parse", "FETCH_HEAD")
+
+
+def run_cli(*args, stdin=None):
+    return subprocess.run([sys.executable, CLI, *args], input=stdin, capture_output=True, text=True, timeout=60)
+
+
+def mop(verb, section, target, entry=None):
+    d = {"op": verb, "target": target, "section": section, "why": "fixture"}
+    if entry is not None:
+        d["entry"] = entry
+    return d
+
+
+def claim(op, persona=PERSONA):
+    return dict(op, persona=persona)
+
+
+def member(co, runtime, ops, tier="craft", repo=None, parent="parent-1", persona=PERSONA, supersedes=(),
+           base=None, feature=FEATURE, raw=None):
+    args = ["member-ops", "--root", co, "--feature", feature, "--persona", persona, "--runtime-id", runtime,
+            "--parent-id", parent, "--tier", tier, "--ops", "-"]
+    if repo:
+        args += ["--repository", repo]
+    for ref in supersedes:
+        args += ["--supersedes", ref]
+    if base:
+        args += ["--base", base]
+    return run_cli(*args, stdin=json.dumps(ops) if raw is None else raw)
+
+
+def verify(co, runtime, claimed, tier="craft", repo=None, parent="parent-1", persona=PERSONA, base=None):
+    args = ["verify-receipt", "--root", co, "--feature", FEATURE, "--persona", persona, "--runtime-id", runtime,
+            "--parent-id", parent, "--tier", tier, "--claimed", "-"]
+    if repo:
+        args += ["--repository", repo]
+    if base:
+        args += ["--base", base]
+    return run_cli(*args, stdin=json.dumps(claimed))
+
+
+def replay(co, base, check_only=False):
+    args = ["replay", "--root", co, "--feature", FEATURE, "--base", base]
+    return run_cli(*args + (["--check"] if check_only else []))
+
+
+def jout(proc):
+    try:
+        return json.loads(proc.stdout)
+    except ValueError:
+        return {}
+
+
+def out_of(proc):
+    return "rc=%s stdout=%s stderr=%s" % (proc.returncode, proc.stdout[-600:], proc.stderr[-600:])
+
+
+def read_rel(co, rel):
+    with open(os.path.join(co, rel), encoding="utf-8") as fh:
+        return fh.read()
+
+
+def receipt_path(co, runtime):
+    return os.path.join(co, NOTES_REL, "expertise-receipt-%s.json" % hashlib.sha256(runtime.encode()).hexdigest())
+
+
+def load_receipt(co, runtime):
+    with open(receipt_path(co, runtime), encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def snapshot(co, locks=False):
+    snap = {}
+    for base, dirs, files in os.walk(co):
+        dirs[:] = [d for d in dirs if d != ".git"]
+        for name in files:
+            if name.endswith(".lock") and not locks:
+                continue  # flock files are never removed (harness_merge D-02); not evidence of a write
+            path = os.path.join(base, name)
+            with open(path, "rb") as fh:
+                snap[os.path.relpath(path, co)] = hashlib.sha256(fh.read()).hexdigest()
+    return snap
+
+
+def doc(sections):
+    lines = ["# Expertise — %s" % PERSONA]
+    for name, entries in sections:
+        lines.append("## " + name)
+        lines.extend("- %s: %s" % (eid, text) for eid, text in entries)
+    return "\n".join(lines) + "\n"
+
+
+def sha_text(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def zero_counts():
+    return {name: 0 for name in SECTIONS4}
+
+
+def read_rel_if_exists(co, rel):
+    return read_rel(co, rel) if os.path.exists(os.path.join(co, rel)) else ""
+
+
+def load_receipt_or_stub(co, runtime):
+    return load_receipt(co, runtime) if os.path.exists(receipt_path(co, runtime)) else {"batches": [{}]}
+
+
+def read_bytes(path):
+    with open(path, "rb") as fh:
+        return fh.read()
+
+
+def overwrite(path, text):
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(text)
+
+
+def overwrite_bytes(path, data):
+    with open(path, "wb") as fh:
+        fh.write(data)
+
+
+def _check_absent_craft_result(co, p, text):
+    out = jout(p)
+    check("member absent craft: exits 0", p.returncode == 0, out_of(p))
+    check("member absent craft: canonical title plus the four sections",
+          text == "# Expertise — harness-backend-dev\n## Patterns\n- P-01: first rule\n## Gotchas\n## Outcomes\n## Open\n", text)
+    after = dict(zero_counts(), Patterns=1)
+    check("member absent craft: before/after per-section counts returned",
+          out.get("counts") == {"before": zero_counts(), "after": after}, out.get("counts"))
+    check("member absent craft: outcomes returned", out.get("outcomes") == [["ADDED", "P-01"]], out.get("outcomes"))
+    r3 = subprocess.run([sys.executable, CHECK_EXPERTISE_BIN, os.path.join(co, CRAFT_REL)], capture_output=True, text=True)
+    check("member absent craft: result passes check-expertise", r3.returncode == 0, r3.stdout)
+
+
+def _check_absent_receipt_header(co):
+    rc = load_receipt_or_stub(co, "run-a")
+    check("member receipt: persona feature runtime parent recorded",
+          (rc.get("persona"), rc.get("feature"), rc.get("runtime_id"), rc.get("parent_id")) == (PERSONA, FEATURE, "run-a", "parent-1"), rc)
+    b = rc["batches"][0]
+    check("member receipt: checkout-relative destination", b.get("destination") == CRAFT_REL, b.get("destination"))
+
+
+def _check_absent_receipt_content(co, text):
+    b = load_receipt_or_stub(co, "run-a")["batches"][0]
+    check("member receipt: exact accepted ops", b.get("ops") == [mop("add", "Patterns", "P-01", "first rule")], b.get("ops"))
+    check("member receipt: absent original recorded as null",
+          b.get("originals") == [{"section": "Patterns", "target": "P-01", "original": None}], b.get("originals"))
+    check("member receipt: before/after content hashes",
+          b.get("before_sha256") is None and b.get("after_sha256") == sha_text(text), b)
+
+
+def _check_absent_receipt_identity(root, co, p):
+    b = load_receipt_or_stub(co, "run-a")["batches"][0]
+    out = jout(p)
+    ident = b.get("id") or ""
+    check("member receipt: content-derived 64-hex batch identity returned too",
+          len(ident) == 64 and out.get("batch") == ident, (ident, out.get("batch")))
+    co2 = new_checkout(root, "absent-twin")
+    twin = jout(member(co2, "run-a", [mop("add", "Patterns", "P-01", "first rule")]))
+    check("member receipt: identity is stable across identical fixtures", twin.get("batch") == ident, twin.get("batch"))
+
+
+def _check_absent_repository(co):
+    p2 = member(co, "run-b", [mop("add", "Gotchas", "G-01", "repo gotcha")], tier="repository", repo="harness")
+    check("member absent repository: exits 0", p2.returncode == 0, out_of(p2))
+    rtext = read_rel_if_exists(co, REPO_REL)
+    check("member absent repository: canonical file", rtext == doc([("Patterns", []), ("Gotchas", [("G-01", "repo gotcha")]),
+                                                                  ("Outcomes", []), ("Open", [])]), rtext)
+    rc2 = load_receipt_or_stub(co, "run-b")
+    check("member absent repository: receipt destination", rc2["batches"][0].get("destination") == REPO_REL, rc2)
+
+
+def case_member_absent_files(root):
+    co = new_checkout(root, "absent")
+    p = member(co, "run-a", [mop("add", "Patterns", "P-01", "first rule")])
+    text = read_rel_if_exists(co, CRAFT_REL)
+    _check_absent_craft_result(co, p, text)
+    _check_absent_receipt_header(co)
+    _check_absent_receipt_content(co, text)
+    _check_absent_receipt_identity(root, co, p)
+    _check_absent_repository(co)
+
+
+def _check_boundary_refusals(co, ops, before):
+    refused = {
+        "undeclared repository": member(co, "r1", ops, tier="repository", repo="nosuch"),
+        "dot-dot repository": member(co, "r2", ops, tier="repository", repo=".."),
+        "path repository": member(co, "r3", ops, tier="repository", repo="harness/x"),
+        "repository tier without segment": member(co, "r4", ops, tier="repository"),
+        "craft tier with a segment": member(co, "r5", ops, tier="craft", repo="harness"),
+        "non harness persona": member(co, "r6", ops, persona="reviewer"),
+        "persona traversal": member(co, "r7", ops, persona="harness-../x"),
+        "unknown feature": member(co, "r8", ops, feature="FEAT-0-nothing"),
+        "feature traversal": member(co, "r9", ops, feature="../x"),
+    }
+    for name, proc in refused.items():
+        check("member boundary: %s refused with 9" % name, proc.returncode == 9, out_of(proc))
+    check("member boundary: refusals wrote nothing", snapshot(co) == before, "tree changed")
+
+
+def _check_boundary_symlinked_segment(co, outside, ops):
+    os.symlink(outside, os.path.join(co, ".harness", "linked"))
+    p = member(co, "r10", ops, tier="repository", repo="linked")
+    check("member boundary: symlinked repository segment refused with 9", p.returncode == 9, out_of(p))
+
+
+def _check_boundary_symlinked_craft(root, outside, ops):
+    sym = new_checkout(root, "bounds-sym")
+    os.symlink(outside, os.path.join(sym, ".harness", "expertise"))
+    p = member(sym, "r11", ops)
+    check("member boundary: symlinked craft tier (global/control-plane stand-in) refused with 9", p.returncode == 9, out_of(p))
+    return sym
+
+
+def _check_boundary_symlink_onto_control(root, ops):
+    ctl = os.path.join(root, "bounds-control", ".harness", "expertise")
+    os.makedirs(ctl)
+    inside = new_checkout(root, "bounds-ctl")
+    os.symlink(ctl, os.path.join(inside, ".harness", "expertise"))
+    p = member(inside, "r12", ops)
+    check("member boundary: symlink onto another tree's legal-looking .harness/expertise refused with 9", p.returncode == 9, out_of(p))
+    return inside, ctl
+
+
+def _check_boundary_symlinked_legal_tail(root, inside, ops):
+    ctl_seg = os.path.join(root, "bounds-control2", ".harness", "linked2", "expertise")
+    os.makedirs(ctl_seg)
+    os.symlink(os.path.join(root, "bounds-control2", ".harness", "linked2"), os.path.join(inside, ".harness", "linked2"))
+    p = member(inside, "r13", ops, tier="repository", repo="linked2")
+    check("member boundary: symlinked repository segment with a legal-looking tail refused with 9", p.returncode == 9, out_of(p))
+    return ctl_seg
+
+
+def _check_boundary_nothing_landed(outside, ctl, ctl_seg, sym):
+    check("member boundary: nothing landed in the symlink targets", os.listdir(ctl) == [] and os.listdir(ctl_seg) == [], (os.listdir(ctl), os.listdir(ctl_seg)))
+    check("member boundary: nothing landed outside the checkout", os.listdir(outside) == [], os.listdir(outside))
+    check("member boundary: no receipt after refusals", not os.path.exists(receipt_path(sym, "r11")), None)
+
+
+def case_member_destination_boundaries(root):
+    co = new_checkout(root, "bounds", craft=BASE_DOC)
+    outside = os.path.join(root, "bounds-outside")
+    os.makedirs(outside)
+    before = snapshot(co)
+    ops = [mop("add", "Patterns", "P-09", "nine")]
+    _check_boundary_refusals(co, ops, before)
+    _check_boundary_symlinked_segment(co, outside, ops)
+    sym = _check_boundary_symlinked_craft(root, outside, ops)
+    inside, ctl = _check_boundary_symlink_onto_control(root, ops)
+    ctl_seg = _check_boundary_symlinked_legal_tail(root, inside, ops)
+    _check_boundary_nothing_landed(outside, ctl, ctl_seg, sym)
+
+
+def _check_strict_op_keys(co, good, before):
+    bad = {"persona key": dict(good, persona=PERSONA), "state key": dict(good, state="applied"),
+           "unknown key": dict(good, extra=1)}
+    for name, op_obj in bad.items():
+        p = member(co, "run-x", [op_obj])
+        check("member strict: %s rejected with 12" % name, p.returncode == 12, out_of(p))
+    check("member strict: rejects left every byte alone", snapshot(co) == before, None)
+
+
+def _check_strict_payloads(co, path, good):
+    p = run_cli("ops", "--file", path, "--ops", "-", stdin=json.dumps([dict(good, persona=PERSONA)]))
+    check("ops regression: persona is still not a low-level op key", p.returncode == 12, out_of(p))
+    p = member(co, "run-x", [])
+    check("member strict: empty list without supersedes refused with 12", p.returncode == 12, out_of(p))
+    p = member(co, "run-x", None, raw="{not json")
+    check("member strict: undecodable JSON refused with 12", p.returncode == 12, out_of(p))
+
+
+def _check_plain_paths(root, co, path, good):
+    p = run_cli("ops", "--file", path, "--ops", "-", stdin=json.dumps([good]))
+    check("ops regression: plain ops still applies", p.returncode == 0 and "ADDED P-09" in p.stdout, out_of(p))
+    check("ops regression: plain ops writes no receipt", not os.path.exists(os.path.join(co, NOTES_REL)), None)
+    entries = os.path.join(root, "strict-entries.md")
+    write_entries(entries, [("Patterns", [("P-10", "ten")])])
+    p = run_apply(path, entries)
+    check("apply regression: union apply still works", p.returncode == 0 and "ADDED P-10" in p.stdout, out_of(p))
+
+
+def case_member_strict_ops(root):
+    co = new_checkout(root, "strict", craft=BASE_DOC)
+    path = os.path.join(co, CRAFT_REL)
+    before = snapshot(co)
+    good = mop("add", "Patterns", "P-09", "nine")
+    _check_strict_op_keys(co, good, before)
+    _check_strict_payloads(co, path, good)
+    _check_plain_paths(root, co, path, good)
+
+
+def _check_batches_receipt(co, p1, p2):
+    check("batches: both calls succeed", p1.returncode == 0 and p2.returncode == 0, out_of(p1) + out_of(p2))
+    rc = load_receipt(co, "run-q")
+    b1, b2 = rc["batches"][0], rc["batches"][1]
+    check("batches: ordered 1 then 2", (b1["seq"], b2["seq"]) == (1, 2) and len(rc["batches"]) == 2, rc)
+    check("batches: distinct content-derived identities", b1["id"] != b2["id"], None)
+    check("batches: second batch originals are the first batch's text and absence",
+          b2["originals"] == [{"section": "Patterns", "target": "P-02", "original": "first take"},
+                              {"section": "Gotchas", "target": "G-02", "original": None}], b2["originals"])
+    check("batches: second batch starts from the first batch's result", b2["before_sha256"] == b1["after_sha256"], None)
+    check("batches: ops recorded exactly in call order",
+          b2["ops"] == [mop("replace", "Patterns", "P-02", "second take"), mop("add", "Gotchas", "G-02", "new gotcha")], b2["ops"])
+
+
+def _check_batches_counts(p2):
+    out2 = jout(p2)
+    check("batches: counts reflect the second call only",
+          out2.get("counts") == {"before": dict(zero_counts(), Patterns=3, Gotchas=1), "after": dict(zero_counts(), Patterns=3, Gotchas=2)},
+          out2.get("counts"))
+
+
+def _check_batches_identity_refusals(co):
+    snap = snapshot(co)
+    p3 = member(co, "run-q", [mop("add", "Patterns", "P-07", "seven")], parent="other-parent")
+    check("batches: a different parent for the same runtime id is refused with 15", p3.returncode == 15, out_of(p3))
+    other = member(co, "run-q", [mop("add", "Patterns", "P-07", "seven")], persona="harness-other")
+    check("batches: a different persona for the same runtime id is refused with 15", other.returncode == 15, out_of(other))
+    check("batches: those refusals changed nothing", snapshot(co) == snap, None)
+
+
+def case_member_batches_append(root):
+    co = new_checkout(root, "seq", craft=BASE_DOC)
+    p1 = member(co, "run-q", [mop("add", "Patterns", "P-02", "first take")])
+    p2 = member(co, "run-q", [mop("replace", "Patterns", "P-02", "second take"), mop("add", "Gotchas", "G-02", "new gotcha")])
+    _check_batches_receipt(co, p1, p2)
+    _check_batches_counts(p2)
+    _check_batches_identity_refusals(co)
+
+
+def _check_refusal_ops(co):
+    p = member(co, "run-ok", [mop("replace", "Patterns", "P-99", "x")])
+    check("refusal: missing target refused with 10", p.returncode == 10, out_of(p))
+    p = member(co, "run-ok", [mop("add", "Patterns", "P-08", "fine"), mop("replace", "Patterns", "P-99", "x")])
+    check("refusal: a multi-op batch with one bad op applies nothing", p.returncode == 10, out_of(p))
+    p = member(co, "run-new", [mop("add", "Patterns", "P-08", "tracks FEAT-12 work")])
+    check("refusal: candidate failing check-expertise refused with 14", p.returncode == 14, out_of(p))
+
+
+def _check_refusal_untouched(co, snap):
+    check("refusal: target bytes, receipts and notes unchanged, no applied batch", snapshot(co) == snap, None)
+    check("refusal: the refused runtime has no receipt", not os.path.exists(receipt_path(co, "run-new")), None)
+
+
+def _check_refusal_cap(root):
+    capped = new_checkout(root, "refuse-cap", craft=[("Patterns", []), ("Gotchas", []), ("Outcomes", []),
+                                                      ("Open", [("Q-%02d" % n, "open") for n in range(1, 6)])])
+    snap = snapshot(capped)
+    p = member(capped, "run-cap", [mop("add", "Open", "Q-06", "overflow")])
+    check("refusal: cap overflow refused with 8", p.returncode == 8, out_of(p))
+    check("refusal: cap overflow preserved every byte", snapshot(capped) == snap, None)
+
+
+def case_member_refusal_preserves(root):
+    co = new_checkout(root, "refuse", craft=BASE_DOC)
+    member(co, "run-ok", [mop("add", "Patterns", "P-02", "two")])
+    snap = snapshot(co)
+    _check_refusal_ops(co)
+    _check_refusal_untouched(co, snap)
+    _check_refusal_cap(root)
+
+
+def case_member_receipt_failure_fails_closed(root):
+    co = new_checkout(root, "rfail", craft=BASE_DOC)
+    with open(os.path.join(co, NOTES_REL), "w", encoding="utf-8") as fh:
+        fh.write("a file where the notes directory must be\n")
+    ops = [mop("add", "Patterns", "P-02", "two")]
+    p = member(co, "run-f", ops)
+    check("receipt failure: call fails with 15", p.returncode == 15 and "RECEIPT" in p.stdout, out_of(p))
+    check("receipt failure: success was not published", jout(p) == {}, p.stdout)
+    check("receipt failure: the target did persist", "- P-02: two" in read_rel(co, CRAFT_REL), None)
+    os.remove(os.path.join(co, NOTES_REL))
+    v = verify(co, "run-f", [claim(ops[0])])
+    check("receipt failure: verification fails closed on the missing receipt", v.returncode == 15 and "MISSING RECEIPT" in v.stdout, out_of(v))
+    r = replay(co, head(co))
+    check("receipt failure: replay fails closed on the unreceipted change", r.returncode == 15 and "UNRECEIPTED" in r.stdout, out_of(r))
+
+
+def _verify_fixture(root):
+    co = new_checkout(root, "verify", craft=BASE_DOC)
+    add2 = mop("add", "Patterns", "P-02", "v1 text")
+    rep2 = mop("replace", "Patterns", "P-02", "v2 text")
+    member(co, "run-v", [add2])
+    member(co, "run-v", [rep2, mop("add", "Gotchas", "G-02", "kept gotcha")])
+    return co, add2, rep2
+
+
+def _check_verify_final_effect(co, add2, rep2):
+    snap = snapshot(co, locks=True)
+    v = verify(co, "run-v", [claim(add2), claim(rep2), claim(mop("add", "Gotchas", "G-02", "kept gotcha"))])
+    vo = jout(v)
+    check("verify: ordered active batches verify on their FINAL effect (superseded intermediate absent)",
+          v.returncode == 0 and vo.get("verified") is True, out_of(v))
+    check("verify: reports measured per-section counts", vo.get("counts", {}).get("Patterns") == 3, vo.get("counts"))
+    check("verify: read-only (no file, lock or receipt changed or added)", snapshot(co, locks=True) == snap, None)
+
+
+def _verify_refusal_cases(add2):
+    return {
+        "wrong runtime": dict(runtime="run-none", claimed=[claim(add2)]),
+        "wrong persona": dict(runtime="run-v", claimed=[claim(add2, "harness-other")], persona="harness-other"),
+        "wrong parent": dict(runtime="run-v", claimed=[claim(add2)], parent="elsewhere"),
+        "wrong destination": dict(runtime="run-v", claimed=[claim(add2)], tier="repository", repo="harness"),
+        "op not exactly recorded": dict(runtime="run-v", claimed=[claim(dict(add2, why="different why"))]),
+        "fabricated op": dict(runtime="run-v", claimed=[claim(mop("add", "Patterns", "P-77", "never applied"))]),
+        "persona missing from item": dict(runtime="run-v", claimed=[add2]),
+    }
+
+
+def _check_verify_refusals(co, add2):
+    for label, args in _verify_refusal_cases(add2).items():
+        runtime = args.pop("runtime")
+        claimed = args.pop("claimed")
+        v = verify(co, runtime, claimed, **args)
+        check("verify: %s refused with 15" % label, v.returncode == 15, out_of(v))
+
+
+def _check_verify_tampered_file(co, add2, rep2):
+    path = os.path.join(co, CRAFT_REL)
+    good = read_rel(co, CRAFT_REL)
+    overwrite(path, good.replace("v2 text", "v1 text"))
+    v = verify(co, "run-v", [claim(add2), claim(rep2)])
+    check("verify: file reverted to the superseded intermediate is a mismatch", v.returncode == 15 and "MISMATCH" in v.stdout, out_of(v))
+    overwrite(path, good.replace("- P-02: v2 text\n", ""))
+    v = verify(co, "run-v", [claim(rep2)])
+    check("verify: entry removed after the receipt is a mismatch", v.returncode == 15, out_of(v))
+    overwrite(path, good)
+
+
+def _check_verify_preserved_add(co):
+    # preserved identical add versus invented application
+    keep = mop("add", "Patterns", "P-01", "alpha rule")
+    p = member(co, "run-keep", [keep])
+    check("verify: identical existing add is PRESERVED", p.returncode == 0 and jout(p).get("outcomes") == [["PRESERVED", "P-01"]], out_of(p))
+    v = verify(co, "run-keep", [claim(keep)])
+    check("verify: preserved add verifies and is listed as preserved",
+          v.returncode == 0 and jout(v).get("preserved") == [["Patterns", "P-01"]], out_of(v))
+
+
+def _check_verify_invented_application(co):
+    forged = load_receipt(co, "run-keep")
+    forged["batches"][0]["ops"] = [mop("add", "Patterns", "P-55", "invented")]
+    overwrite(receipt_path(co, "run-keep"), json.dumps(forged))
+    v = verify(co, "run-keep", [claim(mop("add", "Patterns", "P-55", "invented"))])
+    check("verify: an invented application (receipt edited, file never changed) is refused", v.returncode == 15, out_of(v))
+
+
+def case_member_verify(root):
+    co, add2, rep2 = _verify_fixture(root)
+    _check_verify_final_effect(co, add2, rep2)
+    _check_verify_refusals(co, add2)
+    _check_verify_tampered_file(co, add2, rep2)
+    _check_verify_preserved_add(co)
+    _check_verify_invented_application(co)
+
+
+# FEAT-2225 F2 — verify-receipt checks the COMPLETE destination, not only the recorded op keys.
+GBASE_DOC = [("Patterns", []), ("Gotchas", [("G-01", "watch one"), ("G-02", "watch two")]),
+             ("Outcomes", []), ("Open", [])]
+FULL_ADD = mop("add", "Patterns", "P-01", "receipted rule")
+
+
+def _complete_fixture(root, name, before=None):
+    co = new_checkout(root, name, craft=GBASE_DOC)
+    if before:
+        overwrite(os.path.join(co, CRAFT_REL), read_rel(co, CRAFT_REL).replace(*before))
+    member(co, "run-full", [FULL_ADD])
+    return co
+
+
+def _verify_full(co):
+    return verify(co, "run-full", [claim(FULL_ADD)])
+
+
+def _refuses_unreceipted(name, v):
+    check(name, v.returncode == 15 and "UNRECEIPTED CONTENT" in v.stdout, out_of(v))
+
+
+def _check_tamper_after(co, old, new, name):
+    path = os.path.join(co, CRAFT_REL)
+    good = read_rel(co, CRAFT_REL)
+    overwrite(path, good.replace(old, new))
+    _refuses_unreceipted(name, _verify_full(co))
+    overwrite(path, good)
+
+
+def _verifies(name, co):
+    v = _verify_full(co)
+    check(name, v.returncode == 0, out_of(v))
+
+
+def case_verify_complete_destination(root):
+    co = _complete_fixture(root, "vfull")
+    _verifies("verify full: a clean receipted add verifies", co)
+    _check_tamper_after(co, "- G-01: watch one\n", "",
+                        "verify full: receipted P-01 add plus unreceipted deletion of pre-existing G-01 refuses")
+    _check_tamper_after(co, "watch two", "edited by hand",
+                        "verify full: receipted add plus unreceipted edit of another entry refuses")
+    _verifies("verify full: restored file verifies again", co)
+    early = _complete_fixture(root, "vfull-early", before=("- G-01: watch one\n", ""))
+    _refuses_unreceipted("verify full: unreceipted G-01 deletion BEFORE the receipted add refuses", _verify_full(early))
+
+
+# FEAT-2225 c2 — the write chain anchors on the authorized base (merge-base with the default
+# branch, or with --base), never on the feature's own HEAD.
+LINEAGES = (("member", PERSONA, "lead-run"), ("lead", "harness-product-lead", "orch-run"))
+
+
+def _feature_branch_fixture(root, name, persona, tamper):
+    """Baseline on main, then a feature branch; `tamper` deletes G-01 in a COMMIT before the
+    first receipted application."""
+    co = new_checkout(root, name)
+    rel = ".harness/expertise/%s.md" % persona
+    os.makedirs(os.path.join(co, ".harness", "expertise"), exist_ok=True)
+    write_file(os.path.join(co, rel), GBASE_DOC)
+    main = commit_all(co, "baseline")
+    sh(co, "checkout", "-q", "-b", "feat/fixture")
+    if tamper:
+        overwrite(os.path.join(co, rel), read_rel(co, rel).replace("- G-01: watch one\n", ""))
+        commit_all(co, "unreceipted edit")
+    return co, main
+
+
+def _check_committed_tamper(root, label, persona, parent):
+    co, main = _feature_branch_fixture(root, "ctamper-" + label, persona, tamper=True)
+    p = member(co, "run-" + label, [FULL_ADD], persona=persona, parent=parent)
+    check("verify c2 %s: the receipted application itself lands" % label, p.returncode == 0, out_of(p))
+    for base in (None, main):
+        v = verify(co, "run-" + label, [claim(FULL_ADD, persona)], persona=persona, parent=parent, base=base)
+        _refuses_unreceipted("verify c2 %s: unreceipted G-01 deletion COMMITTED before the first receipted "
+                             "application refuses (base=%s)" % (label, "default" if base is None else "--base"), v)
+
+
+def _check_feature_branch_clean(root, label, persona, parent):
+    co, main = _feature_branch_fixture(root, "cclean-" + label, persona, tamper=False)
+    member(co, "run-" + label, [FULL_ADD], persona=persona, parent=parent)
+    commit_all(co, "receipted application committed")
+    for base in (None, main):
+        v = verify(co, "run-" + label, [claim(FULL_ADD, persona)], persona=persona, parent=parent, base=base)
+        check("verify c2 %s: a committed receipted application on a feature branch verifies (base=%s)"
+              % (label, "default" if base is None else "--base"), v.returncode == 0, out_of(v))
+
+
+def _check_no_authorized_base(root):
+    co, _ = _feature_branch_fixture(root, "cnobase", PERSONA, tamper=False)
+    member(co, "run-nb", [FULL_ADD])
+    sh(co, "branch", "-m", "main", "trunk")
+    v = verify(co, "run-nb", [claim(FULL_ADD)])
+    check("verify c2: no default branch and no --base refuses with 15, NO AUTHORIZED BASE",
+          v.returncode == 15 and v.stdout.startswith("NO AUTHORIZED BASE"), out_of(v))
+
+
+def _check_unchained_active_batch(root):
+    """N2: run-f's add was undone by hand and run-a re-added the identical entry. The file and the
+    final effect agree, the chain reaches the base through run-a, and run-f's batch is OFF it."""
+    co = new_checkout(root, "cunchained", craft=GBASE_DOC)
+    path = os.path.join(co, CRAFT_REL)
+    baseline = read_bytes(path)
+    member(co, "run-f", [FULL_ADD])
+    overwrite_bytes(path, baseline)
+    member(co, "run-a", [FULL_ADD])
+    check("verify c2: the runtime whose write is on the chain verifies", verify(co, "run-a", [claim(FULL_ADD)]).returncode == 0, None)
+    v = verify(co, "run-f", [claim(FULL_ADD)])
+    check("verify c2: an active batch off the write chain refuses and is named (unchained-batch guard)",
+          v.returncode == 15 and "active batches off the write chain" in v.stdout, out_of(v))
+
+
+def case_verify_authorized_anchor(root):
+    for label, persona, parent in LINEAGES:
+        _check_committed_tamper(root, label, persona, parent)
+        _check_feature_branch_clean(root, label, persona, parent)
+    _check_no_authorized_base(root)
+    _check_unchained_active_batch(root)
+
+
+def _selection_fixture(root):
+    co = new_checkout(root, "sel", craft=BASE_DOC)
+    member(co, "old-run", [mop("replace", "Patterns", "P-01", "beta rule")])
+    commit_all(co, "earlier distill")
+    moved = [("Patterns", [("P-01", "changed upstream"), ("P-03", "gamma rule")]), ("Gotchas", [("G-01", "watch one")]),
+             ("Outcomes", []), ("Open", [])]
+    write_file(os.path.join(co, CRAFT_REL), moved)
+    base2 = commit_all(co, "main moved")
+    member(co, "new-run", [mop("add", "Patterns", "P-05", "fresh rule")])
+    return co, base2
+
+
+def case_replay_current_pr_selection(root):
+    co, base2 = _selection_fixture(root)
+    snap = snapshot(co, locks=True)
+    r = replay(co, base2, check_only=True)
+    out = jout(r)
+    check("replay selection: earlier distill's receipt on main is ignored (replay succeeds)", r.returncode == 0, out_of(r))
+    paths = [x.get("path") for x in out.get("receipts", [])]
+    check("replay selection: only the current PR's receipt is read",
+          paths == [NOTES_REL + "/expertise-receipt-%s.json" % hashlib.sha256(b"new-run").hexdigest()], paths)
+    check("replay --check is read-only", snapshot(co, locks=True) == snap, None)
+    check("replay --check reports the checkout file already equals the replay", out.get("files", [{}])[0].get("up_to_date") is True, out.get("files"))
+
+
+def _collision_fixture(root):
+    origin = new_checkout(root, "o-col", craft=BASE_DOC)
+    base0 = head(origin)
+    a, b = clone(origin, root, "a-col"), clone(origin, root, "b-col")
+    member(a, "run-a", [mop("add", "Patterns", "P-05", "from A"), mop("add", "Patterns", "P-06", "shared text")])
+    member(b, "run-b", [mop("add", "Patterns", "P-05", "from B"), mop("add", "Patterns", "P-06", "shared text")])
+    member(b, "run-b", [mop("replace", "Patterns", "P-05", "from B v2")])
+    commit_all(a, "A merges")
+    return base0, a, b
+
+
+def _collision_first_replay(a, b, base0):
+    ra = replay(a, base0)
+    check("replay collision: the first worktree replays cleanly onto its own base", ra.returncode == 0, out_of(ra))
+    return fetch_head(b, a)
+
+
+def _check_collision_dry_run(b, base1):
+    mine = read_rel(b, CRAFT_REL)
+    r = replay(b, base1, check_only=True)
+    out = jout(r)
+    first_batch = load_receipt(b, "run-b")["batches"][0]["id"]
+    check("replay collision: --check succeeds", r.returncode == 0, out_of(r))
+    want_map = [{"persona": PERSONA, "runtime_id": "run-b", "destination": CRAFT_REL, "section": "Patterns",
+                 "original_id": "P-05", "replayed_id": "P-02", "batch": first_batch}]
+    check("replay collision: original-to-replayed id mapping (first free positive id)", out.get("mappings") == want_map, out.get("mappings"))
+    check("replay collision: --check left the file alone and says it is stale",
+          read_rel(b, CRAFT_REL) == mine and out["files"][0]["up_to_date"] is False, out.get("files"))
+    return want_map
+
+
+def _check_collision_write(b, base1):
+    r = replay(b, base1)
+    check("replay collision: write run succeeds", r.returncode == 0, out_of(r))
+    expected = doc([("Patterns", [("P-01", "alpha rule"), ("P-03", "gamma rule"), ("P-05", "from A"),
+                                  ("P-06", "shared text"), ("P-02", "from B v2")]),
+                    ("Gotchas", [("G-01", "watch one")]), ("Outcomes", []), ("Open", [])])
+    check("replay collision: both entries survive, identical add preserved, later reference remapped",
+          read_rel(b, CRAFT_REL) == expected, read_rel(b, CRAFT_REL))
+    blob = sh(b, "show", "%s:%s" % (base1, CRAFT_REL))
+    f = jout(r)["files"][0]
+    check("replay collision: base and result hash evidence",
+          f.get("base_sha256") == sha_text(blob + "\n") and f.get("result_sha256") == sha_text(expected), f)
+    return expected
+
+
+def _check_collision_repeat(b, base1, want_map, expected):
+    again = read_rel(b, CRAFT_REL)
+    r2 = replay(b, base1)
+    check("replay repeat: second replay rebuilds from the base, not from its own output",
+          r2.returncode == 0 and read_rel(b, CRAFT_REL) == again == expected and jout(r2)["mappings"] == want_map, out_of(r2))
+    check("replay repeat: second replay finds the file already up to date", jout(r2)["files"][0]["up_to_date"] is True, jout(r2))
+    r3 = subprocess.run([sys.executable, CHECK_EXPERTISE_BIN, os.path.join(b, CRAFT_REL)], capture_output=True, text=True)
+    check("replay collision: result passes check-expertise", r3.returncode == 0, r3.stdout)
+
+
+def case_replay_collision_and_repeat(root):
+    base0, a, b = _collision_fixture(root)
+    base1 = _collision_first_replay(a, b, base0)
+    want_map = _check_collision_dry_run(b, base1)
+    expected = _check_collision_write(b, base1)
+    _check_collision_repeat(b, base1, want_map, expected)
+
+
+def _independent_fixture(root):
+    origin = new_checkout(root, "o-ind", craft=BASE_DOC)
+    base0 = head(origin)
+    x, y = clone(origin, root, "x-ind"), clone(origin, root, "y-ind")
+    member(x, "run-x", [mop("replace", "Patterns", "P-01", "new one")])
+    member(y, "run-y", [mop("replace", "Patterns", "P-01", "new one")])
+    shutil.copy(receipt_path(y, "run-y"), receipt_path(x, "run-y"))
+    return origin, base0, x
+
+
+def _check_independent_replace_pair(x, base0):
+    snap = snapshot(x)
+    r = replay(x, base0)
+    out = jout(r)
+    reasons = [q.get("reason", "") for q in out.get("refusals", [])]
+    check("replay independent: two callers replacing one base entry refuse (identical text not hidden)",
+          r.returncode == 13 and any(s.startswith("INDEPENDENT") for s in reasons), out_of(r))
+    both = out.get("refusals", [{}])[0].get("runtimes")
+    check("replay independent: refusal names both runs", both == ["run-x", "run-y"], both)
+    check("replay independent: refused file stays byte-identical", snapshot(x) == snap, None)
+
+
+def _check_independent_replace_drop(root, origin, x, base0):
+    z = clone(origin, root, "z-ind")
+    member(z, "run-z", [mop("drop", "Patterns", "P-01")])
+    shutil.copy(receipt_path(z, "run-z"), receipt_path(x, "run-z"))
+    os.remove(receipt_path(x, "run-y"))
+    r = replay(x, base0)
+    check("replay independent: replace versus drop of one entry refuses too",
+          r.returncode == 13 and any(q["reason"].startswith("INDEPENDENT") for q in jout(r).get("refusals", [])), out_of(r))
+
+
+def case_replay_independent_callers(root):
+    origin, base0, x = _independent_fixture(root)
+    _check_independent_replace_pair(x, base0)
+    _check_independent_replace_drop(root, origin, x, base0)
+
+
+def _changed_main_fixture(root):
+    origin = new_checkout(root, "o-chg", craft=BASE_DOC)
+    x = clone(origin, root, "x-chg")
+    member(x, "run-c", [mop("replace", "Patterns", "P-03", "mine")])
+    member(x, "run-d", [mop("drop", "Patterns", "P-01")])
+    z = clone(origin, root, "z-chg")
+    write_file(os.path.join(z, CRAFT_REL), [("Patterns", [("P-03", "changed upstream")]), ("Gotchas", [("G-01", "watch one")]),
+                                            ("Outcomes", []), ("Open", [])])
+    base_z = commit_all(z, "main moved")
+    sh(x, "fetch", "-q", z, "HEAD")
+    return x, base_z
+
+
+def _check_changed_replace_refusal(x, ref):
+    c_id = load_receipt(x, "run-c")["batches"][0]["id"]
+    check("replay changed main: replace refusal names persona run destination section id batch",
+          ref.get("P-03", {}).get("persona") == PERSONA and ref["P-03"].get("runtimes") == ["run-c"]
+          and ref["P-03"].get("destination") == CRAFT_REL and ref["P-03"].get("section") == "Patterns"
+          and ref["P-03"].get("batches") == [c_id] and ref["P-03"].get("reason", "").startswith("CHANGED"), ref.get("P-03"))
+
+
+def _check_changed_main(x, base_z):
+    snap = snapshot(x)
+    r = replay(x, base_z)
+    out = jout(r)
+    check("replay changed main: replace/drop over a changed or vanished entry refuse with 13", r.returncode == 13, out_of(r))
+    ref = {q.get("target"): q for q in out.get("refusals", [])}
+    _check_changed_replace_refusal(x, ref)
+    check("replay changed main: vanished drop target is DISAPPEARED",
+          ref.get("P-01", {}).get("reason", "").startswith("DISAPPEARED"), ref.get("P-01"))
+    check("replay changed main: refused file byte-identical", snapshot(x) == snap, None)
+
+
+def _cap_fixture(root):
+    base_open = [("Patterns", []), ("Gotchas", []), ("Outcomes", []), ("Open", [("Q-%02d" % n, "open") for n in range(1, 5)])]
+    o2 = new_checkout(root, "o-cap", craft=base_open)
+    base_o = head(o2)
+    x2 = clone(o2, root, "x-cap")
+    member(x2, "run-cap", [mop("add", "Open", "Q-05", "fifth")])
+    r = replay(x2, base_o, check_only=True)
+    check("replay cap: exactly at the cap succeeds", r.returncode == 0, out_of(r))
+    return o2, x2
+
+
+def _check_cap_overflow(root, o2, x2):
+    z2 = clone(o2, root, "z-cap")
+    write_file(os.path.join(z2, CRAFT_REL), [("Patterns", []), ("Gotchas", []), ("Outcomes", []),
+                                             ("Open", [("Q-%02d" % n, "open") for n in range(1, 5)] + [("Q-06", "upstream")])])
+    base_c = commit_all(z2, "main fills Open")
+    sh(x2, "fetch", "-q", z2, "HEAD")
+    snap = snapshot(x2)
+    r = replay(x2, base_c)
+    check("replay cap: overflow refuses rather than truncates",
+          r.returncode == 13 and any("CAP EXCEEDED" in q.get("reason", "") for q in jout(r).get("refusals", [])), out_of(r))
+    check("replay cap: refused file byte-identical", snapshot(x2) == snap, None)
+
+
+def case_replay_changed_main_and_cap(root):
+    x, base_z = _changed_main_fixture(root)
+    _check_changed_main(x, base_z)
+    o2, x2 = _cap_fixture(root)
+    _check_cap_overflow(root, o2, x2)
+
+
+def _supersession_fixture(root):
+    origin = new_checkout(root, "o-sup", craft=BASE_DOC)
+    x = clone(origin, root, "x-sup")
+    member(x, "run-c", [mop("replace", "Patterns", "P-03", "mine")])
+    old = load_receipt(x, "run-c")["batches"][0]["id"]
+    z = clone(origin, root, "z-sup")
+    write_file(os.path.join(z, CRAFT_REL), [("Patterns", [("P-01", "alpha rule"), ("P-03", "changed upstream")]),
+                                            ("Gotchas", [("G-01", "watch one")]), ("Outcomes", []), ("Open", [])])
+    base_z = commit_all(z, "main moved")
+    sh(x, "fetch", "-q", z, "HEAD")
+    return origin, x, old, z, base_z
+
+
+def _check_supersession_original_refused(x, base_z, old):
+    r = replay(x, base_z)
+    check("supersession: the original judgment is refused first", r.returncode == 13 and jout(r)["refusals"][0]["batches"] == [old], out_of(r))
+
+
+def _check_supersession_authority(x, base_z, old):
+    other = member(x, "run-o", [mop("add", "Patterns", "P-01", "o")], persona="harness-other", supersedes=[old], base=base_z)
+    check("supersession: another persona cannot retire the batch", other.returncode == 15 and "UNAUTHORIZED" in other.stdout, out_of(other))
+    crossed = member(x, "run-r", [mop("add", "Patterns", "P-09", "n")], tier="repository", repo="harness", supersedes=[old], base=base_z)
+    check("supersession: another destination cannot retire the batch", crossed.returncode == 15, out_of(crossed))
+
+
+def _check_supersession_references(x, base_z, old, new_op):
+    missing = member(x, "run-m", [new_op], supersedes=["a" * 64], base=base_z)
+    check("supersession: unknown batch reference refused with 15", missing.returncode == 15 and "MISSING" in missing.stdout, out_of(missing))
+    nobase = member(x, "run-n", [new_op], supersedes=[old])
+    check("supersession: a reference needs the explicit main base (12)", nobase.returncode == 12, out_of(nobase))
+    malformed = member(x, "run-n", [new_op], supersedes=["not-a-batch-id"], base=base_z)
+    check("supersession: malformed reference refused with 12", malformed.returncode == 12, out_of(malformed))
+    failed = member(x, "run-bad", [mop("replace", "Patterns", "P-77", "x")], supersedes=[old], base=base_z)
+    check("supersession: failing replacement ops refuse with 10", failed.returncode == 10, out_of(failed))
+
+
+def _check_supersession_nothing_retired(x, base_z, snap):
+    check("supersession: all refusals wrote nothing and retired nothing", snapshot(x) == snap, None)
+    check("supersession: failed replacement leaves the old batch active (replay still refuses)", replay(x, base_z).returncode == 13, None)
+
+
+def _check_supersession_replacement(x, base_z, old, new_op, old_bytes):
+    p = member(x, "run-c2", [new_op], parent="parent-2", supersedes=[old], base=base_z)
+    check("supersession: same persona re-dispatched child replaces the refused batch", p.returncode == 0 and jout(p).get("supersedes") == [old], out_of(p))
+    expected = doc([("Patterns", [("P-01", "alpha rule"), ("P-03", "mine revised")]), ("Gotchas", [("G-01", "watch one")]),
+                    ("Outcomes", []), ("Open", [])])
+    check("supersession: file is the main reconstruction plus the new ops", read_rel(x, CRAFT_REL) == expected, read_rel(x, CRAFT_REL))
+    check("supersession: historical receipt is immutable", read_bytes(receipt_path(x, "run-c")) == old_bytes, None)
+    check("supersession: replacement receipt records the exact reference",
+          load_receipt(x, "run-c2")["batches"][0]["supersedes"] == [old], None)
+    return expected
+
+
+def _check_supersession_replay_idempotent(x, base_z, expected):
+    r = replay(x, base_z)
+    check("supersession: replay now succeeds and the file is already the replay", r.returncode == 0 and jout(r)["files"][0]["up_to_date"] is True, out_of(r))
+    again = read_rel(x, CRAFT_REL)
+    r2 = replay(x, base_z)
+    check("supersession: replay is idempotent", r2.returncode == 0 and read_rel(x, CRAFT_REL) == again == expected, out_of(r2))
+
+
+def _check_supersession_verification(x, base_z, new_op):
+    v = verify(x, "run-c2", [claim(new_op)], parent="parent-2", base=base_z)
+    check("supersession: replacement receipt verifies with its authorization reference", v.returncode == 0, out_of(v))
+    v = verify(x, "run-c2", [claim(new_op)], parent="parent-2")
+    check("supersession: replacement verifies its complete destination with no --base (superseded write honoured)",
+          v.returncode == 0, out_of(v))
+    v = verify(x, "run-c", [claim(mop("replace", "Patterns", "P-03", "mine"))], base=base_z)
+    check("supersession: the retired batch no longer verifies as active", v.returncode == 15, out_of(v))
+
+
+def _check_supersession_ambiguous(x, base_z, old, new_op):
+    snap = snapshot(x)
+    again3 = member(x, "run-c3", [new_op], parent="parent-3", supersedes=[old], base=base_z)
+    check("supersession: a second replacement of the same batch is ambiguous (15)", again3.returncode == 15 and "AMBIGUOUS" in again3.stdout, out_of(again3))
+    check("supersession: ambiguous attempt wrote nothing", snapshot(x) == snap, None)
+
+
+def _check_supersession_outside_pr(x, new_op):
+    new_id = load_receipt(x, "run-c2")["batches"][0]["id"]
+    base3 = commit_all(x, "PR merged")
+    outside = member(x, "run-c4", [new_op], supersedes=[new_id], base=base3)
+    check("supersession: a reference whose receipt is already on main is outside this PR (15)", outside.returncode == 15, out_of(outside))
+
+
+def _supersession_withdraw(root, origin, z, base_z):
+    x2 = clone(origin, root, "x2-sup")
+    member(x2, "run-c", [mop("replace", "Patterns", "P-03", "mine")])
+    old2 = load_receipt(x2, "run-c")["batches"][0]["id"]
+    sh(x2, "fetch", "-q", z, "HEAD")
+    w = member(x2, "run-c5", [], parent="parent-5", supersedes=[old2], base=base_z)
+    check("supersession: empty replacement withdraws the judgment", w.returncode == 0, out_of(w))
+    return x2, old2
+
+
+def _check_supersession_withdrawal_result(x2, z, old2, base_z):
+    check("supersession: withdrawal leaves exactly the main blob", read_rel(x2, CRAFT_REL) == sh(z, "show", "HEAD:" + CRAFT_REL) + "\n", read_rel(x2, CRAFT_REL))
+    rc = load_receipt(x2, "run-c5")["batches"][0]
+    check("supersession: withdrawal is an empty batch, not a fabricated op", rc["ops"] == [] and rc["supersedes"] == [old2], rc)
+    r = replay(x2, base_z)
+    check("supersession: replay after withdrawal succeeds", r.returncode == 0, out_of(r))
+    v = verify(x2, "run-c5", [], parent="parent-5", base=base_z)
+    check("supersession: withdrawal verifies with an empty claimed list", v.returncode == 0, out_of(v))
+
+
+def case_supersession_flow(root):
+    origin, x, old, z, base_z = _supersession_fixture(root)
+    _check_supersession_original_refused(x, base_z, old)
+    old_bytes = read_bytes(receipt_path(x, "run-c"))
+    new_op = mop("replace", "Patterns", "P-03", "mine revised")
+    snap = snapshot(x)
+    _check_supersession_authority(x, base_z, old)
+    _check_supersession_references(x, base_z, old, new_op)
+    _check_supersession_nothing_retired(x, base_z, snap)
+    expected = _check_supersession_replacement(x, base_z, old, new_op, old_bytes)
+    _check_supersession_replay_idempotent(x, base_z, expected)
+    _check_supersession_verification(x, base_z, new_op)
+    _check_supersession_ambiguous(x, base_z, old, new_op)
+    _check_supersession_outside_pr(x, new_op)
+    x2, old2 = _supersession_withdraw(root, origin, z, base_z)
+    _check_supersession_withdrawal_result(x2, z, old2, base_z)
+
+
+def forge_receipt(co, runtime, batch_id, supersedes):
+    rc = {"schema": 1, "persona": PERSONA, "feature": FEATURE, "runtime_id": runtime, "parent_id": "p",
+          "batches": [{"id": batch_id, "seq": 1, "destination": CRAFT_REL, "ops": [], "originals": [],
+                       "before_sha256": None, "after_sha256": "0" * 64, "supersedes": supersedes, "recorded_at_ns": 1}]}
+    with open(receipt_path(co, runtime), "w", encoding="utf-8") as fh:
+        json.dump(rc, fh)
+
+
+def _evidence_fixture(root):
+    co = new_checkout(root, "evid", craft=BASE_DOC)
+    base0 = head(co)
+    member(co, "run-t", [mop("add", "Patterns", "P-02", "two")])
+    path = receipt_path(co, "run-t")
+    return co, base0, path, read_bytes(path)
+
+
+def _check_evidence_identity(co, base0, path, good):
+    forged = json.loads(good)
+    forged["batches"][0]["after_sha256"] = "f" * 64
+    overwrite(path, json.dumps(forged))
+    r = replay(co, base0)
+    check("evidence: a receipt whose content no longer matches its identity fails replay with 15", r.returncode == 15 and "IDENTITY" in r.stdout, out_of(r))
+    v = verify(co, "run-t", [claim(mop("add", "Patterns", "P-02", "two"))])
+    check("evidence: ... and fails verification with 15", v.returncode == 15, out_of(v))
+
+
+def _check_evidence_undecodable_and_restored(co, base0, path, good):
+    overwrite(path, "{")
+    check("evidence: undecodable receipt fails replay with 15", replay(co, base0).returncode == 15, None)
+    overwrite_bytes(path, good)
+    check("evidence: restored receipt replays", replay(co, base0, check_only=True).returncode == 0, None)
+
+
+def _check_evidence_missing_pieces(co, base0, path, good):
+    with open(os.path.join(co, CRAFT_REL), "a", encoding="utf-8") as fh:
+        fh.write("- P-40: hand edited\n")
+    os.remove(path)
+    r = replay(co, base0)
+    check("evidence: an Expertise change with no receipt is refused with 15", r.returncode == 15 and "UNRECEIPTED" in r.stdout, out_of(r))
+    overwrite_bytes(path, good)
+    os.remove(os.path.join(co, CRAFT_REL))
+    r = replay(co, base0)
+    check("evidence: a receipt naming a file the checkout lacks is refused with 15", r.returncode == 15, out_of(r))
+
+
+def _check_evidence_cycle(co, base0):
+    forge_receipt(co, "run-t", "a" * 64, ["b" * 64])
+    forge_receipt(co, "run-u", "b" * 64, ["a" * 64])
+    write_file(os.path.join(co, CRAFT_REL), BASE_DOC)
+    r = replay(co, base0)
+    check("evidence: cyclic supersession is refused with 15 and named", r.returncode == 15 and "CYCLIC" in r.stdout, out_of(r))
+
+
+def case_replay_evidence_fails_closed(root):
+    co, base0, path, good = _evidence_fixture(root)
+    _check_evidence_identity(co, base0, path, good)
+    _check_evidence_undecodable_and_restored(co, base0, path, good)
+    _check_evidence_missing_pieces(co, base0, path, good)
+    _check_evidence_cycle(co, base0)
+
+
+def run_guarded(case, root):
+    try:
+        case(root)
+    except Exception as exc:  # a missing subcommand or a mutant reads as FAIL, never as a crashed suite
+        check("%s: completed without raising" % case.__name__, False, repr(exc))
+
+
+SERIAL_CASES = (
+    case_naive_last_writer_wins, case_green_union, case_concurrency_real, case_divergent_text,
+    case_cap_overflow, case_new_file, case_destination_refusal, case_cap_drift_detector,
+    case_stale_lock_recovery, case_replace_at_capacity, case_removal, case_missing_target,
+    case_ambiguous_target, case_atomic_failure, case_add_only_compatibility, case_contract_drift,
+    case_concurrent_writers, case_multi_op_composition, case_malformed_ops_cli,
+    case_ops_entry_injection, case_ops_target_injection, case_ops_non_string_target,
+    case_ops_add_duplicated_base, case_ops_target_grammar, case_ops_target_grammar_well_formed,
+    case_duplicate_proposal_ids)
+# The FEAT-2225 cases each own a private subtree of `root` and spawn many git/python
+# subprocesses; a bounded pool keeps the whole suite inside its 60 second budget.
+POOLED_CASES = (
+    case_member_absent_files, case_member_destination_boundaries, case_member_strict_ops,
+    case_member_batches_append, case_member_refusal_preserves, case_member_receipt_failure_fails_closed,
+    case_member_verify, case_replay_current_pr_selection, case_replay_collision_and_repeat,
+    case_replay_independent_callers, case_replay_changed_main_and_cap, case_supersession_flow,
+    case_replay_evidence_fails_closed, case_verify_complete_destination, case_verify_authorized_anchor)
+
+
 def _run_all_cases(root):
-    case_naive_last_writer_wins(root)
-    case_green_union(root)
-    case_concurrency_real(root)
-    case_divergent_text(root)
-    case_cap_overflow(root)
-    case_new_file(root)
-    case_destination_refusal(root)
-    case_cap_drift_detector()
-    case_stale_lock_recovery(root)
-    case_replace_at_capacity(root)
-    case_removal(root)
-    case_missing_target(root)
-    case_ambiguous_target(root)
-    case_atomic_failure(root)
-    case_add_only_compatibility(root)
-    case_contract_drift()
-    case_concurrent_writers(root)
-    case_multi_op_composition(root)
-    case_malformed_ops_cli(root)
-    case_ops_entry_injection(root)
-    case_ops_target_injection(root)
-    case_ops_non_string_target(root)
-    case_ops_add_duplicated_base(root)
-    case_ops_target_grammar(root)
-    case_ops_target_grammar_well_formed(root)
-    case_duplicate_proposal_ids(root)
+    for case in SERIAL_CASES:
+        case(root)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(lambda case: run_guarded(case, root), POOLED_CASES))
 
 
 def _report_results():

@@ -1,0 +1,117 @@
+schema_version: 2
+run_id: r-20261121-5-simplify-eng
+run_uid: 2842f2c13cb4401d9e258aa81e2363c3
+feature: FEAT-2225-member-expertise-writes
+squad: engineering
+host: harness-eng-lead
+status: blocked
+steps:
+- id: grade-lifts
+  persona: harness-backend-dev
+  task: T-01
+  seq: 1
+  depends_on: []
+  mutates_repo: true
+  on_fail: halt
+  status: complete
+  verdict: ESCALATE
+  lead_verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes/.harness/harness/features/FEAT-2225-member-expertise-writes/notes/receipt-harness-backend-dev-r-20261121-5-simplify-eng-lifts.md
+  note: Initial verification deferral satisfied by apply-verify; original member verdict preserved.
+- id: reuse
+  persona: harness-backend-dev
+  seq: 2
+  depends_on: []
+  mutates_repo: false
+  on_fail: continue
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes/.harness/harness/features/FEAT-2225-member-expertise-writes/notes/receipt-harness-backend-dev-r-20261121-5-simplify-eng-reuse.md
+  evidence:
+    findings_count: 4
+- id: simplification
+  persona: harness-data-engineer
+  seq: 3
+  depends_on: []
+  mutates_repo: false
+  on_fail: continue
+  status: complete
+  verdict: BLOCKED
+  dispatched_at: seq-1
+  completed_at: seq-2
+  redispatched_at: seq-3
+  recompleted_at: seq-4
+  redispatches: 1
+  cycles: 0
+  note: Contract violation persisted after one re-prompt; receipt retained.
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes/.harness/harness/features/FEAT-2225-member-expertise-writes/notes/receipt-harness-data-engineer-r-20261121-5-simplify-eng-simplification.md
+  evidence:
+    findings_count: 9
+- id: efficiency
+  persona: harness-dev-ops
+  seq: 4
+  depends_on: []
+  mutates_repo: false
+  on_fail: continue
+  status: complete
+  verdict: BLOCKED
+  dispatched_at: seq-1
+  completed_at: seq-2
+  redispatched_at: seq-3
+  recompleted_at: seq-4
+  redispatches: 1
+  cycles: 0
+  note: Contract violation persisted after one re-prompt; receipt retained.
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes/.harness/harness/features/FEAT-2225-member-expertise-writes/notes/receipt-harness-dev-ops-r-20261121-5-simplify-eng-efficiency.md
+  evidence:
+    findings_count: 2
+- id: altitude
+  persona: harness-ai-dev
+  seq: 5
+  depends_on: []
+  mutates_repo: false
+  on_fail: continue
+  status: complete
+  verdict: BLOCKED
+  dispatched_at: seq-1
+  completed_at: seq-2
+  redispatched_at: seq-3
+  recompleted_at: seq-4
+  redispatches: 1
+  cycles: 0
+  note: Contract violation persisted after one re-prompt; receipt retained.
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes/.harness/harness/features/FEAT-2225-member-expertise-writes/notes/receipt-harness-ai-dev-r-20261121-5-simplify-eng-altitude.md
+  evidence:
+    findings_count: 6
+- id: apply-verify
+  persona: harness-backend-dev
+  task: T-01
+  seq: 6
+  depends_on: [grade-lifts, reuse, simplification, efficiency, altitude]
+  mutates_repo: true
+  on_fail: halt
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-5
+  completed_at: seq-6
+  cycles: 0
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes/.harness/harness/features/FEAT-2225-member-expertise-writes/notes/receipt-harness-backend-dev-r-20261121-5-simplify-eng-final.md
+  evidence:
+    commit: f06b2e57d1f6ee38ed901a66885a0f0cb29f0b8b
+    t01_exit: 0
+    member_expertise_exit: 0
+    validate_digest_exit: 0
+    merge_gate_exit: 0
+    code_grade_exit: 0
+    plan_routes_exit: 0
+    canonical_audit_exit: 0
+    canonical_unresolved: 0
+    assertion_counts: ['unit check 119 -> 119; assert 0 -> 0', 'integration check 255 -> 255; assert 0 -> 0']
+    source_clean: true
+    tree_clean: false

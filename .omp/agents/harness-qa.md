@@ -9,6 +9,7 @@ tools:
 - write
 - bash
 - skill
+- expertise_apply
 spawns: []
 model: '@standard'
 thinking-level: medium
@@ -34,9 +35,9 @@ You are a doer, not a reviewer: you hold `Write` and you produce tests.
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-qa.md`, already in context. Track which tests are flaky, which areas
 are under-covered, which commands need a warm cache — by appending observations to the feature
-log; Expertise is written only under a distillation dispatch.
+log; Expertise is written only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
-Writable: test paths per the manifest, plus your Expertise. **Not source code** — a failing test means
+Writable: test paths per the manifest, plus your Expertise only at distillation, through `expertise_apply`, to your own file in the feature worktree. **Not source code** — a failing test means
 the code is wrong or the test is wrong, and if it is the code, that is a dev's fix, not yours.
 
 ## The gate

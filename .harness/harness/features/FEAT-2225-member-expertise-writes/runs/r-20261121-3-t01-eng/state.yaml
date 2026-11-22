@@ -1,0 +1,36 @@
+schema_version: 2
+run_id: r-20261121-3-t01-eng
+run_uid: 7c0690926f2349fca3f6a0cf065ba41e
+feature: FEAT-2225-member-expertise-writes
+squad: eng
+host: harness-eng-lead
+status: complete
+steps:
+  - id: T-01
+    persona: harness-backend-dev
+    task: T-01
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes/.harness/harness/features/FEAT-2225-member-expertise-writes/notes/receipt-harness-backend-dev-T-01-c1.md
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    max_cycles: 3
+    routed_by: consult_when
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes/.harness/harness/features/FEAT-2225-member-expertise-writes/notes/receipt-harness-backend-dev-T-01-c1.md
+    evidence:
+      commit: ba3fab79
+      verify_command: python3 tests/unit/test-expertise-ops.py && python3 tests/integration/test-expertise-merge.py
+      verify_exit_reported: 0
+      verify_seconds_reported: 34
+      verify_failures_reported: 0
+      unit_checks_reported: 194
+      integration_checks_reported: 355
+      amendments: none
+      source_grade: not_run

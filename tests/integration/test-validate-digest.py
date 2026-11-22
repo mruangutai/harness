@@ -5251,7 +5251,7 @@ DIGEST:
   fail_first: []
   open_questions: []
   files_touched: [/abs/.harness/expertise/harness-qa.md]
-  expertise_update: [{ op: add, target: /abs/.harness/expertise/harness-qa.md, section: Patterns, entry: "WHEN a suite is green DO record the fail-first receipt", why: "three runs lost it" }]
+  expertise_update: []
 artifact: .harness/features/FEAT-90/runs/distill-validator/digest.md
 """
 REVIEWER_DISTILL = """
@@ -5265,7 +5265,7 @@ DIGEST:
   reviewed: none
   files_touched: [/abs/.harness/expertise/harness-code-reviewer.md]
   open_questions: []
-  expertise_update: [{ op: add, target: /abs/.harness/expertise/harness-code-reviewer.md, section: Gotchas, entry: "WHEN a grade is n_a DO name the range", why: "two reviews skipped it" }]
+  expertise_update: []
 artifact: .harness/features/FEAT-90/runs/distill-validator/digest.md
 """
 hook_case("#1855: qa on a distill dispatch may PASS with suite/matrix_ok n/a",
@@ -5622,6 +5622,648 @@ def run_bug1898_exact_release_cases():
     return fails
 
 
+# --- FEAT-2225 T-04: an applied Expertise op is EVIDENCE, never a claim -------------------
+# Members apply their own ops through `expertise_apply` (T-01's member-ops core, called here
+# directly to build authentic receipts). A nonempty expertise_update is legal only under a
+# trusted distill context the validator DERIVES — the live claim, the feature.json `distill-*`
+# run and the containing feature tree — never from the digest. Every item names its persona
+# and must match an active receipt batch of this run (a leaf: itself; a lead: itself and its
+# actual children), verified against the file by `expertise-merge.py verify-receipt`, in the
+# live yield AND in the durable digest.md that feature-record.py close-run validates.
+MX_FEATURE = "FEAT-2225-mx-fixture"
+MX_FEATURE_REL = ".harness/harness/features/" + MX_FEATURE
+MX_RUN = "distill-validator"
+MX_LEAD, MX_LEAD_ID = "harness-validator-lead", "Orch.Val"
+MX_QA, MX_QA_ID = "harness-qa", "Orch.Val.Qa"
+MX_ORCH, MX_ORCH_ID = "harness-orchestrator", "Orch"
+MX_HISTORICAL = ("# distill-validator\n\nThe lead's assessment.\n\n```yaml\nVERDICT: PASS\nDIGEST:\n"
+                 "  expertise_update: [{op: add, target: P-09, section: Patterns, entry: old, "
+                 "why: historical}]\n```\n")
+MX = []
+
+
+def mx(name, ok, detail=""):
+    MX.append((name, ok, detail))
+
+
+def _mx_bin(name):
+    return os.path.join(os.path.dirname(os.path.realpath(VALIDATE)), name)
+
+
+def _mx_git(root, *args):
+    return subprocess.run(["git", "-C", root, "-c", "user.name=t", "-c",
+                           "user.email=t@example.invalid", "-c", "commit.gpgsign=false", *args],
+                          capture_output=True, text=True, timeout=30, check=True).stdout.strip()
+
+
+def _mx_write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(text)
+
+
+def _mx_claim(root, persona, runtime, parent):
+    _reg_module().claim_run_start(root, persona, MX_FEATURE, runtime, parent,
+                                  supervisor_pid=os.getpid(), cwd=root)
+
+
+def _mx_release(root, *runtimes):
+    reg = _reg_module()
+    for runtime in runtimes:
+        reg.release(root, feature=MX_FEATURE, agent_id=runtime)
+
+
+def _mx_tree(run_id=MX_RUN):
+    """A committed feature tree: one open registered validator run, the orchestrator's and the
+    lead's live runtime claims, and no Expertise or receipt yet. Returns (root, base sha)."""
+    root = os.path.realpath(tempfile.mkdtemp(prefix="vd-mx-"))
+    feature_dir = os.path.join(root, MX_FEATURE_REL)
+    _mx_write(os.path.join(root, ".harness", "team-config.yaml"), yaml.safe_dump({"leads": [{
+        "name": MX_LEAD, "squad": "validator", "domain": [
+            {"path": ".harness/*/features/*/runs/*-validator/**", "upsert": True},
+            {"path": ".", "read": True}]}]}))
+    _mx_write(os.path.join(feature_dir, "feature.json"), json.dumps({
+        "feature_id": MX_FEATURE, "runs": [{
+            "id": run_id, "squad": "validator", "agent": MX_LEAD, "verdict": "PENDING",
+            "started_at": "2026-11-21T00:00:00+00:00"}]}))
+    _mx_write(os.path.join(feature_dir, "runs", run_id, "digest.md"), MX_HISTORICAL)
+    _mx_write(os.path.join(feature_dir, "notes", "README"), "notes\n")
+    _mx_write(os.path.join(root, ".gitignore"),
+              "*.lock\n.harness/.inflight-claims.json\n" + MX_ORIGIN + "/\n")
+    _mx_git(root, "init", "-q", "-b", "main")
+    _mx_git(root, "add", "-A")
+    _mx_git(root, "commit", "-q", "-m", "base")
+    _mx_origin(root)
+    _mx_claim(root, MX_ORCH, MX_ORCH_ID, "Main")
+    _mx_claim(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID)
+    return root, _mx_git(root, "rev-parse", "HEAD")
+
+
+# The default branch verify-receipt anchors on: a local bare `origin` inside the (ignored) tree,
+# `origin/HEAD -> origin/main`, and the feature work on its own branch, as a real distill PR.
+MX_ORIGIN = ".mx-origin.git"
+
+
+def _mx_origin(root):
+    bare = os.path.join(root, MX_ORIGIN)
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", bare], capture_output=True,
+                   text=True, timeout=30, check=True)
+    _mx_git(root, "remote", "add", "origin", bare)
+    _mx_publish(root)
+    _mx_git(root, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+    _mx_git(root, "checkout", "-q", "-b", "feat/mx")
+
+
+def _mx_publish(root):
+    """Land the current HEAD on the default branch: what main carries before the distill."""
+    _mx_git(root, "push", "-q", "origin", "HEAD:refs/heads/main")
+    _mx_git(root, "fetch", "-q", "origin")
+
+
+def _mx_op(verb, section, target, entry=None):
+    op = {"op": verb, "target": target, "section": section, "why": "seen in two runs"}
+    if entry is not None:
+        op["entry"] = entry
+    return op
+
+
+def _mx_item(op, persona):
+    return dict(op, persona=persona)
+
+
+QA_CRAFT = _mx_op("add", "Patterns", "P-01", "WHEN a suite is green DO record the fail-first receipt")
+QA_REPO = _mx_op("add", "Gotchas", "G-01", "WHEN a distill skips qa DO name the reason")
+QA_REJUDGED = _mx_op("add", "Patterns", "P-01", "WHEN a suite is green DO cite the red run")
+LEAD_CRAFT = _mx_op("add", "Patterns", "P-01", "WHEN a reader is skipped DO say why")
+ORCH_CRAFT = _mx_op("add", "Gotchas", "G-01", "WHEN a distill lead returns DO read its receipts")
+QA_ITEMS = [_mx_item(QA_CRAFT, MX_QA), _mx_item(QA_REPO, MX_QA)]
+
+
+def _mx_apply(root, persona, runtime, parent, ops, repository=None, supersedes=(), base=None):
+    """Apply through T-01's core exactly as the host tool does; returns its JSON result."""
+    args = [sys.executable, _mx_bin("expertise-merge.py"), "member-ops", "--root", root,
+            "--feature", MX_FEATURE, "--persona", persona, "--runtime-id", runtime,
+            "--parent-id", parent, "--tier", "repository" if repository else "craft",
+            "--ops", "-"]
+    args += ["--repository", repository] if repository else []
+    for ref in supersedes:
+        args += ["--supersedes", ref]
+    args += ["--base", base] if base else []
+    result = subprocess.run(args, input=json.dumps(ops), capture_output=True, text=True, timeout=60)
+    if result.returncode != 0:
+        raise AssertionError("member-ops exit %d: %s%s" % (result.returncode, result.stdout,
+                                                          result.stderr))
+    return json.loads(result.stdout)
+
+
+QA_MX_TEXT = f"""
+VERDICT: PASS
+DIGEST:
+  headline: judged two candidates and applied both
+  suite: n/a
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: n/a
+  fail_first: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: {MX_FEATURE_REL}/notes/qa-distill.md
+"""
+LEAD_MX_TEXT = f"""
+VERDICT: PASS
+DIGEST:
+  headline: distilled the validator squad
+  team: distill
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - {{ step: qa, persona: harness-qa, verdict: PASS, headline: "applied two", files_touched: [] }}
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+artifact: {MX_FEATURE_REL}/runs/{MX_RUN}/digest.md
+"""
+ORCH_MX_TEXT = f"""
+VERDICT: PASS
+DIGEST:
+  headline: {MX_FEATURE} distilled
+  feature: {MX_FEATURE}
+  status: shipped
+  runs: [{{ id: {MX_RUN}, squad: validator, verdict: PASS }}]
+  cycles_used: 0
+  briefing: none
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: {MX_FEATURE_REL}/feature.json
+"""
+_MX_TEXTS = {MX_QA: QA_MX_TEXT, MX_LEAD: LEAD_MX_TEXT, MX_ORCH: ORCH_MX_TEXT}
+
+
+def _mx_obj(persona, items):
+    obj = fixture(persona, _MX_TEXTS[persona])
+    obj["DIGEST"]["expertise_update"] = copy.deepcopy(items)
+    return obj
+
+
+def _mx_fire(root, persona, runtime, parent, items, mission="distill", run_id=MX_RUN):
+    """Fire the yield hook exactly as the host does for this run's identity."""
+    payload = {"agent_type": persona, "digest_object": _mx_obj(persona, items), "cwd": root,
+               "harness_feature": MX_FEATURE, "harness_agent_id": runtime,
+               "harness_parent_agent_id": parent}
+    if mission:
+        payload["harness_mission"] = mission
+    if persona == MX_LEAD:
+        payload["harness_digest_binding"] = {
+            "root": root, "feature": MX_FEATURE, "agent": persona, "agent_id": runtime,
+            "parent_agent_id": parent, "run_id": run_id,
+            "artifact": os.path.join(root, MX_FEATURE_REL, "runs", run_id, "digest.md")}
+    return subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload), capture_output=True,
+                          text=True, timeout=120, env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+
+
+def _mx_expect(name, result, want_exit, mention=None):
+    ok = result.returncode == want_exit and (mention is None or mention.lower() in
+                                             result.stderr.lower())
+    mx(name, ok, "exit %d: %s" % (result.returncode, result.stderr.strip()[-500:]))
+
+
+def _mx_tamper(root, rel, old, new):
+    path = os.path.join(root, rel)
+    with open(path, encoding="utf-8") as handle:
+        text = handle.read()
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(text.replace(old, new))
+
+
+def _mx_applied_tree():
+    """qa applied a craft and a repository op; the lead applied one craft op of its own."""
+    root, base = _mx_tree()
+    _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+    _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_CRAFT])
+    _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_REPO], repository="harness")
+    _mx_apply(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, [LEAD_CRAFT])
+    return root, base
+
+
+def _mx_leaf_refusals(root):
+    fire = lambda items, **kw: _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, items, **kw)
+    strip = lambda item: {k: v for k, v in item.items() if k != "persona"}
+    _mx_expect("leaf: an applied item without persona is refused (new returns require it)",
+               fire([strip(QA_ITEMS[0]), QA_ITEMS[1]]), 2, "persona")
+    _mx_expect("leaf: an item carrying state is refused (closed shape)",
+               fire([dict(QA_ITEMS[0], state="applied"), QA_ITEMS[1]]), 2, "state")
+    _mx_expect("leaf: an item naming another persona is refused",
+               fire([_mx_item(QA_CRAFT, MX_LEAD), QA_ITEMS[1]]), 2, MX_LEAD)
+    _mx_expect("leaf: a fabricated item no receipt records is refused",
+               fire(QA_ITEMS + [_mx_item(_mx_op("drop", "Open", "O-01"), MX_QA)]), 2,
+               "matches no applied receipt")
+    _mx_expect("leaf: an applied op the return omits is refused, never silently cleared",
+               fire(QA_ITEMS[:1]), 2, "does not report")
+    _mx_expect("leaf: an empty list on distill with applied ops is refused too",
+               fire([]), 2, "does not report")
+    _mx_expect("leaf: no distill mission on the dispatch refuses a nonempty list",
+               fire(QA_ITEMS, mission=None), 2, "HARNESS-MISSION: distill")
+    _mx_expect("leaf: a conflicting mission refuses a nonempty list",
+               fire(QA_ITEMS, mission="validate"), 2, "HARNESS-MISSION: distill")
+    _mx_expect("leaf: a spoofed parent the live claim does not record is refused",
+               _mx_fire(root, MX_QA, MX_QA_ID, "Orch.Other", QA_ITEMS), 2, "claim")
+
+
+def run_member_expertise_leaf_cases():
+    root, _base = _mx_applied_tree()
+    try:
+        _mx_leaf_refusals(root)
+        _mx_expect("leaf: its own applied ops, each with persona, verify and pass",
+                   _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, QA_ITEMS), 0)
+        _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+        _mx_tamper(root, ".harness/expertise/harness-qa.md", "record the fail-first",
+                   "skip the fail-first")
+        _mx_expect("leaf: a direct file-tool change the receipt does not match is refused",
+                   _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, QA_ITEMS), 2, "verify")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    root, _base = _mx_tree()
+    try:
+        _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+        _mx_expect("leaf: items with no receipt at all are refused, never invented",
+                   _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, QA_ITEMS), 2,
+                   "matches no applied receipt")
+        _mx_expect("leaf: an empty list with nothing applied stays legal on distill",
+                   _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, []), 0)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return _mx_report("leaf")
+
+
+def _mx_lead_refusals(root):
+    fire = lambda items: _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, items)
+    lead_item = _mx_item(LEAD_CRAFT, MX_LEAD)
+    _mx_expect("lead: omitting a child's applied op is refused",
+               fire([lead_item, QA_ITEMS[0]]), 2, "does not report")
+    _mx_expect("lead: a child's op relabelled as the lead's own is refused",
+               fire([lead_item, _mx_item(QA_CRAFT, MX_LEAD), QA_ITEMS[1]]), 2,
+               "matches no applied receipt")
+    stranger = _mx_op("add", "Open", "O-01", "WHEN a stranger applies DO not count it")
+    _mx_apply(root, MX_QA, "Other.Qa", "Other.Lead", [stranger])
+    _mx_expect("lead: a same-persona op from a run that is not its child is refused "
+               "(persona equality is not provenance)",
+               fire([lead_item, *QA_ITEMS, _mx_item(stranger, MX_QA)]), 2,
+               "matches no applied receipt")
+    _mx_expect("lead: an empty list beside applied ops is refused",
+               fire([]), 2, "does not report")
+
+
+def _mx_durable_digest(root):
+    return os.path.join(root, MX_FEATURE_REL, "runs", MX_RUN, "digest.md")
+
+
+def _mx_durable_cli(digest):
+    return subprocess.run([sys.executable, VALIDATE, MX_LEAD, digest],
+                          capture_output=True, text=True, timeout=120)
+
+
+def _mx_durable_record_cases(root):
+    """The verified record validates through the CLI close-run uses and is never rewritten."""
+    digest = _mx_durable_digest(root)
+    before = _read_bytes(digest)
+    result = _mx_durable_cli(digest)
+    mx("durable: the lead's digest.md validates with its verified ops",
+       result.returncode == 0, result.stdout[-400:])
+    mx("durable: validation never rewrites the record, historical block included",
+       _read_bytes(digest) == before and before.startswith(MX_HISTORICAL.encode()), "bytes")
+
+
+def _mx_close_run(root):
+    return subprocess.run(
+        [sys.executable, _mx_bin("feature-record.py"), "close-run",
+         "--file", os.path.join(root, MX_FEATURE_REL, "feature.json"), "--id", MX_RUN,
+         "--digest", f"runs/{MX_RUN}/digest.md", "--verdict", "PASS", "--cycles-used", "0"],
+        capture_output=True, text=True, timeout=120)
+
+
+def _mx_durable_tamper_cases(root):
+    """A file changed after application fails the durable CLI and close-run's digest stage."""
+    _mx_tamper(root, ".harness/harness/expertise/harness-qa.md", "name the reason", "move on")
+    result = _mx_durable_cli(_mx_durable_digest(root))
+    mx("durable: a file changed after application fails the durable check",
+       result.returncode == 1 and "verify" in result.stdout, result.stdout[-400:])
+    close = _mx_close_run(root)
+    mx("durable: feature-record.py close-run refuses that run at its digest stage",
+       close.returncode != 0 and "REFUSED at stage digest" in close.stderr
+       and "verify" in close.stderr, close.stderr[-500:])
+
+
+def _mx_bare_object_case():
+    obj = json.dumps(_mx_obj(MX_LEAD, [_mx_item(LEAD_CRAFT, MX_LEAD)]))
+    result = subprocess.run([sys.executable, VALIDATE, MX_LEAD], input=obj,
+                            capture_output=True, text=True, timeout=120)
+    mx("durable: a bare JSON object with applied ops has no trusted distill context",
+       result.returncode == 1 and "trusted distill" in result.stdout, result.stdout[-400:])
+
+
+def _mx_durable_cases(root):
+    _mx_durable_record_cases(root)
+    _mx_durable_tamper_cases(root)
+    _mx_bare_object_case()
+
+
+def run_member_expertise_lead_cases():
+    root, _base = _mx_applied_tree()
+    try:
+        _mx_release(root, MX_QA_ID)
+        _mx_lead_refusals(root)
+        items = [_mx_item(LEAD_CRAFT, MX_LEAD), *QA_ITEMS]
+        _mx_expect("lead: its own and its actual child's ops, mixed personas, verify and pass",
+                   _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, items), 0)
+        recorded = _read_bytes(os.path.join(root, MX_FEATURE_REL, "runs", MX_RUN, "digest.md"))
+        mx("lead: the durable record gains the verified consolidation",
+           recorded is not None and b"persona: harness-qa" in recorded, "no block appended")
+        _mx_durable_cases(root)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    root, _base = _mx_tree(run_id="r1-validator")
+    try:
+        _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+        _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_CRAFT])
+        _mx_expect("context: a member whose parent's registered run is not a distill run is "
+                   "refused", _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, QA_ITEMS[:1]), 2,
+                   "not a feature-close distill run")
+        _mx_release(root, MX_QA_ID)
+        _mx_expect("context: a lead whose registered run is not a distill run is refused",
+                   _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, QA_ITEMS[:1],
+                            run_id="r1-validator"), 2, "not a feature-close distill run")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return _mx_report("lead")
+
+
+def _mx_superseded_tree(replacement):
+    """qa's first runtime applied QA_CRAFT; a re-dispatched qa runtime under the same lead
+    retired that batch with `replacement` (an empty list is a withdrawal)."""
+    root, base = _mx_tree()
+    first = _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_CRAFT])
+    _mx_apply(root, MX_QA, MX_QA_ID + "2", MX_LEAD_ID, replacement,
+              supersedes=[first["batch"]], base=base)
+    return root
+
+
+def _mx_replacement_scenario():
+    """Refusal, then the original member's trusted re-judgment retires its batch."""
+    root = _mx_superseded_tree([QA_REJUDGED])
+    try:
+        _mx_claim(root, MX_QA, MX_QA_ID + "2", MX_LEAD_ID)
+        _mx_expect("supersession: the re-dispatched member returns its authorized replacement",
+                   _mx_fire(root, MX_QA, MX_QA_ID + "2", MX_LEAD_ID,
+                            [_mx_item(QA_REJUDGED, MX_QA)]), 0)
+        lead = lambda items: _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, items)
+        _mx_expect("supersession: a lead consolidating the retired batch is refused",
+                   lead([_mx_item(QA_CRAFT, MX_QA)]), 2, "matches no applied receipt")
+        _mx_expect("supersession: the lead consolidates only the active replacement",
+                   lead([_mx_item(QA_REJUDGED, MX_QA)]), 0)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _mx_withdrawal_scenario():
+    """The member's empty withdrawal: nothing is invented for the retired batch."""
+    root = _mx_superseded_tree([])
+    try:
+        _mx_claim(root, MX_QA, MX_QA_ID + "2", MX_LEAD_ID)
+        _mx_expect("withdrawal: the member's empty withdrawal returns an empty list",
+                   _mx_fire(root, MX_QA, MX_QA_ID + "2", MX_LEAD_ID, []), 0)
+        lead = lambda items: _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, items)
+        _mx_expect("withdrawal: no applied item is invented for the withdrawn batch",
+                   lead([_mx_item(QA_CRAFT, MX_QA)]), 2, "matches no applied receipt")
+        _mx_expect("withdrawal: the lead's empty consolidation passes",
+                   lead([]), 0)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _mx_orchestrator_scenario():
+    """The orchestrator distills its own file and confirms, never applies, a member's op."""
+    root, _base = _mx_tree()
+    try:
+        _mx_release(root, MX_LEAD_ID)
+        _mx_apply(root, MX_ORCH, MX_ORCH_ID, "Main", [ORCH_CRAFT])
+        _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_CRAFT])
+        orch = lambda items: _mx_fire(root, MX_ORCH, MX_ORCH_ID, "Main", items)
+        _mx_expect("orchestrator: confirming a member's op as its own list is refused",
+                   orch([_mx_item(ORCH_CRAFT, MX_ORCH), QA_ITEMS[0]]), 2, MX_QA)
+        _mx_expect("orchestrator: its own distilled op verifies and passes",
+                   orch([_mx_item(ORCH_CRAFT, MX_ORCH)]), 0)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def run_member_expertise_supersession_cases():
+    _mx_replacement_scenario()
+    _mx_withdrawal_scenario()
+    _mx_orchestrator_scenario()
+    return _mx_report("supersession")
+
+
+# --- FEAT-2225 F1: the host asks `--distill-authority` BEFORE member-ops. Authority is the
+# registered lineage only — the request carries no mission, and a marker could not help it.
+def _mx_authority(root, persona, runtime, parent, raw=None):
+    request = json.dumps({"agent_type": persona, "harness_feature": MX_FEATURE,
+                          "harness_agent_id": runtime, "harness_parent_agent_id": parent,
+                          "cwd": root})
+    return subprocess.run([sys.executable, VALIDATE, "--distill-authority"],
+                          input=request if raw is None else raw, capture_output=True, text=True,
+                          timeout=60, env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+
+
+def _mx_authorized(name, result):
+    mx(name, result.returncode == 0 and result.stdout.strip() == '{"authorized": true}'
+       and not result.stderr.strip(), "exit %d: %s%s" % (result.returncode, result.stdout,
+                                                         result.stderr))
+
+
+def _mx_unauthorized(name, result, mention):
+    lines = result.stderr.strip().splitlines()
+    one_line = len(lines) == 1 and mention in lines[0]
+    mx(name, result.returncode == 2 and one_line and not result.stdout.strip(),
+       "exit %d: %s" % (result.returncode, result.stderr.strip()[-400:]))
+
+
+def _mx_authority_distill_scenario():
+    """Every registered distill lineage is authorized; anything not bound to one is not."""
+    root, _base = _mx_tree()
+    try:
+        _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+        _mx_authorized("authority: a member of a lead's registered distill run",
+                       _mx_authority(root, MX_QA, MX_QA_ID, MX_LEAD_ID))
+        _mx_authorized("authority: a lead on its own registered distill run",
+                       _mx_authority(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID))
+        _mx_authorized("authority: the orchestrator of a feature with a registered distill run",
+                       _mx_authority(root, MX_ORCH, MX_ORCH_ID, "Main"))
+        _mx_unauthorized("authority: a parent the live claim does not record is refused",
+                         _mx_authority(root, MX_QA, MX_QA_ID, "Orch.Other"), "claim")
+        _mx_unauthorized("authority: a runtime holding no live claim is refused",
+                         _mx_authority(root, MX_QA, "Nobody.Qa", MX_LEAD_ID), "no live claim")
+        _mx_unauthorized("authority: an ungoverned agent is refused",
+                         _mx_authority(root, "Main", MX_QA_ID, MX_LEAD_ID), "governed persona")
+        _mx_unauthorized("authority: an unreadable request fails closed",
+                         _mx_authority(root, MX_QA, MX_QA_ID, MX_LEAD_ID, raw="not json"),
+                         "not one JSON object")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _mx_authority_ordinary_scenario():
+    """F1's counterexample: a valid run of an ORDINARY registered run has no distill authority,
+    whatever its dispatch text says."""
+    root, _base = _mx_tree(run_id="r1-validator")
+    try:
+        _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+        _mx_unauthorized("authority: a member of an ordinary registered run is refused",
+                         _mx_authority(root, MX_QA, MX_QA_ID, MX_LEAD_ID),
+                         "not a feature-close distill run")
+        _mx_unauthorized("authority: a lead on an ordinary registered run is refused",
+                         _mx_authority(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID),
+                         "not a feature-close distill run")
+        _mx_unauthorized("authority: the orchestrator of a feature with no distill run is refused",
+                         _mx_authority(root, MX_ORCH, MX_ORCH_ID, "Main"),
+                         "registers no feature-close distill run")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def run_member_expertise_authority_cases():
+    _mx_authority_distill_scenario()
+    _mx_authority_ordinary_scenario()
+    return _mx_report("authority")
+
+
+# --- FEAT-2225 F2: verification covers the destination's COMPLETE content. qa's craft file
+# held G-01 at base; qa applied a receipted add of P-01; G-01 was then deleted with no
+# receipt. Only recorded keys used to be compared, so both the live yield and the durable
+# close stayed green. The core fix is T-01's verify-receipt; this pins it where it is used.
+QA_PRIOR = ("# Expertise — harness-qa\n## Patterns\n## Gotchas\n"
+            "- G-01: WHEN the matrix is red DO stop the merge\n## Outcomes\n## Open\n")
+QA_PRIOR_ENTRY = "- G-01: WHEN the matrix is red DO stop the merge\n"
+
+
+def _mx_prior_on_main(root):
+    """qa's craft file holding G-01, landed on the default branch before the distill."""
+    _mx_write(os.path.join(root, ".harness", "expertise", "harness-qa.md"), QA_PRIOR)
+    _mx_git(root, "add", "-A")
+    _mx_git(root, "commit", "-q", "-m", "prior expertise")
+    _mx_publish(root)
+
+
+def _mx_f2_prepare():
+    """The pre-existing file, the receipted add verified live and recorded durably, and then
+    the unreceipted deletion."""
+    root, _base = _mx_tree()
+    _mx_prior_on_main(root)
+    _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+    _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_CRAFT])
+    item = [_mx_item(QA_CRAFT, MX_QA)]
+    _mx_expect("F2 control: the member's receipted add verifies before any other change",
+               _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, item), 0)
+    _mx_expect("F2 control: the lead's consolidation verifies and is recorded",
+               _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, item), 0)
+    _mx_tamper(root, ".harness/expertise/harness-qa.md", QA_PRIOR_ENTRY, "")
+    return root
+
+
+def _mx_f2_durable(root):
+    result = _mx_durable_cli(_mx_durable_digest(root))
+    mx("F2 durable: an unreceipted deletion of a pre-existing entry fails the durable check",
+       result.returncode == 1 and "verify" in result.stdout, result.stdout[-400:])
+    close = _mx_close_run(root)
+    mx("F2 durable: feature-record.py close-run refuses the run at its digest stage",
+       close.returncode != 0 and "REFUSED at stage digest" in close.stderr,
+       close.stderr[-500:])
+
+
+def _mx_f2_live(root):
+    item = [_mx_item(QA_CRAFT, MX_QA)]
+    _mx_claim(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID)
+    _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+    _mx_expect("F2 live: the member's yield is refused after the unreceipted deletion",
+               _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, item), 2, "verify")
+    _mx_release(root, MX_QA_ID)
+    _mx_expect("F2 live: the lead's yield is refused after the unreceipted deletion",
+               _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, item), 2, "verify")
+
+
+def run_member_expertise_f2_cases():
+    root = _mx_f2_prepare()
+    try:
+        _mx_f2_durable(root)
+        _mx_f2_live(root)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return _mx_report("F2")
+
+
+# --- FEAT-2225 c2 F2: the COMMITTED tamper. G-01 is deleted with no op and committed on the
+# feature branch; P-01 is then applied legitimately. A write chain anchored on HEAD accepts it,
+# so verification must anchor on the authorized base (the default branch's merge-base).
+def _mx_committed_tamper_prepare():
+    root, _base = _mx_tree()
+    _mx_prior_on_main(root)
+    _mx_tamper(root, ".harness/expertise/harness-qa.md", QA_PRIOR_ENTRY, "")
+    _mx_git(root, "commit", "-q", "-am", "unreceipted deletion of G-01")
+    _mx_claim(root, MX_QA, MX_QA_ID, MX_LEAD_ID)
+    _mx_apply(root, MX_QA, MX_QA_ID, MX_LEAD_ID, [QA_CRAFT])
+    return root
+
+
+def _mx_committed_tamper_live(root):
+    item = [_mx_item(QA_CRAFT, MX_QA)]
+    _mx_expect("committed tamper live: the member's yield is refused",
+               _mx_fire(root, MX_QA, MX_QA_ID, MX_LEAD_ID, item), 2, "verify")
+    _mx_release(root, MX_QA_ID)
+    _mx_expect("committed tamper live: the lead's yield is refused",
+               _mx_fire(root, MX_LEAD, MX_LEAD_ID, MX_ORCH_ID, item), 2, "verify")
+
+
+def _mx_committed_tamper_durable(root):
+    """A lead record claiming the add (as an earlier accepted yield would have written it)
+    must still fail at the durable check and at close-run's digest stage."""
+    digest = _mx_durable_digest(root)
+    with open(digest, "a", encoding="utf-8") as handle:
+        handle.write(_fenced(_mx_obj(MX_LEAD, [_mx_item(QA_CRAFT, MX_QA)])))
+    result = _mx_durable_cli(digest)
+    mx("committed tamper durable: the durable check refuses",
+       result.returncode == 1 and "verify" in result.stdout, result.stdout[-400:])
+    close = _mx_close_run(root)
+    mx("committed tamper durable: close-run refuses the run at its digest stage",
+       close.returncode != 0 and "REFUSED at stage digest" in close.stderr,
+       close.stderr[-500:])
+
+
+def run_member_expertise_committed_tamper_cases():
+    root = _mx_committed_tamper_prepare()
+    try:
+        _mx_committed_tamper_live(root)
+        _mx_committed_tamper_durable(root)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return _mx_report("committed tamper")
+
+
+def _mx_report(group):
+    fails = 0
+    for name, ok, detail in MX:
+        print(("ok    " if ok else "FAIL  ") + f"[member-expertise] {name}")
+        if not ok:
+            fails += 1
+            print("      | %s" % (detail,))
+    print(f"\n{len(MX) - fails}/{len(MX)} member-expertise {group} checks passed.")
+    MX.clear()
+    return fails
+
+
 # A `--only` child's closing line; the full run prints one line of its own over every group.
 _GROUP_SUMMARY = re.compile(r"\n(?:ALL PASSED|(\d+) FAILING)\.\n\Z")
 
@@ -5744,6 +6386,12 @@ def main(argv=None):
         run_t51_suspension_cases,
         run_bug1898_exact_release_cases,
         run_t04_unknown_key_cases,
+        run_member_expertise_leaf_cases,
+        run_member_expertise_lead_cases,
+        run_member_expertise_supersession_cases,
+        run_member_expertise_authority_cases,
+        run_member_expertise_f2_cases,
+        run_member_expertise_committed_tamper_cases,
     )
     # `--only <group>` runs one group by its function name. test-suite-claim-preservation.py's
     # mutant pass reads only the [bug1898] lines, and without this it paid for every group.

@@ -702,6 +702,11 @@ def claim_worktrees(owner_root, agent_type, destination,
     return result
 
 
+# Anything under the craft tier `.harness/expertise/` or a repository tier
+# `.harness/<segment>/expertise/`, the segment captured for the advice.
+_EXPERTISE_DESTINATION = re.compile(r"/\.harness/(?:([^/]+)/)?expertise/")
+
+
 def claim_set_refusal(agent_type, claim_set, destination, unreadable_paths=None,
                       identity=(None, None)):
     """Build the single actionable refusal used by every governed write route.
@@ -723,12 +728,15 @@ def claim_set_refusal(agent_type, claim_set, destination, unreadable_paths=None,
         )
 
     held = ", ".join(sorted(set(claim_set)))
-    expertise_segment = os.sep + os.path.join(".harness", "expertise") + os.sep
-    if expertise_segment in destination:
+    expertise = _EXPERTISE_DESTINATION.search(destination.replace(os.sep, "/"))
+    if expertise:
+        segment = expertise.group(1)
+        tier = f"tier: repository, repository: {segment}" if segment else "tier: craft"
         return (
             f"{agent_type} holds worktree claim(s): {held}{judged}. Destination {destination} "
-            "belongs to the control-plane expertise route. Use the sanctioned "
-            "python3 expertise-merge.py apply command."
+            "is an Expertise file, changed only through the expertise_apply tool "
+            f"({tier}) from this feature's worktree; it applies your ops to your own "
+            "persona file and records the receipt."
         )
 
     home = root_above(os.path.dirname(destination)) or os.path.dirname(destination)

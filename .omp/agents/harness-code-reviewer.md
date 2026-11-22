@@ -7,6 +7,7 @@ tools:
 - grep
 - bash
 - write
+- expertise_apply
 spawns: []
 model: '@review'
 thinking-level: high
@@ -33,7 +34,7 @@ Two stages, in order: **spec compliance, then code quality.** `harness-code-revi
 which findings the team accepted and does not want re-raised — that last one prevents the nit loop.
 
 **You have `Write` for exactly two paths**: your own report
-`<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/review-harness-code-reviewer-<runid>.md` and your Expertise. **No `Edit` at all, and no
+`<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/review-harness-code-reviewer-<runid>.md` and your Expertise (only at distillation, through `expertise_apply`, to your own file in the feature worktree). **No `Edit` at all, and no
 source path in your domain.** Writing your findings is not mutating what you audit.
 
 You have `Bash` for one reason: `git diff` is your ground truth and you should not take anyone's word

@@ -1,0 +1,13 @@
+# FEAT-2225 — UI review c4, Mode B
+
+**PASS — scoped out: measured pinned changes remain nonvisual documentation, records and enforcement code; no visual UI surface.**
+
+Review pin: `a5d8687f31c9f05fa77f4d16f3634c3869f47b1f`. All product/evidence paths below are rooted at `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes/`.
+
+- Actual read-only measurement: `git diff --name-status 6d9e6053a6367c78f1e5848a6801e7ca09d82dd1 a5d8687f31c9f05fa77f4d16f3634c3869f47b1f` returned **17 paths: 7 modified, 10 added**. Every path is under `.harness/`: SPEC/DECISIONS prose, feature BRIEF/plan/state/metadata, reviewer/research/answer/handoff records and an observation log. `git diff --name-only` on the same range excluding `.harness` returned no paths: no implementation delta from c3.
+- Full-range extension census, `git diff --name-only 594af2a8 a5d8687f31c9f05fa77f4d16f3634c3869f47b1f`: **104 paths: 79 Markdown, 19 Python, 3 JSON, 2 TypeScript, 1 YAML**. Zero HTML/HTM, CSS/SCSS/SASS/LESS, TSX/JSX, Vue, Svelte, SVG or raster-image candidates. Prior `notes/review-harness-ui-reviewer-c3.md` classified the unchanged implementation as host-tool/authorization/receipt/merge enforcement, not rendered components; that source assessment carries forward, not a new rendered evaluation.
+- Direct pinned `git cat-file -e` confirms no feature `DESIGN.md`; pinned `git ls-tree -r` finds no feature DESIGN/mockup/prototype objects. No visual contract was introduced. Missing DESIGN is not a defect for nonvisual scope.
+- Read amended BRIEF SC-03 and T-04 intent first, then `notes/answers-2026-11-21-f2-ruling.md` and `runs/r-20261121-9-amend-f2-product/digest.md`. Direct pinned c3→c4 SPEC/DECISIONS diff confirms only close-time local-default-branch qualification and live-remote replay/merge containment prose; no spacing, colour, state or interaction specification. F2 is the operator-accepted boundary, not a reopened UI finding. `runs/r-20261121-8-validate-c3-validator/digest.md` records F1/F3 CLOSED; those are carried prior dispositions, not independently re-executed UI claims. Authorization/integrity and amended behavioral promises belong to code/security/QA/goalcheck lenses.
+- Accessibility, dark/light theme parity, keyboard/focus and rendered-size/layout are **not applicable, not visually passed**. No suites, browser, builds, lint, formatters or mutations executed; only pinned object inspection and this report write.
+
+Findings: none. Open questions: none. `in_scope: false`; `severity_max: n/a`. No source changes or new verification requirements.

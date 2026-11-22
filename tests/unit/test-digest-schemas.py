@@ -354,15 +354,41 @@ class PersonaSchemas(unittest.TestCase):
             self.assertTrue(errors(lead, make(lead, members=[bad])), bad)
 
     def test_expertise_update_shapes(self):
+        """FEAT-2225 T-04: every applied item names the persona that applied it (one of the 16
+        canonical names); `state` stays forbidden by the closed shape; `[]` stays legal; the op
+        grammar itself is unchanged."""
         lead = "harness-eng-lead"
         write = {"op": "add", "target": "P-01", "section": "Patterns", "entry": "WHEN x DO y",
-                 "why": "seen twice"}
-        drop = {"op": "drop", "target": "P-02", "section": "Gotchas", "why": "stale"}
+                 "why": "seen twice", "persona": "harness-backend-dev"}
+        drop = {"op": "drop", "target": "P-02", "section": "Gotchas", "why": "stale",
+                "persona": "harness-eng-lead"}
         self.assertEqual(errors(lead, make(lead, expertise_update=[write, drop])), [])
+        self.assertEqual(errors(lead, make(lead, expertise_update=[])), [])
+        for persona in PERSONAS:
+            self.assertEqual(errors(lead, make(lead, expertise_update=[
+                {**write, "persona": persona}, {**drop, "persona": persona}])), [], persona)
+        without = lambda item: {key: value for key, value in item.items() if key != "persona"}
         for bad in ({**drop, "entry": "none"}, {**write, "op": "merge"},
                     {**write, "section": "Rules"}, {key: value for key, value in write.items()
-                                                  if key != "why"}):
+                                                  if key != "why"},
+                    without(write), without(drop),
+                    {**write, "persona": "backend-dev"}, {**drop, "persona": "harness-scribe"},
+                    {**write, "persona": "fable-advisor"}, {**write, "persona": None},
+                    {**write, "state": "applied"}, {**drop, "state": "pending"}):
             self.assertTrue(errors(lead, make(lead, expertise_update=[bad])), bad)
+
+    def test_expertise_persona_enum_is_the_canonical_sixteen(self):
+        common = json.loads((BIN / "digest-schemas" / "common.json").read_text())["$defs"]
+        for name in ("expertise_write", "expertise_drop"):
+            node = common[name]
+            self.assertIn("persona", node["required"], name)
+            self.assertFalse(node["additionalProperties"], name)
+            self.assertNotIn("state", node["properties"], name)
+            persona = node["properties"]["persona"]
+            persona = common[persona["$ref"].rsplit("/", 1)[1]] if "$ref" in persona else persona
+            self.assertEqual(sorted(persona["enum"]), sorted(PERSONAS), name)
+        self.assertEqual(sorted(PERSONAS), sorted(
+            path.stem for path in (ROOT / ".omp" / "agents").glob("harness-*.md")))
 
     def test_amendment_entry_shapes(self):
         lead = "harness-eng-lead"

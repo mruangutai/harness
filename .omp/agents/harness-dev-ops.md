@@ -8,6 +8,7 @@ tools:
 - edit
 - write
 - bash
+- expertise_apply
 spawns: []
 model: '@standard'
 thinking-level: medium
@@ -39,7 +40,7 @@ feature work, say so and let your lead reroute it.
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-dev-ops.md`, already in context. Track what this project's build actually
 needs — the env var that must be set first, the step that fails on a cold cache. You hold `Write`.
 
-Writable paths are in the manifest: `.github/**`, `Dockerfile`, `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`, your Expertise.
+Writable paths are in the manifest: `.github/**`, `Dockerfile`, `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. Expertise is written only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
 ## You are the sharp edge, and you should know it
 

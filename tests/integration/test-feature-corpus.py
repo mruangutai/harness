@@ -168,6 +168,8 @@ class MergeGate(Case):
         self.fx.commit_owner({".harness/harness/features/FEAT-2-beta/feature.json":
                               json.dumps(doc) + "\n"}, "receipt")
         wt = repair(self.fx.add_worktree(ACTIVE))
+        # FEAT-2225: the gate must read the merge's changed paths, so the ref has to exist.
+        F.git(wt, "branch", "feat/FEAT-2-beta")
         proc = self.merge(wt, "feat/FEAT-2-beta")
         self.assertEqual(decision(proc), (None, ""), proc.stdout + proc.stderr)
 

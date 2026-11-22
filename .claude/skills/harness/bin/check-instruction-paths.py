@@ -27,6 +27,7 @@ FEATURE_RE = re.compile(r"^\.harness/(?:[^/]+/)?features/")
 # A CONCRETE feature id names one landed record; a placeholder (<feat>, FEAT-NN) names the active
 # feature. The first is a read of the main corpus, the second a write target (FEAT-1559, DEC-214).
 LANDED_FEATURE_RE = re.compile(r"^\.harness/(?:[^/]+/)?features/(?:FEAT|BUG)-\d+(?:-[a-z0-9]+)*(?:/|$)")
+EXPERTISE_RE = re.compile(r"^\.harness/(?:[^/]+/)?expertise/")
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})(?:.*)$")
 
 
@@ -104,8 +105,9 @@ def _classify_control_plane(token, landed):
 
 
 def _classify_feature_tree(token, landed):
-    """A feature-tree anchor is right only for the active feature's own (placeholder) path."""
-    if not is_feature_path(token):
+    """A feature-tree anchor is right only for the active feature's own (placeholder) path and,
+    under DEC-253, the Expertise files a distill member writes in that worktree."""
+    if not (is_feature_path(token) or EXPERTISE_RE.match(token)):
         return "control-plane path anchored to the feature tree"
     if landed:
         return ("landed feature read anchored to the feature tree — a sparse worktree does "

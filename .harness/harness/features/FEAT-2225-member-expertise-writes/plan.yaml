@@ -1,0 +1,259 @@
+schema: plan/1
+feature: FEAT-2225-member-expertise-writes
+approval:
+  date: '2026-11-21'
+  approved_by: Mike Ruangutai
+  status: approved
+status: review
+source_issues: [2225]
+panel:
+  last_run: r-20261121-2-plan-c2-product
+  cycle: 2
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: Scoped substance re-panel; this reader does not rerun.
+  - reader: design
+    status: skipped
+    persona: harness-ui-reviewer
+    reason: Scoped substance re-panel; this reader does not rerun.
+  - reader: goalcheck
+    status: skipped
+    persona: harness-pm
+    reason: SC-09 goalcheck ran once at run 1 exit; no rerun.
+  findings:
+  - id: PF-35d0f7a433ed64af6ae1c772dbc21e87
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-04 omits existing mirror-receipt enforcement from merge-distill.
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-c321e721c79eac9f7de5afe11f1ce5db
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-04's check-domain file-tool Expertise write denial exceeds the grilling's settled guard scope and functionally deadens the own-file grants the operator explicitly kept
+    disposition: resolved
+    scope: task
+    resolved_by: T-04
+  - id: PF-54f95156a56007c371f6f6d198e99420
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-01's receipt write-ahead journal and interrupted-receipt detection guard a single-writer file against a failure mode already caught downstream
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-56a0a01a997b0fc444b5328e6bd027c6
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: SC-01/T-04's 16-persona individual end-to-end apply exercises duplicate one closure code path sixteen times where per-persona variance is config
+    disposition: resolved
+    scope: task
+    resolved_by: T-04
+lanes:
+  resolved_at: 6451153169f469f5bd9d5f3f01bf89b82787b720
+  rows:
+  - surface: .claude/skills/harness/bin/expertise-merge.py
+    lane: team
+    agent: harness-backend-dev
+  - surface: tests/unit/test-expertise-ops.py
+    lane: team
+    agent: harness-backend-dev
+  - surface: tests/integration/test-expertise-merge.py
+    lane: team
+    agent: harness-backend-dev
+  - surface: .harness/harness/docs/**
+    lane: team
+    agent: harness-documentor
+  - surface: .claude/skills/harness-distill/SKILL.md
+    lane: main-session-direct
+    reason: No squad grant for authored rule skills.
+  - surface: .claude/skills/harness-expertise/SKILL.md
+    lane: main-session-direct
+    reason: No squad grant for authored rule skills.
+  - surface: .claude/skills/harness-curate/SKILL.md
+    lane: main-session-direct
+    reason: No squad grant for authored rule skills.
+  - surface: .claude/skills/harness/references/distillation.md
+    lane: main-session-direct
+    reason: No squad grant for authored procedure references.
+  - surface: .omp/agents/**
+    lane: main-session-direct
+    reason: Canonical persona capability and guidance are deliberately ungranted.
+  - surface: .omp/extensions/harness-hooks.ts
+    lane: main-session-direct
+    reason: DEC-174 host enforcement cutover.
+  - surface: .claude/skills/harness/bin/digest-schemas/common.json
+    lane: main-session-direct
+    reason: DEC-174 live digest acceptance schema.
+  - surface: .claude/skills/harness/bin/validate-digest.py
+    lane: main-session-direct
+    reason: DEC-174 yield and close-run validator.
+  - surface: .claude/skills/harness/bin/dispatch-guard.py
+    lane: main-session-direct
+    reason: DEC-174 dispatch gate.
+  - surface: .claude/skills/harness/bin/bash-write-guard.py
+    lane: main-session-direct
+    reason: DEC-174 shell write guard.
+  - surface: .claude/skills/harness/bin/merge-gate.py
+    lane: main-session-direct
+    reason: DEC-174 merge enforcement.
+  - surface: .claude/skills/harness/bin/harness_boundary.py
+    lane: main-session-direct
+    reason: Correct the guard refusal that currently prescribes the shell bypass.
+  - surface: tests/unit/omp-hooks.test.ts
+    lane: main-session-direct
+    reason: DEC-174 host-hook test.
+  - surface: tests/unit/test-digest-schemas.py
+    lane: main-session-direct
+    reason: DEC-174 live schema test.
+  - surface: tests/integration/test-validate-digest.py
+    lane: main-session-direct
+    reason: DEC-174 digest gate test.
+  - surface: tests/integration/test-dispatch-guard.py
+    lane: main-session-direct
+    reason: DEC-174 dispatch gate test.
+  - surface: tests/integration/test-bash-write-guard.py
+    lane: main-session-direct
+    reason: DEC-174 shell guard test.
+  - surface: tests/integration/test-merge-gate.py
+    lane: main-session-direct
+    reason: DEC-174 merge gate test.
+  - surface: tests/integration/test-member-expertise.py
+    lane: main-session-direct
+    reason: DEC-174 end-to-end enforcement acceptance test.
+decisions:
+  - id: D-01
+    choice: Register expertise_apply inside registerHarnessHooks and bind persona, runtime lineage, mission and feature root from its existing closure and claim resolver, never tool arguments.
+    because: This gives every existing persona its own pen without adding Bash or a scribe and makes the capability boundary enforceable.
+    dec: none
+  - id: D-02
+    choice: Add member-ops and replay subcommands to expertise-merge.py, retaining its ops engine and harness_merge core; recorded applied-op receipts travel inside the distill PR and replay onto current main.
+    because: The existing CLI already owns Expertise parsing and refusals; an independent queue or second merge implementation would add an unnecessary lifetime and authority.
+    dec: none
+  - id: D-03
+    choice: Recognize distill candidates by changed Expertise paths, deny raw distill merges and add merge-distill to the existing merge-gate.py; hold one owner-root harness_merge lock through fresh base/head, replay and existing DEC-220 owner/binding/mirror-receipt enforcement and the synchronous merge subprocess.
+    because: A pre-tool hook cannot hold a Python process lock after it exits; a receipt-only preflight leaves concurrent merges racing on main, and an internal gh subprocess gets no independent host Bash gate to enforce mirror provenance.
+    dec: none
+tasks:
+  - id: T-01
+    title: Extend the existing Expertise core with applied receipts and replay
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/expertise-merge.py#cmd_ops
+      - tests/unit/test-expertise-ops.py#resolve_ops
+      - tests/integration/test-expertise-merge.py#CLI
+    verify: |
+      python3 tests/unit/test-expertise-ops.py && python3 tests/integration/test-expertise-merge.py
+    intent: |
+      Work only in the product checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes. Read its AGENTS.md map: .harness/harness/docs/SPEC.md sections 4.1, 5.3, 5.4 and 15.3 supply behavior and architecture; .harness/harness/docs/DECISIONS.md DEC-145, DEC-199 and DEC-219 govern observation timing, the shared lock core and section/id base-snapshot operations. This self-hosted product has no docs/spec.md, docs/decisions.md or docs/architecture.md; use that explicit project map. Read this feature's BRIEF and research notes. Do not change guards, merge authorization or tests of guards; T-04 owns that cutover.
+      Extend expertise-merge.py, not harness_merge.py or a parallel writer. Keep existing apply/ops CLI input and refusal semantics, including strict rejection of persona as a low-level op key. Add member-ops for the trusted host extension: receive host-bound root, feature, persona and runtime child/parent ids plus selected craft/repository destination and the ordinary JSON op list. The host owns caller authority; the core checks the resolved destination is exactly that persona's selected file beneath the feature root, rejecting symlink escapes and global/control-plane targets. Repository selection is a literal existing declared segment, never a free path. Strip no unknown op keys. Delegate parsing, section/id resolution, caps, flock and atomic replacement to the existing engine and harness_merge. Run check-expertise on the computed candidate before landing it. Absent files receive the canonical title and four sections. Return before/after per-section counts as well as the receipt so a shell-less member can report measured counts.
+      The applied receipt contains persona, feature, runtime child and parent ids, checkout-relative destination, ordered batches of exact accepted ops, original entry text or absence for each addressed section/id, and before/after content hashes. Give each batch a stable content-derived identity for exact recovery references. Keep persona outside the core op shape; expertise_update contains persona plus ordinary op fields and no state. Persist notes/expertise-receipt-<sha256-runtime-id>.json inside the feature directory so it travels in this PR, not in an independent ledger or queue. Multiple calls append ordered batches for the same runtime caller. Persist the receipt atomically with the existing harness_merge facility after applying the validated target candidate, and publish success only after receipt and file agree. A refused operation preserves target bytes and adds no applied batch. Do not add a write-ahead journal, pending transaction, interrupted-receipt state or resume/retry machinery. If target persistence succeeds but receipt persistence fails, fail the call; receipt/file mismatch or missing evidence then fails closed at verification and replay/merge. Historical accepted batches remain immutable; replay mappings and supersession references are separate output, not rewrites of historical ops.
+      Expose read-only receipt verification for T-04: match persona, feature, runtime ids, exact op and destination, then evaluate the final effect of ordered active batches rather than requiring a superseded intermediate replacement still survive. Compare the actual file with the recorded reconstruction, distinguish preserved identical adds from invented application, and never apply inside the verifier. The host wrapper adds identity/path authorization and delegates reconstruction to this existing core.
+      Add replay --root <feature-worktree> --feature <id> --base <main-sha> with read-only --check. Read this feature's receipt manifests, not arbitrary prose digests; include only the current distill PR's receipt set relative to the supplied base, never receipts already present on main from an earlier distill. Rebuild each touched file from that exact main blob, then replay active batches in recorded order. Different runtime callers cannot silently overwrite each other. For colliding adds with different text choose the first free positive numeric id for the prefix in that section, zero-padded to at least two digits, excluding existing and current-batch reserved ids; remap later references from that runtime caller to its new id. Identical existing adds preserve rather than duplicate. For replace/drop compare the recorded original entry with current main and refuse if it changed or disappeared; identical already-applied final effects are idempotent rather than duplicate edits. Preserve one-base-snapshot semantics inside each batch. Reject two independent callers replacing/dropping the same base entry, even if replay order would otherwise hide one. Check caps and check-expertise on complete candidates before writing; a refused file stays byte-identical. Report exact persona, run, destination, section/id, batch identity and refusal for the original member to re-judge or curate through its lead. Emit original-to-replayed id mappings and base/hash evidence. Repeated replay starts from the named main base rather than adding its earlier local output again.
+      Resolve re-judgment within these PR-contained receipts: accept optional supersedes references to exact earlier batch identities on a replacement member-ops call, outside the low-level op objects. Only a trusted distill invocation of the same original persona for the same feature and destination may authorize replacement, including a re-dispatched runtime child with its own verified lineage. Validate referenced receipts and hashes; require references are earlier, active and inside this PR, and reject missing, cross-persona/feature/destination, cyclic or ambiguously multiply-superseded batches. Reconstruct from the explicit current main base with referenced batches omitted and other active batches retained, then apply the member's newly judged replacement ops against that reconstruction. A replacement may be empty when the member withdraws the earlier judgment; it is not an applied op or a fabricated expertise_update item. Validate and atomically persist the replacement receipt and resulting file under the same fail-closed agreement rule; failed replacement cannot retire the old batch. Derive active replay by following validated supersession references from successful replacement receipts, preserving every old receipt unchanged. Retire an entire referenced batch, so its member must re-judge all its ops, rather than silently dropping individual ops. Read-only verification checks the reconstructed active result and authorization references; historical digests remain readable in their recorded context. No digest state enum, independent active-selection file or queue.
+      Add unit and isolated CLI integration cases before production changes, with local fixture repositories and bounded subprocesses, never live Expertise. Cover existing apply/ops regressions, absent craft/repository files, atomic receipt persistence and fail-closed missing/mismatched receipt/file evidence, final ordered-active-batch verification, current-PR receipt selection, two independent worktree adds/collision mapping, independent same-entry replace/drop refusal, changed-main replace/drop refusal, cap overflow preserving bytes and repeat replay. Test refusal then same-original-persona re-dispatch/re-judgment then successful replay, including empty withdrawal, immutable historical receipts, idempotent replacement replay and rejection of unauthorized or ambiguous supersession. Demonstrate new assertions fail against pre-change copies or one-mechanism mutants, retain fail-first receipts, and keep the literal verify below 60 seconds with exit 0 and zero FAIL cases. cross_module maps to the configured unit plus integration floor. This task supplies a non-gate library/CLI; it does not implement or execute merge-distill, which is enforcement owned by T-04.
+  - id: T-02
+    title: Reconcile the decision record and Expertise specification
+    traces: [SC-06]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01]
+    status: done
+    files:
+      - {path: .harness/harness/docs/DECISIONS.md, quote: '## DEC-86 —'}
+      - {path: .harness/harness/docs/DECISIONS-INDEX.md, quote: '<!-- index-contract v1 -->'}
+      - {path: .harness/harness/docs/SPEC.md, quote: '### 5.3 Updating'}
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Work only in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes. Product inputs are AGENTS.md, .harness/harness/docs/SPEC.md sections 4.1, 5 and concurrent-worktree limitations, and .harness/harness/docs/DECISIONS.md DEC-18, DEC-69, DEC-86, DEC-87, DEC-106, DEC-125, DEC-145, DEC-151, DEC-174, DEC-188, DEC-199, DEC-205, DEC-219 and DEC-220. The AGENTS project map supplies the behavior, decision and architecture inputs; generic docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here. Read the binding grilling and this feature's BRIEF and apply research. This task owns documentation only, not rule skills, role definitions or enforcement code.
+      Add the next unused DEC number as one current-truth decision for members applying their own Expertise through expertise_apply in the feature worktree; leads verify receipt against the file, orchestrator confirms and never applies; mixed digest items require persona, without state; replay from recorded ops before merge preserves concurrent adds and returns same-entry conflicts/caps to the original member. Explain original-member-authorized replacement batches select active replay while preserving historical receipts in the current PR, including re-dispatched member lineage, not a queue or a lead/main substitute judgment. merge-distill serializes current-main checks and merges while reusing DEC-220's existing owner/binding/mirror-receipt predicate. Cite every strike/correction below and distinguish supplied existing mechanisms from changed authority. Do not reuse a deleted decision number or weaken DEC-220.
+      Strike DEC-86's false write-less roster claim under DEC-188 with an explicit strike record and named successor, removing its live rule rather than leaving a second contradictory rule. Repoint incoming live references inside DECISIONS.md and its generated index to the successor so the strike is not a gate input. Correct DEC-125's read-modify-write application mechanism to the caller-bound tool while retaining the diagnosis and the statement that the scribe route has no reason to exist. Correct only DEC-69's application clause to lead self-application and orchestrator confirmation; keep curation recommendation and operator objection semantics. Correct DEC-87 and DEC-106 to name tool-mediated Expertise writes while preserving existing grants and capabilities. Correct DEC-151 to include direct expertise-merge shell calls as governed writes blocked in favor of the caller-bound tool. Keep full DEC-18, DEC-145, DEC-199 and DEC-219 entries unchanged as the operator requires; the new decision explicitly governs the changed application route without quietly rewriting those entries. Corrections are in-place present tense under DEC-205, not dated amendment appendices.
+      In SPEC correct the write-less table/passages in 5.3 and every application statement in the owned document that would otherwise contradict member ownership, including the lead example in section 4, digest persona example, 5.3 CLI instructions, 5.4 overflow applier table, 5.5 feedback application and concurrent-worktree/manual-conflict limitation. Explain Write remains for all 16, the host tool wraps the existing core, reviewer shell writes and lead Bash stay forbidden, and receipts are already-applied reports, not a pending queue. Preserve feature-close timing and member judgment. Explain replay and merge-distill, add-id renumbering, original-member replace/drop/cap refusal routing and authorized supersession, retained close/replay receipt integrity and scope of Harness-controlled merge serialization. Do not claim a new direct file-tool denial. Record the real lack of a configured TypeScript typecheck without claiming it passed. Do not add issue-2229 decisions_affected template or goal-check disposition grading.
+      Write the new/changed human ruling tails in DECISIONS-INDEX.md and regenerate its generated portion with gen-decisions-index.py, because edits shift later source anchors. The verify compares generated output with the index and expects exit 0 and empty diff. At review, SC-06 is inspected with git show at the review pin for each named passage and byte-unchanged kept decisions; an index generation pass alone does not prove that criterion. This task may run its documented verification; it does not run implementation suites.
+  - id: T-03
+    title: Cut over distillation guidance and expose the narrow tool to all personas
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: Rule skills and canonical persona files resolve outside squad grants; preserve their constitutional ownership.
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - {path: .claude/skills/harness-distill/SKILL.md, quote: '# Distillation: the only time Expertise is written'}
+      - {path: .claude/skills/harness-expertise/SKILL.md, quote: '# Expertise'}
+      - {path: .claude/skills/harness-curate/SKILL.md, quote: '# harness-curate'}
+      - {path: .claude/skills/harness/references/distillation.md, quote: '# Feature-close distillation'}
+      - .omp/agents/harness-orchestrator.md#tools
+      - .omp/agents/harness-product-lead.md#tools
+      - .omp/agents/harness-eng-lead.md#tools
+      - .omp/agents/harness-validator-lead.md#tools
+      - .omp/agents/harness-pm.md#tools
+      - .omp/agents/harness-visual-designer.md#tools
+      - .omp/agents/harness-documentor.md#tools
+      - .omp/agents/harness-frontend-dev.md#tools
+      - .omp/agents/harness-backend-dev.md#tools
+      - .omp/agents/harness-ai-dev.md#tools
+      - .omp/agents/harness-data-engineer.md#tools
+      - .omp/agents/harness-dev-ops.md#tools
+      - .omp/agents/harness-qa.md#tools
+      - .omp/agents/harness-code-reviewer.md#tools
+      - .omp/agents/harness-security-reviewer.md#tools
+      - .omp/agents/harness-ui-reviewer.md#tools
+    verify: |
+      MANUAL — T-04 must build the executable host-tool and contract assertions before the new persona tool grants and guidance can be exercised end to end.
+    intent: |
+      Execute in the main session, with every edit inside /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes and never the control-plane checkout. Consult AGENTS.md and its product map: .harness/harness/docs/SPEC.md sections 4.1 and 5 supply behavior and architecture; .harness/harness/docs/DECISIONS.md DEC-18, DEC-145, DEC-151, DEC-174, DEC-199, DEC-202, DEC-219 and DEC-220 plus T-02's successor supply decisions. Generic docs/spec.md, docs/decisions.md and docs/architecture.md are absent here. Do not change team-config grants or give a lead Bash/Edit.
+      Add expertise_apply to every one of the 16 canonical .omp/agents tools lists, preserving every existing grant, Write for all personas and no Bash/Edit for leads. Correct each persona's writable Expertise pointer/application guidance to feature-tree tool application, retaining control-plane reads and injected-context semantics. A persona applies only its own judgment/file. Leads get no team-application privilege; reviewers retain no Edit and no shell writes. The orchestrator can distill its own file but never applies a member's or lead's ops.
+      Replace distillation.md step 3's scribe split with member application through expertise_apply, member receipt/file checking, and persona-bearing already-applied ops. Leads read each receipt and actual resulting file, preserve exact active mixed-persona consolidation and return PASS when no real refusal remains. Orchestrator confirms and never applies. Carry HARNESS-MISSION: distill to every child. Preserve product/validator serialization and feature-close timing. Checks target feature-tree craft/repository files rather than control-plane Expertise. Document the still-live worktree pre-merge sequence: fetch/rebase current main, run expertise-merge.py replay for that main, check-expertise, commit/push reconstructed files and original applied receipts plus authorized replacement receipts, then Main runs merge-gate.py merge-distill --root <feature-worktree> --feature <id> --pr <number>. T-04's enforcement command holds the owner-root lock through fresh replay/head/base checks, DEC-220 mirror-provenance enforcement and synchronous merge; it never re-judges or applies a lesson. If rebase stops on Expertise conflicts, preserve receipts and reconstruct only conflicted Expertise files from current main by replay, stage and continue; never choose ours/theirs and discard ops. Ordinary non-Expertise Git conflicts stay operator-owned. A core same-entry/cap refusal returns through the lead to the original member for re-judgment/curation; no lead or Main substitute judgment. Show the member re-dispatched under trusted distill using T-01's supersedes batch references and newly judged replacement ops; the host validates original persona/feature/destination, retains old receipts and selects only authorized active replacements. Include empty withdrawal as a member judgment, not a pending op. Show refusal then re-judgment then successful replay rather than appending a second batch while replaying the refused one forever.
+      In harness-distill remove both shell expertise-merge member-application recipes and the add-only escape route; show expertise_apply with ops, tier selection and optional supersedes references, caller-derived destination, returned counts/receipt, and persona-bearing expertise_update without state. Preserve authoring merge as replace-plus-drop and low-level refusal meanings. Explain replay-only add collisions renumber, while changed-main replace/drop and cap refusals return to their author. Counts and format checks are core/tool results, not a new Bash requirement for leads. In harness-expertise change both writable tier paths to HARNESS_FEATURE_TREE_ROOT, keeping ordinary-spawn text short and linking the tool at distillation only. In harness-curate remove inline cross-persona application: dispatch original personas under distill in a feature worktree and use the same tool/replay contract; audits stay reads and curation recommends rather than rewriting another persona's judgment. Preserve Write/own-file grants, do not prescribe the removed check-domain file-tool denial, and retain receipt/file verification and replay integrity as landing gates.
+      This task is ungranted main-session skill/persona work, separate from T-04 enforcement. Its MANUAL verify names the prerequisite: T-04 builds executable host-tool/contract assertions and independently checks all 16 tool lists and named guidance passages, with capability-class behavioral representatives rather than sixteen identical E2E runs. SC-06 is reviewer inspection through git show at review_sha, not a claim of terminal behavior before the tool is built.
+  - id: T-04
+    title: Enforce caller-bound application receipts and serialized distill merges
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires direct changes to host hooks, validators, schemas, write and merge gates and every test of those gates.
+    depends_on: [T-01, T-02, T-03]
+    status: done
+    files:
+      - .omp/extensions/harness-hooks.ts#registerHarnessHooks
+      - .claude/skills/harness/bin/digest-schemas/common.json#expertise_write
+      - .claude/skills/harness/bin/validate-digest.py#hook_mode
+      - .claude/skills/harness/bin/dispatch-guard.py#_start_mission
+      - .claude/skills/harness/bin/bash-write-guard.py#main
+      - .claude/skills/harness/bin/merge-gate.py#_evaluate_merge
+      - .claude/skills/harness/bin/harness_boundary.py#claim_set_refusal
+      - tests/unit/omp-hooks.test.ts#registerHarnessHooks
+      - tests/unit/test-digest-schemas.py#test_expertise_update_shapes
+      - tests/integration/test-validate-digest.py#VALIDATE
+      - tests/integration/test-dispatch-guard.py#ROOT
+      - tests/integration/test-bash-write-guard.py#ROOT
+      - tests/integration/test-merge-gate.py#ROOT
+      - {path: tests/integration/test-member-expertise.py, create: true}
+    verify: |
+      python3 tests/unit/test-digest-schemas.py && bun test tests/unit/omp-hooks.test.ts && python3 tests/integration/test-member-expertise.py
+    intent: |
+      Main executes every edit in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2225-member-expertise-writes, not through a governed build child and never in the control-plane checkout. Read AGENTS.md, .harness/harness/docs/SPEC.md sections 3, 4.1, 5, 8 and concurrent-worktree architecture, and .harness/harness/docs/DECISIONS.md DEC-18, DEC-145, DEC-151, DEC-174, DEC-199, DEC-202, DEC-219 and DEC-220 plus T-02's successor. These are the product behavior, decision and architecture inputs; generic docs/spec.md, docs/decisions.md and docs/architecture.md are absent. Keep team-config grants unchanged and read T-01's helper contracts before cutover.
+      Register expertise_apply in registerHarnessHooks using OMP registerTool and pi.zod. Accept only tier craft/repository, optional literal repository segment, ordinary add/replace/drop ops and optional exact supersedes batch references for original-member recovery. Forbid persona, feature, run id, root, destination path and state arguments. Bind currentAgent/currentFeature/currentMission, runtimeAgentId/runtimeParentAgentId, runGate and featureRoot from the existing closure and claim resolver. Require ready governed caller and trusted distill assignment; authorize exact runtime lineage through inflight_registry authorize. Resolve feature root through the registry, craft to .harness/expertise/<currentAgent>.md and repository to .harness/<declared-segment>/expertise/<currentAgent>.md. Validate the literal segment against existing declared repository identity, rejecting separators/traversal and unknown segments. Recheck resolved containment before calling T-01 member-ops with host-derived identity/path. For supersession require referenced immutable batches belong to the current PR, same feature, exact destination and original persona; accept a newly dispatched runtime child only through its trusted distill lineage, never persona argument spoofing. Bind the explicit current main base from host-resolved Git evidence for recovery reconstruction, not a caller-selected root/base. Keep host-controlled executable resolution. Propagate every nonzero core/check exit as tool failure, not runPolicy's policy-only nonblocking convention. Return exact receipt and measured before/after counts, doing no independent merge or curation. Include the custom mutator in existing claim authorization, held-run refusal and post-write checks. Adapt all owned mocked ExtensionAPI objects to registerTool/zod without credentials.
+      Add required persona, limited to 16 existing canonical names, to common.json expertise_write and expertise_drop; retain closed properties so state is forbidden. Ordinary empty lists stay legal; low-level op grammar remains unchanged. In validate-digest nonempty updates require trusted distill context. Leaf items identify itself and match applied receipts from its bound runtime child/parent, feature, exact ops and destination. A lead consolidates its own and actual children only, matching exact active objects and final file through T-01 read-only verification; persona equality alone is not provenance. Re-judgment selects only authorized replacement batches for current consolidation, while superseded historical returns remain readable in their original context. An empty withdrawal invents no applied digest item. Orchestrator confirms, never applies. Enforce in live yield and durable file validation used by feature-record close-run, deriving mission and containing worktree from registered run context rather than trusting the digest. Existing historical records remain readable and are never rewritten; new returns require persona. Never invent a receipt, silently clear ops or turn a missing-application refusal into PASS. Keep fail-closed missing/file-inconsistent evidence checks, including direct file-tool changes that do not match receipts.
+      In dispatch-guard require the distill marker on all governed children of a bound distill run, including engineering and leaf personas; use the parent's bound dispatch/run, not arbitrary later prose. Preserve plan-reader checks. Reject missing/conflicting mission or feature-tree binding before a child can apply; ordinary dispatches retain behavior.
+      In bash-write-guard detect direct expertise-merge.py mutation subcommands apply, ops, member-ops and replay by normalized executable identity, .agents symlink spelling and interpreter-prefixed/nested-shell forms; refuse for all governed callers before reviewer/dev-ops branches in favor of expertise_apply. Also refuse their direct merge-gate.py merge-distill command. Read-only replay --check/help remains a read; Main's replay/merge workflow remains allowed. Keep all Write tools and own-file grants. Do not add check-domain direct file-tool denial or modify its tests; unreceipted/file-inconsistent changes cannot pass close-run verification against the default branch as the local repository records it; content hidden by deliberately moving default-branch refs (git update-ref, git branch -f, git symbolic-ref) is a stated close-time boundary refused at replay/merge integrity (merge-gate.py merge-distill against the live remote); hardening is tracked in #2251. Change harness_boundary claim_set_refusal's obsolete control-plane/shell-apply advice to feature-worktree expertise_apply, including repository tier.
+      Add merge-distill --root <feature-worktree> --feature <id> --pr <number> to merge-gate.py, not the squad-owned Expertise core: this wrapper is enforcement. Reuse harness_merge.acquire at one owner-checkout lock path for all distill merges, with existing bounded timeout, holding it until synchronous gh merge completes or fails. Inside the lock fetch/read current main, resolve exact PR head and diff, require the still-live worktree matches that head and contains that main ancestor, and invoke T-01 replay --check plus check-expertise. Require committed Expertise blobs equal replay of that PR's active, authorized recorded ops onto that main and every changed Expertise file is covered. Before the internal synchronous gh pr merge, reuse existing owner resolution and _handle_owners/_enforce_receipt with feature_schema.resolve_binding, mirror_evidence_problems and receipt_allows_merge; DEC-220's same owner/binding/mirror-provenance predicate and recovery command apply to distills, including historical features and recovery-required refusal. Require one unambiguous owner matching the requested feature/PR; no receipt-only preflight or internal-subprocess exemption. Do not duplicate this policy or assume internal gh triggers another host Bash event. Replay success cannot bypass missing, wrong-repository, incomplete or recovery-required build-entry evidence. Refuse stale base/head, missing/ambiguous metadata or unresolved replay; do not automatically rebase, apply, re-judge, open or recover mirrors. Emit head/main/hash verification evidence to the current run, recheck main immediately before merge and invoke gh pr merge with exact match-head commit while holding the lock. A second Harness distill after main advances must rebase/replay before retrying. This serializes Harness-controlled merges, not external GitHub administrators; no queue, background process or merge driver.
+      Extend hook-mode merge_ref/_evaluate_merge to recognize distill candidates by .harness/expertise/*.md or .harness/*/expertise/*.md changes, never branch names or labels. Already-shipped features are not exempt. Refuse raw git merge and gh pr merge for such candidates with exact merge-gate.py merge-distill recovery command; no caller-authored receipt flag clears the gate. Missing/unreadable candidate changed-path evidence refuses rather than guessing non-distill. Preserve existing mirror-receipt enforcement for ordinary merges and reuse it inside the distill executor. In harness-hooks run this merge gate for Main's Bash merge calls before the existing non-governed early return; do not subject unrelated Main writes to governed domains. The wrapper holds the actual lock through merge, not a short-lived pre-tool subprocess. Orchestrator never invokes the mutating replay/merge CLI; Main performs mechanical steps on member-recorded judgments. No feature.json schema or independent ledger is introduced for recognition.
+      Test first in the owned files without modifying shared-bin sources. Add tests/integration/test-member-expertise.py using temporary feature trees, local Git and fake gh. Independently check all 16 canonical persona configs for tool availability, retained Write and exact own-file grants; preserve actual tool capability for all 16. Exercise create/add/replace/drop for craft and repository through capability-class representatives harness-product-lead without Bash, READ-ONLY harness-code-reviewer, harness-dev-ops, harness-orchestrator and leaf harness-backend-dev, rather than sixteen duplicate E2E runs. A complete lead close must return PASS without IRC. Cover spoofed caller parameters, stale/held lineage, wrong mission, control-plane/global/symlink escapes, mixed lists, absent/fabricated/wrong-persona/run/file receipts, both yield and durable close-run, empty rejection lists, every shell mutator including dev-ops, and unreceipted/file-inconsistent changes refused by close and replay/merge without a new file-tool guard. Cover collision replay, same-entry/cap original-member refusal routing, refusal then trusted original-member re-judgment/supersession then successful replay, retained historical receipts and cross-persona supersession refusal. Test both git/gh detection, Main's formerly skipped route, wrapper lock contention and changed main/head. For replay-valid distill candidates independently test missing build-entry receipt, wrong-repository evidence and recovery-required receipt: each must refuse before fake gh merge invocation and return existing recovery guidance; a valid same-owner/binding/mirror receipt permits merge. Preserve ordinary merge regressions. Check all named T-03 guidance passages; SC-06 separately requires pinned inspection of changed and byte-unchanged decisions. Require fail-first receipts against pre-change copies or independent one-gate mutants. The new integration script must enforce subprocess deadlines, end within 45 seconds and exit nonzero on any failed assertion; literal verify must complete below 60 seconds with exit 0 and no FAIL cases. At validation after all tasks land, run configured unit/integration floors and touched legacy gate suites. Before ship, schedule configured locally_run handoff_comprehension via tests/manual/probe-handoff-comprehension.py on a credentialled host with OMP and live model credentials, recording actual output under feature notes; do not claim this planning run executed it. Do not claim null TypeScript typecheck ran. This terminal task carries cumulative behavior proof; predecessors do not claim the unbuilt cutover already works.

@@ -777,10 +777,16 @@ def case_bug1304_refusal_text():
           "remove the worktree" not in refusal.lower(), refusal)
     expertise_refusal = mod.claim_set_refusal(
         agent, members, "/tmp/main/.harness/expertise/harness-backend-dev.md")
-    check("bug1304: expertise refusal names the sanctioned merge CLI",
-          "expertise-merge.py apply" in expertise_refusal
+    check("bug1304: expertise refusal routes to expertise_apply, never the shell CLI",
+          "expertise_apply" in expertise_refusal
+          and "expertise-merge.py" not in expertise_refusal
           and "remove the worktree" not in expertise_refusal.lower(),
           expertise_refusal)
+    repository_refusal = mod.claim_set_refusal(
+        agent, members, "/tmp/main/.harness/harness/expertise/harness-backend-dev.md")
+    check("feat2225: repository-tier expertise refusal names the repository tier and segment",
+          "tier: repository" in repository_refusal and "repository: harness" in repository_refusal,
+          repository_refusal)
 
 
 def case_bug1304_claim_set():

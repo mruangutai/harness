@@ -8,6 +8,7 @@ tools:
 - edit
 - write
 - bash
+- expertise_apply
 spawns: []
 model: '@strong'
 thinking-level: medium
@@ -27,8 +28,8 @@ Documentation is **communication**, not coverage. A complete doc nobody can foll
 ## Expertise · Domain
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-documentor.md`, already in context. Writable: `docs/**`, `README.md`,
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/README.md`, your Expertise. Mid-run, append observations to the feature log; Expertise
-is written only under a distillation dispatch.
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/README.md`. Mid-run, append observations to the feature log; Expertise
+is written only at distillation, through `expertise_apply`, to your own file in the feature worktree.
 
 ## How to write
 

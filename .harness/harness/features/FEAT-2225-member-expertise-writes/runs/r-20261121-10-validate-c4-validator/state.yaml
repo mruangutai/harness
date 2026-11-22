@@ -1,0 +1,92 @@
+schema_version: 2
+run_id: r-20261121-10-validate-c4-validator
+run_uid: 443a5e066b2445a78cfe031c7086894f
+feature: FEAT-2225-member-expertise-writes
+squad: validator
+host: harness-validator-lead
+status: failed
+review_sha: a5d8687f31c9f05fa77f4d16f3634c3869f47b1f
+steps:
+  - id: qa
+    persona: harness-qa
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/review-harness-qa-c4.md]
+    artifact: notes/review-harness-qa-c4.md
+    evidence:
+      unit_exit: 0
+      unit_files: 61
+      integration_exit: 1
+      integration_files: 88
+      failing_task: T-02
+      equivalence_outside_harness_bytes: 0
+      fail_first: SC-01..SC-05
+      receipt_correction: classification-only-no-rerun
+  - id: code
+    persona: harness-code-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/review-harness-code-reviewer-c4.md]
+    artifact: notes/review-harness-code-reviewer-c4.md
+    evidence:
+      f1: closed
+      f2: ruled-boundary
+      f3: closed
+      advisory: C4-W1-low-form
+  - id: security
+    persona: harness-security-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/review-harness-security-reviewer-c4.md]
+    artifact: notes/review-harness-security-reviewer-c4.md
+    evidence:
+      containment: source-confirmed-live-remote-replay
+      f2: operator-accepted-boundary-2251
+  - id: ui
+    persona: harness-ui-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/review-harness-ui-reviewer-c4.md]
+    artifact: notes/review-harness-ui-reviewer-c4.md
+    evidence:
+      in_scope: false
+      full_paths: 104
+      amendment_delta_paths: 17
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    outputs: [notes/research-FEAT-2225-member-expertise-writes-goalcheck-validate-c4.md]
+    artifact: notes/research-FEAT-2225-member-expertise-writes-goalcheck-validate-c4.md
+    evidence:
+      sc_01_to_05: met
+      sc_06: partial
+      operator: met
+      orchestrator: met
+      code_maintainer: partial
+      receipt_correction: inherited-evidence-and-shape-only-no-rerun
