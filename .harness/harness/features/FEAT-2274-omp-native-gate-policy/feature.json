@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2274-omp-native-gate-policy",
   "branch": "feat/FEAT-2274-omp-native-gate-policy",
   "pr": null,
-  "review_sha": "649612d8bc0add67014613f208180a3344a6ac02",
+  "review_sha": "242f9714d426415611bea796dd30a807f14c4193",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -68,6 +68,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-22T16:02:57+00:00"
+    },
+    {
+      "id": "r-20261122-5-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-22T16:13:58+00:00"
     }
   ],
   "judgements": [
@@ -77,6 +84,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "Cause known, diff bounded, but A adds enforcement surfaces (before_subagent_spawn handler, unavailable gate contract, rule file to every governed persona) and amends DEC-100; main-session-direct under DEC-174."
+    },
+    {
+      "at": "2026-11-22T16:13:58+00:00",
+      "by": "main",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL V1-V7 fixed in 242f9714 (fix round 1, main-session-direct); re-validate the new pin"
     }
   ],
   "mission": "plan",
