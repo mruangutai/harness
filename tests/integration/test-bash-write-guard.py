@@ -1110,12 +1110,13 @@ def run_feat65_guard_cases():
     results = [
         ("a defect in the claim rule is no longer classified locally: it is named on stderr",
          claim_defect.returncode == 0 and claim_defect.stderr.endswith(line)
-         and "was not enforced" not in claim_defect.stderr,
-         f"{claim_defect.returncode}: {claim_defect.stderr!r}"),
+         and "was not enforced" not in claim_defect.stderr
+         and _unavailable_gates(claim_defect) == ["bash-write-guard"],
+         f"{claim_defect.returncode}: {claim_defect.stderr!r} {claim_defect.stdout!r}"),
         ("a defect reading the payload passes through with exactly the hook_guard line",
          payload_defect.returncode == 0 and payload_defect.stderr == line
-         and payload_defect.stdout == "",
-         f"{payload_defect.returncode}: {payload_defect.stderr!r}"),
+         and _unavailable_gates(payload_defect) == ["bash-write-guard"],
+         f"{payload_defect.returncode}: {payload_defect.stderr!r} {payload_defect.stdout!r}"),
         ("KeyboardInterrupt escapes the guard",
          interrupt.returncode != 0 and "KeyboardInterrupt" in interrupt.stderr
          and "failed internally" not in interrupt.stderr,
@@ -1132,6 +1133,77 @@ def run_feat65_guard_cases():
             failures += 1
             print(f"FAIL  [feat65] {name}\n      | {detail}")
     print(f"\n{len(results) - failures}/{len(results)} FEAT-65 guard cases passed.")
+    return failures
+
+
+def _unavailable_gates(result):
+    """FEAT-2274 C1: gate names of the `decision: unavailable` lines on stdout, in order."""
+    gates = []
+    for out_line in result.stdout.splitlines():
+        try:
+            obj = json.loads(out_line)
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and obj.get("decision") == "unavailable":
+            gates.append(obj.get("gate"))
+    return gates
+
+
+def run_feat2274_unavailable_cases():
+    """FEAT-2274 C1: bash-write-guard's own crash (run_feat65_guard_cases), a payload it
+    cannot read, and a tree whose harness_boundary.py cannot be imported are each ONE stdout
+    unavailable line at exit 0. Normal passes, the not-applicable pass-throughs (main session,
+    non-harness agent, dev-ops exemption) and deliberate denials emit none."""
+    root = _cases_root()
+
+    def run(stdin, guard=GUARD, cwd=root, env_root=root):
+        return subprocess.run([guard], input=stdin, capture_output=True, text=True,
+                              env=_env(env_root), cwd=cwd)
+
+    def bash(agent, command):
+        payload = {"tool_name": "Bash", "tool_input": {"command": command}}
+        if agent:
+            payload["agent_type"] = agent
+        return run(json.dumps(payload))
+
+    bare = tempfile.mkdtemp()
+    bare_bin = os.path.join(bare, ".claude", "skills", "harness", "bin")
+    os.makedirs(bare_bin)
+    shutil.copy(GUARD, os.path.join(bare_bin, "bash-write-guard.py"))
+    no_boundary = run(json.dumps({"agent_type": "harness-backend-dev", "tool_name": "Bash",
+                                  "tool_input": {"command": "echo hi > %s"
+                                                 % os.path.join(bare, "x.txt")}}),
+                      guard=os.path.join(bare_bin, "bash-write-guard.py"), cwd=bare,
+                      env_root=bare)
+    in_domain = "rm -f .harness/harness/features/F/runs/r-eng/a.md"
+    unavailable = [
+        ("an unreadable payload", run("{not json")),
+        ("a tree without harness_boundary.py", no_boundary),
+    ]
+    quiet = [
+        ("a normal in-domain pass", bash("harness-eng-lead", in_domain), 0),
+        ("the main session", bash(None, "rm -f src/main.py"), 0),
+        ("a non-harness agent", bash("general-purpose", "rm -f src/main.py"), 0),
+        ("the dev-ops write exemption", bash("harness-dev-ops", "rm -f src/main.py"), 0),
+        ("a reviewer's write denial", bash("harness-code-reviewer", "rm -f src/main.py"), 2),
+        ("an out-of-domain denial", bash("harness-eng-lead", "rm -f src/main.py"), 2),
+    ]
+    results = [(f"{label} passes through as exactly one unavailable line",
+                r.returncode == 0 and _unavailable_gates(r) == ["bash-write-guard"],
+                f"{r.returncode}: stdout={r.stdout!r} stderr={r.stderr[-200:]!r}")
+               for label, r in unavailable]
+    results += [(f"{label} exits {want} with no unavailable line",
+                 r.returncode == want and _unavailable_gates(r) == [],
+                 f"{r.returncode}: stdout={r.stdout!r} stderr={r.stderr[-200:]!r}")
+                for label, r, want in quiet]
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [f2274] {name}")
+        else:
+            failures += 1
+            print(f"FAIL  [f2274] {name}\n      | {detail}")
+    print(f"\n{len(results) - failures}/{len(results)} FEAT-2274 unavailable cases passed.")
     return failures
 
 
@@ -1867,6 +1939,7 @@ def main():
     fails += run_feat50_checkout_binding()
     fails += run_feat61_feature_checkout_adapter()
     fails += run_feat65_guard_cases()
+    fails += run_feat2274_unavailable_cases()
     fails += run_bug895_wrong_checkout()
     fails += run_bug1106_bash_route()
     fails += run_bug1304_claim_set()

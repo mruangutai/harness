@@ -15,7 +15,7 @@ state file is not executing; writing a deliverable is.
 1. **Match the request** against your members' `consult-when` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml`.
    Your members are your squad's — plus, when you host the `plan`, `validate` or `fix` team, the
    personas that team file names from other squads (DEC-118 as amended by FEAT-59). Your
-   `spawns:` frontmatter is the whole list, and `dispatch-guard` refuses anything outside it.
+   `spawns:` frontmatter is the whole list, and omp refuses anything outside it.
 2. **Spawn that member and delegate** — the task, the inputs, the paths, the goal. Carry two things
    **verbatim**: the task's `T-NN` id, and the task's `verify:` command exactly as the plan writes
    it — `verify:` is preloaded into no member's context. The member cross-checks your string

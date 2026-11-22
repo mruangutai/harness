@@ -1,0 +1,99 @@
+schema_version: 2
+run_id: r-20261122-4-validate-validator
+run_uid: a8ab66788b37409ab823ed63dcc2c346
+feature: FEAT-2274-omp-native-gate-policy
+squad: validator
+host: harness-validator-lead
+status: failed
+review_sha: 649612d8bc0add67014613f208180a3344a6ac02
+steps:
+  - id: qa
+    persona: harness-qa
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    outputs: [notes/review-harness-qa-c1.md]
+    artifact: notes/review-harness-qa-c1.md
+    note: Fail-first proven; standing unit and integration commands regress.
+    evidence:
+      review_sha: 649612d8bc0add67014613f208180a3344a6ac02
+      matrix_ok: false
+      standing_unit_files: 63
+      standing_integration_files: 91
+      unit_failing_files: 2
+      integration_failing_files: 1
+      runtime_cases_passed: 445
+      extension_cases_passed: 179
+      constraints_cases_passed: 14
+  - id: code
+    persona: harness-code-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    outputs: [notes/review-harness-code-reviewer-c1.md]
+    artifact: notes/review-harness-code-reviewer-c1.md
+    note: Narrow config failures allow; notices lost beside refusal; mandatory risk bar fails.
+    evidence:
+      review_sha: 649612d8bc0add67014613f208180a3344a6ac02
+      code_grade: fail
+      code_grade_base: c1724230c4d931ad46d433c8ba93df8cf312f898
+      high_risk_functions: 2
+      reason_required_functions: 5
+  - id: security
+    persona: harness-security-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    outputs: [notes/review-harness-security-reviewer-c1.md]
+    artifact: notes/review-harness-security-reviewer-c1.md
+    note: Static scoped audit; no independent finding; does not clear code-review config defect.
+    evidence:
+      review_sha: 649612d8bc0add67014613f208180a3344a6ac02
+      in_scope: true
+      execution: none
+  - id: ui
+    persona: harness-ui-reviewer
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    outputs: [notes/review-harness-ui-reviewer-c1.md]
+    artifact: notes/review-harness-ui-reviewer-c1.md
+    note: Scoped out after pinned 30-file census; no rendered UI surface.
+    evidence:
+      review_sha: 649612d8bc0add67014613f208180a3344a6ac02
+      in_scope: false
+      changed_files: 30
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    outputs: [notes/research-FEAT-2274-omp-native-gate-policy-goalcheck-validate-c1.md]
+    artifact: notes/research-FEAT-2274-omp-native-gate-policy-goalcheck-validate-c1.md
+    note: SC-01 and SC-08 partial; six decision amendments met; three ownership-record omissions.
+    evidence:
+      review_sha: 649612d8bc0add67014613f208180a3344a6ac02
+      operator: partial
+      orchestrator: pass
+      code_maintainer: partial
+      amended_decisions_met: [DEC-100, DEC-118, DEC-127, DEC-204, DEC-208, DEC-234]

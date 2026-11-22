@@ -1369,11 +1369,38 @@ ALLOWED_PATH_RESULT: SUCCEEDED
 
 Selective path blocking works, `exit 2` blocks, and the stderr reason reaches the agent.
 
-Only `exit 2` blocks; a hook's own crash passes through, and that holds for dispatch too. A
-dispatch-guard crash still lets the dispatch through without a receipt. Under OMP the started
-child makes the authoritative claim at run start (DEC-204). A child that cannot claim refuses
-every tool itself and may yield only a BLOCKED digest that names the cause and whether a retry can
-succeed. The guard's pass-through is therefore never an unclaimed governed run.
+Only a refusal blocks: exit 2, or a structured deny. A gate's own failure is never a pass and never
+silent, and how it resolves depends on how much the gate guards:
+
+- **Gates that fire on every write, Bash call, dispatch or return fail open, visibly.** For
+  `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py` and `validate-digest.py` an own
+  failure exits 0 and prints one standalone stdout line,
+  `{"decision": "unavailable", "gate": "<script stem>", "reason": "<diagnostic>"}`, through
+  `harness_boundary.emit_unavailable` (`hook_guard(..., script=)`); diagnostics stay on stderr. The
+  OMP extension's `classifyPolicyRun` synthesizes the same outcome when the gate cannot print one:
+  an exit other than 0 or 2, termination by signal, a failure before the guard loads, a missing gate
+  or interpreter, a spawn error. The call proceeds, and the agent receives passive
+  `additionalContext` — `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` —
+  on every occurrence, tagged by phase (pre, post, dispatch, yield) and never deduplicated or
+  cached; the tool result is not marked an error. A refusal outranks it: exit 2 or a structured
+  deny blocks even when the same output also carries an unavailable line. Beside a refusal the
+  notices are not lost: omp discards `additionalContext` on a blocked call, so they follow the
+  denial in the refusal reason. Failing these gates closed stays refused — one gate's bug would
+  wedge every agent.
+- **The narrow command gates fail closed, for the command they guard only.** `gh-close-gate.py`,
+  `branch-create-gate.py` and `plan-sign-gate.py` decide applicability from the payload command
+  with the standard library, before root resolution or any library or config load, so an unrelated
+  Bash command exits 0 without meeting their dependencies; a guarded command whose gate cannot run
+  — including a `harness.json` that is missing, unparseable or not a mapping, or a `github:` block
+  that is not a mapping — is refused by name at exit 2, while a readable config that turns sync off
+  still exempts it. When the gate process cannot start at all, the extension's
+  `narrowGateApplies` makes the same applicability call. `merge-gate.py` fails closed as before.
+
+A dispatch-guard failure lets the dispatch through, visibly unavailable. Under OMP the started
+child makes the authoritative claim at run start (DEC-204); a child that cannot claim refuses every
+tool itself and may yield only a BLOCKED digest that names the cause and whether a retry can
+succeed. The guard's pass-through is therefore never an unclaimed governed run, and that backstop is
+no reason to hide the failed preflight.
 
 **Residual gap, stated honestly:** this used a `settings.json` hook, not an *agent-frontmatter* hook.
 Agent definitions are **not live-reloaded** (see below), so the frontmatter variant could not be loaded
@@ -2197,16 +2224,17 @@ for product-work DAGs, and the filesystem is the registry, so a probe listed the
 anyone might run against a feature). The hierarchy it proved is recorded in DEC-116 and re-exercised
 by every crew run since; the crew definition itself earned nothing further.
 
-**Amended by the skills optimization pass (2026-09-18) — the `spawns:` list is enforced, not
-the depth cap.** DEC-233 removed the platform depth cap this ruling leaned on; from then until
-now "a lead never spawns a lead" and "delegate to a lead, never a member" were prose in two
-playbooks and nothing checked them, while the consumer audit found the reviewer≠author
-independence resting on exactly that list. `dispatch-guard.py` now reads the DISPATCHER's
-`.omp/agents/<persona>.md` frontmatter and refuses a target absent from its `spawns:`; it also
-refuses a `name:` parameter the way it refuses `model:` (DEC-147). Fails open, loudly, when the
-dispatcher file or key is unreadable; `spawns: []` is a real empty list. Main is exempt. The
-ruling — one squad per team, cross-squad leads are two orchestrator dispatches — is unchanged;
-the playbooks now cite the guard instead of restating it.
+**The `spawns:` list is enforced, not the depth cap.** DEC-233 removed the platform depth cap this
+ruling leaned on, and "a lead never spawns a lead" and "delegate to a lead, never a member" rest on
+each persona's `.omp/agents/<persona>.md` `spawns:` list, as does the reviewer≠author independence
+the consumer audit found. omp enforces that list natively on every spawn route — `task`, eval
+`agent()` and workpool share one preflight that refuses a target absent from the dispatcher's
+`spawns:` (omp 19.1.0) — and it is the sole authority: `dispatch-guard.py` keeps no second copy.
+`spawns: []` is a real empty list. Main has no `spawns:` list, but a `harness-*` target is spawned
+through `task` only, whoever the caller (DEC-204). `dispatch-guard.py` refuses a `name:` parameter
+the way it refuses `model:` (DEC-147). The ruling — one squad per team, cross-squad leads are two
+orchestrator dispatches — stands, and each lead persona says to escalate work outside its squad
+to the orchestrator.
 
 ---
 
@@ -2649,10 +2677,9 @@ suite (DEC-101, DEC-110, DEC-119, DEC-124's own re-statement of the shape).
    raised an uncaught `TypeError` inside `validate()`; in `--hook` mode that meant exit 1, and only
    exit 2 blocks (DEC-100/DEC-122) — so the digest shipped completely unvalidated with no signal.
    Guarded the membership test on `isinstance(val, list)` (reported as a real violation, not skipped),
-   and wrapped `hook_mode()`'s `validate()` call in `try/except` that reports on stderr and returns
-   0 — fail OPEN, LOUDLY, on our own bug, matching `check-domain.py`'s precedent. This was already
-   the direction check-domain.py established for pass-throughs; it just wasn't applied to the one
-   call that could actually raise.
+   and wrapped `hook_mode()`'s `validate()` call so an own exception returns 0 — fail OPEN, on our own
+   bug, matching `check-domain.py`'s precedent — and visibly: the hook's guard prints DEC-100's
+   unavailable line, so the agent is told nothing was checked.
 3. **Hook-mode test coverage, landed with 1–2, not after.** `test-validate-digest.py` gained a
    `--hook` runner that asserts the **exact** exit code (2 reject / 1 crash / 0 pass are three
    different outcomes — asserting "nonzero == rejected" would let the fail-open crash masquerade as a
@@ -6472,7 +6499,9 @@ was measured losing the feature and falsely treating concurrent features as one 
 **Claims use schema version 2.** The registry is one explicit `claims` list. Every entry names
 `claim_id`, `feature`, `agent`, `dispatcher`, `cwd`, `started_at`, and `runtime`; an OMP entry also
 names its supervising PID. Main is not a Harness persona and remains outside persona policy, but
-the OMP adapter submits its top-level Harness task through dispatch preflight using OMP's
+not outside target policy: a `harness-*` target is spawned through `task` only, whoever the caller,
+and the extension's `before_subagent_spawn` refuses eval `agent()` and workpool routes to one, Main
+included. The OMP adapter submits its top-level Harness task through dispatch preflight using OMP's
 host-derived `Main` runtime id; this creates the orchestrator claim without constraining the user's
 model choice. After dispatch preflight creates an OMP claim, a receipt, the parent extension
 attaches its own host-derived runtime id to it before the task call returns. It never binds a
@@ -6685,13 +6714,15 @@ that survives — the code-reviewer's plan-target binding, `reviewed: plan:<path
 **Chose:** Five rules in one entry, because they are one failure — the harness trusted a run's own
 record to arrive intact instead of enforcing that it did. Origin: `FEAT-50-run-artifact-integrity`.
 
-**1. Presence, not truthiness, in the digest hook.** `last_assistant_message` ABSENT or null is OUR
-gap: exit 0, with stderr stating the return was NOT VALIDATED. The key PRESENT and empty or
-whitespace-only is the persona's contract violation: exit 2
-(`.claude/skills/harness/bin/validate-digest.py:1602-1614`). Measurement: five structured returns came
-back empty or null in FEAT-45, recovered only because leads re-measured by hand, because `or ""`
-collapsed all three states into one branch. Failing closed on absence was rejected in one clause: it
-would wedge every subagent in the project. Refines DEC-127's fail-open-loudly inside the DEC-122 hook.
+**1. Presence, not truthiness, in the digest hook.** The live input is `digest_object` (DEC-237):
+absent, null or non-object data is the persona's contract violation and exits 2, so an absent
+digest is never passed. What remains OUR gap — a payload with no agent identity, a persona with no
+schema, a missing claim registry — exits 0 visibly unavailable (DEC-100). The rule was first
+written for the retired `last_assistant_message` text contract, where absence was our gap and
+present-but-empty the persona's. Measurement: five structured returns came back empty or null in
+FEAT-45, recovered only because leads re-measured by hand, because `or ""` collapsed all three
+states into one branch. Failing closed on our own gap was rejected in one clause: it would wedge
+every subagent in the project. Refines DEC-127's fail-open inside the DEC-122 hook.
 
 **2. A governed agent's feature-artifact write is bound to that feature's worktree.** The feature id
 is derived from the TARGET PATH, and the target must sit in the checkout git has registered as that
@@ -7824,6 +7855,10 @@ here. DEC-204 and DEC-201 are unchanged.
 script's own bin directory, import `harness_boundary` under suppressed stderr, resolve the root,
 refuse at exit 2 when none resolves. It is accepted duplication (FEAT-61 D-09), not debt: each copy
 carries a comment naming the other four and this entry, and nothing enforces the comment's wording.
+In the three narrow command gates — `branch-create-gate.py`, `gh-close-gate.py`, `plan-sign-gate.py`
+— a standard-library applicability check on the payload command runs before the prologue, so an
+unrelated command exits 0 without meeting it (DEC-100); `merge-gate.py` and `run-unit-tests.py`
+run it first. The prologue itself is unchanged and stays copied.
 
 **Why it cannot be shared.** The prologue is what puts the trusted bin path on `sys.path`. A helper
 holding it would have to be imported from that path — the path the helper is supposed to establish.

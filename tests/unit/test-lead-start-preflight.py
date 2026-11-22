@@ -379,8 +379,9 @@ def dec174_controls():
     result, held, _unchanged, detail = planned_start(plan, "harness-product-lead",
                                                      "harness-eng-lead")
     check("control", "BUG-2141/lead-eng",
-          "lead -> harness-eng-lead keeps its existing spawns allowlist refusal",
-          refused_before_claim(result, held) and "spawns: list" in result.stderr
+          "lead -> harness-eng-lead passes dispatch-guard: FEAT-2274 removed the spawns "
+          "allowlist (omp's native spawn policy is the sole authority)",
+          result.returncode == 0 and len(held) == 1 and "spawns: list" not in result.stderr
           and "DEC-174" not in result.stderr, detail)
 
 # ---------------------------------------------------------------------------------------

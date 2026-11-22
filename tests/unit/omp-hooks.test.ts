@@ -29,6 +29,8 @@ import {
   spendAdvisoryFor,
   spendAdvisoryText,
 } from "../../.omp/extensions/harness-hooks.ts";
+// FEAT-2274's classification seams, read off the module so each case fails on its own.
+import * as hooks from "../../.omp/extensions/harness-hooks.ts";
 
 function ompContext(cwd: string, id: string, parentId?: string, sessionId = `session-${id}`) {
   return {
@@ -163,12 +165,14 @@ describe("gatePath", () => {
 describe("OMP task lifecycle adapter", () => {
   // BUG-1016: `featureRoot` answers `inflight_registry.py feature-root`. The default is the
   // real CLI's no-worktree answer, the --root it was given, so no other case is rewritten.
-  type PolicyAnswer = { blocked: boolean; reason?: string; stdout: string };
+  type PolicyAnswer = { blocked: boolean; reason?: string; unavailable?: string; stdout: string };
   function fixture(options: {
     featureRoot?: (args: string[]) => PolicyAnswer;
     memberOps?: (args: string[], payload: unknown) => PolicyAnswer;
     mergeGate?: (payload: Record<string, unknown>) => PolicyAnswer;
     distillAuthority?: (payload: Record<string, unknown>) => PolicyAnswer;
+    // FEAT-2274: a gate's own answer, ahead of every default below; undefined falls through.
+    gate?: (script: string, args: string[], payload: Record<string, unknown>) => PolicyAnswer | undefined;
   } = {}) {
     const tools = new Map<string, any>();
     const handlers = new Map<string, Function>();
@@ -213,6 +217,8 @@ describe("OMP task lifecycle adapter", () => {
       payload: Record<string, unknown>,
     ) => {
       calls.push({ script, args, payload, cwd });
+      const own = options.gate?.(script, args, payload);
+      if (own) return own;
       if (script === "inflight_registry.py" && args[0] === "feature-root") {
         return options.featureRoot?.(args) ?? { blocked: false, stdout: `${option(args, "--root")}\n` };
       }
@@ -2130,6 +2136,429 @@ describe("OMP task lifecycle adapter", () => {
     await open.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
     expect(await open.handlers.get("tool_call")?.({ toolName: "bash", input: { command: "gh pr merge 7" } }, mainCtx())).toBeUndefined();
     expect(open.calls.map((call) => call.script)).toContain("merge-gate.py");
+  });
+
+  // -------------------------------------------------------------------------
+  // FEAT-2274 (D-01, SC-01, SC-07, SC-09): a broad gate that could not run is not a pass.
+  // The call proceeds, and the handler says so in passive additionalContext, phase-tagged
+  // so omp's identical-string dedup cannot fold a pre notice into a post one.
+  // -------------------------------------------------------------------------
+  const notice = (gate: string, phase: string, reason = "crashed (RuntimeError: boom)") =>
+    `Harness: ${gate} (${phase}) could not run; nothing was checked. ${reason}`;
+  const unavailableAt = (scripts: string[], extra: { featureRoot?: (args: string[]) => PolicyAnswer } = {}) => fixture({
+    ...extra,
+    gate: (script) => scripts.includes(script)
+      ? { blocked: false, unavailable: "crashed (RuntimeError: boom)", stdout: "" }
+      : undefined,
+  });
+  const fileCall = (toolName: string, input: Record<string, unknown>) => ({
+    toolName, toolCallId: "call-unavailable", input, content: [{ type: "text", text: "ok" }],
+  });
+
+  test("FEAT-2274: an unavailable check-domain lets the write proceed and says so, pre and post", async () => {
+    const { handlers } = unavailableAt(["check-domain.py"]);
+    await start(handlers);
+    const event = fileCall("write", { path: "/repo/src/a.ts", content: "x" });
+    const pre = await handlers.get("tool_call")?.(event, leadCtx());
+    expect(pre).toEqual({ additionalContext: notice("check-domain", "pre") });
+    expect(pre.additionalContext).toContain("nothing was checked");
+    const post = await handlers.get("tool_result")?.(event, leadCtx());
+    // Passive context only: the tool's own content stays the host's, and no isError key at all.
+    expect(post).toEqual({ additionalContext: notice("check-domain", "post") });
+    expect("isError" in post).toBe(false);
+    expect(post.additionalContext).not.toBe(pre.additionalContext);
+  });
+
+  test("FEAT-2274: every unavailable invocation is reported again; nothing is cached for the session", async () => {
+    const { handlers } = unavailableAt(["check-domain.py"]);
+    await start(handlers);
+    const event = fileCall("write", { path: "/repo/src/a.ts", content: "x" });
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      expect(await handlers.get("tool_call")?.(event, leadCtx()))
+        .toEqual({ additionalContext: notice("check-domain", "pre") });
+      expect(await handlers.get("tool_result")?.(event, leadCtx()))
+        .toEqual({ additionalContext: notice("check-domain", "post") });
+    }
+  });
+
+  test("FEAT-2274: several unavailable invocations on one call each keep their notice", async () => {
+    const { handlers } = unavailableAt(["check-domain.py"]);
+    await start(handlers);
+    const event = fileCall("edit", { input: "[a/one.ts#A1B2]\nPUT 1:\n+x\n[b/two.ts#C3D4]\nPUT 1:\n+y" });
+    expect(await handlers.get("tool_call")?.(event, leadCtx())).toEqual({
+      additionalContext: [notice("check-domain", "pre"), notice("check-domain", "pre")].join("\n"),
+    });
+    expect(await handlers.get("tool_result")?.(event, leadCtx())).toEqual({
+      additionalContext: [notice("check-domain", "post"), notice("check-domain", "post")].join("\n"),
+    });
+  });
+
+  test("FEAT-2274: an explicit deny stays a refusal and a normal pass stays silent beside an unavailable gate", async () => {
+    const { handlers } = fixture({
+      gate: (script, _args, payload) => {
+        if (script !== "check-domain.py") return undefined;
+        const target = (payload.tool_input as Record<string, unknown>).file_path;
+        if (target === "a/denied.ts") return { blocked: true, reason: "a/denied.ts is outside your domain", stdout: "" };
+        if (target === "b/crashed.ts") return { blocked: false, unavailable: "crashed (RuntimeError: boom)", stdout: "" };
+        return undefined;
+      },
+    });
+    await start(handlers);
+    const denied = fileCall("edit", { input: "[a/denied.ts#A1B2]\nPUT 1:\n+x\n[b/crashed.ts#C3D4]\nPUT 1:\n+y" });
+    // Pre: omp 19.1.0 drops additionalContext from a blocking tool_call result and hands the
+    // model only `reason`, so the sibling's notice rides in the reason, after the denial.
+    expect(await handlers.get("tool_call")?.(denied, leadCtx())).toEqual({
+      block: true,
+      reason: ["a/denied.ts is outside your domain", notice("check-domain", "pre")].join("\n"),
+    });
+    // Post: the refusal is still an error, and the sibling's notice rides beside it.
+    expect(await handlers.get("tool_result")?.(denied, leadCtx())).toEqual({
+      content: [{ type: "text", text: "ok" }, { type: "text", text: "Harness post-write check: a/denied.ts is outside your domain" }],
+      isError: true,
+      additionalContext: notice("check-domain", "post"),
+    });
+    const clean = fileCall("write", { path: "c/fine.ts", content: "x" });
+    expect(await handlers.get("tool_call")?.(clean, leadCtx())).toBeUndefined();
+    expect(await handlers.get("tool_result")?.(clean, leadCtx())).toBeUndefined();
+  });
+
+  test("FEAT-2274: an ast_edit post notice leaves the tool's own content to the host, never an error", async () => {
+    const { handlers } = unavailableAt(["check-domain.py"]);
+    await start(handlers);
+    const written = await handlers.get("tool_result")?.(
+      { ...fileCall("ast_edit", { paths: ["src/a.ts"] }), content: [{ type: "text", text: "patched" }] }, leadCtx());
+    expect(written).toEqual({ additionalContext: notice("check-domain", "post") });
+  });
+
+  test("FEAT-2274: an unavailable bash-write-guard keeps the HARNESS_AGENT_TYPE env revision beside its notice", async () => {
+    const { handlers } = unavailableAt(["bash-write-guard.py"]);
+    await start(handlers);
+    const input = { command: "echo hi", env: { EXISTING: "kept" } };
+    expect(await handlers.get("tool_call")?.({ toolName: "bash", input }, leadCtx())).toEqual({
+      input: { ...input, env: { EXISTING: "kept", HARNESS_AGENT_TYPE: "harness-eng-lead" } },
+      additionalContext: notice("bash-write-guard", "pre"),
+    });
+  });
+
+  test("FEAT-2274: a governed Bash post sweep that could not run is reported as post", async () => {
+    const { handlers } = unavailableAt(["check-domain.py"]);
+    await start(handlers);
+    const result = await handlers.get("tool_result")?.(fileCall("bash", { command: "echo hi" }), leadCtx());
+    expect(result).toEqual({ additionalContext: notice("check-domain", "post") });
+  });
+
+  test("FEAT-2274: BUG-1016 rooting keeps its revised input beside the notice", async () => {
+    const WT = "/worktrees/FEAT-90-long-run";
+    const { handlers } = unavailableAt(["check-domain.py"], {
+      featureRoot: () => ({ blocked: false, stdout: `${WT}\n` }),
+    });
+    await start(handlers);
+    expect(await handlers.get("tool_call")?.(fileCall("write", { path: "notes/a.md", content: "x" }), leadCtx()))
+      .toEqual({
+        input: { path: `${WT}/notes/a.md`, content: "x" },
+        additionalContext: notice("check-domain", "pre"),
+      });
+  });
+
+  test("FEAT-2274: an unavailable dispatch-guard keeps the schema injection and its note, one notice per target", async () => {
+    const begins: Array<[Record<string, unknown>, (h: Map<string, Function>) => Promise<unknown>]> = [
+      [leadCtx(), (h) => start(h)],
+      [mainCtx(), async (h) => h.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx())],
+    ];
+    for (const [ctx, begin] of begins) {
+      const { handlers, calls } = unavailableAt(["dispatch-guard.py"]);
+      await begin(handlers);
+      const tasks = [
+        { agent: "harness-backend-dev", task: ASSIGNMENT },
+        { agent: "harness-qa", task: ASSIGNMENT },
+      ];
+      const result = await handlers.get("tool_call")?.({
+        toolName: "task", toolCallId: "unavailable-guard", input: { context: "shared", tasks },
+      }, ctx);
+      expect(result).toEqual({
+        input: {
+          context: "shared",
+          tasks: tasks.map((item) => ({
+            ...item, outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, item.agent), schemaMode: "strict",
+          })),
+        },
+        additionalContext: [INJECTION_NOTE, notice("dispatch-guard", "dispatch"), notice("dispatch-guard", "dispatch")].join("\n"),
+      });
+      expect(guardCalls(calls)).toHaveLength(2);
+    }
+  });
+
+  test("FEAT-2274: an unavailable digest validator lets the yield through and says so; a refusal still blocks", async () => {
+    const { handlers } = unavailableAt(["validate-digest.py"]);
+    await start(handlers);
+    expect(await handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, leadCtx()))
+      .toEqual({ additionalContext: notice("validate-digest", "yield") });
+    // SC-09: the contract refusal for a missing digest object is not reclassified.
+    expect(await handlers.get("tool_call")?.({ toolName: "yield", input: { data: "not an object" } }, leadCtx()))
+      .toEqual({ block: true, reason: expect.stringContaining(RETURN_THE_OBJECT) });
+    const refused = fixture();
+    await start(refused.handlers);
+    expect(await refused.handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, leadCtx()))
+      .toEqual({ block: true, reason: "children live" });
+  });
+
+  // -------------------------------------------------------------------------
+  // FEAT-2274 (C4, SC-03): a governed persona is spawned through `task` and nothing else,
+  // whoever the caller is. Which targets a caller may spawn is native policy, not this hook's.
+  // -------------------------------------------------------------------------
+  test("FEAT-2274: before_subagent_spawn refuses a harness target outside task, for Main and governed parents alike", async () => {
+    const spawn = (h: Map<string, Function>, event: Record<string, unknown>) =>
+      h.get("before_subagent_spawn")?.({ patterns: [], ...event }, leadCtx());
+    const unstarted = fixture();
+    const main = fixture();
+    await main.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    const governed = fixture();
+    await start(governed.handlers);
+    for (const { handlers } of [unstarted, main, governed]) {
+      const refused = await spawn(handlers, { agent: "harness-backend-dev", invocationKind: "eval" });
+      expect(refused).toEqual({ block: true, reason: expect.stringContaining("task tool") });
+      expect(refused.reason).toContain("harness-backend-dev");
+      expect(await spawn(handlers, { agent: "harness-pm", invocationKind: "workpool" }))
+        .toEqual({ block: true, reason: expect.stringContaining("task tool") });
+      expect(await spawn(handlers, { agent: "harness-pm" }))
+        .toEqual({ block: true, reason: expect.stringContaining("task tool") });
+      expect(await spawn(handlers, { agent: "harness-backend-dev", invocationKind: "task" })).toBeUndefined();
+      expect(await spawn(handlers, { agent: "scout", invocationKind: "eval" })).toBeUndefined();
+      expect(await spawn(handlers, { agent: "task", invocationKind: "eval" })).toBeUndefined();
+    }
+  });
+});
+
+// FEAT-2274 (C3): how one gate process's end is read. Broad gates report their own failure as
+// `unavailable` and never block for it; narrow gates refuse only a command they guard; every
+// other runPolicy caller (registry, feature record, digest destination) keeps its posture.
+describe("classifyPolicyRun", () => {
+  const BROAD = ["check-domain.py", "bash-write-guard.py", "dispatch-guard.py", "validate-digest.py"];
+  const sh = (script: string) => spawnSync("/bin/sh", ["-c", script], { encoding: "utf8" });
+  const bash = (command: string) => ({ tool_name: "Bash", tool_input: { command } });
+  const classify = hooks.classifyPolicyRun;
+  // Real process ends, not hand-written shapes: a crash exit, a kill, and a missing executable.
+  const crashes: Array<[string, hooks.PolicyProcess]> = [
+    ["exit 1", sh("echo 'Traceback: boom' >&2; exit 1")],
+    ["exit 3", sh("exit 3")],
+    ["signal", sh("kill -9 $$")],
+    ["spawn error", spawnSync("/nonexistent/harness/bin/gate.py", [], { encoding: "utf8" })],
+    ["thrown", { status: null, signal: null, stdout: "", stderr: "", error: new Error("spawnSync threw") }],
+  ];
+
+  test("the crash fixtures are the process ends they claim to be", () => {
+    expect(crashes[0][1].status).toBe(1);
+    expect(crashes[2][1].status).toBeNull();
+    expect(crashes[2][1].signal).toBe("SIGKILL");
+    expect((crashes[3][1].error as NodeJS.ErrnoException).code).toBe("ENOENT");
+  });
+
+  test("a declared unavailable line is unavailable, naming the gate, and not a block", () => {
+    for (const script of BROAD) {
+      const gate = script.slice(0, -3);
+      const stdout = `${JSON.stringify({ decision: "unavailable", gate, reason: "RuntimeError: boom" })}\n`;
+      const result = classify(script, {}, { status: 0, signal: null, stdout, stderr: "trace" });
+      expect(result.blocked).toBe(false);
+      expect(result.unavailable).toContain(gate);
+      expect(result.unavailable).toContain("RuntimeError: boom");
+      expect(result.reason).toBeUndefined();
+    }
+  });
+
+  test("a broad gate's structured deny and exit 2 stay refusals; a normal pass carries no notice", () => {
+    const deny = JSON.stringify({ hookSpecificOutput: { permissionDecision: "deny", permissionDecisionReason: "no" } });
+    for (const script of BROAD) {
+      expect(classify(script, {}, { status: 0, signal: null, stdout: deny, stderr: "" }))
+        .toEqual({ blocked: true, reason: "no", stdout: deny });
+      expect(classify(script, {}, { status: 2, signal: null, stdout: "", stderr: "refused\n" }))
+        .toEqual({ blocked: true, reason: "refused", stdout: "" });
+      expect(classify(script, {}, { status: 0, signal: null, stdout: "", stderr: "" }))
+        .toEqual({ blocked: false, stdout: "" });
+    }
+  });
+
+  test("a broad gate that crashed, was killed, or never started is unavailable, never a block", () => {
+    for (const script of BROAD) {
+      for (const [label, proc] of crashes) {
+        const result = classify(script, {}, proc);
+        expect({ label, blocked: result.blocked }).toEqual({ label, blocked: false });
+        expect(result.unavailable).toContain(script.slice(0, -3));
+        expect(result.reason).toBeUndefined();
+      }
+    }
+    expect(classify("check-domain.py", {}, crashes[0][1]).unavailable).toContain("Traceback: boom");
+    expect(classify("check-domain.py", {}, crashes[2][1]).unavailable).toContain("SIGKILL");
+    expect(classify("check-domain.py", {}, crashes[3][1]).unavailable).toContain("ENOENT");
+  });
+
+  test("a narrow gate that could not run refuses a command it guards and allows any other silently", () => {
+    const guarded: Record<string, string> = {
+      "gh-close-gate.py": "gh issue close 728 --repo x/y",
+      "branch-create-gate.py": "git checkout -b FEAT-9999-runtime-probe",
+      "plan-sign-gate.py": "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml",
+    };
+    for (const [script, command] of Object.entries(guarded)) {
+      const gate = script.slice(0, -3);
+      for (const [label, proc] of crashes) {
+        const refused = classify(script, bash(command), proc);
+        expect({ label, blocked: refused.blocked }).toEqual({ label, blocked: true });
+        expect(refused.reason).toStartWith(`${gate}: BLOCKED — the gate could not run (`);
+        expect(refused.reason).toEndWith("); the command it guards is refused rather than left unchecked.");
+        expect(refused.unavailable).toBeUndefined();
+        for (const unrelated of ["echo hi", "git status"]) {
+          expect(classify(script, bash(unrelated), proc)).toEqual({ blocked: false, stdout: proc.stdout ?? "" });
+        }
+      }
+      // A narrow gate that ran keeps its own answer either way.
+      expect(classify(script, bash(command), { status: 0, signal: null, stdout: "", stderr: "" }))
+        .toEqual({ blocked: false, stdout: "" });
+      expect(classify(script, bash("echo hi"), { status: 2, signal: null, stdout: "", stderr: "no" }))
+        .toEqual({ blocked: true, reason: "no", stdout: "" });
+    }
+  });
+
+  test("every other script keeps its non-blocking error contract and still throws a spawn error", () => {
+    for (const script of ["inflight_registry.py", "feature-record.py", "digest_destination.py", "merge-gate.py"]) {
+      expect(classify(script, {}, crashes[0][1]))
+        .toEqual({ blocked: false, reason: "Traceback: boom", stdout: "" });
+      expect(classify(script, {}, { status: 3, signal: null, stdout: "", stderr: "" }))
+        .toEqual({ blocked: false, reason: `${script} exited 3`, stdout: "" });
+      expect(() => classify(script, {}, crashes[3][1])).toThrow("ENOENT");
+      // An unavailable line means nothing outside the four broad gates.
+      const stdout = JSON.stringify({ decision: "unavailable", gate: "x", reason: "y" });
+      expect(classify(script, {}, { status: 0, signal: null, stdout, stderr: "" })).toEqual({ blocked: false, stdout });
+    }
+  });
+});
+
+// FEAT-2274 (C2/C3): the extension's own reading of a narrow gate's protected commands, used
+// only when the gate process itself could not run. It mirrors each Python gate's matcher at
+// 1e0b014: gh-close-gate `denies`, branch-create-gate `_branch_name`, plan-sign-gate `denies`.
+describe("narrowGateApplies", () => {
+  const TOOL = "python3 .claude/skills/harness/bin/plan-merge.py";
+  const RECORD = "python3 .claude/skills/harness/bin/feature-record.py";
+  const SPELLINGS: Record<string, Array<[string, boolean]>> = {
+    "gh-close-gate.py": [
+      ["gh issue close 728 --repo x/y", true],
+      ["cd /tmp && gh issue close 728", true],
+      ["FOO=1 gh issue close 728", true],
+      ["echo hi | gh issue close 728", true],
+      ["true; gh issue close 728", true],
+      ['gh "issue" close 5', true],
+      ["gh 'issue' 'close' 5", true],
+      ["/opt/homebrew/bin/gh issue close 5", true],
+      ["/usr/bin/env gh issue close 5", true],
+      ["\\gh issue close 5", true],
+      ['eval "gh issue close 5"', true],
+      ["bash -c 'gh issue close 5'", true],
+      ['sh -c "gh issue close 5"', true],
+      ["x=$(gh issue close 5)", true],
+      ["$(echo gh) issue close 5", true],
+      ["gh api -X PATCH repos/o/r/issues/9 -f state=closed", true],
+      ["gh api -f state=closed -X PATCH repos/o/r/issues/9", true],
+      ["gh api repos/o/r/issues/9 -X PATCH -f state=closed", true],
+      ['gh api -X PATCH repos/o/r/issues/5 -f state="closed"', true],
+      ["gh api --method PATCH repos/o/r/issues/5 --input -", true],
+      ['gh api graphql -f query="mutation{closeIssue(input:{issueId:\\"x\\"}){clientMutationId}}"', true],
+      ['gh issue close "5', true],
+      ["echo it's here; gh issue close 5", true],
+      ["echo 'gh issue close is refused here'", true],
+      ["gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d", true],
+      ["gh pr close 5", false],
+      ["echo hi", false],
+      ["git status", false],
+      ["git branch -d x", false],
+      ["gh issue view 728", false],
+      ["gh issue list --repo o/r --state closed", false],
+      ["python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes", false],
+      ["gh api repos/o/r/issues/9", false],
+      ["gh issue close-milestone 5", false],
+      ["gh api repos/o/r/issues/5 --jq .state", false],
+      ["gh api -X GET repos/o/r/issues/5", false],
+      ["git commit -m 'closes the loop'", false],
+      ["gh issue edit 5 --add-label wontfix", false],
+      ["echo it's fine", false],
+      ['git commit -m "don\'t close the loop"', false],
+      ["cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\ngh issue comment 8 --repo o/r --body-file /tmp/x.md", false],
+      ["G=gh; $G issue close 5", false],
+    ],
+    "branch-create-gate.py": [
+      ["git checkout -b FEAT-9999-runtime-probe", true],
+      ["git checkout -b feat/FEAT-99-nope", true],
+      ["git checkout -B fix/123-typo", true],
+      ["git checkout --track origin/x -b feat/x", true],
+      ["git -C /repo checkout -b feat/x", true],
+      ["git -c core.x=1 switch -c fix/1-y", true],
+      ["git switch --create feat/z", true],
+      ["git switch -c=feat/z", true],
+      ["git worktree add -b feat/w ../w", true],
+      ["git worktree add ../w -b feat/w", true],
+      ["git branch feat/new", true],
+      ["cd /x && git checkout -b feat/y", true],
+      ["git status", false],
+      ["echo hi", false],
+      ["gh pr close 5", false],
+      ["git branch -d x", false],
+      ["git branch", false],
+      ["git branch --list", false],
+      ["git checkout main", false],
+      ["git switch main", false],
+      ["git worktree add ../w main", false],
+      ["git checkout -- file-b", false],
+    ],
+    "plan-sign-gate.py": [
+      [`${TOOL} sign-approval --file p.yaml`, true],
+      ["/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p", true],
+      ['eval "python3 plan-merge.py sign-approval --file p.yaml"', true],
+      ["bash -c 'python3 plan-merge.py sign-approval --file p.yaml'", true],
+      ['python3 "plan-merge.py" sign-approval --file p.yaml', true],
+      ["python3 plan-merge.py sign-approval --name \"O'Brien", true],
+      [`${TOOL} -- sign-approval --file p.yaml`, true],
+      [`echo it's fine; ${TOOL} -- sign-approval --file p.yaml`, true],
+      [`${TOOL} \\\nsign-approval --file p.yaml`, true],
+      [`echo it's fine; ${TOOL} \\\nsign-approval --file p.yaml`, true],
+      [`${TOOL}\${IFS}sign-approval --file p.yaml`, true],
+      [`${TOOL}"\${IFS}"sign-approval --file p.yaml`, true],
+      [`${TOOL}$(printf " ")sign-approval --file p.yaml`, true],
+      [`${TOOL}\`printf ' '\`sign-approval --file p.yaml`, true],
+      [`${TOOL}$(echo "$(printf " ")")sign-approval --file p.yaml`, true],
+      [`${TOOL} sign-approval --file p.yaml --by Someone --date $(date +%F)`, true],
+      [`echo sign-approval | xargs -I{} ${TOOL} {} --file p.yaml`, true],
+      [`echo sign-approval | xargs ${TOOL}`, true],
+      [`xargs ${TOOL} < /tmp/verb.txt`, true],
+      [`find . -name p.yaml -exec ${TOOL} sign-approval --file {} \\;`, true],
+      [`${RECORD} raise-cycles --file f.json --to 30 --decision notes/raise.md`, true],
+      [`${RECORD} set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml`, true],
+      [`echo it's fine; ${RECORD} -- raise-cycles --file f.json`, true],
+      [`echo raise-cycles | xargs ${RECORD}`, true],
+      ["git status", false],
+      ["echo hi", false],
+      ["gh pr close 5", false],
+      ["grep -rn sign-approval .claude/skills/harness/bin/", false],
+      [`${TOOL} set-task-station --file p --task T-01 --station build`, false],
+      [`${TOOL} apply --file p.yaml --proposal q.yaml  # not a sign-approval call`, false],
+      [`${TOOL} apply --file p.yaml \\\n--proposal q.yaml  # not a sign-approval call`, false],
+      [`${TOOL}$IFSsign-approval --file p.yaml`, false],
+      [`${TOOL} apply --file $(ls p.yaml) --proposal q.yaml  # not a sign-approval call`, false],
+      ["echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/", false],
+      [`${RECORD} run-start --file f.json`, false],
+      ["grep -rn raise-cycles .claude/skills/harness/", false],
+      [`${RECORD} judgement --file f.json --reason 'no raise-cycles without the operator'`, false],
+    ],
+  };
+
+  for (const [script, spellings] of Object.entries(SPELLINGS)) {
+    test(`${script}: every protected spelling matches and every unrelated command does not`, () => {
+      const mismatched = spellings
+        .filter(([command, applies]) => hooks.narrowGateApplies(script, command) !== applies)
+        .map(([command, applies]) => `${applies ? "missed" : "overmatched"}: ${JSON.stringify(command)}`);
+      expect(mismatched).toEqual([]);
+    });
+  }
+
+  test("a script that is not a narrow gate guards nothing", () => {
+    expect(hooks.narrowGateApplies("check-domain.py", "gh issue close 5")).toBe(false);
+    expect(hooks.narrowGateApplies("merge-gate.py", "git merge x")).toBe(false);
   });
 });
 

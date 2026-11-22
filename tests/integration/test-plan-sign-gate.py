@@ -83,6 +83,155 @@ def gate_raw(payload):
 SIGN = "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml"
 
 # ---------------------------------------------------------------------------------------
+# THE APPLICABILITY CORPUS (FEAT-2274 SC-02). (command, should_match): whether the gate's own
+# matcher reads a gated verb of a gated tool out of the command, for a payload that carries an
+# agent_type (the main session is exempt by the mechanism, whatever the command). ONE pure
+# literal, so another suite reads it with ast.literal_eval without running this file, and the
+# Python gate and the extension's classifier are held to the same spellings. Every row mirrors
+# a case asserted below; the unrelated controls must never start matching.
+# ---------------------------------------------------------------------------------------
+APPLICABILITY_CORPUS = [
+    ('python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml', True),
+    ('/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p', True),
+    ('eval "python3 plan-merge.py sign-approval --file p.yaml"', True),
+    ("bash -c 'python3 plan-merge.py sign-approval --file p.yaml'", True),
+    ('python3 "plan-merge.py" sign-approval --file p.yaml', True),
+    ('python3 plan-merge.py sign-approval --name "O\'Brien', True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file'
+     ' p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py -- -- sign-approval --file'
+     ' p.yaml --by Someone --date 2026-01-01',
+     True),
+    ("echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py --"
+     ' sign-approval --file p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml'
+     ' --by Someone --date 2026-01-01',
+     True),
+    ("echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py"
+     ' \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file'
+     ' p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py"${IFS}"sign-approval --file'
+     ' p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py${IFS}${IFS}sign-approval'
+     ' --file p.yaml --by Someone --date 2026-01-01',
+     True),
+    ("echo it's fine; python3"
+     ' .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml'
+     ' --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py$(printf " ")sign-approval'
+     ' --file p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py$(echo)sign-approval --file'
+     ' p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py$(:)sign-approval --file'
+     ' p.yaml --by Someone --date 2026-01-01',
+     True),
+    ("python3 .claude/skills/harness/bin/plan-merge.py`printf ' '`sign-approval"
+     ' --file p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py$(printf "%s" "'
+     ' ")sign-approval --file p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf "'
+     ' ")")sign-approval --file p.yaml --by Someone --date 2026-01-01',
+     True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml'
+     ' --by Someone --date $(date +%F)',
+     True),
+    ('echo sign-approval | xargs -I{} python3'
+     ' .claude/skills/harness/bin/plan-merge.py {} --file p.yaml --by A --date'
+     ' 2026-01-01',
+     True),
+    ('echo sign-approval | xargs python3 .claude/skills/harness/bin/plan-merge.py', True),
+    ('xargs python3 .claude/skills/harness/bin/plan-merge.py < /tmp/verb.txt', True),
+    ('find . -name p.yaml -exec python3 .claude/skills/harness/bin/plan-merge.py'
+     ' sign-approval --file {} \\;',
+     True),
+    ("bash -c 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file"
+     " p.yaml --by A --date 2026-01-01'",
+     True),
+    ('python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file'
+     ' f.json --to 30 --decision notes/raise.md',
+     True),
+    ('python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json'
+     ' --rounds 4 --minutes 240 --decision plan.yaml',
+     True),
+    ("bash -c 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles"
+     " --file f.json --to 30 --decision notes/raise.md'",
+     True),
+    ("bash -c 'python3 .claude/skills/harness/bin/feature-record.py set-rework"
+     " --file f.json --rounds 4 --minutes 240 --decision plan.yaml'",
+     True),
+    ("echo it's fine; python3 .claude/skills/harness/bin/feature-record.py --"
+     ' raise-cycles --file f.json',
+     True),
+    ("echo it's fine; python3 .claude/skills/harness/bin/feature-record.py --"
+     ' set-rework --file f.json',
+     True),
+    ('echo raise-cycles | xargs python3 .claude/skills/harness/bin/feature-record.py', True),
+    ('python3 .claude/skills/harness/bin/plan-merge.py set-task-station --file p'
+     ' --task T-01 --station done',
+     False),
+    ('python3 .claude/skills/harness/bin/plan-merge.py apply --file p --proposal x', False),
+    ('git status --porcelain', False),
+    ('grep -rn sign-approval .claude/skills/harness/bin/', False),
+    ('python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml'
+     ' --proposal q.yaml  # not a sign-approval call',
+     False),
+    ("echo it's fine && git status", False),
+    ('python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml'
+     ' \\\n--proposal q.yaml  # not a sign-approval call',
+     False),
+    ('python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval --file'
+     ' p.yaml',
+     False),
+    ('python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml   #'
+     ' not a sign-approval call',
+     False),
+    ('python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml)'
+     ' --proposal q.yaml  # not a sign-approval call',
+     False),
+    ('echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/', False),
+    ("bash -c 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml"
+     " --proposal q.yaml'",
+     False),
+    ('python3 .claude/skills/harness/bin/feature-record.py run-start --file f.json'
+     ' --id 2026-09-11-05-validate-validator --squad validator',
+     False),
+    ('python3 .claude/skills/harness/bin/feature-record.py run-end --file f.json'
+     ' --id x --verdict PASS --cycles-used 0 --tokens 100',
+     False),
+    ('python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json'
+     ' --by harness-orchestrator --kind regate --decision T-01 --reason r',
+     False),
+    ('python3 .claude/skills/harness/bin/feature-record.py set-mission --file f.json'
+     ' --mission patch --by harness-orchestrator --reason r',
+     False),
+    ('python3 .claude/skills/harness/bin/feature-record.py spend --file f.json', False),
+    ('python3 .claude/skills/harness/bin/feature-record.py propose-rework --file'
+     ' f.json',
+     False),
+    ('grep -rn raise-cycles .claude/skills/harness/', False),
+    ('python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json'
+     " --by o --kind continue --decision stop --reason 'no raise-cycles without the"
+     " operator'",
+     False),
+    ("echo it's fine", False),
+    ('git status', False),
+    ('echo hi', False),
+    ('gh pr close 5', False),
+    ('git branch -d x', False),
+]
+
+# ---------------------------------------------------------------------------------------
 # THE MAIN SESSION IS EXEMPT BY THE MECHANISM, NOT BY A NAMED CARVE-OUT.
 # An absent `agent_type` IS the main session — check-domain.py's approval_guard records the
 # same reasoning for the same reason, and a named branch would be a second carve-out to keep
@@ -530,19 +679,101 @@ check("F6 NEGATIVE CONTROL: a judgement whose --reason MENTIONS raise-cycles is 
       "position, not substring",
       rc == 0, f"rc={rc} stderr={err[:300]!r}")
 
-# FEAT-65: no guard here — typed boundaries only. A defect in the shared resolver is loud
-# (traceback, nonzero), never a silent pass-through; the DEC-234 prologue absorbs only a
-# missing module or a strict "no root" refusal.
-_mbin = os.path.join(tempfile.mkdtemp(), "bin")
-shutil.copytree(BIN, _mbin)
-with open(os.path.join(_mbin, "harness_boundary.py"), "a", encoding="utf-8") as _f:
-    _f.write("\n\ndef resolve_root(bin_dir, strict=True):\n    raise RuntimeError('FEAT-65 injected')\n")
-_r = subprocess.run([os.path.join(_mbin, "plan-sign-gate.py")],
-                    input=json.dumps({"tool_input": {"command": "git status"}}),
-                    capture_output=True, text=True, env=dict(os.environ, HARNESS_PROJECT_DIR=ROOT))
-check("FEAT-65: an unexpected resolver defect is loud and nonzero, not absorbed by the prologue",
-      _r.returncode not in (0, 2) and "FEAT-65 injected" in _r.stderr,
-      f"rc={_r.returncode} stderr={_r.stderr[-200:]!r}")
+# ---------------------------------------------------------------------------------------
+# THE CORPUS AGREES WITH THE HEALTHY GATE. A mislabelled row would teach the failure-mode
+# cases below the wrong answer, so each row is first held to what the working gate decides
+# for an agent: exit 2 for a gated verb, exit 0 for everything else.
+# ---------------------------------------------------------------------------------------
+for _cmd, _match in APPLICABILITY_CORPUS:
+    rc, err = gate(_cmd, agent_type="harness-orchestrator")
+    check(f"corpus row agrees with the healthy gate ({'match' if _match else 'unrelated'}): "
+          f"{_cmd!r}", rc == (2 if _match else 0), f"rc={rc} stderr={err[:300]!r}")
+
+# ---------------------------------------------------------------------------------------
+# MATCHING PRECEDES FAIL-CLOSED EXECUTION (FEAT-2274 SC-02). The gate decides applicability
+# from the payload alone, before root resolution and before any library load. A command it
+# guards is REFUSED, named, when the gate itself cannot run; an unrelated command passes
+# untouched under the identical fault.
+# ---------------------------------------------------------------------------------------
+_REFUSAL_HEAD = "plan-sign-gate: BLOCKED — the gate could not run ("
+_REFUSAL_TAIL = "); the command it guards is refused rather than left unchecked."
+
+
+def _faulted_bin(module=None, text=""):
+    """A disposable copy of the bin, with `text` appended to `module` when one is named."""
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(BIN, mbin)
+    if module:
+        with open(os.path.join(mbin, module), "a", encoding="utf-8") as f:
+            f.write(text)
+    return mbin
+
+
+def _run_in(mbin, payload, project_dir=ROOT):
+    return subprocess.run([os.path.join(mbin, "plan-sign-gate.py")], input=json.dumps(payload),
+                          capture_output=True, text=True,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=project_dir))
+
+
+def _agent(command):
+    return {"agent_type": "harness-orchestrator", "tool_input": {"command": command}}
+
+
+def _named_refusal(r, detail):
+    return (r.returncode == 2 and not r.stdout.strip()
+            and _REFUSAL_HEAD + detail in r.stderr and _REFUSAL_TAIL in r.stderr)
+
+
+def _untouched(r):
+    return r.returncode == 0 and not r.stdout.strip() and not r.stderr.strip()
+
+
+# FEAT-65's injected resolver defect, kept. Its original `git status` payload is the unrelated
+# bypass control it always was; the gated commands beside it are what the fault must refuse.
+_mbin = _faulted_bin("harness_boundary.py",
+                     "\n\ndef resolve_root(bin_dir, strict=True):\n"
+                     "    raise RuntimeError('FEAT-65 injected')\n")
+_r = _run_in(_mbin, {"tool_input": {"command": "git status"}})
+check("FEAT-65: under a resolver defect the unrelated `git status` passes untouched",
+      _untouched(_r), f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
+for _label, _cmd in (("sign-approval", SIGN), ("raise-cycles", _RAISE), ("set-rework", _REWORK)):
+    _r = _run_in(_mbin, _agent(_cmd))
+    check(f"FEAT-65: an unexpected resolver defect REFUSES an agent's {_label} at exit 2, named",
+          _named_refusal(_r, "RuntimeError: FEAT-65 injected"),
+          f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
+for _cmd, _match in APPLICABILITY_CORPUS:
+    _r = _run_in(_mbin, _agent(_cmd))
+    if _match:
+        check(f"resolver defect: a matching command is refused, named: {_cmd!r}",
+              _named_refusal(_r, "RuntimeError: FEAT-65 injected"),
+              f"rc={_r.returncode} stderr={_r.stderr[-300:]!r}")
+    else:
+        check(f"resolver defect: an unrelated command passes untouched: {_cmd!r}",
+              _untouched(_r),
+              f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
+
+# NO ROOT AT ALL: neither the override nor the copied bin's derived root carries the marker.
+_mbin = _faulted_bin()
+_noroot_dir = tempfile.mkdtemp()
+_r = _run_in(_mbin, _agent(SIGN), _noroot_dir)
+check("no harness root: an agent's sign-approval is refused at exit 2, named",
+      _named_refusal(_r, "no harness root could be resolved from "),
+      f"rc={_r.returncode} stderr={_r.stderr[-300:]!r}")
+_r = _run_in(_mbin, _agent("git status --porcelain"), _noroot_dir)
+check("no harness root: an unrelated command exits 0 untouched", _untouched(_r),
+      f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
+
+# THE GATE'S OWN BODY FAILS after the root resolves: its payload read raises.
+_mbin = _faulted_bin("artifact_accessors.py",
+                     "\n\ndef read_hook_payload(*args, **kwargs):\n"
+                     "    raise RuntimeError('FEAT-2274 body injected')\n")
+_r = _run_in(_mbin, _agent(_RAISE))
+check("body failure: an agent's raise-cycles is refused at exit 2, named",
+      _named_refusal(_r, "RuntimeError: FEAT-2274 body injected"),
+      f"rc={_r.returncode} stderr={_r.stderr[-300:]!r}")
+_r = _run_in(_mbin, _agent("python3 .claude/skills/harness/bin/plan-merge.py apply --file p"))
+check("body failure: an unrelated command exits 0 untouched", _untouched(_r),
+      f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
 
 print(f"\n{fails} failing." if fails else "\nall checks passed.")
 raise SystemExit(1 if fails else 0)

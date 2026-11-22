@@ -37,12 +37,20 @@ if __name__ == "__main__":
     # as check-domain.py wires it — see the note there. The body below is module-level flow,
     # so the guard wraps its EXECUTION: this process runs the bootstrap once, then re-runs
     # this file as module `bash_write_guard_body`, under whose name the bootstrap is skipped. A tree
-    # without harness_boundary.py runs unguarded, as before (the isolated-copy fixture).
+    # without harness_boundary.py runs unguarded, as before (the isolated-copy fixture), and
+    # says so first as the unavailable outcome (FEAT-2274), spelled inline for the same reason
+    # check-domain.py's is.
     _bootstrap_sys.path.insert(0, _bootstrap_selfdir)
     try:
         import harness_boundary as _bootstrap_boundary
-    except (ImportError, SyntaxError):
+    except (ImportError, SyntaxError) as _bootstrap_error:
         _bootstrap_boundary = None
+        import json as _bootstrap_json
+        print(_bootstrap_json.dumps({
+            "decision": "unavailable", "gate": "bash-write-guard",
+            "reason": f"harness_boundary.py could not be imported "
+                      f"({type(_bootstrap_error).__name__}: {_bootstrap_error}); "
+                      f"the hook ran unguarded"}), flush=True)
     if _bootstrap_boundary is not None:
         _bootstrap_sys.exit(_bootstrap_boundary.run_hook_body(__file__, "bash-write-guard", "bash_write_guard_body"))
 
@@ -82,13 +90,23 @@ def _root():
 
 # THE IMPORT STAYS INSIDE (FEAT-65): the absent-manifest fixture copies this script alone,
 # and that tree must still reach DEC-151's fail-open rather than crash on a missing sibling.
+# That tree has no harness_boundary.py either, so the bootstrap has already reported it.
 try:
     import artifact_accessors as _artifact_accessors
     d = _artifact_accessors.read_hook_payload(
         os.environ.get("HOOK_PAYLOAD") or "", "bash-write-guard hook payload")
 except ImportError:
     sys.exit(0)
-except _artifact_accessors.ArtifactAccessError:
+except _artifact_accessors.ArtifactAccessError as _payload_error:
+    # FEAT-2274: no payload, no caller and no command — nothing can be checked. A tree
+    # without harness_boundary.py was already reported by the bootstrap.
+    try:
+        import harness_boundary as _payload_boundary
+    except (ImportError, SyntaxError):
+        _payload_boundary = None
+    if _payload_boundary is not None:
+        _payload_boundary.emit_unavailable(
+            __file__, f"the hook payload could not be read ({_payload_error})")
     sys.exit(0)
 
 # MOVED UP (FEAT-30 T-05), verbatim and unchanged. The HEAD-move rule below runs
