@@ -2160,6 +2160,10 @@ describe("OMP task lifecycle adapter", () => {
     ]);
     // member-ops receives its ops LIST as the stdin document, typed as the list it is.
     expect(coreCalls().map((call) => call.payload)).toEqual([[ADD], [ADD]]);
+    // BUG-2390: the runner contract accepts that list. A narrow gate that failed on a list
+    // payload has no command to guard, so its failure refuses nothing.
+    const failed: hooks.PolicyProcess = { status: 1, signal: null, stdout: "", stderr: "boom", timedOut: false };
+    expect(hooks.classifyPolicyRun("merge-gate.py", coreCalls()[0].payload, failed).blocked).toBe(false);
     expect(coreCalls().map((call) => call.cwd)).toEqual([root, root]);
     // The post-write check judges the destination the host resolved, never a caller path.
     const at = calls.length;

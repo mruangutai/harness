@@ -41,19 +41,17 @@ export function gatePath(script: string): string {
 }
 
 type Dict = Record<string, unknown>;
+export type PolicyPayload = Dict | unknown[];
 // `unavailable` (FEAT-2274, D-01): a broad gate could not run, so nothing was checked. It is
 // never a block; the handler reports it as passive context naming the gate.
 type PolicyResult = { blocked: boolean; reason?: string; unavailable?: string; stdout: string };
-// BUG-2390: a gate's payload is its hook object; member-ops alone receives its ops LIST as the
-// stdin document. runPolicy serializes either, and nothing casts one into the other.
-export type PolicyPayload = Dict | unknown[];
 // FEAT-2337 (D-01): every policy answer is awaited. Nothing reads a gate's answer before it
 // arrives, and the host's event loop keeps running while the process does.
 type PolicyRunner = (
   cwd: string,
   script: string,
   args: string[],
-  payload: PolicyPayload,
+  payload: Dict,
 ) => Promise<PolicyResult>;
 
 function debug(message: string): void {
@@ -407,7 +405,7 @@ function failureDetail(proc: PolicyProcess, stderr: string): string {
 // that, a broad gate's declared or apparent failure (any other exit, a signal, no start) is
 // `unavailable`; a narrow gate's failure refuses only a command it guards; every other script
 // keeps its non-blocking error contract, and a spawn error still throws from it.
-export function classifyPolicyRun(script: string, payload: PolicyPayload, proc: PolicyProcess): PolicyResult {
+export function classifyPolicyRun(script: string, payload: Dict, proc: PolicyProcess): PolicyResult {
   const stdout = proc.stdout || "";
   const stderr = (proc.stderr || "").trim();
   const structuredReason = parseDecision(stdout);
@@ -428,8 +426,7 @@ export function classifyPolicyRun(script: string, payload: PolicyPayload, proc: 
       : { blocked: false, stdout };
   }
   if (failed && Object.hasOwn(NARROW_GATES, script)) {
-    const input = Array.isArray(payload) ? undefined : payload.tool_input;
-    const command = text((input as Dict | undefined)?.command);
+    const command = text(((payload as Dict | undefined)?.tool_input as Dict | undefined)?.command);
     if (!narrowGateApplies(script, command)) return { blocked: false, stdout };
     return {
       blocked: true,
@@ -522,7 +519,7 @@ export async function runPolicy(
   cwd: string,
   script: string,
   args: string[],
-  payload: PolicyPayload,
+  payload: Dict,
 ): Promise<PolicyResult> {
   const proc = await spawnPolicy(gatePath(script), args, cwd, JSON.stringify(payload));
   return classifyPolicyRun(script, payload, proc);
@@ -965,15 +962,6 @@ function refuseApply(reason: string): never {
   throw new Error(`expertise_apply refused: ${reason}`);
 }
 
-const OPS_NOT_A_LIST = "ops must be a list of add, replace or drop ops.";
-
-// applyArgumentRefusal has already refused a non-list; this narrows the type for the runner.
-function opsList(params: Dict): unknown[] {
-  const ops = params.ops;
-  if (!Array.isArray(ops)) refuseApply(OPS_NOT_A_LIST);
-  return ops;
-}
-
 // A second fence behind the host's own schema validation: a host that skipped it must still
 // never forward a caller-named identity, root, destination or base.
 function applyArgumentRefusal(params: Dict): string | undefined {
@@ -982,7 +970,7 @@ function applyArgumentRefusal(params: Dict): string | undefined {
     return `argument "${extra}" is not accepted; persona, feature, runtime ids, root, destination `
       + "and base are host-derived. Pass only tier, repository, ops and supersedes.";
   }
-  if (!Array.isArray(params.ops)) return OPS_NOT_A_LIST;
+  if (!Array.isArray(params.ops)) return "ops must be a list of add, replace or drop ops.";
   const supersedes = params.supersedes ?? [];
   const exact = Array.isArray(supersedes)
     && supersedes.every((id) => typeof id === "string" && BATCH_ID.test(id));
@@ -1682,8 +1670,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       "--ops", "-",
       ...supersedes.flatMap((id) => ["--supersedes", id]),
       ...(placed.base ? ["--base", placed.base] : []),
-      // The ops list is the stdin document (`--ops -`); runPolicy serializes it as given.
-    ], opsList(params));
+      // The ops list is the stdin document (`--ops -`); runPolicy serializes any JSON value.
+    ], params.ops as unknown as Dict);
     const { line, receipt } = memberOpsReceipt(result);
     appliedDestinations.set(toolCallId, join(placed.root, placed.rel));
     return { content: [{ type: "text", text: line }], details: receipt };
