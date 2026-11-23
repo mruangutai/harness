@@ -77,3 +77,13 @@ BUILD.md §0b and DEC-108/109 history, the authored `.claude/` directories, `dis
 
 - `.harness/harness/docs/BUILD.md:948` still cites DEC-111 in its settings prerequisites row. BUILD is not in T-05's files and §0a/§0b are history.
 - `.harness/team-config.yaml:96,163` and `templates/team-config.yaml:82,131` still say "Claude Code plugin" and "NOT a Claude capability" in `provision:`. SPEC §3.1/§3.2 now say "host integration"/"host capability".
+
+## Deviation rows (delegated ruling AdvisorC8StaleSpots, notes/answers-2026-11-22-stale-spots.md)
+
+| Row | Change | Where |
+|---|---|---|
+| team-config `provision:` (Astryx) | "npm dependency — NOT a Claude capability" -> "npm dependency — not a host capability", matching SPEC §3.2 | `.harness/team-config.yaml:96`, `.claude/skills/harness/templates/team-config.yaml:82` |
+| team-config `provision:` (Supabase) | "Claude Code plugin — available" -> "host integration, not a Harness capability ... confirms availability and project linkage", matching SPEC §3.1 | `.harness/team-config.yaml:163`, `.claude/skills/harness/templates/team-config.yaml:131` |
+| BUILD.md:948 DEC-111 citation | no edit: inside BUILD.md's declared historical boundary ("§0b onward", BUILD.md:21-23); the struck DEC-111 record names DEC-233 | — |
+
+Successor for both rewordings: FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, the same decisions[id=D-NN] row the SPEC §3.1/§3.2 edits cite. Values only; no key, structure, domain or rule change.
