@@ -77,3 +77,15 @@ Raw rows, trimmed of the getter dumps:
 - This is the host evidence DEC-198/201 name. The source evidence (upstream #10097, fixed by
   #10098 in v18.0.11; floor ≥18.0.11) stays separate.
 - It also confirms #2194: the probe now classifies sessions by path.
+
+## #2194 closed
+
+Main closed mruangutai/harness#2194 as completed. The closing comment
+(https://github.com/mruangutai/harness/issues/2194#issuecomment-7092641494) links the repaired
+probe, the receipt commit `71886c70e77c1d05280cf39801a14160fef71642` and this receipt.
+
+`gh issue view 2194 --json number,state,closedAt,url`:
+
+```json
+{"closedAt":"2026-11-23T05:42:04Z","number":2194,"state":"CLOSED","url":"https://github.com/mruangutai/harness/issues/2194"}
+```
