@@ -1,0 +1,25 @@
+ok   tests/manual/probe-omp-session-accessor.py:114 check grade=5 bar=4 cyc=1 cog=2 abc=3.6 driver=cyclomatic+cognitive+abc (was 5)
+ok   tests/manual/probe-omp-session-accessor.py:119 session_file grade=5 bar=4 cyc=2 cog=2 abc=3.7 driver=cyclomatic+cognitive+abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:125 _is_session_file grade=4 bar=4 cyc=4 cog=4 abc=9.2 driver=cognitive+abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:132 is_nested grade=5 bar=4 cyc=2 cog=1 abc=2.8 driver=cyclomatic+cognitive+abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:137 is_flat_main grade=5 bar=4 cyc=2 cog=1 abc=2.8 driver=cyclomatic+cognitive+abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:142 _finite_number grade=5 bar=4 cyc=2 cog=1 abc=2.8 driver=cyclomatic+cognitive+abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:146 usage_numbers grade=5 bar=4 cyc=4 cog=2 abc=7.8 driver=cyclomatic+cognitive+abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:155 _distinct grade=4 bar=4 cyc=6 cog=2 abc=7.5 driver=cyclomatic (new)
+ok   tests/manual/probe-omp-session-accessor.py:162 _by_path grade=5 bar=4 cyc=3 cog=0 abc=2.4 driver=cyclomatic+cognitive+abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:167 _field grade=5 bar=4 cyc=2 cog=0 abc=1.4 driver=cyclomatic+cognitive+abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:171 observation_checks grade=4 bar=4 cyc=4 cog=0 abc=11.8 driver=abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:188 _observe grade=4 bar=4 cyc=5 cog=3 abc=15.1 driver=cyclomatic+abc (new)
+ok   tests/manual/probe-omp-session-accessor.py:209 main grade=4 bar=4 cyc=5 cog=6 abc=15.9 driver=cyclomatic+cognitive+abc (was 1)
+ok   tests/manual/probe-omp-session-accessor.py:225 finish grade=5 bar=4 cyc=3 cog=2 abc=6.9 driver=cyclomatic+cognitive+abc (was 5)
+ok   tests/unit/test-session-accessor-probe.py:38 check grade=5 bar=3 cyc=2 cog=3 abc=5.4 driver=cyclomatic+cognitive+abc
+ok   tests/unit/test-session-accessor-probe.py:44 row grade=5 bar=3 cyc=2 cog=2 abc=5.1 driver=cyclomatic+cognitive+abc
+ok   tests/unit/test-session-accessor-probe.py:53 with_tokens grade=5 bar=3 cyc=2 cog=2 abc=2.4 driver=cyclomatic+cognitive+abc
+ok   tests/unit/test-session-accessor-probe.py:82 test_identity_table grade=5 bar=3 cyc=2 cog=1 abc=6.2 driver=cyclomatic+cognitive+abc
+ok   tests/unit/test-session-accessor-probe.py:98 test_session_file_table grade=5 bar=3 cyc=2 cog=1 abc=4.9 driver=cyclomatic+cognitive+abc
+ok   tests/unit/test-session-accessor-probe.py:133 test_measurement_tables grade=4 bar=3 cyc=3 cog=2 abc=15.2 driver=abc
+ok   tests/unit/test-session-accessor-probe.py:144 test_tokens_never_reclassify grade=4 bar=3 cyc=3 cog=3 abc=11.8 driver=abc
+ok   tests/unit/test-session-accessor-probe.py:181 outcome grade=5 bar=3 cyc=2 cog=0 abc=3.6 driver=cyclomatic+cognitive+abc
+ok   tests/unit/test-session-accessor-probe.py:185 test_scenarios grade=4 bar=3 cyc=3 cog=1 abc=9.9 driver=abc
+ok   tests/unit/test-session-accessor-probe.py:193 test_one_pattern_no_usage_identity grade=4 bar=3 cyc=2 cog=1 abc=9.2 driver=abc
+ok   tests/unit/test-session-accessor-probe.py:204 main grade=4 bar=3 cyc=1 cog=2 abc=8.2 driver=abc

@@ -1,0 +1,4 @@
+discovered: True
+tests/integration/test-run-unit-tests-kinds.py exit=0 fails=0
+tests/integration/test-typescript-typecheck.py exit=0 fails=0
+tests/unit/test-suite-layout.py exit=0 fails=0

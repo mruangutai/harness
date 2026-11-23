@@ -1,0 +1,9 @@
+FAIL test_identity_table: AttributeError: module 'probe_omp_session_accessor' has no attribute 'is_nested'
+FAIL test_session_file_table: AttributeError: module 'probe_omp_session_accessor' has no attribute 'session_file'
+FAIL test_measurement_tables: AttributeError: module 'probe_omp_session_accessor' has no attribute 'usage_numbers'
+FAIL test_tokens_never_reclassify: AttributeError: module 'probe_omp_session_accessor' has no attribute 'is_nested'
+FAIL test_scenarios: AttributeError: module 'probe_omp_session_accessor' has no attribute 'observation_checks'
+ok   structure: the probe compiles exactly one session-file pattern
+FAIL test_one_pattern_no_usage_identity: AttributeError: module 'probe_omp_session_accessor' has no attribute 'is_nested'
+failing checks: []
+exit=0

@@ -45,6 +45,10 @@ export default function probe(pi: ProbeApi): void {
 	pi.on("turn_end", async (_event, ctx) => {
 		if (logged) return;
 		logged = true;
+		// One call, saved as the host returned it: JSON keeps the numbers numeric, and an
+		// undefined result leaves `usage` absent rather than inventing a value. usageDefined is a
+		// diagnostic only; the Python check identifies sessions by path (#2194).
+		const usage = ctx?.getContextUsage?.();
 		const sm = ctx?.sessionManager;
 		const names = members(sm);
 		const pathish = names.filter(n => /^(get|is)/.test(n) && /path|file|dir|id|name|session/i.test(n));
@@ -54,7 +58,8 @@ export default function probe(pi: ProbeApi): void {
 			OUT,
 			JSON.stringify({
 				session,
-				usageDefined: ctx?.getContextUsage?.() !== undefined,
+				usageDefined: usage !== undefined,
+				usage,
 				sessionManagerType: typeof sm,
 				memberCount: names.length,
 				allMembers: names,
