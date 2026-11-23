@@ -215,7 +215,7 @@ def write_factory(feat_dir, factory, feat_id=None):
     omits it -- the shape every gh-sync.py call site uses for the SAME absent-file decision
     (save_recorded, _record_status, _record_pr all refuse before ever calling
     write_feature_json) -- still gets the old refusal: nothing here can accidentally mint a
-    document with only a `factory` key and none of feature-schema.json's other seven required
+    document with only a `factory` key and none of schemas/feature.json's other seven required
     keys, because without a feature_id there is no way to build a schema-clean one.
     """
     path = os.path.join(feat_dir, "feature.json")

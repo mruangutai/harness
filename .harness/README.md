@@ -168,7 +168,7 @@ yield({data: {
 ```
 
 That example is the complete `harness-documentor` shape. Each persona's exact closed schema is
-`.agents/skills/harness/bin/digest-schemas/harness-<persona>.json`, with shared definitions in
+`.agents/skills/harness/schemas/digest/harness-<persona>.json`, with shared definitions in
 `common.json`. Every declared property is required, including conditionally meaningful fields; use
 `none` or `[]` when the schema calls for no value, never null or omission. Minimal list items are
 closed too.

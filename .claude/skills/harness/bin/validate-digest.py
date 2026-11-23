@@ -4,7 +4,7 @@
 FEAT-1928: every harness agent returns its digest as an object `{VERDICT, DIGEST,
 artifact}` through YieldTool. The STRUCTURAL contract — required fields, types, exact
 enums, list-entry shapes, the closed key set and the `none`/`n/a` spelling — is one JSON
-Schema per persona under bin/digest-schemas/, applied by digest_schema.py. This file
+Schema per persona under schemas/digest/, applied by digest_schema.py. This file
 parses no digest text. What stays here is what a schema cannot say: the VERDICT-bound
 gates (a declined or failed gate beside PASS), the mission pins, the dev receipt, the
 review binding and the mechanical code grade, the qa kind policy and matrix floor, the
@@ -1553,7 +1553,7 @@ def _undeclared_message(canonical, keys_text):
                          f"the exact name and will not see it." for key, want in drifted)
     names = ", ".join(repr(key) for key in keys)
     return (f"undeclared digest key(s): {names}. The digest contract is closed: "
-            f"{os.path.join('.claude/skills/harness/bin/digest-schemas', canonical + '.json')} "
+            f"{os.path.join('.claude/skills/harness/schemas/digest', canonical + '.json')} "
             f"declares every DIGEST key. A per-dispatch answer is not a digest key: put a PASS "
             f"qualification in adequacy_notes or a per-step fact in the run state steps "
             f"evidence container.")

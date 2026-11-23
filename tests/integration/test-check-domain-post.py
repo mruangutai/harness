@@ -583,6 +583,8 @@ teams:
             try:
                 mbin = os.path.join(mtmp, "bin")
                 shutil.copytree(bin_dir, mbin)
+                shutil.copytree(os.path.join(os.path.dirname(bin_dir), "schemas"),
+                                os.path.join(mtmp, "schemas"))
                 with open(os.path.join(mbin, "feature_schema.py"), "w") as f:
                     f.write(mutant_text)
                 mhook = os.path.join(mbin, os.path.basename(HOOK))

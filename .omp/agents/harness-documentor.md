@@ -53,7 +53,7 @@ matches the code, **fix it or flag it** — do not write around it.
 ## Output
 
 Return an object through YieldTool — never fenced YAML text. The field list is the schema,
-`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/digest-schemas/harness-documentor.json`; one complete example:
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/schemas/digest/harness-documentor.json`; one complete example:
 
 ```js
 yield({data: {

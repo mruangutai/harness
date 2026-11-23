@@ -124,7 +124,7 @@ def _inv16_step_sweep(rel, sdoc, bad):
             f"INV-16: {rel}: run {sdoc.get('run_id', '<unknown>')} step "
             f"{_step_id}: undeclared step key or evidence shape {_names} — "
             "declare recovery fields in "
-            ".claude/skills/harness/bin/run-state-schema.json; put "
+            ".claude/skills/harness/schemas/run-state.json; put "
             "per-dispatch facts under evidence."
         )
 

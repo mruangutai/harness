@@ -62,6 +62,7 @@ def mutant_run():
     copy = Path(tempfile.mkdtemp(prefix="vd-persona-release-")) / "bin"
     try:
         shutil.copytree(BIN, copy, ignore=shutil.ignore_patterns("__pycache__"))
+        shutil.copytree(BIN.parent / "schemas", copy.parent / "schemas")
         with open(copy / "inflight_registry.py", "a", encoding="utf-8") as handle:
             handle.write(PERSONA_RELEASE)
         code, output = run_suite(dict(os.environ,

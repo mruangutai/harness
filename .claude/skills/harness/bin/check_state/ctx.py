@@ -137,7 +137,7 @@ def has_approval_block(txt):
 # It was a deliberate silent skip on the grounds that status was schema-required with a closed
 # enum, so an unknown value was already denied at write time and a branch here would have been
 # a second enforcement point for a rule the schema owned. THAT COMPENSATING CONTROL IS GONE:
-# T-07 deleted the key from feature-schema.json, and the station now lives in plan.yaml, whose
+# T-07 deleted the key from schemas/feature.json, and the station now lives in plan.yaml, whose
 # schema does not constrain the top-level `status` value at all. What denies an illegal station
 # today is plan-merge.py's set-feature-station, which validates before it opens the file — an
 # enforcement point on the WRITE ROUTE, not on the document. A hand-edited plan therefore
@@ -493,7 +493,7 @@ class Ctx:
             # deliberately benign — every run recorded before this key existed reviewed
             # code, and a silent exemption would retire the invariant on the whole corpus.
             # EXACT match, no strip and no case fold, so this test and
-            # feature-schema.json's `enum: ["n_a"]` cannot disagree (panel Q2). A document
+            # schemas/feature.json's `enum: ["n_a"]` cannot disagree (panel Q2). A document
             # must never be schema-invalid and gate-exempt at the same time: any deviation
             # fails BOTH, which is the fail-closed direction.
             if _squad == "validator" and entry.get("code_grade") != "n_a":

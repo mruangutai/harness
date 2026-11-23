@@ -1,4 +1,4 @@
-"""harness.json schema_version 3: defaults, then validation against config-schemas/harness.json.
+"""harness.json schema_version 3: defaults, then validation against schemas/harness.json.
 
 artifact_accessors.load_harness_json is the only caller: it decodes strictly and hands the mapping
 here (FEAT-2297 D-01/D-04). A default fills a key only where it is ABSENT: an explicit null or a
@@ -15,7 +15,7 @@ import re
 
 from artifact_accessors import ArtifactAccessError, load_json_mapping
 
-SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config-schemas", "harness.json")
+SCHEMA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "schemas", "harness.json")
 VERSION = 3
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _INSTANT = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]{1,6})?)?(Z|[+-][0-9]{2}:[0-9]{2})")

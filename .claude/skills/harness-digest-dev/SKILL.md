@@ -16,7 +16,7 @@ The **main session** returns this same contract when it builds a feature directl
 (`feature-record.py run-start --agent main-session`): it wrote the diff, so it owns the same
 `task` / `task_verify` / `suite` receipt, and `close-run` validates its digest as `dev` (#1895).
 
-Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-backend-dev.json`;
+Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-backend-dev.json`;
 frontend, ai and data have their own `harness-<persona>.json` with the same fields.
 **Before your first engineering return or an under-specified-task refusal, read
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/digest-dev-examples.md`.**
@@ -24,7 +24,7 @@ frontend, ai and data have their own `harness-<persona>.json` with the same fiel
 
 ## dev-ops
 
-Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-dev-ops.json`.
+Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-dev-ops.json`.
 - `change_type`: `config|scaffolding|infra|ci`. `test_kinds_written`: `<kind: cmd>` entries
   when you ran detection, else `[]`; the shared field rules below apply unchanged.
 

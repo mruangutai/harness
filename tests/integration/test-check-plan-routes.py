@@ -1115,7 +1115,7 @@ def case_24():
             check(f"case_24_{station}_is_{'checked' if want_checked else 'skipped'}",
                   ok, f"exit {r.returncode}, checked={checked}: {r.stdout[:160]!r}")
 
-    # THE SUBSET TIE IS NOW TO THE STATION VOCABULARY, NOT THE SCHEMA ENUM. feature-schema.json
+    # THE SUBSET TIE IS NOW TO THE STATION VOCABULARY, NOT THE SCHEMA ENUM. schemas/feature.json
     # no longer HAS a status enum — T-07 deleted the key — so the old assertion could only be
     # rewritten or dropped, and dropping it would leave the finished set tied to nothing. It is
     # tied to factory_config instead, which is the source plan-merge.py validates writes
