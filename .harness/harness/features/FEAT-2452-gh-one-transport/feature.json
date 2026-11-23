@@ -114,6 +114,51 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-23T17:10:45+00:00"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T17:30:25+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-product/digest.md",
+        "sha256": "51baedadb9ca9dfedab740b40404997875a26b922a0234bafd65a636aaaf8dc2"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T17:35:57+00:00"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T17:35:58+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-validator/digest.md",
+        "sha256": "dc3d0a765dddca89e78a773175062e28b64d837c20ea5d9987fd1de499a92fe9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T17:40:11+00:00"
+    },
+    {
+      "id": "distill-orchestrator",
+      "squad": "orchestrator",
+      "agent": "harness-orchestrator",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T17:40:40+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-orchestrator/digest.md",
+        "sha256": "6a8f62abb24043d08d14bb86092fbe8519634e26c3f54a39990b8dd62b06ea4c"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T17:42:52+00:00"
     }
   ],
   "judgements": [
@@ -144,6 +189,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "validate c2 ESCALATE ruled (a) by fable-advisor under delegation: ship; R1+S2 backlogged as #2470; V1/V2 wording-only post-review delta"
+    },
+    {
+      "at": "2026-11-23T17:42:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "distill-orchestrator ops applied via expertise_apply and replayed clean; digest validator accepts applied ops only in a lead's run digest, so no orchestrator distill path exists for main-session-direct features"
     }
   ],
   "mission": "plan",
