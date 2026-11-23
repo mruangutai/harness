@@ -14,13 +14,14 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import base64
 import contextlib
+import dataclasses
 import io
 import json
 import os
 import sys
 
+import artifact_accessors
 import factory_gh as fgh
-import gh_issues
 
 # FEAT-29 T-03, amendment 4: run_gh now wraps its subprocess call with gh_cost_log.measured(),
 # which (when enabled) makes TWO extra `gh api rate_limit` calls per invocation to read the
@@ -68,13 +69,11 @@ def recorder(results):
 
 _real_subprocess_run = fgh.subprocess.run
 _real_run_gh = fgh.run_gh
-_real_gh_bin = gh_issues.gh_bin
 
 
 def restore():
     fgh.subprocess.run = _real_subprocess_run
     fgh.run_gh = _real_run_gh
-    gh_issues.gh_bin = _real_gh_bin
 
 
 def silent_stdout(fn, *a, **kw):
@@ -1586,7 +1585,10 @@ check("blocked_by: argv path ends in /dependencies/blocked_by",
       any(a.endswith("/dependencies/blocked_by") for a in calls[0]["argv"]), f"calls={calls}")
 
 
-# ---------------- all three edge functions go through run_gh, never gh_issues.gh_bin ----------------
+# ---------------- all three edge functions go through run_gh and its FACTORY_GH binary ----------
+# Asserted on the transport, never on gh_issues' own resolver, so the binary-override API can
+# be removed there without a shim: with run_gh replaced, no edge function may launch a process
+# of its own; with the real run_gh, every launch uses the call-time FACTORY_GH binary.
 edge_calls = []
 
 
@@ -1595,12 +1597,12 @@ def fake_run_gh(args, json_out=False):
     return "1"
 
 
-def gh_bin_boom():
-    raise AssertionError("gh_issues.gh_bin() must never be called — it escapes FACTORY_GH")
+def launch_boom(argv, **kwargs):
+    raise AssertionError(f"an edge function launched a process outside run_gh: argv={argv!r}")
 
 
 fgh.run_gh = fake_run_gh
-gh_issues.gh_bin = gh_bin_boom
+fgh.subprocess.run = launch_boom
 try:
     fgh.internal_id("o/r", 1)
     fgh.attach_sub_issue("o/r", 1, 2)
@@ -1609,8 +1611,21 @@ try:
 except AssertionError:
     escaped = True
 restore()
-check("edge functions: all three route through run_gh and never reach gh_issues.gh_bin",
+check("edge functions: all three route through run_gh and launch nothing of their own",
       not escaped and len(edge_calls) == 3, f"edge_calls={edge_calls}, escaped={escaped}")
+
+os.environ["FACTORY_GH"] = "edge-stub-gh"
+fake, calls = recorder([Result(0, stdout="1\n"), Result(0), Result(0)])
+fgh.subprocess.run = fake
+try:
+    fgh.internal_id("o/r", 1)
+    fgh.attach_sub_issue("o/r", 1, 2)
+    fgh.blocked_by("o/r", 1, 2)
+finally:
+    del os.environ["FACTORY_GH"]
+    restore()
+check("edge functions: every launch uses the call-time FACTORY_GH binary",
+      len(calls) == 3 and all(c["argv"][0] == "edge-stub-gh" for c in calls), f"calls={calls}")
 
 
 # ---------------- no helper writes to stdout ----------------
@@ -1963,4 +1978,282 @@ except fgh.GhError:
 restore()
 check("FEAT-64 run_gh: an unrelated RuntimeError escapes", escaped)
 
+
+# ---------------- FEAT-2452 T-01: one typed transport ----------------
+# GhResult/try_gh are the non-raising form, launch_gh the one launch and FACTORY_GH boundary,
+# run_gh the raising adapter over try_gh. Each case runs through t01_case so a missing name on
+# the old code reddens that case by name instead of aborting every later check.
+def t01_case(name, fn):
+    try:
+        fn()
+    except Exception as exc:
+        check(f"T-01 {name}: ran to its checks", False, f"{type(exc).__name__}: {exc}")
+    finally:
+        restore()
+
+
+def raiser(exc):
+    def fake_run(argv, **kwargs):
+        raise exc
+    return fake_run
+
+
+def t01_ghresult_shape():
+    err = fgh.GhError(["x"], 1, "", "", "w", "v", "n")
+    good = fgh.GhResult(status=0, stdout="o", stderr="e", value="o", error=None)
+    bad = fgh.GhResult(status=1, stdout="", stderr="", value=None, error=err)
+    names = [f.name for f in dataclasses.fields(fgh.GhResult)]
+    check("T-01 GhResult: fields are exactly status, stdout, stderr, value, error",
+          names == ["status", "stdout", "stderr", "value", "error"], f"names={names}")
+    check("T-01 GhResult: ok is derived as error is None", good.ok is True and bad.ok is False)
+    try:
+        good.status = 1
+        frozen = False
+    except dataclasses.FrozenInstanceError:
+        frozen = True
+    check("T-01 GhResult: frozen", frozen)
+
+
+def t01_try_gh_success():
+    fake, calls = recorder([Result(0, stdout="  hello\n", stderr="note\n")])
+    fgh.subprocess.run = fake
+    res, out = silent_stdout(fgh.try_gh, ["issue", "view", "1"])
+    check("T-01 try_gh success: ok, real status and raw streams retained",
+          res.ok and res.status == 0 and res.stdout == "  hello\n" and res.stderr == "note\n",
+          repr(res))
+    check("T-01 try_gh success: value is stripped stdout, error None",
+          res.value == "hello" and res.error is None, repr(res))
+    check("T-01 try_gh: writes nothing to stdout", out == "", f"out={out!r}")
+    check("T-01 try_gh: one launch", len(calls) == 1, f"calls={calls}")
+
+
+def t01_try_gh_json():
+    fake, _ = recorder([Result(0, stdout='{"a": [1, 2]}'), Result(0, stdout="null\n")])
+    fgh.subprocess.run = fake
+    first = fgh.try_gh(["api", "x"], json_out=True)
+    second = fgh.try_gh(["api", "x"], True)
+    check("T-01 try_gh json: value is the parsed document",
+          first.ok and first.value == {"a": [1, 2]} and first.stdout == '{"a": [1, 2]}', repr(first))
+    check("T-01 try_gh json: JSON null is a successful None value, positional json_out",
+          second.ok and second.value is None and second.status == 0 and second.stdout == "null\n",
+          repr(second))
+
+
+def t01_try_gh_nonzero():
+    args = ["issue", "view", "9", "--repo", "o/r"]
+    fake, calls = recorder([Result(1, stdout="partial", stderr="HTTP 404: Not Found\n"),
+                            Result(1, stderr="spare")])
+    fgh.subprocess.run = fake
+    res = fgh.try_gh(args)
+    check("T-01 try_gh nonzero: never raises; not ok with status and original streams",
+          not res.ok and res.status == 1 and res.stdout == "partial"
+          and res.stderr == "HTTP 404: Not Found\n" and res.value is None, repr(res))
+    err = res.error
+    check("T-01 try_gh nonzero: error is the GhError run_gh raises",
+          isinstance(err, fgh.GhError) and err.argv == args and err.status == 1
+          and "HTTP 404" in str(err), repr(err))
+    check("T-01 try_gh nonzero: no retry", len(calls) == 1, f"calls={calls}")
+
+
+def t01_try_gh_launch_failures():
+    cases = (
+        ("missing binary", FileNotFoundError(2, "No such file", "gh"), "gh not found"),
+        ("permission", PermissionError(13, "Permission denied"), "gh could not be launched"),
+        ("general OSError", OSError(8, "Exec format error"), "OSError"),
+    )
+    for label, exc, words in cases:
+        fgh.subprocess.run = raiser(exc)
+        res = fgh.try_gh(["auth", "status"])
+        err = res.error
+        check(f"T-01 try_gh {label}: status None, empty streams, no value",
+              not res.ok and res.status is None and res.stdout == "" and res.stderr == ""
+              and res.value is None, repr(res))
+        check(f"T-01 try_gh {label}: GhError with argv, status None and the launch error chained",
+              isinstance(err, fgh.GhError) and err.__cause__ is exc and err.status is None
+              and err.argv == ["auth", "status"] and words in str(err), repr(err))
+
+
+def t01_strict_json_failures():
+    for label, body in (("malformed", "not json {"), ("duplicate key", '{"a": 1, "a": 2}'),
+                        ("nonfinite", '{"a": NaN}')):
+        fake, _ = recorder([Result(0, stdout=body, stderr="w"), Result(0, stdout=body)])
+        fgh.subprocess.run = fake
+        res = fgh.try_gh(["api", "x"], json_out=True)
+        check(f"T-01 try_gh {label} JSON: status zero yet not ok, streams kept, value None",
+              not res.ok and res.status == 0 and res.stdout == body and res.stderr == "w"
+              and res.value is None, repr(res))
+        check(f"T-01 try_gh {label} JSON: typed GhError chained from the strict parser",
+              isinstance(res.error, fgh.GhError)
+              and isinstance(res.error.__cause__, artifact_accessors.ArtifactAccessError),
+              repr(res.error))
+        try:
+            fgh.run_gh(["api", "x"], True)
+            raised = False
+        except fgh.GhError:
+            raised = True
+        check(f"T-01 run_gh {label} JSON: raises GhError", raised)
+
+
+def t01_unexpected_exceptions_escape():
+    fgh.subprocess.run = raiser(RuntimeError("unrelated"))
+    for name in ("launch_gh", "try_gh"):
+        try:
+            getattr(fgh, name)(["auth", "status"])
+            escaped = False
+        except RuntimeError:
+            escaped = True
+        check(f"T-01 {name}: an unrelated RuntimeError escapes, never a GhError", escaped)
+
+
+def t01_input_forwarding():
+    fake, calls = recorder([Result(0, stdout="ok")] * 4)
+    fgh.subprocess.run = fake
+    fgh.launch_gh(["api", "x"], input="payload-1")
+    fgh.try_gh(["api", "x"], input="payload-2")
+    fgh.run_gh(["api", "x"], input="payload-3")
+    fgh.run_gh(["api", "x"])
+    forwarded = [c.get("input") for c in calls[:3]]
+    check("T-01 input: text input reaches the process from launch_gh, try_gh and run_gh",
+          forwarded == ["payload-1", "payload-2", "payload-3"], f"calls={calls}")
+    check("T-01 input: text input is never combined with a stdin argument",
+          all("stdin" not in c for c in calls[:3]), f"calls={calls}")
+    check("T-01 input: no input closes stdin through DEVNULL and passes no input",
+          len(calls) == 4 and calls[3].get("stdin") is fgh.subprocess.DEVNULL
+          and "input" not in calls[3], f"calls={calls}")
+    check("T-01 input: every launch captures text output",
+          all(c.get("capture_output") is True and c.get("text") is True for c in calls), f"calls={calls}")
+
+
+def t01_launch_gh_contract():
+    proc = Result(3, stdout="{not json", stderr="bad")
+    fake, calls = recorder([proc])
+    fgh.subprocess.run = fake
+    os.environ["FACTORY_GH"] = "launch-stub-gh"
+    try:
+        out = fgh.launch_gh(["api", "x"])
+    finally:
+        del os.environ["FACTORY_GH"]
+    check("T-01 launch_gh: returns the completed process uninterpreted (nonzero, no JSON parse)",
+          out is proc, repr(out))
+    check("T-01 launch_gh: FACTORY_GH resolved at call time",
+          calls and calls[0]["argv"] == ["launch-stub-gh", "api", "x"], f"calls={calls}")
+    fgh.subprocess.run = raiser(FileNotFoundError(2, "No such file", "gh"))
+    try:
+        fgh.launch_gh(["auth", "status"])
+        err = None
+    except fgh.GhError as exc:
+        err = exc
+    check("T-01 launch_gh: a missing binary is GhError with status None and the cause chained",
+          err is not None and err.status is None and isinstance(err.__cause__, FileNotFoundError),
+          repr(err))
+
+
+def t01_try_gh_call_time_binary():
+    fake, calls = recorder([Result(0, stdout="ok")])
+    fgh.subprocess.run = fake
+    os.environ["FACTORY_GH"] = "try-stub-gh"
+    try:
+        fgh.try_gh(["auth", "status"])
+    finally:
+        del os.environ["FACTORY_GH"]
+    check("T-01 try_gh: FACTORY_GH set after import is the binary launched",
+          calls and calls[0]["argv"][0] == "try-stub-gh", f"calls={calls}")
+
+
+def t01_rate_limit_diagnosis():
+    fake, calls = recorder([
+        Result(1, stderr="API rate limit exceeded for installation ID 123."),
+        Result(0, stdout=_RATE_LIMIT_JSON),
+        Result(0, stdout="spare"),
+    ])
+    fgh.subprocess.run = fake
+    res = fgh.try_gh(["api", "graphql", "-f", "query=q"])
+    check("T-01 try_gh rate limit: the process status stays authoritative beside the diagnosis",
+          not res.ok and res.status == 1 and res.error.status is None
+          and "API rate limit exceeded" in res.stderr, repr(res))
+    check("T-01 try_gh rate limit: the GraphQL budget diagnosis is kept",
+          "GraphQL budget exhausted" in str(res.error), str(res.error))
+    check("T-01 try_gh rate limit: one budget read and no retry of the failed operation",
+          len(calls) == 2 and calls[1]["argv"][1:3] == ["api", "rate_limit"], f"calls={calls}")
+    fake, calls = recorder([Result(1, stderr="rate limit"), Result(0, stdout=_RATE_LIMIT_JSON)])
+    fgh.subprocess.run = fake
+    res = fgh.try_gh(["api", "rate_limit"])
+    check("T-01 try_gh rate limit: the budget query's own failure never recurses",
+          not res.ok and len(calls) == 1, f"calls={calls}")
+
+
+_T01_CREATE_ARGS = ["issue", "create", "--repo", "o/r", "--title", "t"]
+_T01_REJECTED_URLS = (
+    ("malformed", "not a url\n"),
+    ("zero", "https://github.com/o/r/issues/0"),
+    ("zero padded", "https://github.com/o/r/issues/000"),
+    ("non-ASCII digits", "https://github.com/o/r/issues/\uff14\uff12"),
+    ("oversized", "https://github.com/o/r/issues/" + "9" * 5000),
+    ("trailing junk", "https://github.com/o/r/issues/12abc"),
+    ("negative", "https://github.com/o/r/issues/-3"),
+    ("pull URL", "https://github.com/o/r/pull/12"),
+    ("no scheme", "github.com/o/r/issues/12"),
+    ("bare path", "/issues/12"),
+    ("extra segment", "https://github.com/o/r/issues/12/comments"),
+    ("two lines", "https://github.com/o/r/issues/12\nhttps://github.com/o/r/issues/13"),
+)
+
+
+def t01_issue_number_from_url_accepts():
+    parse = fgh.issue_number_from_url
+    got = [parse(_T01_CREATE_ARGS, "https://github.com/o/r/issues/42\n"),
+           parse(_T01_CREATE_ARGS, "http://github.com/o/r/issues/7/"),
+           parse(_T01_CREATE_ARGS, "https://github.com/o/r/issues/1234567")]
+    check("T-01 issue_number_from_url: a complete issue URL yields its positive number",
+          got == [42, 7, 1234567] and all(type(n) is int for n in got), f"got={got}")
+
+
+def t01_issue_number_from_url_rejects():
+    for label, output in _T01_REJECTED_URLS:
+        try:
+            fgh.issue_number_from_url(_T01_CREATE_ARGS, output)
+            err = None
+        except fgh.GhError as exc:
+            err = exc
+        check(f"T-01 issue_number_from_url {label}: GhError with argv and the original output",
+              err is not None and err.argv == _T01_CREATE_ARGS and err.stdout == output
+              and str(err).startswith("gh issue create returned no issue number: o/r — "),
+              repr(err))
+
+
+def t01_create_issue_reuses_parser():
+    for label, output in (("non-ASCII digits", "https://github.com/o/r/issues/\uff14\uff12\n"),
+                          ("oversized", "https://github.com/o/r/issues/" + "9" * 5000 + "\n")):
+        fake, _ = recorder([Result(0, stdout=output)])
+        fgh.subprocess.run = fake
+        try:
+            fgh.create_issue("o/r", "t", "b", [])
+            outcome = "returned"
+        except fgh.GhError:
+            outcome = "GhError"
+        except ValueError:
+            outcome = "ValueError"
+        check(f"T-01 create_issue {label} URL: GhError, never a number or a raw ValueError",
+              outcome == "GhError", outcome)
+
+
+for _name, _fn in (
+    ("GhResult shape", t01_ghresult_shape),
+    ("try_gh success", t01_try_gh_success),
+    ("try_gh json", t01_try_gh_json),
+    ("try_gh nonzero", t01_try_gh_nonzero),
+    ("try_gh launch failures", t01_try_gh_launch_failures),
+    ("strict JSON failures", t01_strict_json_failures),
+    ("unexpected exceptions", t01_unexpected_exceptions_escape),
+    ("input forwarding", t01_input_forwarding),
+    ("launch_gh contract", t01_launch_gh_contract),
+    ("try_gh call-time binary", t01_try_gh_call_time_binary),
+    ("rate-limit diagnosis", t01_rate_limit_diagnosis),
+    ("issue_number_from_url accepts", t01_issue_number_from_url_accepts),
+    ("issue_number_from_url rejects", t01_issue_number_from_url_rejects),
+    ("create_issue reuses the parser", t01_create_issue_reuses_parser),
+):
+    t01_case(_name, _fn)
+
+print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
 sys.exit(1 if FAILS else 0)

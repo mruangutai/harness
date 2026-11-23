@@ -18,9 +18,11 @@ that no function here writes to stdout — callers own stdout for their own payl
 """
 import base64
 import binascii
+import dataclasses
 import datetime
 import json
 import os
+import re
 import subprocess
 
 import artifact_accessors
@@ -90,12 +92,6 @@ def _rate_limit_budget_error(orig_argv, orig_stdout, orig_stderr):
     )
 
 
-def _gh_binary():
-    """FACTORY_GH, resolved at CALL time — never cached at import — so a test can set the
-    environment variable after import and have the next call see it."""
-    return os.environ.get("FACTORY_GH", "gh")
-
-
 class GhError(Exception):
     """Carries the argv, exit status, captured stdout and captured stderr as attributes for a
     debugger. Its str() is always built with factory_cli.body(what, value, next_step) — never by
@@ -143,14 +139,37 @@ def _first_line(text):
     return text.splitlines()[0] if text else ""
 
 
-def _launch_gh(gh, args):
-    """subprocess.run of gh, with both launch failures typed. An absent binary keeps its own
-    message; any other OSError — permission denied, a binary that is a directory — is the same
-    boundary and reaches the caller as the one typed error with the OS failure chained (FEAT-64)."""
+@dataclasses.dataclass(frozen=True)
+class GhResult:
+    """One gh call's outcome, never raised (FEAT-2452). status, stdout and stderr are the
+    authoritative process facts — status is None only when the launch itself failed — so a
+    caller classifies on them, never on error.status: the rate-limit diagnosis sets that to None
+    after a completed non-zero process. value is the parsed JSON or stripped stdout of a
+    success, else None; error is the GhError run_gh would raise, else None."""
+
+    status: int | None
+    stdout: str
+    stderr: str
+    value: object
+    error: GhError | None
+
+    @property
+    def ok(self):
+        return self.error is None
+
+
+def launch_gh(args, *, input=None):
+    """The one subprocess and FACTORY_GH boundary: run [FACTORY_GH or gh] + args and return the
+    captured text CompletedProcess as it is. It neither measures, interprets a non-zero exit,
+    nor parses JSON. FACTORY_GH is read at CALL time, never cached at import, so a test can set
+    it after import. With no input, stdin is DEVNULL so a real gh cannot block on a prompt;
+    text input is passed as the process input instead. Both launch failures are typed: an
+    absent binary keeps its own message, and any other OSError reaches the caller as the same
+    typed error with the OS failure chained (FEAT-64)."""
+    gh = os.environ.get("FACTORY_GH", "gh")
+    stream = {"stdin": subprocess.DEVNULL} if input is None else {"input": input}
     try:
-        return subprocess.run(
-            [gh] + list(args), capture_output=True, text=True, stdin=subprocess.DEVNULL,
-        )
+        return subprocess.run([gh] + list(args), capture_output=True, text=True, **stream)
     except FileNotFoundError as error:
         raise GhError(
             args, None, "", "",
@@ -175,25 +194,70 @@ def _decode_gh_json(args, r):
                       _what_from_argv(args), _value_from_argv(args), str(error)) from error
 
 
-def run_gh(args, json_out=False):
-    """Run [gh] + args. Raise GhError when the binary is absent or the exit status is non-zero.
+def _exit_error(args, r):
+    """The GhError for a completed non-zero gh process: the GraphQL budget diagnosis when its
+    text names a rate limit (never for the budget query itself — the recursion guard), else the
+    first captured line. Diagnosing never re-runs the failed operation."""
+    if not _is_rate_limit_query(list(args)) and _looks_like_rate_limit(r.stdout, r.stderr):
+        return _rate_limit_budget_error(list(args), r.stdout, r.stderr)
+    next_step = _first_line(r.stderr) or _first_line(r.stdout) or "no output captured"
+    return GhError(args, r.returncode, r.stdout, r.stderr,
+                   _what_from_argv(args), _value_from_argv(args), next_step)
 
-    Never swallows a failure and never returns a default (D-02). stdin is closed so a real gh
-    cannot block on an interactive prompt.
-    """
-    gh = _gh_binary()
-    with gh_cost_log.measured(args) as _cost:
-        r = _launch_gh(gh, args)
-        _cost.returncode = r.returncode
+
+def try_gh(args, json_out=False, *, input=None):
+    """Run [gh] + args through launch_gh, measured exactly once, and return a GhResult rather
+    than raising. Only GhError — a launch, non-zero exit or strict-JSON failure — becomes a
+    result; any other exception is a programming error and escapes. A JSON body that does not
+    decode is not ok even though the process exited zero."""
+    try:
+        with gh_cost_log.measured(args) as cost:
+            r = launch_gh(args, input=input)
+            cost.returncode = r.returncode
+    except GhError as error:
+        return GhResult(None, error.stdout, error.stderr, None, error)
     if r.returncode != 0:
-        if not _is_rate_limit_query(list(args)) and _looks_like_rate_limit(r.stdout, r.stderr):
-            raise _rate_limit_budget_error(list(args), r.stdout, r.stderr)
-        next_step = _first_line(r.stderr) or _first_line(r.stdout) or "no output captured"
-        raise GhError(args, r.returncode, r.stdout, r.stderr,
-                      _what_from_argv(args), _value_from_argv(args), next_step)
-    if json_out:
-        return _decode_gh_json(args, r)
-    return r.stdout.strip()
+        return GhResult(r.returncode, r.stdout, r.stderr, None, _exit_error(args, r))
+    if not json_out:
+        return GhResult(0, r.stdout, r.stderr, r.stdout.strip(), None)
+    try:
+        value = _decode_gh_json(args, r)
+    except GhError as error:
+        return GhResult(0, r.stdout, r.stderr, None, error)
+    return GhResult(0, r.stdout, r.stderr, value, None)
+
+
+def run_gh(args, json_out=False, *, input=None):
+    """Run [gh] + args and return the parsed JSON or stripped stdout; raise the GhError
+    try_gh carries on any launch, non-zero exit or strict-JSON failure.
+
+    Never swallows a failure and never returns a default (D-02).
+    """
+    result = try_gh(args, json_out, input=input)
+    if not result.ok:
+        raise result.error
+    return result.value
+
+
+_ISSUE_URL = re.compile(r"https?://[^/\s]+/[^/\s]+/[^/\s]+/issues/([0-9]+)/?", re.ASCII)
+
+
+def issue_number_from_url(args, output):
+    """The positive issue number at the end of a complete http(s) GitHub issue URL, the shape
+    `gh issue create` prints. Malformed, zero, non-ASCII and oversized tails are GhError with
+    the argv and the original output, never a raw ValueError (#1542)."""
+    match = _ISSUE_URL.fullmatch(output.strip())
+    try:
+        number = int(match.group(1)) if match else 0
+    except ValueError:
+        number = 0
+    if number < 1:
+        raise GhError(
+            args, None, output, "",
+            f"{' '.join(['gh'] + list(args[:2]))} returned no issue number", _value_from_argv(args),
+            "output did not contain a /issues/<n> URL",
+        )
+    return number
 
 
 def preflight():
@@ -226,14 +290,7 @@ def create_issue(repo, title, body, labels):
     for label in labels:
         args += ["--label", label]
     out = run_gh(args)
-    tail = out.strip().rsplit("/issues/", 1)
-    if len(tail) != 2 or not tail[1].strip().isdigit():
-        raise GhError(
-            args, None, out, "",
-            "gh issue create returned no issue number", repo,
-            "output did not contain a /issues/<n> URL",
-        )
-    return int(tail[1].strip())
+    return issue_number_from_url(args, out)
 
 
 def detect_issue_types(repo):
@@ -1122,8 +1179,6 @@ def project_field_set(owner, number, item_id, field, option):
 
 # ---------------- the three edge functions (D-14) ----------------
 # Each is one line: build the argv with gh_issues' builder, run it through THIS module's run_gh.
-# Never through gh_issues.gh_bin() — that reads GH_SYNC_GH, not FACTORY_GH, and a call routed
-# through it would silently escape the injected test binary.
 
 def internal_id(repo, num):
     """The internal REST integer id — never the GraphQL node id `issue view` returns. Both edge
