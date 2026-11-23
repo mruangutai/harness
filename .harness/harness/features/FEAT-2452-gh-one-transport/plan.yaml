@@ -1,9 +1,11 @@
 schema: plan/1
 feature: FEAT-2452-gh-one-transport
 approval:
-  status: pending
+  date: '2026-11-23'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
 drafted_at: '2026-11-23T13:41:33Z'
-status: plan
+status: ready
 source_issues: [2452]
 panel:
   last_run: r-20261123-1-plan-product

@@ -1,0 +1,309 @@
+gh-sync: milestone #136 created for FEAT-2452-gh-one-transport
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: parent #2462 created
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-01 -> issue #2463 [harness]
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 CANNOT VERIFY FEAT-2452-gh-one-transport T-01 (issue #2463): no station set. The plan says ready, so the card should read plan.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-01 (issue #2463) attached to parent #2462
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-02 -> issue #2464 [harness]
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 CANNOT VERIFY FEAT-2452-gh-one-transport T-02 (issue #2464): not on the board. The plan says ready, so the card should read plan.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-02 (issue #2464) attached to parent #2462
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-03 -> issue #2465 [harness]
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 CANNOT VERIFY FEAT-2452-gh-one-transport T-03 (issue #2465): not on the board. The plan says ready, so the card should read plan.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-03 (issue #2465) attached to parent #2462
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-04 -> issue #2466 [harness]
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 CANNOT VERIFY FEAT-2452-gh-one-transport T-04 (issue #2466): no station set. The plan says ready, so the card should read plan.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-04 (issue #2466) attached to parent #2462
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-05 -> issue #2467 [harness]
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 CANNOT VERIFY FEAT-2452-gh-one-transport T-05 (issue #2467): no station set. The plan says ready, so the card should read plan.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-05 (issue #2467): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+gh-sync: T-05 (issue #2467) attached to parent #2462
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-05 (issue #2467): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-05 (issue #2467): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-05 (issue #2467): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-05 (issue #2467): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-05 (issue #2467): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-05 (issue #2467): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-05 (issue #2467): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-01 (issue #2463): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-02 (issue #2464): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-03 (issue #2465): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-04 (issue #2466): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport T-05 (issue #2467): plan says ready, so the card should read plan — the board reads backlog.
+  VIOLATION  INV-26 FEAT-2452-gh-one-transport parent (issue #2462): the plan projects plan — the board reads backlog.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+open exit=0
+gh-sync: plan.yaml station -> ready
+gh-sync: issue #2452 -> ready
+gh-sync: issue #2462 -> ready
+gh-sync: issue #2463 -> ready
+gh-sync: issue #2464 -> ready
+gh-sync: issue #2465 -> ready
+gh-sync: issue #2466 -> ready
+gh-sync: issue #2467 -> ready
+status exit=0

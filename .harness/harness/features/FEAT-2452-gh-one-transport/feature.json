@@ -80,5 +80,48 @@
       "reason": "factory_gh transport plus mirror, wayfind, board_lifecycle, gh_cost_log, ~10 tests, a reference doc: not patch-scale; factory_gh is in check-state's chain so DEC-174 forces main-session-direct; confirmed by fable-advisor"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-2452-gh-one-transport/notes/answers-2026-11-23-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "e460ee75aceecf7223a161be55a1843224923e4ea937f54d2292f71289d28b4e",
+    "T-02": "1a1d0bf69e8d16c514b5455e095a4f2ad5649cb0ecbb0979dc5c2050a9c49bcf",
+    "T-03": "ac025cafb213be5d19133b9c8fb1a6dbb87298790f101149996117cb47d2f3c4",
+    "T-04": "d3e07cfe5fdd94249318b3e42b362cd557bf3df0c210a01fa090f40da0b183d7",
+    "T-05": "b48b88e4f6630f2857e00bf8e5b4b00679f149825ebbc3a949ec7ded285b2e51"
+  },
+  "github": {
+    "milestone": 136,
+    "parent": 2462,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 2463,
+      "T-02": 2464,
+      "T-03": 2465,
+      "T-04": 2466,
+      "T-05": 2467
+    },
+    "source_issues": [
+      2452
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

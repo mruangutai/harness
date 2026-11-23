@@ -49,3 +49,15 @@ Required: record this acceptance in the answers note, and **C6** below going for
 - **C7 — Ordering of remote writes.** The enforcement ticket is created only after signature, verbatim signed body, readback saved; uncertain dispatch → stop and request evidenced adoption (plan already says this; now binding). The live issue-types probe receipt counts only as CAPABILITY PRESENT/ABSENT per T-05; SKIP is not evidence.
 
 Sign as `Mike Ruangutai (delegated to fable-advisor)` once C1 lands.
+## C1 clearance (AdvisorD2Signoff, follow-up at worktree c86302c7)
+
+**Yes.** C1 is cleared and the signature may proceed. pm made two additions beyond the ruling's
+letter. Both tighten C1's scope rather than widen it, and both are accepted:
+- three T-05 verify assertions on the rewritten DEC-138 paragraph: it names factory_gh, has no
+  `gh_bin` and no "keeps its own runner", and keeps the write-only guard;
+- a DEC-205 citation in T-05's intent.
+
+Condition: C6 means the full writer and check output must be reproduced verbatim in a `notes/`
+receipt. Staging in /tmp is acceptable only when the output is reproduced that way. The
+orchestrator's check counts through its quoted output, because the write guard blocked it from
+teeing. C2–C7 are otherwise binding and unchanged.

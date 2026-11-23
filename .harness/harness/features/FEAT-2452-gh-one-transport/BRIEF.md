@@ -51,6 +51,6 @@ Harness operators maintain several independent gh runners. A binary override can
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike Ruangutai (delegated to fable-advisor)
+date: 2026-11-23
