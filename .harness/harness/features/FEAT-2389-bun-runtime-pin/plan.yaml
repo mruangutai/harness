@@ -29,7 +29,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires main-session implementation because the runtime pin changes CI enforcement; do not execute through the enforcement path being changed
     depends_on: []
-    status: ready
+    status: done
     files:
       - package.json
       - .github/workflows/tests.yml
