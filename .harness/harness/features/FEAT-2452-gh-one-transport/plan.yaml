@@ -190,7 +190,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 factory_gh is imported by the check-state dependency chain; no team implementation.
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/factory_gh.py#run_gh
       - .claude/skills/harness/bin/gh_cost_log.py#_read_counter
@@ -214,7 +214,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 direct transport cutover includes all mirror callers and shared offline fixtures.
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
     - .claude/skills/harness/bin/gh-sync.py#gh
     - tests/integration/gh_sync_support.py#run
