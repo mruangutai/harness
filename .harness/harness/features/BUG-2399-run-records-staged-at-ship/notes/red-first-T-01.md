@@ -131,3 +131,52 @@ PASS - a refused dry-run changes no file and no index byte
 PASS - complete cycle evidence permits the prune and stages every digest
 all checks passed
 ```
+
+## c1 fix
+
+MF-1: `_run_files` walked with `os.walk` and no `onerror`, so an unreadable subtree was silently left out and the run still exited 0.
+
+### Subjects
+- Base (red) subject: `git show 9db1ba98:.claude/skills/harness/bin/prune-run-evidence.py > /tmp/b2399/prune-run-evidence.py`, sha256 `4ccdd6bf77e6ab07a590d64f8c734c849730e90a0f8fade0eaee1c5a3413b08c`, beside copies of `artifact_accessors.py`, `harness_boundary.py` and `harness_yaml.py` so its imports resolve.
+- Fixed (green) subject: `.claude/skills/harness/bin/prune-run-evidence.py`, sha256 `55df0581f38f88489e5ba876a617cd9f74bd245dfbd94972c3f3526e201a93ef` (uncommitted, worktree HEAD 69b14e22).
+- Test file: `tests/unit/test-prune-run-evidence.py`, sha256 `5431b50296c38aac81abf1971225fe54d3e9aa9e81eb18c3522c7df90bbaa05d`. Both runs used this file.
+- Runs as uid 501, not root. `chmod 000` takes effect: the test's `os.access` guard did not fire, and no `SKIP` line appears in either run.
+- New case: `unreadable_cases`. In the staging fixture, `runs/build-c0-eng/qa/` (a recorded run) is set to `chmod 000`. Permissions are restored in a `finally` block.
+
+### Red: 9db1ba98 subject
+```
+set +e; unset CLAUDE_PROJECT_DIR HARNESS_PROJECT_DIR HARNESS_AGENT_TYPE
+PRUNE_RUN_EVIDENCE_BIN=/tmp/b2399/prune-run-evidence.py python3 tests/unit/test-prune-run-evidence.py
+```
+exit 1, stderr empty. 37 PASS, 3 FAIL, all assertion failures; there was no setup or import error:
+- `dry-run fails with exit 1 naming an unreadable subtree of a recorded run`: rc=0
+- `prune fails with exit 1 naming an unreadable subtree of a recorded run`: rc=0
+- `a prune over an unreadable subtree stages nothing and removes no ui/`: the base staged the readable files and pruned ui/
+
+stdout (failure lines and tail):
+```
+FAIL - dry-run fails with exit 1 naming an unreadable subtree of a recorded run
+       rc=0 
+--
+FAIL - prune fails with exit 1 naming an unreadable subtree of a recorded run
+       rc=0 
+FAIL - a prune over an unreadable subtree stages nothing and removes no ui/
+       
+3 failure(s)
+```
+
+### Green: fixed subject
+```
+set +e; unset CLAUDE_PROJECT_DIR HARNESS_PROJECT_DIR HARNESS_AGENT_TYPE
+python3 tests/unit/test-prune-run-evidence.py
+```
+exit 0, stderr empty, 40 PASS, 0 FAIL, 0 SKIP.
+
+stdout (the c1 checks and tail):
+```
+PASS - dry-run fails with exit 1 naming an unreadable subtree of a recorded run
+PASS - a dry-run over an unreadable subtree stages nothing and removes no ui/
+PASS - prune fails with exit 1 naming an unreadable subtree of a recorded run
+PASS - a prune over an unreadable subtree stages nothing and removes no ui/
+all checks passed
+```

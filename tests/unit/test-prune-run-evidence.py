@@ -268,6 +268,34 @@ def missing_evidence_cases():
         evidence_complete(root, feat)
 
 
+def unreadable_checks(root, feat):
+    files, index = tree_bytes(feat / "runs" / "fix-c3-eng" / "ui"), index_bytes(root)
+    for label, args in (("dry-run", ("--dry-run",)), ("prune", ())):
+        failed = tool(root, "--feature", "FEAT-9-thing", *args)
+        check(f"{label} fails with exit 1 naming an unreadable subtree of a recorded run",
+              failed.returncode == 1 and "runs/build-c0-eng/qa" in failed.stderr, f"rc={failed.returncode} {failed.stderr}")
+        check(f"a {label} over an unreadable subtree stages nothing and removes no ui/",
+              index_bytes(root) == index and not staged_runs(root, feat)
+              and tree_bytes(feat / "runs" / "fix-c3-eng" / "ui") == files)
+
+
+def unreadable_cases():
+    """An unreadable qa/ inside a recorded run must not be silently left out of the record (c1 MF-1)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        checkout(root)
+        feat = staging_feature(root)
+        qa = feat / "runs" / "build-c0-eng" / "qa"
+        qa.chmod(0)
+        try:
+            if os.access(qa, os.R_OK):
+                print("SKIP - unreadable subtree: chmod 000 has no effect for this user (root?)")
+                return
+            unreadable_checks(root, feat)
+        finally:
+            qa.chmod(0o755)
+
+
 def outside_ui(base, sha):
     """A directory outside the feature holding a real ui/ lane."""
     (base / "ui" / "evidence").mkdir(parents=True)
@@ -441,6 +469,7 @@ def main():
     symlink_cases()
     staging_cases()
     missing_evidence_cases()
+    unreadable_cases()
     print(f"{len(FAILURES)} failure(s)" if FAILURES else "all checks passed")
     return 1 if FAILURES else 0
 

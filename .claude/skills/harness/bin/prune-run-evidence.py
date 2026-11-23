@@ -29,7 +29,9 @@ and changes neither files nor the git index.
 
 Exit 2 is refusal, before anything changes: no such feature, no review_sha (nothing is shipped,
 so nothing is pruned), a --keep naming no run directory, or any recorded cycle_evidence path
-missing from disk (every missing path is named). Exit 1 is a failed `git add`.
+missing from disk (every missing path is named). Exit 1 is a failure: a recorded run holds a
+subtree it cannot read (every unreadable path is named, found before anything changes, so
+nothing is pruned or staged — dry-run reports it too), or `git add` failed.
 """
 import argparse
 import json
@@ -173,14 +175,17 @@ def _recorded_run_ids(record):
     return sorted(i for i in ids if i not in ("", ".", "..") and os.path.basename(i) == i)
 
 
-def _run_files(feature_dir, name):
+def _run_files(feature_dir, name, unreadable):
     """runs/<name>/… of every real file outside runs/<name>/ui/. A linked run directory yields
-    nothing; os.walk does not descend linked subdirectories; linked files are skipped."""
+    nothing; os.walk does not descend linked subdirectories; linked files are skipped. A directory
+    os.walk cannot list is appended to `unreadable` rather than silently left out."""
     run_dir = os.path.join(feature_dir, "runs", name)
     if os.path.islink(run_dir) or not os.path.isdir(run_dir):
         return []
     found = []
-    for current, dirs, files in os.walk(run_dir):
+    def note(error):
+        unreadable.append(os.path.relpath(error.filename, feature_dir).replace(os.sep, "/"))
+    for current, dirs, files in os.walk(run_dir, onerror=note):
         if current == run_dir and "ui" in dirs:
             dirs.remove("ui")
         relative = os.path.relpath(current, feature_dir).replace(os.sep, "/")
@@ -188,9 +193,15 @@ def _run_files(feature_dir, name):
     return found
 
 
-def _stage(feature_dir, record, dry_run):
-    """Force-stage every surviving non-UI file of every recorded run; 0, or 1 when git fails."""
-    paths = sorted(p for name in _recorded_run_ids(record) for p in _run_files(feature_dir, name))
+def _stage_paths(feature_dir, record):
+    """(every non-UI file of every recorded run, every unreadable directory among them)."""
+    unreadable = []
+    paths = sorted(p for name in _recorded_run_ids(record) for p in _run_files(feature_dir, name, unreadable))
+    return paths, sorted(unreadable)
+
+
+def _stage(feature_dir, paths, dry_run):
+    """Force-stage the recorded runs' non-UI files; 0, or 1 when git fails."""
     for path in paths:
         print(f"{'would stage' if dry_run else 'staged'} {path}")
     if dry_run or not paths:
@@ -203,6 +214,17 @@ def _stage(feature_dir, record, dry_run):
     return 0
 
 
+def _pre_mutation_refusal(feature_dir, record, present, explicit):
+    """The refusal message for an unmatched --keep or missing cycle_evidence, else None."""
+    unmatched = sorted(set(explicit) - set(present))
+    if unmatched:
+        return f"--keep names no run directory: {', '.join(unmatched)}"
+    missing = _missing_evidence(feature_dir, record)
+    if missing:
+        return f"cycle_evidence missing on disk: {', '.join(missing)}"
+    return None
+
+
 def main(argv=None):
     args = _build_parser().parse_args(argv)
     loaded = _load_record(args)
@@ -210,14 +232,15 @@ def main(argv=None):
         return _refuse(loaded)
     feature_dir, record = loaded
     present, keep = keep_set(feature_dir, record, args.keep)
-    unmatched = sorted(set(args.keep) - set(present))
-    if unmatched:
-        return _refuse(f"--keep names no run directory: {', '.join(unmatched)}")
-    missing = _missing_evidence(feature_dir, record)
-    if missing:
-        return _refuse(f"cycle_evidence missing on disk: {', '.join(missing)}")
+    refusal = _pre_mutation_refusal(feature_dir, record, present, args.keep)
+    if refusal:
+        return _refuse(refusal)
+    paths, unreadable = _stage_paths(feature_dir, record)
+    if unreadable:
+        sys.stderr.write(f"prune-run-evidence: cannot read recorded run content: {', '.join(unreadable)}\n")
+        return 1
     _prune(feature_dir, present, keep, args.dry_run)
-    return _stage(feature_dir, record, args.dry_run)
+    return _stage(feature_dir, paths, args.dry_run)
 
 
 if __name__ == "__main__":
