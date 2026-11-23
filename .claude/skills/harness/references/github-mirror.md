@@ -83,9 +83,48 @@ match; the adoption note is distinct from the initial recovery authorization.
   or unauthenticated, after valid routing/provenance — is one `SKIP` line and exit 0. Report it.
 - **No board configured** is narrower: one plain line, no station writes attempted, and the issue
   lifecycle still runs to completion.
-- **A write failing while `gh` works** prints one line on **stderr**, the run **continues** to its
-  remaining writes, and the exit status is still 0. **Nothing is ever re-attempted.** The
+- **A write failing while `gh` works** depends on the call. A per-item write (`gh_try`, a board
+  projection) prints one line on **stderr** and the run **continues** to its remaining writes, exit
+  0. A write the rest of the run depends on (`gh`) is the mid-flight `SKIP`: one line, exit 0, and
+  the remaining writes do **not** run. Either way **nothing is ever re-attempted**, and the
   session-entry check is what catches a mirror that silently did not run.
+
+## Caller-to-failure-policy
+
+Every caller reaches `gh` through `factory_gh`, the one shared transport. `FACTORY_GH`, read at
+call time, is the only binary override; there is no second one. The transport only *represents* a
+failure (a `GhResult`, or a raised `GhError`, with `status` None for a launch failure). It never
+decides what the failure means. The policy stays at each caller because the callers disagree on
+purpose: the mirror never gates, while control-plane and wayfinding tools must never report
+success on state they could not read.
+
+| Caller and condition | Caller outcome and exit | Partial writes and recovery |
+|---|---|---|
+| `gh-sync.py` `gh()`: any failed call, launch failure included | `SKIP` line, exit 0 | Earlier writes stand; later ones in the run do not happen. A re-run resumes from the recorded numbers. |
+| `gh-sync.py` `gh_try`: per-item ship/abandon writes (close, label, comment, detach, milestone close) | `(False, diagnostic)`; one stderr line and the next item is attempted; exit 0 | Failed items are listed, never retried. |
+| `gh-sync.py` invalid repository binding or provenance | Refusal, exit 2 | Nothing local or remote is changed. |
+| `gh-sync.py` checked label create | A gh answer that the label already exists (nonzero and `label with name … already exists`) passes. Anything else, a launch failure included, is the `SKIP`, exit 0. | No issue write that depends on the label runs. |
+| `gh-sync.py` ordinary milestone create | On **any** failure it looks the milestone up by title; no match is the `SKIP`, exit 0. A planned narrowing of the lookup to the 422 already-exists answer was cut, so the lookup still follows every failure. | The milestone number is recorded immediately after the create or the lookup. |
+| `gh-sync.py` replacement create under mirror recovery | Refusal, exit 2. No retry, and no discovery by title. | The durable `pending_create` intent is saved before dispatch. Only a provably undispatched launch (missing binary, permission) clears it; every uncertain outcome keeps it and requires an evidenced `--adopt-receipt`. |
+| `gh-sync.py` ordinary create whose URL is unreadable | `SKIP`, exit 0 | Nothing is recorded. The create may have landed; find and record it before a re-run. |
+| `gh-sync.py` merged-PR list at ship | One line, no PR write, and ship continues to its status write | Same shape as zero results. |
+| `gh-sync.py` issue-type capability query fails | One line, run downgraded to labels only; never `SKIP`, never an exit | Nothing is typed this run. |
+| `gh-sync.py` board projection (`BoardError`) | One stderr line per card; later cards are attempted; exit unchanged | The card is left where it was. |
+| `board-station.py` write fails (`BoardError` or `GhError`) | One stderr diagnostic, exit 0 | The card is left where it was. Its only nonzero exit is its own exit-2 refusal of a bad argument. |
+| `factory` tools (`factory_land`, `factory_decompose`, `factory_claim`) `GhError` | One stderr line, exit 2 | Exit 2 may follow irreversible remote writes, such as `factory_land`'s push and PR create or `factory_decompose`'s created issues and recorded receipt. Read the receipt before re-running. |
+| `board_lifecycle.py` audit fails to read | Exit 4; never 1 (findings), never a silent empty report | Read-only. |
+| `board_lifecycle.py` provision fails after creating or linking a project | Exit 4, not 2, since something was created | stderr names what exists. |
+| `board_lifecycle.py` reconcile `--apply` per-card write fails | One line; later cards are attempted; exit 1 with the residual failed findings listed. Exit 4 if detection itself cannot complete. | Successful fixes drop out of the residual. Re-running is idempotent. |
+| `wayfind.py` any read or write fails, or a read is not strict JSON | `wayfind:` diagnostic, exit 1, no traceback | Blocker and parent reads fail closed: only a completed nonzero call that carries gh's `(HTTP 404)` marker reads as absence. |
+| `gh_cost_log` counter read fails | The counter reads `None`; the measured gh call is unaffected | That call's cost is unmeasured. |
+
+**Notes.**
+- **Deadlines are a conscious non-goal:** `factory_gh` sets no subprocess deadlines, so a hung
+  `gh` can hang every consolidated operator path above.
+- The enforcement executors (`branch-create-gate.py`, `merge-gate.py`, and the check-state auth
+  read) do not use this transport. They keep their private `GH_BIN` and deadline semantics, and
+  this table does not describe them. The backlog ticket about their unverified reads is not
+  their fix.
 
 ## Who writes each station — one writer per column
 
