@@ -29,7 +29,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 forbids governed execution of changes to this enforcement writer and its tests
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/plan_merge/stations.py
       - tests/integration/test-plan-merge.py
