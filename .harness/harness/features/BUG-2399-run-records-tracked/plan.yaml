@@ -83,7 +83,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 forbids executing affected enforcement tests through a team run.
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/integration/test-merge-gitignore.py#case_preserves_existing_content
       - tests/integration/test-merge-gate.py#distill_fixture
@@ -126,7 +126,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires direct changes to installer and tracking enforcement inputs.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - {path: .gitignore, quote: '.harness/*/features/*/runs/**'}
       - {path: .claude/skills/harness/templates/gitignore.snippet, quote: '.harness/features/*/runs/**'}
@@ -154,7 +154,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Main lands enforcement policy and cumulative evidence without engineering-team execution.
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
     - path: .harness/harness/docs/DECISIONS.md
       quote: "## DEC-238 \u2014 Run evidence has a reader or it has no home"
