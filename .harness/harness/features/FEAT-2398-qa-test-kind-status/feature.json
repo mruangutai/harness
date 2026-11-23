@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-2398-qa-test-kind-status",
   "pr": null,
   "review_sha": "2f50e8bb1f5e6442742c53e1e2997a8be341d58b",
-  "cycles_used": 2,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -73,8 +73,16 @@
       "id": "fix-c1-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-23T04:45:31+00:00"
+      "verdict": "PASS",
+      "started_at": "2026-11-23T04:45:31+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c1-validator/digest.md",
+        "sha256": "6dba05d295ab8c88e83911a6ae8058195a7bdfead1aa1cb18ca20928f4a3ee72"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-23T05:02:21+00:00"
     }
   ],
   "judgements": [

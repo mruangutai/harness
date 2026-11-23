@@ -1,0 +1,51 @@
+schema_version: 2
+run_id: fix-c1-validator
+run_uid: 37199daeacc84bbeaff6193c7a5c02a3
+feature: FEAT-2398-qa-test-kind-status
+squad: validator
+host: harness-validator-lead
+status: complete
+head_sha: 2f50e8bb1f5e6442742c53e1e2997a8be341d58b
+steps:
+  - id: qa
+    persona: harness-qa
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    cycles: 1
+    artifact: notes/review-harness-qa-fix-c1-binding.md
+    evidence:
+      reviewed_commit: 2f50e8bb1f5e6442742c53e1e2997a8be341d58b
+      receipt_commit: 9a975551102487553e9b4b7c11215c5826c34489
+      focused_cases: 69
+      unit_files: 66
+      integration_files: 95
+      matrix_ok: true
+    note: Mission header and HEAD receipt binding repaired; pin execution retained in original QA note.
+  - id: code
+    persona: harness-code-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: notes/review-harness-code-reviewer-fix-c1.md
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: notes/review-harness-security-reviewer-fix-c1.md
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: notes/review-harness-ui-reviewer-fix-c1.md
