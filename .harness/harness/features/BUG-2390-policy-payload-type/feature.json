@@ -20,6 +20,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-23T04:15:37+00:00"
+    },
+    {
+      "id": "r-20261122-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T04:28:07+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-validate-validator/digest.md",
+        "sha256": "53b77bb22fa3954a2beaca9d3eea6410a9ca4d7935851bbc354d21990cc9c2cd"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:36:05+00:00"
     }
   ],
   "judgements": [
