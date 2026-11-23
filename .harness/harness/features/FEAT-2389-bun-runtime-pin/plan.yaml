@@ -1,0 +1,47 @@
+schema: plan/1
+feature: FEAT-2389-bun-runtime-pin
+approval:
+  date: '2026-11-22'
+  approved_by: fable-advisor
+  status: approved
+drafted_at: '2026-11-23T04:12:07Z'
+status: ready
+source_issues: [2389]
+lanes:
+  resolved_at: 9eb07b4f3cd235c234a10edddbfe5542c1e85fba
+  rows:
+    - surface: package.json
+      lane: main-session-direct
+      reason: DEC-174 runtime selection changes CI enforcement
+    - surface: .github/workflows/tests.yml
+      lane: main-session-direct
+      reason: DEC-174 CI enforcement workflow
+    - surface: README.md
+      lane: main-session-direct
+      reason: Documentation accompanies the indivisible DEC-174 runtime patch
+decisions: []
+decisions_affected: []
+tasks:
+  - id: T-01
+    title: Pin CI Bun to the production host runtime
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires main-session implementation because the runtime pin changes CI enforcement; do not execute through the enforcement path being changed
+    depends_on: []
+    status: ready
+    files:
+      - package.json
+      - .github/workflows/tests.yml
+      - README.md
+    verify: |
+      set -eu
+      test "$(jq -r .packageManager package.json)" = 'bun@1.3.14'
+      test "$(bun --version)" = '1.3.14'
+      bun run typecheck
+    intent: |
+      PRODUCT checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2389-bun-runtime-pin. Main session implements directly under DEC-174; all relative-path edits must remain inside this feature worktree. Applicable product read-input paths are docs/spec.md, docs/decisions.md and docs/architecture.md in that checkout; all three are absent at baseline 9eb07b4f3cd235c234a10edddbfe5542c1e85fba. Do not author them or invent their contents. The settled contract is /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-bun-runtime-pin-2026-11-22.md and this feature BRIEF.md.
+      Before editing, capture baseline SHA, stdout, stderr and exit status for test "$(jq -r .packageManager package.json)" = 'bun@1.3.14'. Require a genuine equality assertion failure caused by the absent pin, not a missing jq or invocation error. This is the red-first check; do not claim a red typecheck is required.
+      Add the sole runtime pin, packageManager with string value bun@1.3.14, to package.json. Preserve all existing manifest values, including @types/bun 1.4.5 and TypeScript. Add exactly one comment sentence at the first Install Bun step in .github/workflows/tests.yml: setup-bun reads the Bun runtime version from package.json packageManager. Keep both setup-bun invocations input-free; do not add bun-version or change executable workflow content. Add exactly one sentence in README.md development guidance stating that the package.json Bun runtime pin tracks the production OMP host and is bumped manually only when that host is upgraded, never by Dependabot. Keep the dependency-update guidance intact; the sentence must distinguish the runtime pin from dependency updates.
+      No other implementation files may change; preserve bun.lock and .github/dependabot.yml. Use an already provisioned Bun 1.3.14 with dependencies installed from the unchanged lockfile, then execute the literal local verify block from the checkout root and capture its output, exit status and commit identity. A typecheck failure on 1.3.14 is a finding to report, not permission to change the runtime or types. Expected local result is exit 0 with packageManager and running Bun equal to the required versions and typecheck successful.
+      Separately, after the PR CI run for the review pin completes, capture its URL and SHA, confirm both Install Bun steps report bun-v1.3.14, and confirm every job is green, including hook tests and typecheck. This is SC-04 PR CI evidence, not an unavailable local command and not implied by local success. Review the pinned three-file diff for SC-02 and SC-03 and the red/green receipts for SC-01. Do not merge without SC-04 evidence. No panel, goal-check or UAT is part of this patch intake. Leave approvals pending for subsequent signature.
