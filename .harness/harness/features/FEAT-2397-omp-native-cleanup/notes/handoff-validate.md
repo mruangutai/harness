@@ -1,23 +1,25 @@
-# Handoff — FEAT-2397-omp-native-cleanup, validate → ship — written by the main session after validate PASS, seq-6
+# Handoff — FEAT-2397-omp-native-cleanup, validate → ship — written by the main session after validate c4 PASS, seq-7
 
 ## Next
 
-Validate `r-20261122-6-validate-validator` returned PASS at review_sha eda06a68 after one rework round. must_fix is empty and severity_max is none. The delegated ship call (`notes/answers-2026-11-22-ship.md`) says: ship and squash-merge after green CI, close #1248 and #612 as completed, skip distill, and file two backlog rows. Remaining work:
-- open the PR and merge it on green CI;
-- run `gh-sync.py backlog` (two rows) and then `gh-sync.py ship --pr N` from the main checkout;
-- close #1248 and #612 with their comments.
+Validate `r-20261122-8-validate-validator` returned PASS at review_sha f12ddd93. The fresh production receipts are unit 67/67 and integration 95/95, must_fix is empty, and severity_max is none. Rework was 2 rounds within budget: the post-validate CI defect was fixed test-only and re-gated through c3 and c4.
+
+Ship proceeds under `notes/answers-2026-11-22-ship.md`, as amended by `notes/answers-2026-11-23-fix-c2.md`, which sets the backlog to three rows:
+- squash-merge PR #2441 after green CI at its head;
+- from the main checkout, run `gh-sync.py backlog` (three rows) and then `gh-sync.py ship --pr 2441`;
+- close #1248 and #612 as completed, with their comments.
 
 No validate work remains.
 
 ## Trust
 
-- Validate c2 PASS, empty must_fix — `runs/r-20261122-6-validate-validator/digest.md` — source
-- c1 panel PASS for QA, code, security and UI at 9c380403, carried with zero source delta — `runs/r-20261122-5-validate-validator/digest.md` — source
-- Delegated ship call and backlog rows — `notes/answers-2026-11-22-ship.md` — source
+- Validate c4 PASS, fresh runner receipts — `runs/r-20261122-8-validate-validator/digest.md` — source
+- c3 code PASS over the fix delta — `runs/r-20261122-7-validate-validator/digest.md` — source
+- Ship call, with its backlog superseded to three rows — `notes/answers-2026-11-23-fix-c2.md` — source
 
 ## Dead ends
 
-- Do not treat the local `checks`-job reds as feature defects. Unit `test-omp-hooks`/`test-factory-config` and INV-29 on the Kaya host worktree are identical at the review base in a clean clone — `notes/c1-evidence/README.md` — source
+- The only remaining local `checks`-job reds are host-only: `test-factory-config` in `$TMPDIR` clones and INV-29 on the Kaya host worktree. Both are paired with base receipts. The test-omp-hooks red was a product defect and is fixed — `notes/c1-evidence/README.md` — source
 
 ## Working set
 
