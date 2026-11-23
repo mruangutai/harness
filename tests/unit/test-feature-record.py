@@ -1488,32 +1488,10 @@ class SchemaTest(unittest.TestCase):
         problems = self.problems(base_doc(judgements=[self.judgement(kind="hunch")]))
         self.assertTrue(problems and any("/judgements/0/kind" in p for p in problems), problems)
 
-    def test_archived_receipts_remain_closed_and_cannot_nest_recovery_history(self):
-        history = {"recovery_id": "generation-1", "at": "2026-10-18T10:00:00Z",
-                   "repo": "owner/old", "reason": "operator-authorized replacement",
-                   "evidence": {"path": "authorization.json", "sha256": "a" * 64},
-                   "previous": {"parent": 12, "issues": {"T-01": 90}}}
-        self.assertEqual([], self.problems(base_doc(github={"history": [history]})))
-        for key, value in (("unowned", True), ("history", []), ("recovery", {})):
+    def test_github_block_refuses_removed_mirror_replacement_keys(self):
+        for key, value in (("history", []), ("recovery", {})):
             with self.subTest(key=key):
-                invalid = {**history, "previous": {**history["previous"], key: value}}
-                self.assertTrue(self.problems(base_doc(github={"history": [invalid]})))
-        self.assertTrue(self.problems(base_doc(github={"history": [{**history, "unowned": True}]})))
-
-    def test_completed_recovery_requires_completion_and_forbids_pending_creates(self):
-        recovery = {"id": "generation-1", "from_repo": "owner/old", "to_repo": "product/app",
-                    "mode": "full", "state": "in-progress", "plan_sha256": "a" * 64,
-                    "started_at": "2026-10-18T10:00:00Z"}
-        self.assertEqual([], self.problems(base_doc(github={"recovery": recovery})))
-        complete = {**recovery, "state": "complete", "completed_at": "2026-10-18T10:01:00Z"}
-        self.assertEqual([], self.problems(base_doc(github={"recovery": complete})))
-        for invalid in ({**recovery, "state": "complete"},
-                        {**recovery, "completed_at": complete["completed_at"]},
-                        {**complete, "pending_create": {"role": "parent",
-                                                       "started_at": recovery["started_at"]}},
-                        {**recovery, "unowned": True}):
-            with self.subTest(recovery=invalid):
-                self.assertTrue(self.problems(base_doc(github={"recovery": invalid})))
+                self.assertTrue(self.problems(base_doc(github={key: value})))
 
     def test_judgement_reject_kind_is_accepted_by_the_strict_schema(self):
         self.assertEqual([], self.problems(base_doc(judgements=[self.judgement(kind="reject")])))

@@ -860,7 +860,6 @@ if args and args[0] == "api" and any("/contents/" in arg for arg in args):
     print(base64.b64encode(text.encode("utf-8")).decode("ascii"))
     sys.exit(0)
 milestones = os.path.join(os.path.dirname({delegate!r}), "milestone-state.json")
-issues = os.path.join(os.path.dirname({delegate!r}), "issue-state.json")
 def load(path):
     if not os.path.exists(path):
         return {{}}
@@ -869,17 +868,6 @@ def load(path):
 def save(path, value):
     with open(path, "w", encoding="utf-8") as target:
         json.dump(value, target)
-if args and args[0] == "api":
-    match = re.fullmatch(r"repos/([^/]+/[^/]+)/milestones/([0-9]+)", args[1])
-    if match and args[2:] == ["--jq", ".title"]:
-        with open(os.environ["FAKE_LOG"], "a", encoding="utf-8") as log:
-            log.write(" ".join(args) + "\\n")
-        title = load(milestones).get(match[1], {{}}).get(match[2])
-        if title is None:
-            print("milestone not found", file=sys.stderr)
-            sys.exit(1)
-        print(title)
-        sys.exit(0)
 creating_milestone = args[:3] == ["api", "-X", "POST"] and args[3].endswith("/milestones")
 creating_task = args[:2] == ["issue", "create"] and "--milestone" in args
 if creating_milestone or creating_task:
@@ -905,11 +893,6 @@ if creating_milestone or creating_task:
             title = next(arg[len("title="):] for arg in args if arg.startswith("title="))
             remote.setdefault(repo, {{}})[str(number)] = title
             save(milestones, remote)
-    elif result.returncode == 0 and remote:
-        issue = int(result.stdout.strip().rsplit("/", 1)[-1])
-        assigned = load(issues)
-        assigned[repo + "#" + str(issue)] = {{"milestone": selected[0]}}
-        save(issues, assigned)
     sys.exit(result.returncode)
 os.execv({delegate!r}, [{delegate!r}] + args)
 """

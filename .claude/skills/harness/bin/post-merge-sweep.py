@@ -248,13 +248,12 @@ def _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
         sync_enabled, feature_doc = _read_build_receipt(
             main_checkout_root, feat_dir)
         repo, _board, _types = feature_schema.resolve_binding(feature_doc, main_checkout_root)
-        problems = feature_schema.mirror_evidence_problems(feat_dir, feature_doc)
         provenance = feature_schema.mirror_provenance_problem(feature_doc, repo)
     except (artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError,
             artifact_accessors.FleetError) as exc:
         print(f"post-merge-sweep: SKIP removal of {path} — could not read Build entry receipt: {exc}")
         return False
-    detail = "; ".join(problems) or provenance
+    detail = provenance
     receipt_missing = sync_enabled and not feature_schema.receipt_allows_merge(feature_doc, repo)
     if detail or receipt_missing:
         detail = detail or "Build-entry receipt absent or incomplete"

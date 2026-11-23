@@ -8,12 +8,11 @@ change or remote mutation. Read-back purposes and command ownership remain DEC-1
 
 **You own three subcommands and nothing else.** `status` for a phase you are running, `start-task`
 for a `team` task, and `reject` at first-run intake (`reject-path.md`). Signature-time `open`,
-`ship`, `abandon`, `backlog`, `record-pr`, `recover-terminal` and `recover-mirror` are the main
-session's.
+`ship`, `abandon`, `backlog`, `record-pr` and `recover-terminal` are the main session's.
 
 | When | Run |
 |---|---|
-| Build entry | Require the signature-created `github.build_entry` and valid repository provenance. Compatible missing/partial receipts go to main-owned `open`; invalid mappings go to explicit `recover-mirror`, never ordinary `open`. Compatible `recovery-required` may proceed but gates merge. Run `status <feature-dir> building` only after routing/provenance preflight succeeds |
+| Build entry | Require the signature-created `github.build_entry` and valid repository provenance. Compatible missing/partial receipts go to main-owned `open`; invalid mappings refuse and need a hand fix of the `github` block, never ordinary `open`. Compatible `recovery-required` may proceed but gates merge. Run `status <feature-dir> building` only after routing/provenance preflight succeeds |
 | a `team` task starts | Set that task's status to `building` in `plan.yaml` first, then `gh-sync.py start-task <feature-dir> T-NN`. It records the claim and applies the shared active-phase projection |
 | a task's `[harness:t-NN]` commit is recorded | Record the task's status as `done` in `plan.yaml`, in the same act as the commit — and run nothing else. Nothing closes a task sub-issue; ship owns Done |
 | an active phase transition you run | `gh-sync.py status <feature-dir> <station>` records `plan.yaml`'s station and applies the same station to every unique recorded source, parent, and non-abandoned task card. Run it in the same act that records the phase |
@@ -30,50 +29,20 @@ No child heartbeat, wait loop, or async-result delivery writes GitHub. On an OMP
 whether an owned transition is still due. A transition already represented by those files is an
 idempotent no-op; never call `open` again to discover or replace a receipt.
 
-## Invalid mappings require explicit replacement, not another open
+## Invalid mappings are fixed by hand, not by another open
 
 Non-null `factory.repo` binds the feature to its declared fleet entry and the target's remote
 default-branch `product_config`/`board_for`. Missing, malformed, undeclared, sync-disabled or
 mismatched target configuration refuses; never fall back to Harness or an ancestor's config.
 Unbound sync-off/null-board behavior is unchanged. Nonempty active receipts need matching
-`github.repo`; an old `opened` marker, archived numbers or `factory.claims` is not ownership proof.
+`github.repo`; an old `opened` marker or `factory.claims` is not ownership proof.
 
-The main session obtains separate immutable, feature-local authorization and runs:
-`gh-sync.py recover-mirror <feature-dir> --previous-repo <owner/name> --evidence <note> --yes`.
-The note binds the feature, previous/target repositories, unchanged signed plan hash and permitted
-full/terminal effects. Recovery archives the old mapping verbatim once, preserves original absence
-of `repo`, and starts target receipts without treating old created objects as signed source issues.
-Full mode creates the approved task DAG; terminal mode creates no historical task issues.
-Ledgered task amendments remain eligible under DEC-229 without rewriting the original signed
-hashes. Missing original signatures, changed task sets and unledgered task edits are refused;
-authorization still binds the exact current plan bytes throughout that recovery generation.
-New replacement milestones include the durable recovery ID in their title, so replacing a
-same-repository mapping does not collide with its original milestone. A prior failed attempt
-remains pending until separately evidenced adoption; a title fix never authorizes retry.
-Full-mode task creation resolves the title of the confirmed target milestone number once,
-including an explicitly adopted milestone, and uses that identity rather than the feature's old
-milestone title, also for tasks added by an approved amendment after full recovery completes.
-This is an operand lookup for a known receipt, never discovery or reconciliation of an uncertain
-create; a recovery with no missing task issues needs no lookup.
-`recover-terminal` remains compatible terminal adoption, not invalid-mapping replacement.
-
-Each role has a durable pending intent before dispatch and a durable confirmed save before the
-next create. If a create may have reached GitHub, or saving its returned number fails, stop with
-the named recovery id/role. Restart does not retry, discover, scan, poll or search by title.
-Only a separately authorized exact receipt may resume that same pending role:
-`gh-sync.py recover-mirror <feature-dir> --previous-repo <owner/name> --evidence <adoption-note> --adopt-receipt <role>=<positive-number> --yes`.
-The adoption note binds that recovery, role, repository, plan hash, number, operator and ownership
-basis. Never infer an adoption from a matching title. A completed repeat is byte-idempotent.
-Merge and sweep require the shared binding, receipt and evidence proof; incomplete recovery is
-not mergeable and its worktree is retained. No new DEC-203 read-back purpose is granted.
-
-Authorization notes use `ledger.md`'s strict JSON `{feature_id, effects}` protocol and shared
-feature-local `{path, sha256}` references. The `recover-mirror` effect names `from_repo`,
-`to_repo`, `mode`, `plan_sha256`, nonblank `by` and `reason`; mode is derived as `full` or
-`terminal` from the approved plan, not a CLI override. The `adopt-receipt` effect names
-`recovery_id`, `role`, `repo`, positive integer `number`, `plan_sha256`, nonblank `by` and
-`ownership_evidence`. Roles are `milestone`, `parent` or `task:T-NN`. Exactly one effect must
-match; the adoption note is distinct from the initial recovery authorization.
+No command repairs an invalid mapping, because no tool can prove which repository a recorded
+number lives in. The refusal names the feature's `feature.json`. The main session reports it,
+and the operator corrects the `github` block by hand: set `github.repo` to the bound repository
+and keep only numbers that live there. `recover-terminal` is compatible terminal adoption only.
+Merge and sweep require the shared binding and receipt proof; an invalid mapping is not
+mergeable and its worktree is retained.
 
 ## Failure has four shapes, not one
 

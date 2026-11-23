@@ -113,10 +113,10 @@ def case_offline_receipts_are_graded_against_factory_repo():
             ("missing receipt", {}, "receipt absent or incomplete", "gh-sync.py recover-terminal "),
             ("owner repo recorded", {"build_entry": "opened", "repo": "org/repo"},
              "conflicts with bound repository 'org/prod'",
-             "gh-sync.py recover-mirror "),
+             "edit the github block of"),
             ("unproven active mirror", {"build_entry": "opened", "parent": 16},
              "nonempty mirror has no matching github.repo provenance",
-             "gh-sync.py recover-mirror ")):
+             "edit the github block of")):
         bad, log = _run({BOUND: _bound(github)}, online=False)
         check(f"u.2 offline {label}: the receipt finding, never a binding finding",
               _has(bad, BOUND, detail) and not _has(bad, "invalid authoritative")

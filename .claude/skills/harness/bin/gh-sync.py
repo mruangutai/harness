@@ -33,11 +33,6 @@
                                            provenance; --parent cannot contradict the
                                            recorded parent. Without --yes, reports
                                            every write it would make and makes none
-  gh-sync.py recover-mirror <feature-dir> --previous-repo <owner/name> --evidence <note> --yes
-                                           archives a proven wrong-repository mapping
-                                           and replaces only its active target receipts.
-                                           Uncertain creates require a separate note and
-                                           --adopt-receipt <milestone|parent|task:T-NN>=<number>
   gh-sync.py record-pr <feature-dir> [--pr <n>]  derive the pull request number from the
                                            recorded branch's exactly-one merged PR and
                                            record it, or record --pr directly (T-03,
@@ -101,8 +96,6 @@ Testable offline: GH_SYNC_GH overrides the gh binary (test-gh-sync.py points it 
 fake that logs calls and returns canned JSON).
 """
 import json
-import copy
-import uuid
 from datetime import datetime, timezone
 import os
 import re
@@ -282,8 +275,6 @@ def gh_try(args):
 
 def _provenance_preflight(doc, repo, feat_dir):
     problem = feature_schema.mirror_provenance_problem(doc, repo)
-    if not problem:
-        problem = "; ".join(feature_schema.mirror_evidence_problems(feat_dir, doc))
     if problem:
         refuse(f"mirror provenance: {problem}. Run: "
                f"{feature_schema.recovery_command_line(feat_dir, doc, repo)}")
@@ -306,13 +297,11 @@ def load_config(root, feat_dir, command):
         refuse(str(error))
     bound = feature_schema.has_repository_binding(doc)
     local_status = command == "status"
-    replacement = command == "recover-mirror"
     if not bound:
         github = _unbound_project_config(root)["github"]
     repo, board, issue_types = feature_schema.resolve_binding(doc, root)
     _BUILD_ENTRY["repo"] = repo
-    if not replacement:
-        _provenance_preflight(doc, repo, feat_dir)
+    _provenance_preflight(doc, repo, feat_dir)
     if not bound and not github.get("sync"):
         if local_status:
             return repo, board, issue_types
@@ -637,11 +626,8 @@ def load_recorded(feat_dir):
     be = gh.get("build_entry")
     rec["build_entry"] = be if be in ("opened", "recovery-required",
                                        "not-applicable", "recovered-terminal") else None
-    for key in ("repo", "history", "recovery"):
-        if key in gh:
-            rec[key] = gh[key]
-    if rec.get("recovery"):
-        rec["_snapshot"] = copy.deepcopy(gh)
+    if "repo" in gh:
+        rec["repo"] = gh["repo"]
     return rec
 
 
@@ -894,9 +880,8 @@ def _recorded_github(rec):
         github["typed"] = dict(sorted(rec["typed"].items()))
     if rec.get("build_entry"):
         github["build_entry"] = rec["build_entry"]
-    for key in ("repo", "history", "recovery"):
-        if key in rec:
-            github[key] = rec[key]
+    if "repo" in rec:
+        github["repo"] = rec["repo"]
     return github
 
 
@@ -942,7 +927,6 @@ def save_recorded(feat_dir, rec):
     if not os.path.exists(p):
         raise SystemExit(absent_message)
 
-    committed = {}
     def transform(base):
         if base is None:
             raise SystemExit(absent_message)
@@ -952,28 +936,22 @@ def save_recorded(feat_dir, rec):
             # tolerance load_recorded applies to a non-mapping document, kept here
             # because this branch is a real file, not the absent-file path above.
             doc = {}
-        if rec.get("recovery") and doc.get("github") != rec.get("_snapshot"):
-            refuse("mirror recovery changed concurrently; reload its durable generation before continuing")
         doc["github"] = _recorded_github(rec)
-        committed["github"] = copy.deepcopy(doc["github"])
         return json.dumps(doc, indent=2) + "\n"
 
     feature_json_write.write_feature_json(p, transform)
-    if rec.get("recovery"):
-        rec["_snapshot"] = committed["github"]
 
 
 def record_build_entry(feat_dir, value):
     """Persist the Build-entry outcome (D-04/D-09) through `save_recorded` — never a
     second write path to feature.json, so this inherits the lock, the same-directory
     tempfile and the atomic replace. Never downgrades an already-"opened" receipt
-    within its bound generation; archived generations cannot bless a replacement."""
+    within its bound repository."""
     rec = load_recorded(feat_dir)
     repo = _BUILD_ENTRY.get("repo") or rec.get("repo")
     doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
-    same_generation = feature_schema.effective_recorded_repo(doc, repo) == repo and not (
-        rec.get("recovery") or {}).get("state") == "in-progress"
-    if rec.get("build_entry") == "opened" and value != "opened" and same_generation:
+    same_repo = feature_schema.effective_recorded_repo(doc, repo) == repo
+    if rec.get("build_entry") == "opened" and value != "opened" and same_repo:
         return
     if repo:
         rec["repo"] = repo
@@ -1101,63 +1079,6 @@ def _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared):
 
 
 
-def _replacement_create(feat_dir, rec, role, args, *, json_number=False, typed=False):
-    """Persist intent before dispatch; an uncertain outcome never permits another create."""
-    recovery = rec["recovery"]
-    if recovery.get("pending_create"):
-        refuse(f"uncertain create in recovery {recovery['id']}: "
-               f"{recovery['pending_create']['role']}; explicit evidenced --adopt-receipt is required")
-    if feature_schema.resolve_evidence_ref(feat_dir, "plan.yaml")["sha256"] != recovery["plan_sha256"]:
-        refuse("signed plan changed during mirror recovery; no create was dispatched")
-    recovery["pending_create"] = {"role": role, "started_at": datetime.now(timezone.utc).isoformat()}
-    save_recorded(feat_dir, rec)
-    try:
-        with gh_cost_log.measured(args) as cost:
-            response = subprocess.run([GH] + args, capture_output=True, text=True)
-            cost.returncode = response.returncode
-    except (FileNotFoundError, PermissionError) as error:
-        recovery.pop("pending_create")
-        save_recorded(feat_dir, rec)
-        refuse(f"create {role} was not dispatched: {error}; the recorded intent was cleared")
-    except (OSError, UnicodeError, subprocess.SubprocessError) as error:
-        refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
-               "the durable pending intent must be explicitly reconciled")
-    _BUILD_ENTRY["remote_written"] = True
-    if response.returncode != 0:
-        refuse(f"uncertain create in recovery {recovery['id']} for {role}: "
-               f"{(response.stderr or response.stdout).strip()[:200]}; "
-               "no retry or discovery is permitted; use an evidenced --adopt-receipt")
-    try:
-        if json_number:
-            number = artifact_accessors.parse_gh_json(response.stdout, "replacement create response")["number"]
-        else:
-            match = re.search(r"/issues/([1-9][0-9]*)/?$", response.stdout.strip())
-            number = int(match[1]) if match else None
-        if isinstance(number, bool) or not isinstance(number, int) or number <= 0:
-            raise ValueError("create returned no positive object number")
-    except (artifact_accessors.ArtifactAccessError, KeyError, TypeError, ValueError) as error:
-        refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
-               "the durable pending intent must be explicitly reconciled")
-    if role.startswith("task:"):
-        rec["issues"][role[5:]] = number
-    else:
-        rec[role] = number
-    if typed:
-        rec.setdefault("typed", {})["parent" if role == "parent" else role[5:]] = "created"
-    recovery.pop("pending_create")
-    try:
-        save_recorded(feat_dir, rec)
-    except (OSError, ValueError, harness_merge.MergeRefusal, SystemExit) as error:
-        refuse(f"uncertain create in recovery {recovery['id']} for {role}: returned #{number}, "
-               f"but its confirmed receipt could not be saved ({error}); "
-               "reconcile the durable pending intent before any further create")
-    return number
-
-
-def _replacement_in_progress(rec):
-    return (rec.get("recovery") or {}).get("state") == "in-progress"
-
-
 def _milestone_create_args(repo, brief, title):
     desc = (f"{brief['problem']}\n\n**Goal:** {brief['goal']}\n\n## Definition of done\n"
             + "\n".join(f"- [ ] {sid}: {txt}" for sid, txt in brief["scs"]))
@@ -1170,14 +1091,7 @@ def _open_ensure_milestone(feat_dir, repo, brief, rec):
     if rec["milestone"] is not None:
         print(f"gh-sync: milestone #{rec['milestone']} already recorded — skipping")
         return
-    replacing = _replacement_in_progress(rec)
-    title = (f"{brief['feat']} (recovery {rec['recovery']['id']})"
-             if replacing else brief["feat"])
-    args = _milestone_create_args(repo, brief, title)
-    if replacing:
-        _replacement_create(feat_dir, rec, "milestone", args, json_number=True)
-        print(f"gh-sync: milestone #{rec['milestone']} recorded for replacement")
-        return
+    args = _milestone_create_args(repo, brief, brief["feat"])
     r = subprocess.run([GH, *args], capture_output=True, text=True)
     if r.returncode == 0:
         rec["milestone"] = artifact_accessors.parse_gh_json(
@@ -1218,31 +1132,16 @@ def _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state):
         body = f"{brief['problem']}\n\n**Goal:** {brief['goal']}"
         args = ["issue", "create", "--repo", repo, "--title", title,
                 "--body", body, "--label", "harness"]
-        if _replacement_in_progress(rec):
-            rec["parent"] = _replacement_create(feat_dir, rec, "parent", args, typed=state == "available")
-        else:
-            url = gh(args)
-            _BUILD_ENTRY["remote_written"] = True
-            rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
+        url = gh(args)
+        _BUILD_ENTRY["remote_written"] = True
+        rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
         if state == "available":
             rec["typed"]["parent"] = "created"
         save_recorded(feat_dir, rec)
         print(f"gh-sync: parent #{rec['parent']} created")
 
 
-def _open_task_milestone(repo, brief, rec, tasks):
-    """Resolve the title of a confirmed replacement receipt, never discover an object."""
-    pending = any(task.get("status") not in factory_config.TERMINAL_STATIONS
-                  and task["id"] not in rec["issues"] for task in tasks)
-    if not rec.get("recovery") or not pending:
-        return brief["feat"]
-    title = gh(["api", f"repos/{repo}/milestones/{rec['milestone']}", "--jq", ".title"])
-    if not title:
-        skip("confirmed replacement milestone has no readable title; no task was created")
-    return title
-
-
-def _open_create_task(feat_dir, repo, brief, rec, task, state, milestone_title):
+def _open_create_task(feat_dir, repo, brief, rec, task, state):
     """Create TASK's sub-issue when it is not yet recorded (section 5's label rule)."""
     body = task["body"]
     if task["absorbs"]:
@@ -1253,14 +1152,11 @@ def _open_create_task(feat_dir, repo, brief, rec, task, state, milestone_title):
         labels = ["harness"] + ([type_label(task["change_type"])] if type_label(task["change_type"]) else [])
     args = ["issue", "create", "--repo", repo,
             "--title", f"{brief['feat']} — {task['id']} — {task['title']}", "--body", body,
-            "--milestone", milestone_title]
+            "--milestone", brief["feat"]]
     for l in labels:
         args += ["--label", l]
-    if _replacement_in_progress(rec):
-        num = _replacement_create(feat_dir, rec, f"task:{task['id']}", args, typed=state == "available")
-    else:
-        url = gh(args)
-        num = int(url.rstrip("/").rsplit("/", 1)[-1])
+    url = gh(args)
+    num = int(url.rstrip("/").rsplit("/", 1)[-1])
     rec["issues"][task["id"]] = num
     if state == "available":
         rec["typed"][task["id"]] = "created"
@@ -1282,7 +1178,7 @@ def _open_attach_task(feat_dir, repo, rec, task):
     print(f"gh-sync: {task['id']} (issue #{child_num}) attached to parent #{rec['parent']}")
 
 
-def _open_sync_task(feat_dir, repo, brief, rec, task, state, milestone_title):
+def _open_sync_task(feat_dir, repo, brief, rec, task, state):
     """One task's whole sync step: skip abandoned, create-or-skip, then attach."""
     if task.get("status") in factory_config.TERMINAL_STATIONS:
         print(f"gh-sync: {task['id']} is terminal — no sub-issue created")
@@ -1290,7 +1186,7 @@ def _open_sync_task(feat_dir, repo, brief, rec, task, state, milestone_title):
     if task["id"] in rec["issues"]:
         print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
     else:
-        _open_create_task(feat_dir, repo, brief, rec, task, state, milestone_title)
+        _open_create_task(feat_dir, repo, brief, rec, task, state)
         _BUILD_ENTRY["remote_written"] = True
     _open_attach_task(feat_dir, repo, rec, task)
 
@@ -1323,10 +1219,9 @@ def _open_apply(feat_dir, repo, rec, parent_arg=None, issue_types=None):
     _open_ensure_labels(repo, tasks, rec, parent_arg, issue_types, state, declared)
 
     _open_ensure_milestone(feat_dir, repo, brief, rec)
-    milestone_title = _open_task_milestone(repo, brief, rec, tasks)
     _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state)
     for task in tasks:
-        _open_sync_task(feat_dir, repo, brief, rec, task, state, milestone_title)
+        _open_sync_task(feat_dir, repo, brief, rec, task, state)
     save_recorded(feat_dir, rec)
 
     if state == "available":
@@ -1337,9 +1232,6 @@ def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
     doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
     _provenance_preflight(doc, repo, feat_dir)
     rec = load_recorded(feat_dir)
-    if (rec.get("recovery") or {}).get("mode") == "terminal":
-        print("gh-sync: terminal replacement is already complete — no task mirrors will be created")
-        return
     _open_apply(feat_dir, repo, rec, parent_arg, issue_types)
 
     # T-02 (BUG-1309): the LAST statement of the successful path. Reaching it is itself
@@ -1393,177 +1285,6 @@ def _recover_terminal_apply(feat_dir, repo, rec, parent_arg):
         _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, None)
     rec["source_issues"] = parse_source_issues(feat_dir)
     save_recorded(feat_dir, rec)
-
-
-def _replacement_plan(feat_dir, doc):
-    from plan_merge.approval import signed_task_hashes
-    plan = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml"))
-    if (plan.get("approval") or {}).get("status") != "approved":
-        raise ValueError("mirror replacement requires an approved plan")
-    signed = doc.get("signed_task_hashes")
-    current = signed_task_hashes(plan)
-    if not isinstance(signed, dict) or set(signed) != set(current):
-        raise ValueError("mirror replacement requires original signatures for every task")
-    # DEC-229/INV-40 preserve the original hashes when a signed task is amended.
-    amended = {str(entry.get("decision", "")).split(".", 1)[0]
-               for entry in (doc.get("judgements") or [])
-               if isinstance(entry, dict) and str(entry.get("kind", "")).strip() == "amendment"}
-    changed = {tid for tid in current if current[tid] != signed[tid]}
-    if changed - amended:
-        raise ValueError("mirror replacement requires signed or ledgered task text")
-    return feature_schema.resolve_evidence_ref(feat_dir, "plan.yaml")["sha256"]
-
-
-def _replacement_authority(feat_dir, doc, ref, previous_repo, repo, mode, plan_hash):
-    effect = feature_schema.verify_evidence_ref(feat_dir, ref, {
-        "feature_id": doc["feature_id"], "effect": "recover-mirror", "from_repo": previous_repo,
-        "to_repo": repo, "mode": mode, "plan_sha256": plan_hash})
-    if not all(isinstance(effect.get(key), str) and effect[key].strip() for key in ("by", "reason")):
-        raise ValueError("replacement authorization requires an operator identity and reason")
-    return effect
-
-
-def _begin_replacement(feat_dir, doc, previous_repo, repo, mode, plan_hash, ref, effect):
-    previous = copy.deepcopy(doc.get("github") or {})
-    if previous.get("repo") is not None and previous["repo"] != previous_repo:
-        raise ValueError("--previous-repo conflicts with the recorded mirror repository")
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]*/(?!\.{1,2}$)[A-Za-z0-9_.-]+", previous_repo):
-        raise ValueError("--previous-repo must be an explicit owner/name")
-    history = previous.pop("history", [])
-    previous.pop("recovery", None)
-    recovery_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-    history.append({"recovery_id": recovery_id, "at": now, "repo": previous_repo,
-                    "reason": effect["reason"], "evidence": ref, "previous": previous})
-    active = {"repo": repo, "milestone": None, "parent": None, "issues": {}, "attached": [],
-              "source_issues": parse_source_issues(feat_dir), "build_entry": "recovery-required",
-              "history": history, "recovery": {
-                  "id": recovery_id, "from_repo": previous_repo, "to_repo": repo, "mode": mode,
-                  "state": "in-progress", "plan_sha256": plan_hash, "started_at": now}}
-
-    def transform(base):
-        current = json.loads(base.decode("utf-8"))
-        if current != doc or _replacement_plan(feat_dir, current) != plan_hash:
-            raise ValueError("feature or signed plan changed before replacement could be archived")
-        current["github"] = active
-        return json.dumps(current, indent=2) + "\n"
-
-    feature_json_write.write_feature_json(os.path.join(feat_dir, "feature.json"), transform)
-    return load_recorded(feat_dir)
-
-
-def _adopt_replacement_receipt(feat_dir, doc, rec, ref, operand, plan_hash):
-    recovery = rec["recovery"]
-    match = re.fullmatch(r"(milestone|parent|task:T-[0-9]{2,})=([1-9][0-9]*)", operand)
-    if not match:
-        raise ValueError("--adopt-receipt requires exactly role=positive-number")
-    role, number = match[1], int(match[2])
-    effect = feature_schema.verify_evidence_ref(feat_dir, ref, {
-        "feature_id": doc["feature_id"], "effect": "adopt-receipt", "recovery_id": recovery["id"],
-        "role": role, "repo": recovery["to_repo"], "number": number, "plan_sha256": plan_hash})
-    if not all(isinstance(effect.get(key), str) and effect[key].strip()
-               for key in ("by", "ownership_evidence")):
-        raise ValueError("adoption requires an operator identity and authenticated object ownership evidence")
-    pending = recovery.get("pending_create")
-    if not pending:
-        if ref in recovery.get("reconciliation", []) and feature_schema.mirror_receipt_for_role(rec, role) == number:
-            return
-        raise ValueError("adoption does not discharge a recorded pending create")
-    if pending["role"] != role:
-        raise ValueError("adoption role differs from the exact pending create")
-    history = next(item for item in rec["history"] if item["recovery_id"] == recovery["id"])
-    if ref == history["evidence"]:
-        raise ValueError("adoption requires separate new authorization, not the original replacement note")
-    if role.startswith("task:") and (
-            recovery["mode"] != "full" or role[5:] not in {task["id"] for task in parse_tasks(feat_dir)}):
-        raise ValueError("adoption task is outside this replacement's signed scope")
-    if feature_schema.mirror_receipt_for_role(rec, role) is not None:
-        raise ValueError("pending role already has a conflicting confirmed receipt")
-    # Milestones and issues have separate number spaces; parent/task issues do not.
-    if role != "milestone" and number in [rec.get("parent"), *rec.get("issues", {}).values()]:
-        raise ValueError("adopted issue is already assigned to a different role")
-    if role.startswith("task:"):
-        rec["issues"][role[5:]] = number
-    else:
-        rec[role] = number
-    recovery.setdefault("reconciliation", []).append(ref)
-    recovery.pop("pending_create")
-    save_recorded(feat_dir, rec)
-
-
-def _resume_replacement(feat_dir, doc, repo, previous_repo, ref, adopt, plan_hash):
-    """Check durable generation identity and discharge only its evidenced pending role."""
-    github = doc["github"]
-    recovery = github["recovery"]
-    problems = feature_schema.mirror_evidence_problems(feat_dir, doc)
-    if problems:
-        raise ValueError("; ".join(problems))
-    if (recovery["from_repo"] != previous_repo or recovery["to_repo"] != repo
-            or recovery["plan_sha256"] != plan_hash or github.get("repo") != repo):
-        raise ValueError("replacement operands differ from the durable recovery generation")
-    history = next(item for item in github["history"] if item["recovery_id"] == recovery["id"])
-    if not adopt and history["evidence"] != ref:
-        raise ValueError("resume requires the original immutable replacement authorization")
-    rec = load_recorded(feat_dir)
-    if adopt:
-        _adopt_replacement_receipt(feat_dir, doc, rec, ref, adopt, plan_hash)
-    elif recovery.get("pending_create"):
-        raise ValueError(f"uncertain create for {recovery['pending_create']['role']}; "
-                         "no retry or discovery is permitted; supply an evidenced --adopt-receipt")
-    return rec
-
-
-def _finish_replacement(feat_dir, repo, board, issue_types, rec, plan_hash):
-    """Finish creation and projection before sealing the unchanged signed-plan generation."""
-    recovery = rec["recovery"]
-    if recovery["mode"] == "full":
-        _open_apply(feat_dir, repo, rec, issue_types=issue_types)
-    else:
-        ensure_labels(repo, {"harness"})
-        _recover_terminal_apply(feat_dir, repo, rec, None)
-    for number, station in _projected_for(feat_dir, rec).items():
-        if not _place(board, repo, number, station):
-            raise ValueError(f"target projection failed for {repo}#{number}; recovery remains in progress")
-    if feature_schema.resolve_evidence_ref(feat_dir, "plan.yaml")["sha256"] != plan_hash:
-        raise ValueError("signed plan changed during recovery; no completion receipt was written")
-    recovery["state"] = "complete"
-    recovery["completed_at"] = datetime.now(timezone.utc).isoformat()
-    rec["build_entry"] = "opened" if recovery["mode"] == "full" else "recovered-terminal"
-    save_recorded(feat_dir, rec)
-    print(f"gh-sync: mirror recovery {recovery['id']} complete in {repo}")
-
-
-def cmd_recover_mirror(feat_dir, repo, board, issue_types, previous_repo, evidence, yes, adopt=None):
-    """Replace a mirror generation; only a confirmed number can discharge create intent."""
-    try:
-        if not yes or not previous_repo or not evidence:
-            raise ValueError("recover-mirror requires --previous-repo, target-local --evidence, and --yes")
-        if repo is None or board is None:
-            raise ValueError("mirror replacement requires a resolved sync-enabled target repository and board")
-        doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json"))
-        plan_hash = _replacement_plan(feat_dir, doc)
-        ref = feature_schema.resolve_evidence_ref(feat_dir, evidence)
-        github = doc.get("github") or {}
-        recovery = github.get("recovery") or {}
-        if recovery:
-            rec = _resume_replacement(feat_dir, doc, repo, previous_repo, ref, adopt, plan_hash)
-            if recovery["state"] == "complete":
-                print(f"gh-sync: mirror recovery {recovery['id']} already complete — no writes")
-                return
-        else:
-            if adopt:
-                raise ValueError("adoption requires an existing pending recovery generation")
-            mode = ("terminal" if feature_schema.recovery_command_for(
-                feat_dir, doc, repo, replacement=True) == "recover-terminal" else "full")
-            effect = _replacement_authority(feat_dir, doc, ref, previous_repo, repo, mode, plan_hash)
-            problems = feature_schema.mirror_evidence_problems(feat_dir, doc)
-            if problems:
-                raise ValueError("; ".join(problems))
-            rec = _begin_replacement(feat_dir, doc, previous_repo, repo, mode, plan_hash, ref, effect)
-        _finish_replacement(feat_dir, repo, board, issue_types, rec, plan_hash)
-    except (OSError, ValueError, TypeError, KeyError, harness_yaml.YamlParseError,
-            artifact_accessors.ArtifactAccessError) as error:
-        refuse(f"mirror recovery: {error}")
 
 
 def cmd_recover_terminal(feat_dir, repo, parent_arg=None, yes=False):
@@ -2833,14 +2554,6 @@ def main():
             int(pr_arg)
         except ValueError:
             die(f"--pr needs an integer, got {pr_arg!r}")
-    recovery_options = {}
-    for flag in ("--previous-repo", "--evidence", "--adopt-receipt"):
-        if flag in argv:
-            i = argv.index(flag)
-            if i + 1 >= len(argv) or argv[i + 1].startswith("--"):
-                die(f"{flag} needs a value")
-            recovery_options[flag] = argv[i + 1]
-            argv = argv[:i] + argv[i + 2:]
     yes_flag = False
     if "--yes" in argv:
         i = argv.index("--yes")
@@ -2853,22 +2566,16 @@ def main():
         argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
         die("usage: gh-sync.py open|start-task|abandon|reject|ship|backlog|record-pr|"
-            "status|recover-terminal|recover-mirror "
+            "status|recover-terminal "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
             "[--superseded-by <positive integer|none>] [--reason-file <path>] "
-            "[--body-file <path>] [--pr <n>] [--close-sources] [--yes] "
-            "[--previous-repo <owner/name>] [--evidence <feature-local-note>] "
-            "[--adopt-receipt <role>=<positive-number>]")
+            "[--body-file <path>] [--pr <n>] [--close-sources] [--yes]")
     cmd, feat_dir = argv[0], argv[1]
-    if yes_flag and cmd not in ("abandon", "reject", "recover-terminal", "recover-mirror"):
-        die(f"--yes is only accepted by abandon, reject, recover-terminal and recover-mirror, "
+    if yes_flag and cmd not in ("abandon", "reject", "recover-terminal"):
+        die(f"--yes is only accepted by abandon, reject and recover-terminal, "
             f"not {cmd!r}")
     if close_sources_flag and cmd != "abandon":
         die(f"--close-sources is only accepted by abandon, not {cmd!r}")
-    if recovery_options and cmd != "recover-mirror":
-        die("mirror recovery operands are only accepted by recover-mirror")
-    if cmd == "recover-mirror" and parent_arg is not None:
-        die("recover-mirror cannot adopt an old parent; use a separately evidenced pending receipt")
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
     _abs = os.path.abspath(feat_dir)
@@ -2899,10 +2606,6 @@ def main():
         cmd_ship(feat_dir, repo, board, body_file, pr_arg)
     elif cmd == "recover-terminal":
         cmd_recover_terminal(feat_dir, repo, parent_arg, yes_flag)
-    elif cmd == "recover-mirror":
-        cmd_recover_mirror(feat_dir, repo, board, issue_types, recovery_options.get("--previous-repo"),
-                           recovery_options.get("--evidence"), yes_flag,
-                           recovery_options.get("--adopt-receipt"))
     elif cmd == "backlog":
         if len(argv) < 3:
             die("backlog needs at least one nature:title item")

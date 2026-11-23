@@ -537,11 +537,9 @@ def _status_findings(root, board, stations, repo_name):
                                   for key in ("owner", "number", "station_field")):
             findings.append(_finding("STATUS", f"STATUS: feature {feat_dir} targets a different board; no projection is safe"))
             continue
-        problems = feature_schema.mirror_evidence_problems(feat_dir, feature_doc)
         provenance = feature_schema.mirror_provenance_problem(feature_doc, repo_name)
-        if problems or provenance:
-            detail = "; ".join(problems) or provenance
-            findings.append(_finding("STATUS", f"STATUS: mirror provenance for {feat_dir}: {detail}. Run: "
+        if provenance:
+            findings.append(_finding("STATUS", f"STATUS: mirror provenance for {feat_dir}: {provenance}. Run: "
                                      f"{feature_schema.recovery_command_line(feat_dir, feature_doc, repo_name)}"))
             continue
         if invalid is not None:
@@ -978,8 +976,7 @@ def _label_record_owner(root, feat_dir, doc, repo_name):
         return False, f"invalid feature binding: {error}"
     if bound_repo != repo_name:
         return False, None
-    problem = ("; ".join(feature_schema.mirror_evidence_problems(feat_dir, doc))
-               or feature_schema.mirror_provenance_problem(doc, repo_name))
+    problem = feature_schema.mirror_provenance_problem(doc, repo_name)
     return not problem, problem
 
 
