@@ -1,0 +1,86 @@
+schema_version: 2
+run_id: r-20261122-8-validate-validator
+run_uid: 05d8f7810c1647c5a16a47914ba6aba3
+feature: FEAT-2397-omp-native-cleanup
+squad: validator
+host: harness-validator-lead
+team: validate
+status: complete
+verdict: PASS
+severity_max: none
+review_sha: f12ddd93cd828afe1c7c17b5afc8bfd3c3a9cb72
+base_sha: 1133d63c55c8994f7c809f7be73616d049ab163b
+cycles_used: 0
+steps:
+  - id: qa
+    persona: harness-qa
+    status: complete
+    verdict: PASS
+    depends_on: []
+    mutates_repo: false
+    on_fail: continue
+    cycles: 0
+    redispatches: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    artifact: ../../notes/review-harness-qa-c4.md
+    note: Production runners pass; same-run output preservation complete without reruns.
+    evidence:
+      unit_files: 67
+      integration_files: 95
+      unit_runner_exit: 0
+      integration_runner_exit: 0
+      outside_feature_paths: 0
+      changed_paths: 11
+      matrix_ok: true
+      receipts:
+        - qa/manifest-unit.json
+        - qa/manifest-integration.json
+      full_output: ../../notes/qa-c4-runner-output.md
+      natural_red: ../../notes/fix-c2-evidence/red-ci-env.txt
+      factory_config: PASS
+      readme_form_closure: confirmed
+      managed_pin: removed
+      preservation_blocker: resolved with absolute owned path
+  - id: code
+    persona: harness-code-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    artifact: ../r-20261122-7-validate-validator/digest.md
+    evidence:
+      carried: true
+      outside_feature_paths: 0
+      reason: Delegated c4 ruling carries c3 PASS; QA measured zero outside-feature delta since c3 pin.
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    artifact: ../r-20261122-5-validate-validator/digest.md
+    evidence:
+      carried: true
+      outside_feature_paths: 0
+      reason: Delegated c4 ruling carries c1; QA measured zero outside-feature delta since c3 pin.
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    artifact: ../r-20261122-5-validate-validator/digest.md
+    evidence:
+      carried: true
+      outside_feature_paths: 0
+      reason: Delegated c4 ruling carries c1; QA measured zero outside-feature delta since c3 pin.
+  - id: goalcheck
+    persona: harness-pm
+    status: complete
+    verdict: PASS
+    cycles: 0
+    artifact: ../r-20261122-6-validate-validator/digest.md
+    evidence:
+      carried: true
+      outside_feature_paths: 0
+      reason: Delegated c4 ruling carries c2; QA measured zero outside-feature delta since c3 pin.
