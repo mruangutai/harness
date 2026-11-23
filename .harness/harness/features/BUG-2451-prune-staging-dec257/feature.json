@@ -32,5 +32,32 @@
       "reason": "Cause known: #2447 built on a pre-DEC-257 base, merged without textual conflict, shipped force-staging DEC-257 had made false. Diff bounded to pruner, test, ship paragraph, DEC-238 bullet; removes behaviour, adds no interface/schema/gate"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2451-prune-staging-dec257/notes/answers-2026-11-23-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "b2c521aad3d4207f05dc8b16e7845d4954f534e5d20caf42a0d36e2447be5ef1"
+  },
+  "github": {
+    "milestone": 135,
+    "parent": 2460,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2461
+    },
+    "source_issues": [
+      2451
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

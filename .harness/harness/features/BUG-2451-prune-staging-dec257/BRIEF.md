@@ -40,6 +40,6 @@ No affected active kind has a null runner: unit is active. Component and ui are 
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: main-session
+date: 2026-11-23
