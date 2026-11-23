@@ -1,0 +1,44 @@
+schema_version: 2
+run_id: r-20261122-2-validate-validator
+run_uid: c4df563f307443dab6461574afe9cc29
+feature: BUG-2390-policy-payload-type
+squad: validation
+host: harness-validator-lead
+status: failed
+review_sha: 79db636b50aa6547edb2b16591f7c26c721f0b47
+steps:
+  - id: qa
+    persona: harness-qa
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-qa-c0.md
+  - id: code
+    persona: harness-code-reviewer
+    status: complete
+    verdict: FAIL
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-code-reviewer-c0.md
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-security-reviewer-c0.md
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/review-harness-ui-reviewer-c0.md
+  - id: goalcheck
+    persona: harness-pm
+    status: complete
+    verdict: FAIL
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: notes/research-BUG-2390-policy-payload-type-goalcheck-validate-c0.md
