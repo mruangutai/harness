@@ -23,7 +23,7 @@ schema — the path feature-record.py close-run takes. Exit 0 = valid; exit 1 = 
 violation (reasons on stdout). Hook mode validates the payload's `digest_object`, the
 raw `data` of the yield, and rejects anything that is not a mapping.
 """
-import functools, sys, re, os, subprocess, json
+import collections, functools, sys, re, os, subprocess, json
 
 # Same directory as this script; sys.path[0] is that directory under `python3 <path>`.
 # The placeholder vocabulary lives there so INV-6 and this check cannot drift (issue #16).
@@ -34,7 +34,7 @@ import artifact_accessors
 import amendment_contract
 import digest_record
 import digest_schema
-from code_grade import classify, commit_oid, gated_set
+from code_grade import classify, commit_oid, gated_set, _git_show
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 from check_state.brief import SC_LINE_RE, brief_scs_with_lines
 
@@ -397,11 +397,21 @@ def _load_test_kinds(root):
 # default-branch or planning-tree fallback; each failure is a named refusal.
 QA_POLICY_PATH = ".harness/harness.json"
 
+# The trusted inputs QA's policy resolves from: the feature runtime identity selected, and the
+# dispatch's review pin. `_qa_policy(*seam)` keeps one cache key with the receipt check's call.
+_QaSeam = collections.namedtuple("_QaSeam", "feature_dir review_pin")
+
+
+class _QaPolicyRefusal(str):
+    """A QA policy-establishment refusal. For an unconditional qa PASS the #919 receipt check
+    restates it with the pin diagnosis and repair command, so the hook leaves it to that check."""
+
 
 def _qa_policy_refusal(why):
-    return None, None, (f"QA kind policy cannot be established: {why}. QA test_kinds and "
-                        f"test_matrix are read only from the reviewed repository at its review "
-                        f"pin — there is no fallback (D-01, DEC-256).")
+    return None, None, _QaPolicyRefusal(
+        f"QA kind policy cannot be established: {why}. QA test_kinds and test_matrix are read "
+        f"only from the reviewed repository at its review pin — there is no fallback (D-01, "
+        f"DEC-256).")
 
 
 @functools.lru_cache(maxsize=None)
@@ -475,15 +485,15 @@ def _qa_review_commit(code_root, repository, record, review_pin):
 
 def _qa_pinned_policy(code_root, repository, commit):
     where = f"{repository} @ {commit}:{QA_POLICY_PATH}"
-    shown = subprocess.run(["git", "-C", code_root, "show", f"{commit}:{QA_POLICY_PATH}"],
-                           capture_output=True, timeout=60)
-    if shown.returncode:
-        return _qa_policy_refusal(f"{where} could not be read (No such file at that commit, or "
-                                  f"git refused: {shown.stderr.decode(errors='replace').strip()})")
     try:
-        document = artifact_accessors.load_harness_json(text=shown.stdout.decode("utf-8"),
-                                                        context=where)
-    except (artifact_accessors.ArtifactAccessError, UnicodeDecodeError) as error:
+        text = _git_show(code_root, commit, QA_POLICY_PATH)
+    except (RuntimeError, UnicodeDecodeError) as error:
+        return _qa_policy_refusal(f"{where} could not be read (git refused: {error})")
+    if text is None:
+        return _qa_policy_refusal(f"{where} could not be read: No such file at that commit")
+    try:
+        document = artifact_accessors.load_harness_json(text=text, context=where)
+    except artifact_accessors.ArtifactAccessError as error:
         return _qa_policy_refusal(f"{where} is not a valid harness.json ({error})")
     return document, where, None
 
@@ -631,12 +641,13 @@ def _qa_kind_entry_errors(i, entry, verdict, test_kinds, where):
         return []
     kind = str(entry.get("kind", "")).strip()
     state = entry.get("state")
-    err = []
-    if state == "misconfigured" and verdict in ("PASS", "FAIL"):
-        err.append(f"kinds[{i}] ({kind}) is misconfigured but VERDICT is {verdict} — a kind "
-                   f"that cannot run is BLOCKED, never a verdict on the code.")
     policy_error = _qa_kind_policy_error(i, kind, state, verdict, test_kinds, where)
-    return err + ([policy_error] if policy_error else [])
+    if policy_error:
+        return [policy_error]
+    if state == "misconfigured" and verdict in ("PASS", "FAIL"):
+        return [f"kinds[{i}] ({kind}) is misconfigured but VERDICT is {verdict} — a kind "
+                f"that cannot run is BLOCKED, never a verdict on the code."]
+    return []
 
 
 def _qa_kind_errors(kinds, verdict, test_kinds, where):
@@ -1254,8 +1265,7 @@ def _head_is_pin_error(root, reviewed, review_sha):
 
 
 def validate(persona, obj, config_path=None, feature_dir=None, branch_override=_BRANCH_UNSET,
-             review_pin=None, mission=None, expertise=None, qa_feature_dir=None,
-             qa_receipts_follow=False):
+             review_pin=None, mission=None, expertise=None, qa_feature_dir=None):
     """Every contract error for one digest object — schema first, then the semantic
     gates — or [] when it is valid. `obj` is the returned value itself; anything that is
     not a mapping is one error naming the object shape. An unknown persona is refused,
@@ -1263,9 +1273,7 @@ def validate(persona, obj, config_path=None, feature_dir=None, branch_override=_
     trusted distill context the caller derived from the registered run, as
     `(context, None)` or `(None, why-not)`; None means no context was established.
     `qa_feature_dir` is the feature trusted runtime identity selected for QA's pinned kind
-    policy (FEAT-2398); without it, `feature_dir` is that seam, and none means no policy.
-    `qa_receipts_follow` is True only when the hook's #919 receipt check will verify this
-    return; that check then refuses an unestablished policy with its own pin diagnosis."""
+    policy (FEAT-2398); without it, `feature_dir` is that seam, and none means no policy."""
     if not isinstance(obj, dict):
         return [OBJECT_REQUIRED]
     try:
@@ -1280,7 +1288,7 @@ def validate(persona, obj, config_path=None, feature_dir=None, branch_override=_
     err += _semantic_errors(canonical, family, verdict, seen, obj.get("artifact"), mission,
                             config_path=config_path, feature_dir=feature_dir,
                             branch_override=branch_override, review_pin=review_pin,
-                            qa=(qa_feature_dir or feature_dir, review_pin, qa_receipts_follow))
+                            qa=_QaSeam(qa_feature_dir or feature_dir, review_pin))
     err += _expertise_errors(canonical, seen.get("expertise_update"), expertise)
     return err
 
@@ -1643,10 +1651,10 @@ def _qa_floor_requires_nothing(field, persona, seen, qa):
     kind and the return says so (`matrix_ok: true`, `kinds: []`) — DEC-173's dev-ops case for
     qa. Fails closed: any other field or persona, a reported kind, or a pinned policy or plan
     that cannot prove "nothing required" leaves the gate binding."""
-    if not (_qa_claims_no_kind(field, persona, seen) and qa and qa[0]):
+    if not (_qa_claims_no_kind(field, persona, seen) and qa and qa.feature_dir):
         return False
-    policy, _where, error = _qa_policy(*qa[:2])
-    tasks = _plan_tasks(qa[0])
+    policy, _where, error = _qa_policy(*qa)
+    tasks = _plan_tasks(qa.feature_dir)
     return not error and tasks is not None and _matrix_requires_no_kind(policy, tasks)
 
 
@@ -1785,15 +1793,13 @@ def _qa_kinds_errors(seen, verdict, qa):
     true`, every non-excluded floor kind is reported satisfied. Other omissions on an early
     BLOCKED or FAIL are neither a skip nor proof of coverage, and `when:` stays qa's judgement."""
     kinds = seen.get("kinds") if isinstance(seen.get("kinds"), list) else []
-    tasks = _plan_tasks(qa[0]) if qa[0] else None
+    tasks = _plan_tasks(qa.feature_dir) if qa.feature_dir else None
     started = _started_tasks(tasks) if tasks else []
     if not kinds and not started:
         return []
-    policy, where, error = _qa_policy(*qa[:2])
+    policy, where, error = _qa_policy(*qa)
     if error:
-        # The receipt check refuses this same return, naming the pin or checkout fault and
-        # its repair command; `_active_receipt_kinds` carries any other policy refusal.
-        return [] if qa[2] else [error]
+        return [error]
     floor = sorted({k for task in started for k in _always_kinds(policy["test_matrix"], task)})
     return _qa_gate_errors(kinds, floor, verdict, seen.get("matrix_ok") is True,
                            policy["test_kinds"], where)
@@ -2090,9 +2096,10 @@ def _hook_registered_feature(feature):
         return None, None
 
 
-def _hook_feature_dir(artifact, feature):
-    """Resolve an unmerged feature from an installed validator's owner checkout."""
-    checkout_root, registered_dir = _hook_registered_feature(feature)
+def _hook_feature_dir(artifact, registered):
+    """Resolve an unmerged feature from an installed validator's owner checkout, given the
+    `_hook_registered_feature` result."""
+    checkout_root, registered_dir = registered
     if registered_dir is None:
         return None
     try:
@@ -3075,13 +3082,9 @@ def _validate_hook_object(d, agent, obj):
         return 0
     # Only the policy refusal is answered here, because it is THEIR verdict (exit 2); every
     # other exception is our failure and hook_guard's loud fail-open.
-    review_pin, mission = _hook_options(d)
+    options = _hook_options(d)
     try:
-        errs = validate(agent, obj, review_pin=review_pin, mission=mission,
-                        feature_dir=_hook_feature_dir(obj.get("artifact"),
-                                                      d.get("harness_feature")),
-                        expertise=_hook_expertise(d, canonical, obj, mission),
-                        **_hook_qa_options(d, family, obj))
+        errs = _hook_validate(d, agent, obj, canonical, options)
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2
@@ -3094,13 +3097,24 @@ def _validate_hook_object(d, agent, obj):
     return 0
 
 
-def _hook_qa_options(d, family, obj):
-    """QA's trusted policy seam (FEAT-2398): the feature registered under the host's runtime
-    identity, and whether the #919 receipt check will verify this return."""
-    if family != "qa":
-        return {}
-    return {"qa_feature_dir": _hook_registered_feature(d.get("harness_feature"))[1],
-            "qa_receipts_follow": _qa_claims_unconditional_pass(obj)}
+def _hook_validate(d, agent, obj, canonical, options):
+    """validate() under the hook's trusted context. The feature registered under the host's
+    runtime identity is resolved once, for the artifact check and QA's pinned policy."""
+    review_pin, mission = options
+    registered = _hook_registered_feature(d.get("harness_feature"))
+    is_qa = norm(canonical) == "qa"
+    errs = validate(agent, obj, review_pin=review_pin, mission=mission,
+                    feature_dir=_hook_feature_dir(obj.get("artifact"), registered),
+                    expertise=_hook_expertise(d, canonical, obj, mission),
+                    qa_feature_dir=registered[1] if is_qa else None)
+    return _receipt_owned(errs) if is_qa and _qa_claims_unconditional_pass(obj) else errs
+
+
+def _receipt_owned(errs):
+    """An unconditional qa PASS whose ONLY error is the pinned policy's refusal is left to the
+    #919 receipt check: it refuses the same return naming the pin or checkout fault and its
+    repair command (FEAT-2398). Beside any other error the refusal is reported here."""
+    return [] if all(isinstance(e, _QaPolicyRefusal) for e in errs) else errs
 
 
 def _contract_refusal(errs):

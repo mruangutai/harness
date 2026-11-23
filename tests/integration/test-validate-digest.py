@@ -3455,7 +3455,8 @@ def run_qa_verification_mode_cases():
             _write_verification_brief(brief_path, brief)
             errors = validator._qa_errors(
                 {"suite": "pass", "failures": 0, "matrix_ok": True,
-                 "fail_first": [], "kinds": []}, "PASS", feature_dir, (feature_dir, None, False))
+                 "fail_first": [], "kinds": []}, "PASS", feature_dir,
+                validator._QaSeam(feature_dir, None))
             rejected = any("fail_first" in error for error in errors)
             valid = not errors if accepted else rejected
             if not valid:
@@ -7022,25 +7023,22 @@ def _kp_init(root, files):
     return _mx_git(root, "rev-parse", "HEAD")
 
 
-def _kp_commit(root, message, files):
-    return _rx_commit(root, message, files)
-
-
 def _kp_harness_repo():
-    """An unbound Harness feature: pins A (floor with the unresolved kind), B (floor with the
-    active/null kind), C (no misconfigured kind in the floor), E (the unresolved kind only
-    conditional) and F (an all-excluded floor); the WORKING TREE then carries a contradicting,
-    permissive policy."""
+    """An unbound Harness feature pinned at five policies, named for their `always` floor:
+    the unresolved kind, the active/null kind, runnable kinds only, the unresolved kind only as
+    a `when:` conditional, and an all-excluded floor; the WORKING TREE then carries a
+    contradicting, permissive policy."""
     root = os.path.realpath(tempfile.mkdtemp(prefix="vd-kp-"))
-    pins = {"A": _kp_init(root, {
+    pins = {"floor_unresolved": _kp_init(root, {
         ".harness/team-config.yaml": RX_TEAM_CONFIG, ".gitignore": RX_IGNORE,
         ".harness/harness.json": _kp_policy([K_RUN, K_LOCAL, K_GAP, K_SKIP]),
         KP_REL + "/plan.yaml": KP_PLAN.format(feature=KP_FEATURE),
         KP_REL + "/BRIEF.md": "# Brief\n"})}
-    for name, always, when in (("B", [K_RUN, K_LOCAL, K_NULL, K_SKIP], ()),
-                               ("C", [K_RUN, K_LOCAL, K_SKIP], ()),
-                               ("E", [K_RUN], (K_GAP,)), ("F", [K_SKIP], ())):
-        pins[name] = _kp_commit(root, name, {".harness/harness.json": _kp_policy(always, when)})
+    for name, always, when in (("floor_active_null", [K_RUN, K_LOCAL, K_NULL, K_SKIP], ()),
+                               ("floor_runnable", [K_RUN, K_LOCAL, K_SKIP], ()),
+                               ("when_unresolved", [K_RUN], (K_GAP,)),
+                               ("floor_excluded", [K_SKIP], ())):
+        pins[name] = _rx_commit(root, name, {".harness/harness.json": _kp_policy(always, when)})
     _mx_write(os.path.join(root, ".harness", "harness.json"), _kp_policy([K_RUN], (), KP_PERMISSIVE))
     return root, pins
 
@@ -7072,7 +7070,8 @@ def _kp_refuses(label, result, kind, *more):
 
 
 def _kp_sc01_cases(root, pins):
-    for kind, pin, status in ((K_GAP, pins["A"], "unresolved"), (K_NULL, pins["B"], "active/null")):
+    for kind, pin, status in ((K_GAP, pins["floor_unresolved"], "unresolved"),
+                              (K_NULL, pins["floor_active_null"], "active/null")):
         fire = lambda obj, kind=kind, pin=pin: _kp_fire(root, KP_FEATURE, obj, pin=pin)
         _kp_expect(f"SC-01 {status}: BLOCKED reporting only it misconfigured is the one acceptance",
                    fire(_kp_digest("BLOCKED", (kind, "misconfigured"))), 0)
@@ -7089,8 +7088,8 @@ def _kp_sc01_cases(root, pins):
 
 
 def _kp_sc02_cases(root, pins):
-    fire_a = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["A"])
-    fire_c = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["C"])
+    fire_a = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["floor_unresolved"])
+    fire_c = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["floor_runnable"])
     _kp_expect("SC-02: a signed excluded kind may be not_applicable",
                fire_a(_kp_digest("BLOCKED", (K_GAP, "misconfigured"), (K_SKIP, "not_applicable"))), 0)
     _kp_expect("SC-02: a runnable active kind may not be not_applicable",
@@ -7106,7 +7105,7 @@ def _kp_sc02_cases(root, pins):
 
 
 def _kp_sc02_disclosure_case(root, pins):
-    fire_a = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["A"])
+    fire_a = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["floor_unresolved"])
     brief = os.path.join(root, KP_REL, "BRIEF.md")
     outcomes = []
     for body in ("# Brief\n", "# Brief\n" + KP_GAPS):
@@ -7119,9 +7118,10 @@ def _kp_sc02_disclosure_case(root, pins):
 
 
 def _kp_sc03_harness_cases(root, pins):
+    pinned = pins["floor_unresolved"]
     _kp_refuses("SC-03: an unbound Harness feature reads its pinned policy, not the current tree",
                 _kp_fire(root, KP_FEATURE, _kp_digest("BLOCKED", (K_RUN, "satisfied")),
-                         pin=pins["A"]), K_GAP, pins["A"], ".harness/harness.json")
+                         pin=pinned), K_GAP, pinned, ".harness/harness.json")
     _kp_expect("SC-03: an unpinned Harness feature refuses instead of reading the current tree",
                _kp_fire(root, KP_FEATURE, _kp_digest("BLOCKED", (K_RUN, "satisfied")), pin="none"),
                2, ("review pin", "no fallback"))
@@ -7136,19 +7136,21 @@ def _kp_sc03_harness_cases(root, pins):
 def _kp_sc04_cases(root, pins):
     fire = lambda obj, pin: _kp_fire(root, KP_FEATURE, obj, pin=pins[pin])
     _kp_expect("SC-04: early BLOCKED may omit configured runnable and locally_run kinds",
-               fire(_kp_digest("BLOCKED"), "C"), 0)
+               fire(_kp_digest("BLOCKED"), "floor_runnable"), 0)
     _kp_expect("SC-04: early FAIL with matrix_ok false may omit configured kinds",
-               fire(_kp_digest("FAIL"), "C"), 0)
+               fire(_kp_digest("FAIL"), "floor_runnable"), 0)
     _kp_expect("SC-04: PASS with matrix_ok true still requires every floor kind satisfied",
-               fire(_kp_digest("PASS", (K_LOCAL, "locally_run")), "C"), 2, (K_RUN, "floor"))
+               fire(_kp_digest("PASS", (K_LOCAL, "locally_run")), "floor_runnable"), 2,
+               (K_RUN, "floor"))
     _kp_expect("SC-04: an omitted conditional kind is QA's judgement, not mechanically required",
-               fire(_kp_digest("BLOCKED"), "E"), 0)
+               fire(_kp_digest("BLOCKED"), "when_unresolved"), 0)
     _kp_refuses("SC-04: a reported unresolved conditional must be misconfigured/BLOCKED",
-                fire(_kp_digest("BLOCKED", (K_GAP, "not_applicable")), "E"), K_GAP)
+                fire(_kp_digest("BLOCKED", (K_GAP, "not_applicable")), "when_unresolved"), K_GAP)
     exempt = _kp_digest("PASS", suite="n/a")
-    _kp_expect("SC-04: an all-excluded floor keeps the no-kind exemption", fire(exempt, "F"), 0)
+    _kp_expect("SC-04: an all-excluded floor keeps the no-kind exemption",
+               fire(exempt, "floor_excluded"), 0)
     _kp_refuses("SC-04: an unresolved floor kind denies the no-kind exemption",
-                fire(exempt, "A"), K_GAP)
+                fire(exempt, "floor_unresolved"), K_GAP)
 
 
 def _kp_product_repos():
@@ -7160,11 +7162,11 @@ def _kp_product_repos():
     prod = os.path.join(ws, "prod")
     os.makedirs(prod)
     pins = {"P0": _kp_init(prod, {"README.md": "product\n"})}
-    pins["P1"] = _kp_commit(prod, "p1", {".harness/harness.json": _kp_policy([K_RUN, K_GAP])})
+    pins["P1"] = _rx_commit(prod, "p1", {".harness/harness.json": _kp_policy([K_RUN, K_GAP])})
     _mx_git(prod, "checkout", "-q", "-b", "broken")
-    pins["P3"] = _kp_commit(prod, "p3", {".harness/harness.json": "{not json"})
+    pins["P3"] = _rx_commit(prod, "p3", {".harness/harness.json": "{not json"})
     _mx_git(prod, "checkout", "-q", "main")
-    pins["P2"] = _kp_commit(prod, "p2", {".harness/harness.json": _kp_policy(
+    pins["P2"] = _rx_commit(prod, "p2", {".harness/harness.json": _kp_policy(
         [K_RUN], (), KP_PERMISSIVE)})
     _mx_write(os.path.join(prod, ".harness", "harness.json"), _kp_policy([], (), KP_PERMISSIVE))
     root = os.path.realpath(tempfile.mkdtemp(prefix="vd-kp-plan-"))

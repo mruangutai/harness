@@ -24,6 +24,7 @@ for path in (BIN, ROOT / "tests", ROOT / "tests" / "integration"):
     sys.path.insert(0, str(path))
 from harness_config_support import build_config, write_config  # noqa: E402
 import artifact_accessors  # noqa: E402
+from git_support import commit_all, init_repo  # noqa: E402
 
 # name -> (write the broken config into the file at path, token its diagnosis must carry)
 BROKEN = {
@@ -90,17 +91,14 @@ def _board_station(root):
 def _qa_pinned_policy(root):
     """validate-digest's QA kind policy (FEAT-2398 D-01) is harness.json AT THE REVIEW PIN, so
     the config shape under test is committed first and the feature pins that commit."""
-    def git(*args):
-        return subprocess.run(["git", "-C", str(root), "-c", "user.name=t", "-c",
-                               "user.email=t@example.invalid", "-c", "commit.gpgsign=false", *args],
-                              capture_output=True, text=True, check=True).stdout.strip()
     feat = _feature_dir(root)
-    git("init", "-q", "-b", "main")
-    git("add", "-A")
-    git("commit", "-q", "--allow-empty", "-m", "pin")
-    (feat / "feature.json").write_text(json.dumps({"feature_id": "FEAT-1-x",
-                                                   "review_sha": git("rev-parse", "HEAD")}))
-    policy, _where, error = _module("validate_digest", "validate-digest.py")._qa_policy(str(feat), None)
+    init_repo(str(root), "main", config=(("commit.gpgsign", "false"),))
+    commit_all(str(root), "pin")
+    head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
+                          text=True, check=True).stdout.strip()
+    (feat / "feature.json").write_text(json.dumps({"feature_id": "FEAT-1-x", "review_sha": head}))
+    validator = _module("validate_digest", "validate-digest.py")
+    policy, _where, error = validator._qa_policy(str(feat), None)
     if error:
         raise SystemExit(error)
     return policy

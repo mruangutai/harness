@@ -1,7 +1,7 @@
-# FEAT-2398 T-01 GREEN: new group against the implemented validator (uncommitted worktree, base 0271d84e)
-# validator: .claude/skills/harness/bin/validate-digest.py, sha256 40d7094090803ffbe56f6bb74b0c25927a329b30b26f426f1c77681e3d64c1d7
+# FEAT-2398 T-01 GREEN: new group against the final validator (simplify pass applied, uncommitted over 8167aab2)
+# validator: .claude/skills/harness/bin/validate-digest.py, sha256 b32aabd95600aa0b7e11eb8df4b3362f2e7f6e6be2f375a903fd65903f07e5a2
 # command: python3 tests/integration/test-validate-digest.py --only run_feat2398_qa_policy_cases
-# date: 2026-11-23T04:02:39Z; exit=0; wall=14.9s; host load averages: 84.98, 106.53, 77.29
+# date: 2026-11-23T04:14:56Z; exit=0; wall=13.1s; host load averages: 7.26, 18.52, 41.25
 
 ok    [feat2398] SC-01 unresolved: BLOCKED reporting only it misconfigured is the one acceptance
 ok    [feat2398] SC-01 unresolved: reported satisfied is refused with both repairs
