@@ -22,9 +22,10 @@ CHECKPOINT_KEYS = {
 }
 
 # --- INV-15 (DEC-156): a complete lead-hosted run's digest.md is the durable copy a
-# successor reads — it must exist and satisfy the lead digest contract. The SubagentStop
-# hook checks it at source but fails open when it cannot resolve the path (worktrees,
-# cwd drift); this sweep runs from repo root and cannot be fooled. FEAT-1928 SC-07: the
+# successor reads — it must exist and satisfy the lead digest contract. validate-digest.py
+# checks it at source on the OMP extension's yield (internal request label SubagentStop), but
+# can fail open when it cannot resolve the path (worktrees, cwd drift); this sweep runs from
+# repo root and cannot be fooled. FEAT-1928 SC-07: the
 # record is digest_record's final fenced mapping; "satisfies the contract" means that mapping
 # exists and carries the required top-level keys — never a live-schema re-validation, since a
 # historical record may hold keys today's closed contract refuses.

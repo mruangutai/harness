@@ -151,20 +151,24 @@ canonical place to read `domain` from.
 ## DEC-11 — Manifest = policy, frontmatter = capability; nothing declared twice
 
 **Chose:** team membership, lead, `consult-when` and `domain` in the manifest; `name`, `description`,
-`tools`, `model`, `color`, `skills` and `effort` in agent frontmatter.
+`tools`, `spawns`, `model` (a role alias such as `@standard`), `thinking-level`, `blocking` and
+`autoloadSkills` in the native OMP agent frontmatter under `.omp/agents/`.
 **Over:** putting `domain` in the agent body, or duplicating agent metadata into the manifest.
 **Because:** `domain` must be readable by `check-domain.py` from one canonical place, so it cannot
 live in the agent body. Conversely, agent `description` and `tools` are frontmatter's job — copying
 them into the manifest would create text that drifts. No file `path` in the manifest either, since
-Claude Code resolves agents by name. `skills` sits on the capability side because rule delivery is
-frontmatter's job (DEC-63); `effort` sits there because every agent carries it, with the per-tier
-value set by DEC-152.
+OMP resolves agents by name. `autoloadSkills` sits on the capability side because rule delivery is
+frontmatter's job (DEC-63); `thinking-level` sits there because every agent carries it, with the
+per-tier value set by DEC-152.
 **Tradeoff accepted:** an agent's full picture requires reading two files.
 
-`hooks` is NOT one of the frontmatter capabilities, and it is not merely an unused one: agent
-frontmatter `PreToolUse` hooks do not fire for spawned subagents in this environment, proven across
-three attempts (DEC-110), and no agent file carries the field. Domain enforcement is registered in
-`.claude/settings.json` instead. `SPEC.md` §4.0 states the same enumeration as this entry.
+`hooks` is NOT one of the frontmatter capabilities. Under the former Claude Code host, agent
+frontmatter `PreToolUse` hooks were proven across three attempts not to fire for spawned subagents
+(DEC-110), and OMP agent definitions carry no hook field. Domain enforcement runs in the OMP
+extension `.omp/extensions/harness-hooks.ts`, which calls `check-domain.py` on native `write`,
+`edit` and `bash` calls (DEC-202; FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-04]). `SPEC.md`
+§4.0 states the same enumeration as this entry.
 
 ## DEC-13 — Template versioning; upgrades are user-triggered, not a deploy side effect
 
@@ -640,14 +644,18 @@ by design and merge/deploy stay user-gated.
 
 ## DEC-59 — `## Skills` buys consistency, not enforcement — stated honestly
 
-**Chose:** keep the declarative `## Skills` / `## Expertise` / `## Domain` body shape while stating
-plainly that Claude Code does not parse it.
+**Chose:** keep a declarative body shape for agent prose — at the time `## Skills` / `## Expertise` /
+`## Domain`, today the one `## Expertise · Domain` section — while stating plainly that no host
+parses it.
 **Over:** presenting it as a mechanism; or dropping the structure as decorative.
 **Because:** it is prose the agent must choose to obey — no more parsed than the old `## Discipline`
-prose it replaces. What it genuinely buys: a uniform shape across all 15 agents, greppable auditing
-("which agents load `tdd-enforcement`?"), and one place per agent to see its whole rule set. The only
-*mechanical* rule in the system is the domain hook, and that governs writes, not reads. (Some
-runtimes act on these keys; this one does not.)
+prose it replaces. What it bought when recorded: a uniform shape across all 15 agents, greppable
+auditing ("which agents load `tdd-enforcement`?"), and one place per agent to see its whole rule set.
+The `## Skills` section was later deleted when rule delivery moved to frontmatter (DEC-63); that
+observation is history, not a section to restore. Neither the former Claude Code host nor OMP parses
+an agent body section; OMP reads only the frontmatter (FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-04]). Mechanical
+rules act on writes and tool calls through the OMP extension, never on body prose.
 **Tradeoff accepted:** the honest answer is that most discipline rests on obedience.
 
 ## DEC-60 — `.harness/README.md` is rewritten, not created
@@ -691,34 +699,41 @@ work, matching every other gate except the two in DEC-34.
 **Note:** `DESIGN.md` and the design pass are net-new capability relative to GSD's "(v1) no browser
 automation" limitation, which is superseded — `qa` owns Playwright E2E execution (DEC-35).
 
-## DEC-63 — Rule delivery switches to native `skills:` preload
+## DEC-63 — Rule delivery switches to native frontmatter skill preload
 
 
-**Chose:** each rule becomes a skill; each agent declares its rules in the `skills:` frontmatter
-field, and Claude Code injects the **full content** at spawn.
+**Chose:** each rule becomes a skill; each agent declares its rules in the native `autoloadSkills:`
+frontmatter field of its `.omp/agents/` definition, and OMP loads the **full content** at spawn
+(FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml,
+decisions[id=D-04]).
 **Over:** self-injection, where the agent read its rule file as step 0 of its protocol.
 **Because:** self-injection's one accepted weakness was that it *depends on obedience* — an agent under
-pressure can skip a step-0 instruction and nothing detects it. `skills:` removes that weakness at the
-runtime level: the rule is in context before the agent's first action. The `<files_to_read>`
-belt-and-suspenders is no longer needed, and the `## Skills` prose section is deleted.
+pressure can skip a step-0 instruction and nothing detects it. Frontmatter preload removes that
+weakness at the runtime level: the rule is in context before the agent's first action. The
+`<files_to_read>` belt-and-suspenders is no longer needed, and the `## Skills` prose section is deleted.
 **Tradeoff accepted:** rules load unconditionally with no "use-when" laziness, so every listed rule
 costs its full length on every spawn of that agent — rules must stay short, and an agent lists only
 what genuinely binds it. Each rule also needs a directory with a `SKILL.md` rather than being a bare
 `.md` file.
-**Evidence:** verified in the Claude Code subagent documentation — `skills:` is a supported
-frontmatter field and injects full skill content, not just descriptions.
+**Evidence:** originally verified in the Claude Code subagent documentation, whose `skills:` field
+injected full skill content rather than descriptions; that host is removed (DEC-233). The live
+mechanism is OMP's `autoloadSkills`, checked by `check-omp-port.py` against every `.omp/agents/` file.
 
-## DEC-64 — Expertise is delivered by a `SubagentStart` hook, not read by the agent
+## DEC-64 — Expertise is delivered by the OMP extension's agent-start hook, not read by the agent
 
-**Chose:** a `SubagentStart` hook in `settings.json` receives `agent_type` and returns the agent's
-expertise file as `hookSpecificOutput.additionalContext`.
+**Chose:** the OMP extension's `before_agent_start` handler runs `inject-expertise.py` with a request
+whose internal `hook_event_name` label stays `SubagentStart` and which names the agent. The script
+answers with one JSON object, `{"context": ...}`, and the extension delivers that string unchanged as
+a hidden `harness-expertise` message (FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-01]). The response
+carries context only; it has no `hookSpecificOutput` / `additionalContext` envelope.
 **Over:** the agent reading its own expertise file; native `memory:`.
 **Because:** two properties, both decisive. (1) **No obedience dependency** — the agent starts with
 its expertise already in context. (2) **No tool grant required** — a reviewer holding only
-`Read`/`Grep` still receives it, which a read-based approach could manage but native `memory:` could
+`read`/`grep` still receives it, which a read-based approach could manage but native `memory:` could
 not (see DEC-65).
-**Tradeoff accepted:** one more hook in `settings.json`, and the injection is read-only — the write
-path is separate (DEC-66).
+**Tradeoff accepted:** one more extension call per agent start, and the injection is read-only — the
+write path is separate (DEC-66).
 
 ## DEC-65 — Native `memory:` is REJECTED despite being a near-exact match
 
@@ -954,14 +969,19 @@ artifacts, or adding a fifth `## Collaborators` section for leads. A lead's obse
 
 ## DEC-81 — Agent frontmatter corrections found by verifying against the documentation
 
-Four claims inherited from the source plan were wrong. Recorded because each was load-bearing:
+Four claims inherited from the source plan were wrong when checked against the Claude Code
+documentation of the time. Recorded because each was load-bearing. The exit-code and stdin rows
+still describe the policy-script contract: the OMP extension feeds each gate script a JSON payload on
+stdin and treats only exit 2 as a refusal. The interpolation and concurrency rows are Claude Code
+history; that host is removed (DEC-233; FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-04]).
 
 | Claim | Reality |
 |---|---|
 | `color: "#0B7A6E"` (hex) | **Named colors only** — `red`, `blue`, `green`, `yellow`, `purple`, `orange`, `pink`, `cyan`. Team colors are now names |
 | domain hook "exits non-zero to block" | **Only `exit 2` blocks.** Any other non-zero exit is a *non-blocking* error and **the write proceeds** — a script exiting 1 on violation would silently permit every out-of-domain write while appearing to enforce |
-| hook receives `$FILE` | **No such variable.** Tool input arrives as **JSON on stdin**; only `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_PLUGIN_ROOT}`, `${CLAUDE_PLUGIN_DATA}` interpolate into `command` |
-| concurrency cap ~10 | **20** concurrent by default (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`), **200** per session (`CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`); nested and background spawns both count |
+| hook receives `$FILE` | **No such variable.** Tool input arrives as **JSON on stdin**. *Historical:* under Claude Code only `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_PLUGIN_ROOT}`, `${CLAUDE_PLUGIN_DATA}` interpolated into a settings `command`; OMP runs no settings command, and the extension resolves the root itself |
+| concurrency cap ~10 | *Historical:* Claude Code allowed **20** concurrent by default (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`) and **200** per session (`CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`). *Current:* OMP's `task.maxConcurrency` defaults to **32** (published omp 19.1.0, `task/settings.ts`); this repository does not override it |
 
 The `$FILE` error traces to GSD's commented-out example, which is additionally a **`PostToolUse`** hook
 running `eslint --fix` — a non-blocking fix-up, not the blocking guard the source presented it as. The
@@ -1455,13 +1475,16 @@ Folded into task 7.
 ## DEC-101 — Four bin/ scripts shipped and verified; two bugs found by testing them
 
 Built together because they share conventions and a directory. All verified against real inputs, not
-just written.
+just written. The Verified column is the original measurement, taken when the scripts ran as Claude
+Code settings hooks with zero third-party dependencies; it is history. Today the OMP extension
+`.omp/extensions/harness-hooks.ts` calls each script (DEC-202; FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-01]).
 
 | Script | Purpose | Verified |
 |---|---|---|
-| `inject-expertise.py` | `SubagentStart` hook — injects an agent's Expertise as `additionalContext` | Emits correct JSON for a harness agent; **emits nothing** for non-harness agents; always exits 0 so it can never block a spawn |
-| `check-domain.py` | `PreToolUse` guardrail — blocks out-of-domain writes with `exit 2` | 5/5 cases: in-domain allowed · out-of-domain blocked · own Expertise allowed (DEC-87) · shared path allowed **with a warning** · second agent's domain allowed |
-| `check-state.py` | Deterministic orchestrator-invariant checker, 9 invariants | Run against this repo: correctly found the two real gaps (no BRIEF, no settings.json), and the settings violation cleared once `settings.json` was written |
+| `inject-expertise.py` | Agent-start Expertise injection — the request keeps the internal `SubagentStart` label; the response is one `{"context": ...}` object the extension delivers as a hidden message | Originally: correct output for a harness agent; **emits nothing** for non-harness agents; always exits 0 so it can never block a spawn |
+| `check-domain.py` | Write guardrail, request label `PreToolUse` — blocks out-of-domain writes with `exit 2` | 5/5 cases: in-domain allowed · out-of-domain blocked · own Expertise allowed (DEC-87) · shared path allowed **with a warning** · second agent's domain allowed |
+| `check-state.py` | Deterministic orchestrator-invariant checker, 9 invariants at the time | Run against this repo: correctly found the two real gaps then (no BRIEF, no `settings.json`). The settings invariant was INV-9, retired with the host wiring (DEC-233) |
 | `validate-digest.py` | Normative DIGEST schema validator | Catches `VERDICT: PASSED`, `severity_max: medium`, `matrix_ok: "mostly"`, `must-fix` vs `must_fix`, and `open_questions` as a count |
 
 **Design choices worth recording:**
@@ -1471,7 +1494,7 @@ just written.
   payload — a hook that blocks on its own parse failure breaks every write the moment the payload shape
   changes.
 - **`check-state.py` exits 1, not 2.** It gates the *orchestrator*, not a tool call; the exit-2 rule
-  applies only to `PreToolUse` hooks.
+  applies only to the tool-call gates the extension runs.
 - **`validate-digest.py` refuses to pass an unknown persona.** Silently accepting an unrecognized agent's
   return would defeat the point.
 
@@ -1484,9 +1507,10 @@ seen-keys map, and the drift check never saw it. `must-fix: [thing]` returned `d
 exactly the failure mode it was built to prevent, and only running it revealed that.
 
 **2. `check-domain.py`'s first draft would have blocked my own edits.** The initial probe script denied
-anything outside an allowlist, which under a `settings.json` hook applies to *every* agent including the
-main session. Narrowed to an explicit deny-list before wiring it up. Lesson for the real deployment: a
-domain hook belongs in **agent frontmatter**, never in `settings.json`, or it governs the orchestrator too.
+anything outside an allowlist, which under a global settings hook applied to *every* agent including the
+main session. Narrowed to an explicit deny-list before wiring it up. The lesson drawn then — a domain
+hook belongs in agent frontmatter, never in `settings.json` — was overturned by DEC-110: one global
+registration that ignores the main session is what shipped, and the OMP extension keeps that shape.
 
 **This is the third and fourth time in three days that a plausible fix was wrong and only empirical
 verification caught it** (after the nesting default, DEC-83, and the qa-gate state discriminator, DEC-98).
@@ -1716,7 +1740,7 @@ This is the third recurrence (the propagation checker's own founding case, then 
 caught only by reading). The honest conclusion is that no amount of care substitutes for the marker
 being part of writing the DEC.
 
-## DEC-110 — Agent-frontmatter `PreToolUse` does not fire; the domain hook moves to `settings.json` and WORKS
+## DEC-110 — Agent-frontmatter `PreToolUse` does not fire; one global identity-keyed domain gate WORKS
 
 
 
@@ -1734,30 +1758,36 @@ dependencies **also never ran**. That eliminates interpolation, cwd, path resolu
 errors, leaving only one explanation. **This contradicts the documentation**, which states *"hooks only run
 while that specific subagent is active. All hook events are supported."*
 
-**Fix: register in `.claude/settings.json`, take identity from the payload.** Settings hooks demonstrably
-fire (proven earlier by `SubagentStart`), and the hook payload carries **`agent_type`** when the caller is
-a subagent — so one global registration serves all 15 agents and dispatches on identity.
+**Fix, at the time: register in `.claude/settings.json`, take identity from the payload.** Settings
+hooks demonstrably fired under Claude Code (proven earlier by `SubagentStart`), and the hook payload
+carried **`agent_type`** when the caller was a subagent — so one global registration served all 15
+agents and dispatched on identity. That deployment is removed with the host (DEC-233). The policy it
+proved is current: one global gate keyed on identity, today the OMP extension's `tool_call` handler
+calling `check-domain.py` with the runtime agent's name in the payload (DEC-202;
+FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml,
+decisions[id=D-04]).
 
-**Verified live**, in a single probe: `harness-backend-dev` **blocked** from `web/src/**` with the full
-permitted-paths message, and **allowed** into `src/**`.
+**Verified live** at the time, in a single probe: `harness-backend-dev` **blocked** from `web/src/**`
+with the full permitted-paths message, and **allowed** into `src/**`.
 
 Two properties this arrangement must preserve, both tested:
 
-- **The orchestrator is never governed.** No `agent_type` means the main session, which legitimately
-  writes everywhere → exit 0 immediately. Without this the harness could not maintain its own state, and
-  a global `PreToolUse` hook would otherwise catch every write the orchestrator makes.
-- **Non-harness agents pass through** — `Explore`, `general-purpose` and any other are unaffected.
+- **The orchestrator is never governed.** The main session legitimately writes everywhere, so the
+  extension runs no domain gate for it. Without this the harness could not maintain its own state,
+  and a global gate would otherwise catch every write the orchestrator makes.
+- **Non-harness agents pass through** — any agent that is not a `harness-*` persona is unaffected.
 
-The `hooks:` blocks are **stripped from all 15 agent files** as proven-dead weight, and the frontmatter
-remains valid (checked: 15/15 retain `name`, `description`, `tools`, and none references `check-domain`).
+The `hooks:` blocks were **stripped from all 15 agent files** as proven-dead weight; OMP agent
+definitions carry no hook field.
 
 ### A second bug, found on the way and arguably worse
 
 The script derived the project root from `pwd`, so **it failed open whenever it ran from any directory
 other than the project root** — printing nothing and exiting 0, silently disabling enforcement. Since a
 hook's working directory is not guaranteed, this could have made the hook a no-op even once it fired.
-Root is now derived from the script's own location (`<root>/.claude/skills/harness/bin/`), making it
-cwd-independent. Verified blocking correctly when invoked from `/tmp`.
+The fix made root resolution cwd-independent and verified it blocking correctly when invoked from
+`/tmp`. That policy stands: today the root comes from `harness_boundary`'s resolver
+(`HARNESS_PROJECT_DIR`, never `CLAUDE_PROJECT_DIR`), never from `pwd`.
 
 **Note the failure shape:** the bug's effect was to *permit* rather than to error. That is the same
 fail-open pattern the reviewers, the rules, and now this hook have all been written to hunt — and it
@@ -1770,44 +1800,26 @@ write-safety mechanism (DEC-85); this hook is a guardrail.** What has been recov
 an *accidental* out-of-domain `Write`/`Edit` and the actionable rejection message — real value, but not the
 guarantee. Task 10's `mutates_repo` serialization stays safety-critical.
 
-## DEC-111 — `/harness-init` must write THREE settings entries; the third was missing from its spec
+## DEC-111 — STRUCK: removed Claude settings provisioning and INV-9; successor DEC-233
 
-**Caught by the question "does `settings.json` get updated on init with the agent hooks?"** — and the
-answer was **no**. BUILD.md §0a's init template listed `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` and
-`SubagentStart`, but **not the `PreToolUse` domain hook**, which DEC-110 had just made load-bearing.
-
-A project initialised from that template would have got Expertise injection and **no domain enforcement
-at all**, with nothing to report it — fail-open and silent, the failure class this design exists to avoid.
-
-**Two fixes, because documenting it is not enough:**
-
-1. **The §0a template now shows all three**, with a note that `PreToolUse` carries no agent-name matcher
-   deliberately — one global registration serves all 15 and the script dispatches on `agent_type`.
-2. **`check-state.py` INV-9 now verifies it**, so an omission is caught at every `/harness` entry rather
-   than discovered when an agent writes somewhere it should not. Verified by deleting the entry and
-   confirming the violation fires.
-
-**Why this kept happening:** DEC-110 changed *where* the hook lives, and the init spec described *what
-init writes*. Those are different documents, and the second did not follow the first — the propagation
-defect again, in its fourth appearance (the checker's founding case, the §0b claim, DEC-109, now
-this). The pattern is consistent enough to name: **a decision that relocates a mechanism must be
-followed to every place that provisions it**, and the only reliable enforcement is a script that
-checks the provisioning.
-
-### Also fixed: the propagation checker flagged all 1889 lines of SPEC
-
-DEC-109's prose explains the marker syntax by naming it inline, outside a code fence. The checker
-harvested that as an **empty pattern**, which matches every line. Now skips patterns under 4 characters.
-Same lesson as the marker registry's own fence fix, one level down: **a tool that reads its own
-documentation as configuration needs to distinguish the two**, and both times the failure was
-discovered by running it rather than by reading it.
+**Strike record under DEC-188:** this entry ruled that `/harness-init` write three Claude Code
+`settings.json` entries — spawn depth, `SubagentStart` and the global `PreToolUse` domain hook — and
+that `check-state.py` INV-9 verify them at every `/harness` entry. Both halves are wholly removed:
+`.claude/settings.json`, its generator and INV-9 went with the Claude Code host, and the number INV-9
+is retired. Nothing in the tree provisions or grades a settings file. DEC-233 is the named successor
+and governs native hosting: the OMP extension calls the policy scripts, and `check-omp-port.py` grades
+that wiring. The lesson the entry carried — a decision that relocates a mechanism must be followed to
+every place that provisions it — stands as DEC-188's draft-time disposition check. The removed wording
+remains recoverable in git history.
 
 ---
 
 ## DEC-112 — `/harness-init` is built; and an agent that *declines* a write is not evidence the hook works
 
 Task 12 delivered: the flat skill `.claude/skills/harness-init/SKILL.md`, eight distributed templates
-under `.claude/skills/harness/templates/`, and three deterministic merge scripts in `bin/`.
+under `.claude/skills/harness/templates/`, and three deterministic merge scripts in `bin/`. Two of the
+three survive: `merge-gitignore.py` and `upgrade-config.py`. The third, `merge-settings.py`, went with
+the Claude Code host (DEC-233).
 
 ### The BRIEF-approval contradiction, resolved against the checker
 
@@ -1827,16 +1839,21 @@ the brief pending and init says so plainly.
 
 ### Merging is a script, and the fixture found two real defects in it
 
-`.claude/settings.json` and `.gitignore` are **merged by `merge-settings.py` / `merge-gitignore.py`**,
-never hand-edited. Target projects have their own hooks — the pilot host had five — and a hand-merge into a file
-you do not own is exactly where one of the three silent-failure entries goes missing. Both are idempotent
-and both take `--check`. Hook presence is matched on **script basename**, not the literal command string,
-so a project that registered the same hook via an absolute path is recognised rather than duplicated.
+At the time, `.claude/settings.json` and `.gitignore` were **merged by `merge-settings.py` /
+`merge-gitignore.py`**, never hand-edited. Target projects had their own hooks — the pilot host had
+five — and a hand-merge into a file you do not own is exactly where one of the three silent-failure
+entries went missing. Hook presence was matched on **script basename**, not the literal command
+string, so a project that registered the same hook via an absolute path was recognised rather than
+duplicated. That settings merge is history (DEC-233; FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-04]). Today
+`.gitignore` is still merged by `merge-gitignore.py`, never hand-edited; it is idempotent and takes
+`--check`. Hook wiring ships as the OMP extension, not as a per-project settings merge.
 
-`upgrade-config.py` merges `harness.json` but only **reports** on `team-config.yaml`. Every script in
-`bin/` runs with zero third-party dependencies, so there is no YAML library; putting the manifest's
-`domain` globs behind a hand-rolled YAML *writer* would place the only write-scope guarantee in the
-design behind a line-based regex. It prints the exact new entries and exits 1.
+`upgrade-config.py` merges `harness.json` but only **reports** on `team-config.yaml`. When this was
+recorded, every script in `bin/` ran with zero third-party dependencies, so there was no YAML library;
+putting the manifest's `domain` globs behind a hand-rolled YAML *writer* would have placed the only
+write-scope guarantee in the design behind a line-based regex. It prints the exact new entries and
+exits 1.
 
 Running it against the fixture caught two defects that reading it did not:
 
@@ -2708,20 +2725,22 @@ suite (DEC-101, DEC-110, DEC-119, DEC-124's own re-statement of the shape).
    `--hook` runner that asserts the **exact** exit code (2 reject / 1 crash / 0 pass are three
    different outcomes — asserting "nonzero == rejected" would let the fail-open crash masquerade as a
    correct rejection, reproducing the exact blind spot this task exists to close) and matches
-   rejection text on **stderr** (hook mode writes there, not stdout). Nine hook cases cover all five
-   repros plus the three deliberate pass-throughs (non-harness `agent_type`, `stop_hook_active`,
-   empty `last_assistant_message`), each verified to fail against a saved pre-fix copy of the
-   validator and pass against the fixed one.
+   rejection text on **stderr** (hook mode writes there, not stdout). The original nine hook cases
+   covered all five repros plus three pass-throughs of the time (non-harness `agent_type`,
+   `stop_hook_active`, empty `last_assistant_message`), each verified to fail against a saved pre-fix
+   copy of the validator and pass against the fixed one. The `stop_hook_active` pass-through is
+   deleted: a yield carrying the field is validated like any other (FEAT-2397-omp-native-cleanup,
+   .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-04]).
 4. **Docs corrected last**, after the fixes changed what is true:
-   - `harness-team/SKILL.md` §e no longer claims "a member that returned to you at all has already
+   - `harness-team/SKILL.md` §e stopped claiming "a member that returned to you at all has already
      been held to the schema: every field present" — false for every one of the panel's repros. It
-     now names the three structural pass-throughs (non-harness `agent_type`, `stop_hook_active`, our
-     own failure) as the boundary of what the hook actually checked, and says explicitly that a lead
-     should not skip reading a return just because it survived the hook.
-   - `SPEC.md` §8.3's "the agent must fix it before it can finish" is corrected to "exactly one
-     rejection deep" — `stop_hook_active` means an agent that re-emits the identical malformed digest
-     on its second stop is accepted. The platform caps this at one wasted turn, not an infinite loop,
-     but the old wording claimed a guarantee the mechanism does not make.
+     named the hook's pass-throughs of the time as the boundary of what was checked and told a lead
+     not to skip reading a return just because it survived the hook. That section has since been
+     rewritten around the yield contract (DEC-237).
+   - `SPEC.md` §8.3's "the agent must fix it before it can finish" was corrected then to "exactly one
+     rejection deep", because under Claude Code `stop_hook_active` accepted an identical malformed
+     digest on the second stop. That limit is gone: the OMP yield path validates **every** yield, so a
+     retry gets no bypass and an agent cannot finish on a malformed digest by repeating it.
 
 ### Also fixed (the panel's "fold into the next touch of the file" list)
 
@@ -3312,8 +3331,11 @@ accepted — `<type>/FEAT-NN-slug` / `BUG-NN-slug` validated against the flow ex
 because harness flows branch per feature and the original's issue-number-only rule would have
 denied every legitimate orchestrator branch.
 
-**Registration is unconditional — the fifth `settings.json` prerequisite** — because the script
-self-gates on `github.sync` and exits instantly where the mirror is off. Conditional registration
+**Gating is unconditional** — it was the fifth Claude Code `settings.json` prerequisite when
+recorded; today the OMP extension runs it on every governed Bash call that creates a branch, with no
+per-project registration (DEC-202; FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-04]) — because the
+script self-gates on `github.sync` and exits instantly where the mirror is off. Conditional wiring
 would be a second INV-13-style limbo. Unlike gh-sync (a mirror that must never gate), this IS a
 gate: unverifiable states (gh missing, unauthenticated) DENY with the reason rather than waving
 work through. Nine offline proof shapes green, including the original's year-token guard and both
@@ -3518,8 +3540,10 @@ runs; the bypass was available to every Bash-holding agent, and "read-only revie
 convention, not a boundary. DEC-85 had documented this gap as accepted risk with dev-ops as the
 trusted case — qa exploiting it under pressure breaks that rationale.
 
-**Fix: `bin/bash-write-guard.py`, a PreToolUse:Bash hook** registered alongside the branch gate
-(sixth settings.json prerequisite; snippet template updated). Detected writes include redirects,
+**Fix: `bin/bash-write-guard.py`, a Bash write gate** (request label `PreToolUse`, tool `Bash`) run
+beside the branch gate. It was the sixth Claude Code settings prerequisite when recorded; today the
+OMP extension runs it on every governed `bash` call (DEC-202; FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-04]). Detected writes include redirects,
 sed/perl/awk in-place, tee, sponge, rm/mv/cp, and literal Python `open` calls in write-capable
 modes supplied through `-c` or heredoc source. The three reviewers are READ-ONLY and denied on
 every detected write. Every other harness agent except dev-ops (exempt per DEC-85 — owns builds)
@@ -3630,17 +3654,23 @@ state.yaml, the digest, or any gate records which model actually ran, so the cos
 the budget with no cause attached. The failure mode is not the upgrade itself — a hard task may
 genuinely warrant one — it is that the decision was free and unrecorded.
 
-The rule, stated in harness-team (dispatch step) and the leads' zero-micro-management red
-flags: never pass `model:` in a dispatch. Believing a task needs a stronger model is an
-escalation — raise it in `open_questions` with evidence; the decision happens above the lead
-and gets recorded. Same shape as DEC-31's reviewers-advise-don't-block: judgment is welcome,
-unilateral silent action is not.
+The rule, stated in `harness-zero-micro-management`'s red flags and in the agent-visible
+`.omp/rules/harness-constraints.md`: never pass `model:` in a dispatch. Believing a task needs a
+stronger model is an escalation — raise it in `open_questions` with evidence; the decision happens
+above the dispatcher and gets recorded. Same shape as DEC-31's reviewers-advise-don't-block:
+judgment is welcome, unilateral silent action is not.
 
-Mechanized at DEC-156: dispatch-guard.py (PreToolUse on the spawn tool) rejects a harness
-agent's dispatch carrying a `model:` parameter. The transcript JSONL (`"model":` on the spawn
-record) remains the audit trail. Separately noted for cost accounting, not sanctioned against: the user-level
-`advisorModel: opus` setting attaches an Opus advisor to every agent regardless of execution
-model — that is Claude Code configuration, outside the org's authority.
+Mechanized natively: `.omp/config.yml` pins `task.perCallModel: "off"`, OMP's own per-call model
+authority, for every session, Main included. A project setting narrows an operator's choice and never
+widens it, so the pin binds even when an operator enables per-call models. OMP refuses a per-call
+`model` itself, and its error does not name the escalation route, which is why the route stays in
+agent-visible text. Harness's two former refusals — `dispatch-guard.py`'s model check and the
+extension's `taskModelOverride` — are deleted, and `tests/integration/test-check-omp-port.py` asserts the pin
+(FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml,
+decisions[id=D-02]). Pinned role models stay org design: each agent's `model` role alias resolves
+through the provider overlay. Separately noted for cost accounting, not sanctioned against: a
+user-level advisor model setting of the former Claude Code host attached an advisor to every agent
+regardless of execution model — that is host configuration, outside the org's authority.
 
 ## DEC-156 — Prose-only rules from the FEAT-02 audit get gates: digest file, checkpoint shape, dispatch parameters
 
@@ -3673,11 +3703,12 @@ boundaries, with one validator-owned durable representation:
   the checkpoint whitelist (seed fields + loop fields + pins), and no key may repeat. Prose keys
   (`pre_dispatch_checks:`, `lead_assessment:` …) are named in the rejection with their routing:
   digest.md.
-- **dispatch-guard.py (mechanizes DEC-155):** new PreToolUse hook on the spawn tool
-  (matcher `Task|Agent`); a harness agent's dispatch carrying a `model:` parameter is exit 2 with
-  the escalation route in the message. The main session (no `agent_type`) is never governed —
-  model choice at the user channel is the user's. Registered in settings.snippet.json and
-  checked by INV-9 like the other four mandatory hooks (now five).
+- **Per-call model authority (mechanizes DEC-155):** native `task.perCallModel: "off"` in
+  `.omp/config.yml` refuses a dispatch's `model` parameter for every caller, Main included;
+  `tests/integration/test-check-omp-port.py` asserts the pin. Harness carries no model check of its own: the former
+  dispatch-guard refusal, its Main exemption and its settings registration are gone
+  (FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml,
+  decisions[id=D-02]).
 
 The live OMP path has no stop-message or file-copy fallback: the yielded object is the value
 validated and, for a lead, the value appended to the durable record. Historical records remain
@@ -4421,13 +4452,14 @@ an unknown row, no started task, or an unreadable plan or matrix keeps the gate 
 `matrix_ok: n/a` with PASS stays refused.
 
 **What triggered the audit.** `harness-tdd-enforcement`'s under-specified-task refusal was written
-with two DIGEST fields and no `artifact:`. The `SubagentStop` hook rejected it with **exit 2**, so the
-guard against under-specified tasks was told it had committed a contract violation at the moment it
-fired; the forced retry sets `stop_hook_active` and exits 0, shipping **unvalidated**. Completing that
-example without fixing `suite` would have enshrined `suite: pass` — a lie — in a normative template.
-It now reads `suite: n/a` and validates in both CLI and hook mode.
+with two DIGEST fields and no `artifact:`. The digest hook of the time rejected it with **exit 2**, so
+the guard against under-specified tasks was told it had committed a contract violation at the moment
+it fired; under the former Claude Code host the forced retry set `stop_hook_active` and exited 0,
+shipping **unvalidated**. Completing that example without fixing `suite` would have enshrined
+`suite: pass` — a lie — in a normative template. It now reads `suite: n/a` and validates in both CLI
+and hook mode.
 
-**NOT fixed here, and both need a decision rather than a patch:**
+**NOT fixed here; it needs a decision rather than a patch:**
 
 1. **B-13, the `lead` row** (recorded under Open Questions in
    FEAT-03-subissue-mirror's `STATE.md`, raised independently by product-lead and validator-lead).
@@ -4435,9 +4467,12 @@ It now reads `suite: n/a` and validates in both CLI and hook mode.
    legitimate", but a lead applying its own Expertise ops genuinely self-executes a step. This is
    doctrinal — *may a lead execute work at all?* `harness-zero-micro-management` says route, never do;
    the distillation dispatch says otherwise in practice. Resolve the doctrine, then the encoding.
-2. **The `stop_hook_active` pass-through.** A blocked agent's second attempt is accepted with no
-   validation whatsoever. That is how a wrong correction escapes, and it is why defect 1 above was
-   survivable rather than visible.
+
+The second open item recorded here, the `stop_hook_active` pass-through that accepted a blocked
+agent's second attempt unvalidated, is closed: `validate-digest.py` no longer honours the field and
+validates every yield, so a wrong correction is refused like the first attempt
+(FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml,
+decisions[id=D-04]). A declined gate is still reported honestly, never as a pass.
 
 ## DEC-174 — Self-hosting stops at the enforcement layer: the harness plans its own work, it does not execute changes to its own guards
 
@@ -5877,8 +5912,8 @@ identical to the retired one, so this was a re-homing and not a redefinition: th
 miss-path set and the advisory-not-gate character are all unchanged.
 
 **What is and is not load-bearing, measured rather than assumed.** In THIS repository the config
-governs: `.harness/harness.json` DOES carry `budgets.orchestrator_context_warn_tokens`, at `:169`
-with the value `200000` and a rationale sibling at `:170`. The constant is therefore what a config
+governs: `.harness/harness.json` DOES carry `budgets.orchestrator_context_warn_tokens`, with the value
+`200000` and an `_orchestrator_context_warn_tokens_rationale` sibling. The constant is therefore what a config
 genuinely LACKING the key falls back to, **not** the live value here. The two figures being equal is
 coincidence, not derivation — a point worth stating because an earlier draft asserted the key was
 absent, which would have contradicted the paragraph above.
@@ -5890,6 +5925,18 @@ absent, which would have contradicted the paragraph above.
 **It is a CONTEXT figure, not money.** DEC-178 removed cost tracking entirely — meter, budgets,
 invariant, reporting surfaces — and that removal stands. Nothing here reintroduces a rate table, a
 dollar figure or a spend budget. The unit is tokens of context.
+
+**How the figure is read.** On the same wake as before — a `harness-orchestrator` session's `task`
+tool result — the extension asks OMP for `ctx.getContextUsage()` and takes `usage.tokens` only when
+it is a finite number. A missing accessor, a throw, `undefined`, `null` or a non-finite value
+emits nothing, and nothing is cached, so the next wake asks again. The threshold comes from the
+existing lenient resolver (`resolveContextWarnTokens`, over `resolveBudgetNumber`) with its 200000
+fallback, and an advisory is added only when the figure is **strictly greater** than it. The
+figure is OMP's session accounting: before the provider has anchored a turn it is OMP's estimate,
+and afterwards it follows the provider's reported usage. The earlier reading of the provider's
+`promptTokens` anchor from the session JSONL is gone, with no fallback to it (DEC-201;
+FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml,
+decisions[id=D-03]).
 
 **Why 200000 rather than a fresh guess:** it is the figure DEC-148's watchdog used, carried over.
 Stated precisely, because the entry should not be read as more than it is: DEC-148 wrote the figure
@@ -5956,36 +6003,35 @@ holder is stuck, not busy.
 | observation log | whitespace-normalised text of a bullet record | order-preserving; no conflict exit and no cap, the file having neither ids nor a budget |
 
 **The single-flight registry.** A named set of personas — today the product manager alone — may not be dispatched twice
-at once on one checkout. The `PreToolUse` Task hook refuses the second, the `SubagentStop` hook releases the claim, a
-claim expires after an hour, and one command, `inflight_registry.py release-all`, clears every claim — already
-exercised, not hypothetical — because a fix that can brick every later dispatch is worse than the defect it prevents.
-**The root comes from the hook payload's `cwd`, one registry per worktree**, by the same precedence in both hooks, which
-is what "on one checkout" means: a shared registry would refuse a second feature's product manager while the first's is
-live.
+at once on one checkout. The extension's dispatch check on a `task` call (request label `PreToolUse`) refuses the
+second, the extension releases the claim when the child's run settles, a claim lives only while the OMP supervisor
+process that made it — identified by pid and start time, with a 24-hour backstop when the start time cannot be read —
+is alive, and one command, `inflight_registry.py release-all`, clears every claim — already exercised, not
+hypothetical — because a fix that can brick every later dispatch is worse than the defect it prevents
+(FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-04]).
+**The root comes from the payload's `cwd`, one registry per worktree**, by the same precedence in claim and release,
+which is what "on one checkout" means: a shared registry would refuse a second feature's product manager while the
+first's is live.
 
 **Issue #551's dispatch cause is closed, and so is the first of its two reporting consequences.** A lead emitting a
 terminal verdict about members it cannot see is closed by the held-child gate in `validate-digest.py`'s `hook_mode`: a
 lead or orchestrator whose children are live is refused any return, so no parent is forced
 to grade work it has not seen (DEC-233 removed the nonterminal `SUSPENDED` turn-end DEC-210 once
 allowed here). The second consequence — an orchestrator inferring run verdicts from disk — is NOT
-closed, and nothing in this file closes it. No wait closes either: the `SubagentStop` hook passes through on
-`stop_hook_active` to avoid an infinite stop loop, so a stop refusal fires at most once per consecutive stop sequence and
-re-fires on each later wake while a child is still live. What ships is aimed at the false REPORT — a lead or
-orchestrator returning a TERMINAL verdict while a child it dispatched is still claimed is REFUSED on that hook once per
-consecutive stop sequence, the one-correction-round strength every other digest contract in that file has, and again on
-each later wake; the loss itself is prevented at the `PreToolUse` hook, whose refusals have no once-only bound. The
-residual, plainly: a second identical return ships when it is immediate, the refusal re-fires only on a later wake while
-a child is still live, and an orphaned child of an interrupted parent has no parent left to refuse it.
+closed, and nothing in this file closes it. What ships is aimed at the false REPORT: a lead or orchestrator yielding a
+TERMINAL verdict while a child it dispatched is still claimed is REFUSED by `validate-digest.py` on **every** such
+yield. The former `stop_hook_active` pass-through, which under Claude Code bounded the refusal to once per consecutive
+stop sequence, is deleted, so an immediate identical retry is refused like the first; the loss itself is prevented at
+the dispatch check. Under the blocking host a parent's `task` call holds until its children are terminal, so a
+parent yielding with a live child is a defect, not a waiting state (DEC-204, DEC-233). The residual, plainly: an
+orphaned child of an interrupted parent has no parent left to refuse it.
 
-**The bound is per consecutive stop sequence, not per run.** The hook keeps no state marking a return already refused —
-`validate-digest.py` returns early on `stop_hook_active` and reads live children fresh, and `live_children` is a read
-that only expires stale claims — so a wake that finds a child still live is refused again. One observed orchestrator run
-on the code path the lead tier uses carries two stop refusals naming DIFFERENT child sets, which is a distinct refusal
-event and not replayed context (`agent-a89be3fd837d1b779`). Ending a lead's turn after every dispatch raises the rate of
-stop attempts made with children live, so each attempt risks its own refusal rather than there being one per return.
-`inflight_registry.py`'s refusal message carries no once-only bound; it ends by naming the rule for a lead or
-orchestrator whose child is live — under a blocking host the parent cannot yield until the child is terminal
-(DEC-204, DEC-233).
+**The refusal keeps no state.** `validate-digest.py` reads live children fresh on each yield, and `live_children` is
+a read that only expires dead claims, so a yield that finds a child still live is refused again. One observed
+orchestrator run on the code path the lead tier uses carried two refusals naming DIFFERENT child sets, which is a
+distinct refusal event and not replayed context (`agent-a89be3fd837d1b779`). `inflight_registry.py`'s refusal message
+carries no once-only bound; it ends by naming the rule for a lead or orchestrator whose child is live — under a
+blocking host the parent cannot yield until the child is terminal (DEC-204, DEC-233).
 
 **#551's count is a FLOOR, never a total.** At least eight are measured as of this commit, and the mechanism fired again
 during the build of its own fix: 5 through 8 came from this feature's own runs. The count has already moved four → seven
@@ -6135,30 +6181,42 @@ was told. Waiting is not merely expensive; a parent with nothing to do manufactu
 findings.
 
 **Self-identification is no longer part of the ruling: the orchestrator does not identify itself at
-all.** `ctx.sessionManager.getSessionFile()` returns the calling session's own transcript path from
-inside that session, including a subagent session, which is exactly where `ctx.getContextUsage()`
-returns `undefined` (upstream `can1357/oh-my-pi#10097`). The harness hook reads that transcript on
-the orchestrator's wake and appends one advisory line to the `task` result. No nonce, no probe, no
-second call, and nothing for the orchestrator to do. DEC-204 already supersedes this entry's
-host-specific mechanics for OMP while preserving its no-wait conduct and its evidence standard; the
-never-wait ruling above stands unchanged. **The retired scheme is recorded here so it cannot be
-re-proposed as new:** the orchestrator used to emit a fixed, unguessable literal, LATER grep the
-Claude orchestrator sidecars for it in a second Bash call, then run `context-watch.py`; all three
-went with the sidecar mechanism (FEAT-44, issue #923). **Its two-call constraint was CORRECT and
-died with the mechanism rather than being found wrong** — a single call grepping for a nonce it
-emitted in the same command finds nothing, because the message carrying that nonce has not reached
-the sidecar yet. A claim that was right and became inapplicable is not a claim that was refuted.
+all.** On the orchestrator's wake — its `task` tool result — the harness hook asks OMP for
+`ctx.getContextUsage()` and, when `usage.tokens` is a finite number strictly greater than the
+DEC-198 threshold, appends one advisory line to that result. No nonce, no probe, no second call, no
+transcript read and nothing for the orchestrator to do; a missing or non-finite figure emits nothing
+and there is no fallback. The figure is OMP's session accounting, which is an estimate until the
+provider anchors a turn; the hook no longer reads the provider's `promptTokens` anchor from the
+session JSONL (FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-03]). DEC-204
+already supersedes this entry's host-specific mechanics for OMP while preserving its no-wait conduct
+and its evidence standard; the never-wait ruling above stands unchanged. **Two retired schemes are
+recorded here so they cannot be re-proposed as new.** First, the orchestrator used to emit a fixed,
+unguessable literal, LATER grep the Claude orchestrator sidecars for it in a second Bash call, then
+run `context-watch.py`; all three went with the sidecar mechanism (FEAT-44, issue #923). **Its
+two-call constraint was CORRECT and died with the mechanism rather than being found wrong** — a
+single call grepping for a nonce it emitted in the same command finds nothing, because the message
+carrying that nonce has not reached the sidecar yet. A claim that was right and became inapplicable
+is not a claim that was refuted. Second, the hook then read the calling session's own JSONL through
+`ctx.sessionManager.getSessionFile()`, because inside a subagent session `ctx.getContextUsage()`
+returned `undefined` (upstream `can1357/oh-my-pi#10097`). That limitation is fixed upstream, so the
+workaround is deleted.
 
 **The evidence for the replacement and its limits, recorded because the permanent record must not
-overstate.** It was measured on ONE OMP build, twice, on one machine (2026-08-28 and 2026-08-29).
-The probe extension and its measured result are committed at `tests/manual/probe-session-accessors.ts`
-and in the docstring of `tests/manual/probe-omp-session-accessor.py`. **Version-floor risk:**
-a later OMP may rename or drop the accessor. That is not an unwatched assumption —
-`tests/manual/probe-omp-session-accessor.py` dispatches a real subagent under the
-committed probe and fails, never skips, if the accessor stops resolving. **It is a MANUAL check, not
-a CI gate** — it needs the omp binary and live model credentials, and CI has neither — so the risk is
-watched by something a human must run. This is one build's observed behaviour, not a timeless
-property of the OMP API.
+overstate.** *Source evidence:* upstream issue #10097 was closed by `can1357/oh-my-pi#10098`,
+released in v18.0.11, which serves `getContextUsage` to task-subagent extension contexts as real
+session accounting; the published omp 19.1.0 source carries that wiring. Harness therefore needs
+**omp ≥ 18.0.11**; on an older host the accessor yields no figure and the advisory stays silent.
+*Host evidence* is separate and is not asserted here: FEAT-2397's formal observation of a real task
+child's `getContextUsage` on omp 19.1.0 is that feature's T-06 receipt, recorded at its final pin.
+The original accessor measurements — ONE OMP build, twice, on one machine (2026-08-28 and
+2026-08-29) — remain history. **Version-floor risk:** a later OMP may rename or drop the accessor.
+That is not an unwatched assumption — `tests/manual/probe-omp-session-accessor.py` dispatches a
+real subagent under the committed probe `tests/manual/probe-session-accessors.ts`, identifies the
+child by its session path rather than by its usage, and fails, never skips, if the child's
+accessor stops returning finite numbers. **It is a MANUAL check, not a CI gate** — it needs the omp
+binary and live model credentials, and CI has neither — so the risk is watched by something a human
+must run.
 
 **The open measurement, stated as open.** Whether a STOPPED parent survives past 600s while its child
 is still running had never been measured when this was decided. If it does not, this decision removes
@@ -6275,8 +6333,9 @@ changes to hooks, validators, gate scripts and their tests are direct main-sessi
 tests and human diff review. The Harness enforcement path never certifies its own replacement.
 
 This decision supersedes the Claude-only conclusions of DEC-63, DEC-64, DEC-100, DEC-108,
-DEC-110, DEC-111 and DEC-122 for the canonical OMP runtime; their historical evidence remains
-authoritative. DEC-233 removed the Claude Code compatibility adapters this entry once kept.
+DEC-110 and DEC-122 for the canonical OMP runtime; their historical evidence remains
+authoritative. DEC-233 removed the Claude Code compatibility adapters this entry once kept, and
+governs the settings provisioning DEC-111 (struck) once required.
 
 ## DEC-203 — A ticket is open until its card reaches `Done`, the harness writes `Done` at ship, and a parent waits for its children
 
@@ -6801,9 +6860,12 @@ not found exits 0 and keeps the INV-15 pointer (DEC-127, DEC-95).
 
 **A clean break, and what this entry does NOT do.** No compatibility path is kept for the permissive
 behaviours these rules replace: each one's failure mode was passing silently, so a flag preserving it
-would preserve the defect under a name. It does not close the digest hook's `stop_hook_active`
-passthrough, which stays pre-existing and deliberate, and takes no position on INV-32's retroactive
-red across 32 approved plans, a separate operator ruling.
+would preserve the defect under a name. The digest hook keeps no retry bypass either: the former
+`stop_hook_active` pass-through is deleted, so every yield meets these rules
+(FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml,
+decisions[id=D-04]). This entry takes no position on INV-32's retroactive red across 32 approved
+plans, a separate operator ruling.
+
 ## DEC-209 — Mechanical code-grade state is computed by the digest gate, not trusted from the reviewer
 
 **Chose:** `validate-digest.py` COMPUTES the code-grade result for every ordinary code review and
@@ -7004,7 +7066,8 @@ cross-check, because that recreates the two-readers failure one level lower.
 
 **Chose:** TWO placeholders, because one value cannot serve both directions. The control-plane
 placeholder `<HARNESS_CONTROL_PLANE_ROOT>` is injected into every harness agent's preamble by the
-`SubagentStart` hook as the line `HARNESS_CONTROL_PLANE_ROOT: <absolute path>`
+OMP extension's agent-start Expertise injection (request label `SubagentStart`) as the line
+`HARNESS_CONTROL_PLANE_ROOT: <absolute path>` inside the delivered context
 (`.claude/skills/harness/bin/inject-expertise.py`), and prefixes every READ of a Harness-owned
 skill, rule, reference, decision or config. The feature-tree placeholder
 `<HARNESS_FEATURE_TREE_ROOT>` is NOT injected, and prefixes every WRITE into a feature directory.
@@ -7027,17 +7090,18 @@ control plane is reported as a violation in its own right — not merely as an u
 **The reasoning.** The defect is that a relative path in prose resolves against the AGENT's working
 directory, and until the factory that directory was always the harness checkout, so nothing ever had
 to distinguish where the work is from where the control plane is. Two anchors rather than one
-because measured at `e8e1b78be3379d4a669aa7e28aef8f76eb942471`, `settings.json` registers the MAIN
-checkout's copy of `inject-expertise.py` and `harness_boundary.resolve_root` is
-script-directory-relative, so the injected root is the main checkout even for an agent standing in a
-feature worktree — anchoring writes there sends a Harness self-development agent's receipt and
-observations off the reviewed branch, while leaving them relative sends a factory worker's into a
-disposable product workspace the next claim force-resets, which issue 356 comment 1 ruled against.
-An environment variable is not the carrier because `CLAUDE_PROJECT_DIR` is session-scoped and was
-measured UNSET in an agent's own tool shell, so an agent cannot anchor its own paths with it. The
-hook signals through text and not an exit code because its contract under DEC-101 is that it always
-exits 0 so it can never block a spawn, which leaves the refusal to the agent, which returns
-`VERDICT: BLOCKED` when the injected value reads `UNRESOLVED`. The three severities the defect
+because measured at `e8e1b78be3379d4a669aa7e28aef8f76eb942471`, the then-current Claude Code
+`settings.json` registered the MAIN checkout's copy of `inject-expertise.py` and
+`harness_boundary.resolve_root` is script-directory-relative, so the injected root was the main
+checkout even for an agent standing in a feature worktree — anchoring writes there sends a Harness
+self-development agent's receipt and observations off the reviewed branch, while leaving them
+relative sends a factory worker's into a disposable product workspace the next claim force-resets,
+which issue 356 comment 1 ruled against. An environment variable is not the carrier because a
+host's session variable (then `CLAUDE_PROJECT_DIR`) was measured UNSET in an agent's own tool shell,
+so an agent cannot anchor its own paths with it. The injection signals through text and not an exit
+code because its contract under DEC-101 is that it always exits 0 so it can never block a spawn,
+which leaves the refusal to the agent, which returns `VERDICT: BLOCKED` when the injected value
+reads `UNRESOLVED`. The three severities the defect
 produced are why the check is mechanical rather than advisory: a denied write is loud, a wrong read
 is silent and dangerous, and a missing skill read has no signal at all.
 
@@ -7045,16 +7109,22 @@ is silent and dangerous, and a missing skill read has no signal at all.
 both.** Injecting a SECOND resolved value from `inject-expertise.py` was refused because the hook
 cannot identify the spawning agent's feature: `dispatch-guard.py:77-79` records that
 `tool_input.prompt` exists only on the dispatch payload and reaches no other hook, and DEC-64 fixes
-the `SubagentStart` payload's contract at `agent_type`, so the hook would have to scan the inflight
+the agent-start request's contract at the agent name (`agent_type`), so the hook would have to scan the inflight
 registry of the control plane and of every linked worktree for a claim keyed on persona alone —
 ambiguous whenever two spawns of one non-single-flight persona run on different features at once.
 Granting the three shell-less leads `Bash` was refused because DEC-116 removes the shell
 deliberately so a lead cannot do a member's work, and re-granting it would widen a capability in
 order to repair a path-resolution defect.
 
-**The spawn-time assertion.** The hook invokes the same checker over the four instruction files every
-agent receives — its own `.omp/agents/<agent_type>.md` and the three always-preloaded skills — and
-reports `HARNESS_PATH_DRIFT` in the injected block, still exiting 0 on every branch.
+**The spawn-time assertion.** The injection runs the same checker over the four instruction files
+every agent receives — its own `.omp/agents/<agent_type>.md` and the three always-preloaded
+skills — in process: `inject-expertise.py` imports `check-instruction-paths.py`'s function through
+`harness_boundary.load_repo_module`, while that script keeps its CLI entry for CI. It reports
+`HARNESS_PATH_DRIFT` as one of three states in the delivered context — `none`; drift, spelled as a
+count of unanchored paths with up to five locations; or `unknown`, to which any import or execution
+failure maps, never a clean or drifted answer — still
+exiting 0 on every branch (FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-01]).
 
 **Scope of the originating ticket.** Issue 356 measured this class across five path families:
 `.harness/harness.json`; `.harness/expertise/<agent>.md`;
@@ -7131,7 +7201,7 @@ integration kind their observable boundary requires.
 
 **Record:** delegated Advisor ruling, 2026-09-05. Refs: DEC-35, DEC-212, DEC-213.
 
-## DEC-218 — Exact OMP lineage binds governed writes; compatibility hosts use claim-set membership
+## DEC-218 — Exact OMP lineage binds governed writes through claim-set membership
 
 **Chose:** EXACT RUNTIME LINEAGE is the OMP binding key. Before an inherited OMP child may use
 Write, Edit, or Bash, the extension authorizes the tuple `(feature, agent_type, child agent id,
@@ -7143,10 +7213,8 @@ host-derived child id must still match before mutation. An unnamed child binds o
 live, parent-bound candidate exists. Mismatch, ambiguity, missing identity, and authorization
 failure refuse; a child cannot borrow a same-persona sibling's or ancestor's claim.
 
-For an authorized OMP writer, and for a compatibility-host writer whose payload carries no runtime
-lineage, build $S$ from the matching live claims across every linked-worktree registry and the
-owner-root registry. OMP matching includes both runtime ids; compatibility matching uses
-`agent_type`. Resolve each claim's own `feature` through
+For an authorized OMP writer, build $S$ from the matching live claims across every linked-worktree
+registry and the owner-root registry, matching both runtime ids. Resolve each claim's own `feature` through
 `harness_boundary.worktree_for_feature`; it contributes to $S$ only when that returns a real
 worktree. An empty $S$ means the persona is unbound and the write is allowed. A non-empty $S$
 permits a governed write only when the resolved destination lies inside a member of $S$; otherwise
@@ -7154,53 +7222,50 @@ both Write/Edit and Bash exit 2, name the members of $S$, and name the destinati
 Origin: `BUG-1304-worktree-relative-path-guard`.
 
 **Destination decides; spelling does not.** Relative and absolute paths, main-checkout copies, and
-sibling worktrees receive the same answer after resolution. The host-uniform predicate lives in
-DEC-193's shared `harness_boundary.py` seam. OMP contributes its child and immediate-parent ids to
-that predicate; Claude Code retains the persona-only call because it exposes no equivalent runtime
-lineage. An unresolvable or ambiguous assignment refuses rather than guessing. Scratch paths and
-unbound Harness-checkout agents retain their prior behavior. Product-repository writes are governed
+sibling worktrees receive the same answer after resolution. The predicate lives in DEC-193's shared
+`harness_boundary.py` seam, and OMP contributes its child and immediate-parent ids to it. An
+unresolvable or ambiguous assignment refuses rather than guessing. Scratch paths and unbound
+Harness-checkout agents retain their prior behavior. Product-repository writes are governed
 separately by DEC-250's repository-bound lineage. Control-plane Expertise distillation remains
 carved out by its sanctioned merge route, not by a destination glob (DEC-153).
 
-**The two persona residues remain only on compatibility hosts.** On Claude Code, persona P
-dispatched for feature A may still write into B's worktree while a concurrent P session holds B,
-and P holding a worktree-backed claim may still be refused when a concurrent P claim without a
-worktree writes the main checkout. Exact dispatch matching is unbuildable there because write
-payloads carry no child or parent runtime identity. OMP's inherited extension and host-derived
-context remove both residues on its route without trusting a prompt token: forwarding a child id
-cannot change the immediate parent id OMP supplies.
+**The two persona residues are history, removed with the compatibility host.** On Claude Code,
+persona P dispatched for feature A could still write into B's worktree while a concurrent P session
+held B, and P holding a worktree-backed claim could still be refused when a concurrent P claim
+without a worktree wrote the main checkout, because write payloads there carried no child or parent
+runtime identity and only a persona-only match was buildable. That host, its persona-only matching
+path and its residues are gone (DEC-233; FEAT-2397-omp-native-cleanup,
+.harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-04]). OMP's
+inherited extension and host-derived context exclude both residues without trusting a prompt token:
+forwarding a child id cannot change the immediate parent id OMP supplies.
 
-An OMP process without the official `ctx.agent` identity is not a compatibility host. The project
+An OMP process without the official `ctx.agent` identity gets no fallback path. The project
 extension refuses Task before dispatch when `ctx.agent.id` was not supplied, and refuses every
 governed Write, Edit, Bash, or nested Task when a Harness persona lacks either its child id or
-`ctx.agent.parentId`. This keeps an older binary from looking installed while silently taking the
-persona-only compatibility path.
+`ctx.agent.parentId`. This keeps an older binary from looking installed while silently running
+ungoverned.
 
-**Binding liveness and dispatch liveness are separate questions over one stored claim.** The
-guards' enumerator answers binding liveness: an OMP claim remains live through `_omp_claim_live`;
-a non-OMP claim remains binding until `OMP_UNVERIFIED_TTL_SECONDS`. Dispatch-side answers —
-single-flight admission, `live_children`, and reconciliation counts — retain
-`CLAIM_TTL_SECONDS = 1200`, preserving FEAT-37's unstranding behavior. That 1,200-second horizon is
-not a binding horizon: applying it to the enumerator would empty $S$ for every compatibility-host
-agent after twenty minutes and re-open this bug's founding incident.
+**Liveness is one question over one stored claim.** A claim is live only when its `runtime` is
+`omp` and `_omp_claim_live` proves its supervisor process — pid and start time — still owns it; a
+claim whose supervisor identity cannot be proven ages out at the `OMP_UNVERIFIED_TTL_SECONDS =
+86400` backstop, above the 7,200-second longest measured leaf run. A claim carrying any other
+`runtime`, or none, is expired. The binding enumerator and the dispatch-side answers — single-flight
+admission, `live_children`, and reconciliation counts — read that same rule. The former non-OMP
+binding horizon and the separate 1,200-second dispatch TTL, `CLAIM_TTL_SECONDS`, existed only for
+the compatibility host and are removed (DEC-233).
 
-Past-backstop silent unbinding is accepted. The reason remains recorded at
-`inflight_registry.py:30-35`: the compatibility host has no supervisor proof, while a claim that
-never ages out can hold its parent's yield forever through `validate-digest.py`'s held-child gate.
-The existing `OMP_UNVERIFIED_TTL_SECONDS = 86400` is ratified, not re-chosen; it is above the
-7,200-second longest measured leaf run. A dispatch-expired non-OMP claim stays in the registry file
-until that binding backstop, while every dispatch-side returned answer remains bounded at 1,200
-seconds.
+Past-backstop silent unbinding is accepted for an unproven claim, because a claim that never ages
+out can hold its parent's yield forever through `validate-digest.py`'s held-child gate.
 
 **An existing unreadable registry makes the claim set incomplete.** It is refused fail-closed,
 names the file to repair, and is never read as “no claims here.” The listed JSON failures are
 illustrative, not exhaustive: OSError and undecodable input are also unreadable. This refusal binds
 exactly the governed writes the readable roots cannot place; a destination already proven inside a
 worktree by a readable registry stays allowed despite an unrelated unreadable registry. Claim and
-write paths retain their pre-existing treat-as-empty recovery behavior. This narrows FEAT-51's
-directory fixture: an existing registry path that is a directory now refuses before quarantine,
-while failures in quarantine machinery itself, including an unimportable registry module, remain
-fail-open. This scope was ruled by the Advisor and authorized by the operator without overrule.
+write paths retain their pre-existing treat-as-empty recovery behavior. An existing registry path
+that is a directory refuses as unreadable. The former quarantine boundary and its fail-open
+machinery went with the compatibility host (DEC-233). This scope was ruled by the Advisor and
+authorized by the operator without overrule.
 
 Lineage: DEC-100, DEC-110, DEC-153, DEC-174, DEC-189, DEC-193, DEC-204, DEC-205, and DEC-208.
 
@@ -7357,20 +7422,19 @@ tracks: **Track A plus `--upgrade` stays** in `harness-init`, and **Track B move
 `harness-add-repo` **minus its BRIEF, approval and design steps**. Those three are `/harness-plan`'s
 work — the first `BRIEF.md`, its approval and any design pass belong there, and a configured fleet
 member that has no BRIEF routes to `/harness-plan`, never back into onboarding. Both are skills;
-neither is a command. The canonical root for command doors is `.omp/commands`, with `.claude/commands`
-adapters generated from it, because a door authored only under `.claude/commands` is discovered by
-one provider.
+neither is a command. Command doors live only under `.omp/commands`; the generated `.claude/commands`
+adapters this entry once required went with the Claude Code host (DEC-233;
+FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml,
+decisions[id=D-04]).
 
 **Over:** one combined onboarding skill with two tracks, which forced every reader of either half
-through the other and made "am I onboarded?" a question with two different answers. Also over a
-**symlinked `.claude/commands`**: rejected because no test in this repository can exercise Claude
-Code's own discovery, so a symlink's behaviour under it would be asserted by nothing, whereas a
-generated adapter is an ordinary file both providers read and a test can assert byte-for-byte. Also
-over leaving the first `BRIEF.md`, its approval and the design pass inside onboarding, where they
+through the other and made "am I onboarded?" a question with two different answers. Also over
+leaving the first `BRIEF.md`, its approval and the design pass inside onboarding, where they
 duplicated `/harness-plan` and made registration wait on a product conversation.
 
 **Because:** the two jobs have different preconditions, different audiences and different failure
-modes. Configuring a checkout needs templates, `.claude/settings.json` and hooks in the checkout you
+modes. Configuring a checkout needs templates, the tracked hooks directory and the OMP project
+configuration (`.omp/`) in the checkout you
 are standing in; registering a repository needs `gh`, push access to another repository's default
 branch, and an already-configured control plane to register into — its preflight can only STOP and
 route to `harness-init`. DEC-221 fixed what registration *is* but left it inside a skill whose other
@@ -7836,9 +7900,16 @@ the operator's direct ruling, 2026-09-17, after the DEC-202 port had landed and 
   `canonical_artifact`, `CLAIM_TTL_SECONDS`, the compatibility session filter in `_visible`, the
   `.harness/*/features/*/quarantine/**` shared glob, and the orchestrator's wake-time
   `quarantine.py list / adopt / discard` step are removed. A claim's `runtime` field stays with the one
-  value `omp`; a claim carrying any other value, or none, is expired. `dispatch-guard.py` no longer
-  defaults a missing `harness_runtime` to `claude`: a dispatch payload without `harness_runtime: omp`
-  and a `supervisor_pid` is refused.
+  value `omp`; a claim carrying any other value, or none, is expired. `dispatch-guard.py` has no
+  `claude` runtime default: a dispatch payload without `harness_runtime: omp` and a `supervisor_pid`
+  is refused with the existing non-omp message. Its `subagent_type` / `prompt` aliases are deleted
+  too; it reads only the native `agent` and `task` fields.
+- *Leftover Claude arms (FEAT-2397).* `validate-digest.py`'s `stop_hook_active` pass-through (the
+  yield adapter no longer sends the field), `harness_yaml`'s `CLAUDE_CODE_*` identity environment
+  arms, the `CLAUDE_PROJECT_DIR` root fallback in CI and test helpers (now `HARNESS_PROJECT_DIR`
+  only), and the template `.gitignore`'s Claude settings lines are deleted
+  (FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml,
+  decisions[id=D-04]).
 - *Docs and doctrine.* `CLAUDE.md`'s adapter section; `README.md`'s adapter rows and "To change a
   role" procedure; `.harness/README.md`; `SPEC.md`'s `paths.agents`; the `team-config.yaml` comment
   naming `.claude/agents/**`; `harness-init`'s "Restart Claude Code" note; the `harness-pm` and
@@ -7851,6 +7922,18 @@ which no longer applies, so flipping the link is now possible; it is a separate 
 `core.hooksPath` would move with it. `.claude/worktrees/` stays the sanctioned development location
 (DEC-193). `.omp/agents/**` stays unowned by every agent. `disabledProviders: [claude]` stays in
 `.omp/config.yml` and `check-omp-port.py` still asserts it.
+
+**The retained internal Python ABI is a contract, not Claude hosting.** The OMP extension adapts
+native events to the policy scripts through a payload whose spellings predate the port and stay on
+purpose: the request label `hook_event_name` takes `PreToolUse`, `PostToolUse`, `SubagentStart` or
+`SubagentStop`; `agent_type` names the persona; tool names are capitalized (`Write`, `Edit`,
+`Bash`, `Task`); and a gate that decides policy may still answer with a `hookSpecificOutput`
+policy-decision object where the shared parser reads one. These are extension-to-Python contracts
+that OMP never sees and that no Claude Code process reads, and renaming them is a separate decision.
+One response has left that shape: Expertise injection answers with context only, one
+`{"context": ...}` object (DEC-64). The authored `.claude/skills/` and `.claude/worktrees/`
+directories, a Claude Code user's optional `CLAUDE.md` reading and concrete Anthropic model IDs in
+provider overlays are likewise retained and are not host wiring.
 
 **Why now.** Two hosts cost more than the second host earned. Every lead preloaded two supervision
 protocols; every agent-file change was two files plus a generator run; two gates and one validator

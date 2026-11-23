@@ -108,7 +108,8 @@ def _inv25_classify_entries(root, wt_seg, entries):
     # repository with no linked worktrees returns itself — so the derivation is
     # total.
     #
-    # NEVER <root>/.claude/worktrees/. `root` is CLAUDE_PROJECT_DIR or the cwd, so
+    # NEVER <root>/.claude/worktrees/. `root` is the HARNESS root resolve_root returns
+    # (HARNESS_PROJECT_DIR when it carries the marker, else this checkout), so
     # in exactly the session this invariant exists to catch — one whose root IS an
     # out-of-place worktree — that base would mark every LEGITIMATE worktree under
     # the main checkout as out of place and hand it destructive removal guidance.

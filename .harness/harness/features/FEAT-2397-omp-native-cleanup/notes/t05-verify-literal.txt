@@ -1,0 +1,23 @@
+0 unresolved reader site(s) across 101 Python file(s)
+scanned 68 file(s), 0 violation(s)
+features: CLEAN — evidence migrated
+docs: CLEAN — evidence migrated
+examined 31 feature dir(s), 1 doc root(s), 7 reader file(s)
+layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify
+MANIFEST /Users/molchairuangutai/GitHub/harness/.harness/team-config.yaml
+OK T-01: declared main-session-direct (.omp/config.yml, .omp/extensions/harness-hooks.ts ungranted)
+DEVIATION T-02 .github/workflows/tests.yml, tests/integration/check_domain_support.py, tests/integration/check_state_support.py, tests/integration/test-harness-yaml.py, tests/integration/test-validate-feature-json.py, tests/unit/test-harness-yaml-corpus.py, tests/unit/test-plan-depends-on.py, tests/unit/test-team-catalog.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-03 tests/integration/test-branch-create-gate.py, tests/integration/test-check-domain-post.py, tests/integration/test-check-domain.py, tests/integration/test-check-state-corpus.py, tests/integration/test-check-state-shipped.py, tests/integration/test-corpus-non-regression.py, tests/integration/test-corpus-real-owner.py, tests/integration/test-feature-corpus.py, tests/integration/test-hooks-install.py, tests/integration/test-layout-migration.py, tests/integration/test-lead-start-return.py, tests/unit/test-check-state-inv35.py, tests/unit/test-lead-start-preflight.py, tests/unit/test-prune-run-evidence.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-04 tests/manual/probe-omp-session-accessor.py, tests/manual/probe-session-accessors.ts, tests/unit/test-session-accessor-probe.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+OK T-05: declared main-session-direct (.claude/skills/harness/templates/gitignore.snippet, .omp/commands/harness.md, .omp/rules/harness-constraints.md ungranted)
+DEVIATION T-06 .harness/harness/features/FEAT-2397-omp-native-cleanup/notes/research-omp1910-observation.md granted to harness-orchestrator, harness-pm but declared main-session-direct
+0 violation(s) across 1 plan(s)
+  note       INV-32: FEAT-2397-omp-native-cleanup finding PF-03a45e9f257b6328adbbf8286f2c7be3 disposition resolved.
+  note       INV-32: FEAT-2397-omp-native-cleanup finding PF-64e5b1b217a815f7b7b94f22967e759d disposition resolved.
+  note       INV-32: FEAT-2397-omp-native-cleanup finding PF-4fe19fe36b8553e03ec7cf280aee4677 disposition resolved.
+  note       INV-32: FEAT-2397-omp-native-cleanup finding PF-c944e46fe60128de22954020c452ceaf disposition resolved.
+  note       INV-17 FEAT-2397-omp-native-cleanup: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed. Suppressed handoff-plan.
+  note       LAYOUT dirty (8): 13 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+repository-state gate examined 31 tracked feature record(s); checker exit 0
+$ tsc --noEmit -p tsconfig.json
+EXIT 0

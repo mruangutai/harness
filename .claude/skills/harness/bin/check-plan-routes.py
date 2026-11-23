@@ -715,8 +715,9 @@ def discover_plans():
 
     Root precedence follows check-domain.py (`:178-180`, and again at `:276-281` for
     its hook path — two call sites, one rule), because a third derivation is a third
-    thing to drift: CLAUDE_PROJECT_DIR if it holds a readable manifest, else the root
-    DERIVED from this file's location (bin/ is four levels down).
+    thing to drift: HARNESS_PROJECT_DIR if it carries the harness marker, else the root
+    DERIVED from this file's location (bin/ is four levels down), as harness_boundary.resolve_root
+    decides.
 
     ONE BRANCH DIFFERS, DELIBERATELY. check-domain.py's third branch is
     `root = root or os.getcwd()`; this one is `""` and exits 2. A cwd fallback IS the

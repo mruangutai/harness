@@ -218,12 +218,14 @@
         </div>
       </div>
     </div>
-    <p class="sub" style="margin-top:12px">Members have no spawn tool — the platform withholds it at the
-      last permitted layer, so members are leaves by construction, not by convention.
-      <code>CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH</code> is <code>"3"</code>, which is what pins these
-      four tiers. <b>Models are pinned per role:</b> the judgment tier — orchestrator, the three
-      leads, pm, visual-designer, documentor — runs <code>opus</code>; the other members run
-      <code>sonnet</code>. Flows are <code>FEAT-NN-&lt;slug&gt;</code>, defects
+    <p class="sub" style="margin-top:12px">Members have no spawn tool — their frontmatter carries
+      <code>spawns: []</code> and no <code>task</code> tool, so members are leaves by construction,
+      not by convention. OMP's <code>task.maxRecursionDepth: 3</code> in <code>.omp/config.yml</code>
+      is what pins these four tiers. <b>Models are pinned per role alias:</b> the orchestrator runs
+      <code>@deep</code>; the three leads, pm, visual-designer and documentor run <code>@strong</code>;
+      the three reviewers run <code>@review</code>; the other members run <code>@standard</code>. The
+      provider overlay maps each alias to a model, and <code>task.perCallModel: "off"</code> means no
+      dispatch overrides it. Flows are <code>FEAT-NN-&lt;slug&gt;</code>, defects
       <code>BUG-NN-&lt;slug&gt;</code>, and every dispatch title carries the flow id all the way
       down, so the spawn tree reads as one chain.</p>
   </section>
@@ -287,8 +289,8 @@
       <code>validate-digest.py</code> alone appends deterministic fenced YAML. The lead never writes
       that fence; an identical final mapping causes no write, while a changed one appends. Missing,
       unsafe, outside-checkout or unwritable artifact paths refuse the yield until fixed. This path
-      is OMP-native: Claude Code has no supported YieldTool-object digest route, and no
-      <code>SubagentStop</code> compatibility path is retained (DEC-237).</p>
+      is OMP-native and OMP is the only host; <code>SubagentStop</code> survives only as an internal
+      request label to the validator, with no last-message compatibility path (DEC-233, DEC-237).</p>
   </section>
 
   <section>
