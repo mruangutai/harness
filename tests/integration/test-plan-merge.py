@@ -4523,7 +4523,7 @@ def case_b1716_record_amendments_ledgers_three_judgements():
 
 def case_b1716_record_amendments_keeps_the_ledger_valid_and_signed():
     """The amendment never re-signs — signed_task_hashes are the signature's — and the
-    record still validates against feature-schema.json."""
+    record still validates against schemas/feature.json."""
     root, plan, fj, _, _ = _bug285_applied()
     try:
         fdoc = _json.loads(read(fj))

@@ -4197,7 +4197,7 @@ def _t04_three_key_failures(validator, digest):
     message = errors[0]
     tokens = (
         "rogue_alpha", "rogue_beta", "rogue_gamma",
-        "digest contract is closed", "digest-schemas/harness-eng-lead.json",
+        "digest contract is closed", "schemas/digest/harness-eng-lead.json",
     )
     return [
         f"three-key message omitted {token}"

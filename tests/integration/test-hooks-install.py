@@ -65,8 +65,8 @@ BIN_ENTRIES = sorted(
     f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
 )
 # The entry scripts' sibling directories: packages (check_state/, plan_merge/ — FEAT-69/FEAT-70)
-# and data (config-schemas/, digest-schemas/ — FEAT-2297: the config loader validates against
-# config-schemas/harness.json). An entry copied without them fails inside the fixture for a
+# and data (schemas/ — FEAT-2297: the config loader validates against
+# schemas/harness.json). An entry copied without them fails inside the fixture for a
 # reason the sweep is not testing.
 BIN_PACKAGES = sorted(
     d for d in os.listdir(BIN_DIR)
@@ -128,6 +128,8 @@ def _install_real_bin_and_hook(root):
     for name in BIN_PACKAGES:
         shutil.copytree(os.path.join(BIN_DIR, name), os.path.join(bin_dst, name),
                         ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copytree(os.path.join(os.path.dirname(BIN_DIR), "schemas"),
+                    os.path.join(root, ".claude", "skills", "harness", "schemas"))
     hooks_dst_dir = os.path.join(root, ".claude", "skills", "harness", "hooks")
     os.makedirs(hooks_dst_dir, exist_ok=True)
     hook_dst = os.path.join(hooks_dst_dir, "post-merge")

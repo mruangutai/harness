@@ -190,6 +190,8 @@ def make_root():
     shutil.copytree(os.path.join(ROOT, ".claude", "skills", "harness", "bin"),
                     os.path.join(d, ".claude", "skills", "harness", "bin"),
                     ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copytree(os.path.join(ROOT, ".claude", "skills", "harness", "schemas"),
+                    os.path.join(d, ".claude", "skills", "harness", "schemas"))
     os.makedirs(os.path.join(d, ".agents"))
     os.symlink(os.path.join("..", ".claude", "skills"), os.path.join(d, ".agents", "skills"))
     os.makedirs(os.path.join(d, ".harness"))

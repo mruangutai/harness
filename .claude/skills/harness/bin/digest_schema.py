@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""digest_schema.py — the live persona digest contract, read from bin/digest-schemas/.
+"""digest_schema.py — the live persona digest contract, read from schemas/digest/.
 
 FEAT-1928: every harness agent returns its digest as an object `{VERDICT, DIGEST, artifact}`
 validated against ONE closed JSON Schema per persona. The schema files are the single copy of
@@ -24,7 +24,7 @@ if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 import artifact_accessors  # noqa: E402
 
-SCHEMA_DIR = os.path.join(BIN_DIR, "digest-schemas")
+SCHEMA_DIR = os.path.join(os.path.dirname(BIN_DIR), "schemas", "digest")
 COMMON = "common"
 
 # The 16 runtime personas; one schema file each, named `<persona>.json`.
@@ -68,7 +68,7 @@ def canonical_persona(name):
 
 
 class SchemaStore:
-    """Strict, cached loads of one digest-schemas directory. Every file is decoded strictly
+    """Strict, cached loads of one schemas/digest directory. Every file is decoded strictly
     (duplicate keys and NaN refused), checked as a Draft 2020-12 schema, and registered by its
     `$id`; a duplicate `$id` or a missing persona file is refused."""
 

@@ -1,6 +1,6 @@
 // FEAT-1928: the ONE in-process provider adapter for the persona digest schemas.
 //
-// bin/digest-schemas/<persona>.json (+ common.json) are the single copy of the live digest
+// schemas/digest/<persona>.json (+ common.json) are the single copy of the live digest
 // contract; digest_schema.py validates a returned object against them in full. The task hook
 // hands the SAME files to OMP as the dispatch's strict `outputSchema`, so the provider shapes
 // the child's yield before the validator ever sees it. OMP needs one self-contained tree, so

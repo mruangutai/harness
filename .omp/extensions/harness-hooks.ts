@@ -804,7 +804,7 @@ export function normalizeTaskDispatches(input: Dict): TaskDispatch[] {
 // injected pair back. A harness target carrying exactly its own bundle (key order aside) with
 // schemaMode "strict" changes nothing and is accepted; withDigestSchemas re-injects it anyway.
 const SCHEMA_CONTROLS = ["outputSchema", "schemaMode"];
-const DIGEST_SCHEMA_DIR = join(gateRoot(), BIN, "digest-schemas");
+const DIGEST_SCHEMA_DIR = join(gateRoot(), BIN, "..", "schemas", "digest");
 
 function isInjectedCopy(target: Dict): boolean {
   const agent = text(target.agent);

@@ -87,7 +87,7 @@ const toolApi = (tools: Map<string, any> = new Map()) => ({
 const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
 const RETURN_THE_OBJECT = "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}})";
 // The canonical schema directory the hook loads from: the gate tree this extension ships in.
-const DIGEST_SCHEMA_DIR = gatePath("digest-schemas");
+const DIGEST_SCHEMA_DIR = gatePath(join("..", "schemas", "digest"));
 // FEAT-2225: one member-ops receipt line as T-01's core prints it; the host returns it verbatim.
 const MEMBER_OPS_RECEIPT = JSON.stringify({
   batch: "b".repeat(64),
@@ -2834,7 +2834,7 @@ describe("narrowGateApplies", () => {
   });
 });
 
-// FEAT-1928: the in-process provider adapter over bin/digest-schemas/.
+// FEAT-1928: the in-process provider adapter over schemas/digest/.
 describe("loadDigestSchemaBundle", () => {
   const STRUCTURAL = new Set(["type", "properties", "required", "additionalProperties", "items", "enum", "anyOf"]);
   const TYPES = new Set(["object", "array", "string", "integer", "number", "boolean", "null"]);
@@ -2895,7 +2895,7 @@ describe("loadDigestSchemaBundle", () => {
     const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev");
     expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev")).toEqual(bundle);
     expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "main-session")).toEqual(bundle);
-    expect(loadDigestSchemaBundle(join(DIGEST_SCHEMA_DIR, "..", "digest-schemas"), "backend-dev")).toEqual(bundle);
+    expect(loadDigestSchemaBundle(join(DIGEST_SCHEMA_DIR, "..", "digest"), "backend-dev")).toEqual(bundle);
   });
 
   // #2328: a long-running process must inject the contract on disk now, not the one it first read.
@@ -2912,7 +2912,7 @@ describe("loadDigestSchemaBundle", () => {
   });
 
   test("canonicalises personas with digest_schema.py's own table", () => {
-    const bin = join(DIGEST_SCHEMA_DIR, "..");
+    const bin = join(DIGEST_SCHEMA_DIR, "..", "..", "bin");
     const proc = spawnSync("python3", ["-c", [
       "import json, sys",
       `sys.path.insert(0, ${JSON.stringify(bin)})`,

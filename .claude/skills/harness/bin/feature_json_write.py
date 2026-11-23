@@ -119,7 +119,7 @@ def write_feature_json(path, transform, timeout=None, tail_regex=None):
     feature_schema.problems_for_text before the atomic replace.
 
     THE POLICY IS MONOTONIC NON-REGRESSION, not "any problem refuses" -- and the difference
-    is deliberate, found empirically rather than assumed: feature-schema.json's eight
+    is deliberate, found empirically rather than assumed: schemas/feature.json's eight
     required keys (DEC-191) postdate a great many feature.json documents already on disk
     (and, concretely, every fixture test-gh-sync.py's own `write_feature_json` helper has
     built since T-01/FEAT-23, which sets only `feature_id` and `status`). A caller writing

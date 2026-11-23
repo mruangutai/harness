@@ -91,7 +91,7 @@ Also present: `.harness/harness.json` (config — gates, `test_matrix`, `test_ki
 
 **`harness.json` is one validated contract (DEC-256).** Its shape, defaults, conditional
 requirements and closed vocabularies are written in
-`.claude/skills/harness/bin/config-schemas/harness.json`; this document names its boundaries and
+`.claude/skills/harness/schemas/harness.json`; this document names its boundaries and
 never restates its values. Three runtime modules keep a copy of one vocabulary: the board stations,
 the review policies and the issue-type override keys. `tests/unit/test-harness-config.py`
 (`RuntimeProjections`) pins each copy to the schema. Every Python reader loads the file through
@@ -1303,7 +1303,7 @@ downstream consumer and is never pasted into the returned object.
 
 ### 8.1 Persona JSON Schemas are NORMATIVE
 
-The one authored schema set is `.claude/skills/harness/bin/digest-schemas/`:
+The one authored schema set is `.claude/skills/harness/schemas/digest/`:
 `harness-<persona>.json` for each of the sixteen personas and `common.json` for shared definitions.
 OMP reaches the same files through `.agents/skills`. These files — not a Markdown field table or
 example — own field names, types, required sets, enums, alternatives, list-item shapes and closure.
@@ -1441,7 +1441,7 @@ the baseline; qa may *add* requirements it infers from the diff. It never drops 
 
 `harness.json` carries both tables. Their row and record shapes, the closed change-type, condition,
 kind and status vocabularies and the template defaults are defined only in
-`config-schemas/harness.json` (`test_matrix`, `test_kinds` and their `$defs`), never restated here.
+`schemas/harness.json` (`test_matrix`, `test_kinds` and their `$defs`), never restated here.
 **Conditionals are structured predicates, not prose** — otherwise the table's "if touches
 DB/external" cells silently vanish and high-risk changes ship untested: a row is
 `{"always": [<kind>, …], "when": [{"kind": <kind>, "if": <condition>}]}`.
@@ -2216,7 +2216,7 @@ that reader permanent, and that the claim was wrong and untested.
 }
 ```
 
-**Fourteen keys, and no fifteenth.** `.claude/skills/harness/bin/feature-schema.json` is the authority
+**Fourteen keys, and no fifteenth.** `.claude/skills/harness/schemas/feature.json` is the authority
 (DEC-191). **Seven are required** — `feature_id`, `branch`, `pr`, `review_sha`, `cycles_used`,
 `max_total_cycles`, `runs`. **Seven are optional**: `max_total_runs` (omit to inherit harness.json);
 `github` and `factory`, which appear only once a feature has been mirrored to GitHub or decomposed by

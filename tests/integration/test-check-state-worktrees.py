@@ -289,7 +289,7 @@ def case_x():
         # the script gained an import this case went red for the WRONG module — the script
         # refusing on a missing dependency before any invariant ran, reported as "INV-27 did
         # not say CANNOT RUN". FEAT-41 T-07 hit it again with factory_config; FEAT-2297 again
-        # with the config schema the loader reads from config-schemas/, a directory a `*.py`
+        # with the config schema the loader reads from schemas/, a directory a `*.py`
         # copy never carried.
         #
         # The case's actual premise is "a bin directory complete but for layout_migration.py",
@@ -297,6 +297,8 @@ def case_x():
         # here, and the one absence under test cannot be diluted by an unrelated one.
         shutil.copytree(os.path.dirname(SCRIPT), bindir,
                         ignore=shutil.ignore_patterns("layout_migration.py", "__pycache__"))
+        shutil.copytree(os.path.join(os.path.dirname(os.path.dirname(SCRIPT)), "schemas"),
+                        os.path.join(tmp, "schemas"))
         env = dict(os.environ)
         env = _root_env(tmp, env)
         r = subprocess.run([os.path.join(bindir, "check-state.py")],

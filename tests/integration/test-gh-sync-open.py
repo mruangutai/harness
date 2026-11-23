@@ -1276,7 +1276,7 @@ def main():
 
     # --- save_recorded refuses, loudly, when feature.json is absent — the orchestrator
     #     instantiates it from templates/feature.json on the first cycle; a fresh document
-    #     written here would be missing feature-schema.json's eight required keys
+    #     written here would be missing schemas/feature.json's eight required keys
     _dabsentT02 = nested_feature_dir("FEAT-t02-absent")
 
     _recAbsentT02 = {"milestone": None, "parent": None, "attached": [],

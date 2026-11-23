@@ -46,7 +46,7 @@ it, and every later write carries the same value read from the file itself.
 `dispatched_at`, `completed_at`, `redispatched_at`, `recompleted_at`, `routed_by`,
 `note`, `artifact`, and `evidence`.
 
-The declared set is `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/run-state-schema.json`,
+The declared set is `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/run-state.json`,
 and `check-domain.py` refuses a write carrying any other step key. A per-step fact a dispatch asked
 for goes under `evidence` with a lowercase identifier key (`^[a-z][a-z0-9_]*$`); it is never a new
 step key and never a sentence used as a key. Each evidence value is a scalar or an array of scalars.
