@@ -1,0 +1,42 @@
+# Goal-check c0 — FAIL
+
+The policy cutover and DEC-256 amendment land, but T-01 lacks the promised all-verdict/matrix-independent omission evidence and misdescribes INV-49 in QA instructions. Neither finding reopens signed D-01–D-03.
+
+Review: `685e861a667efd13e3c9720dffe9dbb847d4207b`; baseline: `9eb07b4f3cd235c234a10edddbfe5542c1e85fba`. All product citations below are `git show` content at that review SHA, not HEAD. `F` is this feature directory; validator paths abbreviate `.claude/skills/harness/bin/validate-digest.py`, QA skill abbreviates `.claude/skills/harness-verification-rules/SKILL.md`, and authority files are under `.harness/harness/docs/`.
+
+## Perspectives and traceability
+
+- **operator — partial:** SC-01/02 have status, repair and disclosure controls, but SC-01's omission promise lacks ESCALATE coverage (finding GC-01); final QA execution evidence was not yet available when collected.
+- **reader — partial:** SC-03's two repositories/commits select pinned tables and refuse invalid authority; SC-04's every-verdict/independent-matrix promise is incompletely exercised (GC-01).
+- **code maintainer — partial:** SC-05's pin/status/conditional authority substantially agrees and its amendment lands, but QA instructions inaccurately describe INV-49 (GC-02).
+
+T-01 traces to every SC-01–05 (`plan.yaml:132`); every declared perspective has criteria. No UI criterion is silently discarded: `notes/review-harness-ui-reviewer-c0.md:3–12` measures zero changed rendered-UI paths across the full pinned range.
+
+## Criteria and evidence
+
+| Criterion | Verdict | Evidence and limit |
+|---|---|---|
+| SC-01 | partial | `tests/integration/test-validate-digest.py:7067–7087`, `_kp_sc01_cases`: both statuses, four forbidden states, misconfigured under PASS/FAIL/ESCALATE, mixed-floor BLOCKED acceptance and omission under BLOCKED/FAIL/PASS; ESCALATE omission absent. RED `notes/receipts/t01-red.txt:7–61`; GREEN `t01-green.txt:6–27`. |
+| SC-02 | partial | `_kp_sc02_cases` and `_kp_sc02_disclosure_case`, test file `7090–7117`: valid excluded/local/active controls, mismatched locally_run refusal, identical refusal with/without BRIEF disclosure. RED `t01-red.txt:65–70`; GREEN `t01-green.txt:28–34`. Assertions and build execution support the outcome; final QA DIGEST was not yet available, so no final automated discharge is claimed. |
+| SC-03 | partial | `_kp_sc03_harness_cases`, `_kp_product_repos`, `_kp_product_cases`, test file `7120–7133,7156–7213`: separate object stores; dirty/default/planning policies contradict P1; P1 refusal needs both its unresolved status and its integration floor; P2 control, dispatch agreement/conflict/supply, absent pin, bad binding/repository/commit/blob/config. GREEN `t01-green.txt:35–37,45–57`; corresponding RED `t01-red.txt:71–76,95–117`. No extra matrix-only pair is required to establish the demonstrated source-selection discrimination. Final QA DIGEST unavailable; no final automated discharge claimed. |
+| SC-04 | partial | `_kp_sc04_cases`, test file `7136–7153`, and mixed-floor SC-01 controls preserve early BLOCKED/FAIL latitude, PASS floor, omitted conditional, reported unresolved conditional and no-kind controls. GREEN `t01-green.txt:38–44`; RED `t01-red.txt:79–94`. GC-01 leaves the universal omission clause unproven. |
+| SC-05 | partial | Validator `398–498,578–659,1649–1692,1789–1849,2796–2805`; QA skill `23–52,81–93`; SPEC §2 `107–110`, §9 `1441–1470`; DEC-187 `5339–5344`; DEC-256 `8528–8563`; index `187,209,217,239`. These agree on pinned tables, status-based exclusion, three gates and QA-judged conditionals. GC-02 prevents complete instruction agreement. Security reviewer independently cites these seams in `notes/review-harness-security-reviewer-c0.md:9–16`. |
+
+The GREEN receipt's recorded validator SHA-256, `b32aabd95600aa0b7e11eb8df4b3362f2e7f6e6be2f375a903fd65903f07e5a2`, equals the pinned validator blob's measured hash. The RED receipt records 39/52 failing against the named baseline, with concrete false acceptances and diagnostics rather than crashes; baseline byte identity is receipt-attributed, not independently re-executed here. `_rx_report` at test-file `1967–1976` increments failures independently of detail text. The build receipt is not represented as final QA's run. QA confirmed GC-01 by pinned inspection in its direct response; its requested durable output, `notes/review-harness-qa-c0.md`, was absent at collection time. That evidence limit is not an additional product defect or permission for PM to re-test.
+
+## Findings — owned remediation only
+
+- **GC-01 · kind coverage · severity med · must_fix T-01 (main-session-direct, DEC-174).** The omission loop at test-file `7084–7087` excludes ESCALATE for both unresolved and active/null; `_kp_digest:6999–7006` couples matrix_ok to verdict, and these calls never override it. Consequently a mutant bypassing omissions only for ESCALATE, BLOCKED/false or BLOCKED/true would escape the promised checks. The unconditional gate at validator `1810–1824` appears correct by inspection, but inspection cannot substitute for the signed automated criterion. Add independent schema-valid verdict/matrix_ok controls for both statuses, with kind-specific refusal and both repairs, plus the required baseline fail-first evidence. This is the existing SC-01/04 scope, not a new state or evaluator.
+- **GC-02 · kind documentation · severity low · must_fix T-01.** QA skill `38` says “INV-49 governs which kinds a config may declare”; pinned `check_state/brief.py:198–206,245–278` instead checks BRIEF verification-gap disclosure for criteria resting on unrunnable evidence. DEC-187 `5343–5344` correctly calls it disclosure without waiver. Replace the inaccurate QA instruction with that existing disclosure-only contract; retain its never-waives rule and two repairs at QA skill `93`. Do not change INV-49 implementation.
+
+## Decisions and pinned dispositions
+
+- **D-01 — met (inspection):** validator `418–498` uses the registered repository and reconciled review commit, with no fallback; QA skill `23–37`, SPEC `1456–1460`, DEC-256 `8543–8547` agree. The unpinned Harness compatibility break and fixture cost are recorded at DEC-256 `8560–8563`.
+- **D-02 — partial (inspection plus incomplete automated evidence):** validator `1808–1824` implements all three gates; DEC-256 `8548–8558` retains QA judgment and rejects blanket non-PASS presence. GC-01 is a regression-proof gap, not an observed runtime contradiction or request to change the signed design.
+- **D-03 — met (inspection):** DEC-187 `5339–5344` explicitly records required unresolved Kaya kinds BLOCKED until verified active runners or signed exclusions, with INV-49 granting no waiver.
+- **DEC-256 amend — met (inspection):** at `685e861a667efd13e3c9720dffe9dbb847d4207b:.harness/harness/docs/DECISIONS.md:8528–8530`, the actual universal default-branch sentence has been replaced by the QA review-pin exception and explicit non-QA default-branch preservation; `8540–8563` supplies scope/rationale. Plan-row identity: `decisions_affected[0]`, clause “A product's default branch is its contract.”, successor D-01. This is a landing, not merely a mention. Owning authority task is T-01; no decision-disposition repair is required.
+- **Keep rows not graded:** DEC-187's signed exclusion remains `5282–5291`; DEC-212's QA judgment `6938–6944`; DEC-174's direct execution boundary `4482–4485`; DEC-221's fail-closed/default-branch routing `7309–7322,7332–7334`. Their relevant index pointers (`DECISIONS-INDEX.md:175,187,209,217,239`) resolve to the pinned headings. Non-QA `factory_config.product_config:155–195` still reads remote default_branch, and that module is unchanged against baseline.
+
+## Boundaries and open questions
+
+Known absent PRODUCT `docs/spec.md`, `docs/decisions.md`, `docs/architecture.md` remain disclosed, not invented or raised as new scope; pinned `AGENTS.md:21–23` identifies the existing SPEC/DECISIONS authority. The full range inherits BUG-2399/DEC-257 through merge `04a318d0` of `9a818b46`; its retention-doc changes are not attributed to T-01's QA contract and were not modified. No unrelated check-state error was encountered. The installed control-plane validator is pre-change and supplies no candidate-behavior evidence. No tests, builds, lint, formatters or smoke checks were run here. Open questions: none; the two concrete repairs are already T-01-owned.
