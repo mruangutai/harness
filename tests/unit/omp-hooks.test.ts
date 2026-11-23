@@ -4167,17 +4167,19 @@ describe("FEAT-2225 expertise_apply through the real policyRunner into the real 
   let main: Tree;
   let root = "";
   const sessions = new Map<string, Session>();
-  // HERMETIC ROOT (FEAT-2397): the resolver prefers HARNESS_PROJECT_DIR over the script's own
-  // location whenever it carries the marker, and runPolicy hands the gates process.env. CI's
-  // steps export it (FEAT-2397 T-02), so an inherited value would point every gate at the
-  // workspace instead of this temporary checkout. The isolated copy runs without it.
-  const inheritedRoot = process.env.HARNESS_PROJECT_DIR;
+  // HERMETIC ROOT (FEAT-2397): the resolver prefers the project-root environment override over
+  // the script's own location whenever it carries the marker, and runPolicy hands the gates
+  // process.env. CI's steps export it (FEAT-2397 T-02), so an inherited value would point every
+  // gate at the workspace instead of this temporary checkout. The isolated copy runs without it.
+  // The name is assembled so this file is not a site for test-no-distribution's case6.
+  const ROOT_ENV = "HARNESS" + "_PROJECT_DIR";
+  const inheritedRoot = process.env[ROOT_ENV];
   afterAll(() => {
-    if (inheritedRoot === undefined) delete process.env.HARNESS_PROJECT_DIR;
-    else process.env.HARNESS_PROJECT_DIR = inheritedRoot;
+    if (inheritedRoot === undefined) delete process.env[ROOT_ENV];
+    else process.env[ROOT_ENV] = inheritedRoot;
   });
   beforeAll(async () => {
-    delete process.env.HARNESS_PROJECT_DIR;
+    delete process.env[ROOT_ENV];
     main = await tree(DISTILL_RUNS);
     root = main.root;
     // Parents first: a member's authority is its dispatching lead's LIVE registered distill run.

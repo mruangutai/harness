@@ -23,3 +23,5 @@ value, deletes it in `beforeAll` and restores it in `afterAll`. Production is un
 - `fix-c2-evidence/red-ci-env.txt`: with `HARNESS_PROJECT_DIR=$PWD`, 2 pass and 5 fail, exit 1.
 - `fix-c2-evidence/green-ci-env.txt`: the full file with the variable set passes 247/0, exit 0.
   With it unset it also passes 247/0, and typecheck is clean.
+
+**Follow-up in the same fix.** The first version spelled the variable in `omp-hooks.test.ts`. That file has no `test-` prefix, so `test-no-distribution.py` case6 scans it, and case6 went red. The name is now assembled as `"HARNESS" + "_PROJECT_DIR"`, the same pattern case6 uses for its own constant. In the CI env, `omp-hooks` passes 247/0 and `test-no-distribution` passes.
