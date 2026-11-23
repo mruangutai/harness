@@ -84,6 +84,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-23T16:24:07+00:00"
+    },
+    {
+      "id": "r-20261123-6-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-23T16:36:03+00:00"
     }
   ],
   "judgements": [
@@ -93,6 +100,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "factory_gh transport plus mirror, wayfind, board_lifecycle, gh_cost_log, ~10 tests, a reference doc: not patch-scale; factory_gh is in check-state's chain so DEC-174 forces main-session-direct; confirmed by fable-advisor"
+    },
+    {
+      "at": "2026-11-23T16:36:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel",
+      "reason": "fix c1 (e282689d) closed H1, H2, G1, F1 and A1 from validate c0; re-panel at the new pin"
     }
   ],
   "mission": "plan",
