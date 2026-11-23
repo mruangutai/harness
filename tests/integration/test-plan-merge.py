@@ -5131,6 +5131,39 @@ def case_2349_nonempty_flow_base_still_refused():
     check("2349: the refused base is byte identical", after == base, repr(after))
 
 
+def _reloaded_tasks(plan):
+    """The plan's tasks list as YAML reads it, or None when the file does not load."""
+    try:
+        return (yaml.safe_load(read(plan)) or {}).get("tasks")
+    except yaml.YAMLError:
+        return None
+
+
+def case_2420_drafted_task_takes_its_first_station():
+    """#2420: the drafting path. `apply` writes a task into `tasks: []` without seeding a
+    station, and `set-task-station` must then lay that task's FIRST status line; before the fix
+    it exited 3 calling the task absent while listing it as present."""
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\n\n" + DEFAULT_APPROVAL
+              + "\ntasks: []\n")
+        proposal = os.path.join(root, "proposal.yaml")
+        write(proposal, "tasks:\n  - id: T-01\n    title: Drafted without a station\n")
+        r = run_apply(plan, proposal)
+        check("2420: apply drafts T-01 into an inline-empty tasks list (exit 0)",
+              r.returncode == 0, f"rc={r.returncode} {r.stdout}{r.stderr}")
+        check("2420: apply does not seed a station on the drafted task",
+              _reloaded_tasks(plan) == [{"id": "T-01", "title": "Drafted without a station"}],
+              read(plan))
+        r = run_verb("set-task-station", "--file", plan, "--task", "T-01", "--station", "building")
+        check("2420: set-task-station gives the drafted task its first station (exit 0)",
+              r.returncode == 0, f"rc={r.returncode} {r.stdout}{r.stderr}")
+        check("2420: the written plan reloads with T-01 at building",
+              [t.get("status") for t in _reloaded_tasks(plan) or []] == ["building"], read(plan))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -5268,6 +5301,7 @@ CASES = (
     case_2349_inline_empty_decisions_gains_items,
     case_2349_inline_empty_tasks_gains_items,
     case_2349_nonempty_flow_base_still_refused,
+    case_2420_drafted_task_takes_its_first_station,
 )
 
 
