@@ -21,7 +21,7 @@ An operator moving an apply-added task to its first station receives exit 3 even
 
 ## Verification gaps
 
-None applicable: active unit and integration runners discover tests/unit/ and tests/integration/ respectively. Runtime bugfixes require the unit floor in harness.json; integration additionally proves this drafting-path bug class. Unresolved component/ui and the TypeScript typecheck surface do not cover this Python-only patch. Product docs/spec.md, docs/decisions.md and docs/architecture.md are absent in the assigned checkout; the settled intake and existing behavior are the requirements, not invented substitute product guidance. No UAT criterion.
+None applicable: active unit and integration runners discover tests/unit/ and tests/integration/ respectively. Runtime bugfixes require the unit floor in harness.json; integration additionally proves this drafting-path bug class. Unresolved component/ui and the TypeScript typecheck surface do not cover this Python-only patch. Product read inputs are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md in the assigned checkout; consult the relevant specification sections and DEC-120, DEC-174 and DEC-225 alongside the settled intake and existing behavior. No UAT criterion.
 
 ## Constraints
 
