@@ -1,13 +1,16 @@
 # --- harness ---
-# Run dirs are ephemeral scratch. They MUST be ignored: a dirty tree halts a team run
-# with BLOCKED, so without this the harness's own artifacts deadlock the next run.
-# Everything else under .harness/ is committed on purpose — BRIEF, PLAN, STATE,
-# notes, logs, expertise and features/*/feature.json are the record of what shipped,
-# and reviewers auditing the PR diff need to see plan and state changes.
-.harness/features/*/runs/**
+# Run UI (screenshots, traces) is read from disk by the gate and never committed. Every other
+# run record (digest.md, state.yaml, .run-identity.json, panels, qa manifests) is retained
+# evidence (DEC-238) and is committed with its feature, like everything else under .harness/:
+# BRIEF, PLAN, STATE, notes, logs, expertise and features/*/feature.json are the record of
+# what shipped, and reviewers auditing the PR diff need to see plan and state changes. The
+# dirty-tree halt (SPEC 8.6) whitelists .harness/**, so tracked records cannot deadlock a run.
+.harness/*/features/*/runs/*/ui/**
+# Merge locks beside the harness's records; a committed lock would be shared state.
+.harness/**/*.lock
 # The one-session PyYAML bootstrap marker (DEC-171). Written by the write hooks
-# when PyYAML is missing, so the FIRST session can still recover; untracked, it would
-# dirty the tree and deadlock the next run on the very rule above.
+# when PyYAML is missing, so the FIRST session can still recover; it is per-session
+# machine state, never a record.
 .harness/.pyyaml-bootstrap
 __pycache__/
 *.pyc

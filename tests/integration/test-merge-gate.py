@@ -719,6 +719,34 @@ def case_shipped_not_exempt():
           reason)
 
 
+def case_bug2399_distill_records_commit_before_merge():
+    """BUG-2399: a distill run's own non-UI records are ordinary tracked files under the canonical
+    repository ignore rules, so merge-distill refuses while they are uncommitted and merges once
+    they are committed and pushed. The gate itself is unchanged; the ignore rule is what moved."""
+    fx = distill_fixture()
+    shutil.copyfile(os.path.join(ROOT, ".gitignore"), os.path.join(fx["wt"], ".gitignore"))
+    set_state(fx, head=commit_push(fx["wt"], "canonical ignore rules"))
+    run_dir = os.path.join(".harness", "harness", "features", DFEAT, "runs", "distill-validator")
+    records = [os.path.join(run_dir, name) for name in ("digest.md", "state.yaml", ".run-identity.json")]
+    for rel in records + [os.path.join(run_dir, "ui", "shot.webp")]:
+        write(os.path.join(fx["wt"], rel), f"evidence {os.path.basename(rel)}\n")
+    refused_before_merge("BUG-2399 merge-distill refuses while the distill run's own records are uncommitted",
+                         fx, distill(fx), "uncommitted .harness changes")
+    git(fx["wt"], "add", "--", ".harness")
+    staged = set(git(fx["wt"], "diff", "--cached", "--name-only").splitlines())
+    check("BUG-2399 ordinary git add stages the distill records and leaves run UI out",
+          set(records) <= staged and not any("/ui/" in path for path in staged), f"staged={sorted(staged)}")
+    git(fx["wt"], "commit", "--allow-empty", "-qm", "distill run records")
+    git(fx["wt"], "push", "-q", "origin", DBRANCH)
+    set_state(fx, head=git(fx["wt"], "rev-parse", "HEAD"), merges=[])
+    r = distill(fx)
+    merges = gh_state(fx).get("merges", [])
+    check("BUG-2399 the same distill merges once, at the new head, after its records are committed",
+          r.returncode == 0 and len(merges) == 1
+          and option_value(merges[0]["args"], "--match-head-commit") == gh_state(fx)["head"],
+          f"rc={r.returncode} merges={merges} stderr={r.stderr!r}")
+
+
 VALID_DISTILL = case_distill_valid()
 case_raw_distill_hook_denials(VALID_DISTILL)
 case_raw_distill_hook_allows(VALID_DISTILL)
@@ -729,6 +757,7 @@ case_distill_replay_invalid()
 case_distill_build_entry()
 case_distill_identity()
 case_shipped_not_exempt()
+case_bug2399_distill_records_commit_before_merge()
 
 # FEAT-2337: the corpus against merge-gate.py itself, on a HEALTHY root (it refuses every command
 # on a broken one) whose checked-out branch owes its Build-entry receipt, with gh unreachable so a

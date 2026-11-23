@@ -1,0 +1,165 @@
+{
+  "feature_id": "BUG-2399-run-records-tracked",
+  "branch": "none",
+  "pr": 2427,
+  "review_sha": "54c702c7af73568249d51c07771c7727b6003b1f",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261122-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-23T02:36:19+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-1-plan-product/digest.md",
+        "sha256": "b8063fb5f1c24a3d097569a420454cdb8035dffcd95aaf85c83614bfc67baa6a"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T02:45:04+00:00"
+    },
+    {
+      "id": "r-20261122-2-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T02:45:44+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-plan-product/digest.md",
+        "sha256": "94b1620e428031020630024ef95b567a7a22274b558472649458a77ea359dfcd"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T03:11:23+00:00"
+    },
+    {
+      "id": "r-20261122-3-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T03:29:44+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-3-validate-validator/digest.md",
+        "sha256": "3ae362efbf212bc1bd0211bed34e7a33ff51196492289b638fb35f85fec94e7b"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T03:38:48+00:00"
+    },
+    {
+      "id": "r-20261122-4-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T03:42:39+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-4-validate-validator/digest.md",
+        "sha256": "6b5eb59de24ad1e69ee4dfa7fa5e9a9ed8749908e049d1f6ee12c3f7b3ab6d3c"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T03:54:15+00:00"
+    },
+    {
+      "id": "r-20261122-5-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T03:59:52+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-5-validate-validator/digest.md",
+        "sha256": "27ce9cb9792afc95a5e527370fd43568cc68b18e8f9eb94afed1d35d4ed69ca9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:09:00+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T02:36:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Changes an enforcement surface (tracking, dirty-tree gates) across control plane and fleet installer; needs a decision record (grilling 2026-11-22, advisor-confirmed)"
+    },
+    {
+      "at": "2026-11-23T02:36:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "x"
+    },
+    {
+      "at": "2026-11-23T02:36:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Restates the first mission judgement; the prior entry with reason 'x' was a mistaken re-run of set-mission while probing its output, not a judgement"
+    },
+    {
+      "at": "2026-11-23T03:41:31.895249+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.files",
+      "reason": "GC-F2 disposition (fable-advisor, delegated): T-02 owns the feature-worktree.py GATE 3 comment correction its intent already required"
+    },
+    {
+      "at": "2026-11-23T03:41:33.753128+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "GC-F2 disposition (fable-advisor, delegated): T-03 owns the four one-line DEC-257 prose corrections in role docs and .harness/README.md"
+    },
+    {
+      "at": "2026-11-23T03:42:39+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix",
+      "reason": "c0 FAIL fixed main-session-direct (grades, index cap, GC-F1/F2 dispositions); re-validate at the new pin"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-2399-run-records-tracked/notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "a0135cd68ac18a6c07bc44a5775bf0760d95543ba2a04aaa83412e2b6e60c226",
+    "T-02": "f66b947df254378f7ee1fe4baf55e612107e7b2d5bdfd7e65770060bf7221962",
+    "T-03": "c1f46071b890056cb320f077180892506d4318daeae581f27440d0e17a0736ca"
+  },
+  "github": {
+    "milestone": 128,
+    "parent": 2407,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2408,
+      "T-02": 2409,
+      "T-03": 2410
+    },
+    "source_issues": [
+      2399
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
