@@ -143,6 +143,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "same Main resumes validate past the seq-6 ship handoff; post-validate CI defect reopened the phase"
+    },
+    {
+      "at": "2026-11-23T07:20:27+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "c3 Q-GATE answered per AdvisorC15MatrixScope: DEC-255 unit+integration receipts authorized as gate-scope completion of round 2; zero code delta, no new rework round"
     }
   ],
   "mission": "plan",
