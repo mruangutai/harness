@@ -77,36 +77,40 @@ def fixture(text=PLAN):
     feature = root / ".harness" / "harness" / "features" / "FEAT-99-fixture"
     feature.mkdir(parents=True)
     plan = feature / "plan.yaml"
-    plan.write_text(text, encoding="utf-8")
+    plan.write_bytes(text.encode("utf-8"))
     return root, plan
 
 
-def changed_lines(before, after):
-    """(lines only in before, lines only in after), each in text order."""
-    b, a = before.splitlines(True), after.splitlines(True)
-    return [x for x in b if x not in a], [y for y in a if y not in b]
+def plan_bytes(plan):
+    """The plan file exactly as written: bytes decoded with no newline translation, so a CR or
+    a reordered line can never read as the expected text."""
+    return plan.read_bytes().decode("utf-8")
 
 
-# (row, task, station, expected exit, expected (removed, added) lines, stdout/stderr needles)
+# (row, task, station, expected exit, the COMPLETE expected file, stdout/stderr needles). Whole-
+# file equality is the byte-preservation proof: a membership diff would miss reordered or
+# duplicated lines and a CRLF-terminated insert.
 ROWS = (
     ("a status-less task gains its first station at its field indent",
-     "T-01", "building", 0, ([], ["  status: building\n"]), ("STATION T-01 -> building",)),
+     "T-01", "building", 0, PLAN.replace("- id: T-01\n", "- id: T-01\n  status: building\n"),
+     ("STATION T-01 -> building",)),
     ("an existing status is rewritten and every other byte is unchanged",
-     "T-02", "done", 0, (["  status: ready\n"], ["  status: done\n"]), ("STATION T-02 -> done",)),
+     "T-02", "done", 0, PLAN.replace("  status: ready\n", "  status: done\n"),
+     ("STATION T-02 -> done",)),
     ("a genuinely absent task refuses with exit 3 and writes nothing",
-     "T-09", "building", 3, ([], []), ("T-09", "T-01, T-02")),
+     "T-09", "building", 3, PLAN, ("T-09", "T-01, T-02")),
 )
 
 
 def case_station_rows():
-    for row, task, station, code, lines, needles in ROWS:
+    for row, task, station, code, expected, needles in ROWS:
         root, plan = fixture()
         try:
             rc, out, err = set_station(plan, task, station)
-            after = plan.read_text(encoding="utf-8")
+            after = plan_bytes(plan)
             check(f"{row}: exit {code}", rc == code, f"rc={rc} out={out!r} err={err!r}")
-            check(f"{row}: exactly the expected lines change", changed_lines(PLAN, after) == lines,
-                  repr(changed_lines(PLAN, after)))
+            check(f"{row}: the whole file is exactly the expected bytes", after == expected,
+                  repr(after))
             check(f"{row}: reports its outcome", all(n in out + err for n in needles),
                   repr(out + err))
             check(f"{row}: prints APPLIED only on success", ("APPLIED" in out) == (code == 0),
@@ -120,7 +124,7 @@ def case_first_station_lands_on_the_task_itself():
     root, plan = fixture()
     try:
         set_station(plan, "T-01", "building")
-        lines = plan.read_text(encoding="utf-8").splitlines()
+        lines = plan_bytes(plan).splitlines()
         t01 = lines.index("- id: T-01")
         check("the first station sits inside T-01's own mapping, before T-02",
               "  status: building" in lines[t01:lines.index("- id: T-02")], repr(lines))
@@ -146,7 +150,7 @@ def case_signed_approval_survives_the_first_station():
     root, plan = fixture(PLAIN)
     try:
         rc, _out, _err = set_station(plan, "T-01", "building")
-        after = plan.read_text(encoding="utf-8")
+        after = plan_bytes(plan)
         check("the first-station insert on a signed plan succeeds", rc == 0, f"rc={rc}")
         check("the signed approval block is byte-identical after the insert",
               rc == 0 and APPROVAL in after and after.count("status: approved") == 1, after)
