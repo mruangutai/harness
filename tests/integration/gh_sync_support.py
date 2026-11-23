@@ -61,6 +61,19 @@ exit 0
 """
 
 
+_LABEL_CREATE_OK = '  "label create") exit 0 ;;'
+
+
+def label_create_fails(script, response="HTTP 403: Resource not accessible by integration"):
+    """`script` (any fake in this module) with `label create` printing RESPONSE and exiting 1.
+    H1 (FEAT-2452 c1): a create failure that is not gh's existing-label reply. A fake with no
+    such branch raises, so a renamed fixture cannot silently turn this into a passing create."""
+    if _LABEL_CREATE_OK not in script:
+        raise ValueError("fake gh has no `label create` branch to fail")
+    return script.replace(_LABEL_CREATE_OK,
+                          "  \"label create\") echo '%s' >&2; exit 1 ;;" % response, 1)
+
+
 def write_validate_handoff(feat_dir):
     """The validate seam note `gh-sync ship` demands before its first terminal write (BUG-1129).
     Every fixture that models a VALIDATED feature calls this; the one ship case that models

@@ -373,6 +373,52 @@ def case_11_resolve_no_writes_after_parent_uncertainty():
     check("case_11_resolve_404_means_no_parent", got[:2] == ("exit", 1) and "no parent map" in got[2], repr(got))
 
 
+# H2 (c1): a SUCCESSFUL payload the reader cannot use is never absence. Only the confirmed 404
+# above means "no blockers" / "no parent"; null, {} and wrong types raise GhError.
+UNUSABLE_BLOCKERS = {"null": "null", "object": "{}", "string": '"none"', "number": "0",
+                     "bool": "false", "non_object_item": '[3]', "null_item": "[null]"}
+UNUSABLE_PARENTS = {"null": "null", "empty_object": "{}", "number_false": '{"number": false}',
+                    "number_true": '{"number": true}', "number_zero": '{"number": 0}',
+                    "number_negative": '{"number": -2}', "number_string": '{"number": "2"}',
+                    "number_float": '{"number": 2.0}', "number_null": '{"number": null}',
+                    "list": '[{"number": 2}]'}
+
+
+def case_8b_unusable_success_payloads_raise():
+    for reader, table in (("blockers", UNUSABLE_BLOCKERS), ("parent", UNUSABLE_PARENTS)):
+        fn, match = READERS[reader]
+        for label, text in table.items():
+            name = f"case_8b_{reader}_{label}"
+            with offline(name, [{"match": match, "stdout": text}]):
+                got = outcome(fn, REPO, 11)
+            check(f"{name}_raises_gh_error", is_gh_error(got), repr(got))
+
+
+def case_10b_frontier_no_eligibility_on_unusable_blockers():
+    for label in ("null", "object"):
+        rules = [FRONTIER_RULES[0], {"match": BLOCKED_BY, "stdout": UNUSABLE_BLOCKERS[label]},
+                 FRONTIER_RULES[2]]
+        name = f"case_10b_frontier_{label}"
+        with offline(name, rules) as fake:
+            got = run_cli("frontier", "3")
+            argvs = fake.argvs()
+        check(f"{name}_exit_1", got[:2] == ("exit", 1), repr(got))
+        check(f"{name}_prints_no_ticket", "eligible?" not in got[2] and "Traceback" not in got[2], repr(got))
+        check(f"{name}_stops_reading", not any("issue view 11" in a for a in argvs), repr(argvs))
+
+
+def case_11b_resolve_no_writes_on_unusable_parent():
+    for label in ("empty_object", "number_false", "number_zero", "number_string", "null"):
+        name = f"case_11b_resolve_{label}"
+        with offline(name, [{"match": PARENT, "stdout": UNUSABLE_PARENTS[label]}]) as fake:
+            got = run_cli("resolve", "11", "--body", "done", "--gist", "g", "--apply")
+            argvs = fake.argvs()
+        check(f"{name}_exit_1", got[:2] == ("exit", 1), repr(got))
+        check(f"{name}_not_absence", "no parent map" not in got[2] and got[2].startswith("wayfind: "),
+              repr(got))
+        check(f"{name}_no_writes", argvs == [PARENT], repr(argvs))
+
+
 ALL_LABELS = json.dumps([{"name": n} for n in wf.LABELS])
 CREATE = "issue create"
 
@@ -430,6 +476,9 @@ def main():
     case_9_invalid_json_raises()
     case_10_frontier_no_eligibility_on_failed_read()
     case_11_resolve_no_writes_after_parent_uncertainty()
+    case_8b_unusable_success_payloads_raise()
+    case_10b_frontier_no_eligibility_on_unusable_blockers()
+    case_11b_resolve_no_writes_on_unusable_parent()
     case_12_ticket_create_url()
     case_12b_ticket_malformed_url()
     case_12c_ticket_dry_run()

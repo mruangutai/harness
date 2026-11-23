@@ -239,7 +239,11 @@ def run_gh(args, json_out=False, *, input=None):
     return result.value
 
 
-_ISSUE_URL = re.compile(r"https?://[^/\s]+/[^/\s]+/[^/\s]+/issues/([0-9]+)/?", re.ASCII)
+# The authority must be a real host (letters, digits, dots, hyphens; optional :port), so an
+# empty or punctuation-only authority like https://?/… is refused while any GHE host passes.
+_ISSUE_URL = re.compile(
+    r"https?://[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?(?::[0-9]+)?"
+    r"/[^/\s]+/[^/\s]+/issues/([0-9]+)/?", re.ASCII)
 
 
 def issue_number_from_url(args, output):

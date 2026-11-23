@@ -1018,12 +1018,14 @@ def record_build_entry(feat_dir, value):
 # ---------- commands ----------
 
 def ensure_labels(repo, labels):
-    """Create any missing labels first. LIVE SMOKE FINDING #1: GitHub rejects an issue
-    create naming a label the repo does not define — new repos ship `bug` but not
-    `harness`/`chore`. Without --force, gh refuses an existing label with a nonzero exit
-    whose text says `label with name … already exists`; only that result is the idempotent
-    case. Any other failure, a launch failure included, is the mirror SKIP, so no dependent
-    issue write runs against a repo missing the label (FEAT-2452)."""
+    """Create any missing labels first; return None when all exist, else the first failure line.
+    LIVE SMOKE FINDING #1: GitHub rejects an issue create naming a label the repo does not
+    define — new repos ship `bug` but not `harness`/`chore`. Without --force, gh refuses an
+    existing label with a nonzero exit whose text says `label with name … already exists`; only
+    that result is the idempotent case. Any other failure, a launch failure included, stops here
+    and is returned, so no label attachment runs against a repo missing the label; the CALLER
+    owns what follows (H1, FEAT-2452 c1): the mirror flows SKIP (`mirror_labels`), abandon
+    continues per item and reports the gap, and reject halts."""
     # "abandoned": b60205 is THIS function's colour for the label. factory_gh.ensure_labels
     # (a separate implementation, D-04 — three stay three) creates the same label name with
     # `--force` and its own single _LABEL_COLOR, so a run that goes through THAT function
@@ -1039,7 +1041,16 @@ def ensure_labels(repo, labels):
         exists = (isinstance(result.status, int) and result.status != 0
                   and "label with name" in text and "already exists" in text)
         if not (result.ok or exists):
-            skip(f"label {l} could not be created on {repo}: {_gh_failure(result)}")
+            return f"label {l} could not be created on {repo}: {_gh_failure(result)}"
+    return None
+
+
+def mirror_labels(repo, labels):
+    """`ensure_labels` for the mirror flows (open, recover-terminal): a failed create is the
+    mirror SKIP, so no dependent issue write runs against a repo missing the label."""
+    failure = ensure_labels(repo, labels)
+    if failure:
+        skip(failure)
 
 
 def detect_issue_types(repo):
@@ -1372,9 +1383,9 @@ def _open_ensure_labels(repo, tasks, rec, parent_arg, issue_types, state, declar
     sub-issues."""
     if state == "available":
         _refuse_undeclared_issue_types(repo, tasks, rec, parent_arg, issue_types, declared)
-        ensure_labels(repo, {"harness"})
+        mirror_labels(repo, {"harness"})
     else:
-        ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
+        mirror_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
 
 
 def _open_apply(feat_dir, repo, rec, parent_arg=None, issue_types=None):
@@ -1587,7 +1598,7 @@ def _finish_replacement(feat_dir, repo, board, issue_types, rec, plan_hash):
     if recovery["mode"] == "full":
         _open_apply(feat_dir, repo, rec, issue_types=issue_types)
     else:
-        ensure_labels(repo, {"harness"})
+        mirror_labels(repo, {"harness"})
         _recover_terminal_apply(feat_dir, repo, rec, None)
     for number, station in _projected_for(feat_dir, rec).items():
         if not _place(board, repo, number, station):
@@ -2115,8 +2126,10 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
         _report_abandon_dry_run(feat_dir, plan, already_abandoned)
         return
 
-    if plan:
-        ensure_labels(repo, {"abandoned"})
+    # H1 (FEAT-2452 c1): the label is checked BEFORE any attachment, but a failed create is a
+    # reported gap here, never the mirror SKIP -- the closes, reseats and the local station
+    # below do not depend on it. Each closed item reports that it was not labelled.
+    label_gap = ensure_labels(repo, {"abandoned"}) if plan else None
 
     # NOTHING IN THIS LOOP MAY EXIT, and that is the whole shape of it. Every write used to
     # go through `gh()`, which calls `skip()` -- print `gh-sync: SKIP` and `sys.exit(0)` --
@@ -2143,11 +2156,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
             return
         print(f"gh-sync: {what} #{num} closed (not_planned)")
         _to_backlog(board, repo, num)
-        ok, out = gh_try(["issue", "edit", str(num), "--repo", repo,
-                          "--add-label", "abandoned"])
-        if not ok:
-            print(f"gh-sync: ERROR - #{num} closed but not labelled `abandoned`: {out}",
-                  file=sys.stderr)
+        _label_abandoned(repo, num, label_gap)
 
     _apply_abandon_plan(plan, rec, repo, reason_file, _close_and_reseat)
 
@@ -2170,6 +2179,16 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
     else:
         print("gh-sync: FAILED — runs/ not pruned: the station was not recorded abandoned, "
               "so the evidence is kept")
+
+
+def _label_abandoned(repo, num, label_gap):
+    """Attach the cosmetic `abandoned` label to a closed ticket, only when its create succeeded.
+    Either failure -- the create (`label_gap`) or the attachment -- is a reported gap."""
+    ok, out = (False, label_gap) if label_gap else gh_try(
+        ["issue", "edit", str(num), "--repo", repo, "--add-label", "abandoned"])
+    if not ok:
+        print(f"gh-sync: ERROR - #{num} closed but not labelled `abandoned`: {out}",
+              file=sys.stderr)
 
 
 def _apply_abandon_plan(plan, rec, repo, reason_file, close_and_reseat):
@@ -2281,7 +2300,9 @@ class _RejectWrites:
         _must(ok, out, f"reason not posted on #{num}")
 
     def label(self, num):
-        ensure_labels(self.repo, {"superseded"})
+        failure = ensure_labels(self.repo, {"superseded"})
+        if failure:
+            raise _RejectHalt(failure)
         ok, out = gh_try(["issue", "edit", str(num), "--repo", self.repo,
                           "--add-label", "superseded"])
         _must(ok, out, f"#{num} not labelled `superseded`")

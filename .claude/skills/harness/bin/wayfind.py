@@ -32,6 +32,7 @@ fail CLOSED: a failed or unparseable read raises GhError, caught once in cli(), 
 outage can never make a blocked ticket eligible or let resolve write after an
 unverified parent. Only blockers and parent_of treat a genuine HTTP 404 as absence.
 """
+import json
 import os
 import sys
 
@@ -77,8 +78,11 @@ def gh_json(args):
 _HTTP_404 = "(HTTP 404)"
 
 
+ABSENT = object()  # a confirmed 404 — distinct from any successful JSON value, null included
+
+
 def gh_json_or_absent(args):
-    """gh_json, except that a genuine 404 returns None: a COMPLETED gh process (integer,
+    """gh_json, except that a genuine 404 returns ABSENT: a COMPLETED gh process (integer,
     non-zero status — None is a launch failure) whose captured stderr carries "(HTTP 404)".
     Exit 1 alone, other 404 digits and any status-zero result (even malformed JSON with a 404
     in stderr) raise GhError. Local on purpose: only blockers and parent_of may read absence."""
@@ -86,8 +90,16 @@ def gh_json_or_absent(args):
     if result.ok:
         return result.value
     if isinstance(result.status, int) and result.status != 0 and _HTTP_404 in result.stderr:
-        return None
+        return ABSENT
     raise result.error
+
+
+def unusable(args, value, want):
+    """GhError for a successful read whose payload is not the shape the caller needs."""
+    return factory_gh.GhError(args, 0, json.dumps(value), "",
+                              f"gh {' '.join(args[:2])} returned an unusable payload",
+                              args[1] if len(args) > 1 else "gh",
+                              f"expected {want}; only a confirmed HTTP 404 means absence")
 
 
 def do(cmds, apply):
@@ -121,8 +133,14 @@ def sub_issues(repo, num):
 
 
 def blockers(repo, num):
-    return gh_json_or_absent(["api", f"repos/{repo}/issues/{num}/dependencies/blocked_by",
-                              "--paginate"]) or []
+    """The issues blocking #num (404 = none). Any other non-list-of-objects payload raises."""
+    args = ["api", f"repos/{repo}/issues/{num}/dependencies/blocked_by", "--paginate"]
+    value = gh_json_or_absent(args)
+    if value is ABSENT:
+        return []
+    if not isinstance(value, list) or not all(isinstance(b, dict) for b in value):
+        raise unusable(args, value, "a JSON list of issue objects")
+    return value
 
 
 def ticket_type(iss):
@@ -150,9 +168,16 @@ def frontier(repo, mapnum):
 
 
 def parent_of(repo, num):
-    """The map a ticket belongs to, via the sub-issues parent endpoint (404 = no parent)."""
-    p = gh_json_or_absent(ghi.parent_args(repo, num))
-    return p.get("number") if isinstance(p, dict) else None
+    """The map a ticket belongs to, via the sub-issues parent endpoint (404 = no parent).
+    Any other payload without a positive integer `number` raises GhError."""
+    args = ghi.parent_args(repo, num)
+    p = gh_json_or_absent(args)
+    if p is ABSENT:
+        return None
+    n = p.get("number") if isinstance(p, dict) else None
+    if type(n) is not int or n < 1:
+        raise unusable(args, p, "an issue object with a positive integer number")
+    return n
 
 
 def append_gist(repo, mapnum, line, apply):

@@ -2193,6 +2193,11 @@ _T01_REJECTED_URLS = (
     ("negative", "https://github.com/o/r/issues/-3"),
     ("pull URL", "https://github.com/o/r/pull/12"),
     ("no scheme", "github.com/o/r/issues/12"),
+    ("empty authority, query char", "https://?/o/r/issues/42"),
+    ("empty authority", "https:///o/r/issues/42"),
+    ("authority is userinfo only", "https://@/o/r/issues/42"),
+    ("authority is a fragment", "https://#/o/r/issues/42"),
+    ("authority is a bare port", "https://:443/o/r/issues/42"),
     ("bare path", "/issues/12"),
     ("extra segment", "https://github.com/o/r/issues/12/comments"),
     ("two lines", "https://github.com/o/r/issues/12\nhttps://github.com/o/r/issues/13"),
@@ -2203,9 +2208,11 @@ def t01_issue_number_from_url_accepts():
     parse = fgh.issue_number_from_url
     got = [parse(_T01_CREATE_ARGS, "https://github.com/o/r/issues/42\n"),
            parse(_T01_CREATE_ARGS, "http://github.com/o/r/issues/7/"),
-           parse(_T01_CREATE_ARGS, "https://github.com/o/r/issues/1234567")]
+           parse(_T01_CREATE_ARGS, "https://github.com/o/r/issues/1234567"),
+           parse(_T01_CREATE_ARGS, "https://ghe.example.co.uk/o/r/issues/5"),
+           parse(_T01_CREATE_ARGS, "https://github.acme-corp.internal:8443/o/r/issues/6")]
     check("T-01 issue_number_from_url: a complete issue URL yields its positive number",
-          got == [42, 7, 1234567] and all(type(n) is int for n in got), f"got={got}")
+          got == [42, 7, 1234567, 5, 6] and all(type(n) is int for n in got), f"got={got}")
 
 
 def t01_issue_number_from_url_rejects():

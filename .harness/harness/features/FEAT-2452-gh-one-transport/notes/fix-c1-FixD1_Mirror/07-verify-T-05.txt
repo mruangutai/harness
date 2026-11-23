@@ -1,0 +1,2 @@
+PASS policy vocabulary, exit-2 correction, enforcement-ticket readback, live capability receipt and retired-override absence
+exit=0
