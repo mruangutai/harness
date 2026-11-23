@@ -75,3 +75,16 @@ The original text above stands. Two claims in it are withdrawn under
 The only host-only reds are `test-factory-config.py` (21), from the `/var`→`/private/var`
 realpath, and INV-29 on a host Kaya worktree. Both are the same at base:
 `notes/fix-c2-evidence/checks-job-local.txt`.
+
+## Qualification (2026-11-23, c3 low/form finding)
+
+The correction above said the two host-only reds are "the same at base", but cited a head-only
+receipt. The paired base receipts are now committed:
+
+- `notes/fix-c2-evidence/check-state-base-522c94b2.txt` (fresh clone, `env -i`, hooksPath set as
+  in the CI step): the same single INV-29 row on the host Kaya worktree, exit 1.
+- `notes/fix-c2-evidence/factory-config-base-522c94b2.txt`: the same `FAIL (21)` FLEET_PATH realpath
+  row, exit 1.
+
+The head side is `notes/fix-c2-evidence/checks-job-local.txt` at `c1eb9eaa`. PR #2441's CI passed
+both of these steps at `c1eb9eaa`.
