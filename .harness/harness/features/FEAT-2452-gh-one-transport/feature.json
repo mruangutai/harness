@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2452-gh-one-transport",
   "branch": "feat/FEAT-2452-gh-one-transport",
   "pr": null,
-  "review_sha": "e282689dd01a1a45eb22f08be67b1e2a9b437fb1",
+  "review_sha": "caeebc7cb24b7205bb5d5ad5191cd6541fc3519a",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -99,6 +99,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-23T16:48:21+00:00"
+    },
+    {
+      "id": "r-20261123-7-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-23T16:58:37+00:00"
     }
   ],
   "judgements": [
@@ -115,6 +122,13 @@
       "kind": "regate",
       "decision": "re-panel",
       "reason": "fix c1 (e282689d) closed H1, H2, G1, F1 and A1 from validate c0; re-panel at the new pin"
+    },
+    {
+      "at": "2026-11-23T16:58:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel",
+      "reason": "fix c2 closed M1, M2 and folded B1/B3 from validate c1; re-panel at the new pin (last rework round)"
     }
   ],
   "mission": "plan",
