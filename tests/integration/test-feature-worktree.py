@@ -956,14 +956,13 @@ def case_shared_checkout_negative(root):
 def case_gitignored_artifact_does_not_block(fx):
     """#726 — GATE 3 MUST ASK "IS EVERY TRACKED FILE LANDED", NOT "DOES EVERY PATH EXIST ON main".
 
-    Measured on the real repository 2026-08-23: `.gitignore:7` ignores
-    `.harness/*/features/*/runs/**`, so every run `digest.md` and `state.yaml` is untracked by
-    construction and can NEVER reach the default branch. Gate 3 walked those paths anyway and
-    refused, which made act 3 of the worktree lifecycle unrunnable for every feature that ever
-    ran a squad.
-
-    The fixture reproduces exactly that shape: one TRACKED artifact that IS landed, plus one
-    IGNORED run file that never can be. The pre-fix code exits 5 naming the ignored path."""
+    Measured on the real repository 2026-08-23, when `.gitignore` still ignored
+    `.harness/*/features/*/runs/**`: every run `digest.md` was untracked, could never reach the
+    default branch, and Gate 3 refused on it, making act 3 of the worktree lifecycle unrunnable.
+    Run records are tracked since BUG-2399 (only `runs/*/ui/` is ignored), but the gate's contract
+    is unchanged: an IGNORED file of any kind is not landed work. The fixture keeps the historical
+    rule as its arbitrary ignore — one TRACKED artifact that IS landed, plus one IGNORED file that
+    never can be. The pre-fix code exits 5 naming the ignored path."""
     info, r = create_one(fx, "harness", "FEAT-74")
     assert r.returncode == 0, f"fixture setup for FEAT-74 failed: rc={r.returncode} stderr={r.stderr!r}"
     dest, seg = info["dest"], info["segment"]
@@ -1034,6 +1033,46 @@ def case_gitignored_does_not_mask_a_real_miss(fx):
         r2.stdout,
     )
     check("#726 guard: the tree survives the refusal", os.path.isdir(dest), dest)
+
+
+def case_remove_refuses_aborted_run_evidence(fx):
+    """BUG-2399 — an ABORTED run (written, never closed and committed) is untracked evidence under
+    the canonical repository ignore rules, so removal refuses (GATE 2, exit 4) and keeps it, where
+    the old broad run ignore let the tree, and the records with it, vanish."""
+    info, r = create_one(fx, "harness", "FEAT-75")
+    assert r.returncode == 0, f"fixture setup for FEAT-75 failed: rc={r.returncode} stderr={r.stderr!r}"
+    dest, seg = info["dest"], info["segment"]
+    shutil.copyfile(os.path.join(ROOT, ".gitignore"), os.path.join(dest, ".gitignore"))
+    _commit_artifact(dest, seg, "FEAT-75", "v1\n", "add artifact and canonical ignore rules")
+    _merge_into_default(info["owner_root"], "FEAT-75")
+
+    run_dir = os.path.join(".harness", seg, "features", "FEAT-75", "runs", "r-1-build-eng")
+    evidence = {
+        os.path.join(run_dir, "state.yaml"): "schema_version: 2\nrun_id: r-1-build-eng\nstatus: running\n",
+        os.path.join(run_dir, "digest.md"): "partial digest; the run never reached close-run\n",
+    }
+    for rel, text in evidence.items():
+        os.makedirs(os.path.dirname(os.path.join(dest, rel)), exist_ok=True)
+        with open(os.path.join(dest, rel), "w") as f:
+            f.write(text)
+
+    r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-75"], fx)
+    check(
+        "BUG-2399 aborted run: remove refuses with exit 4",
+        r2.returncode == 4,
+        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+    )
+    discarded = [line[len("WOULD DISCARD "):] for line in r2.stdout.splitlines() if line.startswith("WOULD DISCARD ")]
+    check(
+        "BUG-2399 aborted run: stdout names WOULD DISCARD for the run evidence",
+        all(any(rel == path or (path.endswith("/") and rel.startswith(path)) for path in discarded)
+            for rel in evidence),
+        r2.stdout,
+    )
+    survived = all(os.path.exists(os.path.join(dest, rel)) and open(os.path.join(dest, rel)).read() == text
+                   for rel, text in evidence.items())
+    check("BUG-2399 aborted run: the worktree and its evidence survive byte-identical",
+          os.path.isdir(dest) and survived, dest)
 
 
 def case_short_id_resolves_to_the_flow_directory(fx):
@@ -1274,6 +1313,7 @@ def main():
             case_no_artifact_directory(fx)
             case_gitignored_artifact_does_not_block(fx)
             case_gitignored_does_not_mask_a_real_miss(fx)
+            case_remove_refuses_aborted_run_evidence(fx)
             case_short_id_resolves_to_the_flow_directory(fx)
             case_short_id_ambiguous_refuses(fx)
             case_behind_default_branch(fx)

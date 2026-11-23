@@ -250,8 +250,10 @@ leaves its run dir behind; the state check surfaces it and offers resume or disc
 **Commit policy:** `BRIEF.md` / `PLAN.md` / `STATE.md` / `notes/` / `logs/` / `expertise/` are
 **committed**, so reviewers auditing the PR diff see plan and state changes.
 `features/*/feature.json` is **committed** — it is the record of what shipped.
-`features/*/runs/**` is **git-ignored** (ephemeral scratch that would pollute the diff) and pruned
-on the `log_retention_days` schedule.
+`features/*/runs/<id>/` records (`digest.md`, `state.yaml`, `.run-identity.json`, panels, QA
+receipts) are **committed** with the feature through its ordinary commit, never force-added
+(DEC-257). Only `runs/*/ui/**` (screenshots and traces) is git-ignored. What ship keeps and what
+abandon prunes is DEC-238's station rule.
 
 ---
 
@@ -1635,8 +1637,8 @@ production command, the commit rule and the trust boundary; in short:
 - **Refusal and repair.** An invalid receipt refuses the PASS at exit 2, naming every bad file
   and the exact command that rewrites it; there is no fallback run. QA's grant covers
   `runs/*/qa/manifest-*.json` only.
-- **Committed with the run.** `runs/**` is ignored; main force-adds the receipts with the
-  committed closed run record.
+- **Committed with the run.** The receipts are ordinary tracked files (DEC-257), committed with
+  the closed run record.
 - **Trust boundary.** This checks recorded execution against git; it does not catch a
   deliberately forged complete receipt. The PR CI suite of §9.2 is unchanged and is that
   backstop.
@@ -2322,9 +2324,11 @@ open_questions:
 - **Leads write their own run file and nothing else.** `check-domain.py` grants each lead exactly
   `features/*/runs/*-<its-squad>/**`.
 
-**Retention:** `features/*/runs/**` is git-ignored scratch and prunes on the same schedule as
-`logs/` (`log_retention_days`, default 30). `feature.json` is **committed**, so the durable record
-of what shipped — branch, PR, runs, verdicts — survives pruning.
+**Retention:** a run's records under `features/*/runs/<id>/` are committed with the feature
+(DEC-257); only `runs/*/ui/**` is git-ignored. Station decides what is kept (DEC-238): abandon
+prunes `runs/`, and ship keeps every run's `digest.md`, `state.yaml` and `.run-identity.json`.
+`feature.json` is **committed**, so the durable record of what shipped (branch, PR, runs,
+verdicts) survives either way.
 
 **Runner invocation contract:** the host is invoked with `(team, goal)` and optionally
 `resume_from: <step-id>` + `answers: <path>`. The latter pair is how the orchestrator re-delegates

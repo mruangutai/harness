@@ -82,8 +82,8 @@ writes with the production runner from its review-pin checkout; the hook never r
 That check binds to your live run, so dispatch QA from this run and keep exactly one open
 registered run. A refused PASS goes back to QA naming each bad receipt and the command that
 repairs it, and QA repairs by running that command. Never count the refusal as a pass, edit a
-receipt, or ask for a rerun instead; a red or missing kind is reported as it is. Main force-adds
-the receipts with the committed run record.
+receipt, or ask for a rerun instead; a red or missing kind is reported as it is. Main commits
+the receipts with the closed run record (DEC-257).
 
 ## Hosting `fix` — the author is your member, and still not your reviewer
 

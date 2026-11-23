@@ -8566,3 +8566,37 @@ omit a runnable kind that has not run yet; such an omission is neither a skip no
 measurement amended under his delegation to the plan's advisor. Amends DEC-221 (offline advisory
 reads) and DEC-254 (an absent era key). Retires INV-13 (DEC-138's mirror-limbo check). Refs:
 DEC-138, DEC-174, DEC-187, DEC-198, DEC-212, DEC-217.
+
+## DEC-257 — Retained run evidence is tracked like any artifact; only run UI is ephemeral
+
+**Chose:** every file a run writes under `.harness/*/features/*/runs/<id>/` is ordinary tracked
+material, except `runs/<id>/ui/` (screenshots and traces, which the gate reads from disk). That
+covers `digest.md`, `state.yaml`, `.run-identity.json`, acceptance notes, panel files, rulings and
+QA receipts. The orchestrator's normal feature-directory commit carries them, with no `git add -f`.
+The repository `.gitignore` and the fleet `templates/gitignore.snippet` both ship the one narrow
+rule `.harness/*/features/*/runs/*/ui/**`, with no negations, and keep `.harness/**/*.lock`.
+`merge-gitignore.py` replaces the two broad rules Harness once shipped (`.harness/features/*/runs/**`
+and `.harness/*/features/*/runs/**`) and their false rationale, and `--check` reports them. An
+existing checkout narrows through the operator checklist in `references/checkout-upgrade.md`: review
+the evidence the old rule hid, stage it by explicit path, and commit it separately before teams
+resume.
+
+**Over:** keeping the broad ignore and force-staging the records at some seam, which leaves git
+tracking files its own rules ignore, so a re-clone, `git rm -r --cached` or a clean silently
+diverges from the record; and letting INV-7 tolerate an absent digest in CI, which deletes the
+evidence #2177 pinned.
+
+**Because:** DEC-238 already keeps these records at ship, and INV-7 and INV-36 read them as cycle
+evidence. An ignore rule that called them "ephemeral scratch" contradicted both. Nothing in the
+flow committed them, so every feature PR went red at the repository-state gate in CI until someone
+force-added them by hand (#2399). The rule's deadlock rationale was false too: the dirty-tree halt
+(SPEC §8.6) whitelists `.harness/**`.
+
+**Tradeoff accepted:** two gates now see uncommitted run records, by design and with their
+semantics unchanged. `merge-gate.py merge-distill` refuses uncommitted `.harness` changes, so a
+distill run's own records are committed and pushed before it runs. `feature-worktree.py remove`
+refuses an aborted run's untracked records (GATE 2, exit 4) instead of discarding them with the
+tree. Retention is unchanged: DEC-238 still decides what ship keeps and what abandon prunes.
+
+**Record:** BUG-2399 (#2399); D-01 signed by fable-advisor under the operator's delegation on
+2026-11-22. Cites DEC-238, which it does not amend. Refs: DEC-112, DEC-174.

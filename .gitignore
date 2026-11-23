@@ -5,15 +5,16 @@ node_modules/
 # OS
 .DS_Store
 
-# Harness run state — ephemeral scratch, pruned on log_retention_days.
-# Without this rule, run dirs dirty the working tree and the dirty-tree halt
-# (SPEC 8.6) deadlocks the next crew on the harness's own artifacts.
-.harness/*/features/*/runs/**
+# Harness run UI: screenshots and traces, read from disk by the gate, never committed.
+# Every other run record (digest.md, state.yaml, .run-identity.json, panels, qa manifests)
+# is retained evidence (DEC-238) and is committed with its feature like any artifact; the
+# dirty-tree halt (SPEC 8.6) already whitelists .harness/**, so tracking them cannot deadlock.
+.harness/*/features/*/runs/*/ui/**
 
 # The one-session PyYAML bootstrap marker (DEC-171). The write hooks fail CLOSED
 # when PyYAML is absent, so the first session gets one escape and drops this marker to
-# record that it was used. Untracked it dirties the tree, and a dirty tree halts the
-# next team run on the rule directly above — the deadlock this rule prevents.
+# record that it was used. It is per-session machine state, not a record, so it is never
+# committed.
 .harness/.pyyaml-bootstrap
 
 # Local-only settings; the committed .claude/settings.json carries the

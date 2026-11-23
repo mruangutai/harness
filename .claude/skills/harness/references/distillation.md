@@ -49,11 +49,17 @@ feature-close write seam; `harness-curate` also authorizes out-of-band distillat
    **Before merge, in the still-live worktree:** fetch and rebase onto current `main`; run
    `expertise-merge.py replay --root <wt> --feature <id> --base <main sha>`; run
    `check-expertise`; commit and push the reconstructed files with the original applied
-   receipts and any authorized replacement receipts. Then Main runs
-   `merge-gate.py merge-distill --root <wt> --feature <id> --pr <n>`, which re-checks replay
+   receipts and any authorized replacement receipts, **and the distill runs' own records**
+   (`runs/distill-*/digest.md`, `state.yaml`, `.run-identity.json`), staged by ordinary
+   `git add`, never `-f` (DEC-257). Only after that push does Main run
+   `merge-gate.py merge-distill --root <wt> --feature <id> --pr <n>`: it refuses any
+   uncommitted `.harness` change, so no merge call may precede the commit. It re-checks replay
    under the owner lock and merges; it never re-judges or applies a lesson. If the rebase stops
    on Expertise conflicts, keep the receipts, rebuild only the conflicted Expertise files from
    current main by replay, stage and continue — **never** take ours/theirs. Ordinary
    non-Expertise conflicts stay the operator's.
+   An aborted run's untracked records likewise make `feature-worktree.py remove` refuse
+   (GATE 2). That refusal is intended. Commit the records, or decide their fate with the
+   operator; never discard them to turn a gate green.
 4. **Observation logs stay under the feature dir** — archived, never injected. Each digest counts
    accepted entries by source; a skim count stuck at ~0 across features gets the skim cut.

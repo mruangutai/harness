@@ -141,6 +141,221 @@ def case_explicit_project_root_ignores_caller_cwd():
         require(caller_target.read_bytes() == caller_before, "caller cwd .gitignore changed")
 
 
+# --- BUG-2399: non-UI run evidence is ordinary tracked material; only runs/*/ui/ stays out ---
+REPO_GITIGNORE = Path(_anchor_root) / ".gitignore"
+NARROW_RULE = ".harness/*/features/*/runs/*/ui/**"
+LOCK_RULE = ".harness/**/*.lock"
+BROAD_RULES = [".harness/features/*/runs/**", ".harness/*/features/*/runs/**"]
+RUN_EVIDENCE = [
+    "digest.md", "state.yaml", ".run-identity.json", "acceptance.md",
+    "qa/manifest-unit.json", "qa/manifest-integration.json", "panel-c0.md", "altitude-ruling-c1.md",
+]
+RUN_EXCLUDED = ["ui/shot.webp", "ui/traces/trace.zip", "state.yaml.lock"]
+
+
+def git(repo, *args):
+    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
+    return subprocess.run(["git", "-C", str(repo), "-c", "core.excludesFile=", *args], env=env,
+                          capture_output=True, check=True, timeout=30).stdout
+
+
+def git_repo(path):
+    path.mkdir(parents=True)
+    git(path, "init", "-q", "-b", "main")
+    for key, value in (("user.email", "t@example.invalid"), ("user.name", "T"), ("commit.gpgsign", "false")):
+        git(path, "config", key, value)
+    return path
+
+
+def seed_run(repo, run_dir, names):
+    written = []
+    for name in names:
+        path = repo / run_dir / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(("evidence %s\n" % name).encode())
+        written.append((Path(run_dir) / name).as_posix())
+    return written
+
+
+def tracked(repo):
+    return set(filter(None, git(repo, "ls-files", "-z").decode().split("\0")))
+
+
+def require_records_tracked_and_ui_excluded(repo, label):
+    run_dir = ".harness/acme/features/FEAT-1-fixture/runs/r-1"
+    evidence = seed_run(repo, run_dir, RUN_EVIDENCE)
+    excluded = seed_run(repo, run_dir, RUN_EXCLUDED)
+    git(repo, "add", "--", ".harness")
+    staged = set(filter(None, git(repo, "diff", "--cached", "--name-only", "-z").decode().split("\0")))
+    missing = sorted(set(evidence) - staged)
+    leaked = sorted(set(excluded) & staged)
+    require(not missing, "BUG-2399 %s: ordinary git add left run evidence untracked: %r" % (label, missing))
+    require(not leaked, "BUG-2399 %s: run UI or lock files were staged: %r" % (label, leaked))
+
+
+def case_bug2399_repository_rules_track_run_records():
+    with tempfile.TemporaryDirectory() as directory:
+        repo = git_repo(Path(directory) / "repo")
+        (repo / ".gitignore").write_bytes(REPO_GITIGNORE.read_bytes())
+        require_records_tracked_and_ui_excluded(repo, "repository .gitignore")
+
+
+def case_bug2399_fresh_install_tracks_run_records():
+    with tempfile.TemporaryDirectory() as directory:
+        repo = git_repo(Path(directory) / "repo")
+        result = run(repo)
+        require(result.returncode == 0, result.stderr)
+        content = (repo / ".gitignore").read_text(encoding="utf-8").splitlines()
+        require(NARROW_RULE in content and LOCK_RULE in content,
+                "BUG-2399 fresh install lacks the run-UI or lock rule: %r" % content)
+        require(not any(line.startswith("!") for line in content), "BUG-2399 fresh install ships a negation")
+        require_records_tracked_and_ui_excluded(repo, "fresh snippet install")
+
+
+def historical_targets():
+    yield "legacy", [BROAD_RULES[0]]
+    yield "namespaced", [BROAD_RULES[1]]
+    yield "both", list(BROAD_RULES)
+
+
+def case_bug2399_check_reports_obsolete_broad_rules():
+    for label, broad in historical_targets():
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / "project"
+            project.mkdir()
+            target = project / ".gitignore"
+            lines = ["custom-first"] + RULES + [NARROW_RULE, LOCK_RULE] + broad + ["custom-last"]
+            original = ("\n".join(lines) + "\n").encode()
+            target.write_bytes(original)
+            result = run(project, check=True)
+            require(result.returncode == 1, "BUG-2399 %s: --check accepted an obsolete broad run rule" % label)
+            require(all(rule in result.stderr for rule in broad),
+                    "BUG-2399 %s: --check did not name the obsolete rule: %r" % (label, result.stderr))
+            require(target.read_bytes() == original, "BUG-2399 %s: --check modified .gitignore" % label)
+
+
+def case_bug2399_merge_replaces_broad_rules():
+    for label, broad in historical_targets():
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory) / "project"
+            project.mkdir()
+            target = project / ".gitignore"
+            target.write_text("custom-first\n# my run notes are ephemeral\n%s\ncustom-last\n" % "\n".join(broad),
+                              encoding="utf-8")
+            first = run(project)
+            after_first = target.read_bytes()
+            lines = after_first.decode("utf-8").splitlines()
+            require(first.returncode == 0, first.stderr)
+            require(not any(rule in lines for rule in BROAD_RULES), "BUG-2399 %s: broad run rule survived merge" % label)
+            require(lines.count(NARROW_RULE) == 1, "BUG-2399 %s: narrow UI rule not installed once" % label)
+            require(not any(line.startswith("!") for line in lines), "BUG-2399 %s: merge wrote a negation" % label)
+            kept = [line for line in lines if line in ("custom-first", "# my run notes are ephemeral", "custom-last")]
+            require(kept == ["custom-first", "# my run notes are ephemeral", "custom-last"],
+                    "BUG-2399 %s: unrelated project lines lost or reordered: %r" % (label, kept))
+            second = run(project)
+            require(second.returncode == 0 and target.read_bytes() == after_first,
+                    "BUG-2399 %s: second merge was not byte-identical" % label)
+            require(run(project, check=True).returncode == 0, "BUG-2399 %s: --check red after migration" % label)
+
+
+def case_bug2399_merge_corrects_shipped_rationale_only():
+    with tempfile.TemporaryDirectory() as directory:
+        project = Path(directory) / "project"
+        project.mkdir()
+        target = project / ".gitignore"
+        legacy_block = (
+            "# --- harness ---\n"
+            "# Run dirs are ephemeral; a dirty tree halts a team with BLOCKED, so these\n"
+            "# must be ignored or the harness deadlocks itself. Everything else under\n"
+            "# .harness/ is committed on purpose — it is the record of what shipped.\n"
+            ".harness/features/*/runs/**\n"
+            "# --- end harness ---\n"
+        )
+        target.write_text("# project: build dirs are ephemeral\nbuild/\n\n" + legacy_block, encoding="utf-8")
+        result = run(project)
+        content = target.read_text(encoding="utf-8")
+        require(result.returncode == 0, result.stderr)
+        require("Run dirs are ephemeral" not in content and "deadlocks itself" not in content,
+                "BUG-2399: the shipped false run rationale survived merge:\n%s" % content)
+        require(content.startswith("# project: build dirs are ephemeral\nbuild/\n"),
+                "BUG-2399: project prose was rewritten:\n%s" % content)
+
+
+def case_bug2399_line_endings_preserved():
+    with tempfile.TemporaryDirectory() as directory:
+        project = Path(directory) / "project"
+        project.mkdir()
+        target = project / ".gitignore"
+        target.write_bytes(b"crlf-first\r\n.harness/*/features/*/runs/**\r\ncrlf-last\r\n")
+        result = run(project)
+        merged = target.read_bytes()
+        require(result.returncode == 0, result.stderr)
+        require(merged.startswith(b"crlf-first\r\ncrlf-last\r\n"),
+                "BUG-2399: CRLF project lines changed or broad rule kept: %r" % merged[:80])
+        target.write_bytes(b"no-newline-first\n.harness/features/*/runs/**\nno-newline-last")
+        result = run(project)
+        merged = target.read_bytes()
+        require(result.returncode == 0, result.stderr)
+        require(merged.startswith(b"no-newline-first\nno-newline-last\n"),
+                "BUG-2399: unterminated last line not preserved before appended rules: %r" % merged[:80])
+        require(NARROW_RULE.encode() + b"\n" in merged, "BUG-2399: narrow rule missing after unterminated input")
+
+
+def z_paths(repo, *args):
+    return set(filter(None, git(repo, *args, "-z").decode().split("\0")))
+
+
+def seed_fleet_checkout(repo):
+    """A fleet checkout on the old broad rules, holding historical evidence the rules hide."""
+    (repo / ".gitignore").write_text("scratch-dir/\n%s\n%s\n" % tuple(BROAD_RULES), encoding="utf-8")
+    (repo / "README.md").write_text("fleet\n", encoding="utf-8")
+    git(repo, "add", "--", ".gitignore", "README.md")
+    git(repo, "commit", "-qm", "base")
+    fleet = ".harness/acme/features/FEAT-7-fleet/runs/"
+    evidence = (seed_run(repo, fleet + "r 1", ["digest.md", "qa/manifest-unit.json"])
+                + seed_run(repo, fleet + "r-2", ["panel-c0[*].md", "state.yaml"])
+                + seed_run(repo, ".harness/features/FEAT-3-legacy/runs/r-3", ["digest.md"]))
+    excluded = seed_run(repo, fleet + "r-2", ["ui/shot.webp", "digest.md.lock"]) + ["unrelated.txt"]
+    (repo / "unrelated.txt").write_text("not evidence\n", encoding="utf-8")
+    return evidence, excluded
+
+
+def stage_reviewed_evidence(repo):
+    """Checklist steps 4-5: review the exposed run files, stage them by literal path."""
+    visible = z_paths(repo, "ls-files", "--others", "--exclude-standard")
+    reviewed = sorted(path for path in visible if "/runs/" in path and "/ui/" not in path)
+    git(repo, "--literal-pathspecs", "add", "--", ".gitignore", *reviewed)
+    return reviewed, z_paths(repo, "diff", "--cached", "--name-only")
+
+
+def require_operator_commit(repo, evidence, excluded, before):
+    """Checklist step 6: the separate operator commit tracks exactly the reviewed evidence."""
+    git(repo, "commit", "-qm", "operator: track historical run evidence")
+    now = tracked(repo)
+    require(set(evidence) <= now and not set(excluded) & now,
+            "BUG-2399 checklist: evidence untracked, or UI, lock or unrelated file tracked")
+    require(all((repo / path).read_bytes() == data for path, data in before.items()),
+            "BUG-2399 checklist: reviewed evidence bytes changed")
+
+
+def case_bug2399_operator_checklist_commands_compose():
+    """The checkout-upgrade checklist's command sequence, run as an operator would on a fleet checkout."""
+    with tempfile.TemporaryDirectory() as directory:
+        repo = git_repo(Path(directory) / "fleet")
+        evidence, excluded = seed_fleet_checkout(repo)
+        base_head = git(repo, "rev-parse", "HEAD")
+        before = {path: (repo / path).read_bytes() for path in evidence}
+        merged = run(repo)
+        require(merged.returncode == 0, merged.stderr)
+        reviewed, staged = stage_reviewed_evidence(repo)
+        require(reviewed == sorted(evidence),
+                "BUG-2399 checklist: narrowed rule did not expose exactly the historical evidence: %r" % reviewed)
+        require(staged == set(evidence) | {".gitignore"}, "BUG-2399 checklist: staged set differs: %r" % sorted(staged))
+        require(git(repo, "rev-parse", "HEAD") == base_head, "BUG-2399 checklist: merge or staging committed")
+        require_operator_commit(repo, evidence, excluded, before)
+
+
 CASES = [
     ("preserves_existing_content", case_preserves_existing_content),
     ("check_complete_is_read_only", case_check_complete_is_read_only),
@@ -149,6 +364,13 @@ CASES = [
     ("partial_target_retains_present_rule_and_adds_missing_once", case_partial_target_retains_present_rule_and_adds_missing_once),
     ("second_merge_is_byte_identical", case_second_merge_is_byte_identical),
     ("explicit_project_root_ignores_caller_cwd", case_explicit_project_root_ignores_caller_cwd),
+    ("bug2399_repository_rules_track_run_records", case_bug2399_repository_rules_track_run_records),
+    ("bug2399_fresh_install_tracks_run_records", case_bug2399_fresh_install_tracks_run_records),
+    ("bug2399_check_reports_obsolete_broad_rules", case_bug2399_check_reports_obsolete_broad_rules),
+    ("bug2399_merge_replaces_broad_rules", case_bug2399_merge_replaces_broad_rules),
+    ("bug2399_merge_corrects_shipped_rationale_only", case_bug2399_merge_corrects_shipped_rationale_only),
+    ("bug2399_line_endings_preserved", case_bug2399_line_endings_preserved),
+    ("bug2399_operator_checklist_commands_compose", case_bug2399_operator_checklist_commands_compose),
 ]
 
 
