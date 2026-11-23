@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2399-run-records-staged-at-ship",
   "branch": "feat/BUG-2399-run-records-staged-at-ship",
-  "pr": null,
+  "pr": 2447,
   "review_sha": "74e6896c6113f916efd9c5ceb24a7d60e7c5c0cd",
   "cycles_used": 0,
   "max_total_cycles": 10,
@@ -88,6 +88,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "validate c2 PASS over 74e6896c: both c1 must_fix resolved and SC-01..03 met; proceed to the ship briefing with no further rework"
+    },
+    {
+      "at": "2026-11-23T13:19:02+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Operator ship call 2026-11-23: distill skipped (notes/answers-2026-11-23-ship.md)"
     }
   ],
   "mission": "patch",
