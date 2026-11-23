@@ -1,9 +1,11 @@
 schema: plan/1
 feature: FEAT-2398-qa-test-kind-status
 approval:
-  status: pending
+  date: '2026-11-23'
+  approved_by: Mike Ruangutai
+  status: approved
 drafted_at: '2026-11-23T02:54:34Z'
-status: plan
+status: ready
 source_issues: [2398]
 panel:
   last_run: 2026-11-22-01-plan-product

@@ -78,5 +78,32 @@
       "reason": "simplify-eng FAIL was a reader-conduct disclosure, not a plan defect; its flag-only findings stand and go to pm apply"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "notes/operator-signature-2026-11-23.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "7fe0bcb82a0b2107e48f70d4a45a217435f57a1b48ef39964e3628f7e556385c"
+  },
+  "github": {
+    "milestone": 131,
+    "parent": 2421,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2422
+    },
+    "source_issues": [
+      2398
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
