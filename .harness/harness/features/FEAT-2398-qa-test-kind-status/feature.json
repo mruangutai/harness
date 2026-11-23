@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2398-qa-test-kind-status",
   "branch": "feat/FEAT-2398-qa-test-kind-status",
   "pr": null,
-  "review_sha": "2f50e8bb1f5e6442742c53e1e2997a8be341d58b",
+  "review_sha": "1512222e247a3b98002901436599359b09ca606b",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
@@ -127,6 +127,13 @@
       "kind": "regate",
       "decision": "validate cycle 2",
       "reason": "validate-validator FAIL: four must-fix applied main-session-direct at 29a3d085 (fail-first receipts), re-pinned at 2f50e8bb; one rework round of 2"
+    },
+    {
+      "at": "2026-11-23T05:07:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "fix-c1-validator PASS carries to re-pin 1512222e",
+      "reason": "Post-pin delta 2f50e8bb..1512222e is 2 SKILL lines rewording the reviewed repo's config path for CI's instruction-path gate; same instruction, all CI checks steps green locally; no re-validation"
     }
   ],
   "mission": "plan",
