@@ -48,5 +48,32 @@
       "reason": "Cause known: stations.py _status_in_task returns None for a status-less task and cmd_set_task_station treats it as a missing task; diff bounded to plan_merge/stations.py and its tests; no interface, schema or enforcement surface"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "11923cd23c9ef091d2c48cc15990890cad0637f566c3a28b60dcedac01e9afa1"
+  },
+  "github": {
+    "milestone": 132,
+    "parent": 2425,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2426
+    },
+    "source_issues": [
+      2420
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

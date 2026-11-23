@@ -42,6 +42,6 @@ None applicable: active unit and integration runners discover tests/unit/ and te
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike Ruangutai (delegated to fable-advisor)
+date: 2026-11-22
