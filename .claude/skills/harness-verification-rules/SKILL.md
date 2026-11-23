@@ -21,8 +21,9 @@ list. A gap between the two is a finding, not an oversight to quietly close.
 ## The matrix is a floor
 
 **Read QA policy at the review pin (D-01, DEC-256).** `test_matrix` and `test_kinds` come from the
-**reviewed repository's** `.harness/harness.json` at its review pin — never the control plane's
-copy, the current tree, a default branch or a planning tree; read `change_type` from each PLAN task.
+**reviewed repository's** own `harness.json`, in that repository's `.harness` directory, at its
+review pin — never the control plane's copy, the current tree, a default branch or a planning
+tree; read `change_type` from each PLAN task.
 
 1. **Repository.** A feature whose `feature.json` binds `factory.repo` reviews that fleet
    repository's code checkout — locate it with `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/feature-worktree.py
@@ -30,8 +31,9 @@ copy, the current tree, a default branch or a planning tree; read `change_type` 
    reviews the repository holding the feature.
 2. **Commit.** `feature.json`'s `review_sha` names it; a dispatch review pin must resolve to the same
    commit in that repository.
-3. **Blob.** Read `git show <commit>:.harness/harness.json` — never either checkout's current
-   config — and record the repository, the full commit and the config path in your artifact.
+3. **Blob.** Read that file at the commit with `git show <commit>:<path>` — never either
+   checkout's current config — and record the repository, the full commit and the path in your
+   artifact.
 
 If the pin, the repository or the blob is missing or invalid, **stop and say so** with
 `VERDICT: BLOCKED` and `kinds: []` — there is no fallback, and `validate-digest.py` refuses every
