@@ -24,6 +24,7 @@ for path in (BIN, ROOT / "tests", ROOT / "tests" / "integration"):
     sys.path.insert(0, str(path))
 from harness_config_support import build_config, write_config  # noqa: E402
 import artifact_accessors  # noqa: E402
+from git_support import commit_all, init_repo  # noqa: E402
 
 # name -> (write the broken config into the file at path, token its diagnosis must carry)
 BROKEN = {
@@ -87,10 +88,20 @@ def _board_station(root):
     return code
 
 
-def _matrix_inputs(root):
+def _qa_pinned_policy(root):
+    """validate-digest's QA kind policy (FEAT-2398 D-01) is harness.json AT THE REVIEW PIN, so
+    the config shape under test is committed first and the feature pins that commit."""
     feat = _feature_dir(root)
-    (feat / "plan.yaml").write_text("schema: plan/1\nfeature: FEAT-1-x\nstation_only: true\nstatus: plan\ntasks: []\n")
-    return _module("validate_digest", "validate-digest.py")._load_matrix_inputs(str(root), str(feat))
+    init_repo(str(root), "main", config=(("commit.gpgsign", "false"),))
+    commit_all(str(root), "pin")
+    head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
+                          text=True, check=True).stdout.strip()
+    (feat / "feature.json").write_text(json.dumps({"feature_id": "FEAT-1-x", "review_sha": head}))
+    validator = _module("validate_digest", "validate-digest.py")
+    policy, _where, error = validator._qa_policy(str(feat), None)
+    if error:
+        raise SystemExit(error)
+    return policy
 
 
 def _test_kinds_or_refusal(root):
@@ -160,7 +171,8 @@ READERS = {
     "plan_merge.guards._legal_stations": (_legal_stations, lambda v: v[:6] == (
         "backlog", "plan", "ready", "building", "review", "done")),
     "validate-digest._load_test_kinds": (_test_kinds_or_refusal, lambda v: "unit" in v),
-    "validate-digest._load_matrix_inputs": (_matrix_inputs, lambda v: v[0]["logic"] == {"always": ["unit"], "when": []}),
+    "validate-digest._qa_policy": (_qa_pinned_policy, lambda v: v["test_matrix"]["logic"] == {
+        "always": ["unit"], "when": []}),
     "wayfind.cfg": (_wayfind, None),  # a valid default has sync off, which wayfind refuses by design
     "probe-issue-types._load_config": (_probe, lambda v: v["github"]["sync"] is False),
 }

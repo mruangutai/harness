@@ -5336,6 +5336,13 @@ active will prompt that — only the `_matrix_provenance` entry, which is findab
 compensating control is the closure invariant, which makes the *absence* of a runner for a *required*
 kind a violation rather than a warning, because a warning is what already failed.
 
+**Accepted consequence (FEAT-2398 D-03).** `validate-digest.py` now enforces this rule from
+`status`, never from `cmd`: only `excluded` with its signed record soft-skips or leaves the
+required set, and a required `unresolved` or cmd-less `active` kind may be reported only
+`misconfigured` with `VERDICT: BLOCKED`. Kaya's required `unresolved` kinds therefore block its
+features until a verified `active` runner or a signed `excluded` record exists. INV-49 discloses
+such kinds; it never waives one.
+
 ---
 
 ## DEC-188 — A flat contradiction is struck, not marked; declared edits get bounded draft checks and pinned landing grades
@@ -8518,7 +8525,9 @@ invalid present structure. Typos become mechanical errors without treating prose
 conditional requirements are signed rather than inferred. Non-config callers stay strict without
 inheriting config defaults. Recognizing a governed command before reading config keeps repair,
 report and unrelated commands reachable without an allowlist. Central validation earns the deletion
-of duplicated tests, not a larger parallel suite. A product's default branch is its contract.
+of duplicated tests, not a larger parallel suite. QA's `test_kinds` and `test_matrix` are the
+reviewed code repository's contract at its review pin (below); every other `product_config`
+consumer still reads a product's default branch.
 
 **Tradeoff accepted:** a version-2 or hand-edited file now stops every reader until it is repaired
 or upgraded. The hooks need an importable `jsonschema`; a gate or the post-merge sweep that hardens
@@ -8527,6 +8536,33 @@ installation still resolves. D-06's total-negative gate was replaced by pre-exis
 the enumerated price of new coverage: new central-contract coverage was mispredicted as free at plan
 time. INV-13 is retired, because the loader now enforces what it checked: an absent `github` block
 takes the default and sync without a pinned repo is invalid.
+
+**QA review-pin exception (FEAT-2398, #2398).** Two choices, signed by Mike Ruangutai on
+2026-11-23, amend where QA policy is read and how a misconfigured kind is enforced:
+
+- **One pinned path (D-01).** `validate-digest.py` and qa read `test_kinds` and `test_matrix` only
+  from `git show <review commit>:.harness/harness.json` in the reviewed repository: a feature bound
+  by `factory.repo` reviews that registered fleet repository's code checkout, and an unbound Harness
+  feature the repository holding it. `review_sha` and a trusted dispatch pin must name one commit
+  there. A missing pin, binding, checkout or blob, or an invalid config, refuses by name every
+  return that reports a kind, has started work or asserts the matrix met at PASS; a kind-free
+  BLOCKED or ESCALATE still stands, because that is how qa stops to say the pin is missing.
+- **Three gates (D-02).** Every reported kind is checked against its status under every verdict;
+  an omitted `always` kind that is `unresolved`, or `active` with no `cmd`, refuses under every
+  verdict whatever `matrix_ok` says; the full satisfied `always` floor binds only `PASS` with
+  `matrix_ok: true`. `when:` applicability stays qa's judgment (DEC-212).
+
+**Rejected:** the planning tree's config (it describes Harness, not the product under review); a
+remote default branch's QA policy (it can disagree with the commit being reviewed); a separate
+current-tree compatibility path for Harness features (a dirty tree could rewrite its own gate);
+evaluating or unconditionally requiring every `when:` kind (the validator cannot read a diff's
+intent); and a blanket non-PASS presence floor (it would make an early BLOCKED fabricate states for
+kinds nobody ran).
+
+**Tradeoff accepted:** the unified path is a compatibility break — a Harness feature with no review
+pin, or a working-tree-only config edit, no longer governs QA, and existing validator fixtures
+migrated to real commits and pins. The narrowed non-PASS rule leaves an early BLOCKED or FAIL free to
+omit a runnable kind that has not run yet; such an omission is neither a skip nor coverage.
 
 **Record:** FEAT-2297 (#2297); D-01 to D-08 approved by Mike Ruangutai on 2026-11-22, and the D-06
 measurement amended under his delegation to the plan's advisor. Amends DEC-221 (offline advisory

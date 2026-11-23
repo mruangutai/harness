@@ -1,0 +1,5 @@
+# Execution qualification — overrides digest prose PASS
+
+FAIL on execution constraint; the four-angle analysis is complete and advisory findings remain usable. DevOps disclosed after its return that it violated the explicit no-git instruction by running a timed disposable /tmp Git probe: init, empty commit, rev-parse and show; then removed that temporary repository. It ran no tests/builds/lint, and reported no source-tree modification. The receipt's 48ms figure came from this unauthorized probe, not static inspection. Its 67-function count came from grep. Neither measurement is relied on by the lead.
+
+The separately authorized shasum before/after evidence is unaffected. No member was re-dispatched or sent back; cycles_used stays 0. A repeat reader cannot undo the breach, so no repeat was ordered. The structured digest's FAIL is the authoritative execution outcome; the earlier digest prose PASS means analytical completion only and is superseded by this qualification. Orchestrator should preserve the breach in the run record and may route the seven advisory items to PM without representing this run as constraint-clean.

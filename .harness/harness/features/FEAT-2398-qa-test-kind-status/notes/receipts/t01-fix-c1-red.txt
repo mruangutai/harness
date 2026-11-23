@@ -1,0 +1,146 @@
+# FEAT-2398 T-01 fix-c1 RED: the new and extended cases against two earlier validators
+# command: VALIDATE_DIGEST_BIN=<git archive <sha> .claude/skills/harness/bin>/validate-digest.py python3 tests/integration/test-validate-digest.py --only run_feat2398_qa_policy_cases
+# tests: the working-tree test file of this fix (69 cases); validators: baseline 9eb07b4f and the failed review pin 685e861a
+# date: 2026-11-23T04:41:07Z
+
+## validator at 9eb07b4f: 15 ok / 54 FAIL
+ok    [feat2398] SC-01 unresolved: BLOCKED reporting only it misconfigured is the one acceptance
+FAIL  [feat2398] SC-01 unresolved: reported satisfied is refused with both repairs
+FAIL  [feat2398] SC-01 unresolved: reported not_applicable is refused with both repairs
+FAIL  [feat2398] SC-01 unresolved: reported missing is refused with both repairs
+FAIL  [feat2398] SC-01 unresolved: reported locally_run is refused with both repairs
+FAIL  [feat2398] SC-01 unresolved: misconfigured under VERDICT PASS is refused
+FAIL  [feat2398] SC-01 unresolved: misconfigured under VERDICT FAIL is refused
+FAIL  [feat2398] SC-01 unresolved: misconfigured under VERDICT ESCALATE is refused
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under BLOCKED with matrix_ok True refuses
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under BLOCKED with matrix_ok False refuses
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under BLOCKED with matrix_ok n/a refuses
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under ESCALATE with matrix_ok True refuses
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under ESCALATE with matrix_ok False refuses
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under ESCALATE with matrix_ok n/a refuses
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under FAIL with matrix_ok True refuses
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under FAIL with matrix_ok False refuses
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under FAIL with matrix_ok n/a refuses
+FAIL  [feat2398] SC-01/SC-04 unresolved: omitting the required kind under PASS with matrix_ok True refuses
+ok    [feat2398] SC-01 active/null: BLOCKED reporting only it misconfigured is the one acceptance
+FAIL  [feat2398] SC-01 active/null: reported satisfied is refused with both repairs
+FAIL  [feat2398] SC-01 active/null: reported not_applicable is refused with both repairs
+FAIL  [feat2398] SC-01 active/null: reported missing is refused with both repairs
+FAIL  [feat2398] SC-01 active/null: reported locally_run is refused with both repairs
+FAIL  [feat2398] SC-01 active/null: misconfigured under VERDICT PASS is refused
+FAIL  [feat2398] SC-01 active/null: misconfigured under VERDICT FAIL is refused
+FAIL  [feat2398] SC-01 active/null: misconfigured under VERDICT ESCALATE is refused
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under BLOCKED with matrix_ok True refuses
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under BLOCKED with matrix_ok False refuses
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under BLOCKED with matrix_ok n/a refuses
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under ESCALATE with matrix_ok True refuses
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under ESCALATE with matrix_ok False refuses
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under ESCALATE with matrix_ok n/a refuses
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under FAIL with matrix_ok True refuses
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under FAIL with matrix_ok False refuses
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under FAIL with matrix_ok n/a refuses
+FAIL  [feat2398] SC-01/SC-04 active/null: omitting the required kind under PASS with matrix_ok True refuses
+ok    [feat2398] SC-02: a signed excluded kind may be not_applicable
+ok    [feat2398] SC-02: a runnable active kind may not be not_applicable
+ok    [feat2398] SC-02: a configured locally_run kind may be reported locally_run
+FAIL  [feat2398] SC-02: locally_run is refused for a kind not configured locally_run
+ok    [feat2398] SC-02: active satisfied under BLOCKED is accepted
+ok    [feat2398] SC-02: active missing under FAIL is accepted (ordinary coverage FAIL)
+FAIL  [feat2398] SC-02: a Verification gaps disclosure changes no outcome (refused identically)
+FAIL  [feat2398] SC-03: an unbound Harness feature reads its pinned policy, not the current tree
+FAIL  [feat2398] SC-03: an unpinned Harness feature refuses instead of reading the current tree
+ok    [feat2398] SC-03: an unpinned feature may still stop with a kind-free BLOCKED
+FAIL  [feat2398] SC-03: the CLI with no trusted feature refuses QA kind policy, never the install tree
+FAIL  [feat2398] SC-03: the CLI refuses an empty-kind PASS asserting the matrix (no pin to judge it)
+ok    [feat2398] SC-03: the CLI accepts a kind-free BLOCKED (QA stopping without a pin)
+ok    [feat2398] SC-04: early BLOCKED may omit configured runnable and locally_run kinds
+ok    [feat2398] SC-04: early FAIL with matrix_ok false may omit configured kinds
+FAIL  [feat2398] SC-04: PASS with matrix_ok true still requires every floor kind satisfied
+ok    [feat2398] SC-04: an omitted conditional kind is QA's judgement, not mechanically required
+FAIL  [feat2398] SC-04: a reported unresolved conditional must be misconfigured/BLOCKED
+FAIL  [feat2398] SC-04: an all-excluded floor keeps the no-kind exemption
+FAIL  [feat2398] SC-04: an unresolved floor kind denies the no-kind exemption
+FAIL  [feat2398] SC-03 product: the product's pinned policy applies, not the planning tree's
+ok    [feat2398] SC-03 product: the misconfigured report is accepted at the same pin
+ok    [feat2398] SC-03 product: another pin's statuses and matrix select differently
+ok    [feat2398] SC-03 product: an agreeing abbreviated dispatch pin is the same policy
+FAIL  [feat2398] SC-03 product: a disagreeing dispatch pin refuses
+FAIL  [feat2398] SC-03 product: a dispatch pin may supply an absent recorded pin
+FAIL  [feat2398] SC-03 product: no review pin at all refuses without fallback
+FAIL  [feat2398] SC-03 product: a malformed factory binding refuses without fallback
+FAIL  [feat2398] SC-03 product: an unlisted factory.repo refuses without fallback
+FAIL  [feat2398] SC-03 product: an unavailable product repository refuses without fallback
+FAIL  [feat2398] SC-03 product: an unresolvable review commit refuses without fallback
+FAIL  [feat2398] SC-03 product: a pinned commit with no harness.json refuses without fallback
+FAIL  [feat2398] SC-03 product: an invalid pinned harness.json refuses without fallback
+
+## validator at 685e861a: 67 ok / 2 FAIL
+ok    [feat2398] SC-01 unresolved: BLOCKED reporting only it misconfigured is the one acceptance
+ok    [feat2398] SC-01 unresolved: reported satisfied is refused with both repairs
+ok    [feat2398] SC-01 unresolved: reported not_applicable is refused with both repairs
+ok    [feat2398] SC-01 unresolved: reported missing is refused with both repairs
+ok    [feat2398] SC-01 unresolved: reported locally_run is refused with both repairs
+ok    [feat2398] SC-01 unresolved: misconfigured under VERDICT PASS is refused
+ok    [feat2398] SC-01 unresolved: misconfigured under VERDICT FAIL is refused
+ok    [feat2398] SC-01 unresolved: misconfigured under VERDICT ESCALATE is refused
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under BLOCKED with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under BLOCKED with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under BLOCKED with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under ESCALATE with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under ESCALATE with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under ESCALATE with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under FAIL with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under FAIL with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under FAIL with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under PASS with matrix_ok True refuses
+ok    [feat2398] SC-01 active/null: BLOCKED reporting only it misconfigured is the one acceptance
+ok    [feat2398] SC-01 active/null: reported satisfied is refused with both repairs
+ok    [feat2398] SC-01 active/null: reported not_applicable is refused with both repairs
+ok    [feat2398] SC-01 active/null: reported missing is refused with both repairs
+ok    [feat2398] SC-01 active/null: reported locally_run is refused with both repairs
+ok    [feat2398] SC-01 active/null: misconfigured under VERDICT PASS is refused
+ok    [feat2398] SC-01 active/null: misconfigured under VERDICT FAIL is refused
+ok    [feat2398] SC-01 active/null: misconfigured under VERDICT ESCALATE is refused
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under BLOCKED with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under BLOCKED with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under BLOCKED with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under ESCALATE with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under ESCALATE with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under ESCALATE with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under FAIL with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under FAIL with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under FAIL with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under PASS with matrix_ok True refuses
+ok    [feat2398] SC-02: a signed excluded kind may be not_applicable
+ok    [feat2398] SC-02: a runnable active kind may not be not_applicable
+ok    [feat2398] SC-02: a configured locally_run kind may be reported locally_run
+ok    [feat2398] SC-02: locally_run is refused for a kind not configured locally_run
+ok    [feat2398] SC-02: active satisfied under BLOCKED is accepted
+ok    [feat2398] SC-02: active missing under FAIL is accepted (ordinary coverage FAIL)
+ok    [feat2398] SC-02: a Verification gaps disclosure changes no outcome (refused identically)
+ok    [feat2398] SC-03: an unbound Harness feature reads its pinned policy, not the current tree
+ok    [feat2398] SC-03: an unpinned Harness feature refuses instead of reading the current tree
+FAIL  [feat2398] SC-03: an unpinned feature may still stop with a kind-free BLOCKED
+ok    [feat2398] SC-03: the CLI with no trusted feature refuses QA kind policy, never the install tree
+FAIL  [feat2398] SC-03: the CLI refuses an empty-kind PASS asserting the matrix (no pin to judge it)
+ok    [feat2398] SC-03: the CLI accepts a kind-free BLOCKED (QA stopping without a pin)
+ok    [feat2398] SC-04: early BLOCKED may omit configured runnable and locally_run kinds
+ok    [feat2398] SC-04: early FAIL with matrix_ok false may omit configured kinds
+ok    [feat2398] SC-04: PASS with matrix_ok true still requires every floor kind satisfied
+ok    [feat2398] SC-04: an omitted conditional kind is QA's judgement, not mechanically required
+ok    [feat2398] SC-04: a reported unresolved conditional must be misconfigured/BLOCKED
+ok    [feat2398] SC-04: an all-excluded floor keeps the no-kind exemption
+ok    [feat2398] SC-04: an unresolved floor kind denies the no-kind exemption
+ok    [feat2398] SC-03 product: the product's pinned policy applies, not the planning tree's
+ok    [feat2398] SC-03 product: the misconfigured report is accepted at the same pin
+ok    [feat2398] SC-03 product: another pin's statuses and matrix select differently
+ok    [feat2398] SC-03 product: an agreeing abbreviated dispatch pin is the same policy
+ok    [feat2398] SC-03 product: a disagreeing dispatch pin refuses
+ok    [feat2398] SC-03 product: a dispatch pin may supply an absent recorded pin
+ok    [feat2398] SC-03 product: no review pin at all refuses without fallback
+ok    [feat2398] SC-03 product: a malformed factory binding refuses without fallback
+ok    [feat2398] SC-03 product: an unlisted factory.repo refuses without fallback
+ok    [feat2398] SC-03 product: an unavailable product repository refuses without fallback
+ok    [feat2398] SC-03 product: an unresolvable review commit refuses without fallback
+ok    [feat2398] SC-03 product: a pinned commit with no harness.json refuses without fallback
+ok    [feat2398] SC-03 product: an invalid pinned harness.json refuses without fallback

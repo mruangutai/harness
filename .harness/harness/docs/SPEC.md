@@ -106,7 +106,8 @@ the review policies and the issue-type override keys. `tests/unit/test-harness-c
   pinned `github.repo` once sync or a board is declared, are the schema's own `if`/`then` clauses.
 - Structural validity is not runner readiness. An `active` kind whose `cmd` is `null` validates,
   yet qa still returns BLOCKED for it (§9); a product's `unresolved` kinds, Kaya's included, are
-  honest records of an undecided runner rather than errors.
+  honest records of an undecided runner rather than config errors, and a required one blocks qa
+  the same way. Only `status: excluded` with its signed record leaves the required set (DEC-187).
 - Raw repair and report inputs, such as `upgrade-config.py`'s source file, are read through the
   strict `load_json_mapping`, which never applies the schema.
 - The Bash gates recognize their governed command before reading config (§4.2): an unrelated
@@ -1445,15 +1446,29 @@ DB/external" cells silently vanish and high-risk changes ship untested: a row is
   presence in a diff (`detect` globs), *what command runs it* (`cmd`, per project), and its
   `status`.
 - **Owner: `dev-ops`.** During `harness-add-repo`, dev-ops detects the project's test runner and writes
-  `test_kinds` into `.harness/harness.json`. **An unresolvable or missing `cmd` is a distinct LOUD
-  third state** (`VERDICT: BLOCKED — test command unresolved`), never folded into the
-  not-applicable soft skip: a silently no-op'd hard gate is worse than a halt.
+  `test_kinds` into `.harness/harness.json`.
+- **Status decides, never `cmd` (DEC-187).** Only `status: excluded` with its `excluded_because`
+  and `signed` record soft-skips (`not_applicable`) or leaves the required set, and only a
+  configured `locally_run` kind may be reported `locally_run`. A required kind that is
+  `unresolved`, or `active` with a null `cmd`, is the distinct LOUD state `misconfigured` with
+  `VERDICT: BLOCKED`, never folded into the soft skip: a silently no-op'd hard gate is worse than
+  a halt.
+- **Policy at the review pin (DEC-256).** qa reads `test_kinds` and `test_matrix` from the reviewed
+  repository's `harness.json` at its review pin — a fleet-bound feature's product code
+  repository, otherwise the repository holding the feature — with no current-tree,
+  default-branch or planning-tree fallback. Without that policy every claim it would judge is
+  refused; only a kind-free BLOCKED or ESCALATE stands. QA's steps live in the
+  harness-verification-rules skill.
+- **Three gates over the started tasks' `always` kinds.** Every reported kind is checked against
+  its status under every verdict; an omitted `unresolved` or cmd-less one refuses under every
+  verdict; the full satisfied floor binds only a `PASS` with `matrix_ok: true`. `when:` kinds
+  stay qa's judgment (DEC-212).
 - **Bug-class mapping:** a bugfix's regression test must match the bug's class — a functional bug
   needs a functional regression, a UI bug a Playwright one.
 - **Change type per task:** pm tags each PLAN task with `change_type:` (§2); qa reads it and applies
   the matrix. A task missing `change_type` blocks the gate (§2.2).
-- **Not-applicable tooling is a soft skip, not a failure:** no web project / no dev server /
-  Playwright absent → qa records `ui: skipped (no browser target)` and does **not** FAIL.
+- **No browser target is not a soft skip by itself:** `ui` is `not_applicable` only when the
+  project excludes it with a signed decision; an unrunnable required `ui` is `misconfigured`.
 - **Hard gate:** a missing required test kind → `VERDICT: FAIL`, loop back to the dev. Enforced
   against the PR diff, not a self-report.
 - **TDD-coverage audit:** beyond running the suite, qa verifies every behavioral change in the diff
