@@ -37,6 +37,13 @@
       "cycles_used": 0,
       "ended_at": "2026-11-23T03:41:22+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-23T03:52:00+00:00"
     }
   ],
   "judgements": [
