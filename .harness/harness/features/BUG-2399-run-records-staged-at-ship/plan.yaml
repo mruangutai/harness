@@ -1,0 +1,89 @@
+schema: plan/1
+feature: BUG-2399-run-records-staged-at-ship
+approval:
+  date: '2026-11-23'
+  approved_by: operator
+  status: approved
+drafted_at: '2026-11-23T03:11:45Z'
+status: review
+source_issues: [2399]
+lanes:
+  resolved_at: 9eb07b4f3cd235c234a10edddbfe5542c1e85fba
+  rows:
+  - surface: .claude/skills/harness/bin/prune-run-evidence.py
+    lane: main-session-direct
+    reason: Operator authorizes direct execution of gate code under DEC-174.
+  - surface: tests/unit/test-prune-run-evidence.py
+    lane: main-session-direct
+    reason: Keep gate regression with its direct production task under DEC-174.
+  - surface: .omp/commands/harness-ship.md
+    lane: main-session-direct
+    reason: DEC-174 and DEC-179 require direct execution of the NOBODY layer-0 command.
+  - surface: .harness/harness/docs/DECISIONS.md
+    lane: main-session-direct
+    reason: Operator-authorized DEC-238 amendment belongs to the same direct patch.
+  - surface: .harness/harness/docs/DECISIONS-INDEX.md
+    lane: main-session-direct
+    reason: Regenerated index is coupled to the decision amendment.
+decisions:
+- id: D-01
+  choice: Amend DEC-238 ship retention to force-stage every surviving non-UI file in recorded runs and refuse missing cycle_evidence paths.
+  because: Keeping only three named records or unignoring runs leaves audit gaps or restores the mid-run dirty-tree deadlock.
+  dec: DEC-238
+decisions_affected:
+- dec: DEC-238
+  disposition: amend
+  clause: '**Ship keeps the record and drops the rest.**'
+  successor: D-01
+  reason: Extend only this bullet with all non-UI retention, automatic staging and missing-evidence refusal.
+- dec: DEC-174
+  disposition: keep
+  clause: it builds directly.
+  successor: none
+  reason: Gate code and its test execute directly in main rather than through changed enforcement.
+- dec: DEC-179
+  disposition: keep
+  clause: an ungranted surface becomes a DECLARED main-session step
+  successor: none
+  reason: Declare the NOBODY ship command route before signature.
+- dec: DEC-225
+  disposition: keep
+  clause: with no panel and no goal-check run
+  successor: none
+  reason: One bounded intake and one task remain patch scope with an explicitly authorized direct-route override.
+- dec: DEC-254
+  disposition: keep
+  clause: 'Each row has exactly five fields:'
+  successor: none
+  reason: Declare the amendment and its owning decision-document task.
+- dec: DEC-187
+  disposition: keep
+  clause: never a skip and never a FAIL.
+  successor: none
+  reason: Use runnable active unit coverage without resting criteria on null or excluded runners.
+adequacy_notes: |
+  Exactly one bugfix T-01 traces all three SCs and owns exactly the pruner, unit test, ship command, decision document and regenerated index. Main-session-direct overrides the ordinary patch team default because gate code falls under DEC-174 and the ship command is NOBODY at layer 0 under DEC-179; no dev/team build or engineering lead. Product guidance paths are absent, not replaced. No new public interface, schema, panel or goal-check is introduced. Intake verification receipt is recorded in notes/research-ship-staging.md, including the exact plan-merge.py check command, stdout and exit, measured brief line bound and both pending approval statuses. Production tests and historical failures are not rerun in intake.
+tasks:
+- id: T-01
+  title: Stage preserved run records automatically at ship
+  traces: [SC-01, SC-02, SC-03]
+  change_type: bugfix
+  execution_mode: main-session-direct
+  execution_reason: Operator-authorized whole-patch direct route includes gate code under DEC-174 and the NOBODY layer-0 ship command under DEC-179.
+  depends_on: []
+  status: done
+  files:
+  - .claude/skills/harness/bin/prune-run-evidence.py
+  - tests/unit/test-prune-run-evidence.py
+  - .omp/commands/harness-ship.md
+  - .harness/harness/docs/DECISIONS.md
+  - .harness/harness/docs/DECISIONS-INDEX.md
+  verify: |
+    python3 tests/unit/test-prune-run-evidence.py
+    python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-staged-at-ship. Keep every relative-path edit inside this feature worktree. Main alone implements this whole one-task patch: gate code and tests invoke DEC-174, and .omp/commands/harness-ship.md is NOBODY at layer 0 under DEC-179. Do not dispatch an owning dev/team build or engineering lead. Source issue is 2399; settled scope is /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-run-records-staged-at-ship-2026-11-23.md. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md under the assigned checkout are all absent at intake; consult them if present at execution, never invent their contents or substitute Harness guidance. They are not owned files.
+    Before production edits, author regressions in tests/unit/test-prune-run-evidence.py. Demonstrate genuine assertion failures for SC-01 automatic staging and SC-02 missing-evidence refusal against the exact base pruner at 9eb07b4f3cd235c234a10edddbfe5542c1e85fba, then passing assertions against the fixed subject. Preserve sibling imports and isolate subject and fixture roots; clear inherited CLAUDE_PROJECT_DIR and HARNESS_PROJECT_DIR before setting a deliberate fixture override. Use real temporary Git repositories with ignored run directories so git index assertions exercise force-add rather than ordinary tracking. Retain exact commands, subject commit/hash identities, test names, stdout, stderr and exit receipts durably for QA fail_first. Import/setup/collection errors do not prove the defect. Intake did not implement or run these regressions.
+    After existing UI-only pruning, force-stage with git add -f every surviving non-ui/ file recursively in each feature.json recorded run directory. This includes digest.md, state.yaml, .run-identity.json, panel-c*.md, acceptance.md, nested qa/manifest files and arbitrary other non-UI survivors; do not use a three-filename allowlist. Never newly stage kept UI content or unrecorded run content. Preserve existing symlink safety: do not traverse linked run directories or linked directories into external content, and never stage external target contents. Keep the existing CLI without new flags or interfaces. Inspect all recorded cycle_evidence paths and refuse with exit 2 naming every missing path, not only the first; complete evidence permits success. Staging errors cannot report success. Existing --dry-run remains entirely nonmutating, including Git index bytes, with missing-path refusal still explicit.
+    Preserve BUG-2294 UI-only deletion, all non-UI bytes and run directories, _passing_validate_runs, pin-run selection, explicit --keep semantics, existing refusal rules and symlink isolation. Do not expand the keep set, remove the pruner, narrow .gitignore, change SPEC 8.6, add local check-state parity or backfill shipped features. Cover staging of recorded kept and non-kept runs with nested non-UI sentinels, exclusion of kept UI and unrecorded runs, multiple missing evidence paths and complete evidence, dry-run index/file immutability, repeated pruning and existing keep/refusal/symlink cases. Assert each relevant path and byte identity, not only counts. Preserve existing tests and failure accounting; adapt fixtures to real Git staging without weakening checks. The literal verify must finish under 60 seconds, both commands exit 0, and the test suite reports no FAIL lines; execute commands with failure propagation.
+    In .omp/commands/harness-ship.md remove manual force-add instructions and describe automatic staging by the existing prune invocation. Preserve its position, dry-run/prune command invocations and existing [harness:human] <flow-id>: prune run evidence at ship commit, which now carries the staged records. Align the pruner docstring. In .harness/harness/docs/DECISIONS.md amend only DEC-238 Ship keeps the record and drops the rest bullet to describe preservation of all non-UI content, force-staging every non-UI file of each recorded run, and exit-2 refusal naming all missing cycle_evidence paths, while retaining existing keep selection, UI-only pruning and pin refusals. Leave Abandon prunes and other bullets unchanged. Regenerate DECISIONS-INDEX.md with python3 .claude/skills/harness/bin/gen-decisions-index.py, preserving handwritten row tails. SC-03 is pinned inspection via git show at review_sha and the diff from the explicit base; do not manufacture red-first evidence for unchanged contracts. Do not edit feature.json or approval fields.

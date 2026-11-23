@@ -3,7 +3,10 @@
 (every PASS validator validate/fix run and every run bound to the shipped pin) and drops only
 the other runs' `runs/<id>/ui/` (#1997). Every run directory, digest.md, state.yaml,
 .run-identity.json and other non-UI file survives byte-for-byte (#2294): #2177 pins each recorded
-run's digest as check-state cycle evidence.
+run's digest as check-state cycle evidence. Every surviving non-UI file of each feature.json
+recorded run is force-staged into the git index (`runs/**` is ignored), and a missing
+cycle_evidence path refuses with exit 2 before anything changes (#2399). Fixtures are real git
+repositories with the run directories ignored, so the index assertions exercise `git add -f`.
 
 PRUNE_RUN_EVIDENCE_BIN overrides the subject so the regressions can be proven RED against a
 reverted copy of the pruner."""
@@ -51,9 +54,31 @@ def tool(root, *args):
     return subprocess.run([sys.executable, str(TOOL), "--root", str(root), *args], capture_output=True, text=True)
 
 
+def git(root, *args):
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(root), *args],
+                          capture_output=True, env=env, check=True).stdout
+
+
 def checkout(root):
+    """A real git repository that ignores run directories the way .gitignore:11 does."""
     (root / ".harness").mkdir(parents=True, exist_ok=True)
     (root / ".harness" / "team-config.yaml").write_text("agents: {}\n")
+    (root / ".gitignore").write_text(".harness/*/features/*/runs/**\n")
+    git(root, "init", "-q")
+    git(root, "add", ".gitignore", ".harness/team-config.yaml")
+    git(root, "commit", "-q", "-m", "init")
+
+
+def staged_runs(root, feat):
+    """{path relative to runs/: index blob bytes} of every indexed file under the feature's runs/."""
+    prefix = str((feat / "runs").relative_to(root)) + "/"
+    paths = [p for p in git(root, "ls-files", "-z").decode().split("\0") if p.startswith(prefix)]
+    return {p[len(prefix):]: git(root, "cat-file", "blob", f":{p}") for p in paths}
+
+
+def index_bytes(root):
+    return (root / ".git" / "index").read_bytes()
 
 
 def feature(root, runs, review_sha=PIN):
@@ -137,6 +162,140 @@ def explicit_keep_cases():
         records_intact("an explicit --keep prune leaves every run record byte-identical", feat, records)
 
 
+def recorded(feat, extra):
+    """Record extra run ids in feature.json next to the ones already there."""
+    record = json.loads((feat / "feature.json").read_text())
+    record["runs"] += [{"id": r, "squad": "eng", "verdict": "PASS"} for r in extra]
+    (feat / "feature.json").write_text(json.dumps(record))
+
+
+def staging_feature(root):
+    """RUNS plus panel, acceptance and nested qa manifests in a kept and a pruned recorded run,
+    and an unrecorded run holding both a record and a UI lane."""
+    feat = feature(root, RUNS)
+    kept, pruned = feat / "runs" / "validate-c2-validator", feat / "runs" / "build-c0-eng"
+    (kept / "qa").mkdir()
+    (kept / "qa" / "manifest-unit.json").write_bytes(b'{"kind": "unit"}')
+    (kept / "panel-c2.md").write_bytes(b"panel c2\n")
+    (kept / "acceptance.md").write_bytes(b"acceptance\n")
+    (pruned / "qa" / "deep").mkdir(parents=True)
+    (pruned / "qa" / "deep" / "manifest-integration.json").write_bytes(b'{"kind": "integration"}')
+    stray = feat / "runs" / "stray-run"
+    (stray / "ui").mkdir(parents=True)
+    (stray / "digest.md").write_bytes(b"unrecorded\n")
+    (stray / "ui" / "results.json").write_text(json.dumps({"served_bundle_commit": PIN}))
+    return feat
+
+
+def expected_staged(feat):
+    return {k: v for k, v in files_bytes(feat, ui=False).items() if not k.startswith("stray-run/")}
+
+
+def staging_dry_run(root, feat, expected):
+    files, index = tree_bytes(feat), index_bytes(root)
+    dry = tool(root, "--feature", "FEAT-9-thing", "--dry-run")
+    would = sorted(line for line in dry.stdout.splitlines() if line.startswith("would stage"))
+    check("dry-run names every non-UI file of every recorded run it would stage, and nothing else",
+          dry.returncode == 0 and would == sorted(f"would stage runs/{k}" for k in expected), dry.stdout + dry.stderr)
+    check("dry-run leaves every file and the git index byte-identical",
+          tree_bytes(feat) == files and index_bytes(root) == index and not staged_runs(root, feat))
+
+
+def staging_prune(root, feat, expected):
+    pruned = tool(root, "--feature", "FEAT-9-thing")
+    staged = staged_runs(root, feat)
+    check("prune force-stages every surviving non-UI file of every recorded run, kept or pruned, nested qa/ included, byte-identical",
+          pruned.returncode == 0 and staged == expected,
+          f"rc={pruned.returncode} missing={sorted(set(expected) - set(staged))} extra={sorted(set(staged) - set(expected))}")
+    check("prune stages no ui/ file and nothing of an unrecorded run",
+          not [k for k in staged if k.split("/")[1] == "ui" or k.startswith("stray-run/")], str(sorted(staged)))
+
+
+def staging_cases():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        checkout(root)
+        feat = staging_feature(root)
+        expected = expected_staged(feat)
+        staging_dry_run(root, feat, expected)
+        staging_prune(root, feat, expected)
+        again = tool(root, "--feature", "FEAT-9-thing")
+        check("a repeated prune exits 0 and leaves the same staged records",
+              again.returncode == 0 and staged_runs(root, feat) == expected, again.stdout + again.stderr)
+
+
+def evidence_feature(root):
+    feat = feature(root, [("validate-c1-validator", "FAIL", "a" * 40), ("validate-c2-validator", "FAIL", "b" * 40),
+                          ("validate-c3-validator", "PASS", "c" * 40)])
+    record = json.loads((feat / "feature.json").read_text())
+    for run in record["runs"]:
+        raw = (feat / "runs" / run["id"] / "digest.md").read_bytes()
+        run["cycle_evidence"] = {"source": "lead-digest", "path": f"runs/{run['id']}/digest.md",
+                                 "sha256": hashlib.sha256(raw).hexdigest()}
+    (feat / "feature.json").write_text(json.dumps(record))
+    return feat
+
+
+def evidence_refused(root, feat, missing):
+    files, index = tree_bytes(feat), index_bytes(root)
+    for label, args in (("prune", ()), ("dry-run", ("--dry-run",))):
+        refused = tool(root, "--feature", "FEAT-9-thing", *args)
+        check(f"{label} refuses with exit 2 naming every missing cycle_evidence path",
+              refused.returncode == 2 and all(p in refused.stderr for p in missing), f"rc={refused.returncode} {refused.stderr}")
+        check(f"a refused {label} changes no file and no index byte", tree_bytes(feat) == files and index_bytes(root) == index)
+
+
+def evidence_complete(root, feat):
+    complete = tool(root, "--feature", "FEAT-9-thing")
+    staged = staged_runs(root, feat)
+    digests = [f"validate-c{n}-validator/digest.md" for n in (1, 2, 3)]
+    check("complete cycle evidence permits the prune and stages every digest",
+          complete.returncode == 0 and all(d in staged for d in digests), complete.stdout + complete.stderr)
+
+
+def missing_evidence_cases():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        checkout(root)
+        feat = evidence_feature(root)
+        missing = ["runs/validate-c1-validator/digest.md", "runs/validate-c3-validator/digest.md"]
+        saved = {path: (feat / path).read_bytes() for path in missing}
+        for path in missing:
+            (feat / path).unlink()
+        evidence_refused(root, feat, missing)
+        for path, raw in saved.items():
+            (feat / path).write_bytes(raw)
+        evidence_complete(root, feat)
+
+
+def unreadable_checks(root, feat):
+    files, index = tree_bytes(feat / "runs" / "fix-c3-eng" / "ui"), index_bytes(root)
+    for label, args in (("dry-run", ("--dry-run",)), ("prune", ())):
+        failed = tool(root, "--feature", "FEAT-9-thing", *args)
+        check(f"{label} fails with exit 1 naming an unreadable subtree of a recorded run",
+              failed.returncode == 1 and "runs/build-c0-eng/qa" in failed.stderr, f"rc={failed.returncode} {failed.stderr}")
+        check(f"a {label} over an unreadable subtree stages nothing and removes no ui/",
+              index_bytes(root) == index and not staged_runs(root, feat)
+              and tree_bytes(feat / "runs" / "fix-c3-eng" / "ui") == files)
+
+
+def unreadable_cases():
+    """An unreadable qa/ inside a recorded run must not be silently left out of the record (c1 MF-1)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        checkout(root)
+        feat = staging_feature(root)
+        qa = feat / "runs" / "build-c0-eng" / "qa"
+        qa.chmod(0)
+        try:
+            if os.access(qa, os.R_OK):
+                print("SKIP - unreadable subtree: chmod 000 has no effect for this user (root?)")
+                return
+            unreadable_checks(root, feat)
+        finally:
+            qa.chmod(0o755)
+
+
 def outside_ui(base, sha):
     """A directory outside the feature holding a real ui/ lane."""
     (base / "ui" / "evidence").mkdir(parents=True)
@@ -186,14 +345,26 @@ def symlink_prune(root, feat, destinations, before):
           after == before and all(after), str([sorted(a) for a in after]))
 
 
+def symlink_staging(root, feat):
+    staged = sorted(staged_runs(root, feat))
+    through = [k for k in staged if k.split("/")[0] in ("build-alias", "evil-alias") or "/notes-link/" in f"/{k}"]
+    check("staging never follows a linked run or linked subdirectory and stages no external content",
+          not through and "ui-link-run/digest.md" in staged and "validate-c2-validator/digest.md" in staged, str(staged))
+
+
 def symlink_cases():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         checkout(root)
         feat, destinations = linked_feature(root)
+        recorded(feat, ["build-alias", "evil-alias", "ui-link-run"])
+        (root / "outside-notes").mkdir()
+        (root / "outside-notes" / "secret.txt").write_bytes(b"external\n")
+        (feat / "runs" / "validate-c2-validator" / "notes-link").symlink_to(root / "outside-notes", target_is_directory=True)
         before = [tree_bytes(d) for d in destinations]
         symlink_dry_run(root, destinations, before)
         symlink_prune(root, feat, destinations, before)
+        symlink_staging(root, feat)
 
 
 def blocked_feature(root):
@@ -296,6 +467,9 @@ def main():
     explicit_keep_cases()
     blocked_no_ui_cases()
     symlink_cases()
+    staging_cases()
+    missing_evidence_cases()
+    unreadable_cases()
     print(f"{len(FAILURES)} failure(s)" if FAILURES else "all checks passed")
     return 1 if FAILURES else 0
 
