@@ -11,6 +11,7 @@ and exits 97 without network access, so any dispatch that ignores FACTORY_GH and
 default binary is recorded rather than sent to GitHub. FACTORY_GH is the only binary override.
 """
 import os
+import shlex
 import tempfile
 
 _SENTINEL = """#!/bin/sh
@@ -27,7 +28,7 @@ def offline_gh_env(fake_path, tmp):
     sentinel_log = os.path.join(sentinel_dir, "sentinel.log")
     sentinel = os.path.join(sentinel_dir, "gh")
     with open(sentinel, "w", encoding="utf-8") as handle:
-        handle.write(_SENTINEL.format(log=_shell_quote(sentinel_log)))
+        handle.write(_SENTINEL.format(log=shlex.quote(sentinel_log)))
     os.chmod(sentinel, 0o755)
     env = {key: value for key, value in os.environ.items() if not key.startswith("GH_")}
     env["FACTORY_GH"] = str(fake_path)
@@ -43,7 +44,3 @@ def assert_sentinel_unused(sentinel_log):
         logged = handle.read()
     if logged:
         raise AssertionError(f"default gh binary was dispatched: {logged.strip()!r}")
-
-
-def _shell_quote(text):
-    return "'" + text.replace("'", "'\\''") + "'"

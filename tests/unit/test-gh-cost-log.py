@@ -283,7 +283,7 @@ restore()
 # existing OFF case above calls record() directly and only exercises record()'s OWN, separate
 # guard at :112.
 
-import contextlib  # noqa: E402
+from unittest.mock import patch  # noqa: E402
 import importlib  # noqa: E402
 import importlib.util as _ilu  # noqa: E402
 
@@ -498,22 +498,6 @@ restore()
 # no real gh can start even if a case's own patch were missed.
 _T01_FAKE_GH = os.path.join(TESTS_DIR, "t01-fake-gh-never-installed")
 _T01_OPERATION = ["issue", "view", "1"]
-_MISSING = object()
-
-
-@contextlib.contextmanager
-def _patched(module, **attrs):
-    saved = {name: vars(module).get(name, _MISSING) for name in attrs}
-    for name, value in attrs.items():
-        setattr(module, name, value)
-    try:
-        yield
-    finally:
-        for name, value in saved.items():
-            if value is _MISSING:
-                delattr(module, name)
-            else:
-                setattr(module, name, value)
 
 
 def _launch_boom(*a, **k):
@@ -540,7 +524,7 @@ def t01_counter_uses_launch_gh():
         return subprocess.CompletedProcess(args, 0, "1234\n", "")
 
     subprocess.run = _launch_boom
-    with _patched(_fgh, launch_gh=fake_launch, run_gh=_launch_boom, try_gh=_launch_boom):
+    with patch.multiple(_fgh, launch_gh=fake_launch, run_gh=_launch_boom, try_gh=_launch_boom):
         value = gh_cost_log._read_counter()
     check("T-01 _read_counter: reads the counter through factory_gh.launch_gh only",
           value == 1234 and seen == [(gh_cost_log._COUNTER_ARGV, None)], f"value={value!r} seen={seen}")
@@ -554,9 +538,9 @@ def t01_counter_failures_read_none():
         return subprocess.CompletedProcess(args, 1, "", "HTTP 401")
 
     subprocess.run = _launch_boom
-    with _patched(_fgh, launch_gh=failed_launch):
+    with patch.object(_fgh, "launch_gh", failed_launch):
         typed = gh_cost_log._read_counter()
-    with _patched(_fgh, launch_gh=nonzero_launch):
+    with patch.object(_fgh, "launch_gh", nonzero_launch):
         nonzero = gh_cost_log._read_counter()
     check("T-01 _read_counter: a typed launch failure and a nonzero counter both read None",
           typed is None and nonzero is None, f"typed={typed!r} nonzero={nonzero!r}")
