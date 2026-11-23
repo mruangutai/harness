@@ -97,8 +97,8 @@ IDEMPOTENT. `open` records issue numbers into feature.json (`github:` block) as 
 creates; a re-run (resume after interruption — DEC-131 taught us flows die mid-step)
 skips anything already recorded rather than duplicating.
 
-Testable offline: GH_SYNC_GH overrides the gh binary (test-gh-sync.py points it at a
-fake that logs calls and returns canned JSON).
+Testable offline: every gh call goes through factory_gh.try_gh/run_gh, so FACTORY_GH, read at
+call time, is the only binary override (tests point it at a fake that logs calls).
 """
 import json
 import copy
@@ -125,12 +125,10 @@ import factory_config
 import factory_gh
 import board_lifecycle
 import gh_board
-import gh_cost_log
 import harness_yaml
 import harness_boundary
 import handoff_policy
 
-GH = os.environ.get("GH_SYNC_GH", "gh")
 
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
 
@@ -251,14 +249,18 @@ def post_body_path(path, flag):
     return path
 
 
+def _gh_failure(result):
+    """A failed GhResult's diagnostic, at most 200 chars: the captured stderr, else stdout, else
+    the typed error (a launch failure captures neither stream)."""
+    return ((result.stderr or result.stdout).strip() or str(result.error))[:200]
+
+
 def gh(args, capture=True):
-    with gh_cost_log.measured(args) as _cost:
-        r = subprocess.run([GH] + args, capture_output=True, text=True)
-        _cost.returncode = r.returncode
-    if r.returncode != 0:
-        # Mid-flight environmental failure (network, auth expiry). Still not a gate.
-        skip(f"gh {' '.join(args[:3])}… failed: {(r.stderr or r.stdout).strip()[:200]}")
-    return r.stdout.strip() if capture else ""
+    result = factory_gh.try_gh(args)
+    if not result.ok:
+        # Mid-flight environmental failure (network, auth expiry, launch). Still not a gate.
+        skip(f"gh {' '.join(args[:3])}… failed: {_gh_failure(result)}")
+    return result.value if capture else ""
 
 
 def gh_try(args):
@@ -270,12 +272,10 @@ def gh_try(args):
     had already written most of its cards, and `post-merge-sweep.py` greps that exact literal
     to decide whether to keep the worktree, so a single unreadable child list would silently
     change worktree behaviour on an otherwise healthy run."""
-    with gh_cost_log.measured(args) as _cost:
-        r = subprocess.run([GH] + args, capture_output=True, text=True)
-        _cost.returncode = r.returncode
-    if r.returncode != 0:
-        return (False, (r.stderr or r.stdout).strip()[:200])
-    return (True, r.stdout.strip())
+    result = factory_gh.try_gh(args)
+    if not result.ok:
+        return (False, _gh_failure(result))
+    return (True, result.value)
 
 
 # ---------- config ----------
@@ -298,12 +298,36 @@ def _unbound_project_config(root):
         refuse(f"harness.json could not be read: {error}")
 
 
-def load_config(root, feat_dir, command):
-    """Resolve the feature before environmental skips, remote writes or local station writes."""
+def _require_gh():
+    """The mirror's gh precondition: a launchable, authenticated gh, else the mirror SKIP."""
+    auth = factory_gh.try_gh(["auth", "status"])
+    if auth.status is None:
+        skip(f"gh could not be launched: {auth.error}")
+    if not auth.ok:
+        skip("gh is not authenticated")
+
+
+def _feature_doc(feat_dir):
+    """feature.json as a mapping ({} when empty); an unreadable one refuses."""
     try:
-        doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+        return artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
     except artifact_accessors.FeatureJsonError as error:
         refuse(str(error))
+
+
+def _sync_off(github, local_status):
+    """For an unbound feature: False when github.sync is on. When it is off, True for a local
+    `status` (which still records locally), else the not-applicable mirror SKIP."""
+    if github.get("sync"):
+        return False
+    if local_status:
+        return True
+    skip("github.sync is not enabled for this project", build_entry="not-applicable")
+
+
+def load_config(root, feat_dir, command):
+    """Resolve the feature before environmental skips, remote writes or local station writes."""
+    doc = _feature_doc(feat_dir)
     bound = feature_schema.has_repository_binding(doc)
     local_status = command == "status"
     replacement = command == "recover-mirror"
@@ -313,16 +337,11 @@ def load_config(root, feat_dir, command):
     _BUILD_ENTRY["repo"] = repo
     if not replacement:
         _provenance_preflight(doc, repo, feat_dir)
-    if not bound and not github.get("sync"):
-        if local_status:
-            return repo, board, issue_types
-        skip("github.sync is not enabled for this project", build_entry="not-applicable")
+    if not bound and _sync_off(github, local_status):
+        return repo, board, issue_types
     if local_status and board is None:
         return repo, board, issue_types
-    if shutil.which(GH) is None:
-        skip(f"{GH} not on PATH")
-    if subprocess.run([GH, "auth", "status"], capture_output=True).returncode != 0:
-        skip("gh is not authenticated")
+    _require_gh()
     if board is None:
         print("gh-sync: no github.board configured — station writes are not attempted")
     return repo, board, issue_types
@@ -792,6 +811,52 @@ def _commit_terminal_station(feat_dir):
     print(f"gh-sync: station done committed as {h.stdout.strip() or '(unknown)'}")
 
 
+def _merged_pull_requests(repo, branch):
+    """BRANCH's parsed merged-pull-request list ([] when unparseable), or None after printing
+    the gh failure line."""
+    args = ["pr", "list", "--repo", repo, "--head", branch, "--state", "merged",
+            "--limit", "10", "--json", "number"]
+    result = factory_gh.try_gh(args)
+    if not result.ok:
+        # A gh failure here is deliberately NOT routed through gh()/skip() — skip()
+        # exits the whole process, which would swallow cmd_ship's remaining work
+        # (the status write). It is the same "no write" shape as zero results.
+        print(f"gh-sync: no merged pull request found on branch {branch} "
+              f"(gh pr list failed: {_gh_failure(result)})")
+        return None
+    try:
+        return artifact_accessors.parse_gh_json(result.stdout, "merged pull request list")
+    except artifact_accessors.ArtifactAccessError:
+        return []
+
+
+def _only_pr_number(found, branch):
+    """The number of FOUND's exactly-one pull request, or None after printing why not."""
+    if not isinstance(found, list) or not found:
+        print(f"gh-sync: no merged pull request found on branch {branch}")
+        return None
+    if len(found) > 1:
+        nums = ", ".join(str(x.get("number")) for x in found if isinstance(x, dict))
+        print(f"gh-sync: branch {branch} is ambiguous — merged pull requests {nums}")
+        return None
+    number = found[0].get("number") if isinstance(found[0], dict) else None
+    if not isinstance(number, int) or isinstance(number, bool):
+        print(f"gh-sync: no merged pull request found on branch {branch}")
+        return None
+    return number
+
+
+def _merged_pr_number(doc, repo):
+    """The number of the recorded branch's exactly-one merged pull request, or None after
+    printing the one line that explains why there is none (see _record_pr)."""
+    branch = doc.get("branch")
+    if not isinstance(branch, str) or branch == "none":
+        print("gh-sync: branch is unset — pr not recorded")
+        return None
+    found = _merged_pull_requests(repo, branch)
+    return None if found is None else _only_pr_number(found, branch)
+
+
 def _record_pr(feat_dir, repo, pr_arg=None):
     """Set feature.json's top-level `pr` to the number of the branch's exactly-one merged
     pull request (T-03, FEAT-26) — the mirror image of `_record_station`: same read pattern,
@@ -822,41 +887,9 @@ def _record_pr(feat_dir, repo, pr_arg=None):
     if isinstance(existing, int) and not isinstance(existing, bool):
         print(f"gh-sync: pr already recorded as #{existing} — not overwritten")
         return
-    if pr_arg is not None:
-        number = int(pr_arg)
-    else:
-        branch = doc.get("branch")
-        if not isinstance(branch, str) or branch == "none":
-            print("gh-sync: branch is unset — pr not recorded")
-            return
-        args = ["pr", "list", "--repo", repo, "--head", branch, "--state", "merged",
-                "--limit", "10", "--json", "number"]
-        with gh_cost_log.measured(args) as _cost:
-            r = subprocess.run([GH] + args, capture_output=True, text=True)
-            _cost.returncode = r.returncode
-        if r.returncode != 0:
-            # A gh failure here is deliberately NOT routed through gh()/skip() — skip()
-            # exits the whole process, which would swallow cmd_ship's remaining work
-            # (the status write). It is the same "no write" shape as zero results.
-            print(f"gh-sync: no merged pull request found on branch {branch} "
-                  f"(gh pr list failed: {(r.stderr or r.stdout).strip()[:200]})")
-            return
-        try:
-            found = artifact_accessors.parse_gh_json(
-                r.stdout, "merged pull request list")
-        except artifact_accessors.ArtifactAccessError:
-            found = None
-        if not isinstance(found, list) or not found:
-            print(f"gh-sync: no merged pull request found on branch {branch}")
-            return
-        if len(found) > 1:
-            nums = ", ".join(str(x.get("number")) for x in found if isinstance(x, dict))
-            print(f"gh-sync: branch {branch} is ambiguous — merged pull requests {nums}")
-            return
-        number = found[0].get("number") if isinstance(found[0], dict) else None
-        if not isinstance(number, int) or isinstance(number, bool):
-            print(f"gh-sync: no merged pull request found on branch {branch}")
-            return
+    number = int(pr_arg) if pr_arg is not None else _merged_pr_number(doc, repo)
+    if number is None:
+        return
 
     outcome = {}
 
@@ -987,8 +1020,10 @@ def record_build_entry(feat_dir, value):
 def ensure_labels(repo, labels):
     """Create any missing labels first. LIVE SMOKE FINDING #1: GitHub rejects an issue
     create naming a label the repo does not define — new repos ship `bug` but not
-    `harness`/`chore`. Errors here are swallowed (label already exists is the common
-    case); the create call below is what surfaces a genuinely broken repo."""
+    `harness`/`chore`. Without --force, gh refuses an existing label with a nonzero exit
+    whose text says `label with name … already exists`; only that result is the idempotent
+    case. Any other failure, a launch failure included, is the mirror SKIP, so no dependent
+    issue write runs against a repo missing the label (FEAT-2452)."""
     # "abandoned": b60205 is THIS function's colour for the label. factory_gh.ensure_labels
     # (a separate implementation, D-04 — three stay three) creates the same label name with
     # `--force` and its own single _LABEL_COLOR, so a run that goes through THAT function
@@ -997,10 +1032,14 @@ def ensure_labels(repo, labels):
     colors = {"harness": "5319e7", "chore": "cccccc", "bug": "d73a4a", "enhancement": "a2eeef",
               "abandoned": "b60205"}
     for l in labels:
-        subprocess.run([GH, "label", "create", l, "--repo", repo,
-                        "--color", colors.get(l, "ededed"),
-                        "--description", "created by harness gh-sync"],
-                       capture_output=True)
+        result = factory_gh.try_gh(["label", "create", l, "--repo", repo,
+                                    "--color", colors.get(l, "ededed"),
+                                    "--description", "created by harness gh-sync"])
+        text = f"{result.stdout}{result.stderr}".lower()
+        exists = (isinstance(result.status, int) and result.status != 0
+                  and "label with name" in text and "already exists" in text)
+        if not (result.ok or exists):
+            skip(f"label {l} could not be created on {repo}: {_gh_failure(result)}")
 
 
 def detect_issue_types(repo):
@@ -1008,9 +1047,8 @@ def detect_issue_types(repo):
     GitHub Issue Types (FEAT-55, REQ-05). Prints exactly one line when the state is
     not "available" and NEVER calls `skip()` or exits — the absence of issue types
     must not fail a run."""
-    r = subprocess.run([GH] + gh_issue_types.capability_query_args(repo),
-                        capture_output=True, text=True)
-    state, declared, message = gh_issue_types.classify_capability(r.returncode, r.stdout)
+    result = factory_gh.try_gh(gh_issue_types.capability_query_args(repo))
+    state, declared, message = gh_issue_types.classify_capability(result.status, result.stdout)
     if state == "absent":
         print(f"gh-sync: issue types unavailable on {repo} - labels only")
     elif state == "query_failed":
@@ -1101,6 +1139,60 @@ def _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared):
 
 
 
+def _replacement_dispatch(feat_dir, rec, role, args):
+    """Dispatch one replacement create through the typed transport and return its successful
+    result. A launch that provably never started (FileNotFoundError/PermissionError chained on
+    the typed launch error) clears the intent; any other launch or decode failure, and any
+    completed failure, keeps it and refuses as uncertain."""
+    recovery = rec["recovery"]
+    try:
+        response = factory_gh.try_gh(args)
+    except (UnicodeError, subprocess.SubprocessError) as error:
+        refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
+               "the durable pending intent must be explicitly reconciled")
+    if response.status is None:
+        cause = response.error.__cause__
+        if isinstance(cause, (FileNotFoundError, PermissionError)):
+            recovery.pop("pending_create")
+            save_recorded(feat_dir, rec)
+            refuse(f"create {role} was not dispatched: {cause}; the recorded intent was cleared")
+        refuse(f"uncertain create in recovery {recovery['id']} for {role}: {response.error}; "
+               "the durable pending intent must be explicitly reconciled")
+    _BUILD_ENTRY["remote_written"] = True
+    if not response.ok:
+        refuse(f"uncertain create in recovery {recovery['id']} for {role}: "
+               f"{_gh_failure(response)}; "
+               "no retry or discovery is permitted; use an evidenced --adopt-receipt")
+    return response
+
+
+def _replacement_number(args, response, json_number, recovery, role):
+    """The positive object number a confirmed replacement create returned; anything else
+    refuses as uncertain with the durable pending intent kept."""
+    try:
+        if json_number:
+            number = artifact_accessors.parse_gh_json(response.stdout, "replacement create response")["number"]
+        else:
+            number = factory_gh.issue_number_from_url(args, response.stdout)
+        if isinstance(number, bool) or not isinstance(number, int) or number <= 0:
+            raise ValueError("create returned no positive object number")
+    except (artifact_accessors.ArtifactAccessError, factory_gh.GhError, KeyError, TypeError,
+            ValueError) as error:
+        refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
+               "the durable pending intent must be explicitly reconciled")
+    return number
+
+
+def _created_issue_number(args, url):
+    """The issue number in an ordinary create's URL (#1542). An unreadable URL is the mirror
+    SKIP: the create may have landed, so nothing is recorded and nothing is created again."""
+    try:
+        return factory_gh.issue_number_from_url(args, url)
+    except factory_gh.GhError as error:
+        skip(f"{error}; the create may have succeeded — find it on GitHub and record it "
+             "before re-running, or a re-run creates a duplicate")
+
+
 def _replacement_create(feat_dir, rec, role, args, *, json_number=False, typed=False):
     """Persist intent before dispatch; an uncertain outcome never permits another create."""
     recovery = rec["recovery"]
@@ -1111,33 +1203,8 @@ def _replacement_create(feat_dir, rec, role, args, *, json_number=False, typed=F
         refuse("signed plan changed during mirror recovery; no create was dispatched")
     recovery["pending_create"] = {"role": role, "started_at": datetime.now(timezone.utc).isoformat()}
     save_recorded(feat_dir, rec)
-    try:
-        with gh_cost_log.measured(args) as cost:
-            response = subprocess.run([GH] + args, capture_output=True, text=True)
-            cost.returncode = response.returncode
-    except (FileNotFoundError, PermissionError) as error:
-        recovery.pop("pending_create")
-        save_recorded(feat_dir, rec)
-        refuse(f"create {role} was not dispatched: {error}; the recorded intent was cleared")
-    except (OSError, UnicodeError, subprocess.SubprocessError) as error:
-        refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
-               "the durable pending intent must be explicitly reconciled")
-    _BUILD_ENTRY["remote_written"] = True
-    if response.returncode != 0:
-        refuse(f"uncertain create in recovery {recovery['id']} for {role}: "
-               f"{(response.stderr or response.stdout).strip()[:200]}; "
-               "no retry or discovery is permitted; use an evidenced --adopt-receipt")
-    try:
-        if json_number:
-            number = artifact_accessors.parse_gh_json(response.stdout, "replacement create response")["number"]
-        else:
-            match = re.search(r"/issues/([1-9][0-9]*)/?$", response.stdout.strip())
-            number = int(match[1]) if match else None
-        if isinstance(number, bool) or not isinstance(number, int) or number <= 0:
-            raise ValueError("create returned no positive object number")
-    except (artifact_accessors.ArtifactAccessError, KeyError, TypeError, ValueError) as error:
-        refuse(f"uncertain create in recovery {recovery['id']} for {role}: {error}; "
-               "the durable pending intent must be explicitly reconciled")
+    response = _replacement_dispatch(feat_dir, rec, role, args)
+    number = _replacement_number(args, response, json_number, recovery, role)
     if role.startswith("task:"):
         rec["issues"][role[5:]] = number
     else:
@@ -1178,10 +1245,10 @@ def _open_ensure_milestone(feat_dir, repo, brief, rec):
         _replacement_create(feat_dir, rec, "milestone", args, json_number=True)
         print(f"gh-sync: milestone #{rec['milestone']} recorded for replacement")
         return
-    r = subprocess.run([GH, *args], capture_output=True, text=True)
-    if r.returncode == 0:
+    result = factory_gh.try_gh(args)
+    if result.ok:
         rec["milestone"] = artifact_accessors.parse_gh_json(
-            r.stdout, "milestone create response")["number"]
+            result.stdout, "milestone create response")["number"]
         print(f"gh-sync: milestone #{rec['milestone']} created for {brief['feat']}")
         _BUILD_ENTRY["remote_written"] = True
     else:
@@ -1192,7 +1259,7 @@ def _open_ensure_milestone(feat_dir, repo, brief, rec):
                   f'[.[] | select(.title == "{brief["feat"]}") | .number] | first'])
         if not out or out == "null":
             skip(f"milestone create failed and no existing one matches: "
-                 f"{(r.stderr or r.stdout).strip()[:200]}")
+                 f"{_gh_failure(result)}")
         rec["milestone"] = int(out)
         print(f"gh-sync: milestone #{rec['milestone']} recovered by title lookup")
     # LIVE SMOKE FINDING #2: record the milestone IMMEDIATELY. The first live run
@@ -1223,7 +1290,7 @@ def _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state):
         else:
             url = gh(args)
             _BUILD_ENTRY["remote_written"] = True
-            rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
+            rec["parent"] = _created_issue_number(args, url)
         if state == "available":
             rec["typed"]["parent"] = "created"
         save_recorded(feat_dir, rec)
@@ -1260,7 +1327,8 @@ def _open_create_task(feat_dir, repo, brief, rec, task, state, milestone_title):
         num = _replacement_create(feat_dir, rec, f"task:{task['id']}", args, typed=state == "available")
     else:
         url = gh(args)
-        num = int(url.rstrip("/").rsplit("/", 1)[-1])
+        _BUILD_ENTRY["remote_written"] = True
+        num = _created_issue_number(args, url)
     rec["issues"][task["id"]] = num
     if state == "available":
         rec["typed"][task["id"]] = "created"
@@ -2436,7 +2504,7 @@ def _backlog_create(feat_dir, repo, feat, nature, title, key, state):
     for l in labels:
         args += ["--label", l]
     url = gh(args)
-    number = int(url.rstrip("/").rsplit("/", 1)[-1])
+    number = _created_issue_number(args, url)
     if state == "available":
         _save_backlog_entry(feat_dir, key, {"number": number, "typed": False})
     print(f"gh-sync: backlog issue #{number} [{', '.join(labels)}] — {title}")

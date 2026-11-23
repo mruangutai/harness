@@ -445,6 +445,25 @@ def main():
         check("abandon --yes: records the terminal station in plan.yaml",
               read_plan_station(featA3) == "abandoned", read_plan_station(featA3))
 
+    # --- #13: a failing REST close keeps the continue policy: diagnostic, later writes, station ---
+    with tempfile.TemporaryDirectory() as tmpA13:
+        featA13, reasonA13 = _abandon_fixture(tmpA13)
+        install_gh(tmpA13, FAKE_GH.replace(
+            'case "$1 $2" in',
+            'case "$*" in\n  *"issues/41 -f state=closed"*) echo "HTTP 502: Bad Gateway" >&2; exit 1 ;;\n'
+            'esac\ncase "$1 $2" in', 1))
+        r = run(["abandon", featA13, "--reason-file", reasonA13, "--yes"], tmpA13)
+        logA13 = calls(tmpA13)
+        check("#13 failing close API: exit 0, the failure is named with its diagnostic",
+              r.returncode == 0 and "could not close" in r.stderr and "#41" in r.stderr
+              and "HTTP 502" in r.stderr and "FAILED 1 of" in r.stdout, r.stdout + r.stderr)
+        check("#13 failing close API: later item writes still run (#42, the parent and the milestone)",
+              any("issues/42" in l and "state_reason=not_planned" in l for l in logA13)
+              and any("issues/40" in l and "state_reason=not_planned" in l for l in logA13)
+              and any("milestones/7" in l and "state=closed" in l for l in logA13), str(logA13))
+        check("#13 failing close API: the abandoned station is still recorded locally",
+              read_plan_station(featA13) == "abandoned", read_plan_station(featA13))
+
     # --- --yes BEFORE the directory behaves identically to --yes after it ----------------------------
     # Without the name-search strip in main(), `abandon --yes <dir>` reads --yes as the feature
     # directory and dies "--yes is not a directory" -- at exactly the moment the operator is being

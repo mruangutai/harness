@@ -46,9 +46,8 @@ def _without_build_entry(feat):
 
 def main():
     # ---------- T-03: gh-sync station writes ----------
-    # BOTH GH_SYNC_GH and FACTORY_GH point at the same fake in every case below — gh_board's
-    # calls go through factory_gh, which reads FACTORY_GH, not GH_SYNC_GH (the fake-binary trap
-    # documented at the top of gh_board.py).
+    # FACTORY_GH is the only binary override: every case below points it at the fake, and
+    # gh_sync_support.run confines the child to it (tests/offline_gh_support.py).
 
     # --- start-task sets the sub-issue's station to Building, then the parent's (D-04) —
     #     two field-sets, distinguishable by item id, never by counting calls.
@@ -342,8 +341,7 @@ def main():
             parent=40,
         )
         r = run(["start-task", featQ2, "T-02"], tmpQ2,
-                {"GH_SYNC_GH": os.path.join(tmpQ2, "no-such-gh"),
-                 "FACTORY_GH": os.path.join(tmpQ2, "no-such-gh")})
+                {"FACTORY_GH": os.path.join(tmpQ2, "no-such-gh")})
         check("loud pair (gh absent): one SKIP line, exit 0",
               r.returncode == 0 and r.stdout.count("SKIP") == 1, r.stdout + r.stderr)
         check("loud pair (gh absent): no item-edit call is even attempted",

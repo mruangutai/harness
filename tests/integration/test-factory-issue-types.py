@@ -3,9 +3,8 @@
 native GitHub Issue Type, suppress the two now-redundant chore/bug labels, refuse before any
 create when a required type is undeclared (REQ-07), and never touch an adopted parent's type
 or an absent-provenance remnant (FEAT-55, REQ-01/REQ-03/REQ-05/REQ-06/REQ-07/REQ-08/REQ-10) —
-against a fake `gh`, installed at FACTORY_GH (never GH_SYNC_GH: see the wiring comment at
-factory_gh.py:91-94 and gh_board.py:8-12 — a fake wired the other way would leave every call
-this module makes going to the real `gh`), that answers the issueTypes capability query,
+against a fake `gh` installed at FACTORY_GH, the only binary override (run_decompose confines the
+child through tests/offline_gh_support.py), that answers the issueTypes capability query,
 `--jq .node_id`, `updateIssue`, and every other call factory_decompose.py's existing surface
 already makes (auth, labels, the remote harness.json contents read, project field-resolve /
 item-add / item-edit, the projectItems recovery query, sub_issues, blocked_by) so a real
@@ -65,6 +64,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 DECOMPOSE = os.path.join(BIN_DIR, "factory_decompose.py")
 sys.path.insert(0, os.path.dirname(TESTS_DIR))
 from harness_config_support import build_config  # noqa: E402
+from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
 
 REPO = "acme/widget"
 FEAT = "FEAT-91-factory-types"
@@ -235,9 +235,8 @@ def stage(tmp, factory=None, feat=FEAT, tasks=None):
 
 def run_decompose(root, feat_dir, fleet_path, gh_path, log_path, harness_b64,
                    fake_types=None, fake_type_apply=None, extra_args=None):
-    env = dict(os.environ)
+    env, sentinel_log = offline_gh_env(gh_path, os.path.dirname(log_path))
     env["HARNESS_PROJECT_DIR"] = root
-    env["FACTORY_GH"] = gh_path
     env["FAKE_LOG"] = log_path
     env["FAKE_REPO"] = REPO
     env["FAKE_HARNESS_JSON_B64"] = harness_b64
@@ -250,10 +249,12 @@ def run_decompose(root, feat_dir, fleet_path, gh_path, log_path, harness_b64,
     else:
         env.pop("FAKE_TYPE_APPLY", None)
     args = [feat_dir, "--repo", REPO, "--fleet", fleet_path] + (extra_args or [])
-    return subprocess.run(
+    result = subprocess.run(
         [sys.executable, DECOMPOSE] + args,
         env=env, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
+    assert_sentinel_unused(sentinel_log)
+    return result
 
 
 def read_log(path):

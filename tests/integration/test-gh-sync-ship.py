@@ -24,6 +24,7 @@ from gh_sync_support import (
     FAKE_GH_SHIP, FAKE_GH_STATIONS, HERE, SYNC, calls, check, edits_to, install_gh,
     moved_to_done, read_feature_json, read_plan_station, report, run, ship_env, stage_ship)
 from git_support import commit_all, init_repo
+from offline_gh_support import assert_sentinel_unused, offline_gh_env
 
 
 def main():
@@ -258,11 +259,12 @@ def main():
                     "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
                     "board_lifecycle.audit_findings = boom\n"
                     f"runpy.run_path({os.path.realpath(SYNC)!r}, run_name='__main__')\n")
-        env = dict(os.environ, FAKE_LOG=os.path.join(tmpSC, "calls.log"),
-                   GH_SYNC_GH=os.path.join(tmpSC, "gh"))
+        env, sentinelSC = offline_gh_env(os.path.join(tmpSC, "gh"), tmpSC)
+        env["FAKE_LOG"] = os.path.join(tmpSC, "calls.log")
         env.update(ship_env(tmpSC, "40=Review 41=Review", children={40: [41]}))
         rSC = subprocess.run([sys.executable, shim, "ship", featSC], capture_output=True,
                              text=True, env=env)
+        assert_sentinel_unused(sentinelSC)
         check("FEAT-64: an unrelated RuntimeError inside the audit escapes ship (traceback, "
               "not 'the board audit could not run')",
               rSC.returncode != 0 and "RuntimeError: unrelated defect" in rSC.stderr
@@ -375,13 +377,13 @@ def main():
         featR = stage_ship(tmpR, "FEAT-52-relative-dir", {"T-01": 41}, parent=40, milestone=7)
         init_repo(tmpR, "main")
         commit_all(tmpR, "fixture")
-        _envR = dict(os.environ)
+        _envR, sentinelR = offline_gh_env(os.path.join(tmpR, "gh"), tmpR)
         _envR["FAKE_LOG"] = os.path.join(tmpR, "calls.log")
-        _envR["GH_SYNC_GH"] = os.path.join(tmpR, "gh")
         _envR.update(ship_env(tmpR, "40=Review 41=Review"))
         _relR = os.path.relpath(featR, tmpR)
         rR = subprocess.run([SYNC, "ship", _relR], cwd=tmpR, capture_output=True, text=True,
                             env=_envR)
+        assert_sentinel_unused(sentinelR)
         planR = os.path.join(featR, "plan.yaml")
         dirtyR = subprocess.run(["git", "status", "--porcelain", "--", planR], cwd=tmpR,
                                 capture_output=True, text=True).stdout.strip()

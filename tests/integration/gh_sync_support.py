@@ -18,6 +18,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 from harness_config_support import build_config, write_config  # noqa: E402
+from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
 import importlib.util
 import json
 import os
@@ -199,24 +200,29 @@ def read_feature_json(path):
         return json.load(f)
 
 
+def _fleet_factory(args):
+    """The `factory` block of the feature.json a gh-sync argv names, or None."""
+    path = os.path.join(args[1], "feature.json") if len(args) > 1 else ""
+    if not os.path.isfile(path):
+        return None
+    with open(path, encoding="utf-8") as source:
+        try:
+            return json.load(source).get("factory")
+        except (ValueError, AttributeError):
+            return None
+
+
 def run(args, tmp, env_extra=None):
-    env = dict(os.environ)
+    """Run gh-sync confined to the tmp fake: FACTORY_GH only, the default-binary sentinel unused."""
     binary = os.path.join(tmp, "gh")
+    env, sentinel_log = offline_gh_env(binary, tmp)
     env["FAKE_LOG"] = os.path.join(tmp, "calls.log")
-    env["GH_SYNC_GH"] = env["FACTORY_GH"] = binary
-    if len(args) > 1 and os.path.isdir(args[1]):
-        path = os.path.join(args[1], "feature.json")
-        if os.path.isfile(path):
-            with open(path, encoding="utf-8") as source:
-                try:
-                    factory = json.load(source).get("factory")
-                except (ValueError, AttributeError):
-                    factory = None
-            if factory and any(key in (env_extra or {}) and env_extra[key] != binary
-                               for key in ("GH_SYNC_GH", "FACTORY_GH")):
-                raise ValueError("fleet tests must bind both transports to the shared fake")
+    if _fleet_factory(args) and (env_extra or {}).get("FACTORY_GH", binary) != binary:
+        raise ValueError("fleet tests must bind FACTORY_GH to the shared fake")
     env.update(env_extra or {})
-    return subprocess.run([SYNC] + args, capture_output=True, text=True, env=env)
+    result = subprocess.run([SYNC] + args, capture_output=True, text=True, env=env)
+    assert_sentinel_unused(sentinel_log)
+    return result
 
 
 def calls(tmp):
@@ -905,7 +911,7 @@ if creating_milestone or creating_task:
             title = next(arg[len("title="):] for arg in args if arg.startswith("title="))
             remote.setdefault(repo, {{}})[str(number)] = title
             save(milestones, remote)
-    elif result.returncode == 0 and remote:
+    elif result.returncode == 0 and remote and result.stdout.strip().rsplit("/", 1)[-1].isdigit():
         issue = int(result.stdout.strip().rsplit("/", 1)[-1])
         assigned = load(issues)
         assigned[repo + "#" + str(issue)] = {{"milestone": selected[0]}}
