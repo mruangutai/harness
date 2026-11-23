@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2397-omp-native-cleanup",
   "branch": "feat/FEAT-2397-omp-native-cleanup",
   "pr": null,
-  "review_sha": "9c38040397bb115583e71b13f1a7ca4bf2f10c2e",
+  "review_sha": "eda06a685fe3aeb89a02d20cffd5a359b08d3c13",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -83,6 +83,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-23T06:38:53+00:00"
+    },
+    {
+      "id": "r-20261122-6-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-23T06:45:32+00:00"
     }
   ],
   "judgements": [
@@ -92,6 +99,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "Four code surfaces (harness-hooks.ts, dispatch-guard.py, validate-digest.py, inject-expertise.py), the CI workflow, many test files and a doctrine pass across ten or more decisions plus SPEC: not patch-scale; confirmed by fable-advisor"
+    },
+    {
+      "at": "2026-11-23T06:45:32+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2: goalcheck-only over SC-04 evidence append eda06a68",
+      "reason": "c1 FAIL was form/med SC-04 receipt provenance only; lead requested evidence-only append, source byte-identical between pins"
     }
   ],
   "mission": "plan",
