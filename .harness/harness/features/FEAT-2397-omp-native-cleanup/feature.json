@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2397-omp-native-cleanup",
   "branch": "feat/FEAT-2397-omp-native-cleanup",
   "pr": null,
-  "review_sha": "eda06a685fe3aeb89a02d20cffd5a359b08d3c13",
+  "review_sha": "1133d63c55c8994f7c809f7be73616d049ab163b",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -98,6 +98,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-23T06:48:47+00:00"
+    },
+    {
+      "id": "r-20261122-7-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-23T07:07:00+00:00"
     }
   ],
   "judgements": [
@@ -121,6 +128,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "PR #2441 CI FAIL post-c2-PASS (unit test-omp-hooks x5, env-hermeticity defect, fix dfe27d14+c1eb9eaa test-only); rework round 2 of 2 under the signoff ruling; narrow qa+code re-validate per AdvisorC13PostValidateFix"
+    },
+    {
+      "at": "2026-11-23T07:07:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "same Main resumes validate past the seq-6 ship handoff; post-validate CI defect reopened the phase"
     }
   ],
   "mission": "plan",
