@@ -58,8 +58,17 @@
       "id": "r-20261123-4-amend-apply-product",
       "squad": "product",
       "agent": "harness-product-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-23T14:26:56+00:00"
+      "verdict": "PASS",
+      "started_at": "2026-11-23T14:26:56+00:00",
+      "tokens": 93220,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-4-amend-apply-product/digest.md",
+        "sha256": "b4e7793b12cdbf71d4fd64d2ca58b0d948d0ac6b9efcf4618e03fc8da56247f9"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T15:01:00+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
