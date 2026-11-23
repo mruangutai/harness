@@ -31,7 +31,7 @@ def _feat65_fire(sibling, override, argv=(), stdin=None):
         handle.write("\n\n" + override)
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(root, FEAT65_ROUTE), "content": _state()}}
-    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     return subprocess.run([os.path.join(iso, "check-domain.py"), *argv],
                           input=json.dumps(payload) if stdin is None else stdin,
                           capture_output=True, text=True, env=env)
@@ -113,7 +113,7 @@ def _feat2274_cases():
     whose harness_boundary.py cannot be imported are each ONE stdout unavailable line at exit
     0. A normal pass, the main session's pass and a deliberate denial emit none."""
     root = fixture(FIXTURE_MANIFEST)
-    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     unreadable = subprocess.run([os.path.join(ROOT, ".claude", "skills", "harness", "bin",
                                               "check-domain.py")],
                                 input="{not json", capture_output=True, text=True, env=env)
@@ -129,8 +129,7 @@ def _feat2274_cases():
                "tool_input": {"file_path": os.path.join(bare, "anything.md"), "content": "x"}}
     no_boundary = subprocess.run([os.path.join(bare_bin, "check-domain.py")],
                                  input=json.dumps(payload), capture_output=True, text=True,
-                                 env=dict(os.environ, CLAUDE_PROJECT_DIR=bare,
-                                          HARNESS_PROJECT_DIR=bare))
+                                 env=dict(os.environ, HARNESS_PROJECT_DIR=bare))
     passed = _fire_new(_state("2"), "f2274-pass")
     main_session = fire_write_payload(root, os.path.join(root, "notes.md"), "x")
     denied = fire(fixture(FIXTURE_MANIFEST), "forbidden/x.md")
@@ -372,7 +371,7 @@ def _strict_hook_payload_case():
         + json.dumps(target) + ',"content":"x"}}'
     )
     hook = os.path.join(ROOT, ".claude", "skills", "harness", "bin", "check-domain.py")
-    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     result = subprocess.run(
         [hook], input=payload, capture_output=True, text=True, env=env)
     if result.returncode == 0:

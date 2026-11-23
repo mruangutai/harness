@@ -115,7 +115,7 @@ class AuditFindings(unittest.TestCase):
     def test_a_fresh_clone_still_reports_every_baseline_finding(self):
         with F.sparse_fixture() as fx:
             clone = fx.clone()
-            env = dict(F.ENV, HARNESS_PROJECT_DIR=clone, CLAUDE_PROJECT_DIR=clone)
+            env = dict(F.ENV, HARNESS_PROJECT_DIR=clone)
             proc = subprocess.run([sys.executable, str(BIN / "check-state.py")], env=env,
                                   cwd=clone, capture_output=True, text=True)
         now = finding_keys(proc.stdout + proc.stderr)

@@ -82,7 +82,7 @@ def audit_mismatch(caller, disk_owner):
 
 
 def check_state(root):
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root,
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root,
                GH_BIN="/nonexistent-gh")
     proc = subprocess.run([sys.executable, str(BIN / "check-state.py")], env=env, cwd=root,
                           capture_output=True, text=True)

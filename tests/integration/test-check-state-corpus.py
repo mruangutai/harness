@@ -31,7 +31,7 @@ NO_INVARIANT_RAN = "no invariant ran"
 
 
 def check(checkout, *args, script=CHECK, opens=None):
-    env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout, CLAUDE_PROJECT_DIR=checkout)
+    env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout)
     argv = [sys.executable, str(script), *args]
     if opens is not None:
         env["OPEN_LOG"] = opens
