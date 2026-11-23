@@ -1,0 +1,116 @@
+{
+  "feature_id": "BUG-2420-plan-merge-first-task-station",
+  "branch": "feat/BUG-2420-plan-merge-first-task-station",
+  "pr": null,
+  "review_sha": "2b5b8b2aa7f411d515641ef0c73c0e6f7a7e07cd",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T03:27:23+00:00",
+      "tokens": 46127,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-patch-product/digest.md",
+        "sha256": "5b25c964976bd4eef4f189902dad1ae4a1a3af21f0722b24113c3679ed20c3cf"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T03:32:57+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-02-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T03:37:35+00:00",
+      "tokens": 34438,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-02-patch-product/digest.md",
+        "sha256": "2bc847acfd2b6c2b506b0acffbacc4296b3bfe810433473931a80d6ca113b479"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T03:41:22+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T03:52:00+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-03-validate-validator/digest.md",
+        "sha256": "810757e3a082a0f8a97352248c08711ac7e6dfff3c3cf7c5fa6f1c9415afdbd6"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:12:14+00:00"
+    },
+    {
+      "id": "2026-11-22-04-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T04:15:22+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-04-validate-validator/digest.md",
+        "sha256": "fa95fbb798b6117a2a0e321badbf4cc342eca632ea1cb8187ae48ab43b18f4d7"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:27:32+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T03:27:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Cause known: stations.py _status_in_task returns None for a status-less task and cmd_set_task_station treats it as a missing task; diff bounded to plan_merge/stations.py and its tests; no interface, schema or enforcement surface"
+    },
+    {
+      "at": "2026-11-23T04:15:23+00:00",
+      "by": "main",
+      "kind": "regate",
+      "decision": "validate cycle 1",
+      "reason": "c0 code-reviewer med/substance (membership test oracle) fixed at f08cc8f7 per AdvisorC5PatchMerge; rework round 1 of 1"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "11923cd23c9ef091d2c48cc15990890cad0637f566c3a28b60dcedac01e9afa1"
+  },
+  "github": {
+    "milestone": 132,
+    "parent": 2425,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2426
+    },
+    "source_issues": [
+      2420
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
