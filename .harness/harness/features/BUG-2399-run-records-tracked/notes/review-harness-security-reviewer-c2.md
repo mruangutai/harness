@@ -1,0 +1,13 @@
+# Security review c2 — BUG-2399 — r-20261122-5-validate-validator
+
+**PASS — no exploitable security regression in the pinned delta.** Reviewed `ec95d8fb6167cfe199c4a30d4b20860d852c48f0..54c702c7af73568249d51c07771c7727b6003b1f`. In scope: operator-interpreted migration instructions and publication/provenance of newly committed evidence. Findings and must-fix: none.
+
+- **Measured census:** 13 changed paths, 1,185 insertions / 8 deletions. Exactly one path outside this feature directory changes: `.claude/skills/harness/references/checkout-upgrade.md` (8 added / 7 removed lines). Its three path rewordings describe the same UI subtree and namespaced/legacy layouts; no executable command changes. No production code, ignore input, test, dependency or permission change occurs in this delta.
+- **Operator consequences (T/I):** pinned `checkout-upgrade.md:38-84` still requires paused work, isolated review, explicit quoted selections with `git --literal-pathspecs add --`, cached-list inspection and a separate commit before resuming. The merger does not stage or publish records. The new wording locates both layouts under the target checkout's `.harness` directory; it does not redirect execution to the control plane. UI/lock exclusions and refusal to force-add remain. SC-02/SC-04 and D-01's security-relevant instructions are preserved; pinned DEC-257 confirms the unchanged policy.
+- **Other twelve paths:** feature metadata records the prior pin, completed run and judgement; the build note explains c2; five reader notes and the run digest record c1 assurance; identity/state and two QA manifests publish validation metadata. Assessed these as evidence/provenance and disclosure surfaces, not new executable ingress. Run UUIDs are identifiers, not credentials. Full-delta credential/URL/private-key-term inspection found no introduced credential material. The c1 digest and manifests explicitly bind their assurance to `ec95d8fb`, not this c2 pin.
+- **Unchanged assurance:** `notes/review-harness-security-reviewer-c1.md` covers full `59289ad1..ec95d8fb`, including exact-rule merger input handling, literal pathspec staging, disclosure review, lifecycle evidence preservation and SC-04 retention consistency. The measured delta above leaves those implementations and gates untouched; this review inherits that bounded remainder, not an unmeasured blanket approval.
+
+Checks: pinned Git diff/show and full-delta credential-term inspection only. No tests, builds, lint, formatting or source edits; QA owns current-pin execution. Prior run results are documentary evidence, not newly executed verification.
+
+## Open questions
+None.
