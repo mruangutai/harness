@@ -35,3 +35,26 @@ below.
 tracked feature.json: 34
 exit=0
 ```
+
+## SC-04: the exact executed check (appended after c1, closing the form finding)
+
+`t02-transient-executed-check.sh` holds the exact bytes executed for both transient receipts. It
+is 2208 bytes, sha256 `0b89614e55489428936ad5aaff1b46850fcde67ed9a1c57c422c36764e9783fd`. Those bytes are `plan.yaml` `tasks[1].verify` verbatim, plus one
+trailing newline, extracted with
+`python3 -c "import yaml;print(yaml.safe_load(open('<FD>/plan.yaml'))['tasks'][1]['verify'])" > /tmp/t02v.sh`.
+No rerun was made for this append. The outputs, refs and exits above are the original
+receipts.
+
+The invocation for each ref, from the worktree:
+
+```
+D=$(mktemp -d); git archive <ref> | tar -x -C $D
+(cd $D && unset HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR HARNESS_PROJECT_DIR && bash /tmp/t02v.sh) > t02-transient-<ref8>.txt 2>&1
+echo "ref=<ref8> exit=$?" | tee -a t02-transient-<ref8>.txt
+```
+
+- `<ref>` = `522c94b2b79e5e2021cb670910772428c17914b0`: exit 1.
+- `<ref>` = `f5c89121`: exit 0.
+
+The script itself exports `HARNESS_PROJECT_DIR="$PWD"` (its line 2), so it reads the
+archived tree it runs in.
