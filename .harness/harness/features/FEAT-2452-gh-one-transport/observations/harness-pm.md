@@ -1,0 +1,7 @@
+# Observations — harness-pm — FEAT-2452-gh-one-transport
+
+- 2026-11-23: Removing a dual override pin from test support makes old code fall back to the default binary on inherited PATH; a red run is only safe if an offline PATH sentinel lands before the regression, and a factory-only override passing at baseline is not discriminating.
+- 2026-11-23: Grilling "no DEC amendments" collided with DEC-205/254 when a settled deletion (gh_bin) falsifies a present-tense implementation sentence in a kept DEC; check each kept DEC whole section for implementation claims the plan deletes, not only its policy clause.
+- 2026-11-23: gh label create (no --force) on an existing label prints "label with name X already exists; use --force ..." with no 422 (cli/cli pkg/cmd/label/create.go); a milestone-style 422 conjunction would reject the idempotent case.
+- 2026-11-23: plan-merge check enforces a 50 machine-field-line budget per task (DEC-182); a literal file list in a verify heredoc blew it, derive the list from plan.yaml instead.
+- 2026-11-23: an SC demanding variable X be absent from test support conflicts with a confinement that strips X by name; strip by prefix (GH_*) to satisfy both.

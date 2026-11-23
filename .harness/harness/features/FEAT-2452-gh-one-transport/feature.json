@@ -1,0 +1,68 @@
+{
+  "feature_id": "FEAT-2452-gh-one-transport",
+  "branch": "feat/FEAT-2452-gh-one-transport",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261123-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-23T13:32:47+00:00",
+      "tokens": 80271,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-1-plan-product/digest.md",
+        "sha256": "8c17f60c08066fb1ca76ec09293b8e1af1ffd6880c7280c2da3dd388827b1c1d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T14:07:15+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261123-2-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T14:07:16+00:00",
+      "tokens": 103439,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-2-simplify-eng/digest.md",
+        "sha256": "19e43a50233a1d2d8305a5b35b4df79749fdd69788456a2fe11d47dde992ab80"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T14:13:49+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261123-3-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T14:13:50+00:00",
+      "tokens": 76147,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-3-simplify-apply-product/digest.md",
+        "sha256": "c82659e389a40cba675e98e03f6c716dabbb3c6e7ea59d093b7af9665c0f71c8"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T14:22:03+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T13:32:46+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "factory_gh transport plus mirror, wayfind, board_lifecycle, gh_cost_log, ~10 tests, a reference doc: not patch-scale; factory_gh is in check-state's chain so DEC-174 forces main-session-direct; confirmed by fable-advisor"
+    }
+  ],
+  "mission": "plan"
+}

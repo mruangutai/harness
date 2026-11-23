@@ -1,0 +1,338 @@
+schema: plan/1
+feature: FEAT-2452-gh-one-transport
+approval:
+  status: pending
+drafted_at: '2026-11-23T13:41:33Z'
+status: plan
+source_issues: [2452]
+panel:
+  last_run: r-20261123-1-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-3bfe1e6fa1d390a01608f9f4691e5d27
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-02/T-03 need a safe and discriminating caller-level single-override red run
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-500b6edeb3f44a1077e3d17823d19094
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-04 must distinguish an HTTP 404 process failure from a status-zero strict-JSON failure
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-1d616c71fa78e2127146432752890b56
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-02 must migrate two stale recovery test patches and verify mirror telemetry after cutover
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-264d65c0b4c11c8fc335feb5240c3635
+    severity: med
+    reader: scope
+    kind: form
+    summary: Decision dispositions omit DEC-220 and DEC-167 and do not account for DEC-138’s explicit implementation clause
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-f10c24fc64326826c94b4b2326fd8010
+    severity: low
+    reader: scope
+    kind: form
+    summary: T-05 should name the live probe receipt and distinguish capability readback from SKIP/0
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-e4b1875dab5b26b1e625b00544388f1e
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: Divergence (e)'s planned realization already exceeds its settled cost-free bar — a dual-spelling 422 matcher ("already exists" text plus structured "already_exists") and a five-scenario regression matrix in T-02 for an unreported behavior
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-3cf5ab1247b91727827d2acdc2d6b56a
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-05's instruction to fold issue 893/1542/13 "repaired evidence" into github-mirror.md embeds changelog material in a living, agent-loaded policy reference
+    disposition: resolved
+    scope: task
+    resolved_by: T-05
+lanes:
+  resolved_at: 47d6c54de1d91459f84f61ca92e27a47ba553308
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      agent: harness-backend-dev
+      reason: DEC-174 shared transport is a check-state dependency; all build work is direct.
+    - surface: tests/**
+      lane: main-session-direct
+      agent: harness-backend-dev
+      reason: Keep transport and enforcement-sensitive caller regression work in the direct cutover.
+    - surface: .claude/skills/harness/references/github-mirror.md
+      lane: main-session-direct
+      agent: harness-documentor
+      reason: Policy reference is delivered with the direct transport cutover.
+    - surface: .harness/harness/features/FEAT-2452-gh-one-transport/notes/**
+      lane: main-session-direct
+      agent: harness-documentor
+      reason: Main files the signed enforcement backlog body and records its readback.
+decisions:
+  - id: D-01
+    choice: Consolidate operator and library execution in factory_gh while keeping caller failure policy outside the transport; reject native issue/pr read URIs and run_watch as code replacements.
+    because: Rendered cached Markdown lacks the strict typed JSON contract, and native watch has no Python entry point or current polling caller; rewriting mirror flows would change settled policy.
+    dec: none
+  - id: D-02
+    choice: Retain only call-time FACTORY_GH and remove GH_SYNC_GH, its resolver, all caller/test pins and the dual-pin doctrine without an alias.
+    because: A compatibility override preserves the offline escape and telemetry mismatch behind issue 893.
+    dec: none
+decisions_affected:
+- dec: DEC-138
+  disposition: keep
+  clause: 'A remote
+
+    write failure does not gate development; an invalid repository binding or unproven local mirror
+
+    does refuse the command before any local station change or remote mutation.'
+  successor: none
+  reason: Transport represents failures while mirror policy, provenance and local authority remain unchanged.
+- dec: DEC-138
+  disposition: keep
+  clause: 'each caller keeps its own
+
+    runner, because'
+  successor: none
+  reason: 'Kept under the settled no-amendment scope: caller-specific failure policy, argv builders and the write-only import guard hold, but after T-02/T-04 the adjacent present-tense claims that gh_bin lives in gh_issues.py and each caller launches gh itself are literally stale under DEC-205; raised as open question OQ-1 for ruling at signature, not amended.'
+- dec: DEC-146
+  disposition: keep
+  clause: Flip stays best-effort by design — only the lookup direction changed.
+  successor: none
+  reason: Shared launch handling does not turn board projection into a gate.
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful;
+  successor: none
+  reason: Every implementation task is main-session-direct because factory_gh is reached by check-state.
+- dec: DEC-144
+  disposition: keep
+  clause: 'unverifiable states (gh missing, unauthenticated) DENY with the reason rather than waving
+
+    work through.'
+  successor: none
+  reason: The branch gate and its GH_BIN executor are excluded and its divergence becomes a separate ticket.
+- dec: DEC-166
+  disposition: keep
+  clause: human-visible surface, so the plan is shown first), and the script refuses to run at all when
+  successor: none
+  reason: Tracker ownership and dry-run behavior stay at the caller rather than moving into transport.
+- dec: DEC-200
+  disposition: keep
+  clause: 'An already-recorded number is never
+
+    overwritten, which is what makes a backfill re-runnable.'
+  successor: none
+  reason: PR list transport migrates without altering exactly-one result or no-write continuation policies.
+- dec: DEC-203
+  disposition: keep
+  clause: 'It derives expected placements through the shared projection, compares every card
+
+    against one bounded station snapshot per invocation, applies each finding to that finding''s issue
+
+    number, and continues after a per-card write failure so later mismatches are still attempted.'
+  successor: none
+  reason: Reconcile and abandonment continue independently after per-item failures; lifecycle and recovery ownership are unchanged.
+- dec: DEC-167
+  disposition: keep
+  clause: And the gist is written by the tool, not remembered by a human.
+  successor: none
+  reason: T-04 moves resolve parent lookup and the mandatory gist append onto factory_gh with byte-exact stdin and fail-closed parent reads; the required gist, map discovery and comment/close/gist ordering are unchanged.
+- dec: DEC-220
+  disposition: keep
+  clause: 'A provably undispatched failure may clear that intent; an uncertain result or failed
+
+    confirmed save preserves it and refuses with the recovery id and role.'
+  successor: none
+  reason: T-02 reclassifies replacement-create launch failures from the chained typed cause; only provably undispatched missing/permission launches clear intent, every uncertain outcome still preserves it and refuses.
+- dec: DEC-220
+  disposition: keep
+  clause: 'absence means the
+
+    post-signature transaction did not complete.'
+  successor: none
+  reason: T-02 marks the remote-write attempt for typed malformed-response and launch failures so Build-entry never claims not-applicable after a create; receipt values and Build gating are unchanged.
+tasks:
+  - id: T-01
+    title: Establish one typed transport and a non-measured launch primitive
+    traces: [SC-01, SC-02, SC-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 factory_gh is imported by the check-state dependency chain; no team implementation.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/factory_gh.py#run_gh
+      - .claude/skills/harness/bin/gh_cost_log.py#_read_counter
+      - tests/unit/test-factory-gh.py#recorder
+      - tests/unit/test-gh-cost-log.py#check
+    verify: |
+      python3 .claude/skills/harness/bin/run_pool.py --workers 4 tests/unit/test-factory-gh.py tests/unit/test-gh-cost-log.py tests/unit/test-check-state-inv26-routing.py tests/integration/test-check-state-inv26.py
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport; never delegate execution. Consult its AGENTS.md, .harness/harness/docs/SPEC.md sections 3.3 and 9, .harness/harness/docs/DECISIONS.md DEC-138/146/174/200/203 and module contracts. The generic docs/spec.md, docs/decisions.md and docs/architecture.md are absent; SPEC section 3.3 and existing modules supply applicable architecture guidance.
+      Add a small frozen GhResult with status int-or-None, stdout str, stderr str, value object-or-None, error GhError-or-None, and a derived ok property equal to error is None. Add try_gh(args, json_out=False, *, input=None): on success retain raw streams and real process status, and set value to strict parsed JSON or stripped stdout; on known transport, nonzero or JSON failure return error plus original captured streams/status and value None. A JSON failure with process status zero must have ok false. Catch only GhError; programming exceptions continue to escape. Preserve launch exception chaining and original diagnostic attributes. GhResult.status, stdout and stderr are the authoritative process facts: status is None only on launch failure, and callers classify on these result fields, never on result.error attributes such as error.status, which the preserved rate-limit diagnosis may set to None after a completed nonzero process. Add no field for this. No retries or process deadlines.
+      Replace the existing private launch entry with public launch_gh(args, *, input=None), the sole subprocess and call-time FACTORY_GH resolution boundary. It returns a captured text CompletedProcess, does not measure, interpret nonzero exits, or parse JSON, and types FileNotFoundError and other OSError as GhError with status None. With input None close stdin through DEVNULL; with text input pass that input without also passing stdin. Remove obsolete resolver/launcher aliases and migrate their tests.
+      try_gh measures exactly once around launch_gh; preserve current rate-limit diagnosis and its recursion guard without retrying the failed operation. run_gh becomes the raising adapter over this result, returning value or raising its GhError; preserve existing run_gh positional calls, strict duplicate-key/nonfinite JSON rejection and no stdout side effects. Add keyword input support for the later wayfind gist migration.
+      gh_cost_log._read_counter calls launch_gh, never run_gh or try_gh, using a function-local factory_gh import after module initialization to avoid the existing factory_gh-to-gh_cost_log import cycle. Remove its independent binary resolver/subprocess execution. Keep opt-in recording and None-on-counter-failure policy, no counter self-measurement, unchanged return-code accounting, and exact counter guard. Delete factory_gh's old gh_issues binary-override warning and update cost coverage prose to describe the shared seam. Do not create a second low-level transport module.
+      Add issue_number_from_url(args, output) in factory_gh and reuse it from create_issue. Accept a complete http/https GitHub issue URL ending /issues/ followed by a positive ASCII decimal number and an optional trailing slash; reject malformed, zero, non-ASCII and oversized integer tails as GhError with argv and original output, never raw ValueError. Preserve the existing factory error grammar. Add failing-first parser cases including the successful URL contract; this is the shared parsing boundary used by T-02 and T-04 for issue 1542.
+      Write the unit regressions first and record real failing-first evidence before production edits. Cover success/raw streams/JSON null, nonzero, missing binary, permission/general OSError, strict malformed/duplicate/nonfinite JSON, unexpected exception escape, input forwarding, call-time FACTORY_GH, and both import orders with no import-time gh call. Enable telemetry with one fake binary and assert exactly before-counter, operation, after-counter launches, no nested counters and no real gh. Adapt the existing gh_issues.gh_bin monkeypatch assertions so T-04 can remove that API without a shim. Keep the existing gh-sync gh() wrap-site ON/OFF cases in test-gh-cost-log.py transport-agnostic: they keep intercepting the shared subprocess.run module attribute and assert counter, operation, counter plus one cost line when ON and one launch with no line when OFF, so the same unchanged assertions hold before and after T-02. This task's run observes only the old mirror wrapper; the post-cutover mirror telemetry proof is T-02's verify rerun of this file and the final cumulative unit gate, not T-01. Expected verify exit 0 with all four selected scripts PASS; the two check-state INV-26 scripts are run, never edited, so a factory_gh import or alias break in the enforcement dependency chain surfaces at this task, and T-05's final boundary re-proves them cumulatively; suite results and fail-first evidence belong in later QA, not this planning run.
+  - id: T-02
+    title: Migrate mirror transports and close URL and abandon failure gaps
+    traces: [SC-01, SC-02, SC-04, SC-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 direct transport cutover includes all mirror callers and shared offline fixtures.
+    depends_on: [T-01]
+    status: ready
+    files:
+    - .claude/skills/harness/bin/gh-sync.py#gh
+    - tests/integration/gh_sync_support.py#run
+    - tests/integration/test-gh-sync-open.py#main
+    - tests/integration/test-gh-sync-start-task.py#main
+    - tests/integration/test-gh-sync-record.py#main
+    - tests/integration/test-gh-sync-abandon.py#main
+    - tests/integration/test-gh-sync-ship.py#main
+    - tests/integration/test-gh-sync-board-add.py#main
+    - tests/integration/test-gh-issue-types.py#run
+    - tests/integration/test-gh-backlog-issue-types.py#run
+    - tests/integration/test-factory-integration.py#main
+    - tests/integration/test-factory-issue-types.py#run_decompose
+    - tests/unit/test-gh-sync-build-entry.py#check
+    - path: tests/offline_gh_support.py
+      create: true
+    verify: |
+      python3 .claude/skills/harness/bin/run_pool.py --workers 4 tests/unit/test-gh-sync-build-entry.py tests/unit/test-gh-cost-log.py tests/integration/test-gh-sync-open.py tests/integration/test-gh-sync-start-task.py tests/integration/test-gh-sync-record.py tests/integration/test-gh-sync-abandon.py tests/integration/test-gh-sync-ship.py tests/integration/test-gh-sync-board-add.py tests/integration/test-gh-issue-types.py tests/integration/test-gh-backlog-issue-types.py tests/integration/test-factory-integration.py tests/integration/test-factory-issue-types.py
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport; never delegate execution. Consult AGENTS.md, .harness/harness/docs/SPEC.md sections 3.3 and 9, .harness/harness/docs/DECISIONS.md DEC-138/146/174/200/203/220 and github-mirror.md. Generic docs/spec.md, docs/decisions.md and docs/architecture.md are absent; SPEC and module contracts supply applicable guidance.
+      Preserve gh-sync command flows, argv, routing, signed local authority, immediate receipts, and caller-specific policies for open, start-task, status, abandon, reject, backlog, ship and recovery. Replace every gh subprocess path, including gh, gh_try, auth, label creation, type capability, PR list, ordinary milestone and replacement create, with factory_gh.try_gh or run_gh. Remove GH, GH_SYNC_GH, duplicate measurement/imports and direct launch code, not merely the two wrappers. gh retains SKIP/0 and capture=False behavior; gh_try retains its tuple contract and 200-character failure diagnostic by explicitly translating the typed result. Launch failures now reach these same policies without traceback. Preserve the PR list no-write/continue behavior and exactly-one/readback restrictions; capability failure, including launch and malformed JSON, still prints labels-only compatibility rather than SKIP. Do not change command policy simply because the common transport raises.
+      Check each mirror label-create result: stop dependent issue writes via mirror SKIP on real failure, but accept as the prior idempotent case only this label-exists condition, spelled once here and cited verbatim by T-03: result.status is a nonzero integer (never None, which is a launch failure) and the lowercased concatenation of result.stdout and result.stderr contains both label with name and already exists, the text gh label create prints for an existing label without --force (it carries no 422). Every other result, including a launch failure, is a real failure. Preserve all existing per-label colors and absence of force; do not call factory ensure_labels with different semantics. Add regression for failed first label, no dependent issue create, existing-label acceptance with the fake exiting 1 and printing gh's existing-label stderr label with name "harness" already exists; use --force to update its color and description, and unchanged colors.
+      Ordinary milestone create uses the typed result; the title lookup is permitted only when the failed result's captured stdout plus stderr, lowercased, contains both 422 and already exists, the same local conjunction factory_gh.create_ref already applies. No second spelling, structured error-code parsing, helper or recovery framework. Any other failure, including a launch failure, takes ordinary SKIP without a lookup. Add exactly two regressions: a 422 already-exists failure performs the title lookup and records the milestone; a 401 failure skips with no lookup call. This is divergence (e), settled as first to cut: if this inline conjunction over the existing typed result would need a helper, a further spelling or more regression cases, do not implement (e); keep today's lookup behavior and return to PM so the settled cut lever and the SC-04 wording are recorded at re-signature. Replacement milestones never use this ordinary lookup.
+      Fold issue 1542 into ordinary parent/task create handling. Validate the returned /issues/positive-decimal-number URL using T-01's factory_gh.issue_number_from_url(args, output), which catches invalid/oversized int conversion as GhError. Do not edit factory_gh in this task. In gh-sync use the shared parser and translate its failure to actionable ordinary mirror SKIP, never a receipt with a false number, traceback, or automatic second create. Apply the same shared parser to every other gh-sync issue-create URL parse: _backlog_create maps its GhError to the ordinary skip with no backlog receipt written, and _replacement_create's non-JSON URL branch replaces its local regex with the parser and adds GhError to its existing except, so a malformed URL still refuses as an uncertain create with the durable pending intent preserved. No issue-URL grammar other than factory_gh.issue_number_from_url remains in gh-sync. Mark the remote-write attempt consistently so Build-entry does not claim not-applicable after a successful create with unreadable response. Keep replacement create's stronger durable intent, refusal/exit 2 and explicit-adoption-only contract. Preserve safe FileNotFoundError/PermissionError intent clearing by examining the chained typed launch cause; uncertain OSError/Unicode/SubprocessError and post-dispatch/nonzero/malformed response retain pending intent and refuse with no retry/discovery.
+      Fold issue 13 into a regression where abandon receives a failing REST close/API result: assert diagnostic, later item writes and local abandoned recording, without changing the existing continue policy. Keep required reject halt behavior. Add failing-first tests for launch errors in gh and gh_try, ordinary URL malformation for both parent and task, backlog create URL malformation in test-gh-backlog-issue-types.py (SKIP, no backlog receipt, no traceback), checked label creation, the two milestone cases above, and abandoned API failure; retain all existing safety assertions.
+      Migrate every override assignment and retired D-11 dual-pin header/comment in the owned integration files and gh_sync_support to FACTORY_GH only, including its env_extra safety assertion, missing-binary cases and factory-journey bridge; this closes issue 893. Confinement lands first and must hold for the old code too. Before any production edit, create tests/offline_gh_support.py as the one home of the offline contract; the tests root is already on sys.path for unit and integration tests. It exposes offline_gh_env(fake_path, tmp) returning (env, sentinel_log): env is a copy of os.environ with every inherited variable whose name starts with GH_ removed (this covers the retired override and any gh host or token configuration without naming the retired variable), FACTORY_GH set to fake_path, and PATH prefixed by a new directory under tmp holding only an executable named gh that appends its argv to sentinel_log and exits 97 without network access; it raises AssertionError if fake_path lies inside that directory. It also exposes assert_sentinel_unused(sentinel_log), which passes when the log is absent or empty and otherwise fails naming the logged argv. Then make gh_sync_support.run and every owned runner build its child environment through offline_gh_env and call assert_sentinel_unused after each case; no runner re-implements any part of this contract. Then write the failing-first caller-level single-override regression in test-gh-sync-open.py: run the real gh-sync open on an offline fixture with only FACTORY_GH set, HARNESS_GH_COST_LOG=1 and HARNESS_PROJECT_DIR pointing at a tmp root carrying harness_boundary.MARKER; assert_sentinel_unused passes, the fake call transcript holds the expected mirror operations each bracketed by gh_cost_log._COUNTER_ARGV, which the regression imports rather than restating the argv, and the tmp gh-cost log holds one line per measured operation. Any default-binary dispatch fails this regression even when the mirror exits 0 through SKIP. Record its red run against the old gh-sync before the production cutover. In test-gh-sync-open.py, move replacement_undispatched_case and replacement_confirmed_save_failure_cases off patching the removed module GH attribute onto call-time FACTORY_GH through patch.dict on os.environ, pointing at the not-installed path and the tmp fake respectively; preserve the provably-undispatched missing-binary and confirmed-create/failed-save durable-intent assertions. Never retain a GH_SYNC_GH compatibility pin or alias. Do not edit tests/unit/test-gh-cost-log.py, which T-01 owns: this task's verify reruns its unchanged gh-sync wrap-site telemetry cases to prove mirror telemetry after the cutover, and a failure there returns to PM for ownership correction rather than an edit here. T-03 owns the board-specific fixtures; T-04 owns removal of the gh_issues.gh_bin binary resolver, and the argv builders stay. T-03 and T-04 import tests/offline_gh_support.py without editing it. Expected verify exit 0 with every selected script PASS; existing duration weights with four workers put this focused pool below 60 seconds, not a new production deadline.
+  - id: T-03
+    title: Route lifecycle label creation through the shared seam and cut over board fixtures
+    traces: [SC-01, SC-02, SC-04, SC-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 shared board dependencies and regression tests stay in the direct cutover.
+    depends_on: [T-02]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/board_lifecycle.py#_ensure_abandoned_label
+      - .claude/skills/harness/bin/gh_board.py#set_station
+      - tests/unit/test-gh-board.py#fake_gh
+      - tests/integration/test-board-lifecycle.py#_stub_env
+      - tests/integration/test-board-station.py#run
+    verify: |
+      python3 .claude/skills/harness/bin/run_pool.py --workers 3 tests/unit/test-gh-board.py tests/unit/test-gh-board-item-add.py tests/integration/test-board-lifecycle.py tests/integration/test-board-station.py
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport; never delegate execution. Consult AGENTS.md, .harness/harness/docs/SPEC.md sections 3.3 and 9, .harness/harness/docs/DECISIONS.md DEC-138/146/174/203 and module contracts. Generic docs/spec.md, docs/decisions.md and docs/architecture.md are absent; SPEC and module contracts supply applicable guidance.
+      Replace board_lifecycle._ensure_abandoned_label's private GH_SYNC_GH subprocess with the factory transport. Check failure before attaching the label or doing dependent per-card writes; accept as idempotent only T-02's label-exists condition, verbatim: result.status is a nonzero integer (never None, which is a launch failure) and the lowercased concatenation of result.stdout and result.stderr contains both label with name and already exists. Do not write a second, broader or narrower matcher. Keep abandoned color b60205, description and existing absence of force; do not substitute factory ensure_labels. A real failure raises GhError into the existing per-card reconciliation catch, which reports it, continues to later cards, and retains the residual finding/exit 1. Do not change provision/audit/retitle policies or board-station's error/exit-0 behavior.
+      Delete the retired dual-binary rationale in board_lifecycle and gh_board docstrings, replacing it with the single FACTORY_GH contract. Migrate test-gh-board.py, every lifecycle test header/comment and _stub_env, and board-station header/runner to only FACTORY_GH. Remove all owned GH_SYNC_GH occurrences, not just assignments. Preserve BoardError translation, unrelated RuntimeError escape, and current board projection semantics.
+      Confinement lands before any production edit and must hold for the old code too: test-gh-board.py fake_gh, test-board-lifecycle _stub_env and the board-station runner build their environment with T-02's tests/offline_gh_support.offline_gh_env (in-process cases apply it through patch.dict on os.environ with clear=True) and call its assert_sentinel_unused in every board case; do not re-implement confinement or edit that module and record the red run against the old board_lifecycle before the cutover. Write the lifecycle label-create regression first: nonzero and launch failure must not attach a label after failed creation, later cards must still be attempted, and residual exit must be 1; include existing-label acceptance with the fake exiting 1 and printing the same gh existing-label stderr as T-02's regression, and unchanged color/force argv. Keep board-station non-JSON board failure as one diagnostic/exit 0 and factory raising paths at exit 2 through existing wrapper coverage. One-fake board calls must never reach real gh. Expected verify exit 0 and all four focused scripts PASS, under 60 seconds by the existing lifecycle/station durations. No gate/auth executor or GH_BIN edit.
+  - id: T-04
+    title: Migrate wayfinding with fail-closed reads and strict JSON
+    traces: [SC-01, SC-02, SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 full transport migration is direct; do not dispatch a separate implementation team.
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/wayfind.py#gh_json
+      - .claude/skills/harness/bin/gh_issues.py#gh_bin
+      - tests/unit/test-wayfind.py#main
+    verify: |
+      python3 .claude/skills/harness/bin/run_pool.py --workers 2 tests/unit/test-wayfind.py tests/unit/test-factory-gh.py
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport; never delegate execution. Consult AGENTS.md, .harness/harness/docs/SPEC.md sections 3.3 and 9, .harness/harness/docs/DECISIONS.md DEC-138/166/167/174, and wayfind's module contract. Generic docs/spec.md, docs/decisions.md and docs/architecture.md are absent; SPEC and module contracts supply applicable guidance.
+      Replace wayfind gh_json, do and append_gist subprocess launches with factory_gh. gh_json uses strict JSON results and raises GhError on malformed/duplicate/nonfinite payloads rather than returning raw text. Remove allow_fail; allow absence only for blockers and parent_of through a local helper that returns absence only when the typed result is a completed gh process whose result.status is a nonzero integer (never None, which is a launch failure) AND result.stderr carries an explicit HTTP 404 marker; never exit 1 alone, an unrelated occurrence of the digits 404, or any status-zero result. A status-zero result with malformed JSON raises the strict-JSON GhError even when its stderr mentions HTTP 404. Keep this classification local because no other caller needs the same policy. blockers returns [] and parent_of returns None only for that case. Auth, timeout-like remote failure, network, other HTTP and launch errors propagate GhError, so frontier cannot print eligible work and resolve cannot comment/close/gist after an unverified parent. Keep unrelated defects visible.
+      Catch GhError once at the CLI entry to print the existing wayfind-prefixed actionable diagnostic and exit 1 without a Python traceback; internal functions remain typed for tests. Move ticket's issue-create command off gh_json onto the text run_gh form because successful gh issue create returns a URL, then use the shared typed issue-URL parser from T-01 before its internal-id/attach sequence. This is not permission to accept invalid JSON for actual JSON reads. Preserve dry-run mutation printing and zero mutation launches when apply is false, all label colors, argv and comment/close/gist ordering. append_gist forwards the exact new_body through run_gh input with --body-file -, not a temporary file or direct subprocess.
+      Delete gh_issues.gh_bin and its unused os import, plus its docstring claim that a shared executor must pick one caller policy. Keep all REST argv builders and internal-id-versus-number semantics unchanged. All production callers and tests migrate; no alias or import re-export. The factory transport test monkeypatch was already migrated in T-01.
+      Write failing-first regressions for blocker 401/403/500/network/launch and parent failures, genuine nonzero HTTP 404 absence, exit 1 without HTTP 404 not treated as absence, misleading 404 text not accepted, status zero with malformed JSON plus HTTP 404 in stderr raising GhError rather than absence, valid strict JSON, invalid/duplicate/nonfinite JSON raising GhError, frontier no eligibility on failed reads, resolve no writes after parent uncertainty, text URL create success and malformed URL, dry-run no mutation, and byte-exact gist stdin. Assert one FACTORY_GH fake handles the migrated paths; wherever these tests launch gh, before the production edit, build the environment with T-02's tests/offline_gh_support.offline_gh_env applied through patch.dict on os.environ with clear=True and call its assert_sentinel_unused, so the old gh_issues.gh_bin default can never reach real GitHub; do not re-implement confinement or edit that module. Expected verify exit 0 and both scripts PASS; no instruction or gate changes, retries or deadline additions.
+  - id: T-05
+    title: Publish caller policy and file the excluded enforcement defects
+    traces: [SC-02, SC-06, SC-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_agent: harness-documentor
+    execution_reason: Main owns the signed external backlog posting and final policy/readback evidence in this direct build.
+    depends_on: [T-04]
+    status: ready
+    files:
+    - path: .claude/skills/harness/references/github-mirror.md
+      quote: '## Failure has four shapes, not one'
+    - path: .claude/skills/harness/bin/factory_cli.py
+      quote: 'Contract:'
+    - tests/manual/probe-issue-types.py#main
+    - path: .harness/harness/features/FEAT-2452-gh-one-transport/notes/enforcement-backlog.json
+      create: true
+    - path: .harness/harness/features/FEAT-2452-gh-one-transport/notes/issue-types-live-probe.txt
+      create: true
+    verify: |
+      python3 - <<'PY'
+      import json, pathlib, re, yaml
+      root = pathlib.Path.cwd()
+      ref = (root / '.claude/skills/harness/references/github-mirror.md').read_text()
+      assert 'Caller-to-failure-policy' in ref
+      assert all(word in ref for word in ('gh_try', 'SKIP', 'board-station', 'reconcile', 'factory', 'wayfind', 'gh_cost_log', 'subprocess deadlines', 'exit 2'))
+      cli = (root / '.claude/skills/harness/bin/factory_cli.py').read_text().split('import json')[0]
+      assert 'nothing mutated); exit 3' not in cli
+      receipt = json.loads((root / '.harness/harness/features/FEAT-2452-gh-one-transport/notes/enforcement-backlog.json').read_text())
+      assert type(receipt['number']) is int and receipt['number'] > 0
+      assert receipt['url'] == 'https://github.com/mruangutai/harness/issues/' + str(receipt['number'])
+      assert receipt['title'] == 'Enforcement GitHub reads must not trust unverified state' and receipt['state'] == 'OPEN'
+      assert all(word in receipt['body'] for word in ('branch-create-gate.py', 'merge-gate.py', 'nonempty stdout', 'return code', 'local branch', 'head read'))
+      repo = json.loads((root / '.harness/harness.json').read_text())['github']['repo']
+      probe = (root / '.harness/harness/features/FEAT-2452-gh-one-transport/notes/issue-types-live-probe.txt').read_text().splitlines()
+      assert probe and not any('SKIP' in line for line in probe)
+      assert any(line.startswith('probe-issue-types: CAPABILITY PRESENT ' + repo + ' ') or line == 'probe-issue-types: CAPABILITY ABSENT ' + repo + ' declares no native issue types' for line in probe)
+      plan = yaml.safe_load((root / '.harness/harness/features/FEAT-2452-gh-one-transport/plan.yaml').read_text())
+      owned = {(f if isinstance(f, str) else f['path']).split('#')[0] for t in plan['tasks'] for f in t['files']}
+      owned = sorted(rel for rel in owned if not rel.startswith('.harness/'))
+      assert 'tests/offline_gh_support.py' in owned and len(owned) == 29
+      for rel in owned:
+          text = (root / rel).read_text()
+          assert 'GH_SYNC_GH' not in text, rel
+          assert not re.search(r'\bD-11\b', text), rel
+      print('PASS policy vocabulary, exit-2 correction, enforcement-ticket readback, live capability receipt and retired-override absence')
+      PY
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport; never delegate execution. Consult AGENTS.md, .harness/harness/docs/SPEC.md sections 3.3 and 9, .harness/harness/docs/DECISIONS.md DEC-138/146/166/174/200/203/220 and existing module contracts. Generic docs/spec.md, docs/decisions.md and docs/architecture.md are absent; SPEC and module contracts supply applicable guidance. This task changes policy explanation and records a signed backlog deliverable, not policy or executors.
+      Add a Caller-to-failure-policy table in github-mirror.md with explicit condition, caller outcome/exit and partial-write/recovery columns. Cover mirror gh SKIP/0, gh_try tuple and per-item continue, local binding refusal/2, checked mirror label-create SKIP, ordinary milestone 422-existing-only lookup, uncertain replacement-create refusal/2 with no retry/discovery and durable intent, PR-list no-write/continue, issue-type query compatibility downgrade, board projection best effort, board-station BoardError diagnostic/0, factory GhError/2 potentially after writes, lifecycle audit/provision distinctions, reconcile continuation with residual exit 1, wayfind fail-closed reads/typed JSON and CLI exit 1, and telemetry None-on-failure with unmeasured counters. Explain FACTORY_GH only, why policies are at callers, and that subprocess deadlines are a conscious non-goal: a hung gh can hang every consolidated operator path. State the untouched gate/auth executors keep their private GH_BIN/deadline semantics and the backlog ticket is not their fix. Reconcile the existing four-shapes prose if it overpromises continuation; do not widen DEC-138/146 or change instruction ownership/checkpoints.
+      Correct factory_cli.py's opening exit-2 false no-mutation claim: exit 2 is refusal/failure and may follow irreversible remote writes, with concrete factory_land push/PR and factory_decompose receipt examples; preserve exit codes and the distinct lost-race claim, no executable change. Remove retired-override mentions from probe-issue-types.py comments while retaining its hardcoded real gh behavior and unchecked cleanup unchanged. Keep github-mirror.md to current policy rows; issue 893, 1542 and 13 closure history and evidence belong in the feature ship record and commit trail, never in the reference.
+      File one real mruangutai/harness backlog issue titled Enforcement GitHub reads must not trust unverified state. Use this signed body verbatim: Separate enforcement work deferred by FEAT-2452. branch-create-gate.py trusts nonempty stdout without checking the issue-read return code; a nonzero command with output can therefore be accepted as verified state. merge-gate.py falls back to the local branch when its remote head read fails; a merge verdict can therefore be reached on unverified state. Plan an enforcement-layer repair and independent regression tests for each condition under DEC-100, DEC-144 and DEC-174. Do not change either executor, its GH_BIN, check_state/ctx auth, or timeout policy in FEAT-2452. Issues 588 and 846 remain separate and open.
+      Main posts that exact body after signature using gh issue create, deriving the issue number at execution rather than pinning a reusable literal. If a receipt already exists reuse its recorded number; if create dispatch becomes uncertain stop and request evidenced adoption, never retry or discover by title. Read back the created issue with gh issue view --repo mruangutai/harness NUMBER --json number,title,state,url,body and save its exact JSON to the owned notes/enforcement-backlog.json. No fake issue or proposed-body-only receipt counts. This artifact is an SC-backed output, not an open question.
+      Before the review pin, run the listed focused verification (exit 0/PASS), then the normal configured unit/integration and mandatory repository-state/CI merge gates once at their owning final validation boundary, not after each task. Include check-state's existing INV-26 coverage because the shared library is its dependency, without editing enforcement tests/executors. Before ship, Main runs the registered default read-only probe python3 tests/manual/probe-issue-types.py with no opt-in argument on a credentialled host and saves its exact stdout to notes/issue-types-live-probe.txt. Only a probe-issue-types: CAPABILITY PRESENT line or the probe-issue-types: CAPABILITY ABSENT line naming the pinned .harness/harness.json github.repo counts. A SKIP line (gh missing, unauthenticated, sync disabled or query failed) also exits 0 but is not live evidence: fix the host and rerun, or stop and report; never save SKIP as the receipt. Offline doubles never prove live capabilities. Reviewers inspect policy and no enforcement edits through the actual pinned diff and git show review_sha:path. The verify asserts GH_SYNC_GH and D-11 are absent from every non-.harness file in the files lists of T-01 through T-05 as read from this plan.yaml, which includes T-02's tests/offline_gh_support.py; none of those files carries an unrelated D-11 reference, historical feature artifacts are outside that list, and github-mirror.md does not name the retired override either. If any further active match is found outside these task-owned files, return it for PM scope correction before editing; do not silently leave an active alias. No DEC amendments, signing, panel authoring or production deadline work.
