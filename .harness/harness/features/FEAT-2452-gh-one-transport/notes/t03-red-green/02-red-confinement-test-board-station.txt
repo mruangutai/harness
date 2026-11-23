@@ -1,0 +1,19 @@
+PASS  board-station moves the named issue to the named station
+PASS  the field-set invocation actually carries the issue number and the station
+PASS  an explicitly null board still exits 0 having written nothing
+PASS  board-station reports a failed item-add as a BoardError on stderr naming issue and station, and exits 0
+PASS  board-station rejects a missing argument with exit 2
+PASS  board-station rejects a UNICODE-digit argument with exit 2, not a traceback
+PASS  board-station rejects a Unicode digit int() ACCEPTS, so no card moves silently
+PASS  board-station rejects an over-cap digit string with exit 2, not a traceback
+PASS  board-station outside a harness root writes nothing and exits 0
+PASS  board-station with github.sync false writes nothing and exits 0
+PASS  board-station exits 0 when set_station's gh returns a body that does not decode (GhError)
+PASS  FEAT-64: an unrelated RuntimeError inside set_station escapes (non-zero, not ERROR/exit 0)
+PASS  board-station refuses a CAPITALISED station, exit 2, nothing written
+PASS  board-station's refusal NAMES all six stations so the operator can act on it
+PASS  board-station refuses 'abandoned' — a real status, but not a station
+PASS  an invalid station does NOT override the sync-off exit-0 no-op
+
+all pass
+exit=0

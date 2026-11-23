@@ -5,13 +5,11 @@ Modeled on `test-gh-board.py`, its nearest sibling: same `check()` shape (PASS +
 name on success, a line beginning FAIL on failure), and the same `write_harness_json`-style
 temporary-root fixture.
 
-**THE FAKE-BINARY TRAP, and it is not optional.** `factory_gh.run_gh` finds `gh` through the
-`FACTORY_GH` environment variable; `gh-sync.py` (and this tool, `board-station.py`, deliberately
-mirroring it) reads `GH_SYNC_GH`... except `board-station.py` imports `gh_board` directly and
-never reads `GH_SYNC_GH` itself — but the FAKE must still be wired through BOTH variables, because
-a test that injects through one alone risks a future refactor routing some call through the other
-and silently reaching the REAL `gh`. EVERY case here sets BOTH `FACTORY_GH` and `GH_SYNC_GH` to
-the SAME fake. No case in this file may reach the real `gh` binary or the real board.
+**ONE BINARY OVERRIDE: `FACTORY_GH`.** `board-station.py` imports `gh_board`, whose every call goes
+through `factory_gh`, which reads `FACTORY_GH` at call time. Every case builds its environment with
+`tests/offline_gh_support.offline_gh_env`: FACTORY_GH names the fake, every inherited `GH_*`
+variable is dropped, and a sentinel `gh` heads PATH. `assert_sentinel_unused` then proves no case
+reached the default binary, the real board or the network.
 
     ./test-board-station.py    -> exit 0 all pass, 1 otherwise
 """
@@ -28,6 +26,7 @@ import sys
 import tempfile
 
 from harness_config_support import write_config  # noqa: E402
+from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -130,19 +129,26 @@ def run(tmp, args, gh_script=FAKE_GH_OK, cwd=None):
     (the fake writes nothing until it is actually invoked)."""
     gh_path = install_gh(tmp, gh_script)
     log_path = os.path.join(tmp, "calls.log")
-    env = dict(os.environ)
-    env["FACTORY_GH"] = gh_path
-    env["GH_SYNC_GH"] = gh_path
+    env, sentinel_log = offline_gh_env(gh_path, tmp)
     env["FAKE_LOG"] = log_path
     r = subprocess.run(
         [sys.executable, SCRIPT] + args,
         capture_output=True, text=True, env=env, cwd=cwd or tmp,
     )
+    _check_offline(sentinel_log)
     lines = []
     if os.path.isfile(log_path):
         with open(log_path) as f:
             lines = [l for l in f.read().splitlines() if l]
     return r, lines
+
+
+def _check_offline(sentinel_log):
+    """Record a FAIL when the default-binary sentinel ran; silent otherwise."""
+    try:
+        assert_sentinel_unused(sentinel_log)
+    except AssertionError as exc:
+        check("no case dispatches the default gh binary", False, str(exc))
 
 
 # ---------------- case 1: the station-write case ----------------
@@ -271,8 +277,10 @@ with tempfile.TemporaryDirectory() as tmp:
                 "gh_board.set_station = boom\n"
                 "sys.argv = ['board-station.py'] + sys.argv[1:]\n"
                 f"runpy.run_path({SCRIPT!r}, run_name='__main__')\n")
-    env = dict(os.environ, HARNESS_PROJECT_DIR=tmp, FACTORY_GH=install_gh(tmp, FAKE_GH_OK))
+    env, sentinel_log = offline_gh_env(install_gh(tmp, FAKE_GH_OK), tmp)
+    env["HARNESS_PROJECT_DIR"] = tmp
     r = subprocess.run([sys.executable, shim, "326", "plan"], capture_output=True, text=True, env=env, cwd=tmp)
+    _check_offline(sentinel_log)
     check("FEAT-64: an unrelated RuntimeError inside set_station escapes (non-zero, not ERROR/exit 0)",
           r.returncode != 0 and "RuntimeError" in r.stderr and not r.stderr.startswith("board-station: ERROR - "),
           f"rc={r.returncode} stderr={r.stderr[-300:]!r}")
