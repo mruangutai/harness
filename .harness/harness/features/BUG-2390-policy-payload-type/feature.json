@@ -2,7 +2,7 @@
   "feature_id": "BUG-2390-policy-payload-type",
   "branch": "none",
   "pr": null,
-  "review_sha": "79db636b50aa6547edb2b16591f7c26c721f0b47",
+  "review_sha": "780f9138dc3423c45368aa5334f06bd2532e0e8f",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
