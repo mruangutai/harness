@@ -1,0 +1,38 @@
+{
+  "bug:Opt-in HARNESS_GH_COST_LOG persists inline issue and comment body text to the local cost log (non-public content disclosed when opted in)": {
+    "number": 2472,
+    "typed": true
+  },
+  "bug:check-domain refuses QA's in-pin perturbation edit although DEC-153 sanctions in-pin perturbation proofs; decide which is wrong, the grant or the rule": {
+    "number": 2473,
+    "typed": true
+  },
+  "chore:Pinned checkouts lack node_modules, so test-typescript-typecheck is red until bun install --frozen-lockfile": {
+    "number": 2474,
+    "typed": true
+  },
+  "bug:gh-sync abandon prints no abandoned-label create failure when every close fails": {
+    "number": 2475,
+    "typed": true
+  },
+  "chore:test-gh-sync-abandon-sources unit seam never asserts the labels event": {
+    "number": 2476,
+    "typed": true
+  },
+  "chore:wayfind coverage gaps: no non-string frontier title case; no cmd_map test, so the null-payload exit 1 is unpinned": {
+    "number": 2477,
+    "typed": true
+  },
+  "bug:bash-write-guard refuses a redirect target containing a shell variable while literal /tmp paths pass": {
+    "number": 2478,
+    "typed": true
+  },
+  "chore:Decompose the grade-1 legacy main() in test-gh-sync-open, test-gh-sync-abandon and test-gh-sync-ship": {
+    "number": 2479,
+    "typed": true
+  },
+  "chore:Validate's QA matrix omits CI's checks job (canonical-reader audit, check-plan-routes); FEAT-2452's inventory drift was caught only by a local CI-parity run": {
+    "number": 2480,
+    "typed": true
+  }
+}
