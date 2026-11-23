@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai
   status: approved
 drafted_at: '2026-11-23T02:54:34Z'
-status: review
+status: done
 source_issues: [2398]
 panel:
   last_run: 2026-11-22-01-plan-product
