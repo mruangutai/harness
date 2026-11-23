@@ -1,0 +1,75 @@
+schema_version: 2
+run_id: r-20261122-4-validate-validator
+run_uid: d6936a2a8bba427e9e916baa1761789d
+feature: FEAT-2397-omp-native-cleanup
+squad: validator
+host: harness-validator-lead
+status: failed
+review_sha: 53a89eb70251d1529dbffd8e50959c4590a032f7
+steps:
+  - id: qa
+    persona: harness-qa
+    status: complete
+    verdict: FAIL
+    cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    artifact: .harness/harness/features/FEAT-2397-omp-native-cleanup/notes/review-harness-qa-c0.md
+    note: Corrected SC-03 red-first and SC-12 grading interpretation; no suite rerun.
+    evidence:
+      unit_selected: 67
+      unit_exit: 1
+      integration_selected: 95
+      integration_exit: 0
+      typecheck_exit: 0
+      tracked_features: 34
+      repository_state_exit: 1
+  - id: code
+    persona: harness-code-reviewer
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2397-omp-native-cleanup/notes/review-harness-code-reviewer-c0.md
+    evidence:
+      changed_functions: 155
+      changed_tests_below_bar: 2
+      canonical_grade_functions: 80
+      canonical_grade_exit: 0
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2397-omp-native-cleanup/notes/review-harness-security-reviewer-c0.md
+    evidence:
+      census_paths: 136
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2397-omp-native-cleanup/notes/review-harness-ui-reviewer-c0.md
+    evidence:
+      in_scope: false
+      census_paths: 136
+  - id: goalcheck
+    persona: harness-pm
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2397-omp-native-cleanup/notes/research-FEAT-2397-omp-native-cleanup-goalcheck-validate-c0.md
+    evidence:
+      operator: partial
+      code_maintainer: partial
+      orchestrator: pass
+      partial_dispositions: [DEC-214]

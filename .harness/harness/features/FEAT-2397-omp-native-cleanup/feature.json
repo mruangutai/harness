@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-2397-omp-native-cleanup",
   "pr": null,
   "review_sha": "53a89eb70251d1529dbffd8e50959c4590a032f7",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -58,8 +58,16 @@
       "id": "r-20261122-4-validate-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-23T05:53:32+00:00"
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-23T05:53:32+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-4-validate-validator/digest.md",
+        "sha256": "67f39364d5640731423d6f9025565d895900696c33104f15ff4f96b00aff6eac"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-23T06:11:11+00:00"
     }
   ],
   "judgements": [
