@@ -16,29 +16,23 @@ digest as check-state cycle evidence (#2294). Pruning twice is a no-op the secon
 entry or a ui/ that is a symlink is never followed into a deletion: it is printed as
 `skipped runs/<id> (symlink)` and left alone.
 
-After pruning, every surviving non-UI file of each run recorded in feature.json `runs[]` —
-digest.md, state.yaml, .run-identity.json, panel and acceptance records, nested qa/ manifests,
-anything else outside `runs/<id>/ui/` — is force-staged (`git add -f`, since `runs/**` is
-ignored) and printed as `staged runs/<id>/<path>`, so the ship commit `[harness:human]
-<flow-id>: prune run evidence at ship` carries the records CI's check-state needs (#2399).
-A linked run directory or linked subdirectory is never walked, a symlinked file is never
-staged, and an unrecorded run is never staged. --dry-run prints `would remove` / `would stage`
-and changes neither files nor the git index.
+Run records are tracked like any artifact (DEC-257): the orchestrator's normal feature-directory
+commit carries them, so the pruner only deletes UI lanes and never runs git or touches the index.
+--dry-run prints `would remove` and changes nothing.
 
   prune-run-evidence.py --feature FEAT-NN-slug [--root DIR] [--keep RUN-ID ...] [--dry-run]
 
-Exit 2 is refusal, before anything changes: no such feature, no review_sha (nothing is shipped,
-so nothing is pruned), a --keep naming no run directory, or any recorded cycle_evidence path
-missing from disk (every missing path is named). Exit 1 is a failure: a recorded run holds a
-subtree it cannot read (every unreadable path is named, found before anything changes, so
-nothing is pruned or staged — dry-run reports it too), or `git add` failed.
+Exit 2 is refusal, before anything changes (dry-run included): no such feature, no review_sha
+(nothing is shipped, so nothing is pruned), a --keep naming no run directory, or any recorded
+cycle_evidence path missing from disk (every missing path is named). Exit 1 is a failure, also
+found before anything changes (dry-run included): a recorded run holds a directory it cannot
+read (every unreadable directory is named), so nothing is pruned.
 """
 import argparse
 import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -175,43 +169,24 @@ def _recorded_run_ids(record):
     return sorted(i for i in ids if i not in ("", ".", "..") and os.path.basename(i) == i)
 
 
-def _run_files(feature_dir, name, unreadable):
-    """runs/<name>/… of every real file outside runs/<name>/ui/. A linked run directory yields
-    nothing; os.walk does not descend linked subdirectories; linked files are skipped. A directory
-    os.walk cannot list is appended to `unreadable` rather than silently left out."""
+def _unreadable_dirs(feature_dir, name):
+    """Every directory under runs/<name>/ outside its ui/ that os.walk cannot list. A linked run
+    directory is never walked and os.walk does not descend linked subdirectories."""
     run_dir = os.path.join(feature_dir, "runs", name)
     if os.path.islink(run_dir) or not os.path.isdir(run_dir):
         return []
-    found = []
+    unreadable = []
     def note(error):
         unreadable.append(os.path.relpath(error.filename, feature_dir).replace(os.sep, "/"))
-    for current, dirs, files in os.walk(run_dir, onerror=note):
+    for current, dirs, _files in os.walk(run_dir, onerror=note):
         if current == run_dir and "ui" in dirs:
             dirs.remove("ui")
-        relative = os.path.relpath(current, feature_dir).replace(os.sep, "/")
-        found += [f"{relative}/{f}" for f in files if not os.path.islink(os.path.join(current, f))]
-    return found
+    return unreadable
 
 
-def _stage_paths(feature_dir, record):
-    """(every non-UI file of every recorded run, every unreadable directory among them)."""
-    unreadable = []
-    paths = sorted(p for name in _recorded_run_ids(record) for p in _run_files(feature_dir, name, unreadable))
-    return paths, sorted(unreadable)
-
-
-def _stage(feature_dir, paths, dry_run):
-    """Force-stage the recorded runs' non-UI files; 0, or 1 when git fails."""
-    for path in paths:
-        print(f"{'would stage' if dry_run else 'staged'} {path}")
-    if dry_run or not paths:
-        return 0
-    added = subprocess.run(["git", "--literal-pathspecs", "add", "-f", "--pathspec-from-file=-", "--pathspec-file-nul"],
-                           cwd=feature_dir, input="\0".join(paths), capture_output=True, text=True)
-    if added.returncode != 0:
-        sys.stderr.write(f"prune-run-evidence: git add -f failed: {added.stderr.strip()}\n")
-        return 1
-    return 0
+def _unreadable_records(feature_dir, record):
+    """Every unreadable directory under every recorded run, sorted."""
+    return sorted(p for name in _recorded_run_ids(record) for p in _unreadable_dirs(feature_dir, name))
 
 
 def _pre_mutation_refusal(feature_dir, record, present, explicit):
@@ -235,12 +210,12 @@ def main(argv=None):
     refusal = _pre_mutation_refusal(feature_dir, record, present, args.keep)
     if refusal:
         return _refuse(refusal)
-    paths, unreadable = _stage_paths(feature_dir, record)
+    unreadable = _unreadable_records(feature_dir, record)
     if unreadable:
         sys.stderr.write(f"prune-run-evidence: cannot read recorded run content: {', '.join(unreadable)}\n")
         return 1
     _prune(feature_dir, present, keep, args.dry_run)
-    return _stage(feature_dir, paths, args.dry_run)
+    return 0
 
 
 if __name__ == "__main__":
