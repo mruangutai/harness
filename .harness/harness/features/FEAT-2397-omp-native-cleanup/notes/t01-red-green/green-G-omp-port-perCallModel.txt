@@ -1,0 +1,38 @@
+ok    FEAT-64: an unrelated RuntimeError in the config reader escapes check-omp-port (traceback, not 'cannot read')
+ok    Agent Skills path links to the authored skills tree
+ok    live .omp/config.yml pins task.perCallModel to the string off
+ok    a task.perCallModel absent pin fails the off assertion
+ok    a task.perCallModel on pin fails the off assertion
+ok    a task.perCallModel eval pin fails the off assertion
+ok    live provider-neutral tree passes
+ok    missing AGENTS.md fails
+ok    missing guidance is named
+ok    concrete model in canonical agent fails
+ok    provider coupling is named
+ok    thinking-level disagreeing with alias fails
+ok    both values are named
+ok    missing explicit async enablement fails
+ok    async liveness contract is named
+ok    task wall clock limit fails
+ok    wall-clock contract is named
+ok    task.structured absent fails
+ok    task.structured boolean false fails
+ok    task.structured string 'true' fails
+ok    task.structured integer 1 fails
+ok    task.structured boolean true passes
+ok    missing OMP child lifecycle wiring fails
+ok    lifecycle wiring gap is named
+ok    wrong-bus mutant still carries the marker string
+ok    a lifecycle handler registered on pi.on fails
+ok    the wrong-bus gap is named
+ok    missing plan-sign-gate.py wiring fails
+ok    sign-gate wiring gap is named
+ok    nonblocking nested Harness agent fails
+ok    nested supervision contract is named
+ok    missing command door fails
+ok    missing door is named
+ok    absent canonical command root fails
+ok    absent canonical root names all four doors
+
+35/35 cases passed
+exit=0

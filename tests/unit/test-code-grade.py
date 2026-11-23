@@ -244,7 +244,6 @@ SELF_GRADING_ALLOWLIST = {
     ("test-check-plan-routes.py", "case_23"): 1,
     ("test-check-plan-routes.py", "case_24"): 1,
     ("test-validate-digest.py", "run_cli_cases"): 1,
-    ("test-validate-digest.py", "run_t09"): 1,
     ("test-validate-digest.py", "run_hook_cases"): 2,
 }
 

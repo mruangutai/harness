@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """OMP task preflight — enforce governed dispatch contracts.
 
-Registered in `.omp/extensions/harness-hooks.ts`. The guard rejects model
-overrides, validates feature/run-directory routing, and records single-flight claims.
+Registered in `.omp/extensions/harness-hooks.ts`. The guard validates feature/run-directory
+routing and records single-flight claims. A per-call model is native policy's: the repo's
+`.omp/config.yml` pins `task.perCallModel: off` (FEAT-2397).
 
 WAS A .sh (issue #1674). The Python policy previously ran behind two shell-launched
 interpreters: one derived run-directory grants with user site-packages available and
@@ -166,7 +167,7 @@ except artifact_accessors.ArtifactAccessError as e:
     sys.exit(0)
 
 agent = d.get("agent_type") or ""
-runtime = d.get("harness_runtime") or "claude"
+runtime = d.get("harness_runtime")
 omp_main = (
     agent == "Main"
     and runtime == "omp"
@@ -177,23 +178,9 @@ if not agent.startswith("harness-") and not omp_main:
     sys.exit(0)  # ungoverned host session or a non-harness agent.
 
 ti = d.get("tool_input") or {}
-model = ti.get("model")
-if model and not omp_main:
-    print(f"dispatch-guard: BLOCKED — {agent} passed model: {model!r} in a dispatch.",
-          file=sys.stderr)
-    print("  A member runs on the model pinned in its agent frontmatter — that pin is org design",
-          file=sys.stderr)
-    print("  (DEC-152 tiers), not a dispatch option. If this task genuinely needs a stronger model,",
-          file=sys.stderr)
-    print("  that is an ESCALATION: raise it in open_questions with the evidence and let it be",
-          file=sys.stderr)
-    print("  decided above you and recorded (DEC-155). Re-dispatch without the model parameter.",
-          file=sys.stderr)
-    sys.exit(2)
-
 # A named subagent is a persistent, addressable peer; the org runs plain subagents whose
 # only identity is the persona and the feature line (DEC-233). The playbook says never to
-# pass `name:`, and until now nothing checked. Same shape as the `model:` refusal above.
+# pass `name:`, and until now nothing checked.
 name_param = ti.get("name")
 if name_param and not omp_main:
     print(f"dispatch-guard: BLOCKED — {agent} passed name: {name_param!r} in a dispatch.",
@@ -209,7 +196,7 @@ if name_param and not omp_main:
 # T-08 — the single-flight claim (issue #551). EVERY branch below fails OPEN.
 #
 # ---------------------------------------------------------------------------
-dispatched = ti.get("subagent_type") or ti.get("agent") or ""
+dispatched = ti.get("agent") or ""
 if not dispatched.startswith("harness-"):
     # A gap of OURS, said out loud rather than swallowed — the precedent this file already
     # sets above, and that validate-digest.py sets again in its own pass-through line.
@@ -240,7 +227,7 @@ if authored_lineage:
 # THE DISPATCH DECLARES ITS FEATURE (FEAT-42 T-18, issue #742). This is the ONE site in the
 # whole system that can see a dispatch prompt: measured by FEAT-31's hook-payload probe,
 # a PreToolUse payload carries eleven keys and
-# tool_input.prompt exists only on the DISPATCH payload. So this field fixes this gate and
+# tool_input.task (the dispatch prompt) exists only on the DISPATCH payload. So this field fixes this gate and
 # reaches no other hook.
 #
 # THIS IS THE ONE BRANCH HERE THAT FAILS CLOSED. Everything below passes through on its own
@@ -253,7 +240,7 @@ if authored_lineage:
 import re
 
 FEATURE_RE = re.compile(r"(?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+")
-prompt = ti.get("prompt") or ti.get("task") or ""
+prompt = ti.get("task") or ""
 first_line = prompt.splitlines()[0] if prompt.splitlines() else ""
 prefix = "HARNESS-FEATURE: "
 declared = first_line[len(prefix):] if first_line.startswith(prefix) else ""

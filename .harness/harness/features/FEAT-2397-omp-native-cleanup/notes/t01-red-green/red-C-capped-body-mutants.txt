@@ -1,0 +1,30 @@
+## mutant m1-no-per-line-splitlines: `kept.extend(line.splitlines(keepends=True)[:budget - len(kept)])` -> `kept.extend([line][:budget - len(kept)])`
+exit=1
+FAIL capped body parity: Unicode splitline separators
+45/46 cases passed.
+
+## mutant m2-ge-predicate: `if newlines > budget:` -> `if newlines >= budget:`
+exit=1
+FAIL capped body parity: exactly 40 lines
+FAIL capped body parity: 41 lines
+FAIL capped body parity: exactly 150 lines
+FAIL capped body parity: 151 lines
+FAIL capped body parity: 150 lines and an unterminated 151st
+FAIL capped body parity: 41 CRLF lines
+FAIL capped body parity: 151 CR lines
+FAIL capped body parity: mixed CRLF/CR/LF
+FAIL capped body parity: 151 blank lines
+37/46 cases passed.
+
+## mutant m3-count-pieces: `newlines += line.endswith("\n")` -> `newlines += len(line.splitlines())`
+exit=1
+FAIL capped body parity: 150 lines and an unterminated 151st
+FAIL capped body parity: Unicode splitline separators
+44/46 cases passed.
+
+## mutant m4-no-universal-newlines: open(..., newline="")
+exit=1
+FAIL capped body parity: 41 CRLF lines
+FAIL capped body parity: 151 CR lines
+FAIL capped body parity: mixed CRLF/CR/LF
+43/46 cases passed.

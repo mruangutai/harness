@@ -2816,15 +2816,18 @@ def hook_mode():
        contract and is never governed.
     2. A MISSING `agent_type` passes loudly (F6): the key may have been renamed and this
        hook gone dark. A non-mapping is still refused — it cannot be a digest either way.
-    3. `stop_hook_active` — a re-run after a block — passes a mapping unvalidated.
-    4. Our own failure is harness_boundary.hook_guard's (FEAT-65): an unreadable payload
+    3. Our own failure is harness_boundary.hook_guard's (FEAT-65): an unreadable payload
        or an exception out of validate() prints the guard's template and exits 0. An
        unknown persona is a local, typed decline.
+
+    `stop_hook_active` is no pass-through (FEAT-2397). The yield adapter never sends it, and
+    a truthy field on direct stdin is ignored: that return traverses the same held-child,
+    schema and semantic checks as any other, and a rejection keeps its claim.
     """
     d = artifact_accessors.read_hook_payload(sys.stdin.read(), "yield hook payload")
     agent = d.get("agent_type")
     obj = d.get("digest_object", _ABSENT)
-    passed = _pass_through(d, agent, obj)
+    passed = _pass_through(agent, obj)
     if passed is not None:
         return passed
     # Refuse live children before recording a return, but retain the claim while
@@ -2846,20 +2849,17 @@ def _governed_agent(agent):
     return isinstance(agent, str) and agent.startswith("harness-")
 
 
-def _pass_through(d, agent, obj):
+def _pass_through(agent, obj):
     """The exit code of a return this hook does not govern, or None to govern it."""
-    if agent and not _governed_agent(agent):
-        return 0
-    if agent and not d.get("stop_hook_active"):
-        return None
+    if agent:
+        return None if _governed_agent(agent) else 0
     if not isinstance(obj, dict):
         return _object_refusal(agent, obj)
-    if not agent:
-        print("check-digest: hook payload has no agent_type — passing through. If this "
-              "is unexpected, the payload key may have been renamed and this hook is "
-              "silently no-oping project-wide.", file=sys.stderr)
-        harness_boundary.emit_unavailable(
-            __file__, "the yield payload carries no agent_type, so no digest contract applies")
+    print("check-digest: hook payload has no agent_type — passing through. If this "
+          "is unexpected, the payload key may have been renamed and this hook is "
+          "silently no-oping project-wide.", file=sys.stderr)
+    harness_boundary.emit_unavailable(
+        __file__, "the yield payload carries no agent_type, so no digest contract applies")
     return 0
 
 

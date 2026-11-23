@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -21,11 +21,9 @@ import {
   gateRoot,
   extractEditPaths,
   normalizeTaskDispatches,
-  readContextAnchor,
   registerHarnessHooks,
   resolveContextWarnTokens,
   resolvePlanPhaseWarnMinutes,
-  resolveSessionFile,
   spendAdvisoryFor,
   spendAdvisoryText,
 } from "../../.omp/extensions/harness-hooks.ts";
@@ -163,7 +161,7 @@ describe("gatePath", () => {
 describe("OMP task lifecycle adapter", () => {
   // BUG-1016: `featureRoot` answers `inflight_registry.py feature-root`. The default is the
   // real CLI's no-worktree answer, the --root it was given, so no other case is rewritten.
-  type PolicyAnswer = { blocked: boolean; reason?: string; unavailable?: string; stdout: string };
+  type PolicyAnswer = { blocked: boolean; reason?: string; unavailable?: string; stdout: string; context?: string };
   function fixture(options: {
     featureRoot?: (args: string[]) => PolicyAnswer;
     memberOps?: (args: string[], payload: unknown) => PolicyAnswer;
@@ -221,14 +219,12 @@ describe("OMP task lifecycle adapter", () => {
       if (script === "inflight_registry.py" && args[0] === "feature-root") {
         return options.featureRoot?.(args) ?? { blocked: false, stdout: `${option(args, "--root")}\n` };
       }
+      // FEAT-2397: the injector answers one `{"context": ...}` object, decoded once by
+      // classifyPolicyRun and carried on the answer as `context`.
       if (script === "inject-expertise.py") return {
         blocked: false,
-        stdout: JSON.stringify({
-          hookSpecificOutput: {
-            hookEventName: "SubagentStart",
-            additionalContext: "injected expertise",
-          },
-        }),
+        stdout: `${JSON.stringify({ context: "injected expertise" })}\n`,
+        context: "injected expertise",
       };
       if (script === "dispatch-guard.py") {
         const task = (payload.tool_input as Record<string, unknown>).task;
@@ -415,7 +411,10 @@ describe("OMP task lifecycle adapter", () => {
       prompt: "HARNESS-FEATURE: FEAT-90-long-run\nlead it",
       systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
     }, ctx);
-    expect(calls.some((call) => call.script === "inject-expertise.py")).toBe(true);
+    const request = calls.find((call) => call.script === "inject-expertise.py");
+    // The REQUEST keeps the internal SubagentStart label; only the response lost its envelope.
+    expect([request?.payload.hook_event_name, request?.payload.agent_type])
+      .toEqual(["SubagentStart", "harness-eng-lead"]);
     expect(result?.message?.content).toBe("injected expertise");
   });
 
@@ -429,6 +428,30 @@ describe("OMP task lifecycle adapter", () => {
     ]);
     expect(normalizeTaskDispatches({ agent: "harness-pm", task: "plan" }))
       .toEqual([{ agent: "harness-pm", task: "plan" }]);
+  });
+
+  // FEAT-2397 (#11): native `task.perCallModel: off` is the sole per-call model authority, Main
+  // included. The extension no longer refuses a `model` field, and never strips one to slip it
+  // past native policy: it reaches dispatch-guard and the revised call unchanged.
+  const MODEL_DISPATCHES: Array<[string, () => Record<string, unknown>, string, Record<string, unknown>]> = [
+    ["a governed lead, flat", () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session"),
+      "harness-eng-lead", { agent: "harness-qa", task: "HARNESS-FEATURE: FEAT-90-long-run\nqa", model: "opus" }],
+    ["a governed lead, batch", () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session"),
+      "harness-eng-lead", { tasks: [{ agent: "harness-qa", task: "HARNESS-FEATURE: FEAT-90-long-run\nqa", model: "opus" }] }],
+    ["the main session", () => ompContext("/repo", "Main", undefined, "main-session"),
+      "", { agent: "harness-orchestrator", task: "HARNESS-FEATURE: FEAT-90-long-run\nrun", model: "opus" }],
+  ];
+  test.each(MODEL_DISPATCHES)("FEAT-2397: %s keeps its per-call model for native policy", async (_label, makeCtx, agent, input) => {
+    const { handlers, calls } = fixture();
+    const ctx = makeCtx();
+    if (agent) await start(handlers, ctx, agent);
+    else await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, ctx);
+    const result = await handlers.get("tool_call")?.({ toolName: "task", toolCallId: "call-model", input }, ctx);
+    const guarded = calls.find((call) => call.script === "dispatch-guard.py");
+    const revised = (result?.input ?? input) as Record<string, unknown>;
+    const item = (Array.isArray(revised.tasks) ? revised.tasks[0] : revised) as Record<string, unknown>;
+    expect([result?.block, (guarded?.payload.tool_input as Record<string, unknown>)?.model, item.model])
+      .toEqual([undefined, "opus", "opus"]);
   });
 
   test("refuses task dispatch when OMP exposes no runtime identity", async () => {
@@ -867,6 +890,18 @@ describe("OMP task lifecycle adapter", () => {
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
     expect(validation?.payload.harness_review_pin).toBeUndefined();
+  });
+
+  // FEAT-2397 (#10): the yield adapter sends no `stop_hook_active`; that field was a Claude
+  // stop-hook re-run flag, and validate-digest.py no longer reads it as a pass-through.
+  test("FEAT-2397: the yield payload carries no legacy stop_hook_active field", async () => {
+    const { handlers, calls } = fixture();
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    await start(handlers);
+    await handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, ctx);
+    const validation = calls.find((call) => call.script === "validate-digest.py");
+    expect([validation?.payload.digest_object, Object.hasOwn(validation?.payload ?? {}, "stop_hook_active")])
+      .toEqual([PASS_DIGEST, false]);
   });
 
   // #1855: the mission rides the same road as the pin — the assignment message, scanned
@@ -2928,87 +2963,44 @@ describe("loadDigestSchemaBundle", () => {
 });
 
 // ---------------------------------------------------------------------------
-// FEAT-44 (issue #923) — the OMP-native orchestrator context advisory.
+// FEAT-44 (issue #923), FEAT-2397 (#12) — the OMP-native orchestrator context advisory.
 //
-// Written BEFORE the implementation, per T-01. Every case below except the
-// installed-OMP host-surface one imports exports that do not exist yet, so this
-// suite MUST be red until T-02 and T-03 land. A green suite here means
-// production code was written out of order.
+// The figure is the host's own session accounting, `ctx.getContextUsage().tokens`, read on
+// the orchestrator's task tool_result wake (upstream #10098, omp >= 18.0.11, serves it to
+// task subagents). No transcript is read: the historical JSONL fixtures beside this file
+// stay as recorded evidence and are not an input any more.
 // ---------------------------------------------------------------------------
 
-const ANCHORED_FIXTURE = join(import.meta.dir, "omp-session-anchored.fixture.jsonl");
-const ANCHORLESS_FIXTURE = join(import.meta.dir, "omp-session-anchorless.fixture.jsonl");
+// A usage figure deliberately distinct from 200000 (the default), 150000 (the resolver
+// test) and 223029 (the ratio test), so a hardcoded return cannot satisfy any of them.
+const UNDER_THRESHOLD_TOKENS = 28614;
 
-// The newest anchor in the anchored fixture. Deliberately distinct from 200000
-// (the default), 150000 (the resolver test) and 223029 (the ratio test), so a
-// hardcoded return cannot satisfy any of them. Provenance: notes/fixture-provenance.md.
-const NEWEST_ANCHOR_TOKENS = 28614;
+// Every shape that is not a finite number of tokens: no figure, never a guess.
+const NO_FIGURE: Array<[string, Record<string, unknown>]> = [
+  ["no getContextUsage method", {}],
+  ["a non-function accessor", { getContextUsage: 42 }],
+  ["an accessor that throws", { getContextUsage: () => { throw new Error("gone"); } }],
+  ["an undefined usage", { getContextUsage: () => undefined }],
+  ["a null usage", { getContextUsage: () => null }],
+  ["undefined tokens", { getContextUsage: () => ({ tokens: undefined, contextWindow: 200000 }) }],
+  ["null tokens", { getContextUsage: () => ({ tokens: null }) }],
+  ["string tokens", { getContextUsage: () => ({ tokens: "250000" }) }],
+  ["NaN tokens", { getContextUsage: () => ({ tokens: Number.NaN }) }],
+  ["Infinity tokens", { getContextUsage: () => ({ tokens: Number.POSITIVE_INFINITY }) }],
+  ["-Infinity tokens", { getContextUsage: () => ({ tokens: Number.NEGATIVE_INFINITY }) }],
+];
 
-// Spelled literally on purpose. A test that reads CONTEXT_TOKENS_FIELD back from
-// the module cannot detect the constant itself being wrong.
-const TOKENS_FIELD = "message.contextSnapshot.promptTokens";
-
-describe("readContextAnchor", () => {
-  test("returns the newest anchor's promptTokens from a captured nested transcript", () => {
-    expect(readContextAnchor(ANCHORED_FIXTURE)).toEqual({
-      kind: "tokens",
-      tokens: NEWEST_ANCHOR_TOKENS,
-    });
+describe("contextUsageTokens", () => {
+  test.each(NO_FIGURE)("%s yields no figure", (_label, ctx) => {
+    expect(hooks.contextUsageTokens(ctx)).toBeUndefined();
   });
 
-  test("widens past the initial window when the anchor sits far beyond it", () => {
-    const dir = mkdtempSync(join(tmpdir(), "feat44-widen-"));
-    const padded = join(dir, "padded.jsonl");
-    const pad = JSON.stringify({ type: "custom", customType: "pad", pad: "x".repeat(200 * 1024) });
-    writeFileSync(padded, readFileSync(ANCHORED_FIXTURE, "utf8") + pad + "\n");
-    // Reddens if the scan window is pinned to a fixed 64 KiB instead of widening.
-    expect(readContextAnchor(padded)).toEqual({ kind: "tokens", tokens: NEWEST_ANCHOR_TOKENS });
-  });
-
-  test("reports inert with the scanned size and the field it looked for", () => {
-    const result = readContextAnchor(ANCHORLESS_FIXTURE) as {
-      kind: string; scannedBytes: number; field: string;
+  test("a finite numeric usage.tokens is the figure, read through the host's own method", () => {
+    const ctx = {
+      session: { tokens: UNDER_THRESHOLD_TOKENS },
+      getContextUsage() { return { tokens: this.session.tokens, contextWindow: 200000, percent: 14 }; },
     };
-    expect(result.kind).toBe("inert");
-    expect(result.scannedBytes).toBe(statSync(ANCHORLESS_FIXTURE).size);
-    expect(result.field).toBe(TOKENS_FIELD);
-  });
-
-  test("returns none for an absent path and for no path at all", () => {
-    expect(readContextAnchor(undefined)).toEqual({ kind: "none" });
-    expect(readContextAnchor(join(tmpdir(), "feat44-does-not-exist.jsonl"))).toEqual({ kind: "none" });
-  });
-});
-
-describe("resolveSessionFile", () => {
-  // Telling "the accessor moved" apart from "no session yet" is the whole point:
-  // folding them together is the silent-undefined shape issue #923 exists to fix.
-  //
-  // NOTE: the real host surface is NOT asserted here. It cannot be, from a unit
-  // test — see test-omp-session-accessor.py, which drives the actual omp binary.
-  // The .d.ts assertion this describe block replaced could not work: Bun.resolveSync
-  // succeeds under `bun run` but not under `bun test`, and the three copies on a
-  // developer machine disagree anyway (running binary 18.0.5, bun cache 18.0.10,
-  // global node_modules 17.3.8), so it would have asserted a package that is not
-  // the one executing these hooks.
-  test("returns the path when the accessor yields one", () => {
-    const ctx = { sessionManager: { getSessionFile: () => "/tmp/fixture/own.jsonl" } };
-    expect(resolveSessionFile(ctx)).toEqual({ kind: "path", path: "/tmp/fixture/own.jsonl" });
-  });
-
-  test("distinguishes a moved accessor from a session that has none yet", () => {
-    const failed = { kind: "failed" as const, accessor: "sessionManager.getSessionFile" };
-    // Threw, absent, and not-a-function are all "the API moved".
-    expect(resolveSessionFile({
-      sessionManager: { getSessionFile: () => { throw new Error("gone"); } },
-    })).toEqual(failed);
-    expect(resolveSessionFile({ sessionManager: {} })).toEqual(failed);
-    expect(resolveSessionFile({})).toEqual(failed);
-    // A clean call returning nothing usable is NOT a failure — it is no session yet.
-    expect(resolveSessionFile({ sessionManager: { getSessionFile: () => "" } }))
-      .toEqual({ kind: "absent" });
-    expect(resolveSessionFile({ sessionManager: { getSessionFile: () => undefined } }))
-      .toEqual({ kind: "absent" });
+    expect(hooks.contextUsageTokens(ctx)).toBe(UNDER_THRESHOLD_TOKENS);
   });
 });
 
@@ -3059,9 +3051,12 @@ describe("contextAdvisoryText", () => {
 });
 
 describe("context advisory injection", () => {
+  // `usage` is the host's getContextUsage, or absent; `hooks` lets a case run a COPY of the
+  // extension whose gateRoot() carries its own harness.json budget.
   function advisoryFixture(opts: {
-    sessionFile?: string | (() => string);
+    usage?: () => unknown;
     blockReason?: string;
+    module?: { registerHarnessHooks: typeof registerHarnessHooks };
   } = {}) {
     const handlers = new Map<string, Function>();
     const pi = {
@@ -3075,13 +3070,11 @@ describe("context advisory injection", () => {
       }
       return { blocked: false, stdout: "" };
     };
-    registerHarnessHooks(pi, runner);
-    const getSessionFile = typeof opts.sessionFile === "function"
-      ? opts.sessionFile
-      : () => opts.sessionFile ?? ANCHORED_FIXTURE;
+    (opts.module ?? { registerHarnessHooks }).registerHarnessHooks(pi, runner);
     const ctx = {
       cwd: "/repo",
-      sessionManager: { getSessionId: () => "own-session", getSessionFile },
+      sessionManager: { getSessionId: () => "own-session" },
+      ...(opts.usage ? { getContextUsage: opts.usage } : {}),
     };
     return { handlers, ctx };
   }
@@ -3092,86 +3085,106 @@ describe("context advisory injection", () => {
     }, ctx);
   }
 
+  const usage = (tokens: unknown) => () => ({ tokens, contextWindow: 1_000_000, percent: 0 });
   const taskResult = (content: unknown[] = [{ type: "text", text: "lead digest" }]) =>
     ({ toolName: "task", toolCallId: "call-1", input: {}, content });
 
-  // The committed fixture's newest anchor (28614) is far UNDER the repo's
-  // configured 200000, which is what makes the under-threshold case real. The
-  // handler resolves its threshold from gateRoot(), not from anything a test can
-  // inject, so an over-threshold wake needs a transcript carrying a bigger
-  // number. Built from the real captured records, with only the newest anchor's
-  // value replaced — 223029 is the code-reviewer figure measured on PR #922 that
-  // crossed the line with nothing surfacing it, and it yields the 1.12x asserted
-  // in contextAdvisoryText.
-  function transcriptWithAnchor(tokens: number): string {
-    const records = readFileSync(ANCHORED_FIXTURE, "utf8").trimEnd().split("\n");
-    for (let i = records.length - 1; i >= 0; i -= 1) {
-      const record = JSON.parse(records[i]);
-      if (record?.message?.contextSnapshot?.promptTokens === undefined) continue;
-      record.message.contextSnapshot.promptTokens = tokens;
-      records[i] = JSON.stringify(record);
-      break;
+  // A copy of the extension rooted where `budgets` is its harness.json (none: no file).
+  async function copiedHooks(budgets?: Record<string, unknown>) {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "feat2397-usage-")));
+    cpSync(join(import.meta.dir, "..", "..", ".omp", "extensions"),
+      join(root, ".omp", "extensions"), { recursive: true });
+    if (budgets) {
+      mkdirSync(join(root, ".harness"));
+      writeFileSync(join(root, ".harness", "harness.json"), JSON.stringify({ budgets }));
     }
-    const path = join(mkdtempSync(join(tmpdir(), "feat44-anchor-")), "anchor.jsonl");
-    writeFileSync(path, records.join("\n") + "\n");
-    return path;
+    // Dynamic by necessity: the module under test is the per-case copy, chosen at run time.
+    return await import(join(root, ".omp", "extensions", "harness-hooks.ts"));
   }
-  const overThresholdTranscript = () => transcriptWithAnchor(223029);
 
-  test("appends the advisory to the orchestrator's wake and leaves isError absent", async () => {
-    const { handlers, ctx } = advisoryFixture({ sessionFile: overThresholdTranscript() });
+  // Each row: label, the extension's harness.json budgets (undefined: the live repo's,
+  // which carries 200000; null: a copy with no harness.json, so the declared default),
+  // the measured tokens, and the ratio text the advisory carries (undefined: silent).
+  // 223029 is the code-reviewer figure measured on PR #922 that crossed the line with
+  // nothing surfacing it; only the exact boundary separates `>` from `>=`.
+  const THRESHOLDS: Array<[string, Record<string, unknown> | null | undefined, number, string | undefined]> = [
+    ["above the repo threshold", undefined, 223029, "(1.12x)"],
+    ["exactly at the repo threshold", undefined, DEFAULT_CONTEXT_WARN_TOKENS, undefined],
+    ["below the repo threshold", undefined, UNDER_THRESHOLD_TOKENS, undefined],
+    ["above a custom 150000 threshold", { orchestrator_context_warn_tokens: 150000 }, 175000, "= 150000 (1.17x)"],
+    ["exactly at a custom 150000 threshold", { orchestrator_context_warn_tokens: 150000 }, 150000, undefined],
+    ["above the 200000 default with no harness.json", null, 250000, "= 200000 (1.25x)"],
+    ["exactly at the 200000 default with no harness.json", null, 200000, undefined],
+  ];
+  test.each(THRESHOLDS)("%s", async (_label, budgets, tokens, ratio) => {
+    const module = budgets === undefined ? undefined : await copiedHooks(budgets ?? undefined);
+    const { handlers, ctx } = advisoryFixture({ usage: usage(tokens), module });
     await asAgent(handlers, ctx, "harness-orchestrator");
-    const result = await handlers.get("tool_result")?.(taskResult(), ctx);
-    const content = (result as { content: Array<{ text: string }> }).content;
-    expect(content[content.length - 1].text).toContain("CONTEXT");
-    // Asserted as key ABSENCE, not falsiness: an unblocked wake must not invent isError.
-    expect("isError" in (result as object)).toBe(false);
+    const content = [{ type: "text", text: "lead digest" }];
+    const result = await handlers.get("tool_result")?.(taskResult(content), ctx) as
+      { content: Array<{ text: string }> } | undefined;
+    if (ratio === undefined) {
+      expect([result, content]).toEqual([undefined, [{ type: "text", text: "lead digest" }]]);
+      return;
+    }
+    const advisory = result?.content[result.content.length - 1].text ?? "";
+    // The result's own content first and unchanged; isError ABSENT, not merely falsy.
+    expect([result?.content[0], advisory.startsWith("CONTEXT:"), advisory.includes(`${tokens} tokens`),
+      advisory.includes(ratio), advisory.includes("never refuses"), "isError" in (result as object)])
+      .toEqual([content[0], true, true, true, true, false]);
   });
 
-  test("stays silent when tokens EQUAL the threshold, killing the >= mutant", async () => {
-    // Added on the cycle-1 panel's F-2. The under-threshold case below uses the
-    // committed fixture's 28614, and BOTH `28614 > 200000` and `28614 >= 200000`
-    // are false — so it cannot distinguish `>` from `>=`, and SC-10's claim to
-    // kill that mutant was untrue as tested. Only the exact boundary separates
-    // them. 200000 is DEFAULT_CONTEXT_WARN_TOKENS and the value this repo's
-    // harness.json carries, which is what gateRoot() resolves to here.
+  test("advises on every over-threshold wake, with no once-per-session cap", async () => {
+    const { handlers, ctx } = advisoryFixture({ usage: usage(223029) });
+    await asAgent(handlers, ctx, "harness-orchestrator");
+    const texts: string[] = [];
+    for (let wake = 0; wake < 3; wake += 1) {
+      const result = await handlers.get("tool_result")?.(taskResult(), ctx) as { content: Array<{ text: string }> };
+      texts.push(result.content[result.content.length - 1].text);
+    }
+    expect(texts.map((line) => line.includes("(1.12x)"))).toEqual([true, true, true]);
+  });
+
+  // Wrong agents, the main session and non-task results never read the figure at all.
+  const NOT_A_WAKE: Array<[string, string | undefined, string]> = [
+    ["a lead's task result", "harness-product-lead", "task"],
+    ["a member's task result", "harness-backend-dev", "task"],
+    ["the main session's task result", undefined, "task"],
+    ["the orchestrator's read result", "harness-orchestrator", "read"],
+  ];
+  test.each(NOT_A_WAKE)("%s gets no advisory and no usage read", async (_label, agent, toolName) => {
+    let reads = 0;
+    const { handlers, ctx } = advisoryFixture({ usage: () => { reads += 1; return { tokens: 223029 }; } });
+    await asAgent(handlers, ctx, agent);
+    const result = await handlers.get("tool_result")?.({ ...taskResult(), toolName }, ctx);
+    expect([result, reads]).toEqual([undefined, 0]);
+  });
+
+  // A usage that is no finite number, a missing method or a throw is silent, and RETRYABLE:
+  // nothing is cached, so the next wake with a real figure advises.
+  test.each(NO_FIGURE)("%s: silent, the wake completes, and the next valid wake advises", async (_label, bad) => {
+    const answers = [bad.getContextUsage, usage(223029)];
+    const { handlers, ctx } = advisoryFixture({ usage: usage(0) });
+    Object.defineProperty(ctx, "getContextUsage", { get: () => answers.shift(), configurable: true });
+    await asAgent(handlers, ctx, "harness-orchestrator");
+    const content = [{ type: "text", text: "lead digest" }];
+    const first = await handlers.get("tool_result")?.(taskResult(content), ctx);
+    const second = await handlers.get("tool_result")?.(taskResult(), ctx) as { content: Array<{ text: string }> };
+    expect([first, content, second.content[second.content.length - 1].text.includes("(1.12x)")])
+      .toEqual([undefined, [{ type: "text", text: "lead digest" }], true]);
+  });
+
+  // The advisory never costs a gate. A task result has no post-write target, so the reachable
+  // proof is the same session: after the usage accessor threw on the orchestrator's wake, its
+  // next write still reaches the post-domain gate, keeps isError and gains no advisory line.
+  test("a usage failure never skips the post-domain gate", async () => {
+    let reads = 0;
     const { handlers, ctx } = advisoryFixture({
-      sessionFile: transcriptWithAnchor(DEFAULT_CONTEXT_WARN_TOKENS),
+      blockReason: "outside your domain",
+      usage: () => { reads += 1; throw new Error("getContextUsage failed"); },
     });
     await asAgent(handlers, ctx, "harness-orchestrator");
-    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
-  });
-
-  test("does not advise a lead", async () => {
-    const { handlers, ctx } = advisoryFixture();
-    await asAgent(handlers, ctx, "harness-product-lead");
-    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
-  });
-
-  test("does not advise the main session", async () => {
-    const { handlers, ctx } = advisoryFixture();
-    await asAgent(handlers, ctx, undefined);
-    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
-  });
-
-  test("does not advise on a tool result that is not the orchestrator's wake", async () => {
-    const { handlers, ctx } = advisoryFixture();
-    await asAgent(handlers, ctx, "harness-orchestrator");
-    const notAWake = { toolName: "read", toolCallId: "call-2", input: {}, content: [] };
-    expect(await handlers.get("tool_result")?.(notAWake, ctx)).toBeUndefined();
-  });
-
-  // SUBSTITUTED, and the deviation is deliberate — see the T-01 completion note.
-  // The plan specified: orchestrator, over threshold, WITH a post-domain block
-  // reason, asserting the result keeps isError:true and carries BOTH lines.
-  // That state is unreachable: postDomain returns [] for every toolName that is
-  // not write/edit/bash (harness-hooks.ts:272), while the advisory fires only on
-  // toolName "task". A block reason and the advisory cannot co-occur.
-  // This guards the same seam from the reachable side: a blocked bash result
-  // from the orchestrator keeps isError true and must NOT gain an advisory line.
-  test("a blocked non-wake result keeps isError and gains no advisory", async () => {
-    const { handlers, ctx } = advisoryFixture({ blockReason: "outside your domain" });
-    await asAgent(handlers, ctx, "harness-orchestrator");
+    const wake = await handlers.get("tool_result")?.(taskResult(), ctx);
     const write = {
       toolName: "write", toolCallId: "call-3",
       input: { path: "/repo/x.ts", content: "x" },
@@ -3179,44 +3192,9 @@ describe("context advisory injection", () => {
     };
     const result = await handlers.get("tool_result")?.(write, ctx) as
       { content: Array<{ text: string }>; isError: boolean };
-    expect(result.isError).toBe(true);
-    expect(result.content.some((part) => part.text.includes("post-write check"))).toBe(true);
-    expect(result.content.some((part) => part.text.includes("CONTEXT"))).toBe(false);
-  });
-
-  test("emits the inert notice once, naming the field, and does not repeat or re-read", async () => {
-    const { handlers, ctx } = advisoryFixture({ sessionFile: ANCHORLESS_FIXTURE });
-    await asAgent(handlers, ctx, "harness-orchestrator");
-    const first = await handlers.get("tool_result")?.(taskResult(), ctx) as
-      { content: Array<{ text: string }> };
-    const notice = first.content[first.content.length - 1].text;
-    expect(notice).toContain(TOKENS_FIELD);
-    // The once-per-session cap makes the absence of a second notice observable.
-    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
-  });
-
-  test("reports an accessor failure once, naming the accessor", async () => {
-    // The branch that would otherwise collapse into the silent no-figure path —
-    // which is precisely the failure shape issue #923 exists to fix.
-    const { handlers, ctx } = advisoryFixture({
-      sessionFile: () => { throw new Error("getSessionFile is not a function"); },
-    });
-    await asAgent(handlers, ctx, "harness-orchestrator");
-    const first = await handlers.get("tool_result")?.(taskResult(), ctx) as
-      { content: Array<{ text: string }> };
-    expect(first.content[first.content.length - 1].text).toContain("sessionManager.getSessionFile");
-    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
-  });
-
-  test("stays silent at or under the threshold and returns the content untouched", async () => {
-    // REQ-01's no-extra-token promise. Without this, a >= written where > was
-    // specified ships green. The fixture anchor (28614) is far under 200000.
-    const { handlers, ctx } = advisoryFixture();
-    await asAgent(handlers, ctx, "harness-orchestrator");
-    const content = [{ type: "text", text: "lead digest" }];
-    const result = await handlers.get("tool_result")?.(taskResult(content), ctx);
-    expect(result).toBeUndefined();
-    expect(content).toEqual([{ type: "text", text: "lead digest" }]);
+    expect([wake, reads, result.isError,
+      result.content.some((part) => part.text.includes("post-write check: outside your domain")),
+      result.content.some((part) => part.text.includes("CONTEXT"))]).toEqual([undefined, 1, true, true, false]);
   });
 });
 
@@ -3350,7 +3328,9 @@ describe("spend advisory injection", () => {
     registerHarnessHooks(pi, runner);
     const ctx = {
       cwd: root,
-      sessionManager: { getSessionId: () => "own-session", getSessionFile: () => ANCHORED_FIXTURE },
+      sessionManager: { getSessionId: () => "own-session" },
+      // An under-threshold native usage figure, so only the spend line can appear.
+      getContextUsage: () => ({ tokens: UNDER_THRESHOLD_TOKENS }),
     };
     return { handlers, ctx, calls };
   }
@@ -3494,7 +3474,8 @@ describe("host-stamped tokens", () => {
     registerHarnessHooks(pi, runner);
     const ctx = {
       cwd: root,
-      sessionManager: { getSessionId: () => "own-session", getSessionFile: () => ANCHORED_FIXTURE },
+      sessionManager: { getSessionId: () => "own-session" },
+      getContextUsage: () => ({ tokens: UNDER_THRESHOLD_TOKENS }),
     };
     return { handlers, ctx, calls };
   }
@@ -4236,7 +4217,7 @@ describe("FEAT-2225 expertise_apply through the real policyRunner into the real 
 // gates run at once. Real-process cases import a COPY of the extension whose gate tree holds only
 // planted scripts; a shortened budget is written into that copy's source, never passed as an option.
 describe("FEAT-2337 async bounded policy runtime", () => {
-  type Answer = { blocked: boolean; reason?: string; unavailable?: string; stdout: string };
+  type Answer = { blocked: boolean; reason?: string; unavailable?: string; stdout: string; context?: string };
   // A planned answer, `after` microtask turns late: completion order without a wall clock.
   type Gate = { answer?: Answer; sequence?: Answer[]; reject?: string; after: number };
   type Outcome = Partial<Answer> & { threw?: string };
@@ -4244,9 +4225,11 @@ describe("FEAT-2337 async bounded policy runtime", () => {
   const BASH_GATES = ["gh-close-gate.py", "branch-create-gate.py", "bash-write-guard.py", "plan-sign-gate.py", "merge-gate.py"];
   const PASS: Answer = { blocked: false, stdout: "" };
   const STARTED: Answer = { blocked: false, stdout: '{"ok": true}\n' };
-  const EXPERTISE: Answer = {
-    blocked: false, stdout: JSON.stringify({ hookSpecificOutput: { additionalContext: "injected expertise" } }),
-  };
+  // FEAT-2397: an injector answer is what classifyPolicyRun makes of its real stdout, the one
+  // `{"context": ...}` object, so the handler sees the decoded context it would in production.
+  const injected = (stdout: string): Answer =>
+    hooks.classifyPolicyRun("inject-expertise.py", {}, { status: 0, signal: null, stdout, stderr: "" });
+  const EXPERTISE: Answer = injected(`${JSON.stringify({ context: "injected expertise" })}\n`);
   const python = (...lines: string[]) => ["#!/usr/bin/env python3", ...lines, ""].join("\n");
   const notice = (gate: string, why: string) => `Harness: ${gate} (pre) could not run; nothing was checked. ${why}`;
   const failed = (gate: string) => `Harness: ${gate} (pre) failed before answering, so the call is refused: transport down`;
@@ -4545,5 +4528,65 @@ describe("FEAT-2337 async bounded policy runtime", () => {
     await session.settle({ id: "Lead.Dev.Qa", status: "completed", parentToolCallId: "call-task" });
     session.events.push("settled");
     expect(session.events.slice(-5)).toEqual(["start release-run", "end release-run", "start release", "end release", "settled"]);
+  });
+
+  // FEAT-2397 (#9): a policy process's stdout is decoded ONCE, in classifyPolicyRun, whose answer
+  // carries the injector's decoded `context`; before_agent_start delivers that string with no
+  // second parse and no fallback to the retired hookSpecificOutput envelope.
+  const DECODES: Array<[string, string, string, string | undefined]> = [
+    ["an injector context object", "inject-expertise.py", `${JSON.stringify({ context: "ctx" })}\n`, "ctx"],
+    ["a broad gate's declared unavailable line", "check-domain.py",
+      `${JSON.stringify({ decision: "unavailable", gate: "check-domain", reason: "boom" })}\n`, undefined],
+    ["a malformed object line", "inject-expertise.py", "{not json\n", undefined],
+  ];
+  test.each(DECODES)("FEAT-2397: %s is decoded once, carrying its context", (_label, script, stdout, context) => {
+    const realParse = JSON.parse;
+    let decodes = 0;
+    JSON.parse = ((...args: Parameters<typeof JSON.parse>) => {
+      decodes += 1;
+      return realParse(...args);
+    }) as typeof JSON.parse;
+    let result: Answer;
+    try {
+      result = hooks.classifyPolicyRun(script, {}, { status: 0, signal: null, stdout, stderr: "" });
+    } finally {
+      JSON.parse = realParse;
+    }
+    expect([decodes, result.context]).toEqual([1, context]);
+  });
+
+  test("FEAT-2397: blocked, blank and empty answers stay retryable; the first context is delivered once, exactly", async () => {
+    const exact = "## Harness control plane\n\nline\u2028two — ünïcode \"quoted\"\n\n";
+    const object = (context: string) => injected(`${JSON.stringify({ context })}\n`);
+    const sequence = [refuse("refused"), injected(""), object(""), object(" \n "), object(exact), object("second")];
+    const session = host({}, { "inject-expertise.py": { sequence, after: 0 } });
+    const delivered: unknown[] = [];
+    for (let wake = 0; wake < 6; wake += 1) delivered.push((await session.begin())?.message);
+    expect(delivered).toEqual([undefined, undefined, undefined, undefined, {
+      customType: "harness-expertise",
+      content: exact,
+      display: false,
+      details: { agent: "harness-backend-dev" },
+      attribution: "harness",
+    }, undefined]);
+    expect(session.events.filter((event) => event === "start inject-expertise.py")).toHaveLength(5);
+  });
+
+  test("FEAT-2397: the handler delivers the carried context, never a re-parse of stdout", async () => {
+    const session = host({}, {
+      "inject-expertise.py": { answer: { blocked: false, stdout: "{}\n", context: "carried" }, after: 0 },
+    });
+    expect((await session.begin())?.message?.content).toBe("carried");
+  });
+
+  const MALFORMED: Array<[string, string]> = [
+    ["invalid JSON", "{not json\n"],
+    ["plain text", "Traceback (most recent call last)\n"],
+    ["the retired hook envelope",
+      `${JSON.stringify({ hookSpecificOutput: { hookEventName: "SubagentStart", additionalContext: "legacy" } })}\n`],
+  ];
+  test.each(MALFORMED)("FEAT-2397: %s fails loudly and is never delivered", async (_label, stdout) => {
+    const session = host({}, { "inject-expertise.py": { answer: injected(stdout), after: 0 } });
+    await expect(session.begin()).rejects.toThrow("inject-expertise.py returned invalid JSON");
   });
 });

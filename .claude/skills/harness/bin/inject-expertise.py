@@ -36,14 +36,14 @@ _bootstrap_sys.path[:] = [
     if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
 ]
 
+import contextlib
 import glob
+import io
 import json
 import os
 import re
-import subprocess
 
 AGENT_RE = re.compile(r"^harness-[a-z0-9-]+$")
-DRIFT_RE = re.compile(r"^VIOLATION ([^:]*:[0-9]*):")
 SEGMENT_RE = re.compile(r"^[a-z0-9-]+$")
 TRUNCATION = (
     "\n[TRUNCATED at {budget} lines — this Expertise file violates its "
@@ -84,42 +84,49 @@ def _agent_from_stdin():
 
 
 def _emit(body):
+    """Print the response: ONE JSON object whose `context` string the extension delivers
+    as is (FEAT-2397). The request still carries the internal SubagentStart label; the
+    response carries no hook envelope."""
     if body.strip():
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "SubagentStart",
-            "additionalContext": body,
-        }}))
+        print(json.dumps({"context": body}))
+
+
+def _drift_locations(checker, paths, root):
+    """Every finding's relative path:line, in the order the checker's CLI reports them.
+    The checker is loaded and called IN PROCESS (FEAT-2397); its own output is discarded,
+    as the subprocess's was, so it can never reach the hook's one JSON line."""
+    import harness_boundary
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        module = harness_boundary.load_repo_module("check_instruction_paths", checker)
+        return [
+            f"{os.path.relpath(path, root)}:{number}"
+            for path in paths
+            for number, _reason, _token in harness_boundary.call_repo_module(
+                module, "violations", path, root)
+        ]
 
 
 def _checker_result(root, agent):
+    """DEC-214's path-drift state over the agent's own file and the three shared skills,
+    from the control plane's check-instruction-paths.py. Any failure to load or run it,
+    SystemExit included, is `unknown`: never a clean or a drifted answer."""
+    import harness_boundary
     checker = os.path.join(
         root, ".claude", "skills", "harness", "bin",
         "check-instruction-paths.py")
-    if not os.path.isfile(checker):
-        return "unknown", []
-    paths = [
+    paths = sorted([
         os.path.join(root, ".omp", "agents", f"{agent}.md"),
         os.path.join(root, ".claude", "skills", "harness-handoff", "SKILL.md"),
         os.path.join(root, ".claude", "skills", "harness-expertise", "SKILL.md"),
         os.path.join(root, ".claude", "skills", "harness-principles", "SKILL.md"),
-    ]
+    ])
     try:
-        result = subprocess.run(
-            ["python3", checker, *paths], stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, text=True, check=False)
-    except OSError:
+        locations = _drift_locations(checker, paths, root)
+    except (harness_boundary.RepoModuleError, SystemExit, TypeError, ValueError):
         return "unknown", []
-    if result.returncode == 0:
+    if not locations:
         return "none", []
-    if result.returncode != 1:
-        return "unknown", []
-    lines = result.stdout.rstrip("\n").splitlines()
-    locations = [
-        match.group(1) for line in lines
-        if (match := DRIFT_RE.match(line))
-    ]
-    count = sum(line.startswith("VIOLATION ") for line in lines)
-    return f"{count} unanchored path(s)", locations[:5]
+    return f"{len(locations)} unanchored path(s)", locations[:5]
 
 
 def _control_plane_block(root, agent):
@@ -139,13 +146,19 @@ def _control_plane_block(root, agent):
 
 
 def _capped_body(path, budget):
+    """The file's first `budget` str.splitlines(keepends=True) lines of its universal-
+    newline text, plus the truncation notice when it holds more than `budget` newlines.
+    One pass: each newline-ended line is split as it is read, and reading stops at the
+    first newline past the budget, by which point `budget` lines are already kept."""
+    kept = []
+    newlines = 0
     with open(path, encoding="utf-8") as handle:
-        body = handle.read()
-    lines = body.splitlines(keepends=True)
-    capped = "".join(lines[:budget])
-    if body.count("\n") > budget:
-        capped += TRUNCATION.format(budget=budget)
-    return capped
+        for line in handle:
+            newlines += line.endswith("\n")
+            if newlines > budget:
+                return "".join(kept) + TRUNCATION.format(budget=budget)
+            kept.extend(line.splitlines(keepends=True)[:budget - len(kept)])
+    return "".join(kept)
 
 
 def _repo_segment(root, path):
