@@ -1,0 +1,43 @@
+{
+  "feature_id": "FEAT-2397-omp-native-cleanup",
+  "branch": "feat/FEAT-2397-omp-native-cleanup",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261122-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T02:18:26+00:00",
+      "tokens": 90595,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-1-plan-product/digest.md",
+        "sha256": "10648692fbc58c9d8b44125f54898759cf17ec462c302234344eea92b2419d35"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T02:56:39+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261122-2-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-23T02:57:06+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T02:18:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Four code surfaces (harness-hooks.ts, dispatch-guard.py, validate-digest.py, inject-expertise.py), the CI workflow, many test files and a doctrine pass across ten or more decisions plus SPEC: not patch-scale; confirmed by fable-advisor"
+    }
+  ],
+  "mission": "plan"
+}

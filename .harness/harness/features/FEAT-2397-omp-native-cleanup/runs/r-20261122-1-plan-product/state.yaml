@@ -1,0 +1,82 @@
+schema_version: 2
+run_id: r-20261122-1-plan-product
+run_uid: 018f64bd8ebd4b46aeca86c804740238
+feature: FEAT-2397-omp-native-cleanup
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: draft
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/.harness/harness/features/FEAT-2397-omp-native-cleanup/notes/research-native-cleanup-draft.md
+    evidence: {plan_check: exit-0, anchors: 54, overlaps: 0}
+  - id: scope
+    persona: harness-code-reviewer
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/.harness/harness/features/FEAT-2397-omp-native-cleanup/notes/review-harness-code-reviewer-plan-c1.md
+    note: One medium substance finding resolved at apply.
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-5
+    evidence:
+      result_source: agent://Feat2397Plan.LevelCrow.FlatMacaw/DIGEST
+      panel_path: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/.harness/harness/features/FEAT-2397-omp-native-cleanup/runs/r-20261122-1-plan-product/panel-c1.md
+    note: Two proportionality trims applied; doctrine breadth dismissed with rationale.
+  - id: design
+    persona: harness-ui-reviewer
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/.harness/harness/features/FEAT-2397-omp-native-cleanup/notes/review-harness-ui-reviewer-plan-c1.md
+    evidence: {design_in_scope: false, prototype_needed: false}
+  - id: apply
+    persona: harness-pm
+    depends_on: [scope, should-not-exist, design]
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-6
+    completed_at: seq-7
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/.harness/harness/features/FEAT-2397-omp-native-cleanup/notes/research-native-cleanup-apply.md
+    evidence: {record_panel: exit-0, plan_check: exit-0, anchors: 53, overlaps: 0, findings_dispositioned: 4}
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: [apply]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-8
+    completed_at: seq-9
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/.harness/harness/features/FEAT-2397-omp-native-cleanup/notes/research-FEAT-2397-omp-native-cleanup-goalcheck-plan.md
+    evidence:
+      operator: pass
+      code_maintainer: pass
+      orchestrator: pass
+      plan_status: pending
+      signature_ready: false
+    note: Main routes later simplify-eng and simplify-apply-product before signature.
