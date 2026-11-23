@@ -1,9 +1,11 @@
 schema: plan/1
 feature: BUG-2399-run-records-staged-at-ship
 approval:
-  status: pending
+  date: '2026-11-23'
+  approved_by: operator
+  status: approved
 drafted_at: '2026-11-23T03:11:45Z'
-status: plan
+status: ready
 source_issues: [2399]
 lanes:
   resolved_at: 9eb07b4f3cd235c234a10edddbfe5542c1e85fba

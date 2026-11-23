@@ -32,5 +32,32 @@
       "reason": "The cause is known: run records are ignored by design and nothing in the flow stages them. The diff is bounded to the prune step, its test, the ship text and DEC-238's ship bullet; no interface, schema or new gate"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-staged-at-ship/.harness/harness/features/BUG-2399-run-records-staged-at-ship/notes/answers-2026-11-23-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "e017f4427ad471735bbed16f85bfe66192f1729003f7d8ed6638b98bdbc46752"
+  },
+  "github": {
+    "milestone": 130,
+    "parent": 2418,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2419
+    },
+    "source_issues": [
+      2399
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
