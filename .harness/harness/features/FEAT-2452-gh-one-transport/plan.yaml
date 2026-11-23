@@ -249,7 +249,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 shared board dependencies and regression tests stay in the direct cutover.
     depends_on: [T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/board_lifecycle.py#_ensure_abandoned_label
       - .claude/skills/harness/bin/gh_board.py#set_station
@@ -271,7 +271,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 full transport migration is direct; do not dispatch a separate implementation team.
     depends_on: [T-03]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/wayfind.py#gh_json
       - .claude/skills/harness/bin/gh_issues.py#gh_bin
