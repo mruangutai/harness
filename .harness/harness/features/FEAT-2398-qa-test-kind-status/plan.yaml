@@ -134,7 +134,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers validate-digest.py, its tests and the settled QA-rules cutover; the accompanying authority updates land atomically.
     depends_on: []
-    status: building
+    status: done
     files:
     - .claude/skills/harness/bin/validate-digest.py#_qa_kinds_errors
     - tests/integration/test-validate-digest.py#main
