@@ -26,13 +26,18 @@ Exit 0 = done (or planned). Exit 1 = a problem the caller must surface.
 Repo comes from .harness/harness.json `github.repo`, pinned at init and never
 re-inferred (DEC-138). github.sync false, or gh missing/unauthenticated -> exit 1
 with the markdown-fallback instruction; wayfinding then runs in files-only mode.
+
+Every gh call goes through factory_gh (FACTORY_GH is the one binary override). Reads
+fail CLOSED: a failed or unparseable read raises GhError, caught once in cli(), so an
+outage can never make a blocked ticket eligible or let resolve write after an
+unverified parent. Only blockers and parent_of treat a genuine HTTP 404 as absence.
 """
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import artifact_accessors
+import factory_gh
 import gh_issues as ghi
 import harness_boundary
 
@@ -63,16 +68,26 @@ def cfg():
     return gh["repo"]  # the schema requires a pinned owner/name repo whenever sync is on
 
 
-def gh_json(args, allow_fail=False):
-    r = subprocess.run([ghi.gh_bin()] + args, capture_output=True, text=True)
-    if r.returncode != 0:
-        if allow_fail:
-            return None
-        die(f"gh {' '.join(args[:3])}… failed: {(r.stderr or '').strip().splitlines()[-1:] or ''}")
-    try:
-        return artifact_accessors.parse_gh_json(r.stdout or "null", "wayfind GitHub response")
-    except artifact_accessors.ArtifactAccessError:
-        return r.stdout.strip()
+def gh_json(args):
+    """The strict-JSON value of a gh read; GhError on any launch, exit or JSON failure."""
+    return factory_gh.run_gh(args, json_out=True)
+
+
+# gh exits 1 for EVERY HTTP error; its explicit not-found marker is the only absence signal.
+_HTTP_404 = "(HTTP 404)"
+
+
+def gh_json_or_absent(args):
+    """gh_json, except that a genuine 404 returns None: a COMPLETED gh process (integer,
+    non-zero status — None is a launch failure) whose captured stderr carries "(HTTP 404)".
+    Exit 1 alone, other 404 digits and any status-zero result (even malformed JSON with a 404
+    in stderr) raise GhError. Local on purpose: only blockers and parent_of may read absence."""
+    result = factory_gh.try_gh(args, json_out=True)
+    if result.ok:
+        return result.value
+    if isinstance(result.status, int) and result.status != 0 and _HTTP_404 in result.stderr:
+        return None
+    raise result.error
 
 
 def do(cmds, apply):
@@ -81,10 +96,7 @@ def do(cmds, apply):
         if not apply:
             print("  would run: gh " + " ".join(c))
             continue
-        r = subprocess.run([ghi.gh_bin()] + c, capture_output=True, text=True)
-        if r.returncode != 0:
-            die(f"gh {' '.join(c[:3])}… failed: {(r.stderr or '').strip()}")
-        out = (r.stdout or "").strip()
+        out = factory_gh.run_gh(c)
         if out:
             print(f"  {out.splitlines()[-1]}")
     if not apply:
@@ -101,10 +113,7 @@ def ensure_labels(repo, apply):
 
 
 def issue(repo, num, fields="number,title,state,assignees,labels,body"):
-    d = gh_json(["issue", "view", str(num), "-R", repo, "--json", fields], allow_fail=True)
-    if d is None:
-        die(f"issue #{num} not readable in {repo}")
-    return d
+    return gh_json(["issue", "view", str(num), "-R", repo, "--json", fields])
 
 
 def sub_issues(repo, num):
@@ -112,8 +121,8 @@ def sub_issues(repo, num):
 
 
 def blockers(repo, num):
-    return gh_json(["api", f"repos/{repo}/issues/{num}/dependencies/blocked_by",
-                    "--paginate"], allow_fail=True) or []
+    return gh_json_or_absent(["api", f"repos/{repo}/issues/{num}/dependencies/blocked_by",
+                              "--paginate"]) or []
 
 
 def ticket_type(iss):
@@ -142,7 +151,7 @@ def frontier(repo, mapnum):
 
 def parent_of(repo, num):
     """The map a ticket belongs to, via the sub-issues parent endpoint (404 = no parent)."""
-    p = gh_json(ghi.parent_args(repo, num), allow_fail=True)
+    p = gh_json_or_absent(ghi.parent_args(repo, num))
     return p.get("number") if isinstance(p, dict) else None
 
 
@@ -168,10 +177,7 @@ def append_gist(repo, mapnum, line, apply):
     if not apply:
         print(f"  would append to map #{mapnum} '## Decisions so far':\n    {line}")
         return
-    r = subprocess.run([ghi.gh_bin(), "issue", "edit", str(mapnum), "-R", repo, "--body-file", "-"],
-                       input=new_body, capture_output=True, text=True)
-    if r.returncode != 0:
-        die(f"gh issue edit (map body) failed: {(r.stderr or '').strip()}")
+    factory_gh.run_gh(["issue", "edit", str(mapnum), "-R", repo, "--body-file", "-"], input=new_body)
     print(f"  gisted on map #{mapnum}")
 
 
@@ -261,9 +267,9 @@ def main():
                   f"-F sub_issue_id=<the new issue's internal id, NOT its number>")
             print("DRY RUN — nothing changed. Re-run with --apply.")
             return 0
-        url = gh_json(["issue", "create", "-R", repo, "--label", f"wayfinder:{ttype}",
-                       "--title", title, "--body", "## Question\n\n<the decision this resolves>\n"])
-        num = str(url).rstrip("/").split("/")[-1]
+        create = ["issue", "create", "-R", repo, "--label", f"wayfinder:{ttype}",
+                  "--title", title, "--body", "## Question\n\n<the decision this resolves>\n"]
+        num = str(factory_gh.issue_number_from_url(create, factory_gh.run_gh(create)))
         # THE TRAP, and it has TWO layers. sub_issues takes the child's internal id,
         # never its number -- and `gh issue view --json id` returns the GraphQL NODE
         # id (`I_kwDO...`), not the REST integer the endpoint wants. The node id is
@@ -318,5 +324,14 @@ def main():
     die(f"unknown subcommand {sub!r}")
 
 
+def cli():
+    """The CLI entry: one GhError catch turns any gh failure into the wayfind-prefixed
+    diagnostic and exit 1, never a traceback; the functions above stay typed for tests."""
+    try:
+        return main()
+    except factory_gh.GhError as error:
+        die(f"gh {' '.join(error.argv[:3])}… failed: {error}")
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(cli())
