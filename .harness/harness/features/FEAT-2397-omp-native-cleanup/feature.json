@@ -88,8 +88,16 @@
       "id": "r-20261122-6-validate-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-23T06:45:32+00:00"
+      "verdict": "PASS",
+      "started_at": "2026-11-23T06:45:32+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-6-validate-validator/digest.md",
+        "sha256": "2df460362f038e0dc41d067802f7ba0bc791ff9bda666985d6b3fd3c51f8e0ae"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T06:48:47+00:00"
     }
   ],
   "judgements": [
