@@ -5,7 +5,7 @@ approval:
   approved_by: fable-advisor
   status: approved
 drafted_at: '2026-11-23T04:13:32Z'
-status: ready
+status: review
 source_issues: [2390]
 lanes:
   resolved_at: 9eb07b4f3cd235c234a10edddbfe5542c1e85fba
