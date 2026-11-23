@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-2452-gh-one-transport
-- run: .harness/harness/features/FEAT-2452-gh-one-transport/runs/r-20261123-3-simplify-apply-product/state.yaml
-- squad: none
-- status: awaiting-user
+- run: .harness/harness/features/FEAT-2452-gh-one-transport/runs/r-20261123-4-amend-apply-product/state.yaml
+- squad: product
+- status: blocked
 
 ## Open Questions
 
-- OQ-1 (non-blocking, for the operator/fable-advisor at signature): DEC-138's shared-code clause (DECISIONS.md "Shared code, and migration scope") states gh_bin() lives in gh_issues.py and each caller keeps its own runner; after T-02/T-04 that implementation sentence is stale while its policy holds. Keep (as drafted, keep row + BRIEF constraint) or amend (amend row + DECISIONS.md owned by T-05)? pm and orchestrator recommend amend. Plan is signable either way.
+- Dispatch of r-20261123-4-amend-apply-product (C1 DEC-138 amend apply, ruling at notes/answers-2026-11-23-signoff.md §2) is refused by the session's dispatch hook: it resolves <CP>/.agents/skills/harness/bin/digest-schemas, moved by #2459 (b788e9da) to .claude/skills/harness/schemas/digest/. Needs the omp harness extension reloaded (or the orchestrator re-spawned with resume) before the run can be dispatched. Run is registered and open; nothing else owed.
