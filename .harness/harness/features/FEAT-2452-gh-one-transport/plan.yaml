@@ -271,7 +271,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 full transport migration is direct; do not dispatch a separate implementation team.
     depends_on: [T-03]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/wayfind.py#gh_json
       - .claude/skills/harness/bin/gh_issues.py#gh_bin
@@ -292,7 +292,7 @@ tasks:
     execution_agent: harness-documentor
     execution_reason: Main owns the signed external backlog posting and final policy/readback evidence in this direct build.
     depends_on: [T-04]
-    status: ready
+    status: building
     files:
     - path: .claude/skills/harness/references/github-mirror.md
       quote: '## Failure has four shapes, not one'
