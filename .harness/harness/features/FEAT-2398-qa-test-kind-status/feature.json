@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2398-qa-test-kind-status",
   "branch": "feat/FEAT-2398-qa-test-kind-status",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "685e861a667efd13e3c9720dffe9dbb847d4207b",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
