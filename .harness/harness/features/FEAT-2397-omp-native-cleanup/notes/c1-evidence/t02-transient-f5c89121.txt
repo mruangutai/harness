@@ -1,0 +1,191 @@
+OK Unit suite
+OK Validate feature execution state
+OK Plan-route gate
+OK Canonical-reader audit
+OK Instruction-path gate
+OK Layout gate
+OK Repository-state gate
+OK Integration suite (shard ${{ matrix.shard }}/4)
+OK Validate shard completeness
+OK two guidance lines
+OK echo "::error::check-plan-routes.py entered 0 feature directories, and this repository has features. Discovery did not run — an empty search is indistinguishable from a clean tree and would pass forever, the exact trap issue #133 names. Check HARNESS_PROJECT_DIR and .harness/*/features/." >&2
+OK echo "::error::layout_migration.py examined 0 ${zero}. Discovery did not run — an empty search is indistinguishable from a clean tree and would pass forever. Check HARNESS_PROJECT_DIR and the feature/doc roots." >&2
+OK tests/integration/test-harness-yaml.py
+OK tests/integration/test-validate-feature-json.py
+OK tests/unit/test-harness-yaml-corpus.py
+OK tests/unit/test-team-catalog.py
+OK tests/unit/test-plan-depends-on.py
+ok   test_merge_key_override_is_not_a_duplicate
+ok   test_missing_pyyaml_is_reportable_not_a_second_crash
+ok   test_duplicate_key_is_catchable_as_a_parse_error
+ok   test_duplicate_key_raises
+ok   test_nested_duplicate_key_raises
+ok   test_bare_date_scalar_stays_str
+ok   test_int_and_bool_resolvers_are_not_stripped
+ok   test_manifest_domains_matches_the_regex_walk_on_the_real_manifest
+ok   test_docs_domain_grant_is_exhaustive_over_every_persona
+ok   test_docs_domain_witness_reddens_on_addition_removal_and_census_drift
+ok   test_manifest_domains_excludes_non_canonical_read_true
+PyYAML is not importable by this python3 interpreter; allowing this session once.
+python3 -m pip install --break-system-packages pyyaml
+# Homebrew Python: install WITHOUT --user — the Harness guard ignores per-user
+# packages. Homebrew's PEP 668 warning applies: installing into its Python this
+# way can break the Homebrew installation, so that is a choice you make knowingly.
+{"systemMessage": "[harness] PyYAML is missing, so the write guards cannot read the domain manifest. This session is granted ONE bootstrap pass and later sessions will be blocked. Install it now:\npython3 -m pip install --break-system-packages pyyaml\n# Homebrew Python: install WITHOUT --user \u2014 the Harness guard ignores per-user\n# packages. Homebrew's PEP 668 warning applies: installing into its Python this\n# way can break the Homebrew installation, so that is a choice you make knowingly."}
+PyYAML is not importable, and this session's one-time bootstrap grant was already used by an EARLIER session — failing closed. Install PyYAML to restore normal operation:
+python3 -m pip install --break-system-packages pyyaml
+# Homebrew Python: install WITHOUT --user — the Harness guard ignores per-user
+# packages. Homebrew's PEP 668 warning applies: installing into its Python this
+# way can break the Homebrew installation, so that is a choice you make knowingly.
+PyYAML is not importable and the bootstrap marker at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpz_bjkzqs/.harness/.pyyaml-bootstrap could not be written ([Errno 13] Permission denied: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpz_bjkzqs/.harness/.pyyaml-bootstrap'), so a one-time grant cannot be recorded — failing closed rather than granting one that never expires.
+python3 -m pip install --break-system-packages pyyaml
+# Homebrew Python: install WITHOUT --user — the Harness guard ignores per-user
+# packages. Homebrew's PEP 668 warning applies: installing into its Python this
+# way can break the Homebrew installation, so that is a choice you make knowingly.
+ok   test_bootstrap_marker_lifecycle
+ok   test_marker_self_unlinks_when_yaml_imports
+ok   test_require_or_die_ignores_the_retired_project_dir_variable
+ok   test_require_or_die_survives_a_missing_harness_boundary
+ok   test_exactly_one_guarded_import_in_the_tree
+ok   test_c_loader_is_used_when_libyaml_is_available
+ok   test_load_plan_accepts_a_well_formed_plan
+ok   test_every_required_task_field_is_actually_required
+ok   test_load_plan_rejects_the_shapes_that_broke_PLAN_md
+ok   test_load_plan_backticked_path_is_not_silently_cleaned
+ok   test_load_plan_reports_line_and_column_on_malformed_yaml
+ok   test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan
+ok   test_load_plan_accepts_a_station_only_record_and_only_with_a_station
+ok   test_load_plan_verify_shape_gated_on_pending_approval
+ok   test_feat64_load_str_boundary_is_typed
+ok   test_feat64_require_or_die_cleanup_boundary_is_typed
+PASS accepted_all_ten_keys
+PASS accepted_only_seven_required_keys
+PASS accepted_omitting_optional_max_total_runs
+PASS accepted_omitting_optional_github
+PASS accepted_omitting_optional_factory
+PASS rejected_omitting_required_feature_id
+PASS rejected_omitting_required_branch
+PASS rejected_omitting_required_pr
+PASS rejected_omitting_required_review_sha
+PASS rejected_omitting_required_cycles_used
+PASS rejected_omitting_required_max_total_cycles
+PASS rejected_omitting_required_runs
+PASS rejected_status_Backlog_as_undeclared
+PASS rejected_status_Plan_as_undeclared
+PASS rejected_status_Ready_as_undeclared
+PASS rejected_status_Building_as_undeclared
+PASS rejected_status_Review_as_undeclared
+PASS rejected_status_Done_as_undeclared
+PASS rejected_status_backlog_as_undeclared
+PASS rejected_status_plan_as_undeclared
+PASS rejected_status_ready_as_undeclared
+PASS rejected_status_building_as_undeclared
+PASS rejected_status_review_as_undeclared
+PASS rejected_status_done_as_undeclared
+PASS rejected_status_abandoned_as_undeclared
+PASS rejected_phase_undeclared
+PASS rejected_undeclared_top_level_key
+PASS rejected_undeclared_runs_item_key
+PASS accepted_runs_item_code_grade_n_a
+PASS rejected_runs_item_code_grade_other_value
+PASS rejected_runs_item_code_grade_case_variant
+PASS rejected_undeclared_github_sub_key
+PASS rejected_prose_key_runs_item
+PASS rejected_status_shipped
+PASS rejected_pr_string_none
+PASS cli_clean_file_exit_exactly_0
+PASS case_749a: a key declared in the WRITTEN tree's schema is accepted
+PASS case_749b: an UNDECLARED key is still rejected against the written tree
+PASS case_749c: with no tree schema, the module's own schema still governs
+PASS cli_invalid_file_exit_exactly_1
+PASS cli_invalid_file_stderr_names_branch
+PASS cli_jsonschema_unavailable_exit_exactly_3
+PASS cli_jsonschema_unavailable_not_0_or_1
+PASS cli_jsonschema_unavailable_stderr_names_required
+PASS json_extension_rejects_yaml_content
+PASS yaml_extension_accepts_same_content
+PASS problems_for_text_at_least_two_problems
+PASS problems_for_text_display_path_in_every_line
+PASS forced_unavailable_returns_non_empty
+PASS forced_unavailable_single_line
+PASS forced_unavailable_names_required
+PASS forced_unavailable_names_install_command
+PASS case_migrated_depth: the sweep reports ONE file, not zero
+PASS case_migrated_depth: the scanning line names the migrated glob
+PASS case_migrated_depth: a TWELVE-file sweep is counted as twelve, not two
+PASS case_root_resolves: CLAUDE_PROJECT_DIR alone does not redirect the sweep (scans the real repo root, not the tmp fixture with its single file)
+PASS case_root_resolves: HARNESS_PROJECT_DIR + team-config.yaml IS honoured
+PASS accepted_source_issues_list_of_integers
+PASS rejected_source_issues_non_integer
+PASS rejected_source_issues_quoted_number
+PASS rejected_undeclared_sibling_of_source_issues
+PASS accepted_github_block_without_source_issues
+PASS accepted_signed_task_hashes_and_amendment_judgement
+PASS rejected_signed_task_hash_sc_key
+PASS rejected_signed_task_hash_uppercase
+PASS rejected_signed_task_hash_short
+PASS rejected_signed_task_hash_list
+PASS rejected_overruled_false
+PASS rejected_overruled_regate
+PASS accepted_github_build_entry_opened
+PASS accepted_github_build_entry_recovery-required
+PASS accepted_github_build_entry_not-applicable
+PASS accepted_github_build_entry_recovered-terminal
+PASS rejected_github_build_entry_illegal_value_'opened '
+PASS rejected_github_build_entry_illegal_value_'reopened'
+PASS rejected_github_build_entry_hyphen_misspelling
+PASS accepted_github_block_without_build_entry
+PASS t15_a_entry_without_agent_is_refused_and_names_index_and_key
+PASS t15_b_every_entry_without_agent_is_refused_for_every_feature
+PASS t15_d_a_new_entry_naming_its_agent_validates
+PASS t15_d_an_empty_agent_string_is_refused_so_the_check_is_on_the_value
+PASS t15_e_the_agent_rule_is_load_bearing
+     (red proof counts: original 1, mutant 0)
+
+ALL PASS
+ok    every shipped YAML parses (151 files across 2 roots: .harness=147, .claude/skills/harness/teams=4)
+ok    the corpus under .harness is not empty (a scan that matches nothing passes vacuously)
+ok    the corpus under .claude/skills/harness/teams is not empty (a scan that matches nothing passes vacuously)
+ok    .claude/skills/harness/teams holds exactly 4 team definitions (FEAT-06 SC-05)
+ok    detects ` #` opening a comment inside a flow sequence (the team-config.yaml bug)
+ok    detects `: ` inside a multi-line plain scalar (the FEAT-04/05 bug)
+ok    detects a sequence item opening with a backtick (the FEAT-03 bug)
+ok    detects an unclosed flow sequence
+ok    detects a DUPLICATED top-level key (safe_load accepts these; the harness does not)
+ok    detects a duplicated key NESTED in a block (column-0 scans cannot see these)
+ok    a malformed YAML in a feature's notes/ is EXEMPT (issue #628's recovered draft)
+ok    the IDENTICAL body one directory up, as plan.yaml, is still flagged -- so the exemption is scoped and the scan is not simply dead
+ok    a notes/ NOT under features/<id>/ is still covered
+ok    a correctly quoted/folded file is NOT flagged
+ok    detects a broken team definition under .agents/skills/harness/teams (SC-06)
+ok    a finding names file:line:column, not just 'invalid'
+
+16/16 checks passed.
+ok    (1) validate.yaml is {code, qa, security, ui, goalcheck} and qa is gate-only (persona: qa, mutates_repo: false) — SC-04, MF-1; FEAT-59 SC-13
+ok    (2) build.yaml parses, name: build, lead: eng-lead — SC-07
+ok    (3) build.yaml is hosted by a lead whose squad is Engineering, so the team is single-squad by construction — SC-07, DEC-118
+ok    (4) the Engineering squad covers the personas FEAT-03's eng build runs actually used {dev-ops, backend-dev} — SC-08
+ok    (5) harness/SKILL.md has a line naming both `build` and DEC-118 — SC-09
+ok    (6) the placeholder literal occurs exactly once across bin/, and both consumers reference PLACEHOLDER_UNSET — SC-02
+ok    (7) SPEC §13 has a `build` row whose conducted-by cell matches build.yaml's lead — SC-10
+ok    (8) harness/SKILL.md names the blocking qa gate: `test_matrix` present and qa+validator+loop_back within 8 consecutive lines — SC-14, issue #24
+ok    (9) the reader set agrees across SPEC's ship-feature row, SPEC's validate row and the shipped validate.yaml — SC-15
+ok    (10) test-check-state-plans.py still carries T-01's INV-6 fixtures (`review_sha: none` >= 2, `review_sha: 1ce886a` >= 1) — SC-01
+
+10/10 checks passed.
+  ok  a depends_on entry naming an absent task id is rejected, naming both ids
+  ok  a depends_on entry naming a task id present in the same plan is accepted
+  ok  two dangling edges in one document raise ONE exception naming BOTH (D-02)
+  ok  depends_on absent is accepted
+  ok  depends_on: null is accepted
+  ok  depends_on: [] is accepted
+  ok  a bare-string depends_on is rejected, naming the task id and the field, with no single-character phantom id from iterating the string
+  ok  6a: integer id 1 referenced as the string "1" is accepted
+  ok  6b: string id "1" referenced as the integer 1 is accepted
+  ok  6c: integer ids with a genuinely absent integer dependency (3) is rejected
+  ok  the walk reaches every synthetic plan (3 of 3) and all load
+  ok  the same walk reports exactly one failure naming the throwaway dangling plan
+  ok  the live plan corpus loads cleanly (33 files found)
+
+13/13 checks passed.
+ref=f5c89121 exit=0

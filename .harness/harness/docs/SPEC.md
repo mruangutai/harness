@@ -807,8 +807,10 @@ order they finish in.
 
 **Spawn policy is omp's, plus one route rule (DEC-118, DEC-204).** Which personas a dispatcher may
 spawn is its `.omp/agents/<persona>.md` `spawns:` list, enforced natively by omp on every spawn
-route; `dispatch-guard.py` keeps no copy of it and checks only what omp cannot (model and name
-overrides, the feature marker, run and claim state). A `harness-*` target is spawned through `task`
+route; `dispatch-guard.py` keeps no copy of it and checks only what omp cannot (a `name:`
+parameter, authored runtime-lineage fields, the feature marker, run and claim state). A per-call
+`model` is refused natively by `task.perCallModel: "off"` in `.omp/config.yml` (DEC-155), never
+by the guard. A `harness-*` target is spawned through `task`
 only: the extension's `before_subagent_spawn` handler refuses an eval `agent()` or workpool route to
 one, for every caller including Main.
 

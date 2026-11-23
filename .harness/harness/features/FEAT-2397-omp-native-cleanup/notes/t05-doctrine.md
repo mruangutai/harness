@@ -87,3 +87,33 @@ BUILD.md §0b and DEC-108/109 history, the authored `.claude/` directories, `dis
 | BUILD.md:948 DEC-111 citation | no edit: inside BUILD.md's declared historical boundary ("§0b onward", BUILD.md:21-23); the struck DEC-111 record names DEC-233 | — |
 
 Successor for both rewordings: FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, the same decisions[id=D-NN] row the SPEC §3.1/§3.2 edits cite. Values only; no key, structure, domain or rule change.
+
+## Correction — 2026-11-22, c1 fix round (validate c0 ESCALATE)
+
+Rulings: `notes/answers-2026-11-22-c0-escalations.md`. The text above is left as written; these
+claims in it were false at `53a89eb7`:
+
+- **§Index ("The 23 affected ruling tails were rewritten; each … cites its successor durably;
+  DEC-111's tail is the strike tail").** False. The generator preserves authored tails, so
+  regeneration kept the obsolete text: Claude `skills:` injection (DEC-63), the
+  `hookSpecificOutput.additionalContext` envelope (DEC-64), concurrency 20 (DEC-81),
+  `settings.json`/INV-9 provisioning (DEC-110/111), the `dispatch-guard.py` model refusal
+  (DEC-155/156), compatibility TTL wording (DEC-218/233); DEC-111's row did not name its strike, and
+  no tail cited a plan-local successor (code reviewer c0, finding 2).
+- **DEC-214 "request spelling corrected".** False: DEC-214 still cited `tool_input.prompt` (deleted
+  alias) at `dispatch-guard.py:77-79`.
+- **SPEC "agrees".** False at §4 spawn policy: it still assigned model overrides to `dispatch-guard.py`.
+- **"`.omp/commands/harness.md` §3: one blocking `task` call".** The word "blocking" contradicts kept
+  DEC-204 (asynchronous Main → orchestrator edge); ruled a drafting error (Q2).
+- **Bin root comments (`ctx.py`, `worktrees.py`, `check-plan-routes.py`) spelled the project-root
+  variable**, failing `test-no-distribution.py` case6's absence scan (Q1(a)).
+
+What c1 changed (comments/doctrine only, no logic):
+
+| Surface | Change |
+|---|---|
+| `DECISIONS-INDEX.md` | All 23 amend/strike tails rewritten to the current native contract, each ≤30 words (max verified by `awk NF`), each D-NN row citing `FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-NN]`; DEC-111 reads "STRUCK under DEC-188 … successor DEC-233". No row needed truncation. `gen-decisions-index.py --stdout \| diff - DECISIONS-INDEX.md` is empty. |
+| `DECISIONS.md` DEC-214 | Cites the task text `tool_input.task` via `dispatch-guard.py`'s feature-marker comment (no stale line numbers). |
+| `SPEC.md` §4 spawn policy | dispatch-guard checks `name:`, authored lineage fields, the feature marker, run and claim state; per-call `model` is refused natively by `task.perCallModel: "off"` (DEC-155). |
+| `.omp/commands/harness.md` §3 | One `task` call with `agent: harness-orchestrator` running in the background (DEC-204): Main ends its turn, the result is injected; `tasks[]`-per-flow, HARNESS-FEATURE first line and no per-call model kept. DEC-204 untouched. |
+| Three bin comments | Say "the Harness project-root environment override" instead of the variable name. |

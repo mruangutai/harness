@@ -7114,8 +7114,8 @@ is silent and dangerous, and a missing skill read has no signal at all.
 
 **Two alternatives were considered and refused, recorded because a future scan will re-suggest
 both.** Injecting a SECOND resolved value from `inject-expertise.py` was refused because the hook
-cannot identify the spawning agent's feature: `dispatch-guard.py:77-79` records that
-`tool_input.prompt` exists only on the dispatch payload and reaches no other hook, and DEC-64 fixes
+cannot identify the spawning agent's feature: `dispatch-guard.py`'s feature-marker comment records
+that the task text, `tool_input.task`, exists only on the dispatch request and reaches no other hook, and DEC-64 fixes
 the agent-start request's contract at the agent name (`agent_type`), so the hook would have to scan the inflight
 registry of the control plane and of every linked worktree for a claim keyed on persona alone —
 ambiguous whenever two spawns of one non-single-flight persona run on different features at once.

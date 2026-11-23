@@ -134,8 +134,9 @@ or when the ruling is spent.
 
 **Dispatch titles follow one convention at every layer** (DEC-142): `<flow-id> · <step or task id> · <what, 3–6 words>` — e.g. `FEAT-02 · plan · draft brief and plan`. The flow id appears in EVERY spawn title all the way down, so the user watching the agent tree sees one chain, not three unrelated tasks.
 
-One blocking `task` call with `agent: harness-orchestrator`: the call holds until the orchestrator
-returns (DEC-204). To run N flows at once, put one `tasks[]` item per flow in that single call. Never
+One `task` call with `agent: harness-orchestrator`, which runs in the background (DEC-204): end your
+turn after dispatching; the orchestrator's result is injected when it finishes. To run N flows at
+once, put one `tasks[]` item per flow in that single call. Never
 pass a per-call `model`; `.omp/config.yml` pins `task.perCallModel: "off"` (DEC-155). **The `task`
 text's first line is the literal `HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>`** — the hook reads
 the orchestrator's assignment message for that marker (DEC-204) and keys everything per-feature on

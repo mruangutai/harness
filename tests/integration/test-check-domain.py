@@ -108,45 +108,55 @@ def _unavailable_gates(result):
     return gates
 
 
+_HOOK_BIN = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
+
+
+def _run_unreadable(root):
+    """check-domain fed a payload it cannot parse."""
+    return subprocess.run([os.path.join(_HOOK_BIN, "check-domain.py")],
+                          input="{not json", capture_output=True, text=True,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+
+
+def _run_no_boundary():
+    """The tree without harness_boundary.py: the hook runs unguarded, as the DEC-101 isolated
+    copy does, and its bootstrap says so before the body runs."""
+    bare = tempfile.mkdtemp()
+    bare_bin = os.path.join(bare, ".claude", "skills", "harness", "bin")
+    os.makedirs(bare_bin)
+    for name in ("check-domain.py", "artifact_accessors.py"):
+        shutil.copy(os.path.join(_HOOK_BIN, name), os.path.join(bare_bin, name))
+    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+               "tool_input": {"file_path": os.path.join(bare, "anything.md"), "content": "x"}}
+    return subprocess.run([os.path.join(bare_bin, "check-domain.py")],
+                          input=json.dumps(payload), capture_output=True, text=True,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=bare))
+
+
+def _exits(result, code, gates):
+    return result.returncode == code and _unavailable_gates(result) == gates
+
+
 def _feat2274_cases():
     """FEAT-2274 C1: check-domain's own crash (above), a payload it cannot read, and a tree
     whose harness_boundary.py cannot be imported are each ONE stdout unavailable line at exit
     0. A normal pass, the main session's pass and a deliberate denial emit none."""
     root = fixture(FIXTURE_MANIFEST)
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
-    unreadable = subprocess.run([os.path.join(ROOT, ".claude", "skills", "harness", "bin",
-                                              "check-domain.py")],
-                                input="{not json", capture_output=True, text=True, env=env)
-    # The tree without harness_boundary.py: the hook runs unguarded, as the DEC-101 isolated
-    # copy does, and its bootstrap says so before the body runs.
-    bare = tempfile.mkdtemp()
-    bare_bin = os.path.join(bare, ".claude", "skills", "harness", "bin")
-    os.makedirs(bare_bin)
-    for name in ("check-domain.py", "artifact_accessors.py"):
-        shutil.copy(os.path.join(ROOT, ".claude", "skills", "harness", "bin", name),
-                    os.path.join(bare_bin, name))
-    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-               "tool_input": {"file_path": os.path.join(bare, "anything.md"), "content": "x"}}
-    no_boundary = subprocess.run([os.path.join(bare_bin, "check-domain.py")],
-                                 input=json.dumps(payload), capture_output=True, text=True,
-                                 env=dict(os.environ, HARNESS_PROJECT_DIR=bare))
+    unreadable = _run_unreadable(root)
+    no_boundary = _run_no_boundary()
     passed = _fire_new(_state("2"), "f2274-pass")
     main_session = fire_write_payload(root, os.path.join(root, "notes.md"), "x")
     denied = fire(fixture(FIXTURE_MANIFEST), "forbidden/x.md")
     return [
         ("an unreadable payload passes through as one unavailable line",
-         unreadable.returncode == 0 and _unavailable_gates(unreadable) == ["check-domain"],
-         unreadable),
+         _exits(unreadable, 0, ["check-domain"]), unreadable),
         ("a tree without harness_boundary.py says unavailable once and still fails open",
-         no_boundary.returncode == 0 and _unavailable_gates(no_boundary) == ["check-domain"],
-         no_boundary),
-        ("a normal governed pass emits no unavailable line",
-         passed.returncode == 0 and _unavailable_gates(passed) == [], passed),
+         _exits(no_boundary, 0, ["check-domain"]), no_boundary),
+        ("a normal governed pass emits no unavailable line", _exits(passed, 0, []), passed),
         ("the main session's ungoverned pass emits no unavailable line",
-         main_session.returncode == 0 and _unavailable_gates(main_session) == [], main_session),
+         _exits(main_session, 0, []), main_session),
         ("a deliberate denial is exit 2 with no unavailable line",
-         denied.returncode == 2 and "BLOCKED" in denied.stderr
-         and _unavailable_gates(denied) == [], denied),
+         _exits(denied, 2, []) and "BLOCKED" in denied.stderr, denied),
     ]
 
 

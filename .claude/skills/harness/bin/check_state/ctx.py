@@ -292,7 +292,7 @@ class Ctx:
         #
         # RELATIVE TO THE GIT TOP LEVEL, NEVER TO `root`, and the reason CHANGED with the rebase while
         # the requirement did not. Since FEAT-42 T-12 this script resolves `root` through
-        # harness_boundary.resolve_root(_selfdir), which reads HARNESS_PROJECT_DIR, never a host's
+        # harness_boundary.resolve_root(_selfdir), which reads the Harness project-root environment override, never a host's
         # session variable. That is the HARNESS root, which
         # still need not be the repository top level — a worktree checkout is the everyday case, and this
         # very file is being edited in one. `git show <sha>:<path>` takes a path relative to the

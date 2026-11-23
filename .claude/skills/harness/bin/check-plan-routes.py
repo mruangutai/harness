@@ -715,7 +715,7 @@ def discover_plans():
 
     Root precedence follows check-domain.py (`:178-180`, and again at `:276-281` for
     its hook path — two call sites, one rule), because a third derivation is a third
-    thing to drift: HARNESS_PROJECT_DIR if it carries the harness marker, else the root
+    thing to drift: the Harness project-root environment override if it carries the harness marker, else the root
     DERIVED from this file's location (bin/ is four levels down), as harness_boundary.resolve_root
     decides.
 
