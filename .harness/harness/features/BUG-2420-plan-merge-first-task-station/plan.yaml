@@ -1,0 +1,66 @@
+schema: plan/1
+feature: BUG-2420-plan-merge-first-task-station
+approval:
+  status: pending
+drafted_at: '2026-11-23T03:30:58Z'
+status: plan
+source_issues: [2420]
+lanes:
+  resolved_at: 9eb07b4f
+  rows:
+    - surface: .claude/skills/harness/bin/plan_merge/stations.py
+      lane: main-session-direct
+      reason: DEC-174 enforcement writer carve-out
+    - surface: tests/integration/test-plan-merge.py
+      lane: main-session-direct
+      reason: DEC-174 includes enforcement tests
+    - surface: tests/unit/test-plan-merge-first-station.py
+      lane: main-session-direct
+      reason: DEC-174 includes enforcement tests
+decisions: []
+decisions_affected: []
+tasks:
+  - id: T-01
+    title: Insert the first task station and prove approval survives
+    traces: [SC-01, SC-02, SC-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 forbids governed execution of changes to this enforcement writer and its tests
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/plan_merge/stations.py
+      - tests/integration/test-plan-merge.py
+      - tests/unit/test-plan-merge-first-station.py
+    verify: |
+      set -eu
+      : "${BUG2420_TOOL_ROOT:?Set to the fixed feature checkout or surviving merged owner checkout}"
+      : "${BUG2420_BASE:?Set to the full pinned pre-fix commit captured before production edits}"
+      cd "$BUG2420_TOOL_ROOT"
+      export CLAUDE_PROJECT_DIR="$BUG2420_TOOL_ROOT"
+      unset HARNESS_PROJECT_DIR HARNESS_AGENT_TYPE
+      git rev-parse HEAD
+      python3 tests/unit/test-plan-merge-first-station.py
+      python3 tests/integration/test-plan-merge.py
+      python3 .agents/skills/harness/bin/check-plan-routes.py .harness/harness/features/BUG-2420-plan-merge-first-task-station/plan.yaml
+      python3 .agents/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+      python3 - <<'PY'
+      import json, os, subprocess, sys
+      command = [sys.executable, '.agents/skills/harness/bin/code-grade.py', '--base', os.environ['BUG2420_BASE'], '--head', 'HEAD', '--json']
+      result = subprocess.run(command, capture_output=True, text=True)
+      print(result.stdout, end=''); print(result.stderr, end='', file=sys.stderr)
+      assert result.returncode == 0, result.returncode
+      report = json.loads(result.stdout)
+      assert not report['ungraded'], report
+      assert report['records'], 'No changed Python functions graded'
+      assert all(r['grade'] >= r['bar'] for r in report['records']), report
+      print('BUG-2420 grades PASS: production >=4, tests >=3')
+      PY
+    intent: |
+      PRODUCT checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2420-plan-merge-first-task-station. All edits, including any task subagent edits by main, remain inside this assigned feature worktree. Read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent at intake; report absence honestly rather than inventing guidance or substituting Harness policy. Binding intake: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-plan-merge-first-task-station-2026-11-22.md. This is main-session-direct under DEC-174, not permission for a governed engineering build.
+      Own exactly stations.py, tests/integration/test-plan-merge.py and the new tests/unit/test-plan-merge-first-station.py. Do not edit production documentation or adjacent code. All other verbs, refusals, formatting contracts, apply's IGNORED-status rule, issues 747 and 1104, FEAT-2397 plan content and why sign-approval left FEAT-2397 at plan are out of scope. Apply must not start seeding status on new tasks. Do not duplicate BUG-2349 inline-empty union unit coverage.
+      Tests FIRST. Pin the full current pre-fix commit before production edits (intake baseline 9eb07b4f). Add an in-process table-driven unit test invoking set-task-station with exactly three rows: existing task without own status inserts at the task field indent with exit 0 and usual STATION/APPLIED lines; existing status rewrites exactly as today with every other byte unchanged; genuinely missing task exits 3 with clear missing-task text, no success output and unchanged plan bytes. Use a signed-plan insertion fixture and one explicit assertion comparing the complete approval block bytes before and after, including status approved. Require successful insertion as well as byte equality so the unchanged failed operation cannot satisfy the approval proof.
+      Keep the existing test script conventions and runner registration. The unit file may load a pinned stations.py through an explicit environment override, like BUG-2349's PLAN_MERGE_UNION precedent, so new assertions execute against the pre-fix module without relative-ref drift. Use real writer/lock behavior or the existing in-process seam; do not replace the production transform with a fake. Add exactly one integration case to the existing script using fixture_root, run_apply, run_verb, check and YAML reload conventions: start tasks empty, apply T-01 without status, assert no status was seeded, set T-01 building, assert exit 0 and reload with building. No separate union-mechanics cases.
+      Preserve raw commands, full pre-fix source SHA, test SHA or patch identity, tool path, stdout, stderr and exit status under feature notes for red runs before touching production; insertion and the drafting-path regression must demonstrably fail for the missing-status defect, while rewrite and missing-id remain passing controls. Preserve an independently discriminating red approval assertion by requiring insertion success, not only comparing untouched bytes. Then implement only the bounded station change and preserve matching green receipts for the same tests. New/changed Python test functions must grade at least 3 and changed production functions at least 4; grade-2 advisory exit 0 is insufficient.
+      In cmd_set_task_station and its local search helpers distinguish an absent task from an existing task lacking its own status. For the latter splice status with the requested station at that task's field indent; do not confuse nested text or a later task with its own field. Keep existing-status rewriting byte-for-byte outside the rewritten line. Preserve lock/update handling and usual STATION/APPLIED output. Only genuinely absent tasks take exit 3; keep the present task-id list and make the message clearly about absence, never a missing status field. Do not reset or rewrite approval on insertion.
+      After committing implementation and tests, run the literal verify with BUG2420_TOOL_ROOT set to this checkout and BUG2420_BASE to the full pinned pre-fix commit. Preserve intentional environment isolation for governed-writer tests: unset HARNESS_AGENT_TYPE and HARNESS_PROJECT_DIR and use checkout-local CLAUDE_PROJECT_DIR. Expected result within 60 seconds: both focused scripts exit 0 with no FAIL checks, scoped routes and canonical-reader audit exit 0, and every changed Python function meets its actual bar. The grade gate reads committed HEAD, not uncommitted files. Full configured unit/integration runners and workflow aggregation remain validate/CI obligations; do not substitute a typecheck or add TypeScript. Preserve raw green receipts in feature notes; no panel, readers or goal-check are added to this patch.

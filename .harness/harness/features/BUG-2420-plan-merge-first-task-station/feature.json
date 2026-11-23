@@ -1,0 +1,36 @@
+{
+  "feature_id": "BUG-2420-plan-merge-first-task-station",
+  "branch": "feat/BUG-2420-plan-merge-first-task-station",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T03:27:23+00:00",
+      "tokens": 46127,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-patch-product/digest.md",
+        "sha256": "5b25c964976bd4eef4f189902dad1ae4a1a3af21f0722b24113c3679ed20c3cf"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T03:32:57+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T03:27:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Cause known: stations.py _status_in_task returns None for a status-less task and cmd_set_task_station treats it as a missing task; diff bounded to plan_merge/stations.py and its tests; no interface, schema or enforcement surface"
+    }
+  ],
+  "mission": "patch"
+}
