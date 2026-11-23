@@ -1,0 +1,8 @@
+ref=b9a8c3adb8c387d24d149e7054ade3fc4654f2b5
+tracked feature.json: 34
+  note       INV-32: FEAT-2397-omp-native-cleanup finding PF-03a45e9f257b6328adbbf8286f2c7be3 disposition resolved.
+  note       INV-32: FEAT-2397-omp-native-cleanup finding PF-64e5b1b217a815f7b7b94f22967e759d disposition resolved.
+  note       INV-32: FEAT-2397-omp-native-cleanup finding PF-4fe19fe36b8553e03ec7cf280aee4677 disposition resolved.
+  note       INV-32: FEAT-2397-omp-native-cleanup finding PF-c944e46fe60128de22954020c452ceaf disposition resolved.
+  note       INV-17 FEAT-2397-omp-native-cleanup: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed. Suppressed handoff-plan, handoff-build.
+exit=0
