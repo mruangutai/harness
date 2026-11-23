@@ -36,6 +36,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-23T03:46:57+00:00"
+    },
+    {
+      "id": "2026-11-23-03-fix-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T04:03:53+00:00",
+      "tokens": 61541,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-23-03-fix-validator/digest.md",
+        "sha256": "55563c1d5c5e5c01cddc796d280d2024c7d8bad19b90afca75bd17e2f0f8d2d9"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T04:11:17+00:00"
     }
   ],
   "judgements": [
@@ -66,6 +81,13 @@
       "kind": "regate",
       "decision": "validate cycle 2",
       "reason": "c1 must_fix MF-1 fixed main-session-direct at 74e6896c inside the signed ruling (round 1 of 1); SC-03 clause ruled vacuous by operator; one re-verify run over 74e6896c"
+    },
+    {
+      "at": "2026-11-23T04:11:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "validate c2 PASS over 74e6896c: both c1 must_fix resolved and SC-01..03 met; proceed to the ship briefing with no further rework"
     }
   ],
   "mission": "patch",
