@@ -190,7 +190,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 factory_gh is imported by the check-state dependency chain; no team implementation.
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/factory_gh.py#run_gh
       - .claude/skills/harness/bin/gh_cost_log.py#_read_counter
