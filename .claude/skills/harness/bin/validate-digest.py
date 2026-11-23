@@ -449,12 +449,17 @@ def _qa_code_repository(record, feature_dir):
     return code_root, repo, None
 
 
+def _qa_pins(record, review_pin):
+    """`(source, value)` for each pin feature.json's review_sha and the dispatch actually give."""
+    return [(source, value.strip()) for source, value in
+            (("review_sha", record.get("review_sha")), ("dispatch pin", review_pin))
+            if isinstance(value, str) and value.strip() and not _placeholder(value)]
+
+
 def _qa_review_commit(code_root, repository, record, review_pin):
     """`(commit, None)`: the one full commit feature.json's review_sha and a trusted dispatch pin
     name in the code repository — either may supply it and both must agree (#1677)."""
-    pins = [(source, value.strip()) for source, value in
-            (("review_sha", record.get("review_sha")), ("dispatch pin", review_pin))
-            if isinstance(value, str) and value.strip() and not _placeholder(value)]
+    pins = _qa_pins(record, review_pin)
     if not pins:
         return None, "the feature records no review pin (review_sha) and the dispatch gave none"
     commits = set()
@@ -589,12 +594,23 @@ def _qa_kind_policy_error(i, kind, state, verdict, test_kinds, where):
     policy = test_kinds.get(kind)
     if not isinstance(policy, dict):
         return f"kinds[{i}] names {kind!r}, which test_kinds in {where} does not declare."
+    if _kind_class(policy) == "misconfigured":
+        return _misconfigured_report_error(i, kind, state, verdict, policy, where)
+    return _status_state_error(i, kind, state, policy, where)
+
+
+def _misconfigured_report_error(i, kind, state, verdict, policy, where):
+    """A misconfigured kind may be reported only `misconfigured` with VERDICT BLOCKED."""
+    if state == "misconfigured" and verdict == "BLOCKED":
+        return None
+    return f"kinds[{i}] reports {state} under VERDICT {verdict}. " + _misconfigured_rule(
+        kind, policy, where)
+
+
+def _status_state_error(i, kind, state, policy, where):
+    """A usable kind's state against its status: only `excluded` soft-skips, only a configured
+    `locally_run` kind runs locally, and `satisfied` needs a `cmd`."""
     kind_class = _kind_class(policy)
-    if kind_class == "misconfigured":
-        if state == "misconfigured" and verdict == "BLOCKED":
-            return None
-        return f"kinds[{i}] reports {state} under VERDICT {verdict}. " + _misconfigured_rule(
-            kind, policy, where)
     if state == "not_applicable" and kind_class != "excluded":
         return (f"kinds[{i}] ({kind}) claims not_applicable but {where} records status "
                 f"{policy.get('status')} with a runnable cmd — only status: excluded with its "
@@ -1627,13 +1643,18 @@ def _qa_floor_requires_nothing(field, persona, seen, qa):
     kind and the return says so (`matrix_ok: true`, `kinds: []`) — DEC-173's dev-ops case for
     qa. Fails closed: any other field or persona, a reported kind, or a pinned policy or plan
     that cannot prove "nothing required" leaves the gate binding."""
-    if persona != "qa" or field != "suite" or qa is None or not qa[0]:
-        return False
-    if seen.get("matrix_ok") is not True or seen.get("kinds") != []:
+    if not (_qa_claims_no_kind(field, persona, seen) and qa and qa[0]):
         return False
     policy, _where, error = _qa_policy(*qa[:2])
     tasks = _plan_tasks(qa[0])
     return not error and tasks is not None and _matrix_requires_no_kind(policy, tasks)
+
+
+def _qa_claims_no_kind(field, persona, seen):
+    """The qa return asks for #2139's exemption: `suite` declined beside `matrix_ok: true` and
+    `kinds: []`."""
+    return (persona == "qa" and field == "suite" and seen.get("matrix_ok") is True
+            and seen.get("kinds") == [])
 
 
 def _matrix_requires_no_kind(policy, tasks):
@@ -1773,11 +1794,16 @@ def _qa_kinds_errors(seen, verdict, qa):
         # The receipt check refuses this same return, naming the pin or checkout fault and
         # its repair command; `_active_receipt_kinds` carries any other policy refusal.
         return [] if qa[2] else [error]
-    test_kinds = policy["test_kinds"]
-    err = _qa_kind_errors(kinds, verdict, test_kinds, where)
     floor = sorted({k for task in started for k in _always_kinds(policy["test_matrix"], task)})
-    err += _misconfigured_omissions(kinds, floor, test_kinds, where)
-    if verdict == "PASS" and seen.get("matrix_ok") is True:
+    return _qa_gate_errors(kinds, floor, verdict, seen.get("matrix_ok") is True,
+                           policy["test_kinds"], where)
+
+
+def _qa_gate_errors(kinds, floor, verdict, matrix_ok, test_kinds, where):
+    """Gates 1–3 over one pinned policy and the started tasks' `always` floor."""
+    err = (_qa_kind_errors(kinds, verdict, test_kinds, where)
+           + _misconfigured_omissions(kinds, floor, test_kinds, where))
+    if verdict == "PASS" and matrix_ok:
         excluded = _excluded_kinds(test_kinds)
         err += _matrix_floor_errors(kinds, [k for k in floor if k not in excluded])
     return err
@@ -3055,9 +3081,7 @@ def _validate_hook_object(d, agent, obj):
                         feature_dir=_hook_feature_dir(obj.get("artifact"),
                                                       d.get("harness_feature")),
                         expertise=_hook_expertise(d, canonical, obj, mission),
-                        qa_feature_dir=(_hook_registered_feature(d.get("harness_feature"))[1]
-                                        if family == "qa" else None),
-                        qa_receipts_follow=family == "qa" and _qa_claims_unconditional_pass(obj))
+                        **_hook_qa_options(d, family, obj))
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2
@@ -3068,6 +3092,15 @@ def _validate_hook_object(d, agent, obj):
     if family == "qa":
         return check_qa_matrix_claim(agent, obj, d)
     return 0
+
+
+def _hook_qa_options(d, family, obj):
+    """QA's trusted policy seam (FEAT-2398): the feature registered under the host's runtime
+    identity, and whether the #919 receipt check will verify this return."""
+    if family != "qa":
+        return {}
+    return {"qa_feature_dir": _hook_registered_feature(d.get("harness_feature"))[1],
+            "qa_receipts_follow": _qa_claims_unconditional_pass(obj)}
 
 
 def _contract_refusal(errs):

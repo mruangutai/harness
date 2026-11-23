@@ -7103,6 +7103,10 @@ def _kp_sc02_cases(root, pins):
                fire_c(_kp_digest("BLOCKED", (K_RUN, "satisfied"))), 0)
     _kp_expect("SC-02: active missing under FAIL is accepted (ordinary coverage FAIL)",
                fire_c(_kp_digest("FAIL", (K_RUN, "missing"))), 0)
+
+
+def _kp_sc02_disclosure_case(root, pins):
+    fire_a = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["A"])
     brief = os.path.join(root, KP_REL, "BRIEF.md")
     outcomes = []
     for body in ("# Brief\n", "# Brief\n" + KP_GAPS):
@@ -7215,6 +7219,7 @@ def run_feat2398_qa_policy_cases():
     try:
         _kp_sc01_cases(root, pins)
         _kp_sc02_cases(root, pins)
+        _kp_sc02_disclosure_case(root, pins)
         _kp_sc03_harness_cases(root, pins)
         _kp_sc04_cases(root, pins)
         _kp_product_cases(plan_root, product_pins)
