@@ -1,0 +1,14 @@
+{
+  "bug:test-factory-config.py (21) fails on macOS when the checkout lives under $TMPDIR (/var realpaths to /private/var)": {
+    "number": 2442,
+    "typed": true
+  },
+  "chore:gate-runtime headroom: test-omp-native-gate-runtime.py runs ~41s against the 45s per-script timeout in T-01-style verify pools": {
+    "number": 2443,
+    "typed": true
+  },
+  "chore:test helpers that execute gates must pin or scrub the project-root override instead of handing gates raw process.env": {
+    "number": 2444,
+    "typed": true
+  }
+}
