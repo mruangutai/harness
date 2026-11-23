@@ -83,6 +83,13 @@
       "kind": "regate",
       "decision": "validate cycle 1",
       "reason": "c0 code-reviewer med/substance (membership test oracle) fixed at f08cc8f7 per AdvisorC5PatchMerge; rework round 1 of 1"
+    },
+    {
+      "at": "2026-11-23T04:35:24+00:00",
+      "by": "fable-advisor",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Delegated ruling AdvisorC6PatchDistill: all digests expertise_update empty, no observations; byte-preservation rule already in code-reviewer G-03; sign-approval symptom filed as backlog"
     }
   ],
   "mission": "patch",
