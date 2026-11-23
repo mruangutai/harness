@@ -3,15 +3,10 @@
 THE TRAP: the sub-issue and dependency endpoints take an issue's internal `id`,
 never its `number`. Passing the number silently attaches the wrong issue or 422s.
 This module documents the trap once and builds the argv for it; it executes
-nothing. `wayfind.py` dies exit 1 and is dry-run by default, `gh-sync.py` skips
-and exits 0 on an environmental failure — two different failure semantics a
-shared executor would have to pick one of, so each caller keeps its own runner.
+nothing. factory_gh is the one transport that runs these argv; each caller keeps
+its own failure policy (`wayfind.py` dies exit 1 and is dry-run by default,
+`gh-sync.py` skips and exits 0 on an environmental failure).
 """
-import os
-
-
-def gh_bin():
-    return os.environ.get("GH_SYNC_GH", "gh")
 
 
 def internal_id_args(repo, num):

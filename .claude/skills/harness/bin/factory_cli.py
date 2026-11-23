@@ -8,9 +8,12 @@ Contract:
   - stdout carries ONLY the machine-readable payload; every diagnostic, warning and
     error goes to stderr.
   - exit 0 success (payload on stdout); exit 1 nothing to do (not an error); exit 2
-    refused (invalid config, repo not in the fleet, plan unsigned, or a guard tripped
-    — nothing mutated); exit 3 lost race (another agent owns the issue — nothing
-    mutated).
+    refused or failed (invalid config, repo not in the fleet, plan unsigned, a guard
+    tripped, or a gh failure). Exit 2 does NOT mean nothing was mutated: it may follow
+    irreversible remote writes, e.g. factory_land's push and pull-request create before
+    a later board move fails, or factory_decompose's created issues and recorded
+    receipt before a later edge write fails. Exit 3 lost race (another agent owns the
+    issue — nothing mutated).
   - a tool NEVER exits 1 for a failure. run() traps any unhandled exception so it
     exits 2 instead of falling through to Python's default exit 1, which would read
     as nothing-to-do.

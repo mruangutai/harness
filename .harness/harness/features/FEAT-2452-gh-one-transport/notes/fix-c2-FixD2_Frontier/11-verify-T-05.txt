@@ -1,0 +1,3 @@
+# T-05 verify (literal, plan.yaml, executed via bash), cwd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport
+PASS policy vocabulary, exit-2 correction, enforcement-ticket readback, live capability receipt and retired-override absence
+exit=0

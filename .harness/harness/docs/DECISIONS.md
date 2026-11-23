@@ -3130,10 +3130,12 @@ closed ticket with a distinct icon and no explanation is opaque to the only audi
 exists for, which is why the abandonment reason is posted at all.
 
 **Shared code, and migration scope.** The three GitHub primitives — the internal-id attach, the
-parent read, the blocking-edge write — plus the internal-id lookup and `gh_bin()` live in exactly one
-place, `.claude/skills/harness/bin/gh_issues.py`, as **argv builders**; each caller keeps its own
-runner, because `gh-sync.py` skips-and-exits-0 on an environmental failure while `wayfind.py` dies
-exit 1. `gh-sync.py` imports only `internal_id_args` and `attach_sub_issue_args`, and its containing
+parent read, the blocking-edge write — plus the internal-id lookup live in exactly one place,
+`.claude/skills/harness/bin/gh_issues.py`, as **argv builders**. `factory_gh` is the one shared
+transport: it resolves `FACTORY_GH` and launches `gh` for every operator and library caller.
+Failure policy stays at each caller, because `gh-sync.py` skips-and-exits-0 on an environmental
+failure while `wayfind.py` dies exit 1.
+`gh-sync.py` imports only `internal_id_args` and `attach_sub_issue_args`, and its containing
 **no** call to `parent_args` or `blocked_by_args` is a standing regression guard for the write-only
 rule. **No `blocked_by` edge is emitted by the Issues sync at all**: the builder exists and its only
 caller is wayfinding. Migration was new-features-only — no backfill, no retrofit, no edit to any
