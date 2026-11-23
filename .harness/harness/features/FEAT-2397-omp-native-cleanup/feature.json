@@ -114,6 +114,13 @@
       "kind": "regate",
       "decision": "validate cycle 2: goalcheck-only over SC-04 evidence append eda06a68",
       "reason": "c1 FAIL was form/med SC-04 receipt provenance only; lead requested evidence-only append, source byte-identical between pins"
+    },
+    {
+      "at": "2026-11-23T07:06:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "PR #2441 CI FAIL post-c2-PASS (unit test-omp-hooks x5, env-hermeticity defect, fix dfe27d14+c1eb9eaa test-only); rework round 2 of 2 under the signoff ruling; narrow qa+code re-validate per AdvisorC13PostValidateFix"
     }
   ],
   "mission": "plan",

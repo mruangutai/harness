@@ -33,3 +33,13 @@ form-only SC-04 finding and was ruled by AdvisorC11C1Close; c2 was a goalcheck-o
 2. Re-examine #1248 and #612 (sign-off backlog condition).
 3. Distill or skip.
 4. New backlog rows, if any.
+
+## Correction (2026-11-23), Disclosed and carried
+
+The second bullet's "host-environmental" claim is withdrawn on two counts:
+- the `test-omp-hooks.py` FEAT-2225 ×5 cases were a product defect, which PR #2441's CI caught and
+  `dfe27d14` and `c1eb9eaa` fix test-only (`notes/fix-c2.md`);
+- the BUG-1290 lines were mutation-proof output from a passing script, not failures.
+
+Only `test-factory-config.py` (21) and the host INV-29 row are host-only. A narrow c3 re-validate,
+which is rework round 2 of 2, follows under `notes/answers-2026-11-23-fix-c2.md`.

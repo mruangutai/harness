@@ -58,3 +58,20 @@ echo "ref=<ref8> exit=$?" | tee -a t02-transient-<ref8>.txt
 
 The script itself exports `HARNESS_PROJECT_DIR="$PWD"` (its line 2), so it reads the
 archived tree it runs in.
+
+## Correction (2026-11-23)
+
+The original text above stands. Two claims in it are withdrawn under
+`notes/answers-2026-11-23-fix-c2.md`.
+
+- **test-omp-hooks.py "host-environmental": withdrawn.** The clone pair's own header shows that
+  both runs exported `HARNESS_PROJECT_DIR=<clone>`. That export is what makes the FEAT-2225
+  host-core block fail, and CI's Unit step exports it since T-02. This was a product defect. It is
+  fixed test-only in `dfe27d14` and `c1eb9eaa`; see `notes/fix-c2.md`.
+- **"the BUG-1290 lines": withdrawn.** They are the expected mutation-proof output of
+  `test-factory-claim-mutation.py` ("MUTATION PROOF: 3/3 cases reddened", PASS, exit 0), not
+  failures.
+
+The only host-only reds are `test-factory-config.py` (21), from the `/var`→`/private/var`
+realpath, and INV-29 on a host Kaya worktree. Both are the same at base:
+`notes/fix-c2-evidence/checks-job-local.txt`.
