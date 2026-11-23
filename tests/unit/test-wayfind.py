@@ -419,6 +419,143 @@ def case_11b_resolve_no_writes_on_unusable_parent():
         check(f"{name}_no_writes", argvs == [PARENT], repr(argvs))
 
 
+# M1 (c2): every field frontier and resolve DECIDE on is validated, not only the container.
+# A blocker or sub-issue state must be a string whose lowercase is open or closed; a sub-issue
+# needs a positive integer number; the frontier's ticket view needs its own number, a string
+# title, an assignees list and a list of named labels (the round's research/HITL split).
+STATELESS_BLOCKERS = {"item_no_state": "[{}]", "state_unknown": '[{"state": "unknown"}]',
+                      "state_int": '[{"state": 1}]', "state_null": '[{"state": null}]',
+                      "state_empty": '[{"state": ""}]', "state_list": '[{"state": ["open"]}]',
+                      "second_item_stateless": '[{"state": "closed"}, {"number": 4}]'}
+VIEW_11 = {"number": 11, "title": "eligible?", "assignees": [], "labels": []}
+
+
+def _without(field, **extra):
+    view = {k: v for k, v in VIEW_11.items() if k != field}
+    view.update(extra)
+    return json.dumps(view)
+
+
+UNUSABLE_SUBS = {"null": "null", "object": "{}", "non_object_item": "[11]",
+                 "no_state": '[{"number": 11}]', "state_unknown": '[{"number": 11, "state": "unknown"}]',
+                 "state_int": '[{"number": 11, "state": 1}]', "no_number": '[{"state": "open"}]',
+                 "number_string": '[{"number": "11", "state": "open"}]',
+                 "number_bool": '[{"number": true, "state": "open"}]',
+                 "number_zero": '[{"number": 0, "state": "open"}]'}
+UNUSABLE_VIEWS = {"view_null": "null", "view_list": "[]",
+                  "assignees_missing": _without("assignees"),
+                  "assignees_null": _without("assignees", assignees=None),
+                  "assignees_string": _without("assignees", assignees="octocat"),
+                  "assignees_object": _without("assignees", assignees={"login": "octocat"}),
+                  "labels_missing": _without("labels"),
+                  "labels_string": _without("labels", labels="wayfinder:research"),
+                  "labels_non_object_item": _without("labels", labels=["wayfinder:research"]),
+                  "labels_nameless_item": _without("labels", labels=[{}]),
+                  "labels_name_int": _without("labels", labels=[{"name": 7}]),
+                  "title_missing": _without("title"), "title_null": _without("title", title=None),
+                  "number_missing": _without("number"), "number_other": _without("number", number=12),
+                  "number_string": _without("number", number="11"),
+                  "number_bool": _without("number", number=True)}
+SUBS_11 = f"repos/{REPO}/issues/3/sub_issues"
+
+
+def _frontier(name, subs, blocked, view):
+    """run `frontier 3` with sub-issues `subs`, #11's blockers `blocked`, #11's view `view`."""
+    rules = [{"match": SUBS_11, "stdout": subs},
+             dict(blocked, match=BLOCKED_BY) if isinstance(blocked, dict) else {"match": BLOCKED_BY, "stdout": blocked},
+             {"match": "issue view 11", "stdout": view}]
+    with offline(name, rules) as fake:
+        return run_cli("frontier", "3"), fake.argvs()
+
+
+def _check_refused(name, got):
+    check(f"{name}_exit_1", got[:2] == ("exit", 1), repr(got))
+    check(f"{name}_prints_no_ticket", "eligible?" not in got[2] and "(frontier empty)" not in got[2],
+          repr(got))
+    check(f"{name}_typed_diagnostic", got[2].startswith("wayfind: ") and "unusable payload" in got[2]
+          and "Traceback" not in got[2], repr(got))
+
+
+def case_8c_blocker_state_must_be_open_or_closed():
+    for label, text in STATELESS_BLOCKERS.items():
+        name = f"case_8c_blockers_{label}"
+        with offline(name, [{"match": BLOCKED_BY, "stdout": text}]):
+            got = outcome(wf.blockers, REPO, 11)
+        check(f"{name}_raises_gh_error", is_gh_error(got), repr(got))
+    valid = [{"number": 3, "state": "OPEN"}, {"number": 4, "state": "closed"}]
+    with offline("case_8c_blockers_valid", [{"match": BLOCKED_BY, "stdout": json.dumps(valid)}]):
+        got = outcome(wf.blockers, REPO, 11)
+    check("case_8c_blockers_open_closed_any_case_valid", got[:2] == ("value", valid), repr(got))
+    with offline("case_8c_blockers_empty", [{"match": BLOCKED_BY, "stdout": "[]"}]):
+        got = outcome(wf.blockers, REPO, 11)
+    check("case_8c_blockers_empty_list_valid", got[:2] == ("value", []), repr(got))
+
+
+def case_10c_frontier_refuses_unusable_decision_fields():
+    subs, view = '[{"number": 11, "state": "open"}]', json.dumps(VIEW_11)
+    for label, text in STATELESS_BLOCKERS.items():
+        name = f"case_10c_frontier_blockers_{label}"
+        got, argvs = _frontier(name, subs, text, view)
+        _check_refused(name, got)
+        check(f"{name}_stops_reading", not any("issue view 11" in a for a in argvs), repr(argvs))
+    for label, text in UNUSABLE_SUBS.items():
+        name = f"case_10c_frontier_subs_{label}"
+        got, argvs = _frontier(name, text, "[]", view)
+        _check_refused(name, got)
+        check(f"{name}_stops_reading", argvs == [f"api {SUBS_11} --paginate"], repr(argvs))
+    for label, text in UNUSABLE_VIEWS.items():
+        name = f"case_10c_frontier_{label}"
+        _check_refused(name, _frontier(name, subs, "[]", text)[0])
+
+
+def case_10d_frontier_valid_decisions_unchanged():
+    """The controls: valid open/closed states in any case, the empty list, a confirmed 404 and a
+    claimed or blocked ticket keep their meaning."""
+    research = json.dumps(dict(VIEW_11, labels=[{"name": "wayfinder:research", "color": "1d76db"}]))
+    absent = {"status": 1, "stderr": "gh: Not Found (HTTP 404)\n"}
+    for label, subs, blocked, view, want in (
+            ("closed_blockers", '[{"number": 11, "state": "OPEN"}]', '[{"state": "CLOSED"}, {"state": "closed"}]',
+             research, "#11\tresearch\teligible?"),
+            ("empty_blockers", '[{"number": 11, "state": "open"}]', "[]", json.dumps(VIEW_11), "#11\t?\teligible?"),
+            ("blockers_404", '[{"number": 11, "state": "open"}]', absent, json.dumps(VIEW_11), "#11\t?\teligible?"),
+            ("open_blocker", '[{"number": 11, "state": "open"}]', '[{"state": "Open"}]', json.dumps(VIEW_11),
+             "(frontier empty)"),
+            ("claimed", '[{"number": 11, "state": "open"}]', "[]",
+             json.dumps(dict(VIEW_11, assignees=[{"login": "octocat"}])), "(frontier empty)"),
+            ("closed_ticket", '[{"number": 11, "state": "closed"}]', "[]", json.dumps(VIEW_11), "(frontier empty)"),
+            ("no_subs", "[]", "[]", json.dumps(VIEW_11), "(frontier empty)")):
+        name = f"case_10d_frontier_{label}"
+        got, _ = _frontier(name, subs, blocked, view)
+        check(f"{name}_exit_0", got[:2] == ("value", 0) and got[2].strip() == want, repr(got))
+
+
+MAP_VIEW = "issue view 2"
+
+
+def case_11c_resolve_refuses_unusable_title_and_body():
+    """resolve's title read precedes the writes, so an unusable title means no writes; the map
+    body read follows them (documented), so an unusable body means no edit and a typed exit 1,
+    never 'no section' or a traceback."""
+    head = [{"match": PARENT, "stdout": '{"number": 2}'}]
+    for label, text in (("null", "null"), ("list", "[]"), ("missing", "{}"), ("title_null", '{"title": null}'),
+                        ("title_int", '{"title": 5}')):
+        name = f"case_11c_resolve_title_{label}"
+        with offline(name, head + [{"match": "issue view 11", "stdout": text}]) as fake:
+            got = run_cli("resolve", "11", "--body", "done", "--gist", "g", "--apply")
+            argvs = fake.argvs()
+        check(f"{name}_exit_1_typed", got[:2] == ("exit", 1) and "unusable payload" in got[2]
+              and "Traceback" not in got[2], repr(got))
+        check(f"{name}_no_writes", argvs == [PARENT, f"issue view 11 -R {REPO} --json title"], repr(argvs))
+    for label, text in (("null", "null"), ("missing", "{}"), ("body_null", '{"body": null}'),
+                        ("body_int", '{"body": 5}')):
+        name = f"case_11c_gist_body_{label}"
+        with offline(name, [{"match": MAP_VIEW, "stdout": text}]) as fake:
+            got = outcome(wf.append_gist, REPO, 2, "- line", True)
+            argvs = fake.argvs()
+        check(f"{name}_raises_gh_error", is_gh_error(got), repr(got))
+        check(f"{name}_no_edit", argvs == [f"{MAP_VIEW} -R {REPO} --json body"], repr(argvs))
+
+
 ALL_LABELS = json.dumps([{"name": n} for n in wf.LABELS])
 CREATE = "issue create"
 
@@ -479,6 +616,10 @@ def main():
     case_8b_unusable_success_payloads_raise()
     case_10b_frontier_no_eligibility_on_unusable_blockers()
     case_11b_resolve_no_writes_on_unusable_parent()
+    case_8c_blocker_state_must_be_open_or_closed()
+    case_10c_frontier_refuses_unusable_decision_fields()
+    case_10d_frontier_valid_decisions_unchanged()
+    case_11c_resolve_refuses_unusable_title_and_body()
     case_12_ticket_create_url()
     case_12b_ticket_malformed_url()
     case_12c_ticket_dry_run()

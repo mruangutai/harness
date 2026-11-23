@@ -239,11 +239,16 @@ def run_gh(args, json_out=False, *, input=None):
     return result.value
 
 
-# The authority must be a real host (letters, digits, dots, hyphens; optional :port), so an
-# empty or punctuation-only authority like https://?/… is refused while any GHE host passes.
+# The authority must be a real host: dot-separated labels, each alphanumeric at both edges with
+# inner hyphens (so no empty, dot-edged or hyphen-edged label), and an optional port 1-65535
+# without a leading zero. Owner is [A-Za-z0-9_-] (EMU logins carry `_shortcode`) and repo
+# [A-Za-z0-9._-] other than `.`/`..`, so `?`, `#`, `%`, `@` and dot segments are refused while
+# any GHE host, port included, passes.
+_HOST_LABEL = r"[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
+_PORT = r"(?:6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})"
 _ISSUE_URL = re.compile(
-    r"https?://[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?(?::[0-9]+)?"
-    r"/[^/\s]+/[^/\s]+/issues/([0-9]+)/?", re.ASCII)
+    rf"https?://{_HOST_LABEL}(?:\.{_HOST_LABEL})*(?::{_PORT})?"
+    r"/[A-Za-z0-9_-]+/(?!\.\.?/)[A-Za-z0-9._-]+/issues/([0-9]+)/?", re.ASCII)
 
 
 def issue_number_from_url(args, output):

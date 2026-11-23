@@ -2201,6 +2201,29 @@ _T01_REJECTED_URLS = (
     ("bare path", "/issues/12"),
     ("extra segment", "https://github.com/o/r/issues/12/comments"),
     ("two lines", "https://github.com/o/r/issues/12\nhttps://github.com/o/r/issues/13"),
+    # B1 (c2): owner is [A-Za-z0-9-], repo is [A-Za-z0-9._-] and never `.` or `..`.
+    ("owner carries a query", "https://github.com/o?x/r/issues/42"),
+    ("owner carries a fragment", "https://github.com/o#x/r/issues/42"),
+    ("repo carries a query", "https://github.com/o/r?x/issues/42"),
+    ("repo carries a fragment", "https://github.com/o/r#x/issues/42"),
+    ("owner carries a dot", "https://github.com/o.x/r/issues/42"),
+    ("owner carries a percent escape", "https://github.com/o%2Fx/r/issues/42"),
+    ("owner carries userinfo", "https://github.com/o@x/r/issues/42"),
+    ("repo is a dot segment", "https://github.com/o/./issues/42"),
+    ("repo is a dot-dot segment", "https://github.com/o/../issues/42"),
+    # B3 (c2): every host label is non-empty and has no hyphen at either edge; port is 1-65535.
+    ("consecutive host dots", "https://a..b/o/r/issues/42"),
+    ("label starts with a hyphen", "https://a.-b/o/r/issues/42"),
+    ("label ends with a hyphen", "https://a-.b/o/r/issues/42"),
+    ("leading host dot", "https://.github.com/o/r/issues/42"),
+    ("trailing host dot", "https://github.com./o/r/issues/42"),
+    ("host starts with a hyphen", "https://-github.com/o/r/issues/42"),
+    ("port 65536", "https://ghe.example.com:65536/o/r/issues/42"),
+    ("port 99999", "https://ghe.example.com:99999/o/r/issues/42"),
+    ("port 0", "https://ghe.example.com:0/o/r/issues/42"),
+    ("port with a leading zero", "https://ghe.example.com:0443/o/r/issues/42"),
+    ("port of six digits", "https://ghe.example.com:100000/o/r/issues/42"),
+    ("empty port", "https://ghe.example.com:/o/r/issues/42"),
 )
 
 
@@ -2210,9 +2233,13 @@ def t01_issue_number_from_url_accepts():
            parse(_T01_CREATE_ARGS, "http://github.com/o/r/issues/7/"),
            parse(_T01_CREATE_ARGS, "https://github.com/o/r/issues/1234567"),
            parse(_T01_CREATE_ARGS, "https://ghe.example.co.uk/o/r/issues/5"),
-           parse(_T01_CREATE_ARGS, "https://github.acme-corp.internal:8443/o/r/issues/6")]
+           parse(_T01_CREATE_ARGS, "https://github.acme-corp.internal:8443/o/r/issues/6"),
+           parse(_T01_CREATE_ARGS, "https://GHE.Example.com:65535/my-org/my.repo_x-1/issues/8"),
+           parse(_T01_CREATE_ARGS, "https://localhost:1/O-1/.github/issues/9"),
+           parse(_T01_CREATE_ARGS, "https://www.github.com/o/r..x/issues/10"),
+           parse(_T01_CREATE_ARGS, "https://ghe.acme.com/jdoe_acme/r/issues/11")]
     check("T-01 issue_number_from_url: a complete issue URL yields its positive number",
-          got == [42, 7, 1234567, 5, 6] and all(type(n) is int for n in got), f"got={got}")
+          got == [42, 7, 1234567, 5, 6, 8, 9, 10, 11] and all(type(n) is int for n in got), f"got={got}")
 
 
 def t01_issue_number_from_url_rejects():

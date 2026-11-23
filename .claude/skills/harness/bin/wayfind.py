@@ -102,6 +102,49 @@ def unusable(args, value, want):
                               f"expected {want}; only a confirmed HTTP 404 means absence")
 
 
+def require(args, value, ok, want):
+    """value itself when ok; otherwise the typed unusable GhError, raised before any decision."""
+    if not ok:
+        raise unusable(args, value, want)
+    return value
+
+
+# The decision-field checks (M1, FEAT-2452 c2). Every field frontier or resolve DECIDES on is
+# checked before the decision, so a malformed successful payload can never read as "closed",
+# "unclaimed" or "no section": it is unusable, exactly like a failed read.
+def _string(value):
+    return isinstance(value, str)
+
+
+def _list(value):
+    return isinstance(value, list)
+
+
+def _state(value):
+    """An issue state: a string whose lowercase is open or closed. Missing, null, unknown and
+    non-string states are unusable, never 'not open'."""
+    return isinstance(value, str) and value.lower() in ("open", "closed")
+
+
+def _number(value):
+    """A positive integer issue number; bool, 0, negatives, strings and floats are not."""
+    return type(value) is int and value >= 1
+
+
+def _fields(value, **checks):
+    """value is a JSON object whose every named field passes its check."""
+    return isinstance(value, dict) and all(check(value.get(f)) for f, check in checks.items())
+
+
+def _list_of(value, item_ok):
+    return isinstance(value, list) and all(item_ok(item) for item in value)
+
+
+def _labels(value):
+    """gh's labels: a list of label objects, each with a string name."""
+    return _list_of(value, lambda label: _fields(label, name=_string))
+
+
 def do(cmds, apply):
     """Run (or print) a list of gh argv lists, in order."""
     for c in cmds:
@@ -124,44 +167,65 @@ def ensure_labels(repo, apply):
              "--description", LABELS[n][1]] for n in missing], apply)
 
 
+def issue_args(repo, num, fields):
+    return ["issue", "view", str(num), "-R", repo, "--json", fields]
+
+
 def issue(repo, num, fields="number,title,state,assignees,labels,body"):
-    return gh_json(["issue", "view", str(num), "-R", repo, "--json", fields])
+    return gh_json(issue_args(repo, num, fields))
+
+
+def checked_issue(repo, num, want, **checks):
+    """issue() for a read a decision rests on: exactly the JSON fields named in `checks`, each
+    passing its check, or the typed unusable GhError."""
+    args = issue_args(repo, num, ",".join(checks))
+    value = gh_json(args)
+    return require(args, value, _fields(value, **checks), want)
 
 
 def sub_issues(repo, num):
-    return gh_json(["api", f"repos/{repo}/issues/{num}/sub_issues", "--paginate"]) or []
+    """The map's tickets: a list of issue objects, each with a positive number and an open or
+    closed state (frontier and map decide on both); anything else raises."""
+    args = ["api", f"repos/{repo}/issues/{num}/sub_issues", "--paginate"]
+    value = gh_json(args)
+    return require(args, value, _list_of(value, lambda s: _fields(s, number=_number, state=_state)),
+                   "a JSON list of issue objects, each with a positive number and an open or closed state")
 
 
 def blockers(repo, num):
-    """The issues blocking #num (404 = none). Any other non-list-of-objects payload raises."""
+    """The issues blocking #num (404 = none). Any other payload that is not a list of issue
+    objects, each with an open or closed state, raises."""
     args = ["api", f"repos/{repo}/issues/{num}/dependencies/blocked_by", "--paginate"]
     value = gh_json_or_absent(args)
     if value is ABSENT:
         return []
-    if not isinstance(value, list) or not all(isinstance(b, dict) for b in value):
-        raise unusable(args, value, "a JSON list of issue objects")
-    return value
+    return require(args, value, _list_of(value, lambda b: _fields(b, state=_state)),
+                   "a JSON list of issue objects, each with an open or closed state")
 
 
 def ticket_type(iss):
-    for l in iss.get("labels", []):
-        n = l["name"] if isinstance(l, dict) else str(l)
+    for l in iss["labels"]:  # frontier verified a list of label objects with string names
+        n = l["name"]
         if n.startswith("wayfinder:") and n.split(":", 1)[1] in TYPES:
             return n.split(":", 1)[1]
     return "?"
 
 
 def frontier(repo, mapnum):
-    """Open sub-issues whose every blocker is closed and which nobody has claimed."""
+    """Open sub-issues whose every blocker is closed and which nobody has claimed. Every field
+    decided on (states, numbers, assignees, labels) is verified before the decision."""
     out = []
     for s in sub_issues(repo, mapnum):
-        if (s.get("state") or "").lower() != "open":
+        if s["state"].lower() != "open":
             continue
         num = s["number"]
-        if any((b.get("state") or "").lower() == "open" for b in blockers(repo, num)):
+        if any(b["state"].lower() == "open" for b in blockers(repo, num)):
             continue
-        full = issue(repo, num, "number,title,assignees,labels")
-        if full.get("assignees"):
+        full = checked_issue(repo, num, f"issue #{num} with its own number, a string title, an "
+                             "assignees list and a list of named labels",
+                             number=lambda n: _number(n) and n == num, title=_string,
+                             assignees=_list, labels=_labels)
+        if full["assignees"]:
             continue                      # claimed — another session owns it
         out.append(full)
     return out
@@ -174,10 +238,8 @@ def parent_of(repo, num):
     p = gh_json_or_absent(args)
     if p is ABSENT:
         return None
-    n = p.get("number") if isinstance(p, dict) else None
-    if type(n) is not int or n < 1:
-        raise unusable(args, p, "an issue object with a positive integer number")
-    return n
+    return require(args, p, _fields(p, number=_number),
+                   "an issue object with a positive integer number")["number"]
 
 
 def append_gist(repo, mapnum, line, apply):
@@ -188,7 +250,7 @@ def append_gist(repo, mapnum, line, apply):
     that silently stops being an index. Inserted at the END of the section so the list reads
     in resolution order.
     """
-    body = issue(repo, mapnum, "body").get("body") or ""
+    body = checked_issue(repo, mapnum, "an issue object with a string body", body=_string)["body"]
     head = "## Decisions so far"
     if head not in body:
         die(f"map #{mapnum} has no '{head}' section — fix the map body first; the gist has "
@@ -340,9 +402,9 @@ def main():
         if mapnum is None:
             die(f"ticket #{t} has no parent map — attach it first "
                 f"(wayfind.py ticket <map#> <type> …), or this is not a wayfinding ticket.")
-        ti = issue(repo, t, "title")
+        ti = checked_issue(repo, t, "an issue object with a string title", title=_string)
         do([comment, ["issue", "close", t, "-R", repo]], apply)
-        append_gist(repo, mapnum, f"- [#{t} {ti.get('title','')}]"
+        append_gist(repo, mapnum, f"- [#{t} {ti['title']}]"
                     f"(https://github.com/{repo}/issues/{t}) — {gist}", apply)
         return 0
 
