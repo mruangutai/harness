@@ -1,0 +1,167 @@
+{
+  "feature_id": "FEAT-2398-qa-test-kind-status",
+  "branch": "feat/FEAT-2398-qa-test-kind-status",
+  "pr": 2439,
+  "review_sha": "1512222e247a3b98002901436599359b09ca606b",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T02:48:08+00:00",
+      "tokens": 73863,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-plan-product/digest.md",
+        "sha256": "fb9a82590547b07ec716f77ab6c0b2322c971928ee841644b760118357f5a155"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T03:11:34+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-02-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T03:11:48+00:00",
+      "tokens": 47437,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-02-simplify-eng/digest.md",
+        "sha256": "3d18126e6866b2cabce37079ad8267a404f6ed6b7ba9901984961c232f1a0479"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T03:17:26+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-03-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T03:17:33+00:00",
+      "tokens": 41695,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-03-simplify-apply-product/digest.md",
+        "sha256": "c594fc1be9072f83b9be1a304e31e0f40f94ff0535924983e054eb3db3775f6f"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T03:25:52+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T04:18:09+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-validator/digest.md",
+        "sha256": "63fa7b5bfc05ca849fffcff1aa6db020ef09f3fbb7beb82b15fd16d8bb029dc2"
+      },
+      "cycles_used": 2,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:33:23+00:00"
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T04:45:31+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c1-validator/digest.md",
+        "sha256": "6dba05d295ab8c88e83911a6ae8058195a7bdfead1aa1cb18ca20928f4a3ee72"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-23T05:02:21+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T02:48:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "The cause is known and the files are nameable, but part 3 adds a new config-resolution path that a gate reads (product features use the product's harness.json), which is a new enforcement surface."
+    },
+    {
+      "at": "2026-11-23T03:17:27+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "FAIL is a conduct disclosure (dev-ops ran a timed git probe in a disposable /tmp repo); plan.yaml and BRIEF.md hashes unchanged, ten flag-only findings on disk; proceed to pm apply without re-running readers"
+    },
+    {
+      "at": "2026-11-23T03:17:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "proceed to pm apply of simplify findings 1-7; no reader re-run",
+      "reason": "simplify-eng FAIL was a reader-conduct disclosure, not a plan defect; its flag-only findings stand and go to pm apply"
+    },
+    {
+      "at": "2026-11-23T03:46:33.223251+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "D-01 removes validate-digest's current-tree matrix reader: its reader-audit inventory rows, FEAT-2297's reader-table row and the shadow floor test pinning cmd-inferred exclusion must move to the pinned, status-keyed contract."
+    },
+    {
+      "at": "2026-11-23T04:18:09+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Signed plan built main-session-direct (DEC-174); T-01 done, simplify applied, review pinned at 685e861a; continue to the one validate run"
+    },
+    {
+      "at": "2026-11-23T04:45:31+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "validate-validator FAIL: four must-fix applied main-session-direct at 29a3d085 (fail-first receipts), re-pinned at 2f50e8bb; one rework round of 2"
+    },
+    {
+      "at": "2026-11-23T05:07:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "fix-c1-validator PASS carries to re-pin 1512222e",
+      "reason": "Post-pin delta 2f50e8bb..1512222e is 2 SKILL lines rewording the reviewed repo's config path for CI's instruction-path gate; same instruction, all CI checks steps green locally; no re-validation"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "notes/operator-signature-2026-11-23.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "7fe0bcb82a0b2107e48f70d4a45a217435f57a1b48ef39964e3628f7e556385c"
+  },
+  "github": {
+    "milestone": 131,
+    "parent": 2421,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2422
+    },
+    "source_issues": [
+      2398
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

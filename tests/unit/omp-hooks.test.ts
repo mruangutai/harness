@@ -26,9 +26,21 @@ import {
   resolvePlanPhaseWarnMinutes,
   spendAdvisoryFor,
   spendAdvisoryText,
+  type PolicyPayload,
 } from "../../.omp/extensions/harness-hooks.ts";
 // FEAT-2274's classification seams, read off the module so each case fails on its own.
 import * as hooks from "../../.omp/extensions/harness-hooks.ts";
+
+// BUG-2390: a policy payload is the gate's object for every script except member-ops, whose
+// payload is its ops LIST. A read that expects a gate's object asserts it, loudly.
+function objectPayload(payload: PolicyPayload): Record<string, unknown> {
+  if (Array.isArray(payload)) throw new Error(`expected an object policy payload, got ${JSON.stringify(payload)}`);
+  return payload;
+}
+// The same assertion for a recorded call that may be absent: an absent call reads undefined.
+function payloadOf(call: { payload: PolicyPayload } | undefined): Record<string, unknown> | undefined {
+  return call ? objectPayload(call.payload) : undefined;
+}
 
 function ompContext(cwd: string, id: string, parentId?: string, sessionId = `session-${id}`) {
   return {
@@ -164,15 +176,15 @@ describe("OMP task lifecycle adapter", () => {
   type PolicyAnswer = { blocked: boolean; reason?: string; unavailable?: string; stdout: string; context?: string };
   function fixture(options: {
     featureRoot?: (args: string[]) => PolicyAnswer;
-    memberOps?: (args: string[], payload: unknown) => PolicyAnswer;
+    memberOps?: (args: string[], payload: PolicyPayload) => PolicyAnswer;
     mergeGate?: (payload: Record<string, unknown>) => PolicyAnswer;
     distillAuthority?: (payload: Record<string, unknown>) => PolicyAnswer;
     // FEAT-2274: a gate's own answer, ahead of every default below; undefined falls through.
-    gate?: (script: string, args: string[], payload: Record<string, unknown>) => PolicyAnswer | undefined;
+    gate?: (script: string, args: string[], payload: PolicyPayload) => PolicyAnswer | undefined;
   } = {}) {
     const tools = new Map<string, any>();
     const handlers = new Map<string, Function>();
-    const calls: Array<{ script: string; args: string[]; payload: Record<string, unknown>; cwd: string }> = [];
+    const calls: Array<{ script: string; args: string[]; payload: PolicyPayload; cwd: string }> = [];
     const active = new Set(["agent-a", "agent-b"]);
     let claim = 0;
     const lineageClaims = new Map<string, {
@@ -211,7 +223,7 @@ describe("OMP task lifecycle adapter", () => {
       cwd: string,
       script: string,
       args: string[],
-      payload: Record<string, unknown>,
+      payload: PolicyPayload,
     ) => {
       calls.push({ script, args, payload, cwd });
       const own = options.gate?.(script, args, payload);
@@ -227,7 +239,7 @@ describe("OMP task lifecycle adapter", () => {
         context: "injected expertise",
       };
       if (script === "dispatch-guard.py") {
-        const task = (payload.tool_input as Record<string, unknown>).task;
+        const task = (objectPayload(payload).tool_input as Record<string, unknown>).task;
         if (task === "deny") return { blocked: true, reason: "denied", stdout: "" };
         // The guard's FAIL-OPEN shape: exit 0, nothing on stdout. Seven branches of
         // dispatch-guard.py return exactly this (:34, :38, :72, :112, :138, :145, :187).
@@ -236,7 +248,7 @@ describe("OMP task lifecycle adapter", () => {
         if (task === "passthrough") return { blocked: false, stdout: "" };
         claim += 1;
         const claimId = `claim-${claim}`;
-        const dispatchedAgent = String((payload.tool_input as Record<string, unknown>).agent);
+        const dispatchedAgent = String((objectPayload(payload).tool_input as Record<string, unknown>).agent);
         const repository = String(task).includes("HARNESS-REPOSITORY: acme/product-a")
           ? "product-a" : undefined;
         lineageClaims.set(claimId, {
@@ -361,7 +373,7 @@ describe("OMP task lifecycle adapter", () => {
         return { blocked: false, stdout: "" };
       }
       if (script === "validate-digest.py" && args[0] === "--distill-authority") {
-        return options.distillAuthority?.(payload) ?? { blocked: false, stdout: '{"authorized": true}\n' };
+        return options.distillAuthority?.(objectPayload(payload)) ?? { blocked: false, stdout: '{"authorized": true}\n' };
       }
       if (script === "validate-digest.py") {
         return active.size
@@ -369,7 +381,7 @@ describe("OMP task lifecycle adapter", () => {
           : { blocked: false, stdout: "" };
       }
       if (script === "plan-sign-gate.py") {
-        const command = ((payload.tool_input as Record<string, unknown> | undefined)?.command as string) || "";
+        const command = ((objectPayload(payload).tool_input as Record<string, unknown> | undefined)?.command as string) || "";
         if (command.includes("sign-approval")) {
           return { blocked: true, reason: "plan-sign-gate: refused", stdout: "" };
         }
@@ -378,7 +390,7 @@ describe("OMP task lifecycle adapter", () => {
       if (script === "expertise-merge.py") {
         return options.memberOps?.(args, payload) ?? { blocked: false, stdout: `${MEMBER_OPS_RECEIPT}\n` };
       }
-      if (script === "merge-gate.py" && options.mergeGate) return options.mergeGate(payload);
+      if (script === "merge-gate.py" && options.mergeGate) return options.mergeGate(objectPayload(payload));
       return { blocked: false, stdout: "" };
     };
     registerHarnessHooks(pi, runner);
@@ -413,7 +425,7 @@ describe("OMP task lifecycle adapter", () => {
     }, ctx);
     const request = calls.find((call) => call.script === "inject-expertise.py");
     // The REQUEST keeps the internal SubagentStart label; only the response lost its envelope.
-    expect([request?.payload.hook_event_name, request?.payload.agent_type])
+    expect([payloadOf(request)?.hook_event_name, payloadOf(request)?.agent_type])
       .toEqual(["SubagentStart", "harness-eng-lead"]);
     expect(result?.message?.content).toBe("injected expertise");
   });
@@ -450,7 +462,7 @@ describe("OMP task lifecycle adapter", () => {
     const guarded = calls.find((call) => call.script === "dispatch-guard.py");
     const revised = (result?.input ?? input) as Record<string, unknown>;
     const item = (Array.isArray(revised.tasks) ? revised.tasks[0] : revised) as Record<string, unknown>;
-    expect([result?.block, (guarded?.payload.tool_input as Record<string, unknown>)?.model, item.model])
+    expect([result?.block, (payloadOf(guarded)?.tool_input as Record<string, unknown>)?.model, item.model])
       .toEqual([undefined, "opus", "opus"]);
   });
 
@@ -514,8 +526,8 @@ describe("OMP task lifecycle adapter", () => {
     }, mainCtx);
     expect(dispatched?.block).toBeUndefined();
     const dispatchCall = calls.find((call) => call.script === "dispatch-guard.py");
-    expect(dispatchCall?.payload.agent_type).toBe("Main");
-    expect(dispatchCall?.payload.harness_agent_id).toBe("Main");
+    expect(payloadOf(dispatchCall)?.agent_type).toBe("Main");
+    expect(payloadOf(dispatchCall)?.harness_agent_id).toBe("Main");
     const parentAttach = calls.find((call) =>
       call.script === "inflight_registry.py"
       && call.args[0] === "attach"
@@ -586,9 +598,9 @@ describe("OMP task lifecycle adapter", () => {
       .toBeLessThan(writeScripts.indexOf("check-domain.py"));
     const domainCall = calls.slice(beforeWrite).find((call) =>
       call.script === "check-domain.py");
-    expect(domainCall?.payload.harness_agent_id).toBe("BackendOne");
-    expect(domainCall?.payload.harness_parent_agent_id).toBe("LeadOne");
-    expect(domainCall?.payload.harness_feature).toBe("FEAT-90-long-run");
+    expect(payloadOf(domainCall)?.harness_agent_id).toBe("BackendOne");
+    expect(payloadOf(domainCall)?.harness_parent_agent_id).toBe("LeadOne");
+    expect(payloadOf(domainCall)?.harness_feature).toBe("FEAT-90-long-run");
 
     const bashResult = await childHandlers.get("tool_call")?.({
       toolName: "bash",
@@ -600,9 +612,9 @@ describe("OMP task lifecycle adapter", () => {
       HARNESS_AGENT_TYPE: "harness-backend-dev",
     });
     const bashGuard = calls.findLast((call) => call.script === "bash-write-guard.py");
-    expect(bashGuard?.payload.harness_feature).toBe("FEAT-90-long-run");
-    expect(bashGuard?.payload.harness_agent_id).toBe("BackendOne");
-    expect(bashGuard?.payload.harness_parent_agent_id).toBe("LeadOne");
+    expect(payloadOf(bashGuard)?.harness_feature).toBe("FEAT-90-long-run");
+    expect(payloadOf(bashGuard)?.harness_agent_id).toBe("BackendOne");
+    expect(payloadOf(bashGuard)?.harness_parent_agent_id).toBe("LeadOne");
     const authorizations = calls.filter((call) =>
       call.script === "inflight_registry.py"
       && call.args[0] === "authorize"
@@ -877,8 +889,8 @@ describe("OMP task lifecycle adapter", () => {
       toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
-    expect(validation?.payload.harness_review_pin).toBe("ab0c9987");
-    expect(validation?.payload.harness_feature).toBe("FEAT-90-long-run");
+    expect(payloadOf(validation)?.harness_review_pin).toBe("ab0c9987");
+    expect(payloadOf(validation)?.harness_feature).toBe("FEAT-90-long-run");
   });
 
   test("forwards no pin when the assignment carries none", async () => {
@@ -889,7 +901,7 @@ describe("OMP task lifecycle adapter", () => {
       toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
-    expect(validation?.payload.harness_review_pin).toBeUndefined();
+    expect(payloadOf(validation)?.harness_review_pin).toBeUndefined();
   });
 
   // FEAT-2397 (#10): the yield adapter sends no `stop_hook_active`; that field was a Claude
@@ -900,7 +912,7 @@ describe("OMP task lifecycle adapter", () => {
     await start(handlers);
     await handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
-    expect([validation?.payload.digest_object, Object.hasOwn(validation?.payload ?? {}, "stop_hook_active")])
+    expect([payloadOf(validation)?.digest_object, Object.hasOwn(payloadOf(validation) ?? {}, "stop_hook_active")])
       .toEqual([PASS_DIGEST, false]);
   });
 
@@ -925,8 +937,8 @@ describe("OMP task lifecycle adapter", () => {
       toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
-    expect(validation?.payload.harness_mission).toBe("distill");
-    expect(validation?.payload.harness_review_pin).toBeUndefined();
+    expect(payloadOf(validation)?.harness_mission).toBe("distill");
+    expect(payloadOf(validation)?.harness_review_pin).toBeUndefined();
   });
 
   test("forwards no mission when the assignment carries none", async () => {
@@ -937,7 +949,7 @@ describe("OMP task lifecycle adapter", () => {
       toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
-    expect(validation?.payload.harness_mission).toBeUndefined();
+    expect(payloadOf(validation)?.harness_mission).toBeUndefined();
   });
 
   // --- F1. DEC-100: only exit 2 blocks. Fails on the pre-fix adapter, which read an
@@ -1031,7 +1043,7 @@ describe("OMP task lifecycle adapter", () => {
     content: [{ type: "text", text: "ok" }],
   });
 
-  const postPaths = (calls: Array<{ script: string; args: string[]; payload: Record<string, unknown> }>) =>
+  const postPaths = (calls: Array<{ script: string; args: string[]; payload: PolicyPayload }>) =>
     calls
       .filter((call) => call.script === "check-domain.py" && call.args.includes("--post"))
       .map((call) => (call.payload as any).tool_input.file_path);
@@ -1084,7 +1096,7 @@ describe("OMP task lifecycle adapter", () => {
       ...toolApi(),
     }, async (cwd, script, args, payload) => {
       const result = await runner(cwd, script, args, payload);
-      const target = (payload.tool_input as Record<string, unknown> | undefined)?.file_path;
+      const target = (objectPayload(payload).tool_input as Record<string, unknown> | undefined)?.file_path;
       return script === "check-domain.py" && target === forbidden
         ? { blocked: true, reason: `${forbidden} is outside your domain`, stdout: "" }
         : result;
@@ -1095,7 +1107,7 @@ describe("OMP task lifecycle adapter", () => {
       call.script === "inflight_registry.py" && call.args[0] === "feature-root");
     const domainTargets = (from: number) => calls.slice(from)
       .filter((call) => call.script === "check-domain.py")
-      .map((call) => (call.payload.tool_input as Record<string, unknown>).file_path);
+      .map((call) => (objectPayload(call.payload).tool_input as Record<string, unknown>).file_path);
     const pre = (toolName: string, input: Record<string, unknown>) =>
       handlers.get("tool_call")?.({ toolName, toolCallId: "call-uri", input }, ctx);
     const post = (toolName: string, input: Record<string, unknown>) =>
@@ -1163,7 +1175,7 @@ describe("OMP task lifecycle adapter", () => {
       "ok", `Harness post-write check: ${FORBIDDEN} is outside your domain`,
     ]);
     const gate = hooks.calls.slice(from).filter((call) => call.script === "check-domain.py");
-    expect(gate.map((call) => [call.args, call.payload.tool_name, call.payload.tool_input]))
+    expect(gate.map((call) => [call.args, objectPayload(call.payload).tool_name, objectPayload(call.payload).tool_input]))
       .toEqual([
         [[], "Edit", { file_path: FORBIDDEN }],
         [["--post"], "Edit", { file_path: FORBIDDEN }],
@@ -1184,7 +1196,7 @@ describe("OMP task lifecycle adapter", () => {
     await hooks.post("write", { path: "/repo/src/a.ts", content: "x" });
     const gate = hooks.calls.slice(from).filter((call) => call.script === "check-domain.py");
     expect(gate.map((call) => call.args)).toEqual([[], ["--post"]]);
-    expect(gate.map((call) => call.payload.tool_input)).toEqual([
+    expect(gate.map((call) => objectPayload(call.payload).tool_input)).toEqual([
       { file_path: "/repo/src/a.ts", content: "x" },
       { file_path: "/repo/src/a.ts", content: "x" },
     ]);
@@ -1203,12 +1215,12 @@ describe("OMP task lifecycle adapter", () => {
       "ok", `Harness post-write check: ${FORBIDDEN} is outside your domain`,
     ]);
     const gate = hooks.calls.slice(from).filter((call) => call.script === "check-domain.py");
-    expect(gate.map((call) => [call.args, call.payload.tool_name, call.payload.tool_input]))
+    expect(gate.map((call) => [call.args, objectPayload(call.payload).tool_name, objectPayload(call.payload).tool_input]))
       .toEqual([
         [[], "Write", { file_path: FORBIDDEN, content: "x" }],
         [["--post"], "Write", { file_path: FORBIDDEN, content: "x" }],
       ]);
-    expect(gate[0].payload.harness_feature).toBe("FEAT-90-long-run");
+    expect(objectPayload(gate[0].payload).harness_feature).toBe("FEAT-90-long-run");
   });
 
   test("the main session's writes and edits are untouched, URIs included", async () => {
@@ -1450,7 +1462,7 @@ describe("OMP task lifecycle adapter", () => {
     const fromAt = calls.slice(at);
     expect(fromAt.some((call) => call.script === "inflight_registry.py" && call.args[0] === "authorize")).toBe(true);
     expect(domainTargets(at)).toEqual([`${WT}/src`, "/abs/lib/**/*.ts"]);
-    expect(fromAt.filter((call) => call.script === "check-domain.py").map((call) => call.payload.tool_name))
+    expect(fromAt.filter((call) => call.script === "check-domain.py").map((call) => objectPayload(call.payload).tool_name))
       .toEqual(["Edit", "Edit"]);
 
     expect(await pre("ast_edit", { ops: [], paths: ["src; forbidden.ts"] }))
@@ -1945,7 +1957,7 @@ describe("OMP task lifecycle adapter", () => {
     };
     await handlers.get("tool_call")?.({ toolName: "yield", input: { data } }, leadCtx());
     const [validation] = digestCalls(calls);
-    expect(validation.payload.digest_object).toEqual(data);
+    expect(objectPayload(validation.payload).digest_object).toEqual(data);
     expect(validation.payload).not.toHaveProperty("last_assistant_message");
   });
 
@@ -1980,7 +1992,7 @@ describe("OMP task lifecycle adapter", () => {
     const asObject = await yieldOnce(PASS_DIGEST);
     const asString = await yieldOnce(JSON.stringify(PASS_DIGEST));
     expect(asString.validations).toHaveLength(1);
-    expect(asString.validations[0].payload.digest_object).toEqual(PASS_DIGEST);
+    expect(objectPayload(asString.validations[0].payload).digest_object).toEqual(PASS_DIGEST);
     expect(asString.verdict).toEqual(asObject.verdict);
   });
 
@@ -2181,9 +2193,12 @@ describe("OMP task lifecycle adapter", () => {
       ["member-ops", ...IDENTITY(root), "--tier", "craft", "--ops", "-"],
       ["member-ops", ...IDENTITY(root), "--tier", "repository", "--repository", "harness", "--ops", "-"],
     ]);
-    // member-ops receives its ops LIST as the stdin document (harness-hooks.ts types it as the
-    // runner's Dict); compare the recorded value as the unknown it really is.
-    expect(coreCalls().map((call): unknown => call.payload)).toEqual([[ADD], [ADD]]);
+    // member-ops receives its ops LIST as the stdin document, typed as the list it is.
+    expect(coreCalls().map((call) => call.payload)).toEqual([[ADD], [ADD]]);
+    // BUG-2390: the runner contract accepts that list. A narrow gate that failed on a list
+    // payload has no command to guard, so its failure refuses nothing.
+    const failed: hooks.PolicyProcess = { status: 1, signal: null, stdout: "", stderr: "boom", timedOut: false };
+    expect(hooks.classifyPolicyRun("merge-gate.py", coreCalls()[0].payload, failed).blocked).toBe(false);
     expect(coreCalls().map((call) => call.cwd)).toEqual([root, root]);
     // The post-write check judges the destination the host resolved, never a caller path.
     const at = calls.length;
@@ -2192,7 +2207,7 @@ describe("OMP task lifecycle adapter", () => {
       input: { tier: "repository", repository: "harness", ops: [ADD], destination: "/evil.md" },
     }, leadCtx())).toBeUndefined();
     expect(calls.slice(at).filter((call) => call.script === "check-domain.py").map((call) =>
-      [call.args, call.payload.tool_name, (call.payload.tool_input as Record<string, unknown>).file_path]))
+      [call.args, objectPayload(call.payload).tool_name, (objectPayload(call.payload).tool_input as Record<string, unknown>).file_path]))
       .toEqual([[["--post"], "Edit", `${root}/.harness/harness/expertise/harness-eng-lead.md`]]);
   });
 
@@ -2394,7 +2409,7 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers } = fixture({
       gate: (script, _args, payload) => {
         if (script !== "check-domain.py") return undefined;
-        const target = (payload.tool_input as Record<string, unknown>).file_path;
+        const target = (objectPayload(payload).tool_input as Record<string, unknown>).file_path;
         if (target === "a/denied.ts") return { blocked: true, reason: "a/denied.ts is outside your domain", stdout: "" };
         if (target === "b/crashed.ts") return { blocked: false, unavailable: "crashed (RuntimeError: boom)", stdout: "" };
         return undefined;
@@ -3560,7 +3575,7 @@ describe("host-stamped tokens", () => {
 describe("BUG-1898 run-start claims on the real registry", () => {
   const FEATURE = "BUG-98-run-start";
   const REGISTRY_BIN = join(gatePath("inflight_registry.py"), "..");
-  type Call = { script: string; args: string[]; payload: Record<string, unknown> };
+  type Call = { script: string; args: string[]; payload: PolicyPayload };
   type Row = Record<string, unknown>;
 
   function python(args: string[], cwd: string) {
@@ -3585,18 +3600,18 @@ describe("BUG-1898 run-start claims on the real registry", () => {
 
   function world(root = mkdtempSync(join(tmpdir(), "bug1898-"))) {
     const calls: Call[] = [];
-    const runner = async (cwd: string, script: string, args: string[], payload: Record<string, unknown>) => {
+    const runner = async (cwd: string, script: string, args: string[], payload: PolicyPayload) => {
       calls.push({ script, args, payload });
       if (script === "inflight_registry.py") {
         return python([gatePath("inflight_registry.py"), ...args], cwd);
       }
       if (script === "dispatch-guard.py") {
-        const input = payload.tool_input as Record<string, unknown>;
+        const input = objectPayload(payload).tool_input as Record<string, unknown>;
         const agent = String(input.agent);
         if (input.task === "passthrough" || !agent.startsWith("harness-")) {
           return { blocked: false, stdout: "" };
         }
-        return python(["-c", RECEIPT, root, agent, String(payload.agent_type), FEATURE,
+        return python(["-c", RECEIPT, root, agent, String(objectPayload(payload).agent_type), FEATURE,
           String(process.pid)], cwd);
       }
       return { blocked: false, stdout: "" };
@@ -3807,7 +3822,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
       toolName: "yield", input: { data: PASS_DIGEST },
     }, ctx);
     const validation = w.calls.find((call) => call.script === "validate-digest.py");
-    expect(validation?.payload.harness_feature).toBe(FEATURE);
+    expect(payloadOf(validation)?.harness_feature).toBe(FEATURE);
     expect(rows(w.root).map((row) => row.agent_id)).toEqual(["Lead.Qa"]);
   });
 
@@ -3883,7 +3898,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
       toolName: "yield", input: { data: JSON.stringify(blockedDigest) },
     }, ctx)).toBeUndefined();
     const validations = w.calls.filter((call) => call.script === "validate-digest.py");
-    expect(validations.map((call) => call.payload.digest_object)).toEqual([blockedDigest]);
+    expect(validations.map((call) => objectPayload(call.payload).digest_object)).toEqual([blockedDigest]);
   });
 
   test("a second live pm is held, naming the holder and that a retry can succeed", async () => {

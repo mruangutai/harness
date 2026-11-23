@@ -63,6 +63,7 @@ jobs:
 
       # OMP extensions execute on Bun. The provider-neutral hook adapter has native
       # TypeScript contract tests, so CI carries the same runtime required in production.
+      # setup-bun reads that version from package.json's `packageManager` field (FEAT-2389).
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 

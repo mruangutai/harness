@@ -1,0 +1,52 @@
+schema: plan/1
+feature: BUG-2390-policy-payload-type
+approval:
+  date: '2026-11-22'
+  approved_by: fable-advisor
+  status: approved
+drafted_at: '2026-11-23T04:13:32Z'
+status: done
+source_issues: [2390]
+lanes:
+  resolved_at: 9eb07b4f3cd235c234a10edddbfe5542c1e85fba
+  rows:
+    - surface: .omp/extensions/harness-hooks.ts
+      lane: main-session-direct
+      reason: DEC-174 enforcement hook carve-out
+    - surface: tests/unit/omp-hooks.test.ts
+      lane: main-session-direct
+      reason: DEC-174 includes enforcement hook tests
+decisions: []
+decisions_affected: []
+tasks:
+  - id: T-01
+    title: Make runner payload typing honest without changing behavior
+    traces: [SC-01, SC-02, SC-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 forbids executing hook and hook-test changes through the enforcement being changed
+    depends_on: []
+    status: done
+    files:
+      - .omp/extensions/harness-hooks.ts
+      - tests/unit/omp-hooks.test.ts
+    verify: |
+      set -eu
+      bun run typecheck
+      : "${MAIN_BASELINE_PASS_COUNT:?Supply the actual pass count from the main pinned baseline receipt}"
+      output=$(bun test tests/unit/omp-hooks.test.ts 2>&1) || { printf '%s\n' "$output"; exit 1; }
+      printf '%s\n' "$output"
+      printf '%s\n' "$output" | grep -Eq "^[[:space:]]*${MAIN_BASELINE_PASS_COUNT} pass$"
+      printf '%s\n' "$output" | grep -Eq '^[[:space:]]*0 fail$'
+      if rg -n 'as unknown as' .omp/extensions/harness-hooks.ts tests/unit/omp-hooks.test.ts; then
+        echo 'Unexpected double cast; no payload-path double casts may remain'; exit 1
+      else
+        result=$?; test "$result" -eq 1
+      fi
+
+    intent: |
+      PRODUCT is harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2390-policy-payload-type. Execute directly in Main under DEC-174, never through a task team. All edits stay inside that worktree and touch only the two owned files. Consult the product AGENTS.md Project map, .harness/harness/docs/SPEC.md sections 4.2 and 5.3 and the control-plane DEC-174. The generic docs/spec.md, docs/decisions.md and docs/architecture.md paths do not exist here; do not invent their contents. Settled requirements are in /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-policy-payload-type-2026-11-22.md.
+      Before signature, obtain Main's fresh baseline receipt and pin, record its actual hook-suite pass count in notes/research-patch-intake.md and bind MAIN_BASELINE_PASS_COUNT to that number. Do not assume a historical 186 count. Capture baseline typecheck and hook-suite exits and raw output. Preserve this count, test cases and existing assertions.
+      RED FIRST: edit tests/unit/omp-hooks.test.ts only. Widen the fake runner, recorded calls, gate callback, postPaths parameter and every other affected runner-facing declaration to Record<string, unknown> | unknown[]. Add one helper receiving that union which checks Array.isArray, fails loudly for arrays and then returns the narrowed object. Route typed object-field reads and object-only callback inputs through it; retain existing as any reads without adding casts. Include the real-registry runner and Call declaration where needed. Keep production object-only at this stage. Main must run bun run typecheck, capture nonzero output identifying the union-versus-object runner mismatch, and record the test-only pin before any production edit. Do not accept unrelated diagnostics as red proof.
+      GREEN: widen PolicyRunner, runPolicy and classifyPolicyRun payloads to Dict | unknown[]. Guard arrays with Array.isArray before the narrow-gate tool_input read; preserve gate classification and refusal/unavailable/allow behavior. Pass params.ops as its actual array without as unknown as Dict or another array-as-Dict assertion. reportingRunner and other forwarding wrappers remain behaviorally unchanged. Delete or truthfully rewrite the obsolete fixture apology about pretending the ops list is Dict. Preserve object payloads, array stdin serialization, wrappers and all observable behavior. Do not introduce full JSON-value types, new dependencies, suppression directives or runner restructuring.
+      Main runs the literal verify block with the recorded baseline count and captures green output at the completed pin. The rg command has expected no-match exit 1; errors are failures. Inspect the pinned two-file diff for any array-as-object assertion not detectable by rg. SC-02 static red-first supplies discrimination evidence; SC-03 is a behavior-preserving regression criterion and must not claim a runtime red. No panel, readers, goal-check or plan-flow simplify runs in this patch intake. Approval remains pending for delegated advisor signature.

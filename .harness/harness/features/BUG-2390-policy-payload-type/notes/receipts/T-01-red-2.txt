@@ -1,0 +1,19 @@
+# BUG-2390 T-01 red, reconstructed 2026-11-22
+Answers validate c0 finding T-01 (SC-02 red showed only TS2614). This is a post-hoc reconstruction approved by fable-advisor under the operator's delegated authority. T-01-red.txt is kept untouched as the original record.
+red_sha: 2a479efdd027ecf5a95ad5fbf0dcde5fffb091c1
+
+Production at red_sha is main 9eb07b4f's harness-hooks.ts plus only the type alias. No signature references the alias; the runner contract is object-only:
+44:export type PolicyPayload = Dict | unknown[];
+54:  payload: Dict,
+408:export function classifyPolicyRun(script: string, payload: Dict, proc: PolicyProcess): PolicyResult {
+522:  payload: Dict,
+558:  payload: Dict,
+1674:    ], params.ops as unknown as Dict);
+
+cmd: bun run typecheck   (at red_sha; working tree == red_sha)
+$ tsc --noEmit -p tsconfig.json
+tests/unit/omp-hooks.test.ts(2166,53): error TS2345: Argument of type 'PolicyPayload' is not assignable to parameter of type 'Dict'.
+  Type 'unknown[]' is not assignable to type 'Dict'.
+    Index signature for type 'string' is missing in type 'unknown[]'.
+error: script "typecheck" exited with code 1
+exit: 1

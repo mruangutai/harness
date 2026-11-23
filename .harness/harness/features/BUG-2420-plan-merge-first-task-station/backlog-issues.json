@@ -1,0 +1,6 @@
+{
+  "bug:sign-approval leaves a plan at status plan when its tasks were drafted without status lines (FEAT-2397 and BUG-2420 stayed plan; FEAT-2337 moved to ready) \u2014 cause unexamined": {
+    "number": 2436,
+    "typed": true
+  }
+}

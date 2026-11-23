@@ -116,6 +116,16 @@ def hook_case(name, agent_type, text, expect_exit, mentions=None, complete=True,
     HOOK_CASES.append((name, payload, expect_exit, mentions))
 
 
+# (name, digest object) — FEAT-2398 (D-01): a qa PASS asserting `matrix_ok: true` is judged
+# against the reviewed repository's pinned policy, which the CLI never has, so an acceptance
+# case of that shape runs in-process over a pinned feature (run_qa_pinned_cases).
+QA_PINNED_CASES = []
+
+
+def qa_pinned_case(name, text):
+    QA_PINNED_CASES.append((name, fixture("harness-qa", text)))
+
+
 LEAD_BLOCK = """
 VERDICT: FAIL
 DIGEST:
@@ -2961,8 +2971,7 @@ artifact: a.md
 """, True)
 # (f) REGRESSION — the leak check. Neither field belongs to qa or a reviewer, and a
 # leak is invisible otherwise: an extra required field only ever makes returns FAIL.
-case("qa carries neither new field and is still accepted",
-     "harness-qa", """
+qa_pinned_case("qa carries neither new field and is still accepted", """
 VERDICT: PASS
 DIGEST:
   headline: x
@@ -2975,7 +2984,7 @@ DIGEST:
   files_touched: []
   expertise_update: []
 artifact: a.md
-""", True)
+""")
 # (g2) REGRESSION by construction — `task` is in no schema at 4091b36 and unknown
 # keys are ignored, so this was green then too. It cannot show the field was ADDED;
 # (h2) is what can. Kept because an acceptance clause with no rejection partner is
@@ -3289,8 +3298,8 @@ FAIL_FIRST_ONE = ('[{ sc: SC-01, evidence: '
 case("FEAT-59 qa PASS + matrix_ok: true + fail_first: [] is REJECTED — a green suite "
      "with no fail-first evidence is not a pass",
      "harness-qa", _qa(), False, ["fail_first", "fail-first"])
-case("FEAT-59 qa PASS with populated fail_first is accepted",
-     "harness-qa", _qa(fail_first=FAIL_FIRST_ONE), True)
+qa_pinned_case("FEAT-59 qa PASS with populated fail_first is accepted",
+               _qa(fail_first=FAIL_FIRST_ONE))
 case("FEAT-59 qa matrix_ok: n/a with fail_first: [] is accepted — no gate ran",
      "harness-qa", _qa(verdict="BLOCKED", matrix_ok="n/a", suite="n/a"), True)
 case("FEAT-59 qa FAIL with fail_first: [] is accepted — the gate is on PASS",
@@ -3310,15 +3319,13 @@ case("FEAT-59 fail_first bare-string entry is rejected",
 case("FEAT-59 fail_first sc must be an SC-NN id",
      "harness-qa", _qa(fail_first='[{ sc: T-01, evidence: "x.txt" }]'), False,
      ["fail_first[0].sc", "^SC-"])
-case("FEAT-59 fail_first block-mapping entries are accepted",
-     "harness-qa", _qa().replace(
-         "  fail_first: []",
-         "  fail_first:\n"
-         "    - sc: SC-01\n"
-         "      evidence: notes/qa-r1/fail-first-SC-01.txt\n"
-         "    - sc: SC-02\n"
-         "      evidence: \"receipt: 2 failed, 0 passed at 3f2a9c1~1\""),
-     True)
+qa_pinned_case("FEAT-59 fail_first block-mapping entries are accepted", _qa().replace(
+    "  fail_first: []",
+    "  fail_first:\n"
+    "    - sc: SC-01\n"
+    "      evidence: notes/qa-r1/fail-first-SC-01.txt\n"
+    "    - sc: SC-02\n"
+    "      evidence: \"receipt: 2 failed, 0 passed at 3f2a9c1~1\""))
 
 
 # SEC-01: `REVIEW_SHA` stands in for a feature's `feature.json` `review_sha`,
@@ -3493,14 +3500,14 @@ def run_qa_verification_mode_cases():
     )
     failures = []
     with tempfile.TemporaryDirectory(prefix="qa-modes-") as root:
-        feature_dir = make_feature_dir(root)
-        write_config(os.path.join(root, ".harness", "harness.json"))
+        feature_dir = _qa_pinned_feature(root)
         brief_path = os.path.join(feature_dir, "BRIEF.md")
         for label, brief, accepted in cases:
             _write_verification_brief(brief_path, brief)
             errors = validator._qa_errors(
                 {"suite": "pass", "failures": 0, "matrix_ok": True,
-                 "fail_first": [], "kinds": []}, "PASS", feature_dir)
+                 "fail_first": [], "kinds": []}, "PASS", feature_dir,
+                validator._QaSeam(feature_dir, None))
             rejected = any("fail_first" in error for error in errors)
             valid = not errors if accepted else rejected
             if not valid:
@@ -3508,6 +3515,30 @@ def run_qa_verification_mode_cases():
     for failure in failures:
         print(f"FAIL: {failure}")
     return len(failures)
+
+
+def _qa_pinned_feature(root):
+    """FEAT-2398 (D-01): a feature whose QA policy is established — harness.json built,
+    committed in a real repository, and feature.json's review_sha pinned to that commit."""
+    write_config(os.path.join(root, ".harness", "harness.json"))
+    _mx_git(root, "init", "-q", "-b", "main")
+    _mx_git(root, "add", "-A")
+    _mx_git(root, "commit", "-q", "-m", "policy")
+    return make_feature_dir(root, review_sha=_mx_git(root, "rev-parse", "HEAD"))
+
+
+def run_qa_pinned_cases():
+    """QA_PINNED_CASES: each object is accepted against a pinned policy."""
+    validator = _load_validator("_qa_pinned_cases")
+    fails = 0
+    with tempfile.TemporaryDirectory(prefix="qa-pinned-") as root:
+        feature_dir = _qa_pinned_feature(root)
+        for name, obj in QA_PINNED_CASES:
+            errors = validator.validate("harness-qa", obj, qa_feature_dir=feature_dir)
+            fails += bool(errors)
+            print(f"{'FAIL ' if errors else 'ok   '} {name}" + (f"\n      | {errors}" if errors else ""))
+    print(f"\n{len(QA_PINNED_CASES) - fails}/{len(QA_PINNED_CASES)} pinned qa cases passed.")
+    return fails
 
 
 def run_brief_citation_boundary_cases():
@@ -7003,6 +7034,316 @@ def _seeded_rows(registry, claim_ids):
     return [row for row in _sentinel_rows(registry) if row.get("claim_id") in claim_ids]
 
 
+# --- FEAT-2398 (#2398): QA kind policy is the reviewed repository's harness.json AT ITS REVIEW
+# PIN, keyed on test_kinds.<kind>.status (D-01, DEC-256). A required `unresolved` kind, or an
+# `active` kind with no cmd, may be reported only `misconfigured` under VERDICT BLOCKED; only a
+# signed `excluded` kind leaves the required set (DEC-187). Floor omissions of those kinds refuse
+# under every verdict; the full satisfied floor stays a PASS/matrix_ok rule (D-02, DEC-212).
+KP_FEATURE, KP_PRODUCT_FEATURE = "FEAT-2398-kp-fixture", "FEAT-2398-kp-product"
+KP_REL = ".harness/harness/features/" + KP_FEATURE
+KP_PRODUCT_REL = ".harness/prod/features/" + KP_PRODUCT_FEATURE
+KP_REPAIRS = ("status: active", "status: excluded", "excluded_because", "signed: DEC-NNN")
+KP_PLAN = ("schema: plan/1\nfeature: {feature}\ntasks:\n- id: T-01\n  title: fixture task\n"
+           "  change_type: logic\n  status: building\n  execution_mode: main-session-direct\n"
+           "  files: [a.py]\n  verify: python3 a.py\n  intent: fixture\n")
+KP_GAPS = "\n## Verification gaps\n\n- integration has no runner yet; disclosed, not excluded.\n"
+# Roles, bound to legal kind names: runnable active, locally_run, unresolved, active with no
+# cmd, and signed excluded.
+K_RUN, K_LOCAL, K_GAP, K_NULL, K_SKIP = "unit", "functional", "integration", "component", "eval"
+
+
+def _kp_kind(status, cmd=None, **extra):
+    return {"detect": "tests/x/**", "exclude": "", "cmd": cmd, "status": status, **extra}
+
+
+KP_KINDS = {K_RUN: _kp_kind("active", "python3 -m unittest"),
+            K_LOCAL: _kp_kind("locally_run", "python3 probe.py", runner_note="needs a live host"),
+            K_GAP: _kp_kind("unresolved"), K_NULL: _kp_kind("active"),
+            K_SKIP: _kp_kind("excluded", excluded_because="no runner here", signed="DEC-187")}
+KP_PERMISSIVE = {K_GAP: KP_KINDS[K_SKIP], K_NULL: KP_KINDS[K_SKIP]}
+
+
+def _kp_overrides(always, when=(), overrides=None):
+    """build_config overrides: the KP kinds (`overrides` replacing some) and a `logic` row that
+    requires `always` and makes each of `when` conditional."""
+    return {"test_kinds": {**KP_KINDS, **(overrides or {})}, "test_matrix": {"logic": {
+        "always": list(always), "when": [{"kind": k, "if": "touches_db_or_external"}
+                                         for k in when]}}}
+
+
+def _kp_write_policy(root, overrides):
+    """`.harness/harness.json` through the one fixture builder (FEAT-2297 D-06)."""
+    write_config(os.path.join(root, ".harness", "harness.json"), overrides)
+
+
+def _kp_pin_policy(root, message, overrides):
+    """Commit that policy alone and return the pin."""
+    _kp_write_policy(root, overrides)
+    _mx_git(root, "add", "--", ".harness/harness.json")
+    return _rx_commit(root, message)
+
+
+def _kp_digest(verdict, *kinds, matrix_ok=None, suite=None):
+    """A schema-valid qa return: `kinds` are (kind, state) pairs."""
+    obj = obj_of(QA_UNCONDITIONAL_PASS)
+    digest = obj["DIGEST"]
+    shape = {"BLOCKED": ("n/a", "n/a", 0), "ESCALATE": ("n/a", "n/a", 0),
+             "FAIL": ("fail", False, 1), "PASS": ("pass", True, 0)}[verdict]
+    digest.update(suite=suite or shape[0], failures=shape[2],
+                  matrix_ok=shape[1] if matrix_ok is None else matrix_ok)
+    digest["kinds"] = [{"kind": kind, "state": state, "cmd": "python3 x", "named_tests": "none"}
+                       for kind, state in kinds]
+    obj["VERDICT"] = verdict
+    return obj
+
+
+def _kp_register(root, rel, feature, review_sha, **extra):
+    _mx_write(os.path.join(root, rel, "feature.json"), json.dumps({
+        "feature_id": feature, "review_sha": review_sha, "runs": [_rx_run(RX_RUN)], **extra}))
+
+
+def _kp_init(root, files):
+    _rx_write_all(root, files)
+    _mx_git(root, "init", "-q", "-b", "main")
+    _mx_git(root, "add", "-A")
+    _mx_git(root, "commit", "-q", "-m", "seed")
+    return _mx_git(root, "rev-parse", "HEAD")
+
+
+def _kp_harness_repo():
+    """An unbound Harness feature pinned at five policies, named for their `always` floor:
+    the unresolved kind, the active/null kind, runnable kinds only, the unresolved kind only as
+    a `when:` conditional, and an all-excluded floor; the WORKING TREE then carries a
+    contradicting, permissive policy."""
+    root = os.path.realpath(tempfile.mkdtemp(prefix="vd-kp-"))
+    _kp_write_policy(root, _kp_overrides([K_RUN, K_LOCAL, K_GAP, K_SKIP]))
+    pins = {"floor_unresolved": _kp_init(root, {
+        ".harness/team-config.yaml": RX_TEAM_CONFIG, ".gitignore": RX_IGNORE,
+        KP_REL + "/plan.yaml": KP_PLAN.format(feature=KP_FEATURE),
+        KP_REL + "/BRIEF.md": "# Brief\n"})}
+    for name, always, when in (("floor_active_null", [K_RUN, K_LOCAL, K_NULL, K_SKIP], ()),
+                               ("floor_runnable", [K_RUN, K_LOCAL, K_SKIP], ()),
+                               ("when_unresolved", [K_RUN], (K_GAP,)),
+                               ("floor_excluded", [K_SKIP], ())):
+        pins[name] = _kp_pin_policy(root, name, _kp_overrides(always, when))
+    _kp_write_policy(root, _kp_overrides([K_RUN], (), KP_PERMISSIVE))
+    return root, pins
+
+
+def _kp_fire(root, feature, obj, pin=None, **overrides):
+    """The real yield hook for a registered qa run of `feature`, recording `pin` first."""
+    if pin is not None:
+        rel = KP_REL if feature == KP_FEATURE else KP_PRODUCT_REL
+        extra = overrides.pop("record", {})
+        _kp_register(root, rel, feature, pin, **extra)
+    reg = _rx_reg()
+    reg.claim_run_start(root, RX_LEAD, feature, RX_LEAD_ID, "Rx.Main",
+                        supervisor_pid=os.getpid(), cwd=root)
+    reg.claim_run_start(root, "harness-qa", feature, RX_QA_ID, RX_LEAD_ID,
+                        supervisor_pid=os.getpid(), cwd=root)
+    return _rx_fire(root, text=obj, claim=False, harness_feature=feature, **overrides)
+
+
+def _kp_expect(label, result, want, needles=()):
+    """Exit `want` (0 accepted, 2 refused, 1 CLI refusal) naming every needle, never a crash."""
+    text = result.stdout + result.stderr
+    missing = [needle for needle in needles if needle not in text]
+    rx(label, result.returncode == want and not missing and "Traceback" not in text,
+       f"exit {result.returncode}; missing {missing!r}: {text.strip()[-1200:]}")
+
+
+def _kp_refuses(label, result, kind, *more):
+    _kp_expect(label, result, 2, (kind, *KP_REPAIRS, *more))
+
+
+def _kp_sc01_cases(root, pins):
+    for kind, pin, status in ((K_GAP, pins["floor_unresolved"], "unresolved"),
+                              (K_NULL, pins["floor_active_null"], "active/null")):
+        fire = lambda obj, kind=kind, pin=pin: _kp_fire(root, KP_FEATURE, obj, pin=pin)
+        _kp_expect(f"SC-01 {status}: BLOCKED reporting only it misconfigured is the one acceptance",
+                   fire(_kp_digest("BLOCKED", (kind, "misconfigured"))), 0)
+        for state in ("satisfied", "not_applicable", "missing", "locally_run"):
+            _kp_refuses(f"SC-01 {status}: reported {state} is refused with both repairs",
+                        fire(_kp_digest("BLOCKED", (kind, state))), kind)
+        for verdict in ("PASS", "FAIL", "ESCALATE"):
+            _kp_refuses(f"SC-01 {status}: misconfigured under VERDICT {verdict} is refused",
+                        fire(_kp_digest(verdict, (kind, "misconfigured"))), kind)
+        _kp_sc01_omission_cases(fire, kind, status)
+
+
+# Every verdict, crossed with every matrix_ok that verdict may carry (a PASS refuses false and
+# n/a on its own grounds, so it cannot discriminate there): the omission refusal is the same.
+KP_OMISSIONS = tuple((verdict, kinds, matrix_ok) for verdict, kinds, values in (
+    ("BLOCKED", (), (True, False, "n/a")), ("ESCALATE", (), (True, False, "n/a")),
+    ("FAIL", ((K_RUN, "missing"),), (True, False, "n/a")),
+    ("PASS", ((K_RUN, "satisfied"),), (True,))) for matrix_ok in values)
+
+
+def _kp_sc01_omission_cases(fire, kind, status):
+    for verdict, kinds, matrix_ok in KP_OMISSIONS:
+        _kp_refuses(f"SC-01/SC-04 {status}: omitting the required kind under {verdict} with "
+                    f"matrix_ok {matrix_ok} refuses",
+                    fire(_kp_digest(verdict, *kinds, matrix_ok=matrix_ok)), kind)
+
+
+def _kp_sc02_cases(root, pins):
+    fire_a = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["floor_unresolved"])
+    fire_c = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["floor_runnable"])
+    _kp_expect("SC-02: a signed excluded kind may be not_applicable",
+               fire_a(_kp_digest("BLOCKED", (K_GAP, "misconfigured"), (K_SKIP, "not_applicable"))), 0)
+    _kp_expect("SC-02: a runnable active kind may not be not_applicable",
+               fire_c(_kp_digest("BLOCKED", (K_RUN, "not_applicable"))), 2, (K_RUN,))
+    _kp_expect("SC-02: a configured locally_run kind may be reported locally_run",
+               fire_c(_kp_digest("BLOCKED", (K_LOCAL, "locally_run"))), 0)
+    _kp_expect("SC-02: locally_run is refused for a kind not configured locally_run",
+               fire_c(_kp_digest("BLOCKED", (K_RUN, "locally_run"))), 2, (K_RUN, "locally_run"))
+    _kp_expect("SC-02: active satisfied under BLOCKED is accepted",
+               fire_c(_kp_digest("BLOCKED", (K_RUN, "satisfied"))), 0)
+    _kp_expect("SC-02: active missing under FAIL is accepted (ordinary coverage FAIL)",
+               fire_c(_kp_digest("FAIL", (K_RUN, "missing"))), 0)
+
+
+def _kp_sc02_disclosure_case(root, pins):
+    fire_a = lambda obj: _kp_fire(root, KP_FEATURE, obj, pin=pins["floor_unresolved"])
+    brief = os.path.join(root, KP_REL, "BRIEF.md")
+    outcomes = []
+    for body in ("# Brief\n", "# Brief\n" + KP_GAPS):
+        _mx_write(brief, body)
+        outcomes.append(fire_a(_kp_digest("BLOCKED", (K_GAP, "not_applicable"))))
+    _mx_write(brief, "# Brief\n")
+    same = [o.returncode for o in outcomes] == [2, 2] and outcomes[0].stderr == outcomes[1].stderr
+    rx("SC-02: a Verification gaps disclosure changes no outcome (refused identically)", same,
+       " | ".join(o.stderr.strip()[-300:] for o in outcomes))
+
+
+def _kp_sc03_harness_cases(root, pins):
+    pinned = pins["floor_unresolved"]
+    _kp_refuses("SC-03: an unbound Harness feature reads its pinned policy, not the current tree",
+                _kp_fire(root, KP_FEATURE, _kp_digest("BLOCKED", (K_RUN, "satisfied")),
+                         pin=pinned), K_GAP, pinned, ".harness/harness.json")
+    _kp_expect("SC-03: an unpinned Harness feature refuses instead of reading the current tree",
+               _kp_fire(root, KP_FEATURE, _kp_digest("BLOCKED", (K_RUN, "satisfied")), pin="none"),
+               2, ("review pin", "no fallback"))
+    _kp_expect("SC-03: an unpinned feature may still stop with a kind-free BLOCKED",
+               _kp_fire(root, KP_FEATURE, _kp_digest("BLOCKED"), pin="none"), 0)
+    _kp_expect("SC-03: the CLI with no trusted feature refuses QA kind policy, never the install tree",
+               _kp_cli(_kp_digest("BLOCKED", (K_RUN, "satisfied"))), 1, ("review pin", "no fallback"))
+    _kp_expect("SC-03: the CLI refuses an empty-kind PASS asserting the matrix (no pin to judge it)",
+               _kp_cli(_kp_digest("PASS")), 1, ("review pin", "no fallback"))
+    _kp_expect("SC-03: the CLI accepts a kind-free BLOCKED (QA stopping without a pin)",
+               _kp_cli(_kp_digest("BLOCKED")), 0)
+
+
+def _kp_cli(obj):
+    """The validator CLI — no trusted feature — over one qa return."""
+    scratch = tempfile.mkdtemp(prefix="vd-kp-cli-")
+    try:
+        path = os.path.join(scratch, "qa.json")
+        _mx_write(path, json.dumps(fixture("harness-qa", obj)))
+        return subprocess.run([sys.executable, VALIDATE, "harness-qa", path],
+                              capture_output=True, text=True, timeout=60)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
+def _kp_sc04_cases(root, pins):
+    fire = lambda obj, pin: _kp_fire(root, KP_FEATURE, obj, pin=pins[pin])
+    _kp_expect("SC-04: early BLOCKED may omit configured runnable and locally_run kinds",
+               fire(_kp_digest("BLOCKED"), "floor_runnable"), 0)
+    _kp_expect("SC-04: early FAIL with matrix_ok false may omit configured kinds",
+               fire(_kp_digest("FAIL"), "floor_runnable"), 0)
+    _kp_expect("SC-04: PASS with matrix_ok true still requires every floor kind satisfied",
+               fire(_kp_digest("PASS", (K_LOCAL, "locally_run")), "floor_runnable"), 2,
+               (K_RUN, "floor"))
+    _kp_expect("SC-04: an omitted conditional kind is QA's judgement, not mechanically required",
+               fire(_kp_digest("BLOCKED"), "when_unresolved"), 0)
+    _kp_refuses("SC-04: a reported unresolved conditional must be misconfigured/BLOCKED",
+                fire(_kp_digest("BLOCKED", (K_GAP, "not_applicable")), "when_unresolved"), K_GAP)
+    exempt = _kp_digest("PASS", suite="n/a")
+    _kp_expect("SC-04: an all-excluded floor keeps the no-kind exemption",
+               fire(exempt, "floor_excluded"), 0)
+    _kp_refuses("SC-04: an unresolved floor kind denies the no-kind exemption",
+                fire(exempt, "floor_unresolved"), K_GAP)
+
+
+def _kp_product_repos():
+    """A Harness planning checkout binding KP_PRODUCT_FEATURE to acme/prod, whose own policy
+    excludes the unresolved kind; the product repository (a separate object store under the
+    fleet's workspace_root) has P0 (no config), P1 (that kind unresolved and required), P2 (it
+    excluded, the default branch) and P3 (invalid config, side branch), and a dirty tree."""
+    ws = os.path.realpath(tempfile.mkdtemp(prefix="vd-kp-ws-"))
+    prod = os.path.join(ws, "prod")
+    os.makedirs(prod)
+    pins = {"P0": _kp_init(prod, {"README.md": "product\n"})}
+    pins["P1"] = _kp_pin_policy(prod, "p1", _kp_overrides([K_RUN, K_GAP]))
+    _mx_git(prod, "checkout", "-q", "-b", "broken")
+    pins["P3"] = _rx_commit(prod, "p3", {  # a built config, truncated: invalid JSON
+        ".harness/harness.json": json.dumps(build_config())[:-1]})
+    _mx_git(prod, "checkout", "-q", "main")
+    pins["P2"] = _kp_pin_policy(prod, "p2", _kp_overrides([K_RUN], (), KP_PERMISSIVE))
+    _kp_write_policy(prod, _kp_overrides([], (), KP_PERMISSIVE))
+    root = os.path.realpath(tempfile.mkdtemp(prefix="vd-kp-plan-"))
+    fleet = yaml.safe_dump({"schema": "factory-fleet/1", "workspace_root": ws, "repos": [
+        {"name": "acme/prod", "default_branch": "main"}, {"name": "acme/gone", "default_branch": "main"}]})
+    _kp_write_policy(root, _kp_overrides([K_RUN], (), KP_PERMISSIVE))
+    _kp_init(root, {".harness/team-config.yaml": RX_TEAM_CONFIG, ".gitignore": RX_IGNORE,
+                    ".harness/factory/fleet.yaml": fleet,
+                    KP_PRODUCT_REL + "/plan.yaml": KP_PLAN.format(feature=KP_PRODUCT_FEATURE)})
+    return root, ws, pins
+
+
+def _kp_product_fire(root, obj, pin, binding=None, **overrides):
+    record = {"factory": {"repo": "acme/prod"} if binding is None else binding}
+    return _kp_fire(root, KP_PRODUCT_FEATURE, obj, pin=pin, record=record, **overrides)
+
+
+def _kp_product_cases(root, pins):
+    omit = _kp_digest("BLOCKED", (K_RUN, "satisfied"))
+    report = _kp_digest("BLOCKED", (K_GAP, "misconfigured"))
+    _kp_refuses("SC-03 product: the product's pinned policy applies, not the planning tree's",
+                _kp_product_fire(root, omit, pins["P1"]), K_GAP, "acme/prod", pins["P1"],
+                ".harness/harness.json")
+    _kp_expect("SC-03 product: the misconfigured report is accepted at the same pin",
+               _kp_product_fire(root, report, pins["P1"]), 0)
+    _kp_expect("SC-03 product: another pin's statuses and matrix select differently",
+               _kp_product_fire(root, omit, pins["P2"]), 0)
+    _kp_expect("SC-03 product: an agreeing abbreviated dispatch pin is the same policy",
+               _kp_product_fire(root, report, pins["P1"], harness_review_pin=pins["P1"][:12]), 0)
+    _kp_expect("SC-03 product: a disagreeing dispatch pin refuses",
+               _kp_product_fire(root, report, pins["P1"], harness_review_pin=pins["P2"]), 2,
+               ("agree", "no fallback"))
+    _kp_refuses("SC-03 product: a dispatch pin may supply an absent recorded pin",
+                _kp_product_fire(root, omit, "none", harness_review_pin=pins["P1"]), K_GAP, pins["P1"])
+    for label, pin, binding, needles in (
+            ("no review pin at all", "none", None, ("review pin",)),
+            ("a malformed factory binding", pins["P1"], "acme/prod", ("binding",)),
+            ("an unlisted factory.repo", pins["P1"], {"repo": "acme/other"}, ("acme/other",)),
+            ("an unavailable product repository", pins["P1"], {"repo": "acme/gone"}, ("acme/gone",)),
+            ("an unresolvable review commit", "0" * 40, None, ("0" * 40,)),
+            ("a pinned commit with no harness.json", pins["P0"], None, (pins["P0"], ".harness/harness.json")),
+            ("an invalid pinned harness.json", pins["P3"], None, (pins["P3"], ".harness/harness.json"))):
+        _kp_expect(f"SC-03 product: {label} refuses without fallback",
+                   _kp_product_fire(root, report, pin, binding), 2, (*needles, "no fallback"))
+
+
+def run_feat2398_qa_policy_cases():
+    """FEAT-2398 SC-01..SC-04 through the real hook and CLI: status-keyed QA kind policy read
+    from the reviewed repository at its review pin."""
+    root, pins = _kp_harness_repo()
+    plan_root, ws, product_pins = _kp_product_repos()
+    try:
+        _kp_sc01_cases(root, pins)
+        _kp_sc02_cases(root, pins)
+        _kp_sc02_disclosure_case(root, pins)
+        _kp_sc03_harness_cases(root, pins)
+        _kp_sc04_cases(root, pins)
+        _kp_product_cases(plan_root, product_pins)
+    finally:
+        for path in (root, plan_root, ws):
+            shutil.rmtree(path, ignore_errors=True)
+    return _rx_report("feat2398")
+
+
 def _sentinel_verdict(label, ok, detail):
     print(f"ok    [sentinel] {label}" if ok else f"FAIL  [sentinel] {label}: {detail}")
     return 0 if ok else 1
@@ -7121,6 +7462,7 @@ def main(argv=None):
         run_bug919_qa_matrix_cases,
         run_feat2337_qa_receipt_cases,
         run_qa_verification_mode_cases,
+        run_qa_pinned_cases,
         run_brief_citation_boundary_cases,
         run_qa_foreign_brief_case,
         run_qa_record_read_failure_cases,
@@ -7151,6 +7493,7 @@ def main(argv=None):
         run_member_expertise_f2_cases,
         run_member_expertise_committed_tamper_cases,
         run_bug2253_cases,
+        run_feat2398_qa_policy_cases,
     )
     # `--only <group>` runs one group by its function name. test-suite-claim-preservation.py's
     # mutant pass reads only the [bug1898] lines, and without this it paid for every group.
