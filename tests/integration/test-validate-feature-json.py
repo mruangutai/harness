@@ -26,7 +26,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 
-REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.path.abspath(
+REPO_ROOT = os.environ.get("HARNESS_PROJECT_DIR") or os.path.abspath(
     os.path.join(BIN_DIR, "..", "..", "..", "..")
 )
 
@@ -741,7 +741,8 @@ def case_749_schema_comes_from_the_written_tree():
     MEASURED LIVE 2026-08-23 during FEAT-26's ship. `check-domain.py --post` refused a
     legitimate write -- `undeclared key 'source_issues' at /github' -- because the key WAS
     declared in the worktree's own feature-schema.json and was NOT in main's, and the hook
-    imports this module from CLAUDE_PROJECT_DIR, the main checkout.
+    imports this module from the main checkout (then reached through CLAUDE_PROJECT_DIR,
+    now through HARNESS_PROJECT_DIR).
 
     THE GENERAL SHAPE: a feature that ADDS a schema key cannot write data using that key
     until it merges, and cannot demonstrate the key working before it merges. The schema and
