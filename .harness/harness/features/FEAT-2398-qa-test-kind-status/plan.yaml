@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai
   status: approved
 drafted_at: '2026-11-23T02:54:34Z'
-status: ready
+status: building
 source_issues: [2398]
 panel:
   last_run: 2026-11-22-01-plan-product
@@ -134,7 +134,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 covers validate-digest.py, its tests and the settled QA-rules cutover; the accompanying authority updates land atomically.
     depends_on: []
-    status: ready
+    status: building
     files:
     - .claude/skills/harness/bin/validate-digest.py#_qa_kinds_errors
     - tests/integration/test-validate-digest.py#main
@@ -147,12 +147,15 @@ tasks:
     - path: .harness/harness/docs/SPEC.md
       quote: '## 2. State model'
     - path: .harness/harness/docs/DECISIONS.md
-      quote: '## DEC-256 — harness.json is one validated version-3 contract'
+      quote: "## DEC-256 \u2014 harness.json is one validated version-3 contract"
     - path: .harness/harness/docs/DECISIONS.md
-      quote: '## DEC-187 — The test matrix is per-project, and a kind with no runner
-        is excluded by decision, never by inference'
+      quote: "## DEC-187 \u2014 The test matrix is per-project, and a kind with no runner\
+        \ is excluded by decision, never by inference"
     - path: .harness/harness/docs/DECISIONS-INDEX.md
       quote: '- DEC-256 @'
+    - tests/integration/canonical-reader-classification.json
+    - tests/integration/test-harness-config-readers.py
+    - tests/integration/test-validate-digest-shadows.py
     verify: |
       python3 tests/integration/test-validate-digest.py --only run_feat2398_qa_policy_cases
     intent: 'Main-session-direct only. All relative paths and edits stay within PRODUCT

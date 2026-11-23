@@ -20,12 +20,36 @@ list. A gap between the two is a finding, not an oversight to quietly close.
 
 ## The matrix is a floor
 
-Read `test_matrix` and `test_kinds` from `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`; read `change_type` from each PLAN task.
-If `harness.json` is absent, **stop and say so** — do not invent a matrix.
+**Read QA policy at the review pin (D-01, DEC-256).** `test_matrix` and `test_kinds` come from the
+**reviewed repository's** `.harness/harness.json` at its review pin — never the control plane's
+copy, the current tree, a default branch or a planning tree; read `change_type` from each PLAN task.
 
-You may **add** a requirement the diff clearly warrants. You may never drop below the matrix:
-`validate-digest.py` refuses a `PASS` with `matrix_ok: true` whose `kinds:` does not report every
-`always` kind for the plan's tasks as `satisfied`; the `when:` kinds remain your call.
+1. **Repository.** A feature whose `feature.json` binds `factory.repo` reviews that fleet
+   repository's code checkout — locate it with `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/feature-worktree.py
+   path --repo <owner/repo> --id <feature-id>`, its `CODE` line. An unbound Harness feature
+   reviews the repository holding the feature.
+2. **Commit.** `feature.json`'s `review_sha` names it; a dispatch review pin must resolve to the same
+   commit in that repository.
+3. **Blob.** Read `git show <commit>:.harness/harness.json` — never either checkout's current
+   config — and record the repository, the full commit and the config path in your artifact.
+
+If the pin, the repository or the blob is missing or invalid, **stop and say so** — there is no
+fallback, and `validate-digest.py` refuses every kind claim it cannot check against the pin. Do not
+invent a matrix. INV-49 governs which kinds a config may declare; it never waives a kind. The
+contract and its rationale: `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/docs/SPEC.md` §9 and
+DEC-256, DEC-187 and DEC-212 in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/docs/DECISIONS.md`.
+
+You may **add** a requirement the diff clearly warrants. You may never drop below the matrix.
+`validate-digest.py` applies three gates over the started tasks' `always` kinds:
+
+1. Every kind you report is checked against its configured `status`, under every verdict.
+2. An omitted `always` kind that is `unresolved`, or `active` with no `cmd`, is refused under every
+   verdict — omission is never exclusion.
+3. A `PASS` with `matrix_ok: true` must report every non-excluded `always` kind as `satisfied`.
+
+An omission on an early `BLOCKED` or `FAIL` is neither a soft skip nor proof of coverage. You
+evaluate the `when:` predicates yourself (DEC-212); report every applicable kind, and one that is
+`unresolved` or has no `cmd` as `misconfigured` with `VERDICT: BLOCKED`.
 
 **Presence is not satisfied by an unrelated existing test.** A new endpoint is not covered because a
 different endpoint has one. Find the test exercising *this* change, or the kind is missing.
@@ -56,15 +80,17 @@ You still produce candidate receipts for main to commit; the host is not redeplo
 
 Read **two** signals, never just the exit code: what kind of failure, not merely whether it failed.
 Report each as `kinds: [{ kind, state, … }]` with `state` spelled as below; `validate-digest.py`
-refuses a state `harness.json` contradicts and `misconfigured` under any verdict but `BLOCKED`.
+refuses a state the pinned `harness.json` contradicts and `misconfigured` under any verdict but
+`BLOCKED`. Only `status: excluded` takes a kind out of the required set; a null `cmd` alone never
+does.
 
 | `state` | Signals | Result |
 |---|---|---|
 | `satisfied` | a named test ran, none failed | contributes to `PASS` |
 | `missing` | required, and nothing covers this change | **`FAIL`** |
-| `not_applicable` | `test_kinds.<kind>.status == "excluded"` — the tooling genuinely is absent | **soft skip.** Report it; do not FAIL |
-| `locally_run` | `test_kinds.<kind>.status == "locally_run"` (issue #1187) — a real `cmd` that cannot run in CI (needs a host and live credentials) | **not FAIL, not a soft skip.** If the change touched this kind's `detect` surface, require a recorded run under the feature's `notes/`; absent that note, `BLOCKED — locally-run kind '<kind>' has no recorded run` |
-| `misconfigured` | `cmd` is null/absent on an active kind · no test files matched · the failure is a **load / import / collection / syntax error** rather than an assertion | **`BLOCKED`** — never `FAIL` |
+| `not_applicable` | `test_kinds.<kind>.status == "excluded"` with its `excluded_because` and `signed` decision — the tooling genuinely is absent. No other status may report it | **soft skip.** Report it; do not FAIL |
+| `locally_run` | `test_kinds.<kind>.status == "locally_run"` (issue #1187) — a real `cmd` that cannot run in CI (needs a host and live credentials). No other status may report it | **not FAIL, not a soft skip.** If the change touched this kind's `detect` surface, require a recorded run under the feature's `notes/`; absent that note, `BLOCKED — locally-run kind '<kind>' has no recorded run` |
+| `misconfigured` | a required kind is `status: unresolved`, or `active` with a null/absent `cmd` · no test files matched · the failure is a **load / import / collection / syntax error** rather than an assertion | **`BLOCKED`** — never `FAIL`. For an unresolved or cmd-less kind, name both repairs: give it `status: active` with a runnable `cmd`, or `status: excluded` with `excluded_because` and `signed: DEC-NNN` |
 
 ⚠️ **Do not use "zero tests collected" to detect misconfiguration.** `node --test src/` reports
 `tests 1 / fail 1` for a module-load error. **The failure kind is the signal.**

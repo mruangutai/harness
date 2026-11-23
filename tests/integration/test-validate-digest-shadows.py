@@ -386,6 +386,16 @@ def _plan_with(change_types):
     return f"schema: plan/1\nfeature: {FEAT}\napproval:\n  status: approved\ntasks:\n{tasks}"
 
 
+def _pin_config(repo, feature_dir, config):
+    """FEAT-2398 (D-01): QA's policy is harness.json at the review pin, so commit `config` and
+    pin review_sha to that commit — a working-tree edit no longer governs QA."""
+    write_config(os.path.join(repo, ".harness", "harness.json"), config)
+    _git(repo, "add", "--", ".harness/harness.json")
+    _git(repo, "commit", "-q", "-m", "policy")
+    with open(os.path.join(feature_dir, "feature.json"), "w") as fh:
+        json.dump({"feature_id": FEAT, "review_sha": _git(repo, "rev-parse", "HEAD")}, fh)
+
+
 UNIT_SATISFIED = {"kind": "unit", "state": "satisfied", "cmd": "true", "named_tests": 3}
 UNIT_MISSING = {"kind": "unit", "state": "missing", "cmd": "true", "named_tests": "none"}
 
@@ -394,7 +404,7 @@ def case_matrix_floor():
     v = _validator()
     with tempfile.TemporaryDirectory() as td:
         repo, fd, head, _ = _checkout(td)
-        write_config(os.path.join(repo, ".harness", "harness.json"), MATRIX_JSON)
+        _pin_config(repo, fd, MATRIX_JSON)
         cfg = _config(td)
         _write(os.path.join(fd, "plan.yaml"), _plan_with([("logic", "done")]))
         errs = _errors(v, "harness-qa", _qa([UNIT_SATISFIED]), fd, cfg)
@@ -411,7 +421,7 @@ def case_matrix_floor():
               not any("matrix floor" in e for e in errs), str(errs))
         _write(os.path.join(fd, "plan.yaml"), _plan_with([("cross_module", "done")]))
         errs = _errors(v, "harness-qa", _qa([UNIT_SATISFIED]), fd, cfg)
-        check("floor: an excluded kind (functional, cmd null) never enters the floor",
+        check("floor: an excluded kind (functional, status: excluded) never enters the floor",
               not any("matrix floor" in e for e in errs), str(errs))
         _write(os.path.join(fd, "plan.yaml"), _plan_with([("docs", "done"), ("logic", "todo")]))
         errs = _errors(v, "harness-qa", _qa([]), fd, cfg)
@@ -426,7 +436,7 @@ _NO_SUITE = _with(_qa([]), suite="n/a")
 def _qa_floor_errors(td, change_types, obj=_NO_SUITE):
     """#2139: the qa errors for `obj` over a plan of `change_types`; None writes no plan."""
     repo, fd, _head, _ = _checkout(td)
-    write_config(os.path.join(repo, ".harness", "harness.json"), MATRIX_JSON)
+    _pin_config(repo, fd, MATRIX_JSON)
     if change_types is not None:
         _write(os.path.join(fd, "plan.yaml"), _plan_with(change_types))
     return _errors(_validator(), "harness-qa", obj, fd, _config(td))

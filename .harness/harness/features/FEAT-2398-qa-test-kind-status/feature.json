@@ -76,6 +76,13 @@
       "kind": "regate",
       "decision": "proceed to pm apply of simplify findings 1-7; no reader re-run",
       "reason": "simplify-eng FAIL was a reader-conduct disclosure, not a plan defect; its flag-only findings stand and go to pm apply"
+    },
+    {
+      "at": "2026-11-23T03:46:33.223251+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "D-01 removes validate-digest's current-tree matrix reader: its reader-audit inventory rows, FEAT-2297's reader-table row and the shadow floor test pinning cmd-inferred exclusion must move to the pinned, status-keyed contract."
     }
   ],
   "mission": "plan",
