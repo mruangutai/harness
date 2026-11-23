@@ -414,7 +414,8 @@ def case_13_gh_bin_deleted():
     check("case_13_gh_issues_has_no_gh_bin", not hasattr(ghi, "gh_bin"))
     with open(wf.__file__, encoding="utf-8") as handle:
         source = handle.read()
-    check("case_13_wayfind_has_no_subprocess", "subprocess" not in source and "GH_SYNC_GH" not in source)
+    retired = "GH_SYNC" + "_GH"  # assembled so this test file is not itself a site
+    check("case_13_wayfind_has_no_subprocess", "subprocess" not in source and retired not in source)
 
 
 def main():
