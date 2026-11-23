@@ -1,0 +1,36 @@
+schema_version: 2
+run_id: r-20261123-4-amend-apply-product
+run_uid: 0a9b3938579c4ad2ac5a0da811f1f5c8
+feature: FEAT-2452-gh-one-transport
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: amend-apply
+    persona: harness-pm
+    task: amend-apply-product
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/notes/research-FEAT-2452-gh-one-transport-amend-apply-plan.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/notes/receipt-harness-pm-amend-apply-r-20261123-4.md
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/notes/research-FEAT-2452-gh-one-transport-amend-apply-plan.md
+    note: C1 applied; DEC-138 runner row amend->D-01; T-05 owns DECISIONS.md+index; receipt path moved by check-domain.
+    evidence:
+      plan_check_exit: 0
+      plan_check_failures: 0
+      anchors_resolved: 33
+      approval_status: pending
+      approval_reset_receipt_count: 0
+      dec138_rows: 2
+      dec138_amend_successor: D-01
+      intermediate_check_fail_recorded: true
