@@ -1,0 +1,1 @@
+PASS — Mode A, in_scope: false: BRIEF.md explicitly excludes UI work and plan.yaml T-01 touches only QA validation, integration tests, instructions and policy records; no user-facing visual surface requires a DESIGN.md contract, so accessibility, themes, focus and layout are not applicable. Open questions: none. No builds, tests, lint or formatters run.

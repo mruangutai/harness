@@ -1,0 +1,82 @@
+{
+  "feature_id": "FEAT-2398-qa-test-kind-status",
+  "branch": "feat/FEAT-2398-qa-test-kind-status",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-22-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T02:48:08+00:00",
+      "tokens": 73863,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-01-plan-product/digest.md",
+        "sha256": "fb9a82590547b07ec716f77ab6c0b2322c971928ee841644b760118357f5a155"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T03:11:34+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-02-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T03:11:48+00:00",
+      "tokens": 47437,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-02-simplify-eng/digest.md",
+        "sha256": "3d18126e6866b2cabce37079ad8267a404f6ed6b7ba9901984961c232f1a0479"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T03:17:26+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-22-03-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T03:17:33+00:00",
+      "tokens": 41695,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-03-simplify-apply-product/digest.md",
+        "sha256": "c594fc1be9072f83b9be1a304e31e0f40f94ff0535924983e054eb3db3775f6f"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T03:25:52+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T02:48:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "The cause is known and the files are nameable, but part 3 adds a new config-resolution path that a gate reads (product features use the product's harness.json), which is a new enforcement surface."
+    },
+    {
+      "at": "2026-11-23T03:17:27+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "FAIL is a conduct disclosure (dev-ops ran a timed git probe in a disposable /tmp repo); plan.yaml and BRIEF.md hashes unchanged, ten flag-only findings on disk; proceed to pm apply without re-running readers"
+    },
+    {
+      "at": "2026-11-23T03:17:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "proceed to pm apply of simplify findings 1-7; no reader re-run",
+      "reason": "simplify-eng FAIL was a reader-conduct disclosure, not a plan defect; its flag-only findings stand and go to pm apply"
+    }
+  ],
+  "mission": "plan"
+}
