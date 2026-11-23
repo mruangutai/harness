@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
@@ -4167,7 +4167,17 @@ describe("FEAT-2225 expertise_apply through the real policyRunner into the real 
   let main: Tree;
   let root = "";
   const sessions = new Map<string, Session>();
+  // HERMETIC ROOT (FEAT-2397): the resolver prefers HARNESS_PROJECT_DIR over the script's own
+  // location whenever it carries the marker, and runPolicy hands the gates process.env. CI's
+  // steps export it (FEAT-2397 T-02), so an inherited value would point every gate at the
+  // workspace instead of this temporary checkout. The isolated copy runs without it.
+  const inheritedRoot = process.env.HARNESS_PROJECT_DIR;
+  afterAll(() => {
+    if (inheritedRoot === undefined) delete process.env.HARNESS_PROJECT_DIR;
+    else process.env.HARNESS_PROJECT_DIR = inheritedRoot;
+  });
   beforeAll(async () => {
+    delete process.env.HARNESS_PROJECT_DIR;
     main = await tree(DISTILL_RUNS);
     root = main.root;
     // Parents first: a member's authority is its dispatching lead's LIVE registered distill run.
