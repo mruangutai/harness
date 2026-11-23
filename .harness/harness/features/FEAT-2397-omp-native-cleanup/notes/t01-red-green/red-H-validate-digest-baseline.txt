@@ -1,0 +1,598 @@
+ok    [sentinel] one live sentinel per governed persona was seeded
+ok    [feat65] a defect reading the payload passes through with exactly the hook_guard line
+ok    [feat65] an unreadable payload is the hook's own failure and takes the same template
+ok    [feat65] a defect in the registry errand is no longer reported in its own sentence
+ok    [feat65] KeyboardInterrupt escapes the guard
+ok    [feat65] a deliberate SystemExit keeps its own exit code
+ok    [feat65] the direct CLI is not wrapped: a validator defect is loud and nonzero
+
+6/6 FEAT-65 guard cases passed.
+ok    [feat65] [f2274] a persona with no schema passes through visibly unavailable
+ok    [feat65] [f2274] a payload with no agent identity passes through visibly unavailable
+ok    [feat65] [f2274] stop_hook_active does not change the missing-identity outcome
+ok    [feat65] [f2274] a missing claim registry on a passing return is visibly unavailable, once
+ok    [feat65] [f2274] a valid governed digest is a normal pass with no unavailable line
+ok    [feat65] [f2274] a non-governed agent passes through with no unavailable line
+FAIL  [feat65] [f2274] a truthy legacy stop_hook_active is a contract refusal, never a pass or unavailable
+      | exit 0: ''
+ok    [feat65] [f2274] absent/null/blank/non-object digest_object stays a contract refusal
+ok    [feat65] [f2274] a contract violation is a refusal, never unavailable
+
+8/9 FEAT-65 guard cases passed.
+ok    lead, block-style members
+ok    amendments: the three BUG-285 recommendations are accepted eng-lead amendments
+ok    amendments: absent is refused — every field is required, `[]` says none
+ok    amendments: empty list is legal
+ok    amendments: inline mappings for all three fields
+ok    amendments: block mapping entry
+ok    amendments: unknown key is refused naming index and key
+ok    amendments: missing key is refused
+ok    amendments: not a list is refused
+ok    amendments: entry that is not a mapping is refused
+ok    amendments: SC id as task is refused
+ok    amendments: decision id as task is refused
+ok    amendments: field outside intent/files/verify is refused
+ok    amendments: empty reason is refused
+ok    amendments: reason over 240 is refused
+ok    amendments: intent with a list value is refused
+ok    amendments: files with a string value is refused
+ok    amendments: files with a line-number anchor is refused
+ok    amendments: files with a bad mapping entry is refused
+ok    amendments: second entry's fault is reported at its index
+ok    amendments: a product lead may not carry the field
+ok    amendments: a validator lead may not carry the field
+ok    lead, fully inline lists
+ok    nested must_fix must NOT satisfy the top-level one
+ok    a lead return missing steps_run and cycles_used is refused, naming both
+ok    doer, inline — unchanged behaviour
+ok    main-session (DEC-174 direct build) validates as dev
+ok    main-session with task_verify fail and VERDICT PASS is refused like any dev
+ok    drifted key spelling is caught
+ok    enum near-miss is caught, not normalized
+ok    open_questions as a count, not a list
+ok    a null list field is refused — null is not an empty list
+ok    no VERDICT at all
+ok    PASS over a failing member is rejected
+ok    FAIL over an escalating member is rejected
+ok    lead may report worse than its members
+ok    a members entry with no verdict is rejected
+ok    a skipped member is explicit and excluded from worst-wins
+ok    all skipped members cannot support a lead verdict
+ok    mandatory member cannot be laundered as skipped
+ok    a member's nested headline does not satisfy the top-level one
+ok    an int does not satisfy a str-typed field
+ok    a bare NULLABLE scalar key must not silently become an empty list
+ok    a member entry carrying open_questions is refused at that member
+ok    a hyphenated universal key is refused
+ok    orchestrator digest with the reconciled schema
+ok    orchestrator briefing is NULLABLE — `none` when nothing was written
+ok    rejected: reject judgement with a superseding issue is accepted
+ok    rejected: superseded_by none (should not be planned) is accepted
+ok    rejected: judgement none is refused, naming the mapping a rejection carries
+ok    rejected: kind other than reject is refused
+ok    rejected: superseded_by zero is refused
+ok    rejected: superseded_by negative is refused
+ok    rejected: superseded_by boolean is refused
+ok    rejected: empty reason is refused
+ok    rejected: reason over 240 characters is refused
+ok    rejected: multiline reason is refused
+ok    rejected: a missing key is refused
+ok    rejected: an extra key is refused
+ok    rejected: cycles_used must be integer zero
+ok    a judgement mapping on any other status is refused
+ok    object: a real FAIL object validates
+ok    object: a real object missing matrix_ok is refused for that field
+ok    object: a wrapped {data: ...} object is not a digest
+ok    object: a list is not a digest
+ok    object: a JSON string is not a digest
+ok    dev refusing an under-specified task can say suite: n/a
+ok    suite: n/a with VERDICT PASS is a fail-open and is REJECTED
+ok    an analysis dev -- task: none AND files_touched: [] -- may say suite: n/a with PASS
+ok    task: none but files WERE touched -- suite: n/a with PASS is still REJECTED, because `task: none` is a claim and the edit is the fact
+ok    a REAL task whose verify passed still owes a suite result -- suite: n/a with PASS is REJECTED even with nothing touched
+ok    #2145: the dev nothing-touched refusal names the task: none route for a non-plan dispatch
+ok    qa that cannot run the suite can say matrix_ok: n/a
+ok    matrix_ok: n/a with VERDICT PASS is REJECTED — the gate did not run
+ok    reviewer scoping out of a non-UI diff may PASS with severity_max: n/a
+ok    visual-designer deciding no DESIGN.md is needed may say contract: n/a
+ok    pm blocked before sizing may say surface: n/a and risk: n/a
+ok    matrix_ok: mostly is STILL rejected after n/a became legal
+ok    severity_max: medium is STILL rejected after n/a became legal
+ok    dev-ops suite: n/a still accepted (it had the value before DEC-173)
+ok    dev missing task_verify under a real task is rejected
+ok    dev task_verify: fail + PASS is rejected
+ok    dev task_verify: n/a + PASS is rejected
+ok    dev-ops task_verify: fail + PASS is rejected — no carve-out on this value either
+ok    dev-ops task_verify: n/a + PASS is rejected — no carve-out
+ok    dev task_verify: n/a + BLOCKED is the honest refusal, accepted
+ok    dev task_verify: n/a + FAIL is accepted — the same refusal, other verdict
+ok    dev-ops task_verify: n/a + BLOCKED is accepted — refusal, not the carve-out
+ok    dev-ops task_verify: n/a + FAIL is accepted
+ok    qa carries neither new field and is still accepted
+ok    dev task: none with task_verify omitted is refused — the hatch is `n/a` now
+ok    dev-ops task: none with task_verify omitted is refused
+ok    dev task: bogus is rejected — the field is constrained
+ok    dev omitting task entirely is rejected — the field is required
+ok    dev task: none + task_verify: fail is rejected as a contradiction
+ok    dev task: none + task_verify: n/a is accepted — the honest DEC-121 spelling
+ok    dev suite: fail + PASS is rejected — the fail-value gate
+ok    qa suite: fail + PASS is rejected
+ok    qa matrix_ok: false + PASS is rejected — the BOOLEAN half
+ok    dev-ops suite: fail + PASS stays accepted — D-03 ruling, not a claim it is right
+ok    a documentor digest carries neither new field and is still accepted
+ok    code reviewer omission of code_grade is rejected
+ok    code_grade's missing-field hint names the four legal values, not the list wording
+ok    a lead missing needs_approval is told true, false or `none`
+ok    an orchestrator missing judgement is told the mapping or `none`
+ok    FEAT-59 finding without kind is rejected, naming the entry
+ok    FEAT-59 finding with a kind outside the enum is rejected, naming the value
+ok    FEAT-59 kind: substantive (near-miss) is rejected, not normalised
+ok    FEAT-59 a bare-string finding has no kind and is rejected
+ok    FEAT-59 the error names the offending entry's index, not the first
+ok    FEAT-59 kind: substance is accepted (inline entry)
+ok    FEAT-59 kind: form is accepted (block-mapping entry)
+ok    FEAT-59 kind: proportionality with scope: mission is accepted
+ok    DEC-228 kind: proportionality with scope: task is accepted
+ok    DEC-228 kind: proportionality without scope is rejected, naming the entry
+ok    DEC-228 kind: proportionality with a scope outside task|mission is rejected
+ok    FEAT-59 findings: [] is accepted — an explicit empty list asserts you looked
+ok    FEAT-59 findings as an INT count is rejected — it is a list of kinded entries
+ok    FEAT-59 lead findings passthrough: kinded entries are accepted alongside readers:
+ok    FEAT-59 lead findings passthrough: an entry without kind is rejected
+ok    FEAT-59 qa PASS + matrix_ok: true + fail_first: [] is REJECTED — a green suite with no fail-first evidence is not a pass
+ok    FEAT-59 qa PASS with populated fail_first is accepted
+ok    FEAT-59 qa matrix_ok: n/a with fail_first: [] is accepted — no gate ran
+ok    FEAT-59 qa FAIL with fail_first: [] is accepted — the gate is on PASS
+ok    FEAT-59 qa omitting fail_first is rejected — every field is required
+ok    FEAT-59 fail_first entry without sc is rejected, naming the index
+ok    FEAT-59 fail_first entry with empty evidence is rejected, naming the index
+ok    FEAT-59 fail_first bare-string entry is rejected
+ok    FEAT-59 fail_first sc must be an SC-NN id
+ok    FEAT-59 fail_first block-mapping entries are accepted
+ok    #1854: a member's nested block list stays inside that member
+ok    #1854: a nested list does not hide a member that genuinely lacks a verdict
+ok    #1854: a nested member verdict still rolls up worst-wins
+
+133/133 CLI cases passed.
+ok    [dec156-worktree-red] owner-root join misses the worktree digest
+ok    [bug919] #919 agreement: a green receipt for every claimed kind is accepted
+ok    [bug919] #919 disagreement: the runner's own red receipt refuses the false PASS
+ok    [bug919] #919 non-PASS: a BLOCKED return reads no receipt
+ok    [bug919] #919 missing evidence refuses — a missing receipt never fails open
+ok    [bug919] RED proof: with the qa wiring removed, the same unproven PASS is accepted
+ok    [bug919] BUG-1756 SC-01, migrated: a unit-only claim reads only the unit receipt
+ok    [bug919] BUG-1756 SC-02, migrated: every red kind is named, not only the first
+ok    [bug919] BUG-1756 SC-03, migrated: a claim naming no kinds is refused, not defaulted
+ok    [bug919] BUG-1756 SC-04, migrated: a git spawn OSError while reading receipts refuses, never fails open
+ok    [bug919] BUG-1756 SC-04, migrated: a git timeout while reading receipts refuses, never fails open
+
+10/10 bug919 cases passed.
+ok    [feat2337] a PASS whose unit and integration receipts are exact at the pin is accepted
+ok    [feat2337] an accepted PASS releases QA's own claim
+ok    [feat2337] a dispatch pin agreeing with the registered review_sha is accepted
+ok    [feat2337] only claimed kinds are read: a unit-only claim needs no integration receipt
+ok    [feat2337] a missing claimed receipt refuses the PASS
+ok    [feat2337] a refused PASS keeps QA's own claim for the retry
+ok    [feat2337] a qa BLOCKED return reads no receipt
+ok    [feat2337] a failing-verdict qa return reads no receipt
+ok    [feat2337] a non-qa persona reads no receipt
+ok    [feat2337] a PASS naming no kind is refused — no default to every kind
+ok    [feat2337] an unsupported kind cannot stand in for unit or integration
+ok    [feat2337] schema 2 refuses the PASS
+ok    [feat2337] an integration manifest under the unit name refuses the PASS
+ok    [feat2337] shard 2/2 refuses the PASS
+ok    [feat2337] shard index 0 refuses the PASS
+ok    [feat2337] a red runner exit refuses the PASS
+ok    [feat2337] a string runner exit refuses the PASS
+ok    [feat2337] a boolean record exit refuses the PASS
+ok    [feat2337] a red record refuses the PASS
+ok    [feat2337] an omitted file refuses the PASS
+ok    [feat2337] a selection with no completed record refuses the PASS
+ok    [feat2337] an extra file refuses the PASS
+ok    [feat2337] a duplicate record refuses the PASS
+ok    [feat2337] an abbreviated tested_commit refuses the PASS
+ok    [feat2337] an option-like tested_commit refuses the PASS
+ok    [feat2337] an unknown tested_commit refuses the PASS
+ok    [feat2337] a non-string tested_commit refuses the PASS
+ok    [feat2337] a duplicated key refuses the PASS
+ok    [feat2337] malformed JSON refuses the PASS
+ok    [feat2337] a non-object document refuses the PASS
+ok    [feat2337] undecodable bytes refuses the PASS
+ok    [feat2337] a missing receipt refuses the PASS
+ok    [feat2337] a directory at the receipt path refuses the PASS
+ok    [feat2337] a FIFO at the receipt path refuses the PASS
+ok    [feat2337] a symlinked receipt refuses the PASS
+ok    [feat2337] a symlinked qa directory refuses the PASS
+ok    [feat2337] a receipt in another run's directory is not this run's receipt
+ok    [feat2337] a digest artifact naming another checkout's receipt is not this run's receipt
+ok    [feat2337] a payload with no parent id refuses the PASS
+ok    [feat2337] a parent the live claim does not record refuses the PASS
+ok    [feat2337] a QA run whose parent is not the validator lead refuses the PASS
+ok    [feat2337] a runtime with no live claim refuses the PASS
+ok    [feat2337] a dispatch pin disagreeing with review_sha refuses the PASS
+ok    [feat2337] no open validator run refuses the PASS
+ok    [feat2337] an ended validator run refuses the PASS
+ok    [feat2337] two open validator runs refuses the PASS
+ok    [feat2337] an unpinned feature refuses the PASS
+ok    [feat2337] an unresolvable review_sha refuses the PASS
+ok    [feat2337] positive control: the argv shim records a direct runner invocation
+ok    [feat2337] an accepted PASS is decided from receipts alone
+ok    [feat2337] a refused PASS is refused, never retried by running the suite
+ok    [feat2337] zero runner invocations across the accepted and refused returns
+ok    [feat2337] a receipt refusal is a refusal, never an unavailable outcome
+ok    [feat2337] a ledger-only descendant is accepted
+ok    [feat2337] a merge of ledger-only lines is accepted
+ok    [feat2337] HEAD moving past an exact-pin receipt does not move its expectation
+ok    [feat2337] a code change after the pin is refused
+ok    [feat2337] another feature's ledger change is refused
+ok    [feat2337] a separator-less prefix sibling is not the feature directory
+ok    [feat2337] a code change followed by its revert is not ledger-only
+ok    [feat2337] a rename into the feature directory still changes its source
+ok    [feat2337] a merge bringing in a code commit is refused
+ok    [feat2337] an older commit than the pin is refused
+ok    [feat2337] a divergent commit is refused
+ok    [feat2337] an untracked working-tree test the runner picked up is unexpected
+ok    [feat2337] a fix run whose code-changing descendant is HEAD is accepted
+ok    [feat2337] a fix run recorded at the exact pin is accepted
+ok    [feat2337] a fix run's uncommitted note in its own feature directory is accepted
+ok    [feat2337] a fix run whose tested_commit is not HEAD is refused
+ok    [feat2337] a fix run on history divergent from the pin is refused
+ok    [feat2337] a fix run with a modified tracked file is refused
+ok    [feat2337] a fix run with an untracked file is refused
+ok    [feat2337] a validate-slug run with code changes is still refused
+ok    [feat2337] a validate-slug run dispatched as validate with code changes is still refused
+ok    [feat2337] a fix slug whose dispatch carries no mission is refused
+ok    [feat2337] a fix slug dispatched as validate is refused
+ok    [feat2337] a validate slug dispatched as fix is refused
+ok    [feat2337] a fix mission on a run id without the fix- token is refused
+
+78/78 feat2337 cases passed.
+ok unterminated tag before valid criterion: owned inspection citation
+ok many unterminated tags: owned inspection citation
+ok many blank lines: owned inspection citation
+ok mode belongs to its own criterion: owned inspection citation
+ok many tagged criteria without modes: owned inspection citation
+ok many distinct tagged inspection criteria: owned inspection citation
+ok foreign BRIEF cannot waive automated evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok invalid JSON record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok nonmapping JSON record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok undecodable record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok disappeared record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok FIFO record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok same-directory symlink record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok excessive decoder depth record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok corrupt deep-json cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: feature.json invalid: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-append-fea5q9xw/.harness/harness/features/FEAT-90-hook-case/feature.json — does not parse: maximum recursion depth exceeded Your return is valid; the durable digest is w
+ok malformed BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok linked BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok heading BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok checked BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok opaque BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok sibling BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok foreign BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok nested BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok nested-directory BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok ambiguous checkout cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok foreign authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok nested authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok listing authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok pointers authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok git-parent authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: linked-worktree metadata does not resolve reciprocally: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/unknown-checkout-zcdhms5i/FEAT-90 Your return is valid; the durable digest is what a su
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: [Errno 62] Too many levels of symbolic links: '/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/unknown-checkout-jd1edk8i/FEAT-90/.git' Your return is valid; the durable digest is what a succe
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: linked-worktree metadata does not resolve reciprocally: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/unknown-checkout-z5yo1yke/FEAT-90 Your return is valid; the durable digest is what a su
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: [Errno 2] No such file or directory: '/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/unknown-checkout-xtkneamo/FEAT-90/missing-owner/.git/worktrees/missing-admin/gitdir' Your return is valid
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: linked caller checkout ownership is unknown: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/unknown-checkout-f6g6w4jv/FEAT-90 Your return is valid; the durable digest is what a successor rea
+ok caller pointer symlink refuses harness-qa: exit=2
+ok admin pointer symlink refuses harness-qa: exit=2
+ok caller pointer symlink refuses harness-eng-lead: exit=2
+ok admin pointer symlink refuses harness-eng-lead: exit=2
+ok    [bug919/#1185] #1185: the owner checkout's receipts accept the PASS before the ambiguity
+ok    [bug919/#1185] #1185: an ambiguous feature checkout refuses, never substitutes the owner
+
+2/2 bug919/#1185 cases passed.
+ok    [bug919/#1883] #1883: an artifact in another worktree of the family lends it no receipts
+ok    [bug919/#1883] #1883: the feature's own linked checkout supplies its receipts
+
+2/2 bug919/#1883 cases passed.
+ok    code-grade and review-policy gates: review bindings
+ok    code-grade and review-policy gates: review repository
+ok    code-grade and review-policy gates: BUG-1081 enforcement
+ok    code-grade and review-policy gates: review policy
+ok    [hook] F1.1 quoted headline text must not satisfy the verdict lookup
+ok    [hook] F1.3 unquoted apostrophe must not fuse list entries
+ok    [hook] F1.4 empty members against a nonzero steps_run is rejected
+ok    [hook] fail-open crash: list-valued enum is a reported violation, not a crash
+ok    [hook] object [hook]: absent data is refused with the object instruction
+ok    [hook] object [hook]: null data is refused with the object instruction
+ok    [hook] object [hook]: string data carrying digest TEXT is refused, never parsed
+ok    [hook] object [hook]: blank string data is refused
+ok    [hook] object [hook]: a list is refused
+ok    [hook] pass-through: non-harness agent_type is not governed
+ok    [hook] pass-through: non-harness agent_type is not governed, whatever data it yields
+FAIL  [hook] legacy stop_hook_active: a schema violation is still refused
+        expected exit 2, got 0
+        stderr should mention "missing 'matrix_ok'"
+FAIL  [hook] legacy stop_hook_active: a semantic violation is still refused
+        expected exit 2, got 0
+        stderr should mention 'steps_run=3'
+ok    [hook] legacy stop_hook_active: a valid object settles normally
+ok    [hook] legacy stop_hook_active: string data is refused
+ok    [hook] F6 missing agent_type key is loud, not silent
+ok    [hook] F6 missing agent_type with string data is refused
+ok    [hook] object [hook]: missing matrix_ok is exit 2, naming the field
+ok    [hook] object [hook]: a wrapped {data: ...} object is exit 2
+ok    [hook] dec156-worktree-narrative: the bound worktree digest gains the validated block
+ok    [hook] dec156-worktree-valid: an identical last object is left alone
+ok    [hook] dec156-worktree-nofeature: missing feature identity refuses the return
+ok    [hook] #1855: qa on a distill dispatch may PASS with suite/matrix_ok n/a
+ok    [hook] #1855: the same qa return outside distill is still the fail-open it always was
+ok    [hook] #1855: qa on a distill dispatch may not decorate the return with a suite it did not run
+ok    [hook] #1855: code-reviewer on a distill dispatch may PASS with code_grade n_a and no range
+ok    [hook] #1855: the same reviewer return outside distill is refused at the binding
+ok    [hook] #1855: a distill reviewer claiming a grade is refused — there is no diff to grade
+ok    [hook] #1855: an unknown mission changes nothing
+
+27/29 hook cases passed.
+ok    [append] identical to the last fenced mapping: nothing is written
+ok    [append] a changed object is appended as a correction, prior bytes intact
+ok    [append] a historical block outside today's schema is compared, never validated
+ok    [append] prose with no fenced block gains the block after the prose
+ok    [append] prose with no trailing newline still gets a fence on its own line
+ok    [append] an unfinished prose fence refuses before any bytes change
+ok    [append] an unfinished fence after an earlier record cannot hide a correction
+ok    [append] a closed prose fence still permits a readable record
+ok    [append] a missing digest in the resolved run directory is refused, nothing created
+ok    [append] an unwritable digest is refused and left unchanged
+ok    [append] a symlinked digest is not a safe target and is refused
+ok    [append] an invalid lead object is refused before any write
+ok    [append] a non-lead return naming the same digest.md never writes it
+ok    [append] a repeated identical yield appends once, then nothing
+ok    [append] the direct CLI validates a lead object and never writes its digest
+ok    [append] unauthorized product relative target stays byte-identical
+ok    [append] unauthorized validator relative target stays byte-identical
+ok    [append] unauthorized other-eng relative target stays byte-identical
+ok    [append] unauthorized other-feature relative target stays byte-identical
+ok    [append] unauthorized product absolute target stays byte-identical
+ok    [append] unauthorized parent-symlink relative target stays byte-identical
+ok    [append] unauthorized parent-symlink absolute target stays byte-identical
+ok    [append] startup refuses wrong-parent without issuing digest authority
+ok    [append] startup refuses ambiguous-run without issuing digest authority
+ok    [append] startup binds a linked-worktree feature whose claim cwd is the owner checkout
+ok    [append] startup refuses a claim held only in another checkout's registry
+
+26/26 SC-07 append cases passed.
+ok corrupt record cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: feature.json invalid: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-append-7him5tf_/.harness/harness/features/FEAT-90-hook-case/feature.json — does not parse: Expecting property name enclosed in double quotes: line 1 column 2 (char 1) Yo
+ok corrupt manifest cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot read writable grants: duplicate key 'teams' at line 2, column 1 — a repeated key is silently shadowed by its last occurrence. Replace the placeholder when filling it in; never append a second copy (DEC-156). Your return is valid; 
+ok corrupt foreign cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: authorization feature record is not local to its feature directory Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).
+ok corrupt nested cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: authorization feature record is not local to its feature directory Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).
+ok corrupt nested-directory cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: authorization feature record is not local to its feature directory Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).
+ok corrupt symlink cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: [Errno 62] Too many levels of symbolic links: '/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-append-rd7gio42/.harness/harness/features/FEAT-90-hook-case/feature.json' Your return is valid; the durable digest is what a successor reads, so
+ok ambiguous lead startup/yield: startup=2, yield=2
+ok    1: a valid pm return exits 0
+ok    1: and its claim is GONE from the registry
+ok    2: an invalid digest still exits 2
+ok    2: the rejected job retains its claim for correction
+ok    2: correction completes the same job and releases its claim
+FAIL  3: with a truthy legacy stop_hook_active, an invalid digest still exits 2
+      | exit 0, stderr=''
+ok    3: with a truthy legacy stop_hook_active, the rejected job retains its claim for correction
+FAIL  3: with a truthy legacy stop_hook_active, correction completes the same job and releases its claim
+      | [{'agent': 'harness-pm', 'agent_id': 'Lead.Pm', 'claim_id': '86e1e36c229b4e58b67f22404ce409df', 'cwd': '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp_lw1gkh7', 'dispatcher': 'harness-product-lead', 'feature': 'FEAT-89-exact-claims', 'parent_agent_id': 'Lead', 'runtime': 'omp', 'started_at': 1795409834.96259, 'supervisor_pid': 39370, 'supervisor_started_at': 1795409833}]
+ok    4: the returning persona's own claim is released
+ok    4: and an UNRELATED harness-pm claim is untouched
+ok    5: a valid digest still exits 0 with inflight_registry absent
+ok    5: and stderr NAMES the missing module
+ok    6: a lead returning with children in flight exits 2
+ok    6: stderr carries the children-in-flight refusal
+ok    6: stderr names BOTH children
+ok    6: stderr cites the issue
+ok    6: the lead KEEPS its own claim while its children are live
+ok    7: a lead with NO children carries no children marker
+ok    8: a member with a claim naming it as parent still exits 0
+ok    8: and no children marker
+FAIL  9: a truthy legacy stop_hook_active with a live child is refused (exit 2)
+      | exit 0, stderr=''
+ok    9: and the lead and child claims both stay live
+ok    10: a live child refuses the parent's return
+ok    10: and the refusal names the exact release command for that child
+
+21/24 T-09 cases passed.
+PASS a SUSPENDED return with a live child is refused
+PASS the refused SUSPENDED return leaves the parent claim live
+PASS a terminal PASS with a live child is refused
+PASS a live child with absent yield data is refused
+PASS the absent-message refusal leaves the parent claim live
+PASS a live child with null yield data is refused
+PASS the null-message refusal leaves the parent claim live
+ok    [bug1898] harness-ai-dev return missing its runtime id is refused
+ok    [bug1898] harness-ai-dev return missing its runtime id releases nothing
+ok    [bug1898] harness-ai-dev return missing its feature is refused
+ok    [bug1898] harness-ai-dev return missing its feature releases nothing
+ok    [bug1898] harness-backend-dev return missing its runtime id is refused
+ok    [bug1898] harness-backend-dev return missing its runtime id releases nothing
+ok    [bug1898] harness-backend-dev return missing its feature is refused
+ok    [bug1898] harness-backend-dev return missing its feature releases nothing
+ok    [bug1898] harness-code-reviewer return missing its runtime id is refused
+ok    [bug1898] harness-code-reviewer return missing its runtime id releases nothing
+ok    [bug1898] harness-code-reviewer return missing its feature is refused
+ok    [bug1898] harness-code-reviewer return missing its feature releases nothing
+ok    [bug1898] harness-data-engineer return missing its runtime id is refused
+ok    [bug1898] harness-data-engineer return missing its runtime id releases nothing
+ok    [bug1898] harness-data-engineer return missing its feature is refused
+ok    [bug1898] harness-data-engineer return missing its feature releases nothing
+ok    [bug1898] harness-dev-ops return missing its runtime id is refused
+ok    [bug1898] harness-dev-ops return missing its runtime id releases nothing
+ok    [bug1898] harness-dev-ops return missing its feature is refused
+ok    [bug1898] harness-dev-ops return missing its feature releases nothing
+ok    [bug1898] harness-documentor return missing its runtime id is refused
+ok    [bug1898] harness-documentor return missing its runtime id releases nothing
+ok    [bug1898] harness-documentor return missing its feature is refused
+ok    [bug1898] harness-documentor return missing its feature releases nothing
+ok    [bug1898] harness-eng-lead return missing its runtime id is refused
+ok    [bug1898] harness-eng-lead return missing its runtime id releases nothing
+ok    [bug1898] harness-eng-lead return missing its feature is refused
+ok    [bug1898] harness-eng-lead return missing its feature releases nothing
+ok    [bug1898] harness-frontend-dev return missing its runtime id is refused
+ok    [bug1898] harness-frontend-dev return missing its runtime id releases nothing
+ok    [bug1898] harness-frontend-dev return missing its feature is refused
+ok    [bug1898] harness-frontend-dev return missing its feature releases nothing
+ok    [bug1898] harness-orchestrator return missing its runtime id is refused
+ok    [bug1898] harness-orchestrator return missing its runtime id releases nothing
+ok    [bug1898] harness-orchestrator return missing its feature is refused
+ok    [bug1898] harness-orchestrator return missing its feature releases nothing
+ok    [bug1898] harness-pm return missing its runtime id is refused
+ok    [bug1898] harness-pm return missing its runtime id releases nothing
+ok    [bug1898] harness-pm return missing its feature is refused
+ok    [bug1898] harness-pm return missing its feature releases nothing
+ok    [bug1898] harness-product-lead return missing its runtime id is refused
+ok    [bug1898] harness-product-lead return missing its runtime id releases nothing
+ok    [bug1898] harness-product-lead return missing its feature is refused
+ok    [bug1898] harness-product-lead return missing its feature releases nothing
+ok    [bug1898] harness-qa return missing its runtime id is refused
+ok    [bug1898] harness-qa return missing its runtime id releases nothing
+ok    [bug1898] harness-qa return missing its feature is refused
+ok    [bug1898] harness-qa return missing its feature releases nothing
+ok    [bug1898] harness-security-reviewer return missing its runtime id is refused
+ok    [bug1898] harness-security-reviewer return missing its runtime id releases nothing
+ok    [bug1898] harness-security-reviewer return missing its feature is refused
+ok    [bug1898] harness-security-reviewer return missing its feature releases nothing
+ok    [bug1898] harness-ui-reviewer return missing its runtime id is refused
+ok    [bug1898] harness-ui-reviewer return missing its runtime id releases nothing
+ok    [bug1898] harness-ui-reviewer return missing its feature is refused
+ok    [bug1898] harness-ui-reviewer return missing its feature releases nothing
+ok    [bug1898] harness-validator-lead return missing its runtime id is refused
+ok    [bug1898] harness-validator-lead return missing its runtime id releases nothing
+ok    [bug1898] harness-validator-lead return missing its feature is refused
+ok    [bug1898] harness-validator-lead return missing its feature releases nothing
+ok    [bug1898] harness-visual-designer return missing its runtime id is refused
+ok    [bug1898] harness-visual-designer return missing its runtime id releases nothing
+ok    [bug1898] harness-visual-designer return missing its feature is refused
+ok    [bug1898] harness-visual-designer return missing its feature releases nothing
+ok    [bug1898] a BLOCKED return without identity is not refused for identity
+ok    [bug1898] and it releases nothing
+ok    [bug1898] occurrence-1: QA's exact claim is released
+ok    [bug1898] occurrence-1: PM's claim id, ids and timestamps survive unchanged
+ok    [bug1898] the claim is released from the feature worktree's registry
+ok    [bug1898] and the owner checkout's registry is untouched
+ok    [bug1898] a parent with an exact live child is refused
+ok    [bug1898] and every claim, its own included, remains
+ok    [bug1898] the recovery command targets the one child exactly
+ok    [bug1898] and never a persona-wide or bulk release
+ok    [bug1898] after the child settles the identical yield passes
+ok    [bug1898] and releases only the parent
+ok    [bug1898] an unreadable registry refuses a parent's PASS return
+ok    [bug1898] and names the unreadable registry and the BLOCKED way out
+ok    [bug1898] a parent's BLOCKED return is not held by the unreadable registry
+ok    [bug1898] a leaf's return is not held by it
+ok    [bug1898] the unreadable registry is left exactly as found
+
+81/81 BUG-1898 exact-release checks passed.
+FAIL  [T-04] a truthy legacy stop_hook_active: hook returned 0, not the exit-2 undeclared-key refusal
+
+36/37 T-04 undeclared digest key cases passed.
+ok    [member-expertise] leaf: an applied item without persona is refused (new returns require it)
+ok    [member-expertise] leaf: an item carrying state is refused (closed shape)
+ok    [member-expertise] leaf: an item naming another persona is refused
+ok    [member-expertise] leaf: a fabricated item no receipt records is refused
+ok    [member-expertise] leaf: an applied op the return omits is refused, never silently cleared
+ok    [member-expertise] leaf: an empty list on distill with applied ops is refused too
+ok    [member-expertise] leaf: no distill mission on the dispatch refuses a nonempty list
+ok    [member-expertise] leaf: a conflicting mission refuses a nonempty list
+ok    [member-expertise] leaf: a spoofed parent the live claim does not record is refused
+ok    [member-expertise] leaf: its own applied ops, each with persona, verify and pass
+ok    [member-expertise] leaf: a direct file-tool change the receipt does not match is refused
+ok    [member-expertise] leaf: items with no receipt at all are refused, never invented
+ok    [member-expertise] leaf: an empty list with nothing applied stays legal on distill
+
+13/13 member-expertise leaf checks passed.
+ok    [member-expertise] lead: omitting a child's applied op is refused
+ok    [member-expertise] lead: a child's op relabelled as the lead's own is refused
+ok    [member-expertise] lead: a same-persona op from a run that is not its child is refused (persona equality is not provenance)
+ok    [member-expertise] lead: an empty list beside applied ops is refused
+ok    [member-expertise] lead: its own and its actual child's ops, mixed personas, verify and pass
+ok    [member-expertise] lead: the durable record gains the verified consolidation
+ok    [member-expertise] durable: the lead's digest.md validates with its verified ops
+ok    [member-expertise] durable: validation never rewrites the record, historical block included
+ok    [member-expertise] durable: a file changed after application fails the durable check
+ok    [member-expertise] durable: feature-record.py close-run refuses that run at its digest stage
+ok    [member-expertise] durable: a bare JSON object with applied ops has no trusted distill context
+ok    [member-expertise] context: a member whose parent's registered run is not a distill run is refused
+ok    [member-expertise] context: a lead whose registered run is not a distill run is refused
+
+13/13 member-expertise lead checks passed.
+ok    [member-expertise] supersession: the re-dispatched member returns its authorized replacement
+ok    [member-expertise] supersession: a lead consolidating the retired batch is refused
+ok    [member-expertise] supersession: the lead consolidates only the active replacement
+ok    [member-expertise] withdrawal: the member's empty withdrawal returns an empty list
+ok    [member-expertise] withdrawal: no applied item is invented for the withdrawn batch
+ok    [member-expertise] withdrawal: the lead's empty consolidation passes
+ok    [member-expertise] orchestrator: confirming a member's op as its own list is refused
+ok    [member-expertise] orchestrator: its own distilled op verifies and passes
+
+8/8 member-expertise supersession checks passed.
+ok    [member-expertise] authority: a member of a lead's registered distill run
+ok    [member-expertise] authority: a lead on its own registered distill run
+ok    [member-expertise] authority: the orchestrator of a feature with a registered distill run
+ok    [member-expertise] authority: a parent the live claim does not record is refused
+ok    [member-expertise] authority: a runtime holding no live claim is refused
+ok    [member-expertise] authority: an ungoverned agent is refused
+ok    [member-expertise] authority: an unreadable request fails closed
+ok    [member-expertise] authority: a member of an ordinary registered run is refused
+ok    [member-expertise] authority: a lead on an ordinary registered run is refused
+ok    [member-expertise] authority: the orchestrator of a feature with no distill run is refused
+
+10/10 member-expertise authority checks passed.
+ok    [member-expertise] F2 control: the member's receipted add verifies before any other change
+ok    [member-expertise] F2 control: the lead's consolidation verifies and is recorded
+ok    [member-expertise] F2 durable: an unreceipted deletion of a pre-existing entry fails the durable check
+ok    [member-expertise] F2 durable: feature-record.py close-run refuses the run at its digest stage
+ok    [member-expertise] F2 live: the member's yield is refused after the unreceipted deletion
+ok    [member-expertise] F2 live: the lead's yield is refused after the unreceipted deletion
+
+6/6 member-expertise F2 checks passed.
+ok    [member-expertise] committed tamper live: the member's yield is refused
+ok    [member-expertise] committed tamper live: the lead's yield is refused
+ok    [member-expertise] committed tamper durable: the durable check refuses
+ok    [member-expertise] committed tamper durable: close-run refuses the run at its digest stage
+
+4/4 member-expertise committed tamper checks passed.
+ok    [bug2253] every failing file is named once — names with spaces included, none cut to a tail
+ok    [bug2253] echoed run_pool-shaped output adds no file and hides none
+ok    [bug2253] a red runner exit with every record green is still named, with its receipt
+ok    [sentinel] every unrelated live claim is byte-identical after the suite
+
+7 FAILING.
+exit=1

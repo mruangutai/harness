@@ -6,8 +6,11 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-CHECK = os.path.join(REPO_ROOT, ".claude", "skills", "harness", "bin",
-                     "check-instruction-paths.py")
+BIN = os.path.join(REPO_ROOT, ".claude", "skills", "harness", "bin")
+CHECK = os.path.join(BIN, "check-instruction-paths.py")
+sys.path.insert(0, BIN)
+import harness_boundary
+
 RESULTS = []
 
 def check(name, ok, detail=""):
@@ -30,22 +33,44 @@ def run(root, *args):
 
 
 
+# FEAT-2397: inject-expertise.py loads this checker IN PROCESS and calls `violations(path,
+# root)` over its four files, so every row's CLI answer must equal the direct seam's.
+PATH_DIRECTIONS = (
+    ("inline and fenced relative paths are both violations",
+     "` .harness/harness.json`\n```\n.omp/agents/harness-pm.md\n```\n",
+     1, (":1:", ":3:", "2 violation(s)")),
+    ("control-plane anchored paths are clean",
+     "`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`\n```\n"
+     "<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-pm.md\n```\n",
+     0, ("0 violation(s)",)),
+    ("control-plane feature path is refused",
+     "`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/features/F/BRIEF.md`\n",
+     1, ("feature-directory path anchored to the control plane",)),
+    ("feature-tree control-plane path is refused",
+     "`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness.json`\n",
+     1, ("control-plane path anchored to the feature tree",)),
+    ("both feature path shapes are accepted",
+     "`<HARNESS_FEATURE_TREE_ROOT>/.harness/features/F/BRIEF.md`\n"
+     "`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/F/BRIEF.md`\n",
+     0, ()),
+)
+
+
+def _direct_rows(root, path):
+    module = harness_boundary.load_repo_module("check_instruction_paths", CHECK)
+    return [f"VIOLATION {os.path.relpath(path, root)}:{line}: {reason}: {token}"
+            for line, reason, token in module.violations(path, root)]
+
+
 def case_path_directions():
-    root, _ = make_root("` .harness/harness.json`\n```\n.omp/agents/harness-pm.md\n```\n")
-    red = run(root)
-    check("inline and fenced relative paths are both violations", red.returncode == 1 and ":1:" in red.stdout and ":3:" in red.stdout and "2 violation(s)" in red.stdout, red.stdout + red.stderr)
-    root, _ = make_root("`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`\n```\n<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-pm.md\n```\n")
-    green = run(root)
-    check("control-plane anchored paths are clean", green.returncode == 0 and "0 violation(s)" in green.stdout, green.stdout + green.stderr)
-    for body, label, detail in (
-        ("`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/features/F/BRIEF.md`\n", "control-plane feature path is refused", "feature-directory path anchored to the control plane"),
-        ("`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness.json`\n", "feature-tree control-plane path is refused", "control-plane path anchored to the feature tree"),
-    ):
-        root, _ = make_root(body)
+    for label, body, code, needles in PATH_DIRECTIONS:
+        root, path = make_root(body)
         result = run(root)
-        check(label, result.returncode == 1 and detail in result.stdout, result.stdout)
-    root, _ = make_root("`<HARNESS_FEATURE_TREE_ROOT>/.harness/features/F/BRIEF.md`\n`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/F/BRIEF.md`\n")
-    check("both feature path shapes are accepted", run(root).returncode == 0)
+        check(label, result.returncode == code and all(n in result.stdout for n in needles),
+              result.stdout + result.stderr)
+        cli_rows = [line for line in result.stdout.splitlines() if line.startswith("VIOLATION ")]
+        check(f"direct violations() equals the CLI: {label}",
+              _direct_rows(root, path) == cli_rows, result.stdout)
     check("outside scope refuses", run(root, os.path.join(root, "nope.md")).returncode == 2)
 
 

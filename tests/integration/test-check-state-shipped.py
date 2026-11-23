@@ -53,7 +53,7 @@ exit 0
 
 
 def check(checkout, *args, opens=None, env_extra=None):
-    env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout, CLAUDE_PROJECT_DIR=checkout)
+    env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout)
     env.pop("HARNESS_AGENT_TYPE", None)
     env.update(env_extra or {})
     argv = [sys.executable, str(CHECK), *args]

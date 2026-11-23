@@ -79,7 +79,7 @@ teams:
           All UI work implements against the Astryx design system
           (`@astryxdesign/core`, pinned). Do not introduce a second component
           substrate. Deviating requires a PLAN ## Decisions entry.
-        provision: npm dependency — NOT a Claude capability. dev-ops verifies or installs at init.
+        provision: npm dependency — not a host capability. dev-ops verifies or installs at init.
         reference: https://astryx.atmeta.com/
     members:
       - name: harness-pm
@@ -128,7 +128,7 @@ teams:
           Use the Supabase plugin for database, auth, storage and edge functions.
           Do not hand-roll what Supabase provides; do not add a second backend
           substrate. Deviating requires a PLAN ## Decisions entry.
-        provision: Claude Code plugin — available. dev-ops confirms project linkage at init.
+        provision: host integration, not a Harness capability. dev-ops confirms availability and project linkage at init.
     members:
       - name: harness-frontend-dev
         consult-when: >

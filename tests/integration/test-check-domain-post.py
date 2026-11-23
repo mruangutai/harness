@@ -501,7 +501,7 @@ def run_runs_agent_write_path():
     bin/feature_schema.py and restoring it in a finally was the alternative, and it
     leaves the enforcement layer broken if the process dies between the two. Copying
     bin/ into a tmpdir touches nothing real: `_derived` is only a fallback for
-    CLAUDE_PROJECT_DIR, which every call here sets explicitly.
+    HARNESS_PROJECT_DIR, which every call here sets explicitly through `_env`.
     """
     fails = 0
     local = []

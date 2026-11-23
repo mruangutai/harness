@@ -689,7 +689,7 @@ SMOKE_PAYLOADS = {
                        "task": "HARNESS-FEATURE: FEAT-9999-runtime-probe\nprobe"}},
     "validate-digest.py": lambda root: {
         "agent_type": "harness-documentor", "hook_event_name": "SubagentStop", "cwd": root,
-        "stop_hook_active": False, "digest_object": {"VERDICT": "PASS"}},
+        "digest_object": {"VERDICT": "PASS"}},
 }
 for script, make_payload in SMOKE_PAYLOADS.items():
     root = make_root()
@@ -704,8 +704,7 @@ for script, make_payload in SMOKE_PAYLOADS.items():
 
 # validate-digest: an absent / null / empty digest stays a contract refusal, never unavailable.
 root = make_root()
-base = {"agent_type": "harness-documentor", "hook_event_name": "SubagentStop", "cwd": root,
-        "stop_hook_active": False}
+base = {"agent_type": "harness-documentor", "hook_event_name": "SubagentStop", "cwd": root}
 res = drive(root, [
     case(root, "validate-digest.py", dict(base), ["--hook"]),
     case(root, "validate-digest.py", dict(base, digest_object=None), ["--hook"]),
@@ -743,15 +742,22 @@ def dispatch_payload(root, **tool_input):
 
 
 refusals = drive(root, [
-    case(root, "dispatch-guard.py", dispatch_payload(root, model="opus")),
     case(root, "dispatch-guard.py", dispatch_payload(root, name="Named")),
     case(root, "dispatch-guard.py", dispatch_payload(root, task="probe without a feature line")),
+    case(root, "dispatch-guard.py", dispatch_payload(root, model="opus")),
+    case(root, "dispatch-guard.py", dispatch_payload(root)),
 ])
-for label, r in zip(("per-call model override", "name parameter",
-                     "missing first-line feature marker"), refusals):
+for label, r in zip(("name parameter", "missing first-line feature marker"), refusals):
     check(f"dispatch-guard, {label}: still a refusal at the adapter, not unavailable",
           r.get("blocked") is True and r.get("unavailable") is None
           and "dispatch-guard: BLOCKED" in (r.get("reason") or ""), repr(r))
+# FEAT-2397 (#11): native `task.perCallModel: off` is the sole per-call model authority, so a
+# `model` field changes nothing at the guard: the same dispatch without it reaches the same
+# adapter outcome, and no Harness model refusal is said.
+modelled, plain = ({k: r.get(k) for k in ("blocked", "unavailable", "reason")} for r in refusals[2:])
+check("dispatch-guard, per-call model: the same outcome as the dispatch without it",
+      modelled == plain and "passed model" not in (modelled["reason"] or ""),
+      f"model={modelled!r} plain={plain!r}")
 
 # ---------------------------------------------------------------------------------------------
 # 4. Shared adapter failure matrix, in full, on ONE narrow gate (gh-close-gate):

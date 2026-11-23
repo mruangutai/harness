@@ -49,12 +49,12 @@ def check(name, ok, detail=""):
 
 def fire(cmd, root=REPO_ROOT, gh_bin=None):
     payload = json.dumps({"tool_input": {"command": cmd}})
-    # BOTH NAMES, ONE VALUE (FEAT-42 T-14). branch-create-gate.py resolves through
+    # ONE NAME, ONE VALUE (FEAT-42 T-14). branch-create-gate.py resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name; the
-    # reverted sha-3952814 copy the parity proof diffs against reads HARNESS first and the
-    # host-owned name second. Setting only the host-owned name points the new copy at the
-    # live checkout, and three self-gate cases read the real github block that way.
-    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    # reverted sha-3952814 copy the parity proof diffs against reads HARNESS_PROJECT_DIR
+    # first, so that one name points both copies at the same root, and three self-gate
+    # cases read the real github block that way.
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     if gh_bin is not None:
         env["GH_BIN"] = gh_bin
     else:
@@ -64,7 +64,7 @@ def fire(cmd, root=REPO_ROOT, gh_bin=None):
 
 
 def fire_raw(payload, root, gh_bin=None):
-    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     if gh_bin is not None:
         env["GH_BIN"] = gh_bin
     else:
@@ -304,7 +304,7 @@ def _run_in(mbin, command, root):
     return subprocess.run([os.path.join(mbin, "branch-create-gate.py")],
                           input=json.dumps({"tool_input": {"command": command}}),
                           capture_output=True, text=True,
-                          env=dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=root,
                                    GH_BIN="/no/such/gh/binary/anywhere"))
 
 

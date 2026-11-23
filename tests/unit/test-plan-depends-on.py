@@ -236,9 +236,7 @@ with tempfile.TemporaryDirectory() as _tmp:
 # --- 9. THE LIVE CORPUS (D-04): every real plan.yaml loads ---------------------
 # Asserts integrity only, never a size: cases 7 and 8 carry the vacuity guard, so this holds
 # for however many features the corpus keeps.
-_REPO = (_anchor_os.environ.get("HARNESS_PROJECT_DIR")
-         or _anchor_os.environ.get("CLAUDE_PROJECT_DIR")
-         or _anchor_os.getcwd())
+_REPO = _anchor_os.environ.get("HARNESS_PROJECT_DIR") or _anchor_os.getcwd()
 _count_a, _failures_a = walk(_REPO)
 check(f"the live plan corpus loads cleanly ({_count_a} files found)",
       not _failures_a,

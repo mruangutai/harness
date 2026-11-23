@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { closeSync, existsSync, lstatSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync, type Stats } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, type Stats } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
@@ -42,8 +42,10 @@ export function gatePath(script: string): string {
 
 type Dict = Record<string, unknown>;
 // `unavailable` (FEAT-2274, D-01): a broad gate could not run, so nothing was checked. It is
-// never a block; the handler reports it as passive context naming the gate.
-type PolicyResult = { blocked: boolean; reason?: string; unavailable?: string; stdout: string };
+// never a block; the handler reports it as passive context naming the gate. `context`
+// (FEAT-2397): the decoded `{"context": ...}` string an unblocked answer carried, which is
+// inject-expertise.py's whole response.
+type PolicyResult = { blocked: boolean; reason?: string; unavailable?: string; stdout: string; context?: string };
 // BUG-2390: a gate's payload is its hook object; member-ops alone receives its ops LIST as the
 // stdin document. runPolicy serializes either, and nothing casts one into the other.
 export type PolicyPayload = Dict | unknown[];
@@ -117,8 +119,8 @@ function jsonLines(stdout: string): Dict[] {
   return objects;
 }
 
-function parseDecision(stdout: string): string | undefined {
-  for (const data of jsonLines(stdout)) {
+function parseDecision(objects: Dict[]): string | undefined {
+  for (const data of objects) {
     const hook = data.hookSpecificOutput as Dict | undefined;
     if (hook?.permissionDecision === "deny") {
       return text(hook.permissionDecisionReason) || "Harness policy denied the operation.";
@@ -403,14 +405,24 @@ function failureDetail(proc: PolicyProcess, stderr: string): string {
   return `exited ${proc.status}${last ? `: ${last}` : ""}`;
 }
 
-// One gate process's answer. A structured deny or exit 2 is a refusal from every script. Past
-// that, a broad gate's declared or apparent failure (any other exit, a signal, no start) is
-// `unavailable`; a narrow gate's failure refuses only a command it guards; every other script
-// keeps its non-blocking error contract, and a spawn error still throws from it.
+// One gate process's answer. Its stdout is decoded ONCE, here (FEAT-2397): the same objects
+// answer the refusal and unavailable questions, and an unblocked answer carries the decoded
+// `context` string on the result, so no caller parses that stdout again.
 export function classifyPolicyRun(script: string, payload: PolicyPayload, proc: PolicyProcess): PolicyResult {
+  const objects = jsonLines(proc.stdout || "");
+  const result = classifyAnswer(script, payload, proc, objects);
+  const context = objects.find((line) => typeof line.context === "string")?.context;
+  return typeof context === "string" && !result.blocked ? { ...result, context } : result;
+}
+
+// A structured deny or exit 2 is a refusal from every script. Past that, a broad gate's
+// declared or apparent failure (any other exit, a signal, no start) is `unavailable`; a
+// narrow gate's failure refuses only a command it guards; every other script keeps its
+// non-blocking error contract, and a spawn error still throws from it.
+function classifyAnswer(script: string, payload: PolicyPayload, proc: PolicyProcess, objects: Dict[]): PolicyResult {
   const stdout = proc.stdout || "";
   const stderr = (proc.stderr || "").trim();
-  const structuredReason = parseDecision(stdout);
+  const structuredReason = parseDecision(objects);
   if (structuredReason) return { blocked: true, reason: structuredReason, stdout };
   if (proc.status === 2) {
     return { blocked: true, reason: stderr || `${script} denied the operation.`, stdout };
@@ -418,7 +430,7 @@ export function classifyPolicyRun(script: string, payload: PolicyPayload, proc: 
   const gate = script.replace(/\.py$/, "");
   const failed = proc.error !== undefined || proc.status !== 0;
   if (BROAD_GATES.includes(script)) {
-    const declared = jsonLines(stdout).find((line) => line.decision === "unavailable");
+    const declared = objects.find((line) => line.decision === "unavailable");
     if (declared) {
       const why = text(declared.reason) || "no reason given";
       return { blocked: false, unavailable: why.includes(gate) ? why : `${gate}: ${why}`, stdout };
@@ -784,13 +796,6 @@ export function normalizeTaskDispatches(input: Dict): TaskDispatch[] {
   }] : [];
 }
 
-function taskModelOverride(input: Dict): string | undefined {
-  if ("model" in input) return "Harness dispatches select an agent, never a per-invocation model.";
-  return normalizeTaskDispatches(input).some((item) => "model" in item)
-    ? "Harness dispatches select an agent, never a per-invocation model."
-    : undefined;
-}
-
 // FEAT-1928: the digest contract a harness child yields against is the hook's to supply, and
 // only the hook's. Agent frontmatter cannot set schemaMode and OMP defaults to permissive, so a
 // dispatcher-supplied schema or mode would replace or loosen that contract. Refused wherever
@@ -1117,109 +1122,28 @@ function messageText(message: unknown): string {
   }).join("");
 }
 
-// --- FEAT-44 (issue #923): the OMP-native orchestrator context advisory ------
+// --- FEAT-44 (issue #923), FEAT-2397 (#12): the OMP-native orchestrator context advisory ---
 //
-// The orchestrator is a subagent, and `ctx.getContextUsage()` returns `undefined`
-// in subagent sessions (upstream can1357/oh-my-pi#10097). So the figure is read
-// off disk instead: omp persists every session, including subagents, as
-// append-only JSONL, and each assistant record carries the number omp itself
-// computed. That is the host's own value by the host's own definition, not an
-// estimate.
-//
-// EVERY failure branch below yields NO figure rather than a wrong one.
-
-export type ContextAnchor =
-  | { kind: "tokens"; tokens: number }
-  | { kind: "inert"; scannedBytes: number; field: string }
-  | { kind: "none" };
+// The figure is the host's own session accounting, `ctx.getContextUsage().tokens`. Upstream
+// can1357/oh-my-pi#10097 left it undefined in subagent sessions; #10098 (omp 18.0.11) serves
+// it to task subagents, the orchestrator included. Before a provider anchor exists the
+// accounting is the host's estimate rather than a provider measurement. No transcript is
+// read and there is no fallback: EVERY failure yields NO figure rather than a wrong one,
+// and nothing is cached, so the next wake asks again.
 
 // Named to match the resolver in the retired context-watch.py: DEC-198's
 // amendment re-homes its citation to this constant.
 export const DEFAULT_CONTEXT_WARN_TOKENS = 200000;
 
-// The ONE home for this path. `readContextAnchor` walks it to read the value and
-// hands it out on the inert arm; `contextInertText` prints only what it is given.
-// So the notice can never name a field the parse did not look for.
-export const CONTEXT_TOKENS_FIELD = "message.contextSnapshot.promptTokens";
-
-const CONTEXT_TOKENS_SEGMENTS = CONTEXT_TOKENS_FIELD.split(".");
-// Keyed prefilter. The key implies the substring, so a false negative is
-// impossible; a false positive is caught by the parse and the type check below.
-const CONTEXT_PREFILTER = "contextSnapshot";
-const CONTEXT_INITIAL_WINDOW = 65536;
-const SESSION_FILE_ACCESSOR = "sessionManager.getSessionFile";
-
-function readTailBytes(path: string, size: number, length: number): string | undefined {
-  const start = Math.max(0, size - length);
-  const span = size - start;
-  if (span <= 0) return "";
-  let fd: number | undefined;
+// The finite `usage.tokens` of the host's native accessor, or undefined for a missing
+// method, a throw, or any value that is not a finite number.
+export function contextUsageTokens(ctx: unknown): number | undefined {
   try {
-    // allocUnsafe and toString are INSIDE the guard on purpose. Both can throw on a
-    // pathological span — over buffer.constants.MAX_LENGTH, or under memory pressure —
-    // and an escaping throw here would propagate out of the advisory and skip the
-    // postDomain check below it, turning an advisory failure into a SKIPPED GATE.
-    const buffer = Buffer.allocUnsafe(span);
-    fd = openSync(path, "r");
-    readSync(fd, buffer, 0, span, start);
-    return buffer.toString("utf8");
+    const usage = (ctx as { getContextUsage?: () => unknown } | undefined)?.getContextUsage?.();
+    const tokens = usage && typeof usage === "object" ? (usage as Dict).tokens : undefined;
+    return typeof tokens === "number" && Number.isFinite(tokens) ? tokens : undefined;
   } catch {
     return undefined;
-  } finally {
-    if (fd !== undefined) {
-      try { closeSync(fd); } catch { /* nothing actionable */ }
-    }
-  }
-}
-
-function anchorFromFragment(fragment: string): number | undefined {
-  if (!fragment.includes(CONTEXT_PREFILTER)) return undefined;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(fragment);
-  } catch {
-    return undefined;   // a torn or truncated line is skipped, never guessed at
-  }
-  let cursor: unknown = parsed;
-  for (const segment of CONTEXT_TOKENS_SEGMENTS) {
-    if (!cursor || typeof cursor !== "object") return undefined;
-    cursor = (cursor as Record<string, unknown>)[segment];
-  }
-  return typeof cursor === "number" && Number.isFinite(cursor) ? cursor : undefined;
-}
-
-// Stateless by construction: the newest anchor is read fresh on every call. No
-// byte offset, no accumulated delta, no dedupe — so truncation and rotation are
-// non-issues. The once-per-session cap lives in the handler's closure, not here,
-// which keeps this function pure and directly testable.
-export function readContextAnchor(sessionFile: string | undefined): ContextAnchor {
-  if (!sessionFile) return { kind: "none" };
-  let size: number;
-  try {
-    size = statSync(sessionFile).size;
-  } catch {
-    return { kind: "none" };
-  }
-  // The window MUST adapt: measured anchor gaps run to 95 KiB on real
-  // transcripts, driven by large tool-result lines, so a fixed 64 KiB read is a
-  // latent miss rather than an optimisation.
-  let window = CONTEXT_INITIAL_WINDOW;
-  for (;;) {
-    const whole = window >= size;
-    const text = readTailBytes(sessionFile, size, whole ? size : window);
-    if (text === undefined) return { kind: "none" };
-    const fragments = text.split("\n");
-    // A partial window's first fragment may be a torn line; the whole-file pass
-    // has no such fragment.
-    if (!whole) fragments.shift();
-    for (let i = fragments.length - 1; i >= 0; i -= 1) {
-      const tokens = anchorFromFragment(fragments[i]);
-      if (tokens !== undefined) return { kind: "tokens", tokens };
-    }
-    if (whole) {
-      return { kind: "inert", scannedBytes: size, field: CONTEXT_TOKENS_FIELD };
-    }
-    window *= 4;
   }
 }
 
@@ -1248,49 +1172,6 @@ export function contextAdvisoryText(tokens: number, threshold: number): string {
     + `budgets.orchestrator_context_warn_tokens = ${threshold} (${ratio}x). This ADVISES and `
     + `never refuses (DEC-198). Weigh it yourself, and if you hand off, hand off at a seam `
     + `rather than mid-phase (DEC-201).`;
-}
-
-export function contextInertText(scannedBytes: number, field: string): string {
-  return `CONTEXT: no ${field} value was found in the ${scannedBytes} bytes scanned of this `
-    + `session's transcript, so the context advisory is inert for this session. The host's `
-    + `record shape may have changed (issue #923). This ADVISES and never refuses.`;
-}
-
-export type SessionFileResolution =
-  | { kind: "path"; path: string }
-  | { kind: "absent" }
-  | { kind: "failed"; accessor: string };
-
-// Its own export, not an inline try/catch, because the two failure classes must
-// be told apart and the distinction must be unit-testable with a fake ctx.
-// Folding "the accessor moved" into "no session yet" is exactly the silent-
-// undefined shape issue #923 exists to fix, so it must not be rebuilt here.
-export function resolveSessionFile(ctx: unknown): SessionFileResolution {
-  const manager = ctx && typeof ctx === "object"
-    ? (ctx as Record<string, unknown>).sessionManager
-    : undefined;
-  if (!manager || typeof manager !== "object") {
-    return { kind: "failed", accessor: SESSION_FILE_ACCESSOR };
-  }
-  const accessor = (manager as Record<string, unknown>).getSessionFile;
-  if (typeof accessor !== "function") {
-    return { kind: "failed", accessor: SESSION_FILE_ACCESSOR };
-  }
-  let value: unknown;
-  try {
-    value = (accessor as () => unknown).call(manager);
-  } catch {
-    return { kind: "failed", accessor: SESSION_FILE_ACCESSOR };
-  }
-  return typeof value === "string" && value.length > 0
-    ? { kind: "path", path: value }
-    : { kind: "absent" };
-}
-
-export function contextAccessorFailureText(accessor: string): string {
-  return `CONTEXT: ${accessor} did not resolve this session's transcript, so context cannot be `
-    + `measured this session — the host's session-resolution API has moved (issue #923). This `
-    + `ADVISES and never refuses.`;
 }
 
 // --- FEAT-59 SC-19: the SPEND advisory, on the same wake and in the same voice -----
@@ -1423,13 +1304,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   };
   // The lifecycle bus hands its listener no ctx; this is the checkout the session works in.
   let sessionCwd = process.cwd();
-  // FEAT-44: once-per-session cap for BOTH notice classes (inert and accessor
-  // failure). Setting it skips the whole advisory path on every later wake in
-  // this session, the read included, so the full scan the widening ladder
-  // degrades to is paid once per session rather than once per wake. Accepted
-  // cost, disclosed in BRIEF.md: if the host recovers mid-session the advisory
-  // does not return until the next session.
-  let contextNoticeEmitted = false;
   // FEAT-59: the feature.json this session's spend is measured from, resolved once it
   // is found. Not cached while ABSENT — the orchestrator instantiates the file on its
   // first cycle, so an early miss must be retried on the next wake.
@@ -1788,25 +1662,22 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const result = await policyRunner(ctx.cwd, "inject-expertise.py", [], {
       ...basePayload(currentAgent, "SubagentStart", ctx.cwd, ctx),
     });
+    // The request keeps the internal SubagentStart label; the response is one decoded
+    // `{"context": ...}` object (FEAT-2397). A blocked or blank answer, or an empty context,
+    // stays retryable on the next start; any other stdout is a malformed response.
     if (result.blocked || !result.stdout.trim()) return;
-    try {
-      const data = JSON.parse(result.stdout) as Dict;
-      const hook = data.hookSpecificOutput as Dict | undefined;
-      const additionalContext = text(hook?.additionalContext);
-      if (!additionalContext.trim()) return;
-      expertiseInjected = true;
-      return {
-        message: {
-          customType: "harness-expertise",
-          content: additionalContext,
-          display: false,
-          details: { agent: currentAgent },
-          attribution: "harness",
-        },
-      };
-    } catch {
-      throw new Error("inject-expertise.py returned invalid JSON");
-    }
+    if (result.context === undefined) throw new Error("inject-expertise.py returned invalid JSON");
+    if (!result.context.trim()) return;
+    expertiseInjected = true;
+    return {
+      message: {
+        customType: "harness-expertise",
+        content: result.context,
+        display: false,
+        details: { agent: currentAgent },
+        attribution: "harness",
+      },
+    };
   });
 
   // #1908: a parked agent is revived COLD — OMP rebuilds its session from the session file, so
@@ -1941,8 +1812,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (!reason && toolName === "task") {
       // FEAT-1928: schema controls are refused and every harness target's bundle is loaded
       // BEFORE dispatch-guard.py runs, so a schema-refused dispatch never records a claim.
-      reason = schemaControlRefusal(input)
-        ?? (ompMainTask ? undefined : taskModelOverride(input));
+      // A per-call `model` is native policy's (`task.perCallModel: off`, FEAT-2397) and is
+      // forwarded untouched, never stripped.
+      reason = schemaControlRefusal(input);
       if (!reason) {
         try {
           revisedInput = withDigestSchemas(input);
@@ -2035,7 +1907,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       } else {
         const result = await reportingRunner(policyRunner, "yield", notices)(ctx.cwd, "validate-digest.py", ["--hook"], {
           ...basePayload(policyAgent, "SubagentStop", ctx.cwd, runtimeCtx),
-          stop_hook_active: false,
           digest_object: digest,
           harness_digest_binding: digestBinding,
           harness_feature: currentFeature,
@@ -2083,45 +1954,27 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     // there is no block reason, which is the common case for a task result, so an
     // advisory computed after it would never be emitted at all.
     const advisories: string[] = [];
-    if (currentAgent === "harness-orchestrator" && toolName === "task" && !contextNoticeEmitted) {
+    if (currentAgent === "harness-orchestrator" && toolName === "task") {
       // THE ADVISORY MUST NEVER COST A GATE. This whole block sits above the postDomain
       // call, so anything escaping it would skip `check-domain.py --post` — an advisory
-      // failure silently disabling an enforcement check. Every branch inside already
-      // returns rather than throws, and readTailBytes now guards its allocation too, but
-      // this catch is what makes "the advisory cannot break the gate" a property of the
-      // structure rather than of every branch staying correct forever.
+      // failure silently disabling an enforcement check. contextUsageTokens already
+      // returns rather than throws, but this catch is what makes "the advisory cannot
+      // break the gate" a property of the structure rather than of every branch staying
+      // correct forever. No figure means no line, and the next wake asks again.
       try {
-        // resolveSessionFile, not an inline try/catch: inside this gate a throw can
-        // only mean the accessor moved, and collapsing that into "nothing to report"
-        // is the silent-undefined shape issue #923 exists to fix. The sessionId
-        // helper above is deliberately NOT the model here.
-        const resolved = resolveSessionFile(ctx);
-        if (resolved.kind === "failed") {
-          advisories.push(contextAccessorFailureText(resolved.accessor));
-          contextNoticeEmitted = true;
-        } else if (resolved.kind === "path") {
-          const anchor = readContextAnchor(resolved.path);
-          if (anchor.kind === "inert") {
-            // Both arguments come out of the result; no field name is written here,
-            // so the notice can never name a field the parse did not look for.
-            advisories.push(contextInertText(anchor.scannedBytes, anchor.field));
-            contextNoticeEmitted = true;
-          } else if (anchor.kind === "tokens") {
-            const threshold = resolveContextWarnTokens(gateRoot());
-            // Strictly greater: at or under the threshold nothing is added, which is
-            // REQ-01's zero-extra-token promise on the healthy path.
-            if (anchor.tokens > threshold) {
-              advisories.push(contextAdvisoryText(anchor.tokens, threshold));
-            }
-          }
+        const tokens = contextUsageTokens(ctx);
+        if (tokens !== undefined) {
+          const threshold = resolveContextWarnTokens(gateRoot());
+          // Strictly greater: at or under the threshold nothing is added, which is
+          // REQ-01's zero-extra-token promise on the healthy path.
+          if (tokens > threshold) advisories.push(contextAdvisoryText(tokens, threshold));
         }
-        // kind "absent" is the legitimate no-session-yet case: no advisory, no notice.
       } catch {
         // no figure, and the gate below still runs
       }
     }
-    // FEAT-59 SC-19: the SPEND advisory, on the same wake. Independent of the context
-    // notice cap above — that cap is about a host record shape this path never reads.
+    // FEAT-59 SC-19: the SPEND advisory, on the same wake and independent of the context
+    // figure above.
     // The same non-blocking structure: one try around the whole measurement, so a
     // missing script, an unreadable file or a malformed stdout yields no line and the
     // gate below still runs. The figure comes from `feature-record.py spend`, which is

@@ -1,0 +1,572 @@
+schema: plan/1
+feature: FEAT-2397-omp-native-cleanup
+approval:
+  date: '2026-11-22'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
+drafted_at: '2026-11-23T02:35:14Z'
+status: review
+source_issues:
+- 2397
+panel:
+  last_run: r-20261122-1-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-03a45e9f257b6328adbbf8286f2c7be3
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: T-05 cumulative verification omits the required Repository-state gate.
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-64e5b1b217a815f7b7b94f22967e759d
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: SC-04's permanent test-native-ci-root.py pins tests.yml step topology; Settled asked only for an atomic rename and named exactly one new standing regression (the perCallModel pin), not this one
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-4fe19fe36b8553e03ec7cf280aee4677
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: decisions_affected amends eight decisions beyond the Settled enumeration (DEC-11/59/63/110/112/144/151 + DEC-111 strike) whose clauses went stale at DEC-233, not from this feature's surfaces
+    disposition: resolved
+    scope: task
+    resolved_by: T-05
+  - id: PF-c944e46fe60128de22954020c452ceaf
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-06 receipt's forensic chain (launcher SHA256, separate release-source provenance) exceeds the settled one-observation acceptance
+    disposition: resolved
+    scope: task
+    resolved_by: T-06
+lanes:
+  resolved_at: 9eb07b4f3cd235c234a10edddbfe5542c1e85fba
+  rows:
+  - surface: .omp/extensions/**
+    lane: main-session-direct
+    agent: harness-backend-dev
+    reason: DEC-174 native lifecycle enforcement cutover.
+  - surface: .omp/config.yml
+    lane: main-session-direct
+    agent: harness-backend-dev
+    reason: Native model-policy authority moves with the enforcement cutover.
+  - surface: .claude/skills/harness/bin/**
+    lane: main-session-direct
+    agent: harness-backend-dev
+    reason: DEC-174 hooks, validators and gate internals/comments.
+  - surface: tests/**
+    lane: main-session-direct
+    agent: harness-backend-dev
+    reason: DEC-174 gate tests and acceptance probes are within the carve-out.
+  - surface: .github/**
+    lane: main-session-direct
+    agent: harness-dev-ops
+    reason: Atomic CI root-variable and test-helper cutover.
+  - surface: .claude/skills/harness/templates/gitignore.snippet
+    lane: main-session-direct
+    agent: harness-dev-ops
+    reason: Remove unsupported host settings artifacts with the direct cleanup.
+  - surface: .harness/harness/docs/**
+    lane: main-session-direct
+    agent: harness-documentor
+    reason: One doctrine reconciliation task accompanies enforcement migration.
+  - surface: .omp/commands/**
+    lane: main-session-direct
+    agent: harness-documentor
+    reason: Ungranted native command surface updated directly.
+  - surface: .omp/rules/**
+    lane: main-session-direct
+    agent: harness-documentor
+    reason: Ungranted native escalation instructions updated directly.
+  - surface: .harness/harness/features/FEAT-2397-omp-native-cleanup/notes/**
+    lane: main-session-direct
+    agent: harness-dev-ops
+    reason: Credentialled host observation and closure evidence are Main delivery duties.
+decisions:
+- id: D-01
+  choice: Keep hook delivery with one decoded context-string response and in-process four-file drift checking.
+  because: Curated Expertise and byte-identical context survive without a legacy response envelope or extra process.
+  dec: none
+- id: D-02
+  choice: Explicit native task.perCallModel off is the sole per-call authority, including Main, with agent-visible escalation retained.
+  because: Project policy narrows operator authority and duplicate Harness checks diverge from native semantics.
+  dec: none
+- id: D-03
+  choice: Read finite native session-accounting tokens on the existing task-result trigger without JSONL fallback.
+  because: Upstream fixed the subagent API in v18.0.11; session estimates replace provider-anchor-only measurement without changing advisory policy.
+  dec: none
+- id: D-04
+  choice: Rewrite partly live doctrine in place and strike only wholly removed Claude provisioning with a named successor.
+  because: Historical evidence and retained internal Python ABI must not masquerade as supported host wiring.
+  dec: none
+decisions_affected:
+- dec: DEC-11
+  disposition: amend
+  clause: |-
+    Domain enforcement is registered in
+    `.claude/settings.json` instead.
+  successor: D-04
+  reason: Replace removed host wiring and native capability vocabulary while retaining policy/capability separation.
+- dec: DEC-59
+  disposition: amend
+  clause: plainly that Claude Code does not parse it.
+  successor: D-04
+  reason: Bound body-section observations historically without restoring deleted body sections or obsolete runtime claims.
+- dec: DEC-63
+  disposition: amend
+  clause: field, and Claude Code injects the **full content** at spawn.
+  successor: D-04
+  reason: Use native autoloadSkills delivery while retaining no-obedience rationale and historical evidence.
+- dec: DEC-64
+  disposition: amend
+  clause: expertise file as `hookSpecificOutput.additionalContext`.
+  successor: D-01
+  reason: Keep injection guarantees but describe native event and direct context response.
+- dec: DEC-65
+  disposition: keep
+  clause: '**Chose:** hand-rolled `.harness/expertise/<agent>.md`.'
+  successor: none
+  reason: Curated data and authoring core stay; rejected native-memory rationale is historical.
+- dec: DEC-81
+  disposition: amend
+  clause: '**20** concurrent by default'
+  successor: D-04
+  reason: Historicize Claude interpolation and concurrency; retain stdin/exit-2 adapter and cite native default 32.
+- dec: DEC-101
+  disposition: amend
+  clause: '`SubagentStart` hook — injects an agent''s Expertise as `additionalContext`'
+  successor: D-01
+  reason: Describe native delivery/direct response; bound original settings and zero-dependency measurements historically.
+- dec: DEC-110
+  disposition: amend
+  clause: '**Fix: register in `.claude/settings.json`, take identity from the payload.**'
+  successor: D-04
+  reason: Retain empirical history/cwd-independent policy but replace current deployment claims.
+- dec: DEC-111
+  disposition: strike
+  clause: '**Two fixes, because documenting it is not enough:**'
+  successor: DEC-233
+  reason: Wholly removed settings/INV-9 provisioning gets a strike record and live citations repointed to native hosting.
+- dec: DEC-112
+  disposition: amend
+  clause: '`.claude/settings.json` and `.gitignore` are **merged by `merge-settings.py` / `merge-gitignore.py`**,'
+  successor: D-04
+  reason: Keep historical onboarding evidence explicit while describing surviving tools as current.
+- dec: DEC-123
+  disposition: keep
+  clause: '`BLOCKED > ESCALATE > FAIL > PASS`.'
+  successor: none
+  reason: Worst-member roll-up remains enforced on every governed object yield.
+- dec: DEC-126
+  disposition: keep
+  clause: There is no second hand-authored field table.
+  successor: none
+  reason: Canonical schema delivery is not loosened by model-check or bypass deletion.
+- dec: DEC-127
+  disposition: amend
+  clause: |-
+    exactly one
+         rejection deep
+  successor: D-04
+  reason: Replace every current one-retry guarantee with validation on every yield; preserve original repros historically.
+- dec: DEC-144
+  disposition: amend
+  clause: '**Registration is unconditional — the fifth `settings.json` prerequisite**'
+  successor: D-04
+  reason: Retain unconditional native gating without asserting removed settings registration.
+- dec: DEC-145
+  disposition: keep
+  clause: '`inject-expertise.py` hard-truncates at 150 lines with a loud in-context warning'
+  successor: none
+  reason: Cap output and never-injected observations survive the single-pass algorithm.
+- dec: DEC-151
+  disposition: amend
+  clause: (sixth settings.json prerequisite; snippet template updated).
+  successor: D-04
+  reason: Keep Bash policy and caller-bound Expertise while replacing current host wiring wording.
+- dec: DEC-155
+  disposition: amend
+  clause: |-
+    Mechanized at DEC-156: dispatch-guard.py (PreToolUse on the spawn tool) rejects a harness
+    agent's dispatch carrying a `model:` parameter.
+  successor: D-02
+  reason: Native off replaces both refusals and preserves agent-visible escalation.
+- dec: DEC-156
+  disposition: amend
+  clause: '- **dispatch-guard.py (mechanizes DEC-155):** new PreToolUse hook on the spawn tool'
+  successor: D-02
+  reason: Replace the complete model-hook/registration/Main-exemption bullet; retain digest and checkpoint rules.
+- dec: DEC-173
+  disposition: amend
+  clause: '**The `stop_hook_active` pass-through.**'
+  successor: D-04
+  reason: Delete surviving-bypass/one-correction claims without changing honest gate reporting.
+- dec: DEC-174
+  disposition: keep
+  clause: |-
+    Planning such a change through the harness remains fine and useful; **executing** it
+    through the harness is not.
+  successor: none
+  reason: All implementation and tests execute main-session-direct in the feature worktree.
+- dec: DEC-188
+  disposition: keep
+  clause: |-
+    Anything softer than that — a decision that is merely dated, narrowed, or partly
+    overtaken — is amended
+  successor: none
+  reason: Strike only wholly removed provisioning; partly live rulings are amended.
+- dec: DEC-198
+  disposition: amend
+  clause: The unit is tokens of context.
+  successor: D-03
+  reason: Preserve threshold/default/resolver while distinguishing native session estimates from provider anchors and removing stale pins.
+- dec: DEC-199
+  disposition: amend
+  clause: '`validate-digest.py` returns early on `stop_hook_active`'
+  successor: D-04
+  reason: Replace both stop-sequence paragraphs/current claim-release wording, keeping locking and core rules.
+- dec: DEC-201
+  disposition: amend
+  clause: returns `undefined` (upstream `can1357/oh-my-pi#10097`).
+  successor: D-03
+  reason: Replace obsolete limitation/JSONL workaround with native usage, upstream fix/floor and measured limits.
+- dec: DEC-202
+  disposition: keep
+  clause: |-
+    The OMP extension converts native `write`,
+    hash-anchored `edit`, `bash`, `task`, and `yield` events into the tested script contracts.
+  successor: none
+  reason: Native lifecycle adaptation and curated data remain; old labels are internal ABI.
+- dec: DEC-205
+  disposition: keep
+  clause: |-
+    A correction rewrites
+    the entry it corrects; it does not append a dated sub-section beside it.
+  successor: none
+  reason: Rewrite owning entries and regenerate index together.
+- dec: DEC-208
+  disposition: amend
+  clause: |-
+    It does not close the digest hook's `stop_hook_active`
+    passthrough, which stays pre-existing and deliberate
+  successor: D-04
+  reason: Remove bypass guarantee while retaining append-only/checkout binding.
+- dec: DEC-214
+  disposition: amend
+  clause: |-
+    The hook invokes the same checker over the four instruction files every
+    agent receives
+  successor: D-01
+  reason: Keep four-file check and states in process; correct native delivery/request spelling while retaining two anchors.
+- dec: DEC-218
+  disposition: amend
+  clause: '**The two persona residues remain only on compatibility hosts.**'
+  successor: D-04
+  reason: Re-scope all compatibility TTL/quarantine/residue claims as removed history; keep exact OMP lineage and registry policy.
+- dec: DEC-219
+  disposition: keep
+  clause: |-
+    Every op resolves against **one base
+    snapshot**
+  successor: none
+  reason: Expertise writer/op semantics remain outside injection cleanup.
+- dec: DEC-222
+  disposition: amend
+  clause: Configuring a checkout needs templates, `.claude/settings.json` and hooks in the checkout you
+  successor: D-04
+  reason: Correct native provisioning and obsolete command-adapter rationale while retaining two-skill onboarding.
+- dec: DEC-233
+  disposition: amend
+  clause: |-
+    `dispatch-guard.py` no longer
+      defaults a missing `harness_runtime` to `claude`
+  successor: D-04
+  reason: Make the asserted deletion real and document retained Python ABI and authored directories.
+- dec: DEC-234
+  disposition: keep
+  clause: The prologue itself is unchanged and stays copied.
+  successor: none
+  reason: Load checker after trusted import seam; copied bootstraps are untouched.
+- dec: DEC-237
+  disposition: keep
+  clause: |-
+    The validator applies the canonical schema and then the existing
+    semantic and cross-file rules
+  successor: none
+  reason: All yields traverse validation, including attempted retry bypass; schema controls still precede claims.
+- dec: DEC-253
+  disposition: keep
+  clause: It wraps `expertise-merge.py member-ops`, not a second writer.
+  successor: none
+  reason: Caller-bound Expertise authority/core/data do not change.
+- dec: DEC-256
+  disposition: keep
+  clause: |-
+    DEC-198's TypeScript `resolveBudgetNumber` fallback remains
+      for advisory budgets only
+  successor: none
+  reason: Use the existing lenient budget resolver, not a replacement config loader.
+tasks:
+- id: T-01
+  status: done
+  title: Cut over runtime and standing callers atomically
+  traces:
+  - SC-01
+  - SC-02
+  - SC-03
+  - SC-06
+  - SC-07
+  - SC-09
+  - SC-12
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_agent: harness-backend-dev
+  execution_reason: DEC-174 enforcement cutover and tests; Main executes directly in the assigned worktree.
+  depends_on: []
+  files:
+  - {path: .claude/skills/harness/bin/dispatch-guard.py, quote: runtime = d.get("harness_runtime") or "claude"}
+  - .claude/skills/harness/bin/harness_yaml.py#_resolve_identity
+  - .claude/skills/harness/bin/inject-expertise.py#_capped_body
+  - .claude/skills/harness/bin/validate-digest.py#_pass_through
+  - {path: .omp/config.yml, quote: 'task:'}
+  - {path: .omp/extensions/harness-hooks.ts, quote: function taskModelOverride}
+  - {path: tests/integration/test-check-domain-grant.py, quote: def fire_noyaml}
+  - tests/integration/test-check-instruction-paths.py#case_path_directions
+  - tests/integration/test-check-omp-port.py#case_symlink_topology
+  - tests/integration/test-dispatch-guard.py#case_1_governed_agent_passing_a_model
+  - tests/integration/test-inject-expertise.py#get_context
+  - {path: tests/integration/test-omp-native-gate-runtime.py, quote: SMOKE_PAYLOADS =}
+  - tests/integration/test-validate-digest.py#_t04_hook_failures
+  - {path: tests/unit/omp-hooks.test.ts, quote: describe("readContextAnchor"}
+  verify: |
+    set -eu
+    python3 - <<'PY'
+    import concurrent.futures as cf, re, subprocess
+    names = ('inject-expertise', 'dispatch-guard', 'validate-digest', 'omp-native-gate-runtime', 'check-domain-grant', 'check-instruction-paths', 'check-omp-port')
+    def run(name):
+        p = subprocess.run(['python3', f'tests/integration/test-{name}.py'], capture_output=True, text=True, timeout=45)
+        print(p.stdout, p.stderr)
+        return p.returncode == 0 and re.search(r'(?m)^FAIL', p.stdout) is None
+    with cf.ThreadPoolExecutor(max_workers=7) as pool:
+        assert all(pool.map(run, names))
+    PY
+    bun test tests/unit/omp-hooks.test.ts
+    bun run typecheck
+  intent: |
+    Product checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup. Main edits only inside this feature worktree, never the read-only control plane; execution_agent is consult-when attribution, not permission for an engineering-team build. Consult .harness/harness/docs/SPEC.md sections 3-5 and 7 for architecture and .harness/harness/docs/DECISIONS.md plus its index; no separate docs/architecture.md exists. DEC-174 requires direct execution. Before each production change demonstrate the corresponding new assertion failing against baseline 9eb07b4f3cd235c234a10edddbfe5542c1e85fba, then passing; preserve red/green receipts. Use table-driven tests. Every new/changed Python test function must grade >=3 and every new/changed self-graded production function >=4, especially validate-digest.py; split large existing grade-2 tests rather than inheriting their exemption.
+    Keep all harness-hooks.ts edits in this task. Change inject-expertise.py::_emit to one stdout JSON object with a top-level context string, removing hookSpecificOutput/hookEventName/additionalContext from the RESPONSE only. Retain SubagentStart REQUEST identity and the rest of the Python ABI. In classifyPolicyRun decode stdout once, reuse those objects for policy refusal/unavailable classification, and carry the decoded context on PolicyResult. before_agent_start consumes that context without JSON.parse or an envelope fallback. Update all PolicyRunner fixture answers, including the ordinary fixture and FEAT-2337 Answer/EXPERTISE helpers. Preserve blocked/blank/empty retryability, once-only successful delivery, invalid-JSON failure, hidden-message attribution and exact delivered bytes. Test decode count, retry-then-success, once-only, blocked/no-op and malformed output.
+    Rewrite _capped_body in one pass with no full split-line list or second body count, preserving str.splitlines(keepends=True), universal-newline decoding and the original newline-count > budget truncation predicate. Compare complete output to a frozen test-local baseline algorithm across empty, exact-cap, over-cap, unterminated final line, CRLF/CR and Unicode splitline tables; preserve all tier ordering, headings, caps, precedence and control-plane guidance byte-for-byte. Replace _checker_result subprocess with harness_boundary.load_repo_module loading the trusted existing check-instruction-paths.py and calls to its violations function over the same own agent and handoff/expertise/principles files. Aggregate all findings and first five relative path:line locations exactly as before. Any import/execution failure, including checker SystemExit, becomes unknown; preserve clean/drift/unknown and unresolved-root/no-op behavior. Do not modify CLI/bootstrap. Migrate fake-checker fixtures to callable module fixtures; test direct/CLI parity, load/execute failures and absence of an extra subprocess.
+    Make dispatch-guard.py #10+#11 deletions in ONE atomic edit: remove the claude runtime default, read only agent/task, remove model refusal, preserve the existing missing/non-omp message, supervisor pid, name/feature/run/claim guards. Migrate every standing case and _task helper from subagent_type/prompt to agent/task. Replace cases 1/2/5 and FEAT-2274 model-refusal matrix witnesses with surviving name/feature refusals or unchanged non-governed behavior, retaining exact refusal-versus-unavailable distinctions. Remove taskModelOverride definition and EVERY grep-discovered reference, currently the call immediately after schemaControlRefusal; keep schema refusal and schema loading BEFORE dispatch claims. Do not strip a model field to evade native policy. Pin task.perCallModel explicitly to the string off in .omp/config.yml. Add ONE config regression in test-check-omp-port.py reading .omp/config.yml through artifact_accessors.load_omp_config, the strict reader already used by check-omp-port.py. Assert task.perCallModel is explicitly the string off; absent/on/eval must fail. Use the existing fixture() copy helper for mutations and assert through that accessor, not a second YAML parser or a text-only pin. Main is subject to native off too; T-05 supplies visible escalation instructions.
+    Remove stop_hook_active from yield construction and validate-digest.py::_pass_through and update the hook docstring. Direct stdin carrying a truthy legacy field must traverse normal schema/semantic/held-child checks. Rewrite all standing bypass assertions, including hook table, claim-present case 3, live-child case 9 and _t04_hook_failures, into rejection/claim-retention and valid-object settlement coverage. Update gate-runtime false-field fixtures and per-call model cases without dropping surviving refusal/unavailable coverage. Delete harness_yaml CLAUDE_CODE_SESSION_ID and CLAUDE_CODE_BRIDGE_SESSION_ID identity arms only; preserve session_id, transcript stem and HOOK_PAYLOAD. Change domain-grant fire_noyaml to put session_id in the real payload, and table-test that old env alone supplies no identity. Retain live systemMessage bytes/branch; reword only its Claude-visibility comment. Remove redundant Claude-root env assignments in this task's owned tests, keeping hermetic sanitizers and historical root-negative tests.
+    Replace resolveSessionFile/readContextAnchor and private JSONL-tail reader, types/constants, inert/accessor notice helpers and contextNoticeEmitted state with ctx.getContextUsage() in the SAME orchestrator-only task tool_result trigger. Accept usage.tokens only if typeof number and Number.isFinite. Undefined/null/non-number/NaN/Infinity/-Infinity, missing method and throws produce no advisory, remain retryable and cannot skip postDomain. Keep resolveContextWarnTokens/resolveBudgetNumber, 200000 default, strict greater-than, ratio text, advisory-only behavior and repeated healthy wakes. No JSONL fallback or context session-manager/disk reads. Migrate omp-hooks imports and JSONL-mutating helpers/cases to table-driven native API tests for invalid values, below/equal/above/custom/default threshold, wrong agent/Main/non-task, repeats, preserved content/isError and postDomain after API failure. Keep historical JSONL fixtures and frozen prior-*.fixture byte-identical. Also preserve DEC-234 bootstrap prologues and root-negative regressions. Every verify command must exit 0 with no FAIL rows; these focused suites are the touched-area boundary, full kind suites run at validation.
+- id: T-02
+  status: done
+  title: Rename nine CI exports and five helper fallbacks together
+  traces:
+  - SC-04
+  - SC-05
+  - SC-09
+  - SC-12
+  change_type: config
+  execution_mode: main-session-direct
+  execution_agent: harness-dev-ops
+  execution_reason: DEC-174 gate-runner and fixture cutover; Main executes the atomic move directly.
+  depends_on:
+  - T-01
+  files:
+  - {path: .github/workflows/tests.yml, quote: 'CLAUDE_PROJECT_DIR:'}
+  - {path: tests/integration/check_domain_support.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/check_state_support.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-harness-yaml.py, quote: REPO_ROOT =}
+  - {path: tests/integration/test-validate-feature-json.py, quote: REPO_ROOT =}
+  - {path: tests/unit/test-harness-yaml-corpus.py, quote: REPO =}
+  - {path: tests/unit/test-plan-depends-on.py, quote: _REPO =}
+  - {path: tests/unit/test-team-catalog.py, quote: REPO =}
+  verify: |
+    set -eu
+    export HARNESS_PROJECT_DIR="$PWD"
+    python3 - <<'CHECK'
+    import ast, pathlib, yaml
+    workflow = pathlib.Path('.github/workflows/tests.yml').read_text(); checks = []
+    steps = [step for job in yaml.safe_load(workflow)['jobs'].values() for step in job.get('steps', [])]
+    for name in ('Unit suite', 'Validate feature execution state', 'Plan-route gate', 'Canonical-reader audit', 'Instruction-path gate', 'Layout gate', 'Repository-state gate', 'Integration suite (shard ${{ matrix.shard }}/4)', 'Validate shard completeness'):
+        found = [step.get('env', {}) for step in steps if step.get('name') == name]
+        checks.append((name, len(found) == 1 and found[0].get('HARNESS_PROJECT_DIR') == '${{ github.workspace }}' and 'CLAUDE_PROJECT_DIR' not in found[0]))
+    guidance = [line for line in workflow.splitlines() if 'Discovery did not run' in line and 'Check ' in line]
+    checks.append(('two guidance lines', len(guidance) == 2)); checks.extend((line.strip(), 'Check HARNESS_PROJECT_DIR' in line and 'CLAUDE_PROJECT_DIR' not in line) for line in guidance)
+    for path, target in (('tests/integration/test-harness-yaml.py', 'REPO_ROOT'), ('tests/integration/test-validate-feature-json.py', 'REPO_ROOT'), ('tests/unit/test-harness-yaml-corpus.py', 'REPO'), ('tests/unit/test-team-catalog.py', 'REPO'), ('tests/unit/test-plan-depends-on.py', '_REPO')):
+        nodes = [node.value for node in ast.parse(pathlib.Path(path).read_text()).body if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == target for t in node.targets)]
+        keys = [n.args[0].value for node in nodes for n in ast.walk(node) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == 'get' and n.args and isinstance(n.args[0], ast.Constant)]
+        checks.append((path, len(nodes) == 1 and 'HARNESS_PROJECT_DIR' in keys and 'CLAUDE_PROJECT_DIR' not in keys))
+    for name, passed in checks: print('OK' if passed else 'FAIL', name)
+    assert all(passed for _, passed in checks)
+    CHECK
+    python3 tests/integration/test-harness-yaml.py
+    python3 tests/integration/test-validate-feature-json.py
+    python3 tests/unit/test-harness-yaml-corpus.py
+    python3 tests/unit/test-team-catalog.py
+    python3 tests/unit/test-plan-depends-on.py
+  intent: |
+    Product checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup. All relative edits remain there, never control plane. Consult .harness/harness/docs/SPEC.md architecture sections 3-5/7 and DECISIONS.md/index; no separate docs/architecture.md exists. Main executes under DEC-174, execution_agent identifies consult-when expertise only. Run the inline transient CI/helper check from verify against baseline 9eb07b4f3cd235c234a10edddbfe5542c1e85fba before changes and against the final review pin after changes; retain exact command, per-target output and exits as durable QA receipts. The baseline must fail for the retired exports/fallbacks and the final pin must pass. New/changed Python tests grade >=3; prefer tables and small functions.
+    Atomically rename the nine tests.yml exports to HARNESS_PROJECT_DIR: unit suite, feature state, plan routes, canonical audit, instruction paths, layout, repository state, integration shard and completeness. Rename BOTH zero-discovery guidance lines and stale current hook/settings comments without changing topology, sharding, commands, checks or discovery-positive controls. In the SAME task remove only the CLAUDE arm of the five HARNESS-or-CLAUDE fallback readers listed, retaining their existing script-derived/cwd fallback. Update both support helpers to set only HARNESS_PROJECT_DIR and describe the current reader; keep real root markers and frozen historical comparison subjects. Finish stale import/root comments in these owned files, including validate-feature-json's main-root comment.
+    Do not add a permanent workflow-step topology test. The transient inline verify checks EACH named export, BOTH guidance lines and EACH actual reader root assignment independently; retain all target results, not merely the first baseline failure. Inspect baseline/review diffs to confirm each reader loses only the CLAUDE fallback while preserving HARNESS and its script-derived/cwd fallback. Existing root-negative suites remain the standing regression protection; execute their behavioral assertions and retain receipts, not just source text. The reviewer reads the committed transient proof at the review pin for SC-04. Preserve explicit old-env sanitization, all test-gen-decisions-index/harness-yaml/validate-feature-json assertions that CLAUDE_PROJECT_DIR cannot redirect production roots, and frozen prior-*.fixture. No CI alias shim, deleted assertions or historical fixture edits. All verify commands exit 0 with no FAIL rows.
+- id: T-03
+  status: done
+  title: Remove redundant legacy environment setup from standing tests
+  traces:
+  - SC-04
+  - SC-05
+  - SC-09
+  - SC-12
+  change_type: scaffolding
+  execution_mode: main-session-direct
+  execution_agent: harness-dev-ops
+  execution_reason: DEC-174 gate comments and standing caller fixtures; direct execution keeps enforcement outside its own path.
+  depends_on:
+  - T-02
+  files:
+  - {path: tests/integration/test-branch-create-gate.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-check-domain-post.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-check-domain.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-check-state-corpus.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-check-state-shipped.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-corpus-non-regression.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-corpus-real-owner.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-feature-corpus.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-hooks-install.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-layout-migration.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/integration/test-lead-start-return.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/unit/test-check-state-inv35.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/unit/test-lead-start-preflight.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: tests/unit/test-prune-run-evidence.py, quote: CLAUDE_PROJECT_DIR}
+  verify: |
+    set -eu
+    python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout
+    python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+    python3 tests/integration/test-hooks-install.py
+  intent: |
+    Product checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup. Edit only this feature worktree. Consult .harness/harness/docs/SPEC.md embedded architecture sections 3-5/7 and DECISIONS.md/index, not an invented docs/architecture.md. DEC-174 makes execution direct by Main; execution_agent is consult-when attribution. New/changed Python tests grade >=3, self-graded production >=4; prefer tables. This task changes no gate behavior and must preserve every standing assertion.
+    Remove redundant CLAUDE_PROJECT_DIR assignments from owned tests, retaining HARNESS_PROJECT_DIR, root markers and hermetic old-env sanitizers. Update current-looking root descriptions. Do not remove root-nonredirect tests, change historical comparison subjects or edit prior-*.fixture. Explicitly historical interpolation evidence remains bounded history. T-05 owns bin/template comments and settings ignores; T-01/T-02 own their files' environment/comment cleanup, so do not edit those files again here. Verify exits 0 with no violations or FAIL rows; full changed-test selection and complexity reports are collected in validation.
+- id: T-04
+  status: done
+  title: Repair probe identity and capture numerical usage
+  traces:
+  - SC-10
+  - SC-11
+  - SC-12
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_agent: harness-backend-dev
+  execution_reason: DEC-174 native host acceptance probe and tests execute directly with the rest of the cutover.
+  depends_on:
+  - T-01
+  files:
+  - path: tests/manual/probe-omp-session-accessor.py
+    quote: subagents = [r for r in rows if r.get("usageDefined") is False]
+  - path: tests/manual/probe-session-accessors.ts
+    quote: 'usageDefined:'
+  - path: tests/unit/test-session-accessor-probe.py
+    create: true
+  verify: |
+    set -eu
+    python3 tests/unit/test-session-accessor-probe.py
+    bun run typecheck
+    python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout
+  intent: |
+    Product checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup. Every edit stays there. Consult .harness/harness/docs/SPEC.md architecture sections 3-5/7 and DECISIONS.md/index; no separate docs/architecture.md exists. Main executes under DEC-174; execution_agent names consult-when attribution. Write failing offline probe tests before repairs, then green. New/changed Python test functions grade >=3, self-graded production >=4; use tables and small helpers.
+    Fix #2194 by hoisting the EXISTING nested session-file regex from main to one module-level constant and exposing one is_nested(path) identity helper in the existing Python probe. Classify children through that helper independently of usage. A flat main candidate has a valid nonempty .jsonl session-file path and is not is_nested(path); derive this from the same helper without a second regex. Never classify by usageDefined=False/True. Offline tests import the probe helper rather than copying its pattern; retain rejection of missing/malformed paths. Cases 4-6 must run for a nested child with defined usage; require a real child and distinct main, not optional success when main is missing. In the companion TypeScript turn_end probe call getContextUsage once and save its actual usage object/numerical tokens, contextWindow and percent, with usageDefined diagnostic only. Never stringify numbers or invent missing values. The Python acceptance must require finite numerical tokens from a nested task child, rejecting bool, absent/null, NaN and infinities.
+    Add offline table cases for nested numeric child plus flat numeric main, wrong/missing/malformed paths, undefined child usage and invalid numbers. Exercise identity and numerical acceptance independently: modifying tokens must not reclassify a session. Small importable helpers stay in the existing probe; no new production module or synthetic host fallback. Update docstrings to bound original undefined observations historically and state API floor >=18.0.11 plus omp19.1.0 acceptance, without claiming the future live run. Retain locally_run registration and credentials. Verify exits 0 without invoking omp; T-06 alone owns actual host observation and issue closure.
+- id: T-05
+  status: done
+  title: Reconcile doctrine and run cumulative static gates
+  traces:
+  - SC-08
+  - SC-09
+  - SC-12
+  change_type: docs
+  execution_mode: main-session-direct
+  execution_agent: harness-documentor
+  execution_reason: DEC-174 coordinated enforcement doctrine and ungranted native rule surfaces are direct Main work.
+  depends_on:
+  - T-01
+  - T-02
+  - T-03
+  - T-04
+  files:
+  - {path: .claude/skills/harness/bin/check-domain.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: .claude/skills/harness/bin/check-plan-routes.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: .claude/skills/harness/bin/check_state/ctx.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: .claude/skills/harness/bin/check_state/run_state.py, quote: '# successor reads'}
+  - {path: .claude/skills/harness/bin/check_state/worktrees.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: .claude/skills/harness/bin/feature_schema.py, quote: CLAUDE_PROJECT_DIR}
+  - {path: .claude/skills/harness/templates/gitignore.snippet, quote: settings.local.json}
+  - {path: .harness/harness/docs/DECISIONS-INDEX.md, quote: '- DEC-81 '}
+  - {path: .harness/harness/docs/DECISIONS.md, quote: '## DEC-81'}
+  - {path: .harness/harness/docs/SPEC.md, quote: '## 4. Agent definition schema'}
+  - {path: .harness/harness/docs/org.html, quote: CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH}
+  - {path: .omp/commands/harness.md, quote: 'subagent_type:'}
+  - {path: .omp/rules/harness-constraints.md, quote: '# Harness project constraints'}
+  verify: |
+    set -eu
+    export HARNESS_PROJECT_DIR="$PWD"
+    python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+    python3 .claude/skills/harness/bin/check-instruction-paths.py --root "$PWD"
+    python3 .claude/skills/harness/bin/layout_migration.py .
+    python3 .claude/skills/harness/bin/check-plan-routes.py .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml
+    features=$(git ls-files '.harness/*/features/*/feature.json' | wc -l | tr -d ' ')
+    test "$features" -gt 0
+    python3 .agents/skills/harness/bin/check-state.py
+    printf 'repository-state gate examined %s tracked feature record(s); checker exit 0\n' "$features"
+    bun run typecheck
+  intent: |
+    Product checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup. All edits remain there, never the read-only control plane. Consult its .harness/harness/docs/SPEC.md architecture sections 3-5/7 and DECISIONS.md/index; no separate docs/architecture.md exists. Main executes directly under DEC-174, with execution_agent only consult-when attribution.
+    Own EVERY amend/strike decisions_affected row and implement each row completely according to its clause, successor and reason; preserve EVERY keep row. Those rows are the canonical per-decision dispositions, including their historical-evidence and retained-policy boundaries. Rewrite the original entries in place under DEC-205, not dated appendices. D-01..D-04 supply the new contracts. In amended doctrine and affected index tails, cite a plan-local successor durably as FEAT-2397-omp-native-cleanup, .harness/harness/features/FEAT-2397-omp-native-cleanup/plan.yaml, decisions[id=D-NN], substituting the actual D-01, D-02, D-03 or D-04 from that row. This is a feature/plan reference, not an indexed DEC; never emit a bare D-NN doctrine citation, invent a DEC number or use DEC-188/205 as substitutes for the new runtime contract. Existing indexed successors remain unchanged: DEC-111 cites DEC-233. Cite other existing DECs only for the contracts they actually govern; no new DEC allocation is required for these in-place amendments. DEC-64/101/214 describe native hook/context delivery, retained SubagentStart request versus simplified response, same four-file direct checker and none/drift/unknown. The canonical rows govern all retained data/writer rules, every stop_hook_active/one-retry rewrite and both native model-authority amendments; retain pinned-role policy as well. Add the visible escalation route to .omp/rules/harness-constraints.md: never supply per-call model; stronger execution goes to open_questions with evidence, decided above the dispatcher and recorded. Native errors do not supply this advice.
+    DEC-198/201 describe ctx.getContextUsage at the same task-result wake, finite numeric tokens, existing 200000 fallback/resolver, strict greater-than and advisory-only output. Explain session-accounting estimates before provider anchors; cite upstream #10098/v18.0.11, floor >=18.0.11 and separate source evidence from the T-06 omp19.1.0 observation. Preserve no-wait scope, concern bands and original historical measurements. DEC-233 describes actual default/alias/bypass deletion and documents retained internal Python ABI: PreToolUse/SubagentStart/SubagentStop request labels, hookSpecificOutput policy-decision objects where still live and capitalized tool names are extension-to-Python contracts, not Claude hosting. Injection response is context only.
+    Apply the canonical DEC-81/218/222 amend-never-strike rows, the DEC-111 strike row and all remaining host-wiring rows without changing their dispositions or reasons. For DEC-81 use the supplied published omp 19.1.0 task/settings.ts evidence for task.maxConcurrency default 32. For DEC-218 cover non-OMP TTL/quarantine as well as compatibility-host/persona-residue wording. For DEC-222 remove the .claude/commands adapter rationale that did not survive DEC-233, retaining the two-skill seam. Retain DEC-111's numbered strike record and repoint its live provisioning citations in owned SPEC/DEC entries to its existing DEC-233 successor. These eight extra dispositions including DEC-111 are deliberately retained under the binding current-tense doctrine cleanup, not because consultation requires amendment: each names current removed host provisioning, native delivery or settings registration. Keep changes clause-local; do not modernize unrelated onboarding policy or historical measurements. Do not rewrite BUILD section 0b or DEC-108/109.
+    In SPEC correct overview, capability/provider wording, frontmatter schema, settings/domain hook examples, Expertise response/delivery, skills/autoloadSkills, task parameters, depth and concurrency to native current truth. Its architecture must agree with model/context/ABI contracts. Update .omp/commands/harness.md Agent/subagent_type/background prose to blocking task with agent/task; org.html depth/model prose uses native task settings and role aliases with no visual redesign. Preserve authored .claude directories, disabledProviders claude, optional CLAUDE.md reading and concrete Anthropic model IDs. Limit current-tense sweep to these owned doctrine surfaces, not historical feature corpus.
+    In owned bin modules replace obsolete current Claude root/host descriptions with actual HARNESS root/native extension behavior without changing resolver/gate logic; preserve historical interpolation evidence, CLAUDE.md filename/budget logic, authored .claude paths and copied bootstrap prologues. Drop only settings.json.harness-bak and settings.local.json lines from gitignore.snippet.
+    Regenerate DECISIONS-INDEX after authority edits with gen-decisions-index.py. Author each affected ruling tail <=30 words and retain generated anchors/refs. Run listed cumulative canonical-reader/instruction-path/layout/feature-route/Repository-state/typecheck gates here after ALL predecessor and owned source mutations finish. The Repository-state command is the standing CI invocation against the actual repository corpus with HARNESS_PROJECT_DIR set to this checkout, not a fixture suite or feature-scoped substitute. Its independent git ls-files positive control must discover more than zero tracked feature.json records before the checker runs. Preserve the count, full checker stdout/stderr and exit in cumulative QA evidence; checker note rows are allowed when exit is 0. Other gates exit 0 without FAIL/VIOLATION rows. Full unit/integration kinds and grade reports belong to validation. Later committers force-add required ignored runs/** receipts; do not commit now, sign, write panel or modify plan approval.
+- id: T-06
+  status: done
+  title: Record real omp19.1.0 numerical child usage and close issue 2194
+  traces:
+  - SC-10
+  - SC-12
+  change_type: scaffolding
+  execution_mode: main-session-direct
+  execution_agent: harness-dev-ops
+  execution_reason: Credentialled user-run acceptance and delivery issue closure are Main duties, never inferred by a planning agent.
+  depends_on:
+  - T-04
+  - T-05
+  files:
+  - path: .harness/harness/features/FEAT-2397-omp-native-cleanup/notes/research-omp1910-observation.md
+    create: true
+  verify: |
+    MANUAL — The repaired probe, credentialled omp 19.1.0 and numerical task-child observation must exist; CI has no credentials and source tests cannot automate this acceptance.
+  intent: |
+    Product checkout: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup. Write the receipt only there. Consult .harness/harness/docs/SPEC.md architecture sections 3-5/7 and DECISIONS.md/index; no separate docs/architecture.md exists. Main owns direct execution under DEC-174, execution_agent is consult-when attribution.
+    User executes tests/manual/probe-omp-session-accessor.py with its repaired companion on actual credentialled omp 19.1.0, using a fresh execution-derived output directory. Record sanitized raw observations and command/stdout/stderr/exit in research-omp1910-observation.md. Record the invoked launcher path and its reported omp version 19.1.0, plus the review pin identifying the repaired probe. No executable hash or separate release-source provenance dossier is required; command/output/exit and sanitized actual rows are the acceptance receipt. Identify the nested task child independently of usage and show actual finite numerical getContextUsage tokens plus contextWindow/percent and distinct main. Every probe case must pass with exit 0; no mocks, fabricated rows or source-based inference. Missing credentials, wrong binary or failed observation leaves SC-10 not_met and stops ship, never authorizes JSONL fallback or scope shrink.
+    After successful observation Main closes mruangutai/harness #2194 as completed, with a comment linking repaired probe, exact review pin and sanitized receipt, then saves gh issue view 2194 --json number,state,closedAt,url in that receipt. #2397 remains the source issue and closes through normal feature ship. Exclude secrets, full transcripts and personal session paths. Commit the source and evidence before goal-check; evidence is read at git show review_sha:path, never uncommitted output. Record standard QA per-SC red/green receipts and code-grade JSON across actual base/review refs: every new/changed Python test function >=3 and self-graded production >=4. Force-add required ignored runs/** evidence at later commits. PM never marks this manual acceptance passed.

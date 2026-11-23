@@ -54,7 +54,6 @@ def run_checker(checker, notes):
             "station_only: true\ntasks: []\n" + notes
         )
         environment = dict(os.environ)
-        environment["CLAUDE_PROJECT_DIR"] = str(root)
         environment["HARNESS_PROJECT_DIR"] = str(root)
         result = subprocess.run(
             ["python3", str(checker)], cwd=root, text=True, env=environment,

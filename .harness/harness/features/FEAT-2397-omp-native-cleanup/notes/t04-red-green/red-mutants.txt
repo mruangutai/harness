@@ -1,0 +1,44 @@
+m1 children by usageDefined=False: exit=1 failing=8
+    FAIL scenario: #2194: nested numeric child + flat numeric main: (False, False, True, False)
+    FAIL scenario: usageDefined lies on both rows; identity holds: (True, True, True, False)
+    FAIL scenario: child tokens NaN: (False, False, True, False)
+    FAIL scenario: child tokens bool: (False, False, True, False)
+m2 is_nested without path validity: exit=1 failing=2
+    FAIL identity: relative nested-looking path: ('s/2026-11-22T10-00-00-000Z_0a1b/Pong.jsonl', (True, False))
+    FAIL - 1 failing
+m3 bool accepted as a number: exit=1 failing=5
+    FAIL measurement: tokens bool True: {'tokens': True, 'contextWindow': 200000, 'percent': 0.617}
+    FAIL measurement: tokens bool False: {'tokens': False, 'contextWindow': 200000, 'percent': 0.617}
+    FAIL measurement: percent bool: {'tokens': 1234, 'contextWindow': 200000, 'percent': True}
+    FAIL scenario: child tokens bool: (True, True, True, True)
+m4 NaN/inf accepted: exit=1 failing=6
+    FAIL measurement: tokens NaN: {'tokens': nan, 'contextWindow': 200000, 'percent': 0.617}
+    FAIL measurement: tokens +inf: {'tokens': inf, 'contextWindow': 200000, 'percent': 0.617}
+    FAIL measurement: tokens -inf: {'tokens': -inf, 'contextWindow': 200000, 'percent': 0.617}
+    FAIL measurement: percent NaN: {'tokens': 1234, 'contextWindow': 200000, 'percent': nan}
+m5 main optional: exit=1 failing=3
+    FAIL scenario: main missing is a failure, not optional: (True, True, True, False)
+    FAIL scenario: no observations: (False, False, True, False)
+    FAIL - 2 failing
+m6 only tokens checked: exit=1 failing=6
+    FAIL measurement: contextWindow string: {'tokens': 1234}
+    FAIL measurement: contextWindow absent: {'tokens': 1}
+    FAIL measurement: percent NaN: {'tokens': 1234}
+    FAIL measurement: percent bool: {'tokens': 1234}
+m7 flat main without validity: exit=1 failing=12
+    FAIL identity: empty string: ('', (False, True))
+    FAIL identity: tryCall 'undefined': ('undefined', (False, True))
+    FAIL identity: tryCall 'null': ('null', (False, True))
+    FAIL identity: tryCall threw: ('THREW: TypeError: boom', (False, True))
+m8 distinctness not required: exit=1 failing=2
+    FAIL scenario: child and main share one session id: (True, True, True, True)
+    FAIL - 1 failing
+m9 tokens coerced from string: exit=1 failing=3
+    FAIL measurement: tokens numeric string: {'tokens': 1234.0, 'contextWindow': 200000, 'percent': 0.617}
+    FAIL measurement: contextWindow string: {'tokens': 1234, 'contextWindow': 200000.0, 'percent': 0.617}
+    FAIL - 2 failing
+m10 measured child = any numeric row: exit=1 failing=9
+    FAIL scenario: #2194: nested numeric child + flat numeric main: (True, True, True, False)
+    FAIL scenario: usageDefined lies on both rows; identity holds: (True, True, True, False)
+    FAIL scenario: child usage undefined: (True, True, True, False)
+    FAIL scenario: child tokens NaN: (True, True, True, False)

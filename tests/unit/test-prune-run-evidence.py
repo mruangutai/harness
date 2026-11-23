@@ -226,7 +226,7 @@ def check_state(root):
     """The real check-state.py, scoped to the fixture feature's cycle-evidence row, rooted at
     the fixture only (inherited roots cleared first)."""
     env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")}
-    env.update(CLAUDE_PROJECT_DIR=str(root), HARNESS_PROJECT_DIR=str(root))
+    env.update(HARNESS_PROJECT_DIR=str(root))
     return subprocess.run([sys.executable, str(CHECK_STATE), "--feature", "FEAT-9-thing", "--only", "INV-7"],
                           cwd=root, env=env, capture_output=True, text=True)
 

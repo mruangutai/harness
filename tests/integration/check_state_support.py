@@ -118,10 +118,10 @@ def _root_env(tmp, env=None, **extra):
     """The environment that points check-state.py at the fixture `tmp` — and the MARKER
     without which the pointer is discarded (FEAT-42 T-12).
 
-    BOTH NAMES. check-state.py now resolves through harness_boundary.resolve_root, which
-    reads HARNESS_PROJECT_DIR and no other name; the reverted sha-3952814 copy this suite is
-    diffed against read HARNESS first and the host-owned name second. Both set to one value
-    is the only spelling under which the two copies resolve the same root.
+    HARNESS_PROJECT_DIR ONLY. check-state.py resolves through harness_boundary.resolve_root,
+    which reads HARNESS_PROJECT_DIR and no other name; the reverted sha-3952814 copy this
+    suite is diffed against reads HARNESS first, so that one name resolves the same root in
+    both copies.
 
     AND THE MARKER. resolve_root honours the override only when .harness/team-config.yaml is
     readable underneath it. No builder in this file wrote one, so after the cutover every
@@ -133,7 +133,6 @@ def _root_env(tmp, env=None, **extra):
     reaching that branch, and INV-29's (e) and (f) write their own marker first.
     """
     env = dict(os.environ) if env is None else env
-    env["CLAUDE_PROJECT_DIR"] = tmp
     env["HARNESS_PROJECT_DIR"] = tmp
     _m = os.path.join(tmp, _hb.MARKER)
     if os.path.isdir(os.path.join(tmp, ".harness")) and not os.path.exists(_m):

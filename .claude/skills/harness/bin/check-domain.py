@@ -1818,7 +1818,7 @@ def _feature_json_schema_problems(rel, content, shown):
         #
         # Measured live 2026-08-23: this refused `source_issues` at /github on a FEAT-26
         # write. The key WAS declared in that worktree's schema and was NOT in main's,
-        # and this module is imported through CLAUDE_PROJECT_DIR — the main checkout. So
+        # and the hook then imported this module from the main checkout. So
         # a feature that ADDS a schema key could not write data using it until it
         # merged, and could not demonstrate it working before merging.
         #
@@ -2598,7 +2598,8 @@ _UNREADABLE_EDIT = object()
 
 
 def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_all):
-    """Issue #1106, gap (a). The full file content Claude's Edit tool would produce, or
+    """Issue #1106, gap (a). The full file content an `old_string`/`new_string` Edit payload
+    (the retained internal ABI shape, DEC-233) would produce, or
     None when the payload cannot describe one unambiguous candidate. Callers guarding
     governed artifacts must fail closed on None: OMP's Edit payload carries only a path,
     and an unmatched or ambiguous replacement must not bypass content enforcement.

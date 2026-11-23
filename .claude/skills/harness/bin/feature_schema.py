@@ -84,8 +84,8 @@ def schema_path_for(for_path):
     ISSUE #749, MEASURED LIVE 2026-08-23 during FEAT-26's ship. check-domain.py refused a
     legitimate write — `undeclared key 'source_issues' at /github` — because the key WAS
     declared in the worktree's own feature-schema.json and was NOT in main's. The hook
-    imports this module through CLAUDE_PROJECT_DIR, which resolves to the main checkout, so
-    the schema always came from main whatever tree was being written.
+    then imported this module from the main checkout, so the schema always came from main
+    whatever tree was being written.
 
     THE GENERAL SHAPE, and it is why this is worth a walk-up: a feature that ADDS a schema
     key cannot write data using that key until it merges, and so cannot demonstrate the key

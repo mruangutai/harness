@@ -607,8 +607,7 @@ artifact: r/digest.md
 
 # F1 repro 4 — `members: []` alongside `steps_run: 3`: no cross-check existed,
 # so a team that ran steps and reported zero members passed silently.
-hook_case("F1.4 empty members against a nonzero steps_run is rejected",
-          "harness-eng-lead", """
+LEAD_EMPTY_MEMBERS = """
 VERDICT: PASS
 DIGEST:
   headline: nothing to report, apparently
@@ -624,7 +623,9 @@ DIGEST:
   expertise_update: []
   sc_status: []
 artifact: r/digest.md
-""", 2, "steps_run=3")
+"""
+hook_case("F1.4 empty members against a nonzero steps_run is rejected",
+          "harness-eng-lead", LEAD_EMPTY_MEMBERS, 2, "steps_run=3")
 
 # Fail-open crash — `severity_max: [low, med]` (a LIST) against a set-typed
 # schema field used to raise TypeError inside `validate()`, uncaught, which
@@ -686,9 +687,17 @@ hook_case("pass-through: non-harness agent_type is not governed",
           "Explore", "VERDICT: PASS\nDIGEST:\nartifact: x.md\n", 0)
 HOOK_CASES.append(("pass-through: non-harness agent_type is not governed, whatever data it yields",
                    {"agent_type": "Explore", "digest_object": "not a digest"}, 0, None))
-hook_case("pass-through: stop_hook_active passes a mapping unvalidated",
-          "harness-qa", QA_REAL_FAIL_MISSING_MATRIX, 0, stop_hook_active=True)
-HOOK_CASES.append(("stop_hook_active does not pass string data",
+# FEAT-2397 (#10): `stop_hook_active` is no pass-through. The yield adapter never sends it, and
+# a truthy legacy field on direct stdin traverses the schema and semantic checks like any
+# other return: an invalid object is refused, a valid one settles normally.
+hook_case("legacy stop_hook_active: a schema violation is still refused",
+          "harness-qa", QA_REAL_FAIL_MISSING_MATRIX, 2, "missing 'matrix_ok'",
+          stop_hook_active=True)
+hook_case("legacy stop_hook_active: a semantic violation is still refused",
+          "harness-eng-lead", LEAD_EMPTY_MEMBERS, 2, "steps_run=3", stop_hook_active=True)
+hook_case("legacy stop_hook_active: a valid object settles normally",
+          "harness-qa", QA_REAL_FAIL, 0, stop_hook_active=True)
+HOOK_CASES.append(("legacy stop_hook_active: string data is refused",
                    {"agent_type": "harness-qa", "digest_object": "done", "stop_hook_active": True},
                    2, OBJECT_INSTRUCTION))
 # F6: an absent agent_type key is LOUD on stderr — distinguishable from a present
@@ -1112,68 +1121,80 @@ CHILD_MARK = "BLOCKED - returned with children in flight"
 T09_FEATURE = "FEAT-89-exact-claims"
 
 
-def run_t09():
-    reg = _reg_module()
+def _t09_claims(reg, root, agent):
+    p = os.path.join(root, reg.REGISTRY_REL)
+    if not os.path.exists(p):
+        return []
+    with open(p) as fh:
+        data = json.load(fh) or {}
+    return [claim for claim in data.get("claims", []) if claim.get("agent") == agent]
 
-    def claims(root, agent):
-        p = os.path.join(root, reg.REGISTRY_REL)
-        if not os.path.exists(p):
-            return []
-        with open(p) as fh:
-            data = json.load(fh) or {}
-        return [claim for claim in data.get("claims", []) if claim.get("agent") == agent]
 
-    def run(root, agent, agent_id, parent_id, dispatcher):
-        """One live claim bound to OMP runtime id `agent_id` under `parent_id` (BUG-1898:
-        the hook selects claims by exact feature and runtime id, never by persona)."""
-        entry = reg.claim_with_receipt(root, agent, dispatcher, root, feature=T09_FEATURE)
-        reg.attach_runtime_identity(root, agent, T09_FEATURE, agent_id=agent_id,
-                                    claim_id=entry["claim_id"], parent_agent_id=parent_id)
+def _t09_run(reg, root, agent, agent_id, parent_id, dispatcher):
+    """One live claim bound to OMP runtime id `agent_id` under `parent_id` (BUG-1898:
+    the hook selects claims by exact feature and runtime id, never by persona)."""
+    entry = reg.claim_with_receipt(root, agent, dispatcher, root, feature=T09_FEATURE)
+    reg.attach_runtime_identity(root, agent, T09_FEATURE, agent_id=agent_id,
+                                claim_id=entry["claim_id"], parent_agent_id=parent_id)
 
-    def fire(root, agent, agent_id, text, **extra):
-        return _t09_fire(root, agent, text, harness_feature=T09_FEATURE,
-                         harness_agent_id=agent_id, **extra)
 
-    # 1. a valid pm return RELEASES its claim
+def _t09_return(root, agent, agent_id, text, **extra):
+    return _t09_fire(root, agent, text, harness_feature=T09_FEATURE,
+                     harness_agent_id=agent_id, **extra)
+
+
+def _t09_pm_root(reg):
     root = _t09_root()
-    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
-    r = fire(root, "harness-pm", "Lead.Pm", PM_OK)
+    _t09_run(reg, root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
+    return root
+
+
+def _t09_valid_return_releases(reg):
+    """1. a valid pm return RELEASES its claim"""
+    root = _t09_pm_root(reg)
+    r = _t09_return(root, "harness-pm", "Lead.Pm", PM_OK)
     t09("1: a valid pm return exits 0", r.returncode == 0,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
-    t09("1: and its claim is GONE from the registry", not claims(root, "harness-pm"),
-        repr(claims(root, "harness-pm")))
+    t09("1: and its claim is GONE from the registry", not _t09_claims(reg, root, "harness-pm"),
+        repr(_t09_claims(reg, root, "harness-pm")))
 
-    # A retryable contract rejection keeps this same live job's claim.
-    root = _t09_root()
-    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
-    r = fire(root, "harness-pm", "Lead.Pm", "VERDICT: PASS\nDIGEST:\n  headline: x\n")
-    t09("2: an invalid digest still exits 2", r.returncode == 2, f"exit {r.returncode}")
-    t09("2: the rejected job retains its claim for correction",
-        len(claims(root, "harness-pm")) == 1, repr(claims(root, "harness-pm")))
-    corrected = fire(root, "harness-pm", "Lead.Pm", PM_OK)
-    t09("2: correction completes the same job and releases its claim",
-        corrected.returncode == 0 and not claims(root, "harness-pm"),
-        corrected.stderr + repr(claims(root, "harness-pm")))
 
-    # 3. stop_hook_active short-circuits and does not raise, with a claim present
-    root = _t09_root()
-    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
-    r = fire(root, "harness-pm", "Lead.Pm", PM_OK, stop_hook_active=True)
-    t09("3: stop_hook_active exits 0 with a claim present", r.returncode == 0,
-        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
-    t09("3: and prints no traceback", "Traceback" not in r.stderr, r.stderr[:200])
+# 2. A retryable contract rejection keeps this same live job's claim; 3. FEAT-2397 (#10): a
+# truthy legacy stop_hook_active on direct stdin is no bypass and changes neither half.
+T09_CORRECTIONS = (("2", {}), ("3", {"stop_hook_active": True}))
 
-    # 4. a persona releases its OWN claim and leaves an unrelated one alone. BOTH halves.
+
+def _t09_rejection_retains_claim(reg):
+    for number, extra in T09_CORRECTIONS:
+        label = f"{number}: {'with a truthy legacy stop_hook_active, ' if extra else ''}"
+        root = _t09_pm_root(reg)
+        r = _t09_return(root, "harness-pm", "Lead.Pm", "VERDICT: PASS\nDIGEST:\n  headline: x\n",
+                        **extra)
+        t09(label + "an invalid digest still exits 2", r.returncode == 2,
+            f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+        t09(label + "the rejected job retains its claim for correction",
+            len(_t09_claims(reg, root, "harness-pm")) == 1, repr(_t09_claims(reg, root, "harness-pm")))
+        corrected = _t09_return(root, "harness-pm", "Lead.Pm", PM_OK, **extra)
+        t09(label + "correction completes the same job and releases its claim",
+            corrected.returncode == 0 and not _t09_claims(reg, root, "harness-pm"),
+            corrected.stderr + repr(_t09_claims(reg, root, "harness-pm")))
+
+
+def _t09_own_claim_only(reg):
+    """4. a persona releases its OWN claim and leaves an unrelated one alone. BOTH halves."""
     root = _t09_root()
-    run(root, "harness-documentor", "Lead.Doc", "Lead", "harness-product-lead")
-    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
-    r = fire(root, "harness-documentor", "Lead.Doc", _t04_base_digest("harness-documentor"))
+    _t09_run(reg, root, "harness-documentor", "Lead.Doc", "Lead", "harness-product-lead")
+    _t09_run(reg, root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
+    _t09_return(root, "harness-documentor", "Lead.Doc", _t04_base_digest("harness-documentor"))
     t09("4: the returning persona's own claim is released",
-        not claims(root, "harness-documentor"), repr(claims(root, "harness-documentor")))
+        not _t09_claims(reg, root, "harness-documentor"),
+        repr(_t09_claims(reg, root, "harness-documentor")))
     t09("4: and an UNRELATED harness-pm claim is untouched",
-        len(claims(root, "harness-pm")) == 1, repr(claims(root, "harness-pm")))
+        len(_t09_claims(reg, root, "harness-pm")) == 1, repr(_t09_claims(reg, root, "harness-pm")))
 
-    # 5. THE LIBRARY MISSING. Neither the release nor the children check may break validation.
+
+def _t09_library_missing(_reg):
+    """5. THE LIBRARY MISSING. Neither the release nor the children check may break validation."""
     root = _t09_root()
     mbin = os.path.join(root, "bin")
     shutil.copytree(os.path.dirname(os.path.realpath(VALIDATE)), mbin)
@@ -1184,66 +1205,78 @@ def run_t09():
     t09("5: and stderr NAMES the missing module", "inflight_registry" in r.stderr,
         r.stderr.strip()[:200])
 
-    # 6. THE D-09 REFUSAL. Two live children of this exact lead run. Assert the exit, both
-    #    children by name, the issue, AND that the lead keeps its own claim (DEC-233: a
-    #    parent with a live child is still their only owner; BUG-1898 T-03).
-    root = _t09_root()
-    run(root, "harness-eng-lead", "Orch.Lead", "Orch", "harness-orchestrator")
-    run(root, "harness-backend-dev", "Orch.Lead.Dev", "Orch.Lead", "harness-eng-lead")
-    run(root, "harness-dev-ops", "Orch.Lead.Ops", "Orch.Lead", "harness-eng-lead")
-    r = fire(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK)
-    t09("6: a lead returning with children in flight exits 2", r.returncode == 2,
-        f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
-    t09("6: stderr carries the children-in-flight refusal", CHILD_MARK in r.stderr,
-        r.stderr.strip()[:240])
-    t09("6: stderr names BOTH children",
-        "harness-backend-dev" in r.stderr and "harness-dev-ops" in r.stderr,
-        r.stderr.strip()[:240])
-    t09("6: stderr cites the issue", "#551" in r.stderr, r.stderr.strip()[:240])
-    t09("6: the lead KEEPS its own claim while its children are live",
-        len(claims(root, "harness-eng-lead")) == 1, repr(claims(root, "harness-eng-lead")))
 
-    # 7. THE ALLOW HALF, asserting the ABSENCE of the marker so a refuse-every-lead build fails.
-    #    A same-persona sibling lead's child is not this lead's child.
+def _t09_lead_root(reg, *children):
+    """A live eng-lead run Orch.Lead under Orch, and each (agent, agent_id, parent_id) child."""
     root = _t09_root()
-    run(root, "harness-eng-lead", "Orch.Lead", "Orch", "harness-orchestrator")
-    run(root, "harness-eng-lead", "Orch.Lead-2", "Orch", "harness-orchestrator")
-    run(root, "harness-backend-dev", "Orch.Lead-2.Dev", "Orch.Lead-2", "harness-eng-lead")
-    r = fire(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK)
+    _t09_run(reg, root, "harness-eng-lead", "Orch.Lead", "Orch", "harness-orchestrator")
+    for agent, agent_id, parent_id in children:
+        _t09_run(reg, root, agent, agent_id, parent_id, "harness-eng-lead")
+    return root
+
+
+def _t09_children_refusal(reg):
+    """6. THE D-09 REFUSAL. Two live children of this exact lead run. Assert the exit, both
+    children by name, the issue, AND that the lead keeps its own claim (DEC-233: a parent
+    with a live child is still their only owner; BUG-1898 T-03)."""
+    root = _t09_lead_root(reg, ("harness-backend-dev", "Orch.Lead.Dev", "Orch.Lead"),
+                          ("harness-dev-ops", "Orch.Lead.Ops", "Orch.Lead"))
+    r = _t09_return(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK)
+    detail = r.stderr.strip()[:240]
+    t09("6: a lead returning with children in flight exits 2", r.returncode == 2,
+        f"exit {r.returncode}, stderr={detail!r}")
+    t09("6: stderr carries the children-in-flight refusal", CHILD_MARK in r.stderr, detail)
+    t09("6: stderr names BOTH children",
+        "harness-backend-dev" in r.stderr and "harness-dev-ops" in r.stderr, detail)
+    t09("6: stderr cites the issue", "#551" in r.stderr, detail)
+    t09("6: the lead KEEPS its own claim while its children are live",
+        len(_t09_claims(reg, root, "harness-eng-lead")) == 1,
+        repr(_t09_claims(reg, root, "harness-eng-lead")))
+
+
+def _t09_sibling_child_is_not_mine(reg):
+    """7. THE ALLOW HALF, asserting the ABSENCE of the marker so a refuse-every-lead build
+    fails. A same-persona sibling lead's child is not this lead's child."""
+    root = _t09_lead_root(reg)
+    _t09_run(reg, root, "harness-eng-lead", "Orch.Lead-2", "Orch", "harness-orchestrator")
+    _t09_run(reg, root, "harness-backend-dev", "Orch.Lead-2.Dev", "Orch.Lead-2", "harness-eng-lead")
+    r = _t09_return(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK)
     t09("7: a lead with NO children carries no children marker", CHILD_MARK not in r.stderr,
         r.stderr.strip()[:240])
 
-    # 8. A MEMBER IS NEVER SUBJECT TO IT -- only a lead or the orchestrator dispatches.
-    root = _t09_root()
-    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
-    run(root, "harness-qa", "Lead.Pm.Qa", "Lead.Pm", "harness-pm")
-    r = fire(root, "harness-pm", "Lead.Pm", PM_OK)
+
+def _t09_member_is_exempt(reg):
+    """8. A MEMBER IS NEVER SUBJECT TO IT -- only a lead or the orchestrator dispatches."""
+    root = _t09_pm_root(reg)
+    _t09_run(reg, root, "harness-qa", "Lead.Pm.Qa", "Lead.Pm", "harness-pm")
+    r = _t09_return(root, "harness-pm", "Lead.Pm", PM_OK)
     t09("8: a member with a claim naming it as parent still exits 0", r.returncode == 0,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
     t09("8: and no children marker", CHILD_MARK not in r.stderr, r.stderr.strip()[:200])
 
-    # 9. THE ONE-SHOT BOUND, ASSERTED RATHER THAN HIDDEN. This records D-09's residual: a
-    #    second refusal here would be the infinite stop loop the pass-through prevents.
-    #    DO NOT "fix" this case.
-    root = _t09_root()
-    run(root, "harness-eng-lead", "Orch.Lead", "Orch", "harness-orchestrator")
-    run(root, "harness-backend-dev", "Orch.Lead.Dev", "Orch.Lead", "harness-eng-lead")
-    r = fire(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK, stop_hook_active=True)
-    t09("9: stop_hook_active exits 0 WITH children still on disk (D-09's residual)",
-        r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
-    t09("9: and the child claim is still there, so the bound is real",
-        len(claims(root, "harness-backend-dev")) == 1,
-        repr(claims(root, "harness-backend-dev")))
 
-    # 10. A live child refuses the parent's return, and the refusal names the precise
-    #     release command for that ONE claim — its runtime id — never a persona selector
-    #     (which would match every same-persona run) and never release-all, which wipes
-    #     every claim of every agent (following the old advice on 2026-08-26 would have
-    #     destroyed a live one).
-    root = _t09_root()
-    run(root, "harness-eng-lead", "Orch.Lead", "Orch", "harness-orchestrator")
-    run(root, "harness-backend-dev", "Orch.Lead.Dev", "Orch.Lead", "harness-eng-lead")
-    r = fire(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK)
+def _t09_legacy_field_meets_live_child(reg):
+    """9. FEAT-2397 (#10): a truthy legacy stop_hook_active is refused with a live child like
+    any other return. Under OMP a refusal is a retryable yield error, not a Claude stop
+    loop, so the one-shot bypass D-09 once recorded as its residual is gone."""
+    root = _t09_lead_root(reg, ("harness-backend-dev", "Orch.Lead.Dev", "Orch.Lead"))
+    r = _t09_return(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK, stop_hook_active=True)
+    t09("9: a truthy legacy stop_hook_active with a live child is refused (exit 2)",
+        r.returncode == 2 and CHILD_MARK in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    t09("9: and the lead and child claims both stay live",
+        len(_t09_claims(reg, root, "harness-eng-lead")) == 1
+        and len(_t09_claims(reg, root, "harness-backend-dev")) == 1,
+        repr(_t09_claims(reg, root, "harness-eng-lead") + _t09_claims(reg, root, "harness-backend-dev")))
+
+
+def _t09_release_command(reg):
+    """10. A live child refuses the parent's return, and the refusal names the precise
+    release command for that ONE claim — its runtime id — never a persona selector (which
+    would match every same-persona run) and never release-all, which wipes every claim of
+    every agent (following the old advice on 2026-08-26 would have destroyed a live one)."""
+    root = _t09_lead_root(reg, ("harness-backend-dev", "Orch.Lead.Dev", "Orch.Lead"))
+    r = _t09_return(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK)
     t09("10: a live child refuses the parent's return",
         r.returncode == 2 and CHILD_MARK in r.stderr,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
@@ -1252,6 +1285,18 @@ def run_t09():
         not in r.stderr and "release-all" not in r.stderr,
         r.stderr.strip()[:400])
 
+
+T09_SCENARIOS = (
+    _t09_valid_return_releases, _t09_rejection_retains_claim, _t09_own_claim_only,
+    _t09_library_missing, _t09_children_refusal, _t09_sibling_child_is_not_mine,
+    _t09_member_is_exempt, _t09_legacy_field_meets_live_child, _t09_release_command,
+)
+
+
+def run_t09():
+    reg = _reg_module()
+    for scenario in T09_SCENARIOS:
+        scenario(reg)
     fails = 0
     for name, ok, detail in T09:
         if ok:
@@ -4161,7 +4206,8 @@ def _t04_three_key_failures(validator, digest):
 
 
 def _t04_hook_failures(digest):
-    failures = []
+    """The undeclared-key refusal holds at the hook, and a truthy legacy stop_hook_active is
+    no bypass of it (FEAT-2397): both returns are the exit-2 refusal naming the keys."""
     base = {
         "agent_type": "harness-eng-lead",
         "digest_object": fixture("harness-eng-lead", digest),
@@ -4169,18 +4215,15 @@ def _t04_hook_failures(digest):
     # BUG-1898: every --hook fire names a throwaway root; unrooted, these resolved to the live
     # checkout and released a persona's real claim there.
     env = dict(os.environ, HARNESS_PROJECT_DIR=_isolated_root())
-    rejected = subprocess.run(
-        [sys.executable, VALIDATE, "--hook"], input=json.dumps(_governed(base)),
-        capture_output=True, text=True, env=env)
-    if rejected.returncode != 2:
-        failures.append(f"hook returned {rejected.returncode}, not exit 2")
-    bypassed = subprocess.run(
-        [sys.executable, VALIDATE, "--hook"],
-        input=json.dumps(_governed({**base, "stop_hook_active": True})),
-        capture_output=True, text=True, env=env)
-    if bypassed.returncode != 0:
-        failures.append(
-            f"stop_hook_active passthrough returned {bypassed.returncode}")
+    failures = []
+    for label, extra in (("a plain return", {}),
+                         ("a truthy legacy stop_hook_active", {"stop_hook_active": True})):
+        result = subprocess.run(
+            [sys.executable, VALIDATE, "--hook"], input=json.dumps(_governed({**base, **extra})),
+            capture_output=True, text=True, env=env)
+        if result.returncode != 2 or "undeclared digest key" not in result.stderr:
+            failures.append(f"{label}: hook returned {result.returncode}, not the exit-2 "
+                            "undeclared-key refusal")
     return failures
 
 
@@ -5616,7 +5659,7 @@ def run_dec156_worktree_red_case():
     HOOK_CASES.pop()
     payload = dict(payload)
     payload.pop("_root", None)
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
 
     with open(VALIDATE, encoding="utf-8") as source_file:
         mutant_source = _dec156_owner_root_mutant(source_file.read())
@@ -5989,10 +6032,7 @@ def _f2274_fire_unavailable():
 def _f2274_fire_passes():
     dev = fixture("harness-backend-dev", DEV_NA)
     return {"valid": _f2274_fire({"agent_type": "harness-backend-dev", "digest_object": dev}),
-            "foreign": _f2274_fire({"agent_type": "Explore", "digest_object": "not a digest"}),
-            "rerun": _f2274_fire({"agent_type": "harness-qa", "stop_hook_active": True,
-                                  "digest_object": fixture("harness-qa",
-                                                           QA_REAL_FAIL_MISSING_MATRIX)})}
+            "foreign": _f2274_fire({"agent_type": "Explore", "digest_object": "not a digest"})}
 
 
 def _f2274_fire_refusals():
@@ -6001,8 +6041,11 @@ def _f2274_fire_refusals():
                               {"digest_object": ["x"]})]
     contract = _f2274_fire({"agent_type": "harness-backend-dev", "digest_object": fixture(
         "harness-backend-dev", DEV_NA.replace("VERDICT: BLOCKED", "VERDICT: PASS"))})
+    legacy = _f2274_fire({"agent_type": "harness-qa", "stop_hook_active": True,
+                          "digest_object": fixture("harness-qa", QA_REAL_FAIL_MISSING_MATRIX)})
     detail = next((r for r in refusals if r.returncode != 2), refusals[0])
-    return {"refusals": refusals, "refusals_detail": detail, "contract": contract}
+    return {"refusals": refusals, "refusals_detail": detail, "contract": contract,
+            "legacy_field": legacy}
 
 
 def _f2274_unavailable_with(result, text):
@@ -6037,8 +6080,9 @@ _F2274_CASES = (
      _f2274_quiet_pass),
     ("foreign", "[f2274] a non-governed agent passes through with no unavailable line",
      _f2274_quiet_pass),
-    ("rerun", "[f2274] stop_hook_active with an identity passes with no unavailable line",
-     _f2274_quiet_pass),
+    ("legacy_field", "[f2274] a truthy legacy stop_hook_active is a contract refusal, never a "
+                     "pass or unavailable",
+     lambda r: _f2274_refused(r) and "missing 'matrix_ok'" in r.stderr),
     ("refusals", "[f2274] absent/null/blank/non-object digest_object stays a contract refusal",
      _f2274_object_refusals),
     ("contract", "[f2274] a contract violation is a refusal, never unavailable", _f2274_refused),

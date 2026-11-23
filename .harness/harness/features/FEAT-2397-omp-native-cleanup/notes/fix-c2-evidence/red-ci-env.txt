@@ -1,0 +1,66 @@
+ref=e1cd52705ef20c2b36d38e00e3e9ad210ad93496 cmd: HARNESS_PROJECT_DIR=$PWD bun test tests/unit/omp-hooks.test.ts -t 'FEAT-2225 expertise_apply through'
+bun test v1.3.14 (0d9b296a)
+
+tests/unit/omp-hooks.test.ts:
+965 |       .describe("exact batch ids of your own refused batches this re-judgment replaces"),
+966 |   }).strict();
+967 | }
+968 | 
+969 | function refuseApply(reason: string): never {
+970 |   throw new Error(`expertise_apply refused: ${reason}`);
+                  ^
+error: expertise_apply refused: distill-authority: REFUSED no live claim binds runtime Orch.Product to FEAT-9003-host-core
+      at refuseApply (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:970:13)
+      at <anonymous> (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:1545:23)
+(fail) FEAT-2225 expertise_apply through the real policyRunner into the real core > harness-product-lead: creates, adds, replaces and drops on craft and repository; each receipt verifies [280.46ms]
+965 |       .describe("exact batch ids of your own refused batches this re-judgment replaces"),
+966 |   }).strict();
+967 | }
+968 | 
+969 | function refuseApply(reason: string): never {
+970 |   throw new Error(`expertise_apply refused: ${reason}`);
+                  ^
+error: expertise_apply refused: distill-authority: REFUSED no live claim binds runtime Orch.Val.Code to FEAT-9003-host-core
+      at refuseApply (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:970:13)
+      at <anonymous> (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:1545:23)
+(fail) FEAT-2225 expertise_apply through the real policyRunner into the real core > harness-code-reviewer: creates, adds, replaces and drops on craft and repository; each receipt verifies [169.04ms]
+965 |       .describe("exact batch ids of your own refused batches this re-judgment replaces"),
+966 |   }).strict();
+967 | }
+968 | 
+969 | function refuseApply(reason: string): never {
+970 |   throw new Error(`expertise_apply refused: ${reason}`);
+                  ^
+error: expertise_apply refused: distill-authority: REFUSED no live claim binds runtime Orch.Eng.Ops to FEAT-9003-host-core
+      at refuseApply (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:970:13)
+      at <anonymous> (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:1545:23)
+(fail) FEAT-2225 expertise_apply through the real policyRunner into the real core > harness-dev-ops: creates, adds, replaces and drops on craft and repository; each receipt verifies [169.80ms]
+965 |       .describe("exact batch ids of your own refused batches this re-judgment replaces"),
+966 |   }).strict();
+967 | }
+968 | 
+969 | function refuseApply(reason: string): never {
+970 |   throw new Error(`expertise_apply refused: ${reason}`);
+                  ^
+error: expertise_apply refused: distill-authority: REFUSED no live claim binds runtime Orch to FEAT-9003-host-core
+      at refuseApply (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:970:13)
+      at <anonymous> (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:1545:23)
+(fail) FEAT-2225 expertise_apply through the real policyRunner into the real core > harness-orchestrator: creates, adds, replaces and drops on craft and repository; each receipt verifies [170.04ms]
+965 |       .describe("exact batch ids of your own refused batches this re-judgment replaces"),
+966 |   }).strict();
+967 | }
+968 | 
+969 | function refuseApply(reason: string): never {
+970 |   throw new Error(`expertise_apply refused: ${reason}`);
+                  ^
+error: expertise_apply refused: distill-authority: REFUSED no live claim binds runtime Orch.Eng.Dev to FEAT-9003-host-core
+      at refuseApply (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:970:13)
+      at <anonymous> (/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/f2225-host-core-sKz5Zp/.omp/extensions/harness-hooks.ts:1545:23)
+(fail) FEAT-2225 expertise_apply through the real policyRunner into the real core > harness-backend-dev: creates, adds, replaces and drops on craft and repository; each receipt verifies [169.62ms]
+
+ 2 pass
+ 240 filtered out
+ 5 fail
+ 10 expect() calls
+Ran 7 tests across 1 file. [3.40s]
+exit=1

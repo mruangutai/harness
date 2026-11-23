@@ -45,7 +45,7 @@ except ModuleNotFoundError:
               "  This is REQUIRED, not optional (DEC-171).", file=sys.stderr)
         sys.exit(1)
 
-REPO = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or _anchor_root
+REPO = os.environ.get("HARNESS_PROJECT_DIR") or _anchor_root
 TEAMS = os.path.join(REPO, ".claude", "skills", "harness", "teams")
 BIN = os.path.join(REPO, ".claude", "skills", "harness", "bin")
 SKILL_MD = os.path.join(REPO, ".claude", "skills", "harness", "SKILL.md")

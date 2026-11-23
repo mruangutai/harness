@@ -1,0 +1,84 @@
+FAIL case1: both tiers present, precedence rule stated once
+        checks=[False, False, False, False, False, True, True] precedence_idx=-1 repo_header_idx=-1
+PASS feat65: an unexpected resolver defect is loud and nonzero, not absorbed
+FAIL case2: two repository segments sorted, precedence line exactly once
+        [False, False, False, False, False, False]
+FAIL case3: craft only, no repository text of any kind
+        [True, False, True]
+FAIL case4: no Expertise still receives control-plane context
+        exit=0 context=''
+FAIL case4b: injected root is absolute control plane, never product cwd
+        exit=0 injected='' cwd='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpu_693h5t'
+FAIL case4c: unresolved root is injected loudly without blocking
+        exit=0 context=''
+FAIL case4d: callable checker over agent body 'clean'
+        got=[]
+FAIL case4d: callable checker over agent body 'UNANCHORED'
+        got=[]
+FAIL response: one JSON object carrying only a top-level context string
+        stdout=b'{"hookSpecificOutput": {"hookEventName": "SubagentStart", "additionalContext": "## Harness control plane\\n\\nHARNESS_CONTROL_PLANE_ROOT: /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpql_lbrcw\\nHA'
+FAIL drift parity with the checker CLI: all four files clean
+        got=[] want=['HARNESS_PATH_DRIFT: 0 unanchored path(s)', 'Treat anchored-looking paths in these files as unreliable and say so in your DIGEST.']
+FAIL drift parity with the checker CLI: findings across two files past the five-location cap
+        got=[] want=['HARNESS_PATH_DRIFT: 0 unanchored path(s)', 'Treat anchored-looking paths in these files as unreliable and say so in your DIGEST.']
+FAIL checker outcome: a syntax error
+        exit=0 lines=1 got=[]
+FAIL checker outcome: an import-time exception
+        exit=0 lines=1 got=[]
+FAIL checker outcome: an import-time SystemExit
+        exit=0 lines=1 got=[]
+FAIL checker outcome: no violations function
+        exit=0 lines=1 got=[]
+FAIL checker outcome: a violations exception
+        exit=0 lines=1 got=[]
+FAIL checker outcome: a violations SystemExit
+        exit=0 lines=1 got=[]
+FAIL checker outcome: a malformed finding
+        exit=0 lines=1 got=[]
+FAIL checker outcome: checker output on stdout
+        exit=0 lines=1 got=[]
+FAIL checker runs in-process: four calls, all in the hook's pid
+        hook=46101 pids=[]
+FAIL capped body parity: empty
+        first difference at None
+FAIL capped body parity: one unterminated line
+        first difference at None
+FAIL capped body parity: exactly 40 lines
+        first difference at None
+FAIL capped body parity: 41 lines
+        first difference at None
+FAIL capped body parity: exactly 150 lines
+        first difference at None
+FAIL capped body parity: 151 lines
+        first difference at None
+FAIL capped body parity: 150 lines and an unterminated 151st
+        first difference at None
+FAIL capped body parity: 41 CRLF lines
+        first difference at None
+FAIL capped body parity: 151 CR lines
+        first difference at None
+FAIL capped body parity: mixed CRLF/CR/LF
+        first difference at None
+FAIL capped body parity: Unicode splitline separators
+        first difference at None
+FAIL capped body parity: 151 blank lines
+        first difference at None
+PASS case5a: missing agent_type -> exit 0, no traceback
+PASS case5b: invalid JSON payload -> exit 0, no traceback
+PASS case6: non-harness agent -> exit 0, empty stdout
+FAIL case7a: 41-line repository file truncates at 40, not 150
+PASS case7b: 41-line craft file (no repo tier) — no truncation notice
+FAIL case8: 151-line craft file truncates at 150
+FAIL case10: repository tier, no craft tier at all
+        [True, False, False, False, True]
+FAIL case11: unparseable team-config.yaml, no fleet.yaml -> unaffected, no traceback
+        checks=[True, False, False, False, False, True] stderr=''
+PASS case12: agent_type='harness-' -> exit 0, empty stdout, no leaked body
+PASS case12: agent_type='harness-qa/../../etc' -> exit 0, empty stdout, no leaked body
+PASS case12: agent_type='harness-*' -> exit 0, empty stdout, no leaked body
+PASS case12: agent_type='harness-qa;id' -> exit 0, empty stdout, no leaked body
+FAIL case13: dangling symlink in repository tier -> unreadable guard skips it, no leak, clean stderr
+        checks=[True, False, False, True, True] stderr='' ctx=''
+
+9/46 cases passed.
+exit=1
