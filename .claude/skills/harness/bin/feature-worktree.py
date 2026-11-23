@@ -338,10 +338,10 @@ def _gate_removal(fid, owner_root, segment, default_branch, dest):
             sys.exit(5)
 
         # ISSUE #726 - THE QUESTION IS "IS EVERY TRACKED FILE LANDED", NOT "DOES EVERY PATH EXIST".
-        # `.gitignore:7` ignores `.harness/*/features/*/runs/**`, so every run digest.md and
-        # state.yaml is untracked BY CONSTRUCTION and can never reach the default branch. Walking
-        # the filesystem meant this gate refused forever, which made act 3 of the worktree
-        # lifecycle (SKILL.md) unrunnable for any feature that ever ran a squad.
+        # An IGNORED file (run UI under `.harness/*/features/*/runs/*/ui/**`, or any project
+        # ignore) is untracked by construction and can never reach the default branch. Walking
+        # the filesystem meant this gate refused forever on such files, which made act 3 of the
+        # worktree lifecycle (SKILL.md) unrunnable while run records were still ignored (#726).
         #
         # `git ls-files` is the right source and NOT merely a convenience: gate 2 above already
         # refused a dirty tree, so by this line every file that is neither ignored nor tracked has

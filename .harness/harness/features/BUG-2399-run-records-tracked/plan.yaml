@@ -1,0 +1,208 @@
+schema: plan/1
+feature: BUG-2399-run-records-tracked
+approval:
+  date: '2026-11-22'
+  approved_by: fable-advisor
+  status: approved
+drafted_at: '2026-11-23T02:54:22Z'
+status: done
+source_issues: [2399]
+panel:
+  last_run: r-20261122-2-plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-c81b87bacb6249968ea2875f3531ab24
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: The parameterized, test-extractable migration program embedded in checkout-upgrade.md (T-01/T-02) is a shipped tool where grilling settled only "document an operator step"; its safety machinery defends against failure modes that are already safe refusals.
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-8d631abe958c67ae660b303732ffe577
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: T-03's notes/changelog.md is a fourth restatement of the tracking policy with no established reader and no precedent.
+    disposition: resolved
+    resolved_by: T-03
+lanes:
+  resolved_at: 9eb07b4f3cd235c234a10edddbfe5542c1e85fba
+  rows:
+    - {surface: .gitignore, lane: main-session-direct, reason: DEC-174 tracking changes expose enforcement inputs.}
+    - {surface: .claude/skills/harness/**, lane: main-session-direct, reason: DEC-174 installer and lifecycle enforcement require direct execution.}
+    - {surface: tests/integration/**, lane: main-session-direct, reason: DEC-174 includes tests of the affected gates.}
+    - {surface: .harness/harness/**, lane: main-session-direct, reason: Main lands the coupled policy and evidence for this enforcement change.}
+decisions:
+  - id: D-01
+    choice: Retained non-UI run evidence is tracked through ordinary feature-directory staging; only run UI content is ephemeral, with lock files still ignored.
+    because: Force-staging preserves contradictory ignore policy and tolerating missing digests destroys required evidence; a new tracking DEC cites DEC-238 without amending retention.
+    dec: none
+decisions_affected:
+  - dec: DEC-112
+    disposition: keep
+    clause: Both are idempotent
+    successor: none
+    reason: Preserve deterministic merging and read-only check mode; exact obsolete Harness-rule replacement does not authorize rewriting project rules.
+  - dec: DEC-174
+    disposition: keep
+    clause: |-
+      not dispatched through a team run whose gates are the thing
+      being changed.
+    successor: none
+    reason: Every task is direct main-session work including tests and documentation, without engineering-lead execution.
+  - dec: DEC-238
+    disposition: keep
+    clause: |-
+      Retention
+      is therefore a function of station, applied by the command that moves the station, never by hand:
+    successor: none
+    reason: D-01 supplies a new tracking decision and preserves existing retention and pruning rules verbatim.
+tasks:
+  - id: T-01
+    title: Establish failing tracking and lifecycle integration evidence
+    traces: [SC-01, SC-02, SC-03]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 forbids executing affected enforcement tests through a team run.
+    depends_on: []
+    status: done
+    files:
+      - tests/integration/test-merge-gitignore.py#case_preserves_existing_content
+      - tests/integration/test-merge-gate.py#distill_fixture
+      - tests/integration/test-feature-worktree.py#case_remove_dirty_untracked
+      - {path: .harness/harness/features/BUG-2399-run-records-tracked/notes/qa-red.json, create: true}
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-tracked && env -u HARNESS_AGENT_TYPE python3 - <<'PY'
+      import concurrent.futures, hashlib, json, os, pathlib, subprocess, tempfile
+      suites = ['test-merge-gitignore.py', 'test-merge-gate.py', 'test-feature-worktree.py']
+      subjects = ['.gitignore', '.claude/skills/harness/templates/gitignore.snippet', '.claude/skills/harness/bin/merge-gitignore.py', '.claude/skills/harness/references/checkout-upgrade.md', '.claude/skills/harness/bin/merge-gate.py', '.claude/skills/harness/bin/feature-worktree.py']
+      hashes = {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in subjects}
+      with tempfile.TemporaryDirectory() as home:
+          env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+          env.update(HOME=home, GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
+          def run(name):
+              r = subprocess.run(['python3', 'tests/integration/' + name], env=env, capture_output=True, text=True, timeout=50)
+              return dict(suite=name, exit=r.returncode, stdout=r.stdout, stderr=r.stderr)
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+              rows = list(pool.map(run, suites))
+      head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+      pathlib.Path('.harness/harness/features/BUG-2399-run-records-tracked/notes/qa-red.json').write_text(json.dumps(dict(head=head, phase='red-before-production', production_sha256=hashes, results=rows), indent=2) + '\n')
+      for row in rows:
+          print(row['suite'], row['exit'], row['stdout'], row['stderr'])
+          assert row['exit'] != 0 and any(line.startswith('FAIL') and 'BUG-2399' in line for line in row['stdout'].splitlines()), row['suite']
+      print('PASS: all three suites expose BUG-2399 before production edits')
+      PY
+    intent: |
+      Assigned PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-tracked. All edits, including relative paths, stay in this feature worktree. Execution is main-session-direct under DEC-174, never an engineering-lead or squad build. Product docs/spec.md, docs/decisions.md and docs/architecture.md were absent in draft research; do not invent them. Consult this self-hosted product's .harness/harness/docs/SPEC.md sections 2.5, 8.6 and run retention, and .harness/harness/docs/DECISIONS.md DEC-112, DEC-174 and DEC-238. Read tool interfaces from the current control plane at /Users/molchairuangutai/GitHub/harness, not stale worktree interfaces.
+      Before production mutation, extend the three existing integration suites and capture their actual red execution. Preserve existing cases. Use temporary Git repositories, real script process boundaries, repository .gitignore and shipped gitignore.snippet as canonical inputs, and existing distill_fixture/removal fixtures. Never substitute a fixture-only correct UI rule, which would pass before the fix. Added fixture Git commands isolate inherited GIT_* variables, global/system excludes and signing; set local identity and commit.gpgsign=false. Use only temporary local origins and existing fake gh transport, never live GitHub, fleet or real worktree removal.
+      In test-merge-gitignore.py independently assert ordinary git add plus git ls-files tracking for digest.md, state.yaml, .run-identity.json, acceptance.md, qa/manifest-unit.json, qa/manifest-integration.json, panel-c0.md and a ruling file. Exercise repository rules and fresh snippet installation with namespaced run paths. Assert screenshots and traces below run ui remain ignored, and .harness/**/*.lock covers locks including run-local locks. Require the snippet to ship that established lock rule rather than fixture-adding it to hide an installer gap.
+      Cover each historical exact broad rule, .harness/features/*/runs/** and .harness/*/features/*/runs/**, and both together. With the narrow rule already present, check mode still reports obsolete broad rules, exits 1 and leaves bytes unchanged. Normal merge removes only obsolete Harness rules and their known false run-rationale lines, installs the narrow rule without negations, preserves unrelated bytes/order and custom project rules, handles absent/partial/complete files and is byte-identical on rerun. Include CRLF and no-final-newline preservation cases.
+      Add a small command-composition regression in test-merge-gitignore.py for the plain operator checklist in checkout-upgrade.md. Temporary fleet fixtures cover both historical ignore spellings, historical non-UI evidence including legacy-layout paths where present, UI/locks, an unrelated file and whitespace/metacharacter filenames. Invoke the merger normally, inspect Git status, ordinary-stage .gitignore and explicitly reviewed non-UI paths with literal pathspec handling, inspect the cached paths, then make a separate operator commit. Assert reviewed bytes survive, UI/locks and unrelated files remain unstaged, merger/staging do not commit automatically, and the explicit commit tracks the records. Do not extract or execute markdown as a program or build a bespoke reviewed-manifest/hash/re-enumeration protocol or dedicated refusal battery. Independent canonical-rule assertions, not absent future documentation, must supply the tracking defect's pre-fix red proof.
+      In test-merge-gate.py add the distill half of one lifecycle integration regression using distill_fixture. After a valid committed/pushed distill candidate, create its own uncommitted non-UI run records under canonical ignore rules. Assert merge-distill refuses specifically for uncommitted .harness changes with no gh merge. Ordinary-add, commit and push those records, update fake PR head, and assert the same candidate merges once at the new exact head under the existing owner lock. Do not edit merge-gate.py or its dirty/replay predicates.
+      In test-feature-worktree.py add the removal half: after landed tracked artifacts, create an actual ABORTED run state and leave its non-UI evidence untracked under canonical rules. Assert remove exits 4, names WOULD DISCARD for those paths and preserves the worktree and byte-identical evidence. Retain the old explicit historical-ignore GATE 3 test as coverage of arbitrary ignored artifacts, but correct its comment so it does not claim broad run ignores are current policy. Never weaken removal or retention.
+      Label new assertions BUG-2399. Run verify before any production edits, preserving baseline HEAD, production hashes, actual stdout/stderr and nonzero suite exits in qa-red.json. Verification itself exits 0 only when every suite has a BUG-2399 FAIL assertion, not merely missing setup, an import error or absent future documentation. Preserve this original receipt byte-for-byte in later tasks. Concurrent suite timeouts bound verification below 60 seconds.
+  - id: T-02
+    title: Narrow ignore rules and make fleet upgrades safe
+    traces: [SC-01, SC-02, SC-04]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires direct changes to installer and tracking enforcement inputs.
+    depends_on: [T-01]
+    status: done
+    files:
+    - path: .gitignore
+      quote: .harness/*/features/*/runs/**
+    - path: .claude/skills/harness/templates/gitignore.snippet
+      quote: .harness/features/*/runs/**
+    - .claude/skills/harness/bin/merge-gitignore.py#_merge
+    - path: .claude/skills/harness/references/checkout-upgrade.md
+      quote: '# Checkout upgrade'
+    - path: .harness/harness/features/BUG-2399-run-records-tracked/notes/research-BUG-2399-run-records-tracked-draft.md
+      quote: '## Dirty-tree inventory'
+    - .claude/skills/harness/bin/feature-worktree.py#_gate_removal
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-tracked && env -u HARNESS_AGENT_TYPE python3 tests/integration/test-merge-gitignore.py
+    intent: |
+      Assigned PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-tracked. All edits stay in this feature worktree; never mutate owner main or a live fleet checkout. This is main-session-direct under DEC-174, not engineering-lead execution. Product docs/spec.md, docs/decisions.md and docs/architecture.md were absent; do not create them. Consult .harness/harness/docs/SPEC.md sections 2.5 and 8.6, .harness/harness/docs/DECISIONS.md DEC-112, DEC-174 and DEC-238, and /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-run-records-tracked-2026-11-22.md. Read current control-plane authoring interfaces under /Users/molchairuangutai/GitHub/harness.
+      Start only after T-01's actual pre-production BUG-2399 failures in all three suites. Before narrowing .gitignore, read-only recheck main's zero-inventory premise at /Users/molchairuangutai/GitHub/harness: record HEAD; enumerate git ls-files --others --ignored --exclude-standard -z; select every namespaced run descendant outside ui, including any lock files if present. Print selected paths unambiguously and assert zero. Record command, HEAD, selected count and exit in this feature's research note. Nonzero inventory stops narrowing and returns a changed premise to the operator; never backfill, stage or rewrite Harness historical records. Do not assert zero UI files.
+      Replace the repository broad rule with exactly .harness/*/features/*/runs/*/ui/** and no negations. Correct its stale rationale: non-UI evidence is retained/tracked and SPEC 8.6 already whitelists .harness. Preserve .harness/**/*.lock and unrelated rules; correct nearby comments only where they depend on the removed run-ignore deadlock claim. Ship the same UI rule in templates/gitignore.snippet, including the already-established .harness/**/*.lock rule so fresh installations cannot stage locks. Correct snippet and merger HEADER false ephemerality/deadlock rationale, not merely its wording.
+      Extend merge-gitignore.py, not a second migrator. Recognize only exact shipped broad-rule lines .harness/features/*/runs/** and .harness/*/features/*/runs/**. Normal mode replaces/removes them wherever present, deduplicates the replacement and installs missing canonical rules. Correct exact known shipped false Harness run-rationale lines in Harness-owned blocks, never arbitrary project prose or user patterns. Preserve unrelated bytes/order, line endings and no-final-newline content, inserting a separator only where appending requires one. --check reports obsolete rules even when all new rules are present, exits 1 without mutation, and exits 0 on migrated complete input. Keep CLI arguments, missing-snippet/failure behavior and byte-idempotence. No force-add or gate exception.
+      Document a plain operator migration checklist in checkout-upgrade.md before its existing unconditional merge-gitignore invocation, moving that invocation into the reviewed sequence. Reuse merge-gitignore.py; do not ship another migration tool or an extractable markdown program. The operator chooses the target checkout and pauses teams, distill and removal. Have the operator inspect and separately resolve existing staged changes or unrelated tracked edits so the migration review is isolated.
+
+      Before narrowing, show commands to list ignored-untracked and visible-untracked historical run evidence with NUL-delimited Git output and an unambiguous path display. Review non-UI evidence in namespaced and legacy .harness/features/feature/runs/run layouts when present, without renaming files; exclude every run ui subtree, lock files and unrelated files from staging. Then invoke the existing merger on that checkout and inspect git status for the exposed evidence and the .gitignore diff. Preserve whitespace and filename metacharacters using quoted paths and git --literal-pathspecs for the operator's explicit path selections. If an unrelated project ignore still hides reviewed evidence, stop and resolve that conflict with the operator; do not remove custom rules, add negations or force-add.
+
+      Show ordinary git add with .gitignore and explicitly reviewed non-UI file paths, inspect the exact cached diff and staged path list, and require a separate operator review and commit before resuming teams, distill or removal. Do not use git add -A or -f, delete evidence or auto-commit. With no historical evidence, stage only .gitignore. UI, locks and unrelated files remain unstaged. This is an operator checklist, not a parameterized migration service: no external reviewed manifest/hash storage, automated population re-enumeration or dedicated refusal machinery. The small T-01 temporary-fleet test exercises the documented command sequence without parsing/extracting markdown.
+
+      State the intentional downstream behavior without changing consumers: distill's uncommitted records refuse merge-distill until committed/pushed; ABORTED untracked records refuse removal instead of vanishing. Preserve the research inventory: merge-gate.py _require_checkout and feature-worktree.py _gate_removal are gating exposures; validate-digest.py excludes .harness and untracked files, gh-sync.py checks named plan/feature records; worktree-state.py, worktree_terminal.py and factory_workspace.py also observe dirt and need no bypass. The focused merger suite must exit 0 including historical-rule migration and documented-command composition cases. Terminal cumulative verification is T-03. Do not edit tests here; test defects require explicit adjustment of the owning T-01 scope.
+  - id: T-03
+    title: Land the tracking decision and verify the complete lifecycle
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: Main lands enforcement policy and cumulative evidence without engineering-team execution.
+    depends_on: [T-02]
+    status: done
+    files:
+    - path: .harness/harness/docs/DECISIONS.md
+      quote: "## DEC-238 \u2014 Run evidence has a reader or it has no home"
+    - path: .harness/harness/docs/DECISIONS-INDEX.md
+      quote: DEC-238 @
+    - path: .harness/harness/docs/SPEC.md
+      quote: '### 2.5 Pause, resume, and commit policy'
+    - path: .claude/skills/harness/references/distillation.md
+      quote: '# Feature-close distillation'
+    - path: .harness/harness/features/BUG-2399-run-records-tracked/notes/qa-green.json
+      create: true
+    - path: .claude/skills/harness/teams/validate.yaml
+      quote: it is committed with the run record like any tracked file (DEC-257)
+    - path: .omp/agents/harness-qa.md
+      quote: Main commits the receipts with the closed run record
+    - path: .omp/agents/harness-validator-lead.md
+      quote: the receipts with the closed run record (DEC-257)
+    - path: .harness/README.md
+      quote: Every other run record is retained evidence
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-tracked && env -u HARNESS_AGENT_TYPE python3 - <<'PY'
+      import concurrent.futures, hashlib, json, os, pathlib, subprocess, tempfile
+      suites = ['test-merge-gitignore.py', 'test-merge-gate.py', 'test-feature-worktree.py']
+      red = pathlib.Path('.harness/harness/features/BUG-2399-run-records-tracked/notes/qa-red.json').read_bytes()
+      with tempfile.TemporaryDirectory() as home:
+          env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+          env.update(HOME=home, GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
+          def run(name):
+              r = subprocess.run(['python3', 'tests/integration/' + name], env=env, capture_output=True, text=True, timeout=50)
+              return dict(suite=name, exit=r.returncode, stdout=r.stdout, stderr=r.stderr)
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+              rows = list(pool.map(run, suites))
+      head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+      pathlib.Path('.harness/harness/features/BUG-2399-run-records-tracked/notes/qa-green.json').write_text(json.dumps(dict(head=head, phase='green', red_sha256=hashlib.sha256(red).hexdigest(), results=rows), indent=2) + '\n')
+      for row in rows:
+          print(row['suite'], row['exit'], row['stdout'], row['stderr'])
+          assert row['exit'] == 0 and not any(line.startswith('FAIL') for line in row['stdout'].splitlines()), row['suite']
+      assert pathlib.Path('.harness/harness/features/BUG-2399-run-records-tracked/notes/qa-red.json').read_bytes() == red
+      print('PASS: all three suites green; original red receipt preserved')
+      PY
+    intent: |
+      Assigned PRODUCT is Harness at /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-tracked. All edits stay in this feature worktree, with main-session-direct execution under DEC-174 and no engineering lead. Product docs/spec.md, docs/decisions.md and docs/architecture.md were absent and are not deliverables. Consult self-hosted .harness/harness/docs/SPEC.md, .harness/harness/docs/DECISIONS.md and DECISIONS-INDEX.md, especially DEC-112, DEC-174 and DEC-238. Use current control-plane authoring interfaces under /Users/molchairuangutai/GitHub/harness. Begin only after T-02.
+      This task owns DECISIONS.md and its generated index. Add a new tracking DEC with the next available id, citing DEC-238 and recording D-01: retained non-UI run evidence is ordinary tracked material, normal orchestrator feature-directory staging/commit carries it without force-add, and only run ui is ephemeral, with existing merge locks ignored. Explain rejection of broad-ignore plus force-add and weakened missing-digest validation. Preserve DEC-238 bytes and all retention/pruning clauses; do not amend or strike it. Keep DEC-112 idempotence/read-only check and DEC-174 execution policy. No amend/strike rows require a replacement clause in this plan. Regenerate DECISIONS-INDEX.md with gen-decisions-index.py and compare its --stdout to the index, expecting exit 0; never fake a generated index.
+      Update SPEC section 2.5 commit policy, the QA committed-with-run paragraph and run-retention paragraph so they no longer say all runs are ignored/force-added or prune on log_retention_days. Cite the new tracking DEC and DEC-238: station-specific retention is unchanged, non-UI records are committed normally and UI alone is excluded. Correct direct repetitions of those obsolete tracking assertions elsewhere in SPEC, not unrelated historical descriptions. Preserve SPEC 8.6's .harness whitelist, INV-7/INV-36 and all gate semantics.
+      In references/distillation.md make its existing final replay/commit/push step explicitly stage and commit the distill runs' own non-UI records and receipts normally before merge-gate.py merge-distill. No merge call may precede that commit/push. Explain that ABORTED untracked evidence intentionally refuses removal and must not be discarded to make a gate green. Do not alter close-run, retention, gates or dirty-tree whitelists. The new DEC, SPEC, checkout-upgrade and distillation updates meet the documentation obligation; do not add a feature changelog or duplicate policy note.
+      Run the terminal three-suite verification verbatim after all production/documentation changes. Temporary isolated fixtures/local remotes and concurrent suites keep it below 60 seconds; no live GitHub/fleet mutation. Every suite exits 0 with no FAIL line. Preserve T-01 qa-red.json and its pre-fix production hashes byte-for-byte; qa-green.json records actual exits/stdout/stderr and the red hash. Separately run the decision-index stdout comparison with expected exit 0. For SC-04 pinned inspection use git show with the review_sha and repository-relative path, not mutable working-tree reads, for the new DEC, unchanged DEC-238, SPEC, upgrade/distillation instructions and build-time main-zero inventory receipt. Ordinary-stage and commit all durable deliverables before review. Do not approve BRIEF or plan and do not backfill Harness historical run records.

@@ -30,8 +30,8 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
 | `.omp/agents/*.md` | Canonical role definitions. **Deliberately unowned by every agent** — editing the organization is self-modification, so agents raise `open_questions` instead. | **you** (main session) |
 
-**Committed**, except `features/*/runs/**`, which is ephemeral scratch — and must be git-ignored, or
-a dirty tree deadlocks the next run.
+**Committed**, except run UI (`features/*/runs/*/ui/**`: screenshots and traces), which is
+git-ignored. Every other run record is retained evidence, committed with its feature (DEC-257).
 
 ## Who writes what
 
