@@ -29,6 +29,8 @@ import sys
 import tempfile
 import time
 
+from git_support import add_worktree, commit_files, init_repo
+
 TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
@@ -713,18 +715,9 @@ def case_11_missing_feature_line_refused():
 
 def _declared_worktree_checkout(flow):
     """A git checkout whose feature `flow` has a linked worktree carrying the marker."""
-    main = _checkout()
-    subprocess.run(["git", "init", "-q", "-b", "main", main], capture_output=True)
-    for cmd in (["git", "config", "user.email", "t@example.com"],
-                ["git", "config", "user.name", "t"]):
-        subprocess.run(cmd, cwd=main, capture_output=True)
-    with open(os.path.join(main, "f.txt"), "w") as fh:
-        fh.write("x\n")
-    subprocess.run(["git", "add", "f.txt"], cwd=main, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", "init"], cwd=main, capture_output=True)
-    wt = os.path.join(main, ".claude", "worktrees", "harness", flow)
-    subprocess.run(["git", "worktree", "add", "-q", "-b", "wt-" + flow, wt, "HEAD"],
-                   cwd=main, capture_output=True)
+    main = init_repo(_checkout(), "main")
+    commit_files(main, {"f.txt": "x\n"}, "init")
+    wt = add_worktree(main, flow, "harness", "wt-" + flow)
     os.makedirs(os.path.join(wt, ".harness"), exist_ok=True)
     with open(os.path.join(wt, ".harness", "team-config.yaml"), "w") as fh:
         fh.write("agents: {}\n")

@@ -300,10 +300,6 @@ def fire_noyaml(fake, root, path, identity, content="x", env=None):
                           text=True, env=hook_env)
 
 
-def _session(name):
-    return {"session_id": name}
-
-
 def _install_advice():
     # BUG-2169: the advice is per platform (apt on Debian/Ubuntu's system python3, pip
     # elsewhere), so the assertion is that one of harness_yaml's real install commands
@@ -326,7 +322,7 @@ def _t12_bootstrap_first_session(fake):
     root = fixture(FIXTURE_MANIFEST)
     marker = os.path.join(root, ".harness", ".pyyaml-bootstrap")
     advice = _install_advice()
-    r1 = fire_noyaml(fake, root, "allowed/a.md", _session("sess-A"))
+    r1 = fire_noyaml(fake, root, "allowed/a.md", {"session_id": "sess-A"})
     t12("SC-08: with PyYAML missing, the FIRST hook invocation PERMITS the write",
         r1.returncode == 0, f"exit {r1.returncode}: {r1.stderr.strip()[:200]}")
     # NOT SC-08's full clause, and the name says so: stderr on an ALLOW is not a channel the
@@ -341,7 +337,7 @@ def _t12_bootstrap_first_session(fake):
         f"stdout was {r1.stdout.strip()[:200]!r}")
     t12("SC-08: ...and records the marker",
         os.path.exists(marker), f"no marker at {marker}")
-    r2 = fire_noyaml(fake, root, "allowed/b.md", _session("sess-A"))
+    r2 = fire_noyaml(fake, root, "allowed/b.md", {"session_id": "sess-A"})
     t12("SC-08: a SECOND write in the SAME session is permitted, silently",
         r2.returncode == 0 and not any(command in r2.stderr for command in advice),
         f"exit {r2.returncode}: {r2.stderr.strip()[:200]}")
@@ -353,8 +349,8 @@ def _t12_bootstrap_other_session_and_cleanup(fake):
     # testable here, and without it SC-09 could not pass in principle.
     root = fixture(FIXTURE_MANIFEST)
     marker = os.path.join(root, ".harness", ".pyyaml-bootstrap")
-    fire_noyaml(fake, root, "allowed/a.md", _session("sess-A"))
-    r3 = fire_noyaml(fake, root, "allowed/c.md", _session("sess-B"))
+    fire_noyaml(fake, root, "allowed/a.md", {"session_id": "sess-A"})
+    r3 = fire_noyaml(fake, root, "allowed/c.md", {"session_id": "sess-B"})
     t12("SC-09 mechanism: a DIFFERENT session is BLOCKED while PyYAML is missing",
         r3.returncode == 2, f"exit {r3.returncode}: {r3.stderr.strip()[:200]}")
     # D-14a, found by the SC-09 hand-run: the block was SILENT. Unlike the grant path
@@ -378,12 +374,12 @@ def _t12_grant_skips_shape_gate(fake):
     # :48-49) and the user ruled REMOVE IT. What that costs is EARLIER detection, not
     # correctness: check-state.py refuses a malformed state.yaml at the next /harness entry.
     # These cases pin the RULED behaviour so nobody "fixes" it back.
-    rbad = fire_noyaml(fake, fixture(FIXTURE_MANIFEST), STATE_PATH, _session("sess-shape"),
+    rbad = fire_noyaml(fake, fixture(FIXTURE_MANIFEST), STATE_PATH, {"session_id": "sess-shape"},
                        content="run_id: r1\nfindings: a notebook of prose\n")
     t12("grant: a malformed state.yaml is ALLOWED (no fallback — BRIEF Goal :20-21)",
         rbad.returncode == 0,
         f"exit {rbad.returncode}: {rbad.stderr.strip()[:200]}")
-    rok = fire_noyaml(fake, fixture(FIXTURE_MANIFEST), STATE_PATH, _session("sess-shape-ok"),
+    rok = fire_noyaml(fake, fixture(FIXTURE_MANIFEST), STATE_PATH, {"session_id": "sess-shape-ok"},
                       content="run_id: r1\nstatus: complete\n")
     t12("grant: a well-formed state.yaml is allowed too (the grant is not selective)",
         rok.returncode == 0, f"exit {rok.returncode}: {rok.stderr.strip()[:200]}")
