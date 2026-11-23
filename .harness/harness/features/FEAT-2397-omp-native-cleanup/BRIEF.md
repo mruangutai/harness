@@ -44,6 +44,7 @@ Harness operators and maintainers still pay for pre-omp transport, duplicate mod
 - omp_session_accessor is locally_run: CI has no runtime credentials and cannot prove SC-10. Only the user's real omp 19.1.0 observation discharges it; SC-11 proves the probe's offline logic, not host wiring.
 - component and ui have null unresolved runners, but this plan changes no component or interaction flow; org.html changes prose only. No SC rests on either. functional and eval are excluded under DEC-187 and carry no SC here.
 - Runnable active unit, integration and typecheck kinds carry the automated criteria. Existing unchanged regressions in SC-05 are preservation evidence, not fabricated new baseline failures. Full kinds run once at validation after the focused task boundaries.
+- T-05 owns comment-only edits in check-domain.py, check-plan-routes.py, check_state/ctx.py, check_state/run_state.py, check_state/worktrees.py and feature_schema.py under .claude/skills/harness/bin. Its docs classification and cumulative gates do not independently prove logic unchanged; SC-09's pinned baseline diff inspection remains the acceptance control. A transient per-file AST-equivalence receipt against baseline 9eb07b4f3cd235c234a10edddbfe5542c1e85fba and the review pin may supplement that inspection (parse both versions and compare ast.dump with include_attributes=False, retaining docstrings). This is a briefing residual, not a new gate, standing test or SC; no such comparison was run during planning.
 
 ## Constraints
 
