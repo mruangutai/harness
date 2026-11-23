@@ -50,6 +50,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-23T03:38:48+00:00"
+    },
+    {
+      "id": "r-20261122-4-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T03:42:39+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-4-validate-validator/digest.md",
+        "sha256": "6b5eb59de24ad1e69ee4dfa7fa5e9a9ed8749908e049d1f6ee12c3f7b3ab6d3c"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T03:54:15+00:00"
     }
   ],
   "judgements": [
@@ -87,6 +102,13 @@
       "kind": "amendment",
       "decision": "T-03.files",
       "reason": "GC-F2 disposition (fable-advisor, delegated): T-03 owns the four one-line DEC-257 prose corrections in role docs and .harness/README.md"
+    },
+    {
+      "at": "2026-11-23T03:42:39+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix",
+      "reason": "c0 FAIL fixed main-session-direct (grades, index cap, GC-F1/F2 dispositions); re-validate at the new pin"
     }
   ],
   "mission": "plan",
