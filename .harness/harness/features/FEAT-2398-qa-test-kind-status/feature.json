@@ -68,6 +68,13 @@
       "cycles_used": 2,
       "tokens": null,
       "ended_at": "2026-11-23T04:33:23+00:00"
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-23T04:45:31+00:00"
     }
   ],
   "judgements": [
@@ -105,6 +112,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Signed plan built main-session-direct (DEC-174); T-01 done, simplify applied, review pinned at 685e861a; continue to the one validate run"
+    },
+    {
+      "at": "2026-11-23T04:45:31+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "validate-validator FAIL: four must-fix applied main-session-direct at 29a3d085 (fail-first receipts), re-pinned at 2f50e8bb; one rework round of 2"
     }
   ],
   "mission": "plan",
