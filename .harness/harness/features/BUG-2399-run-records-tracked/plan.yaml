@@ -14,15 +14,19 @@ panel:
   - reader: scope
     status: ran
     persona: harness-code-reviewer
-    reason: Pending plan scope and architecture reviewed; mission fits, no findings.
+    reason: none
   - reader: should-not-exist
     status: ran
     persona: fable-advisor
-    reason: Independent pending-plan critique returned two task-scoped findings.
+    reason: none
   - reader: design
     status: ran
     persona: harness-ui-reviewer
-    reason: Mode A self-scoped out; no visual UI, DESIGN.md or prototype applicable.
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
   findings:
   - id: PF-c81b87bacb6249968ea2875f3531ab24
     severity: med

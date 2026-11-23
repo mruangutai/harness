@@ -64,7 +64,7 @@ You still run the matrix; `validate-digest.py` no longer runs it again. An uncon
 4. A refusal names every bad receipt and the exact command that repairs it. Run that command
    and return again; the validator never falls back to a run of its own.
 
-Main force-adds the ignored receipts with the committed run record; you do not commit them.
+Main commits the receipts with the closed run record (tracked files, DEC-257); you do not commit them.
 Only QA dispatched by a live `harness-validator-lead` with exactly one open registered run can
 PASS this way: QA always runs under the validate or fix team.
 
