@@ -137,6 +137,13 @@
       "kind": "regate",
       "decision": "re-panel",
       "reason": "fix c2 closed M1, M2 and folded B1/B3 from validate c1; re-panel at the new pin (last rework round)"
+    },
+    {
+      "at": "2026-11-23T17:13:50+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "validate c2 ESCALATE ruled (a) by fable-advisor under delegation: ship; R1+S2 backlogged as #2470; V1/V2 wording-only post-review delta"
     }
   ],
   "mission": "plan",

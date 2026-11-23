@@ -2201,7 +2201,7 @@ _T01_REJECTED_URLS = (
     ("bare path", "/issues/12"),
     ("extra segment", "https://github.com/o/r/issues/12/comments"),
     ("two lines", "https://github.com/o/r/issues/12\nhttps://github.com/o/r/issues/13"),
-    # B1 (c2): owner is [A-Za-z0-9-], repo is [A-Za-z0-9._-] and never `.` or `..`.
+    # B1 (c2): owner is [A-Za-z0-9_-], repo is [A-Za-z0-9._-] and never `.` or `..`.
     ("owner carries a query", "https://github.com/o?x/r/issues/42"),
     ("owner carries a fragment", "https://github.com/o#x/r/issues/42"),
     ("repo carries a query", "https://github.com/o/r?x/issues/42"),

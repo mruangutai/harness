@@ -56,7 +56,7 @@ The wayfind row (118) also names the decision-field validation and the "unusable
 **Change.** The pattern is now:
 - host: dot-joined labels `[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?`;
 - port: an optional 1–65535 alternation with no leading zero;
-- owner: `[A-Za-z0-9-]+`;
+- owner: `[A-Za-z0-9-]+` as built; Main widened it to `[A-Za-z0-9_-]+` (see line 78);
 - repo: `(?!\.\.?/)[A-Za-z0-9._-]+`.
 
 `issue_number_from_url` itself is unchanged.
@@ -75,7 +75,7 @@ The new accept cases are green at HEAD and stay green: `GHE.Example.com:65535/my
 
 **ReDoS probe** (`05-regex-timing.txt`): near-misses of 0.4–1M characters take at most 15 ms, which is linear.
 
-**Disclosed limit:** the owner class `[A-Za-z0-9-]` follows the assignment exactly, so an Enterprise Managed User personal namespace such as `jdoe_acme` would be refused. A refused URL means the ordinary create SKIPs as an "unreadable URL" and records nothing.
+**Disclosed limit (resolved by Main):** the builder's owner class `[A-Za-z0-9-]` followed the assignment exactly, so an Enterprise Managed User personal namespace such as `jdoe_acme` would have been refused and its create would SKIP as an "unreadable URL". Main widened the class to `[A-Za-z0-9_-]` in caeebc7c, with an accept case red against the builder's regex (`fix-c2-FixD2_Frontier/12-emu-owner-main.txt`).
 
 ## Grades
 `08-code-grade-base-to-worktree.txt` applies code_grade's own base..head gate (`_gate_file_records`: gated means new, or graded lower than base) with base b788e9da. Because git writes are barred, it reads the head from the worktree. Result: `gated=70 result=pass`, nothing blocking.
