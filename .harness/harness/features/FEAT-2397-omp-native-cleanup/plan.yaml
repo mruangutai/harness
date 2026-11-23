@@ -329,6 +329,7 @@ decisions_affected:
   reason: Use the existing lenient budget resolver, not a replacement config loader.
 tasks:
 - id: T-01
+  status: building
   title: Cut over runtime and standing callers atomically
   traces:
   - SC-01
