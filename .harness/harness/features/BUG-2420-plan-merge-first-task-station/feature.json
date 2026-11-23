@@ -3,7 +3,7 @@
   "branch": "feat/BUG-2420-plan-merge-first-task-station",
   "pr": null,
   "review_sha": "2b5b8b2aa7f411d515641ef0c73c0e6f7a7e07cd",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -57,8 +57,16 @@
       "id": "2026-11-22-04-validate-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-23T04:15:22+00:00"
+      "verdict": "PASS",
+      "started_at": "2026-11-23T04:15:22+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-22-04-validate-validator/digest.md",
+        "sha256": "fa95fbb798b6117a2a0e321badbf4cc342eca632ea1cb8187ae48ab43b18f4d7"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:27:32+00:00"
     }
   ],
   "judgements": [
