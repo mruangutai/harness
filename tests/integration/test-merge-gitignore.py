@@ -302,37 +302,51 @@ def case_bug2399_line_endings_preserved():
         require(NARROW_RULE.encode() + b"\n" in merged, "BUG-2399: narrow rule missing after unterminated input")
 
 
+def z_paths(repo, *args):
+    return set(filter(None, git(repo, *args, "-z").decode().split("\0")))
+
+
+def seed_fleet_checkout(repo):
+    """A fleet checkout on the old broad rules, holding historical evidence the rules hide."""
+    (repo / ".gitignore").write_text("scratch-dir/\n%s\n%s\n" % tuple(BROAD_RULES), encoding="utf-8")
+    (repo / "README.md").write_text("fleet\n", encoding="utf-8")
+    git(repo, "add", "--", ".gitignore", "README.md")
+    git(repo, "commit", "-qm", "base")
+    fleet = ".harness/acme/features/FEAT-7-fleet/runs/"
+    evidence = (seed_run(repo, fleet + "r 1", ["digest.md", "qa/manifest-unit.json"])
+                + seed_run(repo, fleet + "r-2", ["panel-c0[*].md", "state.yaml"])
+                + seed_run(repo, ".harness/features/FEAT-3-legacy/runs/r-3", ["digest.md"]))
+    excluded = seed_run(repo, fleet + "r-2", ["ui/shot.webp", "digest.md.lock"]) + ["unrelated.txt"]
+    (repo / "unrelated.txt").write_text("not evidence\n", encoding="utf-8")
+    return evidence, excluded
+
+
+def stage_reviewed_evidence(repo):
+    """Checklist steps 4-5: review the exposed run files, stage them by literal path."""
+    visible = z_paths(repo, "ls-files", "--others", "--exclude-standard")
+    reviewed = sorted(path for path in visible if "/runs/" in path and "/ui/" not in path)
+    git(repo, "--literal-pathspecs", "add", "--", ".gitignore", *reviewed)
+    return reviewed, z_paths(repo, "diff", "--cached", "--name-only")
+
+
 def case_bug2399_operator_checklist_commands_compose():
     """The checkout-upgrade checklist's command sequence, run as an operator would on a fleet checkout."""
     with tempfile.TemporaryDirectory() as directory:
         repo = git_repo(Path(directory) / "fleet")
-        (repo / ".gitignore").write_text("scratch-dir/\n%s\n%s\n" % tuple(BROAD_RULES), encoding="utf-8")
-        (repo / "README.md").write_text("fleet\n", encoding="utf-8")
-        git(repo, "add", "--", ".gitignore", "README.md")
-        git(repo, "commit", "-qm", "base")
+        evidence, excluded = seed_fleet_checkout(repo)
         base_head = git(repo, "rev-parse", "HEAD")
-        evidence = seed_run(repo, ".harness/acme/features/FEAT-7-fleet/runs/r 1", ["digest.md", "qa/manifest-unit.json"])
-        evidence += seed_run(repo, ".harness/acme/features/FEAT-7-fleet/runs/r-2", ["panel-c0[*].md", "state.yaml"])
-        evidence += seed_run(repo, ".harness/features/FEAT-3-legacy/runs/r-3", ["digest.md"])
-        excluded = seed_run(repo, ".harness/acme/features/FEAT-7-fleet/runs/r-2", ["ui/shot.webp", "digest.md.lock"])
-        (repo / "unrelated.txt").write_text("not evidence\n", encoding="utf-8")
         before = {path: (repo / path).read_bytes() for path in evidence}
-
         merged = run(repo)
         require(merged.returncode == 0, merged.stderr)
-        visible = set(filter(None, git(repo, "ls-files", "--others", "--exclude-standard", "-z").decode().split("\0")))
-        reviewed = sorted(path for path in visible if "/runs/" in path and "/ui/" not in path)
+        reviewed, staged = stage_reviewed_evidence(repo)
         require(reviewed == sorted(evidence),
                 "BUG-2399 checklist: narrowed rule did not expose exactly the historical evidence: %r" % reviewed)
-        git(repo, "--literal-pathspecs", "add", "--", ".gitignore", *reviewed)
-        staged = set(filter(None, git(repo, "diff", "--cached", "--name-only", "-z").decode().split("\0")))
-        require(staged == set(reviewed) | {".gitignore"},
-                "BUG-2399 checklist: staged set differs: %r" % sorted(staged))
+        require(staged == set(evidence) | {".gitignore"}, "BUG-2399 checklist: staged set differs: %r" % sorted(staged))
         require(git(repo, "rev-parse", "HEAD") == base_head, "BUG-2399 checklist: merge or staging committed")
         git(repo, "commit", "-qm", "operator: track historical run evidence")
         now = tracked(repo)
-        require(set(evidence) <= now, "BUG-2399 checklist: commit did not track the reviewed evidence")
-        require(not (set(excluded) | {"unrelated.txt"}) & now, "BUG-2399 checklist: UI, lock or unrelated file tracked")
+        require(set(evidence) <= now and not set(excluded) & now,
+                "BUG-2399 checklist: evidence untracked, or UI, lock or unrelated file tracked")
         require(all((repo / path).read_bytes() == data for path, data in before.items()),
                 "BUG-2399 checklist: reviewed evidence bytes changed")
 

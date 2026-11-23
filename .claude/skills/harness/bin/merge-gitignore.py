@@ -92,19 +92,25 @@ def _bare(line):
     return line.rstrip(b"\r\n")
 
 
+def _is_obsolete(bare, in_block):
+    return bare in OBSOLETE_RULES or (in_block and bare in OBSOLETE_RATIONALE)
+
+
+def _still_in_block(bare, in_block):
+    return (in_block or bare == BLOCK_OPEN) and bare != BLOCK_CLOSE
+
+
 def _without_obsolete(content):
     """Drop shipped broad run rules anywhere, and their rationale inside Harness blocks."""
-    kept, in_block, removed = [], False, []
+    kept, removed, in_block = [], [], False
     for line in content.splitlines(keepends=True):
         bare = _bare(line)
-        if bare in OBSOLETE_RULES or (in_block and bare in OBSOLETE_RATIONALE):
-            removed.append(bare)
-            continue
-        in_block = (in_block or bare == BLOCK_OPEN) and bare != BLOCK_CLOSE
-        kept.append(line)
+        (removed if _is_obsolete(bare, in_block) else kept).append(line)
+        in_block = _still_in_block(bare, in_block)
     if removed:
         kept = _drop_empty_blocks(kept)
-    return b"".join(kept), [rule for rule in removed if rule in OBSOLETE_RULES]
+    rules = [_bare(line) for line in removed if _bare(line) in OBSOLETE_RULES]
+    return b"".join(kept), rules
 
 
 def _drop_empty_blocks(lines):
@@ -168,28 +174,39 @@ def _report_obsolete(target, obsolete):
         print(f"  x {rule.decode('utf-8')}", file=sys.stderr)
 
 
+def _report_removed(target, obsolete):
+    print(f"merge-gitignore: removed obsolete run-directory rules from {target}")
+    for rule in obsolete:
+        print(f"  x {rule.decode('utf-8')}")
+
+
 def _merge(root_arg, mode):
-    root = os.path.abspath(root_arg)
     snippet = _snippet_path()
     if not os.access(snippet, os.R_OK):
         print(f"merge-gitignore: no snippet at {snippet}", file=sys.stderr)
         return 1
-    target = os.path.join(root, ".gitignore")
+    target = os.path.join(os.path.abspath(root_arg), ".gitignore")
     obsolete = _obsolete_rules(target)
     missing = _missing_rules(target, _rules(snippet))
     if not missing and not obsolete:
         print(f"merge-gitignore: all harness rules already present in {target}")
         return 0
     if mode == "--check":
-        _report_obsolete(target, obsolete)
-        if missing:
-            _report_missing(target, missing)
-        return 1
+        return _report_check(target, obsolete, missing)
+    return _apply(target, obsolete, missing)
+
+
+def _report_check(target, obsolete, missing):
+    _report_obsolete(target, obsolete)
+    if missing:
+        _report_missing(target, missing)
+    return 1
+
+
+def _apply(target, obsolete, missing):
     if obsolete:
         _remove_obsolete(target)
-        print(f"merge-gitignore: removed obsolete run-directory rules from {target}")
-        for rule in obsolete:
-            print(f"  x {rule.decode('utf-8')}")
+        _report_removed(target, obsolete)
     if missing:
         _append_rules(target, missing)
         _report_appended(target, missing)
