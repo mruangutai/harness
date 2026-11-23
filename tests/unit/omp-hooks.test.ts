@@ -3089,35 +3089,38 @@ describe("context advisory injection", () => {
   const taskResult = (content: unknown[] = [{ type: "text", text: "lead digest" }]) =>
     ({ toolName: "task", toolCallId: "call-1", input: {}, content });
 
-  // A copy of the extension rooted where `budgets` is its harness.json (none: no file).
-  async function copiedHooks(budgets?: Record<string, unknown>) {
-    const root = realpathSync(mkdtempSync(join(tmpdir(), "feat2397-usage-")));
+  // A copy of the extension rooted in `root`, so its gateRoot() reads that root's harness.json.
+  async function copiedHooks(root: string) {
     cpSync(join(import.meta.dir, "..", "..", ".omp", "extensions"),
       join(root, ".omp", "extensions"), { recursive: true });
-    if (budgets) {
-      mkdirSync(join(root, ".harness"));
-      writeFileSync(join(root, ".harness", "harness.json"), JSON.stringify({ budgets }));
-    }
     // Dynamic by necessity: the module under test is the per-case copy, chosen at run time.
     return await import(join(root, ".omp", "extensions", "harness-hooks.ts"));
   }
 
-  // Each row: label, the extension's harness.json budgets (undefined: the live repo's,
-  // which carries 200000; null: a copy with no harness.json, so the declared default),
-  // the measured tokens, and the ratio text the advisory carries (undefined: silent).
-  // 223029 is the code-reviewer figure measured on PR #922 that crossed the line with
-  // nothing surfacing it; only the exact boundary separates `>` from `>=`.
-  const THRESHOLDS: Array<[string, Record<string, unknown> | null | undefined, number, string | undefined]> = [
-    ["above the repo threshold", undefined, 223029, "(1.12x)"],
-    ["exactly at the repo threshold", undefined, DEFAULT_CONTEXT_WARN_TOKENS, undefined],
-    ["below the repo threshold", undefined, UNDER_THRESHOLD_TOKENS, undefined],
-    ["above a custom 150000 threshold", { orchestrator_context_warn_tokens: 150000 }, 175000, "= 150000 (1.17x)"],
-    ["exactly at a custom 150000 threshold", { orchestrator_context_warn_tokens: 150000 }, 150000, undefined],
-    ["above the 200000 default with no harness.json", null, 250000, "= 200000 (1.25x)"],
-    ["exactly at the 200000 default with no harness.json", null, 200000, undefined],
+  // Where each row's extension resolves its threshold: the live repo (200000), the checked-in
+  // context_150000 budget fixture, or a root with no harness.json (the declared default).
+  const THRESHOLD_ROOTS: Record<string, (() => string) | undefined> = {
+    repo: undefined,
+    context_150000: () => realpathSync(budgetRoot("context_150000")),
+    none: () => realpathSync(mkdtempSync(join(tmpdir(), "feat2397-usage-"))),
+  };
+
+  // Each row: label, the THRESHOLD_ROOTS key, the measured tokens, and the ratio text the
+  // advisory carries (undefined: silent). 223029 is the code-reviewer figure measured on
+  // PR #922 that crossed the line with nothing surfacing it; only the exact boundary
+  // separates `>` from `>=`.
+  const THRESHOLDS: Array<[string, string, number, string | undefined]> = [
+    ["above the repo threshold", "repo", 223029, "(1.12x)"],
+    ["exactly at the repo threshold", "repo", DEFAULT_CONTEXT_WARN_TOKENS, undefined],
+    ["below the repo threshold", "repo", UNDER_THRESHOLD_TOKENS, undefined],
+    ["above a custom 150000 threshold", "context_150000", 175000, "= 150000 (1.17x)"],
+    ["exactly at a custom 150000 threshold", "context_150000", 150000, undefined],
+    ["above the 200000 default with no harness.json", "none", 250000, "= 200000 (1.25x)"],
+    ["exactly at the 200000 default with no harness.json", "none", 200000, undefined],
   ];
-  test.each(THRESHOLDS)("%s", async (_label, budgets, tokens, ratio) => {
-    const module = budgets === undefined ? undefined : await copiedHooks(budgets ?? undefined);
+  test.each(THRESHOLDS)("%s", async (_label, where, tokens, ratio) => {
+    const rooted = THRESHOLD_ROOTS[where];
+    const module = rooted ? await copiedHooks(rooted()) : undefined;
     const { handlers, ctx } = advisoryFixture({ usage: usage(tokens), module });
     await asAgent(handlers, ctx, "harness-orchestrator");
     const content = [{ type: "text", text: "lead digest" }];
