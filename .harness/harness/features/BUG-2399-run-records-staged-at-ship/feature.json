@@ -2,7 +2,7 @@
   "feature_id": "BUG-2399-run-records-staged-at-ship",
   "branch": "feat/BUG-2399-run-records-staged-at-ship",
   "pr": null,
-  "review_sha": "9db1ba98209df49017e73fae13da56f3e240086c",
+  "review_sha": "74e6896c6113f916efd9c5ceb24a7d60e7c5c0cd",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -52,6 +52,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Same orchestrator continues across the build seam; one task, main-session-direct, spend inside the ruling"
+    },
+    {
+      "at": "2026-11-23T04:02:32+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Resumed ship orchestrator after main-session fix-c1 (74e6896c); same mission, one validator re-verify owed inside the signed 1-round ruling"
+    },
+    {
+      "at": "2026-11-23T04:03:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 must_fix MF-1 fixed main-session-direct at 74e6896c inside the signed ruling (round 1 of 1); SC-03 clause ruled vacuous by operator; one re-verify run over 74e6896c"
     }
   ],
   "mission": "patch",
