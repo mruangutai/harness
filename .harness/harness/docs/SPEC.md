@@ -1456,8 +1456,9 @@ DB/external" cells silently vanish and high-risk changes ship untested: a row is
 - **Policy at the review pin (DEC-256).** qa reads `test_kinds` and `test_matrix` from the reviewed
   repository's `harness.json` at its review pin — a fleet-bound feature's product code
   repository, otherwise the repository holding the feature — with no current-tree,
-  default-branch or planning-tree fallback. QA's steps live in the harness-verification-rules
-  skill.
+  default-branch or planning-tree fallback. Without that policy every claim it would judge is
+  refused; only a kind-free BLOCKED or ESCALATE stands. QA's steps live in the
+  harness-verification-rules skill.
 - **Three gates over the started tasks' `always` kinds.** Every reported kind is checked against
   its status under every verdict; an omitted `unresolved` or cmd-less one refuses under every
   verdict; the full satisfied floor binds only a `PASS` with `matrix_ok: true`. `when:` kinds

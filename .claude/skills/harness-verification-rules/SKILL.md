@@ -33,9 +33,11 @@ copy, the current tree, a default branch or a planning tree; read `change_type` 
 3. **Blob.** Read `git show <commit>:.harness/harness.json` — never either checkout's current
    config — and record the repository, the full commit and the config path in your artifact.
 
-If the pin, the repository or the blob is missing or invalid, **stop and say so** — there is no
-fallback, and `validate-digest.py` refuses every kind claim it cannot check against the pin. Do not
-invent a matrix. INV-49 governs which kinds a config may declare; it never waives a kind. The
+If the pin, the repository or the blob is missing or invalid, **stop and say so** with
+`VERDICT: BLOCKED` and `kinds: []` — there is no fallback, and `validate-digest.py` refuses every
+other QA return it cannot check against the pin. Do not invent a matrix. INV-49 only requires a
+BRIEF to disclose, under `## Verification gaps`, a criterion that rests on a kind with no runner;
+that disclosure never waives the kind. The
 contract and its rationale: `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/docs/SPEC.md` §9 and
 DEC-256, DEC-187 and DEC-212 in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/docs/DECISIONS.md`.
 

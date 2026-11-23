@@ -8544,7 +8544,9 @@ takes the default and sync without a pinned repo is invalid.
   from `git show <review commit>:.harness/harness.json` in the reviewed repository: a feature bound
   by `factory.repo` reviews that registered fleet repository's code checkout, and an unbound Harness
   feature the repository holding it. `review_sha` and a trusted dispatch pin must name one commit
-  there. A missing pin, binding, checkout or blob, or an invalid config, refuses by name.
+  there. A missing pin, binding, checkout or blob, or an invalid config, refuses by name every
+  return that reports a kind, has started work or asserts the matrix met at PASS; a kind-free
+  BLOCKED or ESCALATE still stands, because that is how qa stops to say the pin is missing.
 - **Three gates (D-02).** Every reported kind is checked against its status under every verdict;
   an omitted `always` kind that is `unresolved`, or `active` with no `cmd`, refuses under every
   verdict whatever `matrix_ok` says; the full satisfied `always` floor binds only `PASS` with

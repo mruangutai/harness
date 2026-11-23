@@ -1791,18 +1791,36 @@ def _qa_kinds_errors(seen, verdict, qa):
     under every verdict; (2) a misconfigured kind on the started tasks' `always` floor is
     reported, under every verdict and whatever `matrix_ok` says; (3) at PASS with `matrix_ok:
     true`, every non-excluded floor kind is reported satisfied. Other omissions on an early
-    BLOCKED or FAIL are neither a skip nor proof of coverage, and `when:` stays qa's judgement."""
+    BLOCKED or FAIL are neither a skip nor proof of coverage, and `when:` stays qa's judgement.
+    Every return that makes a policy-dependent claim establishes the pinned policy first (D-01)."""
     kinds = seen.get("kinds") if isinstance(seen.get("kinds"), list) else []
-    tasks = _plan_tasks(qa.feature_dir) if qa.feature_dir else None
-    started = _started_tasks(tasks) if tasks else []
-    if not kinds and not started:
+    started = _qa_started_tasks(qa)
+    matrix_ok = seen.get("matrix_ok") is True
+    if not _qa_claims_need_policy(kinds, started, verdict, matrix_ok):
         return []
     policy, where, error = _qa_policy(*qa)
     if error:
-        return [error]
+        return _qa_unestablished(error, verdict, kinds)
     floor = sorted({k for task in started for k in _always_kinds(policy["test_matrix"], task)})
-    return _qa_gate_errors(kinds, floor, verdict, seen.get("matrix_ok") is True,
-                           policy["test_kinds"], where)
+    return _qa_gate_errors(kinds, floor, verdict, matrix_ok, policy["test_kinds"], where)
+
+
+def _qa_started_tasks(qa):
+    """The plan's started tasks for the trusted feature, or [] when it has none or no plan."""
+    tasks = _plan_tasks(qa.feature_dir) if qa.feature_dir else None
+    return _started_tasks(tasks) if tasks else []
+
+
+def _qa_claims_need_policy(kinds, started, verdict, matrix_ok):
+    """A return reporting a kind, with started work whose floor gate 2 checks, or asserting the
+    matrix met at PASS can be judged only against the pinned policy — never waved through."""
+    return bool(kinds or started or (verdict == "PASS" and matrix_ok))
+
+
+def _qa_unestablished(error, verdict, kinds):
+    """No pinned policy: only a BLOCKED or ESCALATE reporting no kind — QA stopping to say the
+    pin is missing — stands; every other claim is refused with the reason."""
+    return [] if verdict in ("BLOCKED", "ESCALATE") and not kinds else [error]
 
 
 def _qa_gate_errors(kinds, floor, verdict, matrix_ok, test_kinds, where):
