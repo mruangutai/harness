@@ -1,0 +1,4 @@
+head: 51c2efebdd8ada060295c5b4adda68d93aabb27a
+cmd: test "$(jq -r .packageManager package.json)" = 'bun@1.3.14'
+packageManager: null
+exit: 1

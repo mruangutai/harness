@@ -315,10 +315,13 @@ def case5():
 # that decided this scope was `.omp/extensions/harness-hooks.ts` — outside
 # `.claude/skills/harness/bin/` entirely, and invisible to any directory-scoped sweep.
 #
-# FOUR EXCLUSIONS, AND A READER WILL WIDEN THEM UNLESS THE REASONS ARE HERE.
-#   test-* files SET the variable. It is the test-injection seam, assigned repo-wide in
-#     exactly one place — test-gh-close-gate.py:41 — and read by the fixtures. Removing the
+# FIVE EXCLUSIONS, AND A READER WILL WIDEN THEM UNLESS THE REASONS ARE HERE.
+#   test-* files SET the variable. It is the test-injection seam, assigned by the test files
+#     and their fixtures (and by the CI workflows below) and read by the resolver. Removing the
 #     seam would leave the gates untestable against anything but the live checkout.
+#   .github/workflows/ files are callers that SET the resolver's seam, the same rationale as
+#     the test-* exemption: FEAT-2397 T-02 renamed the CI exports to this variable (signed
+#     rename ruling, FEAT-2397 notes/answers-2026-11-22-c0-escalations.md Q1(a)).
 #   harness_boundary.py is the ONE module allowed to read it, because it is the resolver.
 #     That is the whole point of the invariant, not an exception to it.
 #   *.md files are prose. Notes, decisions and observations discuss the variable by name and
@@ -345,36 +348,40 @@ RESOLVER_REL = ".claude/skills/harness/bin/harness_boundary.py"
 DELETED_NAMES = ("harness_root", "_repo_root_from_script", "_root_from", "_resolve_repo_root")
 
 
-def case6():
-    tracked = git_ls_files()
+def _case6_scanned(tracked):
     # `test-` PREFIX, PLUS THE SUPPORT MODULES THE POLE-FILE SPLIT (#1527) EXTRACTED. Every
     # file under tests/ used to be `test-*.py` and therefore exempt; splitting the three pole
     # files moved shared helpers — env builders among them — into `*_support.py` siblings that
     # the runner's glob must NOT select, so they cannot carry the prefix. Exempting exactly
     # that suffix keeps the scan's reach unchanged rather than widening it to all of tests/,
     # which would stop scanning tests/manual's probes.
-    scanned = [
+    return [
         f for f in tracked
         if not os.path.basename(f).startswith("test-")
         and not os.path.basename(f).endswith("_support.py")
         and os.path.basename(f) != "harness_boundary.py"
         and not f.endswith(".md")
         and not f.startswith(EXCLUDED_PREFIXES)
+        and not f.startswith(".github/workflows/")
     ]
-    offenders = []
-    for rel in scanned:
-        text = read_text(rel)
-        if text is None:
-            continue
-        for n, line in enumerate(text.splitlines(), 1):
-            if CHAIN_NAME in line:
-                offenders.append(f"{rel}:{n}: {line.strip()[:100]}")
+
+
+def _line_hits(rel, pattern):
+    """`(n, line)` for every line of `rel` the compiled `pattern` matches; unreadable → none."""
+    return [(n, line) for n, line in enumerate((read_text(rel) or "").splitlines(), 1)
+            if pattern.search(line)]
+
+
+def _case6_absence(tracked):
+    chain = re.compile(re.escape(CHAIN_NAME))
+    offenders = [f"{rel}:{n}: {line.strip()[:100]}"
+                 for rel in _case6_scanned(tracked) for n, line in _line_hits(rel, chain)]
     check("case6_absence_the_env_chain_occurs_nowhere", not offenders,
           "%d occurrence(s) of the retired chain survive:\n  %s"
           % (len(offenders), "\n  ".join(offenders[:20])))
 
-    # --- the presence half ---
-    resolver = read_text(RESOLVER_REL) or ""
+
+def _case6_presence(tracked, resolver):
     missing = [n for n in ("MARKER", "def resolve_root(", "def root_above(",
                            "def root_from_script(") if n not in resolver]
     check("case6_presence_the_resolver_defines_all_four", not missing,
@@ -386,38 +393,51 @@ def case6():
           f"only {len(importers)} tracked file(s) import harness_boundary: "
           f"{sorted(importers)[:20]}")
 
-    # --- the deleted names, and the two survivors that are NOT them ---
+
+CASE6_BIN_REL = ".claude/skills/harness/bin/"
+
+
+def _case6_deleted_names(tracked):
     # SAME test-* EXCLUSION AS THE ABSENCE HALF ABOVE, and for the same reason: those files
     # discuss the deleted names in prose — test-post-merge-sweep.py's docstring records the
     # measured defect _resolve_repo_root was written to fix, and stays true as written — and
     # this file names all four in DELETED_NAMES, so without the exclusion it fails itself.
-    bin_rel = ".claude/skills/harness/bin/"
     bin_files = [f for f in tracked
-                 if f.startswith(bin_rel) and not os.path.basename(f).startswith("test-")]
+                 if f.startswith(CASE6_BIN_REL) and not os.path.basename(f).startswith("test-")]
     for name in DELETED_NAMES:
-        hits = []
-        for rel in bin_files:
-            for n, line in enumerate((read_text(rel) or "").splitlines(), 1):
-                if re.search(r"\b%s\b" % re.escape(name), line):
-                    hits.append(f"{rel}:{n}")
+        word = re.compile(r"\b%s\b" % re.escape(name))
+        hits = [f"{rel}:{n}" for rel in bin_files for n, _line in _line_hits(rel, word)]
         check(f"case6_absence_{name.strip('_')}_is_gone", not hits,
               f"{name} survives at: {hits[:8]}")
 
-    wayfind = read_text(bin_rel + "wayfind.py") or ""
+    wayfind = read_text(CASE6_BIN_REL + "wayfind.py") or ""
     check("case6_absence_wayfind_defines_no_root_of_its_own",
           not re.search(r"^def root\(", wayfind, re.M),
           "wayfind.py still defines a module-level root()")
 
+
+def _case6_survivors(resolver):
     # THE TWO SURVIVORS. Both answer a DIFFERENT question from resolve_root, and a sweep that
     # took them with it would be over-broad rather than complete.
     check("case6_presence_worktree_owner_survives",
           "def worktree_owner(" in resolver,
           "harness_boundary.worktree_owner is gone — it answers which checkout owns a PATH")
-    sweep = read_text(bin_rel + "post-merge-sweep.py") or ""
+    sweep = read_text(CASE6_BIN_REL + "post-merge-sweep.py") or ""
     check("case6_presence_main_checkout_resolver_survives",
           "_resolve_main_checkout_root" in sweep,
           "post-merge-sweep._resolve_main_checkout_root is gone — it asks git which linked "
           "worktree is main, which is not this question")
+
+
+def case6():
+    tracked = git_ls_files()
+    _case6_absence(tracked)
+    # --- the presence half ---
+    resolver = read_text(RESOLVER_REL) or ""
+    _case6_presence(tracked, resolver)
+    # --- the deleted names, and the two survivors that are NOT them ---
+    _case6_deleted_names(tracked)
+    _case6_survivors(resolver)
 
 
 

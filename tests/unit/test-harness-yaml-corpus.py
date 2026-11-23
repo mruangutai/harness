@@ -61,7 +61,7 @@ except ModuleNotFoundError:
           "fallback by design.", file=sys.stderr)
     sys.exit(1)
 
-REPO = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
+REPO = os.environ.get("HARNESS_PROJECT_DIR") or os.getcwd()
 
 
 def _rel(p, root):

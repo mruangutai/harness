@@ -16,6 +16,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import artifact_accessors
+
 ROOT = Path(__file__).resolve().parents[2]
 CHECK = ROOT / ".claude/skills/harness/bin/check-omp-port.py"
 
@@ -48,6 +50,39 @@ def case_symlink_topology():
             "",
         ),
     ]
+
+
+# FEAT-2397 (SC-06): native `task.perCallModel` is the sole per-call model authority, Main
+# included, so the repo's config pins it explicitly to the STRING off; a project setting can
+# narrow an operator's choice but never widen it. Read through the strict OMP config reader
+# check-omp-port.py uses, never a second parser or a text match.
+PER_CALL_MODEL_PIN = '  perCallModel: "off"\n'
+PER_CALL_MODEL_MUTATIONS = (
+    ("absent", ""),
+    ("on", '  perCallModel: "on"\n'),
+    ("eval", "  perCallModel: eval\n"),
+)
+
+
+def _per_call_model_off(config: Path) -> bool:
+    task = artifact_accessors.load_omp_config(config).get("task") or {}
+    return task.get("perCallModel") == "off"
+
+
+def case_per_call_model_pinned_off():
+    results = [("live .omp/config.yml pins task.perCallModel to the string off",
+                _per_call_model_off(ROOT / ".omp" / "config.yml"), "")]
+    for label, replacement in PER_CALL_MODEL_MUTATIONS:
+        td, root = fixture()
+        try:
+            config = root / ".omp" / "config.yml"
+            text = config.read_text()
+            config.write_text(text.replace(PER_CALL_MODEL_PIN, replacement))
+            results.append((f"a task.perCallModel {label} pin fails the off assertion",
+                            PER_CALL_MODEL_PIN in text and not _per_call_model_off(config), ""))
+        finally:
+            td.cleanup()
+    return results
 
 
 # GRADE-2 REASON: the strict-reader contract is one ordered integration scenario across
@@ -336,6 +371,7 @@ def case_feat64_unrelated_defect_escapes():
 CASES = (
     case_feat64_unrelated_defect_escapes,
     case_symlink_topology,
+    case_per_call_model_pinned_off,
     case_live_tree_passes,
     case_missing_agents_md_fails,
     case_concrete_model_in_canonical_fails,

@@ -1,0 +1,140 @@
+bun test v1.3.14 (0d9b296a)
+
+tests/unit/omp-hooks.test.ts:
+415 |     }, ctx);
+416 |     const request = calls.find((call) => call.script === "inject-expertise.py");
+417 |     // The REQUEST keeps the internal SubagentStart label; only the response lost its envelope.
+418 |     expect([request?.payload.hook_event_name, request?.payload.agent_type])
+419 |       .toEqual(["SubagentStart", "harness-eng-lead"]);
+420 |     expect(result?.message?.content).toBe("injected expertise");
+                                           ^
+error: expect(received).toBe(expected)
+
+Expected: "injected expertise"
+Received: undefined
+
+      at <anonymous> (/private/tmp/feat2397-base/tests/unit/omp-hooks.test.ts:420:38)
+(fail) OMP task lifecycle adapter > injects context through the native Python hook [3.19ms]
+4510 |       async (session) => (await session.begin())?.message?.content,
+4511 |       "injected expertise"],
+4512 |   ];
+4513 |   test.each(DELAYED)("FEAT-2337: delayed helper, %s", async (_label, helpers, act, expected) => {
+4514 |     const session = host({}, { ...helpers, "inject-expertise.py": { answer: EXPERTISE, after: 20 } });
+4515 |     expect(await act(session)).toEqual(expected);
+                                      ^
+error: expect(received).toEqual(expected)
+
+Expected: "injected expertise"
+Received: undefined
+
+      at <anonymous> (/private/tmp/feat2397-base/tests/unit/omp-hooks.test.ts:4515:32)
+(fail) FEAT-2337 async bounded policy runtime > FEAT-2337: delayed helper, an expertise answer is still injected [0.94ms]
+4570 |     try {
+4571 |       result = hooks.classifyPolicyRun(script, {}, { status: 0, signal: null, stdout, stderr: "" });
+4572 |     } finally {
+4573 |       JSON.parse = realParse;
+4574 |     }
+4575 |     expect([decodes, result.context]).toEqual([1, context]);
+                                             ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,3 @@
+    1,
+-   "ctx",
++   undefined,
+  ]
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/tmp/feat2397-base/tests/unit/omp-hooks.test.ts:4575:39)
+(fail) FEAT-2337 async bounded policy runtime > FEAT-2397: an injector context object is decoded once, carrying its context [1.14ms]
+4570 |     try {
+4571 |       result = hooks.classifyPolicyRun(script, {}, { status: 0, signal: null, stdout, stderr: "" });
+4572 |     } finally {
+4573 |       JSON.parse = realParse;
+4574 |     }
+4575 |     expect([decodes, result.context]).toEqual([1, context]);
+                                             ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  [
+-   1,
++   2,
+    undefined,
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/private/tmp/feat2397-base/tests/unit/omp-hooks.test.ts:4575:39)
+(fail) FEAT-2337 async bounded policy runtime > FEAT-2397: a broad gate's declared unavailable line is decoded once, carrying its context [0.09ms]
+4580 |     const object = (context: string) => injected(`${JSON.stringify({ context })}\n`);
+4581 |     const sequence = [refuse("refused"), injected(""), object(""), object(" \n "), object(exact), object("second")];
+4582 |     const session = host({}, { "inject-expertise.py": { sequence, after: 0 } });
+4583 |     const delivered: unknown[] = [];
+4584 |     for (let wake = 0; wake < 6; wake += 1) delivered.push((await session.begin())?.message);
+4585 |     expect(delivered).toEqual([undefined, undefined, undefined, undefined, {
+                             ^
+error: expect(received).toEqual(expected)
+
+@@ -5,17 +5,3 @@
+    undefined,
+-   {
+-     "attribution": "harness",
+-     "content": 
+- "## Harness control plane
+- 
+- line two — ünïcode "quoted"
+- 
+- "
+- ,
+-     "customType": "harness-expertise",
+-     "details": {
+-       "agent": "harness-backend-dev",
+-     },
+-     "display": false,
+-   },
++   undefined,
+    undefined,
+
+- Expected  - 15
++ Received  + 1
+
+      at <anonymous> (/private/tmp/feat2397-base/tests/unit/omp-hooks.test.ts:4585:23)
+(fail) FEAT-2337 async bounded policy runtime > FEAT-2397: blocked, blank and empty answers stay retryable; the first context is delivered once, exactly [0.61ms]
+4594 | 
+4595 |   test("FEAT-2397: the handler delivers the carried context, never a re-parse of stdout", async () => {
+4596 |     const session = host({}, {
+4597 |       "inject-expertise.py": { answer: { blocked: false, stdout: "{}\n", context: "carried" }, after: 0 },
+4598 |     });
+4599 |     expect((await session.begin())?.message?.content).toBe("carried");
+                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: "carried"
+Received: undefined
+
+      at <anonymous> (/private/tmp/feat2397-base/tests/unit/omp-hooks.test.ts:4599:55)
+(fail) FEAT-2337 async bounded policy runtime > FEAT-2397: the handler delivers the carried context, never a re-parse of stdout [0.16ms]
+4605 |     ["the retired hook envelope",
+4606 |       `${JSON.stringify({ hookSpecificOutput: { hookEventName: "SubagentStart", additionalContext: "legacy" } })}\n`],
+4607 |   ];
+4608 |   test.each(MALFORMED)("FEAT-2397: %s fails loudly and is never delivered", async (_label, stdout) => {
+4609 |     const session = host({}, { "inject-expertise.py": { answer: injected(stdout), after: 0 } });
+4610 |     await expect(session.begin()).rejects.toThrow("inject-expertise.py returned invalid JSON");
+                                                 ^
+error: 
+
+Expected promise that rejects
+Received promise that resolved: Promise { <resolved> }
+
+      at <anonymous> (/private/tmp/feat2397-base/tests/unit/omp-hooks.test.ts:4610:43)
+(fail) FEAT-2337 async bounded policy runtime > FEAT-2397: the retired hook envelope fails loudly and is never delivered [0.20ms]
+
+ 5 pass
+ 210 filtered out
+ 7 fail
+ 13 expect() calls
+Ran 12 tests across 1 file. [153.00ms]
+exit=1

@@ -354,39 +354,52 @@ _CHECK_STATE = os.path.join(HERE, "check-state.py")
 ALL_READER_PATHS = [r.path for r in lm.READER_TABLE]
 
 
-def _parity(label, build_kwargs, extra=None):
-    """One parity comparison: the REAL gate vs render(), over the same tree."""
+def _parity_env(tmp):
+    """ONE NAME, AND THE MARKER (FEAT-42 T-12). check-state.py resolves its root through
+    harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name and
+    honours it only when .harness/team-config.yaml is readable underneath. Without both,
+    the gate resolves to the LIVE checkout, reports nothing about this fixture, and
+    every parity comparison here sees an EMPTY gate side."""
+    env = dict(os.environ)
+    env["HARNESS_PROJECT_DIR"] = tmp
+    _m = os.path.join(tmp, ".harness", "team-config.yaml")
+    if not os.path.exists(_m):
+        os.makedirs(os.path.dirname(_m), exist_ok=True)
+        with open(_m, "w") as f:
+            f.write("agents: {}\n")
+    return env
+
+
+def _parity_sides(build_kwargs, extra):
+    """Build one tree; return (real gate INV-27 text, scan result, render text)."""
     with tempfile.TemporaryDirectory() as tmp:
         build(tmp, **build_kwargs)
         if extra:
             extra(tmp)
-        # BOTH NAMES, AND THE MARKER (FEAT-42 T-12). check-state.py resolves its root through
-        # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name and
-        # honours it only when .harness/team-config.yaml is readable underneath. With only the
-        # host-owned name set, the gate resolved to the LIVE checkout, reported nothing about
-        # this fixture, and every parity comparison here saw an EMPTY gate side.
-        env = dict(os.environ)
-        env["CLAUDE_PROJECT_DIR"] = tmp
-        env["HARNESS_PROJECT_DIR"] = tmp
-        _m = os.path.join(tmp, ".harness", "team-config.yaml")
-        if not os.path.exists(_m):
-            os.makedirs(os.path.dirname(_m), exist_ok=True)
-            with open(_m, "w") as f:
-                f.write("agents: {}\n")
         r = subprocess.run([_CHECK_STATE], cwd=tmp, capture_output=True, text=True,
-                           env=env)
+                           env=_parity_env(tmp))
         gate = "\n".join(l for l in r.stdout.splitlines() if "INV-27" in l)
         res = lm.scan(tmp)
         ci = lm.render(res)
-    gate_named = {p for p in ALL_READER_PATHS if p in gate}
-    ci_named = {p for p in ALL_READER_PATHS if p in ci}
-    check("case 20 parity: %s — real gate and render name the same reader set" % label,
-          gate_named == ci_named, "GATE: %r\nCI: %r" % (gate, ci))
+    return gate, res, ci
+
+
+def _parity_cause(label, res, gate, ci):
     rep = res.surfaces.get("features") if res.applicable else None
     if rep is not None and rep.verdict == lm.CANNOT_VERIFY:
         clause = lm.cause_text(rep, res.root).split(" — ")[0]
         check("case 20 parity: %s — the cause clause is identical in both" % label,
               clause in gate and clause in ci, "GATE: %r\nCI: %r" % (gate, ci))
+
+
+def _parity(label, build_kwargs, extra=None):
+    """One parity comparison: the REAL gate vs render(), over the same tree."""
+    gate, res, ci = _parity_sides(build_kwargs, extra)
+    gate_named = {p for p in ALL_READER_PATHS if p in gate}
+    ci_named = {p for p in ALL_READER_PATHS if p in ci}
+    check("case 20 parity: %s — real gate and render name the same reader set" % label,
+          gate_named == ci_named, "GATE: %r\nCI: %r" % (gate, ci))
+    _parity_cause(label, res, gate, ci)
 
 
 _parity("MIXED, one migrated reader on legacy evidence",

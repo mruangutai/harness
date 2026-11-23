@@ -671,42 +671,34 @@ def require_or_die():
     sys.exit(1)
 
 
+def _payload_identity(payload):
+    """session_id -> transcript_path stem of one hook payload mapping, or None."""
+    session_id = payload.get("session_id")
+    if session_id:
+        return str(session_id)
+    transcript_path = payload.get("transcript_path")
+    stem = os.path.splitext(os.path.basename(str(transcript_path)))[0] if transcript_path else ""
+    return stem or None
+
+
 def _resolve_identity(payload):
-    """session_id -> transcript_path stem -> CLAUDE_CODE_SESSION_ID ->
-    CLAUDE_CODE_BRIDGE_SESSION_ID, in that order and nowhere else.
+    """session_id -> transcript_path stem, in that order and nowhere else. The Claude-host
+    CLAUDE_CODE_SESSION_ID and CLAUDE_CODE_BRIDGE_SESSION_ID environment fallbacks are gone
+    (FEAT-2397): with neither payload entry no identity resolves, and require_or_bootstrap
+    fails closed.
 
     payload=None means: this is a real hook invocation, so read the payload
     from the HOOK_PAYLOAD environment variable (never stdin — `python3 -`
     takes its PROGRAM from stdin, so a payload piped alongside a heredoc is
-    lost; check-domain.py:232-234 records why). If HOOK_PAYLOAD is unset or
-    empty, fall through to the environment-variable entries below."""
+    lost; check-domain.py:232-234 records why). An unset, empty or unparseable
+    HOOK_PAYLOAD is no payload."""
     if payload is None:
         raw = os.environ.get("HOOK_PAYLOAD")
-        if raw:
-            try:
-                payload = json.loads(raw)
-            except (ValueError, TypeError):
-                payload = None
-
-    if isinstance(payload, dict):
-        session_id = payload.get("session_id")
-        if session_id:
-            return str(session_id)
-        transcript_path = payload.get("transcript_path")
-        if transcript_path:
-            stem = os.path.splitext(os.path.basename(str(transcript_path)))[0]
-            if stem:
-                return stem
-
-    env_session_id = os.environ.get("CLAUDE_CODE_SESSION_ID")
-    if env_session_id:
-        return env_session_id
-
-    bridge_session_id = os.environ.get("CLAUDE_CODE_BRIDGE_SESSION_ID")
-    if bridge_session_id:
-        return bridge_session_id
-
-    return None
+        try:
+            payload = json.loads(raw) if raw else None
+        except (ValueError, TypeError):
+            payload = None
+    return _payload_identity(payload) if isinstance(payload, dict) else None
 
 
 def require_or_bootstrap(root, payload=None):
@@ -789,16 +781,16 @@ def require_or_bootstrap(root, payload=None):
 
     # D-14b: stderr ALONE does not satisfy SC-08. BRIEF:106 requires the install
     # command on "a channel the user sees", and the 2026-08-03 hand-run measured that
-    # Claude Code surfaces hook stderr only on a BLOCK — on this allow path (exit 0) the
-    # tester saw nothing, and grepping all three session transcripts for the command
-    # returned 0. The grant is the one moment the user CAN still fix the machine, so a
-    # message they never see is the same as no message.
+    # a hook's stderr on this allow path (exit 0) reached nobody: the tester saw
+    # nothing, and grepping all three session transcripts for the command returned 0.
+    # The grant is the one moment the user CAN still fix the machine, so a message
+    # they never see is the same as no message.
     #
-    # `systemMessage` on stdout is the PreToolUse contract's user-visible channel, and
-    # it is proven live in this repo rather than assumed: branch-create-gate.py:82,111
-    # already emits exactly this shape on its own allow path, and it is registered in
-    # .claude/settings.json. Emitted LAST so that a failure here cannot lose the stderr
-    # copy, which is what reaches the agent.
+    # `systemMessage` on stdout is the hook ABI's user-facing courtesy line, the same
+    # shape branch-create-gate.py emits on its own allow path. The bytes and the branch
+    # are kept as they are; which host surface shows the line is the host's, not this
+    # module's. Emitted LAST so that a failure here cannot lose the stderr copy, which
+    # is what reaches the agent.
     try:
         sys.stdout.write(json.dumps({"systemMessage":
             "[harness] PyYAML is missing, so the write guards cannot read the domain "

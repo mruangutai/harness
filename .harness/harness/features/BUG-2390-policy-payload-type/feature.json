@@ -1,0 +1,106 @@
+{
+  "feature_id": "BUG-2390-policy-payload-type",
+  "branch": "none",
+  "pr": 2434,
+  "review_sha": "780f9138dc3423c45368aa5334f06bd2532e0e8f",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261122-1-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-23T04:09:54+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-1-patch-product/digest.md",
+        "sha256": "669bdd0bcc142a2decdfa19cf1ee0b952b18ba00aa6313d77f930afa37589b91"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:15:37+00:00"
+    },
+    {
+      "id": "r-20261122-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T04:28:07+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-validate-validator/digest.md",
+        "sha256": "53b77bb22fa3954a2beaca9d3eea6410a9ca4d7935851bbc354d21990cc9c2cd"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:36:05+00:00"
+    },
+    {
+      "id": "r-20261122-3-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T04:40:37+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-3-validate-validator/digest.md",
+        "sha256": "8f66ccb734aa012d210e6f69eea9d4c38094432171103825a5f073bba5de1165"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:46:40+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T04:09:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Known cause and bounded two-file diff widening one internal type; no new interface or enforcement surface (grilling 2026-11-22, advisor-confirmed)"
+    },
+    {
+      "at": "2026-11-23T04:25:12.210028+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Verify did not parse: the apostrophe in ${VAR:?Main's ...} opens an unterminated quote in bash 3.2 and 5.3 (bash -n fails); message reworded, behaviour unchanged"
+    },
+    {
+      "at": "2026-11-23T04:40:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix",
+      "reason": "c0 FAIL (SC-02 red non-discriminating) fixed main-session-direct by advisor-approved red/green reconstruction; re-validate at the new pin"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2390-policy-payload-type/notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "8652fd70e89e0f05bbadc3eeeb6fb9e4f22305d87a4636781bfa8ab0223a0ff5"
+  },
+  "github": {
+    "milestone": 134,
+    "parent": 2431,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2432
+    },
+    "source_issues": [
+      2390
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

@@ -27,3 +27,8 @@ rules carry its hard constraints to you.
 - **DEC-174: plan, but never execute through the enforcement being changed.** Harness may plan
   work on its own hooks, validators, gate scripts and their tests, but must never execute those
   changes through the enforcement path being changed.
+- **Never pass a per-call `model` to `task`; escalate instead (DEC-155).** Each persona runs on its
+  pinned role model, and `.omp/config.yml` sets `task.perCallModel: "off"`, so omp refuses a per-call
+  model. omp's error does not tell you what to do next: if a task genuinely needs a stronger model,
+  raise it in `open_questions` with your evidence. That decision is made above the dispatcher and
+  recorded; never work around the pin.

@@ -27,10 +27,10 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 |---|---|---|
 | `.harness/` file layout, the question round-trip, state-consistency matrix, writer ownership, commit policy | **2** | 1.3k |
 | The 16-agent org, `team-config.yaml` manifest, `consult-when` routing, team conventions (Supabase/Astryx), the fleet — how a repository reaches the harness, the roster table | **3** | 2.5k |
-| Agent frontmatter (what Claude Code parses, and what to avoid), tool grants per tier, the domain hook, reviewer verdict mapping, autonomy | **4** | 2.0k |
+| Agent frontmatter (what OMP parses, and what to avoid), tool grants per tier, the domain hook, reviewer verdict mapping, autonomy | **4** | 2.0k |
 | Expertise — injection hook, entry IDs, update ops, the union-merge apply (`expertise-merge.py`), curation, CEO feedback, the global / project / repository tiers | **5** | 2.2k |
 | Rules vs Expertise — which is which, who writes each | **6** | 0.3k |
-| Rule delivery via native `skills:` preload | **7** | 0.4k |
+| Rule delivery via native `autoloadSkills:` preload | **7** | 0.4k |
 | **The handoff contract** — three-part return, normative DIGEST schemas, conditional routing, malformed returns, git/PR lifecycle | **8** | 1.1k |
 | **Test guardrails** — the change-type matrix, `test_matrix`/`test_kinds`, the four resolution states, AI evals, sharded suites, QA's runner receipts | **9** | 1.1k |
 | The orchestrator — loop, hierarchy and spawn depth, canonical flow, CEO briefing, consolidated DIGEST, escalation, `max_cycles` exhaustion | **10** | 2.7k |
@@ -53,21 +53,22 @@ never harness *operation*.
 
 ## 1. Overview
 
-The harness is a standalone Claude Code workflow system. It owns four things end to end:
+The harness is a standalone workflow system hosted by OMP (oh-my-pi), the only Harness host
+(DEC-233). It owns four things end to end:
 
 | Concern | Mechanism |
 |---|---|
 | **State** | harness-owned files under `.harness/` (§2) |
 | **Org** | 16 agents: `harness-orchestrator` (one per in-flight feature) + 15 in 3 squads under 3 domain leads (§3) |
 | **Execution** | an orchestrator loop plus declarative teams (§10, §12) |
-| **Discipline delivery** | each agent self-injects its own rule files (§7) |
+| **Discipline delivery** | each agent's rule skills preloaded by native `autoloadSkills:` (§7), its Expertise injected at agent start (§5.1), and policy scripts run by the OMP extension `.omp/extensions/harness-hooks.ts` (§4) |
 
 **You are the CEO.** You define the goal, approve `BRIEF.md` and `PLAN.md`, and own the merge.
 There is no CEO agent.
 
 The system has no dependency on GSD (Get Shit Done): no `.planning/` root, no `agent_skills`
-injection, no `gsd-*` agents, no `gsd-tools.cjs`. It is files-only with one deliberate exception —
-`bin/check-domain.py` (§4).
+injection, no `gsd-*` agents, no `gsd-tools.cjs`. It is files-only apart from its enforcement: the
+OMP extension and the policy scripts it calls, such as `bin/check-domain.py` (§4).
 
 ---
 
@@ -106,7 +107,8 @@ the review policies and the issue-type override keys. `tests/unit/test-harness-c
   pinned `github.repo` once sync or a board is declared, are the schema's own `if`/`then` clauses.
 - Structural validity is not runner readiness. An `active` kind whose `cmd` is `null` validates,
   yet qa still returns BLOCKED for it (§9); a product's `unresolved` kinds, Kaya's included, are
-  honest records of an undecided runner rather than errors.
+  honest records of an undecided runner rather than config errors, and a required one blocks qa
+  the same way. Only `status: excluded` with its signed record leaves the required set (DEC-187).
 - Raw repair and report inputs, such as `upgrade-config.py`'s source file, are read through the
   strict `load_json_mapping`, which never applies the schema.
 - The Bash gates recognize their governed command before reading config (§4.2): an unrelated
@@ -249,8 +251,10 @@ leaves its run dir behind; the state check surfaces it and offers resume or disc
 **Commit policy:** `BRIEF.md` / `PLAN.md` / `STATE.md` / `notes/` / `logs/` / `expertise/` are
 **committed**, so reviewers auditing the PR diff see plan and state changes.
 `features/*/feature.json` is **committed** — it is the record of what shipped.
-`features/*/runs/**` is **git-ignored** (ephemeral scratch that would pollute the diff) and pruned
-on the `log_retention_days` schedule.
+`features/*/runs/<id>/` records (`digest.md`, `state.yaml`, `.run-identity.json`, panels, QA
+receipts) are **committed** with the feature through its ordinary commit, never force-added
+(DEC-257). Only `runs/*/ui/**` (screenshots and traces) is git-ignored. What ship keeps and what
+abandon prunes is DEC-238's station rule.
 
 ---
 
@@ -327,7 +331,7 @@ paths:
   features: .harness/features/
   expertise: .harness/expertise/
 
-universal_rules:                            # preloaded by all 16 via `skills:` (§7)
+universal_rules:                            # preloaded by all 16 via `autoloadSkills:` (§7)
   - harness-handoff
   - harness-expertise
 
@@ -364,7 +368,7 @@ teams:
         rule: >
           Use the Supabase plugin for database, auth, storage and edge functions.
           Do not hand-roll what Supabase provides; do not add a second backend substrate.
-        provision: Claude Code plugin — available; dev-ops confirms project linkage at init
+        provision: host integration, not a Harness capability — dev-ops confirms availability and project linkage at init
     members:
       - name: harness-frontend-dev
         consult-when: UI components, styling, client state, accessibility, browser behavior
@@ -415,10 +419,10 @@ the request semantically at delegation time. There is no `domain:` field on a ta
 |---|---|
 | team membership, lead | `name`, `description` |
 | `consult-when` — what it's consulted for | `tools` |
-| `domain` — what paths it may write | `model`, `color`, `skills` |
+| `domain` — what paths it may write | `spawns`, `model` (role alias), `thinking-level`, `blocking`, `autoloadSkills` |
 
 **Not in the manifest:** agent `description` or `tools` (frontmatter owns those), and no file `path`
-— Claude Code resolves agents by name.
+— OMP resolves agents by name from `.omp/agents/`.
 
 **`universal_rules` stays minimal** — just `handoff` and `expertise`. Every entry is preloaded in
 full into all 16 agents at every spawn (§7), so a long list reintroduces exactly the context bloat
@@ -431,10 +435,10 @@ touches, so they are never re-litigated per feature and never re-derived from pr
 
 | Team | Convention | How it is provisioned |
 |---|---|---|
-| **Engineering** | Use the **Supabase plugin** for database, auth, storage, edge functions | A Claude Code plugin, already available. `dev-ops` confirms project linkage at init |
-| **Product** | All UI implements against the **Astryx design system** (`@astryxdesign/core`, pinned) | An **npm dependency**, not a Claude capability — `dev-ops` verifies or installs it at init |
+| **Engineering** | Use **Supabase** for database, auth, storage, edge functions | A host integration, not a Harness capability. `dev-ops` confirms it is available and confirms project linkage at init |
+| **Product** | All UI implements against the **Astryx design system** (`@astryxdesign/core`, pinned) | An **npm dependency**, not a host capability — `dev-ops` verifies or installs it at init |
 
-**Astryx is not globally available as a Claude Code capability.** It is an npm package (`@astryxdesign/core`,
+**Astryx is not globally available as a host capability.** It is an npm package (`@astryxdesign/core`,
 React ≥19 peer, StyleX internal, runtime `defineTheme` with `[light, dark]` tuples) plus a reference
 clone. "Ensure it's available" therefore means a real provisioning step per project, not an
 assumption — `harness-add-repo` delegates the check to `dev-ops`, and a missing dependency is
@@ -563,47 +567,49 @@ distillation dispatch, **read by path, not preloaded** (DEC-158 move 2, like
 
 ### 4.0 Supported frontmatter
 
-Claude Code parses a fixed set of frontmatter fields in an agent `.md` file. Only `name` and
-`description` are required; everything else is optional. The harness uses seven of them:
+OMP parses a fixed set of frontmatter fields in an agent `.md` file under `.omp/agents/`. Only
+`name` and `description` are required; everything else is optional. The harness uses these, and
+`check-omp-port.py` grades every agent file against them:
 
 ```yaml
 ---
 name: harness-eng-lead
 description: "Engineering lead — routes work to specialists, conducts the build team"
-tools: [Read, Glob, Grep, Agent, Write]   # leads: NO Edit/Bash (§4.1)
-model: opus                          # sonnet|opus|haiku|fable|<full id>|inherit
-effort: medium                       # low|medium|high (per-tier policy: DEC-152)
-color: cyan                          # NAMED color only — see below
-skills:                              # rule delivery — FULL content preloaded at spawn (§7)
+tools: [read, glob, grep, task, write, expertise_apply]   # leads: NO edit/bash (§4.1)
+spawns: [harness-frontend-dev, harness-backend-dev]       # which personas `task` may spawn
+model: '@strong'                     # a ROLE ALIAS; the provider overlay maps it to a concrete model
+thinking-level: medium               # per-tier policy (DEC-152), matched to the alias by check-omp-port.py
+blocking: true                       # the parent's `task` call holds until this child is terminal
+autoloadSkills:                      # rule delivery — FULL content preloaded at spawn (§7)
   - harness-handoff
   - harness-zero-micro-management
   - harness-expertise
 ---
 ```
 
-**There is no `hooks:` block.** Domain enforcement is registered in `.claude/settings.json`, not in
-frontmatter — agent-frontmatter `PreToolUse` hooks **do not fire** for spawned subagents in this
-environment, proven across three attempts (DEC-110, §4.2). The `hooks:` blocks were stripped from
-all 15 agent files as dead weight; none of them declares one today.
+**There is no hook field.** Domain enforcement runs in the OMP extension
+`.omp/extensions/harness-hooks.ts`, not in frontmatter (§4.2). Under the former Claude Code host,
+agent-frontmatter `PreToolUse` hooks were proven not to fire for spawned subagents (DEC-110); the
+`hooks:` blocks were stripped from all agent files, and none declares one today.
 
-**`color` accepts a named color only** — `red`, `blue`, `green`, `yellow`, `purple`, `orange`,
-`pink`, `cyan`. Hex values are not valid. Team colors are therefore expressed as names.
+**A concrete model never lives in an agent definition.** `model` names a role alias (`@deep`,
+`@strong`, `@standard`, `@review`); `.omp/providers/` maps each alias to a concrete model. A dispatch
+never overrides it: `.omp/config.yml` pins `task.perCallModel: "off"` (DEC-155, §10.1).
 
-**Fields the harness deliberately does not use:**
+**Capabilities the harness deliberately does not use:**
 
-| Field | Why not |
+| Capability | Why not |
 |---|---|
-| `memory: user\|project\|local` | Native per-agent persistent memory — a close match for Expertise (§5), but it **auto-enables Read/Write/Edit** for that agent. That silently breaks the no-`Edit` guarantee for the 3 leads and the read-only guarantee for the 3 reviewers, which are load-bearing (§4.1). Expertise is hand-rolled instead, and injected by hook (§5.1). |
-| `isolation: worktree` | Available, and the fallback if domain enforcement fails (BUILD.md § 0a). Not used by default — it costs a worktree per agent. |
-| `disallowedTools`, `permissionMode`, `maxTurns`, `mcpServers`, `background`, `initialPrompt` | Available; no current need. `mcpServers` is the likely home for per-team tool conventions (§3.2) if declaring them in the manifest proves insufficient. |
+| native per-agent persistent memory | A close match for Expertise (§5), but it **auto-enabled Read/Write/Edit** for that agent when measured. That silently breaks the no-`edit` guarantee for the 3 leads and the read-only guarantee for the 3 reviewers, which are load-bearing (§4.1). Expertise is hand-rolled instead, and injected at agent start (§5.1, DEC-65). |
+| per-agent worktree isolation | The fallback if domain enforcement fails (BUILD.md § 0a). Not used by default — it costs a worktree per agent. |
 
 **Body sections** — `## Expertise` and `## Domain` are declarative *in form* but live in the
-**body**: Claude Code's loader ignores unknown frontmatter keys, whereas the body becomes the system
-prompt. They are **pointers**, not mechanisms — the authoritative `domain` list is in
-`team-config.yaml`, and Expertise is delivered by hook.
+**body**, which becomes the system prompt; OMP parses only the frontmatter. They are **pointers**,
+not mechanisms — the authoritative `domain` list is in `team-config.yaml`, and Expertise is
+delivered at agent start.
 
-**`## Skills` prose is gone.** Rules are now delivered by the native `skills:` field, which injects
-full content at spawn (§7). There is no longer a prose section asking an agent to go read its rules.
+**`## Skills` prose is gone.** Rules are delivered by the native `autoloadSkills:` field, which
+preloads full content at spawn (§7). There is no prose section asking an agent to go read its rules.
 
 Body template (indented to keep the outline parseable):
 
@@ -611,7 +617,7 @@ Body template (indented to keep the outline parseable):
   # Harness: Engineering Lead
   <one-line spawn summary>
 
-  ## Expertise            ← POINTER; content is injected by the SubagentStart hook (§5.1)
+  ## Expertise            ← POINTER; content is injected at agent start (§5.1)
   Your injected Expertise is read from the control plane; do not read it again.
   Under a distill dispatch, apply your own accepted ops with `expertise_apply` in
   `<HARNESS_FEATURE_TREE_ROOT>`, then report persona-bearing applied ops (§5.3).
@@ -619,9 +625,8 @@ Body template (indented to keep the outline parseable):
 
   ## Domain               ← POINTER; the authoritative list is in team-config.yaml
   Your writable paths are declared in `.harness/team-config.yaml` under your entry and
-  enforced by the project-wide `PreToolUse` hook registered in `.claude/settings.json`,
-  which dispatches on your `agent_type` (§4.2). You may read anything; you may write only
-  your domain.
+  enforced by the OMP extension, which runs `check-domain.py` on every governed write and
+  keys it on your persona (§4.2). You may read anything; you may write only your domain.
 
   ## Role · ## Protocol · ## Inputs · ## Output Format
 ```
@@ -630,9 +635,9 @@ Body template (indented to keep the outline parseable):
 
 | | tools | mutates repo |
 |---|---|---|
-| **doers** | Read, Glob, Grep, Edit, Write, Bash | yes — only within its `## Domain` |
-| **reviewers** | Read, Glob, Grep, Bash (for `git diff` — its own ground truth), and `Write` scoped to its own report + Expertise | **never mutates the repo** — no `Edit` |
-| **leads** | Read, Glob, Grep, **Agent**, and `Write` scoped to its own run dir + Expertise | never — no `Edit`, no `Bash` |
+| **doers** | read, glob, grep, edit, write, bash, expertise_apply | yes — only within its `## Domain` |
+| **reviewers** | read, glob, grep, bash (for `git diff` — its own ground truth), and `write` scoped to its own report + Expertise | **never mutates the repo** — no `edit` |
+| **leads** | read, glob, grep, **task** (limited by `spawns:`), and `write` scoped to its own run dir + Expertise | never — no `edit`, no `bash` |
 
 **Why reviewers need `Write` — a contradiction now resolved.** An earlier version granted reviewers no
 `Write` while §2.3 simultaneously listed them as writers of `notes/review-<persona>-<runid>.md`. A
@@ -653,11 +658,11 @@ the behavioral layer on top.
 - **Consequence to accept:** a lead cannot run `git diff` to assess its squad's work. It reads
   members' **artifacts and DIGESTs** instead — the handoff contract working as designed.
 
-> **Verified (DEC-101):** a `PreToolUse` hook blocks a subagent's `Write` with `exit 2`, and the stderr
-> reason reaches the agent — tested 5/5 cases including a lead's own run dir. Scoped lead `Write` holds.
-> The residual that used to sit here — whether the *agent-frontmatter* declaration site works — was
-> settled by DEC-110: **it does not fire at all.** The hook is registered in `.claude/settings.json`
-> instead, and was then verified live blocking a real out-of-domain `Write` (DEC-110, DEC-112).
+> **Verified (DEC-101):** the domain gate blocks a subagent's write with `exit 2`, and the stderr
+> reason reaches the agent — tested 5/5 cases including a lead's own run dir. Scoped lead `write`
+> holds. Under the former Claude Code host the *agent-frontmatter* declaration site never fired
+> (DEC-110); one global, identity-keyed gate did, verified live blocking a real out-of-domain write
+> (DEC-110, DEC-112). The OMP extension keeps that shape.
 
 ### 4.2 Domain enforcement — the hook
 
@@ -677,43 +682,39 @@ serialized** and attributed to whichever specialist the lead routed, regardless 
 "owns" them.
 
 **Second, the enforcement is a guardrail, not a guarantee** — see the `Bash` limitation below.
-Serialization (§8.5) is what actually makes fan-out safe. Claude Code's `tools:` grant is
-all-or-nothing — an agent with `Write` can write anywhere — so prose alone would let two parallel
-doers clobber each other with **no error**: one write silently wins, and the lost change surfaces
-later with nothing pointing at the cause.
+Serialization (§8.5) is what actually makes fan-out safe. A `tools:` grant is all-or-nothing — an
+agent with `write` can write anywhere — so prose alone would let two parallel doers clobber each
+other with **no error**: one write silently wins, and the lost change surfaces later with nothing
+pointing at the cause.
 
-The mechanism is **one global `PreToolUse` hook registered in `.claude/settings.json`** — the second
-of the four platform prerequisites (§0a of BUILD.md). It is *not* declared in agent frontmatter:
-**agent-frontmatter `PreToolUse` hooks do not fire for spawned subagents in this environment**,
-settled after three attempts including an absolute-path, dependency-free probe that also never ran
-(DEC-110). This contradicts the published documentation, and the docs lost.
+The mechanism is **one global gate in the OMP extension** `.omp/extensions/harness-hooks.ts`. Its
+`tool_call` handler runs `check-domain.py` before every governed `write`, `edit` and `bash` call
+(and `--post` after it), with no per-project registration and nothing declared in agent
+frontmatter (DEC-202, DEC-233). The extension feeds the script the retained internal payload
+(DEC-233), for example:
 
 ```json
-"PreToolUse": [
-  {
-    "matcher": "Write|Edit",
-    "hooks": [
-      {
-        "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py"
-      }
-    ]
-  }
-]
+{
+  "hook_event_name": "PreToolUse",
+  "agent_type": "harness-backend-dev",
+  "cwd": "/abs/checkout",
+  "harness_feature": "FEAT-NN-slug",
+  "tool_name": "Write",
+  "tool_input": { "file_path": "src/api/route.ts" }
+}
 ```
 
-Three details are non-negotiable, and getting any of them wrong makes the hook fail open:
+Three details are non-negotiable, and getting any of them wrong makes the gate fail open:
 
-1. **No agent-name matcher and no agent-name argument.** One registration serves all 16 agents.
-   Identity comes from **`agent_type` in the hook payload**, which is present whenever the caller is
-   a subagent. The script dispatches on it.
+1. **No agent-name registration and no agent-name argument.** One gate serves all 16 agents.
+   Identity comes from **`agent_type` in the payload**, which the extension fills from the runtime
+   persona. The script dispatches on it.
 2. **Only a refusal blocks: `exit 2`, or a structured deny.** A script that exits 1 on violation
    permits every out-of-domain write while appearing to enforce — the exact silent corruption this
-   hook exists to prevent. A gate's *own* failure is a third outcome, neither allow nor deny; see
+   gate exists to prevent. A gate's *own* failure is a third outcome, neither allow nor deny; see
    "Refusal, unavailable, allow" below.
 3. **There is no `$FILE` variable.** The tool input arrives as **JSON on stdin**; the target path
-   must be parsed from it. Only `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_PLUGIN_ROOT}` and
-   `${CLAUDE_PLUGIN_DATA}` are interpolated into the `command` string.
+   must be parsed from it.
 
 `check-domain.py` is therefore **generic and stateless**: read the JSON from stdin, extract
 `agent_type` and the target path, look that agent up in `.harness/team-config.yaml`, test the path
@@ -723,7 +724,7 @@ contains no project-specific globs and is identical in every project; the *manif
 ```bash
 # shape only — the three things that must be right
 agent=$(jq -r '.agent_type // empty' <&0)
-[ -z "$agent" ] && exit 0    # no agent_type = the MAIN SESSION, which is ungoverned
+[ -z "$agent" ] && exit 0    # no persona: nothing to govern
 path=$(jq -r '.tool_input.file_path')
 if ! in_domain "$agent" "$path"; then
   echo "harness: $agent may not write $path (see .harness/team-config.yaml)" >&2
@@ -732,17 +733,17 @@ fi
 exit 0
 ```
 
-Two pass-throughs the single global registration must preserve, both tested:
+Two pass-throughs the single global gate must preserve, both tested:
 
-- **The main session is never governed.** No `agent_type` means the main session, which
-  legitimately writes `## Approval` and `logs/` → `exit 0` immediately. Since DEC-120 the
-  *orchestrator* is a spawned agent and therefore **is** governed, with its own `domain` in the
-  manifest; this carve-out now protects only the main session, which writes almost nothing.
-- **Non-harness agents pass through** — `Explore`, `general-purpose` and any other are unaffected.
+- **The main session is never governed.** The extension runs no domain gate for the main
+  session, which legitimately writes `## Approval` and `logs/`. Since DEC-120 the *orchestrator*
+  is a spawned agent and therefore **is** governed, with its own `domain` in the manifest; this
+  carve-out protects only the main session, which writes almost nothing.
+- **Non-harness agents pass through** — any agent that is not a `harness-*` persona is unaffected.
 
-The script also derives the project root from **its own location**, not from `pwd`: a hook's working
-directory is not guaranteed, and the `pwd` version failed open — printing nothing, exiting 0 —
-whenever it ran from anywhere but the project root (DEC-110).
+The script resolves the project root through `harness_boundary`'s resolver (`HARNESS_PROJECT_DIR`,
+never `pwd`): a gate's working directory is not guaranteed, and the `pwd` version failed open —
+printing nothing, exiting 0 — whenever it ran from anywhere but the project root (DEC-110).
 
 **The `Bash` bypass is the hook's real limitation, and it is not confined to `dev-ops`.** All **9
 doers** hold `Bash`. A `matcher: "Write|Edit"` hook sees none of `sed -i`, `cat > f`, `tee`, or a build
@@ -806,8 +807,10 @@ order they finish in.
 
 **Spawn policy is omp's, plus one route rule (DEC-118, DEC-204).** Which personas a dispatcher may
 spawn is its `.omp/agents/<persona>.md` `spawns:` list, enforced natively by omp on every spawn
-route; `dispatch-guard.py` keeps no copy of it and checks only what omp cannot (model and name
-overrides, the feature marker, run and claim state). A `harness-*` target is spawned through `task`
+route; `dispatch-guard.py` keeps no copy of it and checks only what omp cannot (a `name:`
+parameter, authored runtime-lineage fields, the feature marker, run and claim state). A per-call
+`model` is refused natively by `task.perCallModel: "off"` in `.omp/config.yml` (DEC-155), never
+by the guard. A `harness-*` target is spawned through `task`
 only: the extension's `before_subagent_spawn` handler refuses an eval `agent()` or workpool route to
 one, for every caller including Main.
 
@@ -867,23 +870,30 @@ uncommitted global craft file on your machine; the paths and their budgets are i
 
 ### 5.1 Delivery — injected, not read
 
-Expertise reaches an agent through a **`SubagentStart` hook** declared in `settings.json`. The hook
-receives `agent_type` and returns that agent's file as `hookSpecificOutput.additionalContext`, which
-is injected into the starting subagent's context.
+Expertise reaches an agent at agent start. The OMP extension's `before_agent_start` handler runs
+`inject-expertise.py` once per run with the retained internal request (`hook_event_name:
+SubagentStart`, `agent_type`, `cwd`), and the script answers on stdout with one JSON object holding
+the context only. The extension decodes it once and delivers the string unchanged as a hidden
+`harness-expertise` message (DEC-64). A blocked, blank or empty answer delivers nothing and stays
+retryable on the next start; any other output is a malformed response.
 
 ```
-SubagentStart(agent_type: harness-eng-lead)
-  → cat .harness/expertise/harness-eng-lead.md
-  → { "hookSpecificOutput": { "additionalContext": "<file contents>" } }
+inject-expertise.py  ← {"hook_event_name": "SubagentStart", "agent_type": "harness-eng-lead", "cwd": "…"}
+  → the agent's tiers (global, project, repository), each capped, plus the control-plane block
+  → {"context": "<capped Expertise + HARNESS_CONTROL_PLANE_ROOT / HARNESS_PATH_DRIFT block>"}
 ```
+
+The control-plane block carries `HARNESS_CONTROL_PLANE_ROOT` and `HARNESS_PATH_DRIFT` (DEC-214):
+the drift check over the agent's own file and the three always-preloaded skills runs in process and
+reads `none`, a count of unanchored paths, or `unknown` when the checker cannot load or run.
 
 Two properties follow, and both matter:
 
 - **No obedience dependency.** The agent does not have to remember to read its file — it starts with
-  it. This is the same class of mechanism that makes `skills:` reliable (§7).
-- **No tool grant required.** A reviewer holding only `Read`/`Grep` still starts with its Expertise
-  loaded. This is precisely why native `memory:` was rejected (§4.0): it would deliver the same
-  content but silently add `Write`/`Edit` to all 16 agents.
+  it. This is the same class of mechanism that makes `autoloadSkills:` reliable (§7).
+- **No tool grant required.** A reviewer holding only `read`/`grep` still starts with its Expertise
+  loaded. This is precisely why native agent memory was rejected (§4.0): it would deliver the same
+  content but silently add write and edit capability to all 16 agents.
 
 An agent reads **only its own** file. One bounded exception: a lead may read a member's file during a
 curation pass (§5.4).
@@ -954,7 +964,7 @@ insight:
 
 | Layer | Where |
 |---|---|
-| The rule | the `harness-expertise` skill — preloaded by all 16 agents via `skills:` (§7): mid-run, observations only, and never touch the Expertise file outside a distillation dispatch. The rules for *writing* it — the six-spawns test, entry format, ops schema and caps — are in `harness-distill`, **read by path at distillation and not preloaded** (DEC-158 move 2). Most observations fail the test, and `expertise_update: []` is the usual DIGEST. |
+| The rule | the `harness-expertise` skill — preloaded by all 16 agents via `autoloadSkills:` (§7): mid-run, observations only, and never touch the Expertise file outside a distillation dispatch. The rules for *writing* it — the six-spawns test, entry format, ops schema and caps — are in `harness-distill`, **read by path at distillation and not preloaded** (DEC-158 move 2). Most observations fail the test, and `expertise_update: []` is the usual DIGEST. |
 | Visibility | every update rides the DIGEST as an already-applied, persona-bearing op with a `why`, checked against its receipt and resulting file |
 | Correction | curation (§5.4) catches what slipped through |
 
@@ -1168,7 +1178,7 @@ All are injected at task start and written by the agent that owns them (§5.2).
 | Nature | the **constitution** — how agents must behave | **learned observations** about this codebase |
 | Scope | generic, identical in **every** project | per-project |
 | Writer | **you**, in the harness repo | the agent itself (or the orchestrator on its behalf, §5.3) |
-| Delivery | `skills:` frontmatter — preloaded at spawn (§7) | `SubagentStart` hook injection (§5.1) |
+| Delivery | `autoloadSkills:` frontmatter — preloaded at spawn (§7) | agent-start injection by the OMP extension (§5.1) |
 | Lives in | this repository, one tracked copy | the project's own `.harness/` |
 | Changes | deliberately, human-authored | continuously, self-maintained |
 
@@ -1217,16 +1227,16 @@ checkout, not from a copy inside each project.
 
 ---
 
-## 7. Rule delivery — native `skills:` preload
+## 7. Rule delivery — native `autoloadSkills:` preload
 
-Each rule is a **skill**, and each agent declares the rules it is bound by in its `skills:`
-frontmatter field. Claude Code injects the **full skill content** into the subagent's context at
-spawn — not just the description.
+Each rule is a **skill**, and each agent declares the rules it is bound by in the `autoloadSkills:`
+frontmatter field of its `.omp/agents/` definition. OMP loads the **full skill content** into the
+subagent's context at spawn — not just the description (DEC-63).
 
 ```yaml
 ---
 name: harness-backend-dev
-skills:
+autoloadSkills:
   - harness-handoff              # universal — all 16
   - harness-expertise            # universal — all 16
   - harness-tdd-enforcement      # role-specific
@@ -1239,14 +1249,13 @@ the rule is in context before the agent takes its first action.
 
 Consequences of the mechanism, stated plainly:
 
-- **Rules load unconditionally.** `skills:` has no "use-when" laziness — every listed rule costs its
-  full length on every spawn of that agent. Rules must therefore stay short, and an agent lists only
-  the rules that genuinely bind it.
+- **Rules load unconditionally.** `autoloadSkills:` has no "use-when" laziness — every listed rule
+  costs its full length on every spawn of that agent. Rules must therefore stay short, and an agent
+  lists only the rules that genuinely bind it.
 - **Each rule needs a skill directory** with a `SKILL.md`, rather than being a bare `.md` file.
-- **Agents can still reach unlisted skills** through the `Skill` tool; `skills:` governs what is
-  *preloaded*, not what is *reachable*.
-- **`Skill` does not belong in `tools:`** for preloading purposes — the `skills:` field is the
-  mechanism.
+- **Agents can still reach unlisted skills** by reading them (`skill://<name>`); `autoloadSkills:`
+  governs what is *preloaded*, not what is *reachable*.
+- **No tool grant is needed** for preloading — the `autoloadSkills:` field is the mechanism.
 
 Rules remain single-sourced and distributed (§6), so an agent's rule set is a declaration, not a
 copy.
@@ -1335,7 +1344,9 @@ cross-file violations all produce an actionable retryable tool error. The same j
 object and yields again. The hook passes that mapping directly to `validate-digest.py --hook`
 (`.omp/extensions/harness-hooks.ts:1108`; `.claude/skills/harness/bin/validate-digest.py:2200`); it
 does not parse assistant prose, inspect a last message, select a template echo, or synthesize a
-`BLOCKED` digest. A tool error is not permission for a host to record a substitute return.
+`BLOCKED` digest. A tool error is not permission for a host to record a substitute return. Every
+yield is validated, a retry included: there is no `stop_hook_active` or second-attempt bypass, so an
+agent that repeats a malformed object is refused again (DEC-127).
 
 **Lead artifact:** before yielding, a lead writes its human report to the existing regular
 `<run_dir>/digest.md`. The hook binds the lead's runtime child and parent ids to its exact feature,
@@ -1358,10 +1369,10 @@ injected strict schema. Unit and integration tests do not substitute for this ho
 probe. If that live gate fails for a future cutover, stop and amend the design; do not waive it with
 a green local suite.
 
-**Host boundary:** this object-only digest path is OMP-native. Claude Code has no supported
-YieldTool-object digest path here, and no `SubagentStop` or last-assistant-message compatibility
-route is retained. That limitation does not broaden the provider-neutral hook policy or alter
-`AGENTS.md`; those are outside this feature (DEC-233, DEC-237).
+**Host boundary:** this object-only digest path is OMP-native, and OMP is the only host (DEC-233).
+The request reaching `validate-digest.py` keeps the internal `SubagentStop` label as part of the
+retained Python ABI; no last-assistant-message route is retained. That does not broaden the
+provider-neutral hook policy or alter `AGENTS.md` (DEC-233, DEC-237).
 
 ### 8.4 Artifact output discipline — the `harness-handoff` skill
 
@@ -1443,15 +1454,29 @@ DB/external" cells silently vanish and high-risk changes ship untested: a row is
   presence in a diff (`detect` globs), *what command runs it* (`cmd`, per project), and its
   `status`.
 - **Owner: `dev-ops`.** During `harness-add-repo`, dev-ops detects the project's test runner and writes
-  `test_kinds` into `.harness/harness.json`. **An unresolvable or missing `cmd` is a distinct LOUD
-  third state** (`VERDICT: BLOCKED — test command unresolved`), never folded into the
-  not-applicable soft skip: a silently no-op'd hard gate is worse than a halt.
+  `test_kinds` into `.harness/harness.json`.
+- **Status decides, never `cmd` (DEC-187).** Only `status: excluded` with its `excluded_because`
+  and `signed` record soft-skips (`not_applicable`) or leaves the required set, and only a
+  configured `locally_run` kind may be reported `locally_run`. A required kind that is
+  `unresolved`, or `active` with a null `cmd`, is the distinct LOUD state `misconfigured` with
+  `VERDICT: BLOCKED`, never folded into the soft skip: a silently no-op'd hard gate is worse than
+  a halt.
+- **Policy at the review pin (DEC-256).** qa reads `test_kinds` and `test_matrix` from the reviewed
+  repository's `harness.json` at its review pin — a fleet-bound feature's product code
+  repository, otherwise the repository holding the feature — with no current-tree,
+  default-branch or planning-tree fallback. Without that policy every claim it would judge is
+  refused; only a kind-free BLOCKED or ESCALATE stands. QA's steps live in the
+  harness-verification-rules skill.
+- **Three gates over the started tasks' `always` kinds.** Every reported kind is checked against
+  its status under every verdict; an omitted `unresolved` or cmd-less one refuses under every
+  verdict; the full satisfied floor binds only a `PASS` with `matrix_ok: true`. `when:` kinds
+  stay qa's judgment (DEC-212).
 - **Bug-class mapping:** a bugfix's regression test must match the bug's class — a functional bug
   needs a functional regression, a UI bug a Playwright one.
 - **Change type per task:** pm tags each PLAN task with `change_type:` (§2); qa reads it and applies
   the matrix. A task missing `change_type` blocks the gate (§2.2).
-- **Not-applicable tooling is a soft skip, not a failure:** no web project / no dev server /
-  Playwright absent → qa records `ui: skipped (no browser target)` and does **not** FAIL.
+- **No browser target is not a soft skip by itself:** `ui` is `not_applicable` only when the
+  project excludes it with a signed decision; an unrunnable required `ui` is `misconfigured`.
 - **Hard gate:** a missing required test kind → `VERDICT: FAIL`, loop back to the dev. Enforced
   against the PR diff, not a self-report.
 - **TDD-coverage audit:** beyond running the suite, qa verifies every behavioral change in the diff
@@ -1621,8 +1646,8 @@ production command, the commit rule and the trust boundary; in short:
 - **Refusal and repair.** An invalid receipt refuses the PASS at exit 2, naming every bad file
   and the exact command that rewrites it; there is no fallback run. QA's grant covers
   `runs/*/qa/manifest-*.json` only.
-- **Committed with the run.** `runs/**` is ignored; main force-adds the receipts with the
-  committed closed run record.
+- **Committed with the run.** The receipts are ordinary tracked files (DEC-257), committed with
+  the closed run record.
 - **Trust boundary.** This checks recorded execution against git; it does not catch a
   deliberately forged complete receipt. The PR CI suite of §9.2 is unchanged and is that
   backstop.
@@ -1674,34 +1699,35 @@ domain persona and belongs to no squad.
 review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) are delegated to
 **pm**. The orchestrator conducts; it does not re-plan. "Who owns `PLAN.md`" stays unambiguous.
 
+**Model authority:** a dispatch never chooses a model. Each persona runs on its frontmatter role
+alias, and `.omp/config.yml` pins `task.perCallModel: "off"`, so OMP refuses a per-call `model` from
+every caller, the main session included. A task that seems to need a stronger model is an
+escalation: raise it in `open_questions` with evidence, decided above the dispatcher and recorded
+(DEC-155).
+
 ### 10.2 Org shape — hierarchical, three layers below the main session
 
 > **Verified (DEC-100): hierarchical works. The flat fallback is not needed.** A subagent
 > spawned three subagents in one turn and all three returned.
 >
-> **`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3"` encodes this org exactly** (DEC-120) — depth counts
-> layers *below* the main conversation:
+> **`task.maxRecursionDepth: 3` in `.omp/config.yml` encodes this org exactly** (DEC-120) — depth
+> counts layers *below* the main conversation, and `check-omp-port.py` asserts the value:
 >
 > ```
 > main session (user channel)   layer 0 — not counted
 >   └─ orchestrator             layer 1   ✓ can spawn      one per in-flight feature
 >       └─ lead                 layer 2   ✓ can spawn
->           └─ team members     layer 3   ✓ run, Agent withheld
+>           └─ team members     layer 3   ✓ run, no task tool
 >               └─ anything     layer 4   ✗ unreachable
 > ```
 >
-> Verified empirically at cap 3: layer 1 spawned YES, layer 2 spawned YES, layer 3 reported the
-> `Agent` tool absent, layer 4 never ran.
+> The original depth measurement was taken under Claude Code at cap 3: layer 1 spawned, layer 2
+> spawned, layer 3 reported its spawn tool absent, layer 4 never ran.
 >
-> **"Members are always leaves" is therefore enforced by the platform, not by our agent files.** At the
-> depth limit Claude Code *withholds* the `Agent` tool — stripped from the loaded list and the deferred
-> pool alike — so a member cannot delegate even if `Agent` were granted in its frontmatter. The failure
-> mode is benign: it finds no tool and does the work itself rather than erroring.
->
-> The setting must be present. At the platform default of 3 this org happens to fit, but the default has
-> changed three times (DEC-83) and a silent shift to 2 would make the members layer unreachable.
-> `check-state.py` INV-9 asserts the value, and omitting `Agent` from member `tools:` is retained as
-> redundant-but-explicit belt-and-suspenders.
+> **"Members are always leaves" is enforced twice in the agent files and once by the host.** Every
+> member's frontmatter carries `spawns: []` and no `task` tool, and OMP's recursion cap refuses a
+> fourth layer even if one were granted. Who may spawn whom is native `spawns:` policy, and
+> `check-omp-port.py` requires every agent to declare it as an explicit list.
 
 - **orchestrator** (layer 1, spawned — one per in-flight feature, DEC-120): delegates a *whole team*
   to that team's named lead, or a *single task* to **the lead that owns the persona for that task** —
@@ -1758,11 +1784,12 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
 - **Keep user-approval steps at team boundaries, not mid-DAG inside a lead.** A subagent cannot call
   `AskUserQuestion`, so a lead can never pause to ask you. Questions ride up via `open_questions`
   to the orchestrator, which surfaces them to the **main session** — the only tier that can ask.
-- **Parallel fan-out from inside a lead is VERIFIED** (DEC-100) — a subagent issued three `Agent` calls
-  in a single turn and all three returned. `validator-lead` runs its reviewer panel in parallel; the
-  serial fallback and the hand-the-panel-to-the-orchestrator workaround are both unnecessary. Size panels
-  against the real limits: **20** concurrent subagents per session, **200** per session in total, with
-  nested and background spawns both counting.
+- **Parallel fan-out from inside a lead is VERIFIED** (DEC-100) — a subagent issued three spawn
+  calls in a single turn and all three returned. `validator-lead` runs its reviewer panel in
+  parallel, as one `task` call with several `tasks[]`; the serial fallback and the
+  hand-the-panel-to-the-orchestrator workaround are both unnecessary. Size panels against OMP's
+  `task.maxConcurrency`, which defaults to **32** concurrent subagents (omp 19.1.0) and which this
+  repository does not override (DEC-81).
 
 **Where the team-runner logic lives.** The algorithm is single-sourced in the `harness-team` skill
 (`.claude/skills/harness-team/SKILL.md`) and hosted by **the team's named lead**. The flat variant —
@@ -2308,9 +2335,11 @@ open_questions:
 - **Leads write their own run file and nothing else.** `check-domain.py` grants each lead exactly
   `features/*/runs/*-<its-squad>/**`.
 
-**Retention:** `features/*/runs/**` is git-ignored scratch and prunes on the same schedule as
-`logs/` (`log_retention_days`, default 30). `feature.json` is **committed**, so the durable record
-of what shipped — branch, PR, runs, verdicts — survives pruning.
+**Retention:** a run's records under `features/*/runs/<id>/` are committed with the feature
+(DEC-257); only `runs/*/ui/**` is git-ignored. Station decides what is kept (DEC-238): abandon
+prunes `runs/`, and ship keeps every run's `digest.md`, `state.yaml` and `.run-identity.json`.
+`feature.json` is **committed**, so the durable record of what shipped (branch, PR, runs,
+verdicts) survives either way.
 
 **Runner invocation contract:** the host is invoked with `(team, goal)` and optionally
 `resume_from: <step-id>` + `answers: <path>`. The latter pair is how the orchestrator re-delegates
@@ -2434,7 +2463,7 @@ LLM-parsed at runtime with no build step.
 
 **A team is SINGLE-SQUAD by construction.** `lead:` is singular and required, a lead may only
 dispatch its own squad's members, and a lead cannot spawn another lead to
-reach across (that second lead would land one layer too deep with `Agent` withheld, and its members
+reach across (that second lead would land one layer too deep with no `task` tool, and its members
 at an unreachable layer below that). Multi-squad lifecycles are therefore **orchestrator playbooks that
 sequence one team run per squad**, each with its own lead and its own run dir, not single teams
 (DEC-118). §13 says this in `ship-feature`'s row; it holds for every team.
@@ -2446,7 +2475,7 @@ lead: eng-lead                     # REQUIRED — which domain lead hosts this D
 inputs: [goal]                     # team-level args, injected as {{goal}}
 steps:
   - id: plan
-    persona: pm                    # -> subagent_type harness-pm
+    persona: pm                    # -> task call with agent: harness-pm
     depends_on: []                 # empty = root; DAG drives ordering + parallelism
     inputs: []                     # prior outputs, referenced as <step_id>.<filename>
     outputs: [.harness/notes/research-{{feat}}.md]
@@ -2465,10 +2494,9 @@ steps:
   when its SC are met, not when its steps complete: a DAG that finished with an unmet SC is a `FAIL`
   that loops back, bounded only by `max_total_cycles`.
 - **Parallelism is implicit:** steps whose deps are all satisfied and that do not depend on each
-  other are dispatched in one assistant turn. The default concurrent-subagent limit is **20** per
-  session (tunable via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`), and a session may spawn **200**
-  subagents in total by default (`CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`) — nested and background
-  spawns both count.
+  other are dispatched in one blocking `task` call, one `tasks[]` item per step. OMP's
+  `task.maxConcurrency` bounds them at **32** concurrent subagents by default (omp 19.1.0); this
+  repository does not override it.
 - **State passing by file path only:** the runner resolves `plan.PLAN.md` →
   `<run_dir>/plan/PLAN.md` and injects the *path*; the persona reads it. Returns are control-flow
   only.
@@ -2494,16 +2522,17 @@ subagent — the flat variant (the orchestrator hosting) is dead, DEC-100.
 3. **Checkpoint-before-dispatch:** write `step X dispatched` to `state.yaml` *before* spawning, and
    `step X complete` after. Cycle counters are **read from and written to `state.yaml` on every
    iteration** — never held in the host's memory.
-4. Loop: compute ready set → dispatch the whole ready set in one turn (one spawn per step,
-   `subagent_type: harness-<persona>`, prompt = goal + resolved input paths + required output paths
-   + discipline rule path) → collect returns → **evaluate `on_fail` against VERDICT *and* DIGEST
-   predicates** → repeat until done or halt.
+4. Loop: compute ready set → dispatch the whole ready set in one blocking `task` call (one
+   `tasks[]` item per step, with `agent: harness-<persona>` and `task` = goal + resolved input paths
+   + required output paths + discipline rule path; never a per-call `model`, §10.1) → collect
+   returns → **evaluate `on_fail` against VERDICT *and* DIGEST predicates** → repeat until done or
+   halt.
 5. **Promotion is not needed for canonical files** — their owners write them in place (§2.3). Only
    if a team deliberately stages a canonical file in a run dir must it be promoted *before* any
    consumer step dispatches.
 6. Report per-step verdicts + run dir.
 
-**A lead host cannot timestamp its own run.** Leads hold `Read, Glob, Grep, Agent` and no
+**A lead host cannot timestamp its own run.** Leads hold `read, glob, grep, task, write` and no
 `Bash` (§3.4/§4.1) — deliberately, so they cannot do a member's work — which also means no clock.
 The lead therefore records monotonic ordering markers rather than wall-clock times (DEC-116).
 
@@ -2609,7 +2638,7 @@ nested runner. That is what would remove the accepted panel duplication (§13). 
 v1; the runner algorithm (§12.1) has no flattening step.
 
 **Hard limit:** a team is launched by an orchestrator agent or conducted by a lead —
-**never from inside a member persona.** Members are leaves — the depth cap withholds `Agent` from them (§10.2).
+**never from inside a member persona.** Members are leaves — they hold no `task` tool, and OMP's recursion cap stops a fourth layer (§10.2).
 
 ---
 

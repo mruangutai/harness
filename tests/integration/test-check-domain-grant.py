@@ -106,7 +106,7 @@ def t12(name, ok, detail=""):
     T12.append((name, ok, detail))
 
 
-def run_t12():
+def _t12_sc05_pair():
     # SC-05's PAIRED assertion, in ONE invocation context. Either outcome alone is
     # also what a broken hook produces — an allow-all escape passes the permitted
     # write, a block-all fail-closed blocks the forbidden one. Only a manifest that
@@ -123,29 +123,33 @@ def run_t12():
         f"permitted got {allowed.returncode} (want 0), forbidden got "
         f"{denied.returncode} (want 2)")
 
-    # FAIL CLOSED on a malformed manifest (user ruling, 2026-08-03). NOT the
-    # absent-manifest case, which still fails OPEN: an unconfigured project has
-    # nothing to enforce, whereas this project IS configured and one action fixes it.
-    # No deadlock — the manifest is in no agent's domain and the main session is
-    # exempt, so the only party who can repair it is the one this guard never governs.
-    bad = fixture('teams: [ {name: x ## eaten\nnext_key: 1\n')
-    r = fire(bad, "allowed/thing.md")
-    t12("a MALFORMED manifest blocks the write (fail closed, not half-enforced)",
-        r.returncode == 2 and "does not parse" in r.stderr,
-        f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
-    # A duplicate key in the RULEBOOK: which of two domain lists wins is not a thing
-    # to guess at while holding a write guard.
-    dup = fixture(FIXTURE_MANIFEST + "\nshared:\n  - { path: other.json }\n")
-    r = fire(dup, "allowed/thing.md")
-    t12("a DUPLICATE key in the manifest blocks the write",
-        r.returncode == 2 and "duplicate key" in r.stderr,
-        f"exit {r.returncode}: {r.stderr.strip()[:160]}")
+# FAIL CLOSED on a malformed manifest (user ruling, 2026-08-03). NOT the absent-manifest
+# case, which still fails OPEN: an unconfigured project has nothing to enforce, whereas
+# this project IS configured and one action fixes it. No deadlock — the manifest is in no
+# agent's domain and the main session is exempt, so the only party who can repair it is
+# the one this guard never governs. A duplicate key in the RULEBOOK: which of two domain
+# lists wins is not a thing to guess at while holding a write guard.
+BAD_MANIFESTS = (
+    ("a MALFORMED manifest blocks the write (fail closed, not half-enforced)",
+     'teams: [ {name: x ## eaten\nnext_key: 1\n', "does not parse"),
+    ("a DUPLICATE key in the manifest blocks the write",
+     FIXTURE_MANIFEST + "\nshared:\n  - { path: other.json }\n", "duplicate key"),
+)
 
+
+def _t12_bad_manifests_fail_closed():
+    for label, manifest, needle in BAD_MANIFESTS:
+        r = fire(fixture(manifest), "allowed/thing.md")
+        t12(label, r.returncode == 2 and needle in r.stderr,
+            f"exit {r.returncode}: {r.stderr.strip()[:160]}")
+
+
+def _t12_absent_manifest_fails_open():
     # The manifest still ABSENT fails OPEN, loudly — DEC-101 unchanged. Asserted so
     # the new fail-closed paths cannot quietly swallow this deliberate carve-out.
     #
-    # This needs an ISOLATED COPY of the hook, not merely an empty CLAUDE_PROJECT_DIR:
+    # This needs an ISOLATED COPY of the hook, not merely an empty project-root override:
     # `root` falls back to `_derived`, computed from BASH_SOURCE, so a hook running
     # from the real bin/ finds the REAL manifest no matter what the env var says. A
     # first draft of this case pointed the env var at an empty dir, got exit 0, and
@@ -167,45 +171,49 @@ def run_t12():
         r.returncode == 0 and "enforcement OFF" in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
-    # F-01, found by the review panel and reproduced live before the fix. load_str
-    # caught only yaml.YAMLError and load_file's open()/read() sat outside any try, so
-    # a manifest that is not valid UTF-8 — or a directory where a file was expected —
-    # raised past every caller's `except YamlParseError`, killed the subprocess with
-    # exit 1, and exit 1 is NON-BLOCKING (DEC-100). The write then proceeded UNGOVERNED.
-    #
-    # This is the ONE way a fail-closed guard fails open, it is the same crash pattern
-    # T-17's receipt documents, and it was fixed once in the escape path and missed here
-    # in the module both hooks call. Asserted at HOOK level, not module level: the panel
-    # showed module tests can exercise a path production never takes.
-    bad_utf8 = tempfile.mkdtemp()
-    os.makedirs(os.path.join(bad_utf8, ".harness"))
-    with open(os.path.join(bad_utf8, ".harness", "team-config.yaml"), "wb") as f:
-        f.write(b"schema_version: 1\nteams: [{name: b}]\n\xff\xfe not utf-8\n")
-    r = fire(bad_utf8, "allowed/thing.md")
-    t12("F-01: a manifest that is not valid UTF-8 BLOCKS (was exit 1 = fail open)",
-        r.returncode == 2 and "does not parse" in r.stderr,
-        f"exit {r.returncode} (2 blocks, 1 fails OPEN): {r.stderr.strip()[:200]}")
 
-    # M-02, found by the re-review panel and PRE-EXISTING at both SHAs. F-01 widened
-    # load_str's except, but these inputs PARSE SUCCESSFULLY — an empty file yields
-    # None, a bare scalar a str, a bare list a list — so no exception is ever raised
-    # and manifest_domains' `parsed.get("shared")` raised AttributeError straight past
-    # both hooks' `except YamlParseError`. Exit 1, non-blocking (DEC-100), write
-    # allowed. An EMPTY team-config.yaml was enough to disable both write guards.
-    #
-    # The shape is worth remembering: walk() immediately above guards every branch with
-    # isinstance and the very next statement did not. F-01's fix was scoped to the two
-    # shapes cycle 0 happened to name; this was a third route to the same fail-open.
-    for label, body in (("empty", ""), ("bare scalar", "just text\n"), ("bare list", "- a\n- b\n")):
-        m2 = tempfile.mkdtemp()
-        os.makedirs(os.path.join(m2, ".harness"))
-        with open(os.path.join(m2, ".harness", "team-config.yaml"), "w") as f:
-            f.write(body)
-        r = fire(m2, "allowed/thing.md")
-        t12(f"M-02: a manifest that parses to a non-mapping ({label}) BLOCKS, not crashes",
-            r.returncode == 2 and "Traceback" not in r.stderr,
-            f"exit {r.returncode} (2 blocks, 1 fails OPEN): {r.stderr.strip()[:180]}")
+def _manifest_root(body, mode="w"):
+    root = tempfile.mkdtemp()
+    os.makedirs(os.path.join(root, ".harness"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), mode) as f:
+        f.write(body)
+    return root
 
+
+# F-01, found by the review panel and reproduced live before the fix. load_str caught only
+# yaml.YAMLError and load_file's open()/read() sat outside any try, so a manifest that is
+# not valid UTF-8 — or a directory where a file was expected — raised past every caller's
+# `except YamlParseError`, killed the subprocess with exit 1, and exit 1 is NON-BLOCKING
+# (DEC-100). The write then proceeded UNGOVERNED. This is the ONE way a fail-closed guard
+# fails open, it is the same crash pattern T-17's receipt documents, and it was fixed once
+# in the escape path and missed here in the module both hooks call. Asserted at HOOK level,
+# not module level: the panel showed module tests can exercise a path production never takes.
+#
+# M-02, found by the re-review panel and PRE-EXISTING at both SHAs. F-01 widened load_str's
+# except, but these inputs PARSE SUCCESSFULLY — an empty file yields None, a bare scalar a
+# str, a bare list a list — so no exception is ever raised and manifest_domains'
+# `parsed.get("shared")` raised AttributeError straight past both hooks' `except
+# YamlParseError`. Exit 1, non-blocking (DEC-100), write allowed. An EMPTY team-config.yaml
+# was enough to disable both write guards. The shape is worth remembering: walk()
+# immediately above guards every branch with isinstance and the very next statement did
+# not. F-01's fix was scoped to the two shapes cycle 0 happened to name; this was a third
+# route to the same fail-open.
+UNREADABLE_MANIFESTS = (
+    ("F-01: a manifest that is not valid UTF-8 BLOCKS (was exit 1 = fail open)",
+     b"schema_version: 1\nteams: [{name: b}]\n\xff\xfe not utf-8\n", "wb", "does not parse"),
+    ("M-02: a manifest that parses to a non-mapping (empty) BLOCKS, not crashes", "", "w", ""),
+    ("M-02: a manifest that parses to a non-mapping (bare scalar) BLOCKS, not crashes",
+     "just text\n", "w", ""),
+    ("M-02: a manifest that parses to a non-mapping (bare list) BLOCKS, not crashes",
+     "- a\n- b\n", "w", ""),
+)
+
+
+def _t12_unreadable_manifests_block():
+    for label, body, mode, needle in UNREADABLE_MANIFESTS:
+        r = fire(_manifest_root(body, mode), "allowed/thing.md")
+        t12(label, r.returncode == 2 and needle in r.stderr and "Traceback" not in r.stderr,
+            f"exit {r.returncode} (2 blocks, 1 fails OPEN): {r.stderr.strip()[:200]}")
     as_dir = tempfile.mkdtemp()
     os.makedirs(os.path.join(as_dir, ".harness", "team-config.yaml"))
     r = fire(as_dir, "allowed/thing.md")
@@ -213,203 +221,207 @@ def run_t12():
         r.returncode in (0, 2) and "Traceback" not in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
-    # --- the state.yaml shape gate, now loader-driven (D-02) ---
+
+STATE_PATH = ".harness/harness/features/FEAT-90-fixture/runs/r1/state.yaml"
+# --- the state.yaml shape gate, now loader-driven (D-02) ---
+# The NESTED duplicate is the genuinely NEW behaviour: the regex this replaced was anchored
+# at column 0 (`^([A-Za-z_]...):` under re.M), so a duplicate nested inside a block was
+# invisible — the FEAT-02 audit's finding one level down. MALFORMED is a NEW blocking
+# outcome: the regex found no keys in a malformed file and reported nothing wrong.
+#
+# T-17 / D-08: `on:` is NOT the string "on" after parsing — YAML 1.1 resolves it to True.
+# Without str() on both sides, `k not in ALLOWED` compares a bool against a set of strings
+# and `sorted()` gets a MIXED set. THE FIXTURE NEEDS TWO UNKNOWN KEYS, one bool-resolved and
+# one string: `on:` alone sorts fine and passed against a deliberately un-coerced copy.
+# Mixed types are what raise TypeError, and in a fail-closed hook a raise is a BLOCK ON
+# EVERY WRITE, not a wrong answer; the denial must also explain the unquoted-key cause.
+SHAPE_GATE_ROWS = (
+    ("a newly created, well-formed version-2 state.yaml with checkpoint keys passes",
+     "schema_version: 2\nrun_id: r1\nstatus: complete\n", 0, ()),
+    ("a DUPLICATE top-level key is blocked with the DEC-156 message",
+     "run_id: r1\ncost: 1\ncost: 2\n", 2, ("DEC-156", "duplicate key")),
+    ("a NESTED duplicate key is blocked (column-0 regex could not see it)",
+     "run_id: r1\nsteps:\n  - id: s1\n    cost: 1\n    cost: 2\n", 2, ("duplicate key",)),
+    ("MALFORMED state.yaml is blocked with a parse-error message",
+     "run_id: [unclosed\nstatus: complete\n", 2, ("not valid YAML",)),
+    ("a non-checkpoint top-level key is still blocked (DEC-154 vocabulary intact)",
+     "run_id: r1\nfindings: lots of prose\n", 2, ("non-checkpoint",)),
+    ("a YAML-truthy key (`on:`) beside a string key denies cleanly, naming the unquoted cause",
+     "run_id: r1\non: something\nfindings: prose\n", 2,
+     ("non-checkpoint", "UNQUOTED key", "YAML 1.1")),
+)
+
+
+def _t12_state_shape_gate():
     root = fixture(FIXTURE_MANIFEST)
-    sp = ".harness/harness/features/FEAT-90-fixture/runs/r1/state.yaml"
+    for label, content, code, needles in SHAPE_GATE_ROWS:
+        r = fire(root, STATE_PATH, content)
+        t12(label, r.returncode == code and all(n in r.stderr for n in needles)
+            and "Traceback" not in r.stderr, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
-    r = fire(root, sp, "schema_version: 2\nrun_id: r1\nstatus: complete\n")
-    t12("a newly created, well-formed version-2 state.yaml with checkpoint keys passes",
-        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
-    r = fire(root, sp, "run_id: r1\ncost: 1\ncost: 2\n")
-    t12("a DUPLICATE top-level key is blocked with the DEC-156 message",
-        r.returncode == 2 and "DEC-156" in r.stderr and "duplicate key" in r.stderr,
-        f"exit {r.returncode}: {r.stderr.strip()[:160]}")
+# --- SC-08: the bootstrap escape, driven through the REAL HOOK -------------------------
+#
+# SC-08 says "the first HOOK INVOCATION permits the write and emits the install command".
+# test-harness-yaml.py covers require_or_bootstrap's state machine at MODULE level; a module
+# test cannot see whether the hook acts on the return value at all. It could not, and this
+# caught it: both hooks called require_or_bootstrap(root) and DISCARDED the result, so the
+# escape printed an install command and then let every write through — REQ-04's fail-closed
+# and SC-09's expiry were inert.
+#
+# PyYAML is hidden portably: a fake yaml.py that raises ImportError, on a PYTHONPATH entry
+# the hook appends after its own bin/. harness_yaml.py:18-20 is the single `try: import yaml
+# / except ImportError: yaml = None` in the tree (D-12), so this reproduces a machine that
+# genuinely lacks the package without uninstalling it.
+#
+# FEAT-2397 (#10): the session identity rides in the REAL hook payload (session_id, or the
+# transcript_path stem; the hook hands it on as HOOK_PAYLOAD). The retired Claude
+# CLAUDE_CODE_SESSION_ID / CLAUDE_CODE_BRIDGE_SESSION_ID arms are gone, so those names are
+# scrubbed from the inherited environment and only set where a case asserts they are inert.
+LEGACY_IDENTITY_ENV = ("CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_BRIDGE_SESSION_ID")
 
-    # The genuinely NEW behaviour. The regex this replaced was anchored at column 0
-    # (`^([A-Za-z_]...):` under re.M), so a duplicate NESTED inside a block was
-    # invisible — `cost:` appearing twice under `steps:` silently shadowed, which is
-    # the FEAT-02 audit's finding one level down. The loader raises at any depth.
-    r = fire(root, sp, "run_id: r1\nsteps:\n  - id: s1\n    cost: 1\n    cost: 2\n")
-    t12("a NESTED duplicate key is blocked (column-0 regex could not see it)",
-        r.returncode == 2 and "duplicate key" in r.stderr,
-        f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
-    # NEW blocking outcome: the regex this replaced found no keys in a malformed
-    # file and therefore reported nothing wrong — it wrote a broken checkpoint and
-    # said it was fine.
-    r = fire(root, sp, "run_id: [unclosed\nstatus: complete\n")
-    t12("MALFORMED state.yaml is blocked with a parse-error message",
-        r.returncode == 2 and "not valid YAML" in r.stderr,
-        f"exit {r.returncode}: {r.stderr.strip()[:160]}")
-
-    r = fire(root, sp, "run_id: r1\nfindings: lots of prose\n")
-    t12("a non-checkpoint top-level key is still blocked (DEC-154 vocabulary intact)",
-        r.returncode == 2 and "non-checkpoint" in r.stderr,
-        f"exit {r.returncode}: {r.stderr.strip()[:160]}")
-
-    # T-17 / D-08: test_yaml_truthy_top_level_key_is_reported_by_name.
-    #
-    # `on:` is NOT the string "on" after parsing — YAML 1.1 resolves it to True. Without
-    # str() on both sides, `k not in ALLOWED` compares a bool against a set of strings
-    # and the resulting `sorted()` gets a MIXED set.
-    #
-    # THE FIXTURE NEEDS TWO UNKNOWN KEYS, one bool-resolved and one string, and that is
-    # not incidental: a first draft used `on:` alone, whose unknown set is the single
-    # element {True}, which sorts fine. It passed against a deliberately un-coerced copy
-    # — a non-discriminating test that looked like proof. Mixed types are what raise
-    # TypeError, and in a fail-closed hook a raise is a BLOCK ON EVERY WRITE, not a
-    # wrong answer.
-    r = fire(root, sp, "run_id: r1\non: something\nfindings: prose\n")
-    t12("a YAML-truthy key (`on:`) beside a string key denies cleanly, no raise",
-        r.returncode == 2 and "non-checkpoint" in r.stderr and "Traceback" not in r.stderr,
-        f"exit {r.returncode}: {r.stderr.strip()[:200]}")
-    t12("...and the denial explains the unquoted-key cause, not just 'True'",
-        "UNQUOTED key" in r.stderr and "YAML 1.1" in r.stderr,
-        f"stderr lacked the cause hint: {r.stderr.strip()[:200]}")
-
-    # --- SC-08: the bootstrap escape, driven through the REAL HOOK -------------
-    #
-    # SC-08 says "the first HOOK INVOCATION permits the write and emits the install
-    # command". test-harness-yaml.py already covers require_or_bootstrap's state
-    # machine, but at MODULE level and via payload={"session_id": ...} — which the
-    # resolution probe showed is a DEAD entry in production, where identity comes from
-    # the CLAUDE_CODE_SESSION_ID environment variable. A module test cannot see whether
-    # the hook acts on the return value at all.
-    #
-    # It could not, and this caught it: both hooks called require_or_bootstrap(root)
-    # and DISCARDED the result, so the escape printed an install command and then let
-    # every write through — REQ-04's fail-closed and SC-09's expiry were inert.
-    #
-    # PyYAML is hidden portably: a fake yaml.py that raises ImportError, on a PYTHONPATH
-    # entry the hook appends after its own bin/. harness_yaml.py:18-20 is the single
-    # `try: import yaml / except ImportError: yaml = None` in the tree (D-12), so this
-    # reproduces a machine that genuinely lacks the package without uninstalling it.
+def _fake_yaml():
     fake = tempfile.mkdtemp()
     with open(os.path.join(fake, "yaml.py"), "w") as f:
         f.write('raise ImportError("simulated: no PyYAML")\n')
+    return fake
 
-    def fire_noyaml(root, path, session, content="x"):
-        payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-                   "tool_input": {"file_path": os.path.join(root, path), "content": content}}
-        env = _env(root, PYTHONPATH=fake,
-                   CLAUDE_CODE_SESSION_ID=session)
-        env.pop("CLAUDE_CODE_BRIDGE_SESSION_ID", None)
-        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                              text=True, env=env)
 
-    root = fixture(FIXTURE_MANIFEST)
-    marker = os.path.join(root, ".harness", ".pyyaml-bootstrap")
+def fire_noyaml(fake, root, path, identity, content="x", env=None):
+    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+               "tool_input": {"file_path": os.path.join(root, path), "content": content},
+               **identity}
+    hook_env = _env(root, PYTHONPATH=fake)
+    for name in LEGACY_IDENTITY_ENV:
+        hook_env.pop(name, None)
+    hook_env.update(env or {})
+    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                          text=True, env=hook_env)
 
-    r1 = fire_noyaml(root, "allowed/a.md", "sess-A")
-    t12("SC-08: with PyYAML missing, the FIRST hook invocation PERMITS the write",
-        r1.returncode == 0, f"exit {r1.returncode}: {r1.stderr.strip()[:200]}")
-    # NOT SC-08's full clause, and the name says so. SC-08 requires the command on "a
-    # channel the user sees" (BRIEF:106); this asserts only that it reaches stderr.
-    # The 2026-08-03 hand-run proved those are different things — Claude Code does not
-    # surface hook stderr when the hook ALLOWS (exit 0), so this assertion passed while
-    # the criterion it traces to FAILED, and the tester saw nothing. That is the
-    # verify-method defect this feature keeps finding, here in my own test. D-14b tracks
-    # the real fix; renamed so nobody reads a green tick as SC-08 being met.
+
+def _install_advice():
     # BUG-2169: the advice is per platform (apt on Debian/Ubuntu's system python3, pip
     # elsewhere), so the assertion is that one of harness_yaml's real install commands
     # arrives, not that the word "pip" does.
     import harness_yaml
-    advice = {harness_yaml.install_command(homebrew=brew, debian_system=debian).splitlines()[0]
-              for brew in (True, False) for debian in (True, False)}
+    return {harness_yaml.install_command(homebrew=brew, debian_system=debian).splitlines()[0]
+            for brew in (True, False) for debian in (True, False)}
+
+
+def _sysmsg(res):
+    """The hook's stdout systemMessage, parsed rather than substring-matched: malformed JSON
+    on a hook's stdout is worse than none, so an unloadable payload is None."""
+    try:
+        return json.loads(res.stdout.strip()).get("systemMessage", "")
+    except (ValueError, AttributeError):
+        return None
+
+
+def _t12_bootstrap_first_session(fake):
+    root = fixture(FIXTURE_MANIFEST)
+    marker = os.path.join(root, ".harness", ".pyyaml-bootstrap")
+    advice = _install_advice()
+    r1 = fire_noyaml(fake, root, "allowed/a.md", {"session_id": "sess-A"})
+    t12("SC-08: with PyYAML missing, the FIRST hook invocation PERMITS the write",
+        r1.returncode == 0, f"exit {r1.returncode}: {r1.stderr.strip()[:200]}")
+    # NOT SC-08's full clause, and the name says so: stderr on an ALLOW is not a channel the
+    # user sees (the 2026-08-03 hand-run measured it). D-14b tracks the real fix.
     t12("[partial SC-08] the install command reaches stderr (NOT proof the user sees it — D-14b)",
         any(command in r1.stderr for command in advice),
         f"stderr: {r1.stderr.strip()[:200]}")
-
-    # SC-08's ACTUAL clause: "a channel the user sees". stderr is not that on an allow —
-    # measured, not assumed. `systemMessage` on stdout is the PreToolUse contract's
-    # user-visible channel, already live in this repo via branch-create-gate.py:82,111.
-    # Parsed rather than substring-matched: malformed JSON on a hook's stdout is worse
-    # than none, so this fails if the payload is not loadable.
-    def _sysmsg(res):
-        try:
-            return json.loads(res.stdout.strip()).get("systemMessage", "")
-        except Exception:
-            return None
+    # SC-08's ACTUAL clause: "a channel the user sees" — `systemMessage` on stdout.
     msg = _sysmsg(r1)
     t12("SC-08: the install command reaches a channel the user SEES (systemMessage)",
         isinstance(msg, str) and any(command in msg for command in advice),
         f"stdout was {r1.stdout.strip()[:200]!r}")
     t12("SC-08: ...and records the marker",
         os.path.exists(marker), f"no marker at {marker}")
-
-    r2 = fire_noyaml(root, "allowed/b.md", "sess-A")
+    r2 = fire_noyaml(fake, root, "allowed/b.md", {"session_id": "sess-A"})
     t12("SC-08: a SECOND write in the SAME session is permitted, silently",
         r2.returncode == 0 and not any(command in r2.stderr for command in advice),
         f"exit {r2.returncode}: {r2.stderr.strip()[:200]}")
 
-    # The SC-09 MECHANISM. The criterion itself is verify: uat, because only a real
-    # session boundary proves it honestly — but the identity comparison the boundary
-    # relies on is testable here, and without it SC-09 could not pass in principle.
-    r3 = fire_noyaml(root, "allowed/c.md", "sess-B")
+
+def _t12_bootstrap_other_session_and_cleanup(fake):
+    # The SC-09 MECHANISM. The criterion itself is verify: uat, because only a real session
+    # boundary proves it honestly — but the identity comparison the boundary relies on is
+    # testable here, and without it SC-09 could not pass in principle.
+    root = fixture(FIXTURE_MANIFEST)
+    marker = os.path.join(root, ".harness", ".pyyaml-bootstrap")
+    fire_noyaml(fake, root, "allowed/a.md", {"session_id": "sess-A"})
+    r3 = fire_noyaml(fake, root, "allowed/c.md", {"session_id": "sess-B"})
     t12("SC-09 mechanism: a DIFFERENT session is BLOCKED while PyYAML is missing",
         r3.returncode == 2, f"exit {r3.returncode}: {r3.stderr.strip()[:200]}")
-
-    # D-14a, found by the SC-09 hand-run: the block was SILENT. require_or_bootstrap
-    # returned False without writing anything on three branches while both callers
-    # assumed it had printed, so an expired grant refused every Write AND every Bash
-    # command with zero bytes of explanation — the agent saw "PreToolUse:Write hook
-    # error: No stderr output" and had no way to learn why. Unlike the grant path
-    # (D-14b), stderr on a BLOCK does reach the agent, because exit 2 surfaces it
-    # (DEC-100) — so this channel is the right one here and the fix is complete.
+    # D-14a, found by the SC-09 hand-run: the block was SILENT. Unlike the grant path
+    # (D-14b), stderr on a BLOCK does reach the agent, because exit 2 surfaces it (DEC-100).
     t12("D-14a: the block SAYS WHY and carries the install command",
-        r3.stderr.strip() != "" and any(command in r3.stderr for command in advice)
+        r3.stderr.strip() != "" and any(command in r3.stderr for command in _install_advice())
         and "EARLIER session" in r3.stderr,
         f"stderr was {len(r3.stderr)} bytes: {r3.stderr.strip()[:200]}")
-
-    # THE SHAPE GATE DOES NOT RUN DURING A BOOTSTRAP GRANT, and that is the ruling,
-    # not an oversight.
-    #
-    # Review finding 1 (5th pass) said the grant skipped the DEC-154 shape gate, and I
-    # closed it with a line-scan fallback. The GOAL-CHECK then found that fallback
-    # violates the signed BRIEF outright — Goal :20-21 "no second code path anywhere,
-    # so the brittle regex leaves the tree instead of living on as a fallback nobody
-    # exercises", Constraint :48-49 "no line-scan alternative, no degraded mode in any
-    # converted script". The user ruled: REMOVE IT, honour the signature.
-    #
-    # What that costs is EARLIER detection, not correctness — measured before deciding:
-    # a malformed state.yaml written during a grant is still refused by check-state.py
-    # at the next /harness entry, naming the same keys, by a session that can read it.
-    # One bad file to delete, against a crude reader living on forever in a write guard.
-    #
-    # These two cases pin the RULED behaviour so nobody "fixes" it back: during a grant
-    # the write is allowed, and the entry gate is the backstop.
-    grant = fixture(FIXTURE_MANIFEST)
-    sp2 = ".harness/harness/features/FEAT-90-fixture/runs/r1/state.yaml"
-    rbad = fire_noyaml(grant, sp2, "sess-shape",
-                       content="run_id: r1\nfindings: a notebook of prose\n")
-    t12("grant: a malformed state.yaml is ALLOWED (no fallback — BRIEF Goal :20-21)",
-        rbad.returncode == 0,
-        f"exit {rbad.returncode}: {rbad.stderr.strip()[:200]}")
-
-    grant_ok = fixture(FIXTURE_MANIFEST)
-    rok = fire_noyaml(grant_ok, sp2, "sess-shape-ok",
-                      content="run_id: r1\nstatus: complete\n")
-    t12("grant: a well-formed state.yaml is allowed too (the grant is not selective)",
-        rok.returncode == 0, f"exit {rok.returncode}: {rok.stderr.strip()[:200]}")
-
-    # And WITH a parser the gate is unchanged — this is what makes the pair meaningful
-    # rather than "the hook allows everything".
-    withyaml = fixture(FIXTURE_MANIFEST)
-    rgated = fire(withyaml, sp2, content="run_id: r1\nfindings: prose\n")
-    t12("with a parser, the shape gate still BLOCKS the same content",
-        rgated.returncode == 2 and "DEC-154" in rgated.stderr,
-        f"exit {rgated.returncode}: {rgated.stderr.strip()[:200]}")
-
-    # Self-cleaning: once yaml imports again the marker is removed, so a machine that
-    # gets fixed does not carry a spent grant forever.
-    # Control-plane target, for T-01's reason: this is an allow assertion, and an
-    # in-root product-shaped path stops being owned once T-02 lands.
+    # Self-cleaning: once yaml imports again the marker is removed, so a machine that gets
+    # fixed does not carry a spent grant forever. Control-plane target, for T-01's reason:
+    # this is an allow assertion, and an in-root product-shaped path stops being owned.
     r4 = fire(root, ".harness/allowed/d.md")
     t12("the marker self-unlinks once PyYAML imports again",
         r4.returncode == 0 and not os.path.exists(marker),
         f"exit {r4.returncode}, marker present: {os.path.exists(marker)}")
 
+
+def _t12_grant_skips_shape_gate(fake):
+    # THE SHAPE GATE DOES NOT RUN DURING A BOOTSTRAP GRANT, and that is the ruling, not an
+    # oversight: a line-scan fallback violated the signed BRIEF (Goal :20-21, Constraint
+    # :48-49) and the user ruled REMOVE IT. What that costs is EARLIER detection, not
+    # correctness: check-state.py refuses a malformed state.yaml at the next /harness entry.
+    # These cases pin the RULED behaviour so nobody "fixes" it back.
+    rbad = fire_noyaml(fake, fixture(FIXTURE_MANIFEST), STATE_PATH, {"session_id": "sess-shape"},
+                       content="run_id: r1\nfindings: a notebook of prose\n")
+    t12("grant: a malformed state.yaml is ALLOWED (no fallback — BRIEF Goal :20-21)",
+        rbad.returncode == 0,
+        f"exit {rbad.returncode}: {rbad.stderr.strip()[:200]}")
+    rok = fire_noyaml(fake, fixture(FIXTURE_MANIFEST), STATE_PATH, {"session_id": "sess-shape-ok"},
+                      content="run_id: r1\nstatus: complete\n")
+    t12("grant: a well-formed state.yaml is allowed too (the grant is not selective)",
+        rok.returncode == 0, f"exit {rok.returncode}: {rok.stderr.strip()[:200]}")
+    # And WITH a parser the gate is unchanged — this is what makes the pair meaningful
+    # rather than "the hook allows everything".
+    rgated = fire(fixture(FIXTURE_MANIFEST), STATE_PATH, content="run_id: r1\nfindings: prose\n")
+    t12("with a parser, the shape gate still BLOCKS the same content",
+        rgated.returncode == 2 and "DEC-154" in rgated.stderr,
+        f"exit {rgated.returncode}: {rgated.stderr.strip()[:200]}")
+
+
+# FEAT-2397 (#10): which inputs name the session for the bootstrap grant. The payload's
+# session_id and transcript stem do; the retired CLAUDE_CODE_* variables alone do not, so a
+# grant asked for with only those fails CLOSED (no identity, D-06), never opens.
+IDENTITY_SOURCES = (
+    ("a payload session_id", {"session_id": "sess-P"}, {}, 0),
+    ("a payload transcript_path stem", {"transcript_path": "/t/sess-T.jsonl"}, {}, 0),
+    ("CLAUDE_CODE_SESSION_ID alone", {}, {"CLAUDE_CODE_SESSION_ID": "sess-E"}, 2),
+    ("CLAUDE_CODE_BRIDGE_SESSION_ID alone", {}, {"CLAUDE_CODE_BRIDGE_SESSION_ID": "sess-B"}, 2),
+)
+
+
+def _t12_identity_sources(fake):
+    for label, identity, env, code in IDENTITY_SOURCES:
+        r = fire_noyaml(fake, fixture(FIXTURE_MANIFEST), "allowed/a.md", identity, env=env)
+        t12(f"FEAT-2397 identity: {label} -> exit {code} with PyYAML missing",
+            r.returncode == code and "Traceback" not in r.stderr,
+            f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+
+T12_SCENARIOS = (_t12_sc05_pair, _t12_bad_manifests_fail_closed, _t12_absent_manifest_fails_open,
+                 _t12_unreadable_manifests_block, _t12_state_shape_gate)
+T12_NOYAML_SCENARIOS = (_t12_bootstrap_first_session, _t12_bootstrap_other_session_and_cleanup,
+                        _t12_grant_skips_shape_gate, _t12_identity_sources)
+
+
+def run_t12():
+    for scenario in T12_SCENARIOS:
+        scenario()
+    fake = _fake_yaml()
+    for scenario in T12_NOYAML_SCENARIOS:
+        scenario(fake)
     fails = 0
     for name, ok, detail in T12:
         if ok:

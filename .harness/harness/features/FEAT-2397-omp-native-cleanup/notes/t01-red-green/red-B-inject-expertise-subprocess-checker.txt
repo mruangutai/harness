@@ -1,0 +1,59 @@
+# tree: bdb1c2f6 + inject-expertise._emit change only (step A green, step B red)
+PASS case1: both tiers present, precedence rule stated once
+PASS feat65: an unexpected resolver defect is loud and nonzero, not absorbed
+PASS case2: two repository segments sorted, precedence line exactly once
+PASS case3: craft only, no repository text of any kind
+PASS case4: no Expertise still receives control-plane context
+PASS case4b: injected root is absolute control plane, never product cwd
+PASS case4c: unresolved root is injected loudly without blocking
+PASS case4d: callable checker over agent body 'clean'
+FAIL case4d: callable checker over agent body 'UNANCHORED'
+        got=['HARNESS_PATH_DRIFT: none']
+PASS response: one JSON object carrying only a top-level context string
+PASS drift parity with the checker CLI: all four files clean
+PASS drift parity with the checker CLI: findings across two files past the five-location cap
+FAIL checker outcome: a syntax error
+        exit=0 lines=1 got=['HARNESS_PATH_DRIFT: 0 unanchored path(s)']
+FAIL checker outcome: an import-time exception
+        exit=0 lines=1 got=['HARNESS_PATH_DRIFT: 0 unanchored path(s)']
+FAIL checker outcome: an import-time SystemExit
+        exit=0 lines=1 got=['HARNESS_PATH_DRIFT: 0 unanchored path(s)']
+FAIL checker outcome: no violations function
+        exit=0 lines=1 got=['HARNESS_PATH_DRIFT: none']
+FAIL checker outcome: a violations exception
+        exit=0 lines=1 got=['HARNESS_PATH_DRIFT: none']
+FAIL checker outcome: a violations SystemExit
+        exit=0 lines=1 got=['HARNESS_PATH_DRIFT: none']
+FAIL checker outcome: a malformed finding
+        exit=0 lines=1 got=['HARNESS_PATH_DRIFT: none']
+PASS checker outcome: checker output on stdout
+FAIL checker runs in-process: four calls, all in the hook's pid
+        hook=48502 pids=[]
+PASS capped body parity: empty
+PASS capped body parity: one unterminated line
+PASS capped body parity: exactly 40 lines
+PASS capped body parity: 41 lines
+PASS capped body parity: exactly 150 lines
+PASS capped body parity: 151 lines
+PASS capped body parity: 150 lines and an unterminated 151st
+PASS capped body parity: 41 CRLF lines
+PASS capped body parity: 151 CR lines
+PASS capped body parity: mixed CRLF/CR/LF
+PASS capped body parity: Unicode splitline separators
+PASS capped body parity: 151 blank lines
+PASS case5a: missing agent_type -> exit 0, no traceback
+PASS case5b: invalid JSON payload -> exit 0, no traceback
+PASS case6: non-harness agent -> exit 0, empty stdout
+PASS case7a: 41-line repository file truncates at 40, not 150
+PASS case7b: 41-line craft file (no repo tier) — no truncation notice
+PASS case8: 151-line craft file truncates at 150
+PASS case10: repository tier, no craft tier at all
+PASS case11: unparseable team-config.yaml, no fleet.yaml -> unaffected, no traceback
+PASS case12: agent_type='harness-' -> exit 0, empty stdout, no leaked body
+PASS case12: agent_type='harness-qa/../../etc' -> exit 0, empty stdout, no leaked body
+PASS case12: agent_type='harness-*' -> exit 0, empty stdout, no leaked body
+PASS case12: agent_type='harness-qa;id' -> exit 0, empty stdout, no leaked body
+PASS case13: dangling symlink in repository tier -> unreadable guard skips it, no leak, clean stderr
+
+37/46 cases passed.
+exit=1

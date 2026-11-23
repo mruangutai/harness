@@ -34,21 +34,21 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
 
 def _env(root, **kw):
-    """The hook's environment for a fixture rooted at `root` — BOTH names, one value.
+    """The hook's environment for a fixture rooted at `root` — HARNESS_PROJECT_DIR only.
 
     FEAT-42 T-10. check-domain.py resolves its root through harness_boundary.resolve_root,
     which reads HARNESS_PROJECT_DIR and no other name. The reverted sha-3952814 copy this
-    suite is diffed against reads HARNESS_PROJECT_DIR first and CLAUDE_PROJECT_DIR second.
-    Setting both to the same value is therefore the ONE spelling under which the two copies
-    resolve the same root, which is what makes the identical-violation-set proof mean
-    anything. Setting only the host-owned name — what every call here did before — points
-    the new copy at the live checkout instead, and 20 cases failed exactly that way.
+    suite is diffed against reads HARNESS_PROJECT_DIR first, so that one name resolves the
+    same root in both copies, which is what makes the identical-violation-set proof mean
+    anything. Setting only the retired host-owned name (CLAUDE_PROJECT_DIR) — what every call
+    here once did — points the new copy at the live checkout instead, and 20 cases failed
+    exactly that way.
 
     resolve_root honours the override only when `.harness/team-config.yaml` is readable
     underneath it. A fixture without that marker gets the override discarded and falls back
     to the derived root, which is the same answer the deleted chain gave it.
     """
-    return dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root, **kw)
+    return dict(os.environ, HARNESS_PROJECT_DIR=root, **kw)
 
 
 FIXTURE_MANIFEST = """schema_version: 1

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/tests/unit/test-session-accessor-probe.py", line 216, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/tests/unit/test-session-accessor-probe.py", line 205, in main
+    test_identity_table()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/tests/unit/test-session-accessor-probe.py", line 84, in test_identity_table
+    got = (probe.is_nested(path), probe.is_flat_main(path))
+           ^^^^^^^^^^^^^^^
+AttributeError: module 'probe_omp_session_accessor' has no attribute 'is_nested'
+exit=1

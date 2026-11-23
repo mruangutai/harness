@@ -1,0 +1,44 @@
+schema_version: 2
+run_id: r-20261122-1-plan-product
+run_uid: 42c5230976704f4da4c78c934ade5118
+feature: BUG-2399-run-records-tracked
+squad: product
+host: harness-product-lead
+status: blocked
+steps:
+  - id: draft
+    persona: harness-pm
+    status: blocked
+    verdict: BLOCKED
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-tracked/.harness/harness/features/BUG-2399-run-records-tracked/notes/research-BUG-2399-run-records-tracked-draft.md
+    evidence:
+      blocker: required_simplification_dispatch_capability
+      plan_created: false
+  - id: scope
+    persona: harness-code-reviewer
+    depends_on: [draft]
+    status: pending
+    cycles: 0
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: [draft]
+    status: pending
+    cycles: 0
+  - id: design
+    persona: harness-ui-reviewer
+    depends_on: [draft]
+    status: pending
+    cycles: 0
+  - id: apply
+    persona: harness-pm
+    depends_on: [scope, should-not-exist, design]
+    status: pending
+    cycles: 0
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: [apply]
+    status: pending
+    cycles: 0

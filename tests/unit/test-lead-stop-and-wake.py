@@ -3,7 +3,11 @@
 
   bound     — the once-only "a stop refusal fires at most once" claim, wherever it still
               appears, is qualified per-stop-sequence or lives inside a STRUCK entry —
-              never left as a bare, falsifiable, un-scoped claim.
+              never left as a bare, falsifiable, un-scoped claim. There is NO floor: FEAT-2397
+              removed the bypass doctrine, so zero occurrences is the true state and the claim
+              is never re-authored; strict zero is not asserted either. A positive control
+              proves ONCE_RE and QUALIFIER_RE still match fixed samples, so a rotted detector
+              (which would make "zero occurrences" vacuous) fails.
   coverage  — DECISIONS-INDEX.md's DEC-201 row, DECISIONS.md's DEC-201 heading, and some
               single sentence of the DEC-201 entry name the LEAD tier, not only the
               orchestrator.
@@ -132,12 +136,7 @@ def bound_site_cases(path, results):
         return
 
     occurrences = list(ONCE_RE.finditer(text))
-    if not occurrences:
-        results.append(
-            (f"case_floor_{site_key}", False, f"zero once-only occurrences found in {rel}")
-        )
-        return
-    results.append((f"case_floor_{site_key}", True, f"{len(occurrences)} occurrence(s) in {rel}"))
+    print(f"{len(occurrences)} once-only occurrence(s) in {rel}")
 
     is_decisions = os.path.abspath(path) == os.path.abspath(DECISIONS_PATH)
     for idx, m in enumerate(occurrences, start=1):
@@ -163,6 +162,22 @@ def bound_site_cases(path, results):
         )
 
 
+DETECTOR_SAMPLES = (
+    ("ONCE_RE", ONCE_RE, "A stop refusal fires at most once."),
+    ("QUALIFIER_RE", QUALIFIER_RE, "It fires at most once per consecutive stop sequence."),
+)
+
+
+def detector_control_cases():
+    """Positive control: each detector matches its fixed sample. Without the floor, a
+    regex that rotted to match nothing would otherwise pass every site vacuously."""
+    return [
+        (f"case_detector_control_{name}", bool(rx.search(sample)),
+         f"{name} no longer matches its fixed sample {sample!r}")
+        for name, rx, sample in DETECTOR_SAMPLES
+    ]
+
+
 def bound_cases(only_path=None):
     sites = BOUND_SITES
     results = []
@@ -179,6 +194,7 @@ def bound_cases(only_path=None):
             )
             return results
         sites = matches
+    results.extend(detector_control_cases())
     for path in sites:
         print(f"reading bound site from {path}")
         bound_site_cases(path, results)

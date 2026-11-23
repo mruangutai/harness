@@ -23,7 +23,7 @@ schema — the path feature-record.py close-run takes. Exit 0 = valid; exit 1 = 
 violation (reasons on stdout). Hook mode validates the payload's `digest_object`, the
 raw `data` of the yield, and rejects anything that is not a mapping.
 """
-import sys, re, os, subprocess, json
+import collections, functools, sys, re, os, subprocess, json
 
 # Same directory as this script; sys.path[0] is that directory under `python3 <path>`.
 # The placeholder vocabulary lives there so INV-6 and this check cannot drift (issue #16).
@@ -34,7 +34,7 @@ import artifact_accessors
 import amendment_contract
 import digest_record
 import digest_schema
-from code_grade import classify, commit_oid, gated_set
+from code_grade import classify, commit_oid, gated_set, _git_show
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 from check_state.brief import SC_LINE_RE, brief_scs_with_lines
 
@@ -389,6 +389,115 @@ def _load_test_kinds(root):
     return kinds, None
 
 
+# --- FEAT-2398 (D-01, DEC-256): QA's kind policy — test_kinds and test_matrix — is the REVIEWED
+# repository's harness.json at its review pin: the product code repository for a fleet-bound
+# feature, the repository holding the feature for an unbound Harness one. It is resolved once per
+# process (one hook or CLI process validates one return) and every QA reader shares it: the kind
+# policy, the matrix floor, the no-kind exemption and the receipt kinds. There is no current-tree,
+# default-branch or planning-tree fallback; each failure is a named refusal.
+QA_POLICY_PATH = ".harness/harness.json"
+
+# The trusted inputs QA's policy resolves from: the feature runtime identity selected, and the
+# dispatch's review pin. `_qa_policy(*seam)` keeps one cache key with the receipt check's call.
+_QaSeam = collections.namedtuple("_QaSeam", "feature_dir review_pin")
+
+
+class _QaPolicyRefusal(str):
+    """A QA policy-establishment refusal. For an unconditional qa PASS the #919 receipt check
+    restates it with the pin diagnosis and repair command, so the hook leaves it to that check."""
+
+
+def _qa_policy_refusal(why):
+    return None, None, _QaPolicyRefusal(
+        f"QA kind policy cannot be established: {why}. QA test_kinds and test_matrix are read "
+        f"only from the reviewed repository at its review pin — there is no fallback (D-01, "
+        f"DEC-256).")
+
+
+@functools.lru_cache(maxsize=None)
+def _qa_policy(feature_dir, review_pin):
+    """`(document, "<repository> @ <commit>:.harness/harness.json", None)` for the trusted
+    feature directory and dispatch pin, or `(None, None, refusal)`."""
+    if not feature_dir:
+        return _qa_policy_refusal("no trusted feature directory names the review pin")
+    try:
+        record = artifact_accessors.load_feature_json(os.path.join(feature_dir, "feature.json"))
+        code_root, repository, why = _qa_code_repository(record, feature_dir)
+        if not why:
+            commit, why = _qa_review_commit(code_root, repository, record, review_pin)
+        if why:
+            return _qa_policy_refusal(why)
+        return _qa_pinned_policy(code_root, repository, commit)
+    except artifact_accessors.FeatureJsonError as error:
+        return _qa_policy_refusal(f"{feature_dir}/feature.json could not be read ({error})")
+    except (OSError, subprocess.SubprocessError) as error:
+        return _qa_policy_refusal(f"git could not be run ({type(error).__name__}: {error})")
+
+
+def _qa_code_repository(record, feature_dir):
+    """`(root, name, None)` of the repository whose pin governs QA, or `(None, None, why)`: a
+    bound feature's fleet checkout (a malformed binding is bound too, never the owner's), else
+    the repository holding the feature."""
+    import feature_schema
+    planning_root = _repo_root_for_feature(feature_dir)
+    if not feature_schema.has_repository_binding(record):
+        return planning_root, planning_root, None
+    factory = record.get("factory")
+    repo = factory.get("repo") if isinstance(factory, dict) else None
+    if not isinstance(repo, str):
+        return None, None, f"feature.json factory binding {factory!r} names no repository"
+    import factory_config
+    try:
+        fleet = artifact_accessors.load_fleet(
+            os.path.join(planning_root, ".harness", "factory", "fleet.yaml"))
+        factory_config.repo_entry(fleet, repo)
+    except (artifact_accessors.FleetError, OSError) as error:
+        return None, None, f"factory.repo {repo} is not a registered fleet repository ({error})"
+    code_root = factory_config.workspace_path(fleet, repo)
+    if not os.path.isdir(code_root):
+        return None, None, f"the {repo} checkout {code_root} is unavailable"
+    return code_root, repo, None
+
+
+def _qa_pins(record, review_pin):
+    """`(source, value)` for each pin feature.json's review_sha and the dispatch actually give."""
+    return [(source, value.strip()) for source, value in
+            (("review_sha", record.get("review_sha")), ("dispatch pin", review_pin))
+            if isinstance(value, str) and value.strip() and not _placeholder(value)]
+
+
+def _qa_review_commit(code_root, repository, record, review_pin):
+    """`(commit, None)`: the one full commit feature.json's review_sha and a trusted dispatch pin
+    name in the code repository — either may supply it and both must agree (#1677)."""
+    pins = _qa_pins(record, review_pin)
+    if not pins:
+        return None, "the feature records no review pin (review_sha) and the dispatch gave none"
+    commits = set()
+    for source, value in pins:
+        oid = resolve_reviewed_commit(code_root, value)
+        if oid is None:
+            return None, f"{source} {value!r} does not resolve to a commit in {repository}"
+        commits.add(oid.decode())
+    if len(commits) > 1:
+        return None, f"the dispatch pin and review_sha do not agree on one commit in {repository}"
+    return commits.pop(), None
+
+
+def _qa_pinned_policy(code_root, repository, commit):
+    where = f"{repository} @ {commit}:{QA_POLICY_PATH}"
+    try:
+        text = _git_show(code_root, commit, QA_POLICY_PATH)
+    except (RuntimeError, UnicodeDecodeError) as error:
+        return _qa_policy_refusal(f"{where} could not be read (git refused: {error})")
+    if text is None:
+        return _qa_policy_refusal(f"{where} could not be read: No such file at that commit")
+    try:
+        document = artifact_accessors.load_harness_json(text=text, context=where)
+    except artifact_accessors.ArtifactAccessError as error:
+        return _qa_policy_refusal(f"{where} is not a valid harness.json ({error})")
+    return document, where, None
+
+
 # The three checks below replace prose that only the consuming LLM enforced (consumer
 # audit, 2026-09-18). Each is a predicate over data the repository owns — the git log at
 # the pin, the working tree at return, harness.json's test_kinds — and each REFUSES only
@@ -466,43 +575,88 @@ def _dirty_tree_error(root):
             f"{HUMAN_COMMIT_MARK} commit or a stash, then review the pin.")
 
 
-def _qa_kind_policy_error(i, kind, state, test_kinds):
-    """The harness.json cross-check for one kinds entry, or None."""
+def _kind_class(policy):
+    """One configured kind's QA class, by its `status` (DEC-187, FEAT-2398): `excluded` (the
+    only soft skip), `locally_run`, `misconfigured` (`unresolved` whatever its cmd, or `active`
+    with no cmd — required, but no usable runner) or `runnable`."""
+    status = policy.get("status")
+    if status in ("excluded", "locally_run"):
+        return status
+    if status == "unresolved" or not policy.get("cmd"):
+        return "misconfigured"
+    return "runnable"
+
+
+def _misconfigured_rule(kind, policy, where):
+    """The one statement of a misconfigured kind's rule and its two repairs."""
+    status = policy.get("status")
+    shape = status if status == "unresolved" else f"{status} with no cmd"
+    return (f"{kind} is {shape} in {where}: a required kind with no usable runner is reported "
+            f"state misconfigured with VERDICT BLOCKED — never skipped, failed or omitted. Two "
+            f"repairs: configure a runner that has actually run and passed, then set "
+            f"test_kinds.{kind}.cmd and status: active; or record status: excluded with "
+            f"excluded_because and signed: DEC-NNN resolving in the project's decisions "
+            f"(DEC-187). A BRIEF Verification gaps entry is disclosure, never a waiver.")
+
+
+def _qa_kind_policy_error(i, kind, state, verdict, test_kinds, where):
+    """Gate 1: the pinned policy's cross-check for one reported kind, under every verdict."""
     policy = test_kinds.get(kind)
     if not isinstance(policy, dict):
-        return f"kinds[{i}] names {kind!r}, which harness.json test_kinds does not declare."
-    excluded = policy.get("status") == "excluded" or policy.get("cmd") is None
-    if state == "not_applicable" and not excluded:
-        return (f"kinds[{i}] ({kind}) claims not_applicable but harness.json carries a "
-                f"runnable cmd for it — a kind that ran is satisfied or missing; one that "
-                f"could not run is misconfigured (BLOCKED).")
-    if state == "satisfied" and policy.get("cmd") is None:
-        return (f"kinds[{i}] ({kind}) claims satisfied but harness.json has no cmd for it — "
+        return f"kinds[{i}] names {kind!r}, which test_kinds in {where} does not declare."
+    if _kind_class(policy) == "misconfigured":
+        return _misconfigured_report_error(i, kind, state, verdict, policy, where)
+    return _status_state_error(i, kind, state, policy, where)
+
+
+def _misconfigured_report_error(i, kind, state, verdict, policy, where):
+    """A misconfigured kind may be reported only `misconfigured` with VERDICT BLOCKED."""
+    if state == "misconfigured" and verdict == "BLOCKED":
+        return None
+    return f"kinds[{i}] reports {state} under VERDICT {verdict}. " + _misconfigured_rule(
+        kind, policy, where)
+
+
+def _status_state_error(i, kind, state, policy, where):
+    """A usable kind's state against its status: only `excluded` soft-skips, only a configured
+    `locally_run` kind runs locally, and `satisfied` needs a `cmd`."""
+    kind_class = _kind_class(policy)
+    if state == "not_applicable" and kind_class != "excluded":
+        return (f"kinds[{i}] ({kind}) claims not_applicable but {where} records status "
+                f"{policy.get('status')} with a runnable cmd — only status: excluded with its "
+                f"signed decision may soft-skip; a kind that ran is satisfied or missing.")
+    if state == "locally_run" and kind_class != "locally_run":
+        return (f"kinds[{i}] ({kind}) claims locally_run but {where} records status "
+                f"{policy.get('status')} — only a kind configured status: locally_run runs "
+                f"locally.")
+    if state == "satisfied" and not policy.get("cmd"):
+        return (f"kinds[{i}] ({kind}) claims satisfied but {where} has no cmd for it — "
                 f"nothing could have run.")
     return None
 
 
-def _qa_kind_entry_errors(i, entry, verdict, test_kinds):
+def _qa_kind_entry_errors(i, entry, verdict, test_kinds, where):
     """The semantic rules for one `kinds` entry; its shape and `state` enum are the schema's."""
     if not isinstance(entry, dict):
         return []
     kind = str(entry.get("kind", "")).strip()
     state = entry.get("state")
-    err = []
+    policy_error = _qa_kind_policy_error(i, kind, state, verdict, test_kinds, where)
+    if policy_error:
+        return [policy_error]
     if state == "misconfigured" and verdict in ("PASS", "FAIL"):
-        err.append(f"kinds[{i}] ({kind}) is misconfigured but VERDICT is {verdict} — a kind "
-                   f"that cannot run is BLOCKED, never a verdict on the code.")
-    policy_error = test_kinds and _qa_kind_policy_error(i, kind, state, test_kinds)
-    return err + ([policy_error] if policy_error else [])
+        return [f"kinds[{i}] ({kind}) is misconfigured but VERDICT is {verdict} — a kind "
+                f"that cannot run is BLOCKED, never a verdict on the code."]
+    return []
 
 
-def _qa_kind_errors(kinds, verdict, test_kinds):
-    """harness-verification-rules § five states, checked against harness.json (the state
-    enum is the schema's): `misconfigured` is BLOCKED, never a verdict; `not_applicable`
-    is legal only for a kind the policy excludes; `satisfied` needs a runnable `cmd`.
-    `test_kinds` None means the policy could not be read — only the shape rules run."""
+def _qa_kind_errors(kinds, verdict, test_kinds, where):
+    """harness-verification-rules § five states, checked against the pinned policy (the state
+    enum is the schema's): `misconfigured` is BLOCKED, never a verdict; `not_applicable` is
+    legal only for an excluded kind; `locally_run` only for a configured one; `satisfied`
+    needs a `cmd`."""
     return [error for i, raw in enumerate(kinds)
-            for error in _qa_kind_entry_errors(i, raw, verdict, test_kinds)]
+            for error in _qa_kind_entry_errors(i, raw, verdict, test_kinds, where)]
 
 
 def _classify_canonical_range(root, base_oid, head_oid, test_kinds):
@@ -1111,13 +1265,15 @@ def _head_is_pin_error(root, reviewed, review_sha):
 
 
 def validate(persona, obj, config_path=None, feature_dir=None, branch_override=_BRANCH_UNSET,
-             review_pin=None, mission=None, expertise=None):
+             review_pin=None, mission=None, expertise=None, qa_feature_dir=None):
     """Every contract error for one digest object — schema first, then the semantic
     gates — or [] when it is valid. `obj` is the returned value itself; anything that is
     not a mapping is one error naming the object shape. An unknown persona is refused,
     never guessed; a schema that cannot load is OUR defect and raises. `expertise` is the
     trusted distill context the caller derived from the registered run, as
-    `(context, None)` or `(None, why-not)`; None means no context was established."""
+    `(context, None)` or `(None, why-not)`; None means no context was established.
+    `qa_feature_dir` is the feature trusted runtime identity selected for QA's pinned kind
+    policy (FEAT-2398); without it, `feature_dir` is that seam, and none means no policy."""
     if not isinstance(obj, dict):
         return [OBJECT_REQUIRED]
     try:
@@ -1131,7 +1287,8 @@ def validate(persona, obj, config_path=None, feature_dir=None, branch_override=_
     verdict = obj.get("VERDICT") if isinstance(obj.get("VERDICT"), str) else None
     err += _semantic_errors(canonical, family, verdict, seen, obj.get("artifact"), mission,
                             config_path=config_path, feature_dir=feature_dir,
-                            branch_override=branch_override, review_pin=review_pin)
+                            branch_override=branch_override, review_pin=review_pin,
+                            qa=_QaSeam(qa_feature_dir or feature_dir, review_pin))
     err += _expertise_errors(canonical, seen.get("expertise_update"), expertise)
     return err
 
@@ -1411,12 +1568,12 @@ _GATED = ("suite", "matrix_ok", "task_verify", "code_grade", "reviewed")
 
 
 def _semantic_errors(canonical, family, verdict, seen, artifact, mission, *,
-                     config_path, feature_dir, branch_override, review_pin):
+                     config_path, feature_dir, branch_override, review_pin, qa):
     passing = verdict == "PASS"
     err = [error for field in _GATED if field in seen
            for error in _gate_field_errors(field, seen[field], seen, family, mission, passing,
-                                           feature_dir)]
-    err += _family_errors(family, verdict, seen, artifact, feature_dir)
+                                           qa)]
+    err += _family_errors(family, verdict, seen, artifact, feature_dir, qa)
     if canonical == "harness-code-reviewer":
         err += _reviewer_errors(seen, artifact, verdict, family, mission,
                                 config_path=config_path, feature_dir=feature_dir,
@@ -1426,9 +1583,9 @@ def _semantic_errors(canonical, family, verdict, seen, artifact, mission, *,
     return err
 
 
-def _family_errors(family, verdict, seen, artifact, feature_dir):
+def _family_errors(family, verdict, seen, artifact, feature_dir, qa):
     if family == "qa":
-        return _qa_errors(seen, verdict, feature_dir)
+        return _qa_errors(seen, verdict, feature_dir, qa)
     if family in ("dev", "dev-ops"):
         return _dev_receipt_errors(seen, verdict, artifact, feature_dir)
     if family == "lead":
@@ -1436,7 +1593,7 @@ def _family_errors(family, verdict, seen, artifact, feature_dir):
     return []
 
 
-def _gate_field_errors(field, val, seen, persona, mission, passing, feature_dir=None):
+def _gate_field_errors(field, val, seen, persona, mission, passing, qa=None):
     """One gate field's errors: pinned by the mission, lifted by `task: none`, declined
     beside PASS, or reported FAILED beside PASS — each a return, most specific first."""
     # #1855: on a mission with no gate subject the field is PINNED to its did-nothing
@@ -1452,7 +1609,7 @@ def _gate_field_errors(field, val, seen, persona, mission, passing, feature_dir=
     if _unbound(field, seen):
         return _unbound_field_errors(field, val)
     if _placeholder(val):
-        return _declined_gate_errors(field, val, seen, persona, passing, feature_dir)
+        return _declined_gate_errors(field, val, seen, persona, passing, qa)
     return _fail_value_errors(field, val, persona, passing)
 
 
@@ -1468,12 +1625,12 @@ def _unbound_field_errors(field, val):
             f"`{CONDITIONAL[field]}`."]
 
 
-def _declined_gate_errors(field, val, seen, persona, passing, feature_dir=None):
+def _declined_gate_errors(field, val, seen, persona, passing, qa=None):
     # DEC-173: declining a GATE while claiming PASS is the fail-open the did-nothing
     # spelling would otherwise have created.
     if field in GATE_FIELDS.get(persona, ()) and passing \
             and not _nothing_to_gate(field, persona, seen) \
-            and not _qa_floor_requires_nothing(field, persona, seen, feature_dir):
+            and not _qa_floor_requires_nothing(field, persona, seen, qa):
         return [f"{field}={val!r} declines to report a gate, but VERDICT is "
                 f"PASS — a gate that did not run cannot have passed. Return "
                 f"BLOCKED or FAIL, or report the real result." + _task_none_hint(field, persona, seen)]
@@ -1489,43 +1646,39 @@ def _task_none_hint(field, persona, seen):
             "the dispatch says is not in the plan), return `task: none` with `task_verify: none`.")
 
 
-def _qa_floor_requires_nothing(field, persona, seen, feature_dir):
+def _qa_floor_requires_nothing(field, persona, seen, qa):
     """#2139: qa's `suite` has nothing to gate when no started task's matrix row can require a
     kind and the return says so (`matrix_ok: true`, `kinds: []`) — DEC-173's dev-ops case for
-    qa. Fails closed: any other field or persona, a reported kind, or a matrix/plan that cannot
-    prove "nothing required" leaves the gate binding."""
-    if persona != "qa" or field != "suite" or not feature_dir:
+    qa. Fails closed: any other field or persona, a reported kind, or a pinned policy or plan
+    that cannot prove "nothing required" leaves the gate binding."""
+    if not (_qa_claims_no_kind(field, persona, seen) and qa and qa.feature_dir):
         return False
-    if seen.get("matrix_ok") is not True or seen.get("kinds") != []:
-        return False
-    root = _repo_root_for_feature(feature_dir)
-    return _matrix_requires_no_kind(root, feature_dir, _load_test_kinds(root)[0])
+    policy, _where, error = _qa_policy(*qa)
+    tasks = _plan_tasks(qa.feature_dir)
+    return not error and tasks is not None and _matrix_requires_no_kind(policy, tasks)
 
 
-def _matrix_requires_no_kind(root, feature_dir, test_kinds):
+def _qa_claims_no_kind(field, persona, seen):
+    """The qa return asks for #2139's exemption: `suite` declined beside `matrix_ok: true` and
+    `kinds: []`."""
+    return (persona == "qa" and field == "suite" and seen.get("matrix_ok") is True
+            and seen.get("kinds") == [])
+
+
+def _matrix_requires_no_kind(policy, tasks):
     """True only when the plan has started work and every started task names a known row whose
-    `always` AND `when:` kinds are all explicitly `status: excluded`. Unlike `_matrix_floor`, the
-    conditional half counts (a `when:` kind is qa's judgement, DEC-212), and a null `cmd` on an
-    active kind is misconfigured, never an inferred skip (DEC-187)."""
-    try:
-        matrix, tasks = _load_matrix_inputs(root, feature_dir)
-    except artifact_accessors.ArtifactAccessError:
-        return False  # fails closed: the gate stays binding, and _qa_kinds_errors names the cause
-    if matrix is None:
-        return False
+    `always` AND `when:` kinds are all explicitly `status: excluded` in the pinned policy. The
+    conditional half counts here (a `when:` kind is qa's judgement, DEC-212), and an unresolved
+    or command-less kind is misconfigured, never an inferred skip (DEC-187)."""
     started = _started_tasks(tasks)
-    excluded = _explicitly_excluded_kinds(test_kinds)
-    return bool(started) and all(_row_requires_no_kind(matrix, task, excluded) for task in started)
+    excluded = _excluded_kinds(policy["test_kinds"])
+    return bool(started) and all(_row_requires_no_kind(policy["test_matrix"], task, excluded)
+                                 for task in started)
 
 
 def _started_tasks(tasks):
     """Every task not provably unstarted; a non-mapping entry counts as started and fails closed."""
     return [t for t in tasks if not (isinstance(t, dict) and t.get("status") in _MATRIX_UNSTARTED)]
-
-
-def _explicitly_excluded_kinds(test_kinds):
-    return {k for k, p in (test_kinds or {}).items()
-            if isinstance(p, dict) and p.get("status") == "excluded"}
 
 
 def _row_requires_no_kind(matrix, task, excluded):
@@ -1577,9 +1730,9 @@ def _dev_receipt_errors(seen, verdict, artifact, feature_dir):
 # same triple the #919 receipt check verifies — VERDICT PASS + matrix_ok true — so
 # `matrix_ok: n/a` and every non-PASS verdict may truthfully carry `[]`. Entry shape is the
 # schema's.
-def _qa_errors(seen, verdict, feature_dir):
+def _qa_errors(seen, verdict, feature_dir, qa):
     return (_qa_fail_first_errors(seen, verdict == "PASS", feature_dir)
-            + _qa_kinds_errors(seen, verdict, feature_dir)
+            + _qa_kinds_errors(seen, verdict, qa)
             + _qa_unearned_fail_errors(seen, verdict))
 
 
@@ -1633,35 +1786,72 @@ def _qa_fail_first_errors(seen, passing, feature_dir=None):
     return []
 
 
-def _qa_kinds_errors(seen, verdict, feature_dir):
-    kinds = seen.get("kinds")
-    qa_root = (_repo_root_for_feature(feature_dir) if feature_dir
-               else _root_or_none())
-    test_kinds = _load_test_kinds(qa_root)[0] if qa_root else None
-    err = _qa_kind_errors(kinds, verdict, test_kinds) if isinstance(kinds, list) and kinds else []
-    if verdict == "PASS" and seen.get("matrix_ok") is True and feature_dir and qa_root:
-        try:
-            err += _matrix_floor_errors(kinds, _matrix_floor(qa_root, feature_dir, test_kinds))
-        except artifact_accessors.ArtifactAccessError as exc:
-            err.append(f"matrix_ok: true but harness.json could not be read ({exc}), so the "
-                       f"matrix floor is unknown — repair harness.json and rerun.")
+def _qa_kinds_errors(seen, verdict, qa):
+    """D-02's three gates over the pinned policy (DEC-187, DEC-212): (1) every reported kind,
+    under every verdict; (2) a misconfigured kind on the started tasks' `always` floor is
+    reported, under every verdict and whatever `matrix_ok` says; (3) at PASS with `matrix_ok:
+    true`, every non-excluded floor kind is reported satisfied. Other omissions on an early
+    BLOCKED or FAIL are neither a skip nor proof of coverage, and `when:` stays qa's judgement.
+    Every return that makes a policy-dependent claim establishes the pinned policy first (D-01)."""
+    kinds = seen.get("kinds") if isinstance(seen.get("kinds"), list) else []
+    started = _qa_started_tasks(qa)
+    matrix_ok = seen.get("matrix_ok") is True
+    if not _qa_claims_need_policy(kinds, started, verdict, matrix_ok):
+        return []
+    policy, where, error = _qa_policy(*qa)
+    if error:
+        return _qa_unestablished(error, verdict, kinds)
+    floor = sorted({k for task in started for k in _always_kinds(policy["test_matrix"], task)})
+    return _qa_gate_errors(kinds, floor, verdict, matrix_ok, policy["test_kinds"], where)
+
+
+def _qa_started_tasks(qa):
+    """The plan's started tasks for the trusted feature, or [] when it has none or no plan."""
+    tasks = _plan_tasks(qa.feature_dir) if qa.feature_dir else None
+    return _started_tasks(tasks) if tasks else []
+
+
+def _qa_claims_need_policy(kinds, started, verdict, matrix_ok):
+    """A return reporting a kind, with started work whose floor gate 2 checks, or asserting the
+    matrix met at PASS can be judged only against the pinned policy — never waved through."""
+    return bool(kinds or started or (verdict == "PASS" and matrix_ok))
+
+
+def _qa_unestablished(error, verdict, kinds):
+    """No pinned policy: only a BLOCKED or ESCALATE reporting no kind — QA stopping to say the
+    pin is missing — stands; every other claim is refused with the reason."""
+    return [] if verdict in ("BLOCKED", "ESCALATE") and not kinds else [error]
+
+
+def _qa_gate_errors(kinds, floor, verdict, matrix_ok, test_kinds, where):
+    """Gates 1–3 over one pinned policy and the started tasks' `always` floor."""
+    err = (_qa_kind_errors(kinds, verdict, test_kinds, where)
+           + _misconfigured_omissions(kinds, floor, test_kinds, where))
+    if verdict == "PASS" and matrix_ok:
+        excluded = _excluded_kinds(test_kinds)
+        err += _matrix_floor_errors(kinds, [k for k in floor if k not in excluded])
     return err
+
+
+def _misconfigured_omissions(kinds, floor, test_kinds, where):
+    """Gate 2: an omitted misconfigured floor kind is refused — omission is never exclusion."""
+    reported = {str(entry.get("kind", "")).strip() for entry in kinds if isinstance(entry, dict)}
+    return [f"the matrix floor requires {kind} and the return omits it. "
+            + _misconfigured_rule(kind, test_kinds[kind], where)
+            for kind in floor if kind not in reported and isinstance(test_kinds.get(kind), dict)
+            and _kind_class(test_kinds[kind]) == "misconfigured"]
 
 
 _MATRIX_UNSTARTED = ("todo",)
 
 
-def _load_matrix_inputs(root, feature_dir):
-    """`(test_matrix, tasks)` from the checkout's validated harness.json and the plan, or
-    `(None, None)` when the plan cannot be read. A missing or invalid config raises
-    ArtifactAccessError — it is a refusal, never an underivable floor (FEAT-2297)."""
-    matrix = artifact_accessors.load_harness_json(
-        os.path.join(root, ".harness", "harness.json"))["test_matrix"]
+def _plan_tasks(feature_dir):
+    """The plan's task list, or None when the plan cannot be read."""
     try:
         tasks = artifact_accessors.load_plan(os.path.join(feature_dir, "plan.yaml")).get("tasks")
     except (OSError, artifact_accessors.ArtifactAccessError, harness_yaml.YamlParseError):
-        return None, None
-    return (matrix, tasks) if isinstance(tasks, list) else (None, None)
+        return None
+    return tasks if isinstance(tasks, list) else None
 
 
 def _always_kinds(matrix, task):
@@ -1672,19 +1862,9 @@ def _always_kinds(matrix, task):
 
 
 def _excluded_kinds(test_kinds):
+    """Kinds with `status: excluded` — the one way a kind leaves the required set (DEC-187)."""
     return {k for k, p in (test_kinds or {}).items()
-            if isinstance(p, dict) and (p.get("status") == "excluded" or p.get("cmd") is None)}
-
-
-def _matrix_floor(root, feature_dir, test_kinds):
-    """harness-verification-rules § the matrix is a floor: the kinds `test_matrix.<change_type>.always`
-    requires across the plan's started tasks, minus kinds the policy excludes. The `when:` half is
-    qa's judgement (DEC-212) and is not computed here. None when the floor cannot be derived."""
-    matrix, tasks = _load_matrix_inputs(root, feature_dir)
-    if matrix is None:
-        return None
-    floor = {k for task in tasks for k in _always_kinds(matrix, task)}
-    return sorted(floor - _excluded_kinds(test_kinds))
+            if isinstance(p, dict) and p.get("status") == "excluded"}
 
 
 def _satisfied_kind_names(kinds):
@@ -1919,22 +2099,34 @@ def _root_or_none():
     except (ImportError, OSError, ValueError):
         return None
 
-def _hook_feature_dir(artifact, feature):
-    """Resolve an unmerged feature from an installed validator's owner checkout."""
+def _hook_registered_feature(feature):
+    """`(checkout root, registered feature directory)` named by trusted runtime identity — the
+    host's `harness_feature`, never the digest — or `(None, None)`."""
     owner_root = _root_or_none()
     if owner_root is None or not feature:
-        return None
+        return None, None
     try:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
         from digest_destination import authorization_root, registered_feature
         checkout_root = authorization_root(owner_root, feature)
-        feature_dir, error = _feature_dir_from_artifact(artifact, checkout_root)
-        _record, registered_dir = registered_feature(checkout_root, feature)
-        if error or os.path.realpath(feature_dir) != os.path.realpath(registered_dir):
-            return None
-        return feature_dir
+        return checkout_root, os.path.realpath(registered_feature(checkout_root, feature)[1])
     except (ImportError, OSError, ValueError):
+        return None, None
+
+
+def _hook_feature_dir(artifact, registered):
+    """Resolve an unmerged feature from an installed validator's owner checkout, given the
+    `_hook_registered_feature` result."""
+    checkout_root, registered_dir = registered
+    if registered_dir is None:
         return None
+    try:
+        feature_dir, error = _feature_dir_from_artifact(artifact, checkout_root)
+    except (OSError, ValueError):
+        return None
+    if error or os.path.realpath(feature_dir) != registered_dir:
+        return None
+    return feature_dir
 
 
 # --- FEAT-2225 T-04 (DEC-253): an applied Expertise op is EVIDENCE, never a claim. Members
@@ -2476,6 +2668,7 @@ def _receipt_context(agent, payload, ctx):
     ctx["run_dir"] = os.path.join(feature_dir, "runs", run_id)
     ctx["review"] = _registered_review(root, record, payload)
     ctx["feature_rel"] = os.path.relpath(feature_dir, root).replace(os.sep, "/")
+    ctx["feature_dir"] = feature_dir
     ctx["lineage"] = _fix_lineage if _fix_run(run_id, payload) else _lineage
 
 
@@ -2618,15 +2811,22 @@ def _kind_problems(ctx, kind, shards, lineage):
                        shards.evidence_defects({path: doc}, basis, 1, expected, kind=kind)]
 
 
-def _active_receipt_kinds(kinds, root):
-    excluded = _excluded_kinds(_load_test_kinds(root)[0])
+def _active_receipt_kinds(kinds, ctx, payload):
+    """The claimed receipt kinds less the pinned policy's excluded ones — the same policy the
+    digest checks read (resolved once per process, FEAT-2398)."""
+    if not kinds:
+        return []
+    policy, _where, error = _qa_policy(ctx["feature_dir"], _hook_options(payload)[0])
+    if error:
+        raise _Untrusted(error)
+    excluded = _excluded_kinds(policy["test_kinds"])
     return [kind for kind in kinds if kind not in excluded]
 
 
 def _receipt_problems(agent, obj, payload, ctx):
     """(problems, kinds needing repair) for an unconditional qa PASS."""
     _receipt_context(agent, payload, ctx)
-    kinds = _active_receipt_kinds(_claimed_receipt_kinds(_digest_of(obj)), ctx["root"])
+    kinds = _active_receipt_kinds(_claimed_receipt_kinds(_digest_of(obj)), ctx, payload)
     if not kinds:
         return [_NO_RECEIPT_KIND], list(RECEIPT_KINDS)
     shards, lineage = _shard_evidence(), {}
@@ -2816,15 +3016,18 @@ def hook_mode():
        contract and is never governed.
     2. A MISSING `agent_type` passes loudly (F6): the key may have been renamed and this
        hook gone dark. A non-mapping is still refused — it cannot be a digest either way.
-    3. `stop_hook_active` — a re-run after a block — passes a mapping unvalidated.
-    4. Our own failure is harness_boundary.hook_guard's (FEAT-65): an unreadable payload
+    3. Our own failure is harness_boundary.hook_guard's (FEAT-65): an unreadable payload
        or an exception out of validate() prints the guard's template and exits 0. An
        unknown persona is a local, typed decline.
+
+    `stop_hook_active` is no pass-through (FEAT-2397). The yield adapter never sends it, and
+    a truthy field on direct stdin is ignored: that return traverses the same held-child,
+    schema and semantic checks as any other, and a rejection keeps its claim.
     """
     d = artifact_accessors.read_hook_payload(sys.stdin.read(), "yield hook payload")
     agent = d.get("agent_type")
     obj = d.get("digest_object", _ABSENT)
-    passed = _pass_through(d, agent, obj)
+    passed = _pass_through(agent, obj)
     if passed is not None:
         return passed
     # Refuse live children before recording a return, but retain the claim while
@@ -2846,20 +3049,17 @@ def _governed_agent(agent):
     return isinstance(agent, str) and agent.startswith("harness-")
 
 
-def _pass_through(d, agent, obj):
+def _pass_through(agent, obj):
     """The exit code of a return this hook does not govern, or None to govern it."""
-    if agent and not _governed_agent(agent):
-        return 0
-    if agent and not d.get("stop_hook_active"):
-        return None
+    if agent:
+        return None if _governed_agent(agent) else 0
     if not isinstance(obj, dict):
         return _object_refusal(agent, obj)
-    if not agent:
-        print("check-digest: hook payload has no agent_type — passing through. If this "
-              "is unexpected, the payload key may have been renamed and this hook is "
-              "silently no-oping project-wide.", file=sys.stderr)
-        harness_boundary.emit_unavailable(
-            __file__, "the yield payload carries no agent_type, so no digest contract applies")
+    print("check-digest: hook payload has no agent_type — passing through. If this "
+          "is unexpected, the payload key may have been renamed and this hook is "
+          "silently no-oping project-wide.", file=sys.stderr)
+    harness_boundary.emit_unavailable(
+        __file__, "the yield payload carries no agent_type, so no digest contract applies")
     return 0
 
 
@@ -2900,12 +3100,9 @@ def _validate_hook_object(d, agent, obj):
         return 0
     # Only the policy refusal is answered here, because it is THEIR verdict (exit 2); every
     # other exception is our failure and hook_guard's loud fail-open.
-    review_pin, mission = _hook_options(d)
+    options = _hook_options(d)
     try:
-        errs = validate(agent, obj, review_pin=review_pin, mission=mission,
-                        feature_dir=_hook_feature_dir(obj.get("artifact"),
-                                                      d.get("harness_feature")),
-                        expertise=_hook_expertise(d, canonical, obj, mission))
+        errs = _hook_validate(d, agent, obj, canonical, options)
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2
@@ -2916,6 +3113,26 @@ def _validate_hook_object(d, agent, obj):
     if family == "qa":
         return check_qa_matrix_claim(agent, obj, d)
     return 0
+
+
+def _hook_validate(d, agent, obj, canonical, options):
+    """validate() under the hook's trusted context. The feature registered under the host's
+    runtime identity is resolved once, for the artifact check and QA's pinned policy."""
+    review_pin, mission = options
+    registered = _hook_registered_feature(d.get("harness_feature"))
+    is_qa = norm(canonical) == "qa"
+    errs = validate(agent, obj, review_pin=review_pin, mission=mission,
+                    feature_dir=_hook_feature_dir(obj.get("artifact"), registered),
+                    expertise=_hook_expertise(d, canonical, obj, mission),
+                    qa_feature_dir=registered[1] if is_qa else None)
+    return _receipt_owned(errs) if is_qa and _qa_claims_unconditional_pass(obj) else errs
+
+
+def _receipt_owned(errs):
+    """An unconditional qa PASS whose ONLY error is the pinned policy's refusal is left to the
+    #919 receipt check: it refuses the same return naming the pin or checkout fault and its
+    repair command (FEAT-2398). Beside any other error the refusal is reported here."""
+    return [] if all(isinstance(e, _QaPolicyRefusal) for e in errs) else errs
 
 
 def _contract_refusal(errs):

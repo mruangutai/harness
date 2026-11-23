@@ -84,7 +84,7 @@ def registry_module():
 
 
 def run_script(script, root, payload, *argv):
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     return subprocess.run([sys.executable, os.path.join(private_bin(), script), *argv],
                           input=json.dumps(payload), capture_output=True, text=True,
                           env=env, timeout=30)

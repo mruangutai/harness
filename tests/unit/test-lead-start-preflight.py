@@ -144,7 +144,7 @@ def dispatch(root, dispatched, dispatcher="harness-orchestrator", text=None, env
                               "task": text if text is not None else prompt(root)}}
     if dispatcher == "Main":
         payload["harness_agent_id"] = "Main"
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root, **(env_extra or {}))
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root, **(env_extra or {}))
     return subprocess.run([sys.executable, guard()], input=json.dumps(payload),
                           capture_output=True, text=True, env=env, timeout=30)
 

@@ -48,7 +48,7 @@ def repair(checkout):
 
 
 def hook(script, checkout, payload, extra_env=None):
-    env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout, CLAUDE_PROJECT_DIR=checkout,
+    env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout,
                GH_BIN="/nonexistent-gh", **(extra_env or {}))
     return subprocess.run([sys.executable, str(BIN / script)], input=json.dumps(payload),
                           env=env, capture_output=True, text=True, cwd=checkout)

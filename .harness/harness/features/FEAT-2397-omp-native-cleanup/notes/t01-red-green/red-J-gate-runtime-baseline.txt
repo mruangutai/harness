@@ -1,0 +1,610 @@
+ok    control: a normal broad-gate pass is allowed with no unavailable outcome
+ok    control: a broad gate's explicit refusal stays a block, not unavailable
+ok    control: a narrow gate's structured deny of a matching command stays a block
+ok    control: a narrow gate allows an unrelated command with no unavailable outcome
+ok    broad check-domain, guarded crash: the call is allowed and reported unavailable
+ok    broad check-domain, startup failure before the guard: the call is allowed and reported unavailable
+ok    broad check-domain, missing gate: the call is allowed and reported unavailable
+ok    broad check-domain, missing interpreter: the call is allowed and reported unavailable
+ok    broad check-domain, spawn error (not executable): the call is allowed and reported unavailable
+ok    broad check-domain, unexpected termination (SIGKILL): the call is allowed and reported unavailable
+ok    broad bash-write-guard.py, guarded crash: allowed and reported unavailable
+ok    broad bash-write-guard.py: the outcome names the script stem 'bash-write-guard', not a diagnostic label
+ok    broad dispatch-guard.py, guarded crash: allowed and reported unavailable
+ok    broad dispatch-guard.py: the outcome names the script stem 'dispatch-guard', not a diagnostic label
+ok    broad validate-digest.py, guarded crash: allowed and reported unavailable
+ok    broad validate-digest.py: the outcome names the script stem 'validate-digest', not a diagnostic label
+ok    validate-digest, absent digest_object: still a refusal, not unavailable
+ok    validate-digest, null digest_object: still a refusal, not unavailable
+ok    validate-digest, empty digest_object: still a refusal, not unavailable
+ok    validate-digest, unknown persona schema: allowed and reported unavailable
+ok    dispatch-guard, name parameter: still a refusal at the adapter, not unavailable
+ok    dispatch-guard, missing first-line feature marker: still a refusal at the adapter, not unavailable
+FAIL  dispatch-guard, per-call model: the same outcome as the dispatch without it
+      model={'blocked': True, 'unavailable': None, 'reason': "dispatch-guard: BLOCKED — harness-orchestrator passed model: 'opus' in a dispatch.\n  A member runs on the model pinned in its agent frontmatter — that pin is org design\n  (DEC-152 tiers), not a dispatch option. If this task genuinely needs a stronger model,\n  that is an ESCALATION: raise it in open_questions with the evidence and let it be\n  decided above you and recorded (DEC-155). Re-dispatch without the model parameter."} plain={'blocked': True, 'unavailable': None, 'reason': "dispatch-guard: could not read tool grants for harness-product-lead ([Errno 2] No such file or directory: '/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/feat2274-runtime-a99bjeyn/.omp/agents/harness-product-lead.md') -- passing through.\ndispatch-guard: BLOCKED — the harness-product-lead dispatch for FEAT-9999-runtime-probe has no HARNESS-MISSION line.\n  A harness-product-lead or harness-validator-lead start, and the plan team's scope\n  reader, carries exactly one line in its own task text, spelled\n    HARNESS-MISSION: <phase>\n  naming the phase actually dispatched (plan, patch, validate, fix, distill, ...): never a\n  phase guessed from the prompt, never a review relabelled to pass. Engineering-lead\n  starts need none. Authority: harness-zero-micro-management, the dispatch header."}
+ok    narrow gh-close-gate, startup failure before the guard: a matching command is refused
+ok    narrow gh-close-gate, startup failure before the guard: an unrelated command is allowed silently
+ok    narrow gh-close-gate, missing gate: a matching command is refused
+ok    narrow gh-close-gate, missing gate: an unrelated command is allowed silently
+ok    narrow gh-close-gate, missing interpreter: a matching command is refused
+ok    narrow gh-close-gate, missing interpreter: an unrelated command is allowed silently
+ok    narrow gh-close-gate, spawn error (not executable): a matching command is refused
+ok    narrow gh-close-gate, spawn error (not executable): an unrelated command is allowed silently
+ok    narrow gh-close-gate, unexpected termination (SIGKILL): a matching command is refused
+ok    narrow gh-close-gate, unexpected termination (SIGKILL): an unrelated command is allowed silently
+ok    narrow gh-close-gate, dependency failure after applicability: a matching command is refused
+ok    narrow gh-close-gate, dependency failure after applicability: an unrelated command is allowed silently
+ok    narrow branch-create-gate.py, dependency failure: a matching command is refused
+ok    narrow branch-create-gate.py, dependency failure: an unrelated command is allowed silently
+ok    narrow branch-create-gate.py, missing gate: a matching command is refused
+ok    narrow branch-create-gate.py, missing gate: an unrelated command is allowed silently
+ok    narrow plan-sign-gate.py, dependency failure: a matching command is refused
+ok    narrow plan-sign-gate.py, dependency failure: an unrelated command is allowed silently
+ok    narrow plan-sign-gate.py, missing gate: a matching command is refused
+ok    narrow plan-sign-gate.py, missing gate: an unrelated command is allowed silently
+ok    test-gh-close-gate.py exposes APPLICABILITY_CORPUS with matching and unrelated entries
+ok    gh-close-gate.py python classifier: 'gh issue close 728 --repo x/y' -> match
+ok    gh-close-gate.py extension classifier: 'gh issue close 728 --repo x/y' -> match
+ok    gh-close-gate.py startup failure: 'gh issue close 728 --repo x/y' -> refused
+ok    gh-close-gate.py python classifier: 'gh api -X PATCH repos/o/r/issues/9 -f state=closed' -> match
+ok    gh-close-gate.py extension classifier: 'gh api -X PATCH repos/o/r/issues/9 -f state=closed' -> match
+ok    gh-close-gate.py startup failure: 'gh api -X PATCH repos/o/r/issues/9 -f state=closed' -> refused
+ok    gh-close-gate.py python classifier: 'cd /tmp && gh issue close 728' -> match
+ok    gh-close-gate.py extension classifier: 'cd /tmp && gh issue close 728' -> match
+ok    gh-close-gate.py startup failure: 'cd /tmp && gh issue close 728' -> refused
+ok    gh-close-gate.py python classifier: 'FOO=1 gh issue close 728' -> match
+ok    gh-close-gate.py extension classifier: 'FOO=1 gh issue close 728' -> match
+ok    gh-close-gate.py startup failure: 'FOO=1 gh issue close 728' -> refused
+ok    gh-close-gate.py python classifier: 'echo hi | gh issue close 728' -> match
+ok    gh-close-gate.py extension classifier: 'echo hi | gh issue close 728' -> match
+ok    gh-close-gate.py startup failure: 'echo hi | gh issue close 728' -> refused
+ok    gh-close-gate.py python classifier: 'true; gh issue close 728' -> match
+ok    gh-close-gate.py extension classifier: 'true; gh issue close 728' -> match
+ok    gh-close-gate.py startup failure: 'true; gh issue close 728' -> refused
+ok    gh-close-gate.py python classifier: 'gh api -f state=closed -X PATCH repos/o/r/issues/9' -> match
+ok    gh-close-gate.py extension classifier: 'gh api -f state=closed -X PATCH repos/o/r/issues/9' -> match
+ok    gh-close-gate.py startup failure: 'gh api -f state=closed -X PATCH repos/o/r/issues/9' -> refused
+ok    gh-close-gate.py python classifier: 'gh api repos/o/r/issues/9 -X PATCH -f state=closed' -> match
+ok    gh-close-gate.py extension classifier: 'gh api repos/o/r/issues/9 -X PATCH -f state=closed' -> match
+ok    gh-close-gate.py startup failure: 'gh api repos/o/r/issues/9 -X PATCH -f state=closed' -> refused
+ok    gh-close-gate.py python classifier: 'gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d' -> match
+ok    gh-close-gate.py extension classifier: 'gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d' -> match
+ok    gh-close-gate.py startup failure: 'gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d' -> refused
+ok    gh-close-gate.py python classifier: 'gh "issue" close 5' -> match
+ok    gh-close-gate.py extension classifier: 'gh "issue" close 5' -> match
+ok    gh-close-gate.py startup failure: 'gh "issue" close 5' -> refused
+ok    gh-close-gate.py python classifier: "gh 'issue' 'close' 5" -> match
+ok    gh-close-gate.py extension classifier: "gh 'issue' 'close' 5" -> match
+ok    gh-close-gate.py startup failure: "gh 'issue' 'close' 5" -> refused
+ok    gh-close-gate.py python classifier: '/opt/homebrew/bin/gh issue close 5' -> match
+ok    gh-close-gate.py extension classifier: '/opt/homebrew/bin/gh issue close 5' -> match
+ok    gh-close-gate.py startup failure: '/opt/homebrew/bin/gh issue close 5' -> refused
+ok    gh-close-gate.py python classifier: '/usr/bin/env gh issue close 5' -> match
+ok    gh-close-gate.py extension classifier: '/usr/bin/env gh issue close 5' -> match
+ok    gh-close-gate.py startup failure: '/usr/bin/env gh issue close 5' -> refused
+ok    gh-close-gate.py python classifier: '\\gh issue close 5' -> match
+ok    gh-close-gate.py extension classifier: '\\gh issue close 5' -> match
+ok    gh-close-gate.py startup failure: '\\gh issue close 5' -> refused
+ok    gh-close-gate.py python classifier: 'eval "gh issue close 5"' -> match
+ok    gh-close-gate.py extension classifier: 'eval "gh issue close 5"' -> match
+ok    gh-close-gate.py startup failure: 'eval "gh issue close 5"' -> refused
+ok    gh-close-gate.py python classifier: "bash -c 'gh issue close 5'" -> match
+ok    gh-close-gate.py extension classifier: "bash -c 'gh issue close 5'" -> match
+ok    gh-close-gate.py startup failure: "bash -c 'gh issue close 5'" -> refused
+ok    gh-close-gate.py python classifier: 'sh -c "gh issue close 5"' -> match
+ok    gh-close-gate.py extension classifier: 'sh -c "gh issue close 5"' -> match
+ok    gh-close-gate.py startup failure: 'sh -c "gh issue close 5"' -> refused
+ok    gh-close-gate.py python classifier: 'x=$(gh issue close 5)' -> match
+ok    gh-close-gate.py extension classifier: 'x=$(gh issue close 5)' -> match
+ok    gh-close-gate.py startup failure: 'x=$(gh issue close 5)' -> refused
+ok    gh-close-gate.py python classifier: '$(echo gh) issue close 5' -> match
+ok    gh-close-gate.py extension classifier: '$(echo gh) issue close 5' -> match
+ok    gh-close-gate.py startup failure: '$(echo gh) issue close 5' -> refused
+ok    gh-close-gate.py python classifier: 'gh api -X PATCH repos/o/r/issues/5 -f state="closed"' -> match
+ok    gh-close-gate.py extension classifier: 'gh api -X PATCH repos/o/r/issues/5 -f state="closed"' -> match
+ok    gh-close-gate.py startup failure: 'gh api -X PATCH repos/o/r/issues/5 -f state="closed"' -> refused
+ok    gh-close-gate.py python classifier: 'gh api --method PATCH repos/o/r/issues/5 --input -' -> match
+ok    gh-close-gate.py extension classifier: 'gh api --method PATCH repos/o/r/issues/5 --input -' -> match
+ok    gh-close-gate.py startup failure: 'gh api --method PATCH repos/o/r/issues/5 --input -' -> refused
+ok    gh-close-gate.py python classifier: 'gh api graphql -f query="mutation{closeIssue(input:{issueId:"x"}){clientMutationId}}"' -> match
+ok    gh-close-gate.py extension classifier: 'gh api graphql -f query="mutation{closeIssue(input:{issueId:"x"}){clientMutationId}}"' -> match
+ok    gh-close-gate.py startup failure: 'gh api graphql -f query="mutation{closeIssue(input:{issueId:"x"}){clientMutationId}}"' -> refused
+ok    gh-close-gate.py python classifier: 'gh issue close "5' -> match
+ok    gh-close-gate.py extension classifier: 'gh issue close "5' -> match
+ok    gh-close-gate.py startup failure: 'gh issue close "5' -> refused
+ok    gh-close-gate.py python classifier: "echo it's here; gh issue close 5" -> match
+ok    gh-close-gate.py extension classifier: "echo it's here; gh issue close 5" -> match
+ok    gh-close-gate.py startup failure: "echo it's here; gh issue close 5" -> refused
+ok    gh-close-gate.py python classifier: "echo 'gh issue close is refused here'" -> match
+ok    gh-close-gate.py extension classifier: "echo 'gh issue close is refused here'" -> match
+ok    gh-close-gate.py startup failure: "echo 'gh issue close is refused here'" -> refused
+ok    gh-close-gate.py python classifier: 'echo gh issue close' -> match
+ok    gh-close-gate.py extension classifier: 'echo gh issue close' -> match
+ok    gh-close-gate.py startup failure: 'echo gh issue close' -> refused
+ok    gh-close-gate.py python classifier: 'gh issue view 728' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh issue view 728' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh issue view 728' -> allowed
+ok    gh-close-gate.py python classifier: 'gh issue list --repo o/r --state closed' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh issue list --repo o/r --state closed' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh issue list --repo o/r --state closed' -> allowed
+ok    gh-close-gate.py python classifier: 'git status' -> unrelated
+ok    gh-close-gate.py extension classifier: 'git status' -> unrelated
+ok    gh-close-gate.py startup failure: 'git status' -> allowed
+ok    gh-close-gate.py python classifier: 'python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes' -> unrelated
+ok    gh-close-gate.py extension classifier: 'python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes' -> unrelated
+ok    gh-close-gate.py startup failure: 'python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes' -> allowed
+ok    gh-close-gate.py python classifier: 'python3 .claude/skills/harness/bin/gh-sync.py ship d' -> unrelated
+ok    gh-close-gate.py extension classifier: 'python3 .claude/skills/harness/bin/gh-sync.py ship d' -> unrelated
+ok    gh-close-gate.py startup failure: 'python3 .claude/skills/harness/bin/gh-sync.py ship d' -> allowed
+ok    gh-close-gate.py python classifier: 'gh api repos/o/r/issues/9' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh api repos/o/r/issues/9' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh api repos/o/r/issues/9' -> allowed
+ok    gh-close-gate.py python classifier: "echo it's fine" -> unrelated
+ok    gh-close-gate.py extension classifier: "echo it's fine" -> unrelated
+ok    gh-close-gate.py startup failure: "echo it's fine" -> allowed
+ok    gh-close-gate.py python classifier: 'git commit -m "don\'t close the loop"' -> unrelated
+ok    gh-close-gate.py extension classifier: 'git commit -m "don\'t close the loop"' -> unrelated
+ok    gh-close-gate.py startup failure: 'git commit -m "don\'t close the loop"' -> allowed
+ok    gh-close-gate.py python classifier: "cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\ngh issue comment 8 --repo o/r --body-file /tmp/x.md" -> unrelated
+ok    gh-close-gate.py extension classifier: "cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\ngh issue comment 8 --repo o/r --body-file /tmp/x.md" -> unrelated
+ok    gh-close-gate.py startup failure: "cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\ngh issue comment 8 --repo o/r --body-file /tmp/x.md" -> allowed
+ok    gh-close-gate.py python classifier: 'G=gh; $G issue close 5' -> unrelated
+ok    gh-close-gate.py extension classifier: 'G=gh; $G issue close 5' -> unrelated
+ok    gh-close-gate.py startup failure: 'G=gh; $G issue close 5' -> allowed
+ok    gh-close-gate.py python classifier: 'gh pr close 5' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh pr close 5' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh pr close 5' -> allowed
+ok    gh-close-gate.py python classifier: 'gh issue close-milestone 5' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh issue close-milestone 5' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh issue close-milestone 5' -> allowed
+ok    gh-close-gate.py python classifier: 'gh api repos/o/r/issues/5 --jq .state' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh api repos/o/r/issues/5 --jq .state' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh api repos/o/r/issues/5 --jq .state' -> allowed
+ok    gh-close-gate.py python classifier: 'gh api -X GET repos/o/r/issues/5' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh api -X GET repos/o/r/issues/5' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh api -X GET repos/o/r/issues/5' -> allowed
+ok    gh-close-gate.py python classifier: "git commit -m 'closes the loop'" -> unrelated
+ok    gh-close-gate.py extension classifier: "git commit -m 'closes the loop'" -> unrelated
+ok    gh-close-gate.py startup failure: "git commit -m 'closes the loop'" -> allowed
+ok    gh-close-gate.py python classifier: 'gh issue edit 5 --add-label wontfix' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh issue edit 5 --add-label wontfix' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh issue edit 5 --add-label wontfix' -> allowed
+ok    gh-close-gate.py python classifier: 'echo hi' -> unrelated
+ok    gh-close-gate.py extension classifier: 'echo hi' -> unrelated
+ok    gh-close-gate.py startup failure: 'echo hi' -> allowed
+ok    gh-close-gate.py python classifier: 'git branch -d x' -> unrelated
+ok    gh-close-gate.py extension classifier: 'git branch -d x' -> unrelated
+ok    gh-close-gate.py startup failure: 'git branch -d x' -> allowed
+ok    test-branch-create-gate.py exposes APPLICABILITY_CORPUS with matching and unrelated entries
+ok    branch-create-gate.py python classifier: 'git checkout -b feat/FEAT-99-nope' -> match
+ok    branch-create-gate.py extension classifier: 'git checkout -b feat/FEAT-99-nope' -> match
+ok    branch-create-gate.py startup failure: 'git checkout -b feat/FEAT-99-nope' -> refused
+ok    branch-create-gate.py python classifier: 'git checkout -B fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git checkout -B fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git checkout -B fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git -C repo checkout -b feat/FEAT-99-nope' -> match
+ok    branch-create-gate.py extension classifier: 'git -C repo checkout -b feat/FEAT-99-nope' -> match
+ok    branch-create-gate.py startup failure: 'git -C repo checkout -b feat/FEAT-99-nope' -> refused
+ok    branch-create-gate.py python classifier: 'cd repo && git checkout -b fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'cd repo && git checkout -b fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'cd repo && git checkout -b fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git checkout --track -b fix/123-typo origin/main' -> match
+ok    branch-create-gate.py extension classifier: 'git checkout --track -b fix/123-typo origin/main' -> match
+ok    branch-create-gate.py startup failure: 'git checkout --track -b fix/123-typo origin/main' -> refused
+ok    branch-create-gate.py python classifier: 'git checkout -b=fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git checkout -b=fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git checkout -b=fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git switch -c fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git switch -c fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git switch -c fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git switch --create fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git switch --create fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git switch --create fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git -c core.x=y switch -C fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git -c core.x=y switch -C fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git -c core.x=y switch -C fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git worktree add ../wt -b fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git worktree add ../wt -b fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git worktree add ../wt -b fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git worktree add -B fix/123-typo ../wt' -> match
+ok    branch-create-gate.py extension classifier: 'git worktree add -B fix/123-typo ../wt' -> match
+ok    branch-create-gate.py startup failure: 'git worktree add -B fix/123-typo ../wt' -> refused
+ok    branch-create-gate.py python classifier: 'git branch fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git branch fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git branch fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git -C repo branch fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git -C repo branch fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git -C repo branch fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git branch fix/123-typo main' -> match
+ok    branch-create-gate.py extension classifier: 'git branch fix/123-typo main' -> match
+ok    branch-create-gate.py startup failure: 'git branch fix/123-typo main' -> refused
+ok    branch-create-gate.py python classifier: 'git status' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git status' -> unrelated
+ok    branch-create-gate.py startup failure: 'git status' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch -d x' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch -d x' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch -d x' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch -D old' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch -D old' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch -D old' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch --list' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch --list' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch --list' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch --show-current' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch --show-current' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch --show-current' -> allowed
+ok    branch-create-gate.py python classifier: 'git checkout main' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git checkout main' -> unrelated
+ok    branch-create-gate.py startup failure: 'git checkout main' -> allowed
+ok    branch-create-gate.py python classifier: 'git checkout -- file.txt' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git checkout -- file.txt' -> unrelated
+ok    branch-create-gate.py startup failure: 'git checkout -- file.txt' -> allowed
+ok    branch-create-gate.py python classifier: 'git checkout -b' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git checkout -b' -> unrelated
+ok    branch-create-gate.py startup failure: 'git checkout -b' -> allowed
+ok    branch-create-gate.py python classifier: 'git switch main' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git switch main' -> unrelated
+ok    branch-create-gate.py startup failure: 'git switch main' -> allowed
+ok    branch-create-gate.py python classifier: 'git worktree add ../wt main' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git worktree add ../wt main' -> unrelated
+ok    branch-create-gate.py startup failure: 'git worktree add ../wt main' -> allowed
+ok    branch-create-gate.py python classifier: 'git worktree list' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git worktree list' -> unrelated
+ok    branch-create-gate.py startup failure: 'git worktree list' -> allowed
+ok    branch-create-gate.py python classifier: 'git log --oneline' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git log --oneline' -> unrelated
+ok    branch-create-gate.py startup failure: 'git log --oneline' -> allowed
+ok    branch-create-gate.py python classifier: 'echo git branch' -> unrelated
+ok    branch-create-gate.py extension classifier: 'echo git branch' -> unrelated
+ok    branch-create-gate.py startup failure: 'echo git branch' -> allowed
+ok    branch-create-gate.py python classifier: 'echo hi' -> unrelated
+ok    branch-create-gate.py extension classifier: 'echo hi' -> unrelated
+ok    branch-create-gate.py startup failure: 'echo hi' -> allowed
+ok    branch-create-gate.py python classifier: 'gh pr close 5' -> unrelated
+ok    branch-create-gate.py extension classifier: 'gh pr close 5' -> unrelated
+ok    branch-create-gate.py startup failure: 'gh pr close 5' -> allowed
+ok    test-plan-sign-gate.py exposes APPLICABILITY_CORPUS with matching and unrelated entries
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml' -> refused
+ok    plan-sign-gate.py python classifier: '/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p' -> match
+ok    plan-sign-gate.py extension classifier: '/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p' -> match
+ok    plan-sign-gate.py startup failure: '/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p' -> refused
+ok    plan-sign-gate.py python classifier: 'eval "python3 plan-merge.py sign-approval --file p.yaml"' -> match
+ok    plan-sign-gate.py extension classifier: 'eval "python3 plan-merge.py sign-approval --file p.yaml"' -> match
+ok    plan-sign-gate.py startup failure: 'eval "python3 plan-merge.py sign-approval --file p.yaml"' -> refused
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 plan-merge.py sign-approval --file p.yaml'" -> match
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 plan-merge.py sign-approval --file p.yaml'" -> match
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 plan-merge.py sign-approval --file p.yaml'" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 "plan-merge.py" sign-approval --file p.yaml' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 "plan-merge.py" sign-approval --file p.yaml' -> match
+ok    plan-sign-gate.py startup failure: 'python3 "plan-merge.py" sign-approval --file p.yaml' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 plan-merge.py sign-approval --name "O\'Brien' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 plan-merge.py sign-approval --name "O\'Brien' -> match
+ok    plan-sign-gate.py startup failure: 'python3 plan-merge.py sign-approval --name "O\'Brien' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py -- -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py -- -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py -- -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py"${IFS}"sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py"${IFS}"sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py"${IFS}"sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(:)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(:)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(:)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: "python3 .claude/skills/harness/bin/plan-merge.py`printf ' '`sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py extension classifier: "python3 .claude/skills/harness/bin/plan-merge.py`printf ' '`sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py startup failure: "python3 .claude/skills/harness/bin/plan-merge.py`printf ' '`sign-approval --file p.yaml --by Someone --date 2026-01-01" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf "%s" " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf "%s" " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf "%s" " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf " ")")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf " ")")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf " ")")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by Someone --date $(date +%F)' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by Someone --date $(date +%F)' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by Someone --date $(date +%F)' -> refused
+ok    plan-sign-gate.py python classifier: 'echo sign-approval | xargs -I{} python3 .claude/skills/harness/bin/plan-merge.py {} --file p.yaml --by A --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'echo sign-approval | xargs -I{} python3 .claude/skills/harness/bin/plan-merge.py {} --file p.yaml --by A --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'echo sign-approval | xargs -I{} python3 .claude/skills/harness/bin/plan-merge.py {} --file p.yaml --by A --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'echo sign-approval | xargs python3 .claude/skills/harness/bin/plan-merge.py' -> match
+ok    plan-sign-gate.py extension classifier: 'echo sign-approval | xargs python3 .claude/skills/harness/bin/plan-merge.py' -> match
+ok    plan-sign-gate.py startup failure: 'echo sign-approval | xargs python3 .claude/skills/harness/bin/plan-merge.py' -> refused
+ok    plan-sign-gate.py python classifier: 'xargs python3 .claude/skills/harness/bin/plan-merge.py < /tmp/verb.txt' -> match
+ok    plan-sign-gate.py extension classifier: 'xargs python3 .claude/skills/harness/bin/plan-merge.py < /tmp/verb.txt' -> match
+ok    plan-sign-gate.py startup failure: 'xargs python3 .claude/skills/harness/bin/plan-merge.py < /tmp/verb.txt' -> refused
+ok    plan-sign-gate.py python classifier: 'find . -name p.yaml -exec python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file {} \\;' -> match
+ok    plan-sign-gate.py extension classifier: 'find . -name p.yaml -exec python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file {} \\;' -> match
+ok    plan-sign-gate.py startup failure: 'find . -name p.yaml -exec python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file {} \\;' -> refused
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by A --date 2026-01-01'" -> match
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by A --date 2026-01-01'" -> match
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by A --date 2026-01-01'" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml' -> refused
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'" -> match
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'" -> match
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'" -> refused
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'" -> match
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'" -> match
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'" -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- raise-cycles --file f.json" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- raise-cycles --file f.json" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- raise-cycles --file f.json" -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- set-rework --file f.json" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- set-rework --file f.json" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- set-rework --file f.json" -> refused
+ok    plan-sign-gate.py python classifier: 'echo raise-cycles | xargs python3 .claude/skills/harness/bin/feature-record.py' -> match
+ok    plan-sign-gate.py extension classifier: 'echo raise-cycles | xargs python3 .claude/skills/harness/bin/feature-record.py' -> match
+ok    plan-sign-gate.py startup failure: 'echo raise-cycles | xargs python3 .claude/skills/harness/bin/feature-record.py' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py set-task-station --file p --task T-01 --station done' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py set-task-station --file p --task T-01 --station done' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py set-task-station --file p --task T-01 --station done' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p --proposal x' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p --proposal x' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p --proposal x' -> allowed
+ok    plan-sign-gate.py python classifier: 'git status --porcelain' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'git status --porcelain' -> unrelated
+ok    plan-sign-gate.py startup failure: 'git status --porcelain' -> allowed
+ok    plan-sign-gate.py python classifier: 'grep -rn sign-approval .claude/skills/harness/bin/' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'grep -rn sign-approval .claude/skills/harness/bin/' -> unrelated
+ok    plan-sign-gate.py startup failure: 'grep -rn sign-approval .claude/skills/harness/bin/' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml  # not a sign-approval call' -> allowed
+ok    plan-sign-gate.py python classifier: "echo it's fine && git status" -> unrelated
+ok    plan-sign-gate.py extension classifier: "echo it's fine && git status" -> unrelated
+ok    plan-sign-gate.py startup failure: "echo it's fine && git status" -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml \\\n--proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml \\\n--proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml \\\n--proposal q.yaml  # not a sign-approval call' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval --file p.yaml' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval --file p.yaml' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval --file p.yaml' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml   # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml   # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml   # not a sign-approval call' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml) --proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml) --proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml) --proposal q.yaml  # not a sign-approval call' -> allowed
+ok    plan-sign-gate.py python classifier: 'echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/' -> unrelated
+ok    plan-sign-gate.py startup failure: 'echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/' -> allowed
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml'" -> unrelated
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml'" -> unrelated
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml'" -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 --reason r' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 --reason r' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 --reason r' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py set-mission --file f.json --mission patch --by harness-orchestrator --reason r' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py set-mission --file f.json --mission patch --by harness-orchestrator --reason r' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py set-mission --file f.json --mission patch --by harness-orchestrator --reason r' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py spend --file f.json' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py spend --file f.json' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py spend --file f.json' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py propose-rework --file f.json' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py propose-rework --file f.json' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py propose-rework --file f.json' -> allowed
+ok    plan-sign-gate.py python classifier: 'grep -rn raise-cycles .claude/skills/harness/' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'grep -rn raise-cycles .claude/skills/harness/' -> unrelated
+ok    plan-sign-gate.py startup failure: 'grep -rn raise-cycles .claude/skills/harness/' -> allowed
+ok    plan-sign-gate.py python classifier: "python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by o --kind continue --decision stop --reason 'no raise-cycles without the operator'" -> unrelated
+ok    plan-sign-gate.py extension classifier: "python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by o --kind continue --decision stop --reason 'no raise-cycles without the operator'" -> unrelated
+ok    plan-sign-gate.py startup failure: "python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by o --kind continue --decision stop --reason 'no raise-cycles without the operator'" -> allowed
+ok    plan-sign-gate.py python classifier: "echo it's fine" -> unrelated
+ok    plan-sign-gate.py extension classifier: "echo it's fine" -> unrelated
+ok    plan-sign-gate.py startup failure: "echo it's fine" -> allowed
+ok    plan-sign-gate.py python classifier: 'git status' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'git status' -> unrelated
+ok    plan-sign-gate.py startup failure: 'git status' -> allowed
+ok    plan-sign-gate.py python classifier: 'echo hi' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'echo hi' -> unrelated
+ok    plan-sign-gate.py startup failure: 'echo hi' -> allowed
+ok    plan-sign-gate.py python classifier: 'gh pr close 5' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'gh pr close 5' -> unrelated
+ok    plan-sign-gate.py startup failure: 'gh pr close 5' -> allowed
+ok    plan-sign-gate.py python classifier: 'git branch -d x' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'git branch -d x' -> unrelated
+ok    plan-sign-gate.py startup failure: 'git branch -d x' -> allowed
+ok    test-merge-gate.py exposes APPLICABILITY_CORPUS with matching and unrelated entries
+ok    merge-gate.py python classifier: 'git merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git merge' -> match
+ok    merge-gate.py extension classifier: 'git merge' -> match
+ok    merge-gate.py startup failure: 'git merge' -> refused
+ok    merge-gate.py python classifier: 'git merge --no-ff feature/test' -> match
+ok    merge-gate.py extension classifier: 'git merge --no-ff feature/test' -> match
+ok    merge-gate.py startup failure: 'git merge --no-ff feature/test' -> refused
+ok    merge-gate.py python classifier: "git merge -m 'release --abort' feature/test" -> match
+ok    merge-gate.py extension classifier: "git merge -m 'release --abort' feature/test" -> match
+ok    merge-gate.py startup failure: "git merge -m 'release --abort' feature/test" -> refused
+ok    merge-gate.py python classifier: 'git merge -F /tmp/message feature/test' -> match
+ok    merge-gate.py extension classifier: 'git merge -F /tmp/message feature/test' -> match
+ok    merge-gate.py startup failure: 'git merge -F /tmp/message feature/test' -> refused
+ok    merge-gate.py python classifier: 'git merge feature/test --abort' -> match
+ok    merge-gate.py extension classifier: 'git merge feature/test --abort' -> match
+ok    merge-gate.py startup failure: 'git merge feature/test --abort' -> refused
+ok    merge-gate.py python classifier: 'git -C /repo merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git -C /repo merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git -C /repo merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git -c core.pager=cat merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git -c core.pager=cat merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git -c core.pager=cat merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git --git-dir=/repo/.git --no-pager merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git --git-dir=/repo/.git --no-pager merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git --git-dir=/repo/.git --no-pager merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git --attr-source HEAD merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git --attr-source HEAD merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git --attr-source HEAD merge feature/test' -> refused
+ok    merge-gate.py python classifier: '/usr/bin/git merge feature/test' -> match
+ok    merge-gate.py extension classifier: '/usr/bin/git merge feature/test' -> match
+ok    merge-gate.py startup failure: '/usr/bin/git merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git "merge" feature/test' -> match
+ok    merge-gate.py extension classifier: 'git "merge" feature/test' -> match
+ok    merge-gate.py startup failure: 'git "merge" feature/test' -> refused
+ok    merge-gate.py python classifier: 'cd /repo && git merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'cd /repo && git merge feature/test' -> match
+ok    merge-gate.py startup failure: 'cd /repo && git merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'echo git merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'echo git merge feature/test' -> match
+ok    merge-gate.py startup failure: 'echo git merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'gh pr merge 12 --squash' -> match
+ok    merge-gate.py extension classifier: 'gh pr merge 12 --squash' -> match
+ok    merge-gate.py startup failure: 'gh pr merge 12 --squash' -> refused
+ok    merge-gate.py python classifier: '/opt/homebrew/bin/gh pr merge 12' -> match
+ok    merge-gate.py extension classifier: '/opt/homebrew/bin/gh pr merge 12' -> match
+ok    merge-gate.py startup failure: '/opt/homebrew/bin/gh pr merge 12' -> refused
+ok    merge-gate.py python classifier: 'true; gh pr merge --auto' -> match
+ok    merge-gate.py extension classifier: 'true; gh pr merge --auto' -> match
+ok    merge-gate.py startup failure: 'true; gh pr merge --auto' -> refused
+ok    merge-gate.py python classifier: "bash -c 'git merge feature/test'" -> match
+ok    merge-gate.py extension classifier: "bash -c 'git merge feature/test'" -> match
+ok    merge-gate.py startup failure: "bash -c 'git merge feature/test'" -> refused
+ok    merge-gate.py python classifier: 'sh -c "gh pr merge 12 --squash"' -> match
+ok    merge-gate.py extension classifier: 'sh -c "gh pr merge 12 --squash"' -> match
+ok    merge-gate.py startup failure: 'sh -c "gh pr merge 12 --squash"' -> refused
+ok    merge-gate.py python classifier: 'eval "git -C /repo merge feature/test"' -> match
+ok    merge-gate.py extension classifier: 'eval "git -C /repo merge feature/test"' -> match
+ok    merge-gate.py startup failure: 'eval "git -C /repo merge feature/test"' -> refused
+ok    merge-gate.py python classifier: "grep -rn 'git merge' docs/" -> match
+ok    merge-gate.py extension classifier: "grep -rn 'git merge' docs/" -> match
+ok    merge-gate.py startup failure: "grep -rn 'git merge' docs/" -> refused
+ok    merge-gate.py python classifier: 'bash -c "sh -c \'bash -c \\"git merge feature/test\\"\'"' -> match
+ok    merge-gate.py extension classifier: 'bash -c "sh -c \'bash -c \\"git merge feature/test\\"\'"' -> match
+ok    merge-gate.py startup failure: 'bash -c "sh -c \'bash -c \\"git merge feature/test\\"\'"' -> refused
+ok    merge-gate.py python classifier: 'git merge feature/test "unclosed' -> match
+ok    merge-gate.py extension classifier: 'git merge feature/test "unclosed' -> match
+ok    merge-gate.py startup failure: 'git merge feature/test "unclosed' -> refused
+ok    merge-gate.py python classifier: 'git merge --abort' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge --abort' -> unrelated
+ok    merge-gate.py startup failure: 'git merge --abort' -> allowed
+ok    merge-gate.py python classifier: 'git merge --continue' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge --continue' -> unrelated
+ok    merge-gate.py startup failure: 'git merge --continue' -> allowed
+ok    merge-gate.py python classifier: 'git merge --quit' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge --quit' -> unrelated
+ok    merge-gate.py startup failure: 'git merge --quit' -> allowed
+ok    merge-gate.py python classifier: 'git merge -s ours --abort' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge -s ours --abort' -> unrelated
+ok    merge-gate.py startup failure: 'git merge -s ours --abort' -> allowed
+ok    merge-gate.py python classifier: 'git -C /repo merge --abort' -> unrelated
+ok    merge-gate.py extension classifier: 'git -C /repo merge --abort' -> unrelated
+ok    merge-gate.py startup failure: 'git -C /repo merge --abort' -> allowed
+ok    merge-gate.py python classifier: "bash -c 'git merge --abort'" -> unrelated
+ok    merge-gate.py extension classifier: "bash -c 'git merge --abort'" -> unrelated
+ok    merge-gate.py startup failure: "bash -c 'git merge --abort'" -> allowed
+ok    merge-gate.py python classifier: 'bash -c "bash -c \\"bash -c \\\\\\"bash -c \\\\\\\\\\\\\\"git merge feature/test\\\\\\\\\\\\\\"\\\\\\"\\""' -> unrelated
+ok    merge-gate.py extension classifier: 'bash -c "bash -c \\"bash -c \\\\\\"bash -c \\\\\\\\\\\\\\"git merge feature/test\\\\\\\\\\\\\\"\\\\\\"\\""' -> unrelated
+ok    merge-gate.py startup failure: 'bash -c "bash -c \\"bash -c \\\\\\"bash -c \\\\\\\\\\\\\\"git merge feature/test\\\\\\\\\\\\\\"\\\\\\"\\""' -> allowed
+ok    merge-gate.py python classifier: 'echo merge' -> unrelated
+ok    merge-gate.py extension classifier: 'echo merge' -> unrelated
+ok    merge-gate.py startup failure: 'echo merge' -> allowed
+ok    merge-gate.py python classifier: 'echo "merge' -> unrelated
+ok    merge-gate.py extension classifier: 'echo "merge' -> unrelated
+ok    merge-gate.py startup failure: 'echo "merge' -> allowed
+ok    merge-gate.py python classifier: 'rg merge src/' -> unrelated
+ok    merge-gate.py extension classifier: 'rg merge src/' -> unrelated
+ok    merge-gate.py startup failure: 'rg merge src/' -> allowed
+ok    merge-gate.py python classifier: 'git status' -> unrelated
+ok    merge-gate.py extension classifier: 'git status' -> unrelated
+ok    merge-gate.py startup failure: 'git status' -> allowed
+ok    merge-gate.py python classifier: 'git log --grep merge' -> unrelated
+ok    merge-gate.py extension classifier: 'git log --grep merge' -> unrelated
+ok    merge-gate.py startup failure: 'git log --grep merge' -> allowed
+ok    merge-gate.py python classifier: 'git mergetool' -> unrelated
+ok    merge-gate.py extension classifier: 'git mergetool' -> unrelated
+ok    merge-gate.py startup failure: 'git mergetool' -> allowed
+ok    merge-gate.py python classifier: 'git merge-base main HEAD' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge-base main HEAD' -> unrelated
+ok    merge-gate.py startup failure: 'git merge-base main HEAD' -> allowed
+ok    merge-gate.py python classifier: 'git -C merge status' -> unrelated
+ok    merge-gate.py extension classifier: 'git -C merge status' -> unrelated
+ok    merge-gate.py startup failure: 'git -C merge status' -> allowed
+ok    merge-gate.py python classifier: 'gh pr view 12' -> unrelated
+ok    merge-gate.py extension classifier: 'gh pr view 12' -> unrelated
+ok    merge-gate.py startup failure: 'gh pr view 12' -> allowed
+ok    merge-gate.py python classifier: 'gh pr list --search merge' -> unrelated
+ok    merge-gate.py extension classifier: 'gh pr list --search merge' -> unrelated
+ok    merge-gate.py startup failure: 'gh pr list --search merge' -> allowed
+ok    merge-gate.py python classifier: 'python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7' -> unrelated
+ok    merge-gate.py extension classifier: 'python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7' -> unrelated
+ok    merge-gate.py startup failure: 'python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7' -> allowed
+ok    FEAT-2337: bun is on PATH
+ok    FEAT-2337 heartbeat: the event loop ticks while a real gate runs
+ok    FEAT-2337 heartbeat: the slow gate's own pass is unchanged
+ok    FEAT-2337 past the budget, broad bash-write-guard is visibly unavailable
+ok    FEAT-2337 past the budget, broad bash-write-guard is visibly unavailable: settled within the budget plus slack
+ok    FEAT-2337 past the budget, broad bash-write-guard is visibly unavailable: no orphan survives
+ok    FEAT-2337 past the budget, a matching narrow gh-close-gate command is refused
+ok    FEAT-2337 past the budget, a matching narrow gh-close-gate command is refused: settled within the budget plus slack
+ok    FEAT-2337 past the budget, a matching narrow gh-close-gate command is refused: no orphan survives
+ok    FEAT-2337 past the budget, an unrelated narrow gh-close-gate command is allowed silently
+ok    FEAT-2337 past the budget, an unrelated narrow gh-close-gate command is allowed silently: settled within the budget plus slack
+ok    FEAT-2337 past the budget, an unrelated narrow gh-close-gate command is allowed silently: no orphan survives
+ok    FEAT-2337 past the budget, a guarded merge is refused by a timed-out merge-gate
+ok    FEAT-2337 past the budget, a guarded merge is refused by a timed-out merge-gate: settled within the budget plus slack
+ok    FEAT-2337 past the budget, a guarded merge is refused by a timed-out merge-gate: no orphan survives
+ok    FEAT-2337 past the budget, unrelated Bash is allowed silently past a timed-out merge-gate
+ok    FEAT-2337 past the budget, unrelated Bash is allowed silently past a timed-out merge-gate: settled within the budget plus slack
+ok    FEAT-2337 past the budget, unrelated Bash is allowed silently past a timed-out merge-gate: no orphan survives
+ok    FEAT-2337 past the budget, helper inflight_registry keeps its non-blocking reason
+ok    FEAT-2337 past the budget, helper inflight_registry keeps its non-blocking reason: settled within the budget plus slack
+ok    FEAT-2337 past the budget, helper inflight_registry keeps its non-blocking reason: no orphan survives
+ok    FEAT-2337 merge-gate unexpected termination (SIGKILL): the guarded merge is refused
+ok    FEAT-2337 merge-gate unexpected termination (SIGKILL): every command it does not guard is allowed silently
+ok    FEAT-2337 merge-gate startup failure before the guard: the guarded merge is refused
+ok    FEAT-2337 merge-gate startup failure before the guard: every command it does not guard is allowed silently
+ok    FEAT-2337 merge-gate missing interpreter: the guarded merge is refused
+ok    FEAT-2337 merge-gate missing interpreter: every command it does not guard is allowed silently
+ok    FEAT-2337 overlap: all five real Bash gates start before any finishes
+ok    FEAT-2337 overlap: an unrelated command runs every gate, in declared order
+ok    FEAT-2337 composition: a real Bash refusal still blocks the call
+ok    FEAT-2337 composition: plan-sign-gate alone refuses its command (control)
+ok    FEAT-2337 composition: the declared-first refusal (gh-close-gate) leads, the later one is not shown
+ok    FEAT-2337 composition: the unavailable bash-write-guard notice rides beside it
+ok    FEAT-2337 benchmark wiring: a failing ratio exits 1
+ok    FEAT-2337 benchmark wiring: a passing ratio exits 0
+ok    FEAT-2337 benchmark wiring: too few samples are malformed and exit 2
+ok    FEAT-2337 benchmark wiring: a non-numeric timing is malformed and exits 2
+
+605 passed, 1 failed in 58.4s
+exit=1

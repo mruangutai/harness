@@ -15,3 +15,8 @@ task:
   # BUG-2171: native since OMP 18.10.2 and default off. Off, task children get no `yield` tool
   # and OMP strips the hook-injected strict digest schema, so no return reaches digest.md.
   structured: true
+  # FEAT-2397: native per-call model authority, explicitly off for every session, Main included.
+  # A project setting narrows an operator's choice but never widens it. Quoted: an unquoted
+  # `off` is a YAML 1.1 boolean, and the pin is the string. A task that needs a stronger model
+  # escalates instead of overriding it (DEC-155).
+  perCallModel: "off"

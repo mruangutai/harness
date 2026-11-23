@@ -1,0 +1,22 @@
+schema_version: 2
+run_id: r-20261122-6-validate-validator
+run_uid: d61f8e8718084e5ab38ff58fb6552e11
+feature: FEAT-2397-omp-native-cleanup
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+- id: goalcheck
+  persona: harness-pm
+  status: complete
+  verdict: PASS
+  dispatched_at: seq-1
+  completed_at: seq-2
+  cycles: 0
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2397-omp-native-cleanup/.harness/harness/features/FEAT-2397-omp-native-cleanup/notes/research-FEAT-2397-omp-native-cleanup-goalcheck-validate-c2.md
+  evidence:
+    review_sha: eda06a685fe3aeb89a02d20cffd5a359b08d3c13
+    outside_harness_delta_paths: 0
+    check_bytes: 2208
+    check_sha256: 0b89614e55489428936ad5aaff1b46850fcde67ed9a1c57c422c36764e9783fd
+  note: SC-04 met; QA/code/security/UI PASS carried from c1 under delegated narrow-regate ruling.

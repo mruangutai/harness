@@ -190,13 +190,14 @@ STATUS_LINE_RE = re.compile(r"^(\s*)status:\s*(.*)$")
 FEATURE_LINE_RE = re.compile(r"^feature:\s*\S")
 
 
-def _task_status_line(lines, task_id):
-    """(index, indent) of `task_id`'s own status line, or (None, task_ids_present).
+def _task_station_site(lines, task_id):
+    """(id-line index, field indent, own status-line index or None) for `task_id`, or
+    (None, task_ids_present, None) when the plan carries no such task.
 
-    Scans from the task's `- id:` line to the next item at the same indent, so a `status:` key
-    nested deeper inside that task — a verify block's own prose, say — cannot be mistaken for
-    the task's status. Returns the ids actually present when the id is absent, because a caller
-    who mistyped one needs to see the real list, not just a refusal.
+    A task drafted through `apply` carries no `status:` line of its own (BUG-2420), and that is
+    a different case from an absent task: the first gets its station inserted, only the second
+    refuses. The ids present are returned for an absent task because a caller who mistyped one
+    needs to see the real list, not just a refusal.
 
     SCOPED TO THE `tasks:` KEY. `- id:` also matches every entry under `decisions:`, and listing
     D-01..D-12 in the exit-3 message for a `--task` mistake invites the operator to retry with a
@@ -205,22 +206,20 @@ def _task_status_line(lines, task_id):
     """
     _lines, _order, ranges, _pre = _index_top_keys("".join(lines))
     if "tasks" not in ranges:
-        return None, []
+        return None, [], None
     lo, hi = ranges["tasks"]
     start, indent, ids_present = _task_search(lines, lo, hi, task_id)
     if start is None:
-        return None, ids_present
-    found = _status_in_task(lines, start, indent)
-    if found is None:
-        return None, ids_present
-    return found
+        return None, ids_present, None
+    field = " " * lines[start].index("id:")
+    return start, field, _status_in_task(lines, start, hi, indent, field)
 
 
 def _task_search(lines, lo, hi, task_id):
     """(start, indent, ids_present) for `task_id` within the tasks range [lo, hi): the id list
     collects every `- id:` seen — the target's own and its terminator's included, in text
     order, the FIRST match of a duplicated id kept — and the scan stops only at a later item
-    at the target's indent. Absent: (None, "", ids_present). (FEAT-70, from _task_status_line)"""
+    at the target's indent. Absent: (None, "", ids_present). (FEAT-70)"""
     ids_present = []
     start, indent = None, ""
     for i in range(lo, hi):
@@ -242,17 +241,30 @@ def _closes_item(line, indent):
     return bool(m) and m.group(1) == indent
 
 
-def _status_in_task(lines, start, indent):
-    """(index, indent) of the first `status:` line nested deeper than the item opened at
-    `start`, scanning to the input's end and stopping at the next item at the same indent;
-    None when the item carries no status of its own. (FEAT-70, from _task_status_line)"""
-    for j in range(start + 1, len(lines)):
+def _status_in_task(lines, start, hi, indent, field):
+    """Index of the item's OWN `status:` line — one at exactly its field indent — between the
+    item opened at `start` and the next item at the same indent (or the end of the tasks range
+    at `hi`); None when the item carries none. A deeper `status:` is block-scalar text inside
+    another field, a verify block's prose say, never the task's station (BUG-2420)."""
+    for j in range(start + 1, hi):
         if _closes_item(lines[j], indent):
             return None
         ms = STATUS_LINE_RE.match(lines[j])
-        if ms and len(ms.group(1)) > len(indent):
-            return j, ms.group(1)
+        if ms and ms.group(1) == field:
+            return j
     return None
+
+
+def _splice_station(lines, start, field, status_idx, station):
+    """Rewrite the task's own status line, or insert its first one right under its `- id:`."""
+    line = f"{field}status: {station}"
+    if status_idx is not None:
+        lines[status_idx] = line + ("\n" if lines[status_idx].endswith("\n") else "")
+        return
+    if not lines[start].endswith("\n"):
+        lines[start] += "\n"
+    lines.insert(start + 1, line + "\n")
+
 
 def cmd_set_task_station(args):
     resolved = _resolve_plan(args.file)
@@ -263,14 +275,12 @@ def cmd_set_task_station(args):
     missing = {}
 
     def transform(base_bytes):
-        text = base_bytes.decode("utf-8")
-        lines = text.splitlines(keepends=True)
-        idx, info = _task_status_line(lines, args.task)
-        if idx is None:
+        lines = base_bytes.decode("utf-8").splitlines(keepends=True)
+        start, info, status_idx = _task_station_site(lines, args.task)
+        if start is None:
             missing["ids"] = info
             return base_bytes
-        newline = "\n" if lines[idx].endswith("\n") else ""
-        lines[idx] = f"{info}status: {args.station}{newline}"
+        _splice_station(lines, start, info, status_idx, args.station)
         return "".join(lines).encode("utf-8")
 
     try:
@@ -282,7 +292,7 @@ def cmd_set_task_station(args):
 
     if "ids" in missing:
         present = ", ".join(missing["ids"]) or "(none)"
-        print(f"plan-merge: {args.task} is not in {resolved} — it carries: {present}",
+        print(f"plan-merge: {resolved} has no task {args.task} — its tasks are: {present}",
               file=sys.stderr)
         sys.exit(3)
     print(f"STATION {args.task} -> {args.station}")

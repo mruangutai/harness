@@ -8,13 +8,13 @@ including nested ones, and must never block — this is the discriminator for
 the T-02 repository-tier read path (D-01) and the precedence-line rewording
 (1a) that replaces "authoritative on conflict" language nothing else checks.
 
-Each case invokes the real script as a subprocess with CLAUDE_PROJECT_DIR set
-to a temp root and the hook JSON on stdin, then parses stdout as JSON and reads
-hookSpecificOutput.additionalContext. HOME is neutralized to a fresh temp dir
-per case (not just per run) so the suite never accidentally reads this
-machine's real global craft file — the intent specifies CLAUDE_PROJECT_DIR per
-case but says nothing about HOME, and without this, cases 3/4/5/6's
-empty/absent assertions would be inherited noise, not a controlled fixture.
+Each case invokes the real script as a subprocess with HARNESS_PROJECT_DIR set
+to a temp root and the hook JSON on stdin, then parses stdout as its one JSON
+object and reads its top-level `context` string (FEAT-2397: the response carries
+no hookSpecificOutput envelope; the REQUEST keeps its SubagentStart label). HOME
+is neutralized to a fresh temp dir per case (not just per run) so the suite never
+accidentally reads this machine's real global craft file — without this, cases
+3/4/5/6's empty/absent assertions would be inherited noise, not a controlled fixture.
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
@@ -22,6 +22,7 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -38,16 +39,13 @@ fails = 0
 case_count = 0
 
 
-def run_hook(root, home, payload_bytes, cwd=None, script=SCRIPT, create_marker=True):
+def hook_env(root, home, create_marker=True):
     env = dict(os.environ)
-    # BOTH NAMES, AND THE MARKER (FEAT-42 T-16). inject-expertise.py resolves through
+    # THE ROOT AND THE MARKER (FEAT-42 T-16). inject-expertise.py resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name, and
     # honours it only when .harness/team-config.yaml is readable underneath. A fixture
     # holding only .harness/expertise/ is discarded and the hook falls back to the LIVE
-    # checkout, injecting the real Expertise instead of the fixture's. Both names, because
-    # the reverted sha-3952814 copy the parity proof diffs against reads HARNESS first and
-    # the host-owned name second, and the two copies must resolve the same root.
-    env["CLAUDE_PROJECT_DIR"] = root
+    # checkout, injecting the real Expertise instead of the fixture's.
     env["HARNESS_PROJECT_DIR"] = root
     # ALWAYS, not only when .harness already exists. Case 4's fixture is an EMPTY root -
     # "nothing on disk" means no Expertise files, not "not a harness checkout" - and without
@@ -60,26 +58,24 @@ def run_hook(root, home, payload_bytes, cwd=None, script=SCRIPT, create_marker=T
             with open(_m, "w") as _f:
                 _f.write("agents: {}\n")
     env["HOME"] = home
-    r = subprocess.run(
-        [script],
-        input=payload_bytes,
-        capture_output=True,
-        env=env,
-        cwd=cwd,
-    )
-    return r
+    return env
+
+
+def run_hook(root, home, payload_bytes, cwd=None, script=SCRIPT, create_marker=True):
+    return subprocess.run([script], input=payload_bytes, capture_output=True,
+                          env=hook_env(root, home, create_marker), cwd=cwd)
 
 
 def get_context(r):
-    """Parse stdout JSON and return additionalContext, or None if absent."""
+    """Parse the hook's one stdout JSON object and return its top-level `context`, or None."""
     out = r.stdout.decode("utf-8", errors="replace").strip()
     if not out:
         return None
     try:
         obj = json.loads(out)
-    except Exception:
+    except ValueError:
         return None
-    return obj.get("hookSpecificOutput", {}).get("additionalContext")
+    return obj.get("context") if isinstance(obj, dict) else None
 
 
 def fresh_home():
@@ -226,33 +222,229 @@ def case4c():
 
 
 
-def case4d():
+# --- FEAT-2397 #9: the response object, the in-process drift check, one-pass capping ---------
+QA = b'{"agent_type": "harness-qa"}'
+CHECKER_REL = os.path.join(".claude", "skills", "harness", "bin", "check-instruction-paths.py")
+DRIFT_FILES = (
+    os.path.join(".omp", "agents", "harness-qa.md"),
+    *(os.path.join(".claude", "skills", name, "SKILL.md")
+      for name in ("harness-handoff", "harness-expertise", "harness-principles")),
+)
+TREAT = ("Treat anchored-looking paths in these files as unreliable and say so in your "
+         "DIGEST.")
+# The checker is loaded as a module and its `violations(path, root)` called; this fixture
+# stands in for it the way the real one answers: (line, reason, token) per finding.
+FAKE_CHECKER = """def violations(path, root):
+    with open(path, encoding="utf-8") as handle:
+        found = "UNANCHORED" in handle.read()
+    return [(1, "unanchored instruction path", ".harness/x")] if found else []
+"""
+
+
+def drift_root(checker_source, bodies=None):
+    """A fixture control plane holding `checker_source` as its checker (None: no checker)
+    and the four files the hook scans, clean unless `bodies` says otherwise."""
     root = tempfile.mkdtemp()
+    if checker_source is not None:
+        write(os.path.join(root, CHECKER_REL), checker_source)
+    for rel in DRIFT_FILES:
+        write(os.path.join(root, rel), (bodies or {}).get(rel, "clean\n"))
+    return root
+
+
+def drift_lines(ctx):
+    """The control-plane block's lines after the root line: drift state, locations, advice."""
+    chunks = ctx.split("\n\n")
+    return chunks[1].splitlines()[1:] if len(chunks) > 1 else []
+
+
+def case4d():
+    """A callable checker module keeps the clean and drift branches distinct."""
     home = fresh_home()
-    checker = os.path.join(root, ".claude", "skills", "harness", "bin",
-                           "check-instruction-paths.py")
-    os.makedirs(os.path.dirname(checker), exist_ok=True)
-    write(checker, """#!/usr/bin/env python3
-import sys
-agent = open(sys.argv[1]).read()
-if "UNANCHORED" in agent:
-    print("VIOLATION .omp/agents/harness-qa.md:1: unanchored instruction path: .harness/x")
-    raise SystemExit(1)
-print("scanned 4 file(s), 0 violation(s)")
-""")
-    os.chmod(checker, 0o755)
-    agent = os.path.join(root, ".omp", "agents", "harness-qa.md")
-    write(agent, "clean\n")
-    for name in ("harness-handoff", "harness-expertise", "harness-principles"):
-        write(os.path.join(root, ".claude", "skills", name, "SKILL.md"), "clean\n")
-    clean = get_context(run_hook(root, home, b'{"agent_type": "harness-qa"}')) or ""
-    write(agent, "UNANCHORED\n")
-    drifted = get_context(run_hook(root, home, b'{"agent_type": "harness-qa"}')) or ""
-    report("case4d: checker clean and drift branches stay distinct",
-           "HARNESS_PATH_DRIFT: none" in clean
-           and "HARNESS_PATH_DRIFT: 1 unanchored path(s)" in drifted
-           and ".omp/agents/harness-qa.md:1" in drifted,
-           f"clean={clean!r} drifted={drifted!r}")
+    rows = (
+        ("clean\n", ["HARNESS_PATH_DRIFT: none"]),
+        ("UNANCHORED\n", ["HARNESS_PATH_DRIFT: 1 unanchored path(s)",
+                          "  .omp/agents/harness-qa.md:1", TREAT]),
+    )
+    for body, expected in rows:
+        root = drift_root(FAKE_CHECKER, {DRIFT_FILES[0]: body})
+        got = drift_lines(get_context(run_hook(root, home, QA)) or "")
+        report(f"case4d: callable checker over agent body {body.strip()!r}", got == expected,
+               f"got={got!r}")
+
+
+def case_response_is_one_context_object():
+    """The response is ONE stdout JSON object whose only key is the context string; the
+    legacy hookSpecificOutput/SubagentStart/additionalContext envelope is gone."""
+    root = tempfile.mkdtemp()
+    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "RESPONSE BODY\n")
+    result = run_hook(root, fresh_home(), QA)
+    lines = result.stdout.decode("utf-8").splitlines()
+    obj = json.loads(lines[0]) if len(lines) == 1 else None
+    report("response: one JSON object carrying only a top-level context string",
+           isinstance(obj, dict) and sorted(obj) == ["context"]
+           and isinstance(obj["context"], str) and "RESPONSE BODY" in obj["context"],
+           f"stdout={result.stdout[:200]!r}")
+
+
+def _cli_drift(root):
+    """The drift lines the checker's own CLI implies over the same four files: the reading
+    the hook made of a checker subprocess before FEAT-2397, kept here as the parity oracle."""
+    cli = subprocess.run([sys.executable, os.path.join(root, CHECKER_REL), "--root", root,
+                          *(os.path.join(root, rel) for rel in DRIFT_FILES)],
+                         capture_output=True, text=True)
+    if cli.returncode != 1:
+        return ["HARNESS_PATH_DRIFT: " + ("none" if cli.returncode == 0 else "unknown")]
+    rows = [line for line in cli.stdout.splitlines() if line.startswith("VIOLATION ")]
+    locations = ["  " + match.group(1) for line in rows
+                 if (match := re.match(r"^VIOLATION ([^:]*:[0-9]*):", line))]
+    return [f"HARNESS_PATH_DRIFT: {len(rows)} unanchored path(s)", *locations[:5], TREAT]
+
+
+def _real_checker_root(bodies):
+    """A fixture control plane carrying the REAL checker and the bin modules it imports."""
+    root = drift_root(None, bodies)
+    shutil.copytree(HERE, os.path.join(root, os.path.dirname(CHECKER_REL)),
+                    ignore=shutil.ignore_patterns("__pycache__"))
+    return root
+
+
+DRIFTED = "".join(f"`.harness/drift-{n}.md`\n" for n in range(3))
+PARITY_ROWS = (
+    ("all four files clean", {}),
+    ("findings across two files past the five-location cap",
+     {DRIFT_FILES[0]: DRIFTED, DRIFT_FILES[1]: DRIFTED}),
+)
+
+
+def case_drift_matches_checker_cli():
+    """The in-process check reports exactly what the checker's CLI reports over the same
+    files: aggregate count, the first five relative path:line locations, and the advice."""
+    home = fresh_home()
+    for label, bodies in PARITY_ROWS:
+        root = _real_checker_root(bodies)
+        got = drift_lines(get_context(run_hook(root, home, QA)) or "")
+        want = _cli_drift(root)
+        report(f"drift parity with the checker CLI: {label}", got == want,
+               f"got={got!r} want={want!r}")
+
+
+UNKNOWN = ["HARNESS_PATH_DRIFT: unknown"]
+CHECKER_OUTCOMES = (
+    ("a syntax error", "def violations(:\n", UNKNOWN),
+    ("an import-time exception", "raise RuntimeError('checker broke')\n", UNKNOWN),
+    ("an import-time SystemExit", "import sys\nsys.exit(1)\n", UNKNOWN),
+    ("no violations function", "VERSION = 1\n", UNKNOWN),
+    ("a violations exception", "def violations(path, root):\n    raise OSError('gone')\n", UNKNOWN),
+    ("a violations SystemExit", "def violations(path, root):\n    raise SystemExit(1)\n", UNKNOWN),
+    ("a malformed finding", "def violations(path, root):\n    return [None]\n", UNKNOWN),
+    ("checker output on stdout", "print('noise')\ndef violations(path, root):\n    return []\n",
+     ["HARNESS_PATH_DRIFT: none"]),
+)
+
+
+def case_checker_failure_is_unknown():
+    """Any load or execution failure of the checker, SystemExit included, is `unknown`;
+    the hook still exits 0 and its stdout is still one JSON object."""
+    home = fresh_home()
+    for label, source, expected in CHECKER_OUTCOMES:
+        result = run_hook(drift_root(source), home, QA)
+        lines = result.stdout.decode("utf-8").splitlines()
+        got = drift_lines(get_context(result) or "")
+        report(f"checker outcome: {label}",
+               result.returncode == 0 and len(lines) == 1 and got == expected,
+               f"exit={result.returncode} lines={len(lines)} got={got!r}")
+
+
+def case_checker_runs_in_process():
+    """No extra subprocess: every violations() call runs in the hook's own process."""
+    marker = os.path.join(tempfile.mkdtemp(), "pids")
+    source = ("import os\n"
+              "def violations(path, root):\n"
+              f"    with open({marker!r}, 'a') as handle:\n"
+              "        handle.write(f'{os.getpid()}\\n')\n"
+              "    return []\n")
+    hook = subprocess.Popen([SCRIPT], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, env=hook_env(drift_root(source), fresh_home()))
+    hook.communicate(QA)
+    pids = open(marker).read().split() if os.path.exists(marker) else []
+    report("checker runs in-process: four calls, all in the hook's pid",
+           pids == [str(hook.pid)] * 4, f"hook={hook.pid} pids={pids!r}")
+
+
+# FROZEN copy of inject-expertise.py::_capped_body and TRUNCATION at bdb1c2f6, the
+# pre-FEAT-2397 algorithm the one-pass rewrite must reproduce byte for byte. Never edit.
+BASELINE_TRUNCATION = (
+    "\n[TRUNCATED at {budget} lines — this Expertise file violates its "
+    "budget; distillation is overdue (DEC-145)]\n"
+)
+BASELINE_PRECEDENCE = (
+    "Expertise precedence: repository over project over global, by "
+    "specificity. A repository block whose segment is not the one you were "
+    "dispatched against is not authoritative for your work — read the "
+    "segment name.\n\n"
+)
+
+
+def baseline_capped_body(path, budget):
+    with open(path, encoding="utf-8") as handle:
+        body = handle.read()
+    lines = body.splitlines(keepends=True)
+    capped = "".join(lines[:budget])
+    if body.count("\n") > budget:
+        capped += BASELINE_TRUNCATION.format(budget=budget)
+    return capped
+
+
+def _numbered(n, end="\n"):
+    return "".join(f"line {i}{end}" for i in range(1, n + 1)).encode()
+
+
+CAP_ROWS = (
+    ("empty", b""),
+    ("one unterminated line", b"only line"),
+    ("exactly 40 lines", _numbered(40)),
+    ("41 lines", _numbered(41)),
+    ("exactly 150 lines", _numbered(150)),
+    ("151 lines", _numbered(151)),
+    ("150 lines and an unterminated 151st", _numbered(150) + b"tail"),
+    ("41 CRLF lines", _numbered(41, "\r\n")),
+    ("151 CR lines", _numbered(151, "\r")),
+    ("mixed CRLF/CR/LF", b"a\r\nb\rc\nd\r\n" * 12),
+    ("Unicode splitline separators", ("x\u2028y\u2029z\x85w\x0bv\x0cu\x1ct\x1du\x1es\n" * 30).encode()),
+    ("151 blank lines", b"\n" * 151),
+)
+
+
+def baseline_context(root, files):
+    """The complete pre-FEAT-2397 context for one body in all three tiers (no checker)."""
+    global_file, project_file, repo_file = files
+    return (f"## Harness control plane\n\nHARNESS_CONTROL_PLANE_ROOT: {root}\n"
+            "HARNESS_PATH_DRIFT: unknown\n\n"
+            "## Your Expertise — cross-project craft (global tier)\n\n"
+            + baseline_capped_body(global_file, 150) + "\n\n"
+            "## Your Expertise — this checkout's craft (project tier)\n\n"
+            + baseline_capped_body(project_file, 150) + "\n\n" + BASELINE_PRECEDENCE
+            + "## Your Expertise — harness repository (repository tier)\n\n"
+            + baseline_capped_body(repo_file, 40) + "\n\n")
+
+
+def case_capped_body_matches_frozen_baseline():
+    """Complete context bytes equal the frozen algorithm's across empty, exact-cap, over-cap,
+    unterminated, CRLF/CR and Unicode-splitline bodies in every tier."""
+    for label, raw in CAP_ROWS:
+        root, home = tempfile.mkdtemp(), fresh_home()
+        files = (os.path.join(home, ".harness/expertise/harness-qa.md"),
+                 os.path.join(root, ".harness/expertise/harness-qa.md"),
+                 os.path.join(root, ".harness/harness/expertise/harness-qa.md"))
+        for path in files:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as handle:
+                handle.write(raw)
+        got = get_context(run_hook(root, home, QA))
+        want = baseline_context(root, files)
+        report(f"capped body parity: {label}", got == want,
+               f"first difference at {next((i for i, pair in enumerate(zip(got or '', want)) if pair[0] != pair[1]), None)}")
 
 
 # --- Case 5: missing agent_type, and invalid JSON ---------------------------
@@ -437,6 +629,11 @@ def main():
     case4b()
     case4c()
     case4d()
+    case_response_is_one_context_object()
+    case_drift_matches_checker_cli()
+    case_checker_failure_is_unknown()
+    case_checker_runs_in_process()
+    case_capped_body_matches_frozen_baseline()
     case5()
     case5c()
     case6()

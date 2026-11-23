@@ -1,0 +1,81 @@
+schema_version: 2
+run_id: r-20261122-7-validate-validator
+run_uid: c604995ed20945b98099717088f422f5
+feature: FEAT-2397-omp-native-cleanup
+squad: validator
+host: harness-validator-lead
+team: validate
+status: blocked
+verdict: ESCALATE
+severity_max: low
+review_sha: 1133d63c55c8994f7c809f7be73616d049ab163b
+base_sha: eda06a685fe3aeb89a02d20cffd5a359b08d3c13
+cycles_used: 1
+steps:
+  - id: qa
+    persona: harness-qa
+    task: T-01
+    status: complete
+    verdict: ESCALATE
+    depends_on: []
+    mutates_repo: false
+    on_fail: continue
+    cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: ../../notes/review-harness-qa-c3.md
+    note: Scoped checks green; installed matrix floor refuses narrow PASS.
+    evidence:
+      set_pass: 247
+      unset_pass: 247
+      no_distribution: ALL PASS
+      receipts: absent
+      matrix_ok: false
+      ci_rework_attribution: 1
+      artifact_refusal_append: acknowledged
+  - id: code
+    persona: harness-code-reviewer
+    task: T-01
+    status: complete
+    verdict: PASS
+    depends_on: []
+    mutates_repo: false
+    on_fail: continue
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: ../../notes/review-harness-code-reviewer-c3.md
+    note: Correct in kind; one low/form unsupported INV-29 base-parity claim.
+    evidence:
+      production_delta: 0
+      sc_delta: 0
+      changed_ts_callbacks: 3
+      callback_assessment: pass
+      numeric_grading: TypeScript excluded by grading rules; no changed Python functions.
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    artifact: ../r-20261122-5-validate-validator/digest.md
+    evidence:
+      carried: true
+      reason: Delegated ruling; test-only delta, zero production delta and no SC touched.
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    artifact: ../r-20261122-5-validate-validator/digest.md
+    evidence:
+      carried: true
+      reason: Delegated ruling; test-only delta, zero production delta and no SC touched.
+  - id: goalcheck
+    persona: harness-pm
+    status: complete
+    verdict: PASS
+    cycles: 0
+    artifact: ../r-20261122-6-validate-validator/digest.md
+    evidence:
+      carried: true
+      reason: Delegated ruling; test-only delta, zero production delta and no SC touched.

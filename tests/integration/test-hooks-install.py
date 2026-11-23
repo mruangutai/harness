@@ -224,7 +224,6 @@ def _stub_gh(tmp):
 
 def _sweep_env(repo, gh_env):
     env = dict(gh_env)
-    env["CLAUDE_PROJECT_DIR"] = repo
     env["HARNESS_PROJECT_DIR"] = repo
     return env
 

@@ -1,0 +1,116 @@
+ok  .claude/skills/harness/bin/harness_yaml.py:674 _payload_identity grade=5 bar=4 cyc=3 cog=3 abc=7.3 driver=cyclomatic+cognitive+abc (new)
+ok  .claude/skills/harness/bin/harness_yaml.py:684 _resolve_identity grade=4 bar=4 cyc=3 cog=6 abc=7.1 driver=cognitive
+ok  .claude/skills/harness/bin/inject-expertise.py:86 _emit grade=5 bar=4 cyc=2 cog=1 abc=3.2 driver=cyclomatic+cognitive+abc
+ok  .claude/skills/harness/bin/inject-expertise.py:94 _drift_locations grade=4 bar=4 cyc=3 cog=0 abc=9.2 driver=abc (new)
+ok  .claude/skills/harness/bin/inject-expertise.py:109 _checker_result grade=4 bar=4 cyc=3 cog=2 abc=9.4 driver=abc
+ok  .claude/skills/harness/bin/inject-expertise.py:148 _capped_body grade=4 bar=4 cyc=3 cog=5 abc=9.9 driver=cognitive+abc
+ok  .claude/skills/harness/bin/validate-digest.py:2805 hook_mode grade=4 bar=4 cyc=5 cog=6 abc=18.4 driver=cyclomatic+cognitive+abc
+ok  .claude/skills/harness/bin/validate-digest.py:2852 _pass_through grade=4 bar=4 cyc=3 cog=4 abc=6.4 driver=cognitive
+ok  tests/integration/test-check-domain-grant.py:109 _t12_sc05_pair grade=5 bar=3 cyc=2 cog=1 abc=5.8 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:141 _t12_bad_manifests_fail_closed grade=5 bar=3 cyc=3 cog=3 abc=6.9 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:148 _t12_absent_manifest_fails_open grade=4 bar=3 cyc=2 cog=1 abc=15.8 driver=abc (new)
+ok  tests/integration/test-check-domain-grant.py:175 _manifest_root grade=5 bar=3 cyc=1 cog=0 abc=6.3 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:212 _t12_unreadable_manifests_block grade=4 bar=3 cyc=5 cog=4 abc=15.2 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:255 _t12_state_shape_gate grade=4 bar=3 cyc=5 cog=3 abc=10.5 driver=cyclomatic+abc (new)
+ok  tests/integration/test-check-domain-grant.py:284 _fake_yaml grade=5 bar=3 cyc=1 cog=0 abc=4.5 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:291 fire_noyaml grade=5 bar=3 cyc=3 cog=2 abc=7.0 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:303 _session grade=5 bar=3 cyc=1 cog=0 abc=0.0 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:307 _install_advice grade=5 bar=3 cyc=3 cog=0 abc=3.6 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:316 _sysmsg grade=5 bar=3 cyc=2 cog=1 abc=3.2 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:325 _t12_bootstrap_first_session grade=3 bar=3 cyc=6 cog=2 abc=25.1 driver=abc (new)
+ok  tests/integration/test-check-domain-grant.py:350 _t12_bootstrap_other_session_and_cleanup grade=3 bar=3 cyc=5 cog=2 abc=20.7 driver=abc (new)
+ok  tests/integration/test-check-domain-grant.py:375 _t12_grant_skips_shape_gate grade=4 bar=3 cyc=2 cog=1 abc=15.2 driver=abc (new)
+ok  tests/integration/test-check-domain-grant.py:409 _t12_identity_sources grade=5 bar=3 cyc=3 cog=3 abc=7.5 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-domain-grant.py:423 run_t12 grade=4 bar=3 cyc=5 cog=6 abc=12.0 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-check-instruction-paths.py:59 _direct_rows grade=5 bar=3 cyc=2 cog=0 abc=5.0 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-instruction-paths.py:65 case_path_directions grade=4 bar=3 cyc=6 cog=3 abc=16.4 driver=cyclomatic+abc
+ok  tests/integration/test-check-omp-port.py:67 _per_call_model_off grade=5 bar=3 cyc=2 cog=1 abc=3.7 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-check-omp-port.py:72 case_per_call_model_pinned_off grade=4 bar=3 cyc=3 cog=4 abc=11.4 driver=cognitive+abc (new)
+ok  tests/integration/test-dispatch-guard.py:90 case_1_governed_refusals_survive grade=4 bar=3 cyc=6 cog=5 abc=11.9 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-dispatch-guard.py:103 case_2_governed_dispatch_with_or_without_a_model grade=5 bar=3 cyc=3 cog=3 abc=6.4 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-dispatch-guard.py:131 case_2b_legacy_dispatch_aliases_are_not_read grade=4 bar=3 cyc=4 cog=3 abc=9.0 driver=abc (new)
+ok  tests/integration/test-dispatch-guard.py:161 case_5_main_session grade=5 bar=3 cyc=1 cog=0 abc=5.5 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:278 _task grade=5 bar=3 cyc=2 cog=3 abc=5.1 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:332 case_6_single_flight_refusal grade=3 bar=3 cyc=2 cog=2 abc=23.9 driver=abc
+ok  tests/integration/test-dispatch-guard.py:375 case_7_allow_and_record grade=4 bar=3 cyc=2 cog=2 abc=15.4 driver=abc
+ok  tests/integration/test-dispatch-guard.py:396 case_8_parallel_squad_stays_legal grade=4 bar=3 cyc=3 cog=2 abc=17.5 driver=abc
+ok  tests/integration/test-dispatch-guard.py:423 case_9_stale_claim grade=4 bar=3 cyc=1 cog=1 abc=15.9 driver=abc
+ok  tests/integration/test-dispatch-guard.py:453 _feat65_fire grade=4 bar=3 cyc=1 cog=0 abc=12.4 driver=abc
+ok  tests/integration/test-dispatch-guard.py:500 case_10_library_missing grade=4 bar=3 cyc=1 cog=1 abc=18.8 driver=abc
+ok  tests/integration/test-dispatch-guard.py:549 _f2274_report grade=5 bar=3 cyc=2 cog=2 abc=4.5 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-dispatch-guard.py:556 _f2274_unavailable_fires grade=4 bar=3 cyc=2 cog=1 abc=9.0 driver=abc (new)
+ok  tests/integration/test-dispatch-guard.py:579 _f2274_quiet_fires grade=5 bar=3 cyc=1 cog=0 abc=4.0 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-dispatch-guard.py:595 case_f2274_unavailable_outcome grade=4 bar=3 cyc=5 cog=5 abc=12.9 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:617 _f2274_v2_member_dispatch grade=5 bar=3 cyc=1 cog=0 abc=1.0 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:661 case_f2274_v2_legitimate_passthroughs_stay_quiet grade=4 bar=3 cyc=1 cog=1 abc=11.7 driver=abc
+ok  tests/integration/test-dispatch-guard.py:696 case_11_missing_feature_line_refused grade=5 bar=3 cyc=1 cog=0 abc=7.9 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:714 _declared_worktree_checkout grade=4 bar=3 cyc=2 cog=1 abc=15.8 driver=abc (new)
+ok  tests/integration/test-dispatch-guard.py:734 case_12_claim_lands_in_declared_worktree grade=4 bar=3 cyc=1 cog=0 abc=15.6 driver=abc
+ok  tests/integration/test-dispatch-guard.py:777 case_27_guard_and_registry_resolve_one_feature_root grade=4 bar=3 cyc=3 cog=1 abc=19.5 driver=abc
+ok  tests/integration/test-dispatch-guard.py:801 case_13_feature_line_must_be_first_and_valid grade=4 bar=3 cyc=1 cog=0 abc=8.8 driver=abc
+ok  tests/integration/test-dispatch-guard.py:813 case_14_single_flight_is_per_feature grade=4 bar=3 cyc=4 cog=0 abc=10.8 driver=abc
+ok  tests/integration/test-dispatch-guard.py:833 case_15_omp_dispatch_records_supervisor_and_receipt grade=4 bar=3 cyc=3 cog=1 abc=15.3 driver=abc
+ok  tests/integration/test-dispatch-guard.py:850 case_15b_omp_main_dispatch_records_top_level_claim grade=4 bar=3 cyc=3 cog=1 abc=15.3 driver=abc
+ok  tests/integration/test-dispatch-guard.py:885 case_15c_omp_main_eng_lead_on_all_direct_plan_refused grade=3 bar=3 cyc=6 cog=14 abc=24.3 driver=cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:932 _main_start grade=4 bar=3 cyc=2 cog=3 abc=16.1 driver=abc
+ok  tests/integration/test-dispatch-guard.py:998 case_15e_dec174_unresolvable_feature_keeps_prior_refusal grade=4 bar=3 cyc=4 cog=6 abc=20.0 driver=cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:1095 case_17_shell_less_persona_requires_matching_feature_root grade=3 bar=3 cyc=3 cog=3 abc=22.1 driver=abc
+ok  tests/integration/test-dispatch-guard.py:1138 case_18_inverted_slug_refused_no_claim_and_paste_back_safe grade=4 bar=3 cyc=2 cog=2 abc=18.8 driver=abc
+ok  tests/integration/test-dispatch-guard.py:1177 case_19_matching_slugs_not_refused grade=5 bar=3 cyc=2 cog=2 abc=7.3 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:1196 case_20_no_run_dir_reference_untouched grade=5 bar=3 cyc=1 cog=1 abc=7.0 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:1213 case_21_grant_less_manifest_fails_open_and_says_so grade=4 bar=3 cyc=1 cog=1 abc=8.6 driver=abc
+ok  tests/integration/test-dispatch-guard.py:1237 case_22_derived_vocabulary_matches_invented_squad grade=4 bar=3 cyc=1 cog=1 abc=10.4 driver=abc
+ok  tests/integration/test-dispatch-guard.py:1264 case_23_broken_derivation_distinguished_from_grant_less grade=4 bar=3 cyc=1 cog=1 abc=10.7 driver=abc
+ok  tests/integration/test-dispatch-guard.py:1290 case_24_duplicate_hook_keys_are_rejected grade=5 bar=3 cyc=2 cog=1 abc=3.5 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:1302 _fire_from grade=5 bar=3 cyc=1 cog=0 abc=2.0 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:1307 case_27_spawn_targets_are_native_authority grade=3 bar=3 cyc=1 cog=3 abc=25.5 driver=abc
+ok  tests/integration/test-dispatch-guard.py:1358 case_29_name_parameter_refused grade=5 bar=3 cyc=1 cog=0 abc=3.7 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:1367 case_30_repository_header_binds_exact_factory_claim grade=3 bar=3 cyc=4 cog=4 abc=20.1 driver=abc
+ok  tests/integration/test-dispatch-guard.py:1405 _c31_write_record grade=5 bar=3 cyc=1 cog=0 abc=4.1 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-dispatch-guard.py:1411 _c31_fleet_worktree grade=4 bar=3 cyc=2 cog=1 abc=9.0 driver=abc (new)
+ok  tests/integration/test-dispatch-guard.py:1428 _c31_dispatch grade=5 bar=3 cyc=1 cog=1 abc=1.7 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-dispatch-guard.py:1438 _c31_worktree_binds grade=4 bar=3 cyc=4 cog=3 abc=19.0 driver=abc (new)
+ok  tests/integration/test-dispatch-guard.py:1456 _c31_stale_main_copy_loses grade=5 bar=3 cyc=2 cog=1 abc=7.0 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-dispatch-guard.py:1469 case_31_repository_binding_read_from_the_feature_worktree grade=5 bar=3 cyc=1 cog=1 abc=5.7 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:1539 _distill_task grade=5 bar=3 cyc=2 cog=1 abc=2.4 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:1548 _distill_fire grade=5 bar=3 cyc=1 cog=0 abc=1.0 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-dispatch-guard.py:1767 _report grade=4 bar=3 cyc=4 cog=8 abc=8.7 driver=cognitive+abc (new)
+ok  tests/integration/test-dispatch-guard.py:1780 main grade=5 bar=3 cyc=3 cog=3 abc=5.7 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-inject-expertise.py:42 hook_env grade=4 bar=3 cyc=3 cog=3 abc=8.2 driver=abc (new)
+ok  tests/integration/test-inject-expertise.py:64 run_hook grade=5 bar=3 cyc=1 cog=0 abc=2.0 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-inject-expertise.py:69 get_context grade=5 bar=3 cyc=3 cog=3 abc=6.7 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-inject-expertise.py:244 drift_root grade=4 bar=3 cyc=4 cog=4 abc=7.5 driver=cognitive (new)
+ok  tests/integration/test-inject-expertise.py:255 drift_lines grade=5 bar=3 cyc=1 cog=1 abc=3.7 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-inject-expertise.py:261 case4d grade=4 bar=3 cyc=3 cog=3 abc=9.7 driver=abc
+ok  tests/integration/test-inject-expertise.py:276 case_response_is_one_context_object grade=4 bar=3 cyc=4 cog=2 abc=15.3 driver=abc (new)
+ok  tests/integration/test-inject-expertise.py:290 _cli_drift grade=4 bar=3 cyc=7 cog=3 abc=12.2 driver=cyclomatic+abc (new)
+ok  tests/integration/test-inject-expertise.py:304 _real_checker_root grade=5 bar=3 cyc=1 cog=0 abc=5.1 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-inject-expertise.py:320 case_drift_matches_checker_cli grade=4 bar=3 cyc=3 cog=3 abc=9.7 driver=abc (new)
+ok  tests/integration/test-inject-expertise.py:346 case_checker_failure_is_unknown grade=4 bar=3 cyc=5 cog=5 abc=14.1 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-inject-expertise.py:359 case_checker_runs_in_process grade=4 bar=3 cyc=1 cog=1 abc=13.7 driver=abc (new)
+ok  tests/integration/test-inject-expertise.py:389 baseline_capped_body grade=4 bar=3 cyc=2 cog=1 abc=8.1 driver=abc (new)
+ok  tests/integration/test-inject-expertise.py:399 _numbered grade=5 bar=3 cyc=2 cog=0 abc=3.2 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-inject-expertise.py:419 baseline_context grade=5 bar=3 cyc=1 cog=0 abc=4.2 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-inject-expertise.py:432 case_capped_body_matches_frozen_baseline grade=3 bar=3 cyc=6 cog=5 abc=20.3 driver=abc (new)
+ok  tests/integration/test-inject-expertise.py:623 main grade=3 bar=3 cyc=1 cog=0 abc=23.0 driver=abc
+ok  tests/integration/test-validate-digest.py:1114 _t09_claims grade=4 bar=3 cyc=5 cog=3 abc=8.8 driver=cyclomatic+abc (new)
+ok  tests/integration/test-validate-digest.py:1123 _t09_run grade=5 bar=3 cyc=1 cog=0 abc=2.2 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-validate-digest.py:1131 _t09_return grade=5 bar=3 cyc=1 cog=0 abc=1.0 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-validate-digest.py:1136 _t09_pm_root grade=5 bar=3 cyc=1 cog=0 abc=2.2 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-validate-digest.py:1142 _t09_valid_return_releases grade=4 bar=3 cyc=1 cog=0 abc=8.5 driver=abc (new)
+ok  tests/integration/test-validate-digest.py:1157 _t09_rejection_retains_claim grade=4 bar=3 cyc=3 cog=5 abc=16.8 driver=cognitive+abc (new)
+ok  tests/integration/test-validate-digest.py:1173 _t09_own_claim_only grade=4 bar=3 cyc=1 cog=0 abc=14.2 driver=abc (new)
+ok  tests/integration/test-validate-digest.py:1186 _t09_library_missing grade=4 bar=3 cyc=1 cog=0 abc=13.5 driver=abc (new)
+ok  tests/integration/test-validate-digest.py:1199 _t09_lead_root grade=5 bar=3 cyc=2 cog=1 abc=5.1 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-validate-digest.py:1208 _t09_children_refusal grade=4 bar=3 cyc=2 cog=1 abc=14.2 driver=abc (new)
+ok  tests/integration/test-validate-digest.py:1227 _t09_sibling_child_is_not_mine grade=5 bar=3 cyc=1 cog=0 abc=6.4 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-validate-digest.py:1238 _t09_member_is_exempt grade=5 bar=3 cyc=1 cog=0 abc=7.5 driver=cyclomatic+cognitive+abc (new)
+ok  tests/integration/test-validate-digest.py:1248 _t09_legacy_field_meets_live_child grade=4 bar=3 cyc=3 cog=2 abc=13.6 driver=abc (new)
+ok  tests/integration/test-validate-digest.py:1263 _t09_release_command grade=4 bar=3 cyc=4 cog=2 abc=10.2 driver=abc (new)
+ok  tests/integration/test-validate-digest.py:1286 run_t09 grade=4 bar=3 cyc=4 cog=5 abc=11.0 driver=cognitive+abc
+ok  tests/integration/test-validate-digest.py:4177 _t04_hook_failures grade=4 bar=3 cyc=4 cog=6 abc=10.5 driver=cognitive+abc
+ok  tests/integration/test-validate-digest.py:5624 run_dec156_worktree_red_case grade=3 bar=3 cyc=3 cog=3 abc=24.5 driver=abc
+ok  tests/integration/test-validate-digest.py:6001 _f2274_fire_passes grade=5 bar=3 cyc=1 cog=0 abc=3.2 driver=cyclomatic+cognitive+abc
+ok  tests/integration/test-validate-digest.py:6007 _f2274_fire_refusals grade=4 bar=3 cyc=4 cog=0 abc=9.4 driver=abc
+
+0 below bar
