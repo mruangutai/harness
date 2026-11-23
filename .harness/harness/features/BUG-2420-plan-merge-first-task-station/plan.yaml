@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai (delegated to fable-advisor)
   status: approved
 drafted_at: '2026-11-23T03:30:58Z'
-status: review
+status: done
 source_issues: [2420]
 lanes:
   resolved_at: 9eb07b4f
