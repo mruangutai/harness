@@ -329,6 +329,16 @@ def stage_reviewed_evidence(repo):
     return reviewed, z_paths(repo, "diff", "--cached", "--name-only")
 
 
+def require_operator_commit(repo, evidence, excluded, before):
+    """Checklist step 6: the separate operator commit tracks exactly the reviewed evidence."""
+    git(repo, "commit", "-qm", "operator: track historical run evidence")
+    now = tracked(repo)
+    require(set(evidence) <= now and not set(excluded) & now,
+            "BUG-2399 checklist: evidence untracked, or UI, lock or unrelated file tracked")
+    require(all((repo / path).read_bytes() == data for path, data in before.items()),
+            "BUG-2399 checklist: reviewed evidence bytes changed")
+
+
 def case_bug2399_operator_checklist_commands_compose():
     """The checkout-upgrade checklist's command sequence, run as an operator would on a fleet checkout."""
     with tempfile.TemporaryDirectory() as directory:
@@ -343,12 +353,7 @@ def case_bug2399_operator_checklist_commands_compose():
                 "BUG-2399 checklist: narrowed rule did not expose exactly the historical evidence: %r" % reviewed)
         require(staged == set(evidence) | {".gitignore"}, "BUG-2399 checklist: staged set differs: %r" % sorted(staged))
         require(git(repo, "rev-parse", "HEAD") == base_head, "BUG-2399 checklist: merge or staging committed")
-        git(repo, "commit", "-qm", "operator: track historical run evidence")
-        now = tracked(repo)
-        require(set(evidence) <= now and not set(excluded) & now,
-                "BUG-2399 checklist: evidence untracked, or UI, lock or unrelated file tracked")
-        require(all((repo / path).read_bytes() == data for path, data in before.items()),
-                "BUG-2399 checklist: reviewed evidence bytes changed")
+        require_operator_commit(repo, evidence, excluded, before)
 
 
 CASES = [
