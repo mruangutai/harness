@@ -30,3 +30,6 @@ The first run of the T-03 verify failed in the pre-existing `case_landed_differs
 - **QA-Q1 (advisor):** the fix run's QA provisions `bun install --frozen-lockfile` in its pinned checkout and records the command with the receipt. PR CI is not a substitute.
 - **Fleet-note check (advisor flag):** `git clone` checks out tracked files only, so a fresh clone holds no ignored historical run files for `merge-gitignore.py .` to expose.
 - The terminal three-suite verify was re-run green (`qa-green.json` rewritten), with `qa-red.json` preserved.
+
+## Fix c2 (PR #2427 CI red: instruction-path gate)
+I ran the plan's verify commands, the unit suite and check-state before the PR, but not every CI gate. The `checks` job's Instruction-path gate (`check-instruction-paths.py`) refused three unanchored `.harness/…` paths in the new `checkout-upgrade.md` checklist (lines 41 and 49). Those paths name locations in the operator's target checkout, which is neither the control plane nor the feature tree, so neither anchor is correct. The fix rewords them without the `.harness/` prefix ("`runs/*/ui/**` under each feature"; layouts "under the checkout's `.harness` directory"), so the gate reports 0 violations; the meaning is unchanged. Before re-pinning, the remaining CI gates were run locally and all exit 0: plan-route, canonical-reader audit and layout.

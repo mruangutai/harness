@@ -37,16 +37,17 @@ its default branch, every Harness reader refuses that member.
   them by hand, preserving the existing globs and their comments.
 - **Run records checklist (BUG-2399): the ignore merge in an existing checkout.** Harness
   once shipped a broad `runs/**` ignore. Run records other than `runs/*/ui/` are retained
-  evidence (DEC-238) and are tracked now, so `merge-gitignore.py` replaces that rule with
-  `.harness/*/features/*/runs/*/ui/**`. Any historical evidence it was hiding becomes
-  untracked the moment the rule narrows, and both `merge-gate.py merge-distill` and
-  `feature-worktree.py remove` refuse a tree carrying it. The operator runs this once per
-  checkout:
+  evidence (DEC-238) and are tracked now, so `merge-gitignore.py` replaces that rule with the
+  narrow run-UI rule, `runs/*/ui/**` under each feature (DEC-257). Any historical evidence it
+  was hiding becomes untracked the moment the rule narrows, and both `merge-gate.py
+  merge-distill` and `feature-worktree.py remove` refuse a tree carrying it. The operator runs
+  this once per checkout:
   1. Pause teams, distill and worktree removal in this checkout. Commit, or set aside, any
      staged or unrelated edits first (`git status` is clean), so the review below sees only
      the migration.
-  2. Before narrowing, see what the old rule hides. Both layouts appear, namespaced
-     (`.harness/<segment>/features/<id>/runs/<run>/`) and legacy (`.harness/features/<id>/runs/<run>/`):
+  2. Before narrowing, see what the old rule hides. Under the checkout's `.harness` directory,
+     both layouts appear: namespaced (`<segment>/features/<id>/runs/<run>/`) and legacy
+     (`features/<id>/runs/<run>/`).
 
      ```bash
      git ls-files --others --ignored --exclude-standard -z -- .harness | tr '\0' '\n'
