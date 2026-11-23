@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2397-omp-native-cleanup",
   "branch": "feat/FEAT-2397-omp-native-cleanup",
   "pr": null,
-  "review_sha": "1133d63c55c8994f7c809f7be73616d049ab163b",
+  "review_sha": "f12ddd93cd828afe1c7c17b5afc8bfd3c3a9cb72",
   "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
@@ -113,6 +113,13 @@
       "cycles_used": 1,
       "tokens": null,
       "ended_at": "2026-11-23T07:15:17+00:00"
+    },
+    {
+      "id": "r-20261122-8-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-23T07:20:46+00:00"
     }
   ],
   "judgements": [
