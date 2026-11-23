@@ -1,0 +1,69 @@
+{
+  "feature_id": "BUG-2390-policy-payload-type",
+  "branch": "none",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261122-1-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-23T04:09:54+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-1-patch-product/digest.md",
+        "sha256": "669bdd0bcc142a2decdfa19cf1ee0b952b18ba00aa6313d77f930afa37589b91"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:15:37+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T04:09:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Known cause and bounded two-file diff widening one internal type; no new interface or enforcement surface (grilling 2026-11-22, advisor-confirmed)"
+    },
+    {
+      "at": "2026-11-23T04:25:12.210028+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "Verify did not parse: the apostrophe in ${VAR:?Main's ...} opens an unterminated quote in bash 3.2 and 5.3 (bash -n fails); message reworded, behaviour unchanged"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2390-policy-payload-type/notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "8652fd70e89e0f05bbadc3eeeb6fb9e4f22305d87a4636781bfa8ab0223a0ff5"
+  },
+  "github": {
+    "milestone": 134,
+    "parent": 2431,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2432
+    },
+    "source_issues": [
+      2390
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
