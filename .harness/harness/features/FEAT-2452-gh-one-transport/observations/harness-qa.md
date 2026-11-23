@@ -1,3 +1,5 @@
 # Observations — harness-qa — FEAT-2452-gh-one-transport
 
 - 2026-11-23: A fresh pinned checkout lacks node_modules, so integration test-typescript-typecheck.py reds (missing tsc) until `bun install --frozen-lockfile` runs in the pin; check-domain also refuses QA source perturbation inside its own pin (.claude/skills/**), so mutants must be in-memory monkeypatches of in-process test modules.
+- 2026-11-23: An old-blob reproduction needs no source edit: exec `git show <sha>:<module>.py` into a fresh module placed in sys.modules before exec-ing the pin test file. It reproduced the dev reds for wayfind and factory_gh exactly (28 and 4 FAIL). For a subprocess-driven test, a second managed pin at the old SHA plus `git checkout <pin> -- <test files>` did the same without a check-domain refusal.
+- 2026-11-23: A unit seam that patches a call with a recorder lambda yet never asserts the recorded event is blind to that call being dropped. An in-memory mutant of the caller found this; it needs a reached-marker routed to sys.__stderr__, because redirect_stdout swallows print.

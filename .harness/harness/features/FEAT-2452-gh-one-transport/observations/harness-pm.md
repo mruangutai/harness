@@ -7,3 +7,4 @@
 - 2026-11-23: an SC demanding variable X be absent from test support conflicts with a confinement that strips X by name; strip by prefix (GH_*) to satisfy both.
 - 2026-11-23: Adding 4 file lines plus 8 verify lines to T-05 tipped it to 53 machine-field lines (budget 50); check FAILs only at check time, not at amend. Count headroom before appending verify assertions.
 - 2026-11-23: Dispatch-named receipt path notes/receipt-amend-apply-*.txt is outside pm domain; pm can only write notes/receipt-harness-pm-*.md. tee to a permitted path works only with a literal absolute path (shell var refused).
+- 2026-11-23: A fix that closes a failing-first gap with a red from a DIFFERENT failure point (pre-loop label create vs the plan's per-item close failure) discharges the SC's literal text but not the signed task's reading of the issue; grade both separately. A feature-intermediate commit that broke the policy is a legitimate free mutant.
