@@ -1,7 +1,9 @@
 schema: plan/1
 feature: FEAT-2397-omp-native-cleanup
 approval:
-  status: pending
+  date: '2026-11-22'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
 drafted_at: '2026-11-23T02:35:14Z'
 status: plan
 source_issues:

@@ -62,3 +62,7 @@ Harness operators and maintainers still pay for pre-omp transport, duplicate mod
 - Findings 13, 14 and the spike (Features D, E and F).
 
 ## Approval
+
+status: approved
+approved-by: Mike Ruangutai (delegated to fable-advisor)
+date: 2026-11-22

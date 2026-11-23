@@ -64,5 +64,52 @@
       "reason": "Four code surfaces (harness-hooks.ts, dispatch-guard.py, validate-digest.py, inject-expertise.py), the CI workflow, many test files and a doctrine pass across ten or more decisions plus SPEC: not patch-scale; confirmed by fable-advisor"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "notes/answers-2026-11-22-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "152e970054d1b93cb50680eb66c0dfd7211cc6e94c3a9d43cd5d1ef2bfbd6c78",
+    "T-02": "45b4978f4fc3aa14a5ffdf118ddc6b2303eff7bb669f9c30850dee9e895bef15",
+    "T-03": "fe9b131b04d91697ea656c63b6fa737c9d3e08d4986f578fa97f1f4928dcea05",
+    "T-04": "df0cbf992622f1b2b52d32b3bac0ce984380cf48e270b51bede4ba8912d590e8",
+    "T-05": "5497cc9c8f0c6d2f75f941362b1347b1a53a293c65cfcf97b49b923f442028c1",
+    "T-06": "369cfa967c782827ece084a365c88bd71acbd86967fe88f284be0adfade31583"
+  },
+  "github": {
+    "milestone": 129,
+    "parent": 2411,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 2412,
+      "T-02": 2413,
+      "T-03": 2414,
+      "T-04": 2415,
+      "T-05": 2416,
+      "T-06": 2417
+    },
+    "source_issues": [
+      2397
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "T-06": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
