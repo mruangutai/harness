@@ -1,0 +1,43 @@
+{
+  "feature_id": "FEAT-2458-shape-stamp-sweep",
+  "branch": "feat/FEAT-2458-shape-stamp-sweep",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-23-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T14:22:29+00:00",
+      "tokens": 146586,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-23-01-plan-product/digest.md",
+        "sha256": "750a8d7e9d19bfec80d415f502ae6c97707d7da393073913905718eb9476fde8"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T14:52:20+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T14:22:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "the cause is known and the files can be named, but the change adds a public entry point (classify_feature) to worktree_terminal.py, which the INV-29 gate in check-state.py imports: a new enforcement surface. Matches ticket R2."
+    },
+    {
+      "at": "2026-11-23T14:52:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan run FAIL only because applied high substance PF-9ad7c484 was not re-read; no re-panel: one-run assignment and plan team rule send surviving substance findings to the batched signature (DEC-176)"
+    }
+  ],
+  "mission": "plan"
+}

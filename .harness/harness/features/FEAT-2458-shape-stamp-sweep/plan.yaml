@@ -1,0 +1,249 @@
+schema: plan/1
+feature: FEAT-2458-shape-stamp-sweep
+approval:
+  status: pending
+drafted_at: '2026-11-23T14:32:27Z'
+status: plan
+source_issues: [2458]
+
+panel:
+  last_run: 2026-11-23-01-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-9ad7c4848ca7e33119b82234b0637509
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-01/T-02 can delete an absent feature's stamp by matching a different
+      landed ID.
+    disposition: open
+  - id: PF-dd345693172aeb61d1ffeaf789e8ac5b
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-01/T-02 let undecodable landed records abort the stamp sweep.
+    disposition: open
+  - id: PF-d14511245182a96f7b5596cde8c34774
+    severity: med
+    reader: scope
+    kind: form
+    summary: SC-11 requires a post-merge observation as a pre-ship UAT gate.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-464bf3e6a8d4afa436bc7e2e6c6a307a
+    severity: low
+    reader: scope
+    kind: form
+    summary: The decision dispositions omit three governing keep rows.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-74d8eda7e1ecf574a9cac8a99fdbc500
+    severity: low
+    reader: scope
+    kind: proportionality
+    summary: T-01 publishes a result vocabulary with no production caller.
+    disposition: open
+    scope: task
+  - id: PF-7dd2962d773eb030e048fc445c4fe905
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-01's mandated extraction of a shared _landed_names helper out of _resolve_landed
+      is an optional refactor of a gate-critical path; classify_feature can carry
+      the ~6-line segment lookup privately instead
+    disposition: open
+    scope: task
+  - id: PF-007b122acb2f3fa40eb7c6dd17a626a7
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: SC-06's inspection clauses that re-check what T-02's verify line already
+      greps should be dropped, keeping only the reads-no-records clause
+    disposition: open
+    scope: task
+  - id: PF-bb8bb7d3f7ee1c5394704d195e99657d
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: The new public FEATURE_CLASSES constant (T-01 step 1, named in SC-08's
+      docstring surface) was not asked for by grilling R3 and should not be public
+      surface; its only planned consumer is a test membership assertion a literal
+      tuple serves
+    disposition: open
+lanes:
+  resolved_at: b788e9dac342ee112106a3bc5aa7430d4467cbcb
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 - post-merge-sweep.py is a hook body and worktree_terminal.py and check-plan-routes.py are gate-imported.
+    - surface: tests/integration/**
+      lane: main-session-direct
+      reason: DEC-174 - these are the tests and inventory of the changed enforcement path.
+
+decisions:
+  - id: D-01
+    choice: classify_feature reports a feature with no directory on the default branch as unresolved, with a reason naming it absent, so it has three results (terminal, unresolved, not_terminal) and no fourth exempt_absent result.
+    because: the operator chose it at grilling; a kept never-landed stamp must stay visible to a human each merge, and the sweep deletes on terminal only either way.
+    dec: none
+  - id: D-02
+    choice: Stamps are deleted by the post-merge sweep on classify_feature's terminal result only, which reuses the existing landed rule; not in feature-worktree.py remove and never keyed on worktree presence.
+    because: worktree presence misses direct builds, hand-removed worktrees and every existing stamp, and a second rule in the hook could disagree with the INV-29 gate (FEAT-34 D-02, one shared predicate).
+    dec: none
+
+  - id: D-03
+    choice: classify_feature matches a stamp's feature id against landed directory names exactly, in the harness features directory and then each fleet segment's; it never uses _match_landed_id's unique-prefix rule, which stays the worktree-only resolution inside classify and classify_all.
+    because: a stamp names a full feature id, so a prefix match would delete a never-landed feature's stamp when a longer landed id is finished, and a harness prefix hit would hide an exact fleet match; sharing the prefix matcher is the alternative a future scan will re-suggest.
+    dec: none
+decisions_affected:
+- dec: DEC-174
+  disposition: keep
+  clause: 'Self-hosting stops at the enforcement layer: the harness plans its own work, it does not execute changes to its own guards'
+  successor: none
+  reason: every task is main-session-direct; the feature changes a hook body and gate-imported modules.
+- dec: DEC-180
+  disposition: keep
+  clause: The window survives only as the first-run bound, where no mark exists yet.
+  successor: none
+  reason: deleting a finished feature's mark only returns it to the first-run bound; how check-domain.py writes and reads marks is unchanged.
+- dec: DEC-238
+  disposition: keep
+  clause: the control-plane post-merge sweep removes pins older than a day.
+  successor: none
+  reason: the stamp step joins the pin and node_modules steps in the same sweep with the same dry-run posture; their retention rules are unchanged.
+- dec: DEC-221
+  disposition: keep
+  clause: Nothing else is installed into a product repository
+  successor: none
+  reason: the stamp step reads only the control plane's own landed .harness/<segment>/features through the existing fleet segment list; no product repository is read or written and sweep preflight is unchanged.
+- dec: DEC-191
+  disposition: keep
+  clause: A feature's station belongs only to `plan.yaml`
+  successor: none
+  reason: classify_feature takes the station from the landed plan.yaml through the existing _landed_classification; feature.json is read only for its presence and parseability.
+- dec: DEC-252
+  disposition: keep
+  clause: Three comparisons still read shipped records, as data only.
+  successor: none
+  reason: the shared landed reader keeps INV-29's comparison-only use of shipped records; the blob-decode fix only turns an undecodable landed record into unresolved instead of a raise.
+
+tasks:
+  - id: T-01
+    title: Add worktree_terminal.classify_feature on the existing landed rule, with its tests
+    traces: [SC-01, SC-02, SC-08, SC-09, SC-10]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - worktree_terminal.py is imported by check-state.py's INV-29 gate and by the post-merge hook; operator ruling R2 on ticket 2458.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/worktree_terminal.py#_landed_classification
+      - tests/integration/test-worktree-terminal.py#main
+    verify: |
+      python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-checker-structure-locks.py && python3 tests/unit/test-broad-catch-census.py && python3 -c "import ast,sys; t=ast.parse(open('.claude/skills/harness/bin/worktree_terminal.py').read()); f=[n for n in t.body if isinstance(n, ast.FunctionDef) and n.name == 'classify_feature'][0]; c={x.func.id for x in ast.walk(f) if isinstance(x, ast.Call) and isinstance(x.func, ast.Name)}; sys.exit(0 if '_landed_classification' in c and not c & {'_match_landed_id', '_planning_segment', '_resolve_landed'} else 1)"
+    intent: |
+      Execute in the main session under DEC-174, inside the feature worktree .claude/worktrees/harness/FEAT-2458-shape-stamp-sweep only; every relative path here is relative to that worktree root and no edit may land outside it. Run gates with HARNESS_AGENT_TYPE unset.
+
+      Product checkout: the harness repository itself (segment harness). It carries no docs/spec.md, docs/decisions.md or docs/architecture.md; its decision record is .harness/harness/docs/DECISIONS.md. Read DEC-174 (route), DEC-180 (the per-feature shape-sweep stamp is a high-water mark; a missing mark falls back to the window), DEC-191 (the station lives only in plan.yaml) and DEC-252 (INV-29 reads shipped records as data only) before editing. The BRIEF is .harness/harness/features/FEAT-2458-shape-stamp-sweep/BRIEF.md.
+
+      Write the tests first and observe them fail (classify_feature does not exist yet) before touching production code.
+
+      Production, .claude/skills/harness/bin/worktree_terminal.py:
+      1. Add public classify_feature(root, feature_id) returning a tuple (klass, reason): klass is exactly one of the literals "terminal", "unresolved", "not_terminal" and reason is a non-empty str. Publish no new tuple constant for these three values; CLASSES stays as it is. root is the harness checkout whose default branch holds the feature directories. Build it ONLY from existing private helpers and add no new landed rule (FEAT-34 D-02: the gate and the hook share one predicate). feature_id is matched by EXACT directory name (plan D-03); classify_feature never calls _match_landed_id, _planning_segment or _resolve_landed:
+         a. factory_config = _import_factory_config(); default_branch = _resolve_default_branch("harness", _import_feature_worktree(), factory_config). When None, return ("unresolved", "could not resolve the repository's default_branch").
+         b. features_rel = os.path.join(".harness", "harness", "features"); names = _landed_dir_names(root, default_branch, features_rel). When names is None, return ("unresolved", "git ls-tree of the landed features directory errored").
+         c. When feature_id is in names, resolved = (root, "harness", default_branch, features_rel, feature_id).
+         d. Otherwise walk the fleet exactly: for each segment in _fleet_segments(factory_config), seg_rel = os.path.join(".harness", segment, "features"), seg_names = _landed_dir_names(root, default_branch, seg_rel); skip the segment when seg_names is None (a fleet segment with no landed features directory, as _planning_segment skips it); collect (segment, seg_rel) when feature_id is in seg_names. Exactly one hit: resolved = (root, segment, default_branch, seg_rel, feature_id). More than one: return ("unresolved", f"{feature_id} is landed under {len(hits)} segments' features directories"). None: return ("unresolved", f"{feature_id} is absent from {default_branch}'s features directory"); the word absent in this reason is the contract the sweep and the operator read, and no other reason classify_feature returns contains it.
+         e. classified = _landed_classification(resolved). When not None, return it unchanged (it is already a terminal or unresolved pair with its reason). When None, return ("not_terminal", f"landed station for {feature_id} on {default_branch} is not finished").
+         Do not modify _resolve_landed, _planning_segment, _match_landed_id, classify or classify_all: worktree resolution keeps its unique-prefix semantics, pinned by the existing prefix cases in tests/integration/test-worktree-terminal.py.
+      2. Undecodable landed blobs, fixed at the landed-blob read seam: in _landed_blob_text, the cat-file call _run_git(["cat-file", "blob", blob], owner_root) decodes stdout as text, and a blob whose bytes are not valid UTF-8 raises UnicodeDecodeError out of subprocess.run, past _run_git's (OSError, subprocess.SubprocessError) catch. Wrap only that one call in try/except UnicodeDecodeError and return (None, "unparseable") from the handler; add "unparseable" to the docstring's list of error words. _read_landed_feature_json and _read_landed_plan_yaml already pass that error through, so an undecodable feature.json or plan.yaml classifies unresolved (landed feature.json for ID is unparseable) for classify and classify_feature alike instead of raising. Change no other line of _run_git or the readers. Do not add any broad except: tests/integration/test-checker-structure-locks.py and tests/unit/test-broad-catch-census.py hold this file at a zero broad-catch ceiling.
+      3. Rewrite the module docstring's public-surface sentence (it currently reads: Public surface, and nothing wider: CLASSES, classify(root) and classify_all(root) (D-10).) so it names CLASSES, classify(root), classify_all(root), classify_feature(root, feature_id) and repo_arg_for_segment(repo_segment), adding one sentence: classify_feature answers whether ONE feature id, matched exactly, is finished on the harness default branch by the same landed rule, and post-merge-sweep.py's stamp sweep calls it (#2458).
+
+      Tests, tests/integration/test-worktree-terminal.py: add case_classify_feature and append it to the results expression in main(). Build real git repositories with the existing helpers (_repo, _commit_feature with plan_station, _commit_brief, _build_probe_repo, _write_fleet, _run_classify_all_subprocess). Assert the literal klass and the reason per row, each as its own result tuple:
+      (a) a feature committed with plan_station done gives terminal.
+      (b) a feature with only a committed BRIEF whose approval block is status approved and whose by line names DEC-174 gives terminal, reason contains DEC-174.
+      (c) plan_station building gives not_terminal, reason non-empty.
+      (d) an id never committed gives unresolved, reason contains absent.
+      (e) a feature whose feature.json is a raw unparseable string gives unresolved, reason does not contain absent.
+      (f) a feature at plan_station shipped (outside the station vocabulary) gives unresolved, reason does not contain absent.
+      (g) fleet: in a probe root from _build_probe_repo with _write_fleet declaring acme/second-repo (default_branch main), a feature committed only under repo_segment second-repo with plan_station done, classified in a subprocess through _run_classify_all_subprocess calling worktree_terminal.classify_feature(probe_root, id), gives terminal.
+      (h) the same fleet fixture, a second id at plan_station building, gives not_terminal.
+      (i) absent prefix: commit FEAT-920-prefix-absent-longer with plan_station done and nothing named FEAT-920-prefix-absent; classify_feature(root, "FEAT-920-prefix-absent") gives unresolved, reason contains absent (never terminal).
+      (j) exact fleet over a harness prefix: in the fleet fixture of (g), commit FEAT-921-fleet-exact under repo_segment second-repo with plan_station done and FEAT-921-fleet-exact-longer under repo_segment harness with plan_station building; classify_feature(probe_root, "FEAT-921-fleet-exact") in the subprocess gives terminal.
+      (k) undecodable: write .harness/harness/features/FEAT-922-bad-utf8/feature.json with open(path, "wb") holding the bytes b'{"feature_id": "\xff"}', and the sibling plan.yaml holding plan_text("FEAT-922-bad-utf8", "done") (add plan_text to the file's existing from git_support import line), and commit both with git add and git commit as _commit_brief does; classify_feature gives unresolved, reason contains unparseable and does not contain absent, and the call raises nothing.
+      Every pre-existing case stays unmodified and green.
+  - id: T-02
+    title: Sweep finished features' stamps in post-merge-sweep.py and retire its duplicate repo-argument helper
+    traces:
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-06
+    - SC-07
+    - SC-08
+    - SC-09
+    - SC-10
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - post-merge-sweep.py is a hook body and check-plan-routes.py is a gate script whose registry and inventory must change in the same commit as the helper; operator ruling R2 on ticket 2458.
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/post-merge-sweep.py#main
+      - .claude/skills/harness/bin/check-plan-routes.py#T07_TERMINAL_REMEDIES
+      - tests/integration/canonical-reader-classification.json#scanned_files
+      - tests/integration/test-check-plan-routes.py#case_canonical_reader_t07_terminal_contract
+      - tests/integration/test-post-merge-sweep.py#JOBS
+    verify: |
+      python3 tests/integration/test-post-merge-sweep.py && python3 tests/integration/test-check-plan-routes.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-checker-structure-locks.py && python3 tests/unit/test-broad-catch-census.py && python3 tests/unit/test-no-distribution.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && test -f .claude/skills/harness/bin/post-merge-sweep.py && ! grep -q 'def _repo_arg_for_segment' .claude/skills/harness/bin/post-merge-sweep.py && grep -q 'worktree_terminal.repo_arg_for_segment(' .claude/skills/harness/bin/post-merge-sweep.py && grep -q 'worktree_terminal.classify_feature(' .claude/skills/harness/bin/post-merge-sweep.py
+    intent: |
+      Execute in the main session under DEC-174 after T-01 has landed, inside the feature worktree .claude/worktrees/harness/FEAT-2458-shape-stamp-sweep only; every relative path here is relative to that worktree root and no edit may land outside it. Run gates with HARNESS_AGENT_TYPE unset.
+
+      Product checkout: the harness repository itself (segment harness). It carries no docs/spec.md, docs/decisions.md or docs/architecture.md; its decision record is .harness/harness/docs/DECISIONS.md. Read DEC-174, DEC-180 (the stamp is check-domain.py's high-water mark), DEC-221 (sweep preflight and central fleet lookup, unchanged here) and DEC-238 (the sweep's pin and node_modules steps and their dry-run posture) before editing. The BRIEF is .harness/harness/features/FEAT-2458-shape-stamp-sweep/BRIEF.md.
+
+      Write case_shape_stamps first and observe its deletion and kept-line assertions fail before editing post-merge-sweep.py.
+
+      A. Retire the duplicate helper (land A and B together, so no intermediate tree fails the canonical-reader audit):
+      1. .claude/skills/harness/bin/post-merge-sweep.py: delete def _repo_arg_for_segment(segment) and its docstring (which wrongly claims worktree_terminal exposes only CLASSES and classify). In _feature_context replace repo_arg = _repo_arg_for_segment(repo_segment) with repo_arg = worktree_terminal.repo_arg_for_segment(repo_segment); keep the existing SKIP message when it returns None. Then grep the file for factory_config: its only remaining use was the deleted helper, so delete the import factory_config line. In main()'s FEAT-64 comment, remove _repo_arg_for_segment from the list of places expected failures are converted.
+      2. .claude/skills/harness/bin/check-plan-routes.py: delete the T07_TERMINAL_REMEDIES entry whose key is .claude/skills/harness/bin/post-merge-sweep.py::_repo_arg_for_segment::load_fleet#1 (the key line and its artifact_accessors.load_fleet value line). Change nothing else in the registry.
+      3. tests/integration/canonical-reader-classification.json: delete the one row object whose id is .claude/skills/harness/bin/post-merge-sweep.py::_repo_arg_for_segment::load_fleet#1. Leave the worktree_terminal.py::_repo_arg_for_segment row, scanned_files and every other row byte-for-byte; the file stays valid JSON with the same indentation.
+      4. tests/integration/test-check-plan-routes.py: in case_canonical_reader_t07_terminal_contract's docstring change The fixed eleven-row to The fixed ten-row. No other change.
+
+      B. Add the stamp step to .claude/skills/harness/bin/post-merge-sweep.py:
+      1. New function _sweep_shape_stamps(main_checkout_root), called from main() on the line directly after _sweep_prototype_node_modules(main_checkout_root).
+      2. harness_dir = os.path.join(main_checkout_root, ".harness"); prefix = ".shape-sweep-stamp.". List os.listdir(harness_dir); on OSError print the line post-merge-sweep: stamps: could not list .harness: {error} and return. Iterate sorted names that start with prefix, have a non-empty remainder, and are regular files (os.path.isfile and not os.path.islink). The plain .harness/.shape-sweep-stamp has no remainder and is never examined, opened or deleted.
+      3. feature_id = name[len(prefix):]; klass, reason = worktree_terminal.classify_feature(main_checkout_root, feature_id). The sweep decides from klass alone and reads no plan.yaml, feature.json, BRIEF.md or station name itself (FEAT-34 D-02).
+      4. klass terminal: under DRY_RUN print post-merge-sweep: stamps: would remove .harness/{name} and leave the file; otherwise os.remove it, printing post-merge-sweep: stamps: removed .harness/{name}, or on OSError post-merge-sweep: stamps: could not remove .harness/{name}: {error}.
+      5. klass unresolved: print exactly one line, post-merge-sweep: stamps: kept .harness/{name} — unresolved: {reason}, and never delete. This covers absent ids, whose reason contains absent, and undecodable landed records, whose reason does not.
+      6. klass not_terminal: print nothing and delete nothing.
+      7. Catch only OSError, never a broad except (zero ceiling for this file in tests/integration/test-checker-structure-locks.py); the step never aborts the hook. An undecodable landed record no longer raises: T-01 converts it to unresolved at worktree_terminal's landed-blob read seam, so the hook adds no catch for it.
+      8. Extend the module docstring's first paragraph by one sentence: the sweep also removes the per-feature shape-sweep stamps (.harness/.shape-sweep-stamp.{FEAT}) of features finished on the default branch, decided by worktree_terminal.classify_feature (#2458).
+
+      C. Tests, tests/integration/test-post-merge-sweep.py: add case_shape_stamps and append it to JOBS after case_prototype_node_modules. Build the fixture as case_prototype_node_modules does: _repo, .harness/team-config.yaml, _install_fixture_bin, _stub_gh. Commit FEAT-910-stamp-done with _commit_feature status Done, FEAT-911-stamp-live with status Building, and FEAT-912-stamp-absent-longer with status Done (a landed id that the never-landed FEAT-912-stamp-absent prefixes). Commit FEAT-909-stamp-bad whose feature.json is written with open(path, "wb") holding the bytes b'{"feature_id": "\xff"}', with a sibling plan.yaml holding plan_text("FEAT-909-stamp-bad", "done") (add plan_text to the file's existing from git_support import), staged and committed with git add and git commit. Create in .harness/: .shape-sweep-stamp with bytes plain, .shape-sweep-stamp.FEAT-909-stamp-bad, .shape-sweep-stamp.FEAT-910-stamp-done, .shape-sweep-stamp.FEAT-911-stamp-live and .shape-sweep-stamp.FEAT-912-stamp-absent (never committed), each with distinct bytes; record them. No stamp exists for FEAT-912-stamp-absent-longer. The bad stamp sorts before the done stamp, so the done stamp is classified after the undecodable record. Assert, each as its own result tuple:
+      (1) the --dry-run run exits 0 and all five files still exist with their recorded bytes.
+      (2) the dry-run stdout contains would remove .harness/.shape-sweep-stamp.FEAT-910-stamp-done.
+      (3) the dry-run stdout has exactly one line containing .shape-sweep-stamp.FEAT-912-stamp-absent, and it contains unresolved and absent.
+      (4) the real run exits 0 and .shape-sweep-stamp.FEAT-910-stamp-done no longer exists.
+      (5) after the real run .shape-sweep-stamp exists with bytes plain.
+      (6) after the real run .shape-sweep-stamp.FEAT-911-stamp-live exists with its bytes, and no stdout line of either run contains FEAT-911-stamp-live.
+      (7) after the real run .shape-sweep-stamp.FEAT-912-stamp-absent exists with its bytes and exactly one stdout line of the real run contains it, carrying unresolved and absent; no stdout line of either run contains would remove or removed beside FEAT-912.
+      (8) after the real run .shape-sweep-stamp.FEAT-909-stamp-bad exists with its bytes, and in each run exactly one stdout line contains .shape-sweep-stamp.FEAT-909-stamp-bad, carrying unresolved and not absent.
+      Call _assert_resolved_root_in_fixture for both runs. Every pre-existing case stays green.
+
+      The real main checkout's stamps are not a criterion: the operator may list .harness/.shape-sweep-stamp* after merge as a post-merge operational check. Never delete or edit a real stamp by hand.
