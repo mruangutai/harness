@@ -1,0 +1,99 @@
+{
+  "feature_id": "BUG-2399-run-records-tracked",
+  "branch": "none",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261122-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-23T02:36:19+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-1-plan-product/digest.md",
+        "sha256": "b8063fb5f1c24a3d097569a420454cdb8035dffcd95aaf85c83614bfc67baa6a"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T02:45:04+00:00"
+    },
+    {
+      "id": "r-20261122-2-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T02:45:44+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-plan-product/digest.md",
+        "sha256": "94b1620e428031020630024ef95b567a7a22274b558472649458a77ea359dfcd"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T03:11:23+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T02:36:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Changes an enforcement surface (tracking, dirty-tree gates) across control plane and fleet installer; needs a decision record (grilling 2026-11-22, advisor-confirmed)"
+    },
+    {
+      "at": "2026-11-23T02:36:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "x"
+    },
+    {
+      "at": "2026-11-23T02:36:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Restates the first mission judgement; the prior entry with reason 'x' was a mistaken re-run of set-mission while probing its output, not a judgement"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-2399-run-records-tracked/notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "a0135cd68ac18a6c07bc44a5775bf0760d95543ba2a04aaa83412e2b6e60c226",
+    "T-02": "f66b947df254378f7ee1fe4baf55e612107e7b2d5bdfd7e65770060bf7221962",
+    "T-03": "c1f46071b890056cb320f077180892506d4318daeae581f27440d0e17a0736ca"
+  },
+  "github": {
+    "milestone": 128,
+    "parent": 2407,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2408,
+      "T-02": 2409,
+      "T-03": 2410
+    },
+    "source_issues": [
+      2399
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
