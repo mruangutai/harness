@@ -237,7 +237,9 @@ hook tests remain the evidence for that boundary.
 Dependabot opens weekly `bun` update PRs. To upgrade by hand, run
 `bun update --latest typescript @types/bun` (a plain `bun update` leaves exact pins where they
 are), rerun `bun run typecheck` and the hook suite, and commit the reviewed `package.json` and
-`bun.lock` together.
+`bun.lock` together. The Bun runtime itself is pinned separately, by `packageManager` in
+`package.json`. That pin tracks the production OMP host's Bun and is bumped by hand only when the
+host is upgraded, never by Dependabot.
 
 ## Factory repositories
 

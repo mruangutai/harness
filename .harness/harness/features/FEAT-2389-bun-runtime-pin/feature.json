@@ -1,0 +1,77 @@
+{
+  "feature_id": "FEAT-2389-bun-runtime-pin",
+  "branch": "none",
+  "pr": null,
+  "review_sha": "fea15955785ac4d9202cccb43302c8ffefdc8152",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261122-1-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T04:09:49+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-1-patch-product/digest.md",
+        "sha256": "e6d297b6e799240653c62479b5ffd53f620f40e29b0b6b977c807261f9ef198f"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:15:36+00:00"
+    },
+    {
+      "id": "r-20261122-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T04:28:05+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-2-validate-validator/digest.md",
+        "sha256": "d7398b87df5fde348e810fa59d716078e88b5f2e7f81a4f9b56f0e6b9163392c"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:36:02+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T04:09:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Known cause and bounded diff (one manifest field, two prose sentences); no new interface or enforcement surface (grilling 2026-11-22, advisor-confirmed)"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 30,
+    "decision": ".harness/harness/features/FEAT-2389-bun-runtime-pin/notes/operator-signature-2026-11-22.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "062655927eb783ff38cc47e33466a7a5e23f81c6c680da91e06f3fcc3dd6ca8e"
+  },
+  "github": {
+    "milestone": 133,
+    "parent": 2429,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2430
+    },
+    "source_issues": [
+      2389
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
