@@ -5,7 +5,7 @@ approval:
   approved_by: fable-advisor
   status: approved
 drafted_at: '2026-11-23T02:54:22Z'
-status: ready
+status: building
 source_issues: [2399]
 panel:
   last_run: r-20261122-2-plan-product

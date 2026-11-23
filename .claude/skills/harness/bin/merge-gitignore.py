@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """Append Harness's canonical ignore rules without overwriting project rules.
 
-The command is deliberately idempotent. ``--check`` reports every absent rule
-without modifying the target; normal mode appends only missing rules under a
+The command is deliberately idempotent. ``--check`` reports every absent rule,
+and every obsolete rule Harness once shipped, without modifying the target;
+normal mode removes the obsolete rules and appends only missing rules under a
 marker block (DEC-112).
+
+OBSOLETE RULES (BUG-2399). Harness once shipped a broad run-directory ignore,
+in two spellings, with a rationale claiming run records were ephemeral. They
+are retained evidence (DEC-238), so the broad rule is replaced by the snippet's
+run-UI rule. Only those exact shipped lines are removed, and the rationale
+lines only inside a Harness marker block; project rules and prose are never
+touched. Line endings, order and unrelated bytes are preserved.
 
 WAS A .sh ENTRY POINT (issue #1674). The native implementation retains the
 shell command's argv, byte-preservation, diagnostics, and even its historical
@@ -41,11 +49,18 @@ import sys
 USAGE = "usage: merge-gitignore.py <project-root> [--check]"
 HEADER = (
     "# --- harness ---\n"
-    "# Run dirs are ephemeral; a dirty tree halts a team with BLOCKED, so these\n"
-    "# must be ignored or the harness deadlocks itself. Everything else under\n"
-    "# .harness/ is committed on purpose — it is the record of what shipped.\n"
+    "# Run UI is never committed; every other run record is retained evidence (DEC-238)\n"
+    "# and is committed with its feature. Everything else under .harness/ is committed\n"
+    "# on purpose — it is the record of what shipped.\n"
 ).encode("utf-8")
 FOOTER = b"# --- end harness ---\n"
+BLOCK_OPEN, BLOCK_CLOSE = HEADER.split(b"\n", 1)[0], FOOTER.rstrip(b"\n")
+OBSOLETE_RULES = (b".harness/features/*/runs/**", b".harness/*/features/*/runs/**")
+OBSOLETE_RATIONALE = (
+    b"# Run dirs are ephemeral; a dirty tree halts a team with BLOCKED, so these",
+    b"# must be ignored or the harness deadlocks itself. Everything else under",
+    "# .harness/ is committed on purpose — it is the record of what shipped.".encode("utf-8"),
+)
 
 
 def _snippet_path():
@@ -71,6 +86,49 @@ def _target_lines(target):
 def _missing_rules(target, rules):
     present = _target_lines(target)
     return [rule for rule in rules if rule not in present]
+
+
+def _bare(line):
+    return line.rstrip(b"\r\n")
+
+
+def _without_obsolete(content):
+    """Drop shipped broad run rules anywhere, and their rationale inside Harness blocks."""
+    kept, in_block, removed = [], False, []
+    for line in content.splitlines(keepends=True):
+        bare = _bare(line)
+        if bare in OBSOLETE_RULES or (in_block and bare in OBSOLETE_RATIONALE):
+            removed.append(bare)
+            continue
+        in_block = (in_block or bare == BLOCK_OPEN) and bare != BLOCK_CLOSE
+        kept.append(line)
+    if removed:
+        kept = _drop_empty_blocks(kept)
+    return b"".join(kept), [rule for rule in removed if rule in OBSOLETE_RULES]
+
+
+def _drop_empty_blocks(lines):
+    out = []
+    for line in lines:
+        if _bare(line) == BLOCK_CLOSE and out and _bare(out[-1]) == BLOCK_OPEN:
+            out.pop()
+            continue
+        out.append(line)
+    return out
+
+
+def _obsolete_rules(target):
+    if not os.path.isfile(target):
+        return []
+    with open(target, "rb") as handle:
+        return _without_obsolete(handle.read())[1]
+
+
+def _remove_obsolete(target):
+    with open(target, "rb") as handle:
+        content, _ = _without_obsolete(handle.read())
+    with open(target, "wb") as handle:
+        handle.write(content)
 
 
 def _append_rules(target, missing):
@@ -101,6 +159,15 @@ def _report_appended(target, missing):
         print(f"  + {word}")
 
 
+def _report_obsolete(target, obsolete):
+    if not obsolete:
+        return
+    print(f"merge-gitignore: OBSOLETE in {target} (run records are tracked since BUG-2399):",
+          file=sys.stderr)
+    for rule in obsolete:
+        print(f"  x {rule.decode('utf-8')}", file=sys.stderr)
+
+
 def _merge(root_arg, mode):
     root = os.path.abspath(root_arg)
     snippet = _snippet_path()
@@ -108,15 +175,24 @@ def _merge(root_arg, mode):
         print(f"merge-gitignore: no snippet at {snippet}", file=sys.stderr)
         return 1
     target = os.path.join(root, ".gitignore")
+    obsolete = _obsolete_rules(target)
     missing = _missing_rules(target, _rules(snippet))
-    if not missing:
+    if not missing and not obsolete:
         print(f"merge-gitignore: all harness rules already present in {target}")
         return 0
     if mode == "--check":
-        _report_missing(target, missing)
+        _report_obsolete(target, obsolete)
+        if missing:
+            _report_missing(target, missing)
         return 1
-    _append_rules(target, missing)
-    _report_appended(target, missing)
+    if obsolete:
+        _remove_obsolete(target)
+        print(f"merge-gitignore: removed obsolete run-directory rules from {target}")
+        for rule in obsolete:
+            print(f"  x {rule.decode('utf-8')}")
+    if missing:
+        _append_rules(target, missing)
+        _report_appended(target, missing)
     return 0
 
 

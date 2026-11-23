@@ -15,6 +15,19 @@ The settled advisor inventory names `merge-gate.py _require_checkout` (uncommitt
 
 T-02 must record a fresh owner-main HEAD, NUL-safe ignored-untracked non-UI run inventory, count and exit before narrowing. This run did not re-measure that build-time precondition. A changed nonzero premise stops the change, never authorizes historical Harness backfill.
 
+**Build-time receipt (T-02, main session, 2026-11-22, before narrowing).** In the owner main checkout `/Users/molchairuangutai/GitHub/harness` at HEAD `9eb07b4f3cd235c234a10edddbfe5542c1e85fba`:
+
+```bash
+git ls-files --others --ignored --exclude-standard -z | python3 -c "
+import sys,re
+paths=[p for p in sys.stdin.buffer.read().decode().split('\0') if p]
+sel=[p for p in paths if re.match(r'^\.harness/[^/]+/features/[^/]+/runs/[^/]+/', p) and not re.match(r'^\.harness/[^/]+/features/[^/]+/runs/[^/]+/ui/', p)]
+for p in sel: print(repr(p))
+print('selected', len(sel)); sys.exit(1 if sel else 0)"
+```
+
+Output `selected 0`, exit 0. The premise holds: no Harness backfill.
+
 ## SIMP-1 disposition
 
 Applied from `notes/simplify-plan-c0.md`; E-01/Q-01 was already resolved by the main-session four-reader pass and was not repeated. SC-02 remains a concise acceptance outcome. The original panel subsequently trimmed T-01/T-02 to a plain operator migration checklist and a small command-composition regression; no extractable markdown program, external reviewed-manifest/hash protocol, re-enumeration service or dedicated refusal battery remains required.
