@@ -6,7 +6,7 @@ Use the example for your persona and verdict, never another persona's fields.
 
 ## dev — frontend, backend, ai, data
 
-Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-backend-dev.json`;
+Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-backend-dev.json`;
 frontend, ai and data have their own `harness-<persona>.json` with the same fields.
 
 ```js
@@ -29,7 +29,7 @@ yield({data: {
 
 ## dev-ops
 
-Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-dev-ops.json`.
+Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-dev-ops.json`.
 
 ```js
 yield({data: {

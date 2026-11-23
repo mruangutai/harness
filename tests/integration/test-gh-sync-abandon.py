@@ -260,7 +260,7 @@ def main():
         check("abandon with sync disabled -> SKIP, exit 0", r.returncode == 0 and "SKIP" in r.stdout, r.stdout)
 
     # ---- T-01 (FEAT-23): ship and abandon record feature.json's own terminal status ---------
-    # The fixture is SCHEMA-VALID AND FULLY POPULATED — all eight feature-schema.json required
+    # The fixture is SCHEMA-VALID AND FULLY POPULATED — all eight schemas/feature.json required
     # keys plus a github block — so the key-survival case below quantifies over the real key
     # set instead of passing vacuously against a two-key fixture.
     def _full_fixture(path, feat_name, status, issue_num):

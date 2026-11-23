@@ -51,7 +51,7 @@ BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 
-SCHEMA_PATH = os.path.join(BIN_DIR, "feature-schema.json")
+SCHEMA_PATH = os.path.join(os.path.dirname(BIN_DIR), "schemas", "feature.json")
 
 # Verbatim text, per T-01's intent — never return [] on this path and never
 # emit the word "skip": [] means checked and clean, and a checker that
@@ -74,7 +74,7 @@ _REDIRECT = (
 
 _schema_cache = {}
 
-SCHEMA_REL = os.path.join(".claude", "skills", "harness", "bin", "feature-schema.json")
+SCHEMA_REL = os.path.join(".claude", "skills", "harness", "schemas", "feature.json")
 
 
 def schema_path_for(for_path):
@@ -83,7 +83,7 @@ def schema_path_for(for_path):
 
     ISSUE #749, MEASURED LIVE 2026-08-23 during FEAT-26's ship. check-domain.py refused a
     legitimate write — `undeclared key 'source_issues' at /github` — because the key WAS
-    declared in the worktree's own feature-schema.json and was NOT in main's. The hook
+    declared in the worktree's own schemas/feature.json and was NOT in main's. The hook
     then imported this module from the main checkout, so the schema always came from main
     whatever tree was being written.
 
@@ -113,7 +113,7 @@ def schema_path_for(for_path):
 
 
 def load_schema(for_path=None):
-    """Read feature-schema.json for the tree `for_path` lives in, falling back to the copy
+    """Read schemas/feature.json for the tree `for_path` lives in, falling back to the copy
     beside this module. Cached PER RESOLVED PATH — a single global cache would serve the
     first tree's schema to every later tree in the same process, which is the same
     wrong-tree bug one level in."""

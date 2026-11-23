@@ -50,13 +50,13 @@ def strict_json_loads(text):
 def load_run_step_contract(bin_dir):
     """The run-step schema the two version-2 checkpoint gates validate against (check-state
     INV-16, check-domain's step closure): returns (step_schema, declared_step_keys,
-    evidence_name_pattern) read from `<bin_dir>/run-state-schema.json`.
+    evidence_name_pattern) read from `<bin_dir>/../schemas/run-state.json`.
 
     The file itself is decoded strictly and a decode failure is ArtifactAccessError. The
     NAVIGATION is ordinary mapping access on purpose: both callers absorb with `except
     Exception` and print the exception's class and text, so a malformed shape must keep its
     natural KeyError/TypeError — wrapping it would change the bytes those gates emit."""
-    path = os.path.join(bin_dir, "run-state-schema.json")
+    path = os.path.join(os.path.dirname(os.path.normpath(bin_dir)), "schemas", "run-state.json")
     schema = _load_json_bytes(path, path)
     step_schema = schema["properties"]["steps"]["items"]
     declared = set(step_schema["properties"])

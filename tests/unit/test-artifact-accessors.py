@@ -188,7 +188,7 @@ class JsonContracts(unittest.TestCase):
     def test_load_run_step_contract_returns_step_schema_declared_keys_and_evidence_pattern(self):
         contract = accessors.load_run_step_contract(BIN)
         step_schema, declared, pattern = contract
-        with open(BIN / "run-state-schema.json", encoding="utf-8") as handle:
+        with open(BIN.parent / "schemas" / "run-state.json", encoding="utf-8") as handle:
             raw = json.load(handle)["properties"]["steps"]["items"]
         self.assertEqual(raw, step_schema)
         self.assertEqual(set(raw["properties"]), declared)
@@ -205,16 +205,18 @@ class JsonContracts(unittest.TestCase):
         )
         for text, expected in cases:
             with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
-                (Path(directory) / "run-state-schema.json").write_text(text, encoding="utf-8")
+                (Path(directory) / "schemas").mkdir()
+                (Path(directory) / "schemas" / "run-state.json").write_text(text, encoding="utf-8")
                 with self.assertRaises(expected):
-                    accessors.load_run_step_contract(directory)
+                    accessors.load_run_step_contract(Path(directory) / "bin")
 
     def test_load_run_step_contract_is_strict_about_the_schema_file_itself(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "run-state-schema.json").write_text(
+            (Path(directory) / "schemas").mkdir()
+            (Path(directory) / "schemas" / "run-state.json").write_text(
                 '{"properties": {"steps": 1, "steps": 2}}', encoding="utf-8")
             with self.assertRaises(accessors.ArtifactAccessError):
-                accessors.load_run_step_contract(directory)
+                accessors.load_run_step_contract(Path(directory) / "bin")
 
 class ManifestDomainsContracts(unittest.TestCase):
     def test_omitted_agent_aggregates_named_role_writes_only(self):

@@ -929,7 +929,7 @@ def save_recorded(feat_dir, rec):
     )
     # T-02 (FEAT-26), absorbs #289: an absent feature.json is REFUSED, not silently
     # started from `{}`. A document started here from `{}` would carry only the
-    # `github` key this function sets, missing every one of feature-schema.json's eight
+    # `github` key this function sets, missing every one of schemas/feature.json's eight
     # required keys.
     #
     # Accepted ordering gap: on a hand-run of `open` against a directory with no

@@ -101,7 +101,7 @@ BIN_ENTRIES = sorted(
     f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
 )
 # The entry scripts' sibling directories, linked so a fixture entry finds them beside it:
-# packages (check_state/, plan_merge/ — FEAT-69/FEAT-70) and data (config-schemas/ — the
+# packages (check_state/, plan_merge/ — FEAT-69/FEAT-70) and data (schemas/ — the
 # validated harness.json read needs the schema, FEAT-2297).
 BIN_PACKAGES = sorted(
     d for d in os.listdir(BIN_DIR)
@@ -158,6 +158,8 @@ def _install_fixture_bin(fixture_root):
     os.makedirs(fixture_bin, exist_ok=True)
     for name in BIN_ENTRIES + BIN_PACKAGES:
         os.symlink(os.path.join(BIN_DIR, name), os.path.join(fixture_bin, name))
+    os.symlink(os.path.join(os.path.dirname(BIN_DIR), "schemas"),
+               os.path.join(os.path.dirname(fixture_bin), "schemas"))
     return os.path.join(fixture_bin, "post-merge-sweep.py")
 
 

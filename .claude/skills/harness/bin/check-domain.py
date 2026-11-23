@@ -1814,7 +1814,7 @@ def _feature_json_schema_problems(rel, content, shown):
         # ISSUE #749 — THE SCHEMA COMES FROM THE TREE THE FILE LIVES IN. `rel` already
         # carries the worktree prefix when the target is inside one, so joining it with
         # `root` gives the real absolute path and feature_schema walks UP from there for
-        # that checkout's own feature-schema.json.
+        # that checkout's own schemas/feature.json.
         #
         # Measured live 2026-08-23: this refused `source_issues` at /github on a FEAT-26
         # write. The key WAS declared in that worktree's schema and was NOT in main's,
@@ -1836,7 +1836,7 @@ def _feature_json_schema_problems(rel, content, shown):
         # inject any other exception into problems_for_text and an ILLEGAL document
         # that must exit 2 escapes at exit 1 with a traceback instead — and exit 1 is
         # NON-BLOCKING (line 14), so the bad write lands. A schema loader raises far
-        # more than ImportError: a malformed feature-schema.json is JSONDecodeError,
+        # more than ImportError: a malformed schemas/feature.json is JSONDecodeError,
         # an unreadable one is OSError, a jsonschema version drift is SchemaError.
         # Every one of them meant "written anyway".
         #
@@ -1852,7 +1852,7 @@ def _feature_json_schema_problems(rel, content, shown):
         # finding, the defect DEC-180 fixed twice in this file.
         return ["feature_schema CRASHED while checking this file, so it CANNOT be "
                "checked: %s: %s. The module IMPORTED — this is a fault inside it or "
-               "in .agents/skills/harness/bin/feature-schema.json, not a missing "
+               "in .agents/skills/harness/schemas/feature.json, not a missing "
                "dependency. The write is DENIED rather than allowed through, because "
                "a checker that cannot run must never be the reason a file passes."
                % (type(_se).__name__, _se)]
@@ -1989,7 +1989,7 @@ def _state_yaml_step_schema(doc, _version, shown):
     except _run_state_boundary_errors() as _schema_exc:
         return [_head(shown,
             "run-state schema CANNOT be checked; the write is denied."),
-            "  .claude/skills/harness/bin/run-state-schema.json or its "
+            "  .claude/skills/harness/schemas/run-state.json or its "
             "jsonschema validator failed: %s: %s"
             % (type(_schema_exc).__name__, _schema_exc)]
 
@@ -2058,8 +2058,8 @@ def _state_yaml_step_messages(_missing_required, _declared_invalid, _offending, 
         out.append(_head(shown, "missing required step key."))
         out.append(
             f"  missing key(s): {_missing_names}. Required step fields "
-            "are declared in .claude/skills/harness/bin/"
-            "run-state-schema.json; supply each required field."
+            "are declared in .claude/skills/harness/schemas/"
+            "run-state.json; supply each required field."
         )
     if _declared_invalid:
         _invalid_names = ", ".join(
@@ -2067,15 +2067,15 @@ def _state_yaml_step_messages(_missing_required, _declared_invalid, _offending, 
         out.append(_head(shown, "declared step field has invalid value."))
         out.append(
             f"  invalid field(s): {_invalid_names}. Match each field's "
-            "type and value constraints in .claude/skills/harness/bin/"
-            "run-state-schema.json; correct the declared field in place."
+            "type and value constraints in .claude/skills/harness/schemas/"
+            "run-state.json; correct the declared field in place."
         )
     if _offending:
         _names = ", ".join(repr(key) for key in sorted(_offending))
         out.append(_head(shown, "undeclared step key or evidence shape."))
         out.append(
             f"  offending key(s): {_names}. A recovery field is declared "
-            "in .claude/skills/harness/bin/run-state-schema.json; a "
+            "in .claude/skills/harness/schemas/run-state.json; a "
             "per-dispatch fact goes under `evidence` with a lowercase "
             "identifier key and a scalar or scalar-array value."
         )

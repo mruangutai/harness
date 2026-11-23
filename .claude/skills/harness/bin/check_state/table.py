@@ -137,7 +137,7 @@ INVARIANTS = (
             "feature.json, STATE.md and CLAUDE.md stay within their line budgets (notes)", "DEC-150"),
     )),
     Group("run-state", (
-        Inv("INV-16", inv_16, "feature", (_RUN_STATE, "path:.claude/skills/harness/bin/run-state-schema.json"),
+        Inv("INV-16", inv_16, "feature", (_RUN_STATE, "path:.claude/skills/harness/schemas/run-state.json"),
             "state.yaml is a checkpoint: whitelisted keys, declared step shape", "DEC-154"),
         Inv("INV-36", inv_36, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/.run-identity"),
             "a run directory's checkpoint carries the identity recorded when it was first written", "DEC-154"),

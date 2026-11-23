@@ -581,7 +581,7 @@
       "task": "none"
     },
     {
-      "artifact": "bin/digest-schemas/*.json persona digest schemas",
+      "artifact": "schemas/digest/*.json persona digest schemas",
       "category": "load_harness_json",
       "dec174_category": "validator",
       "disposition": "canonical",
@@ -1400,7 +1400,7 @@
       "task": "T-03"
     },
     {
-      "artifact": "bin/config-schemas/harness.json schema",
+      "artifact": "schemas/harness.json schema",
       "category": "load_json_mapping",
       "dec174_category": "validator",
       "disposition": "canonical",

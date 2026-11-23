@@ -13,7 +13,7 @@ durable artifact, compact signal.
 
 Return one object through YieldTool — `yield({data: {VERDICT, DIGEST, artifact}})` — never
 fenced YAML or text; a string, `null` or absent `data` is rejected. Your injected persona schema,
-`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-<persona>.json`
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-<persona>.json`
 (shared definitions in `common.json`), owns the fields; your persona's agent file has a complete example.
 `validate-digest.py` requires exact tokens, every field, explicit `[]` or `none` for empty values,
 and valid list entries in `findings` and `fail_first`: violation → `BLOCKED (contract violation)`.

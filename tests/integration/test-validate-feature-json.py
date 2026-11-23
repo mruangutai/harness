@@ -720,15 +720,15 @@ def case_t15_red():
     print(f"     (red proof counts: original {n_real}, mutant {n_mut})")
 
 def _tree_with_schema(root, extra_github_key=None):
-    """A checkout-shaped tree with its OWN feature-schema.json under
-    .agents/skills/harness/bin/, optionally declaring one extra key under `github`."""
-    binp = os.path.join(root, ".claude", "skills", "harness", "bin")
+    """A checkout-shaped tree with its OWN schemas/feature.json under
+    .claude/skills/harness/schemas/, optionally declaring one extra key under `github`."""
+    binp = os.path.join(root, ".claude", "skills", "harness", "schemas")
     os.makedirs(binp, exist_ok=True)
     sch = json.loads(open(feature_schema.SCHEMA_PATH, encoding="utf-8").read())
     if extra_github_key:
         sch["$defs"]["github"]["properties"][extra_github_key] = {
             "type": "array", "items": {"type": "integer"}}
-    with open(os.path.join(binp, "feature-schema.json"), "w") as f:
+    with open(os.path.join(binp, "feature.json"), "w") as f:
         json.dump(sch, f)
     feat = os.path.join(root, ".harness", "harness", "features", "FEAT-T49")
     os.makedirs(feat, exist_ok=True)
@@ -740,7 +740,7 @@ def case_749_schema_comes_from_the_written_tree():
 
     MEASURED LIVE 2026-08-23 during FEAT-26's ship. `check-domain.py --post` refused a
     legitimate write -- `undeclared key 'source_issues' at /github' -- because the key WAS
-    declared in the worktree's own feature-schema.json and was NOT in main's, and the hook
+    declared in the worktree's own schemas/feature.json and was NOT in main's, and the hook
     imports this module from the main checkout (then reached through CLAUDE_PROJECT_DIR,
     now through HARNESS_PROJECT_DIR).
 

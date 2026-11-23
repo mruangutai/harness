@@ -649,7 +649,7 @@ def _v2_run(tmp, bin_dir):
 
 def _inv16_with_schema(schema_text):
     with tempfile.TemporaryDirectory() as tmp:
-        _, out, _ = _v2_run(tmp, _isolated({"run-state-schema.json": schema_text}))
+        _, out, _ = _v2_run(tmp, _isolated({os.path.join("..", "schemas", "run-state.json"): schema_text}))
     return _violations(out, "INV-16"), out[:600]
 
 
@@ -659,13 +659,13 @@ _CANNOT = "run-state schema CANNOT be checked: "
 def case_feat61_run_schema():
     """load_run_step_contract behind INV-16: strict decode refuses a duplicate key the old
     json.load silently resolved last-wins."""
-    with open(os.path.join(_anchor_bin, "run-state-schema.json"), encoding="utf-8") as f:
+    with open(os.path.join(os.path.dirname(_anchor_bin), "schemas", "run-state.json"), encoding="utf-8") as f:
         live = f.read()
     duplicate = live.replace('  "title":', '  "title": "duplicate",\n  "title":', 1)
     if duplicate == live:
         raise AssertionError("INCONCLUSIVE: the live schema carries no top-level title key")
     v, out = _inv16_with_schema(duplicate)
-    return [("(61.e) a duplicate key in run-state-schema.json is INV-16 CANNOT be checked, never last-wins",
+    return [("(61.e) a duplicate key in schemas/run-state.json is INV-16 CANNOT be checked, never last-wins",
              len(v) == 1 and _CANNOT + "ArtifactAccessError: " in v[0]
              and "invalid JSON: duplicate key: 'title'" in v[0], out)]
 
