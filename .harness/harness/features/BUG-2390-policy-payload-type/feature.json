@@ -35,6 +35,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-23T04:36:05+00:00"
+    },
+    {
+      "id": "r-20261122-3-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T04:40:37+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-3-validate-validator/digest.md",
+        "sha256": "8f66ccb734aa012d210e6f69eea9d4c38094432171103825a5f073bba5de1165"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T04:46:40+00:00"
     }
   ],
   "judgements": [
@@ -51,6 +66,13 @@
       "kind": "amendment",
       "decision": "T-01.verify",
       "reason": "Verify did not parse: the apostrophe in ${VAR:?Main's ...} opens an unterminated quote in bash 3.2 and 5.3 (bash -n fails); message reworded, behaviour unchanged"
+    },
+    {
+      "at": "2026-11-23T04:40:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix",
+      "reason": "c0 FAIL (SC-02 red non-discriminating) fixed main-session-direct by advisor-approved red/green reconstruction; re-validate at the new pin"
     }
   ],
   "mission": "patch",
