@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-2397-omp-native-cleanup",
   "branch": "feat/FEAT-2397-omp-native-cleanup",
-  "pr": null,
+  "pr": 2441,
   "review_sha": "f12ddd93cd828afe1c7c17b5afc8bfd3c3a9cb72",
   "cycles_used": 2,
   "max_total_cycles": 10,
