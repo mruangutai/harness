@@ -128,11 +128,16 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - {path: .gitignore, quote: '.harness/*/features/*/runs/**'}
-      - {path: .claude/skills/harness/templates/gitignore.snippet, quote: '.harness/features/*/runs/**'}
-      - .claude/skills/harness/bin/merge-gitignore.py#_merge
-      - {path: .claude/skills/harness/references/checkout-upgrade.md, quote: '# Checkout upgrade'}
-      - {path: .harness/harness/features/BUG-2399-run-records-tracked/notes/research-BUG-2399-run-records-tracked-draft.md, quote: '## Dirty-tree inventory'}
+    - path: .gitignore
+      quote: .harness/*/features/*/runs/**
+    - path: .claude/skills/harness/templates/gitignore.snippet
+      quote: .harness/features/*/runs/**
+    - .claude/skills/harness/bin/merge-gitignore.py#_merge
+    - path: .claude/skills/harness/references/checkout-upgrade.md
+      quote: '# Checkout upgrade'
+    - path: .harness/harness/features/BUG-2399-run-records-tracked/notes/research-BUG-2399-run-records-tracked-draft.md
+      quote: '## Dirty-tree inventory'
+    - .claude/skills/harness/bin/feature-worktree.py#_gate_removal
     verify: |
       cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-tracked && env -u HARNESS_AGENT_TYPE python3 tests/integration/test-merge-gitignore.py
     intent: |
@@ -166,6 +171,14 @@ tasks:
       quote: '# Feature-close distillation'
     - path: .harness/harness/features/BUG-2399-run-records-tracked/notes/qa-green.json
       create: true
+    - path: .claude/skills/harness/teams/validate.yaml
+      quote: it is committed with the run record like any tracked file (DEC-257)
+    - path: .omp/agents/harness-qa.md
+      quote: Main commits the receipts with the closed run record
+    - path: .omp/agents/harness-validator-lead.md
+      quote: the receipts with the closed run record (DEC-257)
+    - path: .harness/README.md
+      quote: Every other run record is retained evidence
     verify: |
       cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2399-run-records-tracked && env -u HARNESS_AGENT_TYPE python3 - <<'PY'
       import concurrent.futures, hashlib, json, os, pathlib, subprocess, tempfile

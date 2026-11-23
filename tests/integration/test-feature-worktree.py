@@ -1048,7 +1048,7 @@ def case_remove_refuses_aborted_run_evidence(fx):
 
     run_dir = os.path.join(".harness", seg, "features", "FEAT-75", "runs", "r-1-build-eng")
     evidence = {
-        os.path.join(run_dir, "state.yaml"): "schema_version: 2\nrun_id: r-1-build-eng\nstatus: in_progress\n",
+        os.path.join(run_dir, "state.yaml"): "schema_version: 2\nrun_id: r-1-build-eng\nstatus: running\n",
         os.path.join(run_dir, "digest.md"): "partial digest; the run never reached close-run\n",
     }
     for rel, text in evidence.items():

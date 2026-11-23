@@ -20,3 +20,13 @@ The first run of the T-03 verify failed in the pre-existing `case_landed_differs
 
 ## Fleet note
 `references/checkout-prereqs.md` still runs `merge-gitignore.py .` unreviewed on a fresh clone. That is safe, because a fresh clone carries no ignored historical files. Existing checkouts go through the new checklist in `checkout-upgrade.md`.
+
+## Fix c1 (after validate c0 FAIL, main-session-direct, rework round 1)
+- **T-02 grade:** `merge-gitignore.py` `_without_obsolete` now delegates its two predicates (`_is_obsolete`, `_still_in_block`); `_merge` delegates to `_report_check`, `_apply` and `_report_removed`. Behaviour is unchanged and the merger suite gives 14 passed. `code-grade.py --base 59289ad1` shows no production failure.
+- **T-01 grade:** the checklist composition test is split into `seed_fleet_checkout`, `stage_reviewed_evidence` and `require_operator_commit`, with the same assertions. Three grade-2 test functions remain, each with the reviewer's accepted reason.
+- **T-03 index cap:** the DEC-257 index ruling now fits the 30-word cap. `test-gen-decisions-index.py` has no FAIL.
+- **GC-F1 (advisor: AMEND→T-01):** the aborted-run fixture now uses the documented seed status `running` (`references/team-run-state.md:34`). An interrupted-run producer is out of scope, and that gap is accepted: the removal gate reads only git dirt.
+- **GC-F2 (advisor: AMEND):** `plan-merge.py amend` records the four doc paths in T-03's files and `feature-worktree.py#_gate_removal` in T-02's, each ledgered as an amendment judgement.
+- **QA-Q1 (advisor):** the fix run's QA provisions `bun install --frozen-lockfile` in its pinned checkout and records the command with the receipt. PR CI is not a substitute.
+- **Fleet-note check (advisor flag):** `git clone` checks out tracked files only, so a fresh clone holds no ignored historical run files for `merge-gitignore.py .` to expose.
+- The terminal three-suite verify was re-run green (`qa-green.json` rewritten), with `qa-red.json` preserved.

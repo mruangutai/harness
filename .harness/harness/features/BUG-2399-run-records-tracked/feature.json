@@ -35,6 +35,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-23T03:11:23+00:00"
+    },
+    {
+      "id": "r-20261122-3-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T03:29:44+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261122-3-validate-validator/digest.md",
+        "sha256": "3ae362efbf212bc1bd0211bed34e7a33ff51196492289b638fb35f85fec94e7b"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T03:38:48+00:00"
     }
   ],
   "judgements": [
@@ -58,6 +73,20 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "Restates the first mission judgement; the prior entry with reason 'x' was a mistaken re-run of set-mission while probing its output, not a judgement"
+    },
+    {
+      "at": "2026-11-23T03:41:31.895249+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.files",
+      "reason": "GC-F2 disposition (fable-advisor, delegated): T-02 owns the feature-worktree.py GATE 3 comment correction its intent already required"
+    },
+    {
+      "at": "2026-11-23T03:41:33.753128+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "GC-F2 disposition (fable-advisor, delegated): T-03 owns the four one-line DEC-257 prose corrections in role docs and .harness/README.md"
     }
   ],
   "mission": "plan",
