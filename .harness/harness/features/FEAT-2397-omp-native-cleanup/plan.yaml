@@ -549,6 +549,7 @@ tasks:
     In owned bin modules replace obsolete current Claude root/host descriptions with actual HARNESS root/native extension behavior without changing resolver/gate logic; preserve historical interpolation evidence, CLAUDE.md filename/budget logic, authored .claude paths and copied bootstrap prologues. Drop only settings.json.harness-bak and settings.local.json lines from gitignore.snippet.
     Regenerate DECISIONS-INDEX after authority edits with gen-decisions-index.py. Author each affected ruling tail <=30 words and retain generated anchors/refs. Run listed cumulative canonical-reader/instruction-path/layout/feature-route/Repository-state/typecheck gates here after ALL predecessor and owned source mutations finish. The Repository-state command is the standing CI invocation against the actual repository corpus with HARNESS_PROJECT_DIR set to this checkout, not a fixture suite or feature-scoped substitute. Its independent git ls-files positive control must discover more than zero tracked feature.json records before the checker runs. Preserve the count, full checker stdout/stderr and exit in cumulative QA evidence; checker note rows are allowed when exit is 0. Other gates exit 0 without FAIL/VIOLATION rows. Full unit/integration kinds and grade reports belong to validation. Later committers force-add required ignored runs/** receipts; do not commit now, sign, write panel or modify plan approval.
 - id: T-06
+  status: building
   title: Record real omp19.1.0 numerical child usage and close issue 2194
   traces:
   - SC-10
