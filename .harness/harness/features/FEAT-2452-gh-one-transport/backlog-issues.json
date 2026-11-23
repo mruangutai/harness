@@ -34,5 +34,13 @@
   "chore:Validate's QA matrix omits CI's checks job (canonical-reader audit, check-plan-routes); FEAT-2452's inventory drift was caught only by a local CI-parity run": {
     "number": 2480,
     "typed": true
+  },
+  "bug:dispatch-guard silently accepts a caller-supplied outputSchema/schemaMode identical to the injected one, so a dispatcher that keeps re-attaching it never sees the error": {
+    "number": 2482,
+    "typed": true
+  },
+  "bug:No orchestrator distill path for main-session-direct features: validate-digest accepts applied Expertise ops only in a lead's run digest, so a distill-orchestrator run cannot close-run": {
+    "number": 2483,
+    "typed": true
   }
 }
