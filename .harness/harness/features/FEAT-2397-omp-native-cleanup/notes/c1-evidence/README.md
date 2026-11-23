@@ -28,3 +28,10 @@ through the blob identity of the files they cover. The review base is
 
 The full check-state run is repeated at the c1 review pin, after the seam commits, and appended
 below.
+
+## check-state at the c1 pin 9c38040397bb115583e71b13f1a7ca4bf2f10c2e
+
+```
+tracked feature.json: 34
+exit=0
+```
