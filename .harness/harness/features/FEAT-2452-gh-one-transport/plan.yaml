@@ -214,7 +214,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 direct transport cutover includes all mirror callers and shared offline fixtures.
     depends_on: [T-01]
-    status: building
+    status: done
     files:
     - .claude/skills/harness/bin/gh-sync.py#gh
     - tests/integration/gh_sync_support.py#run
@@ -249,7 +249,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 shared board dependencies and regression tests stay in the direct cutover.
     depends_on: [T-02]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/board_lifecycle.py#_ensure_abandoned_label
       - .claude/skills/harness/bin/gh_board.py#set_station
