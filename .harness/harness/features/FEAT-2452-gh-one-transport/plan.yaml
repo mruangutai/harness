@@ -292,7 +292,7 @@ tasks:
     execution_agent: harness-documentor
     execution_reason: Main owns the signed external backlog posting and final policy/readback evidence in this direct build.
     depends_on: [T-04]
-    status: building
+    status: done
     files:
     - path: .claude/skills/harness/references/github-mirror.md
       quote: '## Failure has four shapes, not one'
