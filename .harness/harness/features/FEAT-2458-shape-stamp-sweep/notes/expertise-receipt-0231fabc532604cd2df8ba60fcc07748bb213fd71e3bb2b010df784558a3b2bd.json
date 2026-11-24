@@ -1,0 +1,46 @@
+{
+  "batches": [
+    {
+      "after_sha256": "424f6aba29e2d63e43c19ba428fb2f4c770092009c15c22680877159e57cbb82",
+      "before_sha256": "d897566d1744b415e1c449e66a3eef6ccd014f22bb95aec4774f4cf2b1f01085",
+      "destination": ".harness/expertise/harness-security-reviewer.md",
+      "id": "667aaa0e6c44224ce7a7aa4c6249e1a3ffb1f6f0519dca55c59bb4db26cff982",
+      "ops": [
+        {
+          "entry": "WHEN auditing deletion confined to a trusted directory DO check how every ancestor is resolved and whether enumeration and unlink use the same securely opened directory handle. Skipping symlinks at the leaf does not stop pathname re-resolution through a redirected parent.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-04",
+          "why": "The sweep's leaf check did not confine deletion. This reusable filesystem boundary check displaces the narrower invariant-detector exemption guidance; the stamp-specific consequence stays in the review record."
+        },
+        {
+          "entry": "WHEN operator diagnostics include untrusted filenames or reasons DO verify that rendering escapes line breaks and terminal controls, so input cannot appear as a separate trusted status line even if no automated gate consumes the output.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-07",
+          "why": "The sweep exposed a human-facing integrity boundary not covered by the exit-status lesson. This displaces a severity-token reminder already governed by the reviewer contract."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a stricter invariant detector exposes a legitimate production site DO derive that site from the detector's governing authority rather than exempting it; an exemption preserves the duplicate decision and creates the drift path the detector exists to close.",
+          "section": "Patterns",
+          "target": "P-04"
+        },
+        {
+          "original": "WHEN a diff is scoped IN and returns zero findings DO set severity_max to info, not n/a — n/a is reserved for scoped-out diffs; conflating them misreports whether the surface was actually assessed.",
+          "section": "Gotchas",
+          "target": "G-07"
+        }
+      ],
+      "recorded_at_ns": 1795533981670450000,
+      "seq": 1,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2458-shape-stamp-sweep",
+  "parent_id": "Feat2458Distill.PsychiatricBadger",
+  "persona": "harness-security-reviewer",
+  "runtime_id": "Feat2458Distill.PsychiatricBadger.DesperateGuanaco",
+  "schema": 1
+}
