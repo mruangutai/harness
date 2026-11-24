@@ -1,0 +1,276 @@
+schema: plan/1
+feature: FEAT-2488-plan-merge-atomicity
+approval:
+  status: pending
+drafted_at: '2026-11-24T00:20:08Z'
+status: plan
+source_issues: [2488]
+panel:
+  last_run: r-20261123-1-plan-product
+  cycle: 2
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-dbbfd79d9e3d970df44a8ff198ead20f
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-01 can replay or unlink a replaced journal generation.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-750aa466f71b005cbe16082f41781e47
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-02 reports transaction outcomes from a racy pathname check.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-c21a7b327f03336b65acc58f5a3b5aa7
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-02 final verification omits three SC-07 suites.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-0b1c6afcd2abebc7894aa7b312e11bb3
+    severity: med
+    reader: scope
+    kind: substance
+    summary: Pin a schema-valid feature.json mutation in T-02 case (e).
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-4cdc08853a8f30e432b8c47fd32f899d
+    severity: low
+    reader: scope
+    kind: form
+    summary: Record DEC-230 as keep.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-70a14133a5a9cf6a182a18d93550f56e
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's preflight recovery hook (_resolve_plan recover=True, item 3) is outcome-redundant with the recovery already inside locked_update and locked_pair_update and should not be built
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-4e7966122369eb0dee1c4cb8227004a4
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: SC-03's mandatory call-recording fsync-ordering unit test over-builds where the grilling explicitly allowed "a test or code anchor cited"
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-e44c490dcb5f6f51724ed67ffe112b1d
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: D-02's broadening of recovery to every harness_merge write in the directory makes a diverged journal block unrelated writers — blast radius beyond the grill's "every acquirer of the plan lock" that the pair's atomicity does not need
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-397af34758f531dd5addde35955b62c7
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's six-suite baseline run in the detached base worktree (baseline-t02-regression-base.txt) is receipt ritual duplicating evidence the pin already carries
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-cc9533d17b7b7ea996da92ca60bf649f
+    severity: high
+    reader: scope
+    kind: substance
+    summary: 'T-01/T-02: classify failures during replay of a published journal.'
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-484f97f28ee2c36e0c7e945522f24594
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-02 case (i) does not exercise the baseline ledger-replace failure.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-ebc96c4ba60f4992253f628ac91b160b
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-01 must recheck membership of the current journal and reject duplicate members before locking.
+    disposition: resolved
+    resolved_by: T-01
+lanes:
+  resolved_at: 2491336e43310cb3e95ae3110d098726ed4dc454
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      agent: harness-backend-dev
+      reason: DEC-174 harness_merge is imported by validate-digest and dispatch-guard and plan-merge is loaded by check_state ctx; all build work is direct.
+    - surface: tests/**
+      lane: main-session-direct
+      agent: harness-backend-dev
+      reason: Red torn-state tests and migrated ledger-failure tests land with the direct cutover they prove.
+    - surface: .harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/**
+      lane: main-session-direct
+      agent: harness-backend-dev
+      reason: Main records the red and baseline receipts of its own direct build.
+decisions:
+  - id: D-01
+    choice: The amendment pair commits through an fsync'd byte-image intent journal named for its primary, with roll-forward, as harness_merge.locked_pair_update, taking plan.yaml.lock then feature.json.lock and replacing the plan before the ledger; a failure after the journal is published is reported as committed-pending, never as nothing written.
+    because: In-process compensation cannot survive SIGKILL or an exception after the ledger rename; ledger-first was tried and reversed, and check-state detection covers only the unledgered-edit direction.
+    dec: DEC-229
+  - id: D-02
+    choice: Every harness_merge write and every mutating plan-merge verb first completes each leftover journal naming a file it writes; lock-free discovery is only a hint, and a journal is acted on only as re-read, membership included, under its primary's lock; a member matching neither recorded state refuses at exit 5 with the journal kept, blocking only that journal's members; a replay that fails part-way is reported as still pending, never as nothing written.
+    because: A feature.json-only writer or a verb's lock-free preflight would otherwise act on a torn state first; semantic judgement replay would put feature.json knowledge into the core, and overwriting a diverged member would destroy a write nobody journaled.
+    dec: DEC-199
+decisions_affected:
+- dec: DEC-229
+  disposition: keep
+  clause: all-or-nothing across both files (BUG-1716)
+  successor: none
+  reason: D-01 makes the clause true of the code without changing its text.
+- dec: DEC-229
+  disposition: keep
+  clause: every other byte and the approval mapping preserved
+  successor: none
+  reason: The journal carries the splice's exact bytes; compare-and-splice and field-only rendering are unchanged.
+- dec: DEC-199
+  disposition: keep
+  clause: No consumer opens its own lock or rename primitive.
+  successor: none
+  reason: guards._replace_bytes, guards._restore_plan and approval's BRIEF rename move onto the core, making the sentence literally true.
+- dec: DEC-199
+  disposition: keep
+  clause: spliced as text, never re-rendered; the approval block carried forward as the base file's own bytes
+  successor: none
+  reason: Byte-preserving splicing stays mandated; no YAML round-trip.
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful;
+  successor: none
+  reason: Every task is main-session-direct because the changed core is imported by gates.
+- dec: DEC-230
+  disposition: keep
+  clause: current `{files, intent, verify}` no longer hash to `signed_task_hashes` with no `amendment` entry
+  successor: none
+  reason: Journal replay changes how amendment judgements land, never the INV-40 gate or the signed hashes it compares.
+tasks:
+  - id: T-01
+    title: Add the journaled pair write and journal recovery to harness_merge
+    traces: [SC-01, SC-03, SC-06, SC-07]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 harness_merge is imported by validate-digest.py and dispatch-guard.py, so a change to it is a gate behaviour change made directly.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/harness_merge.py#locked_update
+      - path: tests/unit/test-harness-merge-journal.py
+        create: true
+      - path: tests/integration/canonical-reader-classification.json
+        quote: '".claude/skills/harness/bin/harness_merge.py"'
+      - path: .harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/red-t01-journal-unit.txt
+        create: true
+    verify: |
+      python3 .claude/skills/harness/bin/run_pool.py --workers 4 tests/unit/test-harness-merge-journal.py tests/integration/test-harness-merge.py tests/integration/test-feature-json-merge.py tests/integration/test-observations-merge.py tests/integration/test-expertise-merge.py tests/integration/test-inflight-registry.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && python3 -c "import pathlib, sys; t = pathlib.Path('.claude/skills/harness/bin/harness_merge.py').read_text(); sys.exit(0 if all(w in t for w in ('JOURNAL_SUFFIX', 'class JournalPending', 'def locked_pair_update', 'def recover_journals', 'def replace_bytes', 'plan.yaml.lock', 'feature.json.lock')) else 1)"
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity; never delegate execution (DEC-174: validate-digest.py and dispatch-guard.py import harness_merge). Consult AGENTS.md, .harness/harness/docs/SPEC.md, .harness/harness/docs/DECISIONS.md DEC-199, DEC-229 and DEC-174, the module contract in harness_merge.py's docstring, and notes/research-journal-design.md in this feature directory. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist in this product; SPEC and the module contracts supply the guidance.
+      Tests first. Create tests/unit/test-harness-merge-journal.py in the house shape of tests/integration/test-harness-merge.py: sys.path to .claude/skills/harness/bin, a RESULTS list, check(name, ok, detail), one PASS or FAIL line per check, a final PASS or FAIL summary, exit 1 on any FAIL; every case in a fresh tempfile.mkdtemp, never a real .harness path. Run it before any production edit and save its whole stdout and exit code to notes/red-t01-journal-unit.txt in this feature directory; it must fail.
+      In harness_merge.py, python3 stdlib only (base64, hashlib, json and stat join the imports), add:
+      1. JOURNAL_SUFFIX = '.harness-merge.journal'. A pair's journal is its primary's path plus JOURNAL_SUFFIX (for the amendment pair, plan.yaml.harness-merge.journal beside plan.yaml). Every journal is therefore named for its primary and is created, replaced and removed only while that primary's lock is held; the single-primary rule is structural, not a convention.
+      2. replace_bytes(path, data): the atomic same-directory replace locked_update's write body performs today (tempfile.mkstemp in the path's directory, write, close, os.replace, remove the temp file on any exception and re-raise), with no fsync. locked_update's write body calls it. Docstring: the caller must hold the lock that governs path.
+      3. class JournalPending(Exception): __init__(self, journal, cause, replay=False) stores all three as attributes and passes the message '<type name of cause>: <cause>'. It means a journaled transaction is committed-pending: its journal is still on disk and the next write naming a member rolls it forward. locked_pair_update raises it with replay false, and only after its own journal was published; _recover_journal raises it with replay true when replaying an existing journal fails, in which case the calling write's own change was never attempted.
+      4. _read_journal(journal_path): read the bytes and json.loads them; require schema equal to harness-merge-journal/1 and members a non-empty list of mappings, each with name (a bare file name: no path separator, not . or ..), before_sha256 (64 lowercase hex, or null for a file that was absent), after_sha256 (64 lowercase hex) and after_b64 (standard base64 whose decoded bytes hash to after_sha256). Member names must be pairwise distinct. Return the members with their decoded after bytes. Anything else raises MergeRefusal(5, ['JOURNAL UNREADABLE: <journal path>: <reason>', '  every write naming a file in this directory refuses until the files are reconciled by hand and the journal is removed.']). This is the module's only parse of a journal.
+      5. _journals_naming(path): lock-free; [] when the path's directory does not exist; otherwise every entry of os.listdir of that directory whose name ends with JOURNAL_SUFFIX and either equals the path's basename plus JOURNAL_SUFFIX or is a journal whose _read_journal members include the path's basename, as full paths. A journal _read_journal refuses counts as naming every file (fail closed); one that vanishes between the listing and the read is skipped. The result is only a hint: nothing acts on it until _recover_journal re-reads the journal, membership included, under its primary's lock.
+      6. _recover_journal(journal_path, path, timeout): the primary is journal_path minus JOURNAL_SUFFIX. Inside one contextlib.ExitStack acquire the primary's lock (primary plus .lock) with acquire(lock, timeout), and only then look at the journal: return False when it no longer exists. Read it with _read_journal; the first member's name must equal the primary's basename, else the JOURNAL UNREADABLE refusal. When no member's name equals the basename of path, return False and write nothing: the generation discovered lock-free has been replaced by one that does not name path, which therefore neither replays nor refuses for it. Acquire each further member's sibling lock in journal order. Because every writer of this journal holds the primary's lock for the journal's whole life, the bytes read under that lock are the current generation and cannot be replaced or removed before release. Compute every member's current sha256 (None when absent) before writing anything. If any member equals neither its after nor its before hash, raise MergeRefusal(5, ['JOURNAL DIVERGED: <member path> matches neither the before nor the after state recorded in <journal path>', '  nothing was changed; reconcile the file by hand, then remove the journal.']) and leave every file and the journal untouched. Otherwise replace_bytes each member still at its before hash with its after bytes, leave members already at after untouched, then os.unlink the journal, release the locks and return True. An Exception raised by any of those replace_bytes calls or by the unlink is raised as JournalPending(journal_path, exc, replay=True) from exc with the journal left in place; nothing runs after the unlink, so a completed replay never reports pending. The unlink is not followed by a directory fsync, as for locked_pair_update's own unlink: a journal a crash resurrects names members already at after and replays as a no-op, or refuses DIVERGED if a member was rewritten since.
+      7. recover_journals(path, timeout=None): call _recover_journal(j, path, timeout) for each j in _journals_naming(path); return True when any call returned True, else False. This is the one recovery entry point for callers outside the module.
+      8. locked_pair_update(primary, primary_transform, secondary, secondary_transform, timeout=None): raise ValueError unless the two paths are different files in one directory. Loop: recover_journals(primary, timeout), then recover_journals(secondary, timeout); acquire primary plus .lock, then secondary plus .lock; if _journals_naming(primary) or _journals_naming(secondary) is non-empty, release both and loop again. Otherwise read both bases as bytes (None when absent) and compute new_primary = primary_transform(base_primary) and new_secondary = secondary_transform(base_secondary); a MergeRefusal or any other exception from either transform propagates with nothing written and no journal. Then write the journal: members primary then secondary, each with name, before_sha256 of its base (null when absent), after_sha256 and after_b64 of its new bytes, serialized with json.dumps(sort_keys=True), written to tempfile.mkstemp(dir=directory, prefix='.harness-merge-tmp-'), flushed, os.fsync on its descriptor, closed, and os.replace onto primary plus JOURNAL_SUFFIX. Any exception up to and including that os.replace removes the temp file and propagates unchanged: nothing was written. After the journal's os.replace succeeds: fsync the directory (os.open read-only, os.fsync, os.close), replace_bytes(primary, new_primary), replace_bytes(secondary, new_secondary), os.unlink the journal, release the locks. An Exception raised by any of those four steps is raised as JournalPending(journal path, exc) from exc with the journal left in place; a BaseException that is not an Exception propagates unchanged, journal also left. There is no compensation path.
+      9. locked_update(path, transform, timeout=None) gains the same recovery: loop: recover_journals(path, timeout); acquire path plus .lock; if _journals_naming(path) is non-empty, release and loop again; otherwise run today's read, transform and replace body unchanged. A journal that does not name the path is left alone, so a pending or diverged journal blocks only its own members' writers (every writer in the directory only when it is unreadable). With no journal in the directory, behaviour, refusals and timeouts are exactly today's.
+      10. Module docstring: the journal protocol and its per-primary naming; fsync is performed on the journal file and its directory only, never on an ordinary locked_update write; recovery lives here and runs before every write that names a journal member, acting on each journal only as re-read, membership included, under its primary's lock; the JournalPending boundary (a failure before the journal's rename wrote nothing; a failure after it, or part-way through a replay, is committed-pending and rolls forward); and the lock order: a pair takes its primary's lock before its secondary's, which for the amendment pair is plan.yaml.lock then feature.json.lock; sign-approval's signed_task_hashes write takes the same order, and its nested feature.json write finds no journal because its outer locked_update on the plan already recovered and still holds the plan lock; approval's rework write takes feature.json.lock before, never while holding, the plan lock; no path acquires them reversed.
+      Unit cases, each asserting exact file bytes and journal presence or absence: pair success writes both new images and leaves no journal and no .harness-merge-tmp- file; a refusal from either transform leaves both files byte-identical and no journal; the secondary's lock held by a test-held fcntl.flock with timeout=0.2 refuses with code 6 naming LOCKED and writes nothing; constructed journals for primary at after and secondary at before, primary at before and secondary at after, and both at after each converge through recover_journals(primary), through locked_update on the primary and through locked_update on the secondary (the caller's own transform then applied on top), with the journal removed; a second recover_journals returns False and changes no byte; a member overwritten with a third content refuses with code 5 naming JOURNAL DIVERGED and leaves both files and the journal byte-identical, and so does locked_update on either member, while locked_update on a third file in the same directory succeeds and leaves both members and the journal byte-identical; a truncated journal refuses with code 5 naming JOURNAL UNREADABLE; locked_pair_update across two directories raises ValueError; with harness_merge.replace_bytes replaced by a test wrapper raising OSError for the secondary path only, locked_pair_update raises JournalPending whose journal attribute is the primary plus JOURNAL_SUFFIX and whose cause is that OSError, leaving the primary at after, the secondary at before and the journal present, and after the real replace_bytes is restored recover_journals(primary) converges both to after. Replay failure: under the same wrapper and from a constructed journal with both members at their before images, recover_journals(primary) raises JournalPending with replay True, that journal and that OSError, leaving the primary at after, the secondary at before and the journal present; locked_pair_update on the same two paths under the same wrapper then raises JournalPending with replay True without calling either transform; with the real replace_bytes restored, recover_journals(primary) converges both to after and a second call returns False. A journal listing the primary's name twice refuses with code 5 naming JOURNAL UNREADABLE under timeout=0.2, never LOCKED.
+      Interleaving cases, deterministic, with no sleeps and no threads: replace harness_merge.acquire with a test wrapper that, on its first call for the primary's lock, changes the files on disk and then delegates to the real acquire. Start each from a journal J1 with both members at J1's before images. (i) Generation change: the wrapper sets the primary to J2's after image, the secondary to J1's after image (which is J2's before image) and replaces the journal with J2; recover_journals(secondary) leaves both members at J2's after images and no journal, with no refusal. (ii) Fresh generation: the wrapper sets both members to J1's after images (J2's before images) and replaces the journal with J2; recover_journals(secondary) leaves both at J2's after images and no journal, never an unreplayed J2 unlinked. (iii) Disappearance: the wrapper sets both members to J1's after images and unlinks the journal; recover_journals(secondary) returns False and no byte changes after the wrapper's. (iv) Membership change: J1 names the primary and a member X; the wrapper replaces J1 with a J2 naming the primary and a different member Y, both at J2's before images; recover_journals(X) returns False and the primary, X, Y and J2 stay byte-identical to the wrapper's result. Restore every replaced function in a finally.
+      Then run python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit. The json.loads in _read_journal is a new reader site: in tests/integration/canonical-reader-classification.json insert, immediately before the first row whose file is .claude/skills/harness/bin/harness_yaml.py, one row: artifact harness_merge intent journal, category json_string, dec174_category none, disposition exempt, execution_route main-session-direct, exemption module_internal_format, file .claude/skills/harness/bin/harness_merge.py, id .claude/skills/harness/bin/harness_merge.py::_read_journal::json_string#1, reason The locked-write core owns and parses its own intent journal format., remedy none, symbol _read_journal, task none. If the audit reports a different category for that site, classify exactly what it reports the same way; add no row for any other site. Do not edit check-plan-routes.py or test-check-plan-routes.py.
+      Expected verify exit 0: every selected suite PASS, the audit reporting 0 unresolved reader sites, and the docstring and API names present.
+  - id: T-02
+    title: Cut plan_merge's amendment pair over to the journaled core and delete its rename and restore helpers
+    traces: [SC-01, SC-02, SC-04, SC-05, SC-06, SC-07]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 check_state ctx loads plan-merge.py and the cutover makes gate-imported writers use the new core; made directly.
+    depends_on: [T-01]
+    status: ready
+    files:
+    - .claude/skills/harness/bin/feature_json_write.py#write_feature_json
+    - .claude/skills/harness/bin/plan_merge/amendments.py#write_plan_and_ledger
+    - .claude/skills/harness/bin/plan_merge/guards.py#_resolve_plan
+    - .claude/skills/harness/bin/plan_merge/check.py#_check_inputs
+    - .claude/skills/harness/bin/plan_merge/amend.py#cmd_amend
+    - .claude/skills/harness/bin/plan_merge/approval.py#_write_brief_signature
+    - path: .claude/skills/harness/bin/plan-merge.py
+      quote: a side (base, proposal, key/panel/lanes value, lead digest) failed to parse
+    - tests/integration/test-plan-merge.py#_amend_fixture
+    - path: .harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/red-t02-plan-merge-base.txt
+      create: true
+    verify: |
+      python3 .claude/skills/harness/bin/run_pool.py --workers 4 tests/integration/test-plan-merge.py tests/integration/test-check-state-feat59.py tests/integration/test-feature-json-merge.py tests/integration/test-plan-decision-dispositions.py tests/unit/test-plan-merge-first-station.py tests/unit/test-plan-merge-union-head.py tests/unit/test-harness-merge-journal.py tests/integration/test-harness-merge.py tests/integration/test-observations-merge.py tests/integration/test-expertise-merge.py tests/integration/test-inflight-registry.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && python3 - <<'PY'
+      import pathlib
+      b = pathlib.Path('.claude/skills/harness/bin')
+      mods = sorted((b / 'plan_merge').glob('*.py'))
+      assert 10 <= len(mods), mods
+      for m in mods:
+          t = m.read_text()
+          assert 'mkstemp' not in t and 'os.replace' not in t, m
+          assert 'harness-merge.journal' not in t and 'JOURNAL_SUFFIX' not in t, m
+      g = (b / 'plan_merge' / 'guards.py').read_text()
+      assert 'def _replace_bytes' not in g and 'def _restore_plan' not in g and 'recover_journals(' in g
+      a = (b / 'plan_merge' / 'amend.py').read_text()
+      assert 'APPROVAL_RESET_LINE' not in a and 'result["reset"]' not in a and 'result.get("reset")' not in a
+      am = (b / 'plan_merge' / 'amendments.py').read_text()
+      assert 'harness_merge.locked_pair_update(' in am and 'JournalPending' in am and '_restore_plan' not in am
+      doc = (b / 'feature_json_write.py').read_text().split('"""')[1]
+      assert 'the fsync' not in doc and 'fsync' in doc
+      assert 'intent journal' in (b / 'plan-merge.py').read_text()
+      print('PASS no rename primitive or journal handling in plan_merge; reset bookkeeping and false fsync claim gone')
+      PY
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity; never delegate execution (DEC-174: check_state/ctx.py loads plan-merge.py; validate-digest.py and dispatch-guard.py import harness_merge). Consult AGENTS.md, .harness/harness/docs/SPEC.md, .harness/harness/docs/DECISIONS.md DEC-171, DEC-174, DEC-182, DEC-199, DEC-229 and DEC-230, plan-merge.py's module docstring, harness_merge.py's journal contract from T-01, and notes/research-journal-design.md in this feature directory. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist in this product; SPEC and the module contracts supply the guidance.
+      Tests first, in tests/integration/test-plan-merge.py, each new case registered in CASES. Build each fixture with _amend_fixture(plan_text=_PENDING_PLAN) and _sign(plan), and check that _sign exits 0 before building any torn state; the signature's signed_task_hashes is what makes the amend ledgered. Construct each torn state on disk in exactly T-01's journal format: the file plan.yaml.harness-merge.journal beside plan.yaml, JSON with schema harness-merge-journal/1 and members plan.yaml then feature.json, each carrying name, before_sha256, after_sha256 and after_b64. Take the after images from running the same verb on an identical twin fixture (its real splice and its real judgement); the before images are the fixture's own bytes.
+      (a) Plan at after and feature.json at before, once for each verb: re-running the same record-amendments exits 6 saying the amendment was recorded before, and re-running the same amend with the same --expect-sha256 exits 6 on the stale hash; in both, the plan field equals now, judgements carry that amendment exactly once, and no journal remains. Both verbs refuse in a lock-free preflight (amendments._amendment_against_plan and amend._amend_preconditions) before any harness_merge write, so these two re-runs are the evidence that _resolve_plan's recovery is required; say so in the case docstring.
+      (b) amend on a signed field, plan at before and feature.json at after: re-running the same amend exits 6 on the stale --expect-sha256; both files carry the amendment, judgements carry it exactly once, and no journal remains.
+      (c) Both at after with the journal still present: the re-run leaves both files byte-identical to the after images and removes the journal.
+      (d) After each of (a) to (c), one more re-run leaves both files byte-identical.
+      (e) With (a)'s record-amendments torn state, call feature_json_write.write_feature_json in-process with a transform that parses the document and sets cycles_used to its current value plus one; then cycles_used equals 1, the plan carries the amendment, judgements carry it exactly once, and no journal remains.
+      (f) A journal whose feature.json member was overwritten with a third valid document: re-running the verb exits 5 naming JOURNAL DIVERGED, and plan.yaml, feature.json and the journal stay byte-identical.
+      (g) SC-04 regression lock: the full stdout of a ledgered signed-field amend equals exactly AMENDED tasks:T-01.intent judgement=amendment, APPLIED with the plan path, APPLIED with the feature.json path, one per line; that of an unledgered title amend equals AMENDED tasks:T-01.title then APPLIED with the plan path; neither carries APPROVAL-RESET.
+      (h) Post-commit feedback failure: load the package with _load_owner('amendments'), replace sys.modules['harness_boundary'].relay_changed_state_feedback with a function raising OSError('stderr closed'), and call write_plan_and_ledger on a signed fixture with a splice that changes T-01.intent and one amendment judgement for it: it returns normally, both files carry the change, and no journal remains. Restore the function in a finally.
+      (i) In-flight failure: with the module loaded as in (h), replace os.replace on the os module (the rename harness_merge's write body calls, the same seam at 2491336e43310cb3e95ae3110d098726ed4dc454 and at the pin) with a wrapper that counts its raises and raises OSError(errno.ENOSPC, 'injected') when os.path.realpath of its destination is the fixture's feature.json, delegating otherwise, and call write_plan_and_ledger as in (h). First check the wrapper raised at least once, so the ledger replace was reached; only then grade the outcome: write_plan_and_ledger raises MergeRefusal with code 2 whose lines name the plan.yaml.harness-merge.journal path and say the next plan-merge or feature.json write completes it, and contain no line saying nothing was written. Restore the real os.replace in a finally, then re-run the same verb through the CLI: both files carry the change, judgements carry it exactly once, and no journal remains.
+      (j) Replay failure: build (a)'s record-amendments torn state but with both members at their before images and the journal present, load as in (h), and wrap os.replace as in (i). Call guards._resolve_plan on the plan in-process: after checking the wrapper raised, it exits 2 through SystemExit, stderr names the journal path and says the transaction stays pending, with no Traceback and no line saying nothing was written, and the plan is at its after image, feature.json at its before image and the journal present. Under the same wrapper, write_plan_and_ledger as in (h) raises MergeRefusal with code 2 carrying the same replay lines and no line saying nothing was written, and the text (h)'s splice introduces is in neither file. Restore os.replace in a finally, then re-run record-amendments through the CLI: it exits as in (a), both files carry the amendment exactly once, and no journal remains.
+      Before any production edit, record the red run: create a detached git worktree of 2491336e43310cb3e95ae3110d098726ed4dc454 in a temporary directory outside the repository, copy the edited test-plan-merge.py into its tests/integration/, run it there with HARNESS_AGENT_TYPE unset, and save its whole stdout and exit code to notes/red-t02-plan-merge-base.txt in this feature directory. Cases (a), (b), (c), (e), (f), (h), (i) and (j) must fail there, (i) on its outcome checks after its wrapper-raised check passed, so the base run records the old diagnostic differing rather than a setup failure; (g) must pass, and that run is SC-04's baseline. Then remove that temporary worktree.
+      Migrate, never delete, the three ledger-failure cases case_1985_amend_restores_the_plan_when_the_ledger_fails, case_b1716_record_amendments_is_all_or_nothing and case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error. Rename a case whose name says the plan is restored to say nothing was written, keep its CASES entry and docstring truthful, and keep every check: each restored byte for byte assertion becomes one that stderr names nothing was written and no plan.yaml.harness-merge.journal exists beside the plan. Keep the LOCKED, PermissionError, no-Traceback, nonzero-exit and both-files-byte-identical assertions and the released-then-lands check, so the successors carry at least the 8 check() calls the three cases carried at the base.
+      Production, after the red run:
+      1. feature_json_write.py: add schema_checked_transform(path, transform, tail_regex=None) returning (resolved, wrapped): resolved through harness_merge.require_destination exactly as write_feature_json does today, and wrapped being today's schema non-regression _transform closure, writing nothing. write_feature_json keeps its signature and behaviour and calls it, then harness_merge.locked_update, then the feedback relay. In the module docstring replace the same-directory tempfile, the fsync, and the os.replace with wording that names the same-directory tempfile and the os.replace and says locked_update performs no fsync; only harness_merge's intent journal is fsync'd. The LOCK LIFETIME paragraph and the only read-modify-write entry point paragraph must stay true.
+      2. plan_merge/amendments.py: import harness_boundary. write_plan_and_ledger(resolved, feature_json, splice, judgements) keeps its name, signature and callers. It builds the ledger transform (today's _record_amendment_judgements transform: parse_doc, the vanished refusal, judgements appended, json.dumps with indent=2 plus a newline), wraps it with feature_json_write.schema_checked_transform(feature_json, transform), and calls harness_merge.locked_pair_update(resolved, splice, resolved_feature_json, wrapped). The outcome comes from the core's exception type, never from looking at the disk: on harness_merge.JournalPending with replay false raise MergeRefusal(2, ['plan-merge: the write to <resolved> and <feature_json> failed after its intent journal was published: <type name of the cause>: <cause>', '  the transaction is journaled in <journal path>; the next plan-merge or feature.json write completes it.']); on JournalPending with replay true (an earlier journal's replay failed before this call's transforms ran) raise MergeRefusal(2, the replay lines ['plan-merge: completing the pending intent journal <journal path> failed: <type name of the cause>: <cause>', '  this command did not write its change; the journaled transaction stays pending and the next plan-merge or feature.json write completes it.']), never a line saying nothing was written; on MergeRefusal re-raise its code with its lines plus '  nothing was written.'; on any other Exception raise MergeRefusal(2, ['plan-merge: the ledger write to <feature_json> failed: <type name>: <exc>', '  nothing was written.']) from it. After the pair returns, call harness_boundary.relay_changed_state_feedback(resolved_feature_json) once: the write has committed, so an Exception from the relay is caught, one line 'plan-merge: changed-state feedback after the committed write failed: <type name>: <exc>' is printed to stderr inside its own try that ignores OSError, and the function returns normally, so the verb still prints its AMENDED and APPLIED receipts and exits 0. Rewrite the docstring: one journaled transaction, plan before ledger, plan.yaml.lock before feature.json.lock, no compensation, the committed-pending outcome, advisory post-commit feedback, and why ledger-first stays rejected. Delete _record_amendment_judgements once nothing calls it, and drop the _replace_bytes and _restore_plan imports.
+      3. plan_merge/guards.py: delete _replace_bytes, _restore_plan and the now-unused tempfile import. _resolve_plan(file_path, recover=True): after require_destination, when recover is true, call harness_merge.recover_journals(resolved) inside the same try, so a refusal prints its lines and exits its code. A harness_merge.JournalPending from it prints item 2's two replay lines to stderr and exits 2; any other Exception from it prints 'plan-merge: recovering the intent journal for <resolved> failed: <type name>: <exc>' and '  no file was changed; this command wrote nothing.' and exits 2, which is true because T-01 raises every failure after a member write as JournalPending. No recovery failure prints a Traceback. Docstring: mutating verbs recover here because record-amendments and amend refuse in a lock-free preflight before reaching any harness_merge write.
+      4. plan_merge/check.py: check is read-only, so _check_inputs calls _resolve_plan(args.file, recover=False).
+      5. plan_merge/amend.py: remove the APPROVAL_RESET_LINE import, the result dict and its argument, result["reset"] = False, the two-line if result.get("reset") print, the result and base_doc parameters of _amended_text, and the docstring sentence about result["reset"]. Keep the transform's own base_doc, which feeds _refuse_illegal_amendment. Keep the names _load_structured_value, _ledgered_target and cmd_amend's nested transform, which canonical-reader rows cite. stdout is unchanged.
+      6. plan_merge/approval.py: _write_brief_signature writes the signed text with harness_merge.replace_bytes(brief_path, signed.encode('utf-8')) instead of its own mkstemp and os.replace; drop the tempfile import if unused. No other approval change; the preliminary writes stay non-transactional.
+      7. plan-merge.py module docstring: extend exit 5 with: or a leftover intent journal (harness_merge) is unreadable or names a file matching neither its recorded before nor after state.
+      No plan_merge module reads, writes, lists or deletes a journal itself; only harness_merge does. Do not edit check-plan-routes.py, test-check-plan-routes.py, any check_state module, stations._task_search, text._item_range_within, or union.py's PRESERVE_BASE_BYTES and UNION_MERGE branches.
+      Expected verify exit 0: every selected suite PASS, the audit reporting 0 unresolved reader sites, and the inline assertions printing PASS.
