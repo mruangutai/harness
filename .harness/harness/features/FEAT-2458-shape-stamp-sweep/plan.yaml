@@ -1,9 +1,16 @@
 schema: plan/1
 feature: FEAT-2458-shape-stamp-sweep
 approval:
-  status: pending
+  date: '2026-11-23'
+  approved_by: operator
+  status: approved
+  rulings:
+    - finding: PF-9ad7c4848ca7e33119b82234b0637509
+      who: operator
+      date: '2026-11-23'
+      reason: applied - exact-id match, tested by SC-01/02/03
 drafted_at: '2026-11-23T14:32:27Z'
-status: plan
+status: ready
 source_issues: [2458]
 
 panel:

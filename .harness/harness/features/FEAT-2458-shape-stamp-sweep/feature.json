@@ -39,5 +39,36 @@
       "reason": "plan run FAIL only because applied high substance PF-9ad7c484 was not re-read; no re-panel: one-run assignment and plan team rule send surviving substance findings to the batched signature (DEC-176)"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2458-shape-stamp-sweep/.harness/harness/features/FEAT-2458-shape-stamp-sweep/notes/approval-decision-2026-11-23.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "6e27b15eaef7c332b1dd0dd13ac31a0c241798198243ad60d3af158c78fdc247",
+    "T-02": "2135f5965ccec6d6e177ddf140721abacdfcfef9f6ed19514762399c254d025f"
+  },
+  "github": {
+    "milestone": 137,
+    "parent": 2485,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2486,
+      "T-02": 2487
+    },
+    "source_issues": [
+      2458
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
