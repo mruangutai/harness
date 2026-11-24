@@ -88,6 +88,20 @@
       "kind": "regate",
       "decision": "re-panel",
       "reason": "fix c1 (ee5a9596 + ledgered amendments) closed MF-1..MF-6 and G-a..G-d from validate c0 per AdvisorE3Fix; re-panel at the new pin"
+    },
+    {
+      "at": "2026-11-24T02:34:34.950855+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "fix c2 (validate c1 MF-7/MF-8): deviation wording updated to the fstat refusal and the post-commit write guard; within AdvisorE3Fix C5 scope"
+    },
+    {
+      "at": "2026-11-24T02:34:36.760553+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.intent",
+      "reason": "fix c2 (validate c1 MF-7/MF-8): deviation wording updated to the fstat refusal and the post-commit write guard; within AdvisorE3Fix C5 scope"
     }
   ],
   "mission": "plan",

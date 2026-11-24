@@ -229,10 +229,7 @@ tasks:
       (3) Item 4, under MF-4: before_sha256 must be present. Only an explicit null records an absent file; a missing key
       is UNREADABLE.
 
-      (4) Item 4, under MF-3: the journal is read only from a regular file. It is lstat'd first, then opened
-      O_NOFOLLOW|O_NONBLOCK. A symlink (dangling or not), a FIFO or a directory is UNREADABLE naming the journal. No FIFO
-      is opened, and a dangling entry no longer reads as absent and spins locked_update.
-
+      (4) Item 4, under MF-3 and validate c1 MF-8: the journal is read only from a regular file. The entry is lstat'd first, without following it, and a symlink (dangling or not), a FIFO or a directory at the name is UNREADABLE naming the journal. It is never opened, so a dangling entry no longer reads as absent and spins locked_update. The entry is then opened O_NOFOLLOW|O_NONBLOCK, and the opened descriptor is fstat'd before any byte is read. An entry swapped in after the lstat is refused there with the same UNREADABLE refusal, naming the journal. A symlink fails the open; a FIFO, even one already holding a record, opens without blocking and is refused unread and left in place; a directory or device is refused the same way.
       (5) Item 6, under MF-2 and MF-3: before the primary's lock, _recover_journal now lstats the entry and refuses
       UNREADABLE any non-regular entry, and any journal not named plan.yaml.harness-merge.journal. A feature.json-primary
       journal is therefore refused before any lock is taken, and the reversed order is unreachable. "Return False when it
@@ -349,3 +346,4 @@ tasks:
       new case asserts that amend --show leaves a pending journal and both files byte-identical.
 
       The signature stands (DEC-23); this is the ledgered judgement.
+      (7) Validate c1 MF-7 and its post-commit write audit: the relay's fallback line suppresses (OSError, ValueError), not OSError only. The helper is now guards._relay_after_commit, which write_plan_and_ledger and _locked_plan_update share, so an unledgered amend's commit has the same advisory relay. The AMENDED/APPLIED receipts of amend and record-amendments go through guards._print_receipts, which prints, flushes and, if stdout cannot take them (closed: ValueError; broken pipe: OSError), prints one best-effort stderr line saying the write landed. The verb still exits 0, and a normal stdout is byte-identical (SC-04 lock green). No write after a commit can turn a landed amendment into a traceback.
