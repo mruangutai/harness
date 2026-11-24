@@ -215,3 +215,16 @@ These rules live in moved S, but analyze **check-state.py and check_state/*.py**
 5. **Counterfactuals:** the alias collector genuinely permits both clean→fail and fail→clean on additional seam-straddling plants. Broad catches here only change grouping/text/count, not clean/fail status. Parse-error examples are already failing trees and must distinguish external scanning from in-tree compilation/import failure.
 
 Therefore the strongest supported conclusion is **current-tree audit behavior preserved, not arbitrary-tree semantic equivalence**. Per-file indexes and caches do not add undisclosed clean-tree findings; checker-package locks are not accidentally re-scoped onto the new audit implementation modules.
+
+## Addendum — census extension found at validate c2 (evidence maintenance per ESC-2 ruling Q4; not a contract change)
+
+
+Item 18 lists the file/symbol exemption but omits the separate per-file decision to run the AST loader check at all. `structure_audit.py:944–945` requires the exact ASCII spelling of `spec_from_file_location` anywhere in the source text; `:249–265` tests the parser’s normalized callee. Static witness: a retained function contains a call whose callee normalizes to that name but whose source has a non-ASCII spelling. The old entry passes the prefilter because the moved rule itself spells the name; the pinned entry does not and silently skips that node. Python AST normalization and both branch conditions were checked on the Git blobs in memory; [INFERENCE] absent any other findings, consolidation goes 1→0. **Gate (i):** all unmodified E/C/S blobs have zero matching call nodes, and the bound clean receipt records identical consolidation output. **Gate (ii):** base `check-plan-routes.py:2623–2624` and pin `structure_audit.py:944–945` are byte-identical; only the source file supplying the ASCII text changed. This is a perturbed-tree false negative within the approved class, not a request to change the rule or widen the checker.
+
+## Stage 2 — quality
+
+No new unsanctioned fail-open branch. Canonical source and named-plan read errors accumulate findings before exit selection (`canonical_reader_audit.py:228–239,732–770`); consolidation reports failed source parses before skipping their locks and retains the existing census/error behavior (`structure_audit.py:892–918,927–955`). The two libraries own substantive audit behavior; the CLI imports their entry points without a shim. Pinned `code-grade.py`: 187 passing records, no grade-2 or high finding. No candidate gate or suite was rerun. CR-2 and SEC-1 were not reopened.
+
+## Principles applied
+
+- Migrate Callers, Then Delete Legacy APIs — checked that audit tests use the new module imports rather than retaining a loader-backed compatibility route.
