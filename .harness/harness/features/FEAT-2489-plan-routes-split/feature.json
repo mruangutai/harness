@@ -161,6 +161,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "Three scope re-reads each found a further forced member of SC-02's delta class; remedies are applied and the departure from Q3's closed list is the signer's to accept, so no fourth panel"
+    },
+    {
+      "at": "2026-11-24T15:31:05.715210+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.verify",
+      "reason": "T-02's signed CLI lines carry old_exit=/new_exit=, so the whole-output receipt holds 19 'exit=' substrings and count('exit=')==3 is unsatisfiable by construction. Replaced with a line-anchored count of the three exit=CODE trailer lines."
     }
   ],
   "mission": "plan",
