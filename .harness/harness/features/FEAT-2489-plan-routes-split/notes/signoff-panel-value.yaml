@@ -13,6 +13,10 @@ readers:
   status: skipped
   persona: harness-ui-reviewer
   reason: 'not re-run at cycle 4: self-scoped out at cycle 1 (no UI surface); the applies added none'
+- reader: goalcheck
+  status: skipped
+  persona: harness-pm
+  reason: 'not re-run at cycle 4: ran and passed at cycle 1 (r-20261124-1-plan-product, all three perspectives, notes/research-FEAT-2489-plan-routes-split-goalcheck-plan.md); no later cycle dispatched goal-check. Row restored after record-panel replaced panel.readers wholesale and dropped the cycle-1 entry.'
 findings:
 - id: PF-b25f62af28d7aa5f31cd38d635041a54
   severity: high
