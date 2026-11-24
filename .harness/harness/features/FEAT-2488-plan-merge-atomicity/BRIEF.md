@@ -59,6 +59,6 @@ DEC-229 promises that a signed-field amendment lands in `plan.yaml` and its `ame
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike Ruangutai (delegated to fable-advisor)
+date: 2026-11-23

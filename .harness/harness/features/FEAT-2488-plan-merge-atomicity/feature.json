@@ -39,5 +39,36 @@
       "reason": "plan run spent its one scope send-back; 3 c2 substance repairs applied but unread; returning pending with one signature question rather than buying a re-panel unasked"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/answers-2026-11-23-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "527bd03ebb30bd518e28a545a9140f5821c0ac737e4c1f59f17ce36b499bcc6e",
+    "T-02": "d424f078ae186593794ef11d9f38faeb567ccdc116acd0b59514a38ec6f1e516"
+  },
+  "github": {
+    "milestone": 138,
+    "parent": 2490,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2491,
+      "T-02": 2492
+    },
+    "source_issues": [
+      2488
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
