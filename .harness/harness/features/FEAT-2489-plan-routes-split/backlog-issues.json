@@ -6,5 +6,13 @@
   "bug:test-check-plan-routes _copy_named_plans copies inventory-named plan paths without containment (../ or symlinks escape the scratch root); add a realpath containment check and symlink rule with a red test": {
     "number": 2526,
     "typed": true
+  },
+  "enhancement:plan-merge sign-approval cannot mark an amendment to an approved BRIEF (it leaves the Approval block byte-identical); add a sanctioned amendment-mark verb so SC edits after signature are content-bound": {
+    "number": 2527,
+    "typed": true
+  },
+  "bug:validator readers: harness-code-reviewer's write guard blocks temp-dir replay probes, and QA's digest shape has no measurement-only verdict, so probes return BLOCKED before re-prompt": {
+    "number": 2528,
+    "typed": true
   }
 }
