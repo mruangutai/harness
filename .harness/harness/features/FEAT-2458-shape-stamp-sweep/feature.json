@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2458-shape-stamp-sweep",
   "branch": "feat/FEAT-2458-shape-stamp-sweep",
   "pr": null,
-  "review_sha": "9b5b6a7a05c3dc8aa382699e33477d2f0397281c",
+  "review_sha": "b4536600880dde34ad91d5ddc25fff26ff09ba01",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
