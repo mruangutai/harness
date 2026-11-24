@@ -414,7 +414,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 enumerates check-plan-routes.py and its test file; the cutover that makes the gate use the libraries is direct.
     depends_on: [T-01, T-02]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/check-plan-routes.py#main
       - path: .claude/skills/harness/bin/canonical_reader_audit.py
