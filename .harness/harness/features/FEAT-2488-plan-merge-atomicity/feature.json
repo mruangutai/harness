@@ -128,9 +128,9 @@
   ],
   "mission": "plan",
   "rework": {
-    "rounds": 2,
-    "wall_clock_minutes": 90,
-    "decision": ".harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/answers-2026-11-23-signoff.md"
+    "rounds": 3,
+    "wall_clock_minutes": 120,
+    "decision": "notes/answers-2026-11-24-validate-c2.md#oq-1"
   },
   "signed_task_hashes": {
     "T-01": "527bd03ebb30bd518e28a545a9140f5821c0ac737e4c1f59f17ce36b499bcc6e",
