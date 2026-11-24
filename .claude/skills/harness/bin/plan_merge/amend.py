@@ -202,13 +202,14 @@ def _amend_rendered(cur, raw, f2, l2, ind2, args, want_value, value_text):
 def _amend_preflight(args):
     """Everything before the lock: the key vocabulary, destination, the field's current bytes
     and hash, `--show`, and the compare-and-swap preconditions. Returns the resolved plan path.
-    (FEAT-70, from cmd_amend)"""
+    `--show` writes nothing, so it never recovers a pending intent journal: it shows the plan
+    as it stands, and the next mutating verb completes the pair. (FEAT-70, from cmd_amend)"""
     if args.key not in AMENDABLE_KEYS:
         _die(2, f"plan-merge: --key {args.key} is not amendable — expected one of: "
                 f"{', '.join(AMENDABLE_KEYS)}. `approval:` is the main session's alone "
                 f"(DEC-120) and sign-approval is its only writer.")
 
-    resolved = _resolve_plan(args.file)
+    resolved = _resolve_plan(args.file, recover=not args.show)
     with open(resolved, "rb") as fh:
         raw = fh.read().decode("utf-8")
     lines = raw.splitlines(keepends=True)

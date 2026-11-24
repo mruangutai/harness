@@ -28,8 +28,11 @@ path plus JOURNAL_SUFFIX, so the amendment pair's journal is plan.yaml.harness-m
 beside plan.yaml — and it is created, replaced and removed only while that primary's lock is
 held. The single-primary rule is therefore structural, not a convention: every writer of a
 journal holds its primary's lock for the journal's whole life. The journal records each
-member's name, the sha256 of its bytes before the write (null when the file was absent) and of
-its bytes after, and the after image itself in base64; _read_journal is its only parser.
+member's name, the sha256 of its bytes before the write (null when the file was absent — the
+key is required, so only an explicit null records an absence) and of its bytes after, and the
+after image itself in base64; _read_journal is its only parser. There is exactly one legal
+pair, JOURNAL_PAIR: plan.yaml then feature.json, the amendment pair. locked_pair_update writes
+no other, and _read_journal accepts no other: exactly those two members, in that order.
 
 The protocol: under both locks, read both bases and run both transforms; write the journal to a
 temp file, fsync it, os.replace it into place and fsync the directory; then replace the primary,
@@ -38,11 +41,15 @@ directory ONLY — never on an ordinary locked_update write, and never on a memb
 so the guarantee is against a killed process, and an OS crash or power loss is not warranted.
 
 The JournalPending boundary: any failure up to and including the journal's rename wrote nothing
-and propagates unchanged. Any Exception after it — the directory fsync, either member replace or
-the unlink — leaves the transaction committed-pending: the journal stays on disk and the call
-raises JournalPending, and the next write naming a member rolls it forward. A replay that fails
-part-way is committed-pending too and raises JournalPending with replay=True; the calling
-write's own change was then never attempted. There is no compensation path.
+and propagates unchanged. An OSError after it — the directory fsync, either member replace or
+the unlink, whose bodies are os calls only — leaves the transaction committed-pending: the
+journal stays on disk and the call raises JournalPending, and the next write naming a member
+rolls it forward. A replay whose replace or unlink raises OSError part-way is committed-pending
+too and raises JournalPending with replay=True; the calling write's own change was then never
+attempted. Any other exception after the rename propagates unchanged as itself (a traceback),
+the journal also kept, so the next write still rolls it forward: the handlers name the
+boundary's real error class, never Exception (FEAT-63's broad-catch census, ceiling 0). There
+is no compensation path.
 
 Recovery lives here and nowhere else: recover_journals(path) is the one entry point, and it runs
 before every locked_update and locked_pair_update that names a journal member. Discovering a
@@ -51,14 +58,19 @@ included, under its primary's lock. A member at its after state is left alone, o
 state is replaced with its after image, and a member in neither state refuses (JOURNAL DIVERGED,
 exit 5) with every file and the journal untouched. A journal that cannot be parsed refuses
 (JOURNAL UNREADABLE, exit 5) for every write in its directory, because it cannot say which
-files it names; a readable one blocks only its own members' writers.
+files it names; a readable one blocks only its own members' writers. A journal entry is
+examined with lstat and opened only when it is a regular file: a symlink (dangling or not), a
+FIFO or a directory refuses UNREADABLE naming the journal, so no writer blocks on a FIFO or
+spins on an entry that lists as present and reads as absent. Before any lock is taken, a
+journal named for any file but JOURNAL_PAIR's primary refuses UNREADABLE too.
 
 Lock order: a pair takes its primary's lock before its secondary's, which for the amendment pair
 is plan.yaml.lock then feature.json.lock. sign-approval's signed_task_hashes write takes the same
 order, and its nested feature.json write finds no journal because its outer locked_update on the
 plan already recovered and still holds the plan lock, so no journal naming the plan can appear.
-approval's rework write takes feature.json.lock before, never while holding, the plan lock. No
-path acquires them reversed.
+approval's rework write takes feature.json.lock before, never while holding, the plan lock. A
+journal named for feature.json — which would lock feature.json then plan.yaml — refuses before
+any lock. No path acquires them reversed.
 
 python3 stdlib only, no third-party imports, so this runs on any machine that runs the harness.
 """
@@ -70,6 +82,7 @@ import hashlib
 import json
 import math
 import os
+import stat
 import tempfile
 import time
 
@@ -87,6 +100,10 @@ JOURNAL_SUFFIX = ".harness-merge.journal"
 JOURNAL_SCHEMA = "harness-merge-journal/1"
 _JOURNAL_TMP_PREFIX = ".harness-merge-tmp-"
 _HEX_DIGITS = frozenset("0123456789abcdef")
+# The one pair a journal may record, primary first (validate c0 MF-2): the amendment pair.
+JOURNAL_PAIR = ("plan.yaml", "feature.json")
+# A refusal echoes journal contents to the operator's terminal: repr (escaped), cut to this.
+_ECHO_LIMIT = 80
 _UNREADABLE_HINT = ("  every write naming a file in this directory refuses until the files are "
                     "reconciled by hand and the journal is removed.")
 
@@ -235,6 +252,13 @@ def _journal_unreadable(journal_path, reason):
     return MergeRefusal(5, [f"JOURNAL UNREADABLE: {journal_path}: {reason}", _UNREADABLE_HINT])
 
 
+def _echo(value):
+    """A journal value as a refusal may print it: repr, so control characters arrive escaped,
+    cut to _ECHO_LIMIT characters, so a crafted journal cannot flood the operator's terminal."""
+    text = repr(value)
+    return text if len(text) <= _ECHO_LIMIT else text[:_ECHO_LIMIT] + "...(truncated)"
+
+
 def _is_sha256(value):
     return isinstance(value, str) and len(value) == 64 and set(value) <= _HEX_DIGITS
 
@@ -246,9 +270,17 @@ def _is_bare_name(name):
 
 
 def _member_hashes(journal_path, name, member):
-    before, after = member.get("before_sha256"), member.get("after_sha256")
+    """The recorded (before, after) digests. before_sha256 must be PRESENT: an explicit null
+    records an absent file, and a missing key is a malformed record, never an absence."""
+    if "before_sha256" not in member:
+        raise _journal_unreadable(
+            journal_path, f"member {_echo(name)}: before_sha256 is missing (only an explicit "
+                          "null records an absent file)")
+    before, after = member["before_sha256"], member.get("after_sha256")
     if not (before is None or _is_sha256(before)) or not _is_sha256(after):
-        raise _journal_unreadable(journal_path, f"member {name}: a recorded sha256 is malformed")
+        raise _journal_unreadable(
+            journal_path, f"member {_echo(name)}: a recorded sha256 is malformed (before "
+                          f"{_echo(before)}, after {_echo(after)})")
     return before, after
 
 
@@ -258,10 +290,10 @@ def _member_image(journal_path, name, encoded, after):
         image = base64.b64decode(encoded, validate=True)
     except (TypeError, ValueError):
         raise _journal_unreadable(
-            journal_path, f"member {name}: after_b64 is not standard base64") from None
+            journal_path, f"member {_echo(name)}: after_b64 is not standard base64") from None
     if hashlib.sha256(image).hexdigest() != after:
         raise _journal_unreadable(
-            journal_path, f"member {name}: after_b64 does not hash to after_sha256")
+            journal_path, f"member {_echo(name)}: after_b64 does not hash to after_sha256")
     return image
 
 
@@ -272,18 +304,37 @@ def _journal_member(journal_path, member, seen):
     name = member.get("name")
     if not _is_bare_name(name) or name in seen:
         raise _journal_unreadable(
-            journal_path, f"member name {name!r} is not a distinct bare file name")
+            journal_path, f"member name {_echo(name)} is not a distinct bare file name")
     seen.add(name)
     before, after = _member_hashes(journal_path, name, member)
     image = _member_image(journal_path, name, member.get("after_b64"), after)
     return {"name": name, "before_sha256": before, "after_sha256": after, "after": image}
 
 
-def _journal_bytes(journal_path):
-    """The journal's bytes. FileNotFoundError propagates (a journal can vanish between a
-    lock-free listing and this read); any other read failure is the UNREADABLE refusal."""
+def _require_regular(journal_path):
+    """lstat the journal entry without following it. FileNotFoundError propagates (a journal
+    can vanish between a lock-free listing and this look); anything but a regular file — a
+    symlink, dangling or not, a FIFO, a directory — is the UNREADABLE refusal, decided before
+    any open, so a FIFO is never opened and a dangling entry never reads as absent."""
     try:
-        with open(journal_path, "rb") as fh:
+        mode = os.lstat(journal_path).st_mode
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise _journal_unreadable(journal_path, f"cannot be examined ({exc})") from None
+    if not stat.S_ISREG(mode):
+        raise _journal_unreadable(
+            journal_path, "is not a regular file (a symlink, FIFO, directory or device)")
+
+
+def _journal_bytes(journal_path):
+    """The journal's bytes, read only from a regular file (_require_regular). O_NOFOLLOW and
+    O_NONBLOCK hold that against an entry swapped after the lstat: a symlink fails to open and
+    a FIFO never blocks. FileNotFoundError propagates; any other failure is UNREADABLE."""
+    _require_regular(journal_path)
+    try:
+        fd = os.open(journal_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as fh:
             return fh.read()
     except FileNotFoundError:
         raise
@@ -291,9 +342,27 @@ def _journal_bytes(journal_path):
         raise _journal_unreadable(journal_path, f"cannot be read ({exc})") from None
 
 
+def _pair_members(journal_path, members):
+    """The record's members, validated and decoded: exactly JOURNAL_PAIR's two, in order, or
+    the UNREADABLE refusal. A stricter parse of the one schema, whose only producer
+    (locked_pair_update) writes exactly that pair."""
+    if not isinstance(members, list) or len(members) != len(JOURNAL_PAIR):
+        raise _journal_unreadable(
+            journal_path, f"members is not a list of exactly {len(JOURNAL_PAIR)} "
+                          f"({' then '.join(JOURNAL_PAIR)})")
+    seen = set()
+    parsed = [_journal_member(journal_path, member, seen) for member in members]
+    names = tuple(member["name"] for member in parsed)
+    if names != JOURNAL_PAIR:
+        raise _journal_unreadable(
+            journal_path, f"its members are {_echo(names)}, not {' then '.join(JOURNAL_PAIR)}")
+    return parsed
+
+
 def _read_journal(journal_path):
     """The module's only parse of a journal: its members, each with its decoded after image.
-    Anything but a well-formed harness-merge-journal/1 record is MergeRefusal(5) UNREADABLE."""
+    Anything but a well-formed harness-merge-journal/1 record of exactly JOURNAL_PAIR's two
+    members, in order, is MergeRefusal(5) UNREADABLE."""
     raw = _journal_bytes(journal_path)
     try:
         record = json.loads(raw)
@@ -301,11 +370,7 @@ def _read_journal(journal_path):
         raise _journal_unreadable(journal_path, f"not JSON ({exc})") from None
     if not isinstance(record, dict) or record.get("schema") != JOURNAL_SCHEMA:
         raise _journal_unreadable(journal_path, f"schema is not {JOURNAL_SCHEMA}")
-    members = record.get("members")
-    if not isinstance(members, list) or not members:
-        raise _journal_unreadable(journal_path, "members is not a non-empty list")
-    seen = set()
-    return [_journal_member(journal_path, member, seen) for member in members]
+    return _pair_members(journal_path, record.get("members"))
 
 
 def _journal_names(journal_path, entry, name):
@@ -356,32 +421,42 @@ def _replay_targets(journal_path, directory, members):
 def _replay(journal_path, targets):
     """Roll the journal forward. Nothing runs after the unlink, so a completed replay never
     reports pending; the unlink is not followed by a directory fsync (a journal a crash
-    resurrects names members already at after, a no-op, or refuses DIVERGED)."""
+    resurrects names members already at after, a no-op, or refuses DIVERGED). The body is
+    replace_bytes and os.unlink, so OSError is its whole failure class."""
     try:
         for member_path, image in targets:
             replace_bytes(member_path, image)
         os.unlink(journal_path)
-    except Exception as exc:
+    except OSError as exc:
         raise JournalPending(journal_path, exc, replay=True) from exc
 
 
 def _recover_journal(journal_path, path, timeout):
     """Roll one journal forward for a write naming `path`, acting only on the generation read
-    under its primary's lock. Returns True when it replayed and removed the journal, False when
-    the journal is gone or its current generation does not name path."""
-    primary = journal_path[: -len(JOURNAL_SUFFIX)]
-    directory, primary_name = os.path.split(primary)
+    under its primary's lock. Before ANY lock, the entry must be a regular file named for
+    JOURNAL_PAIR's primary, else UNREADABLE: so no journal can take feature.json.lock before
+    plan.yaml.lock, or a lock on a file outside the pair. Returns True when it replayed and
+    removed the journal, False when the journal is gone or its current generation does not
+    name path."""
+    directory, entry = os.path.split(journal_path)
+    try:
+        _require_regular(journal_path)
+    except FileNotFoundError:
+        return False
+    primary, secondary = (os.path.join(directory, name) for name in JOURNAL_PAIR)
+    if entry != JOURNAL_PAIR[0] + JOURNAL_SUFFIX:
+        raise _journal_unreadable(
+            journal_path, f"only {JOURNAL_PAIR[0]} carries an intent journal; this one is named "
+                          "for another file")
     with contextlib.ExitStack() as stack:
         stack.enter_context(acquire(primary + ".lock", timeout))
-        if not os.path.exists(journal_path):
+        try:
+            members = _read_journal(journal_path)
+        except FileNotFoundError:
             return False
-        members = _read_journal(journal_path)
-        if members[0]["name"] != primary_name:
-            raise _journal_unreadable(journal_path, f"its first member is not {primary_name}")
         if not any(member["name"] == os.path.basename(path) for member in members):
             return False
-        for member in members[1:]:
-            stack.enter_context(acquire(os.path.join(directory, member["name"]) + ".lock", timeout))
+        stack.enter_context(acquire(secondary + ".lock", timeout))
         _replay(journal_path, _replay_targets(journal_path, directory, members))
         return True
 
@@ -419,12 +494,14 @@ def locked_update(path, transform, timeout=None):
 
 
 def _pair_directory(primary, secondary):
+    """The pair's one directory. Only JOURNAL_PAIR, in order, is a pair: the recovery side
+    refuses any other journal, so the write side never publishes one."""
     directory = os.path.dirname(os.path.abspath(primary))
     other = os.path.dirname(os.path.abspath(secondary))
     if os.path.realpath(directory) != os.path.realpath(other) or \
-            os.path.basename(primary) == os.path.basename(secondary):
-        raise ValueError(f"locked_pair_update needs two different files in one directory, "
-                         f"got {primary!r} and {secondary!r}")
+            (os.path.basename(primary), os.path.basename(secondary)) != JOURNAL_PAIR:
+        raise ValueError(f"locked_pair_update writes only {' then '.join(JOURNAL_PAIR)} in one "
+                         f"directory, got {primary!r} and {secondary!r}")
     return directory
 
 
@@ -451,7 +528,8 @@ def _publish_journal(journal_path, directory, members):
 
 def _commit_published(journal_path, directory, images):
     """After the journal's rename: fsync the directory, replace each member, unlink the
-    journal. An Exception here is JournalPending with the journal left in place."""
+    journal. An OSError here — the body's whole failure class: os.open, os.fsync, os.close,
+    replace_bytes, os.unlink — is JournalPending with the journal left in place."""
     try:
         fd = os.open(directory, os.O_RDONLY)
         try:
@@ -461,20 +539,21 @@ def _commit_published(journal_path, directory, images):
         for path, data in images:
             replace_bytes(path, data)
         os.unlink(journal_path)
-    except Exception as exc:
+    except OSError as exc:
         raise JournalPending(journal_path, exc) from exc
 
 
 def locked_pair_update(primary, primary_transform, secondary, secondary_transform, timeout=None):
-    """Write two different files in one directory all or nothing, through primary's journal.
+    """Write the amendment pair all or nothing, through primary's journal.
 
     Recovers any journal naming either file, then takes primary's lock and then secondary's (a
     journal naming either that appears meanwhile sends it round again). Each transform gets its
     file's bytes (None if absent); a MergeRefusal or any other exception from either propagates
     with nothing written and no journal. Then the journal is published (see the module
-    docstring) and both files replaced. Any Exception after the journal's rename raises
-    JournalPending, journal kept; a BaseException that is not an Exception propagates unchanged,
-    journal also kept. Raises ValueError unless the paths are two files in one directory.
+    docstring) and both files replaced. An OSError after the journal's rename raises
+    JournalPending, journal kept; any other exception propagates unchanged, journal also kept.
+    Raises ValueError unless primary and secondary are JOURNAL_PAIR's two files, in that order,
+    in one directory.
     """
     directory = _pair_directory(primary, secondary)
     journal_path = primary + JOURNAL_SUFFIX

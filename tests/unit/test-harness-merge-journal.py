@@ -13,6 +13,7 @@ import fcntl
 import hashlib
 import json
 import os
+import subprocess
 import sys
 import tempfile
 from unittest.mock import patch
@@ -466,19 +467,235 @@ def case_interleave_disappearance():
 
 
 def case_interleave_membership_change():
-    d, plan, _ = pair_dir(P0, None, [(PLAN, P0, P1), ("x.txt", b"x0\n", b"x1\n")])
-    write(os.path.join(d, "x.txt"), b"x0\n")
+    """(iv), bound to the amendment pair (validate c0 MF-2): every legal generation names
+    exactly plan.yaml and feature.json, so a journal can stop naming a file X only by going
+    from unreadable (which names every file) to readable. Discovered lock-free as naming X,
+    the generation re-read under the primary's lock does not: recover_journals(X) returns
+    False and writes nothing."""
+    d, plan, _ = pair_dir(P0, S0)
+    whole = journal_bytes(J1)
+    write(plan + SUFFIX, whole[: len(whole) // 2])
+    x = os.path.join(d, "x.txt")
+    write(x, b"x0\n")
     after_wrapper = {}
 
     def mutate():
-        write(os.path.join(d, "y.txt"), b"y0\n")
-        put_journal(d, [(PLAN, P0, P2), ("y.txt", b"y0\n", b"y2\n")])
+        put_journal(d, J1)
         after_wrapper.update(snapshot(d))
-    result = _interleave("(iv)", plan, os.path.join(d, "x.txt"), mutate)
+    result = _interleave("(iv)", plan, x, mutate)
     check("interleave (iv): a generation that no longer names X returns False",
           result == ("ok", False), repr(result))
-    check("interleave (iv): primary, X, Y and J2 stay byte-identical to the wrapper's result",
+    check("interleave (iv): plan, ledger, X and J2 stay byte-identical to the wrapper's result",
           snapshot(d) == after_wrapper and PLAN + SUFFIX in after_wrapper, repr(snapshot(d)))
+
+
+# ---- the journal is bound to the amendment pair (validate c0 MF-2, MF-4) --------------------
+
+BRIEF = "BRIEF.md"
+B0, B1 = b"# brief\n", b"# brief, rewritten\n"
+
+
+def _refused_naming(result, journal):
+    return refused(result, 5, "JOURNAL UNREADABLE") and journal in result[2]
+
+
+def _record_without(key, index):
+    """J1's record with `key` deleted from member `index`."""
+    record = json.loads(journal_bytes(J1))
+    del record["members"][index][key]
+    return json.dumps(record).encode("utf-8")
+
+
+def case_missing_before_key_refuses():
+    d, plan, ledger = pair_dir(P0, None)
+    write(plan + SUFFIX, _record_without("before_sha256", 1))
+    before = snapshot(d)
+    result = outcome(harness_merge.recover_journals, plan)
+    check("unreadable: a member with no before_sha256 key refuses with code 5 naming the journal "
+          "and the key", _refused_naming(result, plan + SUFFIX) and "before_sha256" in result[2],
+          repr(result))
+    check("unreadable: the missing key never recreates the absent ledger; nothing is written",
+          snapshot(d) == before, repr(snapshot(d)))
+    d, plan, ledger = pair_dir(P0, None, [(PLAN, P0, P1), (LEDGER, None, S1)])
+    result = outcome(harness_merge.recover_journals, plan)
+    check("absent: an explicit null before_sha256 still records an absent member, which the "
+          "replay creates", result == ("ok", True) and snapshot(d) == {LEDGER: S1, PLAN: P1},
+          repr((result, snapshot(d))))
+
+
+MISBOUND = (
+    ("a one-member journal", [(PLAN, P0, P1)]),
+    ("a journal binding a sibling in feature.json's place", [(PLAN, P0, P1), (BRIEF, B0, B1)]),
+    ("a three-member journal", [(PLAN, P0, P1), (LEDGER, S0, S1), (BRIEF, B0, B1)]),
+)
+
+
+def case_misbound_journal_refuses():
+    for label, members in MISBOUND:
+        for route, op in (
+                ("recover_journals(primary)",
+                 lambda plan: harness_merge.recover_journals(plan, timeout=0.2)),
+                ("locked_update(primary)",
+                 lambda plan: harness_merge.locked_update(plan, appending(), timeout=0.2))):
+            d, plan, _ = pair_dir(P0, S0, members)
+            write(os.path.join(d, BRIEF), B0)
+            before = snapshot(d)
+            result = outcome(op, plan)
+            check(f"bound: {label} via {route} refuses with code 5 naming JOURNAL UNREADABLE "
+                  "and the journal", _refused_naming(result, plan + SUFFIX), repr(result))
+            check(f"bound: {label} via {route} writes nothing", snapshot(d) == before,
+                  repr(snapshot(d)))
+
+
+REVERSED_ROUTES = (
+    ("locked_update(secondary)",
+     lambda plan, ledger: harness_merge.locked_update(ledger, appending(), timeout=0.2)),
+    ("recover_journals(primary)",
+     lambda plan, ledger: harness_merge.recover_journals(plan, timeout=0.2)),
+    ("locked_pair_update", lambda plan, ledger: harness_merge.locked_pair_update(
+        plan, appending(), ledger, appending(), timeout=0.2)),
+)
+
+
+def case_reversed_primary_refuses_before_any_lock():
+    """A journal with feature.json as its primary would take feature.json.lock before
+    plan.yaml.lock — the reversed order no path may take. It refuses before any lock."""
+    real = harness_merge.acquire
+    for route, op in REVERSED_ROUTES:
+        d, plan, ledger = pair_dir(P0, S0, [(LEDGER, S0, S1), (PLAN, P0, P1)])
+        before = snapshot(d)
+        taken = []
+
+        def wrapper(path, timeout=None):
+            taken.append(os.path.basename(path))
+            return real(path, timeout)
+        with patch.object(harness_merge, "acquire", wrapper):
+            result = outcome(op, plan, ledger)
+        check(f"bound: a feature.json-primary journal via {route} refuses with code 5 naming "
+              "JOURNAL UNREADABLE and the journal", _refused_naming(result, ledger + SUFFIX),
+              repr(result))
+        check(f"bound: a feature.json-primary journal via {route} refuses before any lock",
+              taken == [], repr(taken))
+        check(f"bound: a feature.json-primary journal via {route} writes nothing",
+              snapshot(d) == before, repr(snapshot(d)))
+
+
+def case_pair_is_the_amendment_pair():
+    for label, swap in (("a sibling in feature.json's place", False), ("the pair reversed", True)):
+        d, plan, ledger = pair_dir(P0, S0)
+        brief = os.path.join(d, BRIEF)
+        write(brief, B0)
+        primary, secondary = (ledger, plan) if swap else (plan, brief)
+        result = outcome(harness_merge.locked_pair_update, primary, appending(), secondary,
+                         appending())
+        check(f"pair: {label} raises ValueError", result[0] == "error"
+              and result[1].startswith("ValueError"), repr(result))
+        check(f"pair: {label} writes nothing and leaves no journal",
+              snapshot(d) == {BRIEF: B0, LEDGER: S0, PLAN: P0}, repr(snapshot(d)))
+
+
+def case_nested_secondary_write_under_the_primary_lock():
+    """sign-approval's shape: a feature.json write nested in a locked plan.yaml write."""
+    d, plan, ledger = pair_dir(P0, S0)
+
+    def outer(base):
+        harness_merge.locked_update(ledger, lambda b: S1, timeout=0.2)
+        return P1
+    result = outcome(harness_merge.locked_update, plan, outer, timeout=0.2)
+    check("bound: a feature.json write nested in a locked plan write succeeds",
+          result == ("ok", None) and snapshot(d) == {LEDGER: S1, PLAN: P1},
+          repr((result, snapshot(d))))
+
+
+# ---- a journal entry that is not a regular file (validate c0 MF-3) --------------------------
+
+_PROBE = """
+import sys
+sys.path.insert(0, {bin_dir!r})
+import harness_merge
+try:
+    {call}
+except harness_merge.MergeRefusal as exc:
+    print("REFUSED", exc.code, " ".join(exc.lines))
+    sys.exit(exc.code)
+print("RETURNED")
+"""
+
+
+def _probe(call, timeout=5):
+    """`call` in a fresh interpreter, bounded: a hang (a FIFO open, a recovery loop) is a
+    'timeout' result rather than a stuck suite. ('exited', code, output) | ('timeout',)."""
+    try:
+        r = subprocess.run([sys.executable, "-c", _PROBE.format(bin_dir=BIN_DIR, call=call)],
+                           capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return ("timeout",)
+    return ("exited", r.returncode, r.stdout + r.stderr)
+
+
+def _dangling(journal, d):
+    os.symlink(os.path.join(d, "gone"), journal)
+
+
+def _fifo(journal, d):
+    os.mkfifo(journal)
+
+
+def _linked(journal, d):
+    target = os.path.join(tempfile.mkdtemp(), "elsewhere")
+    write(target, journal_bytes(J1))
+    os.symlink(target, journal)
+
+
+NON_REGULAR = (
+    ("a dangling symlink", _dangling, PLAN + SUFFIX, "locked_update(plan)",
+     "harness_merge.locked_update({plan!r}, lambda b: b'x')"),
+    ("a symlink to a well-formed journal", _linked, PLAN + SUFFIX, "recover_journals(plan)",
+     "harness_merge.recover_journals({plan!r})"),
+    ("a FIFO", _fifo, PLAN + SUFFIX, "recover_journals(plan)",
+     "harness_merge.recover_journals({plan!r})"),
+    ("a FIFO under another journal name", _fifo, "other" + SUFFIX, "locked_update(notes.txt)",
+     "harness_merge.locked_update({notes!r}, lambda b: b'x')"),
+)
+
+
+def _entries(d):
+    """Each entry's name and lstat mode, lock files aside. Never opens one: a FIFO would block."""
+    return {n: os.lstat(os.path.join(d, n)).st_mode for n in os.listdir(d)
+            if not n.endswith(".lock")}
+
+
+def case_non_regular_journal_refuses():
+    for label, make, entry, route, call in NON_REGULAR:
+        d, plan, _ = pair_dir(P0, S0)
+        journal = os.path.join(d, entry)
+        make(journal, d)
+        before = _entries(d)
+        result = _probe(call.format(plan=plan, notes=os.path.join(d, "notes.txt")))
+        check(f"entry: {label} via {route} refuses with code 5 naming JOURNAL UNREADABLE and "
+              "the journal, never hangs", result[0] == "exited" and result[1] == 5
+              and "JOURNAL UNREADABLE" in result[2] and journal in result[2], repr(result))
+        check(f"entry: {label} via {route} writes nothing", _entries(d) == before
+              and read(plan) == P0 and read(os.path.join(d, LEDGER)) == S0,
+              repr(sorted(os.listdir(d))))
+
+
+# ---- bounded diagnostics -------------------------------------------------------------------
+
+def case_refusal_diagnostics_are_bounded():
+    long_bad = "x/" + "A" * 5000
+    for label, raw in (
+            ("a 5000-character member name", _malformed(name=long_bad)),
+            ("a 5000-character misbound member",
+             journal_bytes([(PLAN, P0, P1), ("B" * 5000 + "\x1b[31m", B0, B1)]))):
+        d, plan, _ = pair_dir(P0, S0)
+        write(plan + SUFFIX, raw)
+        result = outcome(harness_merge.recover_journals, plan, timeout=0.2)
+        check(f"bounded: {label} refuses with code 5 naming the journal",
+              _refused_naming(result, plan + SUFFIX), repr(result)[:300])
+        check(f"bounded: {label} is echoed truncated and escaped",
+              result[0] == "refusal" and "A" * 200 not in result[2] and "B" * 200 not in result[2]
+              and "\x1b" not in result[2], repr(result)[:300])
 
 
 CASES = (
@@ -498,6 +715,13 @@ CASES = (
     case_interleave_fresh_generation,
     case_interleave_disappearance,
     case_interleave_membership_change,
+    case_missing_before_key_refuses,
+    case_misbound_journal_refuses,
+    case_reversed_primary_refuses_before_any_lock,
+    case_pair_is_the_amendment_pair,
+    case_nested_secondary_write_under_the_primary_lock,
+    case_non_regular_journal_refuses,
+    case_refusal_diagnostics_are_bounded,
 )
 
 

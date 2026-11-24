@@ -178,6 +178,13 @@ def read(path):
         return f.read()
 
 
+def _bytes(path):
+    """The raw bytes, for a byte-identical claim: read() decodes and normalizes newlines, so a
+    CRLF-to-LF rewrite would compare equal through it."""
+    with open(path, "rb") as fh:
+        return fh.read()
+
+
 # ---------------------------------------------------------------------------
 # Cases
 # ---------------------------------------------------------------------------
@@ -4681,7 +4688,7 @@ def case_1985_amend_writes_nothing_when_the_ledger_fails():
         sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
         value = os.path.join(root, "verify.txt")
         write(value, "python3 b.py\n")
-        before = (read(plan), read(fj))
+        before = (_bytes(plan), _bytes(fj))
         lock = fj + ".lock"
         write(lock, "")
         os.chmod(lock, 0)
@@ -4691,10 +4698,11 @@ def case_1985_amend_writes_nothing_when_the_ledger_fails():
                          "--reason", "r")
         finally:
             os.chmod(lock, 0o644)
-        check("1985: a failed ledger write exits nonzero, says nothing was written, leaves no "
-              "journal and both files byte-identical",
-              r.returncode != 0 and "nothing was written" in r.stderr and _no_journal(plan)
-              and (read(plan), read(fj)) == before, f"rc={r.returncode} {r.stderr!r}")
+        check("1985: a failed ledger write exits nonzero naming the PermissionError, says nothing "
+              "was written, leaves no journal and both files byte-identical",
+              r.returncode != 0 and "PermissionError" in r.stderr
+              and "nothing was written" in r.stderr and _no_journal(plan)
+              and (_bytes(plan), _bytes(fj)) == before, f"rc={r.returncode} {r.stderr!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -4740,14 +4748,14 @@ def case_b1716_record_amendments_is_all_or_nothing():
     restoring."""
     root, plan, fj = _amend_fixture()
     try:
-        plan_bytes, fj_bytes = read(plan), read(fj)
+        plan_bytes, fj_bytes = _bytes(plan), _bytes(fj)
         r = _record_with_ledger_locked(plan, fj, root, _TWO_ENTRY_AMENDMENTS)
         check("b1716/atomic: a ledger refusal under the lock exits nonzero naming LOCKED",
               r.returncode != 0 and "LOCKED" in r.stderr, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
         check("b1716/atomic: the refusal says nothing was written and leaves no journal",
               "nothing was written" in r.stderr and _no_journal(plan), r.stderr)
-        check("b1716/atomic: neither file changed", read(plan) == plan_bytes and read(fj) == fj_bytes,
-              read(plan))
+        check("b1716/atomic: neither file changed",
+              _bytes(plan) == plan_bytes and _bytes(fj) == fj_bytes, read(plan))
         r = _record(plan, _digest_with(_TWO_ENTRY_AMENDMENTS), root)
         doc = yaml.safe_load(read(plan))
         check("b1716/atomic: released, the same two-entry digest lands both entries",
@@ -4766,7 +4774,7 @@ def case_b1716_record_amendments_writes_nothing_on_a_ledger_io_error():
         return  # root ignores mode bits; the arm cannot be built
     root, plan, fj = _amend_fixture()
     try:
-        plan_bytes, fj_bytes = read(plan), read(fj)
+        plan_bytes, fj_bytes = _bytes(plan), _bytes(fj)
         lock = fj + ".lock"
         write(lock, "")
         os.chmod(lock, 0)
@@ -4779,8 +4787,8 @@ def case_b1716_record_amendments_writes_nothing_on_a_ledger_io_error():
               f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
         check("b1716/io: the refusal says nothing was written and leaves no journal",
               "nothing was written" in r.stderr and _no_journal(plan), r.stderr)
-        check("b1716/io: neither file changed", read(plan) == plan_bytes and read(fj) == fj_bytes,
-              read(plan))
+        check("b1716/io: neither file changed",
+              _bytes(plan) == plan_bytes and _bytes(fj) == fj_bytes, read(plan))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -4800,11 +4808,6 @@ import re
 from datetime import datetime, timezone
 
 _BEFORE, _AFTER = 0, 1
-
-
-def _bytes(path):
-    with open(path, "rb") as fh:
-        return fh.read()
 
 
 def _put(path, data):
@@ -4892,9 +4895,13 @@ def _carries_once(plan, fj, now):
 
 
 def _settles(label, verb, plan, fj, root, sha):
-    """(d): one more re-run of `verb` leaves both files byte-identical."""
+    """(d): one more re-run of `verb` exits 6 as the converging re-run did, and leaves both
+    files byte-identical."""
     before = (_bytes(plan), _bytes(fj))
-    _TORN_VERBS[verb][0](plan, root, sha)
+    r = _TORN_VERBS[verb][0](plan, root, sha)
+    says = _TORN_VERBS[verb][2]
+    check(f"{label}/d: one more re-run exits 6 saying {says!r}",
+          r.returncode == 6 and says in r.stderr, f"rc={r.returncode} {r.stderr!r}")
     check(f"{label}/d: one more re-run leaves both files byte-identical",
           (_bytes(plan), _bytes(fj)) == before)
 
@@ -4931,11 +4938,13 @@ def case_2488_plan_amended_ledger_not_converges():
 
 
 def case_2488_ledger_landed_plan_not_converges():
-    """SC-01 (b)+(d): an amend of a signed field torn with the plan at its before image and
-    feature.json at its after image — a judgement for a splice the plan does not carry, the
-    direction plan-first ordering exists to prevent. The re-run rolls the plan forward and
-    exits 6 on the now-stale --expect-sha256, with the amendment ledgered exactly once."""
-    _torn_rerun_converges("amend", _BEFORE, _AFTER, "2488/b/amend")
+    """SC-01 (b)+(d): the plan at its before image and feature.json at its after image — a
+    judgement for a splice the plan does not carry, the direction plan-first ordering exists
+    to prevent — for record-amendments and for an amend of a signed field. The re-run rolls
+    the plan forward and exits 6 (`recorded before`; the now-stale --expect-sha256), with the
+    amendment ledgered exactly once."""
+    for verb in _TORN_VERBS:
+        _torn_rerun_converges(verb, _BEFORE, _AFTER, f"2488/b/{verb}")
 
 
 def case_2488_both_landed_journal_left_converges():
@@ -4981,22 +4990,50 @@ def case_2488_a_feature_json_write_completes_the_pair_first():
 
 def case_2488_a_diverged_member_refuses_and_changes_nothing():
     """SC-01 (f): a journal whose feature.json member was overwritten since with a third valid
-    document (in neither recorded state) refuses at exit 5 naming JOURNAL DIVERGED, and
-    plan.yaml, feature.json and the journal stay byte-identical: a write nobody journaled is
-    never overwritten."""
-    root, plan, fj, _, sha = _torn("record-amendments", _AFTER, _BEFORE, "2488/f")
+    document (in neither recorded state) refuses at exit 5 naming JOURNAL DIVERGED and the
+    journal's path, through record-amendments and through amend, and plan.yaml, feature.json
+    and the journal stay byte-identical: a write nobody journaled is never overwritten."""
+    for verb in _TORN_VERBS:
+        label = f"2488/f/{verb}"
+        root, plan, fj, _, sha = _torn(verb, _AFTER, _BEFORE, label)
+        journal = plan + _PAIR_JOURNAL_SUFFIX
+        try:
+            third = _json.loads(read(fj))
+            third["cycles_used"] = 3
+            write(fj, _json.dumps(third, indent=2) + "\n")
+            before = [_bytes(p) for p in (plan, fj, journal)]
+            r = _TORN_VERBS[verb][0](plan, root, sha)
+            check(f"{label}: the re-run exits 5 naming JOURNAL DIVERGED",
+                  r.returncode == 5 and "JOURNAL DIVERGED" in r.stderr,
+                  f"rc={r.returncode} {r.stderr!r}")
+            check(f"{label}: the exit-5 message names the journal's path",
+                  os.path.realpath(plan) + _PAIR_JOURNAL_SUFFIX in r.stderr, r.stderr)
+            check(f"{label}: plan.yaml, feature.json and the journal stay byte-identical",
+                  os.path.exists(journal) and [_bytes(p) for p in (plan, fj, journal)] == before)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2488_amend_show_leaves_a_pending_journal_alone():
+    """validate c0 MF-5: `amend --show` writes nothing (plan-merge.py's own promise), so it
+    never runs recovery. With (a)'s torn amend state on disk it exits 0 and plan.yaml,
+    feature.json and the journal stay byte-identical; the next mutating amend still completes
+    the pair."""
+    root, plan, fj, _, sha = _torn("amend", _AFTER, _BEFORE, "2488/show")
     journal = plan + _PAIR_JOURNAL_SUFFIX
     try:
-        third = _json.loads(read(fj))
-        third["cycles_used"] = 3
-        write(fj, _json.dumps(third, indent=2) + "\n")
         before = [_bytes(p) for p in (plan, fj, journal)]
-        r = _run_record(plan, root, sha)
-        check("2488/f: the re-run exits 5 naming JOURNAL DIVERGED",
-              r.returncode == 5 and "JOURNAL DIVERGED" in r.stderr,
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field",
+                     "intent", "--show")
+        check("2488/show: amend --show exits 0", r.returncode == 0,
               f"rc={r.returncode} {r.stderr!r}")
-        check("2488/f: plan.yaml, feature.json and the journal stay byte-identical",
+        check("2488/show: plan.yaml, feature.json and the journal stay byte-identical",
               os.path.exists(journal) and [_bytes(p) for p in (plan, fj, journal)] == before)
+        r = _run_amend(plan, root, sha)
+        check("2488/show: the next amend completes the pair (exit 6 on the stale hash), the "
+              "amendment ledgered exactly once, no journal left",
+              r.returncode == 6 and _carries_once(plan, fj, "narrowed") and _no_journal(plan),
+              f"rc={r.returncode} {r.stderr!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -5733,6 +5770,7 @@ CASES = (
     case_2488_feedback_failure_after_the_commit_is_advisory,
     case_2488_a_ledger_failure_after_publish_is_journaled,
     case_2488_a_failed_replay_stays_pending,
+    case_2488_amend_show_leaves_a_pending_journal_alone,
 )
 
 

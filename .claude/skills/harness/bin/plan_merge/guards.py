@@ -34,18 +34,20 @@ def _pending_replay_lines(pending):
 
 
 def _recover_plan_journals(resolved):
-    """harness_merge.recover_journals(resolved), every failure reported as a MergeRefusal. A
-    refusal (JOURNAL UNREADABLE or DIVERGED, exit 5; LOCKED, exit 6) passes through. A failed
-    replay is committed-pending and says so (exit 2). Any other exception came before any
-    member was written — harness_merge raises every later failure as JournalPending — so
-    "nothing changed" is true of it (exit 2)."""
+    """harness_merge.recover_journals(resolved), every failure of its real classes reported as a
+    MergeRefusal. A refusal (JOURNAL UNREADABLE or DIVERGED, exit 5; LOCKED, exit 6) passes
+    through. A failed replay is committed-pending and says so (exit 2). An OSError (listing the
+    directory, opening a lock) or a ValueError (a malformed HARNESS_LOCK_TIMEOUT_SECONDS) came
+    before any member was written — harness_merge raises every later OSError as JournalPending
+    — so "nothing changed" is true of it (exit 2). Anything else is a bug and propagates as a
+    traceback rather than be stamped "nothing changed"; a journal it leaves stays on disk."""
     try:
         harness_merge.recover_journals(resolved)
     except harness_merge.JournalPending as pending:
         raise harness_merge.MergeRefusal(2, _pending_replay_lines(pending)) from pending
     except harness_merge.MergeRefusal:
         raise
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         raise harness_merge.MergeRefusal(
             2, [f"plan-merge: recovering the intent journal for {resolved} failed: "
                 f"{type(exc).__name__}: {exc}",
@@ -64,8 +66,8 @@ def _resolve_plan(file_path, recover=True):
     any harness_merge write, so recovery inside the core's writes alone would leave a torn
     amendment pair in place on the most natural next invocation: the operator re-running the
     verb. harness_merge.recover_journals stays the one recovery entry point; this only calls
-    it. `check` is read-only and passes recover=False. No recovery failure prints a
-    Traceback."""
+    it. Read-only invocations — `check`, and `amend --show` — pass recover=False. A recovery
+    failure of the boundary's own classes prints its refusal, never a Traceback."""
     try:
         resolved = harness_merge.require_destination(
             file_path,

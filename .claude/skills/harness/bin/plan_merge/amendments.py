@@ -175,7 +175,8 @@ def _record_amendments_locked(resolved, feature_json, entries):
 
 def _pair_failure(exc, resolved, feature_json):
     """The refusal reporting a failed pair write, decided by the core's exception type alone —
-    never by looking at the disk."""
+    never by looking at the disk. `exc` is a JournalPending, a MergeRefusal, or an OSError or
+    ValueError raised before the journal was published."""
     if isinstance(exc, harness_merge.JournalPending) and exc.replay:
         return harness_merge.MergeRefusal(2, _pending_replay_lines(exc))
     if isinstance(exc, harness_merge.JournalPending):
@@ -193,10 +194,12 @@ def _pair_failure(exc, resolved, feature_json):
 
 def _relay_after_commit(ledger_path):
     """The committed pair's changed-state feedback, advisory only: the write has landed, so a
-    failure here is one stderr line (itself best-effort) and never a refusal."""
+    failure here is one stderr line (itself best-effort) and never a refusal.
+    changed_state_feedback already absorbs its subprocess's (OSError, SubprocessError); what is
+    left is printing to stderr — OSError on a broken pipe, ValueError on a closed stream."""
     try:
         harness_boundary.relay_changed_state_feedback(ledger_path)
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         with contextlib.suppress(OSError):
             print("plan-merge: changed-state feedback after the committed write failed: "
                   f"{type(exc).__name__}: {exc}", file=sys.stderr)
@@ -216,7 +219,10 @@ def write_plan_and_ledger(resolved, feature_json, splice, judgements):
     reported as journaled, and the next plan-merge or feature.json write naming either file
     completes it. A failed replay of an EARLIER journal is committed-pending too, and this
     call's own change was never attempted. The outcome is read from the core's exception
-    type, never from the disk.
+    type, never from the disk. The handled classes are the boundary's real ones —
+    JournalPending, MergeRefusal, then OSError and ValueError (json, UTF-8 and base64 faults,
+    the pair's own ValueError); anything else is a bug and propagates as a traceback, a
+    published journal kept on disk for the next write to roll forward.
 
     The changed-state feedback (FEAT-62 T-03) runs once, for the ledger, after the commit, when
     both files are already dirty; a second --changed run for the plan would only repeat it. It
@@ -232,7 +238,7 @@ def write_plan_and_ledger(resolved, feature_json, splice, judgements):
         ledger_path, ledger = feature_json_write.schema_checked_transform(
             feature_json, _ledger_transform(feature_json, judgements))
         harness_merge.locked_pair_update(resolved, splice, ledger_path, ledger)
-    except Exception as exc:
+    except (harness_merge.JournalPending, harness_merge.MergeRefusal, OSError, ValueError) as exc:
         raise _pair_failure(exc, resolved, feature_json) from exc
     _relay_after_commit(ledger_path)
 
