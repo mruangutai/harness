@@ -79,7 +79,7 @@ import sys
 import tempfile
 
 from git_support import (add_worktree, commit_all, commit_feature, commit_files, feature_rel,
-                         init_repo, quiet_git)
+                         init_repo, plan_text, quiet_git)
 from harness_config_support import write_config
 
 SCRIPT = os.path.abspath(__file__)
@@ -1159,6 +1159,97 @@ def case_prototype_node_modules():
     return results
 
 
+def case_shape_stamps():
+    """#2458: a per-feature shape-sweep stamp goes when its feature is finished on the default
+    branch; the plain stamp, a live feature's stamp, a never-landed id's stamp (even one that
+    prefixes a landed done id) and an undecodable record's stamp all stay. Each kept unresolved
+    stamp is named once; a live stamp is never named; --dry-run deletes nothing."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _repo(os.path.join(tmp, "R"))
+        os.makedirs(os.path.join(repo, ".harness"), exist_ok=True)
+        with open(os.path.join(repo, ".harness", "team-config.yaml"), "w") as f:
+            f.write("schema: team-config/1\n")
+        sweep = _install_fixture_bin(repo)
+        _commit_feature(repo, "FEAT-910-stamp-done", "Done")
+        _commit_feature(repo, "FEAT-911-stamp-live", "Building")
+        _commit_feature(repo, "FEAT-912-stamp-absent-longer", "Done")
+        bad_dir = os.path.join(repo, feature_rel("harness", "FEAT-909-stamp-bad"))
+        os.makedirs(bad_dir, exist_ok=True)
+        with open(os.path.join(bad_dir, "feature.json"), "wb") as f:
+            f.write(b'{"feature_id": "\xff"}')
+        with open(os.path.join(bad_dir, "plan.yaml"), "w") as f:
+            f.write(plan_text("FEAT-909-stamp-bad", "done"))
+        subprocess.run(["git", "add", bad_dir], cwd=repo, capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "add FEAT-909-stamp-bad"], cwd=repo,
+                       capture_output=True)
+
+        prefix = ".shape-sweep-stamp"
+        stamps = {prefix: b"plain"}
+        for fid in ("FEAT-909-stamp-bad", "FEAT-910-stamp-done", "FEAT-911-stamp-live",
+                    "FEAT-912-stamp-absent"):
+            stamps[f"{prefix}.{fid}"] = f"mark {fid}".encode()
+        for name, data in stamps.items():
+            with open(os.path.join(repo, ".harness", name), "wb") as f:
+                f.write(data)
+
+        def intact(name):
+            path = os.path.join(repo, ".harness", name)
+            if not os.path.isfile(path):
+                return False
+            with open(path, "rb") as f:
+                return f.read() == stamps[name]
+
+        def lines_naming(stdout, needle):
+            return [line for line in stdout.splitlines() if needle in line]
+
+        _gh_log, env = _stub_gh(tmp)
+        dry = subprocess.run([sweep, "--dry-run"], cwd=repo, capture_output=True, text=True,
+                             env=env)
+        _assert_resolved_root_in_fixture(results, "stamps dry run", dry.stdout, repo)
+        detail = f"exit={dry.returncode} stdout={dry.stdout!r} stderr={dry.stderr!r}"
+        results.append(("stamps (1): --dry-run exits 0 and every stamp keeps its bytes",
+                        dry.returncode == 0 and all(intact(n) for n in stamps), detail))
+        results.append(("stamps (2): --dry-run names the finished feature's stamp as would remove",
+                        f"would remove .harness/{prefix}.FEAT-910-stamp-done" in dry.stdout,
+                        detail))
+        absent_dry = lines_naming(dry.stdout, f"{prefix}.FEAT-912-stamp-absent")
+        results.append(("stamps (3): --dry-run names the never-landed stamp once, unresolved "
+                        "and absent",
+                        len(absent_dry) == 1 and "unresolved" in absent_dry[0]
+                        and "absent" in absent_dry[0], detail))
+
+        wet = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
+        _assert_resolved_root_in_fixture(results, "stamps real run", wet.stdout, repo)
+        detail = f"exit={wet.returncode} stdout={wet.stdout!r} stderr={wet.stderr!r}"
+        results.append(("stamps (4): the real run exits 0 and removes the finished feature's "
+                        "stamp",
+                        wet.returncode == 0 and not os.path.lexists(
+                            os.path.join(repo, ".harness", f"{prefix}.FEAT-910-stamp-done")),
+                        detail))
+        results.append(("stamps (5): the plain stamp is untouched", intact(prefix), detail))
+        results.append(("stamps (6): a live feature's stamp stays and neither run names it",
+                        intact(f"{prefix}.FEAT-911-stamp-live")
+                        and not lines_naming(dry.stdout + wet.stdout, "FEAT-911-stamp-live"),
+                        detail))
+        absent_wet = lines_naming(wet.stdout, f"{prefix}.FEAT-912-stamp-absent")
+        removal_912 = [line for line in lines_naming(dry.stdout + wet.stdout, "FEAT-912")
+                       if "would remove" in line or "removed" in line]
+        results.append(("stamps (7): the never-landed stamp stays, named once, unresolved and "
+                        "absent, never removed",
+                        intact(f"{prefix}.FEAT-912-stamp-absent") and len(absent_wet) == 1
+                        and "unresolved" in absent_wet[0] and "absent" in absent_wet[0]
+                        and not removal_912, detail))
+        bad_ok = intact(f"{prefix}.FEAT-909-stamp-bad")
+        for out in (dry.stdout, wet.stdout):
+            bad = lines_naming(out, f"{prefix}.FEAT-909-stamp-bad")
+            bad_ok = (bad_ok and len(bad) == 1 and "unresolved" in bad[0]
+                      and "absent" not in bad[0])
+        results.append(("stamps (8): the undecodable record's stamp stays, named once per run, "
+                        "unresolved and not absent", bad_ok, detail))
+    return results
+
+
 # Every job builds its own tempdir fixture and never touches cwd or os.environ, so jobs run in a
 # pool of fresh interpreters; map() yields them in this order, so the report is unchanged.
 JOBS = (
@@ -1179,7 +1270,8 @@ JOBS = (
     + [case_linked_worktree_main_checkout,
        case_duplicate_receipt_inputs,
        case_unproven_mirror_retention,
-       case_prototype_node_modules]
+       case_prototype_node_modules,
+       case_shape_stamps]
 )
 
 
