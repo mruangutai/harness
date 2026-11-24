@@ -3,7 +3,9 @@
 
 The tracked `.claude/skills/harness/hooks/post-merge` shim execs this file. Git's
 post-merge squash flag is deliberately ignored; `--dry-run` reports every action
-without changing a worktree (FEAT-34).
+without changing a worktree (FEAT-34). The sweep also removes the per-feature
+shape-sweep stamps (`.harness/.shape-sweep-stamp.<FEAT>`) of features finished on
+the default branch, decided by `worktree_terminal.classify_feature` (#2458).
 
 WAS A .sh (issue #1674). The Python policy previously lived in an isolated
 heredoc behind a shell argument parser. This native entry point preserves that
@@ -54,7 +56,6 @@ DRY_RUN = os.environ.get("POST_MERGE_SWEEP_DRY_RUN") == "1"
 sys.path.insert(0, BIN_DIR)
 import harness_boundary    # noqa: E402  (FEAT-42 T-09: the one root resolver)
 import worktree_terminal   # noqa: E402  (D-02: the one shared eligibility predicate)
-import factory_config      # noqa: E402
 import artifact_accessors    # noqa: E402
 # The hardened path served the first-party imports above. feature_schema holds jsonschema's one
 # guard, and the validated harness.json read needs it, so it imports on the interpreter's own path
@@ -122,27 +123,6 @@ def _resolve_main_checkout_root(root):
     return None
 
 
-def _repo_arg_for_segment(segment):
-    """feature-worktree.py's --repo value for a worktree's bare repo segment: the literal
-    "harness", or the fleet.yaml entry whose name's trailing segment matches. None if neither
-    resolves.
-
-    Re-derived here rather than imported: worktree_terminal.py's module docstring names its
-    public surface as CLASSES and classify(root) only ("Everything else here is implementation
-    detail that stays private") — its own private helper of the same name is not for import."""
-    if segment == "harness":
-        return "harness"
-    try:
-        fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
-    except artifact_accessors.FleetError:
-        return None
-    for entry in fleet.get("repos", []):
-        name = entry.get("name")
-        if name and name.split("/", 1)[-1] == segment:
-            return name
-    return None
-
-
 def _print_proc_output(proc):
     for stream in (proc.stdout, proc.stderr):
         if stream:
@@ -176,7 +156,7 @@ def _feature_context(rec, main_checkout_root):
     repo_segment = rec["repo"]
     wt_id = os.path.basename(path.rstrip(os.sep))
 
-    repo_arg = _repo_arg_for_segment(repo_segment)
+    repo_arg = worktree_terminal.repo_arg_for_segment(repo_segment)
     if repo_arg is None:
         print(f"post-merge-sweep: SKIP {path} — could not resolve --repo for segment "
               f"{repo_segment!r}")
@@ -328,14 +308,15 @@ def main():
     cwd_real = os.path.realpath(os.getcwd())
 
     # FEAT-64: no per-record or module-level catch. Every expected failure is converted where
-    # it arises (_run_step, _receipt_allows_removal, _repo_arg_for_segment,
-    # _resolve_main_checkout_root); anything else is a defect in the sweep and must be seen as
+    # it arises (_run_step, _receipt_allows_removal, _resolve_main_checkout_root); anything
+    # else is a defect in the sweep and must be seen as
     # a traceback rather than as `ERROR … ` followed by exit 0, which post-merge hooks read
     # as a clean run.
     for rec in records:
         _handle_record(rec, main_checkout_root, cwd_real)
     _sweep_pinned_checkouts(main_checkout_root)
     _sweep_prototype_node_modules(main_checkout_root)
+    _sweep_shape_stamps(main_checkout_root)
     return 0
 
 
@@ -355,6 +336,43 @@ def _sweep_prototype_node_modules(main_checkout_root):
         shutil.rmtree(target, ignore_errors=True)
         outcome = "could not remove" if os.path.lexists(target) else "removed"
         print(f"post-merge-sweep: node_modules: {outcome} {os.path.relpath(target, main_checkout_root)}")
+
+
+def _sweep_shape_stamps(main_checkout_root):
+    """#2458: check-domain.py writes one high-water mark per feature run
+    (`.harness/.shape-sweep-stamp.<FEAT>`, DEC-180) and nothing removed one. A stamp goes when
+    its feature is finished on the default branch, decided by worktree_terminal.classify_feature
+    alone (D-02); a kept unresolved stamp is named once, a live one is silent. The plain
+    `.harness/.shape-sweep-stamp` has no feature suffix and is never examined. A missing stamp
+    is safe: check-domain.py falls back to its window. Dry-run stays dry."""
+    harness_dir = os.path.join(main_checkout_root, ".harness")
+    prefix = ".shape-sweep-stamp."
+    try:
+        names = os.listdir(harness_dir)
+    except OSError as exc:
+        print(f"post-merge-sweep: stamps: could not list .harness: {exc}")
+        return
+    for name in sorted(names):
+        if not name.startswith(prefix) or len(name) == len(prefix):
+            continue
+        path = os.path.join(harness_dir, name)
+        if not os.path.isfile(path) or os.path.islink(path):
+            continue
+        klass, reason = worktree_terminal.classify_feature(main_checkout_root, name[len(prefix):])
+        if klass == "unresolved":
+            print(f"post-merge-sweep: stamps: kept .harness/{name} — unresolved: {reason}")
+            continue
+        if klass != "terminal":
+            continue
+        if DRY_RUN:
+            print(f"post-merge-sweep: stamps: would remove .harness/{name}")
+            continue
+        try:
+            os.remove(path)
+        except OSError as exc:
+            print(f"post-merge-sweep: stamps: could not remove .harness/{name}: {exc}")
+            continue
+        print(f"post-merge-sweep: stamps: removed .harness/{name}")
 
 
 def _sweep_pinned_checkouts(main_checkout_root):

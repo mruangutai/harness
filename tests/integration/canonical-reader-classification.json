@@ -1836,19 +1836,6 @@
       "task": "none"
     },
     {
-      "artifact": "fleet.yaml",
-      "category": "load_fleet",
-      "dec174_category": "enforcement_mechanical",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/post-merge-sweep.py",
-      "id": ".claude/skills/harness/bin/post-merge-sweep.py::_repo_arg_for_segment::load_fleet#1",
-      "reason": "",
-      "remedy": "artifact_accessors.load_fleet",
-      "symbol": "_repo_arg_for_segment",
-      "task": "T-07"
-    },
-    {
       "artifact": "harness.json",
       "category": "json_file",
       "dec174_category": "hook_or_gate",
