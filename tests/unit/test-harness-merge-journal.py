@@ -15,6 +15,7 @@ import json
 import os
 import sys
 import tempfile
+from unittest.mock import patch
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -105,16 +106,6 @@ def outcome(fn, *args, **kwargs):
 
 def refused(result, code, marker):
     return result[0] == "refusal" and result[1] == code and marker in result[2]
-
-
-@contextlib.contextmanager
-def patched(name, value):
-    real = getattr(harness_merge, name)
-    setattr(harness_merge, name, value)
-    try:
-        yield real
-    finally:
-        setattr(harness_merge, name, real)
 
 
 def failing_replace(target):
@@ -247,7 +238,7 @@ def check_journal_record(d):
 def case_pair_pending_after_publish():
     d, plan, ledger = pair_dir(P0, S0)
     wrapper, error = failing_replace(ledger)
-    with patched("replace_bytes", wrapper):
+    with patch.object(harness_merge, "replace_bytes", wrapper):
         result = outcome(harness_merge.locked_pair_update, plan, lambda b: P1, ledger, lambda b: S1)
     exc = result[1] if result[0] == "pending" else None
     check("pending: a secondary replace failure raises JournalPending", exc is not None, repr(result))
@@ -407,7 +398,7 @@ def case_replay_failure():
     journal = read(plan + SUFFIX)
     calls = []
     wrapper, error = failing_replace(ledger)
-    with patched("replace_bytes", wrapper):
+    with patch.object(harness_merge, "replace_bytes", wrapper):
         _check_replay_pending("recover_journals(primary)",
                               outcome(harness_merge.recover_journals, plan), plan + SUFFIX, error)
         check("replay: primary at after, secondary at before, journal present",
@@ -427,7 +418,7 @@ def case_replay_failure():
 
 def _interleave(label, plan, target, mutate):
     wrapper, fired = acquire_hook(plan + ".lock", mutate)
-    with patched("acquire", wrapper):
+    with patch.object(harness_merge, "acquire", wrapper):
         result = outcome(harness_merge.recover_journals, target)
     check(f"interleave {label}: the wrapper reached the primary's lock first",
           bool(fired), repr(fired))
