@@ -52,6 +52,20 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "plan run spent its one scope send-back; 3 c2 substance repairs applied but unread; returning pending with one signature question rather than buying a re-panel unasked"
+    },
+    {
+      "at": "2026-11-24T02:08:35.354210+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "fix c1 per fable-advisor AdvisorE3Fix (notes/answers-2026-11-24-validate-c0.md): broad catches narrowed for the FEAT-63 census; MF-2..MF-5 journal hardening; deviations enumerated in the intent"
+    },
+    {
+      "at": "2026-11-24T02:08:37.526821+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.intent",
+      "reason": "fix c1 per fable-advisor AdvisorE3Fix (notes/answers-2026-11-24-validate-c0.md): broad catches narrowed for the FEAT-63 census; MF-2..MF-5 journal hardening; deviations enumerated in the intent"
     }
   ],
   "mission": "plan",

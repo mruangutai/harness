@@ -209,6 +209,47 @@ tasks:
       Interleaving cases, deterministic, with no sleeps and no threads: replace harness_merge.acquire with a test wrapper that, on its first call for the primary's lock, changes the files on disk and then delegates to the real acquire. Start each from a journal J1 with both members at J1's before images. (i) Generation change: the wrapper sets the primary to J2's after image, the secondary to J1's after image (which is J2's before image) and replaces the journal with J2; recover_journals(secondary) leaves both members at J2's after images and no journal, with no refusal. (ii) Fresh generation: the wrapper sets both members to J1's after images (J2's before images) and replaces the journal with J2; recover_journals(secondary) leaves both at J2's after images and no journal, never an unreplayed J2 unlinked. (iii) Disappearance: the wrapper sets both members to J1's after images and unlinks the journal; recover_journals(secondary) returns False and no byte changes after the wrapper's. (iv) Membership change: J1 names the primary and a member X; the wrapper replaces J1 with a J2 naming the primary and a different member Y, both at J2's before images; recover_journals(X) returns False and the primary, X, Y and J2 stay byte-identical to the wrapper's result. Restore every replaced function in a finally.
       Then run python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit. The json.loads in _read_journal is a new reader site: in tests/integration/canonical-reader-classification.json insert, immediately before the first row whose file is .claude/skills/harness/bin/harness_yaml.py, one row: artifact harness_merge intent journal, category json_string, dec174_category none, disposition exempt, execution_route main-session-direct, exemption module_internal_format, file .claude/skills/harness/bin/harness_merge.py, id .claude/skills/harness/bin/harness_merge.py::_read_journal::json_string#1, reason The locked-write core owns and parses its own intent journal format., remedy none, symbol _read_journal, task none. If the audit reports a different category for that site, classify exactly what it reports the same way; add no row for any other site. Do not edit check-plan-routes.py or test-check-plan-routes.py.
       Expected verify exit 0: every selected suite PASS, the audit reporting 0 unresolved reader sites, and the docstring and API names present.
+
+      Amended at fix c1 (fable-advisor AdvisorE3Fix, notes/answers-2026-11-24-validate-c0.md); the signature stands per DEC-23:
+      Validate c0 fix round 1, ruled in notes/answers-2026-11-24-validate-c0.md (OQ-1 (a); MF-2, MF-3, MF-4 and
+      diagnostic bounding inside C5). The departures from the signed text are as follows.
+
+      (1) Items 6 and 8 and the docstring (item 10): the replay handler in _replay and the post-publish handler in
+      _commit_published catch OSError, not "an Exception". The signed text said "a BaseException that is not an
+      Exception propagates unchanged". Now any non-OSError after the rename propagates unchanged as itself, with the
+      journal kept, so the next write rolls it forward. The outcome space is therefore no longer total by construction.
+      Every failure lands in one of three buckets: MergeRefusal; JournalPending; or an uncaught traceback with the journal
+      on disk. The third bucket is confined to interpreter-anomaly classes. The reason is FEAT-63's broad-catch census,
+      whose ceiling of 0 sits in check-plan-routes.py, which is forbidden to edit.
+
+      (2) Item 4, under MF-2: members must be exactly two, named plan.yaml then feature.json (the module constant
+      JOURNAL_PAIR), not "a non-empty list". A one-member, a three-member or a misbound-sibling journal is JOURNAL
+      UNREADABLE, exit 5.
+
+      (3) Item 4, under MF-4: before_sha256 must be present. Only an explicit null records an absent file; a missing key
+      is UNREADABLE.
+
+      (4) Item 4, under MF-3: the journal is read only from a regular file. It is lstat'd first, then opened
+      O_NOFOLLOW|O_NONBLOCK. A symlink (dangling or not), a FIFO or a directory is UNREADABLE naming the journal. No FIFO
+      is opened, and a dangling entry no longer reads as absent and spins locked_update.
+
+      (5) Item 6, under MF-2 and MF-3: before the primary's lock, _recover_journal now lstats the entry and refuses
+      UNREADABLE any non-regular entry, and any journal not named plan.yaml.harness-merge.journal. A feature.json-primary
+      journal is therefore refused before any lock is taken, and the reversed order is unreachable. "Return False when it
+      no longer exists" now means ENOENT only; it no longer means os.path.exists. The first-member check is subsumed by
+      the pair check. Only feature.json.lock is taken as the further lock, not "each further member's sibling lock".
+
+      (6) Item 8, under MF-2: locked_pair_update raises ValueError unless the two paths are plan.yaml then feature.json in
+      one directory, not merely "two different files".
+
+      (7) Refusal messages echo journal values as a repr truncated to 80 characters (security-low bounding).
+
+      (8) Unit cases: interleave (iv) is reshaped, because a primary+X journal is now unreadable. The case is an
+      unreadable journal discovered as naming X, which under the lock has become a legal generation that does not name
+      X; it returns False and nothing is written. Cases were added for each of (2) to (7), plus sign-approval's nested
+      shape.
+
+      The signature stands (DEC-23); this is the ledgered judgement.
   - id: T-02
     title: Cut plan_merge's amendment pair over to the journaled core and delete its rename and restore helpers
     traces: [SC-01, SC-02, SC-04, SC-05, SC-06, SC-07]
@@ -276,3 +317,35 @@ tasks:
       7. plan-merge.py module docstring: extend exit 5 with: or a leftover intent journal (harness_merge) is unreadable or names a file matching neither its recorded before nor after state.
       No plan_merge module reads, writes, lists or deletes a journal itself; only harness_merge does. Do not edit check-plan-routes.py, test-check-plan-routes.py, any check_state module, stations._task_search, text._item_range_within, or union.py's PRESERVE_BASE_BYTES and UNION_MERGE branches.
       Expected verify exit 0: every selected suite PASS, the audit reporting 0 unresolved reader sites, and the inline assertions printing PASS.
+
+      Amended at fix c1 (fable-advisor AdvisorE3Fix, notes/answers-2026-11-24-validate-c0.md); the signature stands per DEC-23:
+      Validate c0 fix round 1, ruled in notes/answers-2026-11-24-validate-c0.md (OQ-1 (a); MF-5 and MF-6, and the SC-01
+      assertions G-a to G-d, in this round). The departures from the signed text are as follows.
+
+      (1) Item 2: write_plan_and_ledger catches (JournalPending, MergeRefusal, OSError, ValueError), not "any other
+      Exception". _pair_failure still dispatches by type. Any other class propagates as a traceback, and a journal already
+      published stays on disk for the next write.
+
+      (2) Item 2: _relay_after_commit catches (OSError, ValueError), not "an Exception from the relay".
+      changed_state_feedback already absorbs its subprocess's failures. What remains is the stderr print: OSError on a
+      broken pipe, ValueError on a closed stream.
+
+      (3) Item 3: _recover_plan_journals catches (OSError, ValueError), not "any other Exception". OSError covers the
+      listdir and lock-open failures; ValueError covers a malformed HARNESS_LOCK_TIMEOUT_SECONDS. "No recovery failure
+      prints a Traceback" now holds only for those classes plus JournalPending and MergeRefusal. Anything else is a bug
+      and tracebacks rather than be reported as "no file was changed". The reason is FEAT-63's broad-catch census
+      (ceiling 0, check-plan-routes.py forbidden).
+
+      (4) Under MF-5: amend.py's _amend_preflight passes recover=not args.show to _resolve_plan. amend --show therefore
+      never runs recovery, keeping plan-merge.py's "write nothing" promise and D-02's mutating-verbs-only scope. This is an
+      amend.py edit beyond item 5's enumerated list; the signed text did not mandate recovery for --show, and item 4 gave
+      the recover=False lever to check.
+
+      (5) Tests, under MF-6: case_1985's successor asserts "PermissionError" in stderr. The three SC-05 successors compare
+      raw bytes through _bytes (open 'rb'), not the newline-normalizing read(). The SC-05 count stays 8.
+
+      (6) Tests, G-a to G-d: (b) now runs through record-amendments as well as amend. (d) asserts the further re-run's
+      exit 6 and its message. (f) runs through both verbs and asserts that the exit-5 message names the journal path. A
+      new case asserts that amend --show leaves a pending journal and both files byte-identical.
+
+      The signature stands (DEC-23); this is the ledgered judgement.
