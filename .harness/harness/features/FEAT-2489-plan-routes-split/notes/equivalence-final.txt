@@ -1,9 +1,9 @@
-BASE 261fdf726428bd8325fbd3d4beccad23b67e83cc
-HEAD d44f23e5d79c98870da6190ded8f310c707976c8
-TREE base .claude/skills/harness/bin 1d22ba06caa66fcd23765e25e5b96ff70c1eaab8
-TREE base tests fb0bdc5a189ccde6249d20262e2b1883eefa64c4
-TREE head .claude/skills/harness/bin d542c641c93f20a5a5f3567aa52d0171c625f201
-TREE head tests 3f8731cd34fe2a850bc9e4a00054eba89f684eb9
+BASE f5bf58d9b3690d01c9675ba118588b66b631d819
+HEAD 7178c9f287d246fd55df55dc24f8aa7c09c1355c
+TREE base .claude/skills/harness/bin 071ed722325d6cec712c46f65e03af4e2194c818
+TREE base tests 11bdd0e8389f3ace9595a279d3dd5aaf65faa0ec
+TREE head .claude/skills/harness/bin f566c7645aa56b74542d59ff2db4e397fc1c625a
+TREE head tests bc560ba8cd7c99ab4302d33b24e5a90c8d5c02e4
 PROJECTED .claude/skills/harness/bin/canonical_reader_audit.py overlaid
 PROJECTED .claude/skills/harness/bin/check-plan-routes.py overlaid
 PROJECTED .claude/skills/harness/bin/plan_merge/check.py overlaid
@@ -18,29 +18,48 @@ PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-20
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-2026-11-24-signoff.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-2026-11-24-t03-verify.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-2026-11-24-validate-c0.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-2026-11-24-validate-c1.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/equivalence-final.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/fix-c1-build/cr2-red-green.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/gate-after-build.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/gate-after-fix-c1.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t01-default-run.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t04-suites.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/per-file-state-census.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c1-failfirst-repro.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c1-runner-integration-output.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c1-runner-unit-output.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c2-cr3-probe.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c2-runner-integration-output.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c2-runner-unit-output.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c3-gate-i-measurements.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c3-runner-integration-output.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c3-runner-unit-output.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/receipt-gh-sync-open-2026-11-24.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/receipt-sign-approval-2026-11-24.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t01-canonical-self-test.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t03-stale-inventory.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-plan.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-validate-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-validate-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-validate-c3.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-plan-routes-split.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-c3.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-plan-c1.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-plan-c2.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-plan-c3.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-plan-c4.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-qa-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-qa-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-qa-c3.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-security-reviewer-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-security-reviewer-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-security-reviewer-c3.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-ui-reviewer-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-ui-reviewer-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-ui-reviewer-c3.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-ui-reviewer-plan-c1.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/seam-straddle-receipt.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/signoff-panel-value.yaml excluded
@@ -48,6 +67,8 @@ PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/simplify-b
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-T-03.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-T-04.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-c1-T-02.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-c1-T-04.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-final-T-01.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-final-T-02.txt excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-final-T-03.txt excluded
@@ -59,6 +80,11 @@ PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-1-plan-product/panel-c1.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-1-plan-product/sendback-criteria.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-1-plan-product/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-10-validate-validator/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-10-validate-validator/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-10-validate-validator/qa/manifest-integration.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-10-validate-validator/qa/manifest-unit.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-10-validate-validator/state.yaml excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-2-plan-validator/.run-identity.json excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-2-plan-validator/digest.md excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-2-plan-validator/panel-c2.md excluded
@@ -88,6 +114,11 @@ PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-8-validate-validator/qa/manifest-integration.json excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-8-validate-validator/qa/manifest-unit.json excluded
 PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-8-validate-validator/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/qa/manifest-integration.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/qa/manifest-unit.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/state.yaml excluded
 PROJECTED tests/integration/canonical-reader-classification.json overlaid
 PROJECTED tests/integration/test-check-plan-routes.py overlaid
 PROJECTED tests/integration/test-checker-structure-locks.py overlaid
@@ -274,7 +305,7 @@ CLI clean:route argv=[] old_exit=0 new_exit=0 mapped=0
 | OK T-09: declared main-session-direct (.harness/harness.json ungranted)
 | OK T-10 granted to harness-documentor
 | 0 violation(s) across 1 plan(s)
-| examined 37 feature dir(s); 36 skipped as shipped
+| examined 38 feature dir(s); 37 skipped as shipped
 --- old stderr
 --- diff stdout
 --- diff stderr

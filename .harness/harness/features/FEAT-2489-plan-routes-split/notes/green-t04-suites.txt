@@ -1,8 +1,8 @@
-HEAD 427d3a7e4616346d35e9929e7c0040128131c37c
-TREE head .claude/skills/harness/bin d542c641c93f20a5a5f3567aa52d0171c625f201
-TREE head tests 3f8731cd34fe2a850bc9e4a00054eba89f684eb9
+HEAD 7178c9f287d246fd55df55dc24f8aa7c09c1355c
+TREE head .claude/skills/harness/bin f566c7645aa56b74542d59ff2db4e397fc1c625a
+TREE head tests bc560ba8cd7c99ab4302d33b24e5a90c8d5c02e4
 === run_pool five audit files
------ test-structure-audit-index.py (exit 0, 0.05s) -----
+----- test-structure-audit-index.py (exit 0, 0.06s) -----
 PASS audit_modules_load_from_the_bin_under_test
 PASS index_nodes_are_ast_walk_order
 PASS index_parent_links_match
@@ -32,7 +32,7 @@ PASS no_session_or_index_is_retained_at_module_scope
 
 ALL PASS
 PASS test-structure-audit-index.py
------ test-broad-catch-census.py (exit 0, 0.21s) -----
+----- test-broad-catch-census.py (exit 0, 0.19s) -----
 PASS audit_modules_load_from_the_bin_under_test
 PASS census counts except-Exception and bare except, and nothing typed
 PASS census counts a handler NESTED in a function or class
@@ -109,7 +109,7 @@ PASS spawn resource of `read(path)` is None
 
 ALL PASS
 PASS test-broad-catch-census.py
------ test-checker-structure-locks.py (exit 0, 3.81s) -----
+----- test-checker-structure-locks.py (exit 0, 4.24s) -----
 PASS audit_modules_load_from_the_bin_under_test
 PASS feat61_lock_clean_tree_has_no_findings
 PASS feat61_lock_station_literal_mutant_fails_for_its_own_finding
@@ -187,27 +187,27 @@ PASS feat69_census_family_broad_catch_is_one_finding_naming_the_module
 
 ALL PASS
 PASS test-checker-structure-locks.py
------ test-structure-audit-single-pass.py (exit 0, 4.16s) -----
+----- test-structure-audit-single-pass.py (exit 0, 4.67s) -----
 PASS audit_modules_load_from_the_bin_under_test
-COUNTS in_process_consolidation_findings {"embedded": 1, "foreign": 0, "nodes": 253539, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253539}
+COUNTS in_process_consolidation_findings {"embedded": 1, "foreign": 0, "nodes": 253938, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253938}
 PASS in_process_consolidation_findings_every_node_visited_exactly_once
 PASS in_process_consolidation_findings_visits_no_node_outside_a_parsed_tree
 PASS in_process_consolidation_findings_parses_no_source_twice
 PASS in_process_consolidation_findings_parses_embedded_programs
 PASS in_process_consolidation_findings_parses_the_overlapping_checker_sources
-COUNTS in_process_feat62_findings {"embedded": 1, "foreign": 0, "nodes": 253539, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253539}
+COUNTS in_process_feat62_findings {"embedded": 1, "foreign": 0, "nodes": 253938, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253938}
 PASS in_process_feat62_findings_every_node_visited_exactly_once
 PASS in_process_feat62_findings_visits_no_node_outside_a_parsed_tree
 PASS in_process_feat62_findings_parses_no_source_twice
 PASS in_process_feat62_findings_parses_embedded_programs
 PASS in_process_feat62_findings_parses_the_overlapping_checker_sources
-COUNTS in_process_broad_catch_findings {"embedded": 1, "foreign": 0, "nodes": 253539, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253539}
+COUNTS in_process_broad_catch_findings {"embedded": 1, "foreign": 0, "nodes": 253938, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253938}
 PASS in_process_broad_catch_findings_every_node_visited_exactly_once
 PASS in_process_broad_catch_findings_visits_no_node_outside_a_parsed_tree
 PASS in_process_broad_catch_findings_parses_no_source_twice
 PASS in_process_broad_catch_findings_parses_embedded_programs
 PASS in_process_broad_catch_findings_parses_the_overlapping_checker_sources
-COUNTS cli_consolidation_audit {"embedded": 1, "exit": 0, "foreign": 0, "nodes": 253539, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253539}
+COUNTS cli_consolidation_audit {"embedded": 1, "exit": 0, "foreign": 0, "nodes": 253938, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253938}
 PASS cli_consolidation_audit_every_node_visited_exactly_once
 PASS cli_consolidation_audit_visits_no_node_outside_a_parsed_tree
 PASS cli_consolidation_audit_parses_no_source_twice
@@ -217,7 +217,7 @@ PASS cli_consolidation_audit_exit_is_a_verdict
 
 ALL PASS
 PASS test-structure-audit-single-pass.py
------ test-check-plan-routes.py (exit 0, 36.17s) -----
+----- test-check-plan-routes.py (exit 0, 36.64s) -----
 PASS case_41_t09_comment_only_manifest_difference_is_NOT_a_deviation
 PASS case_41_t09_a_ROUTE_difference_still_deviates
 PASS case_41_t09_an_unparseable_branch_manifest_still_deviates
@@ -387,8 +387,8 @@ PASS canonical_reader_discovery_rejects_0_of_2_files
 
 ALL PASS
 PASS test-check-plan-routes.py
-pool: 5 workers, 5 files, 36.17s wall
-slowest: test-check-plan-routes.py 36.17s, test-structure-audit-single-pass.py 4.16s, test-checker-structure-locks.py 3.81s
+pool: 5 workers, 5 files, 36.64s wall
+slowest: test-check-plan-routes.py 36.64s, test-structure-audit-single-pass.py 4.67s, test-checker-structure-locks.py 4.24s
 exit=0
 === copied bin: tests/unit/test-structure-audit-index.py
 PASS audit_modules_load_from_the_bin_under_test
