@@ -227,7 +227,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 enumerates test-check-plan-routes.py as the test file of a gate; the edit is made directly, red first.
     depends_on: []
-    status: ready
+    status: building
     files:
     - tests/integration/test-check-plan-routes.py#_check_live_inventory_reads_no_feature_plan
     - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t01-canonical-self-test.txt
