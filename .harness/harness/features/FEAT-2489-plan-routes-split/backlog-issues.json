@@ -18,5 +18,13 @@
   "bug:structure_audit loader lock prefilter (structure_audit.py:944-945) requires the exact ASCII spelling spec_from_file_location in source text, so a non-ASCII-spelled loader call skips the AST loader check (fail-open; pre-existing at base)": {
     "number": 2529,
     "typed": true
+  },
+  "bug:dispatch-guard refuses a harness-product-lead -> harness-code-reviewer distill dispatch (HARNESS-MISSION: distill) because it treats every product-lead code-reviewer start as the plan team's scope reader requiring HARNESS-MISSION: plan; key the rule on the plan run/team, not the persona pair": {
+    "number": 2532,
+    "typed": true
+  },
+  "enhancement:No decision rules whether an upstream merge landing after a validate PASS needs a re-pin or re-validation; FEAT-2489 relied on a one-off advisor ruling (mechanical coverage: equivalence receipt, data-driven contract tests, CI). Codify it": {
+    "number": 2533,
+    "typed": true
   }
 }
