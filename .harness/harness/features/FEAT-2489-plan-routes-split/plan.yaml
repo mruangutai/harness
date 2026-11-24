@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai (delegated to fable-advisor)
   status: approved
 drafted_at: '2026-11-24T13:48:53Z'
-status: ready
+status: building
 source_issues: [2489]
 panel:
   last_run: r-20261124-6-plan-validator
@@ -302,7 +302,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: The checker grades a DEC-174 gate's cutover and is written by the hand that makes it, before the move it grades.
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
     - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py
       create: true
