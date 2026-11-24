@@ -1,0 +1,219 @@
+{
+  "feature_id": "FEAT-2488-plan-merge-atomicity",
+  "branch": "feat/FEAT-2488-plan-merge-atomicity",
+  "pr": null,
+  "review_sha": "45f16cfa9f5ceb063d3d12987e3a6824b5929f35",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261123-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-24T00:07:23+00:00",
+      "tokens": 226965,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-1-plan-product/digest.md",
+        "sha256": "5bd66e5b5d99d1029869c19f456e4fa61b11a82038e30a5ed2294d010681c555"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-24T00:51:50+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261124-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-24T01:28:15+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-2-validate-validator/digest.md",
+        "sha256": "fa9777c0ac6fcafff5e73d04946a6ba801c21e3ad6c4e4a78aff0c36de5fdc7c"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-24T01:41:29+00:00"
+    },
+    {
+      "id": "r-20261124-3-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-24T02:08:53+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-3-validate-validator/digest.md",
+        "sha256": "31ef5ec27fa4bffac61f2c0434b11e7dac985cb955524b3388ee896d1e234929"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-24T02:19:54+00:00"
+    },
+    {
+      "id": "r-20261124-4-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-24T02:34:42+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-4-validate-validator/digest.md",
+        "sha256": "dd0867e3b411d7962d6a0e4972731c0affbaeba5ec2bf60021482cc820981aaa"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-24T02:53:05+00:00"
+    },
+    {
+      "id": "r-20261124-5-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-24T03:12:37+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-5-validate-validator/digest.md",
+        "sha256": "460e5ca2f3e2aa6fdad8c274742ad750e398fc9f547af0e9fd84147d5835a62a"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-24T03:28:07+00:00"
+    },
+    {
+      "id": "r-20261124-6-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-24T04:02:08+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-6-validate-validator/digest.md",
+        "sha256": "ce6a6ad0735661bf913792185238fb80191b34ee843ab0b23dc0b6b3998718d3"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-24T04:16:38+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-24T00:07:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Changes the shared locked-write core harness_merge (gate-imported), plan_merge amend/amendments/guards, feature_json_write and test-plan-merge torn-state tests; a cross-file journal protocol is not patch-scale."
+    },
+    {
+      "at": "2026-11-24T00:51:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan run spent its one scope send-back; 3 c2 substance repairs applied but unread; returning pending with one signature question rather than buying a re-panel unasked"
+    },
+    {
+      "at": "2026-11-24T02:08:35.354210+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "fix c1 per fable-advisor AdvisorE3Fix (notes/answers-2026-11-24-validate-c0.md): broad catches narrowed for the FEAT-63 census; MF-2..MF-5 journal hardening; deviations enumerated in the intent"
+    },
+    {
+      "at": "2026-11-24T02:08:37.526821+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.intent",
+      "reason": "fix c1 per fable-advisor AdvisorE3Fix (notes/answers-2026-11-24-validate-c0.md): broad catches narrowed for the FEAT-63 census; MF-2..MF-5 journal hardening; deviations enumerated in the intent"
+    },
+    {
+      "at": "2026-11-24T02:08:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel",
+      "reason": "fix c1 (ee5a9596 + ledgered amendments) closed MF-1..MF-6 and G-a..G-d from validate c0 per AdvisorE3Fix; re-panel at the new pin"
+    },
+    {
+      "at": "2026-11-24T02:34:34.950855+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "fix c2 (validate c1 MF-7/MF-8): deviation wording updated to the fstat refusal and the post-commit write guard; within AdvisorE3Fix C5 scope"
+    },
+    {
+      "at": "2026-11-24T02:34:36.760553+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.intent",
+      "reason": "fix c2 (validate c1 MF-7/MF-8): deviation wording updated to the fstat refusal and the post-commit write guard; within AdvisorE3Fix C5 scope"
+    },
+    {
+      "at": "2026-11-24T02:34:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel",
+      "reason": "fix c2 closed MF-7 and MF-8 from validate c1 with one-pass race and post-commit write audits; re-panel at the new pin (last rework round)"
+    },
+    {
+      "at": "2026-11-24T03:10:31.660802+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "fix c3 per fable-advisor AdvisorE4Esc (validate c2 MF-10): check-domain sidecar denial added to T-01; files gain check-domain.py and its test"
+    },
+    {
+      "at": "2026-11-24T03:10:33.545586+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "fix c3 per fable-advisor AdvisorE4Esc (validate c2 MF-10): check-domain sidecar denial added to T-01; files gain check-domain.py and its test"
+    },
+    {
+      "at": "2026-11-24T03:34:29.450549+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "fix c4 per fable-advisor AdvisorE5Esc (validate c3 MF-12): discovery narrowed to the one producer name; verify gains test-check-domain-approval.py (G-04)"
+    },
+    {
+      "at": "2026-11-24T03:34:31.245380+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "fix c4 per fable-advisor AdvisorE5Esc (validate c3 MF-12): discovery narrowed to the one producer name; verify gains test-check-domain-approval.py (G-04)"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 4,
+    "wall_clock_minutes": 150,
+    "decision": "notes/answers-2026-11-24-validate-c3.md#oq-1"
+  },
+  "signed_task_hashes": {
+    "T-01": "527bd03ebb30bd518e28a545a9140f5821c0ac737e4c1f59f17ce36b499bcc6e",
+    "T-02": "d424f078ae186593794ef11d9f38faeb567ccdc116acd0b59514a38ec6f1e516"
+  },
+  "github": {
+    "milestone": 138,
+    "parent": 2490,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2491,
+      "T-02": 2492
+    },
+    "source_issues": [
+      2488
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "bug:Post-commit relay hardening: feature_json_write.py:227 relay is unguarded (stderr None misroutes to stdout) and harness_boundary.py:501 subprocess.run(text=True) without encoding exits 1 after commit under -W error::EncodingWarning": {
+    "number": 2494,
+    "typed": true
+  },
+  "bug:check-domain never judges implicit parent creation: a Write below plan.yaml.harness-merge.journal/ makes a directory at the journal slot and wedges pair writes (also Bash-route plan.yaml porosity, Edit/NotebookEdit test gap)": {
+    "number": 2495,
+    "typed": true
+  },
+  "chore:Regression-lock guards._die refusal under None or broken stderr": {
+    "number": 2496,
+    "typed": true
+  },
+  "chore:Add the five joint stdio states to the plan-merge _STDIO_MATRIX": {
+    "number": 2497,
+    "typed": true
+  },
+  "chore:SC-07 preservation check needs a mutate-and-observe-red demonstration": {
+    "number": 2498,
+    "typed": true
+  },
+  "bug:check-domain hardlink alias detection misses linked worktrees": {
+    "number": 2499,
+    "typed": true
+  },
+  "chore:check-domain RE_PAIR_JOURNAL anchors with $ (matches a trailing newline); use \\Z": {
+    "number": 2500,
+    "typed": true
+  },
+  "bug:FEAT-63 broad-catch census does not count BaseException or tuple handlers": {
+    "number": 2501,
+    "typed": true
+  },
+  "bug:plan-merge apply accepts an env -u verify that load_plan refuses": {
+    "number": 2502,
+    "typed": true
+  },
+  "enhancement:Intake should refuse a grilling note without a Mission block": {
+    "number": 2503,
+    "typed": true
+  },
+  "enhancement:Harden the merge journal: authenticate content, refuse case-insensitive aliases, escape filenames in messages": {
+    "number": 2504,
+    "typed": true
+  },
+  "bug:A FIFO at a member path blocks plan-merge _read_base": {
+    "number": 2505,
+    "typed": true
+  },
+  "chore:plan-merge.py docstring says every mutating verb goes via locked_update; amend verbs use locked_pair_update": {
+    "number": 2506,
+    "typed": true
+  }
+}

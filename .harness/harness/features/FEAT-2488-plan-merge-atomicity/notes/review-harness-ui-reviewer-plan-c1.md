@@ -1,0 +1,1 @@
+Mode A — PASS, out of scope: T-01 and T-02 change file recovery and diagnostics in the existing CLI, not a visual surface or end-user interaction flow (`plan.yaml:59`, `plan.yaml:92`; `BRIEF.md:23`, `BRIEF.md:34`), so no design contract or high-fidelity prototype is required.

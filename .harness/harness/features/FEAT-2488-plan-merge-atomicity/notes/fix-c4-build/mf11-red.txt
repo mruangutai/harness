@@ -1,0 +1,132 @@
+# red: an rsync copy of the worktree (no .git, no node_modules) with plan_merge/guards.py replaced by its HEAD blob (git show 8f948c523429f75f9796a1d6da6a5fc6267538d3:.claude/skills/harness/bin/plan_merge/guards.py); everything else as built. env -u PYTHONUNBUFFERED -u HARNESS_AGENT_TYPE -u CLAUDE_PROJECT_DIR; case-subset driver
+# case_2488_every_stdio_state_after_the_commit: 6.1s
+# case_2488_in_process_captures_after_the_commit: 0.0s
+# case_2488_a_caller_owned_fd_is_never_clobbered: 0.0s
+PASS  2488/n/record-amendments/stdout=working,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=working,stderr=working: exits 0
+PASS  2488/n/record-amendments/stdout=working,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=working,stderr=working: stdout is exactly the receipts
+PASS  2488/n/record-amendments/stdout=working,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/record-amendments/stdout=working,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: exits 0
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: exits 0
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: nothing reached the closed stdout's fd
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/record-amendments/stdout=none,stderr=working: the fixture signs (exit 0)
+FAIL  2488/n/record-amendments/stdout=none,stderr=working: exits 0
+      | rc=1 b'check-state --changed after /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-6ub112m3/.harness/harness/features/FEAT-99-fixture/feature.json:\ncheck-state --changed: one row the relay prints\nTraceback (most recent call last):\n  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.TOyeFQpuFX/.claude/skills/harness/bin/plan-merge.py", line 321, in <modu
+PASS  2488/n/record-amendments/stdout=none,stderr=working: both files landed exactly once, no journal
+FAIL  2488/n/record-amendments/stdout=none,stderr=working: stderr carries the relay row, no receipt and no Traceback
+      | b'check-state --changed after /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-6ub112m3/.harness/harness/features/FEAT-99-fixture/feature.json:\ncheck-state --changed: one row the relay prints\nTraceback (most recent call last):\n  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.TOyeFQpuFX/.claude/skills/harness/bin/plan-merge.py", line 321, in <module>\n
+FAIL  2488/n/record-amendments/stdout=none,stderr=working: stderr notes the landed write exactly when stdout failed
+      | b'check-state --changed after /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-6ub112m3/.harness/harness/features/FEAT-99-fixture/feature.json:\ncheck-state --changed: one row the relay prints\nTraceback (most recent call last):\n  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.TOyeFQpuFX/.claude/skills/harness/bin/plan-merge.py", line 321, in <module>\n
+PASS  2488/n/record-amendments/stdout=working,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=working,stderr=broken: exits 0
+PASS  2488/n/record-amendments/stdout=working,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=working,stderr=broken: stdout is exactly the receipts
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: exits 0
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: stdout is exactly the receipts
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: nothing reached the closed stderr's fd
+PASS  2488/n/record-amendments/stdout=working,stderr=none: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=working,stderr=none: exits 0
+PASS  2488/n/record-amendments/stdout=working,stderr=none: both files landed exactly once, no journal
+FAIL  2488/n/record-amendments/stdout=working,stderr=none: stdout is exactly the receipts
+      | b'check-state --changed after /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-nlkdcxjt/.harness/harness/features/FEAT-99-fixture/feature.json:\ncheck-state --changed: one row the relay prints\nAMENDED T-01.intent judgement=amendment\nAPPLIED /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-nlkdcxjt/.harness/harness/features/FEAT-99-fixture/plan.yaml
+PASS  2488/n/record-amendments/stdout=broken,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=broken,stderr=broken: exits 0
+PASS  2488/n/record-amendments/stdout=broken,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=none,stderr=none: the fixture signs (exit 0)
+FAIL  2488/n/record-amendments/stdout=none,stderr=none: exits 0
+      | rc=1 None
+PASS  2488/n/record-amendments/stdout=none,stderr=none: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=none,stderr=broken: the fixture signs (exit 0)
+FAIL  2488/n/record-amendments/stdout=none,stderr=broken: exits 0
+      | rc=1 None
+PASS  2488/n/record-amendments/stdout=none,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=broken,stderr=none: the fixture signs (exit 0)
+FAIL  2488/n/record-amendments/stdout=broken,stderr=none: exits 0
+      | rc=1 None
+PASS  2488/n/record-amendments/stdout=broken,stderr=none: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=working,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=working,stderr=working: exits 0
+PASS  2488/n/amend/stdout=working,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=working,stderr=working: stdout is exactly the receipts
+PASS  2488/n/amend/stdout=working,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/amend/stdout=working,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/amend/stdout=broken,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=broken,stderr=working: exits 0
+PASS  2488/n/amend/stdout=broken,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=broken,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/amend/stdout=broken,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/amend/stdout=closed,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=closed,stderr=working: exits 0
+PASS  2488/n/amend/stdout=closed,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=closed,stderr=working: nothing reached the closed stdout's fd
+PASS  2488/n/amend/stdout=closed,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/amend/stdout=closed,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/amend/stdout=none,stderr=working: the fixture signs (exit 0)
+FAIL  2488/n/amend/stdout=none,stderr=working: exits 0
+      | rc=1 b'check-state --changed after /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-j7ff0rkh/.harness/harness/features/FEAT-99-fixture/feature.json:\ncheck-state --changed: one row the relay prints\nTraceback (most recent call last):\n  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.TOyeFQpuFX/.claude/skills/harness/bin/plan-merge.py", line 321, in <modu
+PASS  2488/n/amend/stdout=none,stderr=working: both files landed exactly once, no journal
+FAIL  2488/n/amend/stdout=none,stderr=working: stderr carries the relay row, no receipt and no Traceback
+      | b'check-state --changed after /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-j7ff0rkh/.harness/harness/features/FEAT-99-fixture/feature.json:\ncheck-state --changed: one row the relay prints\nTraceback (most recent call last):\n  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.TOyeFQpuFX/.claude/skills/harness/bin/plan-merge.py", line 321, in <module>\n
+FAIL  2488/n/amend/stdout=none,stderr=working: stderr notes the landed write exactly when stdout failed
+      | b'check-state --changed after /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-j7ff0rkh/.harness/harness/features/FEAT-99-fixture/feature.json:\ncheck-state --changed: one row the relay prints\nTraceback (most recent call last):\n  File "/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp.TOyeFQpuFX/.claude/skills/harness/bin/plan-merge.py", line 321, in <module>\n
+PASS  2488/n/amend/stdout=working,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=working,stderr=broken: exits 0
+PASS  2488/n/amend/stdout=working,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=working,stderr=broken: stdout is exactly the receipts
+PASS  2488/n/amend/stdout=working,stderr=closed: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=working,stderr=closed: exits 0
+PASS  2488/n/amend/stdout=working,stderr=closed: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=working,stderr=closed: stdout is exactly the receipts
+PASS  2488/n/amend/stdout=working,stderr=closed: nothing reached the closed stderr's fd
+PASS  2488/n/amend/stdout=working,stderr=none: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=working,stderr=none: exits 0
+PASS  2488/n/amend/stdout=working,stderr=none: both files landed exactly once, no journal
+FAIL  2488/n/amend/stdout=working,stderr=none: stdout is exactly the receipts
+      | b'check-state --changed after /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-9vlpqz2h/.harness/harness/features/FEAT-99-fixture/feature.json:\ncheck-state --changed: one row the relay prints\nAMENDED tasks:T-01.intent judgement=amendment\nAPPLIED /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/plan-merge-test-9vlpqz2h/.harness/harness/features/FEAT-99-fixture/pla
+PASS  2488/n/amend/stdout=broken,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=broken,stderr=broken: exits 0
+PASS  2488/n/amend/stdout=broken,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=none,stderr=none: the fixture signs (exit 0)
+FAIL  2488/n/amend/stdout=none,stderr=none: exits 0
+      | rc=1 None
+PASS  2488/n/amend/stdout=none,stderr=none: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=none,stderr=broken: the fixture signs (exit 0)
+FAIL  2488/n/amend/stdout=none,stderr=broken: exits 0
+      | rc=1 None
+PASS  2488/n/amend/stdout=none,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=broken,stderr=none: the fixture signs (exit 0)
+FAIL  2488/n/amend/stdout=broken,stderr=none: exits 0
+      | rc=1 None
+PASS  2488/n/amend/stdout=broken,stderr=none: both files landed exactly once, no journal
+FAIL  2488/o: stdout a capture with no fileno and no flush: the receipts and the relay return normally
+      | (AttributeError("'_NoFilenoCapture' object has no attribute 'fileno'"), None)
+FAIL  2488/o: stdout a capture with no fileno and no flush: stderr gets the landed note and the relay row
+      | check-state --changed after in-process:
+check-state --changed: one row the relay prints
+
+FAIL  2488/o: stderr a capture with no fileno and no flush: the receipts and the relay return normally
+      | (None, AttributeError("'_NoFilenoCapture' object has no attribute 'fileno'"))
+PASS  2488/o: stderr a capture with no fileno and no flush: stdout carries exactly the receipt
+PASS  2488/o: stdout a capture whose fileno() is unsupported: the receipts and the relay return normally
+PASS  2488/o: stdout a capture whose fileno() is unsupported: stderr gets the landed note and the relay row
+PASS  2488/o: stderr a capture whose fileno() is unsupported: the receipts and the relay return normally
+PASS  2488/o: stderr a capture whose fileno() is unsupported: stdout carries exactly the receipt
+PASS  2488/o: a broken stdout on caller-owned fd 4: the receipts and the relay return normally
+FAIL  2488/o: a broken stdout on caller-owned fd 4: the fd is the caller's pipe afterwards
+      | 
+PASS  2488/o: a broken stderr on caller-owned fd 4: the receipts and the relay return normally
+PASS  2488/o: a broken stderr on caller-owned fd 4: the fd is the caller's pipe afterwards
+FAIL - 18 failed of 106
+exit=1

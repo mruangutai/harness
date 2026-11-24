@@ -141,7 +141,7 @@ def _code_root(args, root, resolved_plan):
 def _check_inputs(args):
     """(resolved plan path, root, code root or None, plan doc, tasks) — or the exit-2/exit-5
     refusal."""
-    resolved_plan = _resolve_plan(args.file)
+    resolved_plan = _resolve_plan(args.file, recover=False)
     root = os.path.abspath(args.root)
     if not os.path.isfile(os.path.join(root, harness_boundary.MARKER)):
         _die(2, f"plan-merge: {root} carries no {harness_boundary.MARKER}, so no route can be "

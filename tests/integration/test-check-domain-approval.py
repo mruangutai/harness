@@ -607,6 +607,68 @@ def _t09_unresolvable():
         r12c.returncode == 0, f"exit {r12c.returncode}, stderr={r12c.stderr.strip()[:300]!r}")
 
 
+# FEAT-2488 MF-10: plan-merge's pair journal sidecars, beside their primaries in the feature dir.
+_JOURNAL_SIDECARS = ("plan.yaml.harness-merge.journal", "feature.json.harness-merge.journal")
+
+
+def _journal_target(featd, name, route):
+    """The path a governed Write names to reach `featd/name` by `route`: the sidecar as typed
+    (also case-folded), a symlink to it, or a hardlink to an existing one, both under notes/."""
+    sidecar = os.path.join(featd, name)
+    if route == "as typed":
+        return sidecar
+    if route == "case-folded":
+        return os.path.join(featd, name.upper())
+    alias = os.path.join(featd, "notes", "innocent.md")
+    os.makedirs(os.path.dirname(alias), exist_ok=True)
+    if route == "symlink":
+        os.symlink(os.path.join("..", name), alias)
+    else:
+        with open(sidecar, "w") as f:
+            f.write("{}\n")
+        os.link(sidecar, alias)
+    return alias
+
+
+def _t09_sidecar_denied(name):
+    for route in ("as typed", "case-folded", "symlink", "hardlink"):
+        root, _plan = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+        target = _journal_target(os.path.dirname(_plan), name, route)
+        r = fire(root, target, "{}\n", agent="harness-orchestrator")
+        t09(f"T-09 13: an orchestrator Write of {name} ({route}) is DENIED, naming "
+            "plan-merge as its only writer",
+            r.returncode == 2 and "plan-merge.py is its only writer" in r.stderr,
+            f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+    root, _plan = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+    note = os.path.join(os.path.dirname(_plan), "notes", name)
+    r = fire(root, note, "{}\n", agent="harness-orchestrator")
+    t09(f"T-09 13: notes/{name} is outside the feature-dir grammar and still ALLOWED",
+        r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+
+
+def _t09_journal_sidecars():
+    """13. A pair journal sidecar has plan-merge as its only writer (FEAT-2488 MF-10)."""
+
+    # ---- 13. THE JOURNAL IS A SECOND ROUTE INTO plan.yaml (FEAT-2488 validate c2 MF-10) ----
+    # plan-merge replays a sidecar journal into plan.yaml and feature.json before its next
+    # write, validating hashes, not provenance. The orchestrator's domain covers the feature
+    # dir, so an editor Write of either sidecar name forged plan.yaml through the trusted
+    # writer (or wedged every pair write at exit 5). Every route the plan denial follows is
+    # followed here too; a sidecar name outside the feature-dir grammar is not a sidecar.
+    for name in _JOURNAL_SIDECARS:
+        _t09_sidecar_denied(name)
+    import harness_merge
+    t09("T-09 13: the sidecar names are harness_merge's JOURNAL_PAIR plus JOURNAL_SUFFIX",
+        _JOURNAL_SIDECARS == tuple(n + harness_merge.JOURNAL_SUFFIX
+                                   for n in harness_merge.JOURNAL_PAIR), repr(_JOURNAL_SIDECARS))
+    root, full = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+    r = fire(root, full, _PLAN_LEGAL, agent="harness-orchestrator")
+    t09("T-09 13: plain plan.yaml keeps its own one-writer denial, not the journal's",
+        r.returncode == 2 and "plan.yaml has exactly ONE writer" in r.stderr
+        and "journal" not in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+
+
 def run_t09():
     """FEAT-41 T-09: plan.yaml has exactly ONE writer, and the editor routes are refused."""
     global _T09_FAILS
@@ -619,6 +681,7 @@ def run_t09():
     _t09_other_routes()
     _t09_case_fold()
     _t09_unresolvable()
+    _t09_journal_sidecars()
     return _T09_FAILS
 
 

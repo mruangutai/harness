@@ -1413,6 +1413,20 @@
       "task": "none"
     },
     {
+      "artifact": "harness_merge intent journal",
+      "category": "json_string",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "main-session-direct",
+      "exemption": "module_internal_format",
+      "file": ".claude/skills/harness/bin/harness_merge.py",
+      "id": ".claude/skills/harness/bin/harness_merge.py::_read_journal::json_string#1",
+      "reason": "The locked-write core owns and parses its own intent journal format.",
+      "remedy": "none",
+      "symbol": "_read_journal",
+      "task": "none"
+    },
+    {
       "artifact": "pyyaml",
       "category": "pyyaml",
       "dec174_category": "none",
