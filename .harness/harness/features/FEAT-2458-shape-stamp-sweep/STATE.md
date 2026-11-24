@@ -3,11 +3,11 @@
 ## Current
 
 - feature: FEAT-2458-shape-stamp-sweep
-- run: .harness/harness/features/FEAT-2458-shape-stamp-sweep/runs/2026-11-24-02-validate-validator/state.yaml
+- run: .harness/harness/features/FEAT-2458-shape-stamp-sweep/runs/distill-product/state.yaml
 - squad: none
 - status: awaiting-user
 
 ## Open Questions
 
-- Ship decision is the operator's: notes/ship-review-2026-11-24-02-validate-validator.md (validate c2 PASS at f42393e2, must_fix empty).
-- Backlog rows B-1..B-9 in the ship review await strike or acceptance; none blocks.
+- distill-validator and distill-product closed PASS; their Expertise files, receipts and run records are uncommitted and await the main session's landing.
+- The orchestrator's own 5 repository-tier Expertise ops are applied (batch 0551fde9f96b95fc68e934de7cb99181452b303e04b4389b1390af204867be39), uncommitted, awaiting the same landing.
