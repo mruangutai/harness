@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checker-structure locks that live in check-plan-routes.py but police bin/ as a whole.
+"""Checker-structure locks that live in structure_audit.py (run by check-plan-routes.py --consolidation-audit) but police bin/ as a whole.
 
 FEAT-61 T-05 (station and loader locks), FEAT-62 T-02 (module-body, reads, authority and
 --changed posture locks), FEAT-63 T-03 and FEAT-64 T-03 (broad-catch census). Each lock is
@@ -30,21 +30,11 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
     BIN_DIR, "check-plan-routes.py")
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
-
-
-def cpr():
-    """The module UNDER TEST, loaded from SCRIPT — never from the repo copy.
-
-    SCRIPT honours CHECK_PLAN_ROUTES_BIN, so during mutation testing the two are
-    DIFFERENT FILES. An earlier case in this suite read the repo copy while the override
-    pointed at a mutant and therefore reported ok against the broken build; anything here
-    that needs a production constant must come through this function.
-    """
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("_cpr_under_test", SCRIPT)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+# The audit modules UNDER TEST sit beside SCRIPT, so a mutant copy of bin named through
+# CHECK_PLAN_ROUTES_BIN is what gets imported — never the repo copy.
+AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT))
+sys.path.insert(0, AUDIT_DIR)
+import structure_audit  # noqa: E402
 
 
 failures = []
@@ -80,7 +70,7 @@ def _consolidation_findings_for_tree(mutate=None):
         shutil.copy(os.path.join(REPO_ROOT, index_rel), os.path.join(td, index_rel))
         if mutate is not None:
             mutate(copy_bin)
-        return cpr().consolidation_findings(td)
+        return structure_audit.consolidation_findings(td)
 
 
 def _append_to_gh_board(bin_dir, source):
@@ -187,7 +177,7 @@ def _feat62_findings_for_tree(mutate=None):
             shutil.copytree(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
         if mutate is not None:
             mutate(td)
-        return cpr().feat62_findings(td)
+        return structure_audit.feat62_findings(td)
 
 
 def _checker_path(root, module=None):
@@ -504,7 +494,7 @@ def _feat64_zero_ceiling_mutant_checks():
 def case_feat64_broad_catch_census_wave4():
     """SC-04: the sixteen FEAT-64 files sit at a ZERO ceiling; harness_boundary.py's two designed
     catches hold at exactly two, so a third fails against two; a reduction elsewhere is clean."""
-    _feat64_ceiling_checks(cpr())
+    _feat64_ceiling_checks(structure_audit)
     _feat64_zero_ceiling_mutant_checks()
     f = _feat62_findings_for_tree(lambda root: _append_bin(root, "harness_boundary.py", _BROAD_CATCH))
     check("feat64_census_third_harness_boundary_catch_fails_against_two",
@@ -592,7 +582,7 @@ def _feat69_family_checks():
 def _feat69_census_checks():
     """The broad-catch census enumerates the entry and the complete package (deterministic), and
     a catch injected into the entry or into a family module is one finding naming that file."""
-    scanned = {name for _abs, name in cpr().broad_catch_census_paths(REPO_ROOT)}
+    scanned = {name for _abs, name in structure_audit.broad_catch_census_paths(REPO_ROOT)}
     expected = {"check-state.py", *(os.path.join("check_state", n) for n in _FEAT69_PACKAGE)}
     check("feat69_census_scans_entry_and_every_package_file", expected <= scanned,
           f"missing {sorted(expected - scanned)}")
@@ -615,7 +605,17 @@ def case_feat69_package_lock():
     _feat69_census_checks()
 
 
+def case_audit_module_provenance():
+    """The audit modules, structure_audit and the canonical_reader_audit it imports, load from
+    the bin under test."""
+    modules = (structure_audit, sys.modules["canonical_reader_audit"])
+    check("audit_modules_load_from_the_bin_under_test",
+          all(os.path.dirname(os.path.abspath(m.__file__)) == AUDIT_DIR for m in modules),
+          ", ".join(m.__file__ for m in modules))
+
+
 CASES = (
+    case_audit_module_provenance,
     case_feat61_station_lock,
     case_feat61_loader_lock,
     case_feat62_module_body_lock,

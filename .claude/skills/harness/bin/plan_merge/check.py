@@ -195,7 +195,7 @@ def _check_all(tasks, root, brief_text, routes):
 # successor resolvable; a task owning the segment's DECISIONS.md to carry an amend/strike.
 # Whether the rows are COMPLETE, and whether a strike is justified, is the scope reader's.
 ERA_KEY = "decision_dispositions_era_start"
-# The established DECISIONS-INDEX.md row (check-plan-routes._decisions_index); a ruling that
+# The established DECISIONS-INDEX.md row (structure_audit._decisions_index); a ruling that
 # opens with STRUCK — in any case, `Struck under DEC-188` included — marks the entry struck.
 INDEX_ROW_RE = re.compile(r"^- (DEC-\d+) @\S+ \[[^\]]*\] refs:[^:]*:: (.*)$")
 # The ONE fence/heading scanner for locating a decision's section, per CommonMark (4.2, 4.5):

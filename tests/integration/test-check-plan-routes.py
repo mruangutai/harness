@@ -32,6 +32,11 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
     BIN_DIR, "check-plan-routes.py")
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
+# The audit libraries UNDER TEST sit beside SCRIPT, so a mutant copy of bin named through
+# CHECK_PLAN_ROUTES_BIN is what gets imported — never the repo copy.
+AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT))
+sys.path.insert(0, AUDIT_DIR)
+import canonical_reader_audit  # noqa: E402
 FIXTURE_DIR = os.path.join(TESTS_DIR, "fixtures")
 
 GRANTED_PATH = ".claude/skills/harness/bin/check-domain.py"  # granted to two agents
@@ -439,9 +444,10 @@ def case_19():
         # it is not about a missing module. Without these modules beside the copy
         # the script dies on ImportError at exit 1 before it can refuse, and both
         # assertions go red for a reason that has nothing to do with an
-        # unresolvable root.
+        # unresolvable root. The entry also imports both audit libraries,
+        # canonical_reader_audit.py and structure_audit.py, at module scope (FEAT-2489).
         for module in ("harness_boundary.py", "run_identity.py", "artifact_accessors.py",
-                       "feature_corpus.py"):
+                       "feature_corpus.py", "canonical_reader_audit.py", "structure_audit.py"):
             shutil.copy(os.path.join(BIN_DIR, module), os.path.join(fake_bin, module))
         r = run(cwd=td, project_dir=td, script=copy)
         check("case_19b_unresolvable_root_exits_2_not_0", r.returncode == 2,
@@ -1776,7 +1782,7 @@ def outer(blob, stream):
     seventh = fleet("f")
     eighth = feature("g")
 '''
-    candidates = cpr().reader_candidates_from_source(source, "fixture.py")
+    candidates = canonical_reader_audit.reader_candidates_from_source(source, "fixture.py")
     check("canonical_reader_alias_and_nested_calls",
           [item["category"] for item in candidates] == [
               "json_file", "json_string", "pyyaml", "harness_yaml_string",
@@ -1786,7 +1792,7 @@ def outer(blob, stream):
           {item["symbol"] for item in candidates} == {"outer"}, repr(candidates))
     check("canonical_reader_ignores_prose_and_helper_strings",
           len(candidates) == 8, repr(candidates))
-    inward = cpr().reader_candidates_from_source(
+    inward = canonical_reader_audit.reader_candidates_from_source(
         "def load_file(path):\n    return path\n\n"
         "def load_plan(path):\n    return load_file(path)\n",
         ".claude/skills/harness/bin/harness_yaml.py")
@@ -1797,12 +1803,12 @@ def outer(blob, stream):
 
 def _reader_fixture_candidate():
     source = "import json\n\ndef reader(text):\n    return json.loads(text)\n"
-    return cpr().reader_candidates_from_source(source, "fixture.py")[0]
+    return canonical_reader_audit.reader_candidates_from_source(source, "fixture.py")[0]
 
 
 def case_canonical_reader_exemption_guards():
     """Only the six ruled exemption classes can remove a row from migration."""
-    mod = cpr()
+    mod = canonical_reader_audit
     candidate = _reader_fixture_candidate()
     legal = (
         "harness_yaml_primitive",
@@ -1839,7 +1845,7 @@ def case_canonical_reader_exemption_guards():
 
 def case_canonical_reader_inventory_guards():
     """Live, duplicate, and stale rows cannot drift from the checked-in inventory."""
-    mod = cpr()
+    mod = canonical_reader_audit
     candidate = _reader_fixture_candidate()
     row = _classification_row(candidate)
     duplicate = {"schema": "canonical-reader-classification/1",
@@ -1864,7 +1870,7 @@ def case_canonical_reader_inventory_guards():
 
 def case_canonical_reader_route_guards():
     """DEC-174 route and task-file ownership are checked independently."""
-    mod = cpr()
+    mod = canonical_reader_audit
     candidate = _reader_fixture_candidate()
     routed = {"schema": "canonical-reader-classification/1",
               "scanned_files": ["fixture.py"],
@@ -1884,7 +1890,7 @@ def case_canonical_reader_route_guards():
 
 def case_canonical_reader_glob_route_guard():
     """A task file glob names each matching canonical-reader source."""
-    mod = cpr()
+    mod = canonical_reader_audit
     candidate = _reader_fixture_candidate()
     document = {"schema": "canonical-reader-classification/1",
                 "scanned_files": ["fixture.py"],
@@ -1901,7 +1907,7 @@ def case_canonical_reader_glob_route_guard():
 
 def case_canonical_reader_planless_rows_read_no_plan():
     """A row without a plan carries its task as provenance and reads no plan."""
-    mod = cpr()
+    mod = canonical_reader_audit
     candidate = _reader_fixture_candidate()
     document = {"schema": "canonical-reader-classification/1",
                 "scanned_files": ["fixture.py"],
@@ -1993,7 +1999,7 @@ def case_canonical_reader_named_plan_contract():
 
 def case_canonical_reader_second_state_reader():
     """The one-reader state.yaml exemption becomes a violation on the second reader."""
-    mod = cpr()
+    mod = canonical_reader_audit
     source = ("import harness_yaml\n\n"
               "def first(path):\n    return harness_yaml.load_file(path)\n\n"
               "def second(path):\n    return harness_yaml.load_file(path)\n")
@@ -2018,7 +2024,7 @@ def case_canonical_reader_live_baseline():
     """The checked-in inventory and permanent audit are terminally canonical."""
     classification = os.path.join(
         TESTS_DIR, "canonical-reader-classification.json")
-    mod = cpr()
+    mod = canonical_reader_audit
     result = mod.audit_canonical_readers(ROOT, classification)
     migration_findings = [
         finding
@@ -2045,7 +2051,7 @@ def case_canonical_reader_task_postconditions():
     """Signed migration units are complete or wholly untouched, never partial."""
     classification = os.path.join(
         TESTS_DIR, "canonical-reader-classification.json")
-    mod = cpr()
+    mod = canonical_reader_audit
     for task in ("T-03", "T-04", "T-05", "T-06", "T-07"):
         findings = mod.classification_task_findings(ROOT, classification, task)
         check(f"canonical_reader_{task}_postcondition",
@@ -2054,7 +2060,7 @@ def case_canonical_reader_task_postconditions():
 
 def case_canonical_reader_unclassified_remedies():
     """Every raw parse category and an aliased call fail with an exact canonical remedy."""
-    mod = cpr()
+    mod = canonical_reader_audit
     source = """import json as j
 import yaml as y
 import harness_yaml as hy
@@ -2108,7 +2114,7 @@ def raw(stream, text, path):
 
 def case_canonical_reader_unclassified_accessor_module_call():
     """A raw parser in the canonical module still requires an explicit row."""
-    mod = cpr()
+    mod = canonical_reader_audit
     source = """import json
 
 def raw(stream):
@@ -2137,7 +2143,7 @@ def raw(stream):
 
 
 def _terminal_t07_fixture():
-    mod = cpr()
+    mod = canonical_reader_audit
     classification = os.path.join(
         TESTS_DIR, "canonical-reader-classification.json")
     with open(classification, encoding="utf-8") as source:
@@ -2258,7 +2264,7 @@ def case_canonical_reader_t07_terminal_contract():
 
 def case_canonical_reader_discovery_cannot_narrow():
     """Removing a converted file or narrowing discovery fails the checked-in census."""
-    mod = cpr()
+    mod = canonical_reader_audit
     expected = ["bash-write-guard.py", "check-state.py"]
     document = {
         "schema": "canonical-reader-classification/1",
@@ -2279,7 +2285,7 @@ def case_canonical_reader_discovery_cannot_narrow():
 
 
 def _plan_ownership_findings(owned_file, missing=False):
-    mod = cpr()
+    mod = canonical_reader_audit
     candidate = _reader_fixture_candidate()
     row = _classification_row(candidate, plan="current.yaml")
     document = {"schema": "canonical-reader-classification/1",
@@ -2302,7 +2308,7 @@ def case_canonical_reader_plan_scoped_ownership():
 
 
 def case_canonical_reader_relocation_is_exact():
-    mod = cpr()
+    mod = canonical_reader_audit
     historical = ".claude/skills/harness/bin/check-state.py::<module>::load_plan#1"
     row = {"id": historical, "file": ".claude/skills/harness/bin/check-state.py",
            "symbol": "<module>", "remedy": "artifact_accessors.load_plan"}
@@ -2317,7 +2323,15 @@ def case_canonical_reader_relocation_is_exact():
     check("canonical_reader_missing_relocation_refuses", not mod._row_is_canonical(row, []))
 
 
+def case_canonical_reader_module_provenance():
+    """The canonical-reader audit library loads from the bin under test, beside SCRIPT."""
+    check("canonical_reader_audit_module_loads_from_the_bin_under_test",
+          os.path.dirname(os.path.abspath(canonical_reader_audit.__file__)) == AUDIT_DIR,
+          f"{canonical_reader_audit.__file__} is not under {AUDIT_DIR}")
+
+
 CANONICAL_READER_CASES = (
+    case_canonical_reader_module_provenance,
     case_canonical_reader_detector,
     case_canonical_reader_exemption_guards,
     case_canonical_reader_inventory_guards,
@@ -2476,13 +2490,12 @@ def _required_keyword_finding(row, trees):
         with open(path) as f:
             trees[path] = ast.parse(f.read(), filename=path)
     tree = trees[path]
-    routes = cpr()
-    aliases = routes._ReaderAliasCollector()
+    aliases = canonical_reader_audit._ReaderAliasCollector()
     aliases.visit(tree)
     matching = [
         node for node in ast.walk(tree)
         if isinstance(node, ast.Call)
-        and routes._qualified_name(node.func, aliases.aliases) == row["remedy"]
+        and canonical_reader_audit._qualified_name(node.func, aliases.aliases) == row["remedy"]
         and _call_symbol(tree, node) == row["symbol"]
     ]
     if any(_call_has_keywords(call, row["required_keywords"]) for call in matching):
@@ -2518,7 +2531,7 @@ def _required_keyword_findings(task_id, classification):
 def verify_classification_task(task_id):
     classification = os.path.join(
         TESTS_DIR, "canonical-reader-classification.json")
-    findings = cpr().classification_task_findings(
+    findings = canonical_reader_audit.classification_task_findings(
         ROOT, classification, task_id)
     findings.extend(_required_keyword_findings(task_id, classification))
     if findings:

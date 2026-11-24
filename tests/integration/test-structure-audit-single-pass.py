@@ -9,7 +9,7 @@ invocation, every node of every parsed physical or embedded AST must be visited 
 no node outside those trees may be visited, and no source may be parsed twice -- check-state.py
 and its check_state/ package sit in the reader census AND the checker-structure surface AND
 the broad-catch census, so they are where a repeated parse would show. CHECK_PLAN_ROUTES_BIN
-points the test at another checker file.
+points the test at another checker file and the audit modules beside it.
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
@@ -18,7 +18,6 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import ast
 import collections
-import importlib.util
 import json
 import os
 import runpy
@@ -32,6 +31,11 @@ REPO_ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_REL = os.path.join(".claude", "skills", "harness", "bin")
 BIN_DIR = os.path.join(REPO_ROOT, BIN_REL)
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(BIN_DIR, "check-plan-routes.py")
+# The audit modules UNDER TEST sit beside SCRIPT, so a mutant bin named through the override
+# is what gets imported.
+AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT))
+sys.path.insert(0, AUDIT_DIR)
+import structure_audit  # noqa: E402
 _TREE_FILES = (os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md"),)
 _TREE_DIRS = (os.path.join(".github", "workflows"), os.path.join(".claude", "skills", "harness", "hooks"))
 _MARKER = os.path.join(".harness", "team-config.yaml")
@@ -114,13 +118,6 @@ def _fixture_root(td):
     return td
 
 
-def _checker():
-    spec = importlib.util.spec_from_file_location("_cpr_single_pass", SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 def _in_process(module, entry, root):
     with Traversal() as traversal:
         getattr(module, entry)(root)
@@ -167,7 +164,11 @@ def _check_once(label, summary, physical):
 
 
 def main():
-    module = _checker()
+    check("audit_modules_load_from_the_bin_under_test",
+          all(os.path.dirname(os.path.abspath(m.__file__)) == AUDIT_DIR
+              for m in (structure_audit, sys.modules["canonical_reader_audit"])),
+          f"{structure_audit.__file__}, {sys.modules['canonical_reader_audit'].__file__}")
+    module = structure_audit
     with tempfile.TemporaryDirectory() as td:
         root = _fixture_root(td)
         for entry in ("consolidation_findings", "feat62_findings", "broad_catch_findings"):
