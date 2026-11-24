@@ -217,7 +217,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 check_state ctx loads plan-merge.py and the cutover makes gate-imported writers use the new core; made directly.
     depends_on: [T-01]
-    status: building
+    status: done
     files:
     - .claude/skills/harness/bin/feature_json_write.py#write_feature_json
     - .claude/skills/harness/bin/plan_merge/amendments.py#write_plan_and_ledger
