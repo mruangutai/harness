@@ -4820,13 +4820,18 @@ def _run_record(plan, root, _sha):
     return _record(plan, _digest_with(_T01_AMENDMENT), root)
 
 
-def _run_amend(plan, root, sha):
-    """A ledgered `amend` of T-01.intent to `narrowed`, naming `sha` as --expect-sha256."""
+def _amend_argv(plan, root, sha):
+    """argv of a ledgered `amend` of T-01.intent to `narrowed`, naming `sha` as
+    --expect-sha256."""
     value = os.path.join(root, "intent.txt")
     write(value, "narrowed\n")
-    return run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field",
-                    "intent", "--expect-sha256", sha or "x", "--value-file", value,
-                    "--reason", "torn pair")
+    return ["amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field", "intent",
+            "--expect-sha256", sha or "x", "--value-file", value, "--reason", "torn pair"]
+
+
+def _run_amend(plan, root, sha):
+    """A ledgered `amend` of T-01.intent to `narrowed`, naming `sha` as --expect-sha256."""
+    return run_verb(*_amend_argv(plan, root, sha))
 
 
 # verb -> (runner, the field's `now`, what the verb's refused re-run says)
@@ -4969,23 +4974,35 @@ def _call(fn, *args):
     return None
 
 
-def case_2488_a_feature_json_write_completes_the_pair_first():
-    """SC-01 (e): with record-amendments torn (plan amended, ledger not), the next feature.json
-    write — a feature.json-only writer such as gh-sync, which never takes the plan lock — rolls
+def _feature_json_write_converges(label, plan_side, fj_side):
+    """A feature.json-only write on record-amendments torn at (plan_side, fj_side): it rolls
     the journal forward before its own transform reads the ledger, so the judgement lands once
-    and the writer's own change lands on top of it."""
-    root, plan, fj, _, _ = _torn("record-amendments", _AFTER, _BEFORE, "2488/e")
+    and the writer's change lands on top; then (F-2r) a further record-amendments re-run exits
+    6 and changes neither file."""
+    root, plan, fj, _, sha = _torn("record-amendments", plan_side, fj_side, label)
     try:
         import feature_json_write
         error = _call(feature_json_write.write_feature_json, fj, _bump_cycles)
-        check("2488/e: write_feature_json returns", error is None, repr(error))
-        check("2488/e: cycles_used equals 1", _json.loads(read(fj)).get("cycles_used") == 1,
+        check(f"{label}: write_feature_json returns", error is None, repr(error))
+        check(f"{label}: cycles_used equals 1", _json.loads(read(fj)).get("cycles_used") == 1,
               read(fj))
-        check("2488/e: the plan carries the amendment, ledgered exactly once",
+        check(f"{label}: the plan carries the amendment, ledgered exactly once",
               _carries_once(plan, fj, "amended"), read(fj))
-        check("2488/e: no journal remains", _no_journal(plan))
+        check(f"{label}: no journal remains", _no_journal(plan))
+        _settles(label, "record-amendments", plan, fj, root, sha)
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2488_a_feature_json_write_completes_the_pair_first():
+    """SC-01 (e): with record-amendments torn, the next feature.json write — a feature.json-only
+    writer such as gh-sync, which never takes the plan lock — completes the pair first. From
+    torn (a) plan amended, ledger not; from (b) ledger landed, plan not (validate c1 G-b); and
+    from (c) both landed, journal left (G-b). Each is followed by a further re-run that leaves
+    both files byte-identical (pm F-2r)."""
+    for label, plan_side, fj_side in (("2488/e", _AFTER, _BEFORE), ("2488/e/b", _BEFORE, _AFTER),
+                                      ("2488/e/c", _AFTER, _AFTER)):
+        _feature_json_write_converges(label, plan_side, fj_side)
 
 
 def case_2488_a_diverged_member_refuses_and_changes_nothing():
@@ -5115,6 +5132,101 @@ def case_2488_feedback_failure_after_the_commit_is_advisory():
               "changed-state feedback" in stderr.getvalue(), stderr.getvalue())
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def _feedback_rows(_path, *args, **kwargs):
+    """changed_state_feedback with one row, so the real relay has a line to print."""
+    return ["check-state --changed: one row the relay prints"]
+
+
+def _closed_stream():
+    """A real text stream, already closed: any write raises ValueError (closed file)."""
+    stream = open(os.devnull, "w", encoding="utf-8")
+    stream.close()
+    return stream
+
+
+def _plain_append(base):
+    return base + b"# a plain locked write\n"
+
+
+def case_2488_a_closed_stderr_after_the_commit_is_advisory():
+    """validate c1 MF-7: sys.stderr is a real closed stream when the committed write relays
+    its changed-state feedback, and the real relay has a row to print. The relay's print
+    raises ValueError, and so would a fallback line to the same stream. Both are advisory:
+    write_plan_and_ledger returns normally with the amendment landed once and no journal, and
+    so does guards._locked_plan_update (an unledgered amend's commit) with its write landed.
+    The receipts printed after either commit return normally on a closed stdout too."""
+    root, plan, fj = _signed_pair("2488/k")
+    try:
+        amendments = _load_owner("amendments")
+        guards = sys.modules["plan_merge.guards"]
+        boundary = sys.modules["harness_boundary"]
+        real = boundary.changed_state_feedback
+        boundary.changed_state_feedback = _feedback_rows
+        try:
+            with contextlib.redirect_stderr(_closed_stream()):
+                error = _write_pair(amendments, plan)
+                plain = _call(guards._locked_plan_update, os.path.realpath(plan), _plain_append)
+                with contextlib.redirect_stdout(_closed_stream()):
+                    receipts = _call(guards._print_receipts, f"APPLIED {plan}")
+        finally:
+            boundary.changed_state_feedback = real
+        check("2488/k: write_plan_and_ledger returns normally on a closed stderr",
+              error is None, repr(error))
+        check("2488/k: the amendment landed, ledgered exactly once, no journal",
+              _carries_once(plan, fj, _H_TEXT) and _no_journal(plan), read(fj))
+        check("2488/k: _locked_plan_update returns normally on a closed stderr",
+              plain is None, repr(plain))
+        check("2488/k: the plain write landed", read(plan).endswith("# a plain locked write\n"),
+              read(plan)[-80:])
+        check("2488/k: receipts to a closed stdout, with stderr closed too, return normally",
+              receipts is None, repr(receipts))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _run_into_a_broken_pipe(argv):
+    """The CLI with stdout a pipe whose reader has already gone, as when piped into a `head`
+    that exited: every stdout write raises BrokenPipeError. stderr is captured."""
+    read_end, write_end = os.pipe()
+    os.close(read_end)
+    try:
+        return subprocess.run([sys.executable, CLI, *argv], stdout=write_end,
+                              stderr=subprocess.PIPE, text=True)
+    finally:
+        os.close(write_end)
+
+
+def _record_argv(plan, root, _sha):
+    digest = os.path.join(root, "digest.md")
+    write(digest, _digest_with(_T01_AMENDMENT))
+    return ["record-amendments", "--file", plan, "--digest", digest]
+
+
+_RECEIPT_VERBS = (("record-amendments", _record_argv, "amended"),
+                  ("amend", _amend_argv, "narrowed"))
+
+
+def case_2488_receipts_into_a_broken_pipe_never_fail_the_commit():
+    """validate c1 MF-7's audit: the AMENDED/APPLIED receipts are printed after the commit, so
+    a stdout that cannot take them costs the receipts, never the outcome. Exit 0 (the signed
+    contract for a landed amendment), no Traceback, the amendment landed once with no journal,
+    and stderr says the write landed."""
+    for verb, argv_of, now in _RECEIPT_VERBS:
+        label = f"2488/l/{verb}"
+        root, plan, fj = _signed_pair(label)
+        try:
+            sha, _ = _sha_of(plan, "tasks", "T-01", "intent")
+            r = _run_into_a_broken_pipe(argv_of(plan, root, sha))
+            check(f"{label}: exits 0 with no Traceback",
+                  r.returncode == 0 and "Traceback" not in r.stderr,
+                  f"rc={r.returncode} {r.stderr!r}")
+            check(f"{label}: the amendment landed, ledgered exactly once, no journal",
+                  _carries_once(plan, fj, now) and _no_journal(plan), read(fj))
+            check(f"{label}: stderr says the write landed", "landed" in r.stderr, r.stderr)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
 
 
 @contextlib.contextmanager
@@ -5768,6 +5880,8 @@ CASES = (
     case_2488_a_diverged_member_refuses_and_changes_nothing,
     case_2488_amend_stdout_is_unchanged,
     case_2488_feedback_failure_after_the_commit_is_advisory,
+    case_2488_a_closed_stderr_after_the_commit_is_advisory,
+    case_2488_receipts_into_a_broken_pipe_never_fail_the_commit,
     case_2488_a_ledger_failure_after_publish_is_journaled,
     case_2488_a_failed_replay_stays_pending,
     case_2488_amend_show_leaves_a_pending_journal_alone,

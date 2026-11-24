@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import subprocess
+import stat
 import sys
 import tempfile
 from unittest.mock import patch
@@ -516,6 +517,12 @@ def case_missing_before_key_refuses():
           repr(result))
     check("unreadable: the missing key never recreates the absent ledger; nothing is written",
           snapshot(d) == before, repr(snapshot(d)))
+    result = outcome(harness_merge.locked_update, ledger, appending(), timeout=0.2)
+    check("unreadable: the missing key via locked_update(feature.json) refuses with code 5 naming "
+          "the journal and the key", _refused_naming(result, plan + SUFFIX)
+          and "before_sha256" in result[2], repr(result))
+    check("unreadable: via locked_update(feature.json) the absent ledger is not recreated; "
+          "nothing is written", snapshot(d) == before, repr(snapshot(d)))
     d, plan, ledger = pair_dir(P0, None, [(PLAN, P0, P1), (LEDGER, None, S1)])
     result = outcome(harness_merge.recover_journals, plan)
     check("absent: an explicit null before_sha256 still records an absent member, which the "
@@ -550,6 +557,8 @@ def case_misbound_journal_refuses():
 REVERSED_ROUTES = (
     ("locked_update(secondary)",
      lambda plan, ledger: harness_merge.locked_update(ledger, appending(), timeout=0.2)),
+    ("locked_update(primary)",
+     lambda plan, ledger: harness_merge.locked_update(plan, appending(), timeout=0.2)),
     ("recover_journals(primary)",
      lambda plan, ledger: harness_merge.recover_journals(plan, timeout=0.2)),
     ("locked_pair_update", lambda plan, ledger: harness_merge.locked_pair_update(
@@ -647,15 +656,28 @@ def _linked(journal, d):
     os.symlink(target, journal)
 
 
+def _directory(journal, d):
+    os.mkdir(journal)
+
+
+_LOCKED_UPDATE = "harness_merge.locked_update({target!r}, lambda b: b'x')"
+_RECOVER = "harness_merge.recover_journals({target!r})"
+
 NON_REGULAR = (
-    ("a dangling symlink", _dangling, PLAN + SUFFIX, "locked_update(plan)",
-     "harness_merge.locked_update({plan!r}, lambda b: b'x')"),
+    ("a dangling symlink", _dangling, PLAN + SUFFIX, "locked_update(plan)", _LOCKED_UPDATE, PLAN),
+    ("a dangling symlink", _dangling, PLAN + SUFFIX, "locked_update(feature.json)",
+     _LOCKED_UPDATE, LEDGER),
     ("a symlink to a well-formed journal", _linked, PLAN + SUFFIX, "recover_journals(plan)",
-     "harness_merge.recover_journals({plan!r})"),
-    ("a FIFO", _fifo, PLAN + SUFFIX, "recover_journals(plan)",
-     "harness_merge.recover_journals({plan!r})"),
+     _RECOVER, PLAN),
+    ("a FIFO", _fifo, PLAN + SUFFIX, "recover_journals(plan)", _RECOVER, PLAN),
     ("a FIFO under another journal name", _fifo, "other" + SUFFIX, "locked_update(notes.txt)",
-     "harness_merge.locked_update({notes!r}, lambda b: b'x')"),
+     _LOCKED_UPDATE, "notes.txt"),
+    ("a directory", _directory, PLAN + SUFFIX, "locked_update(plan)", _LOCKED_UPDATE, PLAN),
+    ("a directory", _directory, PLAN + SUFFIX, "locked_update(feature.json)", _LOCKED_UPDATE,
+     LEDGER),
+    ("a directory", _directory, PLAN + SUFFIX, "recover_journals(plan)", _RECOVER, PLAN),
+    ("a directory", _directory, PLAN + SUFFIX, "recover_journals(feature.json)", _RECOVER,
+     LEDGER),
 )
 
 
@@ -666,18 +688,87 @@ def _entries(d):
 
 
 def case_non_regular_journal_refuses():
-    for label, make, entry, route, call in NON_REGULAR:
+    for label, make, entry, route, call, target in NON_REGULAR:
         d, plan, _ = pair_dir(P0, S0)
         journal = os.path.join(d, entry)
         make(journal, d)
         before = _entries(d)
-        result = _probe(call.format(plan=plan, notes=os.path.join(d, "notes.txt")))
+        result = _probe(call.format(target=os.path.join(d, target)))
         check(f"entry: {label} via {route} refuses with code 5 naming JOURNAL UNREADABLE and "
               "the journal, never hangs", result[0] == "exited" and result[1] == 5
               and "JOURNAL UNREADABLE" in result[2] and journal in result[2], repr(result))
         check(f"entry: {label} via {route} writes nothing", _entries(d) == before
               and read(plan) == P0 and read(os.path.join(d, LEDGER)) == S0,
               repr(sorted(os.listdir(d))))
+
+
+def _buffered_fifo(path, data):
+    """A FIFO at `path` already holding `data`, written and its writer closed. Returns the
+    held-open reader descriptor that keeps the buffered bytes alive; the caller closes it."""
+    os.mkfifo(path)
+    keeper = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    writer = os.open(path, os.O_WRONLY | os.O_NONBLOCK)
+    try:
+        os.write(writer, data)
+    finally:
+        os.close(writer)
+    return keeper
+
+
+def _swap_before_open(journal, replacement, nth):
+    """An os.open stand-in that renames `replacement` over `journal` just before the nth open
+    of `journal` — the read under the primary's lock, after every lstat _require_regular made
+    — then delegates. Returns (wrapper, swapped)."""
+    real = os.open
+    opens, swapped = [], []
+
+    def wrapper(path, flags, *args, **kwargs):
+        if os.fspath(path) == journal:
+            opens.append(path)
+            if len(opens) == nth:
+                os.replace(replacement, journal)
+                swapped.append(path)
+        return real(path, flags, *args, **kwargs)
+    return wrapper, swapped
+
+
+# (route, op, which open of the journal is the read under plan.yaml.lock): recover_journals
+# on the primary never reads in discovery (the name says it all); a feature.json write reads
+# once in lock-free discovery, then again under the lock.
+FIFO_SWAP_ROUTES = (
+    ("recover_journals(plan)", lambda plan, ledger: harness_merge.recover_journals(plan), 1),
+    ("locked_update(feature.json)",
+     lambda plan, ledger: harness_merge.locked_update(ledger, appending(), timeout=0.2), 2),
+)
+
+
+def case_fifo_swapped_after_lstat_refuses():
+    """validate c1 MF-8: the entry is a regular file when _require_regular lstats it, then a
+    FIFO already holding a well-formed J1 record is renamed over it before the read under the
+    primary's lock. The opened descriptor is not a regular file, so the read refuses
+    UNREADABLE naming the journal before reading a byte: no member is replayed, the FIFO is
+    left in place and its buffered record is still unread."""
+    record = journal_bytes(J1)
+    for route, op, nth in FIFO_SWAP_ROUTES:
+        d, plan, ledger = pair_dir(P0, S0, J1)
+        journal = plan + SUFFIX
+        keeper = _buffered_fifo(os.path.join(d, "swap.fifo"), record)
+        try:
+            wrapper, swapped = _swap_before_open(journal, os.path.join(d, "swap.fifo"), nth)
+            with patch.object(os, "open", wrapper):
+                result = outcome(op, plan, ledger)
+            unread = os.read(keeper, len(record) + 1)
+        finally:
+            os.close(keeper)
+        check(f"fifo swap via {route}: the swap happened after the lstat, before the open",
+              swapped == [journal], repr(swapped))
+        check(f"fifo swap via {route}: refuses with code 5 naming JOURNAL UNREADABLE and the "
+              "journal", _refused_naming(result, journal), repr(result))
+        check(f"fifo swap via {route}: both members untouched",
+              (read(plan), read(ledger)) == (P0, S0), repr((read(plan), read(ledger))))
+        check(f"fifo swap via {route}: the FIFO is left in place, its record unread",
+              os.path.lexists(journal) and stat.S_ISFIFO(os.lstat(journal).st_mode)
+              and unread == record, repr((sorted(os.listdir(d)), len(unread))))
 
 
 # ---- bounded diagnostics -------------------------------------------------------------------
@@ -721,6 +812,7 @@ CASES = (
     case_pair_is_the_amendment_pair,
     case_nested_secondary_write_under_the_primary_lock,
     case_non_regular_journal_refuses,
+    case_fifo_swapped_after_lstat_refuses,
     case_refusal_diagnostics_are_bounded,
 )
 

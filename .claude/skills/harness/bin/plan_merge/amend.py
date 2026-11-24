@@ -14,8 +14,8 @@ from plan_merge.text import (
     _render_field, _structured_field_lines,
 )
 from plan_merge.guards import (
-    _die, _locked_plan_update, _refuse_illegal_amendment, _refuse_illegal_anchors,
-    _reload_or_refuse, _resolve_plan, _sole_item,
+    _die, _locked_plan_update, _print_receipts, _refuse_illegal_amendment,
+    _refuse_illegal_anchors, _reload_or_refuse, _resolve_plan, _sole_item,
 )
 
 def _verify_amend(spliced_bytes, key, iid, field, want):
@@ -294,9 +294,7 @@ def cmd_amend(args):
             _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
-    print(f"AMENDED {args.key}:{args.id}.{args.field}"
-          + (" judgement=amendment" if ledger else ""))
-    print(f"APPLIED {resolved}")
-    if ledger:
-        print(f"APPLIED {ledger}")
+    _print_receipts(f"AMENDED {args.key}:{args.id}.{args.field}"
+                    + (" judgement=amendment" if ledger else ""),
+                    f"APPLIED {resolved}", *([f"APPLIED {ledger}"] if ledger else []))
     sys.exit(0)

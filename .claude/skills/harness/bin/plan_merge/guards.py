@@ -1,4 +1,5 @@
 """Destination, reload, schema and lock guards shared by every verb; the one write route. (FEAT-70)"""
+import contextlib
 import os
 import re
 import sys
@@ -267,12 +268,42 @@ def _refuse_governed_agent(action, where):
          "shell form of this call can reach a write.")
 
 
+def _relay_after_commit(path):
+    """The changed-state feedback for a write that has committed, advisory only: the write has
+    landed, so a failure here is one stderr line (itself best-effort) and never a refusal or a
+    traceback. changed_state_feedback already absorbs its subprocess's (OSError,
+    SubprocessError); what is left is printing to stderr — OSError on a broken pipe, ValueError
+    on a closed stream — and the fallback line can meet either on the same stream."""
+    try:
+        harness_boundary.relay_changed_state_feedback(path)
+    except (OSError, ValueError) as exc:
+        with contextlib.suppress(OSError, ValueError):
+            print("plan-merge: changed-state feedback after the committed write failed: "
+                  f"{type(exc).__name__}: {exc}", file=sys.stderr)
+
+
+def _print_receipts(*lines):
+    """A committed write's receipts, one per line on stdout, flushed. The write has landed, so
+    a stdout that cannot take them — closed (ValueError) or a broken pipe (OSError) — costs
+    the receipts, never the outcome: one best-effort stderr line says the write landed, and
+    the verb still exits 0."""
+    try:
+        for line in lines:
+            print(line)
+        sys.stdout.flush()
+    except (OSError, ValueError) as exc:
+        with contextlib.suppress(OSError, ValueError):
+            print("plan-merge: the write landed, but its receipts could not be printed: "
+                  f"{type(exc).__name__}: {exc}", file=sys.stderr)
+
+
 def _locked_plan_update(resolved, transform):
     """Every mutating verb's plan write: harness_merge.locked_update, then -- once its lock is
-    released -- the changed-state feedback loop on stderr (FEAT-62 T-03). A refusal raises
-    out of locked_update before the relay is reached, so a refused verb stays silent here."""
+    released -- the changed-state feedback loop on stderr (FEAT-62 T-03), advisory after the
+    commit (_relay_after_commit). A refusal raises out of locked_update before the relay is
+    reached, so a refused verb stays silent here."""
     harness_merge.locked_update(resolved, transform)
-    harness_boundary.relay_changed_state_feedback(resolved)
+    _relay_after_commit(resolved)
 
 
 def _die(code, *lines):

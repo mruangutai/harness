@@ -59,10 +59,11 @@ state is replaced with its after image, and a member in neither state refuses (J
 exit 5) with every file and the journal untouched. A journal that cannot be parsed refuses
 (JOURNAL UNREADABLE, exit 5) for every write in its directory, because it cannot say which
 files it names; a readable one blocks only its own members' writers. A journal entry is
-examined with lstat and opened only when it is a regular file: a symlink (dangling or not), a
-FIFO or a directory refuses UNREADABLE naming the journal, so no writer blocks on a FIFO or
-spins on an entry that lists as present and reads as absent. Before any lock is taken, a
-journal named for any file but JOURNAL_PAIR's primary refuses UNREADABLE too.
+examined with lstat, and the descriptor opened for it with fstat before a byte is read: a
+symlink (dangling or not), a FIFO or a directory refuses UNREADABLE naming the journal, even
+one swapped in after the lstat, so no writer blocks on or reads from a FIFO or spins on an entry
+that lists as present and reads as absent. Before any lock is taken, a journal named for any
+file but JOURNAL_PAIR's primary refuses UNREADABLE too.
 
 Lock order: a pair takes its primary's lock before its secondary's, which for the amendment pair
 is plan.yaml.lock then feature.json.lock. sign-approval's signed_task_hashes write takes the same
@@ -315,7 +316,8 @@ def _require_regular(journal_path):
     """lstat the journal entry without following it. FileNotFoundError propagates (a journal
     can vanish between a lock-free listing and this look); anything but a regular file — a
     symlink, dangling or not, a FIFO, a directory — is the UNREADABLE refusal, decided before
-    any open, so a FIFO is never opened and a dangling entry never reads as absent."""
+    any open, so a FIFO standing at the name is never opened and a dangling entry never reads
+    as absent. An entry swapped in after this look is _journal_bytes' fstat's to refuse."""
     try:
         mode = os.lstat(journal_path).st_mode
     except FileNotFoundError:
@@ -327,19 +329,36 @@ def _require_regular(journal_path):
             journal_path, "is not a regular file (a symlink, FIFO, directory or device)")
 
 
+def _regular_fd_bytes(fd):
+    """The bytes behind an open descriptor when it is a regular file, else None — decided by
+    fstat before a single byte is read."""
+    if not stat.S_ISREG(os.fstat(fd).st_mode):
+        return None
+    with os.fdopen(fd, "rb", closefd=False) as fh:
+        return fh.read()
+
+
 def _journal_bytes(journal_path):
-    """The journal's bytes, read only from a regular file (_require_regular). O_NOFOLLOW and
-    O_NONBLOCK hold that against an entry swapped after the lstat: a symlink fails to open and
-    a FIFO never blocks. FileNotFoundError propagates; any other failure is UNREADABLE."""
+    """The journal's bytes, read only from a regular file. _require_regular checks the name;
+    O_NOFOLLOW|O_NONBLOCK and an fstat of the OPENED descriptor hold that against an entry
+    swapped after the lstat: a symlink fails to open, a FIFO (even one already holding a
+    record) opens without blocking and is refused before any read, as is a directory or
+    device. FileNotFoundError propagates; any other failure is UNREADABLE."""
     _require_regular(journal_path)
     try:
         fd = os.open(journal_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-        with os.fdopen(fd, "rb") as fh:
-            return fh.read()
+        try:
+            data = _regular_fd_bytes(fd)
+        finally:
+            os.close(fd)
     except FileNotFoundError:
         raise
     except OSError as exc:
         raise _journal_unreadable(journal_path, f"cannot be read ({exc})") from None
+    if data is None:
+        raise _journal_unreadable(
+            journal_path, "is not a regular file once opened (replaced after it was examined)")
+    return data
 
 
 def _pair_members(journal_path, members):

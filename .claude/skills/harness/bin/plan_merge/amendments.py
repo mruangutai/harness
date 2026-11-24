@@ -1,5 +1,4 @@
 """`record-amendments`: a lead digest's amendments spliced and ledgered as one act. (FEAT-70)"""
-import contextlib
 import json
 import os
 import sys
@@ -9,11 +8,10 @@ from datetime import timezone
 
 import amendment_contract
 import feature_json_write
-import harness_boundary
 import harness_merge
 from plan_merge.guards import (
-    _die, _pending_replay_lines, _refuse_illegal_amendment, _reload_or_refuse, _resolve_plan,
-    _sole_item,
+    _die, _pending_replay_lines, _print_receipts, _refuse_illegal_amendment, _relay_after_commit,
+    _reload_or_refuse, _resolve_plan, _sole_item,
 )
 from plan_merge.text import (
     _field_block, _item_by_id, _item_range, _render_field, _structured_field_lines,
@@ -192,19 +190,6 @@ def _pair_failure(exc, resolved, feature_json):
             "  nothing was written."])
 
 
-def _relay_after_commit(ledger_path):
-    """The committed pair's changed-state feedback, advisory only: the write has landed, so a
-    failure here is one stderr line (itself best-effort) and never a refusal.
-    changed_state_feedback already absorbs its subprocess's (OSError, SubprocessError); what is
-    left is printing to stderr — OSError on a broken pipe, ValueError on a closed stream."""
-    try:
-        harness_boundary.relay_changed_state_feedback(ledger_path)
-    except (OSError, ValueError) as exc:
-        with contextlib.suppress(OSError):
-            print("plan-merge: changed-state feedback after the committed write failed: "
-                  f"{type(exc).__name__}: {exc}", file=sys.stderr)
-
-
 def write_plan_and_ledger(resolved, feature_json, splice, judgements):
     """The plan splice and its ledger judgements as ONE journaled transaction:
     harness_merge.locked_pair_update with plan.yaml as the primary, replaced before
@@ -270,8 +255,6 @@ def cmd_record_amendments(args):
         _record_amendments_locked(resolved, feature_json, entries)
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
-    for entry in entries:
-        print(f"AMENDED {entry['task']}.{entry['field']} judgement=amendment")
-    print(f"APPLIED {resolved}")
-    print(f"APPLIED {feature_json}")
+    _print_receipts(*[f"AMENDED {entry['task']}.{entry['field']} judgement=amendment"
+                      for entry in entries], f"APPLIED {resolved}", f"APPLIED {feature_json}")
     sys.exit(0)

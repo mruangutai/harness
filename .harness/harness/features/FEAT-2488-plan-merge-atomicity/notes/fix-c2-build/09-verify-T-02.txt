@@ -1,0 +1,1964 @@
+# literal verify of T-02 from plan.yaml, run with bash from the worktree root, 2026-11-24T02:32:56Z:
+#   python3 .claude/skills/harness/bin/run_pool.py --workers 4 tests/integration/test-plan-merge.py tests/integration/test-check-state-feat59.py tests/integration/test-feature-json-merge.py tests/integration/test-plan-decision-dispositions.py tests/unit/test-plan-merge-first-station.py tests/unit/test-plan-merge-union-head.py tests/unit/test-harness-merge-journal.py tests/integration/test-harness-merge.py tests/integration/test-observations-merge.py tests/integration/test-expertise-merge.py tests/integration/test-inflight-registry.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && python3 - <<'PY'
+#   import pathlib
+#   b = pathlib.Path('.claude/skills/harness/bin')
+#   mods = sorted((b / 'plan_merge').glob('*.py'))
+#   assert 10 <= len(mods), mods
+#   for m in mods:
+#       t = m.read_text()
+#       assert 'mkstemp' not in t and 'os.replace' not in t, m
+#       assert 'harness-merge.journal' not in t and 'JOURNAL_SUFFIX' not in t, m
+#   g = (b / 'plan_merge' / 'guards.py').read_text()
+#   assert 'def _replace_bytes' not in g and 'def _restore_plan' not in g and 'recover_journals(' in g
+#   a = (b / 'plan_merge' / 'amend.py').read_text()
+#   assert 'APPROVAL_RESET_LINE' not in a and 'result["reset"]' not in a and 'result.get("reset")' not in a
+#   am = (b / 'plan_merge' / 'amendments.py').read_text()
+#   assert 'harness_merge.locked_pair_update(' in am and 'JournalPending' in am and '_restore_plan' not in am
+#   doc = (b / 'feature_json_write.py').read_text().split('"""')[1]
+#   assert 'the fsync' not in doc and 'fsync' in doc
+#   assert 'intent journal' in (b / 'plan-merge.py').read_text()
+#   print('PASS no rename primitive or journal handling in plan_merge; reset bookkeeping and false fsync claim gone')
+#   PY
+----- test-feature-json-merge.py (exit 0, 1.49s) -----
+PASS - case1: MergeRefusal propagated
+PASS - case1: file byte-identical to before
+PASS - case2: both concurrent writers' entries survive (lock serialised, did not clobber)
+PASS - case3: refused
+PASS - case3: refusal names a JSON decode error
+PASS - case3: file left as the original valid document
+PASS - case4: refused
+PASS - case4: refusal names a missing required key
+PASS - case4: file byte-identical to before
+PASS - case5: refused with the destination code
+PASS - case5: no file created at the refused path
+PASS - case6: CLI exits 0
+PASS - case6: branch landed
+PASS - case6: every other key survived unchanged
+PASS - case7: CLI exits 0
+PASS - case7: run entry appended
+PASS - case8: CLI exits 0
+PASS - case8: github block landed
+PASS - case9: CLI exits non-zero
+PASS - case9: stderr names the schema problem
+PASS - case9: file byte-identical to before
+PASS - case10: CLI exits non-zero for a missing file
+PASS - case10: no file created
+PASS - case11: refused
+PASS - case11: refusal names the NEW problem (review_sha)
+PASS - case11: refusal does NOT name the pre-existing problem (status)
+PASS - case11: file byte-identical to before
+PASS - case12: accepted, not refused
+PASS - case12: unrelated key landed
+PASS - case12: pre-existing problem (missing branch) still present, unreported as a refusal
+PASS - case13: schema-clean candidate lands over an unparseable base
+PASS - case13: differently-broken candidate over an unparseable base is refused
+PASS - case13: refusal names a JSON decode error
+PASS - case13: file left as the original unparseable base, not overwritten
+PASS - case14: default tail_regex still refuses a non-canonical path, code 9
+PASS - case14: default-refused path created nothing
+PASS - case14: a custom tail_regex accepts the same non-canonical path
+PASS - case15: the write exits 0 and lands
+PASS - case15: the checker's row reaches stderr under the feedback header
+PASS - case15: the checker runs AFTER the writer's lock is released (GC-03)
+PASS - case15: a refused write prints no feedback and leaves the bytes alone
+PASS - 41/41 checks passed
+PASS test-feature-json-merge.py
+----- test-plan-merge-first-station.py (exit 0, 0.12s) -----
+PASS a status-less task gains its first station at its field indent: exit 0 
+PASS a status-less task gains its first station at its field indent: the whole file is exactly the expected bytes 
+PASS a status-less task gains its first station at its field indent: reports its outcome 
+PASS a status-less task gains its first station at its field indent: prints APPLIED only on success 
+PASS an existing status is rewritten and every other byte is unchanged: exit 0 
+PASS an existing status is rewritten and every other byte is unchanged: the whole file is exactly the expected bytes 
+PASS an existing status is rewritten and every other byte is unchanged: reports its outcome 
+PASS an existing status is rewritten and every other byte is unchanged: prints APPLIED only on success 
+PASS a genuinely absent task refuses with exit 3 and writes nothing: exit 3 
+PASS a genuinely absent task refuses with exit 3 and writes nothing: the whole file is exactly the expected bytes 
+PASS a genuinely absent task refuses with exit 3 and writes nothing: reports its outcome 
+PASS a genuinely absent task refuses with exit 3 and writes nothing: prints APPLIED only on success 
+PASS the first station sits inside T-01's own mapping, before T-02 
+PASS T-01's verify prose keeps its own `status: prose` line 
+PASS the absent-task refusal never blames a status line 
+PASS the first-station insert on a signed plan succeeds 
+PASS the signed approval block is byte-identical after the insert 
+PASS test-plan-merge-first-station.py
+PASS test-plan-merge-first-station.py
+----- test-plan-merge-union-head.py (exit 0, 0.09s) -----
+PASS decisions: [] gaining an item merges without a refusal 
+PASS decisions: [] gains the proposal's block head, not the inline [] 
+PASS decisions: [] merged plan reloads with the added item 
+PASS tasks: [] gaining an item merges without a refusal 
+PASS tasks: [] gains the proposal's block head, not the inline [] 
+PASS tasks: [] merged plan reloads with the added item 
+PASS a decisions base with items merges D-02 
+PASS a decisions base with items keeps its own head line 
+PASS a decisions base with items carries D-01 then D-02 
+PASS test-plan-merge-union-head.py
+PASS test-plan-merge-union-head.py
+----- test-harness-merge-journal.py (exit 0, 0.91s) -----
+PASS - api: JOURNAL_SUFFIX names the per-primary journal
+PASS - api: JournalPending stores journal, cause, replay defaulting false
+PASS - api: JournalPending message is '<cause type>: <cause>'
+PASS - api: JournalPending carries replay=True
+PASS - pair: transforms receive both bases (None for an absent secondary)
+PASS - pair: success writes both images, no journal and no temp file
+PASS - pair: primary refusal propagates unchanged
+PASS - pair: primary refusal leaves both files byte-identical and no journal
+PASS - pair: secondary refusal propagates unchanged
+PASS - pair: secondary refusal leaves both files byte-identical and no journal
+PASS - pair: secondary ValueError propagates unchanged
+PASS - pair: secondary ValueError leaves both files byte-identical and no journal
+PASS - pair: a held secondary lock refuses with code 6 naming LOCKED
+PASS - pair: the LOCKED refusal writes nothing
+PASS - pair: members in two directories raise ValueError
+PASS - pair: the same file twice raises ValueError
+PASS - pair: a ValueError writes nothing
+PASS - pending: a secondary replace failure raises JournalPending
+PASS - pending: journal attribute is the primary plus JOURNAL_SUFFIX, cause the OSError, replay false
+PASS - pending: primary at after, secondary at before, journal present
+PASS - pending: the journal is schema harness-merge-journal/1, members primary then secondary
+PASS - pending: the journal records before/after hashes and the after images
+PASS - pending: recover_journals(primary) rolls forward
+PASS - pending: both files converge to after and the journal is gone
+PASS - torn: recover_journals(primary) returns True
+PASS - torn [primary at after] via recover_journals(primary): converges, journal removed
+PASS - torn [primary at after] via recover_journals(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(primary) transform sees the after image
+PASS - torn [primary at after] via locked_update(primary): converges, journal removed
+PASS - torn [primary at after] via locked_update(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(secondary) transform sees the after image
+PASS - torn [primary at after] via locked_update(secondary): converges, journal removed
+PASS - torn [primary at after] via locked_update(secondary): a second recover_journals is False, no byte changes
+PASS - torn: recover_journals(primary) returns True
+PASS - torn [secondary at after] via recover_journals(primary): converges, journal removed
+PASS - torn [secondary at after] via recover_journals(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(primary) transform sees the after image
+PASS - torn [secondary at after] via locked_update(primary): converges, journal removed
+PASS - torn [secondary at after] via locked_update(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(secondary) transform sees the after image
+PASS - torn [secondary at after] via locked_update(secondary): converges, journal removed
+PASS - torn [secondary at after] via locked_update(secondary): a second recover_journals is False, no byte changes
+PASS - torn: recover_journals(primary) returns True
+PASS - torn [both at after] via recover_journals(primary): converges, journal removed
+PASS - torn [both at after] via recover_journals(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(primary) transform sees the after image
+PASS - torn [both at after] via locked_update(primary): converges, journal removed
+PASS - torn [both at after] via locked_update(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(secondary) transform sees the after image
+PASS - torn [both at after] via locked_update(secondary): converges, journal removed
+PASS - torn [both at after] via locked_update(secondary): a second recover_journals is False, no byte changes
+PASS - diverged: recover_journals(primary) refuses with code 5 naming JOURNAL DIVERGED
+PASS - diverged: recover_journals(primary) leaves both files and the journal byte-identical
+PASS - diverged: recover_journals(secondary) refuses with code 5 naming JOURNAL DIVERGED
+PASS - diverged: recover_journals(secondary) leaves both files and the journal byte-identical
+PASS - diverged: locked_update(primary) refuses with code 5 naming JOURNAL DIVERGED
+PASS - diverged: locked_update(primary) leaves both files and the journal byte-identical
+PASS - diverged: locked_update(secondary) refuses with code 5 naming JOURNAL DIVERGED
+PASS - diverged: locked_update(secondary) leaves both files and the journal byte-identical
+PASS - diverged: no caller transform ran
+PASS - diverged: locked_update on a third file in the directory succeeds
+PASS - diverged: the third write leaves both members and the journal byte-identical
+PASS - unreadable: a truncated journal refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: it fails closed for a third file in the directory too
+PASS - unreadable: nothing is written
+PASS - unreadable: a journal listing the primary twice refuses with code 5 naming JOURNAL UNREADABLE, never LOCKED
+PASS - unreadable: a journal listing the primary twice writes nothing
+PASS - unreadable: a journal whose first member is not its primary refuses with code 5 naming JOURNAL UNREADABLE, never LOCKED
+PASS - unreadable: a journal whose first member is not its primary writes nothing
+PASS - unreadable: a wrong schema refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: a wrong schema writes nothing
+PASS - unreadable: an empty member list refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: an empty member list writes nothing
+PASS - unreadable: a member name with a path separator refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: a member name with a path separator writes nothing
+PASS - unreadable: a member name '..' refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: a member name '..' writes nothing
+PASS - unreadable: an uppercase-hex before_sha256 refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: an uppercase-hex before_sha256 writes nothing
+PASS - unreadable: an after_b64 that does not hash to after_sha256 refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: an after_b64 that does not hash to after_sha256 writes nothing
+PASS - unreadable: an after_b64 that is not base64 refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: an after_b64 that is not base64 writes nothing
+PASS - replay: recover_journals(primary) raises JournalPending with replay True, that journal and that OSError
+PASS - replay: primary at after, secondary at before, journal present
+PASS - replay: locked_pair_update raises JournalPending with replay True, that journal and that OSError
+PASS - replay: locked_pair_update called neither transform
+PASS - replay: the restored replace_bytes converges
+PASS - replay: both at after, journal gone
+PASS - replay: a second recover_journals returns False
+PASS - interleave (i): the wrapper reached the primary's lock first
+PASS - interleave (i): a replaced generation replays without refusal
+PASS - interleave (i): both at J2's after images, no journal
+PASS - interleave (ii): the wrapper reached the primary's lock first
+PASS - interleave (ii): a fresh generation is replayed, never unlinked unreplayed
+PASS - interleave (iii): the wrapper reached the primary's lock first
+PASS - interleave (iii): a vanished journal returns False
+PASS - interleave (iii): no byte changes after the wrapper's
+PASS - interleave (iv): the wrapper reached the primary's lock first
+PASS - interleave (iv): a generation that no longer names X returns False
+PASS - interleave (iv): plan, ledger, X and J2 stay byte-identical to the wrapper's result
+PASS - unreadable: a member with no before_sha256 key refuses with code 5 naming the journal and the key
+PASS - unreadable: the missing key never recreates the absent ledger; nothing is written
+PASS - unreadable: the missing key via locked_update(feature.json) refuses with code 5 naming the journal and the key
+PASS - unreadable: via locked_update(feature.json) the absent ledger is not recreated; nothing is written
+PASS - absent: an explicit null before_sha256 still records an absent member, which the replay creates
+PASS - bound: a one-member journal via recover_journals(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a one-member journal via recover_journals(primary) writes nothing
+PASS - bound: a one-member journal via locked_update(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a one-member journal via locked_update(primary) writes nothing
+PASS - bound: a journal binding a sibling in feature.json's place via recover_journals(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a journal binding a sibling in feature.json's place via recover_journals(primary) writes nothing
+PASS - bound: a journal binding a sibling in feature.json's place via locked_update(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a journal binding a sibling in feature.json's place via locked_update(primary) writes nothing
+PASS - bound: a three-member journal via recover_journals(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a three-member journal via recover_journals(primary) writes nothing
+PASS - bound: a three-member journal via locked_update(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a three-member journal via locked_update(primary) writes nothing
+PASS - bound: a feature.json-primary journal via locked_update(secondary) refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a feature.json-primary journal via locked_update(secondary) refuses before any lock
+PASS - bound: a feature.json-primary journal via locked_update(secondary) writes nothing
+PASS - bound: a feature.json-primary journal via locked_update(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a feature.json-primary journal via locked_update(primary) refuses before any lock
+PASS - bound: a feature.json-primary journal via locked_update(primary) writes nothing
+PASS - bound: a feature.json-primary journal via recover_journals(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a feature.json-primary journal via recover_journals(primary) refuses before any lock
+PASS - bound: a feature.json-primary journal via recover_journals(primary) writes nothing
+PASS - bound: a feature.json-primary journal via locked_pair_update refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - bound: a feature.json-primary journal via locked_pair_update refuses before any lock
+PASS - bound: a feature.json-primary journal via locked_pair_update writes nothing
+PASS - pair: a sibling in feature.json's place raises ValueError
+PASS - pair: a sibling in feature.json's place writes nothing and leaves no journal
+PASS - pair: the pair reversed raises ValueError
+PASS - pair: the pair reversed writes nothing and leaves no journal
+PASS - bound: a feature.json write nested in a locked plan write succeeds
+PASS - entry: a dangling symlink via locked_update(plan) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs
+PASS - entry: a dangling symlink via locked_update(plan) writes nothing
+PASS - entry: a dangling symlink via locked_update(feature.json) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs
+PASS - entry: a dangling symlink via locked_update(feature.json) writes nothing
+PASS - entry: a symlink to a well-formed journal via recover_journals(plan) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs
+PASS - entry: a symlink to a well-formed journal via recover_journals(plan) writes nothing
+PASS - entry: a FIFO via recover_journals(plan) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs
+PASS - entry: a FIFO via recover_journals(plan) writes nothing
+PASS - entry: a FIFO under another journal name via locked_update(notes.txt) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs
+PASS - entry: a FIFO under another journal name via locked_update(notes.txt) writes nothing
+PASS - entry: a directory via locked_update(plan) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs
+PASS - entry: a directory via locked_update(plan) writes nothing
+PASS - entry: a directory via locked_update(feature.json) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs
+PASS - entry: a directory via locked_update(feature.json) writes nothing
+PASS - entry: a directory via recover_journals(plan) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs
+PASS - entry: a directory via recover_journals(plan) writes nothing
+PASS - entry: a directory via recover_journals(feature.json) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs
+PASS - entry: a directory via recover_journals(feature.json) writes nothing
+PASS - fifo swap via recover_journals(plan): the swap happened after the lstat, before the open
+PASS - fifo swap via recover_journals(plan): refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - fifo swap via recover_journals(plan): both members untouched
+PASS - fifo swap via recover_journals(plan): the FIFO is left in place, its record unread
+PASS - fifo swap via locked_update(feature.json): the swap happened after the lstat, before the open
+PASS - fifo swap via locked_update(feature.json): refuses with code 5 naming JOURNAL UNREADABLE and the journal
+PASS - fifo swap via locked_update(feature.json): both members untouched
+PASS - fifo swap via locked_update(feature.json): the FIFO is left in place, its record unread
+PASS - bounded: a 5000-character member name refuses with code 5 naming the journal
+PASS - bounded: a 5000-character member name is echoed truncated and escaped
+PASS - bounded: a 5000-character misbound member refuses with code 5 naming the journal
+PASS - bounded: a 5000-character misbound member is echoed truncated and escaped
+PASS - 165/165 checks passed
+PASS test-harness-merge-journal.py
+----- test-harness-merge.py (exit 0, 5.94s) -----
+PASS - case1: transform receives None for missing file
+PASS - case1: file created with transform output
+PASS - case2: transform receives original bytes
+PASS - case2: result is exactly transform's bytes
+PASS - case3: MergeRefusal propagated
+PASS - case3: file byte-identical to before
+PASS - case3: no tempfile left behind
+PASS - case4: locked_update returned normally after stale lock killed
+PASS - case4: transform output is on disk
+PASS - case5: contention admits only the two legal outcomes over 20 trials
+PASS - case6: no torn read observed by concurrent reader
+PASS - case6: reader observed at least one read
+PASS - case6: reader observed both the short and long body while racing the writer
+PASS - case7: matching resolved path is accepted
+PASS - case7: non-matching path raises MergeRefusal(9)
+PASS - case7: symlink escape (literal ends in matching tail via symlinked 'mydir', realpath resolves outside and does not match) raises MergeRefusal(9)
+PASS - case8: acquire raises MergeRefusal(6) against a live holder
+PASS - case8: refusal lines name the lock path
+PASS - case9: the override still refuses a live holder with exit 6
+PASS - case9: the refusal names the overridden budget
+PASS - case9: and takes the short budget, not the 10s default
+PASS - case9: an explicit timeout= wins over the override
+PASS - case9: override '0' is refused loudly, naming the variable
+PASS - case9: override '-1' is refused loudly, naming the variable
+PASS - case9: override 'soon' is refused loudly, naming the variable
+PASS - case9: override 'nan' is refused loudly, naming the variable
+PASS - case9: override 'inf' is refused loudly, naming the variable
+PASS - case9: override '1e999' is refused loudly, naming the variable
+PASS - 28/28 checks passed
+PASS test-harness-merge.py
+----- test-plan-merge.py (exit 0, 8.98s) -----
+PASS  apply_indent_mismatch_exits_0
+PASS  apply_indent_mismatch_leaves_a_PARSEABLE_plan
+PASS  apply_indent_mismatch_added_the_decision
+PASS  apply_indent_mismatch_preserves_the_base_item
+PASS  case1: naive whole-file write loses T-02
+PASS  case1: naive whole-file write loses T-03
+PASS  case1: naive whole-file write loses T-04
+PASS  case1: naive whole-file write loses T-05
+PASS  case1: naive whole-file write loses T-06
+PASS  case1: naive whole-file write loses T-07
+PASS  case1: naive whole-file write loses T-08
+PASS  case1: naive whole-file write loses T-09
+PASS  case1: naive whole-file write loses T-10
+PASS  case1: naive whole-file write loses T-11
+PASS  case1: naive whole-file write loses T-12
+PASS  case1: naive whole-file write loses T-13
+PASS  case1: naive whole-file write loses T-14
+PASS  case2: first apply exits 0
+PASS  case2: T-01 present after first apply
+PASS  case2: T-02 present after first apply
+PASS  case2: T-03 present after first apply
+PASS  case2: T-04 present after first apply
+PASS  case2: T-05 present after first apply
+PASS  case2: T-06 present after first apply
+PASS  case2: T-07 present after first apply
+PASS  case2: T-08 present after first apply
+PASS  case2: T-09 present after first apply
+PASS  case2: T-10 present after first apply
+PASS  case2: T-11 present after first apply
+PASS  case2: T-12 present after first apply
+PASS  case2: T-13 present after first apply
+PASS  case2: T-14 present after first apply
+PASS  case2: second apply exits 0
+PASS  case2: T-01 present after second apply
+PASS  case2: T-02 present after second apply
+PASS  case2: T-03 present after second apply
+PASS  case2: T-04 present after second apply
+PASS  case2: T-05 present after second apply
+PASS  case2: T-06 present after second apply
+PASS  case2: T-07 present after second apply
+PASS  case2: T-08 present after second apply
+PASS  case2: T-09 present after second apply
+PASS  case2: T-10 present after second apply
+PASS  case2: T-11 present after second apply
+PASS  case2: T-12 present after second apply
+PASS  case2: T-13 present after second apply
+PASS  case2: T-14 present after second apply
+PASS  case2: T-15 present after second apply
+PASS  case3: exit 0
+PASS  case3: the exact byte slice of the base's approval block occurs verbatim in the result
+PASS  case3: number of hash-comment lines in the whole file is unchanged
+PASS  case3: stdout carries IGNORED-APPROVAL
+PASS  case4: 20 concurrent trials admit only the union outcome or the lock outcome
+PASS  case4: informational — the exit-6 lock branch was taken in 0/20 trials
+PASS  case5: a changed field on an existing id exits 0
+PASS  case5: the named field is replaced
+PASS  case5: the new field is added
+PASS  case5: the omitted field is kept
+PASS  case5: stdout logs the replacement per field with both values
+PASS  case5: T-01 is byte-identical after the replace
+PASS  case5: T-02 is byte-identical after the replace
+PASS  case5: T-04 is byte-identical after the replace
+PASS  case5: T-05 is byte-identical after the replace
+PASS  case5: the approval block is untouched (base was pending)
+PASS  case5: the task count is unchanged — replace never adds an item
+PASS  case6: first apply exits 0
+PASS  case6: second apply exits 0
+PASS  case6: file is byte identical after the second, idempotent apply
+PASS  case7: a source path is REFUSED with exit 9
+PASS  case7: ...and the refused file is untouched
+PASS  case7: the escape's literal argument ends in the matching tail
+PASS  case7: a symlink escape whose LITERAL argument matches but RESOLVES elsewhere is REFUSED with exit 9
+PASS  case7: ...and the file behind the symlink is untouched
+PASS  case7: a legitimate fixture plan.yaml is ALLOWED — exit 0
+PASS  case8: unparseable proposal exits 5
+PASS  case8: stdout/stderr names the proposal side
+PASS  case8: base file is byte identical to before
+PASS  issue #720: a proposal with a duplicated key exits 5, never 0
+PASS  issue #720: the refusal names the duplicate key
+PASS  issue #720: the base is left byte-identical — no merge that later breaks a downstream reader
+PASS  issue #720 half 2: a duplicate key already on disk refuses the merge, exit 5
+PASS  issue #720 half 2: the refusal names the base side
+PASS  issue #720 half 2: the base is left byte-identical
+PASS  case9: exit 0
+PASS  case9: leading comments survive byte identical
+PASS  case9: T-15 was added
+PASS  case10a: differing approval exits 8
+PASS  case10a: stdout/stderr names the approval mapping and both loaded values
+PASS  case10a: file is byte identical to before (nothing applied)
+PASS  case10a: T-15 is absent, asserted by id
+PASS  case10b: proposal with no approval key exits 0
+PASS  case10b: T-15 is present
+PASS  case10c: loaded-equal-but-reflowed approval exits 0
+PASS  case10c: T-15 is present
+PASS  case11a: base file does not exist before apply
+PASS  case11a: create with no approval key exits 0
+PASS  case11a: the file now exists
+PASS  case11a: T-01 present in the created file
+PASS  case11a: T-02 present in the created file
+PASS  case11a: T-03 present in the created file
+PASS  case11a: apply seeds approval as pending
+PASS  case11a: a newly created plan can be signed
+PASS  case11b: base file does not exist before apply
+PASS  case11b: create with an approval key exits 8
+PASS  case11b: no file was created by the refused apply
+PASS  case11b: stdout/stderr names the approval mapping
+PASS  case11b: stdout/stderr names the main session as the signer
+PASS  case11b: no stray tempfile/plan.yaml left behind after the refusal
+PASS  set-task-station exits 0
+PASS  set-task-station changes EXACTLY one line
+PASS  set-task-station changes T-02's status line and nothing else
+PASS  set-task-station leaves the leading comment intact
+PASS  set-task-station leaves T-01 and T-03 ready
+PASS  set-task-station exits 3 on an unknown task id
+PASS  set-task-station's exit-3 message NAMES the ids the plan does carry
+PASS  set-task-station writes nothing on an unknown task id
+PASS  set-feature-station exits 0 when the key is absent
+PASS  set-feature-station INSERTS status immediately after feature:
+PASS  set-feature-station exits 0 when the key is present
+PASS  set-feature-station REPLACES rather than appending a second key
+PASS  set-feature-station does not touch a task's status
+PASS  set-panel exits 0 for a complete panel mapping
+PASS  set-panel replaces the whole panel mapping
+PASS  set-panel leaves tasks and approval unchanged
+PASS  set-panel refuses a mapping missing last_run before writing
+PASS  set-panel refusal leaves plan byte-identical
+PASS  amend --show emits a structured list value and hash
+PASS  amend --yaml-value replaces a list field
+PASS  structured amend leaves sibling tasks intact
+PASS  set-task-station exits 4 on the illegal station 'Done'
+PASS  set-task-station's exit-4 line lists the legal stations for 'Done', rejected included
+PASS  set-task-station writes nothing when 'Done' is refused
+PASS  set-task-station exits 4 on the illegal station 'icebox'
+PASS  set-task-station's exit-4 line lists the legal stations for 'icebox', rejected included
+PASS  set-task-station writes nothing when 'icebox' is refused
+PASS  set-task-station exits 4 on the illegal station ''
+PASS  set-task-station's exit-4 line lists the legal stations for '', rejected included
+PASS  set-task-station writes nothing when '' is refused
+PASS  set-task-station exits 4 on the illegal station 'abandonded'
+PASS  set-task-station's exit-4 line lists the legal stations for 'abandonded', rejected included
+PASS  set-task-station writes nothing when 'abandonded' is refused
+PASS  set-feature-station exits 4 on the illegal station 'Done'
+PASS  set-feature-station's exit-4 line lists the legal stations for 'Done', rejected included
+PASS  set-feature-station writes nothing when 'Done' is refused
+PASS  set-feature-station exits 4 on the illegal station 'icebox'
+PASS  set-feature-station's exit-4 line lists the legal stations for 'icebox', rejected included
+PASS  set-feature-station writes nothing when 'icebox' is refused
+PASS  set-feature-station exits 4 on the illegal station ''
+PASS  set-feature-station's exit-4 line lists the legal stations for '', rejected included
+PASS  set-feature-station writes nothing when '' is refused
+PASS  set-feature-station exits 4 on the illegal station 'abandonded'
+PASS  set-feature-station's exit-4 line lists the legal stations for 'abandonded', rejected included
+PASS  set-feature-station writes nothing when 'abandonded' is refused
+PASS  set-task-station ACCEPTS abandoned, a terminal station
+PASS  set-feature-station ACCEPTS abandoned (FEAT-1714 T-03: reject's one station write)
+PASS  set-task-station ACCEPTS rejected, a terminal station
+PASS  set-feature-station ACCEPTS rejected (FEAT-1714 T-03: reject's one station write)
+PASS  sign-approval exits 0
+PASS  sign-approval writes status: approved
+PASS  sign-approval writes approved_by
+PASS  sign-approval writes date, and it reloads as the string that was passed
+PASS  sign-approval leaves status: pending behind nowhere
+PASS  sign-approval does not disturb the tasks
+PASS  re-signing a ruled plan exits 0
+PASS  re-signing a ruled plan writes the requested approval date
+PASS  re-signing a ruled plan preserves its existing ruling
+PASS  1157: sign-approval accepts repeatable --overrule
+PASS  1157: each ruling records finding, attribution, date, and full reason
+PASS  1157: an overrule for a non-current finding is refused without writing
+PASS  1157: an empty overrule reason is refused without writing
+PASS  1157: a risk acceptance with an invalid date is refused without writing
+PASS  1157: an unattributed risk acceptance is refused without writing
+PASS  sign-approval inserts an absent approval mapping
+PASS  the inserted approval records the exact signature
+PASS  inserting approval preserves every pre-existing byte
+PASS  F-02 (colon and space breaks the mapping): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (colon and space breaks the mapping): approved_by round-trips as the exact string passed
+PASS  F-02 (colon and space breaks the mapping): the tasks are undisturbed
+PASS  F-02 (a leading hash is swallowed as a comment): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a leading hash is swallowed as a comment): approved_by round-trips as the exact string passed
+PASS  F-02 (a leading hash is swallowed as a comment): the tasks are undisturbed
+PASS  F-02 (a YAML boolean word must stay a STRING): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a YAML boolean word must stay a STRING): approved_by round-trips as the exact string passed
+PASS  F-02 (a YAML boolean word must stay a STRING): the tasks are undisturbed
+PASS  F-02 (a trailing colon): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a trailing colon): approved_by round-trips as the exact string passed
+PASS  F-02 (a trailing colon): the tasks are undisturbed
+PASS  F-02 (a quote of its own): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a quote of its own): approved_by round-trips as the exact string passed
+PASS  F-02 (a quote of its own): the tasks are undisturbed
+PASS  F-02 (a bare newline): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a bare newline): approved_by round-trips as the exact string passed
+PASS  F-02 (a bare newline): the tasks are undisturbed
+PASS  F-02 NEGATIVE CONTROL: an ordinary signer name stays unquoted
+PASS  F-02: a duplicate approved_by key in the base is REFUSED at exit 5 — caught by the stricter loader before signing, not after
+PASS  F-02: the refusal names the duplicate key, so a reader can act on it
+PASS  F-02: and the plan is left BYTE-IDENTICAL — a refusal that had already written would be worse than the bug
+PASS  comparison loop: a clean-parsing but mismatched reload is REFUSED
+PASS  comparison loop: the refusal names both the value asked for and the value it would reload as — a reader cannot act on 'refused' alone
+PASS  HIGH-1: `apply` REFUSES to mint station_only onto a plan that has tasks
+PASS  HIGH-1: and the plan is left BYTE-IDENTICAL — a refusal that had already written would be the defect it is meant to prevent
+PASS  HIGH-1: the refusal names the marker, so the operator can act on it
+PASS  amend --show prints a 64-char sha256 for the named field
+PASS  amend --show prints the field's MULTI-LINE body, not just its first line
+PASS  amend --show does not modify the plan
+PASS  amend replaces a multi-line decision field
+PASS  the new prose is present
+PASS  the OLD prose is gone — a replace that appends is not a replace
+PASS  the sibling decision D-14 survives untouched
+PASS  the tasks: key is untouched
+PASS  the result still parses as YAML
+PASS  amend refuses a stale --expect-sha256
+PASS  and leaves the plan BYTE-IDENTICAL
+PASS  and the refusal reports the ACTUAL hash, so the caller can re-read
+PASS  amend without --expect-sha256 is refused
+PASS  and nothing is written
+PASS  amend refuses an absent id
+PASS  and names the ids that ARE present
+PASS  and does NOT list decision ids for a --key tasks miss — a refusal that suggests a wrong next step is worse than a terse one
+PASS  amend refuses a field the item does not carry
+PASS  and does not insert it
+PASS  amend refuses --key approval
+PASS  and the plan is unchanged
+PASS  amend succeeds on a single-line task field
+PASS  the leading comment survives the splice
+PASS  the new title is present
+PASS  amend accepts a value carrying a colon, a dash and a hash
+PASS  the value ROUND-TRIPS byte-identical through yaml.safe_load
+PASS  amend accepts a value that is a YAML boolean word
+PASS  `yes` reloads as the STRING 'yes', not the boolean True
+PASS  V1: --show binds to the REAL verify, not the prose inside intent
+PASS  V1: and does not return the intent body
+PASS  V2: an identity replace of a block field SUCCEEDS
+PASS  V2: and the value is byte-identical, trailing newline included
+PASS  V2: and the emitted form is still a literal block
+PASS  V3: _verify_amend ACCEPTS a value that reloads as asked
+PASS  V3: and REFUSES when the reloaded value is not what was asked for
+PASS  V3: the refusal names both values, so the caller can see the difference
+PASS  V3: and REFUSES a duplicate id rather than accepting the first match
+PASS  V4: an unparseable base refuses rather than crashing
+PASS  V4: and the refusal says the plan on disk does not parse
+PASS  a duplicate id is refused, not bound to the first match
+PASS  and the plan is unchanged
+PASS  N1: the amendment succeeds
+PASS  N1: the comment BETWEEN fields survives
+PASS  N1: the blank line between fields survives
+PASS  N1: and the new value landed
+PASS  N1b: --show returns the WHOLE block value, comment line included
+PASS  N1b: and an identity replace keeps it
+PASS  N1b: the comment line survives the round trip
+PASS  N3: --show emits the VALUE, not the block with its key line
+PASS  N3: feeding --show output back succeeds
+PASS  N3: and the value is unchanged — a true round trip
+PASS  N5: the fixture base really is schema-valid (or this case is vacuous)
+PASS  N5: a schema-breaking amendment on a schema-valid base is refused
+PASS  N5: and the plan is unchanged
+PASS  neither station verb writes the approval mapping
+PASS  the approval block's own bytes are untouched by the station verbs
+PASS  only the feature status key was added to the head
+PASS  a governed agent's sign-approval exits 10
+PASS  the refusal names the agent and REQ-05/DEC-120
+PASS  the plan is untouched — no partial write on refusal
+PASS  an absent HARNESS_AGENT_TYPE may still sign
+PASS  the signature actually lands
+PASS  add-tasks exits 0
+PASS  add-tasks adds the new task
+PASS  add-tasks reports through the same ADDED/APPLIED contract as apply
+PASS  F1: `|` round-trips byte-identical through --show -> --value-file
+PASS  F1: `|` keeps its emitted form
+PASS  F1: `|-` round-trips byte-identical through --show -> --value-file
+PASS  F1: `|-` keeps its emitted form
+PASS  F1: `|+` round-trips byte-identical through --show -> --value-file
+PASS  F1: `|+` keeps its emitted form
+PASS  F1: `>` round-trips byte-identical through --show -> --value-file
+PASS  F1: `>` keeps its emitted form
+PASS  F1: a list field is refused rather than flattened to text
+PASS  F1: a null field is refused rather than shown as an empty string
+PASS  F1: and neither refusal wrote anything
+PASS  F2: the under-lock check ACCEPTS a block that still matches
+PASS  F2: and REFUSES a block that changed under the lock
+PASS  F2: naming the field, so the caller knows what to re-read
+PASS  F2: and the check is WIRED INTO the locked transform (reachability, not behaviour)
+PASS  bug201: the fixture base is a LEGAL plan (artifact_accessors.load_plan accepts it)
+PASS  bug201a: apply refuses a dangling depends_on with exit 5
+PASS  bug201a: refusal names ILLEGAL PLAN
+PASS  bug201a: refusal names the dangling id T-99
+PASS  bug201a: base file is byte identical to before the refused apply
+PASS  bug201b: the paired apply naming a real dependency exits 0
+PASS  bug201b: T-03 is present after the allowed apply
+PASS  delete: a two-list multi-item delete exits 0
+PASS  delete: the receipt names every id that went
+PASS  delete: the receipt states the reason
+PASS  delete: and the reason is NOT written into the plan
+PASS  delete: EVERY surviving byte is identical (chunk-derived expectation)
+PASS  delete: the document NOTE after the deleted first task survives
+PASS  delete: the blank line the deleted last decision carried goes with it
+PASS  delete: the survivors are exactly the items not named
+PASS  delete: deleting a task whose last line is a block-body comment exits 0
+PASS  delete: the `#` line inside the `|` body went with the item
+PASS  delete: the `#` line between the items did not
+PASS  delete: and nothing else moved
+PASS  delete: two consecutive blank-separated items delete cleanly
+PASS  delete: exactly one separator survives, with no blank-line residue
+PASS  delete: and the blank INSIDE no body was disturbed
+PASS  delete: an absent id is refused with exit 3
+PASS  delete: the refusal names the id that is not there
+PASS  delete: and lists the ids that are, scoped to that list
+PASS  delete: the valid id named in the same call is NOT deleted
+PASS  delete: the same id twice is refused with exit 2
+PASS  delete: naming the id that was repeated
+PASS  delete: no --task and no --decision is refused with exit 2
+PASS  delete: an empty --reason is refused with exit 2
+PASS  delete: none of the three refusals touched the file
+PASS  delete-dangling: the fixture base IS a legal plan (or (a) proves nothing)
+PASS  delete-dangling a: a delete that would dangle an edge is refused with exit 4
+PASS  delete-dangling a: and the refusal names the edge, not just the id
+PASS  delete-dangling a: the plan is byte-identical after the refusal
+PASS  delete-dangling b: the fixture base is ALREADY schema-illegal, so do-no-harm skips the schema check (or (b) proves nothing)
+PASS  delete-dangling b: the edge is refused even where the schema cannot see it
+PASS  delete-dangling b: naming the edge
+PASS  delete-dangling b: and nothing was written
+PASS  delete-dangling c: deleting BOTH ends of the edge in one call exits 0
+PASS  delete-dangling c: and only the independent task is left
+PASS  delete: an id carried twice by the plan is refused, not resolved to the first
+PASS  delete: and the ambiguous plan is unchanged
+PASS  delete: a deletion that makes a legal plan illegal is refused with exit 5
+PASS  delete: and the legal plan survives byte-identical
+PASS  delete: an unparseable base is refused with exit 5
+PASS  delete: and the refusal blames the plan on disk, not the splice
+PASS  delete: leaving the broken file exactly as it was
+PASS  delete: a --file that is not a plan.yaml under features/ is refused with exit 9
+PASS  delete: an unacquirable lock is refused with exit 6
+PASS  delete: naming the lock it could not take
+PASS  delete: and the plan is untouched while another writer holds the lock
+PASS  delete-verify: a survivor that quietly lost a field is refused with exit 5
+PASS  delete-verify: and the refusal says the ids matched, so it was a boundary error
+PASS  delete-verify: a splice that took an item nobody named is refused, naming both id lists
+PASS  delete-verify: the CORRECT deletion is accepted (or this case refuses everything)
+PASS  delete-verify: and the check is WIRED IN (reachability, not behaviour)
+PASS  record-panel exits 0 on a well-formed lead digest
+PASS  record-panel writes cycle and last_run (the run directory) from the call
+PASS  record-panel transcribes every reader, skipped ones with persona and reason
+PASS  record-panel writes id (content hash), severity, reader, kind, summary and an open disposition per finding
+PASS  record-panel leaves tasks and approval byte-identical
+PASS  record-panel puts panel: BEFORE tasks:, where the template has it
+PASS  record-panel's receipt names the cycle
+PASS  record-panel (carry) exits 0
+PASS  the carried finding's lines are byte-identical, comment and quoting included
+PASS  the carried finding keeps disposition resolved and resolved_by
+PASS  the new finding is appended after the carried one with disposition open
+PASS  cycle, last_run and readers are replaced
+PASS  record-panel (carry) leaves tasks byte-identical
+PASS  record-panel's receipt says which ids were carried and which added
+PASS  record-panel refuses a finding without kind (exit 5) and names it
+PASS  record-panel refuses a kind outside the enum
+PASS  record-panel refuses a proportionality finding without scope (DEC-228)
+PASS  record-panel refuses a proportionality scope outside task|mission
+PASS  record-panel refuses a skipped reader without persona and reason
+PASS  record-panel refuses a digest with no DIGEST block
+PASS  record-panel refuses an unfenced digest (no bare-text fallback)
+PASS  record-panel reads the last fenced mapping and refuses its non-mapping DIGEST
+PASS  every record-panel refusal leaves the plan byte-identical
+PASS  check exits 0 when every anchor, route and trace resolves
+PASS  check's receipt says how many anchors it resolved
+PASS  check exits 1 when anything fails to resolve
+PASS  check: missing symbol on its own line
+PASS  check: quote not found on its own line
+PASS  check: path in a missing directory on its own line
+PASS  check: the same ungranted path is ALSO a route failure, on its own line
+PASS  check: trace id absent from the BRIEF on its own line
+PASS  check: SC-01 present in the BRIEF is NOT reported
+PASS  check: ungranted execution_agent on its own line, naming who IS granted
+PASS  check: team task without execution_agent on its own line
+PASS  check: the shared route gate's NOBODY VIOLATION is reported too, not deduped
+PASS  check: exactly these eight failures, nothing else
+PASS  check: an absent sibling BRIEF fails every trace loudly
+PASS  check: an otherwise valid plan with shared files still exits 0 (SC-02)
+PASS  check: exactly one OVERLAP line per shared path — two here, not one per anchor (SC-01)
+PASS  check: a.py named three ways by T-01 and once by T-02 is ONE line naming both, once each
+PASS  check: new_module.py shared by T-01 and T-03
+PASS  check: a file one task names is never an overlap
+PASS  check: repeated anchors confined to one task print no OVERLAP
+PASS  check: an existing failure keeps its exit 1 when overlap is also present
+PASS  check: the overlap is still reported beside the failure
+PASS  2239: check fails an over-budget task the CI route gate refuses
+PASS  2239: check fails an illegal top-level status the CI route gate refuses
+PASS  2239: check fails an illegal task status the CI route gate refuses
+PASS  2239: a gate-clean plan passes check beside another feature's violating plan
+PASS  2239: check exits 5 when the route gate cannot load the plan, before any OK line
+PASS  2239: check fails on a finding only the shared processor emits
+PASS  2239: the harness plan is asked with --root
+PASS  2239: a served plan is asked with --root, never --code-root, and check's manifest root
+PASS  2064: a product plan resolves anchors in its code worktree and routes in the harness manifest
+PASS  2064: the receipt names the code worktree it resolved against
+PASS  2064: a product route still fails for an agent the manifest does not grant
+PASS  2064: a product plan without --code-root exits 2 naming how to get it
+PASS  2064: a --code-root that is not a directory exits 2
+PASS  2064: harness's own plan refuses --code-root
+PASS  2064: the segmentless .harness/features/ layout is harness's own, not a product
+PASS  2065: a create anchor under absent directories resolves
+PASS  2065: create on an existing file, under a file, and a bare path in a missing directory each fail on their own line
+PASS  2065: a dangling link is neither absent nor a directory to create beneath
+PASS  2065: { path: .claude/skills/harness/bin/*.py, create: true } is refused at write
+PASS  2065: { path: .claude/skills/harness/bin/m.py, create: false } is refused at write
+PASS  2065: { path: .claude/skills/harness/bin/m.py, create: true, quote: x } is refused at write
+PASS  apply refuses a line-number anchor when creating a plan (exit 2, names the entry)
+PASS  and creates nothing
+PASS  apply refuses a line-number anchor on an existing plan (exit 2, names the entry)
+PASS  add-tasks refuses a line-number anchor on an existing plan (exit 2, names the entry)
+PASS  the plan is byte-identical after both refusals
+PASS  amend refuses a line-number anchor in files (exit 2, names the entry)
+PASS  amend's refusal leaves the plan byte-identical
+PASS  amend accepts path#symbol and {path, quote} anchors
+PASS  set-lanes exits 0 on a well-formed lanes mapping
+PASS  set-lanes writes the mapping verbatim
+PASS  set-lanes leaves tasks and approval byte-identical
+PASS  set-lanes REPLACES an existing mapping rather than adding a second key
+PASS  set-lanes refuses a mapping without rows, naming the key
+PASS  set-lanes refuses a row whose lane is not team|main-session-direct
+PASS  set-lanes refusals leave the plan byte-identical
+PASS  set-key replaces an existing scalar-list key
+PASS  set-key keeps the comment introducing the next key, the approval bytes and the tasks
+PASS  set-key inserts an absent key before tasks: and it reloads
+PASS  set-key runs the lanes validator rather than bypassing it
+PASS  set-key refuses approval (exit 2) and names its route
+PASS  set-key refuses tasks (exit 2) and names its route
+PASS  set-key refuses decisions (exit 2) and names its route
+PASS  set-key refuses status (exit 2) and names its route
+PASS  set-key refuses a key name the indexer could not find again
+PASS  set-key refusals leave the plan byte-identical
+PASS  set-panel exits 0
+PASS  set-panel reloads as the value supplied
+PASS  set-panel keeps the unchanged finding's bytes — quoting and comment included
+PASS  set-panel writes the new finding
+PASS  set-panel replaces a finding whose content changed
+PASS  and the changed finding is no longer byte-identical to its old form
+PASS  reset/apply exits 0
+PASS  reset/apply: approval.status is pending after apply
+PASS  reset/apply: approval.reset_at is an ISO instant
+PASS  reset/apply: approval.reset_reason names the verb and the ids
+PASS  reset/apply: the signer and date are kept, so the operator can see what was voided
+PASS  reset/apply: the receipt says approval was reset
+PASS  reset/add-tasks exits 0
+PASS  reset/add-tasks: approval.status is pending after add-tasks
+PASS  reset/add-tasks: approval.reset_at is an ISO instant
+PASS  reset/add-tasks: approval.reset_reason names the verb and the ids
+PASS  reset/add-tasks: the signer and date are kept, so the operator can see what was voided
+PASS  reset/apply-replace exits 0
+PASS  reset/apply-replace: a replaced field on an existing task keeps approved (D-04)
+PASS  reset/delete-items exits 0
+PASS  reset/delete-items: approval.status is pending after delete-items
+PASS  reset/delete-items: approval.reset_at is an ISO instant
+PASS  reset/delete-items: approval.reset_reason names the verb and the ids
+PASS  reset/delete-items: the signer and date are kept, so the operator can see what was voided
+PASS  reset/amend exits 0
+PASS  reset/amend: amending a field on an existing task keeps approved (D-04)
+PASS  re-signing writes approved and drops reset_at/reset_reason
+PASS  resume/plan: feature returns to plan while approval is pending
+PASS  resume/plan: reset records the classified resume station
+PASS  resume/plan: reset receipt is emitted only after the reset lands
+PASS  resume/ready: unrelated bytes survive the combined locked splice
+PASS  resume/building: feature returns to plan while approval is pending
+PASS  resume/building: reset records the classified resume station
+PASS  resume/building: reset receipt is emitted only after the reset lands
+PASS  resume/ready: feature returns to plan while approval is pending
+PASS  resume/ready: reset records the classified resume station
+PASS  resume/ready: reset receipt is emitted only after the reset lands
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/ready: feature returns to plan while approval is pending
+PASS  resume/ready: reset records the classified resume station
+PASS  resume/ready: reset receipt is emitted only after the reset lands
+PASS  resume/ready/'Building': a task station outside the vocabulary raises rather than classifies
+PASS  resume/ready/'Building': the refused mutation leaves the plan byte-identical
+PASS  resume/building/'': a task station outside the vocabulary raises rather than classifies
+PASS  resume/building/'': the refused mutation leaves the plan byte-identical
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/review: reapproval emits the stored station and clears reset metadata
+PASS  resume/initial: an initial signature emits ready
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/pending: new ready work demotes a stale review target to building
+PASS  resume/pending: reapproval emits the recomputed target
+PASS  resume/done: task mutation does not reopen a terminal feature
+PASS  resume/abandoned: task mutation does not reopen a terminal feature
+PASS  no-network NEGATIVE CONTROL: the same guard reddens when gh is invoked
+PASS  no-network: local plan mutation succeeds
+PASS  no-network: local plan mutation never invokes gh
+PASS  a pending plan's approval bytes are untouched by apply
+PASS  amending a decision leaves approval approved
+PASS  deleting a decision leaves approval approved
+PASS  an apply that changes nothing leaves approval approved
+PASS  revoke-approval pauses at Plan with the reset and resume record
+PASS  revoke-approval keeps the voided signer, date, rulings, and unrelated bytes
+PASS  a fresh signature supersedes a revocation's reset record
+PASS  revoke-approval refuses a plan that is not approved (exit 5, names the status)
+PASS  revoke-approval refuses an empty reason (exit 2)
+PASS  revoke-approval refuses a governed agent (exit 10), as sign-approval does
+PASS  every refusal leaves the plan byte-identical
+PASS  sign-approval --rework refuses when the sibling feature.json is absent (exit 2)
+PASS  and writes no signature in that case
+PASS  sign-approval --rework without --decision is exit 2
+PASS  sign-approval --rework with a non-integer is exit 2
+PASS  no signature was written by the refused calls
+PASS  sign-approval --rework refuses a --decision that is not a file under the feature dir
+PASS  and writes neither signature nor ruling
+PASS  sign-approval --rework exits 0
+PASS  the approval is signed
+PASS  feature.json carries the rework ruling per C1
+PASS  the other feature.json keys are untouched
+PASS  the receipt records the ruling
+PASS  f3/quoted: apply exits 0
+PASS  f3/quoted: a quoted "approved" reloads as pending with the reset record
+PASS  f3/quoted: the receipt says APPROVAL-RESET only because it landed
+PASS  f3/indent4: apply exits 0
+PASS  f3/indent4: a four-space approval body reloads as pending with the reset record
+PASS  f3/indent4: the reset lines are written at the body's own indent
+PASS  f3/flow: a shape the splice cannot reset is REFUSED with the signature verifier's exit 5
+PASS  f3/flow: nothing is written — the plan is byte-identical
+PASS  f3/flow: no APPROVAL-RESET receipt over a standing signature
+PASS  f4: a feature.json refusal propagates feature_json_write's exit 11
+PASS  f4: and leaves approval pending — the plan is byte-identical
+PASS  f4: no SIGNED receipt for a signature that was not written
+PASS  f4: a plan refusal after the ruling was recorded still refuses (exit 5)
+PASS  f4: the ruling stands in feature.json
+PASS  f4: the refusal says the ruling was recorded and the plan is re-signed
+PASS  f7/status-only: apply exits 0
+PASS  f7/status-only: T-01 keeps its station
+PASS  f7/status-only: the signature stands — a status-only difference is not a task change
+PASS  f7/status-only: the receipt prints IGNORED, not REPLACED or APPROVAL-RESET
+PASS  f7/status-only: every other byte is identical
+PASS  f7/mixed: apply exits 0
+PASS  f7/mixed: the title is replaced and the station is kept
+PASS  f7/mixed: a replaced field on an existing task keeps the signature (BUG-1716 D-04)
+PASS  f7/mixed: REPLACED names the title and IGNORED names the status
+PASS  f8: record-panel exits 0
+PASS  f8: a new finding the digest calls resolved is written open
+PASS  f8: a new finding with a nonsense disposition is written open, not refused
+PASS  f8: the carried finding keeps its base disposition against the digest's open
+PASS  f10/last: record-panel exits 0
+PASS  f10/last: the carried finding and its trailing note are one contiguous run of bytes, and the new finding follows the note
+PASS  f10/last: the block-level comment stays after the whole list, before tasks:
+PASS  f10/last: the panel reloads with both findings
+PASS  f10/between: record-panel exits 0
+PASS  f10/between: a comment between two carried findings is kept, in place
+PASS  f10/between: the panel reloads with all three findings
+PASS  b1716/sign: exits 0 and prints HASHED
+PASS  b1716/sign: one hash per task, sha256 of the canonical JSON
+PASS  b1716/sign: hashes are 64 lowercase hex characters
+PASS  b1716/sign: a reflowed plan (quoting, order, list form) hashes identically
+PASS  b1716/sign: a changed value changes that task's hash
+PASS  b1716/sign: the other task's hash is unchanged
+PASS  b1716/sign: a refused signature leaves feature.json byte-identical
+PASS  b1716/285: exits 0 naming each target
+PASS  b1716/285: intent carries the digest's now
+PASS  b1716/285: verify carries the digest's now
+PASS  b1716/285: files carries the digest's now
+PASS  b1716/285: the `|` verify body keeps its block form
+PASS  b1716/285: approval and the preamble are byte-identical, comment included
+PASS  b1716/285: T-01 is byte-identical
+PASS  b1716/285: decisions are byte-identical
+PASS  b1716/285: T-03's title and status are untouched
+PASS  b1716/285: three amendment judgements in digest order, by the orchestrator
+PASS  b1716/285: reasons are the digest's
+PASS  b1716/285: every `at` is distinct and increasing
+PASS  b1716/285: signed_task_hashes are not revised by the amendment
+PASS  b1716/285: the ledger still validates
+PASS  b1716/285: a rerun is refused (exit 6) naming the already-applied state
+PASS  b1716/285: the rerun writes nothing to either file
+PASS  b1716/refuse/no amendments: exit 2 naming the fault
+PASS  b1716/refuse/no amendments: both files byte-identical
+PASS  b1716/refuse/absent amendments: exit 2 naming the fault
+PASS  b1716/refuse/absent amendments: both files byte-identical
+PASS  b1716/refuse/not a mapping: exit 5 naming the fault
+PASS  b1716/refuse/not a mapping: both files byte-identical
+PASS  b1716/refuse/extra key: exit 5 naming the fault
+PASS  b1716/refuse/extra key: both files byte-identical
+PASS  b1716/refuse/missing key: exit 5 naming the fault
+PASS  b1716/refuse/missing key: both files byte-identical
+PASS  b1716/refuse/SC id: exit 5 naming the fault
+PASS  b1716/refuse/SC id: both files byte-identical
+PASS  b1716/refuse/decision id: exit 5 naming the fault
+PASS  b1716/refuse/decision id: both files byte-identical
+PASS  b1716/refuse/bad field: exit 5 naming the fault
+PASS  b1716/refuse/bad field: both files byte-identical
+PASS  b1716/refuse/empty reason: exit 5 naming the fault
+PASS  b1716/refuse/empty reason: both files byte-identical
+PASS  b1716/refuse/long reason: exit 5 naming the fault
+PASS  b1716/refuse/long reason: both files byte-identical
+PASS  b1716/refuse/intent as list: exit 5 naming the fault
+PASS  b1716/refuse/intent as list: both files byte-identical
+PASS  b1716/refuse/files as string: exit 5 naming the fault
+PASS  b1716/refuse/files as string: both files byte-identical
+PASS  b1716/refuse/line anchor: exit 5 naming the fault
+PASS  b1716/refuse/line anchor: both files byte-identical
+PASS  b1716/refuse/absent task: exit 3 naming the fault
+PASS  b1716/refuse/absent task: both files byte-identical
+PASS  b1716/refuse/stale was: exit 6 naming the fault
+PASS  b1716/refuse/stale was: both files byte-identical
+PASS  b1716/refuse/duplicate target: exit 5 naming the fault
+PASS  b1716/refuse/duplicate target: both files byte-identical
+PASS  b1716/refuse/second entry stale: exit 6 naming the fault
+PASS  b1716/refuse/second entry stale: both files byte-identical
+PASS  b1716/refuse/no feature.json: exit 2 naming the ledger path
+PASS  b1716/refuse/no feature.json: the plan is byte-identical
+PASS  b1716/approval: record-amendments exits 0
+PASS  b1716/approval: the approved block survives byte for byte
+PASS  b1716/approval: amend on an existing task no longer resets the signature
+PASS  b1716/approval: apply replacing a field on an existing task keeps the signature
+PASS  b1716/approval: adding a task still resets approval to pending
+PASS  b1716/atomic: a ledger refusal under the lock exits nonzero naming LOCKED
+PASS  b1716/atomic: the refusal says nothing was written and leaves no journal
+PASS  b1716/atomic: neither file changed
+PASS  b1716/atomic: released, the same two-entry digest lands both entries
+PASS  b1716/io: a PermissionError on the ledger write exits nonzero naming it
+PASS  b1716/io: the refusal says nothing was written and leaves no journal
+PASS  b1716/io: neither file changed
+PASS  feat62: the write still exits 0 with its receipt on stdout
+PASS  feat62: the checker's non-clean row reaches stderr under the feedback header
+PASS  feat62: the checker runs AFTER the writer's lock is released (GC-03)
+PASS  feat62: the feedback never leaks into stdout
+PASS  feat62: a refused write prints NO feedback
+PASS  feat62: a clean --changed run leaves stderr empty
+PASS  feat70/sc03: exits 0 naming both targets, no traceback
+PASS  feat70/sc03: the block-scalar field reloads as the digest's now
+PASS  feat70/sc03: the `|` header survives with the longer body
+PASS  feat70/sc03: the second entry, in the later task, lands
+PASS  feat70/sc03: two amendment judgements in digest order
+PASS  feat70/sc03: the ledger still validates
+PASS  1985: a signed field without --reason is refused, both files untouched
+PASS  1985: the signed field lands with one amendment judgement naming it
+PASS  1985: a field INV-40 does not grade needs no reason and adds no judgement
+PASS  1985: a failed ledger write exits nonzero naming the PermissionError, says nothing was written, leaves no journal and both files byte-identical
+PASS  2095: set-panel refuses a prose disposition (exit 5), naming the finding and disposition
+PASS  2095: set-panel writes nothing on a prose disposition
+PASS  2095: set-panel refuses a free key (exit 5), naming the finding and resolution
+PASS  2095: set-panel writes nothing on a free key
+PASS  2095: set-panel refuses resolved_by on an open finding (exit 5), naming the finding and resolved_by
+PASS  2095: set-panel writes nothing on resolved_by on an open finding
+PASS  2095: set-panel refuses resolved_by naming no task in the plan (exit 5), naming the finding and T-09
+PASS  2095: set-panel writes nothing on resolved_by naming no task in the plan
+PASS  2095: set-panel refuses a severity outside the enum (exit 5), naming the finding and severe
+PASS  2095: set-panel writes nothing on a severity outside the enum
+PASS  2095: set-panel refuses a missing summary (exit 5), naming the finding and summary
+PASS  2095: set-panel writes nothing on a missing summary
+PASS  2095: set-panel accepts a resolved finding whose resolved_by names a plan task
+PASS  2095: record-panel refuses to carry an off-template base finding (exit 5)
+PASS  2095: record-panel writes nothing when it refuses
+PASS  2095: sign-approval refuses an open high finding (exit 4), naming it and both remedies
+PASS  2095: sign-approval writes nothing over an open high finding
+PASS  2095: sign-approval refuses an open critical finding (exit 4), naming it and both remedies
+PASS  2095: sign-approval writes nothing over an open critical finding
+PASS  2095: sign-approval refuses an open unrated finding (exit 4), naming it and both remedies
+PASS  2095: sign-approval writes nothing over an open unrated finding
+PASS  2095: sign-approval refuses an off-template finding even when it does not gate
+PASS  2095: sign-approval signs an open high finding overruled in the same call
+PASS  2095: sign-approval signs an open high finding already ruled
+PASS  2095: sign-approval signs a resolved high finding
+PASS  2095: sign-approval signs an open med finding
+PASS  2096: sign-approval signs the BRIEF's ## Approval with the plan
+PASS  2096: the BRIEF outside its ## Approval block is byte-identical
+PASS  2096: re-signing leaves an approved BRIEF byte-identical
+PASS  2096: sign-approval refuses a BRIEF with no ## Approval block (exit 5), naming BRIEF.md
+PASS  2096: with no ## Approval block, neither file is written
+PASS  2096: sign-approval refuses a BRIEF with no BRIEF.md (exit 5), naming BRIEF.md
+PASS  2096: with no BRIEF.md, neither file is written
+PASS  2096: a plan-side refusal leaves the BRIEF pending
+PASS  2096: a signer with a line break is one quoted BRIEF line
+PASS  2102: set-panel refuses a persona as a panel reader (exit 5), naming it
+PASS  2102: record-panel refuses a persona as a panel reader (exit 5), naming it
+PASS  2102: set-panel accepts all four slots, design included
+PASS  2349: apply adds a decision to an inline-empty decisions list (exit 0)
+PASS  2349: the written plan reloads with D-01 and its fields, tasks untouched
+PASS  2349: apply adds a task to an inline-empty tasks list (exit 0)
+PASS  2349: the written plan reloads with T-01 and its fields
+PASS  2349: a non-empty flow-style decisions base is still refused (exit 5)
+PASS  2349: the refused base is byte identical
+PASS  2420: apply drafts T-01 into an inline-empty tasks list (exit 0)
+PASS  2420: apply does not seed a station on the drafted task
+PASS  2420: set-task-station gives the drafted task its first station (exit 0)
+PASS  2420: the written plan reloads with T-01 at building
+PASS  2488/a/record-amendments: the fixture signs (exit 0)
+PASS  2488/a/record-amendments twin: the fixture signs (exit 0)
+PASS  2488/a/record-amendments: the twin's record-amendments exits 0
+PASS  2488/a/record-amendments: the re-run exits 6 saying 'recorded before'
+PASS  2488/a/record-amendments: both files are at the journal's after images
+PASS  2488/a/record-amendments: the field equals now and the amendment is ledgered exactly once
+PASS  2488/a/record-amendments: no journal remains
+PASS  2488/a/record-amendments/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/a/record-amendments/d: one more re-run leaves both files byte-identical
+PASS  2488/a/amend: the fixture signs (exit 0)
+PASS  2488/a/amend twin: the fixture signs (exit 0)
+PASS  2488/a/amend: the twin's amend exits 0
+PASS  2488/a/amend: the re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/a/amend: both files are at the journal's after images
+PASS  2488/a/amend: the field equals now and the amendment is ledgered exactly once
+PASS  2488/a/amend: no journal remains
+PASS  2488/a/amend/d: one more re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/a/amend/d: one more re-run leaves both files byte-identical
+PASS  2488/b/record-amendments: the fixture signs (exit 0)
+PASS  2488/b/record-amendments twin: the fixture signs (exit 0)
+PASS  2488/b/record-amendments: the twin's record-amendments exits 0
+PASS  2488/b/record-amendments: the re-run exits 6 saying 'recorded before'
+PASS  2488/b/record-amendments: both files are at the journal's after images
+PASS  2488/b/record-amendments: the field equals now and the amendment is ledgered exactly once
+PASS  2488/b/record-amendments: no journal remains
+PASS  2488/b/record-amendments/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/b/record-amendments/d: one more re-run leaves both files byte-identical
+PASS  2488/b/amend: the fixture signs (exit 0)
+PASS  2488/b/amend twin: the fixture signs (exit 0)
+PASS  2488/b/amend: the twin's amend exits 0
+PASS  2488/b/amend: the re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/b/amend: both files are at the journal's after images
+PASS  2488/b/amend: the field equals now and the amendment is ledgered exactly once
+PASS  2488/b/amend: no journal remains
+PASS  2488/b/amend/d: one more re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/b/amend/d: one more re-run leaves both files byte-identical
+PASS  2488/c/record-amendments: the fixture signs (exit 0)
+PASS  2488/c/record-amendments twin: the fixture signs (exit 0)
+PASS  2488/c/record-amendments: the twin's record-amendments exits 0
+PASS  2488/c/record-amendments: the re-run exits 6 saying 'recorded before'
+PASS  2488/c/record-amendments: both files are at the journal's after images
+PASS  2488/c/record-amendments: the field equals now and the amendment is ledgered exactly once
+PASS  2488/c/record-amendments: no journal remains
+PASS  2488/c/record-amendments/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/c/record-amendments/d: one more re-run leaves both files byte-identical
+PASS  2488/c/amend: the fixture signs (exit 0)
+PASS  2488/c/amend twin: the fixture signs (exit 0)
+PASS  2488/c/amend: the twin's amend exits 0
+PASS  2488/c/amend: the re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/c/amend: both files are at the journal's after images
+PASS  2488/c/amend: the field equals now and the amendment is ledgered exactly once
+PASS  2488/c/amend: no journal remains
+PASS  2488/c/amend/d: one more re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/c/amend/d: one more re-run leaves both files byte-identical
+PASS  2488/e: the fixture signs (exit 0)
+PASS  2488/e twin: the fixture signs (exit 0)
+PASS  2488/e: the twin's record-amendments exits 0
+PASS  2488/e: write_feature_json returns
+PASS  2488/e: cycles_used equals 1
+PASS  2488/e: the plan carries the amendment, ledgered exactly once
+PASS  2488/e: no journal remains
+PASS  2488/e/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/e/d: one more re-run leaves both files byte-identical
+PASS  2488/e/b: the fixture signs (exit 0)
+PASS  2488/e/b twin: the fixture signs (exit 0)
+PASS  2488/e/b: the twin's record-amendments exits 0
+PASS  2488/e/b: write_feature_json returns
+PASS  2488/e/b: cycles_used equals 1
+PASS  2488/e/b: the plan carries the amendment, ledgered exactly once
+PASS  2488/e/b: no journal remains
+PASS  2488/e/b/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/e/b/d: one more re-run leaves both files byte-identical
+PASS  2488/e/c: the fixture signs (exit 0)
+PASS  2488/e/c twin: the fixture signs (exit 0)
+PASS  2488/e/c: the twin's record-amendments exits 0
+PASS  2488/e/c: write_feature_json returns
+PASS  2488/e/c: cycles_used equals 1
+PASS  2488/e/c: the plan carries the amendment, ledgered exactly once
+PASS  2488/e/c: no journal remains
+PASS  2488/e/c/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/e/c/d: one more re-run leaves both files byte-identical
+PASS  2488/f/record-amendments: the fixture signs (exit 0)
+PASS  2488/f/record-amendments twin: the fixture signs (exit 0)
+PASS  2488/f/record-amendments: the twin's record-amendments exits 0
+PASS  2488/f/record-amendments: the re-run exits 5 naming JOURNAL DIVERGED
+PASS  2488/f/record-amendments: the exit-5 message names the journal's path
+PASS  2488/f/record-amendments: plan.yaml, feature.json and the journal stay byte-identical
+PASS  2488/f/amend: the fixture signs (exit 0)
+PASS  2488/f/amend twin: the fixture signs (exit 0)
+PASS  2488/f/amend: the twin's amend exits 0
+PASS  2488/f/amend: the re-run exits 5 naming JOURNAL DIVERGED
+PASS  2488/f/amend: the exit-5 message names the journal's path
+PASS  2488/f/amend: plan.yaml, feature.json and the journal stay byte-identical
+PASS  2488/g: the fixture signs (exit 0)
+PASS  2488/g: a ledgered amend prints AMENDED judgement=amendment, APPLIED plan, APPLIED feature.json
+PASS  2488/g: an unledgered amend prints AMENDED then APPLIED plan
+PASS  2488/g: neither carries APPROVAL-RESET
+PASS  2488/h: the fixture signs (exit 0)
+PASS  2488/h: write_plan_and_ledger returns normally
+PASS  2488/h: both files carry the change, ledgered exactly once
+PASS  2488/h: no journal remains
+PASS  2488/h: the feedback failure is noted on stderr
+PASS  2488/k: the fixture signs (exit 0)
+PASS  2488/k: write_plan_and_ledger returns normally on a closed stderr
+PASS  2488/k: the amendment landed, ledgered exactly once, no journal
+PASS  2488/k: _locked_plan_update returns normally on a closed stderr
+PASS  2488/k: the plain write landed
+PASS  2488/k: receipts to a closed stdout, with stderr closed too, return normally
+PASS  2488/l/record-amendments: the fixture signs (exit 0)
+PASS  2488/l/record-amendments: exits 0 with no Traceback
+PASS  2488/l/record-amendments: the amendment landed, ledgered exactly once, no journal
+PASS  2488/l/record-amendments: stderr says the write landed
+PASS  2488/l/amend: the fixture signs (exit 0)
+PASS  2488/l/amend: exits 0 with no Traceback
+PASS  2488/l/amend: the amendment landed, ledgered exactly once, no journal
+PASS  2488/l/amend: stderr says the write landed
+PASS  2488/i: the fixture signs (exit 0)
+PASS  2488/i: the injected feature.json rename was reached
+PASS  2488/i: write_plan_and_ledger raises MergeRefusal(2)
+PASS  2488/i: its lines name the journal and say the next plan-merge or feature.json write completes it
+PASS  2488/i: no line says nothing was written
+PASS  2488/i: the CLI re-run leaves both files carrying the change, ledgered once
+PASS  2488/i: no journal remains
+PASS  2488/j: the fixture signs (exit 0)
+PASS  2488/j twin: the fixture signs (exit 0)
+PASS  2488/j: the twin's record-amendments exits 0
+PASS  2488/j: recovery reached the injected feature.json rename
+PASS  2488/j: _resolve_plan exits 2
+PASS  2488/j: stderr names the journal and says the transaction stays pending
+PASS  2488/j: no Traceback and no line saying nothing was written
+PASS  2488/j: the plan is at its after image, feature.json at its before image, the journal kept
+PASS  2488/j: write_plan_and_ledger raises MergeRefusal(2) with the same replay lines
+PASS  2488/j: no line says nothing was written
+PASS  2488/j: the splice's text is in neither file
+PASS  2488/j: the CLI re-run exits 6 as in (a)
+PASS  2488/j: both files carry the amendment exactly once, no journal remains
+PASS  2488/show: the fixture signs (exit 0)
+PASS  2488/show twin: the fixture signs (exit 0)
+PASS  2488/show: the twin's amend exits 0
+PASS  2488/show: amend --show exits 0
+PASS  2488/show: plan.yaml, feature.json and the journal stay byte-identical
+PASS  2488/show: the next amend completes the pair (exit 6 on the stale hash), the amendment ledgered exactly once, no journal left
+PASS test-plan-merge.py
+PASS test-plan-merge.py
+----- test-observations-merge.py (exit 0, 2.30s) -----
+PASS  case1: naive whole-file write loses bullet B
+PASS  case2: apply exits 0
+PASS  case2: bullet A present
+PASS  case2: bullet B present
+PASS  case2: bullet C present
+PASS  case2: A appears before B, and both remain in base order
+PASS  case3: apply exits 0
+PASS  case3: exactly one copy of the byte-identical record
+PASS  case4: apply exits 0
+PASS  case4: normalised-identical record (wrapping/trailing-space) not duplicated
+PASS  case4b: apply exits 0
+PASS  case4b: record differing only in trailing blank-line count dedups as one copy
+PASS  case5: two different records both kept, exit 0 (no conflict exit exists)
+PASS  case5: bullet A present
+PASS  case5: bullet B present
+PASS  case6: apply exits 0
+PASS  case6: the exact multi-line record text survives
+PASS  case7: 20 concurrent trials admit only the union outcome or the lock outcome
+PASS  case7: informational — the exit-6 lock branch was taken in 0/20 trials
+PASS  case8: base file does not exist before apply
+PASS  case8: create exits 0
+PASS  case8: the file now exists
+PASS  case8: bullet A present
+PASS  case8: a generated title line beginning with a hash is present
+PASS  case8b: first apply on a fresh feature exits 0
+PASS  case8b: the log is created with the entry
+PASS  case9: a source path is REFUSED with exit 9
+PASS  case9: ...and the refused file is untouched
+PASS  case9: the escape's literal argument ends in the full legal-looking tail
+PASS  case9: a symlink escape whose LITERAL argument looks legal but RESOLVES elsewhere is REFUSED with exit 9
+PASS  case9: ...and the file behind the symlink is untouched
+PASS  case9: an Expertise file path is REFUSED with exit 9 — it belongs to a different tool
+PASS  case9: ...and the Expertise file is untouched
+PASS  case9: a legitimate observations path is ALLOWED — exit 0
+PASS test-observations-merge.py
+PASS test-observations-merge.py
+----- test-inflight-registry.py (exit 0, 2.86s) -----
+PASS - case1: claim returns True
+PASS - case1: live_claim returns a claim
+PASS - case1: recorded dispatcher matches
+PASS - case1: recorded cwd matches
+PASS - case2: first pm claim succeeds
+PASS - case2: second pm claim is refused (single-flight)
+PASS - case2: stored started_at is still the FIRST claim's
+PASS - case2: first backend-dev claim succeeds
+PASS - case2: second backend-dev claim ALSO succeeds (parallel squad is legal)
+PASS - case2: registry holds two claims for backend-dev
+PASS - case2: both started_at values are present
+PASS - case2b: eng-lead children include backend-dev
+PASS - case2b: eng-lead children include frontend-dev
+PASS - case2b: eng-lead children exclude pm
+PASS - case2b: eng-lead children exclude qa
+PASS - case2b: product-lead children include pm
+PASS - case2b: product-lead children include qa
+PASS - case2b: product-lead children exclude backend-dev
+PASS - case2b: product-lead children exclude frontend-dev
+PASS - case2c: stale child is not returned
+PASS - case2c: stale claim is gone from the file afterwards
+PASS - case3: stale claim is treated as absent
+PASS - case3: live_claim reports one expired
+PASS - case3: a following claim succeeds after staleness expiry
+PASS - case4: release removes the SOLE claim and returns True
+PASS - case4: no live claim remains
+PASS - case4: releasing an absent claim returns False
+PASS - case4: releasing an absent claim does not create the file
+PASS - case5: harness-pm is single-flight
+PASS - case5: harness-backend-dev is not single-flight
+PASS - case6: first line begins with the dispatch-guard marker
+PASS - case6: the agent name appears
+PASS - case6: an ISO-8601 timestamp appears
+PASS - case6: #628 is referenced (issue #551 moved here, item 6)
+PASS - case6: the original #551 single-flight report is still noted
+PASS - case6: the plan.yaml-overwrite sentence is NOT tagged #551 (it is #628's issue now)
+PASS - case6: the release command appears byte-for-byte
+PASS - case6b: first line begins with the check-digest marker
+PASS - case6b: the returning agent is named
+PASS - case6b: the first child is named
+PASS - case6b: the second child is named
+PASS - case6b: two ISO-8601 timestamps appear
+PASS - case6b: #551 is referenced
+PASS - case7: 20 trials each produce exactly one successful claim() and one stored claim
+PASS - case7: informational — a LOCKED-style split-decision outcome was admitted 0/20 times
+PASS - case8: claim against a corrupt registry does not raise
+PASS - case8: claim succeeds, treating the corrupt file as empty
+PASS - case8: a message naming the file appears on stderr
+PASS - case9: release_all returns 3
+PASS - case9: the registry is empty afterwards
+PASS - case9: CLI list exits 0
+PASS - case9: CLI list prints NO CLAIMS
+PASS - case10: no fcntl usage
+PASS - case10: no O_EXCL usage
+PASS - case10: no os.replace usage
+PASS - case10: calls harness_merge.locked_update
+PASS - case13: release_refuses_ambiguous - two live claims are refused, not oldest-popped, and 0 is returned
+PASS - case13: release_refuses_ambiguous - both claims remain on disk untouched
+PASS - case13: release_refuses_ambiguous - stderr says how many were left
+PASS - case14: remedy_is_absolute - release_cmd(root, agent) exists
+PASS - case14: remedy_is_absolute - the remedy is rooted at the checkout, not a relative CLI path
+PASS - case14: remedy_is_absolute - a featureless remedy cannot be composed at all
+PASS - case14: remedy_is_absolute - the remedy names ONE agent, never release-all
+PASS - case15: pm claims for different features run together
+PASS - case15: a second pm for the same feature is refused
+PASS - case16: an old OMP claim stays live while its supervisor lives
+PASS - case16: the live OMP claim is not counted expired
+PASS - case16: an OMP claim is stale immediately when its supervisor dies
+PASS - case16: the dead-supervisor claim is counted expired
+PASS - case17: targeted feature release removes one claim
+PASS - case17: targeted feature release leaves the other feature live
+PASS - case18: a legacy claim is not live, however fresh
+PASS - case18: it is reported expired
+PASS - case18: every subsequent write uses schema version 2
+PASS - case18: schema version 2 stores one, now empty, claims list
+PASS - case18: legacy persona keys are not written back
+PASS - case19: OMP identity attaches to the pending claim
+PASS - case19: terminal OMP identity releases only its claim
+PASS - case19: released OMP claim is gone
+PASS - case19b: parallel claims exist
+PASS - case19b: parent pre-binds both named children
+PASS - case19b: exact child and parent lineage authorizes
+PASS - case19b: a sibling parent cannot borrow the child claim
+PASS - case19b: an unclaimed child id cannot borrow a parallel claim
+PASS - case19b: task result augments an already-bound child with its job id
+PASS - case19b: exact runtime lineage filters the live claim set
+PASS - case19b: a sibling parent sees no matching live claim
+PASS - case19b: a unique parent-bound claim accepts the runtime child id
+PASS - case19b: runtime authorization is idempotent
+PASS - case19b: a bound claim rejects a different runtime child id
+inflight_registry: BLOCKED - runtime child lineage has no matching claim
+PASS - case19b: authorize CLI approves exact runtime lineage
+PASS - case19b: authorize CLI blocks a mismatched parent lineage
+PASS - case20: targeted recovery removes one dead-supervisor claim
+PASS - case20: targeted recovery leaves another feature untouched
+PASS - case21: queried dead claim expires
+PASS - case21: unrelated dead feature is left for targeted reconciliation
+PASS - case22: the claim pins the supervisor start time
+PASS - case22: a live pid with a foreign start time is expired, not trusted
+PASS - case22: reconcile also clears it, so recovery does not need the operator
+PASS - case23: a verified supervisor keeps its claim at any age
+PASS - case24: an unverifiable claim is still live inside the backstop
+PASS - case24: past the backstop it expires even though the pid is alive
+PASS - case25: a genuinely live child DOES hold its parent
+PASS - case25: a stranded child no longer holds its parent
+PASS - case26: the ps read is the only subprocess in the module
+PASS - case26: the ps child is pinned to the C locale
+PASS - case26: our own start time still reads under a non-English LC_TIME
+PASS - case27: NaN survives json.loads, so the corruption guard misses it
+PASS - case27: a NaN start time is read without raising
+PASS - case27: and past the backstop it clears, so NaN cannot strand
+PASS - case27: Infinity survives json.loads, so the corruption guard misses it
+PASS - case27: a Infinity start time is read without raising
+PASS - case27: and past the backstop it clears, so Infinity cannot strand
+PASS - case27: -Infinity survives json.loads, so the corruption guard misses it
+PASS - case27: a -Infinity start time is read without raising
+PASS - case27: and past the backstop it clears, so -Infinity cannot strand
+PASS - case28: a featureless claim still composes a remedy
+PASS - case28: and the selector it prints actually matches that claim
+PASS - case29: a fresh `runtime: claude` claim reads as absent
+PASS - case29: and is counted as expired
+PASS - case29: a claim with no runtime is not a live child either
+PASS - case29: both are gone from disk afterwards
+PASS - the children refusal names the blocking rule and never says a repeated return ships
+PASS - case35: feature-root uses linked checkout rather than owner root
+PASS - case35: feature-root CLI resolves linked worktree
+PASS - case35: feature-root accepts a short-form worktree basename
+PASS - case35: feature-root CLI falls back to owner root
+PASS - case35: feature-root requires --feature
+PASS - case35: feature-root CLI refuses an ambiguous worktree
+PASS - case36: live_claims returns every matching claim oldest first
+PASS - case36: live_claims is byte-for-byte read only
+PASS - case36: a claim whose supervisor is gone does not bind
+PASS - case36: missing registry returns an empty list
+PASS - case36: test process identity is measurable
+PASS - case36: proven OMP identity binds past the backstop
+PASS - case37: unparseable json raises UnreadableRegistry naming its file
+PASS - case37: json list raises UnreadableRegistry naming its file
+PASS - case37: unsupported mapping raises UnreadableRegistry naming its file
+PASS - case37: absent remains distinct from unreadable
+PASS - case38: run-start binds the unique repository receipt
+PASS - case38: same-persona siblings under one parent bind independently
+PASS - case38b: mismatches refuse with their named state
+PASS - case38b: a runtime id held by another active dispatch is a collision
+PASS - case38b: an unreadable registry is refused as unreadable
+PASS - case38c: a released repository claim is refused as released
+PASS - case38c: authorize never binds a pending repository receipt
+PASS - case38: a run with no receipt creates a claim bound to its exact id
+PASS - case38: a settled agent woken under its id reuses that one claim
+PASS - case38: the unique unbound parent receipt is bound, not duplicated
+PASS - case38: an ambiguous receipt pair is never selected; the run gets its own claim
+PASS - case38: another parent's receipt is never bound
+PASS - case38: a persona outside SINGLE_FLIGHT_AGENTS keeps two live same-feature claims
+PASS - case38: an exact id under a different parent is refused, not rebound
+PASS - case39: a second live pm is refused, naming the holder, retryable after it settles
+PASS - case39: once the holder settles the same run start succeeds
+PASS - case39: an unreadable registry is a non-retryable operator condition, left as found
+PASS - case40: a unique match in a linked worktree yields its feature and that registry root
+PASS - case40: a unique owner-root match yields the owner root
+PASS - case40: zero exact matches refuse; a parent id or persona is never a match
+PASS - case40: the find-run command exits 2 with the structured refusal
+PASS - case40: the same id in two registries refuses rather than choosing
+PASS - case40: any unreadable registry refuses, non-retryable, even with a match elsewhere
+PASS - case41: run-start writes the registry feature_root resolves (short-form worktree)
+PASS - feat65: a failing ps probe still answers None
+PASS - feat65: an unrelated defect in the ps probe escapes
+PASS - feat65: an ambiguous worktree lookup falls back to the owner root
+PASS - feat65: an unrelated lookup defect escapes feature_root
+PASS - feat65: the direct feature-root command stays loud and nonzero on a defect
+PASS - 168/168 checks passed
+PASS test-inflight-registry.py
+----- test-expertise-merge.py (exit 0, 12.90s) -----
+PASS  case1: naive last-writer-wins loses P-02
+PASS  case1: naive last-writer-wins loses P-03
+PASS  case2: apply A exits 0
+PASS  case2: apply B exits 0
+PASS  case2: P-01 present after both applies
+PASS  case2: P-02 present after both applies
+PASS  case2: P-03 present after both applies
+PASS  case2: P-04 present after both applies
+PASS  case2: check-expertise.py still accepts the merged file
+PASS  case3: 20 concurrent trials admit only the union outcome or the lock outcome
+PASS  case4: divergent text exits 7
+PASS  case4: existing text appears in stdout
+PASS  case4: proposed text appears in stdout
+PASS  case4: file is byte identical to before
+PASS  case4: a following apply still exits 0
+PASS  case5: cap overflow exits 8
+PASS  case5: stdout names the section
+PASS  case5: stdout names the cap
+PASS  case5: file is byte identical to before
+PASS  case5: a following apply still exits 0
+PASS  case6: target file absent before apply
+PASS  case6: exits 0
+PASS  case6: file created
+PASS  case6: proposed entry present
+PASS  case6: a following apply still exits 0
+PASS  case9: a non-Expertise --file is REFUSED with exit 9
+PASS  case9: ...and the refused file is UNTOUCHED
+PASS  case9: a `..` escape carrying a legal tail is REFUSED — the match is on the realpath, not the argument
+PASS  case9: the project tier is ALLOWED — exit 0
+PASS  case9: the repository tier is ALLOWED — exit 0
+PASS  case8: CAPS mapping found in expertise-merge.py
+PASS  case8: CAPS mapping found in check-expertise.py
+PASS  case8: Patterns cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Gotchas cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Outcomes cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Open cap agrees between expertise-merge.py and check-expertise.py
+PASS  case10: a following apply exits 0 after the lock holder is SIGKILLed
+PASS  case10: the proposed entry is on disk after recovery
+PASS  case11: replace at capacity exits 0
+PASS  case11: stdout carries REPLACED P-07
+PASS  case11: Patterns still holds 15 entries
+PASS  case11: the 7th entry line is P-07
+PASS  case11: the 7th entry line carries the new text
+PASS  case11: check-expertise.py still accepts the written file
+PASS  case12: drop exits 0
+PASS  case12: stdout carries DROPPED G-03
+PASS  case12: the string - G-03: is absent from the file
+PASS  case12: G-01 is still present
+PASS  case12: G-02 is still present
+PASS  case12: G-04 is still present
+PASS  case12: G-05 is still present
+PASS  case12: check-expertise.py still accepts the written file
+PASS  case13: missing target exits 10
+PASS  case13: combined output carries MISSING TARGET
+PASS  case13: combined output carries the id P-99
+PASS  case13: combined output carries the section Patterns
+PASS  case13: file sha256 is unchanged
+PASS  case13: file content is byte identical to before
+PASS  case13: a following add-only apply still exits 0
+PASS  case14: (b) a duplicate id in one section exits 11
+PASS  case14: (b) combined output carries AMBIGUOUS TARGET
+PASS  case14: (b) combined output carries the id P-04
+PASS  case14: (b) combined output carries the section Patterns
+PASS  case14: (b) combined output carries a reason
+PASS  case14: (b) file sha256 is unchanged
+PASS  case14: (c) two ops naming the same target exits 11
+PASS  case14: (c) combined output carries AMBIGUOUS TARGET
+PASS  case14: (c) combined output carries the id P-01
+PASS  case14: (c) combined output carries the section Patterns
+PASS  case14: (c) combined output carries a reason
+PASS  case14: (c) file sha256 is unchanged
+PASS  case15: atomic failure exits non-zero
+PASS  case15: file sha256 equals the sha256 taken before the invocation
+PASS  case15: a following add-only apply still exits 0
+PASS  case16: add-only proposal exits 0
+PASS  case16: stdout carries the ADDED token
+PASS  case16: stdout carries the PRESERVED token
+PASS  case16: stdout carries the APPLIED token
+PASS  case16: same-id-different-text proposal still exits 7
+PASS  case16: over-cap proposal still exits 8
+PASS  case17: the op: vocabulary anchor matches the real SKILL.md exactly once
+PASS  case17: contract_drift(real SKILL.md) returns no failures
+PASS  case17: copy (a) actually removed the phrase 'drop of the absorbed id'
+PASS  case17: copy (a) — rewrite phrase removed — reddens the FIRST direction (CONTRACT - ACCEPTED)
+PASS  case17: copy (a) does not redden the SECOND direction (ACCEPTED - CONTRACT)
+PASS  case17: copy (b) actually inserted the extra verb prune
+PASS  case17: copy (b) — extra verb prune inserted — reddens the FIRST direction (CONTRACT - ACCEPTED)
+PASS  case17: copy (b) does not redden the SECOND direction (ACCEPTED - CONTRACT)
+PASS  case17: copy (c) actually removed the verb drop from the vocabulary line
+PASS  case17: copy (c) — drop removed from the vocabulary line — reddens the SECOND direction (ACCEPTED - CONTRACT)
+PASS  case17: copy (c) does not redden the FIRST direction (CONTRACT - ACCEPTED)
+PASS  case18: neither child exits during the 2.0s hold window while the test holds the production lock (2.06s observed)
+PASS  case18: child A (apply) exits 0 once the lock is released
+PASS  case18: child B (ops) exits 0 once the lock is released
+PASS  case18: the Patterns id census is exactly the original eight plus P-09 and P-10
+PASS  case18: the P-07 entry carries child B's marker text
+PASS  case19: multi-op composition exits 0
+PASS  case19: stdout carries DROPPED P-01
+PASS  case19: stdout carries REPLACED P-05
+PASS  case19: the id sequence is exactly P-02, P-03, P-04, P-05 in file order
+PASS  case19: the P-05 entry carries the marker text
+PASS  case19: no other entry carries the marker text
+PASS  case19: check-expertise.py still accepts the written file
+PASS  case20: (a) missing section key exits 12
+PASS  case20: (a) combined output carries MALFORMED OPS
+PASS  case20: (a) combined output names the offending key section
+PASS  case20: (a) combined output names the op's index
+PASS  case20: (a) file sha256 is unchanged
+PASS  case20: (a) a following add-only apply still exits 0, so the file is still writable
+PASS  case20: (b) empty section key exits 12
+PASS  case20: (b) combined output carries MALFORMED OPS
+PASS  case20: (b) combined output names the offending key section
+PASS  case20: (b) combined output names the op's index
+PASS  case20: (b) file sha256 is unchanged
+PASS  case20: (c) digest-shaped mapping exits 12
+PASS  case20: (c) combined output carries MALFORMED OPS
+PASS  case20: (c) combined output carries the literal token expertise_update
+PASS  case20: (c) file sha256 is unchanged
+PASS  case21: (U+000A) an entry embedding it exits 12
+PASS  case21: (U+000A) combined output carries MALFORMED OPS
+PASS  case21: (U+000A) file sha256 is unchanged
+PASS  case21: (U+000B) an entry embedding it exits 12
+PASS  case21: (U+000B) combined output carries MALFORMED OPS
+PASS  case21: (U+000B) file sha256 is unchanged
+PASS  case21: (U+000C) an entry embedding it exits 12
+PASS  case21: (U+000C) combined output carries MALFORMED OPS
+PASS  case21: (U+000C) file sha256 is unchanged
+PASS  case21: (U+000D) an entry embedding it exits 12
+PASS  case21: (U+000D) combined output carries MALFORMED OPS
+PASS  case21: (U+000D) file sha256 is unchanged
+PASS  case21: (U+001C) an entry embedding it exits 12
+PASS  case21: (U+001C) combined output carries MALFORMED OPS
+PASS  case21: (U+001C) file sha256 is unchanged
+PASS  case21: (U+001D) an entry embedding it exits 12
+PASS  case21: (U+001D) combined output carries MALFORMED OPS
+PASS  case21: (U+001D) file sha256 is unchanged
+PASS  case21: (U+001E) an entry embedding it exits 12
+PASS  case21: (U+001E) combined output carries MALFORMED OPS
+PASS  case21: (U+001E) file sha256 is unchanged
+PASS  case21: (U+0085) an entry embedding it exits 12
+PASS  case21: (U+0085) combined output carries MALFORMED OPS
+PASS  case21: (U+0085) file sha256 is unchanged
+PASS  case21: (U+2028) an entry embedding it exits 12
+PASS  case21: (U+2028) combined output carries MALFORMED OPS
+PASS  case21: (U+2028) file sha256 is unchanged
+PASS  case21: (U+2029) an entry embedding it exits 12
+PASS  case21: (U+2029) combined output carries MALFORMED OPS
+PASS  case21: (U+2029) file sha256 is unchanged
+PASS  case21: the forged entry never reaches the file
+PASS  case21: (cap bypass) U+2028 replace on at-cap Gotchas exits 12
+PASS  case21: (cap bypass) re-parsed Gotchas count stays 15
+PASS  case21: (cross-section) VT-embedded forged header exits 12
+PASS  case21: (cross-section) re-parsed Patterns count stays 14
+PASS  case21: (cross-section) re-parsed Gotchas count stays 15
+PASS  case22: (U+000A) a target embedding it exits 12
+PASS  case22: (U+000A) combined output carries MALFORMED OPS
+PASS  case22: (U+000A) file sha256 is unchanged
+PASS  case22: (U+000B) a target embedding it exits 12
+PASS  case22: (U+000B) combined output carries MALFORMED OPS
+PASS  case22: (U+000B) file sha256 is unchanged
+PASS  case22: (U+000C) a target embedding it exits 12
+PASS  case22: (U+000C) combined output carries MALFORMED OPS
+PASS  case22: (U+000C) file sha256 is unchanged
+PASS  case22: (U+000D) a target embedding it exits 12
+PASS  case22: (U+000D) combined output carries MALFORMED OPS
+PASS  case22: (U+000D) file sha256 is unchanged
+PASS  case22: (U+001C) a target embedding it exits 12
+PASS  case22: (U+001C) combined output carries MALFORMED OPS
+PASS  case22: (U+001C) file sha256 is unchanged
+PASS  case22: (U+001D) a target embedding it exits 12
+PASS  case22: (U+001D) combined output carries MALFORMED OPS
+PASS  case22: (U+001D) file sha256 is unchanged
+PASS  case22: (U+001E) a target embedding it exits 12
+PASS  case22: (U+001E) combined output carries MALFORMED OPS
+PASS  case22: (U+001E) file sha256 is unchanged
+PASS  case22: (U+0085) a target embedding it exits 12
+PASS  case22: (U+0085) combined output carries MALFORMED OPS
+PASS  case22: (U+0085) file sha256 is unchanged
+PASS  case22: (U+2028) a target embedding it exits 12
+PASS  case22: (U+2028) combined output carries MALFORMED OPS
+PASS  case22: (U+2028) file sha256 is unchanged
+PASS  case22: (U+2029) a target embedding it exits 12
+PASS  case22: (U+2029) combined output carries MALFORMED OPS
+PASS  case22: (U+2029) file sha256 is unchanged
+PASS  case22: the forged line never reaches the file
+PASS  case22: re-parsed Patterns count stays 1
+PASS  case23: a non-string target exits 12, not 1
+PASS  case23: combined output carries MALFORMED OPS
+PASS  case23: combined output carries no Python traceback
+PASS  case23: file sha256 is unchanged
+PASS  case24: (a) add matching neither occurrence exits 11, not the pre-fix outcome
+PASS  case24: (a) combined output carries AMBIGUOUS TARGET
+PASS  case24: (a) combined output carries the id P-07
+PASS  case24: (a) file sha256 is unchanged
+PASS  case24: (b) add matching the surviving occurrence exits 11, not the pre-fix outcome
+PASS  case24: (b) combined output carries AMBIGUOUS TARGET
+PASS  case24: (b) file sha256 is unchanged
+PASS  case25: (too-long id vanishes on reparse) exits 12
+PASS  case25: (too-long id vanishes on reparse) combined output carries MALFORMED OPS
+PASS  case25: (too-long id vanishes on reparse) combined output carries the malformed target
+PASS  case25: (too-long id vanishes on reparse) file sha256 is unchanged
+PASS  case25: (a) re-parsed Gotchas holds no new entry
+PASS  case25: (id-embedding target refused, not aliased) exits 12
+PASS  case25: (id-embedding target refused, not aliased) combined output carries MALFORMED OPS
+PASS  case25: (id-embedding target refused, not aliased) combined output carries the malformed target
+PASS  case25: (id-embedding target refused, not aliased) file sha256 is unchanged
+PASS  case25: (b) re-parsed Patterns holds exactly one P-01
+PASS  case25: (b) a following legitimate replace of P-01 exits 0, not 11
+PASS  case26: well-formed add exits 0
+PASS  case26: rendered file contains the new entry
+PASS  case27a: duplicate ids exit 11
+PASS  case27a: message carries AMBIGUOUS TARGET, section, id and reason
+PASS  case27a: destination bytes unchanged
+PASS  case27b: identical duplicate ids exit 11
+PASS  case27b: message carries AMBIGUOUS TARGET, section, id and reason
+PASS  case27b: destination bytes unchanged
+PASS  case27c: absent destination exits 11
+PASS  case27c: message carries AMBIGUOUS TARGET
+PASS  case27c: nothing created at the absent destination
+PASS  member strict: persona key rejected with 12
+PASS  member absent craft: exits 0
+PASS  member absent craft: canonical title plus the four sections
+PASS  member absent craft: before/after per-section counts returned
+PASS  member absent craft: outcomes returned
+PASS  member strict: state key rejected with 12
+PASS  member absent craft: result passes check-expertise
+PASS  member receipt: persona feature runtime parent recorded
+PASS  member receipt: checkout-relative destination
+PASS  member receipt: exact accepted ops
+PASS  member receipt: absent original recorded as null
+PASS  member receipt: before/after content hashes
+PASS  member receipt: content-derived 64-hex batch identity returned too
+PASS  member strict: unknown key rejected with 12
+PASS  member strict: rejects left every byte alone
+PASS  batches: both calls succeed
+PASS  batches: ordered 1 then 2
+PASS  batches: distinct content-derived identities
+PASS  batches: second batch originals are the first batch's text and absence
+PASS  batches: second batch starts from the first batch's result
+PASS  batches: ops recorded exactly in call order
+PASS  batches: counts reflect the second call only
+PASS  ops regression: persona is still not a low-level op key
+PASS  batches: a different parent for the same runtime id is refused with 15
+PASS  member receipt: identity is stable across identical fixtures
+PASS  member strict: empty list without supersedes refused with 12
+PASS  batches: a different persona for the same runtime id is refused with 15
+PASS  batches: those refusals changed nothing
+PASS  member strict: undecodable JSON refused with 12
+PASS  member absent repository: exits 0
+PASS  member absent repository: canonical file
+PASS  member absent repository: receipt destination
+PASS  ops regression: plain ops still applies
+PASS  ops regression: plain ops writes no receipt
+PASS  apply regression: union apply still works
+PASS  refusal: missing target refused with 10
+PASS  member boundary: undeclared repository refused with 9
+PASS  member boundary: dot-dot repository refused with 9
+PASS  member boundary: path repository refused with 9
+PASS  member boundary: repository tier without segment refused with 9
+PASS  member boundary: craft tier with a segment refused with 9
+PASS  member boundary: non harness persona refused with 9
+PASS  member boundary: persona traversal refused with 9
+PASS  member boundary: unknown feature refused with 9
+PASS  member boundary: feature traversal refused with 9
+PASS  member boundary: refusals wrote nothing
+PASS  receipt failure: call fails with 15
+PASS  receipt failure: success was not published
+PASS  receipt failure: the target did persist
+PASS  refusal: a multi-op batch with one bad op applies nothing
+PASS  member boundary: symlinked repository segment refused with 9
+PASS  receipt failure: verification fails closed on the missing receipt
+PASS  refusal: candidate failing check-expertise refused with 14
+PASS  refusal: target bytes, receipts and notes unchanged, no applied batch
+PASS  refusal: the refused runtime has no receipt
+PASS  receipt failure: replay fails closed on the unreceipted change
+PASS  member boundary: symlinked craft tier (global/control-plane stand-in) refused with 9
+PASS  refusal: cap overflow refused with 8
+PASS  refusal: cap overflow preserved every byte
+PASS  verify: ordered active batches verify on their FINAL effect (superseded intermediate absent)
+PASS  verify: reports measured per-section counts
+PASS  verify: read-only (no file, lock or receipt changed or added)
+PASS  member boundary: symlink onto another tree's legal-looking .harness/expertise refused with 9
+PASS  verify: wrong runtime refused with 15
+PASS  member boundary: symlinked repository segment with a legal-looking tail refused with 9
+PASS  member boundary: nothing landed in the symlink targets
+PASS  member boundary: nothing landed outside the checkout
+PASS  member boundary: no receipt after refusals
+PASS  verify: wrong persona refused with 15
+PASS  verify: wrong parent refused with 15
+PASS  verify: wrong destination refused with 15
+PASS  verify: op not exactly recorded refused with 15
+PASS  verify: fabricated op refused with 15
+PASS  replay selection: earlier distill's receipt on main is ignored (replay succeeds)
+PASS  replay selection: only the current PR's receipt is read
+PASS  replay --check is read-only
+PASS  replay --check reports the checkout file already equals the replay
+PASS  verify: persona missing from item refused with 15
+PASS  verify: file reverted to the superseded intermediate is a mismatch
+PASS  verify: entry removed after the receipt is a mismatch
+PASS  replay independent: two callers replacing one base entry refuse (identical text not hidden)
+PASS  replay independent: refusal names both runs
+PASS  replay independent: refused file stays byte-identical
+PASS  verify: identical existing add is PRESERVED
+PASS  replay collision: the first worktree replays cleanly onto its own base
+PASS  verify: preserved add verifies and is listed as preserved
+PASS  verify: an invented application (receipt edited, file never changed) is refused
+PASS  replay independent: replace versus drop of one entry refuses too
+PASS  replay collision: --check succeeds
+PASS  replay collision: original-to-replayed id mapping (first free positive id)
+PASS  replay collision: --check left the file alone and says it is stale
+PASS  replay changed main: replace/drop over a changed or vanished entry refuse with 13
+PASS  replay changed main: replace refusal names persona run destination section id batch
+PASS  replay changed main: vanished drop target is DISAPPEARED
+PASS  replay changed main: refused file byte-identical
+PASS  replay collision: write run succeeds
+PASS  replay collision: both entries survive, identical add preserved, later reference remapped
+PASS  replay collision: base and result hash evidence
+PASS  evidence: a receipt whose content no longer matches its identity fails replay with 15
+PASS  evidence: ... and fails verification with 15
+PASS  replay repeat: second replay rebuilds from the base, not from its own output
+PASS  replay repeat: second replay finds the file already up to date
+PASS  replay collision: result passes check-expertise
+PASS  evidence: undecodable receipt fails replay with 15
+PASS  supersession: the original judgment is refused first
+PASS  replay cap: exactly at the cap succeeds
+PASS  supersession: another persona cannot retire the batch
+PASS  evidence: restored receipt replays
+PASS  supersession: another destination cannot retire the batch
+PASS  verify full: a clean receipted add verifies
+PASS  evidence: an Expertise change with no receipt is refused with 15
+PASS  supersession: unknown batch reference refused with 15
+PASS  supersession: a reference needs the explicit main base (12)
+PASS  verify full: receipted P-01 add plus unreceipted deletion of pre-existing G-01 refuses
+PASS  evidence: a receipt naming a file the checkout lacks is refused with 15
+PASS  replay cap: overflow refuses rather than truncates
+PASS  replay cap: refused file byte-identical
+PASS  supersession: malformed reference refused with 12
+PASS  evidence: cyclic supersession is refused with 15 and named
+PASS  verify full: receipted add plus unreceipted edit of another entry refuses
+PASS  supersession: failing replacement ops refuse with 10
+PASS  supersession: all refusals wrote nothing and retired nothing
+PASS  verify full: restored file verifies again
+PASS  supersession: failed replacement leaves the old batch active (replay still refuses)
+PASS  verify c2 member: the receipted application itself lands
+PASS  supersession: same persona re-dispatched child replaces the refused batch
+PASS  supersession: file is the main reconstruction plus the new ops
+PASS  supersession: historical receipt is immutable
+PASS  supersession: replacement receipt records the exact reference
+PASS  verify c2 member: unreceipted G-01 deletion COMMITTED before the first receipted application refuses (base=default)
+PASS  verify full: unreceipted G-01 deletion BEFORE the receipted add refuses
+PASS  verify c2 member: unreceipted G-01 deletion COMMITTED before the first receipted application refuses (base=--base)
+PASS  supersession: replay now succeeds and the file is already the replay
+PASS  supersession: replay is idempotent
+PASS  supersession: replacement receipt verifies with its authorization reference
+PASS  supersession: replacement verifies its complete destination with no --base (superseded write honoured)
+PASS  verify c2 member: a committed receipted application on a feature branch verifies (base=default)
+PASS  supersession: the retired batch no longer verifies as active
+PASS  verify c2 member: a committed receipted application on a feature branch verifies (base=--base)
+PASS  supersession: a second replacement of the same batch is ambiguous (15)
+PASS  supersession: ambiguous attempt wrote nothing
+PASS  supersession: a reference whose receipt is already on main is outside this PR (15)
+PASS  verify c2 lead: the receipted application itself lands
+PASS  verify c2 lead: unreceipted G-01 deletion COMMITTED before the first receipted application refuses (base=default)
+PASS  supersession: empty replacement withdraws the judgment
+PASS  supersession: withdrawal leaves exactly the main blob
+PASS  supersession: withdrawal is an empty batch, not a fabricated op
+PASS  verify c2 lead: unreceipted G-01 deletion COMMITTED before the first receipted application refuses (base=--base)
+PASS  supersession: replay after withdrawal succeeds
+PASS  supersession: withdrawal verifies with an empty claimed list
+PASS  verify c2 lead: a committed receipted application on a feature branch verifies (base=default)
+PASS  verify c2 lead: a committed receipted application on a feature branch verifies (base=--base)
+PASS  verify c2: no default branch and no --base refuses with 15, NO AUTHORIZED BASE
+PASS  verify c2: the runtime whose write is on the chain verifies
+PASS  verify c2: an active batch off the write chain refuses and is named (unchained-batch guard)
+PASS test-expertise-merge.py
+PASS test-expertise-merge.py
+----- test-check-state-feat59.py (exit 0, 24.56s) -----
+ok - case INV-37 uses binding/provenance, never factory claims (claims)
+ok - case INV-37 uses binding/provenance, never factory claims (opened)
+ok - case INV-37 uses binding/provenance, never factory claims (wrong-repo)
+ok - case INV-37 uses binding/provenance, never factory claims (bound-owner-off)
+ok - case (38.a) a well-formed by-perspective BRIEF is silent
+ok - case (38.a2) a by-perspective BRIEF is NOT graded for `## Requirements`/REQ-NN
+ok - case (38.b) a perspective no SC discharges is a VIOLATION naming it
+ok - case (38.c) an SC tagged with an undeclared perspective names the SC and the tag
+ok - case (38.d) an SC with no perspective tag is a VIOLATION naming the SC
+ok - case (38.e) an old-shape BRIEF (REQ-NN, untagged SCs) is not graded
+ok - case (38.f) a perspective with a parenthetical qualifier matches its bare tag
+ok - case (38.g) the heading with no perspective under it is a VIOLATION
+ok - case (39.a) cycles_used 11 > max_total_cycles 10 is a VIOLATION naming both
+ok - case (39.b) cycles_used == max_total_cycles is silent — the boundary is >
+ok - case (39.c) a raise above the harness.json default with no decision names DEC-157
+ok - case (39.d) the same raise with a matching budget_decisions entry is silent
+ok - case (39.e) a decision recording a DIFFERENT value does not cover the current one
+ok - case (39.f) max_total_cycles equal to the default needs no decision
+ok - case (39.g) a record predating the FEAT-59 keys is NOTED, not failed
+ok - case (39.h) a by-perspective BRIEF puts a key-less record in era — graded
+ok - case (39.i) cycles_used 12 with max_total_cycles inherited from the default 10 is a VIOLATION
+ok - case (39.j) cycles_used at the inherited default is silent
+ok - case (40.a) mission with no judgement of kind mission is a VIOLATION
+ok - case (40.b) mission with its matching judgement is silent
+ok - case (40.b2) mission plan whose LAST mission judgement decided patch is a VIOLATION naming both
+ok - case (40.b3) two mission judgements, the last matching the current mission, is silent
+ok - case (40.c) a FAIL run followed by another run with no regate names the run
+ok - case (40.d) the same with a regate judgement is silent
+ok - case (40.e) a FAIL run that nothing follows needs no regate yet
+ok - case (40.f) two re-gates against one regate judgement names the uncovered run
+ok - case (40.g) a handoff at seq-1 with a run after it and no succession names the note
+ok - case (40.h) the same with a succession judgement is silent
+ok - case (40.i) a handoff at seq-2 with exactly two runs has no successor run yet
+ok - case (40.j) an in-era handoff with no seq-N on line one is refused, not skipped
+ok - case (40.k) the three checks are independent — all three fire on one record
+ok - case (40.l) a record predating the ledger is NOTED once, never failed
+ok - case (40.m) a legacy record with nothing to grade emits no note at all
+ok - case (40d.a) a freshly signed plan is silent — the hashes agree with sign-approval
+ok - case (40d.b) an unledgered intent change is ONE violation naming the task and the remedy
+ok - case (40d.g) a files change is caught
+ok - case (40d.h) a verify change is caught, on the task it belongs to
+ok - case (40d.i) two independently changed tasks are two violations
+ok - case (40d.c) the matching amendment judgement silences it
+ok - case (40d.d) an OVERRULED matching amendment still covers — the ledger is the record
+ok - case (40d.e) an amendment for ANOTHER task does not cover
+ok - case (40d.f) another judgement kind naming the task does not cover
+ok - case (40d.j) a presentation-only rewrite (quoting, list form) hashes the same — silent
+ok - case (40d.k) a plan with no signed_task_hashes (signed before BUG-1716) is not graded
+ok - case (40d.l) a pending approval is not graded by this trigger
+ok - case (40d.m) the text trigger reports beside, not instead of, the other triggers
+ok - case (61.a) a check-skill-weight exec exception is INV-42 CANNOT RUN naming it
+ok - case (61.b) the failed exec leaves no check_skill_weight entry in sys.modules
+ok - case (61.c) a null module spec is INV-42 CANNOT RUN as an ImportError naming the path
+ok - case (61.d) the dataclass loader observes its own name in sys.modules during exec
+ok - case (61.e) a duplicate key in schemas/run-state.json is INV-16 CANNOT be checked, never last-wins
+ok - case (61.f) a step schema without its properties keeps its natural KeyError
+ok - case (61.g) a schema without steps keeps its natural KeyError
+ok - case (1928.a) a bare-text digest with no fenced mapping is an INV-15 finding
+ok - case (1928.b) a final mapping missing a required key names it
+ok - case (1928.c) a historical final mapping with out-of-schema keys is accepted
+ok - case a recorded refused BLOCKED closure preserves prose without INV-15
+ok - case duplicate run IDs cannot exempt a refused closure
+ok - case a refused marker cannot exempt PASS
+ok - case a refused marker cannot exempt PENDING
+ok - case (41.a) an unscoped check-state.py invocation is a VIOLATION naming the SC
+ok - case (41.b) `--feature` scopes it — silent
+ok - case (41.c) the feature directory path scopes it — silent
+ok - case (41.d) naming the script as a subject is a mention, not an invocation
+ok - case (41.e) an old-shape BRIEF is not graded
+ok - case (41.f) check-domain.py is covered too
+ok - case (41.g) a bare span the SC RUNS is an invocation
+ok - case (41.h) the feature id in the SC text scopes it — silent
+ok - case (49.a) an excluded-kind SC with no gaps section is a VIOLATION naming it
+ok - case (49.b) the same SC named under '## Verification gaps' is silent
+ok - case (49.c) an active kind needs no gaps line even when absent
+ok - case (49.d) verify: manual needs a gaps line naming the SC too
+ok - case (49.e) a manual SC named under '## Verification gaps' is silent
+ok - case (49.f) verify: inspection never needs a gaps line
+ok - case (49.g) an old-shape BRIEF is not graded
+ok - case (49.h) a record with no plan.yaml (DEC-174 direct build) is outside the rule
+ok - case (43.a) succession recorded AFTER run 2 started is a VIOLATION naming both
+ok - case (43.b) succession recorded before run 2 started is silent
+ok - case (43.c) succession at exactly run 2's start is silent (no later than)
+ok - case (43.d) an unparseable succession `at` is CANNOT VERIFY naming the field
+ok - case (43.e) a successor run with no started_at is CANNOT VERIFY naming started_at
+ok - case (43.h) two handoffs match two successions in order; only the second is retrospective
+ok - case (43.f) a MISSING succession is INV-40's finding, not INV-43's
+ok - case (43.g) a handoff with no successor run yet has nothing to grade
+ok - case (43.i) a legacy record is never graded by INV-43
+ok - case (43.j) at station review the retrospective succession is a VIOLATION
+ok - case (43.j2) at station done (shipped) nothing is graded
+ok - case (43.k) before seam_era_start the retrospective succession is a NOTE naming would-fail
+ok - case (43.l) on the seam_era_start date it is graded — a VIOLATION
+ok - case (43.m) the boundary is by date at a terminal station too
+ok - case (44.a) a conforming rejected record is silent on INV-44 and on the approval gate
+ok - case (44.b) cycles_used other than integer 0 is a VIOLATION naming cycles
+ok - case (44.c) zero runs is a VIOLATION naming the count
+ok - case (44.d) two runs is a VIOLATION naming the count
+ok - case (44.e) the one run owned by a lead is a VIOLATION naming the agent
+ok - case (44.f) no reject judgement is a VIOLATION naming the kind and remedy
+ok - case (44.g) an approved plan under a rejected station is a VIOLATION
+ok - case (44.h) a signed BRIEF under a rejected station is a VIOLATION
+ok - case (44.i) a panel mapping under a rejected station is a VIOLATION
+ok - case (44.j) every bad dimension is reported separately
+ok - case (44.k) the same record at any other station is not INV-44's to grade
+ok - case (63.a) an unimportable feature_schema is the diagnosed config violation naming the failure
+ok - case (63.b) the 300-line fallback is gone — nothing is graded against a guessed budget
+ok - case (47.a) a PASS validate run over a same-cycle qa BLOCKED note is a VIOLATION naming the note and the run
+ok - case (47.c) the unsuffixed validate-validator run is cycle 0
+ok - case (47.b) member notes at PASS/n/a are silent; an earlier cycle's BLOCKED note belongs to that cycle's FAIL run, not this one
+ok - case (47.d) a plan-review note is not a validate member note
+ok - case (47.e) a legacy record is not graded
+PASS test-check-state-feat59.py
+----- test-plan-decision-dispositions.py (exit 0, 26.83s) -----
+PASS explicit empty list passes
+PASS keep with the clause in its own section passes
+PASS a markdown clause matches verbatim
+PASS a clause under a deeper subheading is still the decision's section
+PASS amend to this plan's D id passes
+PASS strike to an indexed DEC passes
+PASS strike of a STRUCK decision is permitted
+PASS an eligible draft without decisions_affected fails
+PASS an unindexed dec fails with row index and dec
+PASS keep on STRUCK fails
+PASS amend on title-case Struck fails
+PASS a clause from a neighbouring section fails
+PASS a partial clause match fails
+PASS markdown is not normalised away
+PASS whitespace is not normalised away
+PASS a clause only in a fenced DEC-10 example fails the DEC-10 row
+PASS a nested-fence DEC-10 example is still fenced
+PASS the real DEC-10 section's clause passes beside fenced impostors
+PASS DEC-11's section runs past its fenced examples
+PASS a clause after a ```python run inside an open fence fails the DEC-10 row
+PASS the real DEC-10 clause passes beside the info-string spoof
+PASS rule 1 closer: the spoof clause fails the DEC-10 row
+PASS rule 1 closer: the genuine DEC-10 clause passes
+PASS rule 1 opener: the spoof clause fails the DEC-10 row
+PASS rule 1 opener: the genuine DEC-10 clause passes
+PASS rule 2: a 3-space DEC-11 heading ends DEC-10's section
+PASS rule 2: a 3-space heading is DEC-11's own heading
+PASS rule 2: a 4-space `## DEC-10` neither starts nor ends a section
+PASS rule 2 spoof: the spoof clause fails the DEC-10 row
+PASS rule 2 spoof: the genuine DEC-10 clause passes
+PASS rule 3: the spoof clause fails the DEC-10 row
+PASS rule 3: the genuine DEC-10 clause passes
+PASS rule 5: the spoof clause fails the DEC-10 row
+PASS rule 5: the genuine DEC-10 clause passes
+PASS rule 4 ~~~ in ```: the spoof clause fails the DEC-10 row
+PASS rule 4 ~~~ in ```: the genuine DEC-10 clause passes
+PASS rule 4 ``` in ~~~: the spoof clause fails the DEC-10 row
+PASS rule 4 ``` in ~~~: the genuine DEC-10 clause passes
+PASS rule 3 tilde: the spoof clause fails the DEC-10 row
+PASS rule 3 tilde: the genuine DEC-10 clause passes
+PASS identifier 'DEC-10x — not DEC-10': the spoof clause fails the DEC-10 row
+PASS identifier 'DEC-10x — not DEC-10': the genuine DEC-10 clause passes
+PASS identifier 'DEC-10_a': the spoof clause fails the DEC-10 row
+PASS identifier 'DEC-10_a': the genuine DEC-10 clause passes
+PASS identifier 'DEC-10-1 — another id': the spoof clause fails the DEC-10 row
+PASS identifier 'DEC-10-1 — another id': the genuine DEC-10 clause passes
+PASS identifier 'DEC-10.5': the spoof clause fails the DEC-10 row
+PASS identifier 'DEC-10.5': the genuine DEC-10 clause passes
+PASS identifier: `## DEC-10: Ten` is DEC-10's heading
+PASS identifier: `## DEC-10 (Ten)` is DEC-10's heading
+PASS identifier: `## DEC-10` is DEC-10's heading
+PASS an amend to a D id this plan lacks fails
+PASS a strike to an unindexed DEC fails
+PASS an amend with no task owning DECISIONS.md fails
+PASS a keep needs no owning task
+PASS a symbol anchor on DECISIONS.md owns it
+PASS a content anchor (normalised path) on DECISIONS.md owns it
+PASS disposition failures sit beside unrelated anchor failures
+PASS a served plan checks against its own segment's decisions
+PASS a served plan never borrows the harness decision corpus
+PASS a draft stamped before activation is not newly refused
+PASS a draft stamped exactly at activation is eligible
+PASS a draft stamped after activation is eligible
+PASS an offset instant compares as an instant
+PASS an offset instant before activation is pre-era
+PASS a null era requires the block on every stamped draft
+PASS an undated legacy pending draft is not refused
+PASS a malformed drafted_at is a diagnostic
+PASS a naive drafted_at is a diagnostic
+PASS an approved in-era plan is history, not a draft
+PASS a landed plan is history
+PASS an approved plan may drop a quoted clause after signature
+PASS apply creates the plan
+PASS creation stamps a timezone-qualified UTC drafted_at
+PASS the stamp is the writer's creation instant
+PASS creation refuses a caller-supplied drafted_at
+PASS the refused creation writes no file
+PASS creation refuses a malformed decisions_affected row
+PASS the refused malformed creation writes no file
+PASS creation with a valid row still creates
+PASS set-key backdate on stamped plan: refused nonzero
+PASS set-key backdate on stamped plan: plan bytes identical
+PASS set-key forward-date on stamped plan: refused nonzero
+PASS set-key forward-date on stamped plan: plan bytes identical
+PASS set-key null on stamped plan: refused nonzero
+PASS set-key null on stamped plan: plan bytes identical
+PASS set-key backdate on undated plan: refused nonzero
+PASS set-key backdate on undated plan: plan bytes identical
+PASS set-key forward-date on undated plan: refused nonzero
+PASS set-key forward-date on undated plan: plan bytes identical
+PASS set-key null on undated plan: refused nonzero
+PASS set-key null on undated plan: plan bytes identical
+PASS apply backdate on stamped plan (byte-preserving): refused nonzero
+PASS apply backdate on stamped plan (byte-preserving): plan bytes identical
+PASS apply forward-date on stamped plan (byte-preserving): refused nonzero
+PASS apply forward-date on stamped plan (byte-preserving): plan bytes identical
+PASS apply null on stamped plan (byte-preserving): refused nonzero
+PASS apply null on stamped plan (byte-preserving): plan bytes identical
+PASS apply backdate on undated plan (byte-preserving): refused nonzero
+PASS apply backdate on undated plan (byte-preserving): plan bytes identical
+PASS apply forward-date on undated plan (byte-preserving): refused nonzero
+PASS apply forward-date on undated plan (byte-preserving): plan bytes identical
+PASS apply null on undated plan (byte-preserving): refused nonzero
+PASS apply null on undated plan (byte-preserving): plan bytes identical
+PASS the copy carries the rendering switch
+PASS apply backdate on stamped plan (safe_dump rendering): refused nonzero
+PASS apply backdate on stamped plan (safe_dump rendering): plan bytes identical
+PASS apply forward-date on stamped plan (safe_dump rendering): refused nonzero
+PASS apply forward-date on stamped plan (safe_dump rendering): plan bytes identical
+PASS apply null on stamped plan (safe_dump rendering): refused nonzero
+PASS apply null on stamped plan (safe_dump rendering): plan bytes identical
+PASS apply backdate on undated plan (safe_dump rendering): refused nonzero
+PASS apply backdate on undated plan (safe_dump rendering): plan bytes identical
+PASS apply forward-date on undated plan (safe_dump rendering): refused nonzero
+PASS apply forward-date on undated plan (safe_dump rendering): plan bytes identical
+PASS apply null on undated plan (safe_dump rendering): refused nonzero
+PASS apply null on undated plan (safe_dump rendering): plan bytes identical
+PASS stamped plan: ordinary apply edit succeeds
+PASS stamped plan: ordinary set-key edit succeeds
+PASS stamped plan: stamp unchanged or still absent
+PASS stamped plan: bytes outside the edit preserved
+PASS undated legacy plan (no backfill): ordinary apply edit succeeds
+PASS undated legacy plan (no backfill): ordinary set-key edit succeeds
+PASS undated legacy plan (no backfill): stamp unchanged or still absent
+PASS undated legacy plan (no backfill): bytes outside the edit preserved
+PASS apply carrying the unchanged stamp is accepted
+PASS an unchanged stamp is preserved, not replaced
+127/127 passed
+PASS test-plan-decision-dispositions.py
+pool: 4 workers, 11 files, 26.83s wall
+slowest: test-plan-decision-dispositions.py 26.83s, test-check-state-feat59.py 24.56s, test-expertise-merge.py 12.90s
+0 unresolved reader site(s) across 101 Python file(s)
+PASS no rename primitive or journal handling in plan_merge; reset bookkeeping and false fsync claim gone
+exit=0
