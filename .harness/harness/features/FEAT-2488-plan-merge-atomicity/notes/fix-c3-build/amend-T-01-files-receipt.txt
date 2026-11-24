@@ -1,0 +1,19 @@
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/features/FEAT-2488-plan-merge-atomicity/feature.json:
+  VIOLATION  FEAT-2488-plan-merge-atomicity: review_sha 2eab047b9971bc428db21d1527ce614826ebc692 is STALE — plan.yaml has changed since it was pinned, last at 2eab047b, so the review claim covers text that is no longer there (INV-33).
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-dbbfd79d9e3d970df44a8ff198ead20f disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-750aa466f71b005cbe16082f41781e47 disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-c21a7b327f03336b65acc58f5a3b5aa7 disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-0b1c6afcd2abebc7894aa7b312e11bb3 disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-4cdc08853a8f30e432b8c47fd32f899d disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-70a14133a5a9cf6a182a18d93550f56e disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-4e7966122369eb0dee1c4cb8227004a4 disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-e44c490dcb5f6f51724ed67ffe112b1d disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-397af34758f531dd5addde35955b62c7 disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-cc9533d17b7b7ea996da92ca60bf649f disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-484f97f28ee2c36e0c7e945522f24594 disposition resolved.
+  note       INV-32: FEAT-2488-plan-merge-atomicity finding PF-ebc96c4ba60f4992253f628ac91b160b disposition resolved.
+  note       INV-17 FEAT-2488-plan-merge-atomicity: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed. Suppressed handoff-plan, handoff-build.
+  note       LAYOUT dirty (8): 2 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+AMENDED tasks:T-01.files judgement=amendment
+APPLIED /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/features/FEAT-2488-plan-merge-atomicity/plan.yaml
+APPLIED /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/features/FEAT-2488-plan-merge-atomicity/feature.json

@@ -1,0 +1,31 @@
+# python3 tests/integration/test-harness-merge.py
+PASS - case1: transform receives None for missing file
+PASS - case1: file created with transform output
+PASS - case2: transform receives original bytes
+PASS - case2: result is exactly transform's bytes
+PASS - case3: MergeRefusal propagated
+PASS - case3: file byte-identical to before
+PASS - case3: no tempfile left behind
+PASS - case4: locked_update returned normally after stale lock killed
+PASS - case4: transform output is on disk
+PASS - case5: contention admits only the two legal outcomes over 20 trials
+PASS - case6: no torn read observed by concurrent reader
+PASS - case6: reader observed at least one read
+PASS - case6: reader observed both the short and long body while racing the writer
+PASS - case7: matching resolved path is accepted
+PASS - case7: non-matching path raises MergeRefusal(9)
+PASS - case7: symlink escape (literal ends in matching tail via symlinked 'mydir', realpath resolves outside and does not match) raises MergeRefusal(9)
+PASS - case8: acquire raises MergeRefusal(6) against a live holder
+PASS - case8: refusal lines name the lock path
+PASS - case9: the override still refuses a live holder with exit 6
+PASS - case9: the refusal names the overridden budget
+PASS - case9: and takes the short budget, not the 10s default
+PASS - case9: an explicit timeout= wins over the override
+PASS - case9: override '0' is refused loudly, naming the variable
+PASS - case9: override '-1' is refused loudly, naming the variable
+PASS - case9: override 'soon' is refused loudly, naming the variable
+PASS - case9: override 'nan' is refused loudly, naming the variable
+PASS - case9: override 'inf' is refused loudly, naming the variable
+PASS - case9: override '1e999' is refused loudly, naming the variable
+PASS - 28/28 checks passed
+# exit code: 0

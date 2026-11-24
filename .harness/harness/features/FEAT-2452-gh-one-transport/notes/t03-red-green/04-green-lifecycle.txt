@@ -1,0 +1,199 @@
+PASS  complete board: exits 0
+PASS  complete board: performs ZERO mutations (not merely exit 0)
+PASS  complete board: reports nothing to do
+PASS  complete board: a second consecutive run also performs zero mutations
+PASS  missing options: exits 0 and calls updateProjectV2Field exactly once
+PASS  missing options: sends existing options first, in existing order, then the additions, and never touches createProjectV2Field
+PASS  SC-08: no argv the fake receives contains the string 'Abandoned'
+PASS  field absent: exits 0 and calls createProjectV2Field exactly once
+PASS  field absent: sends all six declared options in declared order
+PASS  field absent (disaster guard i): factory_gh.project_create was NOT called
+PASS  field wrong type (disaster guard ii): exits 2
+PASS  field wrong type (disaster guard ii): names the field and its actual data type
+PASS  field wrong type (disaster guard ii): ZERO mutations of any kind reached the fake
+PASS  no project: exits 3
+PASS  no project: creates the project and links the repository
+PASS  no project: reports the new project number
+PASS  SC-01: no project: createProjectV2Field is called exactly ONCE in the SAME run -- the field never waits for a second run
+PASS  SC-01: no project: the field is created ON THE NEWLY CREATED project (projectId=PVT_NEW, the id createProjectV2 returned) and is named Status
+PASS  SC-01: no project: all six declared station names go over the wire BYTE FOR BYTE, in declared order, in the singleSelectOptions literal
+PASS  no project: still exits 3 AFTER the field creation -- the operator must record the new number, and 3 is that signal (its meaning is unchanged)
+PASS  no project: updateProjectV2Field is STILL never called -- extend must never run on a board whose field was just created with all six options
+PASS  no project: reports the field it created on stdout
+PASS  c4: the probe on the field-absent create branch is sent for the CREATED number (42), never the DECLARED 9
+PASS  SC-01: field-create failure after a successful create+link exits 4, never 2 or 3
+PASS  SC-01: the field-create failure names the CREATED project's number on stderr -- a retry that cannot see it would create a second board
+PASS  SC-01: the field-create failure names the field it failed to create
+PASS  SC-01: create and link really did happen before the field failure
+PASS  SC-01: the field-create was actually attempted (the failure is a real call's, not a gap in the branch)
+PASS  c3: fresh board whose Status field ALREADY EXISTS as single-select: still exits 3 -- the operator must record the new number, and 3 is that signal
+PASS  c3: fresh board with a pre-existing Status: updateProjectV2Field is called EXACTLY once
+PASS  c3: fresh board with a pre-existing Status: createProjectV2Field is NEVER called -- that is the call the real API rejected with 'Name has already been taken'
+PASS  c3: the option list sent over the wire is EXACTLY the six declared, in declared order, BYTE FOR BYTE -- nothing appended, nothing preserved from GitHub's default
+PASS  c3: the exact replace targets the DEFAULT field's id, the one _field_probe read off the just-created project
+PASS  c3: GitHub's undeclared defaults are GONE from the payload -- Todo and In Progress appear in NO argv the fake received
+PASS  c3: stdout names the options it REMOVED, so the operator sees Todo and In Progress went
+PASS  c4: the fresh-board probe is sent for the CREATED project number (42), never the DECLARED 9 -- the declared number is the one that did not resolve
+PASS  c4: the fresh-board options read is sent for the CREATED number (42) too -- reading the declared board's options would compute the removal set off the WRONG project
+PASS  c3: an extend failure on a just-created board exits 4, never 2 or 3
+PASS  c3: the extend failure names the CREATED project's number on stderr -- a retry that cannot see it would create a second board
+PASS  c3: the extend failure names the field it could not set
+PASS  c3: the extend really was attempted (the failure is a real call's, not a gap)
+PASS  c3: a fresh board whose field is not single-select exits 4 (a project WAS created), never 2
+PASS  c3: that refusal names the created number and the type it found
+PASS  c3: it converts nothing -- no field mutation of any kind reached the fake
+PASS  c4: a NON-GhError (ArtifactAccessError from strict GitHub parsing) in the field work after a successful create+link exits 4, NEVER 2 -- 2 would claim nothing was written
+PASS  c4: the field failure names the invalid GitHub body as a gh failure (FEAT-64: run_gh's own GhError, no longer an UNEXPECTED ArtifactAccessError)
+PASS  c4: it still tells the operator to record the number now
+PASS  c4: create and link really did land before the unexpected failure
+PASS  c4: a NON-GhError in the LINK call after a successful create exits 4, never 2 -- the same hole lived in that block too
+PASS  c4: the link failure names the created number and the invalid GitHub body (FEAT-64: a gh failure, not 'unexpected')
+PASS  c4: no field work was attempted after the link failed
+PASS  c3 regression: an EXISTING board with an undeclared column still exits 0 and extends exactly once
+PASS  c3 regression: the payload is BYTE FOR BYTE existing + missing -- the undeclared Icebox survives, in its existing position
+PASS  c3 regression: the payload is NEVER the bare declared six -- that is the column-deletion disaster, and no existing-board path may reach it
+PASS  c3 regression: Icebox is still in the argv the fake received -- the operator's column was not deleted
+PASS  MUST-FIX 2: create-then-link failure exits 4, never 2 (this module's own 'nothing mutated' code) or 3 (the clean-success race code) -- this run DID create a real project
+PASS  MUST-FIX 2: the created project's number reaches stdout BEFORE the link failure -- a retry must be able to see it and record it rather than create a duplicate
+PASS  MUST-FIX 2: createProjectV2( was actually called -- the project really was created, so 'nothing mutated' would be false
+PASS  MUST-FIX 2: the stderr failure names the created project's number and the repo it failed to link
+PASS  linkage guard (MUST-FIX 1): refuses exit 2 when the resolved project is not linked to the served repo
+PASS  linkage guard: performs ZERO mutations -- the confused-deputy write never reaches the fake
+PASS  linkage guard: the refusal names the project (owner and number), the repo, and why
+PASS  null board: exits 0 silently, no gh call at all
+PASS  unknown --repo: exits 2, naming the repo, with no gh call at all
+PASS  audit clean board: exits 0
+PASS  audit clean board: reports zero findings
+PASS  audit clean board: no finding-class marker on stdout
+PASS  audit DECLARATION: exits 1
+PASS  audit DECLARATION: names the missing key and value on stdout
+PASS  audit STATION: exits 1
+PASS  audit STATION: names the issue, its actual and expected station
+PASS  audit STATION (#2151): an abandoned card at Backlog is not a finding
+PASS  audit STATION (#2151): a not_planned close without the abandoned label is still one
+PASS  audit REASON: exits 1
+PASS  audit REASON: names the issue
+PASS  audit LABEL: exits 1
+PASS  audit LABEL: names the issue
+PASS  audit LABEL (#2151): a not_planned issue no feature records is NOT a finding
+PASS  audit LABEL: a not_planned issue carrying the abandoned label is NOT a finding
+PASS  audit LABEL (#2151): a padded recorded number still yields the finding
+PASS  audit LABEL: a non-list source_issues is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: a false-valued non-list source_issues is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: a non-mapping github block is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: a non-mapping issues block is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: an isdigit source number int() rejects is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: an unparseable feature.json is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  LABEL ownership: a record bound to acme/other does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, undeclared in the fleet does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, served config sync off does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, served config unavailable does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, served config naming acme/other does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, declared and validly configured owns acme/widget#17 (finding and one label write)
+PASS  reconcile (#2151): an unparseable record survives as a STATUS residual, no crash
+PASS  audit WORKFLOW (renamed/absent): exits 1
+PASS  audit WORKFLOW (renamed/absent): reports 'Pull request merged' MISSING
+PASS  audit WORKFLOW: the header names detection-by-name, once, on every run
+PASS  audit WORKFLOW (disabled): exits 1
+PASS  audit WORKFLOW (disabled): reports 'Auto-close issue' disabled
+PASS  audit WORKFLOW (disabled): says no API can enable it, only the web UI can
+PASS  audit STATUS (FEAT-32 shape): exits 1
+PASS  audit STATUS (FEAT-32 shape): names the feature dir, recorded station, column, and actual lowercase board station
+PASS  audit STATUS: Done remains ship-only and is outside active reconciliation
+PASS  audit STATUS: backlog is a column but outside active reconciliation, no STATUS finding
+PASS  audit STATUS: a matching status and card is NOT a finding
+PASS  audit STATUS: exemption 1 -- Abandoned is exempt, no STATUS finding
+PASS  audit STATUS: rejected is terminal and has no board-column finding
+PASS  audit STATUS: exemption 2 -- no recorded parent is exempt, no STATUS finding
+PASS  factory intake claims cannot exempt a provenanced owner mirror from station grading
+PASS  audit does not compare an active owner feature against a different repository's cards
+PASS  audit grades a bound feature's provenanced mirrors on its product board, not its claims
+PASS  unproven bound receipts require human recovery and cannot authorize automatic station writes
+PASS  audit GhError: exits 4, never 0 or 1
+PASS  audit GhError: prints nothing that looks like a finding or a clean report
+PASS  audit GhError: the failure is on stderr, one line
+PASS  BUG-1699 reconcile dry-run: source, parent, and live task mismatches are previewed
+PASS  BUG-1699 reconcile dry-run: duplicate source/parent cards yield one finding each
+PASS  BUG-1699 reconcile dry-run: an abandoned task card is exempt
+PASS  BUG-1699 reconcile dry-run: one bounded board snapshot feeds every card comparison
+PASS  BUG-1699 reconcile dry-run: previews but performs zero mutations
+PASS  BUG-1699 reconcile apply: writes every unique source, parent, and live task card
+PASS  BUG-1699 reconcile apply: never writes an abandoned task card
+PASS  BUG-1699 reconcile apply: one bounded board snapshot covers the invocation
+PASS  BUG-1699 reconcile apply: an immediate second run is idempotent
+PASS  BUG-1699 reconcile partial failure: later cards are still attempted
+PASS  BUG-1699 reconcile partial failure: only the failed card remains fixable
+PASS  BUG-1699 reconcile partial failure: one bounded board snapshot covers the invocation
+PASS  reconcile GhError: exits 4, never 0 or 1
+PASS  reconcile --dry-run: exits 0 even with fixable findings present
+PASS  reconcile --dry-run: performs ZERO mutations (not merely exit 0)
+PASS  reconcile --dry-run: previews every fixable finding as a would-fix line
+PASS  reconcile --dry-run: never writes feature.json
+PASS  reconcile --apply (one of each): exits 0 once every fixable finding is resolved
+PASS  reconcile --apply (one of each): STATION -- set_station moves issue #10 to Done
+PASS  reconcile --apply (one of each): STATUS -- set_station moves the PARENT #40 to Building, never the issue's own number
+PASS  reconcile --apply (one of each): REASON -- PATCHes issue #20 to state_reason=completed (it carries no abandoned label)
+PASS  reconcile --apply (one of each): LABEL -- creates the abandoned label with b60205 directly, then adds it to issue #30
+PASS  reconcile --apply (one of each): STATUS never rewrites feature.json -- the card moves, the recorded status does not
+PASS  reconcile --apply (one of each): the residual report says zero fixable findings remain
+PASS  reconcile (partial failure): the run continues past issue #50's failed write to issue #51 -- #51's item lookup was actually sent
+PASS  reconcile (partial failure): issue #50's failure is reported on stderr
+PASS  reconcile (partial failure): #50 survives as a residual STATION finding, #51 does not
+PASS  reconcile (partial failure): exits 1 -- a bulk fix that stops at the first error must never report a zero exit with the board half migrated
+PASS  reconcile LABEL (nonzero create): no label is attached after the failed create
+PASS  reconcile LABEL (nonzero create): the later card is still attempted -- two failures reported
+PASS  reconcile LABEL (nonzero create): both findings survive, exit 1
+PASS  reconcile LABEL (launch failure create): no label is attached after the failed create
+PASS  reconcile LABEL (launch failure create): the later card is still attempted -- two failures reported
+PASS  reconcile LABEL (launch failure create): both findings survive, exit 1
+PASS  reconcile LABEL (existing label, exit 1): accepted -- both cards get the label, exit 0
+PASS  reconcile LABEL: the create keeps colour b60205 and its description, never --force
+PASS  reconcile (unfixable residuals): DECLARATION and WORKFLOW both survive on stdout
+PASS  reconcile (unfixable residuals): exits 0 anyway -- neither class is ever attempted or counted
+PASS  reconcile (unfixable residuals): performs zero mutations -- neither class is a write this tool can make
+PASS  reconcile (Done exemption): emits no automatic STATUS repair
+PASS  reconcile (Done exemption): never calls set_station for Done feature cards
+PASS  reconcile #783: cross-repo dry-run exits 0 with zero fixable findings previewed -- STATUS never fires for a repo that is not this checkout's own
+PASS  reconcile #783: never previews a write against issue #960
+PASS  reconcile #783: performs zero mutations -- dry-run never writes regardless
+PASS  reconcile (clean board): exits 0
+PASS  reconcile (clean board): performs ZERO mutations
+PASS  reconcile (clean board): re-running it again also exits 0 with zero mutations
+PASS  reconcile (clean board, second run): idempotent -- exits 0, zero mutations
+PASS  retitle (has milestone): exits 0
+PASS  retitle (has milestone): the summary line reports it renamed
+PASS  retitle (has milestone): exactly one rename call reaches the fake, for issue 101, carrying the new title verbatim in its argv
+PASS  retitle (no milestone): exits 0 -- a per-ticket refusal never fails the whole run
+PASS  retitle (no milestone): the refusal names issue #202 (SC-18)
+PASS  retitle (no milestone): NO rename call is issued for it
+PASS  MUST-FIX 3: ticket #401's rename was attempted and failed, but the run continues -- ticket #402 is still renamed rather than the run stopping at #401
+PASS  MUST-FIX 3: ticket #401's failure is reported on stderr, per-ticket
+PASS  MUST-FIX 3: exits 1 -- a partial failure must be signalled honestly, never exit 2's caller/declaration meaning and never a silent exit 0
+PASS  MUST-FIX 3: the summary reports both the renamed and the failed count
+PASS  retitle (already correct): exits 0
+PASS  retitle (already correct): NOT reported as refused or renamed
+PASS  retitle (already correct): the summary counts it already correct
+PASS  retitle (already correct): NO rename call is issued for it
+PASS  retitle (truncated enumeration): exits 2
+PASS  retitle (truncated enumeration): names the returned count and the limit
+PASS  retitle (truncated enumeration): NO rename call is issued -- the refusal is before any write is attempted
+PASS  retitle (--dry-run default): exits 0
+PASS  retitle (--dry-run default): previews the pending rename on stdout
+PASS  retitle (--dry-run default): performs ZERO write calls -- not merely exit 0
+PASS  retitle unknown --repo: exits 2, naming the repo, with no gh call at all
+PASS  audit_findings: returns the same STATION finding cmd_audit prints
+PASS  audit_findings: returns a LIST, not an exit code -- the caller decides what to do
+PASS  audit_findings: prints NOTHING -- no workflow header
+PASS  audit_findings: prints NOTHING -- no finding line of its own, and no count line
+PASS  audit_findings: writes nothing to stderr either
+PASS  audit_findings: cmd_audit's own output is UNCHANGED by the move -- it still prints the workflow header before its findings
+PASS  audit_findings: a failed read raises GhError -- it never calls sys.exit
+PASS  audit_findings: no board declared returns an EMPTY LIST, not an error
+PASS  audit_findings: no board declared prints nothing -- cmd_audit keeps that line
+PASS  audit_findings: cmd_audit STILL prints its own no-board line
+PASS  T-07 audit STATUS: a feature with NO feature.json status still yields a finding from its plan.yaml station -- the class does not go vacuous
+PASS  T-07 audit STATUS: both harness-side values are lowercase, and the GitHub column name is not -- the boundary is where the capitals belong (D-08)
+PASS  T-07 NEGATIVE CONTROL: plan station agreeing with the board is NOT a STATUS finding
+
+all checks passed.
+exit=0

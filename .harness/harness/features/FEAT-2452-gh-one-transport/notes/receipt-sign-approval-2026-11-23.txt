@@ -1,0 +1,22 @@
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  note       LAYOUT dirty (8): 2 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+REWORK rounds=2 minutes=90 decision=.harness/harness/features/FEAT-2452-gh-one-transport/notes/answers-2026-11-23-signoff.md -> /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json
+HASHED 5 task(s) -> /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/feature.json:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  note       LAYOUT dirty (8): 2 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.
+RESUME: ready
+BRIEF /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/BRIEF.md approved
+SIGNED /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/plan.yaml by Mike Ruangutai (delegated to fable-advisor) on 2026-11-23
+APPLIED /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/plan.yaml
+check-state --changed after /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/plan.yaml:
+  VIOLATION  INV-37 FEAT-2452-gh-one-transport: github.sync is enabled but the feature has no usable Build-entry receipt (receipt absent or incomplete) - run python3 .claude/skills/harness/bin/gh-sync.py open /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3bfe1e6fa1d390a01608f9f4691e5d27 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-500b6edeb3f44a1077e3d17823d19094 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-1d616c71fa78e2127146432752890b56 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-264d65c0b4c11c8fc335feb5240c3635 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-f10c24fc64326826c94b4b2326fd8010 disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-e4b1875dab5b26b1e625b00544388f1e disposition resolved.
+  note       INV-32: FEAT-2452-gh-one-transport finding PF-3cf5ab1247b91727827d2acdc2d6b56a disposition resolved.
+  note       LAYOUT dirty (8): 4 path(s) carry work that repair must not touch — reported, not gating; repair runs once the work is committed or stashed.

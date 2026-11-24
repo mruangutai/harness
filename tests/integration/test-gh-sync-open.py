@@ -22,6 +22,8 @@ import tempfile
 import contextlib
 import io
 from unittest.mock import patch
+import gh_cost_log
+import harness_boundary
 import harness_merge
 from harness_config_support import build_config, write_config
 
@@ -73,13 +75,13 @@ echo "simulated failure" >&2
 exit 1
 """
 
-# Milestone create succeeds (the FIRST remote-mutating call cmd_open makes); every OTHER
-# gh invocation fails, so the parent (or task) create right after it fails too — the
-# partial-remote-write shape D-04 must block.
+# Labels and the milestone create succeed (the milestone is the FIRST remote-mutating call
+# whose receipt cmd_open records); every OTHER gh invocation fails, so the parent (or task)
+# create right after it fails too — the partial-remote-write shape D-04 must block.
 FAKE_GH_PARTIAL = """#!/bin/bash
 echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
 case "$1 $2" in
-  "auth status") exit 0 ;;
+  "auth status"|"label create") exit 0 ;;
   "api -X")
     case "$*" in
       *milestones\\ -f*) echo '{"number": 7}'; exit 0 ;;
@@ -594,31 +596,48 @@ def replacement_milestone_uncertainty_case():
               f"first={first.stdout} again={again.stdout} rec={rec} calls={calls(tmp)}")
 
 
+def _create_fixture_milestone(module, feat, rec, out):
+    """Run the fixture's replacement milestone create in process; return its exit code."""
+    with contextlib.redirect_stdout(out):
+        try:
+            module._replacement_create(feat, rec, "milestone",
+                ["api", "-X", "POST", "repos/product/app/milestones", "-f", "title=fixture"], json_number=True)
+        except SystemExit as error:
+            return error.code
+    return None
+
+
+def _durable_github(feat):
+    return read_feature_json(os.path.join(feat, "feature.json"))["github"]
+
+
+def _resume_recovery(feat, note, tmp):
+    return run(["recover-mirror", feat, "--previous-repo", "owner/harness",
+                "--evidence", note, "--yes"], tmp)
+
+
 def replacement_undispatched_case():
 
     with tempfile.TemporaryDirectory() as tmp:
         feat, note, module, rec = _begin_fixture_recovery(tmp)
-        code = None
-        with patch.object(module, "GH", os.path.join(tmp, "not-installed-gh")), \
-                contextlib.redirect_stdout(io.StringIO()):
-            try:
-                module._replacement_create(feat, rec, "milestone",
-                    ["api", "-X", "POST", "repos/product/app/milestones", "-f", "title=fixture"], json_number=True)
-            except SystemExit as error:
-                code = error.code
-        durable = read_feature_json(os.path.join(feat, "feature.json"))["github"]
+        with patch.dict(os.environ, {"FACTORY_GH": os.path.join(tmp, "not-installed-gh")}):
+            code = _create_fixture_milestone(module, feat, rec, io.StringIO())
+        durable = _durable_github(feat)
         check("provably undispatched create clears only its intent and retains the recovery generation",
               code == 2 and durable.get("milestone") is None
               and not durable.get("recovery", {}).get("pending_create") and create_calls(calls(tmp)) == [],
               f"code={code} durable={durable} calls={calls(tmp)}")
-        resumed = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
-                       "--evidence", note, "--yes"], tmp)
-        completed = read_feature_json(os.path.join(feat, "feature.json"))["github"]
-        check("known undispatched recovery resumes normally without a second archive",
-              resumed.returncode == 0 and len(create_calls(calls(tmp))) == 3
-              and len(completed.get("history", [])) == 1
-              and completed.get("recovery", {}).get("id") == rec["recovery"]["id"],
-              f"rc={resumed.returncode} out={resumed.stdout} err={resumed.stderr} completed={completed}")
+        _check_undispatched_resume(tmp, feat, note, rec)
+
+
+def _check_undispatched_resume(tmp, feat, note, rec):
+    resumed = _resume_recovery(feat, note, tmp)
+    completed = _durable_github(feat)
+    check("known undispatched recovery resumes normally without a second archive",
+          resumed.returncode == 0 and len(create_calls(calls(tmp))) == 3
+          and len(completed.get("history", [])) == 1
+          and completed.get("recovery", {}).get("id") == rec["recovery"]["id"],
+          f"rc={resumed.returncode} out={resumed.stdout} err={resumed.stderr} completed={completed}")
 
 
 def replacement_confirmed_save_failure_cases():
@@ -626,32 +645,34 @@ def replacement_confirmed_save_failure_cases():
     for save_error in (OSError("injected disk-full after confirmed create"), SystemExit(2),
                        harness_merge.MergeRefusal(11, ["injected schema refusal after confirmed create"])):
         with tempfile.TemporaryDirectory() as tmp:
-            feat, note, module, rec = _begin_fixture_recovery(tmp)
-            real_save = module.save_recorded
-            def fail_confirmation(directory, record):
-                if record.get("milestone") is not None:
-                    raise save_error
-                real_save(directory, record)
-            out, code = io.StringIO(), None
-            with patch.object(module, "GH", os.path.join(tmp, "gh")), \
-                    patch.object(module, "save_recorded", fail_confirmation), \
-                    patch.dict(os.environ, {"FAKE_LOG": os.path.join(tmp, "calls.log")}), \
-                    contextlib.redirect_stdout(out):
-                try:
-                    module._replacement_create(feat, rec, "milestone",
-                        ["api", "-X", "POST", "repos/product/app/milestones", "-f", "title=fixture"], json_number=True)
-                except SystemExit as error:
-                    code = error.code
-            durable = read_feature_json(os.path.join(feat, "feature.json"))["github"]
-            resumed = run(["recover-mirror", feat, "--previous-repo", "owner/harness",
-                           "--evidence", note, "--yes"], tmp)
-            check(f"confirmed receipt {type(save_error).__name__} preserves named pending intent and prohibits restart creation",
-                  code == resumed.returncode == 2 and all(
-                      value in out.getvalue() for value in ("uncertain", rec["recovery"]["id"], "milestone", "#7"))
-                  and durable.get("milestone") is None
-                  and durable.get("recovery", {}).get("pending_create", {}).get("role") == "milestone"
-                  and len(create_calls(calls(tmp))) == 1,
-                  f"code={code} out={out.getvalue()} resumed={resumed.stdout} durable={durable} calls={calls(tmp)}")
+            _confirmed_save_failure_case(tmp, save_error)
+
+
+def _confirmed_save_failure_case(tmp, save_error):
+    feat, note, module, rec = _begin_fixture_recovery(tmp)
+    real_save = module.save_recorded
+    def fail_confirmation(directory, record):
+        if record.get("milestone") is not None:
+            raise save_error
+        real_save(directory, record)
+    out = io.StringIO()
+    with patch.object(module, "save_recorded", fail_confirmation), \
+            patch.dict(os.environ, {"FACTORY_GH": os.path.join(tmp, "gh"),
+                                    "FAKE_LOG": os.path.join(tmp, "calls.log")}):
+        code = _create_fixture_milestone(module, feat, rec, out)
+    _check_confirmed_intent(tmp, feat, note, rec, out.getvalue(), code, type(save_error).__name__)
+
+
+def _check_confirmed_intent(tmp, feat, note, rec, out, code, error_name):
+    durable = _durable_github(feat)
+    resumed = _resume_recovery(feat, note, tmp)
+    named = all(value in out for value in ("uncertain", rec["recovery"]["id"], "milestone", "#7"))
+    check(f"confirmed receipt {error_name} preserves named pending intent and prohibits restart creation",
+          code == resumed.returncode == 2 and named
+          and durable.get("milestone") is None
+          and durable.get("recovery", {}).get("pending_create", {}).get("role") == "milestone"
+          and len(create_calls(calls(tmp))) == 1,
+          f"code={code} out={out} resumed={resumed.stdout} durable={durable} calls={calls(tmp)}")
 
 
 def replacement_role_adoptions():
@@ -708,7 +729,160 @@ def _replacement_role_adoption_case(tmp, feat, note, previous, role):
     _check_completed_replay(tmp, feat, command, create_calls(calls(tmp)), f"{role} adoption")
 
 
+def _in_process_launch(module, call, tmp):
+    """Run CALL with FACTORY_GH and PATH both naming nothing installed; return (stdout, exit
+    code, value, unexpected exception)."""
+    out, code, value, raised = io.StringIO(), None, None, None
+    with patch.dict(os.environ, {"FACTORY_GH": os.path.join(tmp, "not-installed-gh"), "PATH": tmp}), \
+            contextlib.redirect_stdout(out):
+        try:
+            value = call(module)
+        except SystemExit as error:
+            code = error.code
+        except Exception as error:  # the regression: a launch failure must never escape
+            raised = error
+    return out.getvalue(), code, value, raised
+
+
+def launch_failure_cases():
+    """FEAT-2452: a gh launch failure reaches gh's SKIP and gh_try's tuple, never a traceback."""
+    module = load_gh_sync()
+    with tempfile.TemporaryDirectory() as tmp:
+        out, code, _value, raised = _in_process_launch(module, lambda m: m.gh(["issue", "view", "1"]), tmp)
+        check("gh launch failure is the ordinary mirror SKIP, exit 0",
+              raised is None and code == 0 and "gh-sync: SKIP" in out and "issue view" in out,
+              f"code={code} raised={raised!r} out={out}")
+        out, code, value, raised = _in_process_launch(module, lambda m: m.gh_try(["issue", "view", "1"]), tmp)
+        check("gh_try launch failure returns (False, diagnostic of at most 200 chars), no exit",
+              raised is None and code is None and isinstance(value, tuple) and value[0] is False
+              and 0 < len(value[1]) <= 200, f"code={code} raised={raised!r} value={value!r}")
+
+
+def _open_with(script, feat_name="FEAT-05-export-fix"):
+    """Run `open` once against SCRIPT; return (result, call log, github receipt)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        install_gh(tmp, script)
+        feat = stage(tmp, feat_name=feat_name)
+        result = run(["open", feat], tmp)
+        receipt = read_feature_json(os.path.join(feat, "feature.json")).get("github") or {}
+        return result, calls(tmp), receipt
+
+
+_CREATE = 'echo "https://github.com/implentio/fake/issues/$n" ;;'
+
+
+def malformed_url_cases():
+    """#1542: an ordinary parent or task create URL without a positive /issues/<n> tail is an
+    actionable mirror SKIP, never a receipt with a false number, a traceback or a second create."""
+    for role, guard in (("parent", '[[ "$*" == *"reliable csv export"* ]]'), ("task", '[[ "$*" == *"T-01"* ]]')):
+        script = FAKE_GH.replace(_CREATE, 'if %s; then echo "https://github.com/implentio/fake/issues/created"; '
+                                 'else %s fi' % (guard, _CREATE.replace(";;", ";")) + " ;;")
+        result, log, receipt = _open_with(script)
+        creates = [l for l in log if "issue create" in l]
+        recorded = receipt.get("parent") if role == "parent" else receipt.get("issues", {}).get("T-01")
+        check(f"malformed {role} create URL: SKIP, exit 0, no traceback, nothing recorded",
+              result.returncode == 0 and "gh-sync: SKIP" in result.stdout
+              and "Traceback" not in result.stderr and recorded is None,
+              f"out={result.stdout} err={result.stderr} receipt={receipt}")
+        check(f"malformed {role} create URL: no automatic second create, Build entry not not-applicable",
+              len(creates) == (1 if role == "parent" else 2)
+              and receipt.get("build_entry") != "not-applicable", f"creates={creates} receipt={receipt}")
+
+
+_EXISTING_LABEL = ('label with name "harness" already exists; use `--force` to update its color '
+                   'and description')
+
+
+def _label_fake(response):
+    """FAKE_GH whose `label create` prints RESPONSE on stderr and exits 1."""
+    return FAKE_GH.replace('  "label create") exit 0 ;;',
+                           "  \"label create\") echo '%s' >&2; exit 1 ;;" % response)
+
+
+def label_failure_case():
+    """A failed label create stops dependent issue writes through the mirror SKIP."""
+    result, log, _receipt = _open_with(_label_fake("HTTP 403: Resource not accessible"))
+    check("failed first label create: SKIP, exit 0, and no dependent issue create",
+          result.returncode == 0 and "gh-sync: SKIP" in result.stdout
+          and not any("issue create" in l for l in log), f"out={result.stdout} log={log}")
+
+
+def _label_effects(log):
+    """(issue creates, harness label creates with its colour, label creates with --force)."""
+    labels = [l for l in log if l.startswith("label create ")]
+    return ([l for l in log if "issue create" in l],
+            [l for l in labels if "label create harness " in l and "--color 5319e7" in l],
+            [l for l in labels if "--force" in l])
+
+
+def label_exists_case():
+    """Only gh's existing-label response is idempotent. Colours stay per label, never --force."""
+    result, log, _receipt = _open_with(_label_fake(_EXISTING_LABEL))
+    creates, harness_colour, forced = _label_effects(log)
+    check("existing label (exit 1, gh's already-exists stderr) is accepted: open creates its issues",
+          result.returncode == 0 and "SKIP" not in result.stdout and len(creates) == 4,
+          f"out={result.stdout} log={log}")
+    check("label creates keep their per-label colours and never --force",
+          harness_colour and not forced, str(log))
+
+
+def _bracketed_operations(log):
+    """The mirror operations of a call transcript in which every measured operation is
+    bracketed by the cost counter (counter, operation, counter), or None when any is not."""
+    counter = " ".join(gh_cost_log._COUNTER_ARGV)
+    log = [line.rstrip("\x01") for line in log]
+    if not log or len(log) % 3:
+        return None
+    triples = [log[i:i + 3] for i in range(0, len(log), 3)]
+    if any(before != counter or after != counter or op == counter for before, op, after in triples):
+        return None
+    return [op for _before, op, _after in triples]
+
+
+def _measured_cost_lines(tmp):
+    """Every non-coverage line the tmp root's gh-cost logs hold."""
+    logs = os.path.join(tmp, ".harness", "logs")
+    lines = []
+    for name in sorted(os.listdir(logs)) if os.path.isdir(logs) else []:
+        with open(os.path.join(logs, name), encoding="utf-8") as handle:
+            lines += [json.loads(l) for l in handle if l.strip()]
+    return [l for l in lines if "coverage" not in l]
+
+
+def _measured_open(tmp, feat):
+    """Run `open` with cost logging into TMP; return (result, sentinel failure text)."""
+    marker = os.path.join(tmp, harness_boundary.MARKER)
+    if not os.path.isfile(marker):
+        open(marker, "w").write("teams: []\n")
+    try:
+        return run(["open", feat], tmp, {"HARNESS_GH_COST_LOG": "1", "HARNESS_PROJECT_DIR": tmp}), ""
+    except AssertionError as error:
+        return None, str(error)
+
+
+def single_override_case():
+    """FEAT-2452 SC-02: FACTORY_GH alone reaches every mirror call, and each is measured once."""
+    with tempfile.TemporaryDirectory() as tmp:
+        install_gh(tmp, FAKE_GH)
+        result, escaped = _measured_open(tmp, stage(tmp))
+        operations = _bracketed_operations(calls(tmp)) or []
+        measured = _measured_cost_lines(tmp)
+        check("single override: open dispatches no default gh binary",
+              not escaped and result.returncode == 0, escaped or result.stdout)
+        check("single override: every mirror operation is bracketed by the cost counter",
+              any("issue create" in op for op in operations)
+              and any("milestones" in op for op in operations), str(calls(tmp)))
+        check("single override: one gh-cost line per measured operation",
+              operations and len(measured) == len(operations),
+              f"operations={operations} lines={measured}")
+
+
 def main():
+    single_override_case()
+    launch_failure_cases()
+    malformed_url_cases()
+    label_failure_case()
+    label_exists_case()
     fleet_binding_cases()
     fleet_unproven_command_cases()
     fleet_bound_command_cases()
@@ -730,7 +904,7 @@ def main():
         feat = stage(tmp)
 
         # --- environmental skips exit 0
-        r = run(["open", feat], tmp, {"GH_SYNC_GH": os.path.join(tmp, "no-such-gh")})
+        r = run(["open", feat], tmp, {"FACTORY_GH": os.path.join(tmp, "no-such-gh")})
         check("gh missing -> SKIP, exit 0", r.returncode == 0 and "SKIP" in r.stdout, r.stdout)
 
         write_config(os.path.join(tmp, ".harness", "harness.json"), {"github": {"sync": False}})

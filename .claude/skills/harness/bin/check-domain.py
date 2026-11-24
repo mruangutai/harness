@@ -2503,8 +2503,9 @@ def _resolved_rel(path):
         return None
 
 
-def _hardlink_plan(path):
-    """The plan.yaml this path IS under another name, or None.
+def _hardlink_plan(path, names=("plan.yaml",)):
+    """The feature-dir file named in `names` (plan.yaml by default) this path IS under another
+    name, or None.
 
     A HARDLINK IS NOT A PATH QUESTION (FEAT-41 C2-02). It has no target to read -- it IS the
     file, so `os.path.islink` is False and no amount of resolution can see it. Only identity can.
@@ -2524,7 +2525,8 @@ def _hardlink_plan(path):
     # Hardlink aliasing is out of FEAT-1559's scope (FEAT-58 D-14, #1638); this scan is left as
     # it was and stays local to the checkout being written.
     # corpus-scope: checkout-local
-    for cand in _glob.glob(os.path.join(root, ".harness", "*", "features", "*", "plan.yaml")):
+    for cand in (c for name in names
+                 for c in _glob.glob(os.path.join(root, ".harness", "*", "features", "*", name))):
         try:
             cs = os.stat(cand)
         except OSError:
@@ -2534,10 +2536,12 @@ def _hardlink_plan(path):
     return None
 
 
-def _plan_route(path):
-    """The plan this write would reach, or None. Names the TARGET, never only the link."""
+def _plan_route(path, pattern=RE_PLAN_YAML, names=("plan.yaml",)):
+    """The plan this write would reach, or None. Names the TARGET, never only the link. Any
+    other single-writer feature-dir file is routed the same way: `pattern` its grammar and
+    `names` its basenames for the hardlink scan (the pair journals, FEAT-2488 MF-10)."""
     as_typed = _norm(path)
-    if RE_PLAN_YAML.match(as_typed):
+    if pattern.match(as_typed):
         return as_typed
     resolved = _resolved_rel(path)
     if resolved is None:
@@ -2553,9 +2557,9 @@ def _plan_route(path):
         # Ordinary work never produces one, and a first write to a not-yet-existing note resolves
         # fine, which its own negative control asserts.
         return as_typed
-    if RE_PLAN_YAML.match(resolved):
+    if pattern.match(resolved):
         return resolved
-    return _hardlink_plan(path)
+    return _hardlink_plan(path, names)
 
 
 _reached_plan = _plan_route(target) if target else None
@@ -2592,6 +2596,31 @@ if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_plan:
         f"add-tasks --file <plan.yaml> --proposal <path>\n"
         f"  Apply a proposal:             python3 .claude/skills/harness/bin/{_writer} "
         f"apply --file <plan.yaml> --proposal <path>\n")
+    sys.exit(2)
+
+# THE PAIR JOURNAL IS A SECOND ROUTE INTO plan.yaml (FEAT-2488 MF-10). plan-merge replays a
+# `<primary>.harness-merge.journal` sidecar into plan.yaml and feature.json before its next write,
+# checking hashes, never provenance, so an editor-written journal lands its "after" images through
+# the one trusted writer — and an unreadable one wedges every pair write at exit 5. Its only
+# producer is locked_pair_update inside plan-merge's own process, which no hook sees, so EVERY
+# governed Write/Edit/NotebookEdit of either sidecar name, by any route _plan_route follows, is
+# denied. The names are harness_merge's JOURNAL_PAIR members plus JOURNAL_SUFFIX, spelled out
+# rather than imported: this gate runs from trees that carry only part of bin/, and an import
+# failure here would exit 1 — non-blocking — taking every rule below down with it.
+_PAIR_JOURNALS = ("plan.yaml.harness-merge.journal", "feature.json.harness-merge.journal")
+RE_PAIR_JOURNAL = re.compile(
+    r"^\.harness/[^/]+/features/[^/]+/(?:" + "|".join(map(re.escape, _PAIR_JOURNALS)) + r")$",
+    re.IGNORECASE)
+_reached_journal = _plan_route(target, RE_PAIR_JOURNAL, _PAIR_JOURNALS) if target else None
+if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_journal:
+    _via = ("" if _reached_journal == _norm(target)
+            else f" — the write would land in {_reached_journal}, which it links to")
+    sys.stderr.write(
+        f"check-domain: DENIED — {_show(target)}{_via}: a plan-merge pair journal, and "
+        f"plan-merge.py is its only writer. plan-merge replays a journal into plan.yaml and "
+        f"feature.json, so an editor-written one would be a route around plan.yaml's single "
+        f"writer (FEAT-2488 MF-10). Write the plan through plan-merge.py's verbs; a journal it "
+        f"left behind is completed by its next write to that feature.\n")
     sys.exit(2)
 
 _UNREADABLE_EDIT = object()

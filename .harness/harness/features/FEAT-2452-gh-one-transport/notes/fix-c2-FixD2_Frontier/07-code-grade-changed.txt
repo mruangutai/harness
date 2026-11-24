@@ -1,0 +1,45 @@
+# code-grade.py --json over the four edited files (paths mode; base..head needs a commit and git writes are barred).
+# Rows below = every function this fix changed or added (wayfind main() included: resolve's title read).
+.claude/skills/harness/bin/factory_gh.py:253 issue_number_from_url grade=4 bar=4 PASS cc=3 cog=3 abc=9.4
+.claude/skills/harness/bin/wayfind.py:97 unusable grade=5 bar=4 PASS cc=1 cog=1 abc=4.5
+.claude/skills/harness/bin/wayfind.py:105 require grade=5 bar=4 PASS cc=2 cog=1 abc=2.2
+.claude/skills/harness/bin/wayfind.py:115 _string grade=5 bar=4 PASS cc=1 cog=0 abc=1.0
+.claude/skills/harness/bin/wayfind.py:119 _list grade=5 bar=4 PASS cc=1 cog=0 abc=1.0
+.claude/skills/harness/bin/wayfind.py:123 _state grade=5 bar=4 PASS cc=2 cog=1 abc=2.8
+.claude/skills/harness/bin/wayfind.py:129 _number grade=5 bar=4 PASS cc=2 cog=1 abc=3.2
+.claude/skills/harness/bin/wayfind.py:134 _fields grade=5 bar=4 PASS cc=3 cog=1 abc=5.5
+.claude/skills/harness/bin/wayfind.py:139 _list_of grade=5 bar=4 PASS cc=3 cog=1 abc=3.3
+.claude/skills/harness/bin/wayfind.py:143 _labels grade=5 bar=4 PASS cc=1 cog=0 abc=2.0
+.claude/skills/harness/bin/wayfind.py:170 issue_args grade=5 bar=4 PASS cc=1 cog=0 abc=1.0
+.claude/skills/harness/bin/wayfind.py:174 issue grade=5 bar=4 PASS cc=1 cog=0 abc=2.0
+.claude/skills/harness/bin/wayfind.py:178 checked_issue grade=5 bar=4 PASS cc=1 cog=0 abc=5.4
+.claude/skills/harness/bin/wayfind.py:186 sub_issues grade=5 bar=4 PASS cc=1 cog=0 abc=4.5
+.claude/skills/harness/bin/wayfind.py:195 blockers grade=5 bar=4 PASS cc=2 cog=1 abc=4.9
+.claude/skills/harness/bin/wayfind.py:206 ticket_type grade=4 bar=4 PASS cc=4 cog=6 abc=5.4
+.claude/skills/harness/bin/wayfind.py:214 frontier grade=4 bar=4 PASS cc=7 cog=9 abc=12.4
+.claude/skills/harness/bin/wayfind.py:234 parent_of grade=5 bar=4 PASS cc=2 cog=1 abc=4.9
+.claude/skills/harness/bin/wayfind.py:245 append_gist grade=4 bar=4 PASS cc=3 cog=3 abc=14.1
+.claude/skills/harness/bin/wayfind.py:317 main grade=1 bar=4 FAIL cc=21 cog=29 abc=64.8
+.claude/skills/harness/bin/wayfind.py:414 cli grade=5 bar=4 PASS cc=2 cog=1 abc=3.3
+tests/unit/test-factory-gh.py:2230 t01_issue_number_from_url_accepts grade=4 bar=3 PASS cc=3 cog=1 abc=11.8
+tests/unit/test-factory-gh.py:2244 t01_issue_number_from_url_rejects grade=4 bar=3 PASS cc=6 cog=5 abc=10.7
+tests/unit/test-wayfind.py:433 _without grade=5 bar=3 PASS cc=3 cog=0 abc=4.7
+tests/unit/test-wayfind.py:462 _frontier grade=5 bar=3 PASS cc=1 cog=1 abc=5.5
+tests/unit/test-wayfind.py:471 _check_refused grade=4 bar=3 PASS cc=4 cog=2 abc=10.6
+tests/unit/test-wayfind.py:479 case_8c_blocker_state_must_be_open_or_closed grade=4 bar=3 PASS cc=2 cog=1 abc=16.8
+tests/unit/test-wayfind.py:494 case_10c_frontier_refuses_unusable_decision_fields grade=3 bar=3 PASS cc=5 cog=3 abc=22.7
+tests/unit/test-wayfind.py:511 case_10d_frontier_valid_decisions_unchanged grade=4 bar=3 PASS cc=3 cog=3 abc=16.9
+tests/unit/test-wayfind.py:535 case_11c_resolve_refuses_unusable_title_and_body grade=3 bar=3 PASS cc=5 cog=4 abc=21.8
+tests/unit/test-wayfind.py:604 main grade=3 bar=3 PASS cc=2 cog=1 abc=25.0
+# file-level non-PASS records (all files):
+  .claude/skills/harness/bin/factory_gh.py:111 _value_from_argv grade=3 bar=4 FAIL
+  .claude/skills/harness/bin/factory_gh.py:402 project_item_stations grade=1 bar=4 FAIL
+  .claude/skills/harness/bin/factory_gh.py:518 issue_stations grade=1 bar=4 FAIL
+  .claude/skills/harness/bin/factory_gh.py:612 _project_field_resolve grade=2 bar=4 FAIL
+  .claude/skills/harness/bin/factory_gh.py:706 project_resolve grade=2 bar=4 FAIL
+  .claude/skills/harness/bin/factory_gh.py:816 project_link_repository grade=3 bar=4 FAIL
+  .claude/skills/harness/bin/factory_gh.py:985 issue_board_item_id grade=1 bar=4 FAIL
+  .claude/skills/harness/bin/factory_gh.py:1139 create_ref grade=3 bar=4 FAIL
+  .claude/skills/harness/bin/wayfind.py:271 cmd_round grade=3 bar=4 FAIL
+  .claude/skills/harness/bin/wayfind.py:298 cmd_map grade=3 bar=4 FAIL
+  .claude/skills/harness/bin/wayfind.py:317 main grade=1 bar=4 FAIL

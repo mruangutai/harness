@@ -1,0 +1,37 @@
+# env -u HARNESS_AGENT_TYPE -u CLAUDE_PROJECT_DIR python3 tests/integration/test-observations-merge.py
+PASS  case1: naive whole-file write loses bullet B
+PASS  case2: apply exits 0
+PASS  case2: bullet A present
+PASS  case2: bullet B present
+PASS  case2: bullet C present
+PASS  case2: A appears before B, and both remain in base order
+PASS  case3: apply exits 0
+PASS  case3: exactly one copy of the byte-identical record
+PASS  case4: apply exits 0
+PASS  case4: normalised-identical record (wrapping/trailing-space) not duplicated
+PASS  case4b: apply exits 0
+PASS  case4b: record differing only in trailing blank-line count dedups as one copy
+PASS  case5: two different records both kept, exit 0 (no conflict exit exists)
+PASS  case5: bullet A present
+PASS  case5: bullet B present
+PASS  case6: apply exits 0
+PASS  case6: the exact multi-line record text survives
+PASS  case7: 20 concurrent trials admit only the union outcome or the lock outcome
+PASS  case7: informational — the exit-6 lock branch was taken in 0/20 trials
+PASS  case8: base file does not exist before apply
+PASS  case8: create exits 0
+PASS  case8: the file now exists
+PASS  case8: bullet A present
+PASS  case8: a generated title line beginning with a hash is present
+PASS  case8b: first apply on a fresh feature exits 0
+PASS  case8b: the log is created with the entry
+PASS  case9: a source path is REFUSED with exit 9
+PASS  case9: ...and the refused file is untouched
+PASS  case9: the escape's literal argument ends in the full legal-looking tail
+PASS  case9: a symlink escape whose LITERAL argument looks legal but RESOLVES elsewhere is REFUSED with exit 9
+PASS  case9: ...and the file behind the symlink is untouched
+PASS  case9: an Expertise file path is REFUSED with exit 9 — it belongs to a different tool
+PASS  case9: ...and the Expertise file is untouched
+PASS  case9: a legitimate observations path is ALLOWED — exit 0
+PASS test-observations-merge.py
+# exit code: 0

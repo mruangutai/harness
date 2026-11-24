@@ -1,0 +1,34 @@
+schema_version: 2
+run_id: distill-product
+run_uid: 17bb85f82757402a97661f2f37c0bff3
+feature: FEAT-2488-plan-merge-atomicity
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: distill-pm
+    persona: harness-pm
+    task: distill-product
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/expertise/harness-pm.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/expertise/harness-pm.md
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/research-FEAT-2488-plan-merge-atomicity-distill.md
+    note: 4 craft ops in 1 batch; LC-1 -> P-19, obs3 -> G-22; LC-2 and 5 obs rejected with reasons; counts unchanged at cap; criteria 1-7 met.
+    evidence:
+      craft_batch: 60cd6d3f8c39e2a4ec51fc50829cafd19d9be6b8b8b03cbb692919df5905808a
+      ops_applied: 4
+      lead_candidates_relayed: 3
+      lead_candidates_applied: 2
+      lead_own_ops: 1
+      lead_own_batch: 99743fd954e634c1bf1afa15cf7d020ae53995a0f767ade1937b380cdb1cf6fe

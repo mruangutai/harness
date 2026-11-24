@@ -102,7 +102,9 @@ Exit codes are the interface:
        deleted, named pair by pair
     5  a side (base, proposal, key/panel/lanes value, lead digest) failed to parse or failed
        its shape check, or a splice does not reload as the edit that was computed or would make
-       a legal plan illegal — for a deletion, that includes a survivor whose own fields moved
+       a legal plan illegal — for a deletion, that includes a survivor whose own fields moved —
+       or a leftover intent journal (harness_merge) is unreadable or names a file matching
+       neither its recorded before nor after state
     6  the lock could not be acquired within the retry budget (harness_merge)
     7  the same top-level key carries two different loaded values (items no longer conflict:
        a proposal's fields replace the base's)

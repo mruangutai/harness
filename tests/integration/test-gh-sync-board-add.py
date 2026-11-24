@@ -5,7 +5,7 @@ The shared FAKE_GH_STATIONS is extended locally, and the shared helper is not ed
 - The by-issue item lookup answers "no item" for every number listed in ABSENT_ISSUES.
 - `gh project item-add` returns `ADDED_<n>` for the issue its URL names.
 
-Both GH_SYNC_GH and FACTORY_GH point at the same fake. No live GitHub is touched.
+FACTORY_GH, the only binary override, points at the fake. No live GitHub is touched.
 
     ./test-gh-sync-board-add.py    -> exit 0 all pass, 1 otherwise
 """

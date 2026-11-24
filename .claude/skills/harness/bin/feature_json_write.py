@@ -19,7 +19,10 @@ feature's receipt for the fuller argument.
 
 This module builds no lock or rename primitive of its own (DEC-199): it is entirely a thin,
 schema-checking wrapper over harness_merge.locked_update, which already gives it the fcntl
-lock on the sibling `.lock` file, the same-directory tempfile, the fsync, and the os.replace.
+lock on the sibling `.lock` file, the same-directory tempfile and the os.replace.
+locked_update performs no fsync; only harness_merge's intent journal, which
+locked_pair_update writes for plan_merge's amendment pair, is fsync'd. That pair carries
+this module's schema check through schema_checked_transform, which writes nothing itself.
 python3 stdlib only, matching harness_merge.py's own constraint.
 """
 import os
@@ -110,6 +113,49 @@ def opt_int(value):
     return int(s) if s.isdigit() else None
 
 
+def schema_checked_transform(path, transform, tail_regex=None):
+    """(resolved, wrapped): `path` resolved through harness_merge.require_destination exactly
+    as write_feature_json resolves it (refusing code 9 for anything but `tail_regex`, default
+    FEATURE_JSON_TAIL), and `transform` wrapped in write_feature_json's schema non-regression
+    check (see its docstring for the policy). It WRITES NOTHING: it exists so a caller that
+    writes feature.json through another harness_merge primitive -- plan_merge's amendment
+    pair, through harness_merge.locked_pair_update -- holds the ledger to the same check
+    without harness_merge importing a consumer."""
+    resolved = harness_merge.require_destination(
+        path, tail_regex if tail_regex is not None else FEATURE_JSON_TAIL, _WHAT, _HINT_LINES
+    )
+
+    def _baseline_problems(base):
+        if base is None:
+            return set()
+        try:
+            base_text = base.decode("utf-8")
+        except UnicodeDecodeError:
+            # Bytes on disk that are not even UTF-8 establish no leniency: treat as if
+            # nothing were there, so the candidate must be fully schema-clean.
+            return set()
+        return set(feature_schema.problems_for_text(base_text, resolved, for_path=resolved))
+
+    def _transform(base):
+        text = transform(base)
+        text_bytes = text.encode("utf-8") if isinstance(text, str) else text
+        try:
+            decoded = text_bytes.decode("utf-8")
+        except UnicodeDecodeError as e:
+            raise harness_merge.MergeRefusal(
+                SCHEMA_REFUSAL_CODE, [f"{resolved}: not valid UTF-8: {e}"]
+            )
+        candidate_problems = feature_schema.problems_for_text(decoded, resolved, for_path=resolved)
+        if candidate_problems:
+            baseline = _baseline_problems(base)
+            new_problems = [p for p in candidate_problems if p not in baseline]
+            if new_problems:
+                raise harness_merge.MergeRefusal(SCHEMA_REFUSAL_CODE, new_problems)
+        return text_bytes
+
+    return resolved, _transform
+
+
 def write_feature_json(path, transform, timeout=None, tail_regex=None):
     """The one public read-modify-write entry point for feature.json.
 
@@ -168,43 +214,14 @@ def write_feature_json(path, transform, timeout=None, tail_regex=None):
 
     This function is the ONLY read-modify-write entry point this module exposes (DEC-199):
     it opens no lock and performs no rename of its own, only harness_merge.locked_update's.
+    schema_checked_transform reads and writes nothing; it only hands out this function's
+    destination guard and schema check.
 
     AFTER the write lands and the lock is gone, the changed-state feedback loop runs
     (FEAT-62 T-03, harness_boundary.relay_changed_state_feedback): the checkout is derived
     from `resolved`, its check-state.py --changed reports on stderr, and nothing above --
     receipt, refusal, bytes, exit -- is touched. A refusal never reaches it.
     """
-    resolved = harness_merge.require_destination(
-        path, tail_regex if tail_regex is not None else FEATURE_JSON_TAIL, _WHAT, _HINT_LINES
-    )
-
-    def _baseline_problems(base):
-        if base is None:
-            return set()
-        try:
-            base_text = base.decode("utf-8")
-        except UnicodeDecodeError:
-            # Bytes on disk that are not even UTF-8 establish no leniency: treat as if
-            # nothing were there, so the candidate must be fully schema-clean.
-            return set()
-        return set(feature_schema.problems_for_text(base_text, resolved, for_path=resolved))
-
-    def _transform(base):
-        text = transform(base)
-        text_bytes = text.encode("utf-8") if isinstance(text, str) else text
-        try:
-            decoded = text_bytes.decode("utf-8")
-        except UnicodeDecodeError as e:
-            raise harness_merge.MergeRefusal(
-                SCHEMA_REFUSAL_CODE, [f"{resolved}: not valid UTF-8: {e}"]
-            )
-        candidate_problems = feature_schema.problems_for_text(decoded, resolved, for_path=resolved)
-        if candidate_problems:
-            baseline = _baseline_problems(base)
-            new_problems = [p for p in candidate_problems if p not in baseline]
-            if new_problems:
-                raise harness_merge.MergeRefusal(SCHEMA_REFUSAL_CODE, new_problems)
-        return text_bytes
-
-    harness_merge.locked_update(resolved, _transform, timeout=timeout)
+    resolved, wrapped = schema_checked_transform(path, transform, tail_regex)
+    harness_merge.locked_update(resolved, wrapped, timeout=timeout)
     harness_boundary.relay_changed_state_feedback(resolved)

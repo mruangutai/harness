@@ -63,8 +63,8 @@ RECONCILE (T-06) — the write side of `audit`. It runs `_audit_findings` (the S
   - REASON: PATCHes `repos/<repo>/issues/<n>` to state=closed. An issue carrying the
     `abandoned` label gets state_reason=not_planned; every other REASON finding (by
     definition already null) gets state_reason=completed.
-  - LABEL: creates the `abandoned` label directly (never through a helper — see below), then
-    `gh issue edit <n> --add-label abandoned`.
+  - LABEL: creates the `abandoned` label through `factory_gh.try_gh` (never
+    `factory_gh.ensure_labels` — see below), then `gh issue edit <n> --add-label abandoned`.
   - STATUS, for active features at plan, ready, building, or review: moves every unique source,
     parent, and non-abandoned task card to the feature's recorded plan station. `plan.yaml` is
     the authority (DEC-138); this never rewrites a Harness artifact. Done remains ship-only,
@@ -79,16 +79,16 @@ produces a STATUS finding for reconcile to attempt either -- before the fix this
 using a station computed from THIS checkout's own, unrelated feature.json. The fix lives once,
 in detection, so both callers inherit it without a second check.
 
-THE LABEL CREATE IS A DIRECT SHELL-OUT, never a helper, for two measured reasons: `gh-sync.py`
-is HYPHENATED, so its own `ensure_labels` (gh-sync.py:682-696) is not an importable module
-function; and the only importable one, `factory_gh.ensure_labels` (factory_gh.py:186-195),
-passes `--force` with its own single `_LABEL_COLOR`, which would repaint `abandoned`
-harness-purple over gh-sync.py's `b60205` on every run this module makes (D-04's
-three-implementations collision, arriving here as a live defect if called). The literal
-`b60205` here matches gh-sync.py's own colour for the same label. The create call reads its
-binary from `GH_SYNC_GH` (gh-sync.py's own env var, D-11) rather than `FACTORY_GH` — the one
-call in this module that is not routed through `factory_gh.run_gh` — and swallows its error
-exactly as gh-sync.py's own `ensure_labels` does: "label already exists" is the common case.
+THE LABEL CREATE IS ITS OWN `factory_gh.try_gh` CALL, never a label helper: `gh-sync.py` is
+HYPHENATED, so its own `ensure_labels` is not an importable module function; and the only
+importable one, `factory_gh.ensure_labels`, passes `--force` with its own single `_LABEL_COLOR`,
+which would repaint `abandoned` harness-purple over gh-sync.py's `b60205` on every run this
+module makes (D-04's three-implementations collision). The literal `b60205` here matches
+gh-sync.py's own colour for the same label, and the create never passes `--force`. Like every
+other call in this module it reaches gh through factory_gh, so `FACTORY_GH` is the one binary
+override. Only gh's existing-label answer is idempotent (the same matcher gh-sync.py's
+`ensure_labels` pins); any other failure, a launch failure included, raises `GhError` into the
+per-card catch, so no label is attached after a failed create (FEAT-2452).
 
 RECONCILE'S NETWORK-CALL COST is NOT covered by AUDIT's four-call count above, which is audit's
 own contract and nothing else's. `--dry-run` and `--apply` each take one bounded detection
@@ -248,7 +248,6 @@ import argparse
 import collections
 import os
 import re
-import subprocess
 import sys
 
 import artifact_accessors
@@ -1135,18 +1134,18 @@ def _fixable(finding):
 
 
 def _ensure_abandoned_label(repo_name):
-    """Create the `abandoned` label directly via `GH_SYNC_GH`'s binary -- never
+    """Create the `abandoned` label through factory_gh.try_gh -- never
     `factory_gh.ensure_labels`, never a helper imported from gh-sync.py (see the module
-    docstring's RECONCILE section for the two measured reasons). Swallows its error exactly as
-    gh-sync.py's own `ensure_labels` does: "label already exists" is the common case, and the
-    `issue edit --add-label` call right after this one is what surfaces a genuinely broken
-    repo."""
-    gh_bin = os.environ.get("GH_SYNC_GH", "gh")
-    subprocess.run(
-        [gh_bin, "label", "create", "abandoned", "--repo", repo_name,
-         "--color", _ABANDONED_LABEL_COLOR, "--description", "created by harness gh-sync"],
-        capture_output=True,
-    )
+    docstring's RECONCILE section). gh's existing-label answer is the idempotent case; any other
+    failure raises GhError before the dependent `issue edit --add-label` call."""
+    result = factory_gh.try_gh(
+        ["label", "create", "abandoned", "--repo", repo_name,
+         "--color", _ABANDONED_LABEL_COLOR, "--description", "created by harness gh-sync"])
+    text = f"{result.stdout}{result.stderr}".lower()
+    exists = (isinstance(result.status, int) and result.status != 0
+              and "label with name" in text and "already exists" in text)
+    if not (result.ok or exists):
+        raise result.error
 
 
 def _apply_fix(finding, board, repo_name):

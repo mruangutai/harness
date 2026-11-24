@@ -1,0 +1,146 @@
+# production tree vs 987e57b9: identical
+# test sha256: f01c1dd88524176b0f4a1b8c7e09dd82064e3316c0d0af35328f3a8cb9665e3d  tests/unit/test-harness-merge-journal.py
+PASS - api: JOURNAL_SUFFIX names the per-primary journal
+PASS - api: JournalPending stores journal, cause, replay defaulting false
+PASS - api: JournalPending message is '<cause type>: <cause>'
+PASS - api: JournalPending carries replay=True
+PASS - pair: transforms receive both bases (None for an absent secondary)
+PASS - pair: success writes both images, no journal and no temp file
+PASS - pair: primary refusal propagates unchanged
+PASS - pair: primary refusal leaves both files byte-identical and no journal
+PASS - pair: secondary refusal propagates unchanged
+PASS - pair: secondary refusal leaves both files byte-identical and no journal
+PASS - pair: secondary ValueError propagates unchanged
+PASS - pair: secondary ValueError leaves both files byte-identical and no journal
+PASS - pair: a held secondary lock refuses with code 6 naming LOCKED
+PASS - pair: the LOCKED refusal writes nothing
+PASS - pair: members in two directories raise ValueError
+PASS - pair: the same file twice raises ValueError
+PASS - pair: a ValueError writes nothing
+PASS - pending: a secondary replace failure raises JournalPending
+PASS - pending: journal attribute is the primary plus JOURNAL_SUFFIX, cause the OSError, replay false
+PASS - pending: primary at after, secondary at before, journal present
+PASS - pending: the journal is schema harness-merge-journal/1, members primary then secondary
+PASS - pending: the journal records before/after hashes and the after images
+PASS - pending: recover_journals(primary) rolls forward
+PASS - pending: both files converge to after and the journal is gone
+PASS - torn: recover_journals(primary) returns True
+PASS - torn [primary at after] via recover_journals(primary): converges, journal removed
+PASS - torn [primary at after] via recover_journals(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(primary) transform sees the after image
+PASS - torn [primary at after] via locked_update(primary): converges, journal removed
+PASS - torn [primary at after] via locked_update(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(secondary) transform sees the after image
+PASS - torn [primary at after] via locked_update(secondary): converges, journal removed
+PASS - torn [primary at after] via locked_update(secondary): a second recover_journals is False, no byte changes
+PASS - torn: recover_journals(primary) returns True
+PASS - torn [secondary at after] via recover_journals(primary): converges, journal removed
+PASS - torn [secondary at after] via recover_journals(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(primary) transform sees the after image
+PASS - torn [secondary at after] via locked_update(primary): converges, journal removed
+PASS - torn [secondary at after] via locked_update(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(secondary) transform sees the after image
+PASS - torn [secondary at after] via locked_update(secondary): converges, journal removed
+PASS - torn [secondary at after] via locked_update(secondary): a second recover_journals is False, no byte changes
+PASS - torn: recover_journals(primary) returns True
+PASS - torn [both at after] via recover_journals(primary): converges, journal removed
+PASS - torn [both at after] via recover_journals(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(primary) transform sees the after image
+PASS - torn [both at after] via locked_update(primary): converges, journal removed
+PASS - torn [both at after] via locked_update(primary): a second recover_journals is False, no byte changes
+PASS - torn: locked_update(secondary) transform sees the after image
+PASS - torn [both at after] via locked_update(secondary): converges, journal removed
+PASS - torn [both at after] via locked_update(secondary): a second recover_journals is False, no byte changes
+PASS - diverged: recover_journals(primary) refuses with code 5 naming JOURNAL DIVERGED
+PASS - diverged: recover_journals(primary) leaves both files and the journal byte-identical
+PASS - diverged: recover_journals(secondary) refuses with code 5 naming JOURNAL DIVERGED
+PASS - diverged: recover_journals(secondary) leaves both files and the journal byte-identical
+PASS - diverged: locked_update(primary) refuses with code 5 naming JOURNAL DIVERGED
+PASS - diverged: locked_update(primary) leaves both files and the journal byte-identical
+PASS - diverged: locked_update(secondary) refuses with code 5 naming JOURNAL DIVERGED
+PASS - diverged: locked_update(secondary) leaves both files and the journal byte-identical
+PASS - diverged: no caller transform ran
+PASS - diverged: locked_update on a third file in the directory succeeds
+PASS - diverged: the third write leaves both members and the journal byte-identical
+PASS - unreadable: a truncated journal refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: it fails closed for a third file in the directory too
+PASS - unreadable: nothing is written
+PASS - unreadable: a journal listing the primary twice refuses with code 5 naming JOURNAL UNREADABLE, never LOCKED
+PASS - unreadable: a journal listing the primary twice writes nothing
+PASS - unreadable: a journal whose first member is not its primary refuses with code 5 naming JOURNAL UNREADABLE, never LOCKED
+PASS - unreadable: a journal whose first member is not its primary writes nothing
+PASS - unreadable: a wrong schema refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: a wrong schema writes nothing
+PASS - unreadable: an empty member list refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: an empty member list writes nothing
+PASS - unreadable: a member name with a path separator refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: a member name with a path separator writes nothing
+PASS - unreadable: a member name '..' refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: a member name '..' writes nothing
+PASS - unreadable: an uppercase-hex before_sha256 refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: an uppercase-hex before_sha256 writes nothing
+PASS - unreadable: an after_b64 that does not hash to after_sha256 refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: an after_b64 that does not hash to after_sha256 writes nothing
+PASS - unreadable: an after_b64 that is not base64 refuses with code 5 naming JOURNAL UNREADABLE
+PASS - unreadable: an after_b64 that is not base64 writes nothing
+PASS - replay: recover_journals(primary) raises JournalPending with replay True, that journal and that OSError
+PASS - replay: primary at after, secondary at before, journal present
+PASS - replay: locked_pair_update raises JournalPending with replay True, that journal and that OSError
+PASS - replay: locked_pair_update called neither transform
+PASS - replay: the restored replace_bytes converges
+PASS - replay: both at after, journal gone
+PASS - replay: a second recover_journals returns False
+PASS - interleave (i): the wrapper reached the primary's lock first
+PASS - interleave (i): a replaced generation replays without refusal
+PASS - interleave (i): both at J2's after images, no journal
+PASS - interleave (ii): the wrapper reached the primary's lock first
+PASS - interleave (ii): a fresh generation is replayed, never unlinked unreplayed
+PASS - interleave (iii): the wrapper reached the primary's lock first
+PASS - interleave (iii): a vanished journal returns False
+PASS - interleave (iii): no byte changes after the wrapper's
+PASS - interleave (iv): the wrapper reached the primary's lock first
+PASS - interleave (iv): a generation that no longer names X returns False
+PASS - interleave (iv): plan, ledger, X and J2 stay byte-identical to the wrapper's result
+FAIL - unreadable: a member with no before_sha256 key refuses with code 5 naming the journal and the key (('ok', True))
+FAIL - unreadable: the missing key never recreates the absent ledger; nothing is written ({'feature.json': b'{"ledger": ["a"]}\n', 'plan.yaml': b'plan: amended\n'})
+PASS - absent: an explicit null before_sha256 still records an absent member, which the replay creates
+FAIL - bound: a one-member journal via recover_journals(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal (('ok', True))
+FAIL - bound: a one-member journal via recover_journals(primary) writes nothing ({'BRIEF.md': b'# brief\n', 'feature.json': b'{"ledger": []}\n', 'plan.yaml': b'plan: amended\n'})
+FAIL - bound: a one-member journal via locked_update(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal (('ok', None))
+FAIL - bound: a one-member journal via locked_update(primary) writes nothing ({'BRIEF.md': b'# brief\n', 'feature.json': b'{"ledger": []}\n', 'plan.yaml': b"plan: amended\n# caller's own change\n"})
+FAIL - bound: a journal binding a sibling in feature.json's place via recover_journals(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal (('ok', True))
+FAIL - bound: a journal binding a sibling in feature.json's place via recover_journals(primary) writes nothing ({'BRIEF.md': b'# brief, rewritten\n', 'feature.json': b'{"ledger": []}\n', 'plan.yaml': b'plan: amended\n'})
+FAIL - bound: a journal binding a sibling in feature.json's place via locked_update(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal (('ok', None))
+FAIL - bound: a journal binding a sibling in feature.json's place via locked_update(primary) writes nothing ({'BRIEF.md': b'# brief, rewritten\n', 'feature.json': b'{"ledger": []}\n', 'plan.yaml': b"plan: amended\n# caller's own change\n"})
+FAIL - bound: a three-member journal via recover_journals(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal (('ok', True))
+FAIL - bound: a three-member journal via recover_journals(primary) writes nothing ({'BRIEF.md': b'# brief, rewritten\n', 'feature.json': b'{"ledger": ["a"]}\n', 'plan.yaml': b'plan: amended\n'})
+FAIL - bound: a three-member journal via locked_update(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal (('ok', None))
+FAIL - bound: a three-member journal via locked_update(primary) writes nothing ({'BRIEF.md': b'# brief, rewritten\n', 'feature.json': b'{"ledger": ["a"]}\n', 'plan.yaml': b"plan: amended\n# caller's own change\n"})
+FAIL - bound: a feature.json-primary journal via locked_update(secondary) refuses with code 5 naming JOURNAL UNREADABLE and the journal (('ok', None))
+FAIL - bound: a feature.json-primary journal via locked_update(secondary) refuses before any lock (['feature.json.lock', 'plan.yaml.lock', 'feature.json.lock'])
+FAIL - bound: a feature.json-primary journal via locked_update(secondary) writes nothing ({'feature.json': b'{"ledger": ["a"]}\n# caller\'s own change\n', 'plan.yaml': b'plan: amended\n'})
+FAIL - bound: a feature.json-primary journal via recover_journals(primary) refuses with code 5 naming JOURNAL UNREADABLE and the journal (('ok', True))
+FAIL - bound: a feature.json-primary journal via recover_journals(primary) refuses before any lock (['feature.json.lock', 'plan.yaml.lock'])
+FAIL - bound: a feature.json-primary journal via recover_journals(primary) writes nothing ({'feature.json': b'{"ledger": ["a"]}\n', 'plan.yaml': b'plan: amended\n'})
+FAIL - bound: a feature.json-primary journal via locked_pair_update refuses with code 5 naming JOURNAL UNREADABLE and the journal (('ok', None))
+FAIL - bound: a feature.json-primary journal via locked_pair_update refuses before any lock (['feature.json.lock', 'plan.yaml.lock', 'plan.yaml.lock', 'feature.json.lock'])
+FAIL - bound: a feature.json-primary journal via locked_pair_update writes nothing ({'feature.json': b'{"ledger": ["a"]}\n# caller\'s own change\n', 'plan.yaml': b"plan: amended\n# caller's own change\n"})
+FAIL - pair: a sibling in feature.json's place raises ValueError (('ok', None))
+FAIL - pair: a sibling in feature.json's place writes nothing and leaves no journal ({'BRIEF.md': b"# brief\n# caller's own change\n", 'feature.json': b'{"ledger": []}\n', 'plan.yaml': b"plan: base\n# caller's own change\n"})
+FAIL - pair: the pair reversed raises ValueError (('ok', None))
+FAIL - pair: the pair reversed writes nothing and leaves no journal ({'BRIEF.md': b'# brief\n', 'feature.json': b'{"ledger": []}\n# caller\'s own change\n', 'plan.yaml': b"plan: base\n# caller's own change\n"})
+PASS - bound: a feature.json write nested in a locked plan write succeeds
+FAIL - entry: a dangling symlink via locked_update(plan) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs (('timeout',))
+PASS - entry: a dangling symlink via locked_update(plan) writes nothing
+FAIL - entry: a symlink to a well-formed journal via recover_journals(plan) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs (('exited', 0, 'RETURNED\n'))
+FAIL - entry: a symlink to a well-formed journal via recover_journals(plan) writes nothing (['feature.json', 'feature.json.lock', 'plan.yaml', 'plan.yaml.lock'])
+FAIL - entry: a FIFO via recover_journals(plan) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs (('timeout',))
+PASS - entry: a FIFO via recover_journals(plan) writes nothing
+FAIL - entry: a FIFO under another journal name via locked_update(notes.txt) refuses with code 5 naming JOURNAL UNREADABLE and the journal, never hangs (('timeout',))
+PASS - entry: a FIFO under another journal name via locked_update(notes.txt) writes nothing
+PASS - bounded: a 5000-character member name refuses with code 5 naming the journal
+FAIL - bounded: a 5000-character member name is echoed truncated and escaped (('refusal', 5, "JOURNAL UNREADABLE: /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmper04wv5a/plan.yaml.harness-merge.journal: member name 'x/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA)
+FAIL - bounded: a 5000-character misbound member refuses with code 5 naming the journal (('error', "OSError: [Errno 63] File name too long: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp74oyr30g/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB)
+FAIL - bounded: a 5000-character misbound member is echoed truncated and escaped (('error', "OSError: [Errno 63] File name too long: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp74oyr30g/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB)
+FAIL - 35/142 checks failed
+exit=1

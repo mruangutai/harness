@@ -4,7 +4,6 @@ import json
 import os
 import re
 import sys
-import tempfile
 import yaml
 
 import factory_config
@@ -399,20 +398,13 @@ def _signed_brief_text(brief_path, args):
 
 
 def _write_brief_signature(brief_path, args):
-    """Write the signed BRIEF through a same-directory tempfile and os.replace, so a reader sees
-    the whole old file or the whole new one. Returns the receipt word."""
+    """Write the signed BRIEF through harness_merge.replace_bytes — a same-directory tempfile
+    renamed into place — so a reader sees the whole old file or the whole new one. Returns
+    the receipt word."""
     signed = _signed_brief_text(brief_path, args)
     if signed is None:
         return "already approved"
-    fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(brief_path))
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write(signed)
-        os.replace(tmp_path, brief_path)
-    except BaseException:
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
-        raise
+    harness_merge.replace_bytes(brief_path, signed.encode("utf-8"))
     return "approved"
 
 
