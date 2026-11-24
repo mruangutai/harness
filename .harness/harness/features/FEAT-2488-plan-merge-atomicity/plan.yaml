@@ -180,7 +180,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 harness_merge is imported by validate-digest.py and dispatch-guard.py, so a change to it is a gate behaviour change made directly.
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/harness_merge.py#locked_update
       - path: tests/unit/test-harness-merge-journal.py
@@ -217,7 +217,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 check_state ctx loads plan-merge.py and the cutover makes gate-imported writers use the new core; made directly.
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
     - .claude/skills/harness/bin/feature_json_write.py#write_feature_json
     - .claude/skills/harness/bin/plan_merge/amendments.py#write_plan_and_ledger
