@@ -5150,6 +5150,19 @@ def _plain_append(base):
     return base + b"# a plain locked write\n"
 
 
+def _check_2488_k(plan, fj, error, plain, receipts):
+    check("2488/k: write_plan_and_ledger returns normally on a closed stderr",
+          error is None, repr(error))
+    check("2488/k: the amendment landed, ledgered exactly once, no journal",
+          _carries_once(plan, fj, _H_TEXT) and _no_journal(plan), read(fj))
+    check("2488/k: _locked_plan_update returns normally on a closed stderr",
+          plain is None, repr(plain))
+    check("2488/k: the plain write landed", read(plan).endswith("# a plain locked write\n"),
+          read(plan)[-80:])
+    check("2488/k: receipts to a closed stdout, with stderr closed too, return normally",
+          receipts is None, repr(receipts))
+
+
 def case_2488_a_closed_stderr_after_the_commit_is_advisory():
     """validate c1 MF-7: sys.stderr is a real closed stream when the committed write relays
     its changed-state feedback, and the real relay has a row to print. The relay's print
@@ -5172,16 +5185,7 @@ def case_2488_a_closed_stderr_after_the_commit_is_advisory():
                     receipts = _call(guards._print_receipts, f"APPLIED {plan}")
         finally:
             boundary.changed_state_feedback = real
-        check("2488/k: write_plan_and_ledger returns normally on a closed stderr",
-              error is None, repr(error))
-        check("2488/k: the amendment landed, ledgered exactly once, no journal",
-              _carries_once(plan, fj, _H_TEXT) and _no_journal(plan), read(fj))
-        check("2488/k: _locked_plan_update returns normally on a closed stderr",
-              plain is None, repr(plain))
-        check("2488/k: the plain write landed", read(plan).endswith("# a plain locked write\n"),
-              read(plan)[-80:])
-        check("2488/k: receipts to a closed stdout, with stderr closed too, return normally",
-              receipts is None, repr(receipts))
+        _check_2488_k(plan, fj, error, plain, receipts)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

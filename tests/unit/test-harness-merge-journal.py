@@ -507,6 +507,23 @@ def _record_without(key, index):
     return json.dumps(record).encode("utf-8")
 
 
+def _keyless_via_feature_json(d, plan, ledger, before):
+    result = outcome(harness_merge.locked_update, ledger, appending(), timeout=0.2)
+    check("unreadable: the missing key via locked_update(feature.json) refuses with code 5 naming "
+          "the journal and the key", _refused_naming(result, plan + SUFFIX)
+          and "before_sha256" in result[2], repr(result))
+    check("unreadable: via locked_update(feature.json) the absent ledger is not recreated; "
+          "nothing is written", snapshot(d) == before, repr(snapshot(d)))
+
+
+def _explicit_null_still_means_absent():
+    d, plan, ledger = pair_dir(P0, None, [(PLAN, P0, P1), (LEDGER, None, S1)])
+    result = outcome(harness_merge.recover_journals, plan)
+    check("absent: an explicit null before_sha256 still records an absent member, which the "
+          "replay creates", result == ("ok", True) and snapshot(d) == {LEDGER: S1, PLAN: P1},
+          repr((result, snapshot(d))))
+
+
 def case_missing_before_key_refuses():
     d, plan, ledger = pair_dir(P0, None)
     write(plan + SUFFIX, _record_without("before_sha256", 1))
@@ -517,17 +534,8 @@ def case_missing_before_key_refuses():
           repr(result))
     check("unreadable: the missing key never recreates the absent ledger; nothing is written",
           snapshot(d) == before, repr(snapshot(d)))
-    result = outcome(harness_merge.locked_update, ledger, appending(), timeout=0.2)
-    check("unreadable: the missing key via locked_update(feature.json) refuses with code 5 naming "
-          "the journal and the key", _refused_naming(result, plan + SUFFIX)
-          and "before_sha256" in result[2], repr(result))
-    check("unreadable: via locked_update(feature.json) the absent ledger is not recreated; "
-          "nothing is written", snapshot(d) == before, repr(snapshot(d)))
-    d, plan, ledger = pair_dir(P0, None, [(PLAN, P0, P1), (LEDGER, None, S1)])
-    result = outcome(harness_merge.recover_journals, plan)
-    check("absent: an explicit null before_sha256 still records an absent member, which the "
-          "replay creates", result == ("ok", True) and snapshot(d) == {LEDGER: S1, PLAN: P1},
-          repr((result, snapshot(d))))
+    _keyless_via_feature_json(d, plan, ledger, before)
+    _explicit_null_still_means_absent()
 
 
 MISBOUND = (
@@ -742,6 +750,22 @@ FIFO_SWAP_ROUTES = (
 )
 
 
+def _fifo_swap_outcome(op, nth, record):
+    """Run `op` with a FIFO holding `record` renamed over the journal after its lstat; returns
+    (plan, ledger, journal, result, swapped, unread, entries)."""
+    d, plan, ledger = pair_dir(P0, S0, J1)
+    journal = plan + SUFFIX
+    keeper = _buffered_fifo(os.path.join(d, "swap.fifo"), record)
+    try:
+        wrapper, swapped = _swap_before_open(journal, os.path.join(d, "swap.fifo"), nth)
+        with patch.object(os, "open", wrapper):
+            result = outcome(op, plan, ledger)
+        unread = os.read(keeper, len(record) + 1)
+    finally:
+        os.close(keeper)
+    return plan, ledger, journal, result, swapped, unread, sorted(os.listdir(d))
+
+
 def case_fifo_swapped_after_lstat_refuses():
     """validate c1 MF-8: the entry is a regular file when _require_regular lstats it, then a
     FIFO already holding a well-formed J1 record is renamed over it before the read under the
@@ -750,16 +774,7 @@ def case_fifo_swapped_after_lstat_refuses():
     left in place and its buffered record is still unread."""
     record = journal_bytes(J1)
     for route, op, nth in FIFO_SWAP_ROUTES:
-        d, plan, ledger = pair_dir(P0, S0, J1)
-        journal = plan + SUFFIX
-        keeper = _buffered_fifo(os.path.join(d, "swap.fifo"), record)
-        try:
-            wrapper, swapped = _swap_before_open(journal, os.path.join(d, "swap.fifo"), nth)
-            with patch.object(os, "open", wrapper):
-                result = outcome(op, plan, ledger)
-            unread = os.read(keeper, len(record) + 1)
-        finally:
-            os.close(keeper)
+        plan, ledger, journal, result, swapped, unread, entries = _fifo_swap_outcome(op, nth, record)
         check(f"fifo swap via {route}: the swap happened after the lstat, before the open",
               swapped == [journal], repr(swapped))
         check(f"fifo swap via {route}: refuses with code 5 naming JOURNAL UNREADABLE and the "
@@ -768,7 +783,7 @@ def case_fifo_swapped_after_lstat_refuses():
               (read(plan), read(ledger)) == (P0, S0), repr((read(plan), read(ledger))))
         check(f"fifo swap via {route}: the FIFO is left in place, its record unread",
               os.path.lexists(journal) and stat.S_ISFIFO(os.lstat(journal).st_mode)
-              and unread == record, repr((sorted(os.listdir(d)), len(unread))))
+              and unread == record, repr((entries, len(unread))))
 
 
 # ---- bounded diagnostics -------------------------------------------------------------------

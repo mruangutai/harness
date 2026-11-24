@@ -630,6 +630,22 @@ def _journal_target(featd, name, route):
     return alias
 
 
+def _t09_sidecar_denied(name):
+    for route in ("as typed", "case-folded", "symlink", "hardlink"):
+        root, _plan = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+        target = _journal_target(os.path.dirname(_plan), name, route)
+        r = fire(root, target, "{}\n", agent="harness-orchestrator")
+        t09(f"T-09 13: an orchestrator Write of {name} ({route}) is DENIED, naming "
+            "plan-merge as its only writer",
+            r.returncode == 2 and "plan-merge.py is its only writer" in r.stderr,
+            f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+    root, _plan = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+    note = os.path.join(os.path.dirname(_plan), "notes", name)
+    r = fire(root, note, "{}\n", agent="harness-orchestrator")
+    t09(f"T-09 13: notes/{name} is outside the feature-dir grammar and still ALLOWED",
+        r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+
+
 def _t09_journal_sidecars():
     """13. A pair journal sidecar has plan-merge as its only writer (FEAT-2488 MF-10)."""
 
@@ -640,19 +656,7 @@ def _t09_journal_sidecars():
     # writer (or wedged every pair write at exit 5). Every route the plan denial follows is
     # followed here too; a sidecar name outside the feature-dir grammar is not a sidecar.
     for name in _JOURNAL_SIDECARS:
-        for route in ("as typed", "case-folded", "symlink", "hardlink"):
-            root, _plan = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
-            target = _journal_target(os.path.dirname(_plan), name, route)
-            r = fire(root, target, "{}\n", agent="harness-orchestrator")
-            t09(f"T-09 13: an orchestrator Write of {name} ({route}) is DENIED, naming "
-                "plan-merge as its only writer",
-                r.returncode == 2 and "plan-merge.py is its only writer" in r.stderr,
-                f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
-        root, _plan = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
-        note = os.path.join(os.path.dirname(_plan), "notes", name)
-        r = fire(root, note, "{}\n", agent="harness-orchestrator")
-        t09(f"T-09 13: notes/{name} is outside the feature-dir grammar and still ALLOWED",
-            r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+        _t09_sidecar_denied(name)
     import harness_merge
     t09("T-09 13: the sidecar names are harness_merge's JOURNAL_PAIR plus JOURNAL_SUFFIX",
         _JOURNAL_SIDECARS == tuple(n + harness_merge.JOURNAL_SUFFIX
