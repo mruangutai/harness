@@ -10,7 +10,7 @@ approval:
       date: '2026-11-23'
       reason: applied - exact-id match, tested by SC-01/02/03
 drafted_at: '2026-11-23T14:32:27Z'
-status: review
+status: building
 source_issues: [2458]
 
 panel:
