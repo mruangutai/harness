@@ -124,6 +124,20 @@
       "kind": "regate",
       "decision": "re-panel",
       "reason": "fix c2 closed MF-7 and MF-8 from validate c1 with one-pass race and post-commit write audits; re-panel at the new pin (last rework round)"
+    },
+    {
+      "at": "2026-11-24T03:10:31.660802+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "fix c3 per fable-advisor AdvisorE4Esc (validate c2 MF-10): check-domain sidecar denial added to T-01; files gain check-domain.py and its test"
+    },
+    {
+      "at": "2026-11-24T03:10:33.545586+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "fix c3 per fable-advisor AdvisorE4Esc (validate c2 MF-10): check-domain sidecar denial added to T-01; files gain check-domain.py and its test"
     }
   ],
   "mission": "plan",

@@ -182,13 +182,15 @@ tasks:
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/harness_merge.py#locked_update
-      - path: tests/unit/test-harness-merge-journal.py
-        create: true
-      - path: tests/integration/canonical-reader-classification.json
-        quote: '".claude/skills/harness/bin/harness_merge.py"'
-      - path: .harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/red-t01-journal-unit.txt
-        create: true
+    - .claude/skills/harness/bin/harness_merge.py#locked_update
+    - path: tests/unit/test-harness-merge-journal.py
+      create: true
+    - path: tests/integration/canonical-reader-classification.json
+      quote: '".claude/skills/harness/bin/harness_merge.py"'
+    - path: .harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/red-t01-journal-unit.txt
+      create: true
+    - .claude/skills/harness/bin/check-domain.py
+    - tests/integration/test-check-domain-approval.py
     verify: |
       python3 .claude/skills/harness/bin/run_pool.py --workers 4 tests/unit/test-harness-merge-journal.py tests/integration/test-harness-merge.py tests/integration/test-feature-json-merge.py tests/integration/test-observations-merge.py tests/integration/test-expertise-merge.py tests/integration/test-inflight-registry.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && python3 -c "import pathlib, sys; t = pathlib.Path('.claude/skills/harness/bin/harness_merge.py').read_text(); sys.exit(0 if all(w in t for w in ('JOURNAL_SUFFIX', 'class JournalPending', 'def locked_pair_update', 'def recover_journals', 'def replace_bytes', 'plan.yaml.lock', 'feature.json.lock')) else 1)"
     intent: |
@@ -247,6 +249,8 @@ tasks:
       shape.
 
       The signature stands (DEC-23); this is the ledgered judgement.
+
+      Amended at fix c3 (fable-advisor AdvisorE4Esc, notes/answers-2026-11-24-validate-c2.md; validate c2 MF-10): check-domain.py denies governed Write/Edit/NotebookEdit of plan.yaml.harness-merge.journal and feature.json.harness-merge.journal in a feature directory, following the same as-typed, symlink and hardlink routes as the plan.yaml denial, naming plan-merge.py as the only writer. The names are spelled literally (an import of harness_merge failed open in partial bin trees) and a test pins them to harness_merge.JOURNAL_PAIR plus JOURNAL_SUFFIX.
   - id: T-02
     title: Cut plan_merge's amendment pair over to the journaled core and delete its rename and restore helpers
     traces: [SC-01, SC-02, SC-04, SC-05, SC-06, SC-07]
