@@ -5281,11 +5281,19 @@ def case_2488_feedback_into_a_broken_stderr_never_fails_the_commit():
 # ---------------------------------------------------------------------------
 
 # The "closed stream object" state, which no fd arrangement produces: close the named sys
-# streams (comma-separated), then run the CLI as __main__.
-_CLOSE_STREAMS = ("import runpy, sys\n"
+# streams (comma-separated) once argparse has parsed, then run the CLI as __main__. The close
+# lands after startup and before the commit, the window the class contract covers. Closing
+# before startup would test argparse instead: Python 3.14's parser probes sys.stdout.isatty()
+# for colour unless NO_COLOR is set, and raises on a closed stream before anything is written.
+_CLOSE_STREAMS = ("import argparse, runpy, sys\n"
                   "cli, names = sys.argv[1], sys.argv[2]\n"
-                  "for name in names.split(','):\n"
-                  "    getattr(sys, name).close()\n"
+                  "parse = argparse.ArgumentParser.parse_args\n"
+                  "def parse_then_close(self, *a, **k):\n"
+                  "    args = parse(self, *a, **k)\n"
+                  "    for name in names.split(','):\n"
+                  "        getattr(sys, name).close()\n"
+                  "    return args\n"
+                  "argparse.ArgumentParser.parse_args = parse_then_close\n"
                   "sys.argv = [cli] + sys.argv[3:]\n"
                   "runpy.run_path(cli, run_name='__main__')\n")
 
