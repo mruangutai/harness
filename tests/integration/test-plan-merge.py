@@ -5273,6 +5273,207 @@ def case_2488_feedback_into_a_broken_stderr_never_fails_the_commit():
             shutil.rmtree(root, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------
+# validate c3 MF-11 — the post-commit stdio state matrix. After a commit, no state of stdout or
+# stderr may change the exit code, double-apply the write, or misroute output: each stream
+# working (captured), a broken pipe (buffered, so finalization's flush retries), a closed stream
+# object, or its fd closed at exec (the stream is None), alone and jointly.
+# ---------------------------------------------------------------------------
+
+# The "closed stream object" state, which no fd arrangement produces: close the named sys
+# streams (comma-separated), then run the CLI as __main__.
+_CLOSE_STREAMS = ("import runpy, sys\n"
+                  "cli, names = sys.argv[1], sys.argv[2]\n"
+                  "for name in names.split(','):\n"
+                  "    getattr(sys, name).close()\n"
+                  "sys.argv = [cli] + sys.argv[3:]\n"
+                  "runpy.run_path(cli, run_name='__main__')\n")
+
+_STDIO_MATRIX = (
+    ("working", "working"), ("broken", "working"), ("closed", "working"), ("none", "working"),
+    ("working", "broken"), ("working", "closed"), ("working", "none"),
+    ("broken", "broken"), ("none", "none"), ("none", "broken"), ("broken", "none"),
+)
+_STDIO_FDS = (("stdout", 1), ("stderr", 2))
+_RECEIPT_FIRST = {"record-amendments": "AMENDED T-01.intent judgement=amendment",
+                  "amend": "AMENDED tasks:T-01.intent judgement=amendment"}
+_RELAY_ROW = b"check-state --changed: one row the relay prints"
+
+
+def _stdio_command(argv, states):
+    """The CLI under `env -u PYTHONUNBUFFERED`, through sh so a "none" stream's fd is closed at
+    exec, and through _CLOSE_STREAMS when a stream is "closed"."""
+    shut = "".join(f" {fd}>&-" for name, fd in _STDIO_FDS if states[name] == "none")
+    closed = ",".join(name for name, _ in _STDIO_FDS if states[name] == "closed")
+    python = ([sys.executable, "-c", _CLOSE_STREAMS, CLI, closed] if closed
+              else [sys.executable, CLI])
+    return ["env", "-u", "PYTHONUNBUFFERED", "/bin/sh", "-c", 'exec "$@"' + shut, "sh",
+            *python, *argv]
+
+
+def _run_in_stdio_states(argv, states):
+    """The child's CompletedProcess, in bytes. A working or closed stream is captured; a broken
+    one is a pipe whose reader has gone; a none one is handed /dev/null, which sh closes."""
+    spare, streams = [], {}
+    for name, _ in _STDIO_FDS:
+        if states[name] == "broken":
+            read_end, write_end = os.pipe()
+            os.close(read_end)
+            spare.append(write_end)
+            streams[name] = write_end
+        else:
+            streams[name] = subprocess.DEVNULL if states[name] == "none" else subprocess.PIPE
+    try:
+        return subprocess.run(_stdio_command(argv, states), **streams)
+    finally:
+        for fd in spare:
+            os.close(fd)
+
+
+def _receipts_of(verb, plan):
+    resolved = os.path.realpath(plan)
+    ledger = os.path.join(os.path.dirname(resolved), "feature.json")
+    return f"{_RECEIPT_FIRST[verb]}\nAPPLIED {resolved}\nAPPLIED {ledger}\n".encode("utf-8")
+
+
+def _check_stdout_bytes(label, r, states, receipts):
+    """A working stdout carries exactly the receipts; a closed one's fd carries nothing."""
+    if states["stdout"] == "working":
+        check(f"{label}: stdout is exactly the receipts", r.stdout == receipts, repr(r.stdout))
+    elif states["stdout"] == "closed":
+        check(f"{label}: nothing reached the closed stdout's fd", r.stdout == b"", repr(r.stdout))
+
+
+def _check_stderr_bytes(label, r, states):
+    """A working stderr carries the relay row, never a receipt or a Traceback, and the
+    landed note exactly when stdout could not take the receipts; a closed one's fd nothing."""
+    err = r.stderr
+    if states["stderr"] == "closed":
+        check(f"{label}: nothing reached the closed stderr's fd", err == b"", repr(err))
+    if states["stderr"] != "working":
+        return
+    check(f"{label}: stderr carries the relay row, no receipt and no Traceback",
+          _RELAY_ROW in err and b"APPLIED " not in err and b"AMENDED " not in err
+          and b"Traceback" not in err, repr(err))
+    check(f"{label}: stderr notes the landed write exactly when stdout failed",
+          (b"landed" in err) == (states["stdout"] != "working"), repr(err))
+
+
+def _stdio_case(verb, argv_of, now, states):
+    label = f"2488/n/{verb}/stdout={states['stdout']},stderr={states['stderr']}"
+    root, plan, fj = _signed_pair(label)
+    _plant_a_feedback_row(root)
+    try:
+        sha, _ = _sha_of(plan, "tasks", "T-01", "intent")
+        r = _run_in_stdio_states(argv_of(plan, root, sha), states)
+        check(f"{label}: exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check(f"{label}: both files landed exactly once, no journal",
+              _carries_once(plan, fj, now) and _no_journal(plan), read(fj))
+        _check_stdout_bytes(label, r, states, _receipts_of(verb, plan))
+        _check_stderr_bytes(label, r, states)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2488_every_stdio_state_after_the_commit():
+    """validate c3 MF-11, the class: per verb (record-amendments, a ledgered amend) with a relay
+    row to print, each of stdout and stderr in {working, broken pipe, closed stream object, fd
+    closed at exec}, plus {both broken, both None, stdout None + stderr broken, stdout broken +
+    stderr None}, buffered (env -u PYTHONUNBUFFERED). Every one exits 0 with both files landed
+    once, no journal, and no misrouted byte on a surviving stream."""
+    for verb, argv_of, now in _RECEIPT_VERBS:
+        for out, err in _STDIO_MATRIX:
+            _stdio_case(verb, argv_of, now, {"stdout": out, "stderr": err})
+
+
+class _NoFilenoCapture:
+    """An in-process capture with no fileno and no flush at all, whose writes fail as a broken
+    pipe: the flush _emit retries raises AttributeError, the third member of its tuple."""
+
+    def write(self, _text):
+        raise BrokenPipeError(errno.EPIPE, "capture reader gone")
+
+
+class _UnsupportedFilenoCapture(io.StringIO):
+    """A StringIO — fileno() raises io.UnsupportedOperation — whose writes fail as a broken
+    pipe."""
+
+    def write(self, _text):
+        raise BrokenPipeError(errno.EPIPE, "capture reader gone")
+
+
+def _in_process_emission(guards, out, err):
+    """(receipts error, relay error): guards._print_receipts and guards._relay_after_commit
+    with sys.stdout = out and sys.stderr = err, the relay given one row (_feedback_rows)."""
+    boundary = sys.modules["harness_boundary"]
+    real = boundary.changed_state_feedback
+    boundary.changed_state_feedback = _feedback_rows
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            return (_call(guards._print_receipts, "APPLIED in-process"),
+                    _call(guards._relay_after_commit, "in-process"))
+    finally:
+        boundary.changed_state_feedback = real
+
+
+def case_2488_in_process_captures_after_the_commit():
+    """validate c3 MF-11 (the _silence notes): a replacement stream with no fileno, or whose
+    fileno() raises io.UnsupportedOperation, failing as a broken pipe on stdout or on stderr:
+    the receipts and the relay return normally, the landed note and the relay row reach a
+    working stderr, and a working stdout carries exactly the receipt."""
+    guards = _load_owner("guards")
+    for kind, make in (("a capture with no fileno and no flush", _NoFilenoCapture),
+                       ("a capture whose fileno() is unsupported", _UnsupportedFilenoCapture)):
+        sink = io.StringIO()
+        errors = _in_process_emission(guards, make(), sink)
+        check(f"2488/o: stdout {kind}: the receipts and the relay return normally",
+              errors == (None, None), repr(errors))
+        check(f"2488/o: stdout {kind}: stderr gets the landed note and the relay row",
+              "landed" in sink.getvalue() and "one row the relay prints" in sink.getvalue(),
+              sink.getvalue())
+        out = io.StringIO()
+        errors = _in_process_emission(guards, out, make())
+        check(f"2488/o: stderr {kind}: the receipts and the relay return normally",
+              errors == (None, None), repr(errors))
+        check(f"2488/o: stderr {kind}: stdout carries exactly the receipt",
+              out.getvalue() == "APPLIED in-process\n", repr(out.getvalue()))
+
+
+def _fd_identity(fd):
+    st = os.fstat(fd)
+    return st.st_dev, st.st_ino
+
+
+def _broken_stream_on_its_own_fd():
+    """A real buffered text stream on a pipe whose reader has gone, on a descriptor the
+    caller owns. Returns (stream, fd, its identity)."""
+    read_end, write_end = os.pipe()
+    os.close(read_end)
+    return open(write_end, "w", encoding="utf-8"), write_end, _fd_identity(write_end)
+
+
+def case_2488_a_caller_owned_fd_is_never_clobbered():
+    """validate c3 (code med, the _silence fd confusion): a real stream on a caller-owned fd,
+    broken, as sys.stdout and then as sys.stderr. The receipts and the relay return normally
+    and the descriptor is still the caller's pipe afterwards: only fd 1 or 2 is ever pointed
+    at os.devnull, and only when it is the failing stream's own."""
+    guards = _load_owner("guards")
+    for name in ("stdout", "stderr"):
+        stream, fd, identity = _broken_stream_on_its_own_fd()
+        sink = io.StringIO()
+        try:
+            errors = _in_process_emission(guards, *((stream, sink) if name == "stdout"
+                                                    else (sink, stream)))
+            kept = fd not in (1, 2) and _fd_identity(fd) == identity
+        finally:
+            with contextlib.suppress(OSError, ValueError):
+                stream.close()
+        check(f"2488/o: a broken {name} on caller-owned fd {fd}: the receipts and the relay "
+              "return normally", errors == (None, None), repr(errors))
+        check(f"2488/o: a broken {name} on caller-owned fd {fd}: the fd is the caller's pipe "
+              "afterwards", kept)
+
+
 @contextlib.contextmanager
 def _failing_replace(target):
     """os.replace raising OSError(ENOSPC) whenever its destination resolves to `target`,
@@ -5927,6 +6128,9 @@ CASES = (
     case_2488_a_closed_stderr_after_the_commit_is_advisory,
     case_2488_receipts_into_a_broken_pipe_never_fail_the_commit,
     case_2488_feedback_into_a_broken_stderr_never_fails_the_commit,
+    case_2488_every_stdio_state_after_the_commit,
+    case_2488_in_process_captures_after_the_commit,
+    case_2488_a_caller_owned_fd_is_never_clobbered,
     case_2488_a_ledger_failure_after_publish_is_journaled,
     case_2488_a_failed_replay_stays_pending,
     case_2488_amend_show_leaves_a_pending_journal_alone,

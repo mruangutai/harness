@@ -562,39 +562,150 @@ def case_misbound_journal_refuses():
                   repr(snapshot(d)))
 
 
-REVERSED_ROUTES = (
-    ("locked_update(secondary)",
-     lambda plan, ledger: harness_merge.locked_update(ledger, appending(), timeout=0.2)),
-    ("locked_update(primary)",
-     lambda plan, ledger: harness_merge.locked_update(plan, appending(), timeout=0.2)),
-    ("recover_journals(primary)",
-     lambda plan, ledger: harness_merge.recover_journals(plan, timeout=0.2)),
+# ---- discovery is the producer's one name (validate c3 MF-12, remedy (b)) -------------------
+
+# *.harness-merge.journal entries no producer writes: garbage, a well-formed pair record under
+# BRIEF.md's name, and the reversed (feature.json-primary) record under feature.json's name —
+# the shape that would take feature.json.lock before plan.yaml.lock if it were ever acted on.
+FOREIGN = (
+    ("garbage evil" + SUFFIX, "evil" + SUFFIX, b"\x00 not a journal\n"),
+    ("well-formed " + BRIEF + SUFFIX, BRIEF + SUFFIX, journal_bytes(J1)),
+    ("well-formed " + LEDGER + SUFFIX, LEDGER + SUFFIX,
+     journal_bytes([(LEDGER, S0, S1), (PLAN, P0, P1)])),
+)
+
+# route, op(plan, ledger), the locks it takes in order, the pair it leaves from (P0, S0)
+FOREIGN_ROUTES = (
+    ("locked_update(plan.yaml)",
+     lambda plan, ledger: harness_merge.locked_update(plan, appending(), timeout=0.2),
+     [PLAN + ".lock"], {PLAN: P0 + MINE, LEDGER: S0}),
+    ("locked_update(feature.json)",
+     lambda plan, ledger: harness_merge.locked_update(ledger, appending(), timeout=0.2),
+     [LEDGER + ".lock"], {PLAN: P0, LEDGER: S0 + MINE}),
     ("locked_pair_update", lambda plan, ledger: harness_merge.locked_pair_update(
-        plan, appending(), ledger, appending(), timeout=0.2)),
+        plan, appending(), ledger, appending(), timeout=0.2),
+     [PLAN + ".lock", LEDGER + ".lock"], {PLAN: P0 + MINE, LEDGER: S0 + MINE}),
 )
 
 
-def case_reversed_primary_refuses_before_any_lock():
-    """A journal with feature.json as its primary would take feature.json.lock before
-    plan.yaml.lock — the reversed order no path may take. It refuses before any lock."""
+def _taking_locks(taken):
+    """An acquire stand-in recording each lock's basename, then delegating."""
     real = harness_merge.acquire
-    for route, op in REVERSED_ROUTES:
-        d, plan, ledger = pair_dir(P0, S0, [(LEDGER, S0, S1), (PLAN, P0, P1)])
-        before = snapshot(d)
-        taken = []
 
-        def wrapper(path, timeout=None):
-            taken.append(os.path.basename(path))
-            return real(path, timeout)
-        with patch.object(harness_merge, "acquire", wrapper):
-            result = outcome(op, plan, ledger)
-        check(f"bound: a feature.json-primary journal via {route} refuses with code 5 naming "
-              "JOURNAL UNREADABLE and the journal", _refused_naming(result, ledger + SUFFIX),
-              repr(result))
-        check(f"bound: a feature.json-primary journal via {route} refuses before any lock",
-              taken == [], repr(taken))
-        check(f"bound: a feature.json-primary journal via {route} writes nothing",
-              snapshot(d) == before, repr(snapshot(d)))
+    def wrapper(path, timeout=None):
+        taken.append(os.path.basename(path))
+        return real(path, timeout)
+    return wrapper
+
+
+def _plant_foreign(d):
+    """Every FOREIGN entry written into d; returns {name: bytes}."""
+    for _, name, data in FOREIGN:
+        write(os.path.join(d, name), data)
+    return {name: data for _, name, data in FOREIGN}
+
+
+def case_foreign_journal_names_are_inert():
+    """Each foreign name planted alone: every write route succeeds, writes its change on the
+    bases (nothing replayed), takes only its own locks in the one order, and leaves the foreign
+    file byte-identical with no journal of its own left behind."""
+    for label, name, data in FOREIGN:
+        for route, op, locks, after in FOREIGN_ROUTES:
+            d, plan, ledger = pair_dir(P0, S0)
+            write(os.path.join(d, name), data)
+            taken = []
+            with patch.object(harness_merge, "acquire", _taking_locks(taken)):
+                result = outcome(op, plan, ledger)
+            check(f"foreign: {label} via {route} succeeds, writes, foreign file untouched",
+                  result == ("ok", None) and snapshot(d) == dict(after, **{name: data}),
+                  repr((result, snapshot(d))))
+            check(f"foreign: {label} via {route} takes only {locks}", taken == locks, repr(taken))
+
+
+def case_recovery_with_only_foreign_journals_is_false():
+    d, plan, ledger = pair_dir(P0, S0)
+    _plant_foreign(d)
+    before = snapshot(d)
+    for target in (plan, ledger, os.path.join(d, "notes.txt")):
+        result = outcome(harness_merge.recover_journals, target, timeout=0.2)
+        check(f"foreign: recover_journals({os.path.basename(target)}) with only foreign journals "
+              "returns False", result == ("ok", False), repr(result))
+    check("foreign: recover_journals changes no byte", snapshot(d) == before, repr(snapshot(d)))
+
+
+def case_the_real_journal_recovers_beside_foreign_ones():
+    for state, plan_bytes, ledger_bytes in TORN_STATES:
+        for route, fn in ROUTES:
+            d, plan, ledger = pair_dir(plan_bytes, ledger_bytes, J1)
+            foreign = _plant_foreign(d)
+            expected = fn(d, plan, ledger)
+            check(f"foreign: torn [{state}] via {route} beside every foreign journal converges, "
+                  "the real journal removed, the foreign files untouched",
+                  snapshot(d) == dict(expected, **foreign), repr(snapshot(d)))
+
+
+def _notes_update(plan, ledger):
+    return harness_merge.locked_update(os.path.join(os.path.dirname(plan), "notes.txt"),
+                                       appending(), timeout=0.2)
+
+
+def case_an_unreadable_real_journal_still_refuses():
+    """Fail closed is kept for the one real name: a truncated plan.yaml journal beside every
+    foreign one refuses exit 5 naming the REAL journal, for the pair's routes and a third file."""
+    d, plan, ledger = pair_dir(P0, S0)
+    whole = journal_bytes(J1)
+    write(plan + SUFFIX, whole[: len(whole) // 2])
+    _plant_foreign(d)
+    before = snapshot(d)
+    routes = [(route, op) for route, op, _, _ in FOREIGN_ROUTES]
+    for route, op in routes + [("locked_update(notes.txt)", _notes_update)]:
+        result = outcome(op, plan, ledger)
+        check(f"foreign: an unreadable real journal via {route} refuses with code 5 naming it",
+              _refused_naming(result, plan + SUFFIX), repr(result))
+    check("foreign: the unreadable real journal's refusals write nothing", snapshot(d) == before,
+          repr(snapshot(d)))
+
+
+def _folds_case(d):
+    """True when d's filesystem folds case (APFS and HFS+ by default)."""
+    probe = os.path.join(d, "case-probe")
+    write(probe, b"")
+    try:
+        return os.path.exists(os.path.join(d, "CASE-PROBE"))
+    finally:
+        os.remove(probe)
+
+
+def _variant_planting(variant):
+    def transform(base):
+        write(variant, b"variant\n")
+        return P1
+    return transform
+
+
+def case_the_producers_name_as_the_filesystem_resolves_it():
+    """A case variant of the real name appearing inside the lock window. Where the filesystem
+    folds case, the producer's os.replace lands on it and keeps the variant's spelling, so the
+    pending journal is LISTED as Plan.yaml.harness-merge.journal: discovery must ask the
+    filesystem for the producer's one path, never compare listed spellings, or a torn pair
+    goes silent. Where case is significant the variant is foreign and inert."""
+    d, plan, ledger = pair_dir(P0, S0)
+    variant = os.path.join(d, "Plan.yaml" + SUFFIX)
+    folds = _folds_case(d)
+    wrapper, _ = failing_replace(ledger)
+    with patch.object(harness_merge, "replace_bytes", wrapper):
+        result = outcome(harness_merge.locked_pair_update, plan, _variant_planting(variant),
+                         ledger, lambda b: S1)
+    listed = sorted(n for n in os.listdir(d) if n.endswith(SUFFIX))
+    check(f"case: the pair is pending under the {'variant' if folds else 'real'} spelling "
+          f"(folds case: {folds})", result[0] == "pending" and listed == (
+              ["Plan.yaml" + SUFFIX] if folds else ["Plan.yaml" + SUFFIX, PLAN + SUFFIX]),
+          repr((result, listed)))
+    recovered = outcome(harness_merge.recover_journals, ledger, timeout=0.2)
+    check("case: recover_journals rolls the pending pair forward",
+          recovered == ("ok", True) and snapshot(d) == dict(
+              {LEDGER: S1, PLAN: P1}, **({} if folds else {"Plan.yaml" + SUFFIX: b"variant\n"})),
+          repr((recovered, snapshot(d))))
 
 
 def case_pair_is_the_amendment_pair():
@@ -678,8 +789,6 @@ NON_REGULAR = (
     ("a symlink to a well-formed journal", _linked, PLAN + SUFFIX, "recover_journals(plan)",
      _RECOVER, PLAN),
     ("a FIFO", _fifo, PLAN + SUFFIX, "recover_journals(plan)", _RECOVER, PLAN),
-    ("a FIFO under another journal name", _fifo, "other" + SUFFIX, "locked_update(notes.txt)",
-     _LOCKED_UPDATE, "notes.txt"),
     ("a directory", _directory, PLAN + SUFFIX, "locked_update(plan)", _LOCKED_UPDATE, PLAN),
     ("a directory", _directory, PLAN + SUFFIX, "locked_update(feature.json)", _LOCKED_UPDATE,
      LEDGER),
@@ -707,6 +816,21 @@ def case_non_regular_journal_refuses():
               and "JOURNAL UNREADABLE" in result[2] and journal in result[2], repr(result))
         check(f"entry: {label} via {route} writes nothing", _entries(d) == before
               and read(plan) == P0 and read(os.path.join(d, LEDGER)) == S0,
+              repr(sorted(os.listdir(d))))
+
+
+def case_a_foreign_fifo_is_never_opened():
+    """validate c3 MF-12: a FIFO under a name no producer writes is never discovered, so it is
+    never opened (no hang) and never refuses: the write returns and the FIFO stays a FIFO."""
+    for route, target in (("locked_update(notes.txt)", "notes.txt"), ("locked_update(plan)", PLAN)):
+        d, plan, _ = pair_dir(P0, S0)
+        fifo = os.path.join(d, "other" + SUFFIX)
+        os.mkfifo(fifo)
+        result = _probe(_LOCKED_UPDATE.format(target=os.path.join(d, target)))
+        check(f"foreign: a FIFO under another journal name via {route} returns, never hangs",
+              result[0] == "exited" and result[1] == 0 and "RETURNED" in result[2], repr(result))
+        check(f"foreign: via {route} the write lands and the FIFO is left in place",
+              read(os.path.join(d, target)) == b"x" and stat.S_ISFIFO(os.lstat(fifo).st_mode),
               repr(sorted(os.listdir(d))))
 
 
@@ -823,10 +947,15 @@ CASES = (
     case_interleave_membership_change,
     case_missing_before_key_refuses,
     case_misbound_journal_refuses,
-    case_reversed_primary_refuses_before_any_lock,
+    case_foreign_journal_names_are_inert,
+    case_recovery_with_only_foreign_journals_is_false,
+    case_the_real_journal_recovers_beside_foreign_ones,
+    case_an_unreadable_real_journal_still_refuses,
+    case_the_producers_name_as_the_filesystem_resolves_it,
     case_pair_is_the_amendment_pair,
     case_nested_secondary_write_under_the_primary_lock,
     case_non_regular_journal_refuses,
+    case_a_foreign_fifo_is_never_opened,
     case_fifo_swapped_after_lstat_refuses,
     case_refusal_diagnostics_are_bounded,
 )

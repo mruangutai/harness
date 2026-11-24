@@ -52,26 +52,28 @@ boundary's real error class, never Exception (FEAT-63's broad-catch census, ceil
 is no compensation path.
 
 Recovery lives here and nowhere else: recover_journals(path) is the one entry point, and it runs
-before every locked_update and locked_pair_update that names a journal member. Discovering a
-journal is lock-free and only a hint; each journal is acted on only as re-read, membership
-included, under its primary's lock. A member at its after state is left alone, one at its before
-state is replaced with its after image, and a member in neither state refuses (JOURNAL DIVERGED,
-exit 5) with every file and the journal untouched. A journal that cannot be parsed refuses
-(JOURNAL UNREADABLE, exit 5) for every write in its directory, because it cannot say which
-files it names; a readable one blocks only its own members' writers. A journal entry is
-examined with lstat, and the descriptor opened for it with fstat before a byte is read: a
-symlink (dangling or not), a FIFO or a directory refuses UNREADABLE naming the journal, even
-one swapped in after the lstat, so no writer blocks on or reads from a FIFO or spins on an entry
-that lists as present and reads as absent. Before any lock is taken, a journal named for any
-file but JOURNAL_PAIR's primary refuses UNREADABLE too.
+before every locked_update and locked_pair_update that names a journal member. Discovery looks up
+ONE name, the only one a producer writes: JOURNAL_PAIR's primary plus JOURNAL_SUFFIX
+(plan.yaml.harness-merge.journal), as a path in the directory (validate c3 MF-12). Any other
+*.harness-merge.journal entry is never read, never blocks a write and is never replayed, however
+it arrived: the discovery set equals the producer set. Discovering the journal is lock-free and
+only a hint; it is acted on only as re-read, membership included, under its primary's lock. A
+member at its after state is left alone, one at its before state is replaced with its after
+image, and a member in neither state refuses (JOURNAL DIVERGED, exit 5) with every file and the
+journal untouched. A journal that cannot be parsed refuses (JOURNAL UNREADABLE, exit 5) for every
+write in its directory, because it cannot say which files it names; a readable one blocks only
+its own members' writers. The journal entry is examined with lstat, and the descriptor opened for
+it with fstat before a byte is read: a symlink (dangling or not), a FIFO or a directory refuses
+UNREADABLE naming the journal, even one swapped in after the lstat, so no writer blocks on or
+reads from a FIFO or spins on an entry that lists as present and reads as absent.
 
 Lock order: a pair takes its primary's lock before its secondary's, which for the amendment pair
 is plan.yaml.lock then feature.json.lock. sign-approval's signed_task_hashes write takes the same
 order, and its nested feature.json write finds no journal because its outer locked_update on the
 plan already recovered and still holds the plan lock, so no journal naming the plan can appear.
 approval's rework write takes feature.json.lock before, never while holding, the plan lock. A
-journal named for feature.json — which would lock feature.json then plan.yaml — refuses before
-any lock. No path acquires them reversed.
+journal named for feature.json — which would lock feature.json then plan.yaml — is never
+discovered. No path acquires them reversed.
 
 python3 stdlib only, no third-party imports, so this runs on any machine that runs the harness.
 """
@@ -103,6 +105,8 @@ _JOURNAL_TMP_PREFIX = ".harness-merge-tmp-"
 _HEX_DIGITS = frozenset("0123456789abcdef")
 # The one pair a journal may record, primary first (validate c0 MF-2): the amendment pair.
 JOURNAL_PAIR = ("plan.yaml", "feature.json")
+# The one journal name any producer writes, and so the one name discovery looks up (MF-12).
+_JOURNAL_NAME = JOURNAL_PAIR[0] + JOURNAL_SUFFIX
 # A refusal echoes journal contents to the operator's terminal: repr (escaped), cut to this.
 _ECHO_LIMIT = 80
 _UNREADABLE_HINT = ("  every write naming a file in this directory refuses until the files are "
@@ -392,10 +396,10 @@ def _read_journal(journal_path):
     return _pair_members(journal_path, record.get("members"))
 
 
-def _journal_names(journal_path, entry, name):
-    """Whether the journal at journal_path (directory entry `entry`) names file `name`. An
-    unreadable journal names every file (fail closed); a vanished one names none."""
-    if entry == name + JOURNAL_SUFFIX:
+def _journal_names(journal_path, name):
+    """Whether the pair's journal at journal_path names file `name`. It always names its
+    primary; an unreadable one names every file (fail closed); a vanished one names none."""
+    if name == JOURNAL_PAIR[0]:
         return True
     try:
         members = _read_journal(journal_path)
@@ -407,17 +411,20 @@ def _journal_names(journal_path, entry, name):
 
 
 def _journals_naming(path):
-    """Lock-free: the full paths of the journals in path's directory that name path. Only a
-    HINT — nothing acts on it until _recover_journal re-reads the journal, membership included,
-    under its primary's lock."""
+    """Lock-free: [the pair's journal] when it is present in path's directory and names path,
+    else []. Only the one name a producer writes is looked up (validate c3 MF-12), so any other
+    *.harness-merge.journal is never read. It is looked up as a PATH, never matched against
+    listed spellings: where the filesystem folds case, the producer's os.replace onto an
+    existing case variant keeps the variant's spelling, and that entry is the producer's file.
+    Only a HINT — nothing acts on it until _recover_journal re-reads the journal, membership
+    included, under its primary's lock."""
     directory, name = os.path.split(os.path.abspath(path))
+    journal_path = os.path.join(directory, _JOURNAL_NAME)
     try:
-        entries = sorted(os.listdir(directory))
+        os.lstat(journal_path)
     except FileNotFoundError:
         return []
-    return [os.path.join(directory, entry) for entry in entries
-            if entry.endswith(JOURNAL_SUFFIX)
-            and _journal_names(os.path.join(directory, entry), entry, name)]
+    return [journal_path] if _journal_names(journal_path, name) else []
 
 
 def _replay_targets(journal_path, directory, members):
@@ -451,22 +458,18 @@ def _replay(journal_path, targets):
 
 
 def _recover_journal(journal_path, path, timeout):
-    """Roll one journal forward for a write naming `path`, acting only on the generation read
-    under its primary's lock. Before ANY lock, the entry must be a regular file named for
-    JOURNAL_PAIR's primary, else UNREADABLE: so no journal can take feature.json.lock before
-    plan.yaml.lock, or a lock on a file outside the pair. Returns True when it replayed and
-    removed the journal, False when the journal is gone or its current generation does not
-    name path."""
-    directory, entry = os.path.split(journal_path)
+    """Roll the pair's journal forward for a write naming `path`, acting only on the generation
+    read under its primary's lock. Discovery hands over only JOURNAL_PAIR's primary's journal,
+    so no journal can take feature.json.lock before plan.yaml.lock, or a lock on a file outside
+    the pair. Before ANY lock, the entry must be a regular file, else UNREADABLE. Returns True
+    when it replayed and removed the journal, False when the journal is gone or its current
+    generation does not name path."""
+    directory = os.path.dirname(journal_path)
     try:
         _require_regular(journal_path)
     except FileNotFoundError:
         return False
     primary, secondary = (os.path.join(directory, name) for name in JOURNAL_PAIR)
-    if entry != JOURNAL_PAIR[0] + JOURNAL_SUFFIX:
-        raise _journal_unreadable(
-            journal_path, f"only {JOURNAL_PAIR[0]} carries an intent journal; this one is named "
-                          "for another file")
     with contextlib.ExitStack() as stack:
         stack.enter_context(acquire(primary + ".lock", timeout))
         try:

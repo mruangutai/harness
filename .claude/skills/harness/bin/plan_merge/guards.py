@@ -84,9 +84,7 @@ def _resolve_plan(file_path, recover=True):
             _recover_plan_journals(resolved)
         return resolved
     except harness_merge.MergeRefusal as refusal:
-        for line in refusal.lines:
-            print(line, file=sys.stderr)
-        sys.exit(refusal.code)
+        _die(refusal.code, *refusal.lines)
 
 
 def _harness_root(start):
@@ -137,8 +135,7 @@ def _legal_stations(resolved):
     try:
         board = gh_board.load_board(root) if root is not None else None
     except artifact_accessors.FleetError as error:
-        print(f"plan-merge: {error}", file=sys.stderr)
-        sys.exit(2)
+        _die(2, f"plan-merge: {error}")
     stations = factory_config.station_names(board) if board is not None else None
     if stations is None:
         stations = factory_config.MANDATED_STATIONS
@@ -150,12 +147,8 @@ def _refuse_illegal_station(station, legal):
 
     CALLED BEFORE THE LOCK IS TAKEN, deliberately: a refused value must never open the file, so
     a typo cannot contend for the lock or leave a partial write behind."""
-    print(
-        f"plan-merge: {station!r} is not a legal station — expected one of: "
-        + ", ".join(legal),
-        file=sys.stderr,
-    )
-    sys.exit(4)
+    _die(4, f"plan-merge: {station!r} is not a legal station — expected one of: "
+         + ", ".join(legal))
 
 
 def _reload_or_refuse(spliced_bytes):
@@ -268,55 +261,95 @@ def _refuse_governed_agent(action, where):
          "shell form of this call can reach a write.")
 
 
-def _silence(stream):
-    """Point a stream that failed at os.devnull (dup2 over its fileno), so the bytes buffered
-    stdio still holds — which interpreter finalization flushes again, exiting 120 when that
-    flush fails too (validate c2 MF-9) — drain into nothing. Best-effort: a closed stream's
-    fileno() raises ValueError, and then there is no buffer left to retry."""
-    with contextlib.suppress(OSError, ValueError):
+# What a write to process stdio can raise (validate c3 MF-11): a real stream fails with the
+# OSError family (a broken pipe; io.UnsupportedOperation subclasses OSError and ValueError), a
+# closed one with ValueError, and a missing one — None, its fd closed at exec — or a replacement
+# without the attribute with AttributeError. A tuple, never Exception (FEAT-63's broad-catch
+# census): a replacement object raising outside it is its caller's contract breach.
+_STDIO_FAULTS = (OSError, ValueError, AttributeError)
+_STDIO_FDS = {"stdout": 1, "stderr": 2}
+
+
+def _silence(stream, expected_fd):
+    """Point fd `expected_fd` at os.devnull when it is `stream`'s own descriptor, so the bytes
+    buffered stdio still holds — which interpreter finalization flushes again, exiting 120 when
+    that flush fails too (validate c2 MF-9) — drain into nothing. ONLY then: a replacement
+    stream on a caller-owned descriptor is never touched (validate c3), and a stream with no
+    fileno, a closed one or one whose fileno() is unsupported has no process descriptor to
+    drain."""
+    with contextlib.suppress(*_STDIO_FAULTS):
+        fileno = getattr(stream, "fileno", None)
+        if fileno is None or fileno() != expected_fd:
+            return
         devnull = os.open(os.devnull, os.O_WRONLY)
         try:
-            os.dup2(devnull, stream.fileno())
+            os.dup2(devnull, expected_fd)
         finally:
             os.close(devnull)
 
 
-def _note_on_stderr(line):
-    """One best-effort stderr line, flushed; a stderr that cannot take it is _silence'd."""
+def _emit(name, write):
+    """THE one stdio emission path (validate c3 MF-11) — receipts, relay, notes, refusals:
+    `write(stream)` against sys.<name> ("stdout" or "stderr"), then a flush. None when it
+    landed, else what stopped it, as text — never raised, so no state of the stream can change
+    the exit code.
+
+    A None stream (its fd closed at exec) is never written to: print(..., file=None) is
+    CPython's sys.stdout, so a missing stderr would misroute into the receipts. A fault of
+    _STDIO_FAULTS is returned; when the stream can no longer flush either, it is _silence'd so
+    finalization cannot fail on it. A fault of `write`'s own work leaves a stream that still
+    flushes as it is, so the note that follows can reach it."""
+    stream = getattr(sys, name)
+    if stream is None:
+        return f"sys.{name} is None"
     try:
-        print(line, file=sys.stderr)
-        sys.stderr.flush()
-    except (OSError, ValueError):
-        _silence(sys.stderr)
+        write(stream)
+        stream.flush()
+        return None
+    except _STDIO_FAULTS as exc:
+        fault = f"{type(exc).__name__}: {exc}"
+    try:
+        stream.flush()
+    except _STDIO_FAULTS:
+        _silence(stream, _STDIO_FDS[name])
+    return fault
+
+
+def _print_lines(lines):
+    """An _emit `write`: each line printed to the stream it is given."""
+    def write(stream):
+        for line in lines:
+            print(line, file=stream)
+    return write
+
+
+def _note_on_stderr(line):
+    """One best-effort stderr line through _emit; a stderr that cannot take it is the end."""
+    _emit("stderr", _print_lines([line]))
 
 
 def _relay_after_commit(path):
     """The changed-state feedback for a write that has committed, advisory only: the write has
     landed, so a failure here is one stderr line (itself best-effort, _note_on_stderr) and
-    never a refusal, a traceback or a nonzero exit. changed_state_feedback already absorbs its
-    subprocess's (OSError, SubprocessError); what is left is printing to stderr — OSError on a
-    broken pipe, ValueError on a closed stream — and the fallback line can meet either on the
-    same stream."""
-    try:
-        harness_boundary.relay_changed_state_feedback(path)
-    except (OSError, ValueError) as exc:
-        _note_on_stderr("plan-merge: changed-state feedback after the committed write failed: "
-                        f"{type(exc).__name__}: {exc}")
+    never a refusal, a traceback or a nonzero exit. relay_changed_state_feedback prints to
+    sys.stderr itself, so it runs inside _emit("stderr"): never with stderr None, where its rows
+    would print to stdout; and its faults — a broken pipe, a closed stream, or anything of the
+    tuple changed_state_feedback does not absorb — are returned, never raised."""
+    fault = _emit("stderr", lambda _stream: harness_boundary.relay_changed_state_feedback(path))
+    if fault is not None:
+        _note_on_stderr(f"plan-merge: changed-state feedback after the committed write failed: "
+                        f"{fault}")
 
 
 def _print_receipts(*lines):
-    """A committed write's receipts, one per line on stdout, flushed. The write has landed, so
-    a stdout that cannot take them — closed (ValueError) or a broken pipe (OSError) — costs
-    the receipts, never the outcome: stdout is _silence'd so finalization's flush cannot fail,
-    one best-effort stderr line says the write landed, and the verb still exits 0."""
-    try:
-        for line in lines:
-            print(line)
-        sys.stdout.flush()
-    except (OSError, ValueError) as exc:
-        _silence(sys.stdout)
-        _note_on_stderr("plan-merge: the write landed, but its receipts could not be printed: "
-                        f"{type(exc).__name__}: {exc}")
+    """A committed write's receipts, one per line on stdout, flushed, through _emit. The write
+    has landed, so a stdout that cannot take them — None, closed or a broken pipe — costs the
+    receipts, never the outcome: one best-effort stderr line says the write landed, and the
+    verb still exits 0."""
+    fault = _emit("stdout", _print_lines(lines))
+    if fault is not None:
+        _note_on_stderr(f"plan-merge: the write landed, but its receipts could not be printed: "
+                        f"{fault}")
 
 
 def _locked_plan_update(resolved, transform):
@@ -329,8 +362,9 @@ def _locked_plan_update(resolved, transform):
 
 
 def _die(code, *lines):
-    """Print a refusal to stderr and exit. Collapses the print/exit pairs that made
-    `cmd_amend` an ABC outlier without changing a single message."""
-    for line in lines:
-        print(line, file=sys.stderr)
+    """Print a refusal to stderr and exit `code`. Collapses the print/exit pairs that made
+    `cmd_amend` an ABC outlier without changing a single message. The lines go through _emit,
+    because a refusal can follow a published journal (committed-pending, exit 2): no state of
+    stderr may turn that code into a traceback's 1 or move the lines onto stdout."""
+    _emit("stderr", _print_lines(lines))
     sys.exit(code)
