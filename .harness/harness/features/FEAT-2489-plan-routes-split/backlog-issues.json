@@ -14,5 +14,9 @@
   "bug:validator readers: harness-code-reviewer's write guard blocks temp-dir replay probes, and QA's digest shape has no measurement-only verdict, so probes return BLOCKED before re-prompt": {
     "number": 2528,
     "typed": true
+  },
+  "bug:structure_audit loader lock prefilter (structure_audit.py:944-945) requires the exact ASCII spelling spec_from_file_location in source text, so a non-ASCII-spelled loader call skips the AST loader check (fail-open; pre-existing at base)": {
+    "number": 2529,
+    "typed": true
   }
 }
