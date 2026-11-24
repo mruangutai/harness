@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2489-plan-routes-split",
   "branch": "feat/FEAT-2489-plan-routes-split",
   "pr": null,
-  "review_sha": "be0807b024f5da33adcd034859d62ab9ec59bd8f",
+  "review_sha": "25132b7ec29e9cdfaddfafeca7b7cd7d4c803cbd",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -132,6 +132,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-24T15:59:04+00:00"
+    },
+    {
+      "id": "r-20261124-9-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-24T16:15:46+00:00"
     }
   ],
   "judgements": [
