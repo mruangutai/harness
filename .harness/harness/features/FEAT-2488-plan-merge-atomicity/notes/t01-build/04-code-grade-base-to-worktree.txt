@@ -1,0 +1,83 @@
+# code_grade gate, base 2491336e .. working tree (HEAD 3b954ec2 + T-01 edits), files: 2
+# file: .claude/skills/harness/bin/harness_merge.py
+# file: tests/unit/test-harness-merge-journal.py
+PASS .claude/skills/harness/bin/harness_merge.py:126 JournalPending.__init__ grade=5 bar=4 cc=1 cog=1 abc=3.0 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:203 replace_bytes grade=4 bar=4 cc=4 cog=4 abc=8.6 driver=cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:222 _read_base grade=5 bar=4 cc=2 cog=1 abc=3.3 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:230 _sha256 grade=5 bar=4 cc=1 cog=1 abc=2.8 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:234 _journal_unreadable grade=5 bar=4 cc=1 cog=0 abc=1.0 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:238 _is_sha256 grade=5 bar=4 cc=3 cog=1 abc=5.0 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:242 _is_bare_name grade=4 bar=4 cc=5 cog=5 abc=9.1 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:248 _member_hashes grade=4 bar=4 cc=4 cog=5 abc=8.1 driver=cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:255 _member_image grade=5 bar=4 cc=3 cog=2 abc=5.9 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:268 _journal_member grade=4 bar=4 cc=4 cog=4 abc=11.5 driver=cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:282 _journal_bytes grade=5 bar=4 cc=3 cog=2 abc=4.1 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:294 _read_journal grade=4 bar=4 cc=7 cog=7 abc=15.4 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:311 _journal_names grade=4 bar=4 cc=5 cog=3 abc=5.7 driver=cyclomatic
+PASS .claude/skills/harness/bin/harness_merge.py:325 _journals_naming grade=4 bar=4 cc=5 cog=2 abc=9.4 driver=cyclomatic+abc
+PASS .claude/skills/harness/bin/harness_merge.py:339 _replay_targets grade=4 bar=4 cc=4 cog=5 abc=8.1 driver=cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:356 _replay grade=5 bar=4 cc=3 cog=2 abc=4.7 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:368 _recover_journal grade=4 bar=4 cc=6 cog=8 abc=18.4 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:389 recover_journals grade=5 bar=4 cc=3 cog=3 abc=4.1 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:421 _pair_directory grade=4 bar=4 cc=3 cog=3 abc=10.0 driver=abc
+PASS .claude/skills/harness/bin/harness_merge.py:431 _publish_journal grade=4 bar=4 cc=3 cog=1 abc=17.9 driver=abc
+PASS .claude/skills/harness/bin/harness_merge.py:452 _commit_published grade=5 bar=4 cc=3 cog=3 abc=7.5 driver=cyclomatic+cognitive+abc
+PASS .claude/skills/harness/bin/harness_merge.py:468 locked_pair_update grade=4 bar=4 cc=4 cog=8 abc=17.7 driver=cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:36 check grade=5 bar=3 cc=2 cog=3 abc=4.5 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:43 sha grade=5 bar=3 cc=1 cog=1 abc=2.8 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:47 write grade=5 bar=3 cc=2 cog=2 abc=4.6 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:56 read grade=5 bar=3 cc=2 cog=2 abc=2.4 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:64 snapshot grade=5 bar=3 cc=3 cog=0 abc=5.5 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:70 journal_bytes grade=5 bar=3 cc=2 cog=0 abc=6.7 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:77 put_journal grade=5 bar=3 cc=1 cog=0 abc=3.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:82 pair_dir grade=4 bar=3 cc=2 cog=1 abc=8.1 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:94 outcome grade=4 bar=3 cc=4 cog=4 abc=6.0 driver=cognitive
+PASS tests/unit/test-harness-merge-journal.py:106 refused grade=5 bar=3 cc=3 cog=1 abc=5.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:111 patched grade=5 bar=3 cc=1 cog=1 abc=3.2 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:120 failing_replace grade=5 bar=3 cc=1 cog=0 abc=3.2 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:125 failing_replace.wrapper grade=5 bar=3 cc=2 cog=1 abc=3.6 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:132 acquire_hook grade=5 bar=3 cc=1 cog=0 abc=3.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:138 acquire_hook.wrapper grade=5 bar=3 cc=3 cog=3 abc=6.4 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:146 appending grade=5 bar=3 cc=1 cog=0 abc=1.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:147 appending.transform grade=5 bar=3 cc=3 cog=2 abc=3.2 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:154 run_case grade=5 bar=3 cc=2 cog=1 abc=3.3 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:163 case_api_surface grade=4 bar=3 cc=1 cog=0 abc=11.2 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:178 case_pair_success grade=4 bar=3 cc=3 cog=2 abc=11.5 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:189 _refuse grade=5 bar=3 cc=1 cog=0 abc=1.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:193 _explode grade=5 bar=3 cc=1 cog=0 abc=1.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:197 case_pair_transform_failure grade=4 bar=3 cc=2 cog=1 abc=14.7 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:209 case_pair_secondary_locked grade=4 bar=3 cc=1 cog=1 abc=14.9 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:224 case_pair_two_directories grade=4 bar=3 cc=3 cog=2 abc=18.6 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:236 check_journal_record grade=4 bar=3 cc=5 cog=2 abc=15.4 driver=cyclomatic+abc
+PASS tests/unit/test-harness-merge-journal.py:247 case_pair_pending_after_publish grade=3 bar=3 cc=4 cog=4 abc=25.6 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:268 _route_recover grade=5 bar=3 cc=1 cog=0 abc=3.3 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:274 _route_update_primary grade=5 bar=3 cc=1 cog=0 abc=4.2 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:281 _route_update_secondary grade=5 bar=3 cc=1 cog=0 abc=4.2 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:295 case_torn_states_converge grade=4 bar=3 cc=4 cog=6 abc=15.4 driver=cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:309 _diverged_ops grade=5 bar=3 cc=1 cog=0 abc=6.1 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:318 case_diverged_member grade=3 bar=3 cc=2 cog=1 abc=25.1 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:337 case_truncated_journal grade=3 bar=3 cc=1 cog=0 abc=20.3 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:351 case_malformed_membership grade=4 bar=3 cc=2 cog=1 abc=14.0 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:364 _malformed grade=5 bar=3 cc=2 cog=1 abc=6.2 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:384 case_journal_shape_refusals grade=4 bar=3 cc=3 cog=3 abc=13.6 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:398 _check_replay_pending grade=5 bar=3 cc=2 cog=2 abc=5.5 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:405 case_replay_failure grade=3 bar=3 cc=1 cog=0 abc=25.6 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:428 _interleave grade=5 bar=3 cc=1 cog=0 abc=6.7 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:437 case_interleave_generation_change grade=4 bar=3 cc=1 cog=0 abc=9.6 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:440 case_interleave_generation_change.mutate grade=5 bar=3 cc=1 cog=0 abc=3.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:451 case_interleave_fresh_generation grade=4 bar=3 cc=2 cog=1 abc=8.4 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:454 case_interleave_fresh_generation.mutate grade=5 bar=3 cc=1 cog=0 abc=3.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:463 case_interleave_disappearance grade=4 bar=3 cc=1 cog=0 abc=9.6 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:466 case_interleave_disappearance.mutate grade=5 bar=3 cc=1 cog=0 abc=3.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:477 case_interleave_membership_change grade=4 bar=3 cc=2 cog=1 abc=13.2 driver=abc
+PASS tests/unit/test-harness-merge-journal.py:482 case_interleave_membership_change.mutate grade=5 bar=3 cc=1 cog=0 abc=5.0 driver=cyclomatic+cognitive+abc
+PASS tests/unit/test-harness-merge-journal.py:513 main grade=4 bar=3 cc=5 cog=2 abc=9.4 driver=cyclomatic+abc
+INFO (not gated: grade 4 >= base 4) .claude/skills/harness/bin/harness_merge.py:94 _default_timeout
+INFO (not gated: grade 5 >= base 5) .claude/skills/harness/bin/harness_merge.py:114 MergeRefusal.__init__
+INFO (not gated: grade 3 >= base 3) .claude/skills/harness/bin/harness_merge.py:134 _acquire_flock
+INFO (not gated: grade 4 >= base 4) .claude/skills/harness/bin/harness_merge.py:159 _acquire_excl
+INFO (not gated: grade 5 >= base 5) .claude/skills/harness/bin/harness_merge.py:187 acquire
+INFO (not gated: grade 4 >= base 3) .claude/skills/harness/bin/harness_merge.py:398 locked_update
+INFO (not gated: grade 5 >= base 5) .claude/skills/harness/bin/harness_merge.py:499 require_destination
+gated=71 high=0 reason_required=0 result=pass
+# exit code: 0

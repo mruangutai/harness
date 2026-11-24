@@ -1,0 +1,172 @@
+# python3 tests/integration/test-inflight-registry.py
+PASS - case1: claim returns True
+PASS - case1: live_claim returns a claim
+PASS - case1: recorded dispatcher matches
+PASS - case1: recorded cwd matches
+PASS - case2: first pm claim succeeds
+PASS - case2: second pm claim is refused (single-flight)
+PASS - case2: stored started_at is still the FIRST claim's
+PASS - case2: first backend-dev claim succeeds
+PASS - case2: second backend-dev claim ALSO succeeds (parallel squad is legal)
+PASS - case2: registry holds two claims for backend-dev
+PASS - case2: both started_at values are present
+PASS - case2b: eng-lead children include backend-dev
+PASS - case2b: eng-lead children include frontend-dev
+PASS - case2b: eng-lead children exclude pm
+PASS - case2b: eng-lead children exclude qa
+PASS - case2b: product-lead children include pm
+PASS - case2b: product-lead children include qa
+PASS - case2b: product-lead children exclude backend-dev
+PASS - case2b: product-lead children exclude frontend-dev
+PASS - case2c: stale child is not returned
+PASS - case2c: stale claim is gone from the file afterwards
+PASS - case3: stale claim is treated as absent
+PASS - case3: live_claim reports one expired
+PASS - case3: a following claim succeeds after staleness expiry
+PASS - case4: release removes the SOLE claim and returns True
+PASS - case4: no live claim remains
+PASS - case4: releasing an absent claim returns False
+PASS - case4: releasing an absent claim does not create the file
+PASS - case5: harness-pm is single-flight
+PASS - case5: harness-backend-dev is not single-flight
+PASS - case6: first line begins with the dispatch-guard marker
+PASS - case6: the agent name appears
+PASS - case6: an ISO-8601 timestamp appears
+PASS - case6: #628 is referenced (issue #551 moved here, item 6)
+PASS - case6: the original #551 single-flight report is still noted
+PASS - case6: the plan.yaml-overwrite sentence is NOT tagged #551 (it is #628's issue now)
+PASS - case6: the release command appears byte-for-byte
+PASS - case6b: first line begins with the check-digest marker
+PASS - case6b: the returning agent is named
+PASS - case6b: the first child is named
+PASS - case6b: the second child is named
+PASS - case6b: two ISO-8601 timestamps appear
+PASS - case6b: #551 is referenced
+PASS - case7: 20 trials each produce exactly one successful claim() and one stored claim
+PASS - case7: informational — a LOCKED-style split-decision outcome was admitted 0/20 times
+PASS - case8: claim against a corrupt registry does not raise
+PASS - case8: claim succeeds, treating the corrupt file as empty
+PASS - case8: a message naming the file appears on stderr
+PASS - case9: release_all returns 3
+PASS - case9: the registry is empty afterwards
+PASS - case9: CLI list exits 0
+PASS - case9: CLI list prints NO CLAIMS
+PASS - case10: no fcntl usage
+PASS - case10: no O_EXCL usage
+PASS - case10: no os.replace usage
+PASS - case10: calls harness_merge.locked_update
+PASS - case13: release_refuses_ambiguous - two live claims are refused, not oldest-popped, and 0 is returned
+PASS - case13: release_refuses_ambiguous - both claims remain on disk untouched
+PASS - case13: release_refuses_ambiguous - stderr says how many were left
+PASS - case14: remedy_is_absolute - release_cmd(root, agent) exists
+PASS - case14: remedy_is_absolute - the remedy is rooted at the checkout, not a relative CLI path
+PASS - case14: remedy_is_absolute - a featureless remedy cannot be composed at all
+PASS - case14: remedy_is_absolute - the remedy names ONE agent, never release-all
+PASS - case15: pm claims for different features run together
+PASS - case15: a second pm for the same feature is refused
+PASS - case16: an old OMP claim stays live while its supervisor lives
+PASS - case16: the live OMP claim is not counted expired
+PASS - case16: an OMP claim is stale immediately when its supervisor dies
+PASS - case16: the dead-supervisor claim is counted expired
+PASS - case17: targeted feature release removes one claim
+PASS - case17: targeted feature release leaves the other feature live
+PASS - case18: a legacy claim is not live, however fresh
+PASS - case18: it is reported expired
+PASS - case18: every subsequent write uses schema version 2
+PASS - case18: schema version 2 stores one, now empty, claims list
+PASS - case18: legacy persona keys are not written back
+PASS - case19: OMP identity attaches to the pending claim
+PASS - case19: terminal OMP identity releases only its claim
+PASS - case19: released OMP claim is gone
+PASS - case19b: parallel claims exist
+PASS - case19b: parent pre-binds both named children
+PASS - case19b: exact child and parent lineage authorizes
+PASS - case19b: a sibling parent cannot borrow the child claim
+PASS - case19b: an unclaimed child id cannot borrow a parallel claim
+PASS - case19b: task result augments an already-bound child with its job id
+PASS - case19b: exact runtime lineage filters the live claim set
+PASS - case19b: a sibling parent sees no matching live claim
+PASS - case19b: a unique parent-bound claim accepts the runtime child id
+PASS - case19b: runtime authorization is idempotent
+PASS - case19b: a bound claim rejects a different runtime child id
+inflight_registry: BLOCKED - runtime child lineage has no matching claim
+PASS - case19b: authorize CLI approves exact runtime lineage
+PASS - case19b: authorize CLI blocks a mismatched parent lineage
+PASS - case20: targeted recovery removes one dead-supervisor claim
+PASS - case20: targeted recovery leaves another feature untouched
+PASS - case21: queried dead claim expires
+PASS - case21: unrelated dead feature is left for targeted reconciliation
+PASS - case22: the claim pins the supervisor start time
+PASS - case22: a live pid with a foreign start time is expired, not trusted
+PASS - case22: reconcile also clears it, so recovery does not need the operator
+PASS - case23: a verified supervisor keeps its claim at any age
+PASS - case24: an unverifiable claim is still live inside the backstop
+PASS - case24: past the backstop it expires even though the pid is alive
+PASS - case25: a genuinely live child DOES hold its parent
+PASS - case25: a stranded child no longer holds its parent
+PASS - case26: the ps read is the only subprocess in the module
+PASS - case26: the ps child is pinned to the C locale
+PASS - case26: our own start time still reads under a non-English LC_TIME
+PASS - case27: NaN survives json.loads, so the corruption guard misses it
+PASS - case27: a NaN start time is read without raising
+PASS - case27: and past the backstop it clears, so NaN cannot strand
+PASS - case27: Infinity survives json.loads, so the corruption guard misses it
+PASS - case27: a Infinity start time is read without raising
+PASS - case27: and past the backstop it clears, so Infinity cannot strand
+PASS - case27: -Infinity survives json.loads, so the corruption guard misses it
+PASS - case27: a -Infinity start time is read without raising
+PASS - case27: and past the backstop it clears, so -Infinity cannot strand
+PASS - case28: a featureless claim still composes a remedy
+PASS - case28: and the selector it prints actually matches that claim
+PASS - case29: a fresh `runtime: claude` claim reads as absent
+PASS - case29: and is counted as expired
+PASS - case29: a claim with no runtime is not a live child either
+PASS - case29: both are gone from disk afterwards
+PASS - the children refusal names the blocking rule and never says a repeated return ships
+PASS - case35: feature-root uses linked checkout rather than owner root
+PASS - case35: feature-root CLI resolves linked worktree
+PASS - case35: feature-root accepts a short-form worktree basename
+PASS - case35: feature-root CLI falls back to owner root
+PASS - case35: feature-root requires --feature
+PASS - case35: feature-root CLI refuses an ambiguous worktree
+PASS - case36: live_claims returns every matching claim oldest first
+PASS - case36: live_claims is byte-for-byte read only
+PASS - case36: a claim whose supervisor is gone does not bind
+PASS - case36: missing registry returns an empty list
+PASS - case36: test process identity is measurable
+PASS - case36: proven OMP identity binds past the backstop
+PASS - case37: unparseable json raises UnreadableRegistry naming its file
+PASS - case37: json list raises UnreadableRegistry naming its file
+PASS - case37: unsupported mapping raises UnreadableRegistry naming its file
+PASS - case37: absent remains distinct from unreadable
+PASS - case38: run-start binds the unique repository receipt
+PASS - case38: same-persona siblings under one parent bind independently
+PASS - case38b: mismatches refuse with their named state
+PASS - case38b: a runtime id held by another active dispatch is a collision
+PASS - case38b: an unreadable registry is refused as unreadable
+PASS - case38c: a released repository claim is refused as released
+PASS - case38c: authorize never binds a pending repository receipt
+PASS - case38: a run with no receipt creates a claim bound to its exact id
+PASS - case38: a settled agent woken under its id reuses that one claim
+PASS - case38: the unique unbound parent receipt is bound, not duplicated
+PASS - case38: an ambiguous receipt pair is never selected; the run gets its own claim
+PASS - case38: another parent's receipt is never bound
+PASS - case38: a persona outside SINGLE_FLIGHT_AGENTS keeps two live same-feature claims
+PASS - case38: an exact id under a different parent is refused, not rebound
+PASS - case39: a second live pm is refused, naming the holder, retryable after it settles
+PASS - case39: once the holder settles the same run start succeeds
+PASS - case39: an unreadable registry is a non-retryable operator condition, left as found
+PASS - case40: a unique match in a linked worktree yields its feature and that registry root
+PASS - case40: a unique owner-root match yields the owner root
+PASS - case40: zero exact matches refuse; a parent id or persona is never a match
+PASS - case40: the find-run command exits 2 with the structured refusal
+PASS - case40: the same id in two registries refuses rather than choosing
+PASS - case40: any unreadable registry refuses, non-retryable, even with a match elsewhere
+PASS - case41: run-start writes the registry feature_root resolves (short-form worktree)
+PASS - feat65: a failing ps probe still answers None
+PASS - feat65: an unrelated defect in the ps probe escapes
+PASS - feat65: an ambiguous worktree lookup falls back to the owner root
+PASS - feat65: an unrelated lookup defect escapes feature_root
+PASS - feat65: the direct feature-root command stays loud and nonzero on a defect
+PASS - 168/168 checks passed
+# exit code: 0
