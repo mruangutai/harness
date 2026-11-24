@@ -23,6 +23,9 @@ import sys
 import tempfile
 import tokenize
 
+import artifact_accessors
+import feature_corpus
+
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
@@ -1896,9 +1899,8 @@ def case_canonical_reader_glob_route_guard():
               not any("task files omit" in line for line in findings), repr(findings))
 
 
-def case_canonical_reader_reads_no_feature_plan():
-    """FEAT-71: the inventory names no feature plan. A row without one carries its task as
-    provenance and reads nothing, so the permanent audit holds on a tree with no feature corpus."""
+def case_canonical_reader_planless_rows_read_no_plan():
+    """A row without a plan carries its task as provenance and reads no plan."""
     mod = cpr()
     candidate = _reader_fixture_candidate()
     document = {"schema": "canonical-reader-classification/1",
@@ -1913,24 +1915,80 @@ def case_canonical_reader_reads_no_feature_plan():
         [candidate], ["fixture.py"], document, task_files)
     check("canonical_reader_planless_row_is_not_an_ownership_finding",
           findings == [], repr(findings))
-    _check_live_inventory_reads_no_feature_plan(mod)
+    _check_live_inventory_named_plans(mod)
 
 
-def _check_live_inventory_reads_no_feature_plan(mod):
-    """The checked-in inventory names no plan, so its audit holds with no feature corpus."""
+def _named_plan_problems(root, document):
+    """`[(row id, problem)]` for each row naming a plan, in row order, read independently of
+    the audit. problem is None when the plan resolves through feature_corpus.corpus_path, loads,
+    and holds a task whose id is the row's task; otherwise a one-line refusal."""
+    import harness_yaml
+    problems = []
+    for row in [row for row in document["rows"] if isinstance(row, dict) and "plan" in row]:
+        try:
+            plan = artifact_accessors.load_plan(feature_corpus.corpus_path(root, row["plan"]))
+            found = any(str(task["id"]) == row["task"] for task in plan["tasks"])
+            problem = None if found else f"{row['plan']}: task {row['task']} is absent"
+        except (OSError, ValueError, KeyError, TypeError, harness_yaml.YamlParseError,
+                feature_corpus.CorpusError) as error:
+            problem = f"{row['plan']}: plan cannot be read: " + " ".join(str(error).split())
+        problems.append((row.get("id"), problem))
+    return problems
+
+
+def _copy_named_plans(root, td, document):
+    """Copy each distinct plan the rows name from `root`'s corpus into `td` at its relative
+    path. A plan that does not resolve is left out; its row check already refuses it."""
+    named = dict.fromkeys(row["plan"] for row in document["rows"]
+                          if isinstance(row, dict) and "plan" in row)
+    for plan in named:
+        try:
+            source = feature_corpus.corpus_path(root, plan)
+        except feature_corpus.CorpusError:
+            continue
+        if os.path.isfile(source):
+            target = os.path.join(td, plan)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.copyfile(source, target)
+
+
+def _check_live_inventory_named_plans(mod):
+    """Every plan a classification row names resolves, through the same corpus resolution the
+    audit uses, to a readable plan whose named task exists; and the permanent audit depends on
+    nothing outside bin plus exactly those plans."""
     classification = os.path.join(TESTS_DIR, "canonical-reader-classification.json")
     with open(classification, encoding="utf-8") as source:
         live = json.load(source)
-    named = ["<document>"] * ("plan" in live) + [
-        row.get("id") for row in live["rows"] if "plan" in row]
-    check("canonical_reader_live_inventory_names_no_plan", named == [], repr(named))
+    check("canonical_reader_live_inventory_has_no_document_plan", "plan" not in live,
+          repr(live.get("plan")))
+    for row_id, problem in _named_plan_problems(ROOT, live):
+        check(f"canonical_reader_live_inventory_named_plan_resolves[{row_id}]",
+              problem is None, problem)
     with tempfile.TemporaryDirectory() as td:
         shutil.copytree(BIN_DIR, os.path.join(td, ".claude", "skills", "harness", "bin"),
                         ignore=shutil.ignore_patterns("__pycache__"))
+        _copy_named_plans(ROOT, td, live)
         result = mod.audit_canonical_readers(td, classification)
-    check("canonical_reader_audit_holds_without_a_feature_corpus",
+    check("canonical_reader_audit_holds_on_bin_plus_named_plans",
           result["exit_code"] == 0 and result["classification_findings"] == [],
           repr(result["classification_findings"]))
+
+
+def case_canonical_reader_named_plan_contract():
+    """The named-plan check accepts a resolving row and refuses a missing plan or task."""
+    candidate = _reader_fixture_candidate()
+    rows = [_classification_row(candidate, plan=plan, task=task) for plan, task in (
+        ("plan.yaml", "T-01"), ("missing/plan.yaml", "T-01"), ("plan.yaml", "T-99"))]
+    with tempfile.TemporaryDirectory() as td:
+        write_plan(td, PLAN_YAML % "fixture.py", name="plan.yaml")
+        resolving, missing_plan, missing_task = [
+            _named_plan_problems(td, {"rows": [row]})[0][1] for row in rows]
+    check("canonical_reader_named_plan_check_accepts_a_resolving_row",
+          resolving is None, repr(resolving))
+    check("canonical_reader_named_plan_check_refuses_a_missing_plan",
+          missing_plan is not None, repr(missing_plan))
+    check("canonical_reader_named_plan_check_refuses_a_missing_task",
+          missing_task is not None and "T-99" in missing_task, repr(missing_task))
 
 
 def case_canonical_reader_second_state_reader():
@@ -2266,7 +2324,8 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_route_guards,
     case_canonical_reader_glob_route_guard,
     case_canonical_reader_plan_scoped_ownership,
-    case_canonical_reader_reads_no_feature_plan,
+    case_canonical_reader_planless_rows_read_no_plan,
+    case_canonical_reader_named_plan_contract,
     case_canonical_reader_relocation_is_exact,
     case_canonical_reader_second_state_reader,
     case_canonical_reader_live_baseline,
@@ -2385,7 +2444,7 @@ CASES = (
     case_41_t07_is_shipped_reads_the_plan,
     case_feat64_manifest_deviation_defect_escapes,
     case_feat64_plan_is_parsed_once_per_execution,
-
+    *CANONICAL_READER_CASES,
 )
 
 
