@@ -71,8 +71,16 @@
       "id": "r-20261124-5-validate-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-24T03:12:37+00:00"
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-24T03:12:37+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-5-validate-validator/digest.md",
+        "sha256": "460e5ca2f3e2aa6fdad8c274742ad750e398fc9f547af0e9fd84147d5835a62a"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-24T03:28:07+00:00"
     }
   ],
   "judgements": [
