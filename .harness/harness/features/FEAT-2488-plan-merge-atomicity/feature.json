@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-2488-plan-merge-atomicity",
   "branch": "feat/FEAT-2488-plan-merge-atomicity",
-  "pr": null,
+  "pr": 2493,
   "review_sha": "45f16cfa9f5ceb063d3d12987e3a6824b5929f35",
   "cycles_used": 1,
   "max_total_cycles": 10,
