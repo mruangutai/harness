@@ -2,5 +2,9 @@
   "bug:plan-merge record-panel replaces panel.readers wholesale, dropping earlier cycles' reader rows (trips INV-32), and serializes a ran reader's reason as 'none'": {
     "number": 2525,
     "typed": true
+  },
+  "bug:test-check-plan-routes _copy_named_plans copies inventory-named plan paths without containment (../ or symlinks escape the scratch root); add a realpath containment check and symlink rule with a red test": {
+    "number": 2526,
+    "typed": true
   }
 }
