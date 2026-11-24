@@ -1,7 +1,9 @@
 schema: plan/1
 feature: FEAT-2489-plan-routes-split
 approval:
-  status: pending
+  date: '2026-11-24'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
 drafted_at: '2026-11-24T13:48:53Z'
 status: plan
 source_issues: [2489]
@@ -81,7 +83,8 @@ panel:
     reader: harness-code-reviewer
     kind: substance
     summary: SC-02 forbids a diagnostic filename change that the required verbatim move produces.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-6efa88c834c89ca43eea0322509703d9
     severity: med
     reader: harness-code-reviewer
@@ -108,13 +111,15 @@ panel:
     reader: harness-code-reviewer
     kind: substance
     summary: PF-241126189d3c3d16550a5f09c7532ff3 is closed for the sampled blank-reason finding, not for the class.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-b14b5b45525eb18f63e04849c88d3838
     severity: med
     reader: harness-code-reviewer
     kind: substance
     summary: 'New: T-02''s whole-line replacement can mask a change outside the sanctioned fields.'
-    disposition: open
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-1dd0f7a1329fa5038cc5e6aa8e0c3ecb
     severity: med
     reader: harness-code-reviewer
@@ -134,19 +139,22 @@ panel:
     reader: harness-code-reviewer
     kind: substance
     summary: W3 leaves SC-02 unsatisfiable by a verbatim move on a malformed but readable inventory.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-13006fd231e087314c1651e5679503d0
     severity: med
     reader: harness-code-reviewer
     kind: substance
     summary: T-02’s lexical matcher still rewrites data rather than a locator in a plan-read diagnostic.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-c01acc578f91cbed233d9afea356eea7
     severity: med
     reader: harness-code-reviewer
     kind: substance
     summary: T-04’s final receipt admits MAP entries not present in the restricted live map.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-04
   - id: PF-a4d2a5fd9eb5b8976b8ae883e1c4e624
     severity: low
     reader: harness-code-reviewer

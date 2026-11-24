@@ -99,6 +99,6 @@ The non-goals below are carried from the grilling ruling (Q5, Q6 and the Destina
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike Ruangutai (delegated to fable-advisor)
+date: 2026-11-24
