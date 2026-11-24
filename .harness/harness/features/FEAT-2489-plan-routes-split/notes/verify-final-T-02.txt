@@ -1,0 +1,1 @@
+PASS T-02: nine CLI-equivalence checks on matched trees; relocated-row finding sampled and rewritten only by the stated map; red only on a stale canonical inventory

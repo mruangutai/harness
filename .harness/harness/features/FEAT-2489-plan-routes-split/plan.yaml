@@ -227,7 +227,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 enumerates test-check-plan-routes.py as the test file of a gate; the edit is made directly, red first.
     depends_on: []
-    status: building
+    status: done
     files:
     - tests/integration/test-check-plan-routes.py#_check_live_inventory_reads_no_feature_plan
     - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t01-canonical-self-test.txt
@@ -302,7 +302,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: The checker grades a DEC-174 gate's cutover and is written by the hand that makes it, before the move it grades.
     depends_on: [T-01]
-    status: building
+    status: done
     files:
     - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py
       create: true
@@ -414,7 +414,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 enumerates check-plan-routes.py and its test file; the cutover that makes the gate use the libraries is direct.
     depends_on: [T-01, T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py#main
       - path: .claude/skills/harness/bin/canonical_reader_audit.py
@@ -515,7 +515,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 the inventory is what the enumerated gate validates itself against; the green half of the cutover proof is made directly.
     depends_on: [T-03]
-    status: building
+    status: done
     files:
     - path: tests/integration/canonical-reader-classification.json
       quote: '"schema": "canonical-reader-classification/1"'
