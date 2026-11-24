@@ -10,7 +10,7 @@ approval:
       date: '2026-11-23'
       reason: applied - exact-id match, tested by SC-01/02/03
 drafted_at: '2026-11-23T14:32:27Z'
-status: ready
+status: building
 source_issues: [2458]
 
 panel:
@@ -158,7 +158,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 - worktree_terminal.py is imported by check-state.py's INV-29 gate and by the post-merge hook; operator ruling R2 on ticket 2458.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/worktree_terminal.py#_landed_classification
       - tests/integration/test-worktree-terminal.py#main
@@ -210,7 +210,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 - post-merge-sweep.py is a hook body and check-plan-routes.py is a gate script whose registry and inventory must change in the same commit as the helper; operator ruling R2 on ticket 2458.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/post-merge-sweep.py#main
       - .claude/skills/harness/bin/check-plan-routes.py#T07_TERMINAL_REMEDIES
