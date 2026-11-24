@@ -174,5 +174,33 @@
     "T-02": "b29304db5f66c22220d123a2d2903a070154b124e3203a41ea2de0ce9f2123a6",
     "T-03": "9e7398191011e014f549ebd9614f5aabcd6be61a523a31053cd3abcf199f240e",
     "T-04": "c7c1e56df07de9f576bff2ccbebcd816d735e1a66e26b82d836ef9cefd164e15"
+  },
+  "github": {
+    "milestone": 139,
+    "parent": 2510,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 2511,
+      "T-02": 2512,
+      "T-03": 2513,
+      "T-04": 2514
+    },
+    "source_issues": [
+      2489
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
   }
 }
