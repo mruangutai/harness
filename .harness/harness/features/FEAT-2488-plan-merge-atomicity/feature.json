@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2488-plan-merge-atomicity",
   "branch": "feat/FEAT-2488-plan-merge-atomicity",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "95606ddbaf9ab36f505328420159d97a10ad820d",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -21,6 +21,13 @@
       "cycles_used": 1,
       "ended_at": "2026-11-24T00:51:50+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261124-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-24T01:28:15+00:00"
     }
   ],
   "judgements": [
