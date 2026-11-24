@@ -982,8 +982,6 @@ T07_TERMINAL_REMEDIES = {
         "artifact_accessors.load_plan",
     ".claude/skills/harness/bin/factory_config.py::load_fleet::harness_yaml_file#1":
         "artifact_accessors.load_fleet",
-    ".claude/skills/harness/bin/post-merge-sweep.py::_repo_arg_for_segment::load_fleet#1":
-        "artifact_accessors.load_fleet",
     ".claude/skills/harness/bin/feature_json_write.py::load_feature_json::json_string#1":
         "artifact_accessors.load_feature_json",
     ".claude/skills/harness/bin/harness_yaml.py::load_plan::harness_yaml_file#1":

@@ -2178,7 +2178,7 @@ def _check_t07_extra_raw(mod, original_rows, candidates, target):
 
 
 def case_canonical_reader_t07_terminal_contract():
-    """The fixed eleven-row T-07 terminal contract cannot pass vacuously or partially."""
+    """The fixed ten-row T-07 terminal contract cannot pass vacuously or partially."""
     mod, original_rows, candidates = _terminal_t07_fixture()
     target = next(
         row for row in original_rows

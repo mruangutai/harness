@@ -1,0 +1,139 @@
+{
+  "feature_id": "FEAT-2458-shape-stamp-sweep",
+  "branch": "feat/FEAT-2458-shape-stamp-sweep",
+  "pr": null,
+  "review_sha": "f42393e23d81c840332e2132ce711053caa737ad",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-23-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T14:22:29+00:00",
+      "tokens": 146586,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-23-01-plan-product/digest.md",
+        "sha256": "750a8d7e9d19bfec80d415f502ae6c97707d7da393073913905718eb9476fde8"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T14:52:20+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-24-01-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-24T13:21:14+00:00",
+      "tokens": 145606,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-24-01-validate-validator/digest.md",
+        "sha256": "59abf20a207e1c166a6de7a8368e4301591d1ae032d9d5bdd745980c135bb847"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-24T13:36:49+00:00"
+    },
+    {
+      "id": "2026-11-24-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-24T13:41:45+00:00",
+      "tokens": 101048,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-24-02-validate-validator/digest.md",
+        "sha256": "2062d443b931b7a03b0362ccec7632bdd5a10a1864db238ba840f13d50696360"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-24T13:55:24+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T14:22:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "the cause is known and the files can be named, but the change adds a public entry point (classify_feature) to worktree_terminal.py, which the INV-29 gate in check-state.py imports: a new enforcement surface. Matches ticket R2."
+    },
+    {
+      "at": "2026-11-23T14:52:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan run FAIL only because applied high substance PF-9ad7c484 was not re-read; no re-panel: one-run assignment and plan team rule send surviving substance findings to the batched signature (DEC-176)"
+    },
+    {
+      "at": "2026-11-24T13:21:14+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 1 after operator signature",
+      "reason": "plan FAIL was unread applied findings, settled by the operator signature (approval-decision Q-05); build landed main-session-direct, spend 29 min and zero rework, so validate proceeds"
+    },
+    {
+      "at": "2026-11-24T13:21:14+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "plan FAIL was unread applied findings, settled by the operator signature (approval-decision Q-05); build landed main-session-direct, spend 29 min and zero rework, so validate proceeds"
+    },
+    {
+      "at": "2026-11-24T13:36:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "validate c1 FAIL on two test-only must-fix items bound to T-01/T-02 files; no new class; fix is main-session-direct (DEC-174) inside rework ruling round 1 of 2"
+    },
+    {
+      "at": "2026-11-24T13:41:45+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2 over the round-1 fix",
+      "reason": "validate c1 FAIL (MF-1 grade-1 test cases, MF-2 vacuous absent assertion) fixed main-session-direct at b4536600 as rework round 1 of 2; code-grade exits 0 at the tip; re-validating over the new pin"
+    },
+    {
+      "at": "2026-11-24T13:55:26+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "validate c2 PASS over f42393e2 with empty must_fix after rework round 1 of 2; SCs met on both perspectives so the loop ends and the ship briefing goes to the operator"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2458-shape-stamp-sweep/.harness/harness/features/FEAT-2458-shape-stamp-sweep/notes/approval-decision-2026-11-23.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "6e27b15eaef7c332b1dd0dd13ac31a0c241798198243ad60d3af158c78fdc247",
+    "T-02": "2135f5965ccec6d6e177ddf140721abacdfcfef9f6ed19514762399c254d025f"
+  },
+  "github": {
+    "milestone": 137,
+    "parent": 2485,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2486,
+      "T-02": 2487
+    },
+    "source_issues": [
+      2458
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
