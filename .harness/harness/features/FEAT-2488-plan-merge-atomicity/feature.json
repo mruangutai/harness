@@ -66,6 +66,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-24T02:53:05+00:00"
+    },
+    {
+      "id": "r-20261124-5-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-24T03:12:37+00:00"
     }
   ],
   "judgements": [
