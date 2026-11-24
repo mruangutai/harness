@@ -7,7 +7,9 @@ own temporary directory. OLD is the base commit; NEW is the base commit with onl
 rewrite any comparison applies is the relocation map, derived from the move (never from the
 inventory) and applied only to the path span of the locator field of formats R1 to R6. Line
 numbers and traceback frames are not modelled: an R7 locator in the three split files FAILs,
-and every unrecognised line is compared exactly (plan conditions C1 and C2).
+and every unrecognised line is compared exactly (plan conditions C1 and C2). Output is captured
+as bytes and compared with every line terminator kept, so a trailing-newline or CRLF difference
+FAILs; formats are matched on a line's text without its terminator.
 
 This is feature-notes evidence, never a permanent test (grilling Q3).
 """
@@ -50,6 +52,8 @@ RECOGNIZED = tuple(re.compile(pattern) for pattern in (
 ))
 R7 = re.compile(r"^CONSOLIDATION " + LOC + r":(?P<line>\d+) .*$")
 SUMMARY = re.compile(r"^(\d+) unresolved reader site\(s\) across (\d+) Python file\(s\)$")
+LINE = re.compile(r"[^\n]*\n|[^\n]+\Z")
+TERMINATOR = re.compile(r"\r?\n\Z")
 
 CLEAN = (
     ("route", []),
@@ -135,16 +139,23 @@ def relocation_map(base, head):
     return [(name, owner[name]) for name in sorted(owner)]
 
 
+def split_line(line):
+    """A captured line's text and its terminator: CRLF, LF, or empty on an unterminated last line."""
+    end = TERMINATOR.search(line)
+    return (line[:end.start()], end.group()) if end else (line, "")
+
+
 def apply_map(line, owners):
     """Rewrite only the locator path span of an R1-R6 line naming a moved ENTRY symbol."""
+    text, end = split_line(line)
     for pattern in RECOGNIZED:
-        match = pattern.match(line)
+        match = pattern.match(text)
         if match is None:
             continue
         module = owners.get(match.group("symbol").split(".", 1)[0])
         if match.group("path") != ENTRY or module is None:
             return line
-        return line[:match.start("path")] + module + line[match.end("path"):]
+        return text[:match.start("path")] + module + text[match.end("path"):] + end
     return line
 
 
@@ -182,15 +193,18 @@ def build_trees(tmp, base, head):
     return old, new, count_py(new) - count_py(old)
 
 
-def normalize(text, root):
-    return text.replace(os.path.realpath(root), "<ROOT>").replace(root, "<ROOT>").splitlines()
+def normalize(raw, root):
+    """Decode strictly (undecodable output raises into the check's FAIL), replace ROOT and split
+    on LF keeping each line's terminator; no other normalization (T-02 Locator, C1)."""
+    text = raw.decode("utf-8")
+    return LINE.findall(text.replace(os.path.realpath(root), "<ROOT>").replace(root, "<ROOT>"))
 
 
 def run_entry(root, argv):
     env = {k: v for k, v in os.environ.items() if k not in SCRUBBED_ENV}
     env.update(PYTHONDONTWRITEBYTECODE="1", HARNESS_PROJECT_DIR=root)
     result = subprocess.run([sys.executable, os.path.join(root, ENTRY), *argv], cwd=root,
-                            env=env, capture_output=True, text=True, timeout=50)
+                            env=env, capture_output=True, timeout=50)
     return result.returncode, normalize(result.stdout, root), normalize(result.stderr, root)
 
 
@@ -234,13 +248,16 @@ def perturb(trees):
 
 def unmodelled_locators(lines):
     return [line for line in lines
-            if (m := R7.match(line)) and m.group("path").endswith(SPLIT_FILES)]
+            if (m := R7.match(split_line(line)[0])) and m.group("path").endswith(SPLIT_FILES)]
 
 
 def summary_counts(old_last, new_last, delta):
-    old_sum, new_sum = SUMMARY.match(old_last), SUMMARY.match(new_last)
+    (old_text, old_end), (new_text, new_end) = split_line(old_last), split_line(new_last)
+    old_sum, new_sum = SUMMARY.match(old_text), SUMMARY.match(new_text)
     if not (old_sum and new_sum):
         return "last stdout line is not the canonical summary"
+    if old_end != new_end:
+        return "summary line terminator differs"
     files_added = int(new_sum.group(2)) - int(old_sum.group(2))
     if old_sum.group(1) != new_sum.group(1) or files_added != delta:
         return f"summary delta is not D={delta}"
@@ -293,16 +310,25 @@ def compare(label, old_run, new_run, owners, delta):
     """Reasons the pair is not equivalent, and the mapped line count (stderr is never mapped)."""
     old_out, new_out = old_run[1], new_run[1]
     mapped_out = [apply_map(line, owners) for line in old_out]
+    # mapped counts stdout only: stderr is compared exactly and never rewritten, so the number of
+    # stderr lines the map changes is identically zero (QA-F1; T-02's "stdout and stderr" count).
     mapped = sum(a != b for a, b in zip(old_out, mapped_out))
     reasons = run_reasons(label, old_run, new_run) + sample_reasons(label, old_out, owners, mapped)
     reasons.append(stdout_mismatch(label, mapped_out, new_out, delta))
     return [reason for reason in reasons if reason], mapped
 
 
+def shown(line):
+    """Receipt rows for one line: its LF dropped, a CR escaped, a missing LF marked."""
+    text = line.removesuffix("\n").replace("\r", "\\r")
+    return [text] if line.endswith("\n") else [text, "\\ No newline at end of stream"]
+
+
 def print_block(title, lines):
     print(f"--- {title}")
     for line in lines:
-        print(f"| {line}")
+        for row in shown(line):
+            print(f"| {row}")
 
 
 def cli_check(label, argv, trees, owners, delta):
@@ -311,8 +337,8 @@ def cli_check(label, argv, trees, owners, delta):
     print(f"CLI {label} argv={argv!r} old_exit={old_run[0]} new_exit={new_run[0]} mapped={mapped}")
     print_block("old stdout", old_run[1])
     print_block("old stderr", old_run[2])
-    print_block("diff stdout", difflib.unified_diff(old_run[1], new_run[1], "old", "new", lineterm=""))
-    print_block("diff stderr", difflib.unified_diff(old_run[2], new_run[2], "old", "new", lineterm=""))
+    print_block("diff stdout", difflib.unified_diff(old_run[1], new_run[1], "old", "new", lineterm="\n"))
+    print_block("diff stderr", difflib.unified_diff(old_run[2], new_run[2], "old", "new", lineterm="\n"))
     return "; ".join(reasons) or None
 
 

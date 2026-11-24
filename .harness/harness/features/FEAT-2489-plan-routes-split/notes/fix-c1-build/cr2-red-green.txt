@@ -1,0 +1,124 @@
+FEAT-2489 fix round 1 (validate c0 ruling, CR-2): split-equivalence.py byte-exact comparison, red then green
+Recorded 2026-11-24 by FixE2_C1 in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split at HEAD 778ea99267e614255c99604c95ae2a966db86761.
+RED checker:   HEAD:.harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py (blob dc67649b60e9e3ae67acaa49e54c709afec2d0fd, text=True + splitlines())
+GREEN checker: working-tree notes/split-equivalence.py after the fix (blob ec885c53f72df9d2b8810d31c8b41fbc6a1181af, bytes captured, lines keep terminators)
+
+Method: a throwaway in-process probe (below; lived in a temp dir, never committed) imports each checker
+file and calls its own cli_check() -> run_pair() -> run_entry() -> normalize() -> compare() on two fake
+roots whose ENTRY writes fixed bytes to stdout/stderr. Three controls must PASS on both; the seven
+terminator-only differences (trailing LF dropped, CRLF; on stdout, on a mapped locator line, on stderr,
+and on the canonical summary line, which is compared only by regex groups) must FAIL once fixed.
+
+=== probe source
+"""Throwaway CR-2 probe (not committed): runs the checker's own run_pair + compare in-process on
+fake OLD/NEW roots whose ENTRY prints fixed bytes, so only the line terminators differ."""
+import contextlib, importlib.util, io, os, sys, tempfile
+
+checker_path = sys.argv[1]
+spec = importlib.util.spec_from_file_location("split_equivalence", checker_path)
+se = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(se)
+
+MOVED = "CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_classification_document json_file remedy=none: x\n"
+PINNED = "CLASSIFICATION .claude/skills/harness/bin/canonical_reader_audit.py::_classification_document json_file remedy=none: x\n"
+SUM_OLD = "0 unresolved reader site(s) across 101 Python file(s)"
+SUM_NEW = "0 unresolved reader site(s) across 103 Python file(s)"
+OWNERS = {"_classification_document": ".claude/skills/harness/bin/canonical_reader_audit.py"}
+CASES = (  # name, label, (old stdout, old stderr), (new stdout, new stderr), expected verdict when fixed
+    ("control_identical", "clean:route", ("a\nb\n", "e\n"), ("a\nb\n", "e\n"), "PASS"),
+    ("control_mapped_locator", "clean:route", ("a\n" + MOVED, ""), ("a\n" + PINNED, ""), "PASS"),
+    ("control_canonical_summary", "clean:canonical", ("a\n" + SUM_OLD + "\n", ""), ("a\n" + SUM_NEW + "\n", ""), "PASS"),
+    ("stdout_trailing_newline_dropped", "clean:route", ("a\nb\n", ""), ("a\nb", ""), "FAIL"),
+    ("stdout_crlf", "clean:route", ("a\nb\n", ""), ("a\r\nb\r\n", ""), "FAIL"),
+    ("stdout_crlf_on_mapped_line", "clean:route", ("a\n" + MOVED, ""), ("a\n" + PINNED[:-1] + "\r\n", ""), "FAIL"),
+    ("stderr_trailing_newline_dropped", "clean:route", ("a\n", "e\n"), ("a\n", "e"), "FAIL"),
+    ("stderr_crlf", "clean:route", ("a\n", "e\n"), ("a\n", "e\r\n"), "FAIL"),
+    ("canonical_summary_trailing_newline_dropped", "clean:canonical", ("a\n" + SUM_OLD + "\n", ""), ("a\n" + SUM_NEW, ""), "FAIL"),
+    ("canonical_summary_crlf", "clean:canonical", ("a\n" + SUM_OLD + "\n", ""), ("a\n" + SUM_NEW + "\r\n", ""), "FAIL"),
+)
+
+def plant(root, out, err):
+    path = os.path.join(root, se.ENTRY)
+    os.makedirs(os.path.dirname(path))
+    with open(path, "w") as handle:
+        handle.write(f"import sys\nsys.stdout.buffer.write({out.encode()!r})\nsys.stderr.buffer.write({err.encode()!r})\n")
+
+print(f"CHECKER {os.path.basename(checker_path)}")
+unexpected = 0
+for name, label, old, new, fixed_expect in CASES:
+    with tempfile.TemporaryDirectory() as tmp:
+        roots = (os.path.join(tmp, "old"), os.path.join(tmp, "new"))
+        for root, (out, err) in zip(roots, (old, new)):
+            plant(root, out, err)
+        with contextlib.redirect_stdout(io.StringIO()):
+            detail = se.cli_check(label, [], roots, OWNERS, 2)
+    verdict = "FAIL" if detail else "PASS"
+    print(f"{verdict} {name} [{label}] expected-when-fixed={fixed_expect}" + (f" detail={detail}" if detail else ""))
+
+=== RED: python3 probe.py split_equivalence_head.py
+CHECKER split_equivalence_head.py
+PASS control_identical [clean:route] expected-when-fixed=PASS
+PASS control_mapped_locator [clean:route] expected-when-fixed=PASS
+PASS control_canonical_summary [clean:canonical] expected-when-fixed=PASS
+PASS stdout_trailing_newline_dropped [clean:route] expected-when-fixed=FAIL
+PASS stdout_crlf [clean:route] expected-when-fixed=FAIL
+PASS stdout_crlf_on_mapped_line [clean:route] expected-when-fixed=FAIL
+PASS stderr_trailing_newline_dropped [clean:route] expected-when-fixed=FAIL
+PASS stderr_crlf [clean:route] expected-when-fixed=FAIL
+PASS canonical_summary_trailing_newline_dropped [clean:canonical] expected-when-fixed=FAIL
+PASS canonical_summary_crlf [clean:canonical] expected-when-fixed=FAIL
+probe exit=0
+
+=== GREEN: python3 probe.py split_equivalence_fixed.py
+CHECKER split_equivalence_fixed.py
+PASS control_identical [clean:route] expected-when-fixed=PASS
+PASS control_mapped_locator [clean:route] expected-when-fixed=PASS
+PASS control_canonical_summary [clean:canonical] expected-when-fixed=PASS
+FAIL stdout_trailing_newline_dropped [clean:route] expected-when-fixed=FAIL detail=stdout differs after mapping
+FAIL stdout_crlf [clean:route] expected-when-fixed=FAIL detail=stdout differs after mapping
+FAIL stdout_crlf_on_mapped_line [clean:route] expected-when-fixed=FAIL detail=stdout differs after mapping
+FAIL stderr_trailing_newline_dropped [clean:route] expected-when-fixed=FAIL detail=stderr differs
+FAIL stderr_crlf [clean:route] expected-when-fixed=FAIL detail=stderr differs
+FAIL canonical_summary_trailing_newline_dropped [clean:canonical] expected-when-fixed=FAIL detail=summary line terminator differs
+FAIL canonical_summary_crlf [clean:canonical] expected-when-fixed=FAIL detail=summary line terminator differs
+probe exit=0
+
+Result: RED passes 7/7 terminator-only differences (the CR-2 hole); GREEN fails 7/7 and still passes the 3 controls.
+
+=== GREEN receipt rendering of a terminator difference (stdout 'a\nb\n' vs 'a\r\nb'), fixed checker's cli_check output
+CLI clean:route argv=[] old_exit=0 new_exit=0 mapped=0
+--- old stdout
+| a
+| b
+--- old stderr
+--- diff stdout
+| --- old
+| +++ new
+| @@ -1,2 +1,2 @@
+| -a
+| -b
+| +a\r
+| +b
+| \ No newline at end of stream
+--- diff stderr
+FAIL detail=stdout differs after mapping
+
+=== Live sanity run of the fixed checker at HEAD 778ea99267e614255c99604c95ae2a966db86761 (sanitised env), not the T-04 receipt
+BASE 261fdf726428bd8325fbd3d4beccad23b67e83cc
+HEAD 778ea99267e614255c99604c95ae2a966db86761
+TREE base .claude/skills/harness/bin 1d22ba06caa66fcd23765e25e5b96ff70c1eaab8
+TREE base tests fb0bdc5a189ccde6249d20262e2b1883eefa64c4
+TREE head .claude/skills/harness/bin d542c641c93f20a5a5f3567aa52d0171c625f201
+TREE head tests 3f8731cd34fe2a850bc9e4a00054eba89f684eb9
+PASS projection_confined
+PASS cli_equivalent[clean:route]
+PASS cli_equivalent[clean:canonical]
+PASS cli_equivalent[clean:consolidation]
+PASS cli_equivalent[clean:help]
+PASS cli_equivalent[clean:both_flags]
+PASS cli_equivalent[clean:missing_plan]
+PASS cli_equivalent[perturbed:canonical]
+PASS cli_equivalent[perturbed:consolidation]
+ALL PASS
+exit=0
+Body vs notes/equivalence-final.txt (lines 3..end): identical except PROJECTED lines for feature-record files committed since; MAP block, nine CLI blocks and every '| ' row unchanged.
