@@ -1103,92 +1103,114 @@ def _commit_bad_utf8_feature(repo, feature_id, station="done"):
     subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
 
 
-def case_classify_feature():
+def _feature_row(name, got, feature_id, want_klass, must=(), must_not=()):
+    """One classify_feature result row. Markers are matched on the reason with the feature id
+    removed, so an id that itself contains `absent` cannot satisfy the check (#2458 MF-2)."""
+    klass, reason = got if isinstance(got, tuple) and len(got) == 2 else (None, "")
+    text = reason.replace(feature_id, "") if isinstance(reason, str) else ""
+    ok = (klass == want_klass and bool(reason) and all(s in text for s in must)
+          and not any(s in text for s in must_not))
+    return name, ok, f"got {got!r}"
+
+
+def _classify_feature_or_raise(w, root, feature_id):
+    try:
+        return w.classify_feature(root, feature_id)
+    except Exception as exc:  # noqa: BLE001 — a raise is the failure being graded
+        return f"raised {exc!r}"
+
+
+_LOCAL_FEATURE_ROWS = (
+    ("(a) classify_feature: landed done -> terminal", "FEAT-901-done", "terminal", (), ()),
+    ("(b) classify_feature: signed DEC-174 direct-build BRIEF -> terminal naming DEC-174",
+     "FEAT-902-direct", "terminal", ("DEC-174",), ()),
+    ("(c) classify_feature: landed building -> not_terminal", "FEAT-903-building",
+     "not_terminal", (), ()),
+    ("(d) classify_feature: never landed -> unresolved, reason says absent", "FEAT-904-never",
+     "unresolved", ("absent",), ()),
+    ("(e) classify_feature: unparseable feature.json -> unresolved, not absent",
+     "FEAT-905-unparseable", "unresolved", (), ("absent",)),
+    ("(f) classify_feature: station outside the vocabulary -> unresolved, not absent",
+     "FEAT-906-off-vocab", "unresolved", (), ("absent",)),
+    ("(i) classify_feature: a strict prefix of a landed done id -> unresolved absent, "
+     "never terminal (exact id, never prefix)", "FEAT-920-prefix-absent", "unresolved",
+     ("absent",), ()),
+    ("(k) classify_feature: feature.json not valid UTF-8 -> unresolved unparseable, not "
+     "absent, no raise", "FEAT-922-bad-utf8", "unresolved", ("unparseable",), ("absent",)),
+)
+
+
+def _build_local_feature_fixture(repo):
+    _commit_feature(repo, "FEAT-901-done", {}, plan_station="done")
+    _commit_brief(repo, "FEAT-902-direct", "status: approved\ndate: 2026-11-24\n"
+                  "by: operator, main session (direct work under DEC-174)")
+    _commit_feature(repo, "FEAT-903-building", {}, plan_station="building")
+    _commit_feature(repo, "FEAT-905-unparseable", "{not json", plan_station="done")
+    _commit_feature(repo, "FEAT-906-off-vocab", {}, plan_station="shipped")
+    _commit_feature(repo, "FEAT-920-prefix-absent-longer", {}, plan_station="done")
+    _commit_bad_utf8_feature(repo, "FEAT-922-bad-utf8")
+
+
+def case_classify_feature_local():
     """#2458: classify_feature(root, feature_id) answers whether ONE feature id, matched
     exactly, is finished on the harness default branch by the same landed rule classify uses.
-    Three results: terminal, not_terminal, unresolved; an absent id is unresolved and only its
-    reason says `absent`."""
+    An absent id is unresolved and only its reason says `absent`."""
     import worktree_terminal as w
-
-    results = []
-
-    def row(name, got, want_klass, must=(), must_not=()):
-        klass, reason = got if isinstance(got, tuple) and len(got) == 2 else (None, "")
-        ok = (klass == want_klass and isinstance(reason, str) and reason != ""
-              and all(s in reason for s in must) and not any(s in reason for s in must_not))
-        results.append((name, ok, f"got {got!r}"))
-
-    def call(root, fid):
-        try:
-            return w.classify_feature(root, fid)
-        except Exception as exc:  # noqa: BLE001 — a raise is the failure being graded
-            return f"raised {exc!r}"
 
     with tempfile.TemporaryDirectory() as tmp:
         repo = _repo(os.path.join(tmp, "R"))
-        _commit_feature(repo, "FEAT-901-done", {}, plan_station="done")
-        _commit_brief(repo, "FEAT-902-direct", "status: approved\ndate: 2026-11-24\n"
-                      "by: operator, main session (direct work under DEC-174)")
-        _commit_feature(repo, "FEAT-903-building", {}, plan_station="building")
-        _commit_feature(repo, "FEAT-905-unparseable", "{not json", plan_station="done")
-        _commit_feature(repo, "FEAT-906-off-vocab", {}, plan_station="shipped")
-        _commit_feature(repo, "FEAT-920-prefix-absent-longer", {}, plan_station="done")
-        _commit_bad_utf8_feature(repo, "FEAT-922-bad-utf8")
+        _build_local_feature_fixture(repo)
+        return [_feature_row(name, _classify_feature_or_raise(w, repo, fid), fid, klass,
+                             must, must_not)
+                for name, fid, klass, must, must_not in _LOCAL_FEATURE_ROWS]
 
-        row("(a) classify_feature: landed done -> terminal",
-            call(repo, "FEAT-901-done"), "terminal")
-        row("(b) classify_feature: signed DEC-174 direct-build BRIEF -> terminal naming DEC-174",
-            call(repo, "FEAT-902-direct"), "terminal", must=("DEC-174",))
-        row("(c) classify_feature: landed building -> not_terminal",
-            call(repo, "FEAT-903-building"), "not_terminal")
-        row("(d) classify_feature: never landed -> unresolved, reason says absent",
-            call(repo, "FEAT-904-never"), "unresolved", must=("absent",))
-        row("(e) classify_feature: unparseable feature.json -> unresolved, not absent",
-            call(repo, "FEAT-905-unparseable"), "unresolved", must_not=("absent",))
-        row("(f) classify_feature: station outside the vocabulary -> unresolved, not absent",
-            call(repo, "FEAT-906-off-vocab"), "unresolved", must_not=("absent",))
-        row("(i) classify_feature: a strict prefix of a landed done id -> unresolved absent, "
-            "never terminal (exact id, never prefix)",
-            call(repo, "FEAT-920-prefix-absent"), "unresolved", must=("absent",))
-        row("(k) classify_feature: feature.json not valid UTF-8 -> unresolved unparseable, "
-            "not absent, no raise",
-            call(repo, "FEAT-922-bad-utf8"), "unresolved", must=("unparseable",),
-            must_not=("absent",))
 
+_FLEET_FEATURE_ROWS = (
+    ("(g) classify_feature: fleet feature landed done under its segment -> terminal",
+     "FEAT-907-fleet-done", "terminal"),
+    ("(h) classify_feature: fleet feature landed building -> not_terminal",
+     "FEAT-908-fleet-building", "not_terminal"),
+    ("(j) classify_feature: exact fleet id beside a longer harness id it prefixes -> terminal",
+     "FEAT-921-fleet-exact", "terminal"),
+)
+
+
+def _build_fleet_feature_fixture(tmp):
+    probe_root, _dest_probe = _build_probe_repo(tmp)
+    workspace_root = os.path.join(tmp, "workspace")
+    os.makedirs(workspace_root, exist_ok=True)
+    _write_fleet(probe_root, workspace_root,
+                 "  - name: acme/second-repo\n    default_branch: main\n")
+    for fid, station in (("FEAT-907-fleet-done", "done"), ("FEAT-908-fleet-building", "building"),
+                         ("FEAT-921-fleet-exact", "done")):
+        _commit_feature(probe_root, fid, {}, plan_station=station, repo_segment="second-repo")
+    _commit_feature(probe_root, "FEAT-921-fleet-exact-longer", {}, plan_station="building",
+                    repo_segment="harness")
+    return probe_root
+
+
+def _classify_features_in_subprocess(probe_root, ids):
+    """classify_feature for each id in a subprocess bound to the probe's fleet.yaml."""
+    script = (
+        "import json, sys\n"
+        f"sys.path.insert(0, {BIN_DIR!r})\n"
+        "import worktree_terminal as w\n"
+        f"print(json.dumps({{i: w.classify_feature({probe_root!r}, i) for i in {ids!r}}}))\n"
+    )
+    proc = _run_classify_all_subprocess(probe_root, script)
+    if proc.returncode != 0:
+        return {i: f"rc={proc.returncode} stderr={proc.stderr!r}" for i in ids}
+    return {k: tuple(v) for k, v in json.loads(proc.stdout).items()}
+
+
+def case_classify_feature_fleet():
+    """#2458: a fleet feature resolves under the one fleet segment whose landed features
+    directory names it exactly, even beside a longer harness id it prefixes."""
     with tempfile.TemporaryDirectory() as tmp:
-        probe_root, _dest_probe = _build_probe_repo(tmp)
-        workspace_root = os.path.join(tmp, "workspace")
-        os.makedirs(workspace_root, exist_ok=True)
-        _write_fleet(probe_root, workspace_root,
-                     "  - name: acme/second-repo\n    default_branch: main\n")
-        _commit_feature(probe_root, "FEAT-907-fleet-done", {}, plan_station="done",
-                        repo_segment="second-repo")
-        _commit_feature(probe_root, "FEAT-908-fleet-building", {}, plan_station="building",
-                        repo_segment="second-repo")
-        _commit_feature(probe_root, "FEAT-921-fleet-exact", {}, plan_station="done",
-                        repo_segment="second-repo")
-        _commit_feature(probe_root, "FEAT-921-fleet-exact-longer", {}, plan_station="building",
-                        repo_segment="harness")
-        ids = ["FEAT-907-fleet-done", "FEAT-908-fleet-building", "FEAT-921-fleet-exact"]
-        script = (
-            "import json, sys\n"
-            f"sys.path.insert(0, {BIN_DIR!r})\n"
-            "import worktree_terminal as w\n"
-            f"print(json.dumps({{i: w.classify_feature({probe_root!r}, i) for i in {ids!r}}}))\n"
-        )
-        proc = _run_classify_all_subprocess(probe_root, script)
-        if proc.returncode == 0:
-            data = {k: tuple(v) for k, v in json.loads(proc.stdout).items()}
-        else:
-            data = {i: f"rc={proc.returncode} stderr={proc.stderr!r}" for i in ids}
-        row("(g) classify_feature: fleet feature landed done under its segment -> terminal",
-            data["FEAT-907-fleet-done"], "terminal")
-        row("(h) classify_feature: fleet feature landed building -> not_terminal",
-            data["FEAT-908-fleet-building"], "not_terminal")
-        row("(j) classify_feature: exact fleet id beside a longer harness id it prefixes "
-            "-> terminal",
-            data["FEAT-921-fleet-exact"], "terminal")
-    return results
+        probe_root = _build_fleet_feature_fixture(tmp)
+        got = _classify_features_in_subprocess(probe_root, [r[1] for r in _FLEET_FEATURE_ROWS])
+        return [_feature_row(name, got[fid], fid, klass) for name, fid, klass in
+                _FLEET_FEATURE_ROWS]
 
 
 def main():
@@ -1208,7 +1230,8 @@ def main():
         + case_direct_build_brief_is_terminal()
         + case_feat64_boundaries_are_typed()
         + case_fleet_planning_worktree_resolves_to_its_segment()
-        + case_classify_feature()
+        + case_classify_feature_local()
+        + case_classify_feature_fleet()
     )
     all_ok = True
     for name, ok, detail in results:
