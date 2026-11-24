@@ -1,0 +1,48 @@
+{
+  "batches": [
+    {
+      "after_sha256": "e51fe979b30c234c81dcb226a19609d2e5d2e2be88357978e72538d4a6bfc367",
+      "before_sha256": "69f7d8a9b287728aa8cb60dd27547ae05304805a27726da58eb6b9e50bf72bdc",
+      "destination": ".harness/expertise/harness-validator-lead.md",
+      "id": "d413ad93fa684e606906a5086ac24ed6d5a984fa0cfdf53f24a0fefda81611d4",
+      "ops": [
+        {
+          "entry": "WHEN a real finding's only remedy edits a file in no task's declared set, or amends signed intent or criterion wording, DO route it up — ESCALATE if it gates, an open question if not — never must_fix: no fix cycle may legally apply it.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-06",
+          "why": "Two cycle-1 reader findings were real but their remedies rewrote a signed task intent and a signed criterion's marker; routing them as open questions instead of must_fix kept the fix round on the test-only defects. Generalizes G-06's file-set case to signed-wording remedies."
+        },
+        {
+          "entry": "WHEN a must-fix restructures tests to clear a structural gate DO put 'every predicate still rejects what it rejected before' in its acceptance — gate exit 0 and an unchanged PASS-name set both held while a string check collapsed to truthiness, caught only a cycle later.",
+          "op": "replace",
+          "section": "Outcomes",
+          "target": "O-02",
+          "why": "The complexity-driven split cleared code-grade with identical PASS-name sets yet weakened a reason check to bool(); only the next panel's code-reviewer probe found it. Re-judged against main: O-02's doubled prefix is gone, but its content remains an implementation rule other personas already hold, not a lead outcome, so the displacement still stands."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a gate is genuinely false but every remedy edits a file inside no task's declared file set DO return ESCALATE rather than FAIL — FAIL routes a fix cycle at a file nobody may edit, and the cycle is spent proving that.",
+          "section": "Gotchas",
+          "target": "G-06"
+        },
+        {
+          "original": "WHEN a stricter lock exposes a real production site DO derive that site from the governing authority rather than exempt it — exemptions preserve the parallel source of truth the lock exists to remove.",
+          "section": "Outcomes",
+          "target": "O-02"
+        }
+      ],
+      "recorded_at_ns": 1795544936035363000,
+      "seq": 1,
+      "supersedes": [
+        "3786913fd9db25f7d7ff894955e4778feeca443ce51e351e3aea1e89143f40a3"
+      ]
+    }
+  ],
+  "feature": "FEAT-2458-shape-stamp-sweep",
+  "parent_id": "Feat2458Distill3",
+  "persona": "harness-validator-lead",
+  "runtime_id": "Feat2458Distill3.ExceptionalPiranha",
+  "schema": 1
+}
