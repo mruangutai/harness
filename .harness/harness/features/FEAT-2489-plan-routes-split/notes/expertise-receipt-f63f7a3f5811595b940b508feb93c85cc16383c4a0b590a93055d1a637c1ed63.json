@@ -1,0 +1,94 @@
+{
+  "batches": [
+    {
+      "after_sha256": "1da8d9c42cced3197a4e319d5fe9c5658246ff3760d55c8cf4c17a10022814dd",
+      "before_sha256": "379bbc36199150de61a83f2483a0aaeb5505a18b81d6b4af735decfcef6086a6",
+      "destination": ".harness/expertise/harness-qa.md",
+      "id": "c486b80fd0f2736faa646d0f60f63f5fc0eb15d7d4fc561704130c832c599da0",
+      "ops": [
+        {
+          "entry": "WHEN measuring base-versus-head equivalence of a refactor DO run each side whole-process through its own entry, and attribute any difference by swapping only the code over one fixed tree — a substituted or shared runner hides load-shape differences such as added import-traceback frames.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-04",
+          "why": "Validate c2: a seam receipt that ran a pristine entry against perturbed trees concealed 4 added traceback lines; own-entry whole-process runs revealed it, and c3's fixed-tree code swap attributed a route-mode difference to data not code. Displaces old G-04, now redundant because DEC-255 runner receipts already force a full per-kind run."
+        },
+        {
+          "entry": "WHEN the repository's CI runs gates the QA matrix omits DO enumerate CI's required steps at the reviewed tip, run or name each omitted one, and confirm any gate a dispatch names actually exists there — a green matrix is not CI-green, and a phantom gate gets cited as coverage.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-02",
+          "why": "Dispatch named a CI consolidation gate that the workflow never had; reporting it as CI-run would have falsified coverage. Same situation as G-02, sharpened at equal length."
+        },
+        {
+          "op": "drop",
+          "section": "Open",
+          "target": "Q-01",
+          "why": "Resolved this feature: bash-write-guard's allow/deny for cp/redirect turns on a literal versus shell-variable target (literal allowed, $VAR blocked), which explains the earlier inconsistent sessions; recorded in repository G-13."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a task's own `verify:` command exercises only one script of a required kind DO also run the standing per-kind test command directly — a task-local pass can coexist with the kind itself never having been shown green across its full bucket.",
+          "section": "Gotchas",
+          "target": "G-04"
+        },
+        {
+          "original": "WHEN the repository's CI runs gates the QA matrix omits (audits, route checks) DO enumerate CI's required steps and run or name each omitted one at the reviewed tip — a green matrix is not CI-green, and drift only those gates catch ships past repeated matrix_ok rounds.",
+          "section": "Gotchas",
+          "target": "G-02"
+        },
+        {
+          "original": "WHEN a write-guard's behavior toward Bash-tool `cp`/redirect into the scratchpad is unclear DO confirm it with a controlled repro first — one QA session saw it deny such writes, a later session saw it allow them, and the discrepancy was never isolated to a cause.",
+          "section": "Open",
+          "target": "Q-01"
+        }
+      ],
+      "recorded_at_ns": 1795541468428469000,
+      "seq": 1,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "eacace99ef031299da6bf5cf618c44de3dba0001fc4d122745308d592b204e85",
+      "before_sha256": "9a31065f0209072f34a00d9d56f7930ec04e9a0d367fb1994eb06b8609f3e297",
+      "destination": ".harness/harness/expertise/harness-qa.md",
+      "id": "f3f4dcdf8a9ab08a0fd35ffb2762952aa64329fd082db3c6cfcd9292ba826856",
+      "ops": [
+        {
+          "entry": "WHEN writing, copying or deleting under bash-write-guard DO use literal absolute target paths — a redirect, cp or rm target containing a shell variable is blocked even under /tmp or the feature's notes/; do temp cleanup inside a python driver and pipe rather than redirect in loops.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-13",
+          "why": "Reconfirmed across validate c1-c3 for cp and rm, not only redirects; widens G-13 to the measured class at the same length."
+        },
+        {
+          "entry": "WHEN calling check-integration-shards helpers directly to check a runner receipt DO copy the call shape from validate-digest.py's own call site — discover_expected returns a (paths, error) tuple, and a stale call yields a misleading wall of unexpected/omitted defects, not a real receipt defect.",
+          "op": "add",
+          "section": "Gotchas",
+          "target": "G-15",
+          "why": "Every validate run checks receipts with these helpers; a stale 2-arg call produced a false defect wall this feature. Pointer to the living call site, not an inlined recipe."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN redirecting output under bash-write-guard DO use a literal absolute target path — a redirect whose target contains a shell variable (e.g. `> mut-$m.txt`) is blocked even under /tmp; pipe to grep inside mutant loops instead.",
+          "section": "Gotchas",
+          "target": "G-13"
+        },
+        {
+          "original": null,
+          "section": "Gotchas",
+          "target": "G-15"
+        }
+      ],
+      "recorded_at_ns": 1795541474402769000,
+      "seq": 2,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2489-plan-routes-split",
+  "parent_id": "DistillE2_Validator",
+  "persona": "harness-qa",
+  "runtime_id": "DistillE2_Validator.ClassicTahr",
+  "schema": 1
+}

@@ -1,6 +1,6 @@
 # Expertise — harness-security-reviewer
 ## Patterns (max 15)
-- P-02: WHEN grading a possible finding DO name the threat model before severity: an actor who already controls a value already holds the privilege it grants (no escalation, not a finding); a control reachable only from a higher-trust step than the threat actor is defense-in-depth, not a gap.
+- P-02: WHEN grading a new injection or traversal path DO verify the least-privileged input editor’s existing capabilities in the same execution context before rating severity. Equal or greater capability under the same controls makes it hardening; a different identity, target, or bypassed approval can still cross a boundary.
 - P-03: WHEN a diff removes or loosens a validation invariant or a required schema field DO scope the review IN as Tampering, even absent new input, auth, or network surface — the loosened guard is itself the trust boundary that other agents' returns route on.
 - P-04: WHEN a stricter invariant detector exposes a legitimate production site DO derive that site from the detector's governing authority rather than exempting it; an exemption preserves the duplicate decision and creates the drift path the detector exists to close.
 - P-05: WHEN grading severity by reachability DO also check the mechanism against any approved success criterion's literal wording it touches — an SC stated in one frame (e.g. argv) but violated via another (e.g. an inherited env var) is FALSE as written, which reclassifies the defect to must-fix regardless of exploitability.

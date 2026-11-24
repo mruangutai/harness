@@ -1,0 +1,83 @@
+{
+  "batches": [
+    {
+      "after_sha256": "69f7d8a9b287728aa8cb60dd27547ae05304805a27726da58eb6b9e50bf72bdc",
+      "before_sha256": "143b0f2bbc1a6432aa9f4651d99941aa620bad6fa31e34c750cf994c5d8aa618",
+      "destination": ".harness/expertise/harness-validator-lead.md",
+      "id": "7496a7eeb9e2d3b5102b95d0d6a15c42bd68e03cdc65a01e6682ca884ec47689",
+      "ops": [
+        {
+          "entry": "WHEN a gate or sweep reports zero or a small count DO confirm both that it discovered a non-zero set and that its pattern matches a known positive before accepting it — an empty sweep and a mis-anchored pattern both exit like cleanliness, and nobody re-runs your sweep.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-14",
+          "why": "Merges old P-13 (non-zero discovery count) and P-14 (pattern matches a known positive): one situation, a zero that reads as clean, two causes. Frees P-13 for a new rule; no longer than the longer input."
+        },
+        {
+          "entry": "WHEN rating a divergence a refactor introduces into a gate's output DO classify its direction against the truth — fail-open, fail-closed, or more accurate than base — before severity; confining base's own imprecision is no regression, while hiding a real defect is one at any size.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-13",
+          "why": "Across three validate cycles of a gate-module split, every divergence on perturbed trees was rated by direction: no more fail-open (per-file counts), more accurate than base (per-file alias map), fail-open false negative (raw-text prefilter). That axis set the operational rating carried under P-04; no member rates it. Displaces old P-13, now absorbed into P-14."
+        },
+        {
+          "entry": "WHEN a stricter lock exposes a real production site DO derive that site from the governing authority rather than exempt it — exemptions preserve the parallel source of truth the lock exists to remove.",
+          "op": "replace",
+          "section": "Outcomes",
+          "target": "O-02",
+          "why": "Form fix: the entry carried a duplicated 'O-02:' prefix inside its text. Content unchanged."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a sweep for a defect class returns zero or a small count DO first confirm the pattern matches a known positive instance — a pattern anchored on a detail the real instances lack reports an absence indistinguishable from cleanliness, and your own sweep is the one nobody re-runs.",
+          "section": "Patterns",
+          "target": "P-14"
+        },
+        {
+          "original": "WHEN a change moves what a gate DISCOVERS DO require a reported non-zero discovery count before accepting its exit code — a sweep over an empty set exits 0 exactly like a clean sweep, and no fixture binds the real tree.",
+          "section": "Patterns",
+          "target": "P-13"
+        },
+        {
+          "original": "O-02: WHEN a stricter lock exposes a real production site DO derive that site from the governing authority rather than exempt it — exemptions preserve the parallel source of truth the lock exists to remove.",
+          "section": "Outcomes",
+          "target": "O-02"
+        }
+      ],
+      "recorded_at_ns": 1795541546516395000,
+      "seq": 1,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "77995f3391857478ef4d7f74690fc84e5a36aac1a69841a8ec741b95a70d80f2",
+      "before_sha256": "03860347d8d149991284d5c0a6aaa3d50209352628b9ea8ba518e89ef32ca490",
+      "destination": ".harness/harness/expertise/harness-validator-lead.md",
+      "id": "911f64c3e014ac344bcf2c53309b5e4ff3128a5c76f166ea2f3ed475f1141b8c",
+      "ops": [
+        {
+          "entry": "WHEN this repository's plan carries a change_type absent from harness.json's test_matrix vocabulary DO treat the plan as malformed and correct the record; never add a synonymous mapping to legitimize it.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-02",
+          "why": "Form fix: the entry carried a duplicated 'P-02:' prefix inside its text. Content unchanged."
+        }
+      ],
+      "originals": [
+        {
+          "original": "P-02: WHEN this repository's plan carries a change_type absent from harness.json's test_matrix vocabulary DO treat the plan as malformed and correct the record; never add a synonymous mapping to legitimize it.",
+          "section": "Patterns",
+          "target": "P-02"
+        }
+      ],
+      "recorded_at_ns": 1795541550296310000,
+      "seq": 2,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2489-plan-routes-split",
+  "parent_id": "Main",
+  "persona": "harness-validator-lead",
+  "runtime_id": "DistillE2_Validator",
+  "schema": 1
+}

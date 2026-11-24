@@ -13,7 +13,8 @@
 - G-10: WHEN taking a historical-corpus census over run digests in this repo DO scope it explicitly to the checkout holding the feature's runs/ tree (worktree vs. main checkout) — the wrong checkout returns a structurally empty result indistinguishable from a valid zero.
 - G-11: WHEN run-unit-tests.py reports a different discovery-file count for the same --kind invocation DO preserve complete output and invocation environment; unreconciled discovery sets make a divergent exit unauditable.
 - G-12: WHEN running the integration kind in a fresh managed pin DO run `bun install --frozen-lockfile` in the pin first — the pin has no node_modules, so tests/integration/test-typescript-typecheck.py reds on missing tsc, a false environment failure.
-- G-13: WHEN redirecting output under bash-write-guard DO use a literal absolute target path — a redirect whose target contains a shell variable (e.g. `> mut-$m.txt`) is blocked even under /tmp; pipe to grep inside mutant loops instead.
+- G-13: WHEN writing, copying or deleting under bash-write-guard DO use literal absolute target paths — a redirect, cp or rm target containing a shell variable is blocked even under /tmp or the feature's notes/; do temp cleanup inside a python driver and pipe rather than redirect in loops.
 - G-14: WHEN a mutant or old blob must drive test-plan-merge.py or the check-domain integration tests DO set PLAN_MERGE_BIN / CHECK_DOMAIN_BIN to a /tmp scratch tree mirroring bin/, schemas/ and .harness/team-config.yaml — those tests honour the overrides, and root resolution needs team-config.
+- G-15: WHEN calling check-integration-shards helpers directly to check a runner receipt DO copy the call shape from validate-digest.py's own call site — discover_expected returns a (paths, error) tuple, and a stale call yields a misleading wall of unexpected/omitted defects, not a real receipt defect.
 ## Outcomes (max 10)
 ## Open (max 5)
