@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2488-plan-merge-atomicity",
   "branch": "feat/FEAT-2488-plan-merge-atomicity",
   "pr": null,
-  "review_sha": "c35841fe5511109dffb958eebe6dad86dbf654d7",
+  "review_sha": "2eab047b9971bc428db21d1527ce614826ebc692",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -51,6 +51,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-24T02:19:54+00:00"
+    },
+    {
+      "id": "r-20261124-4-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-24T02:34:42+00:00"
     }
   ],
   "judgements": [
@@ -102,6 +109,13 @@
       "kind": "amendment",
       "decision": "T-02.intent",
       "reason": "fix c2 (validate c1 MF-7/MF-8): deviation wording updated to the fstat refusal and the post-commit write guard; within AdvisorE3Fix C5 scope"
+    },
+    {
+      "at": "2026-11-24T02:34:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel",
+      "reason": "fix c2 closed MF-7 and MF-8 from validate c1 with one-pass race and post-commit write audits; re-panel at the new pin (last rework round)"
     }
   ],
   "mission": "plan",
