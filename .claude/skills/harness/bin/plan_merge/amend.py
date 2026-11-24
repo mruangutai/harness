@@ -9,7 +9,6 @@ import artifact_accessors
 import harness_merge
 import harness_yaml
 from plan_merge.amendments import write_plan_and_ledger
-from plan_merge.stations import APPROVAL_RESET_LINE
 from plan_merge.text import (
     _UNPARSEABLE, _dedent_value, _expected_value, _field_block, _item_range, _parsed_value,
     _render_field, _structured_field_lines,
@@ -150,17 +149,16 @@ def _amend_preconditions(args, actual):
                 f"{actual}. Re-run --show and re-derive your replacement.")
 
 
-def _amended_text(cur, first, last, rendered, want, args, base_doc, result):
+def _amended_text(cur, first, last, rendered, want, args):
     """The plan text with the field spliced in, the C4 guards applied.
 
     A `files:` replacement is held to plan_anchors' grammar — a line-number anchor is refused
     here as it is in `apply`. Replacing a field on an existing item leaves the signature
     standing (BUG-1716 D-04): the task set is unchanged, and a task-text change without a
-    ledgered amendment is INV-40's finding. `result["reset"]` stays False for the receipt."""
+    ledgered amendment is INV-40's finding."""
     if args.field == "files":
         _refuse_illegal_anchors({"tasks": [{"id": args.id, "files": want}]},
                                 f"the replacement for {args.id}.files")
-    result["reset"] = False
     return "".join(cur[:first] + rendered + cur[last:])
 
 
@@ -262,7 +260,6 @@ def cmd_amend(args):
     ledger = _ledgered_target(args, resolved)
     judgement = _amend_judgement(args) if ledger else None
     want_value, value_text = _amend_request(args)
-    result = {}
 
     def transform(base_bytes):
         # THE BASE IS PARSED FIRST (panel V4, and its own de-vacuumed test). It used to be
@@ -281,7 +278,7 @@ def cmd_amend(args):
         f2, l2, ind2 = _locate_under_lock(cur, args)
         _require_locked_hash(cur[f2:l2], args.expect_sha256, args.id, args.field)
         rendered, want = _amend_rendered(cur, raw, f2, l2, ind2, args, want_value, value_text)
-        spliced = _amended_text(cur, f2, l2, rendered, want, args, base_doc, result)
+        spliced = _amended_text(cur, f2, l2, rendered, want, args)
         reloaded = _verify_amend(spliced.encode("utf-8"), args.key, args.id, args.field, want)
         # DO NO HARM: hold the splice to the plan schema only when the BASE satisfied it. A plan
         # mid-authoring legitimately does not, and refusing to amend it would make this verb
@@ -298,8 +295,6 @@ def cmd_amend(args):
         _die(refusal.code, *refusal.lines)
     print(f"AMENDED {args.key}:{args.id}.{args.field}"
           + (" judgement=amendment" if ledger else ""))
-    if result.get("reset"):
-        print(APPROVAL_RESET_LINE)
     print(f"APPLIED {resolved}")
     if ledger:
         print(f"APPLIED {ledger}")

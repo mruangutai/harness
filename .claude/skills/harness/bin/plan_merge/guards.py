@@ -2,7 +2,6 @@
 import os
 import re
 import sys
-import tempfile
 
 import artifact_accessors
 import factory_config
@@ -25,13 +24,50 @@ PLAN_TAIL = re.compile(
 )
 
 
-def _resolve_plan(file_path):
-    """require_destination on the RESOLVED path, or print the refusal and exit its code.
+def _pending_replay_lines(pending):
+    """The two lines for a harness_merge.JournalPending raised by a failed replay: the earlier
+    transaction stays pending, and this command's own change was never written."""
+    return [f"plan-merge: completing the pending intent journal {pending.journal} failed: "
+            f"{type(pending.cause).__name__}: {pending.cause}",
+            "  this command did not write its change; the journaled transaction stays pending "
+            "and the next plan-merge or feature.json write completes it."]
 
-    Extracted so all five verbs share ONE destination guard. A second copy would be a second
-    place for exit 9 to stop being true."""
+
+def _recover_plan_journals(resolved):
+    """harness_merge.recover_journals(resolved), every failure reported as a MergeRefusal. A
+    refusal (JOURNAL UNREADABLE or DIVERGED, exit 5; LOCKED, exit 6) passes through. A failed
+    replay is committed-pending and says so (exit 2). Any other exception came before any
+    member was written — harness_merge raises every later failure as JournalPending — so
+    "nothing changed" is true of it (exit 2)."""
     try:
-        return harness_merge.require_destination(
+        harness_merge.recover_journals(resolved)
+    except harness_merge.JournalPending as pending:
+        raise harness_merge.MergeRefusal(2, _pending_replay_lines(pending)) from pending
+    except harness_merge.MergeRefusal:
+        raise
+    except Exception as exc:
+        raise harness_merge.MergeRefusal(
+            2, [f"plan-merge: recovering the intent journal for {resolved} failed: "
+                f"{type(exc).__name__}: {exc}",
+                "  no file was changed; this command wrote nothing."]) from exc
+
+
+def _resolve_plan(file_path, recover=True):
+    """require_destination on the RESOLVED path, then — unless `recover` is false — the
+    completion of any intent journal naming the plan; or print the refusal and exit its code.
+
+    Extracted so every verb shares ONE destination guard. A second copy would be a second
+    place for exit 9 to stop being true.
+
+    WHY MUTATING VERBS RECOVER HERE (FEAT-2488). record-amendments and amend refuse in a
+    lock-free preflight — a field already at `now`, a stale --expect-sha256 — before they reach
+    any harness_merge write, so recovery inside the core's writes alone would leave a torn
+    amendment pair in place on the most natural next invocation: the operator re-running the
+    verb. harness_merge.recover_journals stays the one recovery entry point; this only calls
+    it. `check` is read-only and passes recover=False. No recovery failure prints a
+    Traceback."""
+    try:
+        resolved = harness_merge.require_destination(
             file_path,
             PLAN_TAIL,
             "a plan.yaml under a features directory",
@@ -41,6 +77,9 @@ def _resolve_plan(file_path):
                 "  This tool merges plan.yaml only.",
             ],
         )
+        if recover:
+            _recover_plan_journals(resolved)
+        return resolved
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:
             print(line, file=sys.stderr)
@@ -232,33 +271,6 @@ def _locked_plan_update(resolved, transform):
     out of locked_update before the relay is reached, so a refused verb stays silent here."""
     harness_merge.locked_update(resolved, transform)
     harness_boundary.relay_changed_state_feedback(resolved)
-
-
-def _replace_bytes(path, data):
-    """Atomic whole-file replace, the same tempfile+os.replace shape locked_update uses."""
-    directory = os.path.dirname(os.path.abspath(path)) or "."
-    fd, tmp_path = tempfile.mkstemp(dir=directory)
-    try:
-        with os.fdopen(fd, "wb") as fh:
-            fh.write(data)
-        os.replace(tmp_path, path)
-    except BaseException:
-        try:
-            os.remove(tmp_path)
-        except FileNotFoundError:
-            pass
-        raise
-
-
-def _restore_plan(resolved, base_bytes):
-    """Put the pre-splice bytes back; a failed restore is its own loud line, never silent."""
-    try:
-        _replace_bytes(resolved, base_bytes)
-    except OSError as exc:
-        return [f"  AND the plan splice could NOT be restored in {resolved} ({exc}); the plan "
-                "carries the amendment with no judgement — restore it from git before anything "
-                "else."]
-    return [f"  the plan splice was restored byte for byte in {resolved}; nothing landed."]
 
 
 def _die(code, *lines):

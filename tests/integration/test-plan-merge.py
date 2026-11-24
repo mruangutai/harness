@@ -4395,6 +4395,15 @@ def _hashes(fj):
     return _json.loads(read(fj)).get("signed_task_hashes")
 
 
+# FEAT-2488: the amendment pair's intent journal is named for its primary (harness_merge).
+_PAIR_JOURNAL_SUFFIX = ".harness-merge.journal"
+
+
+def _no_journal(plan):
+    """True when no plan.yaml.harness-merge.journal is left beside the plan."""
+    return not os.path.exists(plan + _PAIR_JOURNAL_SUFFIX)
+
+
 def case_b1716_sign_writes_canonical_task_hashes():
     """D-03: sign-approval writes one lowercase sha256 per task over the canonical JSON of
     {files, intent, verify} to feature.json."""
@@ -4660,9 +4669,10 @@ def case_1985_amend_ledgers_a_signed_task_field():
         shutil.rmtree(root, ignore_errors=True)
 
 
-def case_1985_amend_restores_the_plan_when_the_ledger_fails():
-    """#1985: plan first, ledger second — an unwritable ledger (lock mode 000) puts the plan
-    back byte for byte, the same arm record-amendments is held to."""
+def case_1985_amend_writes_nothing_when_the_ledger_fails():
+    """#1985: plan and ledger are one journaled write — an unwritable ledger (lock mode 000)
+    refuses before the journal or either file is written, the same arm record-amendments is
+    held to, so nothing lands and no journal is left beside the plan."""
     if os.geteuid() == 0:
         return  # root ignores mode bits; the arm cannot be built
     root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN)
@@ -4681,8 +4691,9 @@ def case_1985_amend_restores_the_plan_when_the_ledger_fails():
                          "--reason", "r")
         finally:
             os.chmod(lock, 0o644)
-        check("1985: a failed ledger write exits nonzero and restores the plan",
-              r.returncode != 0 and "restored byte for byte" in r.stderr
+        check("1985: a failed ledger write exits nonzero, says nothing was written, leaves no "
+              "journal and both files byte-identical",
+              r.returncode != 0 and "nothing was written" in r.stderr and _no_journal(plan)
               and (read(plan), read(fj)) == before, f"rc={r.returncode} {r.stderr!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -4723,17 +4734,18 @@ def _record_with_ledger_locked(plan, fj, root, amendments):
 
 def case_b1716_record_amendments_is_all_or_nothing():
     """A refusal under the plan lock — here the ledger's own lock held by another writer, so
-    the judgement write refuses LOCKED — leaves the plan untouched: a multi-entry digest lands
-    every entry or none, across both files. The plan is spliced first and restored on the
-    ledger's refusal (validate c0 V-01), so a judgement never outlives its splice."""
+    the pair write refuses LOCKED — leaves the plan untouched: a multi-entry digest lands
+    every entry or none, across both files. Both locks are taken before the journal or either
+    file is written (FEAT-2488), so a judgement never outlives its splice and nothing needs
+    restoring."""
     root, plan, fj = _amend_fixture()
     try:
         plan_bytes, fj_bytes = read(plan), read(fj)
         r = _record_with_ledger_locked(plan, fj, root, _TWO_ENTRY_AMENDMENTS)
         check("b1716/atomic: a ledger refusal under the lock exits nonzero naming LOCKED",
               r.returncode != 0 and "LOCKED" in r.stderr, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
-        check("b1716/atomic: the refusal says the plan splice was restored",
-              "restored byte for byte" in r.stderr, r.stderr)
+        check("b1716/atomic: the refusal says nothing was written and leaves no journal",
+              "nothing was written" in r.stderr and _no_journal(plan), r.stderr)
         check("b1716/atomic: neither file changed", read(plan) == plan_bytes and read(fj) == fj_bytes,
               read(plan))
         r = _record(plan, _digest_with(_TWO_ENTRY_AMENDMENTS), root)
@@ -4745,11 +4757,11 @@ def case_b1716_record_amendments_is_all_or_nothing():
         shutil.rmtree(root, ignore_errors=True)
 
 
-def case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error():
-    """validate c1 V-01: the restore is not only for a MergeRefusal. An ORDINARY OSError from
-    the ledger write — here `feature.json.lock` unopenable (mode 000), so `acquire`'s os.open
-    raises PermissionError after the plan was already spliced — exits nonzero naming the error
-    and leaves BOTH files byte-identical."""
+def case_b1716_record_amendments_writes_nothing_on_a_ledger_io_error():
+    """validate c1 V-01: a refusal is not the only failure. An ORDINARY OSError from the
+    ledger side — here `feature.json.lock` unopenable (mode 000), so `acquire`'s os.open
+    raises PermissionError before the journal is published — exits nonzero naming the error,
+    says nothing was written, and leaves BOTH files byte-identical with no journal."""
     if os.geteuid() == 0:
         return  # root ignores mode bits; the arm cannot be built
     root, plan, fj = _amend_fixture()
@@ -4765,10 +4777,420 @@ def case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error():
         check("b1716/io: a PermissionError on the ledger write exits nonzero naming it",
               r.returncode != 0 and "PermissionError" in r.stderr and "Traceback" not in r.stderr,
               f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
-        check("b1716/io: the refusal says the plan splice was restored",
-              "restored byte for byte" in r.stderr, r.stderr)
+        check("b1716/io: the refusal says nothing was written and leaves no journal",
+              "nothing was written" in r.stderr and _no_journal(plan), r.stderr)
         check("b1716/io: neither file changed", read(plan) == plan_bytes and read(fj) == fj_bytes,
               read(plan))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# FEAT-2488 T-02 — torn amendment pairs, built on disk in harness_merge's journal format
+# (harness-merge-journal/1, members plan.yaml then feature.json), and the in-process failure
+# seams no CLI run can reach. There is no production hook: every torn state is bytes on disk,
+# and every injected failure wraps a seam both the base tree and this one call.
+# ---------------------------------------------------------------------------
+
+import base64
+import contextlib
+import errno
+import io
+import re
+from datetime import datetime, timezone
+
+_BEFORE, _AFTER = 0, 1
+
+
+def _bytes(path):
+    with open(path, "rb") as fh:
+        return fh.read()
+
+
+def _put(path, data):
+    with open(path, "wb") as fh:
+        fh.write(data)
+
+
+def _run_record(plan, root, _sha):
+    """record-amendments of T-01.intent `untouched` -> `amended`."""
+    return _record(plan, _digest_with(_T01_AMENDMENT), root)
+
+
+def _run_amend(plan, root, sha):
+    """A ledgered `amend` of T-01.intent to `narrowed`, naming `sha` as --expect-sha256."""
+    value = os.path.join(root, "intent.txt")
+    write(value, "narrowed\n")
+    return run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field",
+                    "intent", "--expect-sha256", sha or "x", "--value-file", value,
+                    "--reason", "torn pair")
+
+
+# verb -> (runner, the field's `now`, what the verb's refused re-run says)
+_TORN_VERBS = {
+    "record-amendments": (_run_record, "amended", "recorded before"),
+    "amend": (_run_amend, "narrowed", "--expect-sha256 does not match"),
+}
+
+
+def _signed_pair(label):
+    """A signed _PENDING_PLAN fixture, (root, plan, fj). The signature's signed_task_hashes is
+    what makes an amend of T-01.intent ledgered, so _sign is checked to exit 0 first."""
+    root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN)
+    r = _sign(plan)
+    check(f"{label}: the fixture signs (exit 0)", r.returncode == 0,
+          f"rc={r.returncode} {r.stderr!r}")
+    return root, plan, fj
+
+
+def _write_journal(plan, members):
+    """plan.yaml.harness-merge.journal in T-01's format, for (path, before, after) members."""
+    record = {"schema": "harness-merge-journal/1", "members": [
+        {"name": os.path.basename(path), "before_sha256": hashlib.sha256(before).hexdigest(),
+         "after_sha256": hashlib.sha256(after).hexdigest(),
+         "after_b64": base64.b64encode(after).decode("ascii")}
+        for path, before, after in members]}
+    _put(plan + _PAIR_JOURNAL_SUFFIX, _json.dumps(record, sort_keys=True).encode("utf-8"))
+
+
+def _twin_images(verb, label, sha):
+    """(plan after, feature.json after): `verb` run for real on an identical signed twin."""
+    root, plan, fj = _signed_pair(f"{label} twin")
+    try:
+        r = _TORN_VERBS[verb][0](plan, root, sha)
+        check(f"{label}: the twin's {verb} exits 0", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+        return _bytes(plan), _bytes(fj)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _torn(verb, plan_side, fj_side, label):
+    """A signed fixture torn mid-`verb`: its journal beside the plan, the plan at `plan_side`
+    and feature.json at `fj_side` (_BEFORE or _AFTER). The before images are the fixture's own
+    bytes; the after images are the twin's real splice and real judgement. Returns
+    (root, plan, fj, images, sha) with images = {path: (before, after)}."""
+    root, plan, fj = _signed_pair(label)
+    sha, _ = _sha_of(plan, "tasks", "T-01", "intent")
+    plan_after, fj_after = _twin_images(verb, label, sha)
+    images = {plan: (_bytes(plan), plan_after), fj: (_bytes(fj), fj_after)}
+    _write_journal(plan, [(plan, *images[plan]), (fj, *images[fj])])
+    _put(plan, images[plan][plan_side])
+    _put(fj, images[fj][fj_side])
+    return root, plan, fj, images, sha
+
+
+def _t01_intent_judgements(fj):
+    return [j for j in (_json.loads(read(fj)).get("judgements") or [])
+            if j.get("kind") == "amendment" and j.get("decision") == "T-01.intent"]
+
+
+def _carries_once(plan, fj, now):
+    """Both files carry the T-01.intent amendment to `now`, ledgered exactly once."""
+    intent = yaml.safe_load(read(plan))["tasks"][0].get("intent")
+    return intent == now and len(_t01_intent_judgements(fj)) == 1
+
+
+def _settles(label, verb, plan, fj, root, sha):
+    """(d): one more re-run of `verb` leaves both files byte-identical."""
+    before = (_bytes(plan), _bytes(fj))
+    _TORN_VERBS[verb][0](plan, root, sha)
+    check(f"{label}/d: one more re-run leaves both files byte-identical",
+          (_bytes(plan), _bytes(fj)) == before)
+
+
+def _torn_rerun_converges(verb, plan_side, fj_side, label):
+    """Re-run `verb` on its own torn state: refused at exit 6 (the field already carries the
+    change), yet both files end at the journal's after images, the amendment ledgered exactly
+    once, and no journal left; then (d)."""
+    root, plan, fj, images, sha = _torn(verb, plan_side, fj_side, label)
+    run, now, says = _TORN_VERBS[verb]
+    try:
+        r = run(plan, root, sha)
+        check(f"{label}: the re-run exits 6 saying {says!r}",
+              r.returncode == 6 and says in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check(f"{label}: both files are at the journal's after images",
+              (_bytes(plan), _bytes(fj)) == (images[plan][_AFTER], images[fj][_AFTER]), read(fj))
+        check(f"{label}: the field equals now and the amendment is ledgered exactly once",
+              _carries_once(plan, fj, now), read(fj))
+        check(f"{label}: no journal remains", _no_journal(plan))
+        _settles(label, verb, plan, fj, root, sha)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2488_plan_amended_ledger_not_converges():
+    """SC-01 (a)+(d): the plan at its after image and feature.json at its before image — a
+    process killed between the two renames — for record-amendments and for amend. Both verbs
+    refuse a re-run in a LOCK-FREE preflight before any harness_merge write
+    (amendments._amendment_against_plan: `recorded before`; amend._amend_preconditions: the
+    stale --expect-sha256), so these re-runs are the evidence that guards._resolve_plan's
+    recovery is required: without it each exits 6 and the ledger stays without its judgement."""
+    for verb in _TORN_VERBS:
+        _torn_rerun_converges(verb, _AFTER, _BEFORE, f"2488/a/{verb}")
+
+
+def case_2488_ledger_landed_plan_not_converges():
+    """SC-01 (b)+(d): an amend of a signed field torn with the plan at its before image and
+    feature.json at its after image — a judgement for a splice the plan does not carry, the
+    direction plan-first ordering exists to prevent. The re-run rolls the plan forward and
+    exits 6 on the now-stale --expect-sha256, with the amendment ledgered exactly once."""
+    _torn_rerun_converges("amend", _BEFORE, _AFTER, "2488/b/amend")
+
+
+def case_2488_both_landed_journal_left_converges():
+    """SC-01 (c)+(d): both files at their after images with the journal still present (killed
+    before the unlink): the re-run leaves both byte-identical and removes the journal."""
+    for verb in _TORN_VERBS:
+        _torn_rerun_converges(verb, _AFTER, _AFTER, f"2488/c/{verb}")
+
+
+def _bump_cycles(base):
+    doc = _json.loads(base)
+    doc["cycles_used"] = doc["cycles_used"] + 1
+    return _json.dumps(doc, indent=2) + "\n"
+
+
+def _call(fn, *args):
+    """The exception fn(*args) raised, or None when it returned — never raised into the pool."""
+    try:
+        fn(*args)
+    except (Exception, SystemExit) as exc:
+        return exc
+    return None
+
+
+def case_2488_a_feature_json_write_completes_the_pair_first():
+    """SC-01 (e): with record-amendments torn (plan amended, ledger not), the next feature.json
+    write — a feature.json-only writer such as gh-sync, which never takes the plan lock — rolls
+    the journal forward before its own transform reads the ledger, so the judgement lands once
+    and the writer's own change lands on top of it."""
+    root, plan, fj, _, _ = _torn("record-amendments", _AFTER, _BEFORE, "2488/e")
+    try:
+        import feature_json_write
+        error = _call(feature_json_write.write_feature_json, fj, _bump_cycles)
+        check("2488/e: write_feature_json returns", error is None, repr(error))
+        check("2488/e: cycles_used equals 1", _json.loads(read(fj)).get("cycles_used") == 1,
+              read(fj))
+        check("2488/e: the plan carries the amendment, ledgered exactly once",
+              _carries_once(plan, fj, "amended"), read(fj))
+        check("2488/e: no journal remains", _no_journal(plan))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2488_a_diverged_member_refuses_and_changes_nothing():
+    """SC-01 (f): a journal whose feature.json member was overwritten since with a third valid
+    document (in neither recorded state) refuses at exit 5 naming JOURNAL DIVERGED, and
+    plan.yaml, feature.json and the journal stay byte-identical: a write nobody journaled is
+    never overwritten."""
+    root, plan, fj, _, sha = _torn("record-amendments", _AFTER, _BEFORE, "2488/f")
+    journal = plan + _PAIR_JOURNAL_SUFFIX
+    try:
+        third = _json.loads(read(fj))
+        third["cycles_used"] = 3
+        write(fj, _json.dumps(third, indent=2) + "\n")
+        before = [_bytes(p) for p in (plan, fj, journal)]
+        r = _run_record(plan, root, sha)
+        check("2488/f: the re-run exits 5 naming JOURNAL DIVERGED",
+              r.returncode == 5 and "JOURNAL DIVERGED" in r.stderr,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("2488/f: plan.yaml, feature.json and the journal stay byte-identical",
+              os.path.exists(journal) and [_bytes(p) for p in (plan, fj, journal)] == before)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2488_amend_stdout_is_unchanged():
+    """SC-04 regression lock (passes at 2491336e and at the pin): the whole stdout of a
+    ledgered signed-field amend and of an unledgered title amend, line for line; neither ever
+    carries APPROVAL-RESET (amend's reset bookkeeping could never fire)."""
+    root, plan, _ = _signed_pair("2488/g")
+    try:
+        resolved = os.path.realpath(plan)
+        ledger = os.path.join(os.path.dirname(resolved), "feature.json")
+        r = _run_amend(plan, root, _sha_of(plan, "tasks", "T-01", "intent")[0])
+        check("2488/g: a ledgered amend prints AMENDED judgement=amendment, APPLIED plan, "
+              "APPLIED feature.json", r.returncode == 0 and r.stdout ==
+              f"AMENDED tasks:T-01.intent judgement=amendment\nAPPLIED {resolved}\nAPPLIED {ledger}\n",
+              f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        value = os.path.join(root, "title.txt")
+        write(value, "renamed\n")
+        r2 = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field",
+                      "title", "--expect-sha256", _sha_of(plan, "tasks", "T-01", "title")[0] or "x",
+                      "--value-file", value)
+        check("2488/g: an unledgered amend prints AMENDED then APPLIED plan",
+              r2.returncode == 0 and r2.stdout == f"AMENDED tasks:T-01.title\nAPPLIED {resolved}\n",
+              f"rc={r2.returncode} {r2.stdout!r} {r2.stderr!r}")
+        check("2488/g: neither carries APPROVAL-RESET", "APPROVAL-RESET" not in r.stdout + r2.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+_H_TEXT = "spliced in process"
+_H_DIGEST = _digest_with(
+    '  amendments:\n    - { task: T-01, field: intent, was: untouched, now: "' + _H_TEXT
+    + '", reason: "r" }\n')
+
+
+def _h_splice(base):
+    """T-01.intent — the plan's first intent line — set to _H_TEXT; nothing else touched."""
+    return re.sub(rb"(?m)^    intent: .*$", b"    intent: " + _H_TEXT.encode("utf-8"), base,
+                  count=1)
+
+
+def _write_pair(amendments, plan):
+    """write_plan_and_ledger as record-amendments calls it, with _h_splice and one amendment
+    judgement for T-01.intent: the exception it raised, or None."""
+    resolved = os.path.realpath(plan)
+    judgement = {"at": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
+                 "by": "harness-orchestrator", "kind": "amendment", "decision": "T-01.intent",
+                 "reason": "in-process seam"}
+    return _call(amendments.write_plan_and_ledger, resolved,
+                 os.path.join(os.path.dirname(resolved), "feature.json"), _h_splice, [judgement])
+
+
+def _closed_stderr(_path):
+    raise OSError("stderr closed")
+
+
+def case_2488_feedback_failure_after_the_commit_is_advisory():
+    """SC-01 (h): the changed-state feedback runs after the pair has committed, so its failure
+    (here stderr closed) is noted, never a refusal: write_plan_and_ledger returns normally with
+    both files carrying the change and no journal, so the verb still prints its receipts."""
+    root, plan, fj = _signed_pair("2488/h")
+    stderr = io.StringIO()
+    try:
+        amendments = _load_owner("amendments")
+        boundary = sys.modules["harness_boundary"]
+        real = boundary.relay_changed_state_feedback
+        boundary.relay_changed_state_feedback = _closed_stderr
+        try:
+            with contextlib.redirect_stderr(stderr):
+                error = _write_pair(amendments, plan)
+        finally:
+            boundary.relay_changed_state_feedback = real
+        check("2488/h: write_plan_and_ledger returns normally", error is None, repr(error))
+        check("2488/h: both files carry the change, ledgered exactly once",
+              _carries_once(plan, fj, _H_TEXT), read(fj))
+        check("2488/h: no journal remains", _no_journal(plan))
+        check("2488/h: the feedback failure is noted on stderr",
+              "changed-state feedback" in stderr.getvalue(), stderr.getvalue())
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+@contextlib.contextmanager
+def _failing_replace(target):
+    """os.replace raising OSError(ENOSPC) whenever its destination resolves to `target`,
+    delegating otherwise — the rename harness_merge's write body calls in both trees. Yields
+    the list of raises; the real os.replace is restored on exit."""
+    real, raised, goal = os.replace, [], os.path.realpath(target)
+
+    def wrapper(src, dst, *args, **kwargs):
+        if os.path.realpath(dst) == goal:
+            raised.append(dst)
+            raise OSError(errno.ENOSPC, "injected")
+        return real(src, dst, *args, **kwargs)
+
+    os.replace = wrapper
+    try:
+        yield raised
+    finally:
+        os.replace = real
+
+
+def _refusal_lines(error):
+    """(code, lines) of a MergeRefusal, else (None, [])."""
+    if type(error).__name__ != "MergeRefusal":
+        return None, []
+    return error.code, list(error.lines)
+
+
+def _check_published_failure(error, journal):
+    code, lines = _refusal_lines(error)
+    text = "\n".join(lines)
+    check("2488/i: write_plan_and_ledger raises MergeRefusal(2)", code == 2, repr(error))
+    check("2488/i: its lines name the journal and say the next plan-merge or feature.json "
+          "write completes it",
+          journal in text and "next plan-merge or feature.json write completes it" in text, text)
+    check("2488/i: no line says nothing was written", "nothing was written" not in text, text)
+
+
+def case_2488_a_ledger_failure_after_publish_is_journaled():
+    """SC-01 (i): the feature.json rename fails (ENOSPC) after the journal is published and
+    the plan replaced. The report says the transaction is journaled and that the next write
+    completes it — never that nothing was written, which would be false — and a CLI re-run
+    then converges both files. The reached-the-seam check comes first, so a red run grades
+    the diagnostic, never a setup failure."""
+    root, plan, fj = _signed_pair("2488/i")
+    try:
+        amendments = _load_owner("amendments")
+        with _failing_replace(fj) as raised:
+            error = _write_pair(amendments, plan)
+        check("2488/i: the injected feature.json rename was reached", bool(raised), repr(error))
+        if raised:
+            _check_published_failure(error, os.path.realpath(plan) + _PAIR_JOURNAL_SUFFIX)
+        r = _record(plan, _H_DIGEST, root)
+        check("2488/i: the CLI re-run leaves both files carrying the change, ledgered once",
+              _carries_once(plan, fj, _H_TEXT), f"rc={r.returncode} {r.stderr!r} {read(fj)}")
+        check("2488/i: no journal remains", _no_journal(plan))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _exit_of(fn, *args):
+    """(SystemExit code — or the exception, or None when fn returned — and captured stderr)."""
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+        outcome = _call(fn, *args)
+    return getattr(outcome, "code", outcome), stderr.getvalue()
+
+
+def _check_replay_preflight(code, stderr, state, expected, journal):
+    check("2488/j: _resolve_plan exits 2", code == 2, repr(code))
+    check("2488/j: stderr names the journal and says the transaction stays pending",
+          journal in stderr and "stays pending" in stderr, stderr)
+    check("2488/j: no Traceback and no line saying nothing was written",
+          "Traceback" not in stderr and "nothing was written" not in stderr, stderr)
+    check("2488/j: the plan is at its after image, feature.json at its before image, the "
+          "journal kept", state == expected)
+
+
+def _check_replay_pair(error, stderr, plan, fj):
+    code, lines = _refusal_lines(error)
+    check("2488/j: write_plan_and_ledger raises MergeRefusal(2) with the same replay lines",
+          code == 2 and lines == stderr.splitlines(), f"{error!r} vs {stderr!r}")
+    check("2488/j: no line says nothing was written",
+          "nothing was written" not in "\n".join(lines), repr(lines))
+    check("2488/j: the splice's text is in neither file", _H_TEXT not in read(plan) + read(fj))
+
+
+def case_2488_a_failed_replay_stays_pending():
+    """SC-01 (j): record-amendments' journal published, neither member replaced, and the
+    replay's feature.json rename fails. Recovery has by then replaced the plan, so neither
+    the preflight recovery (guards._resolve_plan) nor the pair's own may say nothing was
+    written: each reports 2 with the transaction still pending and no Traceback, and the
+    calling write's own change is never attempted. Released, the CLI re-run converges."""
+    root, plan, fj, images, sha = _torn("record-amendments", _BEFORE, _BEFORE, "2488/j")
+    journal = os.path.realpath(plan) + _PAIR_JOURNAL_SUFFIX
+    try:
+        amendments = _load_owner("amendments")
+        with _failing_replace(fj) as raised:
+            code, stderr = _exit_of(sys.modules["plan_merge.guards"]._resolve_plan, plan)
+            reached = bool(raised)
+            state = (_bytes(plan), _bytes(fj), os.path.exists(journal))
+            error = _write_pair(amendments, plan)
+        check("2488/j: recovery reached the injected feature.json rename", reached, stderr)
+        if reached:
+            _check_replay_preflight(code, stderr, state,
+                                    (images[plan][_AFTER], images[fj][_BEFORE], True), journal)
+        _check_replay_pair(error, stderr, plan, fj)
+        r = _run_record(plan, root, sha)
+        check("2488/j: the CLI re-run exits 6 as in (a)",
+              r.returncode == 6 and "recorded before" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("2488/j: both files carry the amendment exactly once, no journal remains",
+              _carries_once(plan, fj, "amended") and _no_journal(plan), read(fj))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -5285,11 +5707,11 @@ CASES = (
     case_b1716_approval_survives_record_amendments_and_amend,
     case_b1716_approval_resets_only_on_task_set_change,
     case_b1716_record_amendments_is_all_or_nothing,
-    case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error,
+    case_b1716_record_amendments_writes_nothing_on_a_ledger_io_error,
     case_feat62_changed_feedback_after_a_plan_write,
     case_feat70_record_amendments_after_a_block_scalar_splice,
     case_1985_amend_ledgers_a_signed_task_field,
-    case_1985_amend_restores_the_plan_when_the_ledger_fails,
+    case_1985_amend_writes_nothing_when_the_ledger_fails,
     case_2095_set_panel_refuses_off_template_findings,
     case_2095_record_panel_refuses_an_off_template_base_finding,
     case_2095_sign_approval_refuses_an_open_gating_finding,
@@ -5302,6 +5724,15 @@ CASES = (
     case_2349_inline_empty_tasks_gains_items,
     case_2349_nonempty_flow_base_still_refused,
     case_2420_drafted_task_takes_its_first_station,
+    case_2488_plan_amended_ledger_not_converges,
+    case_2488_ledger_landed_plan_not_converges,
+    case_2488_both_landed_journal_left_converges,
+    case_2488_a_feature_json_write_completes_the_pair_first,
+    case_2488_a_diverged_member_refuses_and_changes_nothing,
+    case_2488_amend_stdout_is_unchanged,
+    case_2488_feedback_failure_after_the_commit_is_advisory,
+    case_2488_a_ledger_failure_after_publish_is_journaled,
+    case_2488_a_failed_replay_stays_pending,
 )
 
 
