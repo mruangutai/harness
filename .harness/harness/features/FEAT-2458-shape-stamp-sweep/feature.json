@@ -36,6 +36,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-24T13:36:49+00:00"
+    },
+    {
+      "id": "2026-11-24-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-24T13:41:45+00:00",
+      "tokens": 101048,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-24-02-validate-validator/digest.md",
+        "sha256": "2062d443b931b7a03b0362ccec7632bdd5a10a1864db238ba840f13d50696360"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-24T13:55:24+00:00"
     }
   ],
   "judgements": [
@@ -73,6 +88,20 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "validate c1 FAIL on two test-only must-fix items bound to T-01/T-02 files; no new class; fix is main-session-direct (DEC-174) inside rework ruling round 1 of 2"
+    },
+    {
+      "at": "2026-11-24T13:41:45+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2 over the round-1 fix",
+      "reason": "validate c1 FAIL (MF-1 grade-1 test cases, MF-2 vacuous absent assertion) fixed main-session-direct at b4536600 as rework round 1 of 2; code-grade exits 0 at the tip; re-validating over the new pin"
+    },
+    {
+      "at": "2026-11-24T13:55:26+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "validate c2 PASS over f42393e2 with empty must_fix after rework round 1 of 2; SCs met on both perspectives so the loop ends and the ship briefing goes to the operator"
     }
   ],
   "mission": "plan",
