@@ -96,6 +96,51 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-24T04:16:38+00:00"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-24T04:41:11+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-product/digest.md",
+        "sha256": "b4dbeda218bf6947e4bf021e02299ac080d88d0393b419c20e560aac355e8e67"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-24T04:46:11+00:00"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-24T04:46:12+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-validator/digest.md",
+        "sha256": "10411459a8a4f97e0cd05b0d68c09ddb09dcf5c0cdf384bfb22d3852c4a57f39"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-24T04:52:34+00:00"
+    },
+    {
+      "id": "distill-orchestrator",
+      "squad": "orchestrator",
+      "agent": "harness-orchestrator",
+      "verdict": "PASS",
+      "started_at": "2026-11-24T04:52:52+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-orchestrator/digest.md",
+        "sha256": "2e6b27dd2e442c476019e8aaf408a13618354cb0f6dbe7ed42b2c70ed360fe4a"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-24T04:54:32+00:00"
     }
   ],
   "judgements": [
