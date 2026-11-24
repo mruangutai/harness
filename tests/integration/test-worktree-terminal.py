@@ -30,7 +30,7 @@ import subprocess
 import sys
 import tempfile
 
-from git_support import add_worktree, commit_feature, commit_files, init_repo
+from git_support import add_worktree, commit_feature, commit_files, init_repo, plan_text
 
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = _anchor_bin
@@ -1091,6 +1091,106 @@ def case_fleet_planning_worktree_resolves_to_its_segment():
     return results
 
 
+def _commit_bad_utf8_feature(repo, feature_id, station="done"):
+    """Commit a feature.json whose bytes are not valid UTF-8, beside a readable plan.yaml."""
+    rel_dir = os.path.join(".harness", "harness", "features", feature_id)
+    os.makedirs(os.path.join(repo, rel_dir), exist_ok=True)
+    with open(os.path.join(repo, rel_dir, "feature.json"), "wb") as f:
+        f.write(b'{"feature_id": "\xff"}')
+    with open(os.path.join(repo, rel_dir, "plan.yaml"), "w") as f:
+        f.write(plan_text(feature_id, station))
+    subprocess.run(["git", "add", rel_dir], cwd=repo, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
+
+
+def case_classify_feature():
+    """#2458: classify_feature(root, feature_id) answers whether ONE feature id, matched
+    exactly, is finished on the harness default branch by the same landed rule classify uses.
+    Three results: terminal, not_terminal, unresolved; an absent id is unresolved and only its
+    reason says `absent`."""
+    import worktree_terminal as w
+
+    results = []
+
+    def row(name, got, want_klass, must=(), must_not=()):
+        klass, reason = got if isinstance(got, tuple) and len(got) == 2 else (None, "")
+        ok = (klass == want_klass and isinstance(reason, str) and reason != ""
+              and all(s in reason for s in must) and not any(s in reason for s in must_not))
+        results.append((name, ok, f"got {got!r}"))
+
+    def call(root, fid):
+        try:
+            return w.classify_feature(root, fid)
+        except Exception as exc:  # noqa: BLE001 — a raise is the failure being graded
+            return f"raised {exc!r}"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _repo(os.path.join(tmp, "R"))
+        _commit_feature(repo, "FEAT-901-done", {}, plan_station="done")
+        _commit_brief(repo, "FEAT-902-direct", "status: approved\ndate: 2026-11-24\n"
+                      "by: operator, main session (direct work under DEC-174)")
+        _commit_feature(repo, "FEAT-903-building", {}, plan_station="building")
+        _commit_feature(repo, "FEAT-905-unparseable", "{not json", plan_station="done")
+        _commit_feature(repo, "FEAT-906-off-vocab", {}, plan_station="shipped")
+        _commit_feature(repo, "FEAT-920-prefix-absent-longer", {}, plan_station="done")
+        _commit_bad_utf8_feature(repo, "FEAT-922-bad-utf8")
+
+        row("(a) classify_feature: landed done -> terminal",
+            call(repo, "FEAT-901-done"), "terminal")
+        row("(b) classify_feature: signed DEC-174 direct-build BRIEF -> terminal naming DEC-174",
+            call(repo, "FEAT-902-direct"), "terminal", must=("DEC-174",))
+        row("(c) classify_feature: landed building -> not_terminal",
+            call(repo, "FEAT-903-building"), "not_terminal")
+        row("(d) classify_feature: never landed -> unresolved, reason says absent",
+            call(repo, "FEAT-904-never"), "unresolved", must=("absent",))
+        row("(e) classify_feature: unparseable feature.json -> unresolved, not absent",
+            call(repo, "FEAT-905-unparseable"), "unresolved", must_not=("absent",))
+        row("(f) classify_feature: station outside the vocabulary -> unresolved, not absent",
+            call(repo, "FEAT-906-off-vocab"), "unresolved", must_not=("absent",))
+        row("(i) classify_feature: a strict prefix of a landed done id -> unresolved absent, "
+            "never terminal (exact id, never prefix)",
+            call(repo, "FEAT-920-prefix-absent"), "unresolved", must=("absent",))
+        row("(k) classify_feature: feature.json not valid UTF-8 -> unresolved unparseable, "
+            "not absent, no raise",
+            call(repo, "FEAT-922-bad-utf8"), "unresolved", must=("unparseable",),
+            must_not=("absent",))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        probe_root, _dest_probe = _build_probe_repo(tmp)
+        workspace_root = os.path.join(tmp, "workspace")
+        os.makedirs(workspace_root, exist_ok=True)
+        _write_fleet(probe_root, workspace_root,
+                     "  - name: acme/second-repo\n    default_branch: main\n")
+        _commit_feature(probe_root, "FEAT-907-fleet-done", {}, plan_station="done",
+                        repo_segment="second-repo")
+        _commit_feature(probe_root, "FEAT-908-fleet-building", {}, plan_station="building",
+                        repo_segment="second-repo")
+        _commit_feature(probe_root, "FEAT-921-fleet-exact", {}, plan_station="done",
+                        repo_segment="second-repo")
+        _commit_feature(probe_root, "FEAT-921-fleet-exact-longer", {}, plan_station="building",
+                        repo_segment="harness")
+        ids = ["FEAT-907-fleet-done", "FEAT-908-fleet-building", "FEAT-921-fleet-exact"]
+        script = (
+            "import json, sys\n"
+            f"sys.path.insert(0, {BIN_DIR!r})\n"
+            "import worktree_terminal as w\n"
+            f"print(json.dumps({{i: w.classify_feature({probe_root!r}, i) for i in {ids!r}}}))\n"
+        )
+        proc = _run_classify_all_subprocess(probe_root, script)
+        if proc.returncode == 0:
+            data = {k: tuple(v) for k, v in json.loads(proc.stdout).items()}
+        else:
+            data = {i: f"rc={proc.returncode} stderr={proc.stderr!r}" for i in ids}
+        row("(g) classify_feature: fleet feature landed done under its segment -> terminal",
+            data["FEAT-907-fleet-done"], "terminal")
+        row("(h) classify_feature: fleet feature landed building -> not_terminal",
+            data["FEAT-908-fleet-building"], "not_terminal")
+        row("(j) classify_feature: exact fleet id beside a longer harness id it prefixes "
+            "-> terminal",
+            data["FEAT-921-fleet-exact"], "terminal")
+    return results
+
+
 def main():
     results = (
         case_classify()
@@ -1108,6 +1208,7 @@ def main():
         + case_direct_build_brief_is_terminal()
         + case_feat64_boundaries_are_typed()
         + case_fleet_planning_worktree_resolves_to_its_segment()
+        + case_classify_feature()
     )
     all_ok = True
     for name, ok, detail in results:
