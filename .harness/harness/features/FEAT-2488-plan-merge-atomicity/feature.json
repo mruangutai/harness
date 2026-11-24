@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2488-plan-merge-atomicity",
   "branch": "feat/FEAT-2488-plan-merge-atomicity",
   "pr": null,
-  "review_sha": "95606ddbaf9ab36f505328420159d97a10ad820d",
+  "review_sha": "c35841fe5511109dffb958eebe6dad86dbf654d7",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -36,6 +36,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-24T01:41:29+00:00"
+    },
+    {
+      "id": "r-20261124-3-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-24T02:08:53+00:00"
     }
   ],
   "judgements": [
@@ -66,6 +73,13 @@
       "kind": "amendment",
       "decision": "T-02.intent",
       "reason": "fix c1 per fable-advisor AdvisorE3Fix (notes/answers-2026-11-24-validate-c0.md): broad catches narrowed for the FEAT-63 census; MF-2..MF-5 journal hardening; deviations enumerated in the intent"
+    },
+    {
+      "at": "2026-11-24T02:08:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel",
+      "reason": "fix c1 (ee5a9596 + ledgered amendments) closed MF-1..MF-6 and G-a..G-d from validate c0 per AdvisorE3Fix; re-panel at the new pin"
     }
   ],
   "mission": "plan",
