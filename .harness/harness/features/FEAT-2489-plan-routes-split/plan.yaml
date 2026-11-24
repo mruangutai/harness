@@ -1,0 +1,566 @@
+schema: plan/1
+feature: FEAT-2489-plan-routes-split
+approval:
+  date: '2026-11-24'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
+drafted_at: '2026-11-24T13:48:53Z'
+status: review
+source_issues: [2489]
+panel:
+  last_run: r-20261124-6-plan-validator
+  cycle: 4
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: 'not re-run at cycle 4: its cycle-1 findings were proportionality scope
+      task plus form, trimmed at apply; the c4 dispatch re-reads only scope''s three
+      open findings'
+  - reader: design
+    status: skipped
+    persona: harness-ui-reviewer
+    reason: 'not re-run at cycle 4: self-scoped out at cycle 1 (no UI surface); the
+      applies added none'
+  - reader: goalcheck
+    status: skipped
+    persona: harness-pm
+    reason: 'not re-run at cycle 4: ran and passed at cycle 1 (r-20261124-1-plan-product,
+      all three perspectives, notes/research-FEAT-2489-plan-routes-split-goalcheck-plan.md);
+      no later cycle dispatched goal-check. Row restored after record-panel replaced
+      panel.readers wholesale and dropped the cycle-1 entry.'
+  findings:
+  - id: PF-b25f62af28d7aa5f31cd38d635041a54
+    severity: high
+    reader: harness-code-reviewer
+    kind: substance
+    summary: SC-02 narrows the ruled behavior invariant to six argv examples.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-0e9128df11c14ad97669b28ff451a725
+    severity: high
+    reader: harness-code-reviewer
+    kind: substance
+    summary: T-02/T-04 compare the audit singletons on unequal input trees and retain only last lines.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-5dbe6b5eecda5efa44c6d9624e826e1a
+    severity: med
+    reader: harness-code-reviewer
+    kind: substance
+    summary: T-03 breaks T-01’s full-suite verify until T-04 restores the inventory.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-9bc751c71f94a87fdd29e84578ce6c1e
+    severity: low
+    reader: harness-code-reviewer
+    kind: form
+    summary: The receipt's recorded HEAD cannot itself be the later commit that adds the receipt.
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-293c2789a0a14408ae4b9f3ca8df9efb
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's eight structural/AST checks (body partitioning, per-statement dump equality, ordering, import shape, inventory_delta_confined) should not be built; only the CLI-equivalence half is the sanctioned evidence
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-2f032ea4ded9ab191d46672327dac011
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: notes/red-t02-checker-premove.txt and T-02's verify assertions about the checker's exact FAIL set on the unsplit tree should not exist
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-0dad747f115c481968d48fdfed6ec1e1
+    severity: info
+    reader: should-not-exist
+    kind: form
+    summary: SC-06/SC-07 cause nothing new to be built and are acceptable; they duplicate seed SC-04's satellite-green clause as standalone SCs
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-241126189d3c3d16550a5f09c7532ff3
+    severity: high
+    reader: harness-code-reviewer
+    kind: substance
+    summary: SC-02 forbids a diagnostic filename change that the required verbatim move produces.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-6efa88c834c89ca43eea0322509703d9
+    severity: med
+    reader: harness-code-reviewer
+    kind: substance
+    summary: PF-5dbe6b5eecda5efa44c6d9624e826e1a closes the immediate overlap only; the historical T-01 green receipt is not bound to its checkpoint.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-b963b10c2511cecf9ad0f6103be427ea
+    severity: info
+    reader: harness-code-reviewer
+    kind: substance
+    summary: 'PF-b25f62af28d7aa5f31cd38d635041a54 closed for its class: SC-02 now states the invariant for every audited tree state and argv, with a closed delta list; receipt samples are evidence, not scope.'
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-29a7e86075e97f550fb37781a3eb389f
+    severity: info
+    reader: harness-code-reviewer
+    kind: substance
+    summary: 'PF-0e9128df11c14ad97669b28ff451a725 closed for its class: T-02 compares matched archive trees from one base, both streams in full, red at the stale checkpoint and green after T-04.'
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-6159b2359da400c4da7dca8dcaa1415e
+    severity: high
+    reader: harness-code-reviewer
+    kind: substance
+    summary: PF-241126189d3c3d16550a5f09c7532ff3 is closed for the sampled blank-reason finding, not for the class.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-b14b5b45525eb18f63e04849c88d3838
+    severity: med
+    reader: harness-code-reviewer
+    kind: substance
+    summary: 'New: T-02''s whole-line replacement can mask a change outside the sanctioned fields.'
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-1dd0f7a1329fa5038cc5e6aa8e0c3ecb
+    severity: med
+    reader: harness-code-reviewer
+    kind: substance
+    summary: 'New: T-01''s ancestry/blob binding closes PF-6efa88c834c89ca43eea0322509703d9, but its checkpoint guard checks only one module.'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-4405ff64a842f05eadbdbad42e358e73
+    severity: info
+    reader: harness-code-reviewer
+    kind: substance
+    summary: 'PF-6efa88c834c89ca43eea0322509703d9 closed for its class: the T-01 receipt must name an ancestor of HEAD and that commit''s test-file blob; nothing compares it against the live file.'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-daf9c8a84d9cf8f0da611c26b91877eb
+    severity: high
+    reader: harness-code-reviewer
+    kind: substance
+    summary: W3 leaves SC-02 unsatisfiable by a verbatim move on a malformed but readable inventory.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-13006fd231e087314c1651e5679503d0
+    severity: med
+    reader: harness-code-reviewer
+    kind: substance
+    summary: T-02’s lexical matcher still rewrites data rather than a locator in a plan-read diagnostic.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-c01acc578f91cbed233d9afea356eea7
+    severity: med
+    reader: harness-code-reviewer
+    kind: substance
+    summary: T-04’s final receipt admits MAP entries not present in the restricted live map.
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-a4d2a5fd9eb5b8976b8ae883e1c4e624
+    severity: low
+    reader: harness-code-reviewer
+    kind: form
+    summary: T-01’s receipt prose still names only one module.
+    disposition: resolved
+    resolved_by: T-01
+lanes:
+  resolved_at: 261fdf726428bd8325fbd3d4beccad23b67e83cc
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      agent: harness-backend-dev
+      reason: DEC-174 enumerates check-plan-routes.py; the cutover that makes the gate use the two new libraries is direct.
+    - surface: tests/**
+      lane: main-session-direct
+      agent: harness-backend-dev
+      reason: DEC-174 enumerates test-check-plan-routes.py; the re-pointed audit tests and the inventory land with the direct cutover they prove.
+    - surface: .harness/harness/features/FEAT-2489-plan-routes-split/notes/**
+      lane: main-session-direct
+      agent: harness-backend-dev
+      reason: Main records the red receipts, the equivalence checker and its final receipt of its own direct build.
+decisions:
+  - id: D-01
+    choice: The two AST audits move into two flat top-level bin modules, canonical_reader_audit.py and structure_audit.py; LEGAL_MAIN_SESSION_TOKEN and _reader_source_paths live in canonical_reader_audit.py, structure_audit.py imports from it, neither module imports the entry, and the entry imports only the two runners and the token.
+    because: Flat modules match the bin convention and stay outside the package-only structure rules; one import direction needs no third module and no duplicated walker; the hyphenated entry cannot be imported back without a loader shim.
+    dec: DEC-174
+  - id: D-02
+    choice: Inventory rows whose call sites move are rewritten in place (file and id) and the one T07_TERMINAL_REMEDIES key is re-keyed, rather than recording the move in T07_RELOCATED_IMPLEMENTATIONS.
+    because: That table records remedy-implementation relocations for migration rows, and rows match on exact file and symbol, so an in-place rewrite is sufficient and the only form that is not a shim.
+    dec: none
+  - id: D-03
+    choice: Before any code moves, the canonical-reader cases join the default CASES and assert that every plan a row names resolves to a readable plan whose named task exists, replacing the FEAT-71 assertion that the inventory names no plan.
+    because: Opt-in, the cases gated nothing and a false assertion sat unnoticed; default-gated at about 6 seconds a run, they turn the move's stale inventory red for real and lock the manifest afterwards.
+    dec: DEC-174
+decisions_affected:
+  - dec: DEC-174
+    disposition: keep
+    clause: A module a gate imports is not itself a gate.
+    successor: none
+    reason: The two new modules are gate-imported libraries; check-plan-routes.py stays the enumerated gate and this cutover is main-session-direct.
+  - dec: DEC-174
+    disposition: keep
+    clause: and the test file of each.
+    successor: none
+    reason: test-check-plan-routes.py stays enumerated, so every task touching it is main-session-direct; the enumeration list does not change.
+  - dec: DEC-183
+    disposition: keep
+    clause: The step asserts M, and that assertion is the whole promotion.
+    successor: none
+    reason: The route summary and the canonical summary format are unchanged and tests.yml is not edited.
+  - dec: DEC-179
+    disposition: keep
+    clause: The inverse case is surfaced, never silenced, and never fatal.
+    successor: none
+    reason: The route section and its resolution are unchanged and its historical line citations are left as they are (grilling Q5).
+tasks:
+  - id: T-01
+    title: Fix the canonical-reader self-test to the true named-plan contract and run it by default
+    traces: [SC-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 enumerates test-check-plan-routes.py as the test file of a gate; the edit is made directly, red first.
+    depends_on: []
+    status: done
+    files:
+    - tests/integration/test-check-plan-routes.py#_check_live_inventory_reads_no_feature_plan
+    - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t01-canonical-self-test.txt
+      create: true
+    - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t01-default-run.txt
+      create: true
+    verify: |
+      python3 - <<'PY'
+      import json, os, subprocess, sys
+      env = {k: v for k, v in os.environ.items() if k not in ('CLAUDE_PROJECT_DIR', 'HARNESS_PROJECT_DIR', 'HARNESS_AGENT_TYPE')}
+      git = lambda *a: subprocess.run(['git', *a], capture_output=True, text=True)
+      T = 'tests/integration/test-check-plan-routes.py'
+      FIXED = ['canonical_reader_live_inventory_has_no_document_plan', 'canonical_reader_named_plan_check_accepts_a_resolving_row', 'canonical_reader_named_plan_check_refuses_a_missing_plan', 'canonical_reader_named_plan_check_refuses_a_missing_task']
+      contract = lambda doc: ['canonical_reader_live_inventory_named_plan_resolves[' + row['id'] + ']' for row in doc['rows'] if 'plan' in row] + FIXED
+      rec = open('.harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t01-default-run.txt').read().splitlines()
+      hl, bl = rec[0].split(), rec[1].split()
+      assert len(hl) == 2 and hl[0] == 'HEAD' and len(bl) == 3 and bl[:2] == ['BLOB', T], rec[:2]
+      cp = hl[1]
+      assert git('merge-base', '--is-ancestor', cp, 'HEAD').returncode == 0, 'recorded HEAD is not an ancestor of HEAD'
+      at = git('rev-parse', '--verify', '--quiet', cp + ':' + T)
+      assert at.returncode == 0 and at.stdout.strip() == bl[2], 'recorded BLOB is not the test file at the recorded HEAD'
+      for module in ('canonical_reader_audit.py', 'structure_audit.py'):
+          assert git('cat-file', '-e', cp + ':.claude/skills/harness/bin/' + module).returncode != 0, 'recorded HEAD already holds ' + module + ': it is not a pre-move checkpoint'
+      src_cp = git('show', cp + ':' + T).stdout
+      assert '_check_live_inventory_named_plans' in src_cp and 'names no plan' not in src_cp, 'recorded HEAD predates the T-01 test change'
+      assert rec[-1] == 'exit=0' and 'ALL PASS' in rec and not [l for l in rec if l.startswith('FAIL ')], rec[-5:]
+      for name in contract(json.loads(git('show', cp + ':tests/integration/canonical-reader-classification.json').stdout)):
+          assert 'PASS ' + name in rec, 'receipt lacks ' + name
+      r = subprocess.run([sys.executable, T], capture_output=True, text=True, timeout=58, env=env)
+      lines = r.stdout.splitlines()
+      fails = [l.split()[1] for l in lines if l.startswith('FAIL ')]
+      for name in contract(json.load(open('tests/integration/canonical-reader-classification.json'))):
+          assert 'PASS ' + name in lines, name
+      base = subprocess.run(['git', 'merge-base', 'HEAD', 'main'], capture_output=True, text=True, check=True).stdout.strip()
+      stale = os.path.exists('.claude/skills/harness/bin/canonical_reader_audit.py') and subprocess.run(['git', 'diff', '--quiet', base, '--', 'tests/integration/canonical-reader-classification.json']).returncode == 0
+      if stale:
+          assert r.returncode == 1 and fails and all(n.startswith('canonical_reader_') for n in fails), fails
+      else:
+          assert r.returncode == 0 and lines[-1] == 'ALL PASS' and not fails, r.stdout[-3000:]
+          for name in ('canonical_reader_audit_holds_on_bin_plus_named_plans', 'canonical_reader_live_audit_is_zero', 'canonical_reader_planless_rows_read_no_plan'):
+              assert 'PASS ' + name in lines, name
+      assert not [l for l in lines if 'names_no_plan' in l or 'without_a_feature_corpus' in l]
+      src = open(T).read()
+      assert 'names no plan' not in src and 'no feature plan' not in src and 'without a feature corpus' not in src
+      print('PASS T-01: green receipt bound to its committed pre-move checkpoint; canonical cases gate on the named-plan contract')
+      PY
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split; never delegate execution (DEC-174: tests/integration/test-check-plan-routes.py is the test file of an enumerated gate). Consult AGENTS.md; .harness/harness/docs/DECISIONS.md DEC-174; in .claude/skills/harness/bin/check-plan-routes.py the canonical-reader functions _ownership_finding, _named_plans, _task_files and _classification_task_files; the grilling ruling Q4 at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-plan-routes-split-e2-2026-11-24.md; and notes/research-plan-routes-split.md in this feature directory. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist in this checkout. Edit only tests/integration/test-check-plan-routes.py, commit it, and write the receipt below; no production file changes in this task.
+
+      Red first. Before any edit, with CLAUDE_PROJECT_DIR, HARNESS_PROJECT_DIR and HARNESS_AGENT_TYPE removed from the environment and PYTHONDONTWRITEBYTECODE=1, run python3 tests/integration/test-check-plan-routes.py --canonical-reader-self-test and save its whole stdout and stderr plus a final line exit=CODE to notes/red-t01-canonical-self-test.txt in this feature directory. Expected: exit=1 with exactly two FAIL lines, canonical_reader_live_inventory_names_no_plan and canonical_reader_audit_holds_without_a_feature_corpus. If it differs, stop and report.
+
+      Then, in tests/integration/test-check-plan-routes.py:
+      1. Import artifact_accessors and feature_corpus at module scope beside the existing imports (bin is already on sys.path through the _anchor_bin insert).
+      2. Add _named_plan_problems(root, document): a list of (row id, problem) pairs, one per row of document["rows"] that is a dict carrying a plan key, in row order. problem is None when artifact_accessors.load_plan(feature_corpus.corpus_path(root, row["plan"])) succeeds and some task in the loaded plan's tasks has str(task["id"]) equal to row["task"]. Otherwise it is a one-line string naming the plan and either the read error (catch OSError, ValueError, KeyError, TypeError, harness_yaml.YamlParseError and feature_corpus.CorpusError; import harness_yaml inside the helper) or that the named task, by id, is absent. The helper reads plans independently of the audit: it never calls _task_files or _classification_task_files.
+      3. Replace _check_live_inventory_reads_no_feature_plan(mod) with _check_live_inventory_named_plans(mod), whose docstring states the true contract: every plan a classification row names resolves, through the same corpus resolution the audit uses, to a readable plan whose named task exists; and the permanent audit depends on nothing outside bin plus exactly those plans. It (a) loads the live classification JSON at TESTS_DIR/canonical-reader-classification.json; (b) checks canonical_reader_live_inventory_has_no_document_plan, condition: the key plan is not in the document; (c) for each (row id, problem) of _named_plan_problems(ROOT, live) checks the name canonical_reader_live_inventory_named_plan_resolves[ROW_ID] (the row id inside the brackets) with condition problem is None and detail problem; (d) in a tempfile.TemporaryDirectory td, copies BIN_DIR to td/.claude/skills/harness/bin with shutil.copytree ignoring __pycache__ exactly as today, then for each distinct plan the rows name copies feature_corpus.corpus_path(ROOT, plan) to os.path.join(td, plan), creating parent directories, and copies nothing else; then result = mod.audit_canonical_readers(td, classification) and checks canonical_reader_audit_holds_on_bin_plus_named_plans with condition result["exit_code"] == 0 and result["classification_findings"] == [] and detail the repr of the findings.
+      4. Add case_canonical_reader_named_plan_contract, registered in CANONICAL_READER_CASES right after the renamed case in item 5: in a tempfile.TemporaryDirectory td write plan.yaml with write_plan(td, PLAN_YAML % "fixture.py", name="plan.yaml") (its one task is T-01); build three single-row documents from _classification_row(_reader_fixture_candidate(), plan=..., task=...): plan "plan.yaml" with task "T-01"; plan "missing/plan.yaml" with task "T-01"; plan "plan.yaml" with task "T-99". Check canonical_reader_named_plan_check_accepts_a_resolving_row (the first row's problem is None), canonical_reader_named_plan_check_refuses_a_missing_plan (the second row's problem is not None) and canonical_reader_named_plan_check_refuses_a_missing_task (the third row's problem is not None and contains T-99), each through _named_plan_problems(td, document).
+      5. Rename case_canonical_reader_reads_no_feature_plan to case_canonical_reader_planless_rows_read_no_plan. Replace its FEAT-71 docstring with one stating that a row without a plan carries its task as provenance and reads no plan. Have it call _check_live_inventory_named_plans(mod) where it called the removed helper, keeping its two existing checks canonical_reader_planless_rows_read_no_plan and canonical_reader_planless_row_is_not_an_ownership_finding unchanged. Update its CANONICAL_READER_CASES entry to the new name.
+      6. Register the canonical cases by default: unpack every member of CANONICAL_READER_CASES, in its order, as the last elements of the CASES tuple, so the default run executes them after the existing cases. Keep the --canonical-reader-self-test selector (it still runs only the canonical tuple) and the --classification-task selector unchanged.
+      Afterwards the file contains none of the phrases names no plan, no feature plan or without a feature corpus.
+
+      Commit, after items 1 to 6: stage only tests/integration/test-check-plan-routes.py and commit it, so that git diff --quiet HEAD -- tests/integration/test-check-plan-routes.py exits 0. The green receipt is recorded after this commit, never before: recorded before it, the blob at the recorded HEAD is the unedited file and differs from the file that ran, by construction, and the verify fails.
+
+      Green receipt, after the commit and before T-02 or any later commit: with the environment sanitised as above, run python3 tests/integration/test-check-plan-routes.py with no arguments and save to notes/green-t01-default-run.txt in this feature directory, in order: a line HEAD SHA, where SHA is the full output of git rev-parse HEAD (the T-01 commit); a line BLOB tests/integration/test-check-plan-routes.py SHA, where SHA is the full output of git rev-parse HEAD:tests/integration/test-check-plan-routes.py; the run's whole stdout and stderr; and a final line exit=CODE. Expected: exit=0, an ALL PASS line and no FAIL line. The receipt binds T-01's green to its own checkpoint: after T-03 moves the code, the live default run is red on canonical_reader_ checks by design until T-04 applies the inventory delta, and the receipt is then the record that the default run was green before the move. The verify binds it from the repository, never from the live file: the recorded HEAD must be an ancestor of HEAD (git merge-base --is-ancestor); the recorded BLOB must equal git rev-parse of RECORDED_HEAD:tests/integration/test-check-plan-routes.py; the recorded HEAD must hold _check_live_inventory_named_plans in that file and neither .claude/skills/harness/bin/canonical_reader_audit.py nor .claude/skills/harness/bin/structure_audit.py; and the receipt must carry a PASS line for every named-plan contract check of the inventory at the recorded HEAD. A receipt naming any other commit or blob fails. The receipt file itself is committed later with the feature notes, which leaves its recorded HEAD unchanged.
+
+      Expected verify exit 0: the green receipt names an ancestor commit holding the T-01 test change and neither new module, its BLOB is that commit's test file, and it shows exit=0, ALL PASS and every named-plan contract check; the live default run carries a PASS line per plan-naming inventory row and for every named-plan contract check; before the move, and again after T-04, the live run passes whole; between T-03 and T-04 (bin holds canonical_reader_audit.py and the inventory is still at base) it fails only on canonical_reader_ checks other than those contract checks; no FEAT-71 check name is left.
+  - id: T-02
+    title: Write the one-time matched-tree CLI-equivalence checker into the feature notes
+    traces:
+    - SC-02
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: The checker grades a DEC-174 gate's cutover and is written by the hand that makes it, before the move it grades.
+    depends_on: [T-01]
+    status: done
+    files:
+    - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py
+      create: true
+    verify: |
+      python3 - <<'PY'
+      import os, re, subprocess, sys
+      env = {k: v for k, v in os.environ.items() if k not in ('CLAUDE_PROJECT_DIR', 'HARNESS_PROJECT_DIR', 'HARNESS_AGENT_TYPE')}
+      git = lambda *a: subprocess.run(['git', *a], capture_output=True, text=True)
+      before = git('status', '--porcelain').stdout
+      r = subprocess.run([sys.executable, '.harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py'], capture_output=True, text=True, timeout=58, env=env)
+      lines = r.stdout.splitlines()
+      assert 'Traceback' not in r.stdout + r.stderr and r.returncode in (0, 1) and git('status', '--porcelain').stdout == before, r.stdout[-2000:] + r.stderr[-2000:]
+      names = [l.split()[1] for l in lines if l.startswith(('PASS ', 'FAIL '))]
+      fails = {l.split()[1] for l in lines if l.startswith('FAIL ')}
+      labels = ['clean:' + x for x in ('route', 'canonical', 'consolidation', 'help', 'both_flags', 'missing_plan')] + ['perturbed:canonical', 'perturbed:consolidation']
+      assert names == ['projection_confined'] + ['cli_equivalent[' + x + ']' for x in labels] and lines.count('--- diff stdout') == 8, names
+      for x in labels:
+          assert any(l.startswith('CLI ' + x + ' ') for l in lines), x
+      mapped = {x: int([l for l in lines if l.startswith('CLI ' + x + ' ')][0].rsplit(' mapped=', 1)[1]) for x in labels}
+      maps = [l for l in lines if l.startswith('MAP ')]
+      assert maps and any('::_classification_document json_file remedy=none: exemption requires a reason' in l for l in lines), maps
+      base = git('merge-base', 'HEAD', 'main').stdout.strip()
+      moved = git('cat-file', '-e', 'HEAD:.claude/skills/harness/bin/canonical_reader_audit.py').returncode == 0
+      stale = moved and git('diff', '--quiet', base, 'HEAD', '--', 'tests/integration/canonical-reader-classification.json').returncode == 0
+      mapre = r'MAP \.claude/skills/harness/bin/check-plan-routes\.py::(\S+) -> \.claude/skills/harness/bin/(?:canonical_reader_audit|structure_audit)\.py::\1'
+      names_mapped = {m.split('::', 1)[1].split(' ', 1)[0] for m in maps if m != 'MAP none'}
+      if moved:
+          assert maps != ['MAP none'] and all(re.fullmatch(mapre, m) for m in maps) and {'_classification_document', '_task_files', 'LEGAL_MAIN_SESSION_TOKEN', '_run_canonical_reader_audit', '_run_consolidation_audit'} <= names_mapped, maps
+      if stale:
+          assert r.returncode == 1 and 'cli_equivalent[clean:canonical]' in fails and fails <= {'cli_equivalent[clean:canonical]', 'cli_equivalent[perturbed:canonical]'}, (maps, sorted(fails))
+      elif moved:
+          assert r.returncode == 0 and lines[-1] == 'ALL PASS' and not fails, sorted(fails)
+          assert mapped['perturbed:canonical'] >= 1, (maps, mapped)
+      else:
+          assert maps == ['MAP none'] and r.returncode == 0 and lines[-1] == 'ALL PASS' and not fails, (maps, sorted(fails))
+      print('PASS T-02: nine CLI-equivalence checks on matched trees; relocated-row finding sampled and rewritten only by the stated map; red only on a stale canonical inventory')
+      PY
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split; never delegate execution (DEC-174: this checker is the cutover proof for an enumerated gate). Consult AGENTS.md; .harness/harness/docs/DECISIONS.md DEC-174 (a library cutover is proven by an identical violation set before and after) and DEC-183; the grilling ruling Q3 at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-plan-routes-split-e2-2026-11-24.md; and notes/research-plan-routes-split.md, whose CLI-equivalence prototype this generalises; and BRIEF.md SC-02, whose fifth sanctioned item (every locator a diagnostic prints for a site in check-plan-routes.py at base, traceback frames included, shows that site's location at the pin, and nothing outside the locators changes) this checker applies mechanically to the file path in the locator field of the recognized formats below, and FAILs on for line numbers and traceback frames. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist in this checkout. This is one-time evidence, never a permanent test (grilling Q3), so it lives in the feature notes and never under tests/. It compares CLI behaviour only. The structural half of the proof (the verbatim move, the inventory delta) is graded by a reviewer reading the diff (SC-01, SC-05), so this script builds no AST-identity, import-shape or inventory check (plan panel cycle 1); its one use of ast is the top-level name listing that builds the relocation map below, which compares no definition.
+
+      Create notes/split-equivalence.py in this feature directory: python3, stdlib only, run from the checkout root. It reads committed content only, never the working tree, and writes nothing outside its own temporary directory. Interface: optional --base REV, default the output of git merge-base HEAD main; optional --head REV, default HEAD. Every git call runs with cwd the checkout root.
+
+      Header output, in order:
+      - BASE SHA and HEAD SHA, each the full sha from git rev-parse.
+      - Four lines TREE base .claude/skills/harness/bin ID, TREE base tests ID, TREE head .claude/skills/harness/bin ID and TREE head tests ID, each ID from git rev-parse REV:PATH.
+      - For each path git diff --name-only BASE HEAD prints, in its order, one line PROJECTED PATH overlaid when the path starts with .claude/skills/harness/bin/ or tests/, else PROJECTED PATH excluded.
+      - The relocation map below: one line MAP OLD -> NEW per entry, in the map's order, or the single line MAP none when it is empty.
+
+      Relocation map: the old-to-new rewrite for exactly the symbols the split moved, and the only rewrite any comparison applies. It is derived from the move, never from the inventory, so a diagnostic that names a moved site through a scanned candidate or a structure-audit node is covered as much as one formatted from an inventory row. ENTRY is .claude/skills/harness/bin/check-plan-routes.py; the two MODULES are .claude/skills/harness/bin/canonical_reader_audit.py and .claude/skills/harness/bin/structure_audit.py. A committed source's top-level names are the names bound by a module-level def, async def or class statement, or by a module-level assignment or annotated assignment to a plain name (each plain name in a tuple target included); import statements bind none. List them with ast.parse of git show REV:PATH, iterating the module body only. A module's moved set is its top-level names at HEAD that are top-level names of ENTRY at BASE and are not top-level names of ENTRY at HEAD. A name in both modules' moved sets belongs to neither. A module absent at HEAD, or a source that fails to load or parse, contributes no name. The map holds one entry ENTRY::NAME -> MODULE::NAME per name in a moved set, sorted by NAME; on the unsplit tree it is empty.
+
+      Locator: the map is applied only to the locator field of a recognized diagnostic format, never by substitution across a line and never to text that merely looks like a locator. The recognized formats are full-line regular expressions matched against a normalized stdout line, each derived from format strings in the base entry .claude/skills/harness/bin/check-plan-routes.py at 261fdf72, as printed by _run_canonical_reader_audit (prefixes CLASSIFICATION and VIOLATION) and _run_consolidation_audit (prefix CONSOLIDATION). In each, LOC stands for (?P<path>[^\s:]+\.py)::(?P<symbol>[^\s:]+), the format's one locator field, at the position the pattern gives it:
+      - R1 ^CLASSIFICATION LOC \S+ remedy=.*$ : the findings opening file::symbol category remedy= in _exemption_finding (both returns), _row_label (so _route_finding and _ownership_finding), _unaccounted_candidate_findings, _migration_row_findings and _classified_disposition_findings, and _scan_reader_tree's relative::<module> source_parse remedy=repair source: finding.
+      - R2 ^CLASSIFICATION LOC \S+: artifact row absent from AST\. PLAN AMENDMENT REQUIRED$ : _unmigrated_row_findings.
+      - R3 ^CLASSIFICATION LOC::[^\s:]+#\d+: observed state=.*$ : a row id followed by ': observed state=', from _canonical_row_findings (both returns) and _t07_terminal_message.
+      - R4 ^CLASSIFICATION duplicate classification row LOC::[^\s:]+#\d+\. PLAN AMENDMENT REQUIRED$ : _row_lookup.
+      - R5 ^VIOLATION LOC \S+ artifact=.*$ : _migration_violations.
+      - R6 ^CONSOLIDATION LOC source_parse: .*$ and ^CONSOLIDATION LOC authority audit CANNOT RUN: .*$ : the structure audit's relative::<module> source_parse findings and its INVARIANTS authority-audit refusal.
+      - R7, line-numbered, ^CONSOLIDATION LOC:(?P<line>\d+) .*$ : every structure-audit finding formatted relative::symbol:lineno (the feature-station literal, second spec_from_file_location, module-level invariant, runner re-parse, INVARIANTS row and authority findings).
+      Applying the map to an old line: when the line matches R1 to R6, its locator field's path equals ENTRY, and the symbol's text before its first dot equals the NAME of a map entry, replace that field's path span, and nothing else, with the entry's MODULE; every other line, and every other character of a rewritten line, is left exactly as it was. Every line no recognized format matches is compared exactly, never rewritten: among them the plan-read diagnostic PLAN: plan cannot be read: ERROR that _classification_task_files formats from a named-plan value (its plan field is input data echoed identically on both sides, so a named plan equal to .claude/skills/harness/bin/check-plan-routes.py::_classification_document is not a locator and is never rewritten), the classification-document diagnostics PATH: classification cannot be read and PATH: classification must be a JSON object, the task-level findings, the summary lines, all route-mode output, every stderr line, and every Python traceback line. Line numbers are not modelled; the checker FAILs on them: a comparison FAILs, with DETAIL unmodelled line-numbered locator: LINE, when any normalized old or new stdout line matches R7 and its path ends with check-plan-routes.py, canonical_reader_audit.py or structure_audit.py, whether or not the two runs otherwise agree. Such a locator is never rewritten, wildcarded or ignored. Traceback frames are not modelled either: a frame line File "PATH", line N, in NAME is compared exactly like any other unrecognized line, so an identical frame passes and a frame the move relocates or shifts FAILs the comparison; this is the exact-comparison rule above, not a separate check. Anything else the checker does not model likewise FAILs through exact comparison, never passes. No other normalization, wildcard or fuzzy match is applied anywhere.
+
+      Matched trees: inside one tempfile.TemporaryDirectory TMP, OLD is TMP/old and NEW is TMP/new. Extract the base commit into each by piping git archive BASE into tar -x -C DIR. Then in NEW remove .claude/skills/harness/bin and tests with shutil.rmtree, and extract git archive HEAD -- .claude/skills/harness/bin tests into NEW the same way. OLD is the base commit; NEW is the base commit with only the head's bin and tests, so every other input, named plans and owner corpus included, is identical on both sides. D is the number of .py files under NEW's .claude/skills/harness/bin minus the number under OLD's (os.walk, skipping __pycache__), computed before any probe is written.
+
+      Runs: E is .claude/skills/harness/bin/check-plan-routes.py. A run of ROOT with ARGV is python3 ROOT/E followed by ARGV, with cwd ROOT, timeout 50 seconds, and an environment copied from os.environ without CLAUDE_PROJECT_DIR, HARNESS_PROJECT_DIR and HARNESS_AGENT_TYPE, plus PYTHONDONTWRITEBYTECODE=1 and HARNESS_PROJECT_DIR=ROOT. Normalize its stdout and stderr by replacing os.path.realpath(ROOT), then ROOT, with the literal text <ROOT>. The old run is of OLD and the new run of NEW.
+
+      Checks, in this order, each printing PASS NAME or FAIL NAME DETAIL:
+      1. projection_confined: every path git diff --name-only BASE HEAD prints starts with .claude/skills/harness/bin/, tests/ or .harness/harness/features/FEAT-2489-plan-routes-split/. DETAIL names the others. It keeps the excluded inputs to the feature's own directory, and it fails if .github/workflows/tests.yml changed.
+      2 to 7, the clean state: cli_equivalent[clean:route], cli_equivalent[clean:canonical], cli_equivalent[clean:consolidation], cli_equivalent[clean:help], cli_equivalent[clean:both_flags] and cli_equivalent[clean:missing_plan], with ARGV respectively: none; --canonical-reader-audit; --consolidation-audit; --help; --canonical-reader-audit --consolidation-audit; does-not-exist/plan.yaml.
+      8 and 9, the perturbed state: write the two probe files below into both OLD's and NEW's .claude/skills/harness/bin; and in both OLD's and NEW's tests/integration/canonical-reader-classification.json, by the same code on each side, load the document with json.load, set reason to the empty string on the one row whose id ends with ::_classification_document::json_file#1, and write the document back with json.dumps(document, indent=2) plus a newline. If either side has no such row or more than one, both perturbed checks FAIL naming the side. Then cli_equivalent[perturbed:canonical] with --canonical-reader-audit and cli_equivalent[perturbed:consolidation] with --consolidation-audit. The blanked reason is the sampled finding that names a relocated row: _classification_document is one of the call sites the move relocates.
+
+      zz_split_probe_a.py holds exactly these lines, ending with a newline (the four-space margin here is this intent's indentation, not the file's):
+          import json
+
+
+          def probe_file(path):
+              try:
+                  with open(path) as handle:
+                      return json.load(handle)
+              except Exception:
+                  return None
+
+
+          def probe_text(text):
+              try:
+                  return json.loads(text)
+              except:
+                  return None
+      zz_split_probe_b.py holds exactly these two lines, ending with a newline, same margin rule:
+          def probe_unparseable(:
+              pass
+      Measured 2026-11-24 at 261fdf72: the base entry over a base archive with these probes and the blanked reason exited 2 with five CLASSIFICATION lines (a source_parse row, the scanned-file manifest, two rows absent from the inventory, and .claude/skills/harness/bin/check-plan-routes.py::_classification_document json_file remedy=none: exemption requires a reason. PLAN AMENDMENT REQUIRED) and 1 with three CONSOLIDATION lines (a source_parse row, two broad catches against ceiling 0, a census parse failure).
+
+      Each cli_equivalent check, before its PASS or FAIL line, prints a line CLI STATE:LABEL argv=REPR old_exit=N new_exit=N mapped=N, where mapped is the number of normalized old stdout and stderr lines the relocation map changes; then a line --- old stdout followed by every normalized old stdout line prefixed with a vertical bar and a space; then --- old stderr likewise; then --- diff stdout followed by every line of difflib.unified_diff(old stdout lines, new stdout lines, 'old', 'new', lineterm='') with the same prefix, on the unmapped old lines; then --- diff stderr likewise. The receipt therefore holds both runs whole: the old run in full and the new run as the old run plus the diff, and the MAP lines state every rewrite the comparison allowed. The check PASSES when all of these hold: the old run printed something on stdout or stderr; in the perturbed state, the old exit is not 0 (the probes landed); the exit codes are equal; no old or new stdout line matches R7 with a path ending in one of the three files; the mapped old stderr lines equal the new stderr lines; and the mapped old stdout lines equal the new stdout lines, in order, except for the canonical label, where every stdout line but the last is equal after mapping and both last lines match the regular expression ^(\d+) unresolved reader site\(s\) across (\d+) Python file\(s\)$ with equal first groups and the new second group minus the old equal to D. cli_equivalent[perturbed:canonical] also requires that the old stdout holds a line containing ::_classification_document json_file remedy=none: exemption requires a reason (the relocated-row finding was sampled) and, when the map is not empty, that mapped is at least 1 (the map rewrote it). No other line may differ and order is compared exactly: the map, applied only to the locator field of R1 to R6, is the only rewrite and covers exactly the moved names. The checker therefore models neither line numbers, nor traceback frames, nor SC-02's location-order exception; a sampled state that printed a moved or shifted line number or frame, or reordered, would FAIL, never pass.
+
+      Every check runs in its own try block, and an exception inside it becomes that check's FAIL carrying the exception type and message. After the checks print ALL PASS and exit 0, or N FAILURE(S): NAMES and exit 1. Once BASE and HEAD resolve, the script exits only 0 or 1 and never prints a traceback.
+
+      Run it once, environment sanitised as above, on the tree as it stands after T-01, with nothing moved: expect MAP none and ALL PASS. Record no receipt in this task. The checker's red is shown for real at T-03, where the stale inventory fails the canonical comparisons, and its final receipt is T-04's.
+
+      Expected verify exit 0: nine distinct checks in order, a CLI block with a mapped count for each of the eight comparisons, the sampled relocated-row finding in the old perturbed run, no change to git status; on the unsplit tree MAP none and ALL PASS; on the moved tree, MAP lines each rewriting check-plan-routes.py::NAME to the same NAME in a module, among them _classification_document, _task_files, LEGAL_MAIN_SESSION_TOKEN and both runners; with the inventory still at base only the canonical comparisons fail; after the inventory delta, perturbed:canonical mapped at least 1 and ALL PASS.
+  - id: T-03
+    title: Move the canonical-reader and structure audits into two gate-imported modules and re-point their tests
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 enumerates check-plan-routes.py and its test file; the cutover that makes the gate use the libraries is direct.
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py#main
+      - path: .claude/skills/harness/bin/canonical_reader_audit.py
+        create: true
+      - path: .claude/skills/harness/bin/structure_audit.py
+        create: true
+      - path: .claude/skills/harness/bin/plan_merge/check.py
+        quote: The established DECISIONS-INDEX.md row
+      - tests/integration/test-check-plan-routes.py#cpr
+      - tests/integration/test-checker-structure-locks.py#_consolidation_findings_for_tree
+      - tests/integration/test-structure-audit-single-pass.py#_in_process
+      - path: tests/unit/test-structure-audit-index.py
+        quote: no_session_or_index_is_retained_at_module_scope
+      - tests/unit/test-broad-catch-census.py#case_feat65_census_reads_executable_embedded_python
+      - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t03-stale-inventory.txt
+        create: true
+    verify: |
+      python3 - <<'PY'
+      import os, subprocess, sys
+      from concurrent.futures import ThreadPoolExecutor
+      env = {k: v for k, v in os.environ.items() if k not in ('CLAUDE_PROJECT_DIR', 'HARNESS_PROJECT_DIR', 'HARNESS_AGENT_TYPE')}
+      git = lambda *a: subprocess.run(['git', *a], capture_output=True, text=True).returncode
+      base = subprocess.run(['git', 'merge-base', 'HEAD', 'main'], capture_output=True, text=True, check=True).stdout.strip()
+      assert git('cat-file', '-e', 'HEAD:.claude/skills/harness/bin/canonical_reader_audit.py') == 0 and git('diff', '--quiet', 'HEAD', '--', '.claude/skills/harness/bin', 'tests') == 0, 'T-03 subjects must be committed'
+      stale = git('diff', '--quiet', base, 'HEAD', '--', 'tests/integration/canonical-reader-classification.json') == 0
+      jobs = [['.harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py'], ['.claude/skills/harness/bin/run_pool.py', '--workers', '4', 'tests/integration/test-checker-structure-locks.py', 'tests/integration/test-structure-audit-single-pass.py', 'tests/unit/test-structure-audit-index.py', 'tests/unit/test-broad-catch-census.py'], ['tests/integration/test-check-plan-routes.py'], ['.claude/skills/harness/bin/check-plan-routes.py', '--canonical-reader-audit']]
+      with ThreadPoolExecutor(4) as ex:
+          eq, pool, t, a = ex.map(lambda argv: subprocess.run([sys.executable, *argv], capture_output=True, text=True, timeout=58, env=env), jobs)
+      el, tl = eq.stdout.splitlines(), t.stdout.splitlines()
+      fails, tf = {l.split()[1] for l in el if l.startswith('FAIL ')}, [l.split()[1] for l in tl if l.startswith('FAIL ')]
+      cls = [l for l in a.stdout.splitlines() if l.startswith('CLASSIFICATION ')]
+      keys = ('scanned-file manifest', 'canonical_reader_audit.py', 'check-plan-routes.py::_classification_document', 'check-plan-routes.py::_task_files')
+      assert sum(l.startswith(('PASS ', 'FAIL ')) for l in el) == 9 and pool.returncode == 0 and 'FAIL ' not in pool.stdout, el[-30:] + pool.stdout.splitlines()[-20:]
+      assert 'PASS canonical_reader_audit_module_loads_from_the_bin_under_test' in tl and 'structure_audit._decisions_index' in open('.claude/skills/harness/bin/plan_merge/check.py').read(), tl[-20:]
+      if stale:
+          assert 'cli_equivalent[clean:canonical]' in fails and fails <= {'cli_equivalent[clean:canonical]', 'cli_equivalent[perturbed:canonical]'} and t.returncode == 1 and tf and all(n.startswith('canonical_reader_') for n in tf), (sorted(fails), tf)
+          assert a.returncode == 2 and cls and all(any(k in l for k in keys) for l in cls) and sum(1 for l in open('.harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t03-stale-inventory.txt').read().splitlines() if l.startswith('exit=') and l[5:].lstrip('-').isdigit()) == 3, cls
+      else:
+          assert not fails and t.returncode == 0 and not tf and a.returncode == 0 and not cls, (sorted(fails), tf, cls)
+      print('PASS T-03: moved and committed; CLI-equivalent except the stale canonical inventory; satellites green')
+      PY
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split; never delegate execution (DEC-174: check-plan-routes.py and tests/integration/test-check-plan-routes.py are enumerated; the cutover that makes the gate use the new libraries is main-session-direct). Consult AGENTS.md; .harness/harness/docs/SPEC.md, the Structure-audit guardrail paragraph (fresh per-invocation state, no module-scope session or index, one traversal); .harness/harness/docs/DECISIONS.md DEC-174, DEC-179 and DEC-183; the grilling ruling Q2 and Q3 at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-plan-routes-split-e2-2026-11-24.md; and notes/research-plan-routes-split.md. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist in this checkout. This task is a move: no audit or route logic changes, and the only changed code value is one T07 key. Do NOT edit tests/integration/canonical-reader-classification.json here (T-04), so the canonical gate is red at the end of this task by design.
+
+      Production:
+      1. Create .claude/skills/harness/bin/canonical_reader_audit.py. Module docstring: the canonical-reader classification audit, moved verbatim from check-plan-routes.py by FEAT-2489; check-plan-routes.py --canonical-reader-audit is the gate that runs it; this module is a gate-imported library under DEC-174's library clause and never imports that entry; it also holds LEGAL_MAIN_SESSION_TOKEN, which the entry's route check imports back. Then import ast, import glob, import json, import os, import artifact_accessors and import feature_corpus, one per line, with no sys.path manipulation (the entry and the tests put bin on sys.path). Then LEGAL_MAIN_SESSION_TOKEN = "main-session-direct", moved from the entry. Then the entry's physical lines from the line READER_CALL_CATEGORIES = { through the last line of def _run_canonical_reader_audit, moved verbatim with their comments and blank lines, in order. The single edit inside them: in T07_TERMINAL_REMEDIES the key ".claude/skills/harness/bin/check-plan-routes.py::_task_files::load_plan#1" becomes ".claude/skills/harness/bin/canonical_reader_audit.py::_task_files::load_plan#1", in the same position with the same value. The process_plan_yaml keys in T07_TERMINAL_REMEDIES and T07_RELOCATED_IMPLEMENTATIONS stay as they are (D-02).
+      2. Create .claude/skills/harness/bin/structure_audit.py. Module docstring: the consolidation, checker-structure, posture and broad-catch audits, moved verbatim from check-plan-routes.py by FEAT-2489; check-plan-routes.py --consolidation-audit and the in-process calls in tests/integration/test-checker-structure-locks.py are its entry paths; it is a gate-imported library under DEC-174's library clause, never imports the entry, and keeps no module-scope session or index (SPEC Structure-audit guardrail). Then import ast, import collections, import os, import re and from canonical_reader_audit import _reader_source_paths. Then the entry's physical lines from the dashed separator comment that opens the FEAT-61 T-05 THE TWO CONSOLIDATION LOCKS block through the last line of def _run_consolidation_audit, moved verbatim, in order.
+      3. .claude/skills/harness/bin/check-plan-routes.py:
+         - Delete the moved lines and the LEGAL_MAIN_SESSION_TOKEN assignment line; keep LEGAL_TOKENS.
+         - Delete import ast, import collections and import json, which nothing left uses; glob and re stay.
+         - Directly after the line import feature_corpus  # noqa: E402, add a one-line comment saying the two audit modes live in these gate-imported libraries, then the two lines from canonical_reader_audit import LEGAL_MAIN_SESSION_TOKEN, _run_canonical_reader_audit  # noqa: E402 and from structure_audit import _run_consolidation_audit  # noqa: E402.
+         - Append one paragraph to the module docstring: the --canonical-reader-audit and --consolidation-audit modes are implemented in canonical_reader_audit.py and structure_audit.py beside this file; they are gate-imported libraries under DEC-174's library clause; this file stays the enumerated gate, and a change that makes it use different audit code is a main-session-direct cutover.
+         - main() keeps every statement unchanged. Directly above its audit-dispatch if line, add one comment line: COUPLED: the Canonical-reader audit step in .github/workflows/tests.yml parses the summary line that canonical_reader_audit._run_canonical_reader_audit prints.
+         - Keep the runner names _run_canonical_reader_audit and _run_consolidation_audit, which tests.yml's comment cites. Re-export no other moved name.
+      4. .claude/skills/harness/bin/plan_merge/check.py: in the comment beginning The established DECISIONS-INDEX.md row, replace check-plan-routes._decisions_index with structure_audit._decisions_index. Change the comment only.
+
+      Tests: re-point imports only, changing no expected value.
+      5. The rule for each of the five files below:
+         - Keep SCRIPT, which is CHECK_PLAN_ROUTES_BIN when set, else the bin entry.
+         - Add AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT)). Then sys.path.insert(0, AUDIT_DIR), and import the module or modules the file needs, canonical_reader_audit and/or structure_audit, by an ordinary import at module scope. A mutant copy of bin named through the override is then what gets tested.
+         - Add one provenance check, named in items 6 to 9, whose condition is that os.path.dirname(os.path.abspath(M.__file__)) == AUDIT_DIR for every audit module M the file imports and, in a file that imports structure_audit, also for sys.modules['canonical_reader_audit'], which structure_audit imports itself. The transitive import is then proven to come from the bin under test too.
+         - Every access to a name now defined in canonical_reader_audit.py or structure_audit.py goes through that module.
+         - Loading check-plan-routes.py through cpr(), _checker() or spec_from_file_location stays only where the file still uses route, main or CLI surface. Where nothing else uses that loader, delete it together with its docstring.
+      6. tests/integration/test-check-plan-routes.py:
+         - Every canonical case and helper that uses mod = cpr(), routes = cpr() or cpr().NAME for a name now in canonical_reader_audit uses canonical_reader_audit instead. These include reader_candidates_from_source, reader_classification_findings, audit_canonical_readers, classification_task_findings, _task_files, _classification_task_files, _scan_reader_tree, _t07_terminal_findings, _row_is_canonical, _ReaderAliasCollector and _qualified_name.
+         - Route uses keep cpr(): legal_task_statuses, MACHINE_LINES_PER_TASK, BUDGETED_FIELDS, finished_stations, _is_shipped and _manifest_deviation.
+         - The provenance check is case_canonical_reader_module_provenance, with check name canonical_reader_audit_module_loads_from_the_bin_under_test, registered first in CANONICAL_READER_CASES.
+         - In case 19b's copy list, add canonical_reader_audit.py and structure_audit.py beside the four modules, and extend its comment to say the entry imports both audit libraries at module scope.
+      7. tests/integration/test-checker-structure-locks.py:
+         - consolidation_findings, feat62_findings, broad_catch_census_paths and BROAD_CATCH_CEILINGS (what _feat64_ceiling_checks receives) come from structure_audit.
+         - run() keeps invoking SCRIPT as the CLI.
+         - The module docstring's first line becomes: Checker-structure locks that live in structure_audit.py (run by check-plan-routes.py --consolidation-audit) but police bin/ as a whole.
+         - The provenance check name is audit_modules_load_from_the_bin_under_test.
+      8. tests/integration/test-structure-audit-single-pass.py:
+         - Replace _checker() and its spec_from_file_location with the structure_audit module. The in-process entries consolidation_findings, feat62_findings and broad_catch_findings are called on structure_audit, under the same Traversal instrumentation.
+         - The --cli-child path still runs SCRIPT through runpy, unchanged.
+         - The docstring sentence about CHECK_PLAN_ROUTES_BIN says it points the test at another checker file and the audit modules beside it.
+         - The provenance check name is audit_modules_load_from_the_bin_under_test.
+      9. tests/unit/test-structure-audit-index.py and tests/unit/test-broad-catch-census.py:
+         - Replace cpr() with the structure_audit module. In the index test, main passes structure_audit to each case, and no_session_or_index_is_retained_at_module_scope iterates vars(structure_audit) against structure_audit._AuditSession and structure_audit._SourceIndex.
+         - Update the docstring lines about the override to say it names the bin directory under test.
+         - The provenance check name in each is audit_modules_load_from_the_bin_under_test.
+
+      Commit, after items 1 to 9: stage only .claude/skills/harness/bin and tests and commit them; the feature notes stay out of this commit. The equivalence checker reads commits, never the working tree.
+
+      Red receipt, after the commit and before T-04: with the environment sanitised (no CLAUDE_PROJECT_DIR, HARNESS_PROJECT_DIR or HARNESS_AGENT_TYPE; PYTHONDONTWRITEBYTECODE=1), run python3 tests/integration/test-check-plan-routes.py, then python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit, then python3 notes/split-equivalence.py from this feature directory. Save the three whole outputs, each followed by exit=CODE, to notes/red-t03-stale-inventory.txt. Expected: the test run exits 1 with FAIL lines only on canonical_reader_ checks; the audit exits 2 with CLASSIFICATION lines naming only the scanned-file manifest, the moved check-plan-routes.py rows or canonical_reader_audit.py; the checker exits 1 failing cli_equivalent[clean:canonical] and at most cli_equivalent[perturbed:canonical] besides. Any other red is a defect in the move: fix it, amend the commit, and never record it.
+
+      Expected verify exit 0: the subjects are committed; the checker's projection, route, consolidation and argv comparisons pass, and only the canonical comparisons fail while the inventory is still at base; the four satellite tests pass; the default test run is red only on canonical_reader_ checks; and the canonical audit's findings are confined to the moved rows, the manifest and the new module.
+  - id: T-04
+    title: Apply the sanctioned inventory delta and record the final equivalence receipt
+    traces:
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    change_type: config
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 the inventory is what the enumerated gate validates itself against; the green half of the cutover proof is made directly.
+    depends_on: [T-03]
+    status: done
+    files:
+    - path: tests/integration/canonical-reader-classification.json
+      quote: '"schema": "canonical-reader-classification/1"'
+    - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/equivalence-final.txt
+      create: true
+    - path: .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t04-suites.txt
+      create: true
+    verify: |
+      python3 - <<'PY'
+      import os, re, shutil, subprocess, sys, tempfile
+      from concurrent.futures import ThreadPoolExecutor
+      env = {k: v for k, v in os.environ.items() if k not in ('CLAUDE_PROJECT_DIR', 'HARNESS_PROJECT_DIR', 'HARNESS_AGENT_TYPE')}
+      N = '.harness/harness/features/FEAT-2489-plan-routes-split/notes/'
+      assert subprocess.run(['git', 'diff', '--quiet', 'HEAD', '--', '.claude/skills/harness/bin', 'tests']).returncode == 0, 'T-04 subjects must be committed'
+      trees = {'TREE head ' + p + ' ' + subprocess.run(['git', 'rev-parse', 'HEAD:' + p], capture_output=True, text=True, check=True).stdout.strip() for p in ('.claude/skills/harness/bin', 'tests')}
+      td = tempfile.mkdtemp()
+      shutil.copytree('.claude/skills/harness/bin', os.path.join(td, 'bin'), ignore=shutil.ignore_patterns('__pycache__'))
+      smoke = dict(env, CHECK_PLAN_ROUTES_BIN=os.path.join(td, 'bin', 'check-plan-routes.py'))
+      jobs = [([N + 'split-equivalence.py'], env), (['.claude/skills/harness/bin/run_pool.py', '--workers', '5', 'tests/integration/test-check-plan-routes.py', 'tests/integration/test-checker-structure-locks.py', 'tests/integration/test-structure-audit-single-pass.py', 'tests/unit/test-structure-audit-index.py', 'tests/unit/test-broad-catch-census.py'], env), (['tests/unit/test-structure-audit-index.py'], smoke), (['tests/unit/test-broad-catch-census.py'], smoke)]
+      with ThreadPoolExecutor(4) as ex:
+          eq, pool, idx, bcc = ex.map(lambda j: subprocess.run([sys.executable, *j[0]], capture_output=True, text=True, timeout=58, env=j[1]), jobs)
+      shutil.rmtree(td)
+      el = eq.stdout.splitlines()
+      assert eq.returncode == 0 and el[-1] == 'ALL PASS' and sum(l.startswith('PASS ') for l in el) == 9 and not [l for l in el if l.startswith('FAIL ')], el[-40:]
+      maps, pc = [l for l in el if l.startswith('MAP ')], [l for l in el if l.startswith('CLI perturbed:canonical ')]
+      assert maps and 'MAP none' not in maps and all(re.fullmatch(r'MAP \.claude/skills/harness/bin/check-plan-routes\.py::(\S+) -> \.claude/skills/harness/bin/(?:canonical_reader_audit|structure_audit)\.py::\1', m) for m in maps) and pc and int(pc[0].rsplit(' mapped=', 1)[1]) >= 1, (maps, pc)
+      for r in (pool, idx, bcc):
+          assert r.returncode == 0 and 'FAIL ' not in r.stdout, r.stdout[-2000:]
+      for r in (idx, bcc):
+          assert 'PASS audit_modules_load_from_the_bin_under_test' in r.stdout.splitlines(), r.stdout[-2000:]
+      final, suites = open(N + 'equivalence-final.txt').read().splitlines(), open(N + 'green-t04-suites.txt').read().splitlines()
+      assert trees <= set(final) and [l for l in final if l.startswith('MAP ')] == maps and pc[0] in final and 'ALL PASS' in final and final[-1] == 'exit=0', final[-5:]
+      assert trees <= set(suites) and suites.count('exit=0') == 3 and not [l for l in suites if l.startswith('FAIL ')], suites[-5:]
+      print('PASS T-04: matched-tree CLI equivalence ALL PASS under the stated relocation map, relocated-row finding rewritten; five audit files and the copied-bin smoke green; receipts bound by tree id')
+      PY
+    intent: |
+      Work directly in PRODUCT Harness checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split; never delegate execution (DEC-174: the inventory is what the enumerated gate validates itself against). Consult AGENTS.md; .harness/harness/docs/DECISIONS.md DEC-174 and DEC-183; the grilling ruling Q3 (sanctioned delta items 1 to 4) at /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-plan-routes-split-e2-2026-11-24.md, and BRIEF.md SC-02's fifth sanctioned item (every locator a diagnostic prints for a site in check-plan-routes.py at base, traceback frames included, shows that site's location at the pin, nothing outside the locators changing); notes/research-plan-routes-split.md. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist in this checkout.
+
+      1. In tests/integration/canonical-reader-classification.json, rewrite in place exactly the rows whose file is .claude/skills/harness/bin/check-plan-routes.py and whose symbol, up to its first dot, is now a top-level definition in canonical_reader_audit.py or structure_audit.py. Select rows by that rule, not by name. At 261fdf72 the rule selects check-plan-routes.py::_classification_document::json_file#1 and check-plan-routes.py::_task_files::load_plan#1. For each such row, set file to that module's path, and replace the id's leading .claude/skills/harness/bin/check-plan-routes.py:: with the module's path followed by ::. Change no other field. Add, remove and reorder no row. Do not use T07_RELOCATED_IMPLEMENTATIONS for this (D-02).
+      2. Insert .claude/skills/harness/bin/canonical_reader_audit.py and .claude/skills/harness/bin/structure_audit.py into scanned_files where the audit's os.walk order puts them: among the top-level bin files, by Python sorted() order of file name. Nothing else in the list changes. Keep the file's existing formatting: two-space indent, the existing key order and a trailing newline.
+      3. With the environment sanitised (no CLAUDE_PROJECT_DIR, HARNESS_PROJECT_DIR or HARNESS_AGENT_TYPE; PYTHONDONTWRITEBYTECODE=1), run python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit. Expect exit 0 and the summary 0 unresolved reader site(s) across 103 Python file(s): two more than the 101 measured at 261fdf72.
+      4. Commit: stage only .claude/skills/harness/bin and tests and commit them, so the subjects are committed and the working tree under bin and tests matches HEAD.
+      5. Equivalence receipt: with the same sanitised environment run python3 notes/split-equivalence.py from this feature directory and save its whole stdout and stderr plus a final line exit=CODE to notes/equivalence-final.txt. It must show the BASE and HEAD shas, the four TREE lines, the PROJECTED lines, a MAP block exactly equal, line for line and in order, to the MAP lines the verify's own live run of the checker prints (no line added, dropped or reordered), its lines each rewriting check-plan-routes.py::NAME to the same NAME in its module for a top-level name the split moved, among them the two names whose rows item 1 relocated (never MAP none), nine PASS lines with a CLI block for each comparison, the CLI perturbed:canonical line with mapped=1 or more (the relocated-row finding was sampled and its locator rewritten by the stated map, nothing looser), and ALL PASS.
+      6. Suites receipt, notes/green-t04-suites.txt, in order: a line HEAD SHA; the lines TREE head .claude/skills/harness/bin ID and TREE head tests ID exactly as the checker prints them; a line === run_pool five audit files, then the whole output of python3 .claude/skills/harness/bin/run_pool.py --workers 5 tests/integration/test-check-plan-routes.py tests/integration/test-checker-structure-locks.py tests/integration/test-structure-audit-single-pass.py tests/unit/test-structure-audit-index.py tests/unit/test-broad-catch-census.py and a line exit=CODE; then the copied-bin smoke. For it, copy .claude/skills/harness/bin to BIN inside a fresh temporary directory outside the checkout with shutil.copytree ignoring __pycache__, set CHECK_PLAN_ROUTES_BIN to BIN/check-plan-routes.py, and run python3 tests/unit/test-structure-audit-index.py and then python3 tests/unit/test-broad-catch-census.py, each under a line === copied bin: FILE and followed by its whole output and exit=CODE. All three must exit 0, with each smoke run printing PASS audit_modules_load_from_the_bin_under_test. Use the sanitised environment throughout.
+
+      Binding: both receipts name the commit they graded and its bin and tests tree ids. Committing the receipts afterwards moves HEAD but not those tree ids, and the reviewer binds the receipts to review_sha by tree-id equality (git rev-parse REVIEW_SHA:.claude/skills/harness/bin and REVIEW_SHA:tests). If a later fix changes either tree, re-run both receipts at the new commit and overwrite them.
+
+      Expected verify exit 0: the subjects are committed; the checker reports ALL PASS on all nine checks under a relocation map that rewrites only the locators of moved check-plan-routes.py names, with the relocated-row finding rewritten in the perturbed canonical run; the five audit test files pass, and the two unit files pass against a copied bin with provenance naming the copy; and both receipts carry the current bin and tests tree ids and their green results, the final receipt's ordered MAP block equal to the live run's.

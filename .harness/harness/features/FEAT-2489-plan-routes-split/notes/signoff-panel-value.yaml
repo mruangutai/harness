@@ -1,0 +1,155 @@
+last_run: r-20261124-6-plan-validator
+cycle: 4
+readers:
+- reader: scope
+  status: ran
+  persona: harness-code-reviewer
+  reason: none
+- reader: should-not-exist
+  status: skipped
+  persona: fable-advisor
+  reason: 'not re-run at cycle 4: its cycle-1 findings were proportionality scope task plus form, trimmed at apply; the c4 dispatch re-reads only scope''s three open findings'
+- reader: design
+  status: skipped
+  persona: harness-ui-reviewer
+  reason: 'not re-run at cycle 4: self-scoped out at cycle 1 (no UI surface); the applies added none'
+- reader: goalcheck
+  status: skipped
+  persona: harness-pm
+  reason: 'not re-run at cycle 4: ran and passed at cycle 1 (r-20261124-1-plan-product, all three perspectives, notes/research-FEAT-2489-plan-routes-split-goalcheck-plan.md); no later cycle dispatched goal-check. Row restored after record-panel replaced panel.readers wholesale and dropped the cycle-1 entry.'
+findings:
+- id: PF-b25f62af28d7aa5f31cd38d635041a54
+  severity: high
+  reader: harness-code-reviewer
+  kind: substance
+  summary: SC-02 narrows the ruled behavior invariant to six argv examples.
+  disposition: resolved
+  resolved_by: T-02
+- id: PF-0e9128df11c14ad97669b28ff451a725
+  severity: high
+  reader: harness-code-reviewer
+  kind: substance
+  summary: T-02/T-04 compare the audit singletons on unequal input trees and retain only last lines.
+  disposition: resolved
+  resolved_by: T-02
+- id: PF-5dbe6b5eecda5efa44c6d9624e826e1a
+  severity: med
+  reader: harness-code-reviewer
+  kind: substance
+  summary: T-03 breaks T-01’s full-suite verify until T-04 restores the inventory.
+  disposition: resolved
+  resolved_by: T-01
+- id: PF-9bc751c71f94a87fdd29e84578ce6c1e
+  severity: low
+  reader: harness-code-reviewer
+  kind: form
+  summary: The receipt's recorded HEAD cannot itself be the later commit that adds the receipt.
+  disposition: resolved
+  resolved_by: T-04
+- id: PF-293c2789a0a14408ae4b9f3ca8df9efb
+  severity: med
+  reader: should-not-exist
+  kind: proportionality
+  summary: T-02's eight structural/AST checks (body partitioning, per-statement dump equality, ordering, import shape, inventory_delta_confined) should not be built; only the CLI-equivalence half is the sanctioned evidence
+  disposition: resolved
+  scope: task
+  resolved_by: T-02
+- id: PF-2f032ea4ded9ab191d46672327dac011
+  severity: low
+  reader: should-not-exist
+  kind: proportionality
+  summary: notes/red-t02-checker-premove.txt and T-02's verify assertions about the checker's exact FAIL set on the unsplit tree should not exist
+  disposition: resolved
+  scope: task
+  resolved_by: T-02
+- id: PF-0dad747f115c481968d48fdfed6ec1e1
+  severity: info
+  reader: should-not-exist
+  kind: form
+  summary: SC-06/SC-07 cause nothing new to be built and are acceptable; they duplicate seed SC-04's satellite-green clause as standalone SCs
+  disposition: resolved
+  resolved_by: T-04
+- id: PF-241126189d3c3d16550a5f09c7532ff3
+  severity: high
+  reader: harness-code-reviewer
+  kind: substance
+  summary: SC-02 forbids a diagnostic filename change that the required verbatim move produces.
+  disposition: resolved
+  resolved_by: T-02
+- id: PF-6efa88c834c89ca43eea0322509703d9
+  severity: med
+  reader: harness-code-reviewer
+  kind: substance
+  summary: PF-5dbe6b5eecda5efa44c6d9624e826e1a closes the immediate overlap only; the historical T-01 green receipt is not bound to its checkpoint.
+  disposition: resolved
+  resolved_by: T-01
+- id: PF-b963b10c2511cecf9ad0f6103be427ea
+  severity: info
+  reader: harness-code-reviewer
+  kind: substance
+  summary: 'PF-b25f62af28d7aa5f31cd38d635041a54 closed for its class: SC-02 now states the invariant for every audited tree state and argv, with a closed delta list; receipt samples are evidence, not scope.'
+  disposition: resolved
+  resolved_by: T-02
+- id: PF-29a7e86075e97f550fb37781a3eb389f
+  severity: info
+  reader: harness-code-reviewer
+  kind: substance
+  summary: 'PF-0e9128df11c14ad97669b28ff451a725 closed for its class: T-02 compares matched archive trees from one base, both streams in full, red at the stale checkpoint and green after T-04.'
+  disposition: resolved
+  resolved_by: T-02
+- id: PF-6159b2359da400c4da7dca8dcaa1415e
+  severity: high
+  reader: harness-code-reviewer
+  kind: substance
+  summary: PF-241126189d3c3d16550a5f09c7532ff3 is closed for the sampled blank-reason finding, not for the class.
+  disposition: resolved
+  resolved_by: T-02
+- id: PF-b14b5b45525eb18f63e04849c88d3838
+  severity: med
+  reader: harness-code-reviewer
+  kind: substance
+  summary: 'New: T-02''s whole-line replacement can mask a change outside the sanctioned fields.'
+  disposition: resolved
+  resolved_by: T-02
+- id: PF-1dd0f7a1329fa5038cc5e6aa8e0c3ecb
+  severity: med
+  reader: harness-code-reviewer
+  kind: substance
+  summary: 'New: T-01''s ancestry/blob binding closes PF-6efa88c834c89ca43eea0322509703d9, but its checkpoint guard checks only one module.'
+  disposition: resolved
+  resolved_by: T-01
+- id: PF-4405ff64a842f05eadbdbad42e358e73
+  severity: info
+  reader: harness-code-reviewer
+  kind: substance
+  summary: 'PF-6efa88c834c89ca43eea0322509703d9 closed for its class: the T-01 receipt must name an ancestor of HEAD and that commit''s test-file blob; nothing compares it against the live file.'
+  disposition: resolved
+  resolved_by: T-01
+- id: PF-daf9c8a84d9cf8f0da611c26b91877eb
+  severity: high
+  reader: harness-code-reviewer
+  kind: substance
+  summary: W3 leaves SC-02 unsatisfiable by a verbatim move on a malformed but readable inventory.
+  disposition: resolved
+  resolved_by: T-02
+- id: PF-13006fd231e087314c1651e5679503d0
+  severity: med
+  reader: harness-code-reviewer
+  kind: substance
+  summary: T-02’s lexical matcher still rewrites data rather than a locator in a plan-read diagnostic.
+  disposition: resolved
+  resolved_by: T-02
+- id: PF-c01acc578f91cbed233d9afea356eea7
+  severity: med
+  reader: harness-code-reviewer
+  kind: substance
+  summary: T-04’s final receipt admits MAP entries not present in the restricted live map.
+  disposition: resolved
+  resolved_by: T-04
+- id: PF-a4d2a5fd9eb5b8976b8ae883e1c4e624
+  severity: low
+  reader: harness-code-reviewer
+  kind: form
+  summary: T-01’s receipt prose still names only one module.
+  disposition: resolved
+  resolved_by: T-01

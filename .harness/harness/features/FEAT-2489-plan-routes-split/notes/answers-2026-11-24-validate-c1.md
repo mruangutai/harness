@@ -1,0 +1,64 @@
+# Validate c1 ESC-2 ruling — FEAT-2489 — 2026-11-24 (the ESC-2 ruling note cited by BRIEF SC-02 item six)
+
+Ruled by fable-advisor (AdvisorE2f_Val1) under the operator's delegated approval.
+
+- **Item six replaced:** SC-02 item six is now the real-tree-equivalence class. Per-file perturbed-tree divergence is sanctioned by construction within two gates:
+  - (i) the real tree at the pin stays base-equal apart from items 1-5;
+  - (ii) the mechanism is per-file state of verbatim-moved rules, or the interpreter's per-file compile/import.
+- **Other BRIEF edits:** a Verification gaps disclosure was added, and an `amended:` line was hand-inserted in the Approval block.
+- **No build:** nothing is built and no rework round is consumed.
+- **Backlog:**
+  - sign-approval amendment marks;
+  - the reviewer write-guard vs temp-dir replay, together with QA's measurement-only verdict shape.
+- **Not a gate:** C7 is a distill item.
+
+## Full ruling (verbatim)
+
+All materials read and verified at source: the c2 digest whole (330 lines), the census, my c0 ruling, QA's probe (P1/P2/P4 measured whole-process), the code-reviewer's c2 note, the goalcheck c2 note, BRIEF item six verbatim (`BRIEF.md:33:raw`), item five verbatim (`:32:raw`), the non-goals, `_ReaderAliasCollector` at source (`canonical_reader_audit.py:114-142, 199-210` — one file-wide dict, last write wins, applied after full collection; exactly as reported), and the Approval-block machinery (`plan_merge/approval.py:348-400`, `check_state/ctx.py:117-121`, `check_state/brief.py`, `worktree_terminal.py:404-407`) for Q3. Ruling follows; Main records it as the ESC-2 answers note and applies the prescribed edits (I am read-only).
+
+# Advisor ruling on validate ESC-2 — FEAT-2489 @ 25132b7e (fable-advisor, under the operator's delegated approval, 2026-11-24)
+
+**ESC-2 is resolved as option (a), executed as a REPLACEMENT of item six, not a seventh bullet. The escalation is correct, and the most important admission comes first: the error being corrected is mine.** My c0 amendment asserted bounds — "no tree clean at base gains a finding at the pin and no finding-triggering tree at base goes clean at the pin; mode exit codes are unchanged" — that are properties of the *counting and parse-scope* members only. I verified at `canonical_reader_audit.py:114-142` that the alias map is neither: it is name-resolution state, and P1/P2 falsify both bounds whole-process. A class defined by enumerating mechanisms ("aggregates, ceilings, or scopes a quantity") plus bounds borrowed from two instances was Feature E's mistake repeated once; a seventh mechanism-bullet would repeat it twice. The replacement below is written so that **no further member can surface**, because the class is defined by what SC-01 already proves — unchanged rules applied to the new layout — not by any list. The census is evidence for it, never its definition.
+
+## Authority
+
+Operator's delegated approval (BRIEF `## Approval`, 2026-11-24); my c0 ruling's Q1 constraint ("no new member without re-sign") is what ESC-2 triggers, and the same delegation that signed item six replaces it. C5 is not breached: item five ships unedited, and this is signer-side re-statement of a signer-authored item, not build-side narrowing. G-06 routing (bin/ is main-session-direct; BRIEF is signer-owned) is correct — this never belonged in a fix round.
+
+## Gap
+
+1. Item six's fail-closed and equal-exit bounds are false in general: P1 (canonical 2→0), P2 (0→2), measured whole-process by QA and in-memory by the reviewer, both directions via the file-wide last-write-wins alias map. The pin is the more accurate reading in each measured case; base's behaviour was the analyzer's own cross-scope imprecision.
+2. P4: item five sanctions relocated frames, not *added* ones; the pin's eager import (`check-plan-routes.py:44`) adds a Traceback header plus one frame (4 lines) on a malformed-module tree, exits 1/1. The receipt's pristine-runner substitution concealed it — disclosed, but concealing.
+3. The census (read-only, exhaustive, 29 members across A–E) establishes the fact the contract must be re-anchored on: **on the real tree, no member changes any finding, exit or stderr; only the sanctioned deltas differ** (101→103, locators, two inventory identities). Carriers: `equivalence-final.txt` 9/9 PASS at the pin's identical trees, probe pristine controls 0/0 both modes.
+4. The record gaps: Approval block unmarked (A-1/OQ-2); Verification gaps silent on what the seam receipt does not measure (A-2) — exactly where CR-3 lived.
+
+## Ruling
+
+**Q1 — (a), as a replacement.** (b) is wrong, not merely out of scope: both measured directions show the pin *more accurate*; making the collector scope-aware changes audit semantics (non-goal), changes base behaviour, and — worse — (c)-style emulation of the leak would re-implant a defect. (c) abandons a verbatim-proven, green feature. **BRIEF.md line 33's bullet is replaced, verbatim, by:**
+
+> - (amended at validate c0 ESC-1; replaced at validate c2 ESC-2, fable-advisor, notes/answers-2026-11-24-validate-c0.md and the ESC-2 ruling note) The split's one behavioural grant: the pin runs the base's audit rules verbatim (SC-01), applied per physical file to the pin's file layout, with the entry importing both modules eagerly. On the tree this feature ships — base changed by nothing but SC-01's move and SC-05's inventory and T07 rewrite — every observable of every mode equals base except items one to five; the enumeration of every per-file state and its real-tree effect is notes/per-file-state-census.md, and the measured carriers are notes/equivalence-final.txt and the pristine controls in notes/qa-c2-cr3-probe.md. On any other tree, the contract is only that each side reports what its own file layout gives under those unchanged rules: wherever an analysis or the interpreter keeps state per physical file — parse and import scope, counts against ceilings, alias and name-resolution maps, candidate ordinals and identities, session caches, enclosing-symbol lookup; the census enumerates them at the pin, as illustration never as a list — a perturbation straddling the new seam may change findings, exit (within each mode's unchanged code set: route 0/1/2, canonical 0/1/2, consolidation 0/1, compile or import failure 1) and stderr in either direction, exactly where base's result depended on state crossing what is now a file boundary (measured: notes/qa-c2-cr3-probe.md P1 2→0, P2 0→2, P4 exits 1/1 with the eager import's Traceback header and one added frame; notes/seam-straddle-receipt.txt for the counting and parse-scope members, whose conservation bound holds for them alone). Dispatch, argv handling and each mode's output formats are base's wherever they execute; a tree whose split bin fails to compile or import exits 1 with the interpreter's traceback, whose frames are locators (item five) and whose added or removed frames follow the layout. No promise of base-equal exits on perturbed trees is made: the audits judge the tree in front of them with unchanged rules, and emulating base's cross-file alias leakage is neither promised nor permitted. Evidence stays receipts and inspection; split-equivalence.py gains no sample and no widening (C1).
+
+The Feature E test applies: any future divergence is inside this item **by construction** iff (i) the real tree at the pin remains base-equal modulo items one to five, and (ii) the mechanism is per-file state of verbatim-moved rules or the interpreter's per-file compile/import. Nothing outside those two gates is pre-ruled (see Q4).
+
+**Q2 — nothing is built.** Every evidentiary artifact already exists: `equivalence-final.txt` (real-tree equality, clean + perturbed, 9 PASS), the census (the enumeration), `qa-c2-cr3-probe.md` (P1/P2/P4, with its own controls and the 93/93 receipt replay). No new receipt, no checker change, no bin/tests edit. The seam receipt is a historical record and is **not edited**; its conservation point 5 is superseded in the BRIEF, not rewritten in the note. Two BRIEF text edits accompany the replacement, closing A-2 — append to `## Verification gaps`:
+
+> - **Item six (per-file state):** measured only at its illustrations — the seam receipt (broad-catch straddle, reader parse scope; its conservation point 5 holds for those members alone) and notes/qa-c2-cr3-probe.md (alias map in both exit directions, P4's added import frames). The class itself is carried by notes/per-file-state-census.md (every per-file member, its direction and its real-tree effect: none) plus SC-01's verbatim-move inspection. No automated check samples the class, by design (C1).
+
+**Q3 — hand edit of the Approval block is permitted, and is the only mechanism.** Verified: `_signed_brief_text` returns None on `status: approved` (approval.py:385) and its design comment pins that deliberately ("the GOAL's signature… left byte-identical rather than restamped"); there is no amend verb, and revoke would reset the plan signature, which stays undisturbed. The edit is safe against every consumer I checked: `ctx.approved()` only searches the block for `status: approved`; `_BRIEF_KEY_RE` matches only `status|approved-by|date`, and the writer explicitly **keeps** any other line on a future signing (approval.py:388-390, "any other line in the block (a note, a blank) is kept"); `worktree_terminal.py:404` reads by key. Exact text, one line, inserted directly after `date: 2026-11-24`:
+
+```
+amended: 2026-11-24 SC-02 item six (ESC-1 added; ESC-2 replaced) by fable-advisor under the operator's delegated approval
+```
+
+This gives the goalcheck's A-1 failure scenario its content-bound mark: an unsigned future edit to item six would no longer look identical to a signed one. The generic verb question (should sign-approval support amendment marks) stays a **harness-owner backlog item** (goalcheck OQ-1 / digest OQ-2) — do not solve it inside this feature. `[unverified]`: check_state's INV-1/2 bodies beyond the grep'd anchors; the grep shows they key on the block's presence and `status: approved` shape only, consistent with the above.
+
+**Q4 — signer work, no round consumed; 1 of 2 rounds remains used.** The whole remedy is BRIEF text (signer-owned, no `files:` names it) applied by the main session verbatim, then committed; no bin/, tests/ or checker change exists to assign a builder. Order: this ruling recorded as the answers note → the three BRIEF edits in one commit naming ESC-2 → validate c3. On the next validate: a new perturbed-tree divergence passing both Q1 gates is **sanctioned, graded met, no escalation, no re-sign** — the validator cites the census (or extends it in notes if the member is genuinely absent there; extending the census is evidence maintenance, not a contract change). A divergence failing gate (i) — any real-tree observable off the items-one-to-five list — or gate (ii) — a rule whose behaviour changed rather than relocated — is a genuine SC-01/SC-02 breach and escalates normally. The wording pre-rules the class; it does not pre-forgive defects.
+
+**Q5 — the rest of the digest.**
+- **LEAD-P4:** folded in; sanctioned by the replacement's compile/import clause, with the probe as its receipt. The pristine-runner substitution in the original seam receipt stands as disclosed-and-now-superseded; no rewrite.
+- **P-04 dual severity (reviewer high / lead low-to-med):** both stand recorded; the lead's operational reading — pin strictly more accurate, no gate opened against truth — is the one this ruling acts on, and the reviewer's rating is what correctly forced the class-wide fix. No revision.
+- **C7 partial:** distill/record item for Main (pm record-panel observation into `observations/harness-pm.md`, then distill), not a gate on this diff and not signer scope. Route before close (digest OQ-4).
+- **OQ-3 (reviewer write-guard vs temp-dir replay; QA measurement-only verdict shape):** harness-owner; file one backlog ticket alongside #2525/#2526. Non-blocking here — QA's whole-process measurement covered the gap this cycle.
+- **Naming drift, for the record:** the dispatch counts cycles c0/c1 while the notes are suffixed c1/c2, and my c0 note's header says AdvisorE2e_Val0 against its sign line's AdvisorE2b_Signoff. The amendment line and this ruling key on ESC ids and pins, which are unambiguous; edit no historical note.
+- Nothing else in the digest requires a ruling: CR-2 closed by three readers, no regressions be0807b0..25132b7e, SEC-1 = #2526, #2519 closes via the PR as previously ruled.
+
+**Sign line: ESC-2 resolved as replace-and-re-mark per the texts above — item six replaced by the real-tree-equivalence class, Verification gaps disclosure added, `amended:` line hand-inserted in `## Approval`; nothing built, no round consumed; future per-file perturbed-tree members pre-ruled inside the two gates; C7 and OQ-3 routed, not ruled.** — fable-advisor, under the operator's delegated approval, 2026-11-24.

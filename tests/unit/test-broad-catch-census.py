@@ -5,7 +5,8 @@ T-02). The integration suite proves the LOCK through isolated mutants of the who
 this suite proves the FUNCTIONS on in-memory sources -- what counts as a broad catch, what
 a ceiling finding says, and which `git:`/`gh:` resource an argv reads as.
 
-Loaded from CHECK_PLAN_ROUTES_BIN when set (mutation testing), else the sibling bin/.
+CHECK_PLAN_ROUTES_BIN, when set (mutation testing), names the checker whose bin directory is
+under test, else the sibling bin/.
 Runnable directly with python3, no pytest.
 """
 import ast
@@ -18,6 +19,9 @@ ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(BIN_DIR, "check-plan-routes.py")
 sys.path.insert(0, BIN_DIR)
+AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT))
+sys.path.insert(0, AUDIT_DIR)
+import structure_audit  # noqa: E402
 
 failures = []
 
@@ -27,13 +31,6 @@ def check(name, cond, detail=""):
     if not cond:
         failures.append(name)
 
-
-def cpr():
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("_census_under_test", SCRIPT)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
 
 
 def _count(mod, source):
@@ -55,7 +52,7 @@ def case_feat65_census_reads_executable_embedded_python():
     is a program the file runs through another interpreter; its broad catches count against
     the carrier file. Prose, docstrings and non-Python strings do not parse into a try and
     add nothing."""
-    mod = cpr()
+    mod = structure_audit
     check("an embedded `-c` program's broad catch counts against its carrier",
           _count(mod, _EMBEDDED) == 1, repr(_count(mod, _EMBEDDED)))
     check("an embedded program with a typed catch adds nothing",
@@ -69,7 +66,7 @@ def case_feat65_census_reads_executable_embedded_python():
 def case_broad_catch_count_counts_exactly_the_two_syntaxes():
     """`except Exception` and bare `except:` count; a typed catch, a tuple, and a SUBCLASS of
     Exception do not -- the census is about the catch that hides bugs, not every handler."""
-    mod = cpr()
+    mod = structure_audit
     src = ("try:\n    pass\nexcept Exception:\n    pass\n"
            "try:\n    pass\nexcept:\n    pass\n"
            "try:\n    pass\nexcept OSError:\n    pass\n"
@@ -84,7 +81,7 @@ def case_broad_catch_count_counts_exactly_the_two_syntaxes():
 
 
 def case_broad_catch_finding_compares_a_file_to_its_own_ceiling():
-    mod = cpr()
+    mod = structure_audit
     ceiling = mod.BROAD_CATCH_CEILINGS["harness_boundary.py"]
     check("at the ceiling is clean", mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", ceiling) is None)
     check("below the ceiling is clean (a reduction never fails the census)",
@@ -104,7 +101,7 @@ def case_broad_catch_finding_compares_a_file_to_its_own_ceiling():
 def case_feat64_wave4_ceilings_are_zero():
     """FEAT-64 (SC-04): the wave-4 libs and tools carry NO allowance -- absent from the table or
     explicitly zero -- and harness_boundary.py's two designed catches are the whole budget."""
-    mod = cpr()
+    mod = structure_audit
     for name in ("factory_decompose.py", "feature_schema.py", "gh_cost_log.py", "handoff_done_when.py",
                  "handoff_policy.py", "harness_yaml.py", "run_identity.py", "worktree_terminal.py",
                  "board-station.py", "check-omp-port.py", "check-plan-routes.py", "check-skill-weight.py",
@@ -128,7 +125,7 @@ def case_feat65_hooks_have_no_allowance():
     """FEAT-65 (SC-04): the ceiling table is exactly harness_boundary.py's two designed catches;
     every hook is unlisted, so its ceiling is the default zero and one catch is a finding;
     the live census of all eleven hooks is zero and of harness_boundary.py exactly two."""
-    mod = cpr()
+    mod = structure_audit
     check("FEAT-65: the ceiling table is exactly {harness_boundary.py: 2}",
           mod.BROAD_CATCH_CEILINGS == {"harness_boundary.py": 2}, repr(mod.BROAD_CATCH_CEILINGS))
     for name in _FEAT65_HOOKS:
@@ -186,7 +183,7 @@ def case_spawn_resource_reads_git_and_gh_through_run_and_spawn():
     list` is git:worktree-list, `gh auth status` is gh:auth, a `gh api` endpoint is its last
     path segment, and the board module's query is gh:board. Both `subprocess.run` and the
     checker's own `ctx.spawn` are spawn callees (FEAT-63 T-01 moved every read behind spawn)."""
-    mod = cpr()
+    mod = structure_audit
     rows = (
         ('subprocess.run(["git", "-C", root, "show", f"{sha}:{p}"], capture_output=True)', "git:show"),
         ('ctx.spawn(["git", "-C", root, "status", "--porcelain=v1", "-z"], capture_output=True)', "git:status"),
@@ -204,6 +201,10 @@ def case_spawn_resource_reads_git_and_gh_through_run_and_spawn():
 
 
 def main():
+    check("audit_modules_load_from_the_bin_under_test",
+          all(os.path.dirname(os.path.abspath(m.__file__)) == AUDIT_DIR
+              for m in (structure_audit, sys.modules["canonical_reader_audit"])),
+          f"{structure_audit.__file__}, {sys.modules['canonical_reader_audit'].__file__}")
     case_broad_catch_count_counts_exactly_the_two_syntaxes()
     case_broad_catch_finding_compares_a_file_to_its_own_ceiling()
     case_feat64_wave4_ceilings_are_zero()
