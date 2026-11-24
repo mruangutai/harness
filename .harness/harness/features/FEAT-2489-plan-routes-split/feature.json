@@ -1,0 +1,167 @@
+{
+  "feature_id": "FEAT-2489-plan-routes-split",
+  "branch": "feat/FEAT-2489-plan-routes-split",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261124-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-24T13:28:16+00:00",
+      "tokens": 204347,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-1-plan-product/digest.md",
+        "sha256": "99988362869f7150ad539486730780c2b7e7682a63c9295b8a6fb2744678b6a4"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-24T14:10:28+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261124-2-plan-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-24T14:10:38+00:00",
+      "tokens": 82750,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-2-plan-validator/digest.md",
+        "sha256": "e80333fb09e3a75f595360b81081abd0c287e2e75794aa8d2da159c6812c758b"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-24T14:17:28+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261124-3-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-24T14:17:34+00:00",
+      "tokens": 65895,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-3-plan-product/digest.md",
+        "sha256": "6eada7344f3063b1fccb437a9884237299f0971eefe62ae0625ae3818301d8e0"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-24T14:28:15+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261124-4-plan-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-24T14:28:16+00:00",
+      "tokens": 79159,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-4-plan-validator/digest.md",
+        "sha256": "5d3462347ed596d5e0c8feab3a549cea7d0aba090cd6184db630cf21e6ffb611"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-24T14:33:55+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261124-5-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-24T14:33:56+00:00",
+      "tokens": 75102,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-5-plan-product/digest.md",
+        "sha256": "462663108312641ed5299d48025dd40b1faca2220c134f628f3ee3922c5d18c2"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-24T14:45:24+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261124-6-plan-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-24T14:45:25+00:00",
+      "tokens": 83274,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-6-plan-validator/digest.md",
+        "sha256": "bf5a5832ad2e5a27c69def7ece19fa6de5839148fbac63ebe773c8d5abadd6e6"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-24T14:51:23+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261124-7-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-24T14:51:25+00:00",
+      "tokens": 82560,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261124-7-plan-product/digest.md",
+        "sha256": "5f8420c99343ed7e3191329cd5744a1cbc70ff1eaf4ff10e223d3b41c950e92d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-24T14:59:48+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-24T13:28:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "About 1,711 lines move into two new modules with coordinated inventory, T07 table and four test files edits under an ordering constraint; every task main-session-direct (DEC-174)"
+    },
+    {
+      "at": "2026-11-24T14:10:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan panel cycle 2: scope re-read over T-01/T-02/T-04",
+      "reason": "Scope reader raised 2 high substance findings (PF-b25f, PF-0e91); pm applied them; a substance finding re-panels over the tasks it names"
+    },
+    {
+      "at": "2026-11-24T14:17:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Cycle-2 scope read closed 2 highs by class and left 1 med residual plus 1 new high on SC-02 delta wording; pm applies both and the Q3 wording departure goes to the signer as one question"
+    },
+    {
+      "at": "2026-11-24T14:33:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan apply c3: SC-02 item 5 by relocated identity, T-02 map, T-01 guard",
+      "reason": "Cycle-3 scope read: PF-2411 closed for the sample only, plus 2 new med on T-02 map and T-01 guard; all three have concrete reader remedies, so pm applies once more before the question goes up"
+    },
+    {
+      "at": "2026-11-24T14:51:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan apply c4, no re-panel: SC-02 every printed site, T-02 locator fields, T-04 MAP equality",
+      "reason": "Cycle-4 final scope read left 1 high (traceback frames) and 2 med with exact reader remedies; pm applies them once, no further panel, and the residual goes to the signer as one question"
+    },
+    {
+      "at": "2026-11-24T14:59:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "Three scope re-reads each found a further forced member of SC-02's delta class; remedies are applied and the departure from Q3's closed list is the signer's to accept, so no fourth panel"
+    }
+  ],
+  "mission": "plan"
+}
