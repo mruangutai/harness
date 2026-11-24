@@ -153,13 +153,27 @@
       "kind": "amendment",
       "decision": "T-01.intent",
       "reason": "fix c3 per fable-advisor AdvisorE4Esc (validate c2 MF-10): check-domain sidecar denial added to T-01; files gain check-domain.py and its test"
+    },
+    {
+      "at": "2026-11-24T03:34:29.450549+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "fix c4 per fable-advisor AdvisorE5Esc (validate c3 MF-12): discovery narrowed to the one producer name; verify gains test-check-domain-approval.py (G-04)"
+    },
+    {
+      "at": "2026-11-24T03:34:31.245380+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "fix c4 per fable-advisor AdvisorE5Esc (validate c3 MF-12): discovery narrowed to the one producer name; verify gains test-check-domain-approval.py (G-04)"
     }
   ],
   "mission": "plan",
   "rework": {
-    "rounds": 3,
-    "wall_clock_minutes": 120,
-    "decision": "notes/answers-2026-11-24-validate-c2.md#oq-1"
+    "rounds": 4,
+    "wall_clock_minutes": 150,
+    "decision": "notes/answers-2026-11-24-validate-c3.md#oq-1"
   },
   "signed_task_hashes": {
     "T-01": "527bd03ebb30bd518e28a545a9140f5821c0ac737e4c1f59f17ce36b499bcc6e",
