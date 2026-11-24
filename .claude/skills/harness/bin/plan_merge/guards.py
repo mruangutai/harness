@@ -268,33 +268,55 @@ def _refuse_governed_agent(action, where):
          "shell form of this call can reach a write.")
 
 
+def _silence(stream):
+    """Point a stream that failed at os.devnull (dup2 over its fileno), so the bytes buffered
+    stdio still holds — which interpreter finalization flushes again, exiting 120 when that
+    flush fails too (validate c2 MF-9) — drain into nothing. Best-effort: a closed stream's
+    fileno() raises ValueError, and then there is no buffer left to retry."""
+    with contextlib.suppress(OSError, ValueError):
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        try:
+            os.dup2(devnull, stream.fileno())
+        finally:
+            os.close(devnull)
+
+
+def _note_on_stderr(line):
+    """One best-effort stderr line, flushed; a stderr that cannot take it is _silence'd."""
+    try:
+        print(line, file=sys.stderr)
+        sys.stderr.flush()
+    except (OSError, ValueError):
+        _silence(sys.stderr)
+
+
 def _relay_after_commit(path):
     """The changed-state feedback for a write that has committed, advisory only: the write has
-    landed, so a failure here is one stderr line (itself best-effort) and never a refusal or a
-    traceback. changed_state_feedback already absorbs its subprocess's (OSError,
-    SubprocessError); what is left is printing to stderr — OSError on a broken pipe, ValueError
-    on a closed stream — and the fallback line can meet either on the same stream."""
+    landed, so a failure here is one stderr line (itself best-effort, _note_on_stderr) and
+    never a refusal, a traceback or a nonzero exit. changed_state_feedback already absorbs its
+    subprocess's (OSError, SubprocessError); what is left is printing to stderr — OSError on a
+    broken pipe, ValueError on a closed stream — and the fallback line can meet either on the
+    same stream."""
     try:
         harness_boundary.relay_changed_state_feedback(path)
     except (OSError, ValueError) as exc:
-        with contextlib.suppress(OSError, ValueError):
-            print("plan-merge: changed-state feedback after the committed write failed: "
-                  f"{type(exc).__name__}: {exc}", file=sys.stderr)
+        _note_on_stderr("plan-merge: changed-state feedback after the committed write failed: "
+                        f"{type(exc).__name__}: {exc}")
 
 
 def _print_receipts(*lines):
     """A committed write's receipts, one per line on stdout, flushed. The write has landed, so
     a stdout that cannot take them — closed (ValueError) or a broken pipe (OSError) — costs
-    the receipts, never the outcome: one best-effort stderr line says the write landed, and
-    the verb still exits 0."""
+    the receipts, never the outcome: stdout is _silence'd so finalization's flush cannot fail,
+    one best-effort stderr line says the write landed, and the verb still exits 0."""
     try:
         for line in lines:
             print(line)
         sys.stdout.flush()
     except (OSError, ValueError) as exc:
-        with contextlib.suppress(OSError, ValueError):
-            print("plan-merge: the write landed, but its receipts could not be printed: "
-                  f"{type(exc).__name__}: {exc}", file=sys.stderr)
+        _silence(sys.stdout)
+        _note_on_stderr("plan-merge: the write landed, but its receipts could not be printed: "
+                        f"{type(exc).__name__}: {exc}")
 
 
 def _locked_plan_update(resolved, transform):

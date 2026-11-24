@@ -1,0 +1,13 @@
+ok    T-09 13: an orchestrator Write of plan.yaml.harness-merge.journal (as typed) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of plan.yaml.harness-merge.journal (case-folded) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of plan.yaml.harness-merge.journal (symlink) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of plan.yaml.harness-merge.journal (hardlink) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: notes/plan.yaml.harness-merge.journal is outside the feature-dir grammar and still ALLOWED
+ok    T-09 13: an orchestrator Write of feature.json.harness-merge.journal (as typed) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of feature.json.harness-merge.journal (case-folded) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of feature.json.harness-merge.journal (symlink) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of feature.json.harness-merge.journal (hardlink) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: notes/feature.json.harness-merge.journal is outside the feature-dir grammar and still ALLOWED
+ok    T-09 13: the sidecar names are harness_merge's JOURNAL_PAIR plus JOURNAL_SUFFIX
+ok    T-09 13: plain plan.yaml keeps its own one-writer denial, not the journal's
+ok    1: a governed agent flipping approval.status is DENIED

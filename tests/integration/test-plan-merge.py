@@ -5186,14 +5186,24 @@ def case_2488_a_closed_stderr_after_the_commit_is_advisory():
         shutil.rmtree(root, ignore_errors=True)
 
 
-def _run_into_a_broken_pipe(argv):
-    """The CLI with stdout a pipe whose reader has already gone, as when piped into a `head`
-    that exited: every stdout write raises BrokenPipeError. stderr is captured."""
+def _buffered_env():
+    """The environment with PYTHONUNBUFFERED explicitly removed (env -u, not inherited
+    absence): buffered stdio keeps an unflushed buffer that finalization retries (MF-9)."""
+    env = dict(os.environ)
+    env.pop("PYTHONUNBUFFERED", None)
+    return env
+
+
+def _run_into_a_broken_pipe(argv, broken="stdout"):
+    """The CLI, buffered (_buffered_env), with `broken` ("stdout" or "stderr") a pipe whose
+    reader has already gone, as when piped into a `head` that exited: every write to it
+    raises BrokenPipeError. The other stream is captured."""
     read_end, write_end = os.pipe()
     os.close(read_end)
+    streams = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, broken: write_end}
     try:
-        return subprocess.run([sys.executable, CLI, *argv], stdout=write_end,
-                              stderr=subprocess.PIPE, text=True)
+        return subprocess.run([sys.executable, CLI, *argv], text=True, env=_buffered_env(),
+                              **streams)
     finally:
         os.close(write_end)
 
@@ -5209,10 +5219,11 @@ _RECEIPT_VERBS = (("record-amendments", _record_argv, "amended"),
 
 
 def case_2488_receipts_into_a_broken_pipe_never_fail_the_commit():
-    """validate c1 MF-7's audit: the AMENDED/APPLIED receipts are printed after the commit, so
-    a stdout that cannot take them costs the receipts, never the outcome. Exit 0 (the signed
-    contract for a landed amendment), no Traceback, the amendment landed once with no journal,
-    and stderr says the write landed."""
+    """validate c1 MF-7's audit, buffered per validate c2 MF-9: the AMENDED/APPLIED receipts
+    are printed after the commit, so a stdout that cannot take them costs the receipts, never
+    the outcome. With PYTHONUNBUFFERED stripped, exit 0 (the signed contract for a landed
+    amendment, not finalization's 120), no Traceback, the amendment landed once with no
+    journal, and stderr says the write landed."""
     for verb, argv_of, now in _RECEIPT_VERBS:
         label = f"2488/l/{verb}"
         root, plan, fj = _signed_pair(label)
@@ -5225,6 +5236,35 @@ def case_2488_receipts_into_a_broken_pipe_never_fail_the_commit():
             check(f"{label}: the amendment landed, ledgered exactly once, no journal",
                   _carries_once(plan, fj, now) and _no_journal(plan), read(fj))
             check(f"{label}: stderr says the write landed", "landed" in r.stderr, r.stderr)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+
+def _plant_a_feedback_row(root):
+    """Make `root` a checkout changed_state_feedback runs in — MARKER plus a stub
+    check-state.py that prints one row — so the child's relay has a line for stderr."""
+    bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
+    os.makedirs(bin_dir)
+    write(os.path.join(root, ".harness", "team-config.yaml"), "version: 1\n")
+    write(os.path.join(bin_dir, "check-state.py"),
+          "print('check-state --changed: one row the relay prints')\n")
+
+
+def case_2488_feedback_into_a_broken_stderr_never_fails_the_commit():
+    """validate c2 MF-9's stderr variant: a real pair write (record-amendments and a ledgered
+    amend) run buffered with a relay row to print (_plant_a_feedback_row) and fd 2 a broken
+    pipe, so the relay and its fallback line both fail. Exit 0, not finalization's 120; both
+    files landed once, no journal."""
+    for verb, argv_of, now in _RECEIPT_VERBS:
+        label = f"2488/m/{verb}"
+        root, plan, fj = _signed_pair(label)
+        _plant_a_feedback_row(root)
+        try:
+            sha, _ = _sha_of(plan, "tasks", "T-01", "intent")
+            r = _run_into_a_broken_pipe(argv_of(plan, root, sha), broken="stderr")
+            check(f"{label}: exits 0", r.returncode == 0, f"rc={r.returncode} {r.stdout!r}")
+            check(f"{label}: the amendment landed, ledgered exactly once, no journal",
+                  _carries_once(plan, fj, now) and _no_journal(plan), read(fj))
         finally:
             shutil.rmtree(root, ignore_errors=True)
 
@@ -5882,6 +5922,7 @@ CASES = (
     case_2488_feedback_failure_after_the_commit_is_advisory,
     case_2488_a_closed_stderr_after_the_commit_is_advisory,
     case_2488_receipts_into_a_broken_pipe_never_fail_the_commit,
+    case_2488_feedback_into_a_broken_stderr_never_fails_the_commit,
     case_2488_a_ledger_failure_after_publish_is_journaled,
     case_2488_a_failed_replay_stays_pending,
     case_2488_amend_show_leaves_a_pending_journal_alone,
