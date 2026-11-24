@@ -1,0 +1,6 @@
+{
+  "bug:plan-merge record-panel replaces panel.readers wholesale, dropping earlier cycles' reader rows (trips INV-32), and serializes a ran reader's reason as 'none'": {
+    "number": 2525,
+    "typed": true
+  }
+}

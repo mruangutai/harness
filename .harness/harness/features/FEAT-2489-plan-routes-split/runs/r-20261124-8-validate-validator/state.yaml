@@ -1,0 +1,103 @@
+schema_version: 2
+run_id: r-20261124-8-validate-validator
+run_uid: 10d1963568564b2591e3bcaa84e0250b
+feature: FEAT-2489-plan-routes-split
+squad: validator
+host: harness-validator-lead
+team: validate
+status: blocked
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-qa-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-qa-c1.md
+    note: unit 68/68 integration 95/95 receipts clean; SC-03 red reproduced; tests.yml has no consolidation step
+    evidence:
+      unit_files: 68
+      integration_files: 95
+      matrix_ok: true
+      receipts: [qa/manifest-unit.json, qa/manifest-integration.json]
+      interpreter: host_python_3_15_2
+      ci_route_exit: 0
+      ci_canonical_exit: 0
+      ci_consolidation_step_exists: false
+      map_block_equal: true
+  - id: code
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: FAIL
+    lead_verdict: ESCALATE
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-c1.md
+    note: per-file broad-catch and parse-scope granularity outside SC-02 class (forced by any split); checker splitlines drops terminators
+    evidence:
+      high_substance: 1
+      med_substance: 1
+      lead_source_checked: [structure_audit.py::_broad_catch_findings, structure_audit.py::BROAD_CATCH_CEILINGS, canonical_reader_audit.py::_scan_reader_tree, split-equivalence.py::normalize, split-equivalence.py::run_entry]
+  - id: security
+    persona: harness-security-reviewer
+    seq: 3
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-security-reviewer-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: FAIL
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-security-reviewer-c1.md
+    note: med T-01 copy path containment; lead dismissed from must_fix, no privilege boundary crossed
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: 4
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-ui-reviewer-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-ui-reviewer-c1.md
+    note: out of scope on a 72-path measured census
+  - id: goalcheck
+    persona: harness-pm
+    seq: 5
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-validate-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-validate-c1.md
+    note: SC-02 met graded on receipt only; superseded by code finding; C6 not_met C7 partial outside diff
