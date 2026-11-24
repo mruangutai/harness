@@ -515,7 +515,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 the inventory is what the enumerated gate validates itself against; the green half of the cutover proof is made directly.
     depends_on: [T-03]
-    status: ready
+    status: building
     files:
     - path: tests/integration/canonical-reader-classification.json
       quote: '"schema": "canonical-reader-classification/1"'
