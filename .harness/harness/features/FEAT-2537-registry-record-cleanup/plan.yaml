@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai (delegated to fable-advisor)
   status: approved
 drafted_at: '2026-11-25T13:23:41Z'
-status: ready
+status: building
 source_issues: [2537]
 lanes:
   resolved_at: a24eacee718898c4512379de1fe87b9611a7df43
@@ -64,7 +64,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 makes inflight_registry.py, harness-hooks.ts and their tests enforcement-layer files that main edits directly inside this feature worktree; this overrides the patch-lane team default.
     depends_on: []
-    status: ready
+    status: building
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
