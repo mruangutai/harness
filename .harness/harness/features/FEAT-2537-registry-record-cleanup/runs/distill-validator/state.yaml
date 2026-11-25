@@ -1,0 +1,106 @@
+schema_version: 2
+run_id: distill-validator
+feature: FEAT-2537-registry-record-cleanup
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: distill-qa
+    persona: harness-qa
+    task: distill-validator
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/expertise/harness-qa.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/expertise/harness-qa.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/features/FEAT-2537-registry-record-cleanup/notes/qa-distill-validator.md
+    note: C-QA1, C-QA2 accepted (craft O-04, O-08 replaced); repo G-11 replaced with INV-26 gotcha.
+    evidence:
+      craft_batch: 3d2ce5f197b4b164c0e0b631bbeaabfeab80b82fa2b3ff77c58e04a1ac2997d9
+      repo_batch: e5afc9a56c6783b3e297f3d28816b5d6721f33f7e7d9cefae36be9bbfd52f739
+      receipt: notes/expertise-receipt-b43237d22c53b3ae1ff21f86ceee7e9835d5d3e5cb7cf54428307209ce0201c4.json
+      lead_candidates_relayed: 2
+      lead_candidates_applied: 2
+      ops_applied: 3
+  - id: distill-code
+    persona: harness-code-reviewer
+    task: distill-validator
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/expertise/harness-code-reviewer.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/expertise/harness-code-reviewer.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-code-reviewer-distill.md
+    note: C-CR1 accepted (craft O-08 replaced); C-CR2, C-CR3 declined with reasons.
+    evidence:
+      craft_batch: 658ff3df4e29e7386883f8253c55483f6d96eca88c487c17e9eb9fa896be6272
+      receipt: notes/expertise-receipt-e944f97ef044b422124160f69b4106edce2386bc41db0ccf58c5962a7f421924.json
+      lead_candidates_relayed: 3
+      lead_candidates_applied: 1
+      ops_applied: 1
+  - id: distill-security
+    persona: harness-security-reviewer
+    task: distill-validator
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/expertise/harness-security-reviewer.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/expertise/harness-security-reviewer.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-security-reviewer-distill.md
+    note: C-SEC2 accepted (craft G-05 replaced); C-SEC1 declined as covered by P-09/P-12.
+    evidence:
+      craft_batch: 48f451add109a13bdb6d40311a6c0d684d11db938fde0c46348689e090fbd6b5
+      receipt: notes/expertise-receipt-d44ec07c51ddfbafa1c8bae59041418b4710c894374297742dd7e489a8353672.json
+      lead_candidates_relayed: 2
+      lead_candidates_applied: 1
+      ops_applied: 1
+  - id: distill-ui
+    persona: harness-ui-reviewer
+    task: distill-validator
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/expertise/harness-ui-reviewer.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/expertise/harness-ui-reviewer.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-ui-reviewer-distill.md
+    note: Judged and declined; no candidates relayed; expertise unchanged.
+    evidence:
+      lead_candidates_relayed: 0
+      ops_applied: 0
+run_uid: 457ba493224046d3b1fdc795a6470977
