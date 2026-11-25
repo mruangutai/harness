@@ -1,0 +1,104 @@
+schema: plan/1
+feature: FEAT-2537-registry-record-cleanup
+approval:
+  date: '2026-11-25'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
+drafted_at: '2026-11-25T13:23:41Z'
+status: review
+source_issues: [2537]
+lanes:
+  resolved_at: a24eacee718898c4512379de1fe87b9611a7df43
+  rows:
+    - surface: .claude/skills/harness/bin/inflight_registry.py
+      lane: main-session-direct
+      reason: DEC-174 enforcement-layer registry read by the dispatch and digest gates; main edits it directly.
+    - surface: tests/integration/test-inflight-registry.py
+      lane: main-session-direct
+      reason: DEC-174 includes the test file of each gate module.
+    - surface: .omp/extensions/harness-hooks.ts
+      lane: main-session-direct
+      reason: DEC-174 hook extension; resolves to NOBODY in check-domain, so only main can edit it.
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: main-session-direct
+      reason: the ledger amendments are ordered inside the one main-session-direct task, before the code edits.
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: main-session-direct
+      reason: regenerated in the same task because amended entries shift later row anchors.
+decisions:
+  - id: D-01
+    choice: The registry reads and writes version 2 only; a version-1 persona-keyed file, and any other non-v2 object including the empty object, is refused as unreadable by strict readers and folded to empty with a warning by locked writers.
+    because: an unreadable or unknown registry must never read as no claims, no writer produces v1 and the census found none, and the rejected alternative of keeping the migration arm preserves a silent no-claims answer for a shape nothing writes.
+    dec: DEC-204
+  - id: D-02
+    choice: The held-child read is exact-parent live_claims alone; live_children and its dispatcher-persona selection are deleted, and their tests are deleted or re-driven rather than migrated.
+    because: live_children has no production caller, selects on a different axis than the production gate and mutates disk, so migrating its tests would duplicate case 19b or assert what a strict reader cannot do.
+    dec: DEC-199
+decisions_affected:
+- dec: DEC-199
+  disposition: amend
+  clause: '`validate-digest.py` reads live children fresh on each yield, and `live_children` is
+
+    a read that only expires dead claims, so a yield that finds a child still live is refused again.'
+  successor: D-02
+  reason: live_children is deleted; the refusal reads children through the exact-parent strict live_claims read, which writes nothing.
+- dec: DEC-204
+  disposition: amend
+  clause: 'The version-1
+
+    persona-keyed object is read once for migration and every following write is version 2.'
+  successor: D-01
+  reason: the v1 migration arm is removed; strict readers refuse v1 as unreadable and locked writers fold it to empty with a warning.
+- dec: DEC-218
+  disposition: amend
+  clause: 'The binding enumerator and the dispatch-side answers — single-flight
+
+    admission, `live_children`, and reconciliation counts — read that same rule.'
+  successor: D-02
+  reason: the enumeration names a deleted symbol; the held-child read is exact-parent live_claims.
+tasks:
+  - id: T-01
+    title: Amend the three ledger passages, then delete live_children and the v1 registry arm, re-drive their tests and correct two hook comments
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 makes inflight_registry.py, harness-hooks.ts and their tests enforcement-layer files that main edits directly inside this feature worktree; this overrides the patch-lane team default.
+    depends_on: []
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+      - .claude/skills/harness/bin/inflight_registry.py
+      - tests/integration/test-inflight-registry.py
+      - .omp/extensions/harness-hooks.ts
+    verify: |
+      python3 tests/integration/test-inflight-registry.py &&
+      B=$(git merge-base main HEAD) &&
+      git diff --quiet "$B" -- tests/integration/fixtures/prior-validate-digest.py.fixture tests/integration/test-validate-digest.py tests/integration/canonical-reader-classification.json .claude/skills/harness/bin/validate-digest.py &&
+      { git grep -n live_children -- .claude/skills/harness/bin .omp/extensions; test $? -eq 1; } &&
+      git grep -q 'parent_agent_id=agent_id' -- .claude/skills/harness/bin/validate-digest.py &&
+      test -n "$(git diff "$B" -- .omp/extensions/harness-hooks.ts)" &&
+      test -z "$(git diff -U0 "$B" -- .omp/extensions/harness-hooks.ts | grep -E '^[-+]' | grep -Ev '^(\+\+\+|---) ' | grep -Ev '^[-+][[:space:]]*//')" &&
+      python3 -c "import re,sys; t=re.sub(r'\s+',' ',open('.harness/harness/docs/DECISIONS.md').read().replace(chr(96),'')); old=['live_children is a read that only expires dead claims','single-flight admission, live_children, and reconciliation counts','persona-keyed object is read once for migration']; bad=[o for o in old if o in t]; print('STALE', bad) if bad else None; sys.exit(1 if bad else 0)" &&
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      PRODUCT checkout: harness, feature worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup, branch feat/FEAT-2537-registry-record-cleanup cut at main a24eacee. Main does this work directly after signature (DEC-174); every relative path below is inside that worktree. Product guidance: docs/spec.md, docs/decisions.md and docs/architecture.md do not exist in this checkout; AGENTS.md names .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md as the product authority, and SPEC.md has no registry section. Read this feature's BRIEF.md first; its behaviour-class, ordering and immutable-record constraints bind. Never edit tests/integration/fixtures/prior-validate-digest.py.fixture, tests/integration/test-validate-digest.py, tests/integration/canonical-reader-classification.json or validate-digest.py; any need to is a stop-and-rule event, as is any behaviour change beyond the class the BRIEF states.
+
+      Step 1, ledger, landed and committed on its own before any code edit. In .harness/harness/docs/DECISIONS.md rewrite three clauses in place as current truth, adding no amendment paragraph (DEC-205), keeping the file's existing inline-code style:
+      (a) DEC-199, paragraph opening The refusal keeps no state: replace the sentence that says validate-digest.py reads live children fresh on each yield and live_children is a read that only expires dead claims with: validate-digest.py reads live children fresh on each yield through the exact-parent strict read live_claims(root, None, parent_agent_id=...), which writes nothing, so a yield that finds a child still live is refused again.
+      (b) DEC-204: replace The version-1 persona-keyed object is read once for migration and every following write is version 2. with: Only version 2 is read or written: a strict reader refuses a version-1 persona-keyed object, or any other non-v2 object, as unreadable, and a locked writer treats it as empty with a stderr warning, as it does a corrupt file.
+      (c) DEC-218, paragraph opening Liveness is one question over one stored claim: replace single-flight admission, live_children, and reconciliation counts with single-flight admission, the held-child read (exact-parent live_claims), and reconciliation counts.
+      Then run python3 .claude/skills/harness/bin/gen-decisions-index.py to regenerate DECISIONS-INDEX.md; hand-written row tails stay as they are.
+
+      Step 2, .claude/skills/harness/bin/inflight_registry.py. Delete the function live_children entirely. In _parse, keep the blank, corrupt-JSON, non-object and v2 branches byte-identical, and replace everything from the comment Clean cutover reader to the end of the function with two statements: print(f"inflight_registry: {path} is not a version-2 registry, treating as empty", file=sys.stderr) then return _empty(). Rewrite _known_shape to return isinstance(raw, dict) and raw.get("schema_version") == SCHEMA_VERSION and isinstance(raw.get("claims"), list), docstring: A version-2 document; every other shape is unreadable. Replace the module docstring's two version-1 sentences with: Only version 2 is read or written: a strict reader refuses any other shape as unreadable, and a locked writer treats it as empty with a warning. Keep the uuid import (still used by the claim entry), LEGACY_FEATURE, and the names _parse and _read_strict.
+
+      Step 3, tests/integration/test-inflight-registry.py.
+      Delete case_2b_live_children_by_dispatcher and case_2c_live_children_expires_stale and their CASES entries.
+      Case 25: keep the sleeping Popen supervisor. Create the claim with claim_with_receipt(root, "harness-backend-dev", "harness-eng-lead", root, feature="FEAT-43-alpha", supervisor_pid=proc.pid), bind it with attach_runtime_identity(root, "harness-backend-dev", "FEAT-43-alpha", claim_id=<its claim_id>, agent_id="BackendChild", parent_agent_id="EngLead") and check that returns True. Assert live_claims(root, None, parent_agent_id="EngLead") returns exactly one claim whose agent_id is BackendChild, and live_claims(root, None, parent_agent_id="OtherLead") returns []. Then _rewrite_claims to set supervisor_started_at to 1 and assert live_claims(root, None, parent_agent_id="EngLead") returns []. Rewrite its docstring: validate-digest.py's _held_children refuses a lead's or orchestrator's yield whenever exact-parent live_claims for its runtime id returns a claim in its feature, for every persona, so a stranded child that never aged out would lock its lead and then the orchestrator out of reporting; drop the live_children wording and the validate-digest line-number reference.
+      Case 29: replace the live_children call and its check with claim, expired = live_claim(root, "harness-qa", now=now, feature="FEAT-X") asserting claim is None and expired == 1, labelled a claim with no runtime is not live either; keep the both gone from disk check.
+      Case 18: rename it case_18_v1_registry_fails_closed (update CASES) and make it the class witness. v1 inputs, each its own assertions: the existing persona-keyed map holding one claim, and the empty object {}. For each, live_claims(root, None) raises UnreadableRegistry; and live_claim(root, "harness-backend-dev", now=now), with stderr captured as case 8 does, returns (None, 0), writes a stderr line containing treating as empty, and leaves exactly {"schema_version": 2, "claims": []} on disk. Writer-producible controls, each its own assertions: missing file, empty file, the corrupt text {, the non-object text [], and a v2 file holding one live omp claim supervised by os.getpid(). For each, assert the strict-reader outcome (return value or UnreadableRegistry), the live_claim return value, and the file content after the call. Derive those expected literals by first running each control against the unmodified a24eacee module, before the Step 2 edit, and encode the observed results; they must stay green after Step 2.
+      Write the case 18 rewrite before Step 2 and show its v1 assertions red and its controls green against the unmodified module; record that run for qa.
+
+      Step 4, .omp/extensions/harness-hooks.ts, comment lines only, zero code-token change. In the comment above pi.on("agent_start", replace the sentence A first run arrives already ready and is untouched. with: A first run that claimed cleanly arrives ready and is untouched; a first run left held by a run-start conflict (runGate.state "held") is re-opened here as well, which is the ordinary run-start retry and is intended. In the comment above pi.events.on("task:subagent:lifecycle", replace The bus awaits an async listener (and reports its failure), so the settlement is returned. with: The bus does not await an async listener: it reports the listener's failure, but settlement here is no ordering barrier. The awaited tool_result release and the yield-side settle in validate-digest.py are the barriers. Keep every line a // comment.
+
+      Finally run the verify block from the worktree root; it must exit 0. QA runs the configured unit, integration and typecheck kinds after all edits land.
