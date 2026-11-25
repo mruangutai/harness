@@ -6035,8 +6035,9 @@ the dispatch check. Under the blocking host a parent's `task` call holds until i
 parent yielding with a live child is a defect, not a waiting state (DEC-204, DEC-233). The residual, plainly: an
 orphaned child of an interrupted parent has no parent left to refuse it.
 
-**The refusal keeps no state.** `validate-digest.py` reads live children fresh on each yield, and `live_children` is
-a read that only expires dead claims, so a yield that finds a child still live is refused again. One observed
+**The refusal keeps no state.** `validate-digest.py` reads live children fresh on each yield through the exact-parent
+strict read `live_claims(root, None, parent_agent_id=...)`, which writes nothing, so a yield that finds a child still
+live is refused again. One observed
 orchestrator run on the code path the lead tier uses carried two refusals naming DIFFERENT child sets, which is a
 distinct refusal event and not replayed context (`agent-a89be3fd837d1b779`). `inflight_registry.py`'s refusal message
 carries no once-only bound; it ends by naming the rule for a lead or orchestrator whose child is live — under a
@@ -6611,8 +6612,9 @@ from an ambiguous set. A run that cannot claim is held:
 Before Write, Edit, or Bash the registry still verifies the exact child and parent pair; a
 mismatch, ambiguity, missing identity, or registry error refuses before the mutation gate runs.
 Single-flight is keyed by `(feature, persona)`, so
-two PMs for one feature are refused while PMs for different features are legal. The version-1
-persona-keyed object is read once for migration and every following write is version 2. There is one
+two PMs for one feature are refused while PMs for different features are legal. Only version 2 is read or
+written: a strict reader refuses a version-1 persona-keyed object, or any other non-v2 object, as unreadable, and a
+locked writer treats it as empty with a stderr warning, as it does a corrupt file. There is one
 locked registry implementation, still `inflight_registry.py`.
 
 **OMP liveness follows the supervisor, not elapsed time or child session id.** An OMP claim remains
@@ -7259,7 +7261,7 @@ ungoverned.
 claim whose supervisor identity cannot be proven ages out at the `OMP_UNVERIFIED_TTL_SECONDS =
 86400` backstop, above the 7,200-second longest measured leaf run. A claim carrying any other
 `runtime`, or none, is expired. The binding enumerator and the dispatch-side answers — single-flight
-admission, `live_children`, and reconciliation counts — read that same rule. The former non-OMP
+admission, the held-child read (exact-parent `live_claims`), and reconciliation counts — read that same rule. The former non-OMP
 binding horizon and the separate 1,200-second dispatch TTL, `CLAIM_TTL_SECONDS`, existed only for
 the compatibility host and are removed (DEC-233).
 
