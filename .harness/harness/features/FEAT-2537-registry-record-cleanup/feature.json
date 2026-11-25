@@ -32,5 +32,32 @@
       "reason": "cause verified line-by-line at source, diff bounded to named files (~50 LOC plus three ledger passages), no new interface, schema or enforcement surface; sole delta is the ruled fail-closed refusal of extinct v1"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/FEAT-2537-registry-record-cleanup/notes/answers-2026-11-25-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "c3d8e9cf1539750fb88637a5159d6106a5668cf0e1a597402e47072508483e70"
+  },
+  "github": {
+    "milestone": 140,
+    "parent": 2540,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2541
+    },
+    "source_issues": [
+      2537
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

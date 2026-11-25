@@ -1,9 +1,11 @@
 schema: plan/1
 feature: FEAT-2537-registry-record-cleanup
 approval:
-  status: pending
+  date: '2026-11-25'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
 drafted_at: '2026-11-25T13:23:41Z'
-status: plan
+status: ready
 source_issues: [2537]
 lanes:
   resolved_at: a24eacee718898c4512379de1fe87b9611a7df43

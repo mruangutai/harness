@@ -64,6 +64,6 @@ The enforcement layer carries records that misdescribe what it does. `live_child
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike Ruangutai (delegated to fable-advisor)
+date: 2026-11-25
