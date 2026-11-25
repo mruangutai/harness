@@ -21,6 +21,21 @@
       "cycles_used": 0,
       "ended_at": "2026-11-25T13:26:14+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261125-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-25T13:34:58+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261125-2-validate-validator/digest.md",
+        "sha256": "e651010c4be088e6896720219383c01968e4619e669d989383360bb3176ed139"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-25T13:51:29+00:00"
     }
   ],
   "judgements": [

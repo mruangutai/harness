@@ -1,5 +1,7 @@
 # FEAT-2537 signature ruling — 2026-11-25
 
+> **Corrected** by `answers-2026-11-25-validate-c0.md` (AdvisorF5Validate). The claim that the malformed-v2 writer fold leaves the bytes on disk identical is false for row-carrying envelopes, whose live rows are folded to empty. That behavior is ruled in-class under D-01.
+
 **Authority.** The operator delegated approval to fable-advisor ("start feature F. same parameters, defer to Advisor"). Signer of record: AdvisorF4Sign.
 
 **Gap.** The orchestrator escalated Q1: the plan's fail-closed class is "every non-v2 object", which is wider than the grilling's "extinct v1 shape". It adds `{}` (a strict read raises) and malformed-v2 (the writer warns).
