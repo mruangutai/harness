@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2537-registry-record-cleanup",
   "branch": "feat/FEAT-2537-registry-record-cleanup",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "8ae96bea9dd8eb0f412c654158cbb3050322cfff",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
