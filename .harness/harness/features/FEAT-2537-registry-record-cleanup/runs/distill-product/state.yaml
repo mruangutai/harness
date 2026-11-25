@@ -1,0 +1,34 @@
+schema_version: 2
+run_id: distill-product
+feature: FEAT-2537-registry-record-cleanup
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: distill-pm
+    persona: harness-pm
+    task: distill-product
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/expertise/harness-pm.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/expertise/harness-pm.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2537-registry-record-cleanup/.harness/harness/features/FEAT-2537-registry-record-cleanup/notes/research-FEAT-2537-registry-record-cleanup-distill.md
+    note: C1-C3 all accepted; craft 2 replaces, repo replace+drop+add; send-back criteria 1-6 met.
+    evidence:
+      craft_batch: 95fef527065e4f6e8b81a9fdc5f4c1030e6ab4a361f60ffe013fa73a4ce40986
+      repo_batch: ad4e4eb509a4506e067083eed9ac5ed281406937e5d08f47380bc48859f33095
+      ops_applied: 5
+      lead_candidates_relayed: 3
+      lead_candidates_applied: 3
+      lead_own_batch: 712fa70fdf5852353e979d1eed97c07e4b86c65096d785a5e7879314886f9345
+run_uid: 579a5360f29648548f97bfe27f726c07

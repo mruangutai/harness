@@ -1,0 +1,71 @@
+{
+  "batches": [
+    {
+      "after_sha256": "994187283fd9ab4e47668f93a70008ad50682c0e4540760c7152425222418d09",
+      "before_sha256": "eacace99ef031299da6bf5cf618c44de3dba0001fc4d122745308d592b204e85",
+      "destination": ".harness/harness/expertise/harness-qa.md",
+      "id": "e5afc9a56c6783b3e297f3d28816b5d6721f33f7e7d9cefae36be9bbfd52f739",
+      "ops": [
+        {
+          "entry": "WHEN check-state exits 1 on INV-26 at a review pin DO rerun it at the feature tip before reporting a defect — INV-26 reads the live GitHub board, so a pin predating a station-move commit shows a false projection mismatch.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-11",
+          "why": "Measured this feature: INV-26 exited 1 at the pin and 0 at the tip, which differed only in feature-dir station records; recurs on every validate at a pin. G-11 (preserve output on discovery-count divergence) is generic hygiene and the weakest repo gotcha."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN run-unit-tests.py reports a different discovery-file count for the same --kind invocation DO preserve complete output and invocation environment; unreconciled discovery sets make a divergent exit unauditable.",
+          "section": "Gotchas",
+          "target": "G-11"
+        }
+      ],
+      "recorded_at_ns": 1795617482150756000,
+      "seq": 1,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "1d82f3b44b984a16ce91232499e60620adebdee2c8d38e091d4a01da38661782",
+      "before_sha256": "cd4604eaf398403675ec76f0fc39b35ade137c855614bb968eb333438ef960e4",
+      "destination": ".harness/expertise/harness-qa.md",
+      "id": "3d2ce5f197b4b164c0e0b631bbeaabfeab80b82fa2b3ff77c58e04a1ac2997d9",
+      "ops": [
+        {
+          "entry": "WHEN a criterion's literal wording is stricter than what its assertion can see ('raw bytes' against a decoded or newline-normalized read) DO grade the gap against the letter, not present equivalence; run the mutant it admits and route text-unmet upward — today's equivalence is not what the test pins.",
+          "op": "replace",
+          "section": "Outcomes",
+          "target": "O-04",
+          "why": "Sharper successor to O-04: I followed its route-up step yet rated a raw-bytes letter miss low on measured present equivalence; the ruler judged it the one real clause miss (CRLF writer passed every row) and it cost a completion round."
+        },
+        {
+          "entry": "WHEN a behaviour-delta probe finds a delta the signed decision covers literally but the signoff or plan characterizes otherwise DO report it as a finding for the ruler, naming the characterization it falsifies — classifying it in-class yourself pre-empts the stop-and-rule clause that falsified characterization triggers.",
+          "op": "replace",
+          "section": "Outcomes",
+          "target": "O-08",
+          "why": "I recorded a row-erasing fold as in-class; two reviewers escalated it and the ruler confirmed the signoff's 'bytes identical' was false, so the stop clause had fired. O-08 (mutate the real call site, not a passthrough accessor) is largely subsumed by O-06/O-10 and is the weakest Outcome."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a criterion's literal wording is stricter than the artifact scoping it DO report two distinct findings — intent-satisfied and text-unmet — and route the verdict up, rather than recording the criterion as satisfied under your own reading.",
+          "section": "Outcomes",
+          "target": "O-04"
+        },
+        {
+          "original": "WHEN crediting a test as evidence a per-key behavior is read from data rather than hardcoded DO confirm the tested function itself branches on that key — a key-agnostic passthrough (e.g. `dict[key]`) proves nothing about the real, revertable call site; mutate that call site directly instead of the accessor.",
+          "section": "Outcomes",
+          "target": "O-08"
+        }
+      ],
+      "recorded_at_ns": 1795617482151483000,
+      "seq": 2,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2537-registry-record-cleanup",
+  "parent_id": "Feat2537DistillValidator",
+  "persona": "harness-qa",
+  "runtime_id": "Feat2537DistillValidator.LeadingLemming",
+  "schema": 1
+}
