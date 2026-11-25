@@ -121,50 +121,6 @@ def case_2_single_flight_and_parallel_asymmetry():
     check("case2: both started_at values are present", len(started_values) == 2, backend_claims)
 
 
-def case_2b_live_children_by_dispatcher():
-    root = tempfile.mkdtemp()
-    inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/a")
-    inflight_registry.claim(root, "harness-frontend-dev", "harness-eng-lead", "/b")
-    inflight_registry.claim(root, "harness-pm", "harness-product-lead", "/c")
-    inflight_registry.claim(root, "harness-qa", "harness-product-lead", "/d")
-
-    eng_children = inflight_registry.live_children(root, "harness-eng-lead")
-    eng_personas = {p for p, _c in eng_children}
-    check("case2b: eng-lead children include backend-dev", "harness-backend-dev" in eng_personas, eng_personas)
-    check("case2b: eng-lead children include frontend-dev", "harness-frontend-dev" in eng_personas, eng_personas)
-    check("case2b: eng-lead children exclude pm", "harness-pm" not in eng_personas, eng_personas)
-    check("case2b: eng-lead children exclude qa", "harness-qa" not in eng_personas, eng_personas)
-
-    product_children = inflight_registry.live_children(root, "harness-product-lead")
-    product_personas = {p for p, _c in product_children}
-    check("case2b: product-lead children include pm", "harness-pm" in product_personas, product_personas)
-    check("case2b: product-lead children include qa", "harness-qa" in product_personas, product_personas)
-    check(
-        "case2b: product-lead children exclude backend-dev",
-        "harness-backend-dev" not in product_personas,
-        product_personas,
-    )
-    check(
-        "case2b: product-lead children exclude frontend-dev",
-        "harness-frontend-dev" not in product_personas,
-        product_personas,
-    )
-
-
-def case_2c_live_children_expires_stale():
-    root = tempfile.mkdtemp()
-    now = time.time()
-    dead = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
-                          capture_output=True, text=True, check=True)
-    stale = _bug1304_claim("harness-backend-dev", "legacy", now - 1, supervisor_pid=int(dead.stdout))
-    stale["dispatcher"] = "harness-eng-lead"
-    _write_raw(root, {"schema_version": 2, "claims": [stale]})
-    children = inflight_registry.live_children(root, "harness-eng-lead", now=now)
-    check("case2c: stale child is not returned", children == [], children)
-    data = _read_raw(root)
-    check("case2c: stale claim is gone from the file afterwards", data.get("claims") == [], data)
-
-
 def case_3_staleness_live_claim():
     """A claim whose supervisor process has exited is stale (DEC-204), whatever its age."""
     root = tempfile.mkdtemp()
@@ -522,26 +478,94 @@ def case_17_targeted_release_keeps_other_feature():
     check("case17: targeted feature release leaves the other feature live", other is not None, other)
 
 
-def case_18_legacy_registry_migrates_on_write():
-    """A v1 (per-agent map) registry predates `runtime`, so its entries can name no live
-    supervisor; they migrate to v2 and are expired in the same write (DEC-233)."""
+_EMPTY_V2 = {"schema_version": 2, "claims": []}
+
+
+def _registry_case_root(text):
+    """A fresh root whose registry holds `text` verbatim, or no registry file for None."""
     root = tempfile.mkdtemp()
+    path = os.path.join(root, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if text is not None:
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+    return root, path
+
+
+def _strict_outcome(root):
+    """The strict reader's answer: claim ids, or the refusal's name."""
+    try:
+        return [claim.get("claim_id") for claim in inflight_registry.live_claims(root, None)]
+    except inflight_registry.UnreadableRegistry:
+        return "UnreadableRegistry"
+
+
+def _writer_outcome(root, now):
+    """The locked writer's answer through live_claim: (claim id, expired count, stderr)."""
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        claim, expired = inflight_registry.live_claim(root, "harness-backend-dev", now=now)
+    return (claim or {}).get("claim_id"), expired, buf.getvalue()
+
+
+def _file_after(path):
+    if not os.path.exists(path):
+        return "<absent>"
+    with open(path, "r", encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        return json.loads(text)
+    except ValueError:
+        return text
+
+
+def case_18_v1_registry_fails_closed():
+    """Only version 2 is read or written (DEC-204). A v1 persona-keyed map, including the
+    empty map `{}`, must never read as "no claims": strict readers refuse it as unreadable,
+    and a locked writer treats it as empty with a warning, writing back an empty v2 file.
+    Every writer-producible state keeps the behaviour recorded on the a24eacee module."""
     now = time.time()
-    _write_raw(
-        root,
-        {
-            "harness-backend-dev": [
-                {"started_at": now, "dispatcher": "harness-eng-lead", "cwd": root}
-            ]
-        },
+    v1_inputs = (
+        ("v1 persona map", json.dumps({"harness-backend-dev": [
+            {"started_at": now, "dispatcher": "harness-eng-lead", "cwd": "/x"}]})),
+        ("v1 empty map", "{}"),
     )
-    claim, expired = inflight_registry.live_claim(root, "harness-backend-dev", now=now)
-    data = _read_raw(root)
-    check("case18: a legacy claim is not live, however fresh", claim is None, claim)
-    check("case18: it is reported expired", expired == 1, expired)
-    check("case18: every subsequent write uses schema version 2", data.get("schema_version") == 2, data)
-    check("case18: schema version 2 stores one, now empty, claims list", data.get("claims") == [], data)
-    check("case18: legacy persona keys are not written back", "harness-backend-dev" not in data, data)
+    for label, text in v1_inputs:
+        root, _path = _registry_case_root(text)
+        check(f"case18: a strict read of the {label} refuses it as unreadable",
+              _strict_outcome(root) == "UnreadableRegistry", _strict_outcome(root))
+        root, path = _registry_case_root(text)
+        claim_id, expired, err = _writer_outcome(root, now)
+        check(f"case18: a locked writer finds no claim in the {label}", (claim_id, expired) == (None, 0),
+              (claim_id, expired))
+        check(f"case18: the writer warns that the {label} is treated as empty", "treating as empty" in err, err)
+        check(f"case18: the writer leaves an empty v2 file for the {label}", _file_after(path) == _EMPTY_V2,
+              _file_after(path))
+
+    live_v2 = {"schema_version": 2, "claims": [{
+        "claim_id": "c1", "agent": "harness-backend-dev", "dispatcher": "harness-orchestrator",
+        "cwd": "/fixture", "feature": "legacy", "runtime": "omp", "started_at": now - 5,
+        "supervisor_pid": os.getpid()}]}
+    controls = (
+        # label, file text, strict outcome, writer (claim id, expired), file after strict, after writer
+        ("missing file", None, [], (None, 0), "<absent>", "<absent>"),
+        ("empty file", "", "UnreadableRegistry", (None, 0), "", _EMPTY_V2),
+        ("corrupt text", "{", "UnreadableRegistry", (None, 0), "{", _EMPTY_V2),
+        ("non-object text", "[]", "UnreadableRegistry", (None, 0), [], _EMPTY_V2),
+        ("live v2 claim", json.dumps(live_v2), ["c1"], ("c1", 0), live_v2, live_v2),
+    )
+    for label, text, strict, writer, after_strict, after_writer in controls:
+        root, path = _registry_case_root(text)
+        check(f"case18 control: a strict read of the {label} is unchanged", _strict_outcome(root) == strict,
+              _strict_outcome(root))
+        check(f"case18 control: a strict read leaves the {label} as found", _file_after(path) == after_strict,
+              _file_after(path))
+        root, path = _registry_case_root(text)
+        claim_id, expired, _err = _writer_outcome(root, now)
+        check(f"case18 control: a locked writer's answer for the {label} is unchanged",
+              (claim_id, expired) == writer, (claim_id, expired))
+        check(f"case18 control: a locked writer leaves the {label} as before", _file_after(path) == after_writer,
+              _file_after(path))
 
 
 def case_19_attach_and_release_by_runtime_identity():
@@ -858,22 +882,30 @@ def case_25_stranded_child_does_not_hold_its_parent():
     """The consumer the review panel missed.
 
     Impact was assessed only against single-flight, which covers ONE persona
-    (SINGLE_FLIGHT_AGENTS == ("harness-pm",)). But validate-digest.py refuses a lead's or
-    orchestrator's yield whenever live_children is non-empty, for EVERY persona — so one
-    stranded claim locked a lead, and then the orchestrator, out of reporting with no way
-    to age out. That is the cascade validate-digest.py:974-976 already describes.
+    (SINGLE_FLIGHT_AGENTS == ("harness-pm",)). But validate-digest.py's _held_children refuses a
+    lead's or orchestrator's yield whenever exact-parent live_claims for its runtime id returns a
+    claim in its feature, for every persona, so a stranded child that never aged out would lock its
+    lead and then the orchestrator out of reporting.
     """
     root = tempfile.mkdtemp()
     proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
     try:
-        inflight_registry.claim(
+        receipt = inflight_registry.claim_with_receipt(
             root, "harness-backend-dev", "harness-eng-lead", root,
             feature="FEAT-43-alpha", supervisor_pid=proc.pid,
         )
-        held = inflight_registry.live_children(root, "harness-eng-lead", feature="FEAT-43-alpha")
-        check("case25: a genuinely live child DOES hold its parent", len(held) == 1, held)
+        bound = inflight_registry.attach_runtime_identity(
+            root, "harness-backend-dev", "FEAT-43-alpha", claim_id=receipt["claim_id"],
+            agent_id="BackendChild", parent_agent_id="EngLead",
+        )
+        check("case25: the child's claim binds to its parent's runtime id", bound is True, bound)
+        held = inflight_registry.live_claims(root, None, parent_agent_id="EngLead")
+        check("case25: a genuinely live child DOES hold its parent",
+              [c.get("agent_id") for c in held] == ["BackendChild"], held)
+        other = inflight_registry.live_claims(root, None, parent_agent_id="OtherLead")
+        check("case25: it holds no other parent", other == [], other)
         _rewrite_claims(root, lambda c: c.__setitem__("supervisor_started_at", 1))
-        released = inflight_registry.live_children(root, "harness-eng-lead", feature="FEAT-43-alpha")
+        released = inflight_registry.live_claims(root, None, parent_agent_id="EngLead")
         check("case25: a stranded child no longer holds its parent", released == [], released)
     finally:
         proc.terminate()
@@ -1013,8 +1045,9 @@ def case_29_non_omp_claim_is_expired():
     claim, expired = inflight_registry.live_claim(root, "harness-pm", now=now, feature="FEAT-X")
     check("case29: a fresh `runtime: claude` claim reads as absent", claim is None, claim)
     check("case29: and is counted as expired", expired == 1, expired)
-    children = inflight_registry.live_children(root, "harness-product-lead", now=now, feature="FEAT-X")
-    check("case29: a claim with no runtime is not a live child either", children == [], children)
+    claim, expired = inflight_registry.live_claim(root, "harness-qa", now=now, feature="FEAT-X")
+    check("case29: a claim with no runtime is not live either", claim is None and expired == 1,
+          (claim, expired))
     check("case29: both are gone from disk afterwards",
           _read_raw(root).get("claims") == [], _read_raw(root))
 
@@ -1271,13 +1304,12 @@ def case_38c_released_child_cannot_take_a_sibling_receipt():
 
 CASES = (
     case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
-    case_2b_live_children_by_dispatcher, case_2c_live_children_expires_stale,
     case_3_staleness_live_claim, case_4_release, case_5_is_single_flight,
     case_6_refusal_lines, case_6b_children_refusal_lines, case_7_concurrency,
     case_8_corrupt_registry, case_9_release_all, case_10_no_own_primitive,
     case_13_release_refuses_ambiguous, case_14_remedy_is_absolute,
     case_15_feature_scoped_single_flight, case_16_omp_claim_lives_with_supervisor,
-    case_17_targeted_release_keeps_other_feature, case_18_legacy_registry_migrates_on_write,
+    case_17_targeted_release_keeps_other_feature, case_18_v1_registry_fails_closed,
     case_19_attach_and_release_by_runtime_identity, case_19b_runtime_lineage_authorization,
     case_20_reconcile_only_target_feature,
     case_21_live_query_does_not_expire_another_feature,
