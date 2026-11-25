@@ -64,7 +64,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 makes inflight_registry.py, harness-hooks.ts and their tests enforcement-layer files that main edits directly inside this feature worktree; this overrides the patch-lane team default.
     depends_on: []
-    status: building
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
