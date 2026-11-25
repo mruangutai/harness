@@ -478,7 +478,13 @@ def case_17_targeted_release_keeps_other_feature():
     check("case17: targeted feature release leaves the other feature live", other is not None, other)
 
 
-_EMPTY_V2 = {"schema_version": 2, "claims": []}
+_ABSENT = "<absent>"
+_UNREADABLE = "UnreadableRegistry"
+
+
+def _canonical(obj):
+    """The exact bytes a locked writer leaves: inflight_registry's canonical serialization."""
+    return json.dumps(obj, indent=2, sort_keys=True) + "\n"
 
 
 def _registry_case_root(text):
@@ -492,80 +498,76 @@ def _registry_case_root(text):
     return root, path
 
 
-def _strict_outcome(root):
-    """The strict reader's answer: claim ids, or the refusal's name."""
+def _file_bytes(path):
+    if not os.path.exists(path):
+        return _ABSENT
+    with open(path, "r", encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _registry_states(now):
+    """Every case-18 state: (label, file text, strict return, writer return, file bytes after the
+    strict read, file bytes after the writer, whether the writer warns). The writer-producible
+    states carry the literals recorded on the a24eacee module; every non-v2 object is refused
+    by strict readers and folded to an empty v2 file, with a warning, by locked writers (D-01),
+    including envelopes that carry a live row."""
+    live = {"claim_id": "c1", "agent": "harness-backend-dev", "dispatcher": "harness-orchestrator",
+            "cwd": "/fixture", "feature": "legacy", "runtime": "omp", "started_at": now - 5,
+            "supervisor_pid": os.getpid()}
+    live_v2 = {"schema_version": 2, "claims": [live]}
+    folded = _canonical({"schema_version": 2, "claims": []})
+
+    def refused(label, text):
+        return (label, text, _UNREADABLE, (None, 0), text, folded, True)
+
+    return (
+        refused("v1 persona map", json.dumps({"harness-backend-dev": [
+            {"started_at": now, "dispatcher": "harness-eng-lead", "cwd": "/x"}]})),
+        refused("v1 empty map", "{}"),
+        refused("version-less claims envelope", json.dumps({"claims": [live]})),
+        refused("schema-1 claims envelope", json.dumps({"schema_version": 1, "claims": [live]})),
+        ("missing file", None, [], (None, 0), _ABSENT, _ABSENT, False),
+        ("empty file", "", _UNREADABLE, (None, 0), "", folded, False),
+        ("corrupt text", "{", _UNREADABLE, (None, 0), "{", folded, True),
+        ("non-object text", "[]", _UNREADABLE, (None, 0), "[]", folded, True),
+        ("live v2 claim", json.dumps(live_v2), [live], (live, 0), json.dumps(live_v2), _canonical(live_v2),
+         False),
+    )
+
+
+def _check_strict_read(label, text, expected, after):
+    root, path = _registry_case_root(text)
     try:
-        return [claim.get("claim_id") for claim in inflight_registry.live_claims(root, None)]
+        outcome = inflight_registry.live_claims(root, None)
     except inflight_registry.UnreadableRegistry:
-        return "UnreadableRegistry"
+        outcome = _UNREADABLE
+    check(f"case18: {label}: the strict read returns exactly its expected answer", outcome == expected, outcome)
+    check(f"case18: {label}: the strict read leaves the file bytes as found", _file_bytes(path) == after,
+          _file_bytes(path))
 
 
-def _writer_outcome(root, now):
-    """The locked writer's answer through live_claim: (claim id, expired count, stderr)."""
+def _check_locked_write(label, text, now, expected, after, warns):
+    root, path = _registry_case_root(text)
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):
-        claim, expired = inflight_registry.live_claim(root, "harness-backend-dev", now=now)
-    return (claim or {}).get("claim_id"), expired, buf.getvalue()
-
-
-def _file_after(path):
-    if not os.path.exists(path):
-        return "<absent>"
-    with open(path, "r", encoding="utf-8") as fh:
-        text = fh.read()
-    try:
-        return json.loads(text)
-    except ValueError:
-        return text
+        outcome = inflight_registry.live_claim(root, "harness-backend-dev", now=now)
+    check(f"case18: {label}: the locked writer returns exactly its expected answer", outcome == expected, outcome)
+    check(f"case18: {label}: the locked writer leaves exactly the expected bytes", _file_bytes(path) == after,
+          _file_bytes(path))
+    warned = "treating as empty" in buf.getvalue()
+    check(f"case18: {label}: the writer warns only when it discards a non-empty file", warned is warns,
+          buf.getvalue())
 
 
 def case_18_v1_registry_fails_closed():
-    """Only version 2 is read or written (DEC-204). A v1 persona-keyed map, including the
-    empty map `{}`, must never read as "no claims": strict readers refuse it as unreadable,
-    and a locked writer treats it as empty with a warning, writing back an empty v2 file.
-    Every writer-producible state keeps the behaviour recorded on the a24eacee module."""
+    """Only version 2 is read or written (DEC-204). A v1 persona-keyed map, the empty map `{}`
+    and any other non-v2 object must never read as "no claims": strict readers refuse it as
+    unreadable, and a locked writer folds it to an empty v2 file with a warning, discarding any
+    rows it carried. Every writer-producible state keeps the behaviour recorded on a24eacee."""
     now = time.time()
-    v1_inputs = (
-        ("v1 persona map", json.dumps({"harness-backend-dev": [
-            {"started_at": now, "dispatcher": "harness-eng-lead", "cwd": "/x"}]})),
-        ("v1 empty map", "{}"),
-    )
-    for label, text in v1_inputs:
-        root, _path = _registry_case_root(text)
-        check(f"case18: a strict read of the {label} refuses it as unreadable",
-              _strict_outcome(root) == "UnreadableRegistry", _strict_outcome(root))
-        root, path = _registry_case_root(text)
-        claim_id, expired, err = _writer_outcome(root, now)
-        check(f"case18: a locked writer finds no claim in the {label}", (claim_id, expired) == (None, 0),
-              (claim_id, expired))
-        check(f"case18: the writer warns that the {label} is treated as empty", "treating as empty" in err, err)
-        check(f"case18: the writer leaves an empty v2 file for the {label}", _file_after(path) == _EMPTY_V2,
-              _file_after(path))
-
-    live_v2 = {"schema_version": 2, "claims": [{
-        "claim_id": "c1", "agent": "harness-backend-dev", "dispatcher": "harness-orchestrator",
-        "cwd": "/fixture", "feature": "legacy", "runtime": "omp", "started_at": now - 5,
-        "supervisor_pid": os.getpid()}]}
-    controls = (
-        # label, file text, strict outcome, writer (claim id, expired), file after strict, after writer
-        ("missing file", None, [], (None, 0), "<absent>", "<absent>"),
-        ("empty file", "", "UnreadableRegistry", (None, 0), "", _EMPTY_V2),
-        ("corrupt text", "{", "UnreadableRegistry", (None, 0), "{", _EMPTY_V2),
-        ("non-object text", "[]", "UnreadableRegistry", (None, 0), [], _EMPTY_V2),
-        ("live v2 claim", json.dumps(live_v2), ["c1"], ("c1", 0), live_v2, live_v2),
-    )
-    for label, text, strict, writer, after_strict, after_writer in controls:
-        root, path = _registry_case_root(text)
-        check(f"case18 control: a strict read of the {label} is unchanged", _strict_outcome(root) == strict,
-              _strict_outcome(root))
-        check(f"case18 control: a strict read leaves the {label} as found", _file_after(path) == after_strict,
-              _file_after(path))
-        root, path = _registry_case_root(text)
-        claim_id, expired, _err = _writer_outcome(root, now)
-        check(f"case18 control: a locked writer's answer for the {label} is unchanged",
-              (claim_id, expired) == writer, (claim_id, expired))
-        check(f"case18 control: a locked writer leaves the {label} as before", _file_after(path) == after_writer,
-              _file_after(path))
+    for label, text, strict, writer, after_strict, after_writer, warns in _registry_states(now):
+        _check_strict_read(label, text, strict, after_strict)
+        _check_locked_write(label, text, now, writer, after_writer, warns)
 
 
 def case_19_attach_and_release_by_runtime_identity():

@@ -3,7 +3,8 @@
 
 Every mutation crosses harness_merge.locked_update. Version 2 stores one claims list so identity
 is explicit rather than encoded in object keys. Only version 2 is read or written: a strict reader
-refuses any other shape as unreadable, and a locked writer treats it as empty with a warning.
+refuses any other shape as unreadable, and a locked writer treats it as empty, warning when the
+file held non-v2 content; a missing or blank file is treated as empty silently.
 """
 import datetime
 import json
