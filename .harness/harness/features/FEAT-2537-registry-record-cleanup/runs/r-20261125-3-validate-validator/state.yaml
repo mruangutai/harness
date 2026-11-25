@@ -1,0 +1,72 @@
+schema_version: 2
+run_id: r-20261125-3-validate-validator
+run_uid: 2c5e1214e7064d6688158baf84b93bd7
+feature: FEAT-2537-registry-record-cleanup
+squad: validator
+host: harness-validator-lead
+team: validate
+status: blocked
+verdict: ESCALATE
+severity_max: high
+review_sha: 635b5c158c00047bab2998dd3349e524bc12d0b7
+base_sha: a24eacee718898c4512379de1fe87b9611a7df43
+digest: .harness/harness/features/FEAT-2537-registry-record-cleanup/runs/r-20261125-3-validate-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    task: validate-qa-gate
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/qa-r-20261125-3-validate-validator.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/qa-r-20261125-3-validate-validator.md
+    note: 200/200; base swap 12 case-18 reds; default-to-v2 mutant 4 reds; verify exit 0; text-mode read noted low
+    evidence:
+      matrix_ok: true
+      unit_named: 68
+      integration_named: 95
+      base_swap_reds: 12
+      mutant_reds: 4
+      ci_ran: false
+  - id: code
+    persona: harness-code-reviewer
+    task: validate-code-review
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-code-reviewer-c2.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: ESCALATE
+    lead_verdict: ESCALATE
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-code-reviewer-c2.md
+    note: must_fix 2 closed; must_fix 1 open (text-mode read, sentinel collisions, silent rows); SC-02 partial
+    evidence:
+      severity_max: high
+      code_grade: pass
+  - id: security
+    persona: harness-security-reviewer
+    status: skipped
+    note: stands as validated at 8ae96bea per answers-2026-11-25-validate-c0.md
+  - id: ui
+    persona: harness-ui-reviewer
+    status: skipped
+    note: stands as validated at 8ae96bea per answers-2026-11-25-validate-c0.md
+  - id: goalcheck
+    persona: harness-pm
+    status: skipped
+    note: stands as validated at 8ae96bea per answers-2026-11-25-validate-c0.md
