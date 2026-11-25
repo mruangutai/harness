@@ -26,3 +26,16 @@ FAIL - case18: version-less claims envelope: the locked writer leaves exactly th
 FAIL - case18: version-less claims envelope: the writer warns only when it discards a non-empty file
 ```
 - Swap-harness artifact: both swap runs also fail the same CLI-subprocess cases (7, 9, 35, 40, 41, feat65), because the copied module dir lacks its sibling imports. These are identical across the base and mutant swaps and unrelated to case 18 (qa's bin/-copy caveat).
+
+## c1 completion (AdvisorF6Revalidate; answers-2026-11-25-validate-c1.md)
+
+Case-18 helpers only. Files are written and read in binary; the sentinels are `object()`; expectations are encoded bytes; silent rows assert empty stderr. Swaps use a FULL bin/ copy, so there are no CLI artifacts.
+
+| run | result | case18 reds | other reds |
+|---|---|---|---|
+| pin tree | PASS - 200/200 checks passed | 0 | 0 |
+| base swap | FAIL - 12/200 checks failed | 12 | 0 |
+| v2 swap | FAIL - 4/200 checks failed | 4 | 0 |
+| crlf swap | FAIL - 8/200 checks failed | 8 | 0 |
+
+CRLF mutant (writer emits \r\n): red on all 8 writer byte assertions.

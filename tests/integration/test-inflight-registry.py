@@ -478,13 +478,13 @@ def case_17_targeted_release_keeps_other_feature():
     check("case17: targeted feature release leaves the other feature live", other is not None, other)
 
 
-_ABSENT = "<absent>"
-_UNREADABLE = "UnreadableRegistry"
+_ABSENT = object()
+_UNREADABLE = object()
 
 
 def _canonical(obj):
     """The exact bytes a locked writer leaves: inflight_registry's canonical serialization."""
-    return json.dumps(obj, indent=2, sort_keys=True) + "\n"
+    return (json.dumps(obj, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
 def _registry_case_root(text):
@@ -493,15 +493,15 @@ def _registry_case_root(text):
     path = os.path.join(root, inflight_registry.REGISTRY_REL)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if text is not None:
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.write(text)
+        with open(path, "wb") as fh:
+            fh.write(text.encode("utf-8"))
     return root, path
 
 
 def _file_bytes(path):
     if not os.path.exists(path):
         return _ABSENT
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, "rb") as fh:
         return fh.read()
 
 
@@ -518,7 +518,7 @@ def _registry_states(now):
     folded = _canonical({"schema_version": 2, "claims": []})
 
     def refused(label, text):
-        return (label, text, _UNREADABLE, (None, 0), text, folded, True)
+        return (label, text, _UNREADABLE, (None, 0), text.encode("utf-8"), folded, True)
 
     return (
         refused("v1 persona map", json.dumps({"harness-backend-dev": [
@@ -527,11 +527,11 @@ def _registry_states(now):
         refused("version-less claims envelope", json.dumps({"claims": [live]})),
         refused("schema-1 claims envelope", json.dumps({"schema_version": 1, "claims": [live]})),
         ("missing file", None, [], (None, 0), _ABSENT, _ABSENT, False),
-        ("empty file", "", _UNREADABLE, (None, 0), "", folded, False),
-        ("corrupt text", "{", _UNREADABLE, (None, 0), "{", folded, True),
-        ("non-object text", "[]", _UNREADABLE, (None, 0), "[]", folded, True),
-        ("live v2 claim", json.dumps(live_v2), [live], (live, 0), json.dumps(live_v2), _canonical(live_v2),
-         False),
+        ("empty file", "", _UNREADABLE, (None, 0), b"", folded, False),
+        ("corrupt text", "{", _UNREADABLE, (None, 0), b"{", folded, True),
+        ("non-object text", "[]", _UNREADABLE, (None, 0), b"[]", folded, True),
+        ("live v2 claim", json.dumps(live_v2), [live], (live, 0), json.dumps(live_v2).encode("utf-8"),
+         _canonical(live_v2), False),
     )
 
 
@@ -554,9 +554,12 @@ def _check_locked_write(label, text, now, expected, after, warns):
     check(f"case18: {label}: the locked writer returns exactly its expected answer", outcome == expected, outcome)
     check(f"case18: {label}: the locked writer leaves exactly the expected bytes", _file_bytes(path) == after,
           _file_bytes(path))
-    warned = "treating as empty" in buf.getvalue()
-    check(f"case18: {label}: the writer warns only when it discards a non-empty file", warned is warns,
-          buf.getvalue())
+    err = buf.getvalue()
+    if warns:
+        check(f"case18: {label}: the writer warns that it treats the file as empty", "treating as empty" in err,
+              err)
+    else:
+        check(f"case18: {label}: the writer is silent", err == "", err)
 
 
 def case_18_v1_registry_fails_closed():
