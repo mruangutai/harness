@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2542-dispatcher-placement",
   "branch": "feat/FEAT-2542-dispatcher-placement",
   "pr": null,
-  "review_sha": "bc937a947fc8716c6cf1b171f05ad24d5e019747",
+  "review_sha": "2ec0916f8bf6b5d10607e36486ccbeb959ca4822",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
