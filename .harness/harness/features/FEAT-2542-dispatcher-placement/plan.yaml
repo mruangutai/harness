@@ -10,7 +10,7 @@ approval:
       date: '2026-11-26'
       reason: id-less lead path is host-unreachable (DEC-218); contract keys on carrying the id; rows stay asserted as SC-02 LEAVE with signpost comment
 drafted_at: '2026-11-26T16:15:40Z'
-status: review
+status: done
 source_issues: [2542, 2532]
 
 panel:
