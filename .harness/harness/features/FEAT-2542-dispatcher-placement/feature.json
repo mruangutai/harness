@@ -21,6 +21,21 @@
       "cycles_used": 1,
       "ended_at": "2026-11-26T16:40:01+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261126-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-26T17:08:46+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261126-2-validate-validator/digest.md",
+        "sha256": "0222c4fd01032eec448f5607e1a0e24b35f6c7c52618ec26f3b7d2ce39f4e97c"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-26T17:25:20+00:00"
     }
   ],
   "judgements": [
@@ -44,6 +59,13 @@
       "kind": "amendment",
       "decision": "T-02.intent",
       "reason": "DEC-258 index ruling cut 32->30 words to pass T-02's own verify cap (test-gen-decisions-index.py); prose only, no contract change; ruled by AdvisorA3Wording (notes/answers-2026-11-26-t02-wording.md)."
+    },
+    {
+      "at": "2026-11-26T17:08:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan-product FAIL regated: fixes accepted as applied at signature, proceed to validate",
+      "reason": "AdvisorA2Sign SQ-1 re-read all 9 applied panel fixes at source and ruled them accepted as applied; plan signed 2026-11-26 (notes/answers-2026-11-26-signoff.md)."
     }
   ],
   "mission": "plan",
