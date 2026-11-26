@@ -1,0 +1,43 @@
+{
+  "feature_id": "FEAT-2542-dispatcher-placement",
+  "branch": "feat/FEAT-2542-dispatcher-placement",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-26T15:58:24+00:00",
+      "tokens": 191648,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/plan-product/digest.md",
+        "sha256": "61742b1238943b1182dfb85f7534940a57368a5a14688b438dbf26eefbb286d1"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-26T16:40:01+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-26T15:58:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Cause and files known, but five placement states flip from silent pass-through to refusal: new enforcement policy needing a new DEC, class-contract SCs and a base-vs-pin probe before signature; patch condition 3 fails in substance."
+    },
+    {
+      "at": "2026-11-26T16:40:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Plan run FAIL is worst-wins over reader verdicts whose findings pm applied; no re-panel on my own (DEC-230): whether the applied substance fixes need a re-read goes to the signer as one question with a recommendation"
+    }
+  ],
+  "mission": "plan"
+}
