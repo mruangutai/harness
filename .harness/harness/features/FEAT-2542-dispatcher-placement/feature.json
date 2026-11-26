@@ -37,6 +37,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "Plan run FAIL is worst-wins over reader verdicts whose findings pm applied; no re-panel on my own (DEC-230): whether the applied substance fixes need a re-read goes to the signer as one question with a recommendation"
+    },
+    {
+      "at": "2026-11-26T17:06:34.626266+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-02.intent",
+      "reason": "DEC-258 index ruling cut 32->30 words to pass T-02's own verify cap (test-gen-decisions-index.py); prose only, no contract change; ruled by AdvisorA3Wording (notes/answers-2026-11-26-t02-wording.md)."
     }
   ],
   "mission": "plan",
