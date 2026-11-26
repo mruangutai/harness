@@ -500,7 +500,12 @@ if not isinstance(supervisor_pid, int) or isinstance(supervisor_pid, bool) or su
 #
 # Mission applicability (DEC-228, D-01): a product-lead or validator-lead start, and the plan
 # team's scope reader, declares exactly one `HARNESS-MISSION:` line in its own task text — the
-# host's marker spelling. An engineering-lead start needs none; its registered run does.
+# host's marker spelling. An engineering-lead start needs none; its registered run does. The
+# scope-reader route is keyed on placement (DEC-258, #2532): a harness-code-reviewer that
+# harness-product-lead dispatches takes it unless that lead's trusted placement — the feature
+# its own runtime claim names (#2542) — holds its open `distill-*` run; that reviewer is then a
+# distill child, held to the distill mission by the preflight below. The answer is the one
+# dispatch-local placement, never the declared feature and never a second registry read.
 # ---------------------------------------------------------------------------
 MISSION_PREFIX = "HARNESS-MISSION:"
 MISSION_LINE_RE = re.compile(r"HARNESS-MISSION: ([a-z]+)")
@@ -539,9 +544,13 @@ def _mission_refusal(problem):
 
 
 def _mission_scope():
-    """(must this start declare a mission, is it the plan team's scope-reader route). A code
-    reviewer outside that route is held to a mission line only when it carries one."""
-    plan_route = dispatched == PLAN_READER and agent == PLAN_TEAM_LEAD
+    """(must this start declare a mission, is it the plan team's scope-reader route). The
+    scope-reader route yields only to the dispatching product lead's trusted distill placement
+    (DEC-258): a reviewer it dispatches from the `distill-*` run its own runtime claim places it
+    in is a distill child, not a scope reader. A code reviewer outside that route is held to a
+    mission line only when it carries one."""
+    plan_route = (dispatched == PLAN_READER and agent == PLAN_TEAM_LEAD
+                  and _placed_distill_feature() is None)
     declares = dispatched == PLAN_READER and any(
         line.startswith(MISSION_PREFIX) for line in prompt.splitlines())
     return dispatched in MISSION_LEADS or plan_route or declares, plan_route
@@ -727,13 +736,123 @@ def _direct_orchestration_refusal():
 # the same registered run), so a child of a distill run that lacks the marker, declares
 # another mission, names another feature or omits its feature tree is refused before any
 # claim. The mission is DERIVED from the bound run, never from prose: a lead start's own
-# registered `distill-*` run (engineering leads included), or the dispatching lead's, reached
-# through that lead's runtime claim. F1: the converse holds too — a dispatch carrying the
-# distill marker with no bound `distill-*` run is refused, except the orchestrator of a
-# feature whose runs[] registers one. Every other dispatch keeps its prior outcome.
+# registered `distill-*` run (engineering leads included), or the dispatching lead's at its
+# placement. F1: the converse holds too — a dispatch carrying the distill marker with no bound
+# `distill-*` run is refused, except the orchestrator of a feature whose runs[] registers one.
+#
+# THE PLACEMENT CONTRACT (DEC-258, #2542, #2532). A dispatcher in LEADS carrying a
+# harness_agent_id is placed by its own runtime claim: find_run_claim must answer exactly one
+# live claim bound to that id and held by that same persona, and the dispatch binds to that
+# claim's feature, never the one the child declares. Any other answer — a persona mismatch,
+# not-found, ambiguous, unreadable, or a registry error escaping the lookup — is an exit-2
+# lineage denial, after the direct-orchestration refusal and before every other preflight and
+# the claim step, so an unreadable registry is left as found. One dispatch-local answer: the
+# placement is looked up once, and the placed lead's registered run read once, and that one
+# answer keys both the scope-reader route (_mission_scope) and the distill preflight. Main,
+# non-lead dispatchers and a lead payload without a runtime id never read placement and keep
+# the declared-feature path.
 # ---------------------------------------------------------------------------
 DISTILL_RUN_RE = re.compile(r"(?:^|-)distill-")  # feature-record.py DISTILL_RUN's token rule
 LEADS = ("harness-eng-lead",) + MISSION_LEADS
+_PLACEMENT_UNSET = object()
+_placement = _PLACEMENT_UNSET
+_PLACED_DISTILL_UNSET = object()
+_placed_distill = _PLACED_DISTILL_UNSET
+# The remedy line of a structured find_run_claim refusal, by its cause.
+_LOOKUP_REMEDIES = {
+    "unreadable": "Repair each unreadable registry named above in place and never delete it: an "
+                  "unreadable registry is never read as no claims (DEC-218). Then re-dispatch.",
+    "not-found": "This lead's run holds no live claim: re-dispatch the lead so its run start "
+                 "reclaims before it dispatches; never re-declare a feature to work around it.",
+    "ambiguous": "Several live claims are bound to {agent_id} in the registries named above, and "
+                 "the guard never chooses. For each named root run inflight_registry.py list "
+                 "--root <root> to see each claim's feature; the surplus claim is the one whose "
+                 "feature is not this lead's open registered run in that feature's feature.json "
+                 "runs[], and if that does not single one out the operator decides with the "
+                 "lead's dispatcher. Release only that claim, in its own registry: "
+                 "inflight_registry.py release --agent-id {agent_id} --feature <its feature> "
+                 "--root <its root>. If release refuses because that registry holds more than "
+                 "one match, stop and repair the registry by hand; never release by persona.",
+}
+
+
+def _refuse_placement(agent_id, cause, detail, remedy):
+    """DEC-258: the lineage denial of a governed lead dispatch that cannot be placed."""
+    _refuse("dispatch-guard: BLOCKED — lineage: %s run %s cannot be placed (%s), so its "
+            "dispatch of %s for %s is refused." % (agent, agent_id, cause, dispatched, declared),
+            "  " + detail,
+            "  " + remedy,
+            "  Inspect: inflight_registry.py find-run --agent-id %s --root %s. A governed lead's "
+            "dispatch binds to the feature its own runtime claim names, never the declared one "
+            "(DEC-258)." % (agent_id, owner_root))
+
+
+def _registry_error_remedy(exc):
+    """The remedy for a placement lookup that raised: name the files it names, never guess."""
+    if isinstance(exc, reg.UnreadableRegistry):
+        paths = list(exc.paths)
+    else:
+        paths = [] if exc.filename is None else [exc.filename]
+    if paths:
+        return ("The placement lookup raised on %s; repair that registry in place and never "
+                "delete it (DEC-218), then re-dispatch." % ", ".join(str(path) for path in paths))
+    return ("The placement lookup raised without naming a file, so no registry is known to be "
+            "corrupt: run the Inspect command below to reproduce the error and repair only what "
+            "it names; never delete a registry.")
+
+
+def _refuse_persona_mismatch(agent_id, found):
+    persona, feature, claim_root = found["claim"].get("agent"), found["feature"], found["root"]
+    _refuse_placement(
+        agent_id, "persona-mismatch",
+        "the live claim bound to %s belongs to %s (feature %s, registry %s), not %s."
+        % (agent_id, persona, feature, claim_root, agent),
+        "Leave a live claim of uncertain ownership alone. If that %s run is live, dispatch this "
+        "work from a %s run that holds its own claim (a fresh lead run claims at its run start); "
+        "only if the operator confirms that claim is stale, release it in its own registry with "
+        "inflight_registry.py release --agent-id %s --feature %s --root %s, then re-dispatch. "
+        "Never relabel a dispatch to pass." % (persona, agent, agent_id, feature, claim_root))
+
+
+def _lookup_placement(agent_id):
+    """The feature `agent_id`'s one live claim names, held by this dispatcher, or exit 2."""
+    try:
+        found = reg.find_run_claim(owner_root, agent_id)
+    except (reg.UnreadableRegistry, OSError) as exc:
+        _refuse_placement(agent_id, "registry-error", "%s: %s" % (type(exc).__name__, exc),
+                          _registry_error_remedy(exc))
+    if not found["ok"]:
+        _refuse_placement(agent_id, found["cause"], found["message"],
+                          _LOOKUP_REMEDIES[found["cause"]].format(agent_id=agent_id))
+    if found["claim"].get("agent") != agent:
+        _refuse_persona_mismatch(agent_id, found)
+    return found["feature"]
+
+
+def _dispatcher_placement():
+    """DEC-258: the feature a governed lead's own runtime claim places this dispatch in, or None
+    for a dispatcher outside the contract (not in LEADS, or no runtime id), which keeps the
+    declared-feature path. A failed placement exits 2. Memoized: one lookup per dispatch."""
+    global _placement
+    if _placement is _PLACEMENT_UNSET:
+        agent_id = d.get("harness_agent_id")
+        governed = agent in LEADS and isinstance(agent_id, str) and bool(agent_id)
+        _placement = _lookup_placement(agent_id) if governed else None
+    return _placement
+
+
+def _placed_distill_feature():
+    """The placed feature when the dispatching lead's registered run there is `distill-*`, else
+    None. Memoized: this one registered-run read serves the route and the distill preflight."""
+    global _placed_distill
+    if _placed_distill is _PLACED_DISTILL_UNSET:
+        placement = _dispatcher_placement()
+        if placement is None:
+            _placed_distill = None
+        else:
+            destinations, errors = _destinations()
+            _placed_distill = _distill_run_feature(destinations, errors, placement, agent)
+    return _placed_distill
 
 
 def _registered_run_id(destinations, errors, feature, lead):
@@ -743,20 +862,6 @@ def _registered_run_id(destinations, errors, feature, lead):
         return destinations.registered_destination(checkout, feature, lead)[0]
     except errors:
         return None
-
-
-def _dispatcher_feature():
-    """The feature the dispatching run's own runtime claim binds it to, else the declared one."""
-    agent_id = d.get("harness_agent_id")
-    if not isinstance(agent_id, str) or not agent_id:
-        return declared
-    try:
-        found = reg.find_run_claim(owner_root, agent_id)
-    except (reg.UnreadableRegistry, OSError):
-        return declared
-    claim = found.get("claim") or {}
-    bound = found.get("ok") and claim.get("agent") == agent
-    return found.get("feature") if bound else declared
 
 
 def _is_distill_run_id(run_id):
@@ -769,13 +874,16 @@ def _distill_run_feature(destinations, errors, feature, lead):
 
 
 def _bound_distill_feature(destinations, errors):
-    """The feature of the bound distill run this dispatch belongs to, or None."""
+    """The feature of the bound distill run this dispatch belongs to, or None. A placed lead's
+    dispatch reads the one dispatch-local placement answer; an id-less lead its declared one."""
     if dispatched in LEADS:
         own = _distill_run_feature(destinations, errors, declared, dispatched)
         if own:
             return own
     if agent in LEADS:
-        return _distill_run_feature(destinations, errors, _dispatcher_feature(), agent)
+        if _dispatcher_placement() is not None:
+            return _placed_distill_feature()
+        return _distill_run_feature(destinations, errors, declared, agent)
     return None
 
 
@@ -851,6 +959,7 @@ def _distill_preflight():
 
 
 _direct_orchestration_refusal()
+_dispatcher_placement()
 _start_preflight()
 _distill_preflight()
 
