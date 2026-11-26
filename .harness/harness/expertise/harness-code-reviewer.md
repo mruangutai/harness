@@ -15,5 +15,6 @@
 - G-09: WHEN reasoning about a chained verify: over test-factory-integration.py or test-factory-claim.py DO note both share one global FAILS counter and a single sys.exit(1 if FAILS) — any reddened case in the file fails the whole chain, not just the task's own diff.
 - G-10: WHEN verifying a monkeypatch/proxy substitution targets factory_claim.py's factory_config reference DO confirm it resolves via LOAD_GLOBAL at call time, not a snapshotted import — this module-level rebinding is what lets test-time patching of factory_config.features_root intercept production code without editing factory_claim itself.
 - G-11: WHEN grepping for "undeclared step key" as a discriminating test substring DO note it has two producers in this repo — check-domain.py (write-time) and check-state.py (at-rest sweep) — so uniqueness for a specific test fixture rests on which hook fires, not the string alone.
+- G-12: WHEN reviewing a consumer of inflight_registry.py's find_run_claim DO expect an omitted feature to pass the feature-validity check as LEGACY_FEATURE, not be refused. An explicit null, empty string, or non-string reaches the consumer unchanged and must fail that check.
 ## Outcomes (max 10)
 ## Open (max 5)
