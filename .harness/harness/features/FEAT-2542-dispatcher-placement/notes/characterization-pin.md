@@ -214,3 +214,11 @@ observed_red: c40/persona-mismatch/plan-run:exit
 observed_red: c40/persona-mismatch/plan-run:claim
 observed_red: c40/persona-mismatch/plan-run:cause
 observed_red: c40/persona-mismatch/plan-run:remedy
+
+## Pin run
+tested_sha: d23f372898d0129b4e89efe49a1bc87e6e300a73
+pin_run_exit: 0
+397 of 397 cases passed
+test-lead-start-return_exit: 0
+test-lead-start-preflight_exit: 0
+test-broad-catch-census_exit: 0
