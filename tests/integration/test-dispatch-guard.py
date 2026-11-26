@@ -30,6 +30,7 @@ import tempfile
 import time
 
 from git_support import add_worktree, commit_files, init_repo
+from isolated_bin import isolated_bin
 
 TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -1357,6 +1358,13 @@ def case_29_name_parameter_refused():
     check("case 29: name: is refused", r.returncode == 2, r.stderr)
     check("case 29: the refusal names the value", "'Builder'" in r.stderr, r.stderr)
 
+def _bind_lead_one(checkout, feature):
+    """FEAT-2542 (DEC-258): LeadOne's dispatches are placed by its own runtime claim, so the
+    fixture binds it as a lead's run start does, in the registry its feature resolves to."""
+    reg = _load_registry_module()
+    reg.claim_run_start(reg.feature_root(checkout, feature), "harness-eng-lead", feature,
+                        "LeadOne", "OrchestratorOne", supervisor_pid=os.getpid(), cwd=checkout)
+
 def case_30_repository_header_binds_exact_factory_claim():
     """FEAT-495: a repository-tier dispatch carries exactly one HARNESS-REPOSITORY line that
     agrees with the feature artifact and the fleet; its claim records the fleet segment."""
@@ -1373,6 +1381,7 @@ def case_30_repository_header_binds_exact_factory_claim():
         }, env=env)
 
     try:
+        _bind_lead_one(root, feature)
         result = dispatch(f"HARNESS-FEATURE: {feature}\n"
                           "HARNESS-REPOSITORY: acme/product-a\nchange the product")
         claims = _claims_for(_read_registry(root, _load_registry_module()),
@@ -1467,6 +1476,7 @@ def case_31_repository_binding_read_from_the_feature_worktree():
     feature = "FEAT-97-fleet-first"
     main, wt, segment = _c31_fleet_worktree(feature)
     try:
+        _bind_lead_one(main, feature)
         _c31_worktree_binds(main, wt, segment, feature)
         _c31_stale_main_copy_loses(main, segment, feature)
     finally:
@@ -1704,6 +1714,496 @@ def case_37_orchestrator_keeps_registered_distill_authority():
           result.stderr)
 
 
+# ---------------------------------------------------------------------------
+# FEAT-2542 (#2542, #2532, DEC-258) — a governed lead's dispatch is placed by its own runtime
+# claim, or refused. A dispatcher in LEADS carrying harness_agent_id binds to the feature
+# find_run_claim names for that id; a failed placement is an exit-2 lineage denial before any
+# other preflight and any claim. The product lead's scope-reader route yields only to that
+# trusted distill placement. Main, non-lead and id-less dispatches keep their prior outcomes.
+# Every assertion is named <row id>:<field>; notes/characterization-pin.md lists the ones that
+# were red at base.
+# ---------------------------------------------------------------------------
+PLACE_ID = "Orch.Lead"
+OTHER_FEATURE = "FEAT-91-other-fixture"
+CORRUPT_REGISTRY = b"{not json"
+_F2542_REGISTRY = os.path.join(".harness", ".inflight-claims.json")
+_F2542_STATES = ("ok", "persona-mismatch", "not-found", "ambiguous", "unreadable-owner",
+                 "unreadable-linked", "escaped-unreadable", "escaped-oserror")
+# The live claim a persona-mismatch fixture binds to Orch.Lead, by dispatching lead.
+_F2542_MISMATCH = {"harness-eng-lead": "harness-validator-lead",
+                   "harness-product-lead": "harness-validator-lead",
+                   "harness-validator-lead": "harness-eng-lead"}
+_F2542_TOKENS = {"persona-mismatch": "persona-mismatch", "not-found": "not-found",
+                 "ambiguous": "ambiguous", "unreadable-owner": "unreadable",
+                 "unreadable-linked": "unreadable", "escaped-unreadable": "registry-error",
+                 "escaped-oserror": "registry-error", "null-feature": "unreadable",
+                 "empty-feature": "unreadable"}
+# Validate c0 must_fix 1: an ok, persona-matched claim whose feature is rewritten on disk after
+# the real API wrote it. find_run_claim answers a null or empty feature as found, so the guard
+# must refuse it as a malformed row; an omitted feature it answers as LEGACY_FEATURE, a real
+# placement ("omitted-feature" removes the key).
+_F2542_FEATURE_REWRITES = {"null-feature": None, "empty-feature": ""}
+_F2542_MISSIONS = {"distill": ["HARNESS-MISSION: distill"], "plan": ["HARNESS-MISSION: plan"],
+                   "missing": [],
+                   "conflicting": ["HARNESS-MISSION: distill", "HARNESS-MISSION: plan"],
+                   "other": ["HARNESS-MISSION: validate"]}
+# Product-lead placements: (X's one open harness-product-lead run, plan approval status).
+_F2542_PLACEMENTS = {"distill": ("distill-product", "approved"),
+                     "plan": ("plan-product", "pending"),
+                     "norun": (None, "pending"),
+                     "distill-pending": ("distill-product", "pending")}
+PROCEED = ("proceed", "")
+LINEAGE = ("lineage",)
+
+
+def _f2542_write_plan(path, status):
+    """test-lead-start-return.py write_plan's shape, for X."""
+    with open(path, "w") as fh:
+        fh.write(f"schema: plan/1\nfeature: {DISTILL_FEATURE}\napproval:\n  status: {status}\n"
+                 "tasks:\n  - id: T-01\n    title: fixture task\n    change_type: test\n"
+                 "    execution_mode: main-session-direct\n    files: [fixture.py]\n"
+                 "    verify: \"true\"\n    intent: exercise the start preflight\n")
+
+
+def _f2542_checkout(lead, run_id, plan_status=None):
+    """X holding `lead`'s one open PENDING run `run_id` (None: runs []), Y with runs [], and a
+    plan.yaml beside X with `plan_status` when given."""
+    root = _distill_checkout(lead, run_id or "r1-unused")
+    features = os.path.join(root, ".harness", "harness", "features")
+    if run_id is None:
+        with open(os.path.join(features, DISTILL_FEATURE, "feature.json"), "w") as fh:
+            json.dump({"feature_id": DISTILL_FEATURE, "runs": []}, fh)
+    os.makedirs(os.path.join(features, OTHER_FEATURE))
+    with open(os.path.join(features, OTHER_FEATURE, "feature.json"), "w") as fh:
+        json.dump({"feature_id": OTHER_FEATURE, "runs": []}, fh)
+    if plan_status:
+        _f2542_write_plan(os.path.join(features, DISTILL_FEATURE, "plan.yaml"), plan_status)
+    return root
+
+
+def _f2542_linked_worktree(root):
+    """Make `root` a git repository with one commit and an unrelated linked worktree."""
+    init_repo(root, "main")
+    commit_files(root, {"seed.txt": "seed\n"}, "init")
+    linked = add_worktree(root, "BUG-99-unrelated", "harness", "bug/99-unrelated")
+    os.makedirs(os.path.join(linked, ".harness"), exist_ok=True)
+    return linked
+
+
+def _f2542_claims_to_make(lead, state):
+    """(persona, feature) run-start claims that put Orch.Lead into `state`."""
+    if state == "not-found":
+        return []
+    if state == "persona-mismatch":
+        return [(_F2542_MISMATCH[lead], DISTILL_FEATURE)]
+    if state == "ambiguous":
+        return [(lead, DISTILL_FEATURE), (lead, OTHER_FEATURE)]
+    return [(lead, DISTILL_FEATURE)]
+
+
+def _f2542_bin(fx, sibling, override):
+    """An isolated_bin copy whose `sibling` ends with `override`; returns its guard."""
+    dest = tempfile.mkdtemp()
+    fx["cleanup"].append(dest)
+    mbin = isolated_bin(dest)
+    with open(os.path.join(mbin, sibling), "a", encoding="utf-8") as handle:
+        handle.write("\n\n" + override)
+    return os.path.join(mbin, "dispatch-guard.py")
+
+
+def _f2542_escaped_guard(fx):
+    """The guard of a copied bin whose find_run_claim raises past its structured answers."""
+    raised = {"escaped-unreadable": "UnreadableRegistry(%r)" % (fx["owner_registry"],),
+              "escaped-oserror": "OSError('injected placement fault')"}[fx["state"]]
+    return _f2542_bin(fx, "inflight_registry.py",
+                      "def find_run_claim(owner_root, agent_id, now=None):\n"
+                      "    raise %s\n" % (raised,))
+
+
+def _f2542_rewrite_feature(root, state):
+    """Rewrite Orch.Lead's claim in root's registry: its feature null or empty, or the key gone."""
+    path = os.path.join(root, _F2542_REGISTRY)
+    with open(path) as fh:
+        doc = json.load(fh)
+    for claim in doc["claims"]:
+        if claim.get("agent_id") != PLACE_ID:
+            continue
+        if state == "omitted-feature":
+            del claim["feature"]
+        else:
+            claim["feature"] = _F2542_FEATURE_REWRITES[state]
+    with open(path, "w") as fh:
+        json.dump(doc, fh)
+
+
+def _f2542_place(fx, lead):
+    """Put runtime id Orch.Lead (parent Orch) into fx's registry state with the real API."""
+    root, state = fx["root"], fx["state"]
+    if state == "unreadable-linked":
+        fx["registries"].append(_f2542_linked_worktree(root))
+    for persona, feature in _f2542_claims_to_make(lead, state):
+        _bind_lead_runtime(root, persona, PLACE_ID, feature)
+    corrupt = {"unreadable-owner": root, "unreadable-linked": fx["registries"][-1]}.get(state)
+    if corrupt:
+        fx["bytes"] = os.path.join(corrupt, _F2542_REGISTRY)
+        with open(fx["bytes"], "wb") as handle:
+            handle.write(CORRUPT_REGISTRY)
+    if state.startswith("escaped-"):
+        fx["guard"] = _f2542_escaped_guard(fx)
+    if state in _F2542_FEATURE_REWRITES or state == "omitted-feature":
+        _f2542_rewrite_feature(root, state)
+
+
+def _f2542_run(lead, run_id, plan_status, state, act):
+    """Build `lead`'s checkout, place Orch.Lead in `state`, run `act(fx)`, clean up."""
+    root = _f2542_checkout(lead, run_id, plan_status)
+    fx = {"root": root, "state": state, "guard": GUARD, "bytes": None, "cleanup": [root],
+          "registries": [root], "mismatch": _F2542_MISMATCH[lead],
+          "owner_registry": os.path.join(root, _F2542_REGISTRY)}
+    try:
+        _f2542_place(fx, lead)
+        act(fx)
+    finally:
+        for path in fx["cleanup"]:
+            shutil.rmtree(path, ignore_errors=True)
+
+
+def _f2542_payload(fx, dispatcher, child, feature, lines, agent_id=PLACE_ID):
+    return _distill_task(fx["root"], child, dispatcher, lines, agent_id=agent_id,
+                         feature_line="HARNESS-FEATURE: " + feature)
+
+
+def _f2542_fire(fx, payload, **env):
+    return subprocess.run([fx["guard"]], input=json.dumps(payload), capture_output=True,
+                          text=True, env=dict(os.environ, HARNESS_PROJECT_DIR=fx["root"], **env))
+
+
+def _f2542_registry(root):
+    """A registry's document, or {} when absent or unreadable (bytes are asserted apart)."""
+    try:
+        with open(os.path.join(root, _F2542_REGISTRY)) as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _f2542_claim_count(fx, persona):
+    return sum(len(_claims_for(_f2542_registry(root), persona)) for root in fx["registries"])
+
+
+def _f2542_receipt(result, persona):
+    for line in result.stdout.splitlines():
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        claim = obj.get("harness_claim") if isinstance(obj, dict) else None
+        if isinstance(claim, dict) and claim.get("agent") == persona:
+            return True
+    return False
+
+
+def _f2542_detail(result, label=""):
+    return (f"{label}exit {result.returncode}, stdout={result.stdout[-200:]!r}, "
+            f"stderr={result.stderr[-600:]!r}")
+
+
+def _f2542_proceeds(row, fx, result, persona, label=""):
+    detail = _f2542_detail(result, label)
+    check(row + ":exit", result.returncode == 0, detail)
+    check(row + ":claim", _f2542_claim_count(fx, persona) == 1, detail)
+    check(row + ":receipt", _f2542_receipt(result, persona), detail)
+
+
+def _f2542_mentions(stderr, includes, excludes=()):
+    return (all(fragment in stderr for fragment in includes)
+            and not any(fragment in stderr for fragment in excludes))
+
+
+def _f2542_refused(row, fx, result, persona, includes, excludes=()):
+    detail = _f2542_detail(result)
+    check(row + ":exit", result.returncode == 2, detail)
+    check(row + ":claim", _f2542_claim_count(fx, persona) == 0
+          and "harness_claim" not in result.stdout, detail)
+    check(row + ":cause", _f2542_mentions(result.stderr, includes, excludes), detail)
+
+
+def _f2542_remedy(fx):
+    """(remedy fragments, excluded fragments) for fx's failed placement state."""
+    return {
+        "persona-mismatch": (("belongs to " + fx["mismatch"], "Never relabel"), ()),
+        "not-found": (("re-dispatch the lead",), ()),
+        "ambiguous": (("list --root", "release --agent-id %s --feature" % PLACE_ID), ()),
+        "unreadable-owner": (("never delete it",), ()),
+        "unreadable-linked": (("never delete it",), ()),
+        "null-feature": (("never delete it",), ()),
+        "empty-feature": (("never delete it",), ()),
+        "escaped-unreadable": (("repair that registry in place", fx["owner_registry"]), ()),
+        "escaped-oserror": (("without naming a file",), ("repair that registry in place",)),
+    }[fx["state"]]
+
+
+def _f2542_lineage(row, fx, result, persona):
+    """A lineage row: exit 2, no claim, the lineage cause, its remedy, no unavailable line,
+    and an unreadable registry left exactly as found."""
+    cause = "cannot be placed (%s)" % (_F2542_TOKENS[fx["state"]],)
+    shape = ("names no feature",) if fx["state"] in _F2542_FEATURE_REWRITES else ()
+    _f2542_refused(row, fx, result, persona, ("BLOCKED", "lineage", PLACE_ID, cause) + shape)
+    detail = _f2542_detail(result)
+    includes, excludes = _f2542_remedy(fx)
+    check(row + ":remedy", _f2542_mentions(
+        result.stderr, ("find-run --agent-id " + PLACE_ID,) + includes, excludes), detail)
+    check(row + ":unavailable", _unavailable_gates(result) == [], detail)
+    if fx["bytes"]:
+        with open(fx["bytes"], "rb") as handle:
+            found = handle.read()
+        check(row + ":bytes", found == CORRUPT_REGISTRY, repr(found[:120]))
+
+
+def _f2542_judge(row, fx, result, persona, outcome):
+    """outcome: ("proceed", label), ("refuse", includes, excludes) or LINEAGE."""
+    if outcome[0] == "proceed":
+        _f2542_proceeds(row, fx, result, persona, outcome[1])
+    elif outcome[0] == "refuse":
+        _f2542_refused(row, fx, result, persona, *outcome[1:])
+    else:
+        _f2542_lineage(row, fx, result, persona)
+
+
+def _f2542_refuse(*includes, excludes=()):
+    return ("refuse", includes, excludes)
+
+
+def _c38_child(root, child):
+    """(declared feature, tree-root lines) of the harness-code-reviewer child shape."""
+    tree = ["HARNESS-FEATURE-TREE-ROOT: " + root]
+    return {"tree": (DISTILL_FEATURE, tree),
+            "foreign-feature": (OTHER_FEATURE, tree),
+            "no-tree-root": (DISTILL_FEATURE, []),
+            "foreign-tree-root": (DISTILL_FEATURE,
+                                  ["HARNESS-FEATURE-TREE-ROOT: " + FEATURE_TREE_ROOT])}[child]
+
+
+def _product_row(row, placement, mission, outcome, child="tree", state="ok"):
+    """harness-product-lead (Orch.Lead) dispatches harness-code-reviewer."""
+    run_id, status = _F2542_PLACEMENTS[placement]
+
+    def act(fx):
+        feature, lines = _c38_child(fx["root"], child)
+        result = _f2542_fire(fx, _f2542_payload(fx, "harness-product-lead", "harness-code-reviewer",
+                                                feature, lines + _F2542_MISSIONS[mission]))
+        _f2542_judge(row, fx, result, "harness-code-reviewer", outcome)
+
+    _f2542_run("harness-product-lead", run_id, status, state, act)
+
+
+_PLAN_ROUTE_DISTILL = _f2542_refuse("declares 'distill'; the plan team's scope reader declares plan")
+_PLAN_ROUTE_OTHER = _f2542_refuse("declares 'validate'; the plan team's scope reader declares plan")
+_NO_MISSION = _f2542_refuse("has no HARNESS-MISSION line",
+                            excludes=("child of a bound distill run",))
+_CONFLICTING = _f2542_refuse("conflicting or malformed HARNESS-MISSION")
+# (row id, placement, mission, outcome, child shape), all in registry state ok.
+_C38_ROWS = (
+    ("c38/distill/distill", "distill", "distill", ("proceed", "the FEAT-2489 payload: "), "tree"),
+    ("c38/distill/plan", "distill", "plan",
+     _f2542_refuse("plan-panel start for", "refused before any work"), "tree"),
+    ("c38/distill/missing", "distill", "missing",
+     _f2542_refuse("child of a bound distill run but has no HARNESS-MISSION line"), "tree"),
+    ("c38/distill/conflicting", "distill", "conflicting", _CONFLICTING, "tree"),
+    ("c38/distill/other", "distill", "other",
+     _f2542_refuse("child of a bound distill run but declares 'validate'"), "tree"),
+    ("c38/plan/distill", "plan", "distill", _PLAN_ROUTE_DISTILL, "tree"),
+    ("c38/norun/distill", "norun", "distill", _PLAN_ROUTE_DISTILL, "tree"),
+    ("c38/plan/plan", "plan", "plan", PROCEED, "tree"),
+    ("c38/norun/plan", "norun", "plan",
+     _f2542_refuse("authorization requires exactly one matching open registered lead run"),
+     "tree"),
+    ("c38/plan/missing", "plan", "missing", _NO_MISSION, "tree"),
+    ("c38/norun/missing", "norun", "missing", _NO_MISSION, "tree"),
+    ("c38/plan/conflicting", "plan", "conflicting", _CONFLICTING, "tree"),
+    ("c38/norun/conflicting", "norun", "conflicting", _CONFLICTING, "tree"),
+    ("c38/plan/other", "plan", "other", _PLAN_ROUTE_OTHER, "tree"),
+    ("c38/norun/other", "norun", "other", _PLAN_ROUTE_OTHER, "tree"),
+    ("c38/distill-pending/plan", "distill-pending", "plan",
+     _f2542_refuse("child of a bound distill run but declares 'plan'"), "tree"),
+    ("c38/distill/foreign-feature", "distill", "distill",
+     _f2542_refuse("bound distill run is for " + DISTILL_FEATURE), "foreign-feature"),
+    ("c38/distill/no-tree-root", "distill", "distill",
+     _f2542_refuse("is a child of a bound distill run and requires HARNESS-FEATURE-TREE-ROOT"),
+     "no-tree-root"),
+    ("c38/distill/foreign-tree-root", "distill", "distill",
+     _f2542_refuse("declared feature-tree root"), "foreign-tree-root"),
+)
+# Failure rows on the distill placement: every state and every mission meets a failure. They
+# are also case 39's coverage of the harness-product-lead -> harness-code-reviewer pair.
+_C38_FAILURES = (("persona-mismatch", "plan"), ("not-found", "missing"), ("ambiguous", "distill"),
+                 ("unreadable-owner", "conflicting"), ("unreadable-linked", "other"),
+                 ("escaped-unreadable", "distill"), ("escaped-oserror", "plan"))
+# Wraps registered_destination to log one JSON line per call, then answers as the original.
+_RUN_READ_WITNESS = (
+    "_feat2542_registered_destination = registered_destination\n\n\n"
+    "def registered_destination(root, feature, agent, run_id=None):\n"
+    "    with open(os.environ['FEAT2542_RUN_READ_LOG'], 'a', encoding='utf-8') as handle:\n"
+    "        handle.write(json.dumps({'feature': feature, 'lead': agent}) + '\\n')\n"
+    "    return _feat2542_registered_destination(root, feature, agent, run_id)\n")
+
+
+def _f2542_jsonl(path):
+    if not os.path.exists(path):
+        return []
+    with open(path) as fh:
+        return [json.loads(line) for line in fh if line.strip()]
+
+
+def _c38_run_reads():
+    """The FEAT-2489 payload reads the dispatcher's registered run exactly once."""
+    def act(fx):
+        log_dir = tempfile.mkdtemp()
+        fx["cleanup"].append(log_dir)
+        log = os.path.join(log_dir, "run-reads.jsonl")
+        fx["guard"] = _f2542_bin(fx, "digest_destination.py", _RUN_READ_WITNESS)
+        feature, lines = _c38_child(fx["root"], "tree")
+        result = _f2542_fire(fx, _f2542_payload(fx, "harness-product-lead", "harness-code-reviewer",
+                                                feature, lines + _F2542_MISSIONS["distill"]),
+                             FEAT2542_RUN_READ_LOG=log)
+        reads = _f2542_jsonl(log)
+        check("c38/distill/run-reads:run-reads", result.returncode == 0 and len(reads) == 1
+              and reads[0].get("lead") == "harness-product-lead",
+              "reads=%r; %s" % (reads, _f2542_detail(result)))
+
+    _f2542_run("harness-product-lead", "distill-product", "approved", "ok", act)
+
+
+def case_38_product_reader_route_keys_on_trusted_placement():
+    """#2532: the scope-reader route yields only to the product lead's trusted distill
+    placement; every other placement keeps its prior route."""
+    for row, placement, mission, outcome, child in _C38_ROWS:
+        _product_row(row, placement, mission, outcome, child)
+    _c38_run_reads()
+    for state, mission in _C38_FAILURES:
+        _product_row("c38/fail-%s/%s" % (state, mission), "distill", mission, LINEAGE,
+                     state=state)
+
+
+def _c39_outcome(state, child):
+    if state != "ok":
+        return LINEAGE
+    if child == "bound":
+        return PROCEED
+    return _f2542_refuse("bound distill run is for " + DISTILL_FEATURE)
+
+
+def _c39_row(lead, persona, state, child, row=None, outcome=None):
+    """`lead` (Orch.Lead, open distill-<suffix> run) dispatches `persona`: bound declares X
+    with the marker and its tree root; exploit declares Y with neither. `row` and `outcome`
+    default to case 39's own."""
+    suffix = _LEAD_RUNS[lead][1]
+    row = row or "c39/%s/%s/%s" % (suffix, state, child)
+    outcome = outcome or _c39_outcome(state, child)
+
+    def act(fx):
+        lines = ["HARNESS-FEATURE-TREE-ROOT: " + fx["root"], "HARNESS-MISSION: distill"]
+        feature, lines = (DISTILL_FEATURE, lines) if child == "bound" else (OTHER_FEATURE, [])
+        result = _f2542_fire(fx, _f2542_payload(fx, lead, persona, feature, lines))
+        _f2542_judge(row, fx, result, persona, outcome)
+
+    _f2542_run(lead, "distill-" + suffix, None, state, act)
+
+
+def case_39_governed_lead_placement_is_bind_or_refuse():
+    """#2542: a governed lead's dispatch binds to its own runtime claim's feature or is refused
+    as a lineage denial before any claim; it never falls back to the declared feature."""
+    for state in _F2542_STATES:
+        for child in ("bound", "exploit"):
+            _c39_row("harness-eng-lead", "harness-backend-dev", state, child)
+    for state in ("ok", "not-found"):
+        _c39_row("harness-validator-lead", "harness-qa", state, "bound")
+
+
+def case_40_distill_exemption_never_fires_on_failed_placement():
+    """A failed placement is refused whatever the product lead's run, so neither the distill
+    exemption from the scope-reader route nor the plan route applies to it."""
+    for state in ("not-found", "persona-mismatch"):
+        _product_row("c40/%s/distill-run" % state, "distill", "distill", LINEAGE, state=state)
+        _product_row("c40/%s/plan-run" % state, "plan", "plan", LINEAGE, state=state)
+
+
+# (control, dispatcher, harness_agent_id) dispatching harness-backend-dev for Y, no marker.
+_C41_CONTROLS = (
+    ("main", "Main", "Main"),
+    ("orchestrator-id", "harness-orchestrator", PLACE_ID),
+    ("orchestrator-no-id", "harness-orchestrator", None),
+    # The lead-no-id rows assert SC-02's LEAVE clause for an id-less lead payload. The host
+    # refuses an id-less governed nested Task (DEC-218), and the signer's OQ-1 ruling governs
+    # these rows, so a signed hardening changes exactly these rows.
+    ("lead-no-id", "harness-eng-lead", None),
+)
+
+
+def _c41_row(control, dispatcher, agent_id, state):
+    row = "c41/%s/%s" % (control, state)
+
+    def act(fx):
+        payload = _f2542_payload(fx, dispatcher, "harness-backend-dev", OTHER_FEATURE, [],
+                                 agent_id=None if dispatcher == "Main" else agent_id)
+        if dispatcher == "Main":
+            payload["harness_agent_id"] = "Main"
+        result = _f2542_fire(fx, payload)
+        detail = _f2542_detail(result)
+        check(row + ":exit", result.returncode == 0, detail)
+        check(row + ":claim", _f2542_claim_count(fx, "harness-backend-dev") == 1, detail)
+
+    _f2542_run("harness-eng-lead", "distill-eng", None, state, act)
+
+
+def case_41_main_and_non_lead_keep_prior_outcomes():
+    """Outside the placement contract nothing reads placement: in the worst on-disk state, and
+    with a find_run_claim that raises if called, each control still proceeds and claims."""
+    for control, dispatcher, agent_id in _C41_CONTROLS:
+        for state in ("unreadable-owner", "escaped-oserror"):
+            _c41_row(control, dispatcher, agent_id, state)
+
+
+def case_42_claim_naming_no_feature_is_unreadable():
+    """Validate c0 must_fix 1: an ok, persona-matched claim whose feature is null or empty is a
+    malformed claim row, refused as unreadable before any claim; it never falls back to the
+    declared feature. An omitted feature is find_run_claim's LEGACY_FEATURE, a real placement,
+    so that dispatch keeps its base outcome."""
+    for state in ("null-feature", "empty-feature"):
+        for child in ("bound", "exploit"):
+            _c39_row("harness-eng-lead", "harness-backend-dev", state, child,
+                     row="c42/%s/%s" % (state, child))
+    _c39_row("harness-eng-lead", "harness-backend-dev", "omitted-feature", "exploit",
+             row="c42/omitted-feature/exploit", outcome=PROCEED)
+
+
+_RUN_REFUSAL = "authorization requires exactly one matching open registered lead run"
+
+
+def _c43_row(state, outcome):
+    """harness-validator-lead (Orch.Lead), with no registered run in X, dispatches a plan
+    scope reader, which the registered-run preflight refuses."""
+    def act(fx):
+        payload = _f2542_payload(fx, "harness-validator-lead", "harness-code-reviewer",
+                                 DISTILL_FEATURE, ["HARNESS-MISSION: plan"])
+        _f2542_judge("c43/%s/run-preflight" % (state,), fx, _f2542_fire(fx, payload),
+                     "harness-code-reviewer", outcome)
+
+    _f2542_run("harness-validator-lead", None, None, state, act)
+
+
+def case_43_placement_refuses_before_the_run_preflight():
+    """DEC-258's ordering (validate c0 OQ-4, mutant g): placement is established before every
+    other preflight. The ok row witnesses that this dispatch's registered-run preflight refuses;
+    on a failed placement the refusal must name the placement cause, not the run."""
+    _c43_row("ok", _f2542_refuse("cannot start for", _RUN_REFUSAL,
+                                 excludes=("cannot be placed",)))
+    _c43_row("not-found", _f2542_refuse("BLOCKED", "lineage", PLACE_ID,
+                                        "cannot be placed (not-found)",
+                                        excludes=("cannot start for", _RUN_REFUSAL)))
+
+
 # Run order matters: some cases share the module-level fixtures the earlier ones leave behind.
 CASES = (
     case_1_governed_refusals_survive,
@@ -1754,6 +2254,12 @@ CASES = (
     case_35_marker_on_an_ordinary_run_child_is_refused,
     case_36_marker_on_an_ordinary_lead_start_is_refused,
     case_37_orchestrator_keeps_registered_distill_authority,
+    case_38_product_reader_route_keys_on_trusted_placement,
+    case_39_governed_lead_placement_is_bind_or_refuse,
+    case_40_distill_exemption_never_fires_on_failed_placement,
+    case_41_main_and_non_lead_keep_prior_outcomes,
+    case_42_claim_naming_no_feature_is_unreadable,
+    case_43_placement_refuses_before_the_run_preflight,
 )
 
 

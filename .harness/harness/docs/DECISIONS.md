@@ -8693,3 +8693,78 @@ tree. Retention is unchanged: DEC-238 still decides what ship keeps and what aba
 
 **Record:** BUG-2399 (#2399); D-01 signed by fable-advisor under the operator's delegation on
 2026-11-22. Cites DEC-238, which it does not amend. Refs: DEC-112, DEC-174.
+
+## DEC-258 — A governed lead's dispatch binds to its own runtime placement or is refused; the scope-reader route keys on that placement
+
+**Chose:** two rules in `dispatch-guard.py`.
+
+*Rule 1 (#2542).* A dispatcher in `LEADS` whose payload carries `harness_agent_id` is placed only
+by its own runtime claim: `find_run_claim`, persona-matched. `_dispatcher_placement` runs once per
+dispatch, after the direct-orchestration refusal and before any other preflight and before any
+claim. Five denial states are each an exit-2 lineage refusal naming its cause token, the runtime
+id, a remedy specific to that cause and the `find-run` inspect command:
+- structured unreadable (`unreadable`): repair the registry in place, never delete it; an ok
+  claim that names no feature (null or empty) is a malformed record, refused as unreadable too;
+- an escaped `UnreadableRegistry` or `OSError` (`registry-error`): repair the named registry, or,
+  when the exception names no file, reproduce it with `find-run` before repairing anything;
+- `not-found`: re-dispatch the lead so its run start reclaims;
+- `ambiguous`: the operator identifies the surplus claim per registry root with `list --root`
+  and releases only it, in its own registry, with `--root`, never by persona; the guard never
+  chooses;
+- ok with a persona mismatch (`persona-mismatch`): a live claim of uncertain ownership is left
+  alone; the work is re-dispatched from a correctly claimed lead run, or the operator releases a
+  confirmed-stale claim in its own registry.
+
+None of the five is ever the declared feature, and none is ever the unavailable outcome. An
+unreadable registry is left as found. Unchanged: Main, non-lead dispatchers with or without
+`harness_agent_id`, and a lead payload without `harness_agent_id` keep the declared-feature path.
+The host already refuses an id-less governed nested Task (DEC-218), so the guard does not duplicate
+that refusal.
+
+*Rule 2 (#2532).* The `harness-product-lead` → `harness-code-reviewer` scope-reader rule in
+`_mission_scope` holds unless that trusted placement resolves to the lead's one open registered
+`distill-*` run, matched by `registered_destination` and `DISTILL_RUN_RE`. The route and the distill
+preflight consume one dispatch-local answer, `_placed_distill_feature`, read once, so the exemption
+and its enforcement cannot see different run state. A distill-placed start then flows into the
+unchanged distill preflight, which enforces marker, feature and tree root. A distill-placed lead
+declaring `plan` is still refused, so no relabeling works in either direction.
+
+**Over:**
+- the unavailable outcome for these states;
+- the silent declared-feature fallback, which is the defect;
+- an exemption keyed on the declared mission or any child-supplied field;
+- a run-id or phase-field plan detector, since run records carry no phase;
+- panel existence as the discriminator;
+- reordering `_start_preflight` and `_distill_preflight`;
+- reading the registered run separately for the route and for the preflight;
+- relaxing `find_run_claim`'s any-unreadable strictness, which backs `release_run` and markerless
+  revival.
+
+**Because:**
+- The measured base behaviour in FEAT-2542's characterization note: all seven failed-placement
+  fixtures claimed, and the FEAT-2489 product distill dispatch was refused without consulting
+  placement.
+- The hook lets a governed lead dispatch only from a ready, claimed run, so a failed placement is
+  an anomaly with no backstop.
+- DEC-100's own text: a refusal outranks it.
+- DEC-204: a run recovers its feature only from the one live claim bound to its exact runtime id,
+  and release is exact.
+- DEC-218: cannot-read is never no-claims.
+- DEC-250: text supplies no authority.
+
+**Tradeoff accepted:**
+- A corrupt registry or a lost claim now stops that lead's dispatches until the operator repairs
+  it.
+- The escaped state is reachable only by fault injection, proven through a copied bin tree.
+- Main and non-lead dispatches keep the claim step's DEC-218 treat-as-empty recovery.
+
+**Record:** FEAT-2542 (#2542, #2532); D-01 and D-02 signed by Mike Ruangutai (delegated to
+fable-advisor) on 2026-11-26. It amends none of DEC-100, DEC-174, DEC-204, DEC-214, DEC-218,
+DEC-228, DEC-250 or DEC-253:
+- DEC-214's `HARNESS-FEATURE-TREE-ROOT` prerequisite is enforced unchanged on a distill-placed
+  child;
+- DEC-253's registered-distill dispatch prerequisite is restored for a product distill, while its
+  caller-bound apply and raw `Write` grants are unchanged.
+
+Executed main-session-direct under DEC-174. Refs: DEC-100, DEC-174, DEC-204, DEC-214, DEC-218,
+DEC-228, DEC-250, DEC-253.
