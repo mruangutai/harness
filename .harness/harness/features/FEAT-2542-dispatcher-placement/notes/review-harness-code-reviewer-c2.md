@@ -1,0 +1,21 @@
+# FEAT-2542 code review — cycle 2
+
+**PASS — T-01 closes the null/empty-feature fail-open and meets the ruled command wording.** No must-fix remains. Reviewed `bc937a94..2ec0916f` for behavior and `2e7a2c77..2ec0916f` for code grade. HEAD was `a69f1367`, so citations and comparisons use pinned blobs from `git show`, not HEAD. The feature record in the working tree agrees with the dispatched pin. No human commits in the graded range.
+
+## Stage 1 — spec compliance
+
+- **T-01 / SC-02, D-01 (must_fix 1):** In three scratch registries, the real producer (`inflight_registry.py:313–340`, byte-identical to base) returned `ok=True` with persona `harness-eng-lead` and feature `None`, `''`, and `'legacy'` for null, empty and omitted respectively; reads did not change the bytes. At the pin, failed lookup/exception paths refuse (`dispatch-guard.py:845–853`); an ok answer must be a non-empty `str` before persona is checked (`:854–861`). Null/empty call `_refuse_placement` with `unreadable` and the repair-in-place remedy (`:770–773,800–809`); `_refuse` exits 2 (`:518–521`) while the placement initializer runs before start/distill preflight and before any claim (`:994–1009`). The sole return at `:862` is the validated feature. At `:870–874`, only out-of-contract dispatchers can cache `None`; a legitimate no-distill result (`:882–888,904–906`) returns from the placed branch, not the declared fallback (`:916–920`). The separate dispatched-lead own-run branch is unchanged (`:912–915`).
+- **Observed dispatch evidence (main-session receipt, not rerun here):** Cases 42's null/empty rows assert exit 2, no child claim/receipt, `unreadable` plus the malformed-feature detail, and a repair hint (`test-dispatch-guard.py:1924–1929,1947–1957,2168–2178`). The omitted row asserts the base proceeding outcome (exit 0, one child claim and receipt at `:1912–1916`), not the internal placement string; the producer probe and sole return establish `'legacy'`. `notes/characterization-pin.md:253–280` records the base failures and 426/426 at `b27cbcc6`; **SC-03 inspection:** both executable/test blobs match `2ec0916f`. DEC-174 reserves direct execution to Main; only the producer, quoting check, and grader were run here, not dispatch-guard or its suites.
+- **T-01 / SC-02, OQ-1 rules 1–4:** `dispatch-guard.py:764–781` resolves the sibling once (`realpath` + `dirname`, as recorded in amended T-01.intent) and emits `python3` with each command argument shell-quoted. Inspect (`:807–809`), persona-mismatch release (`:835–838`), and ambiguous list/release (`:787–797`) each put the command on its own four-space-indented line after a colon, without trailing prose punctuation. The ambiguous placeholders are intentionally filled by the operator, not runtime values. The exact narrowed contract sentence is at `:766–768`. A separate `shlex` round-trip preserved spaces and apostrophes and kept `Orch.Lead` bare. The unchanged predicates at `test-dispatch-guard.py:1937,1956` still require `list --root`, `release --agent-id Orch.Lead --feature`, and `find-run --agent-id Orch.Lead` in stderr.
+- **SC-04 / SC-05 inspection:** `DECISIONS.md:8706–8707` records the `unreadable` extension; `plan.yaml:14` retains `[2542, 2532]`.
+
+## Stage 2 — code quality
+
+- Pinned grader: **50 pass**, no high or grade-2 records. `_lookup_placement` stays at grade 4 (cyclomatic 6, cognitive 8, ABC 15.0). Command quoting is centralized in one helper.
+- **T-01 — substance, low (non-blocking coverage gap):** Malformed-feature diagnosis wins over persona mismatch at `dispatch-guard.py:854–861`, so the release formatter never receives a null/empty feature. Case 42 tests malformed features only with matching personas (`test-dispatch-guard.py:1793–1801,2168–2178`); moving the persona check first would leave those tests green but give a malformed, mismatched row the wrong diagnosis. Case 43 pins placement vs. registered-run preflight (`:2184–2204`), not this intra-lookup order. This does not reopen a gating finding.
+
+**Open questions:** none.
+
+## Principles applied
+
+- **Model the Domain:** checked that only out-of-contract dispatchers can store `None`; validation at the lookup boundary makes a second sentinel unnecessary.
