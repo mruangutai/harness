@@ -273,3 +273,11 @@ observed_red: c42/empty-feature/exploit:claim
 observed_red: c42/empty-feature/exploit:cause
 observed_red: c42/empty-feature/exploit:remedy
 observed_red: c43/not-found/run-preflight:cause
+
+## Pin run (fix round c1)
+tested_sha: b27cbcc6e103f058e1e8e060893a5ecc74f9106b
+pin_run_exit: 0
+426 of 426 cases passed
+test-lead-start-return_exit: 0
+test-lead-start-preflight_exit: 0
+test-broad-catch-census_exit: 0
