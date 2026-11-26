@@ -8703,7 +8703,8 @@ by its own runtime claim: `find_run_claim`, persona-matched. `_dispatcher_placem
 dispatch, after the direct-orchestration refusal and before any other preflight and before any
 claim. Five denial states are each an exit-2 lineage refusal naming its cause token, the runtime
 id, a remedy specific to that cause and the `find-run` inspect command:
-- structured unreadable (`unreadable`): repair the registry in place, never delete it;
+- structured unreadable (`unreadable`): repair the registry in place, never delete it; an ok
+  claim that names no feature (null or empty) is a malformed record, refused as unreadable too;
 - an escaped `UnreadableRegistry` or `OSError` (`registry-error`): repair the named registry, or,
   when the exception names no file, reproduce it with `find-run` before repairing anything;
 - `not-found`: re-dispatch the lead so its run start reclaims;

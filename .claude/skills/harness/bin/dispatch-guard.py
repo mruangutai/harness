@@ -238,6 +238,7 @@ if authored_lineage:
 # answer -- it is no answer.
 # ---------------------------------------------------------------------------
 import re
+import shlex
 
 FEATURE_RE = re.compile(r"(?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+")
 prompt = ti.get("task") or ""
@@ -744,13 +745,13 @@ def _direct_orchestration_refusal():
 # harness_agent_id is placed by its own runtime claim: find_run_claim must answer exactly one
 # live claim bound to that id and held by that same persona, and the dispatch binds to that
 # claim's feature, never the one the child declares. Any other answer — a persona mismatch,
-# not-found, ambiguous, unreadable, or a registry error escaping the lookup — is an exit-2
-# lineage denial, after the direct-orchestration refusal and before every other preflight and
-# the claim step, so an unreadable registry is left as found. One dispatch-local answer: the
-# placement is looked up once, and the placed lead's registered run read once, and that one
-# answer keys both the scope-reader route (_mission_scope) and the distill preflight. Main,
-# non-lead dispatchers and a lead payload without a runtime id never read placement and keep
-# the declared-feature path.
+# not-found, ambiguous, unreadable (an ok claim naming no feature is a malformed row, so it is
+# unreadable too), or a registry error escaping the lookup — is an exit-2 lineage denial, after
+# the direct-orchestration refusal and before every other preflight and the claim step, so an
+# unreadable registry is left as found. One dispatch-local answer: the placement is looked up
+# once, and the placed lead's registered run read once, and that one answer keys both the
+# scope-reader route (_mission_scope) and the distill preflight. Main, non-lead dispatchers and
+# a lead payload without a runtime id never read placement and keep the declared-feature path.
 # ---------------------------------------------------------------------------
 DISTILL_RUN_RE = re.compile(r"(?:^|-)distill-")  # feature-record.py DISTILL_RUN's token rule
 LEADS = ("harness-eng-lead",) + MISSION_LEADS
@@ -758,33 +759,54 @@ _PLACEMENT_UNSET = object()
 _placement = _PLACEMENT_UNSET
 _PLACED_DISTILL_UNSET = object()
 _placed_distill = _PLACED_DISTILL_UNSET
-# The remedy line of a structured find_run_claim refusal, by its cause.
+# Every printed repair command is copy-runnable: the real sibling inflight_registry.py, each
+# value shell-quoted, the command alone on its line after prose ending in ':'.
+_REGISTRY_SCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                "inflight_registry.py")
+_PLACEMENT_CONTRACT = ("A governed lead's dispatch is placed by its own runtime claim (DEC-258); "
+                       "a placement that cannot be established is refused, never silently "
+                       "rebound to the declared feature.")
+# The remedy lines of a structured find_run_claim refusal, by its cause; ambiguous is built.
 _LOOKUP_REMEDIES = {
-    "unreadable": "Repair each unreadable registry named above in place and never delete it: an "
-                  "unreadable registry is never read as no claims (DEC-218). Then re-dispatch.",
-    "not-found": "This lead's run holds no live claim: re-dispatch the lead so its run start "
-                 "reclaims before it dispatches; never re-declare a feature to work around it.",
-    "ambiguous": "Several live claims are bound to {agent_id} in the registries named above, and "
-                 "the guard never chooses. For each named root run inflight_registry.py list "
-                 "--root <root> to see each claim's feature; the surplus claim is the one whose "
-                 "feature is not this lead's open registered run in that feature's feature.json "
-                 "runs[], and if that does not single one out the operator decides with the "
-                 "lead's dispatcher. Release only that claim, in its own registry: "
-                 "inflight_registry.py release --agent-id {agent_id} --feature <its feature> "
-                 "--root <its root>. If release refuses because that registry holds more than "
-                 "one match, stop and repair the registry by hand; never release by persona.",
+    "unreadable": ("  Repair each unreadable registry named above in place and never delete it: "
+                   "an unreadable registry is never read as no claims (DEC-218). Then "
+                   "re-dispatch.",),
+    "not-found": ("  This lead's run holds no live claim: re-dispatch the lead so its run start "
+                  "reclaims before it dispatches; never re-declare a feature to work around it.",),
 }
 
 
+def _registry_command(*args):
+    """A printed inflight_registry.py command line: indented four spaces, every part quoted."""
+    return "    " + " ".join(shlex.quote(part) for part in ("python3", _REGISTRY_SCRIPT) + args)
+
+
+def _ambiguous_remedy(agent_id):
+    """The ambiguous remedy: the guard never chooses, so the operator picks the surplus claim.
+    The roots and the surplus claim's feature are the operator's to fill in."""
+    return ("  Several live claims are bound to %s in the registries named above, and the guard "
+            "never chooses. For each named root, list its claims to see each claim's feature:"
+            % (agent_id,),
+            _registry_command("list") + " --root <root>",
+            "  The surplus claim is the one whose feature is not this lead's open registered run "
+            "in that feature's feature.json runs[]; if that does not single one out, the operator "
+            "decides with the lead's dispatcher. Release only that claim, in its own registry:",
+            _registry_command("release", "--agent-id", agent_id)
+            + " --feature <its feature> --root <its root>",
+            "  If release refuses because that registry holds more than one match, stop and "
+            "repair the registry by hand; never release by persona.")
+
+
 def _refuse_placement(agent_id, cause, detail, remedy):
-    """DEC-258: the lineage denial of a governed lead dispatch that cannot be placed."""
+    """DEC-258: the lineage denial of a governed lead dispatch that cannot be placed. `remedy`
+    is its printed lines."""
     _refuse("dispatch-guard: BLOCKED — lineage: %s run %s cannot be placed (%s), so its "
             "dispatch of %s for %s is refused." % (agent, agent_id, cause, dispatched, declared),
             "  " + detail,
-            "  " + remedy,
-            "  Inspect: inflight_registry.py find-run --agent-id %s --root %s. A governed lead's "
-            "dispatch binds to the feature its own runtime claim names, never the declared one "
-            "(DEC-258)." % (agent_id, owner_root))
+            *remedy,
+            "  Inspect:",
+            _registry_command("find-run", "--agent-id", agent_id, "--root", owner_root),
+            "  " + _PLACEMENT_CONTRACT)
 
 
 def _registry_error_remedy(exc):
@@ -794,11 +816,11 @@ def _registry_error_remedy(exc):
     else:
         paths = [] if exc.filename is None else [exc.filename]
     if paths:
-        return ("The placement lookup raised on %s; repair that registry in place and never "
-                "delete it (DEC-218), then re-dispatch." % ", ".join(str(path) for path in paths))
-    return ("The placement lookup raised without naming a file, so no registry is known to be "
+        return ("  The placement lookup raised on %s; repair that registry in place and never "
+                "delete it (DEC-218), then re-dispatch." % ", ".join(str(path) for path in paths),)
+    return ("  The placement lookup raised without naming a file, so no registry is known to be "
             "corrupt: run the Inspect command below to reproduce the error and repair only what "
-            "it names; never delete a registry.")
+            "it names; never delete a registry.",)
 
 
 def _refuse_persona_mismatch(agent_id, found):
@@ -807,26 +829,37 @@ def _refuse_persona_mismatch(agent_id, found):
         agent_id, "persona-mismatch",
         "the live claim bound to %s belongs to %s (feature %s, registry %s), not %s."
         % (agent_id, persona, feature, claim_root, agent),
-        "Leave a live claim of uncertain ownership alone. If that %s run is live, dispatch this "
-        "work from a %s run that holds its own claim (a fresh lead run claims at its run start); "
-        "only if the operator confirms that claim is stale, release it in its own registry with "
-        "inflight_registry.py release --agent-id %s --feature %s --root %s, then re-dispatch. "
-        "Never relabel a dispatch to pass." % (persona, agent, agent_id, feature, claim_root))
+        ("  Leave a live claim of uncertain ownership alone. If that %s run is live, dispatch "
+         "this work from a %s run that holds its own claim (a fresh lead run claims at its run "
+         "start); only if the operator confirms that claim is stale, release it in its own "
+         "registry, then re-dispatch:" % (persona, agent),
+         _registry_command("release", "--agent-id", agent_id, "--feature", feature,
+                           "--root", claim_root),
+         "  Never relabel a dispatch to pass."))
 
 
 def _lookup_placement(agent_id):
-    """The feature `agent_id`'s one live claim names, held by this dispatcher, or exit 2."""
+    """The feature `agent_id`'s one live claim names, held by this dispatcher, or exit 2. An ok
+    claim naming no feature is a malformed row, refused as unreadable before the persona check,
+    whose remedy prints that feature."""
     try:
         found = reg.find_run_claim(owner_root, agent_id)
     except (reg.UnreadableRegistry, OSError) as exc:
         _refuse_placement(agent_id, "registry-error", "%s: %s" % (type(exc).__name__, exc),
                           _registry_error_remedy(exc))
     if not found["ok"]:
-        _refuse_placement(agent_id, found["cause"], found["message"],
-                          _LOOKUP_REMEDIES[found["cause"]].format(agent_id=agent_id))
+        cause = found["cause"]
+        remedy = _ambiguous_remedy(agent_id) if cause == "ambiguous" else _LOOKUP_REMEDIES[cause]
+        _refuse_placement(agent_id, cause, found["message"], remedy)
+    feature = found["feature"]
+    if not (isinstance(feature, str) and feature):
+        _refuse_placement(agent_id, "unreadable",
+                          "the live claim bound to %s in %s names no feature (%r): a malformed "
+                          "claim row." % (agent_id, found["root"], feature),
+                          _LOOKUP_REMEDIES["unreadable"])
     if found["claim"].get("agent") != agent:
         _refuse_persona_mismatch(agent_id, found)
-    return found["feature"]
+    return feature
 
 
 def _dispatcher_placement():

@@ -66,6 +66,13 @@
       "kind": "regate",
       "decision": "plan-product FAIL regated: fixes accepted as applied at signature, proceed to validate",
       "reason": "AdvisorA2Sign SQ-1 re-read all 9 applied panel fixes at source and ruled them accepted as applied; plan signed 2026-11-26 (notes/answers-2026-11-26-signoff.md)."
+    },
+    {
+      "at": "2026-11-26T17:42:29.767961+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "Validate c0 must_fix 1 and OQ-1: an ok claim naming no feature is refused as unreadable; printed commands made copy-runnable (rules 1-4). Ruled by AdvisorA4Validate (notes/answers-2026-11-26-validate-c0.md)."
     }
   ],
   "mission": "plan",

@@ -222,3 +222,54 @@ pin_run_exit: 0
 test-lead-start-return_exit: 0
 test-lead-start-preflight_exit: 0
 test-broad-catch-census_exit: 0
+
+## Fix round c1 row inventory
+
+Validate c0 ruling (notes/answers-2026-11-26-validate-c0.md): cases 42 and 43, predicted before
+the base run. At base the dispatcher's claim feature is read by `_dispatcher_feature`, so a null
+or empty feature finds no distill run: the bound child is refused by the unbound-marker rule
+(exit and claim green) and the exploit child proceeds. The omitted feature is LEGACY_FEATURE at
+base and at the pin (green), as is the ordering witness c43/ok. At base c43/not-found is refused
+by the registered-run preflight, never by placement.
+
+predicted_red: c42/null-feature/bound:cause
+predicted_red: c42/null-feature/bound:remedy
+predicted_red: c42/null-feature/exploit:exit
+predicted_red: c42/null-feature/exploit:claim
+predicted_red: c42/null-feature/exploit:cause
+predicted_red: c42/null-feature/exploit:remedy
+predicted_red: c42/empty-feature/bound:cause
+predicted_red: c42/empty-feature/bound:remedy
+predicted_red: c42/empty-feature/exploit:exit
+predicted_red: c42/empty-feature/exploit:claim
+predicted_red: c42/empty-feature/exploit:cause
+predicted_red: c42/empty-feature/exploit:remedy
+predicted_red: c43/not-found/run-preflight:cause
+
+## Fix round c1 base run
+
+python3 tests/integration/test-dispatch-guard.py (with cases 42 and 43) run with DISPATCH_GUARD_BIN
+pointing at an isolated_bin copy whose dispatch-guard.py is `git show base_sha:` of it (cmp equal);
+the real dispatch-guard.py was not touched. 337 of 426 cases passed, 89 FAIL lines. The 13 FAIL
+lines of cases 42 and 43 are below and equal the c1 predictions. The other 76 are the original
+97 minus the 21 escaped-state and run-reads assertions, whose fixtures build their own guard from
+an isolated_bin copy of the live bin and so ran the live guard; their base red is the Base run
+above. No assertion outside the predicted set failed. Run against the validate c0 pin's guard (the
+live file before this round's guard edit), the suite failed exactly the 14 null- and empty-feature
+assertions; null-feature/bound proceeded and claimed.
+
+c1_head_at_base_run: 7abee7d9ec596cc59374242a79bcffb4ab7c63a6
+c1_base_run_exit: 1
+observed_red: c42/null-feature/bound:cause
+observed_red: c42/null-feature/bound:remedy
+observed_red: c42/null-feature/exploit:exit
+observed_red: c42/null-feature/exploit:claim
+observed_red: c42/null-feature/exploit:cause
+observed_red: c42/null-feature/exploit:remedy
+observed_red: c42/empty-feature/bound:cause
+observed_red: c42/empty-feature/bound:remedy
+observed_red: c42/empty-feature/exploit:exit
+observed_red: c42/empty-feature/exploit:claim
+observed_red: c42/empty-feature/exploit:cause
+observed_red: c42/empty-feature/exploit:remedy
+observed_red: c43/not-found/run-preflight:cause
