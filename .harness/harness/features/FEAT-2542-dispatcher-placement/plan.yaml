@@ -1,9 +1,16 @@
 schema: plan/1
 feature: FEAT-2542-dispatcher-placement
 approval:
-  status: pending
+  date: '2026-11-26'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
+  rulings:
+    - finding: PF-0017166a75cb353dd551d85bd7d61a78
+      who: Mike Ruangutai (delegated to fable-advisor)
+      date: '2026-11-26'
+      reason: id-less lead path is host-unreachable (DEC-218); contract keys on carrying the id; rows stay asserted as SC-02 LEAVE with signpost comment
 drafted_at: '2026-11-26T16:15:40Z'
-status: plan
+status: ready
 source_issues: [2542, 2532]
 
 panel:
@@ -168,9 +175,10 @@ tasks:
     depends_on: []
     status: ready
     files:
-      - .claude/skills/harness/bin/dispatch-guard.py#_mission_scope
-      - tests/integration/test-dispatch-guard.py#case_33_every_child_of_a_bound_distill_run_carries_the_mission
-      - {path: .harness/harness/features/FEAT-2542-dispatcher-placement/notes/characterization-pin.md, create: true}
+    - .claude/skills/harness/bin/dispatch-guard.py#_mission_scope
+    - tests/integration/test-dispatch-guard.py
+    - path: .harness/harness/features/FEAT-2542-dispatcher-placement/notes/characterization-pin.md
+      create: true
     verify: |
       python3 tests/integration/test-dispatch-guard.py && python3 tests/integration/test-lead-start-return.py && python3 tests/unit/test-lead-start-preflight.py && python3 tests/unit/test-broad-catch-census.py && git diff --quiet 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8 HEAD -- tests/integration/test-lead-start-return.py .claude/skills/harness/bin/inflight_registry.py && R=.harness/harness/features/FEAT-2542-dispatcher-placement/notes/characterization-pin.md && git show HEAD:$R | grep -qx 'base_sha: 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8' && git show HEAD:$R | grep -qx 'dec_number: DEC-258' && P=$(git show HEAD:$R | sed -n 's/^predicted_red: //p' | sort) && test -n "$P" && test "$P" = "$(git show HEAD:$R | sed -n 's/^observed_red: //p' | sort)" && T=$(git show HEAD:$R | sed -n 's/^tested_sha: \([0-9a-f]\{40\}\)$/\1/p' | tail -n 1) && test -n "$T" && git merge-base --is-ancestor "$T" HEAD && ! git diff --quiet 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8 "$T" -- .claude/skills/harness/bin/dispatch-guard.py && git diff --quiet "$T" HEAD -- .claude/skills/harness/bin/dispatch-guard.py tests/integration/test-dispatch-guard.py && test "$(git show HEAD:$R | sed -n 's/^pin_run_exit: //p' | tail -n 1)" = 0
     intent: |

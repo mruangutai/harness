@@ -39,5 +39,37 @@
       "reason": "Plan run FAIL is worst-wins over reader verdicts whose findings pm applied; no re-panel on my own (DEC-230): whether the applied substance fixes need a re-read goes to the signer as one question with a recommendation"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-2542-dispatcher-placement/notes/answers-2026-11-26-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "e66be8b01070c9c0f74d5ea6d11421c687bade1cd6b572e5dda03f925d74cac1",
+    "T-02": "f00e25304bf2151a0cc3a234c9958933b6a66f53ecd9232aacf575d4cfc5ba04"
+  },
+  "github": {
+    "milestone": 141,
+    "parent": 2547,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2548,
+      "T-02": 2549
+    },
+    "source_issues": [
+      2542,
+      2532
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

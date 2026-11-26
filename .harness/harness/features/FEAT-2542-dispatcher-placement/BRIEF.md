@@ -169,6 +169,6 @@ Copied from the grilling's non-goals, with its reasons:
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike Ruangutai (delegated to fable-advisor)
+date: 2026-11-26
