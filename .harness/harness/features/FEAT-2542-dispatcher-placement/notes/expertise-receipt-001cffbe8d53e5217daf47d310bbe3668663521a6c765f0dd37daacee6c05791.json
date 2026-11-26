@@ -1,0 +1,83 @@
+{
+  "batches": [
+    {
+      "after_sha256": "a7668b53a7410726c0f8b16ffbb86b520b5690a109431c431f8b7e516904c303",
+      "before_sha256": "1d82f3b44b984a16ce91232499e60620adebdee2c8d38e091d4a01da38661782",
+      "destination": ".harness/expertise/harness-qa.md",
+      "id": "fc3ec8abf3990e9a07f681c8594aaed7b01c558da1a9cab93a90aab66cfb10c6",
+      "ops": [
+        {
+          "entry": "WHEN output is operator-facing prose or a printed command DO consume it as the operator would — read prose for truth; shell-split each printed command with a spaced fixture root, run it verbatim, and assert it reaches the intended target. Substring and sweep gates prove presence, never truth or runnability.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-05",
+          "why": "Relayed QA1 accepted: my green c1 suite asserted printed-command substrings while every command was unrunnable (glued punctuation, unquoted root, bare script); only verbatim copy-running caught it. Merged with G-05's prose-truth rule, same root: token gates cannot prove what the text does."
+        },
+        {
+          "entry": "WHEN a rule has several legs or orders its checks DO give each leg its own discriminating row, and each ordering a row where both checks fire asserting which cause wins — a memoized, lazily re-invoked check, or inputs tripping one check, leave narrowing and reorder mutants green.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-06",
+          "why": "Two ordering mutants survived across cycles (placement after preflight hidden by a lazily re-invoked memoized check; feature check after persona check) plus a dropped isinstance leg; P-06 covered legs but not order."
+        },
+        {
+          "entry": "WHEN fail-first needs a pre-fix red and source edits are refused DO load the old blob into a fresh in-process module, or run the new tests in a whole old-SHA tree — subprocess cases and fixtures copying the subject re-read disk, so partial swaps run new code.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-07",
+          "why": "My whole-tree base reproduction found 110 reds against the author's 89: fixtures copying bin/ still ran the live guard. Sharpens P-07's why to cover fixture copies, not only subprocess re-imports."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN every gate on a diff is token- or phrase-based (grep/sweep) DO recognize none of them can confirm replacement prose is actually true — only that a token is present or absent. A false statement that satisfies every sweep is caught only by reading the prose directly.",
+          "section": "Gotchas",
+          "target": "G-05"
+        },
+        {
+          "original": "WHEN a rule excludes or includes entries via multiple distinct triggering legs (e.g. two ways an item can match) DO verify each leg has its own test case — a suite pinning only one leg lets a regression narrowing an untested leg ship silently while the pinned leg keeps passing.",
+          "section": "Patterns",
+          "target": "P-06"
+        },
+        {
+          "original": "WHEN fail-first needs a pre-fix red and source edits are refused DO load the old blob (`git show <sha>:<path>`) into a fresh in-process module, or check the new tests into an old-SHA pin — cases spawning subprocesses re-import from disk, so only the pin reddens them.",
+          "section": "Patterns",
+          "target": "P-07"
+        }
+      ],
+      "recorded_at_ns": 1795717089137433000,
+      "seq": 1,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "f93d30f9ee4d2a891b1296e3caf35770359414bd85f5d40c1bd4807aef7dfead",
+      "before_sha256": "994187283fd9ab4e47668f93a70008ad50682c0e4540760c7152425222418d09",
+      "destination": ".harness/harness/expertise/harness-qa.md",
+      "id": "3cad7c799717607ec476b377e6ca83f18993fcd739ce4f5d885546b25a6c1df9",
+      "ops": [
+        {
+          "entry": "WHEN writing, copying or deleting under bash-write-guard DO use literal absolute targets — variable-bearing redirect, cp or rm targets are blocked even under /tmp or notes/; clean up inside a python driver. `git checkout` is refused even in a /tmp clone: use `git archive <sha> | tar -x`.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-13",
+          "why": "Observed this feature: git checkout refused inside a /tmp clone; git archive gave a source-identical tree without moving HEAD. Same guard as G-13, so merged rather than displacing another entry."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN writing, copying or deleting under bash-write-guard DO use literal absolute target paths — a redirect, cp or rm target containing a shell variable is blocked even under /tmp or the feature's notes/; do temp cleanup inside a python driver and pipe rather than redirect in loops.",
+          "section": "Gotchas",
+          "target": "G-13"
+        }
+      ],
+      "recorded_at_ns": 1795717089196593000,
+      "seq": 2,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2542-dispatcher-placement",
+  "parent_id": "Feat2542DistillValidator",
+  "persona": "harness-qa",
+  "runtime_id": "Feat2542DistillValidator.QualifiedVicuna",
+  "schema": 1
+}

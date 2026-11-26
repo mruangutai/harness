@@ -1,7 +1,7 @@
 # Expertise — harness-product-lead
 ## Patterns (max 15)
 - P-01: WHEN a dispatch hands you a finding as near-certain DO verify its central premise at source before relaying it — pre-argued framing is the least trustworthy input a lead receives, and one grep can overturn what two tiers already accepted.
-- P-02: WHEN assessing a member's cited evidence DO open at least one cited line rather than counting them — a pointer can be sound while the prose gloss of it is wrong, and a pointer's whole value is that it survives being opened.
+- P-02: WHEN assessing or relaying a cited line DO open the enclosing function, not just the grep hit — a pointer can be sound while its prose gloss is wrong, and a grep hit confirms the text but not which code path owns it.
 - P-03: WHEN the member who owns a gate decision was skipped DO make that call yourself and report it as overridable in either direction — a gate nobody fired is indistinguishable in the record from a gate that passed.
 - P-04: WHEN relaying a distillation candidate DO grep the member's OWN prior artifacts for it, not only what it carries at spawn. A candidate restating a member's own note is graded as its material, and its acceptance rate then measures your relay rather than the lesson.
 - P-05: WHEN you dispatch a member whose return you will accept or send back DO write the send-back criteria to a durable file before the return lands — your context may not survive to the return, and criteria written after reading the answer are fitted to it.
@@ -41,5 +41,5 @@
 - O-07: WHEN a member grades a criterion UNMET DO establish whether the work is undone or the criterion is unmeetable as written — the two grades read identically and route to different lanes, and a fix cycle spent on a criterion no implementation can satisfy only delays the amendment it needs.
 - O-08: WHEN your run count crosses its budget while the cycle count stayed flat DO report the two as different measurements — cycles count rework and runs count dispatches, so zero send-backs against an exhausted run budget diagnoses under-specification at plan time, not wasted runs.
 - O-09: WHEN a plan-time reader's repairs each surface one narrower failure in one mechanism DO have pm key the class on what the change itself guarantees, and commission a census of the affected state before signature — a class keyed on where effects surface is still an enumeration.
-- O-10: WHEN apply remediates a high plan-reader finding and the team runs no re-read step DO put it to the operator as one blocking signature question with a recommendation instead of re-spawning the reader — an overrule-as-applied costs no spawn, and the run's FAIL still records the unread gap.
+- O-10: WHEN apply remediates a high plan-reader finding and the team runs no re-read step DO put it to the operator as one blocking signature question with a recommendation, naming applied text that prescribes literal commands or gate-read literals as unread — a signer's re-read grades substance, not rendering.
 ## Open (max 5)
