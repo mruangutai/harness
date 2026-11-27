@@ -1,0 +1,115 @@
+schema_version: 2
+run_id: 2026-11-27-04-validate-c3-validator
+feature: BUG-2451-prune-staging-dec257
+squad: validator
+host: harness-validator-lead
+status: failed
+run_uid: 7f1f7a09157948e0bf5b4c46772f3427
+steps:
+- id: qa
+  persona: harness-qa
+  task: T-01
+  depends_on: []
+  outputs:
+  - .harness/harness/features/BUG-2451-prune-staging-dec257/notes/review-harness-qa-c3.md
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  lead_verdict: PASS
+  cycles: 0
+  dispatched_at: seq-1
+  completed_at: seq-2
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2451-prune-staging-dec257/.harness/harness/features/BUG-2451-prune-staging-dec257/notes/review-harness-qa-c3.md
+  evidence:
+    review_sha: a97dbc6a8337cfbe9402d2a727aa28797a1efaf8
+    matrix_ok: true
+    kinds: [unit]
+    unit_named_tests: 68
+    receipt: runs/2026-11-27-04-validate-c3-validator/qa/manifest-unit.json
+    fail_first: [SC-01, SC-02]
+    sc01_red_47d6c54d: 40_pass_12_fail
+    sc02_red_b2c1f55e: 48_pass_4_fail
+    pass_count_measured: 52
+    mf2r_l1: red_as_required
+    mf2r_l4: green_as_required
+- id: code
+  persona: harness-code-reviewer
+  task: T-01
+  depends_on: []
+  outputs:
+  - .harness/harness/features/BUG-2451-prune-staging-dec257/notes/review-harness-code-reviewer-c3.md
+  mutates_repo: false
+  status: complete
+  verdict: FAIL
+  lead_verdict: FAIL
+  cycles: 0
+  dispatched_at: seq-1
+  completed_at: seq-2
+  note: L1-L4 met on ordinary probes; new fail-open MF-3R (heading-spacing empties section scan), lead confirmed at source
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2451-prune-staging-dec257/.harness/harness/features/BUG-2451-prune-staging-dec257/notes/review-harness-code-reviewer-c3.md
+  evidence:
+    severity_max: med
+    code_grade: pass
+    mf2r_l1: red_as_required
+    mf2r_l2: red_as_required_ordinary_heading
+    mf2r_l3: green_as_required
+    mf2r_l4: green_as_required
+    a_3: resolved
+    fix_commit_product_paths: [tests/unit/test-prune-run-evidence.py]
+    must_fix: 1
+- id: security
+  persona: harness-security-reviewer
+  task: T-01
+  depends_on: []
+  outputs:
+  - .harness/harness/features/BUG-2451-prune-staging-dec257/notes/review-harness-security-reviewer-c3.md
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  lead_verdict: PASS
+  cycles: 0
+  dispatched_at: seq-1
+  completed_at: seq-2
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2451-prune-staging-dec257/.harness/harness/features/BUG-2451-prune-staging-dec257/notes/review-harness-security-reviewer-c3.md
+  evidence:
+    severity_max: low
+    in_scope: true
+    surface_changed: false
+    sec_still_true: true
+- id: ui
+  persona: harness-ui-reviewer
+  task: T-01
+  depends_on: []
+  outputs:
+  - .harness/harness/features/BUG-2451-prune-staging-dec257/notes/review-harness-ui-reviewer-c3.md
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  lead_verdict: PASS
+  cycles: 0
+  dispatched_at: seq-1
+  completed_at: seq-2
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2451-prune-staging-dec257/.harness/harness/features/BUG-2451-prune-staging-dec257/notes/review-harness-ui-reviewer-c3.md
+  evidence:
+    in_scope: false
+    census_measured: true
+- id: goalcheck
+  persona: harness-pm
+  task: T-01
+  depends_on: []
+  outputs:
+  - .harness/harness/features/BUG-2451-prune-staging-dec257/notes/research-BUG-2451-prune-staging-dec257-goalcheck-validate-c3.md
+  mutates_repo: false
+  status: complete
+  verdict: PASS
+  lead_verdict: PASS
+  cycles: 0
+  dispatched_at: seq-1
+  completed_at: seq-2
+  artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2451-prune-staging-dec257/.harness/harness/features/BUG-2451-prune-staging-dec257/notes/research-BUG-2451-prune-staging-dec257-goalcheck-validate-c3.md
+  evidence:
+    operator: met
+    code_maintainer: met
+    dec_238: met
+    keep_rows_met: 5
+    a_3: resolved

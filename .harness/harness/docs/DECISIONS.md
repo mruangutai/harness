@@ -8139,14 +8139,12 @@ is therefore a function of station, applied by the command that moves the statio
   validate or fix run (`validate-…`, `fix-cN-…`) recorded PASS — the validator-lead hosts the fix
   team too, so after a failed validate a reader's last PASS lives in a fix run — and every run
   whose `results.json` names the shipped `review_sha`. For every other run (engineering, product,
-  reconciliation, distill) it deletes only `runs/<id>/ui/`, never the run directory or any
-  non-UI file in it, because #2177 pins each recorded run's digest as check-state cycle evidence.
-  It then force-stages (`git add -f`, since `runs/**` is ignored) every non-UI file of each run
-  recorded in `feature.json`, never a `ui/` file, an unrecorded run or a symlink target, so the
-  ship commit carries the records a clean CI checkout needs (#2399). It refuses a feature whose
-  `review_sha` is unset, empty or a `PLACEHOLDER_UNSET` value, and refuses with exit 2, before
-  changing anything, naming every recorded `cycle_evidence` path missing from disk.
-  `/harness-ship` runs it before the ship PR. Trace ZIPs are never
+  reconciliation, distill) it deletes only `runs/<id>/ui/`, never the run directory, `digest.md`,
+  `state.yaml` or `.run-identity.json`, because #2177 pins each recorded run's digest as
+  check-state cycle evidence. It refuses a feature whose `review_sha` is unset,
+  empty or a `PLACEHOLDER_UNSET` value. Before any mutation, including dry-run, it refuses with
+  exit 2 naming every recorded cycle_evidence path missing from disk and with exit 1 naming every
+  unreadable directory under a recorded run. `/harness-ship` runs it before the ship PR. Trace ZIPs are never
   committed at all (`runs/*/ui/traces/` is ignored); the gate reads them from disk.
 - **A checkout at a pin is disposable and keyed to one reader.** A validator that needs the tree
   at `review_sha` takes it from `pinned-checkout.py add --feature --run-id --persona --sha`, under

@@ -1,0 +1,150 @@
+{
+  "feature_id": "BUG-2451-prune-staging-dec257",
+  "branch": "feat/BUG-2451-prune-staging-dec257",
+  "pr": null,
+  "review_sha": "a97dbc6a8337cfbe9402d2a727aa28797a1efaf8",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-23-01-patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T13:27:46+00:00",
+      "tokens": 57328,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-23-01-patch-product/digest.md",
+        "sha256": "56713c29a778ae569c0dea471d7c33440c9aaf04e1f98084cbc6cb092eecc9f6"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T13:34:33+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-26-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T03:07:38+00:00",
+      "tokens": 135864,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-26-02-validate-validator/digest.md",
+        "sha256": "967df0a58abf865388ba3b3b6cb0fba385adcd22143d7f9f007d1cda74e72562"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T03:18:14+00:00"
+    },
+    {
+      "id": "2026-11-26-03-validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T03:31:19+00:00",
+      "tokens": 129476,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-26-03-validate-c2-validator/digest.md",
+        "sha256": "b1edbfcf33e03ea7f9613cc76b38171c8f150908c30868d8278be4c2733af9bc"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T03:44:45+00:00"
+    },
+    {
+      "id": "2026-11-27-04-validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T13:28:04+00:00",
+      "tokens": 139024,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-04-validate-c3-validator/digest.md",
+        "sha256": "c7a9cb6ec7588ff8ba59d89ccf0e92ab82180ac15aa176e40c877512f0ff0b5d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T13:41:07+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T13:27:45+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Cause known: #2447 built on a pre-DEC-257 base, merged without textual conflict, shipped force-staging DEC-257 had made false. Diff bounded to pruner, test, ship paragraph, DEC-238 bullet; removes behaviour, adds no interface/schema/gate"
+    },
+    {
+      "at": "2026-11-27T03:07:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Build seam crossed in one session: T-01 verified at a4356cb5, pin b2c1f55e contains it, zero cycles and zero rework minutes spent; same orchestrator continues into the single validate run"
+    },
+    {
+      "at": "2026-11-27T03:31:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL (MF-1, MF-2) fixed main-session-direct at 10823d58 inside the 1-round ruling, 10 of 45 min spent; one re-verify over the re-pinned tip, no further rework authorised"
+    },
+    {
+      "at": "2026-11-27T03:44:46+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "c2 FAIL on one med must-fix MF-2R (case-sensitive forbidden-claim guard); the 1-round rework ruling is spent by fix-c1 so no fix is dispatched; returned to the operator as OQ-A"
+    },
+    {
+      "at": "2026-11-27T13:14:59+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "extra-fix-round-MF-2R",
+      "reason": "Operator 2026-11-27 grants one narrow test-only round for MF-2R beyond the spent 1-round ruling (notes/answers-2026-11-27-c2-ruling.md)"
+    },
+    {
+      "at": "2026-11-27T13:28:04+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 3",
+      "reason": "c2 FAIL (MF-2R) fixed main-session-direct at c9596b9a under the operator's extra test-only round (answers-2026-11-27-c2-ruling.md); one re-verify over pin a97dbc6a, no further rework authorised"
+    },
+    {
+      "at": "2026-11-27T13:41:10+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "c3 FAIL on one new med must-fix MF-3R (missing DEC-238/DEC-257 heading anchor empties the claim scan); the operator authorised no rework after the extra MF-2R round so nothing is dispatched; returned as OQ-B"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2451-prune-staging-dec257/notes/answers-2026-11-23-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "b2c521aad3d4207f05dc8b16e7845d4954f534e5d20caf42a0d36e2447be5ef1"
+  },
+  "github": {
+    "milestone": 135,
+    "parent": 2460,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2461
+    },
+    "source_issues": [
+      2451
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
