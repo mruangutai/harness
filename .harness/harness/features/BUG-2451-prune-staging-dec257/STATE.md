@@ -3,15 +3,16 @@
 ## Current
 
 - feature: BUG-2451-prune-staging-dec257
-- run: .harness/harness/features/BUG-2451-prune-staging-dec257/runs/2026-11-26-02-validate-validator/state.yaml
+- run: .harness/harness/features/BUG-2451-prune-staging-dec257/runs/2026-11-26-03-validate-c2-validator/state.yaml
 - squad: validator
-- status: validate c1 FAIL — must_fix MF-1 (SC-02, high) and MF-2 (SC-03 guard, med), both against T-01; fix is main-session-direct (DEC-174), no fix team
+- status: validate c2 FAIL — one must_fix MF-2R (T-01 intent, med): forbidden-claim guard is case-sensitive and its DEC-257 exclusion unconditional; MF-1 resolved; SC-01..SC-04 and both perspectives met; awaiting operator on OQ-A (accept residual, or grant a round)
 - mission: patch
-- station: building
-- cycles_used: 0 / 10
-- review_sha: b2c1f55e89bc20a9ef397cb183452270548aa3ee (stale once the fix commits; re-pin before re-validation)
-- rework: 0 of 1 round, 10 of 45 minutes
+- station: review
+- cycles_used: 0 / 10 (one main-session-direct fix round, fix-c1 10823d58, is uncounted: it was not a run)
+- review_sha: b7e1f26ecfdff7683d25009435a30098c5580c52 (contains 10823d58; stale if any fix commits)
+- rework: 1 of 1 round spent, 24 of 45 minutes; no further rework authorised
 
 ## Open Questions
 
-- none blocking; OQ-1 and OQ-2 (backlog candidates) in runs/2026-11-26-02-validate-validator/digest.md
+- OQ-A (blocking): accept MF-2R as a recorded residual and ship, or grant a narrow round — runs/2026-11-26-03-validate-c2-validator/digest.md
+- OQ-1, OQ-2, A-3 (non-blocking, backlog candidates) in the same digest
