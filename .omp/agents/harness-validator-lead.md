@@ -28,6 +28,339 @@ autoloadSkills:
 - harness-principles
 - harness-zero-micro-management
 - harness-team
+structured: true
+output:
+  type: object
+  additionalProperties: false
+  required:
+  - VERDICT
+  - DIGEST
+  - artifact
+  properties:
+    VERDICT:
+      enum:
+      - PASS
+      - FAIL
+      - BLOCKED
+      - ESCALATE
+    DIGEST:
+      type: object
+      additionalProperties: false
+      required:
+      - headline
+      - open_questions
+      - files_touched
+      - expertise_update
+      - team
+      - steps_run
+      - cycles_used
+      - members
+      - must_fix
+      - branch
+      - escalations
+      - adequacy_notes
+      - sc_status
+      - needs_approval
+      - severity_max
+      - matrix_ok
+      - coverage_gaps
+      - findings
+      - readers
+      properties:
+        headline:
+          type: string
+        open_questions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - id
+            - question
+            - blocking
+            properties:
+              id:
+                type: string
+              question:
+                type: string
+              blocking:
+                type: boolean
+        files_touched:
+          type: array
+          items:
+            type: string
+        expertise_update:
+          type: array
+          items:
+            anyOf:
+            - type: object
+              additionalProperties: false
+              required:
+              - op
+              - target
+              - section
+              - entry
+              - why
+              - persona
+              properties:
+                persona:
+                  enum:
+                  - harness-ai-dev
+                  - harness-backend-dev
+                  - harness-code-reviewer
+                  - harness-data-engineer
+                  - harness-dev-ops
+                  - harness-documentor
+                  - harness-eng-lead
+                  - harness-frontend-dev
+                  - harness-orchestrator
+                  - harness-pm
+                  - harness-product-lead
+                  - harness-qa
+                  - harness-security-reviewer
+                  - harness-ui-reviewer
+                  - harness-validator-lead
+                  - harness-visual-designer
+                op:
+                  enum:
+                  - add
+                  - replace
+                target:
+                  type: string
+                section:
+                  enum:
+                  - Patterns
+                  - Gotchas
+                  - Outcomes
+                  - Open
+                entry:
+                  type: string
+                why:
+                  type: string
+            - type: object
+              additionalProperties: false
+              required:
+              - op
+              - target
+              - section
+              - why
+              - persona
+              properties:
+                persona:
+                  enum:
+                  - harness-ai-dev
+                  - harness-backend-dev
+                  - harness-code-reviewer
+                  - harness-data-engineer
+                  - harness-dev-ops
+                  - harness-documentor
+                  - harness-eng-lead
+                  - harness-frontend-dev
+                  - harness-orchestrator
+                  - harness-pm
+                  - harness-product-lead
+                  - harness-qa
+                  - harness-security-reviewer
+                  - harness-ui-reviewer
+                  - harness-validator-lead
+                  - harness-visual-designer
+                op:
+                  enum:
+                  - drop
+                target:
+                  type: string
+                section:
+                  enum:
+                  - Patterns
+                  - Gotchas
+                  - Outcomes
+                  - Open
+                why:
+                  type: string
+        team:
+          type: string
+        steps_run:
+          type: integer
+        cycles_used:
+          type: integer
+        members:
+          type: array
+          items:
+            anyOf:
+            - type: object
+              additionalProperties: false
+              required:
+              - step
+              - persona
+              - verdict
+              - headline
+              - files_touched
+              properties:
+                step:
+                  type: string
+                persona:
+                  type: string
+                verdict:
+                  type: string
+                headline:
+                  type: string
+                files_touched:
+                  type: array
+                  items:
+                    type: string
+            - type: object
+              additionalProperties: false
+              required:
+              - step
+              - persona
+              - status
+              - reason
+              properties:
+                step:
+                  type: string
+                persona:
+                  type: string
+                status:
+                  enum:
+                  - skipped
+                reason:
+                  type: string
+        must_fix:
+          type: array
+          items:
+            type: string
+        branch:
+          type: string
+        escalations:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - id
+            - raised_by
+            - question
+            - domain
+            - routed_to
+            - resolution
+            - decided_by
+            - recorded_as
+            properties:
+              id:
+                type: string
+              raised_by:
+                type: string
+              question:
+                type: string
+              domain:
+                type: string
+              routed_to:
+                type: string
+              resolution:
+                type: string
+              decided_by:
+                type: string
+              recorded_as:
+                type: string
+        adequacy_notes:
+          type: array
+          items:
+            type: string
+        sc_status:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - id
+            - verdict
+            - method
+            - evidence
+            properties:
+              id:
+                type: string
+              verdict:
+                type: string
+              method:
+                type: string
+              evidence:
+                type: string
+        needs_approval:
+          anyOf:
+          - type: boolean
+          - type: string
+        severity_max:
+          anyOf:
+          - enum:
+            - none
+            - low
+            - med
+            - high
+            - critical
+          - type: string
+        matrix_ok:
+          anyOf:
+          - type: boolean
+          - type: string
+        coverage_gaps:
+          type: array
+          items:
+            type: string
+        findings:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - kind
+            - scope
+            - severity
+            - reader
+            - summary
+            - why
+            properties:
+              kind:
+                enum:
+                - substance
+                - form
+                - proportionality
+              scope:
+                anyOf:
+                - enum:
+                  - task
+                  - mission
+                - type: string
+              severity:
+                type: string
+              reader:
+                type: string
+              summary:
+                type: string
+              why:
+                type: string
+        readers:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - reader
+            - status
+            - persona
+            - reason
+            properties:
+              reader:
+                type: string
+              status:
+                enum:
+                - ran
+                - skipped
+              persona:
+                type: string
+              reason:
+                type: string
+    artifact:
+      type: string
 ---
 
 HARNESS_AGENT_ID: harness-validator-lead

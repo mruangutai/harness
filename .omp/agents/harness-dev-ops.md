@@ -22,6 +22,176 @@ autoloadSkills:
 - harness-craft
 - harness-codebase-design
 - harness-digest-dev
+structured: true
+output:
+  type: object
+  additionalProperties: false
+  required:
+  - VERDICT
+  - DIGEST
+  - artifact
+  properties:
+    VERDICT:
+      enum:
+      - PASS
+      - FAIL
+      - BLOCKED
+      - ESCALATE
+    DIGEST:
+      type: object
+      additionalProperties: false
+      required:
+      - headline
+      - open_questions
+      - files_touched
+      - expertise_update
+      - change_type
+      - applied
+      - suite
+      - task
+      - task_verify
+      - test_kinds_written
+      properties:
+        headline:
+          type: string
+        open_questions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - id
+            - question
+            - blocking
+            properties:
+              id:
+                type: string
+              question:
+                type: string
+              blocking:
+                type: boolean
+        files_touched:
+          type: array
+          items:
+            type: string
+        expertise_update:
+          type: array
+          items:
+            anyOf:
+            - type: object
+              additionalProperties: false
+              required:
+              - op
+              - target
+              - section
+              - entry
+              - why
+              - persona
+              properties:
+                persona:
+                  enum:
+                  - harness-ai-dev
+                  - harness-backend-dev
+                  - harness-code-reviewer
+                  - harness-data-engineer
+                  - harness-dev-ops
+                  - harness-documentor
+                  - harness-eng-lead
+                  - harness-frontend-dev
+                  - harness-orchestrator
+                  - harness-pm
+                  - harness-product-lead
+                  - harness-qa
+                  - harness-security-reviewer
+                  - harness-ui-reviewer
+                  - harness-validator-lead
+                  - harness-visual-designer
+                op:
+                  enum:
+                  - add
+                  - replace
+                target:
+                  type: string
+                section:
+                  enum:
+                  - Patterns
+                  - Gotchas
+                  - Outcomes
+                  - Open
+                entry:
+                  type: string
+                why:
+                  type: string
+            - type: object
+              additionalProperties: false
+              required:
+              - op
+              - target
+              - section
+              - why
+              - persona
+              properties:
+                persona:
+                  enum:
+                  - harness-ai-dev
+                  - harness-backend-dev
+                  - harness-code-reviewer
+                  - harness-data-engineer
+                  - harness-dev-ops
+                  - harness-documentor
+                  - harness-eng-lead
+                  - harness-frontend-dev
+                  - harness-orchestrator
+                  - harness-pm
+                  - harness-product-lead
+                  - harness-qa
+                  - harness-security-reviewer
+                  - harness-ui-reviewer
+                  - harness-validator-lead
+                  - harness-visual-designer
+                op:
+                  enum:
+                  - drop
+                target:
+                  type: string
+                section:
+                  enum:
+                  - Patterns
+                  - Gotchas
+                  - Outcomes
+                  - Open
+                why:
+                  type: string
+        change_type:
+          enum:
+          - config
+          - scaffolding
+          - infra
+          - ci
+        applied:
+          type: array
+          items:
+            type: string
+        suite:
+          anyOf:
+          - enum:
+            - pass
+            - fail
+          - type: string
+        task:
+          type: string
+        task_verify:
+          anyOf:
+          - enum:
+            - pass
+            - fail
+          - type: string
+        test_kinds_written:
+          type: array
+          items:
+            type: string
+    artifact:
+      type: string
 ---
 
 HARNESS_AGENT_ID: harness-dev-ops
