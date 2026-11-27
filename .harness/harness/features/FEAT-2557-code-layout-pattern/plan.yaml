@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai
   status: approved
 drafted_at: '2026-11-27T14:35:15Z'
-status: ready
+status: building
 source_issues: [2557]
 lanes:
   resolved_at: cf7b422b2e55ae4c9129a8009e240b56c6e25035
@@ -72,7 +72,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The operator's INV-32 ruling (notes/answers-2026-11-27-inv32.md) cuts this patch to one task over all five files; check-domain.py --resolve grants no squad the harness-codebase-design skill or AGENTS.md, so the main session writes all five directly in the intent's step order (DEC-179 declared step), and the ruling accepts the DEVIATION for the granted bin and .harness/harness/docs files.
     depends_on: []
-    status: ready
+    status: done
     files:
     - .claude/skills/harness-codebase-design/SKILL.md
     - AGENTS.md

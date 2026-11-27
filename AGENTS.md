@@ -22,6 +22,7 @@ Harness is a provider-neutral agent-team framework for AI-assisted software deve
 | Decision index | `.harness/harness/docs/DECISIONS-INDEX.md` |
 | Decision authority | `.harness/harness/docs/DECISIONS.md` |
 | Remaining build ledger | `.harness/harness/docs/BUILD.md` |
+| Code layout of Harness `bin/` (entry plus package) | `.claude/skills/harness/bin/LAYOUT.md` |
 
 ## Organization
 
@@ -46,6 +47,7 @@ A decision the tree flatly contradicts is **STRUCK, never marked stale** (DEC-18
 
 ## Conventions
 
+- Before writing code, read the harness-codebase-design skill and, for Harness `bin/`, the layout entry in the project map.
 - Check every command-verifiable prose claim before writing it.
 - Run the canonical Harness state checker before committing, never after.
 - Never write a shell wait loop. Use the host's supervised background-job mechanism; a foreground shell timeout can detach rather than terminate descendants.
