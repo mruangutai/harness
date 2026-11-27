@@ -1,0 +1,19 @@
+{
+  "feature_id": "BUG-2423-state-md-derived",
+  "branch": "feat/BUG-2423-state-md-derived",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [],
+  "judgements": [
+    {
+      "at": "2026-11-27T02:58:44+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "New check-state invariant, changed check-domain write gate, changed gh-sync ship behaviour, template contract change and ~12 doc surfaces; three enforcement surfaces and a new DEC, not a patch"
+    }
+  ],
+  "mission": "plan"
+}
