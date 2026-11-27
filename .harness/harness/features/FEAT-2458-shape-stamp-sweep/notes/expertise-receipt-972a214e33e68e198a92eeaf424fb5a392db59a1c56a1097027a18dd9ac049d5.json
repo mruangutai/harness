@@ -1,0 +1,46 @@
+{
+  "batches": [
+    {
+      "after_sha256": "71b8894179b7e19c920ed082076fb34019709daf03501b0294f699846749a493",
+      "before_sha256": "c0fe238aed723a27920f5539a6652ed5de18476a177c1cf190b287aa3c547f8e",
+      "destination": ".harness/expertise/harness-code-reviewer.md",
+      "id": "efbf6da3b1c1f96702f578e7d5322ca446e103ca5a63626a4cd38daf50e7d997",
+      "ops": [
+        {
+          "entry": "WHEN tests are refactored to reduce complexity DO compare old and new predicates on contract-invalid values the old test rejected, not just on passing fixtures or case names; a simpler predicate can admit the wrong type, shape, or value.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-07",
+          "why": "The test split kept the same passing cases but let a truthy non-string reason pass where a string was required. This check applies to ordinary test refactors more often than the displaced meta-gate registry check."
+        },
+        {
+          "entry": "WHEN a diagnostic substring is reserved for one outcome DO put the marker in interpolated inputs on a different outcome and check the emitted text for collisions; searching for literal producers cannot show that dynamic text keeps the marker exclusive.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-12",
+          "why": "A non-miss reason could acquire the absence marker from an interpolated status or id. This production-side probe complements the existing search for alternate producers and applies more broadly than the displaced injected-carrier severity reminder."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a guard becomes the sole automated detector for a defect class DO check whether anything watches the watcher — is the guard's own function tracked by a meta-gate or self-grading registry, so a future edit that weakens it doesn't go unnoticed.",
+          "section": "Patterns",
+          "target": "P-07"
+        },
+        {
+          "original": "WHEN rating severity for a finding about an edited carrier injected into every spawn of a persona DO weight the carrier's blast radius, not just this instance's content — correct-today content does not bound future edits through the same unguarded channel.",
+          "section": "Gotchas",
+          "target": "G-12"
+        }
+      ],
+      "recorded_at_ns": 1795533989381299000,
+      "seq": 1,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2458-shape-stamp-sweep",
+  "parent_id": "Feat2458Distill.PsychiatricBadger",
+  "persona": "harness-code-reviewer",
+  "runtime_id": "Feat2458Distill.PsychiatricBadger.ZippyBear",
+  "schema": 1
+}

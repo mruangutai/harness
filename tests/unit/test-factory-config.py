@@ -373,7 +373,7 @@ except Exception as e:
 check("validate_board accepts the ordered lowercase station list, returns the board, and "
       "carries stations as a tuple of the six", _ok, _stations)
 
-# THE TIE TO feature-schema.json IS GONE BECAUSE THE KEY IS (FEAT-41 T-07), and what replaces it
+# THE TIE TO schemas/feature.json IS GONE BECAUSE THE KEY IS (FEAT-41 T-07), and what replaces it
 # is an assertion about that absence.
 #
 # This pinned MANDATED_STATIONS against the schema's `status` enum so the two declarations could
@@ -382,10 +382,10 @@ check("validate_board accepts the ordered lowercase station list, returns the bo
 # vocabulary, declared once in factory_config, and plan-merge.py validates every write against
 # it. The check that matters is therefore the deletion itself, because a schema that quietly
 # regained a status enum would recreate exactly the two-vocabulary drift FEAT-41 removed.
-_schema_path = os.path.join(os.path.dirname(os.path.abspath(fc.__file__)), "feature-schema.json")
+_schema_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(fc.__file__))), "schemas", "feature.json")
 with open(_schema_path, encoding="utf-8") as f:
     _schema = json.load(f)
-check("(X) feature-schema.json declares NO status key — the second vocabulary is gone",
+check("(X) schemas/feature.json declares NO status key — the second vocabulary is gone",
       "status" not in _schema["properties"] and "status" not in _schema["required"],
       sorted(_schema["properties"]))
 

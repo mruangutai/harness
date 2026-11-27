@@ -94,7 +94,7 @@ cannot manufacture evidence — do not soften a `not_met`.
 ## Output
 
 Return an object through YieldTool — never fenced YAML text. The field list is the schema,
-`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/digest-schemas/harness-pm.json`; one complete example:
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/schemas/digest/harness-pm.json`; one complete example:
 
 ```js
 yield({data: {

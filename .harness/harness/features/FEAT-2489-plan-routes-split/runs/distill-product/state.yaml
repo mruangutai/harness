@@ -1,0 +1,51 @@
+schema_version: 2
+run_id: distill-product
+run_uid: daf6b4e539364b5292f3d1e970e6f654
+feature: FEAT-2489-plan-routes-split
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: distill-pm
+    persona: harness-pm
+    task: distill-product
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/expertise/harness-pm.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/harness/expertise/harness-pm.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-distill.md
+    note: C7 settled at source; craft 2 replaces, repo 3 replace/add + 1 drop; send-back criteria 1-5 met.
+    evidence:
+      craft_batch: 64d4da6bcbd2fb03b4556802d8f6122b5e34d8fea0ea7907fef96c87e4bf1aed
+      repo_batch: a04ac66d6ac13127fdad146ba185a9df6391c69cd01d5d0023659b465a7e7dda
+      ops_applied: 6
+      lead_candidates_relayed: 3
+      lead_candidates_applied: 2
+  - id: distill-code-reviewer
+    persona: harness-code-reviewer
+    task: distill-product
+    seq: 2
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/expertise/harness-code-reviewer.md
+    mutates_repo: false
+    on_fail: continue
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 1
+    note: dispatch-guard refused before spawn - code-reviewer from product-lead read as plan scope reader, demands HARNESS-MISSION plan; not relabelled. ui-reviewer not dispatched (self-scope-out, no lesson).
+    evidence:
+      guard_refusal: mission_mismatch_distill_vs_plan
+      lead_own_batch: 0c300e6942e8b35ac95048607565393f2939edb86a7a5aef91681528ddf5d3e4

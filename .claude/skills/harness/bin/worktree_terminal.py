@@ -4,10 +4,13 @@ A library with NO SIDE EFFECTS and NO ARGV HANDLING. It is imported by check-sta
 and by post-merge-sweep.py; nothing else may duplicate this logic (D-02) — one predicate the gate
 and the hook cross, so they can never disagree about what is eligible.
 
-Public surface, and nothing wider: `CLASSES`, `classify(root)` and `classify_all(root)` (D-10).
+Public surface, and nothing wider: `CLASSES`, `classify(root)`, `classify_all(root)` (D-10),
+`classify_feature(root, feature_id)` and `repo_arg_for_segment(repo_segment)`.
 `classify` covers ONE repository at `root`; `classify_all` is the cross-repository entry point
 check-state.py's INV-29 calls — it returns `classify(root)` for the harness checkout plus
-`classify(owner_root)` for every repository declared in fleet.yaml. Everything else here is
+`classify(owner_root)` for every repository declared in fleet.yaml. `classify_feature` answers
+whether ONE feature id, matched exactly, is finished on the harness default branch by the same
+landed rule, and post-merge-sweep.py's stamp sweep calls it (#2458). Everything else here is
 implementation detail that stays private.
 """
 import json
@@ -190,8 +193,9 @@ def _landed_blob_text(owner_root, default_branch, rel):
     `git cat-file`, exactly as feature-worktree.py:287 reads a landed blob. Never the working
     tree's copy.
 
-    Returns `(text, error)` where error is "missing" or "unreadable" — the same words both
-    callers already reported, so their contracts are unchanged.
+    Returns `(text, error)` where error is "missing", "unreadable" or "unparseable" (a blob whose
+    bytes are not valid UTF-8, #2458) — the words both callers already reported, so their
+    contracts are unchanged.
 
     THIS IS NOT THE `parse=` PARAMETER THAT WAS ALREADY CONSIDERED AND REJECTED (FEAT-41 F-05).
     `_read_landed_plan_yaml`'s docstring records that folding the two landed readers into one
@@ -206,7 +210,12 @@ def _landed_blob_text(owner_root, default_branch, rel):
     blob = r.stdout.strip()
     if not blob:
         return None, "missing"
-    c = _run_git(["cat-file", "blob", blob], owner_root)
+    try:
+        c = _run_git(["cat-file", "blob", blob], owner_root)
+    except UnicodeDecodeError:
+        # text=True decodes inside subprocess.run, past _run_git's typed catch: an undecodable
+        # landed record is unparseable, never a raise out of classify (#2458).
+        return None, "unparseable"
     if c is None or c.returncode != 0:
         return None, "unreadable"
     return c.stdout, None
@@ -587,3 +596,46 @@ def classify_all(root):
 
     records.sort(key=lambda r: r["path"])
     return records
+
+
+def classify_feature(root, feature_id):
+    """`(klass, reason)` for ONE feature id on the harness default branch at `root` (#2458).
+
+    klass is "terminal", "unresolved" or "not_terminal"; reason is never empty. The id is
+    matched EXACTLY (plan D-03): a worktree may be named for a truncated id, a stamp never is,
+    so the unique-prefix rule of `_match_landed_id` would let a never-landed id borrow a longer
+    finished feature's verdict. A fleet feature resolves under the one fleet segment whose
+    landed features directory names it. An id landed nowhere is "unresolved" with a reason
+    naming it absent; no other reason here says absent. The verdict itself is
+    `_landed_classification`'s — no rule is added (D-02)."""
+    factory_config = _import_factory_config()
+    default_branch = _resolve_default_branch("harness", _import_feature_worktree(),
+                                             factory_config)
+    if default_branch is None:
+        return "unresolved", "could not resolve the repository's default_branch"
+    features_rel = os.path.join(".harness", "harness", "features")
+    names = _landed_dir_names(root, default_branch, features_rel)
+    if names is None:
+        return "unresolved", "git ls-tree of the landed features directory errored"
+
+    if feature_id in names:
+        hits = [("harness", features_rel)]
+    else:
+        hits = []
+        for segment in _fleet_segments(factory_config):
+            seg_rel = os.path.join(".harness", segment, "features")
+            seg_names = _landed_dir_names(root, default_branch, seg_rel)
+            if seg_names is not None and feature_id in seg_names:
+                hits.append((segment, seg_rel))
+    if not hits:
+        return "unresolved", f"{feature_id} is absent from {default_branch}'s features directory"
+    if len(hits) > 1:
+        return "unresolved", (f"{feature_id} is landed under {len(hits)} segments' features "
+                              f"directories")
+
+    segment, seg_rel = hits[0]
+    classified = _landed_classification((root, segment, default_branch, seg_rel, feature_id))
+    if classified is not None:
+        return classified
+    return "not_terminal", (f"landed station for {feature_id} on {default_branch} is not "
+                            f"finished")

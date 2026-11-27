@@ -114,7 +114,7 @@ feature and never stops one.
 
 Your return contract — an object through YieldTool, never fenced YAML text; every field required,
 `[]` for empty, `none` for inapplicable. The field list is the schema,
-`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/digest-schemas/harness-orchestrator.json`; one complete example:
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/schemas/digest/harness-orchestrator.json`; one complete example:
 
 ```js
 yield({data: {

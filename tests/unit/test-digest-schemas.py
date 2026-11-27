@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""digest_schema.py and bin/digest-schemas/ — the live persona object contract (FEAT-1928 SC-03).
+"""digest_schema.py and schemas/digest/ — the live persona object contract (FEAT-1928 SC-03).
 
 Every one of the 16 runtime personas has one closed schema file. A representative valid
 object passes for each; a missing, an extra, a wrong-type and a near-miss-enum object fail.
@@ -167,7 +167,7 @@ def object_violations(node, at, common, seen=()):
 
 class PersonaSchemas(unittest.TestCase):
     def test_exactly_sixteen_persona_files_plus_common(self):
-        names = sorted(p.name for p in (BIN / "digest-schemas").glob("*.json"))
+        names = sorted(p.name for p in (BIN.parent / "schemas" / "digest").glob("*.json"))
         self.assertEqual(names, sorted(["common.json"] + [f"{p}.json" for p in PERSONAS]))
         self.assertEqual(sorted(VALID), sorted(PERSONAS))
 
@@ -378,7 +378,7 @@ class PersonaSchemas(unittest.TestCase):
             self.assertTrue(errors(lead, make(lead, expertise_update=[bad])), bad)
 
     def test_expertise_persona_enum_is_the_canonical_sixteen(self):
-        common = json.loads((BIN / "digest-schemas" / "common.json").read_text())["$defs"]
+        common = json.loads((BIN.parent / "schemas" / "digest" / "common.json").read_text())["$defs"]
         for name in ("expertise_write", "expertise_drop"):
             node = common[name]
             self.assertIn("persona", node["required"], name)
@@ -459,7 +459,7 @@ class Resolution(unittest.TestCase):
 class LoaderStrictness(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="digest-schemas-test-"))
-        shutil.copytree(BIN / "digest-schemas", self.tmp, dirs_exist_ok=True)
+        shutil.copytree(BIN.parent / "schemas" / "digest", self.tmp, dirs_exist_ok=True)
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)

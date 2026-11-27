@@ -1,0 +1,8345 @@
+shard 1/1: 95 selected files
+selected tests/integration/test-bash-write-guard.py
+selected tests/integration/test-board-lifecycle.py
+selected tests/integration/test-board-station.py
+selected tests/integration/test-branch-create-gate.py
+selected tests/integration/test-check-decision-anchors.py
+selected tests/integration/test-check-domain-approval.py
+selected tests/integration/test-check-domain-artifact.py
+selected tests/integration/test-check-domain-claims.py
+selected tests/integration/test-check-domain-grant.py
+selected tests/integration/test-check-domain-post.py
+selected tests/integration/test-check-domain-worktree-parity.py
+selected tests/integration/test-check-domain-worktree.py
+selected tests/integration/test-check-domain.py
+selected tests/integration/test-check-expertise.py
+selected tests/integration/test-check-fixture-secrets.py
+selected tests/integration/test-check-instruction-paths.py
+selected tests/integration/test-check-omp-port.py
+selected tests/integration/test-check-plan-routes.py
+selected tests/integration/test-check-skill-weight.py
+selected tests/integration/test-check-state-corpus.py
+selected tests/integration/test-check-state-entry.py
+selected tests/integration/test-check-state-feat59.py
+selected tests/integration/test-check-state-handoff.py
+selected tests/integration/test-check-state-inv26.py
+selected tests/integration/test-check-state-inv37-offline.py
+selected tests/integration/test-check-state-inv51.py
+selected tests/integration/test-check-state-plans.py
+selected tests/integration/test-check-state-records.py
+selected tests/integration/test-check-state-shipped.py
+selected tests/integration/test-check-state-table.py
+selected tests/integration/test-check-state-worktrees.py
+selected tests/integration/test-check-state.py
+selected tests/integration/test-checker-structure-locks.py
+selected tests/integration/test-code-grade-cli.py
+selected tests/integration/test-corpus-non-regression.py
+selected tests/integration/test-corpus-real-owner.py
+selected tests/integration/test-dispatch-guard.py
+selected tests/integration/test-expertise-merge.py
+selected tests/integration/test-factory-decompose.py
+selected tests/integration/test-factory-integration.py
+selected tests/integration/test-factory-issue-types.py
+selected tests/integration/test-feature-corpus-census.py
+selected tests/integration/test-feature-corpus.py
+selected tests/integration/test-feature-json-merge.py
+selected tests/integration/test-feature-worktree.py
+selected tests/integration/test-gen-decisions-index.py
+selected tests/integration/test-gh-backlog-issue-types.py
+selected tests/integration/test-gh-close-gate.py
+selected tests/integration/test-gh-issue-types.py
+selected tests/integration/test-gh-sync-abandon.py
+selected tests/integration/test-gh-sync-board-add.py
+selected tests/integration/test-gh-sync-open.py
+selected tests/integration/test-gh-sync-record.py
+selected tests/integration/test-gh-sync-ship.py
+selected tests/integration/test-gh-sync-start-task.py
+selected tests/integration/test-harness-config-fixtures.py
+selected tests/integration/test-harness-config-readers.py
+selected tests/integration/test-harness-config-upgrade.py
+selected tests/integration/test-harness-constraints.py
+selected tests/integration/test-harness-merge.py
+selected tests/integration/test-harness-yaml.py
+selected tests/integration/test-hooks-install.py
+selected tests/integration/test-inflight-registry.py
+selected tests/integration/test-inject-expertise.py
+selected tests/integration/test-integration-shard-aggregation.py
+selected tests/integration/test-layout-migration.py
+selected tests/integration/test-lead-start-return.py
+selected tests/integration/test-member-expertise.py
+selected tests/integration/test-merge-gate.py
+selected tests/integration/test-merge-gitignore.py
+selected tests/integration/test-observations-merge.py
+selected tests/integration/test-omp-native-gate-runtime.py
+selected tests/integration/test-onboarding-split.py
+selected tests/integration/test-panel-findings.py
+selected tests/integration/test-pinned-checkout.py
+selected tests/integration/test-plan-decision-dispositions.py
+selected tests/integration/test-plan-merge.py
+selected tests/integration/test-plan-sign-gate.py
+selected tests/integration/test-plan-team.py
+selected tests/integration/test-post-merge-sweep.py
+selected tests/integration/test-run-pool.py
+selected tests/integration/test-run-unit-tests-kinds.py
+selected tests/integration/test-run-unit-tests-layout.py
+selected tests/integration/test-run-unit-tests-shards.py
+selected tests/integration/test-station-argument-spelling.py
+selected tests/integration/test-structure-audit-single-pass.py
+selected tests/integration/test-suite-claim-preservation.py
+selected tests/integration/test-typescript-typecheck.py
+selected tests/integration/test-upgrade-config.py
+selected tests/integration/test-validate-digest-shadows.py
+selected tests/integration/test-validate-digest.py
+selected tests/integration/test-validate-feature-json.py
+selected tests/integration/test-worktree-state-hooks.py
+selected tests/integration/test-worktree-state.py
+selected tests/integration/test-worktree-terminal.py
+----- test-check-decision-anchors.py (exit 0, 0.56s) -----
+ok - test_in_range_anchor_reports_nothing_and_exits_zero
+ok - test_missing_file_is_reported_and_exits_one
+ok - test_out_of_range_line_is_reported_and_exits_one
+ok - test_malformed_anchor_extension_reports_line_and_exits_one
+ok - test_zero_anchors_exits_zero_and_says_so
+ok - test_unreadable_target_exits_two_not_zero
+ok - test_default_file_is_dev_null_readable_zero_anchors
+ok - test_live_authority_anchors_all_resolve
+PASS test-check-decision-anchors.py
+----- test-board-station.py (exit 0, 2.36s) -----
+PASS  board-station moves the named issue to the named station
+PASS  the field-set invocation actually carries the issue number and the station
+PASS  an explicitly null board still exits 0 having written nothing
+PASS  board-station reports a failed item-add as a BoardError on stderr naming issue and station, and exits 0
+PASS  board-station rejects a missing argument with exit 2
+PASS  board-station rejects a UNICODE-digit argument with exit 2, not a traceback
+PASS  board-station rejects a Unicode digit int() ACCEPTS, so no card moves silently
+PASS  board-station rejects an over-cap digit string with exit 2, not a traceback
+PASS  board-station outside a harness root writes nothing and exits 0
+PASS  board-station with github.sync false writes nothing and exits 0
+PASS  board-station exits 0 when set_station's gh returns a body that does not decode (GhError)
+PASS  FEAT-64: an unrelated RuntimeError inside set_station escapes (non-zero, not ERROR/exit 0)
+PASS  board-station refuses a CAPITALISED station, exit 2, nothing written
+PASS  board-station's refusal NAMES all six stations so the operator can act on it
+PASS  board-station refuses 'abandoned' — a real status, but not a station
+PASS  an invalid station does NOT override the sync-off exit-0 no-op
+
+all pass
+PASS test-board-station.py
+----- test-check-domain-approval.py (exit 0, 6.65s) -----
+ok    T-09 1: an AGENT's Edit of plan.yaml is DENIED
+ok    T-09 1: the denial names set-task-station — the write an agent will actually attempt
+ok    T-09 1: the denial STATES THE REASON — one writer, because stations are validated before they land
+ok    T-09 1: the denial names the writer script by the basename that EXISTS on disk
+ok    T-09 1: the denial does NOT carry the STATE.md ROUTING sentence
+ok    T-09 2: an Edit with NO agent_type is denied too — the shape gate binds every author
+ok    T-09 3: a Write of plan.yaml is DENIED
+ok    T-09 4: NEGATIVE CONTROL — BRIEF.md beside it is NOT denied by this rule
+ok    T-09 5: a Bash write landing an ILLEGAL station value is REPORTED by the post sweep
+ok    T-09 5: and the report names the FILE as well as the offending value
+ok    T-09 6: NEGATIVE CONTROL — a Bash write landing a LEGAL station value is NOT reported
+ok    T-09 7: a plan.yaml carrying NO top-level status is NOT reported — the un-migrated shape is legal
+ok    T-09 8 / F-04: a Write of Plan.yaml is DENIED — on a case-insensitive filesystem it lands on the same inode as plan.yaml
+ok    T-09 8 / F-04: a Write of PLAN.YAML is DENIED — on a case-insensitive filesystem it lands on the same inode as plan.yaml
+ok    T-09 8 / F-04: a Write of plan.YAML is DENIED — on a case-insensitive filesystem it lands on the same inode as plan.yaml
+ok    T-09 8 NEGATIVE CONTROL: plan.yaml.bak is still ALLOWED — the rule is anchored, not a substring match
+ok    T-09 8 NEGATIVE CONTROL: myplan.yaml is still ALLOWED — the rule is anchored, not a substring match
+ok    T-09 9: a Write to a SYMLINK whose name is not plan.yaml is DENIED — the write lands in the plan, so the link is a route
+ok    T-09 9: the refusal names the feature's plan.yaml, the file the write would reach
+ok    T-09 9 NEGATIVE CONTROL: a symlink to a file that is not the plan is still ALLOWED — links are followed to a shape test, not refused as a class
+ok    T-09 9: the POST reporter follows the link and the vocabulary net speaks — a landed illegal station is reported even though the path written carries no rules
+ok    T-09 11: a Write through a hardlink to plan.yaml is DENIED — identity and resolution are different questions and the plan needs both answered
+ok    T-09 11: a Write through an innocent file under a LINKED parent directory is DENIED — identity and resolution are different questions and the plan needs both answered
+ok    T-09 11: a Write through a symlink chain longer than the hop cap is DENIED — identity and resolution are different questions and the plan needs both answered
+ok    T-09 11: a Write through a hardlink to a file that is NOT the plan is still ALLOWED — identity and resolution are different questions and the plan needs both answered
+ok    T-09 10: feature.json over budget is DENIED — the canonical control, proving the body really violates it
+ok    T-09 10: Feature.json over budget is DENIED — the SPELLING is not a way past a budget
+ok    T-09 10: handoff-build.md over budget is DENIED — the canonical control, proving the body really violates it
+ok    T-09 10: Handoff-Build.md over budget is DENIED — the SPELLING is not a way past a budget
+ok    T-09 10: STATE.md over budget is DENIED — the canonical control, proving the body really violates it
+ok    T-09 10: State.md over budget is DENIED — the SPELLING is not a way past a budget
+ok    T-09 10 NEGATIVE CONTROL: Feature.json within budget is still ALLOWED — the fold widened what is measured, not what is refused
+ok    T-09 10 NEGATIVE CONTROL: Handoff-Build.md within budget is still ALLOWED — the fold widened what is measured, not what is refused
+ok    T-09 10 NEGATIVE CONTROL: State.md within budget is still ALLOWED — the fold widened what is measured, not what is refused
+ok    T-09 12: a NUL-bearing path is REFUSED at exit 2, not exit 1 — exit 1 is non-blocking here, so a crash is a fail-OPEN
+ok    T-09 12: and it does not crash — no traceback reaches the operator
+ok    T-09 12 NEGATIVE CONTROL: a path that does not exist yet is still ALLOWED — realpath is non-strict, so absence is not unresolvable
+ok    T-09 12: a symlink LOOP is allowed, not refused — realpath resolves it rather than raising, which the old docstring had backwards
+ok    T-09 13: an orchestrator Write of plan.yaml.harness-merge.journal (as typed) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of plan.yaml.harness-merge.journal (case-folded) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of plan.yaml.harness-merge.journal (symlink) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of plan.yaml.harness-merge.journal (hardlink) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: notes/plan.yaml.harness-merge.journal is outside the feature-dir grammar and still ALLOWED
+ok    T-09 13: an orchestrator Write of feature.json.harness-merge.journal (as typed) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of feature.json.harness-merge.journal (case-folded) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of feature.json.harness-merge.journal (symlink) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: an orchestrator Write of feature.json.harness-merge.journal (hardlink) is DENIED, naming plan-merge as its only writer
+ok    T-09 13: notes/feature.json.harness-merge.journal is outside the feature-dir grammar and still ALLOWED
+ok    T-09 13: the sidecar names are harness_merge's JOURNAL_PAIR plus JOURNAL_SUFFIX
+ok    T-09 13: plain plan.yaml keeps its own one-writer denial, not the journal's
+ok    1: a governed agent flipping approval.status is DENIED
+ok    1: the denial names the approval mapping
+ok    1: the denial names the plan-merge route
+ok    2 (T-09): adding a task through Write is DENIED BY THE ROUTE RULE, not the approval guard — plan.yaml has one writer
+ok    3: the orchestrator flipping approval is DENIED too
+ok    4 (T-09): the MAIN SESSION's editor write is DENIED TOO — the shape gate binds every author, and signing is a verb now
+ok    5a: a targeted Edit of the signature is DENIED
+ok    5b: the mid-line-start evasion is DENIED
+ok    5c: the accidental replace_all sweep is DENIED
+ok    5d: an Edit INTRODUCING an approval block at column zero is DENIED
+ok    5e (T-09): an Edit touching only a task body is DENIED by the route rule
+ok    6 (T-09): a plan.yaml that does not exist yet is DENIED too — creation goes through apply, not Write
+ok    7 (T-09): an unparseable proposal is DENIED by the route rule — the shape gate never parses, so unparseable and legal are refused alike
+ok    7: and stderr SAYS the parse failed
+ok    8 (T-09): a whitespace-only reflow is DENIED by the route rule, though still NOT by the approval guard
+ok    9 (T-09): dropping the entry from main_session.writes stops the APPROVAL denial but not the ROUTE denial
+ok    10a (T-09): no main_session key at all -> still DENIED by the route rule
+ok    10a: and stderr says the exclusion list was unreadable
+ok    10b (T-09): an empty writes list -> still DENIED by the route rule
+ok    10b: and stderr says the exclusion list was unreadable
+ok    11: a fragment-less entry (.harness/logs/**) contributes NO fragment denial
+ok    12: flipping BRIEF.md's ## Approval body is DENIED
+ok    12: the denial names the ## Approval heading
+ok    12: changing only ## Goal, leaving ## Approval identical, is ALLOWED
+ok    13: flipping PLAN.md's ## Approval body is DENIED
+ok    14: the real record carries the plan.yaml approval: entry
+ok    14: and still carries the BRIEF.md ## Approval entry
+ok    14: and still carries the PLAN.md ## Approval entry
+
+28/28 T-14 cases passed.
+PASS test-check-domain-approval.py
+----- test-check-domain-claims.py (exit 0, 7.90s) -----
+PASS  [bug1304] relative main-checkout write is refused
+PASS  [bug1304] relative main is allowed by the frozen pre-change hook
+PASS  [bug1304] absolute main-checkout write is refused
+PASS  [bug1304] absolute main is allowed by the frozen pre-change hook
+PASS  [bug1304] sibling-checkout write is refused
+PASS  [bug1304] sibling is allowed by the frozen pre-change hook
+PASS  [bug1304] relative held-worktree write is allowed
+PASS  [bug1304] absolute held-worktree write is allowed
+PASS  [bug1304] unbound agent remains allowed
+PASS  [bug1304] scratch write remains allowed
+PASS  [bug1304] unresolved owner-root claim remains unbound
+PASS  [bug1304] owner-root matching claim refuses main write
+PASS  [bug1304] owner-root matching claim is allowed by the frozen pre-change hook
+PASS  [bug1304] two claims still allow either held worktree
+PASS  [bug1304] malformed checkout pointer refuses with a nonempty claim set
+PASS  [bug1304] malformed checkout is allowed by the frozen pre-change hook
+PASS  [bug1304] exact runtime lineage allows its own worktree
+PASS  [bug1304] exact runtime lineage refuses a same-persona sibling worktree
+PASS  [bug1304] the sibling refusal names the runtime identity it judged (#1882)
+PASS  [bug1304] an identity-less refusal says so (#1882)
+PASS  [bug1304] second runtime lineage retains its own worktree
+PASS  [bug1304] ambiguous claim refuses and names candidates
+PASS  [bug1304] ambiguous claim is allowed by the frozen pre-change hook
+PASS  [bug1304] short-form worktree claim refuses main write
+PASS  [bug1304] short-form is allowed by the frozen pre-change hook
+PASS  [bug1304] ten-day-old claim with a live supervisor still refuses
+PASS  [bug1304] aged claim is allowed by the frozen pre-change hook
+PASS  [bug1304] fresh claim whose supervisor has exited no longer binds
+PASS  [bug1304] unreadable registry refuses and names file
+PASS  [bug1304] unreadable registry is allowed by the frozen pre-change hook
+PASS  [bug1304] readable empty registry remains allowed
+PASS  [bug1304] readable member allows despite unrelated unreadable registry
+PASS  [bug1304] outside partial claim set refuses unreadable registry
+PASS  [bug1304] partial unreadable is allowed by the frozen pre-change hook
+PASS  [bug1304] repository-bound child can repeat Write in its own product
+PASS  [bug1304] repository-bound child can Edit in its own product
+PASS  [bug1304] repository-bound child cannot cross into another product
+PASS  [bug1304] repository binding includes the immediate parent
+PASS  [bug1304] repository-bound child writes its own product's control-plane segment
+PASS  [bug1304] repository-bound child cannot write another product's control-plane segment
+PASS  [bug1304] repository-bound child cannot reach another product's segment by changing its case
+PASS  [bug1304] same-role siblings retain distinct valid product claims
+PASS  [bug1304] product write without a repository claim fails closed
+PASS  [bug1304] released repository claim fails closed
+PASS  [bug1304] stale repository claim fails closed
+PASS  [bug1304] ambiguous repository claim fails closed
+PASS  [bug1304] reused active runtime identity fails as collision
+PASS  [bug1304] unreadable repository registry fails closed
+PASS  [bug1304] repository refusal does not expose registry paths or claim ids
+PASS  [bug1304] worktree-registry binding allows the planning worktree's control-plane segment
+PASS  [bug1304] worktree-registry binding allows the product checkout
+PASS  [bug1304] worktree-registry binding still refuses a stranger's lineage
+PASS test-check-domain-claims.py
+----- test-check-domain-artifact.py (exit 0, 8.31s) -----
+ok    feature-checkout-main
+ok    feature-checkout-main short prefix
+ok    feature-checkout-inside binding skipped after worktree strip
+ok    feature-checkout-absent
+ok    feature-checkout-red
+ok    digest-clobber
+ok    digest-append
+ok    digest-unreadable
+ok    digest rule is PRE-Write-only
+ok    digest-clobber-red
+ok    state-run-id-collision
+ok    state-run-id-upsert-allowed
+ok    state-no-prior-run-id-refused
+ok    state-new-file-allowed
+ok    state-run-id-collision-red
+ok    state-unreadable-prior-denied
+ok    state-no-incoming-run-id-refused
+ok    state-prior-unparseable-refused
+ok    SC-15 PAIR: foreign product cwd allows its feature-worktree receipt and refuses its product twin
+
+19/19 FEAT-50 artifact-integrity cases passed.
+ok    bug1106 Edit route: replacing a run's digest.md via Edit is REFUSED
+ok    bug1106 Edit route: the refused digest Edit left the file untouched
+ok    bug1106 Edit route NEGATIVE CONTROL: a genuine append via Edit is ALLOWED
+ok    bug1106 Edit route: a state.yaml run_id collision via Edit is REFUSED
+ok    bug1106 Edit route: the refused state.yaml Edit left the file untouched
+ok    bug1106 Edit route NEGATIVE CONTROL: a same-run_id checkpoint upsert via Edit is ALLOWED
+ok    bug1106 Edit route: an unmatched old_string fails closed
+ok    bug1106 Edit route: a non-unique old_string fails closed
+ok    bug1106 Edit route NEGATIVE CONTROL: an unrelated file's Edit is still unaffected (no PRE check runs at all for it)
+
+9/9 bug1106 Edit-route cases passed.
+ok    [bug1305-digest] digest Edit append repair remains allowed
+ok    [bug1305-digest] digest Edit insertion is refused with complete-block append route
+ok    [bug1305-digest] a complete corrected block repairs an invalid digest append-only
+ok    [bug1305-digest] cross-run digest replacement remains refused
+ok    [bug1305-digest] digest Write append remains allowed
+ok    [bug1305-digest] digest Write append remains allowed beside identity witness
+
+6/6 BUG-1305 digest cases passed.
+ok    bug1106: RE_RUN_DIGEST is found in both check-domain.py and harness_boundary.py
+ok    bug1106: RE_RUN_DIGEST's pattern text is byte-identical in both files
+ok    bug1106: RE_STATE_YAML is found in both check-domain.py and harness_boundary.py
+ok    bug1106: RE_STATE_YAML's pattern text is byte-identical in both files
+
+4/4 bug1106 pattern-consistency cases passed.
+ok    [bug1305] absent-prior Edit refuses unverifiable witness identity
+ok    [bug1305] unmatched state Edit refuses unverifiable witness identity
+ok    [bug1305] omp file-path-only state Edit fails closed
+ok    [bug1305] uniquely reconstructable state Edit remains allowed
+ok    [bug1305] digest absent-prior Edit fails closed
+ok    [bug1305] digest unmatched Edit fails closed
+ok    [bug1305] digest omp file-path-only Edit fails closed
+ok    [bug1305] handoff absent-prior Edit fails closed
+ok    [bug1305] handoff unmatched Edit fails closed
+ok    [bug1305] handoff omp file-path-only Edit fails closed
+ok    [bug1305] foreign first Write is refused by witness
+ok    [bug1305] foreign Edit is refused by witness
+ok    [bug1305] witness outranks an unparseable prior
+ok    [bug1305] witness outranks legacy run_id ladder
+ok    [bug1305] recovering owner with absent prior is allowed
+ok    [bug1305] recovering owner with zero-byte prior is allowed
+ok    [bug1305] unreadable witness fails closed
+ok    [bug1305] Write of existing witness is refused
+ok    [bug1305] Edit of existing witness is refused
+ok    [bug1305] unmatched Edit of existing witness is refused
+ok    [bug1305] run_uid is a legal checkpoint key beside identity witness
+ok    [bug1305] Write creating false witness is refused
+ok    [bug1305] Edit creating false witness is refused
+ok    [bug1305] POST mints uid and matching witness
+ok    [bug1305] second POST is byte stable
+ok    [bug1305] POST preserves supplied uid bytes
+ok    [bug1305] POST leaves malformed checkpoint untouched
+
+27/27 BUG-1305 marker cases passed.
+ok    [bug1305-identity] modal collision Write omitting uid is refused
+ok    [bug1305-identity] modal collision Edit removing uid is refused
+ok    [bug1305-identity] different minted uid is refused
+ok    [bug1305-identity] different minted uid Edit is refused
+ok    [bug1305-identity] run_id disagreement keeps Issue 1124 precedence
+ok    [bug1305-identity] DEC-154 resumed owner with same uid remains allowed across sessions
+ok    [bug1305-identity] recovering owner with absent checkpoint remains allowed
+ok    [bug1305-identity] recovering owner with zero-byte checkpoint remains allowed
+ok    [bug1305-identity] legacy checkpoint without uid remains allowed
+ok    [bug1305-identity] legacy checkpoint accepts incoming uid
+
+10/10 BUG-1305 identity cases passed.
+ok    [2056] main session: a feature artifact in the main checkout is refused, naming the worktree
+ok    [2056] main session: the same artifact inside the feature's worktree is allowed
+ok    [2056] main session: a non-feature path in the main checkout is untouched
+ok    [bug151-selfcheck] printed-fail-zero-total
+ok    [bug151-selfcheck] printed-ok-zero-total
+ok    [bug151-selfcheck] printed-fail-nonzero-total
+ok    [bug151-selfcheck] printed-ok-nonzero-total
+ok    [bug151-selfcheck] indented-fail-does-not-count
+ok    [bug151-selfcheck] two-printed-one-counted-agrees-on-zeroness
+ok    [bug151-selfcheck] wiring-seam-catches-print-fail-return-zero
+PASS test-check-domain-artifact.py
+----- test-branch-create-gate.py (exit 0, 8.98s) -----
+ok    the four config keys and the item-edit call are absent from the script
+ok    DENY: a branch naming a flow that does not exist on disk
+ok    ALLOW: a branch naming a flow that DOES exist on disk
+ok    DENY: the same branch once the fixture flow directory is absent
+ok    self-gate: no github block at all -> exit 0, no stdout
+ok    self-gate: github.sync false -> exit 0, no stdout
+ok    github.sync true with repo unpinned: the branch creation is refused at exit 2 naming github.repo
+ok    form 1 (flow id) parses: deny names the exact flow id extracted
+ok    form 2 (issue number) parses: 'gh' not installed deny names issue #123
+ok    duplicate harness.json keys refuse the branch creation at exit 2 rather than choosing one
+ok    corpus row agrees with the healthy gate (match): 'git checkout -b feat/FEAT-99-nope'
+ok    corpus row agrees with the healthy gate (match): 'git checkout -B fix/123-typo'
+ok    corpus row agrees with the healthy gate (match): 'git -C repo checkout -b feat/FEAT-99-nope'
+ok    corpus row agrees with the healthy gate (match): 'cd repo && git checkout -b fix/123-typo'
+ok    corpus row agrees with the healthy gate (match): 'git checkout --track -b fix/123-typo origin/main'
+ok    corpus row agrees with the healthy gate (match): 'git checkout -b=fix/123-typo'
+ok    corpus row agrees with the healthy gate (match): 'git switch -c fix/123-typo'
+ok    corpus row agrees with the healthy gate (match): 'git switch --create fix/123-typo'
+ok    corpus row agrees with the healthy gate (match): 'git -c core.x=y switch -C fix/123-typo'
+ok    corpus row agrees with the healthy gate (match): 'git worktree add ../wt -b fix/123-typo'
+ok    corpus row agrees with the healthy gate (match): 'git worktree add -B fix/123-typo ../wt'
+ok    corpus row agrees with the healthy gate (match): 'git branch fix/123-typo'
+ok    corpus row agrees with the healthy gate (match): 'git -C repo branch fix/123-typo'
+ok    corpus row agrees with the healthy gate (match): 'git branch fix/123-typo main'
+ok    corpus row agrees with the healthy gate (unrelated): 'git status'
+ok    corpus row agrees with the healthy gate (unrelated): 'git branch -d x'
+ok    corpus row agrees with the healthy gate (unrelated): 'git branch -D old'
+ok    corpus row agrees with the healthy gate (unrelated): 'git branch'
+ok    corpus row agrees with the healthy gate (unrelated): 'git branch --list'
+ok    corpus row agrees with the healthy gate (unrelated): 'git branch --show-current'
+ok    corpus row agrees with the healthy gate (unrelated): 'git checkout main'
+ok    corpus row agrees with the healthy gate (unrelated): 'git checkout -- file.txt'
+ok    corpus row agrees with the healthy gate (unrelated): 'git checkout -b'
+ok    corpus row agrees with the healthy gate (unrelated): 'git switch main'
+ok    corpus row agrees with the healthy gate (unrelated): 'git worktree add ../wt main'
+ok    corpus row agrees with the healthy gate (unrelated): 'git worktree list'
+ok    corpus row agrees with the healthy gate (unrelated): 'git log --oneline'
+ok    corpus row agrees with the healthy gate (unrelated): 'echo git branch'
+ok    corpus row agrees with the healthy gate (unrelated): 'echo hi'
+ok    corpus row agrees with the healthy gate (unrelated): 'gh pr close 5'
+ok    FEAT-65: an unexpected resolver defect REFUSES a matching branch creation at exit 2, named
+ok    resolver defect: a matching command is refused, named: 'git checkout -b feat/FEAT-99-nope'
+ok    resolver defect: a matching command is refused, named: 'git checkout -B fix/123-typo'
+ok    resolver defect: a matching command is refused, named: 'git -C repo checkout -b feat/FEAT-99-nope'
+ok    resolver defect: a matching command is refused, named: 'cd repo && git checkout -b fix/123-typo'
+ok    resolver defect: a matching command is refused, named: 'git checkout --track -b fix/123-typo origin/main'
+ok    resolver defect: a matching command is refused, named: 'git checkout -b=fix/123-typo'
+ok    resolver defect: a matching command is refused, named: 'git switch -c fix/123-typo'
+ok    resolver defect: a matching command is refused, named: 'git switch --create fix/123-typo'
+ok    resolver defect: a matching command is refused, named: 'git -c core.x=y switch -C fix/123-typo'
+ok    resolver defect: a matching command is refused, named: 'git worktree add ../wt -b fix/123-typo'
+ok    resolver defect: a matching command is refused, named: 'git worktree add -B fix/123-typo ../wt'
+ok    resolver defect: a matching command is refused, named: 'git branch fix/123-typo'
+ok    resolver defect: a matching command is refused, named: 'git -C repo branch fix/123-typo'
+ok    resolver defect: a matching command is refused, named: 'git branch fix/123-typo main'
+ok    resolver defect: an unrelated command passes untouched: 'git status'
+ok    resolver defect: an unrelated command passes untouched: 'git branch -d x'
+ok    resolver defect: an unrelated command passes untouched: 'git branch -D old'
+ok    resolver defect: an unrelated command passes untouched: 'git branch'
+ok    resolver defect: an unrelated command passes untouched: 'git branch --list'
+ok    resolver defect: an unrelated command passes untouched: 'git branch --show-current'
+ok    resolver defect: an unrelated command passes untouched: 'git checkout main'
+ok    resolver defect: an unrelated command passes untouched: 'git checkout -- file.txt'
+ok    resolver defect: an unrelated command passes untouched: 'git checkout -b'
+ok    resolver defect: an unrelated command passes untouched: 'git switch main'
+ok    resolver defect: an unrelated command passes untouched: 'git worktree add ../wt main'
+ok    resolver defect: an unrelated command passes untouched: 'git worktree list'
+ok    resolver defect: an unrelated command passes untouched: 'git log --oneline'
+ok    resolver defect: an unrelated command passes untouched: 'echo git branch'
+ok    resolver defect: an unrelated command passes untouched: 'echo hi'
+ok    resolver defect: an unrelated command passes untouched: 'gh pr close 5'
+ok    no harness root: a matching branch creation is refused at exit 2, named
+ok    no harness root: an unrelated command exits 0 untouched
+ok    body failure: a matching branch creation is refused at exit 2, named
+ok    body failure: an unrelated command exits 0 untouched
+ok    #2107: a flow branch over a landed feature.json with github.parent "²" is DENIED by name, never exit 1
+ok    config fault (no harness.json): a matching branch creation is refused at exit 2, named
+ok    config fault (no harness.json): an unrelated command exits 0 untouched
+ok    config fault (not JSON): a matching branch creation is refused at exit 2, named
+ok    config fault (not JSON): an unrelated command exits 0 untouched
+ok    config fault (a top-level document that is not an object): a matching branch creation is refused at exit 2, named
+ok    config fault (a top-level document that is not an object): an unrelated command exits 0 untouched
+ok    config fault (duplicate keys): a matching branch creation is refused at exit 2, named
+ok    config fault (duplicate keys): an unrelated command exits 0 untouched
+ok    config fault (a github block that is a list): a matching branch creation is refused at exit 2, named
+ok    config fault (a github block that is a list): an unrelated command exits 0 untouched
+ok    config fault (a github block that is null): a matching branch creation is refused at exit 2, named
+ok    config fault (a github block that is null): an unrelated command exits 0 untouched
+ok    valid config, github.sync false: a matching branch creation exits 0 untouched
+ok    valid config, no github block: a matching branch creation exits 0 untouched
+ok    the gate's config read carries no broad catch
+
+91/91 cases passed.
+PASS test-branch-create-gate.py
+----- test-check-expertise.py (exit 0, 1.59s) -----
+ok    clean file passes
+ok    MISSING title is a violation
+ok    WRONG-NAME title is a violation — an agent must not be handed another's memory
+ok    wrong title WORDING is a violation
+ok    title not on line 1 is a violation
+ok    non-canonical section is a violation
+ok    over the 50-word cap is a violation
+ok    a feature token is a violation
+ok    entry without the XX-NN prefix is a violation
+ok    id prefix mismatched to its canonical section is a violation
+ok    Open reusing a prefix Patterns already owns is a violation
+ok    the SAME id repeated across two sections is a violation — the live O-01 bug
+ok    the same id repeated within one section is a violation
+ok    a numeric GAP between ids is not a violation — distillation displaces entries; contiguity is not enforced
+ok    no argument is a usage error (exit 2)
+
+15/15 cases passed.
+ok    case1: token-present craft file exits 0
+ok    case1: output contains ADVISORY
+ok    case1: output names DEC-042
+ok    case1: output still contains OK 
+ok    case1: token-removed file produces NO ADVISORY line
+ok    case2: token class DEC-\d+ produces an advisory naming 'DEC-042'
+ok    case2: token class INV-\d+ produces an advisory naming 'INV-007'
+ok    case2: token class FEAT-\d+ produces an advisory naming 'FEAT-12'
+ok    case2: token class \.harness/ produces an advisory naming '.harness/'
+ok    case2: token class \.claude/ produces an advisory naming '.claude/'
+ok    case2: token class check-[a-z-]*\.sh produces an advisory naming 'check-foo-bar.sh'
+ok    case2: token class factory_[a-z]*\.py produces an advisory naming 'factory_baz.py'
+ok    case2: token class gh-sync produces an advisory naming 'gh-sync'
+ok    case2: token class harness\.json produces an advisory naming 'harness.json'
+ok    case2: token class team-config produces an advisory naming 'team-config'
+ok    case3: token + real violation exits 1
+ok    case3: token + no violation exits 0
+ok    case4: repository-tier file with DEC-042 has no ADVISORY line
+ok    case5: 41-line repository-form file over budget, names 40
+ok    case5: 41-line craft-form file is NOT reported over budget
+ok    case5: 151-line craft-form file over budget, names 150
+ok    case7: a 140-line craft file (10 lines of headroom) gets an ADVISORY
+ok    case7: and it is NOT reported over budget
+ok    case7: a 130-line craft file (20 lines of headroom) gets NO advisory
+ok    case7: a file AT the exact 150-line budget still gets the ADVISORY
+ok    case7: and is NOT ALSO reported over budget (no double report)
+ok    case7: a file already OVER budget does not ALSO get the near-budget advisory (they are mutually exclusive ranges)
+ok    case7: a 37-line repository-tier file (3 lines of headroom) gets an ADVISORY naming the 40-line budget
+ok    case7: a 30-line repository-tier file gets NO advisory
+ok    case7: a craft file AT the exact threshold (135 lines) gets the ADVISORY
+ok    case7: a craft file ONE LINE BELOW the threshold (134 lines) gets NO advisory
+ok    case7: a repo-tier file AT the exact threshold (36 lines) gets the ADVISORY
+ok    case7: a repo-tier file ONE LINE BELOW the threshold (35 lines) gets NO advisory
+ok    case7: a genuinely CLEAN near-budget file (139 lines) still reports OK and exits 0, with the advisory visible
+ok    case6: bare-path invocation over the repository budget, names 40
+
+(extra) 35/35 cases passed.
+PASS test-check-expertise.py
+----- test-check-fixture-secrets.py (exit 0, 1.11s) -----
+ok    an sk-ant- key is caught — the exact shape that escaped before
+ok    an sk-proj- key (hyphenated, non-Anthropic) is also caught
+ok    a genuinely clean file passes, exit 0
+ok    regression: a github_pat token is still caught
+ok    regression: a ghp token is still caught
+ok    regression: an AWS access key id is still caught
+ok    regression: a PEM private key header is still caught
+ok    regression: a credential_pin literal is still caught
+ok    a baked-in /Users/<name>/ path is caught, independent of $(whoami)
+ok    a baked-in /home/<name>/ path is caught too
+ok    multiple files: all are checked, one dirty file still blocks
+ok    no files given exits 2 (usage), never 0
+ok    a missing file blocks rather than silently passing as clean
+ok    ordinary kebab-case text (task-/ask-/desk-/risk-...) is NOT a false positive after anchoring the sk- branch
+ok    positive-control-red: a broken secret pattern refuses to run at all (exit 2), rather than silently reporting every file clean
+ok    sk-ant-red: the original broken pattern silently passes the exact key that shipped invisibly before #981's fix
+
+16/16 cases passed.
+PASS test-check-fixture-secrets.py
+----- test-check-instruction-paths.py (exit 0, 0.89s) -----
+PASS - inline and fenced relative paths are both violations
+PASS - direct violations() equals the CLI: inline and fenced relative paths are both violations
+PASS - control-plane anchored paths are clean
+PASS - direct violations() equals the CLI: control-plane anchored paths are clean
+PASS - control-plane feature path is refused
+PASS - direct violations() equals the CLI: control-plane feature path is refused
+PASS - feature-tree control-plane path is refused
+PASS - direct violations() equals the CLI: feature-tree control-plane path is refused
+PASS - both feature path shapes are accepted
+PASS - direct violations() equals the CLI: both feature path shapes are accepted
+PASS - outside scope refuses
+PASS - FEAT-2225 (DEC-253): Expertise destinations take either anchor
+PASS - FEAT-2225: only a real expertise directory is a feature-tree write
+PASS - a landed feature read at the control plane is clean
+PASS - a landed feature read at the feature tree is refused
+PASS - a placeholder feature (FEAT-NN-slug) at the control plane is still refused
+PASS - a placeholder feature (<feat>) at the control plane is still refused
+PASS - a placeholder feature (<FEAT>) at the control plane is still refused
+PASS - empty scope refuses
+PASS - scope contains harness-verification-rules/SKILL.md
+PASS - scope contains harness-expertise/SKILL.md
+PASS - scope contains harness-handoff/SKILL.md
+PASS - scope contains harness-backend-dev.md
+PASS - scope contains harness/templates/PLAN.md
+PASS - product clone can read anchored systematic-debugging skill
+PASS test-check-instruction-paths.py
+----- test-check-domain.py (exit 0, 4.70s) -----
+ok    schema_version 1 preserves undeclared step key compatibility
+ok    schema_version 2 refuses an undeclared step key, names it and gives its route
+ok    schema_version 2 names a missing required step key
+ok    three identifier evidence keys are accepted
+ok    an evidence key containing a space is refused as an undeclared step key
+ok    a nested evidence mapping is refused as an undeclared step key
+ok    a declared step field with the wrong type is distinguished from an undeclared key
+ok    all 22 declared step keys are individually present and accepted
+ok    a duplicate key in schemas/run-state.json is refused as unreadable, never last-wins
+ok    a step schema without its properties keeps its natural KeyError at the catch boundary
+ok    a schema without steps keeps its natural KeyError at the catch boundary
+ok    schema_version floor accepts creation at version 2
+ok    schema_version floor refuses creation at version 1
+ok    schema_version floor refuses creation without the field
+ok    schema_version floor refuses string 2 and names the type
+ok    schema_version floor allows an existing version-1 update
+ok    schema_version floor refuses a version-2 checkpoint downgrade
+ok    a defect reading the payload passes through with exactly the hook_guard line
+ok    a defect in a governed rule is visibly unavailable, once
+ok    a defect in the feature-checkout rule is no longer absorbed: it is named on stderr
+ok    a defect in the claim rule is no longer classified locally: it is named on stderr
+ok    a --resolve defect passes through the same guard and answers no route
+ok    KeyboardInterrupt escapes the guard
+ok    a deliberate SystemExit keeps its own exit code
+ok    an unreadable payload passes through as one unavailable line
+ok    a tree without harness_boundary.py says unavailable once and still fails open
+ok    a normal governed pass emits no unavailable line
+ok    the main session's ungoverned pass emits no unavailable line
+ok    a deliberate denial is exit 2 with no unavailable line
+
+29/29 T-06 check-domain cases passed.
+coverage tokens: undeclared step key; schema_version floor
+ALL PASSED
+PASS test-check-domain.py
+----- test-check-domain-grant.py (exit 0, 12.89s) -----
+ok    a scratch script in /tmp
+ok    /var/folders temp dir (macOS mktemp)
+ok    an absolute path in another checkout
+ok    documentor writing the moved harness docs
+ok    documentor writing its own expertise
+ok    a shared path in the harness base is now REFUSED (product-shaped target)
+ok    documentor may not write source
+ok    documentor may not write another agent's expertise
+ok    documentor may not write bin/
+ok    a repo path reached via .. still blocks
+ok    a repo path reached via a long .. chain still blocks
+ok    the pre-move docs path is REFUSED after the migration
+
+12/12 cases passed.
+
+ok    SC-05 pair: permitted allowed AND forbidden blocked, one manifest
+ok    a MALFORMED manifest blocks the write (fail closed, not half-enforced)
+ok    a DUPLICATE key in the manifest blocks the write
+ok    an ABSENT manifest still fails OPEN, loudly (DEC-101 carve-out intact)
+ok    F-01: a manifest that is not valid UTF-8 BLOCKS (was exit 1 = fail open)
+ok    M-02: a manifest that parses to a non-mapping (empty) BLOCKS, not crashes
+ok    M-02: a manifest that parses to a non-mapping (bare scalar) BLOCKS, not crashes
+ok    M-02: a manifest that parses to a non-mapping (bare list) BLOCKS, not crashes
+ok    F-01: a manifest that is a DIRECTORY does not crash the guard
+ok    a newly created, well-formed version-2 state.yaml with checkpoint keys passes
+ok    a DUPLICATE top-level key is blocked with the DEC-156 message
+ok    a NESTED duplicate key is blocked (column-0 regex could not see it)
+ok    MALFORMED state.yaml is blocked with a parse-error message
+ok    a non-checkpoint top-level key is still blocked (DEC-154 vocabulary intact)
+ok    a YAML-truthy key (`on:`) beside a string key denies cleanly, naming the unquoted cause
+ok    SC-08: with PyYAML missing, the FIRST hook invocation PERMITS the write
+ok    [partial SC-08] the install command reaches stderr (NOT proof the user sees it — D-14b)
+ok    SC-08: the install command reaches a channel the user SEES (systemMessage)
+ok    SC-08: ...and records the marker
+ok    SC-08: a SECOND write in the SAME session is permitted, silently
+ok    SC-09 mechanism: a DIFFERENT session is BLOCKED while PyYAML is missing
+ok    D-14a: the block SAYS WHY and carries the install command
+ok    the marker self-unlinks once PyYAML imports again
+ok    grant: a malformed state.yaml is ALLOWED (no fallback — BRIEF Goal :20-21)
+ok    grant: a well-formed state.yaml is allowed too (the grant is not selective)
+ok    with a parser, the shape gate still BLOCKS the same content
+ok    FEAT-2397 identity: a payload session_id -> exit 0 with PyYAML missing
+ok    FEAT-2397 identity: a payload transcript_path stem -> exit 0 with PyYAML missing
+ok    FEAT-2397 identity: CLAUDE_CODE_SESSION_ID alone -> exit 2 with PyYAML missing
+ok    FEAT-2397 identity: CLAUDE_CODE_BRIDGE_SESSION_ID alone -> exit 2 with PyYAML missing
+
+30/30 T-12 cases passed.
+--- FEAT-15 T-01..T-04 + symlink escape: fleet, bases, mirror, resolve ---
+ok    (a)+(b) PAIR: with no fleet the owned write passes; with a broken fleet the SAME write is refused
+ok    (a) with no fleet, a scratch path outside the root still gets no verdict
+ok    (c) a fleet that parses but omits workspace_root refuses the owned write
+ok    (d) PAIR: a well-formed fleet leaves both verdicts unchanged
+ok    (e) the lazy factory_config import leaks nothing to stderr on a passing write
+ok    (f) PAIR: in a product checkout, src/** grants the owner and refuses a persona without it
+ok    (g) PAIR: src/** refuses <root>/src/main.py and permits <workspace>/widget/src/main.py
+ok    (h) PAIR: a .harness/** grant permits it in root and refuses it in a product checkout
+ok    (i) a path under workspace_root for an undeclared repo is refused, naming the fleet
+ok    (j) a scratch path outside both bases still gets no verdict
+ok    A PAIR: a product-shaped glob is REFUSED in the harness root and PERMITTED in the product checkout
+ok    B PAIR: a control-plane glob is PERMITTED in the harness root and REFUSED in the product checkout
+ok    C harness base: explicit Harness entries resolve, including AGENTS.md, .agents/** and .omp/**
+ok    C harness base: .harness/*/docs/** was NOT widened to docs/** — the same persona permitted .harness/harness/docs/guide.md is REFUSED docs/guide.md
+ok    C product base: product README.md, docs/ and .github/ remain writable, while Harness grants to .agents/ and .omp/ stay checkout-local
+ok    T-04 resolve PAIR: a product path names the src/** owner, the SAME path in the harness root resolves to NOBODY
+ok    T-04 resolve: a path under workspace_root for an undeclared repo resolves to NOBODY, never silence
+ok    T-04 resolve, LIVE tree: .harness/harness/docs/SPEC.md names harness-documentor — the named entries hold target-side
+ok    SYMLINK PAIR: a link out of a granted directory is REFUSED at its real target, and the ordinary granted write still PASSES
+ok    SYMLINK: the refusal names the REAL target, not the link path — an agent told it may not write the docs path would file a bug against the wrong file
+
+20/20 fleet cases passed.
+
+ok    (a) --resolve: a singly-granted path returns exactly one agent
+ok    (b) --resolve: a doubly-granted path returns both grantees
+ok    (c) --resolve: an ungranted path prints the literal NOBODY
+ok    (d) --resolve: the ungranted call exits 0 and stdout is not empty
+ok    (e) --resolve: an open pipe on stdin still answers within 10s
+ok    (f) --resolve: closed stdin is byte-identical to an open pipe
+ok    (g) no --resolve: an out-of-domain Write still exits 2
+ok    (h) no --resolve: an in-domain Write still exits 0
+ok    (i) VF-1: HARNESS_RESOLVE_PATH set in the env does NOT disable the hook
+ok    (j) VF-1: an EMPTY HARNESS_RESOLVE_PATH does NOT disable the hook
+
+10/10 --resolve cases passed.
+
+ok    schema/a legal ten-key document is ALLOWED
+ok    schema/an illegal document is DENIED and the offending key is NAMED
+ok    schema/the copied unbroken hook DENIES the illegal document
+ok    schema/a CRASHING schema module DENIES the write rather than letting it through
+ok    schema/the live feature_schema.py was never written (bytes and mtime unchanged)
+ok    Write to the observations log is BLOCKED — only observations-merge.py may write it
+ok    a path that merely mentions 'observations', outside observations/, still writes
+ok    creating plan.yaml beside a shipped PLAN.md is BLOCKED (DEC-182: never converted)
+ok    a FRESH feature's first plan.yaml write is not the legacy-conversion denial (only plan.yaml's own single-writer route denial fires)
+ok    a first write into a malformed feature dir name is BLOCKED
+ok    a first write into a well-formed feature dir name writes
+ok    an EXISTING malformed-name feature dir is grandfathered — only the first write is checked
+
+7/7 shadow-check cases passed.
+ok    feature-id regex parity: check-domain._FEATURE_ID_RE == dispatch-guard.FEATURE_RE
+ok    [authored] QA writes its own unit receipt
+ok    [authored] QA writes its own integration receipt
+ok    [authored] QA may not write the run's state.yaml
+ok    [authored] QA may not write the lead's digest.md
+ok    [authored] QA may not write a run log beside its receipt
+ok    [authored] QA may not write a sibling run's state.yaml
+ok    [authored] QA may not write a manifest outside qa/
+ok    [authored] QA may not write a manifest nested below qa/
+ok    [authored] an unrelated reader may not write QA's receipt
+ok    [authored] a dev may not write QA's receipt
+ok    [template] QA writes its own receipt (template layout)
+ok    [template] QA may not write the run's state.yaml (template layout)
+ok    [template] QA may not write the lead's digest.md (template layout)
+ok    [template] QA may not write a run log (template layout)
+ok    [template] an unrelated reader may not write QA's receipt (template layout)
+ok    [authored] the resolver routes a receipt to harness-qa
+ok    [authored] the resolver does not route run state to harness-qa
+ok    [authored] the resolver does not route a run log to harness-qa
+ok    [authored] a claimed QA writes the receipt in its own feature worktree
+ok    [authored] a claimed QA may not write another feature's receipt in that feature's worktree
+ok    [authored] a claimed QA may not write its feature's receipt in the main checkout
+
+21/21 FEAT-2337 receipt-grant cases passed.
+PASS test-check-domain-grant.py
+----- test-check-skill-weight.py (exit 0, 0.61s) -----
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.504s
+
+OK
+    10  a
+    10  universal: u
+    10  total across 1 agents
+  note       universal preload is 10 words (budget 1): u 10
+  note       a preloads 10 words (budget 1): u 10, ghost 0
+  VIOLATION  a: autoloadSkills names `ghost` but .claude/skills/ghost/SKILL.md does not exist
+   150  a
+   100  b
+   100  universal: u
+   250  total across 2 agents
+  note       universal preload is 100 words (budget 99): u 100
+  note       a preloads 150 words (budget 120): u 100, x 50
+PASS test-check-skill-weight.py
+----- test-check-domain-worktree.py (exit 0, 6.87s) -----
+ok    a write INTO an out-of-place worktree is REFUSED, and the verdict names where worktrees belong
+ok    the same session's in-domain write still PASSES
+ok    a session ROOTED in an out-of-place worktree is REFUSED its own in-domain write
+ok    the ROOT-SIDE verdict names .claude/worktrees and does NOT say `git worktree remove`
+ok    a session rooted in a LEGITIMATE worktree is unaffected
+ok    SC-07: the legitimate worktree is writable FROM OUTSIDE it, through DEC-143's prefix stripping
+ok    a scratch path outside any worktree still PASSES
+ok    F-A: a .git pointer that is not valid UTF-8 REFUSES the write (it must not read as not-a-worktree)
+ok    F-A: a .git pointer that is a bare word, no gitdir: REFUSES the write (it must not read as not-a-worktree)
+ok    F-A: a .git pointer that is a gitdir: that is not a worktrees entry REFUSES the write (it must not read as not-a-worktree)
+ok    F-A: a .git pointer that is an empty file REFUSES the write (it must not read as not-a-worktree)
+ok    F-A: with the pointer restored, the in-domain write still PASSES
+ok    a MISSING harness_boundary.py blocks the write and NAMES the module
+ok    with the module absent AND no manifest, DEC-101 still fails OPEN, loudly
+ok    #556 control: from a clean cwd the out-of-domain write is REFUSED
+ok    #556: a harness_boundary.py in the CWD does not become the gate's resolver
+
+16/16 worktree-boundary cases passed.
+
+ok    baseline: the main checkout refuses an over-budget STATE.md with the SHAPE reason naming DEC-150
+ok    SC-09: at ONE level the shape refusal still names DEC-150 (it did at eeabc59 and must not regress)
+ok    at TWO levels the write route refuses on SHAPE, naming DEC-150 — asserted on the WORDING, because the domain refusal also exits 2
+ok    the sweep reaches a file inside a TWO-LEVEL registered worktree (invisible at eeabc59, and invisible SILENTLY)
+ok    ...and the finding names the WORKTREE it came from, not the stripped path
+ok    D-09's ACCEPTED COST, asserted: a directory under the segment with NO pointer pair is not swept
+ok    SC-02b accept: a governed write inside <segment>/<repo>/<id> exits 0
+ok    SC-02b refuse: a linked worktree OUTSIDE the layout is refused, and the message NAMES where worktrees belong
+
+8/8 deep-layout shape cases passed.
+
+ok    sweep/clean-tracked A: worktree creation reports nothing
+ok    sweep/clean-tracked B: a modified file is still caught, exit 2
+ok    sweep/clean-tracked C: an untracked file is still caught
+      red proof: original reported 0 FEAT-OLD line(s), mutant 2
+ok    sweep/clean-tracked RED: removing the skip makes case A red
+ok    [bug895] wrong-checkout: worktree session writing into main is refused
+ok    [bug895] wrong-checkout NEGATIVE CONTROL: same session, own checkout, still allowed
+ok    [bug895] wrong-checkout NEGATIVE CONTROL: an unrelated scratch path is untouched
+ok    [bug895] wrong-checkout-red
+
+4/4 bug895 wrong-checkout cases passed.
+ok    [feat61] matching path in the wrong checkout is refused in the route's own words
+ok    [feat61] matching path inside its own worktree is allowed
+ok    [feat61] matching path with no linked worktree is allowed
+ok    [feat61] a non-feature path is never bound, even beside a linked worktree
+ok    [feat61] two prefix-matching worktrees refuse and name both candidates
+ok    [feat61] an unexpected core failure passes through hook_guard, named, and the allowance stands
+
+6/6 FEAT-61 T-03 adapter cases passed.
+ok    [b2] blank Scope: in a handoff note — absolute claimed path, cwd repo root
+ok    [b2] blank Scope: in a handoff note — relative claimed path, cwd repo root
+ok    [b2] blank Scope: in a handoff note — absolute claimed path, cwd outside
+ok    [b2] blank Scope: in a handoff note — relative claimed path, cwd outside
+ok    [b2] ungranted agent writing harness docs — absolute claimed path, cwd repo root
+ok    [b2] ungranted agent writing harness docs — relative claimed path, cwd repo root
+ok    [b2] ungranted agent writing harness docs — absolute claimed path, cwd outside
+ok    [b2] ungranted agent writing harness docs — relative claimed path, cwd outside
+ok    [b2] granted agent writing harness docs — absolute claimed path, cwd repo root
+ok    [b2] granted agent writing harness docs — relative claimed path, cwd repo root
+ok    [b2] granted agent writing harness docs — absolute claimed path, cwd outside
+ok    [b2] granted agent writing harness docs — relative claimed path, cwd outside
+
+12/12 b2 cwd-independence cases passed.
+PASS test-check-domain-worktree.py
+----- test-check-domain-worktree-parity.py (exit 0, 8.38s) -----
+ok    the fixture worktree is a REAL linked worktree, parsed and legitimate
+ok    the roster walk finds exactly 16 agents carrying a name and a list domain
+ok    tests/unit grants harness-backend-dev
+ok    tests/integration grants harness-backend-dev
+ok    tests/unit grants harness-dev-ops
+ok    tests/integration grants harness-dev-ops
+ok    tests/unit grants harness-qa
+ok    tests/integration grants harness-qa
+ok    tests/unit denies harness-frontend-dev
+ok    tests/unit denies harness-ai-dev
+ok    tests/unit denies harness-data-engineer
+ok    harness-qa cannot write governed bin shell
+ok    tests/unit grants are identical in a linked worktree
+ok    harness-ai-dev: in-worktree grant equals root grant, and names harness-ai-dev
+ok    harness-backend-dev: in-worktree grant equals root grant, and names harness-backend-dev
+ok    harness-code-reviewer: in-worktree grant equals root grant, and names harness-code-reviewer
+ok    harness-data-engineer: in-worktree grant equals root grant, and names harness-data-engineer
+ok    harness-dev-ops: in-worktree grant equals root grant, and names harness-dev-ops
+ok    harness-documentor: in-worktree grant equals root grant, and names harness-documentor
+ok    harness-eng-lead: in-worktree grant equals root grant, and names harness-eng-lead
+ok    harness-frontend-dev: in-worktree grant equals root grant, and names harness-frontend-dev
+ok    harness-orchestrator: in-worktree grant equals root grant, and names harness-orchestrator
+ok    harness-pm: in-worktree grant equals root grant, and names harness-pm
+ok    harness-product-lead: in-worktree grant equals root grant, and names harness-product-lead
+ok    harness-qa: in-worktree grant equals root grant, and names harness-qa
+ok    harness-security-reviewer: in-worktree grant equals root grant, and names harness-security-reviewer
+ok    harness-ui-reviewer: in-worktree grant equals root grant, and names harness-ui-reviewer
+ok    harness-validator-lead: in-worktree grant equals root grant, and names harness-validator-lead
+ok    harness-visual-designer: in-worktree grant equals root grant, and names harness-visual-designer
+ok    SC-02c harness-ai-dev: DEEP-layout grant equals root grant, and names harness-ai-dev
+ok    SC-02c harness-backend-dev: DEEP-layout grant equals root grant, and names harness-backend-dev
+ok    SC-02c harness-code-reviewer: DEEP-layout grant equals root grant, and names harness-code-reviewer
+ok    SC-02c harness-data-engineer: DEEP-layout grant equals root grant, and names harness-data-engineer
+ok    SC-02c harness-dev-ops: DEEP-layout grant equals root grant, and names harness-dev-ops
+ok    SC-02c harness-documentor: DEEP-layout grant equals root grant, and names harness-documentor
+ok    SC-02c harness-eng-lead: DEEP-layout grant equals root grant, and names harness-eng-lead
+ok    SC-02c harness-frontend-dev: DEEP-layout grant equals root grant, and names harness-frontend-dev
+ok    SC-02c harness-orchestrator: DEEP-layout grant equals root grant, and names harness-orchestrator
+ok    SC-02c harness-pm: DEEP-layout grant equals root grant, and names harness-pm
+ok    SC-02c harness-product-lead: DEEP-layout grant equals root grant, and names harness-product-lead
+ok    SC-02c harness-qa: DEEP-layout grant equals root grant, and names harness-qa
+ok    SC-02c harness-security-reviewer: DEEP-layout grant equals root grant, and names harness-security-reviewer
+ok    SC-02c harness-ui-reviewer: DEEP-layout grant equals root grant, and names harness-ui-reviewer
+ok    SC-02c harness-validator-lead: DEEP-layout grant equals root grant, and names harness-validator-lead
+ok    SC-02c harness-visual-designer: DEEP-layout grant equals root grant, and names harness-visual-designer
+ok    the depth is not load-bearing: <segment>/a/b/c/<id> resolves like the root
+ok    WORKTREE_REL_RE no longer exists on harness_boundary
+ok    linked_worktrees returns [] for a checkout with no worktrees
+ok    linked_worktrees returns exactly the two registered checkouts, as realpaths
+
+49/49 worktree grant-parity cases passed.
+
+PASS test-check-domain-worktree-parity.py
+----- test-check-domain-post.py (exit 0, 13.15s) -----
+--- #132: shape coverage on all four write routes ---
+ok    route 2 — post Edit on an over-budget file exits 2
+ok    route 2 — the PRE hook reports NO shape finding on that same Edit
+ok    route 3 — post Bash sweeps and finds the over-budget file
+ok    route 4 — the MAIN SESSION is no longer exempt from the shape gate
+ok    feature.json at 301 lines IS over the 300 budget
+ok    feature.json at 300 lines is NOT over the 300 budget
+ok    the SWEEP reaches and enforces handoff cap (DEC-159)
+ok    the SWEEP reaches and enforces handoff missing sections
+ok    the SWEEP reaches and enforces state.yaml checkpoint keys (DEC-154)
+ok    the SWEEP reaches and enforces STATE.md sections (SPEC 2)
+ok    the sweep reaches a file inside .claude/worktrees/ (and was silent before it)
+ok    a reported file is NOT re-reported on the next sweep
+ok    CLAUDE.md at 81 lines IS over the 80 budget, on Write AND Edit
+ok    CLAUDE.md at 80 lines is NOT over the 80 budget, on Write AND Edit
+ok    the SWEEP reaches CLAUDE.md (route 3)
+ok    post Edit on a worktree file names the WORKTREE it came from
+ok    post Edit (state file) on a worktree file names the WORKTREE it came from
+ok    pre Write on a worktree file names the WORKTREE it came from
+ok    the sweep still names the worktree it came from
+ok    a WITHIN-budget file exits 0 on post Edit
+ok    a WITHIN-budget file exits 0 on post Bash
+ok    post mode does NOT re-run the domain check
+ok    the PRE hook still blocks that same ungranted path
+ok    the sweep skips an over-budget file older than SWEEP_WINDOW_S
+ok    the same file, freshly touched, IS found
+ok    a write made during the sweep remains visible to the next sweep
+ok    an unreadable candidate leaves the mark unadvanced (no permanent blind spot)
+ok    a sweep finding names the file it is about
+ok    a post payload with NO agent_type still gets the shape gate
+ok    hook_event_name alone selects post mode (no --post flag)
+
+30/30 post-mode cases passed.
+
+--- #2026: the Bash sweep is scoped to the run's own feature ---
+ok    a governed sweep does not report a sibling feature's worktree
+ok    the unnamed sweep still reports it, its mark untouched by the governed one
+ok    a governed sweep reports its own feature's worktree
+      red proof: original denials 1, mutant 0 (exit 2 vs 0)
+ok    SC-07 write path: a Write whose runs entry omits agent exits 2
+ok    SC-07 write path: the denial names the key 'agent'
+ok    SC-07 write path: the denial names the offending index
+ok    SC-07 write path: the same Write CARRYING agent is permitted
+ok    SC-07 write path RED: the agent rule is load-bearing at the hook
+ok    handoff Done when missing 
+ok    handoff Done when valid 
+ok    handoff zero Scope 
+ok    handoff two Scope 
+ok    handoff blank Scope 
+ok    handoff Scope after Authority 
+ok    handoff zero Authority 
+ok    handoff five Authority 
+ok    handoff stray prose 
+ok    handoff nested heading cannot truncate 
+ok    handoff duplicate heading cannot truncate 
+ok    handoff plan resolves 
+ok    handoff plan unresolved 
+ok    handoff brief resolves 
+ok    handoff brief unresolved 
+ok    handoff finding resolves 
+ok    handoff finding unresolved 
+ok    handoff approval resolves 
+ok    handoff approval unresolved 
+ok    handoff unknown authority docs:whatever 
+ok    handoff unknown authority check-domain.py:1523 
+ok    handoff approval rejects invalid ATX bad-nospace.md 
+ok    handoff approval rejects invalid ATX bad-seven.md 
+ok    handoff unsafe authority 'finding:/tmp/review.md#F-02' 
+ok    handoff unsafe authority 'finding:../review.md#F-02' 
+ok    handoff unsafe authority 'finding:.harness/harness/features/FEAT-90-fixture/notes/\x00review.md#F-02' 
+ok    handoff unsafe authority 'approval:/tmp/review.md#Approval' 
+ok    handoff unsafe authority 'approval:../review.md#Approval' 
+ok    handoff finding symlink escape 
+ok    handoff approval symlink escape 
+ok    handoff finding special target 
+ok    handoff approval special target 
+ok    handoff valid reconstructable PRE-Edit remains allowed 
+ok    handoff pre-Edit blocks invalid candidate 
+ok    handoff blocked pre-Edit leaves file unchanged 
+ok    handoff pre-Edit unreadable existing file fails closed 
+ok    handoff validator exception fails closed 
+ok    handoff edit without Done when 
+ok    handoff edit with Done when 
+ok    handoff 60-line boundary 
+ok    handoff 61-line boundary 
+ok    handoff no per-section cap 
+ok    handoff canonical build accepted 
+ok    handoff canonical validate accepted 
+ok    handoff canonical plan accepted 
+ok    handoff build-c1 Write refused 
+ok    handoff build-c1 Write refused names notes/handoff-build.md exactly 
+ok    handoff build-c1 Edit refused 
+ok    handoff build-c1 Edit refused names notes/handoff-build.md exactly 
+ok    handoff build-c1 refused Edit leaves file unchanged 
+ok    handoff validate-c12 Write refused 
+ok    handoff validate-c12 Write refused names notes/handoff-validate.md exactly 
+ok    handoff validate-c12 Edit refused 
+ok    handoff validate-c12 Edit refused names notes/handoff-validate.md exactly 
+ok    handoff validate-c12 refused Edit leaves file unchanged 
+ok    handoff plan-c305 Write refused 
+ok    handoff plan-c305 Write refused names notes/handoff-plan.md exactly 
+ok    handoff plan-c305 Edit refused 
+ok    handoff plan-c305 Edit refused names notes/handoff-plan.md exactly 
+ok    handoff plan-c305 refused Edit leaves file unchanged 
+ok    handoff Build-c1 Write refused 
+ok    handoff Build-c1 Write refused names notes/handoff-build.md exactly 
+ok    handoff Build-c1 Edit refused 
+ok    handoff Build-c1 Edit refused names notes/handoff-build.md exactly 
+ok    handoff Build-c1 refused Edit leaves file unchanged 
+ok    handoff build-C1 Write refused 
+ok    handoff build-C1 Write refused names notes/handoff-build.md exactly 
+ok    handoff build-C1 Edit refused 
+ok    handoff build-C1 Edit refused names notes/handoff-build.md exactly 
+ok    handoff build-C1 refused Edit leaves file unchanged 
+ok    handoff VALIDATE-C12 Write refused 
+ok    handoff VALIDATE-C12 Write refused names notes/handoff-validate.md exactly 
+ok    handoff VALIDATE-C12 Edit refused 
+ok    handoff VALIDATE-C12 Edit refused names notes/handoff-validate.md exactly 
+ok    handoff VALIDATE-C12 refused Edit leaves file unchanged 
+ok    handoff worktree-only main root has no feature dir 
+ok    handoff worktree-only feature dir resolves 
+ok    handoff worktree-only unresolvable pointer refused 
+ok    handoff worktree-only brief-sc pointer refused 
+PASS test-check-domain-post.py
+----- test-check-omp-port.py (exit 0, 4.37s) -----
+ok    FEAT-64: an unrelated RuntimeError in the config reader escapes check-omp-port (traceback, not 'cannot read')
+ok    Agent Skills path links to the authored skills tree
+ok    live .omp/config.yml pins task.perCallModel to the string off
+ok    a task.perCallModel absent pin fails the off assertion
+ok    a task.perCallModel on pin fails the off assertion
+ok    a task.perCallModel eval pin fails the off assertion
+ok    live provider-neutral tree passes
+ok    missing AGENTS.md fails
+ok    missing guidance is named
+ok    concrete model in canonical agent fails
+ok    provider coupling is named
+ok    thinking-level disagreeing with alias fails
+ok    both values are named
+ok    missing explicit async enablement fails
+ok    async liveness contract is named
+ok    task wall clock limit fails
+ok    wall-clock contract is named
+ok    task.structured absent fails
+ok    task.structured boolean false fails
+ok    task.structured string 'true' fails
+ok    task.structured integer 1 fails
+ok    task.structured boolean true passes
+ok    missing OMP child lifecycle wiring fails
+ok    lifecycle wiring gap is named
+ok    wrong-bus mutant still carries the marker string
+ok    a lifecycle handler registered on pi.on fails
+ok    the wrong-bus gap is named
+ok    missing plan-sign-gate.py wiring fails
+ok    sign-gate wiring gap is named
+ok    nonblocking nested Harness agent fails
+ok    nested supervision contract is named
+ok    missing command door fails
+ok    missing door is named
+ok    absent canonical command root fails
+ok    absent canonical root names all four doors
+
+35/35 cases passed
+PASS test-check-omp-port.py
+----- test-check-state-entry.py (exit 0, 5.70s) -----
+ok - case (a): INV-21 note appears when parent is unrecorded
+ok - case (b): no INV-21 note when parent is recorded
+ok - case (c): no INV-21 note when github.sync is false
+ok - case (e): issue #11 — a commented squad:/id: line still yields the run, so INV-6 fires
+ok - case (f): an unparseable feature.json is reported and exits 1 (got exit 1)
+ok - case (k) no cost: block: no cost violation
+ok - case (k) with a cost: block: no cost violation
+ok - case (o): check-domain.py, check-state.py and HANDOFF.md agree on every duplicated budget, key and heading
+ok - case (s) INV-24: a listed repository passes
+ok - case (s) INV-24: an UNLISTED repository is a violation naming the repo
+ok - case (s) INV-24: two features recording one repo+issue names BOTH
+ok - case (s) INV-24: one feature's PARENT equal to another's issue names BOTH
+ok - case (s) INV-24: two features sharing one PARENT names BOTH
+ok - case (s) INV-24: a block with NO parent key is silent
+ok - case (s) INV-24: factory state with NO fleet file names the FLEET as the problem
+ok - case (s) INV-24: a null factory.repo is a violation, not a silent pass (C1)
+ok - case (s) INV-24: a null issue number is named, not treated as a collision (C1)
+ok - case (s) INV-24: a feature whose own parent equals its own task issue fires, and names BOTH sides (C2)
+ok - case (s) INV-24: a quoted issue number is a number here, as it is for INV-21 (D-03)
+ok - case (s) INV-24: a quoted number still collides across features (D-03 does not weaken the check)
+ok - case (s) INV-24: an issues block that is neither a mapping nor a list is reported, not skipped
+ok - case (s) INV-24: a tree with no factory blocks at all is silent
+ok - case (t): a plain file named `runs` does not crash INV-18 (empty stdout means the checker crashed)
+ok - no-root refusal replays the resolver traceback
+ok - exit code unchanged by INV-21 (a: 1, b: 1)
+PASS test-check-state-entry.py
+----- test-check-state-handoff.py (exit 0, 9.33s) -----
+ok - case (g.1): INV-17 RAISES on Review with handoff-build.md absent, and names it
+ok - case (g.2): INV-17 RAISES for FEAT-0190-fixture at Review with no notes: no id is exempt
+ok - case (g.3): INV-17 RAISES for FEAT-0290-fixture at Review with no notes: no id is exempt
+ok - case (g.4): INV-17 owes nothing at Done: a shipped feature is not checked
+ok - case (g.5): INV-17 raises nothing at Plan with no notes at all
+ok - case (g.6): all-main-session-direct at Review raises NO handoff violation AND reports the exemption by name
+ok - case (g.7): a plan with NO execution_mode keys still RAISES and reports no exemption
+ok - case (g.8): an empty tasks: list and an absent tasks: key BOTH raise, never vacuously exempt
+ok - case (t14-d): a non-seam stem missing a heading is reported by name (1 line(s))
+ok - case (t14-e): a non-seam stem over the cap is reported (78 lines, 1 line(s))
+ok - case (t14-f): a malformed seam-stem note is reported EXACTLY once, not twice (count 1)
+ok - case (t14-g): a plan-exempt feature still has its EXISTING note shape-checked (1 shape) while missing notes stay suppressed (0 missing) and the exemption is reported (1 reported)
+ok - case (t14-h): three well-formed notes, two seam stems and one non-seam, raise ZERO shape lines (0)
+ok - case (t14-red): the pass is load-bearing — original reports 1, mutant reports 0
+ok - case (t10-a): a handoff with a body under every heading raises no shape line (0)
+ok - case (t10-b): the Next section emptied is reported as an empty section, not a missing one (1 line(s))
+ok - case (t10-c1): the Trust section emptied is reported as an empty section, not a missing one (1 line(s))
+ok - case (t10-c2): the Dead ends section emptied is reported as an empty section, not a missing one (1 line(s))
+ok - case (t10-c3): the Working set section emptied is reported as an empty section, not a missing one (1 line(s))
+ok - case (t10-red): the empty-body check is load-bearing — original 1, mutant 0
+ok - FEAT-54 missing section reports
+ok - FEAT-54 resolving block passes
+ok - FEAT-54 absent targets do not rot
+ok - FEAT-54 shape remains enforced
+ok - FEAT-54 grammar remains enforced
+ok - FEAT-54 blank Scope remains enforced
+ok - FEAT-54 Scope ordering remains enforced
+ok - FEAT-54 unsafe target grammar remains enforced
+ok - FEAT-54 unsafe approval grammar remains enforced
+ok - FEAT-54 nested heading cannot truncate validation
+ok - FEAT-54 duplicate heading cannot truncate validation
+ok - FEAT-54 no harness.json names a feature-folder path (0 found)
+ok - FEAT-54 clean corpus is not mutated
+ok - FEAT-54 no per-section cap
+ok - FEAT-54 state caller-mode mutation (real=0, mutant=1)
+PASS test-check-state-handoff.py
+----- test-check-state-inv51.py (exit 0, 0.33s) -----
+ok   abandoned feature with runs/ is one INV-51 VIOLATION naming the feature
+ok   the finding names the run ids it would prune
+ok   abandoned feature without runs/ is silent
+ok   a live feature with runs/ is silent
+all checks passed
+PASS test-check-state-inv51.py
+----- test-board-lifecycle.py (exit 0, 25.23s) -----
+PASS  complete board: exits 0
+PASS  complete board: performs ZERO mutations (not merely exit 0)
+PASS  complete board: reports nothing to do
+PASS  complete board: a second consecutive run also performs zero mutations
+PASS  missing options: exits 0 and calls updateProjectV2Field exactly once
+PASS  missing options: sends existing options first, in existing order, then the additions, and never touches createProjectV2Field
+PASS  SC-08: no argv the fake receives contains the string 'Abandoned'
+PASS  field absent: exits 0 and calls createProjectV2Field exactly once
+PASS  field absent: sends all six declared options in declared order
+PASS  field absent (disaster guard i): factory_gh.project_create was NOT called
+PASS  field wrong type (disaster guard ii): exits 2
+PASS  field wrong type (disaster guard ii): names the field and its actual data type
+PASS  field wrong type (disaster guard ii): ZERO mutations of any kind reached the fake
+PASS  no project: exits 3
+PASS  no project: creates the project and links the repository
+PASS  no project: reports the new project number
+PASS  SC-01: no project: createProjectV2Field is called exactly ONCE in the SAME run -- the field never waits for a second run
+PASS  SC-01: no project: the field is created ON THE NEWLY CREATED project (projectId=PVT_NEW, the id createProjectV2 returned) and is named Status
+PASS  SC-01: no project: all six declared station names go over the wire BYTE FOR BYTE, in declared order, in the singleSelectOptions literal
+PASS  no project: still exits 3 AFTER the field creation -- the operator must record the new number, and 3 is that signal (its meaning is unchanged)
+PASS  no project: updateProjectV2Field is STILL never called -- extend must never run on a board whose field was just created with all six options
+PASS  no project: reports the field it created on stdout
+PASS  c4: the probe on the field-absent create branch is sent for the CREATED number (42), never the DECLARED 9
+PASS  SC-01: field-create failure after a successful create+link exits 4, never 2 or 3
+PASS  SC-01: the field-create failure names the CREATED project's number on stderr -- a retry that cannot see it would create a second board
+PASS  SC-01: the field-create failure names the field it failed to create
+PASS  SC-01: create and link really did happen before the field failure
+PASS  SC-01: the field-create was actually attempted (the failure is a real call's, not a gap in the branch)
+PASS  c3: fresh board whose Status field ALREADY EXISTS as single-select: still exits 3 -- the operator must record the new number, and 3 is that signal
+PASS  c3: fresh board with a pre-existing Status: updateProjectV2Field is called EXACTLY once
+PASS  c3: fresh board with a pre-existing Status: createProjectV2Field is NEVER called -- that is the call the real API rejected with 'Name has already been taken'
+PASS  c3: the option list sent over the wire is EXACTLY the six declared, in declared order, BYTE FOR BYTE -- nothing appended, nothing preserved from GitHub's default
+PASS  c3: the exact replace targets the DEFAULT field's id, the one _field_probe read off the just-created project
+PASS  c3: GitHub's undeclared defaults are GONE from the payload -- Todo and In Progress appear in NO argv the fake received
+PASS  c3: stdout names the options it REMOVED, so the operator sees Todo and In Progress went
+PASS  c4: the fresh-board probe is sent for the CREATED project number (42), never the DECLARED 9 -- the declared number is the one that did not resolve
+PASS  c4: the fresh-board options read is sent for the CREATED number (42) too -- reading the declared board's options would compute the removal set off the WRONG project
+PASS  c3: an extend failure on a just-created board exits 4, never 2 or 3
+PASS  c3: the extend failure names the CREATED project's number on stderr -- a retry that cannot see it would create a second board
+PASS  c3: the extend failure names the field it could not set
+PASS  c3: the extend really was attempted (the failure is a real call's, not a gap)
+PASS  c3: a fresh board whose field is not single-select exits 4 (a project WAS created), never 2
+PASS  c3: that refusal names the created number and the type it found
+PASS  c3: it converts nothing -- no field mutation of any kind reached the fake
+PASS  c4: a NON-GhError (ArtifactAccessError from strict GitHub parsing) in the field work after a successful create+link exits 4, NEVER 2 -- 2 would claim nothing was written
+PASS  c4: the field failure names the invalid GitHub body as a gh failure (FEAT-64: run_gh's own GhError, no longer an UNEXPECTED ArtifactAccessError)
+PASS  c4: it still tells the operator to record the number now
+PASS  c4: create and link really did land before the unexpected failure
+PASS  c4: a NON-GhError in the LINK call after a successful create exits 4, never 2 -- the same hole lived in that block too
+PASS  c4: the link failure names the created number and the invalid GitHub body (FEAT-64: a gh failure, not 'unexpected')
+PASS  c4: no field work was attempted after the link failed
+PASS  c3 regression: an EXISTING board with an undeclared column still exits 0 and extends exactly once
+PASS  c3 regression: the payload is BYTE FOR BYTE existing + missing -- the undeclared Icebox survives, in its existing position
+PASS  c3 regression: the payload is NEVER the bare declared six -- that is the column-deletion disaster, and no existing-board path may reach it
+PASS  c3 regression: Icebox is still in the argv the fake received -- the operator's column was not deleted
+PASS  MUST-FIX 2: create-then-link failure exits 4, never 2 (this module's own 'nothing mutated' code) or 3 (the clean-success race code) -- this run DID create a real project
+PASS  MUST-FIX 2: the created project's number reaches stdout BEFORE the link failure -- a retry must be able to see it and record it rather than create a duplicate
+PASS  MUST-FIX 2: createProjectV2( was actually called -- the project really was created, so 'nothing mutated' would be false
+PASS  MUST-FIX 2: the stderr failure names the created project's number and the repo it failed to link
+PASS  linkage guard (MUST-FIX 1): refuses exit 2 when the resolved project is not linked to the served repo
+PASS  linkage guard: performs ZERO mutations -- the confused-deputy write never reaches the fake
+PASS  linkage guard: the refusal names the project (owner and number), the repo, and why
+PASS  null board: exits 0 silently, no gh call at all
+PASS  unknown --repo: exits 2, naming the repo, with no gh call at all
+PASS  audit clean board: exits 0
+PASS  audit clean board: reports zero findings
+PASS  audit clean board: no finding-class marker on stdout
+PASS  audit DECLARATION: exits 1
+PASS  audit DECLARATION: names the missing key and value on stdout
+PASS  audit STATION: exits 1
+PASS  audit STATION: names the issue, its actual and expected station
+PASS  audit STATION (#2151): an abandoned card at Backlog is not a finding
+PASS  audit STATION (#2151): a not_planned close without the abandoned label is still one
+PASS  audit REASON: exits 1
+PASS  audit REASON: names the issue
+PASS  audit LABEL: exits 1
+PASS  audit LABEL: names the issue
+PASS  audit LABEL (#2151): a not_planned issue no feature records is NOT a finding
+PASS  audit LABEL: a not_planned issue carrying the abandoned label is NOT a finding
+PASS  audit LABEL (#2151): a padded recorded number still yields the finding
+PASS  audit LABEL: a non-list source_issues is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: a false-valued non-list source_issues is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: a non-mapping github block is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: a non-mapping issues block is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: an isdigit source number int() rejects is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  audit LABEL: an unparseable feature.json is a report-only residual naming the record, not a finding on #33, and reconcile adds no label
+PASS  LABEL ownership: a record bound to acme/other does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, undeclared in the fleet does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, served config sync off does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, served config unavailable does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, served config naming acme/other does not own acme/widget#17 (no finding, no write)
+PASS  LABEL ownership: a record bound to acme/widget, declared and validly configured owns acme/widget#17 (finding and one label write)
+PASS  reconcile (#2151): an unparseable record survives as a STATUS residual, no crash
+PASS  audit WORKFLOW (renamed/absent): exits 1
+PASS  audit WORKFLOW (renamed/absent): reports 'Pull request merged' MISSING
+PASS  audit WORKFLOW: the header names detection-by-name, once, on every run
+PASS  audit WORKFLOW (disabled): exits 1
+PASS  audit WORKFLOW (disabled): reports 'Auto-close issue' disabled
+PASS  audit WORKFLOW (disabled): says no API can enable it, only the web UI can
+PASS  audit STATUS (FEAT-32 shape): exits 1
+PASS  audit STATUS (FEAT-32 shape): names the feature dir, recorded station, column, and actual lowercase board station
+PASS  audit STATUS: Done remains ship-only and is outside active reconciliation
+PASS  audit STATUS: backlog is a column but outside active reconciliation, no STATUS finding
+PASS  audit STATUS: a matching status and card is NOT a finding
+PASS  audit STATUS: exemption 1 -- Abandoned is exempt, no STATUS finding
+PASS  audit STATUS: rejected is terminal and has no board-column finding
+PASS  audit STATUS: exemption 2 -- no recorded parent is exempt, no STATUS finding
+PASS  factory intake claims cannot exempt a provenanced owner mirror from station grading
+PASS  audit does not compare an active owner feature against a different repository's cards
+PASS  audit grades a bound feature's provenanced mirrors on its product board, not its claims
+PASS  unproven bound receipts require human recovery and cannot authorize automatic station writes
+PASS  audit GhError: exits 4, never 0 or 1
+PASS  audit GhError: prints nothing that looks like a finding or a clean report
+PASS  audit GhError: the failure is on stderr, one line
+PASS  BUG-1699 reconcile dry-run: source, parent, and live task mismatches are previewed
+PASS  BUG-1699 reconcile dry-run: duplicate source/parent cards yield one finding each
+PASS  BUG-1699 reconcile dry-run: an abandoned task card is exempt
+PASS  BUG-1699 reconcile dry-run: one bounded board snapshot feeds every card comparison
+PASS  BUG-1699 reconcile dry-run: previews but performs zero mutations
+PASS  BUG-1699 reconcile apply: writes every unique source, parent, and live task card
+PASS  BUG-1699 reconcile apply: never writes an abandoned task card
+PASS  BUG-1699 reconcile apply: one bounded board snapshot covers the invocation
+PASS  BUG-1699 reconcile apply: an immediate second run is idempotent
+PASS  BUG-1699 reconcile partial failure: later cards are still attempted
+PASS  BUG-1699 reconcile partial failure: only the failed card remains fixable
+PASS  BUG-1699 reconcile partial failure: one bounded board snapshot covers the invocation
+PASS  reconcile GhError: exits 4, never 0 or 1
+PASS  reconcile --dry-run: exits 0 even with fixable findings present
+PASS  reconcile --dry-run: performs ZERO mutations (not merely exit 0)
+PASS  reconcile --dry-run: previews every fixable finding as a would-fix line
+PASS  reconcile --dry-run: never writes feature.json
+PASS  reconcile --apply (one of each): exits 0 once every fixable finding is resolved
+PASS  reconcile --apply (one of each): STATION -- set_station moves issue #10 to Done
+PASS  reconcile --apply (one of each): STATUS -- set_station moves the PARENT #40 to Building, never the issue's own number
+PASS  reconcile --apply (one of each): REASON -- PATCHes issue #20 to state_reason=completed (it carries no abandoned label)
+PASS  reconcile --apply (one of each): LABEL -- creates the abandoned label with b60205 directly, then adds it to issue #30
+PASS  reconcile --apply (one of each): STATUS never rewrites feature.json -- the card moves, the recorded status does not
+PASS  reconcile --apply (one of each): the residual report says zero fixable findings remain
+PASS  reconcile (partial failure): the run continues past issue #50's failed write to issue #51 -- #51's item lookup was actually sent
+PASS  reconcile (partial failure): issue #50's failure is reported on stderr
+PASS  reconcile (partial failure): #50 survives as a residual STATION finding, #51 does not
+PASS  reconcile (partial failure): exits 1 -- a bulk fix that stops at the first error must never report a zero exit with the board half migrated
+PASS  reconcile LABEL (nonzero create): no label is attached after the failed create
+PASS  reconcile LABEL (nonzero create): the later card is still attempted -- two failures reported
+PASS  reconcile LABEL (nonzero create): both findings survive, exit 1
+PASS  reconcile LABEL (launch failure create): no label is attached after the failed create
+PASS  reconcile LABEL (launch failure create): the later card is still attempted -- two failures reported
+PASS  reconcile LABEL (launch failure create): both findings survive, exit 1
+PASS  reconcile LABEL (existing label, exit 1): accepted -- both cards get the label, exit 0
+PASS  reconcile LABEL: the create keeps colour b60205 and its description, never --force
+PASS  reconcile (unfixable residuals): DECLARATION and WORKFLOW both survive on stdout
+PASS  reconcile (unfixable residuals): exits 0 anyway -- neither class is ever attempted or counted
+PASS  reconcile (unfixable residuals): performs zero mutations -- neither class is a write this tool can make
+PASS  reconcile (Done exemption): emits no automatic STATUS repair
+PASS  reconcile (Done exemption): never calls set_station for Done feature cards
+PASS  reconcile #783: cross-repo dry-run exits 0 with zero fixable findings previewed -- STATUS never fires for a repo that is not this checkout's own
+PASS  reconcile #783: never previews a write against issue #960
+PASS  reconcile #783: performs zero mutations -- dry-run never writes regardless
+PASS  reconcile (clean board): exits 0
+PASS  reconcile (clean board): performs ZERO mutations
+PASS  reconcile (clean board): re-running it again also exits 0 with zero mutations
+PASS  reconcile (clean board, second run): idempotent -- exits 0, zero mutations
+PASS  retitle (has milestone): exits 0
+PASS  retitle (has milestone): the summary line reports it renamed
+PASS  retitle (has milestone): exactly one rename call reaches the fake, for issue 101, carrying the new title verbatim in its argv
+PASS  retitle (no milestone): exits 0 -- a per-ticket refusal never fails the whole run
+PASS  retitle (no milestone): the refusal names issue #202 (SC-18)
+PASS  retitle (no milestone): NO rename call is issued for it
+PASS  MUST-FIX 3: ticket #401's rename was attempted and failed, but the run continues -- ticket #402 is still renamed rather than the run stopping at #401
+PASS  MUST-FIX 3: ticket #401's failure is reported on stderr, per-ticket
+PASS  MUST-FIX 3: exits 1 -- a partial failure must be signalled honestly, never exit 2's caller/declaration meaning and never a silent exit 0
+PASS  MUST-FIX 3: the summary reports both the renamed and the failed count
+PASS  retitle (already correct): exits 0
+PASS  retitle (already correct): NOT reported as refused or renamed
+PASS  retitle (already correct): the summary counts it already correct
+PASS  retitle (already correct): NO rename call is issued for it
+PASS  retitle (truncated enumeration): exits 2
+PASS  retitle (truncated enumeration): names the returned count and the limit
+PASS  retitle (truncated enumeration): NO rename call is issued -- the refusal is before any write is attempted
+PASS  retitle (--dry-run default): exits 0
+PASS  retitle (--dry-run default): previews the pending rename on stdout
+PASS  retitle (--dry-run default): performs ZERO write calls -- not merely exit 0
+PASS  retitle unknown --repo: exits 2, naming the repo, with no gh call at all
+PASS  audit_findings: returns the same STATION finding cmd_audit prints
+PASS  audit_findings: returns a LIST, not an exit code -- the caller decides what to do
+PASS  audit_findings: prints NOTHING -- no workflow header
+PASS  audit_findings: prints NOTHING -- no finding line of its own, and no count line
+PASS  audit_findings: writes nothing to stderr either
+PASS  audit_findings: cmd_audit's own output is UNCHANGED by the move -- it still prints the workflow header before its findings
+PASS  audit_findings: a failed read raises GhError -- it never calls sys.exit
+PASS  audit_findings: no board declared returns an EMPTY LIST, not an error
+PASS  audit_findings: no board declared prints nothing -- cmd_audit keeps that line
+PASS  audit_findings: cmd_audit STILL prints its own no-board line
+PASS  T-07 audit STATUS: a feature with NO feature.json status still yields a finding from its plan.yaml station -- the class does not go vacuous
+PASS  T-07 audit STATUS: both harness-side values are lowercase, and the GitHub column name is not -- the boundary is where the capitals belong (D-08)
+PASS  T-07 NEGATIVE CONTROL: plan station agreeing with the board is NOT a STATUS finding
+
+all checks passed.
+PASS test-board-lifecycle.py
+----- test-check-state-corpus.py (exit 0, 12.00s) -----
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 11.930s
+
+OK
+PASS test-check-state-corpus.py
+----- test-check-state-inv37-offline.py (exit 0, 6.27s) -----
+ok - (i.1) offline: a fleet-listed bound feature with an opened receipt for factory.repo is clean and reads nothing remote
+ok - (i.2) offline, owner sync off: a recovered-terminal bound receipt is clean
+ok - (i.3) offline: a missing receipt is the receipt finding, not a binding finding
+ok - (i.4) offline: github.repo naming the owner is graded against factory.repo
+ok - (i.5) offline: an active bound mirror without github.repo stays unproven
+ok - (i.6) offline: malformed, non-string, empty and unlisted factory.repo stay invalid authoritative bindings with no remote read
+ok - (i.7) online: full remote verification runs and a matching config is clean
+ok - (i.8) online: an unreadable remote product config is still an invalid binding
+ok - (i.9) offline: owner features keep their receipt results beside a clean bound one
+ok - (i.10) offline: legacy owner provenance and an unbound sync-off feature stay clean beside a valid bound one
+ok - (i.11) offline: a bound feature with no plan is not graded
+ok - (i.12) offline: a non-mapping factory is an invalid binding, never an owner fallback, with no remote read and no traceback
+PASS test-check-state-inv37-offline.py
+----- test-check-state-inv26.py (exit 0, 12.04s) -----
+ok - (v.1) a mis-columned card is a VIOLATION naming feature, task, plan status and column found
+ok - (v.2) the corrected twin reports NOTHING
+ok - (v.3) a feature whose status is Done is exempt even with every card wrong
+ok - (v.4) tasks in flight with an EMPTY issues map are ineligible for INV-26
+ok - (v.5) a recorded issue absent from the board is CANNOT VERIFY, not a clean pass
+ok - (v.6) the parent card disagreeing with feature phase is a violation
+ok - (v.6b) a source card outside the active phase is a violation
+ok - (v.7) a gh binary that does not exist records NO INV-26 finding
+ok - (v.8) a mis-columned done card is reported even when the plan derives NO parent station
+ok - (v.9) the corrected twin of v.8 reports NOTHING
+ok - (v.10) an all-ready plan still reports cards outside Building
+ok - (v.11) a factory-published feature with no GitHub mirror is ineligible for INV-26
+ok - (v.12) an empty factory map does not make a no-mirror feature eligible for INV-26
+ok - an unusable board declaration is the config violation, with no config-dependent invariant continuing
+ok - (v.14) an explicit null board records NOTHING — not a violation, and no traceback
+ok - (v.T22a) at status Review, a done task's card reading Review is ACCEPTED
+ok - (v.T22b) at status Review, a done task's card reading Building is ACCEPTED
+ok - (v.T22c) THE BOUND: at status Building, a done task's card reading Review is still a VIOLATION
+ok - (v.T22d) the widening does NOT reach Backlog: a done task's card there is a VIOLATION even at status Review
+ok - (v.T04-ready) active Ready cards are CLEAN
+ok - (v.T04-ready-neg) a card outside the Ready phase is a VIOLATION
+ok - (v.T04-building) a building task whose card reads Building is CLEAN
+ok - (v.T04-building-neg) a building task whose card reads Ready is a VIOLATION naming building
+ok - (v.T04-plan) active Plan cards are CLEAN
+ok - (v.T04-plan-neg) a card outside the Plan phase is a VIOLATION
+ok - (v.T06-pending) a leftover pending task IS reported by INV-26, naming the value — the fail-open skip is gone (D-11)
+ok - (v.T06-pending-neg) the same fixture at a LEGAL station reports nothing
+ok - (v.T06-unplaced) a recorded sub-issue project declines to place is a VIOLATION naming the station, not a silent skip
+ok - (w.1) an Abandoned feature's unapproved BRIEF raises NOTHING
+ok - (w.2) the same fixture at status Plan IS reported
+ok - (x.1) a bound feature's cards are read from its own repository; the owner repository is never asked for them
+ok - (x.2) a misplaced bound card is a VIOLATION naming the feature, task and column found on the bound board
+ok - (x.3) with owner sync off, a bound feature is still checked on its own board
+ok - (x.4) mixed owner and bound features: each repository is asked only for its own numbers and each feature is judged on its own board
+ok - (x.5) a failed board read is CANNOT VERIFY naming the feature and the error, and the other feature is still compared
+ok - (x.6) an unresolvable binding is CANNOT VERIFY for that feature alone, never an owner-board fallback
+PASS test-check-state-inv26.py
+----- test-bash-write-guard.py (exit 0, 29.49s) -----
+ok    mandated commit trailer (angle brackets in a quoted string)
+ok    an arrow inside a quoted string
+ok    an HTML comment inside a quoted string
+ok    a heredoc delimiter is not a redirect target
+ok    input redirection is a READ, not a write
+ok    a quoted string mentioning a redirect
+ok    stderr redirection is not the cp destination
+ok    stderr redirection is not an rm target
+ok    a redirect after cp still blocks, glued
+ok    a redirect after cp still blocks, spaced
+ok    an out-of-domain cp destination still blocks
+ok    rm -f does not hide its target
+ok    rm -r -f does not hide its target
+ok    rm -rf still blocks, unchanged
+ok    sed -i -f still names the target, not the script
+ok    awk -i inplace -f still names the target
+ok    rm -f in-domain passes
+ok    sed -i -f in-domain passes
+ok    plain read commands pass
+ok    a comparison operator inside a python heredoc body
+ok    a redirect-shaped line inside a CAT heredoc body is inert text
+ok    an unquoted heredoc tag is still a heredoc
+ok    rm in-domain followed by another command
+ok    mv within domain followed by another command
+ok    in-domain redirect followed by a read command
+ok    a heredoc fed to bash still blocks its redirect
+ok    a heredoc fed to sh still blocks its redirect
+ok    a redirect on the heredoc command line still blocks
+ok    an out-of-domain redirect in the SECOND segment still blocks
+ok    an out-of-domain rm in the second segment still blocks
+ok    an out-of-domain write after && still blocks
+ok    a cat heredoc PIPED to bash still blocks its redirect
+ok    a heredoc piped to sh -s still blocks its redirect
+ok    an unbalanced quote does not crash the hook
+ok    reviewer cannot write through python open
+ok    python open write to an out-of-domain path
+ok    python open keyword target and mode still block
+ok    python open write to an in-domain path
+ok    python open without a write mode remains a read
+ok    python heredoc open write cannot bypass extraction
+ok    output redirect to an out-of-domain path
+ok    append redirect to an out-of-domain path
+ok    QUOTED redirect target still blocks
+ok    sed -i in place
+ok    perl -pi in place
+ok    tee to an out-of-domain path
+ok    rm of an out-of-domain path
+ok    mv onto an out-of-domain path
+
+48/48 cases passed.
+
+ok    SC-06 pair: permitted bash write allowed AND forbidden blocked
+ok    a MALFORMED manifest blocks the bash write (fail closed)
+ok    a DUPLICATE key in the manifest blocks the bash write
+ok    an ABSENT manifest still fails OPEN (DEC-151 carve-out intact)
+ok    both write surfaces agree on .harness/allowed/x.txt (D-03, one shared rule)
+ok    both write surfaces agree on src/main.py (D-03, one shared rule)
+ok    both write surfaces agree on forbidden/x.txt (D-03, one shared rule)
+
+7/7 T-14 cases passed.
+ok    a shell write INTO an out-of-place worktree is REFUSED
+ok    the same session's in-domain shell write still PASSES
+ok    a session ROOTED in an out-of-place worktree is refused its own in-domain shell write
+ok    the ROOT-SIDE bash verdict names .claude/worktrees and does NOT say `git worktree remove`
+ok    a read-only command from an out-of-place root is ALSO refused (the check is not behind the no-findings exit)
+ok    a session rooted in a LEGITIMATE worktree is unaffected
+ok    SC-07: the legitimate worktree is writable FROM OUTSIDE it on the Bash route (granted independently by BOTH the carve-out and the stripping)
+ok    F-A: a .git pointer that is not valid UTF-8 REFUSES the shell write
+ok    F-A: a .git pointer that is a bare word, no gitdir: REFUSES the shell write
+ok    F-A: a .git pointer that is an empty file REFUSES the shell write
+ok    F-A: with the pointer restored, the in-domain shell write still PASSES
+ok    a MISSING harness_boundary.py blocks the bash write and NAMES the module
+ok    one-implementation baseline: both routes ALLOW the legitimate worktree write
+ok    the mutation targeted the constant BY NAME (not the bare literal)
+ok    ONE IMPLEMENTATION: mutating WORKTREES_SEGMENT flips BOTH routes 0 -> 2
+ok    worktree creation — an absolute destination outside .claude/worktrees
+ok    worktree creation — a value-taking flag cannot hide the destination
+ok    worktree creation — a value-taking flag whose VALUE is a legal path still cannot hide it
+ok    worktree creation — a RELATIVE destination is refused — it cannot be resolved
+ok    worktree creation — a .. traversal out of .claude/worktrees
+ok    worktree creation — `git worktree move` out of .claude/worktrees
+ok    worktree creation — a destination INSIDE .claude/worktrees
+ok    worktree creation — the same, with a flag that consumes nothing
+ok    worktree creation — ordinary git: status
+ok    worktree creation — ordinary git: worktree list
+ok    worktree creation — ordinary git: commit
+ok    worktree creation — the relative refusal NAMES relativity as the reason
+ok    #556 control: from a clean cwd the out-of-domain shell write is REFUSED
+ok    #556: a harness_boundary.py in the CWD does not become the guard's resolver
+
+29/29 worktree-boundary cases passed.
+
+ok    a granted path inside <segment>/<repo>/<id> is ALLOWED on the Bash route
+ok    DEC-153 pinned: an UNGRANTED path at the same depth is ALSO allowed — the carve-out is blanket and depth-agnostic
+ok    an out-of-place linked worktree is REFUSED on the Bash route, and the message names where worktrees belong
+
+3/3 deep-layout Bash-route cases passed.
+
+ok    1. SC-03 refuse: a governed agent checking out the default branch
+ok    2. SC-03 refuse: harness-ORCHESTRATOR too — D-04 forbids exempting it, so this is asserted rather than assumed
+ok    3a. SC-03 refuse: switching to the previous branch
+ok    3b. SC-03 refuse: a hard reset one commit back
+ok    3c. SC-03 refuse: a rebase onto the default branch
+ok    3d. SC-03 refuse: a checkout carrying a leading -C directory option
+ok    4a. SC-03 allow: restoring one file via a pathspec checkout
+ok    4b. SC-03 allow: status moves nothing
+ok    4c. SC-03 allow: staging one file
+ok    4d. SC-03 allow: a reset naming one pathspec, no mode flag
+ok    4e. SC-03 allow: `git show` NAMES a commit without moving to it — T-01's and T-02's verify blocks depend on this
+ok    5. the main session is NOT governed: the same checkout with no agent_type exits 0
+ok    6. the UNDECIDABLE case: a git call whose subcommand cannot be determined is refused, and says so
+ok    7a. SC-07 Bash route refuse: a FORCED `git worktree remove` names the CLI
+ok    7b. SC-07 Bash route refuse: a FORCED `git worktree prune` names the CLI
+ok    8. SC-07 the PAIRED direction: the same removal WITHOUT --force is not refused here — git decides and refuses a dirty tree itself
+ok    9a. the existing destination refusal is unchanged: an add OUTSIDE the segment still exits 2
+ok    9b. ...and an add INSIDE the segment still exits 0
+ok    10. RULING R-01: harness-DEV-OPS is refused a branch checkout — this FAILS against any build that places the rule after the dev-ops early return
+ok    11. ...and the WRITE exemption is INTACT: dev-ops still writes a path it is not granted, exit 0. Without this half, case 10 is satisfied by deleting the exemption and removing DEC-151's recovery path.
+
+20/20 HEAD-move and forced-removal cases passed.
+
+ok    bash-feature-checkout-main
+ok    bash-feature-checkout-inside
+ok    bash-feature-checkout-absent
+ok    bash-feature-checkout-short
+ok    bash-feature-checkout-shared
+ok    bash-feature-checkout-red
+
+6/6 FEAT-50 Bash binding cases passed.
+ok    [feat61] matching path in the wrong checkout is refused in deny()'s words
+ok    [feat61] matching path inside its own worktree is allowed
+ok    [feat61] matching path with no linked worktree is allowed
+ok    [feat61] a non-feature path is never bound, even beside a linked worktree
+ok    [feat61] two prefix-matching worktrees refuse and name both candidates
+ok    [feat61] an unexpected core failure passes through hook_guard, named, and the allowance stands
+
+6/6 FEAT-61 T-03 adapter cases passed.
+ok    [feat65] a defect in the claim rule is no longer classified locally: it is named on stderr
+ok    [feat65] a defect reading the payload passes through with exactly the hook_guard line
+ok    [feat65] KeyboardInterrupt escapes the guard
+ok    [feat65] a deliberate SystemExit keeps its own exit code
+
+4/4 FEAT-65 guard cases passed.
+ok    [f2274] an unreadable payload passes through as exactly one unavailable line
+ok    [f2274] a tree without harness_boundary.py passes through as exactly one unavailable line
+ok    [f2274] a normal in-domain pass exits 0 with no unavailable line
+ok    [f2274] the main session exits 0 with no unavailable line
+ok    [f2274] a non-harness agent exits 0 with no unavailable line
+ok    [f2274] the dev-ops write exemption exits 0 with no unavailable line
+ok    [f2274] a reviewer's write denial exits 2 with no unavailable line
+ok    [f2274] an out-of-domain denial exits 2 with no unavailable line
+
+8/8 FEAT-2274 unavailable cases passed.
+ok    bug895 Bash route: worktree session writing into main is refused
+ok    bug895 Bash route NEGATIVE CONTROL: same session, own checkout, still allowed
+
+2/2 bug895 Bash-route cases passed.
+ok    bug1106 Bash route: a write to a run's digest.md is REFUSED
+ok    bug1106 Bash route: a write to a run's state.yaml is REFUSED
+ok    bug1106 Bash route NEGATIVE CONTROL: an unrelated file in the same run directory is still ALLOWED — this is not a blanket run-dir Bash ban
+ok    bug1305 Bash route: overwriting the write-once identity witness is refused
+ok    bug1305 Bash route: removing the write-once identity witness is refused
+ok    bug1106 Bash route: `tee` onto a run's digest.md is ALSO refused (a path rule, not a redirect-only one)
+ok    bug1106 Bash route: a write to digest.md INSIDE A LINKED WORKTREE is ALSO refused — the guard is checkout-agnostic, not inert behind DEC-153
+ok    bug1106 Bash route NEGATIVE CONTROL: an unrelated file inside the same worktree run directory is still ALLOWED
+
+8/8 bug1106 Bash-route cases passed.
+PASS  [bug1304] relative main write is refused
+PASS  [bug1304] relative main is allowed by the frozen pre-change guard
+PASS  [bug1304] in-place sed write is refused
+PASS  [bug1304] in-place sed is allowed by the frozen pre-change guard
+PASS  [bug1304] absolute main write is refused
+PASS  [bug1304] absolute main is allowed by the frozen pre-change guard
+PASS  [bug1304] sibling write is refused
+PASS  [bug1304] sibling is allowed by the frozen pre-change guard
+PASS  [bug1304] relative held-worktree redirect remains allowed
+PASS  [bug1304] absolute held-worktree redirect remains allowed
+PASS  [bug1304] unbound main redirect remains allowed
+PASS  [bug1304] scratch redirect remains allowed
+PASS  [bug1304] unresolved owner-root claim remains unbound
+PASS  [bug1304] owner-root matching claim refuses main redirect
+PASS  [bug1304] owner-root matching claim is allowed by the frozen pre-change guard
+PASS  [bug1304] two claims allow redirect inside either held worktree
+PASS  [bug1304] malformed worktree pointer refuses with nonempty claim set
+PASS  [bug1304] malformed checkout is allowed by the frozen pre-change guard
+PASS  [bug1304] exact runtime lineage allows its own Bash worktree
+PASS  [bug1304] exact runtime lineage refuses a same-persona sibling Bash worktree
+PASS  [bug1304] second runtime lineage retains its Bash worktree
+PASS  [bug1304] ambiguous claim refuses and names candidates
+PASS  [bug1304] ambiguous claim is allowed by the frozen pre-change guard
+PASS  [bug1304] short-form claim refuses main redirect
+PASS  [bug1304] short-form is allowed by the frozen pre-change guard
+PASS  [bug1304] direct expertise merge CLI is refused in favour of expertise_apply
+PASS  [bug1304] direct expertise redirect is refused with sanctioned advice
+PASS  [bug1304] expertise refusal does not advise writing in worktree
+PASS  [bug1304] expertise refusal never suggests the unavailable Write route
+PASS  [bug1304] expertise redirect is allowed by the frozen pre-change guard
+PASS  [bug1304] run digest guard remains ahead of claim rule
+PASS  [bug1304] run state guard remains ahead of claim rule
+PASS  [bug1304] missing manifest fail-open remains unchanged
+PASS  [bug1304] temporary path remains not-a-domain-question
+PASS  [bug1304] ten-day-old claim with a live supervisor still refuses
+PASS  [bug1304] aged claim is allowed by the frozen pre-change guard
+PASS  [bug1304] fresh claim whose supervisor has exited no longer binds
+PASS  [bug1304] unreadable registry refuses and names file
+PASS  [bug1304] unreadable registry is allowed by the frozen pre-change guard
+PASS  [bug1304] readable empty registry remains allowed
+PASS  [bug1304] readable member allows despite unrelated unreadable registry
+PASS  [bug1304] outside partial set refuses unreadable registry
+PASS  [bug1304] partial unreadable is allowed by the frozen pre-change guard
+PASS  [bug1304] repository-bound child can repeat Bash in its own product
+PASS  [bug1304] repository-bound Bash child cannot cross products
+PASS  [bug1304] Bash repository binding includes immediate parent
+PASS  [bug1304] a node_modules-shaped path into product-a exits 0
+PASS  [bug1304] a node_modules-shaped path into product-b exits 2
+PASS  [bug1304] a .claude/worktrees-shaped path into product-a exits 0
+PASS  [bug1304] a .claude/worktrees-shaped path into product-b exits 2
+PASS  [bug1304] removing control-plane segment product-a exits 0
+PASS  [bug1304] removing control-plane segment product-b exits 2
+PASS  [bug1304] removing control-plane segment product-a* exits 0
+PASS  [bug1304] removing control-plane segment product-* exits 2
+PASS  [bug1304] removing control-plane segment PRODUCT-B exits 2
+PASS  [bug1304] removing control-plane segment [!P]roduct-b exits 2
+PASS  [bug1304] removing control-plane segment [^P]roduct-b exits 2
+PASS  [bug1304] removing control-plane segment [[:lower:]]roduct-b exits 2
+PASS  [bug1304] removing control-plane segment {product-b,none} exits 2
+PASS  [bug1304] removing control-plane segment @(product-b) exits 2
+PASS  [bug1304] removing control-plane segment (product-b) exits 2
+PASS  [bug1304] writing .harness/product-a through a carve-out exits 0
+PASS  [bug1304] writing .HARNESS/product-a through a carve-out exits 0
+PASS  [bug1304] writing .HARNESS/product-b through a carve-out exits 2
+PASS  [bug1304] writing .harnes?/product-b through a carve-out exits 2
+PASS  [bug1304] writing .h*/product-b through a carve-out exits 2
+PASS  [bug1304] writing $D/product-b through a carve-out exits 2
+PASS  [bug1304] writing {.harness,x}/product-b through a carve-out exits 2
+PASS  [bug1304] writing $D/notes.md through a carve-out exits 0
+PASS  [bug1304] writing docs/product-b through a carve-out exits 0
+PASS  [bug1304] same-role Bash siblings retain their own product claims
+PASS  [bug1304] Bash product write without claim fails closed
+PASS  [bug1304] released Bash repository claim fails closed
+PASS  [bug1304] stale Bash repository claim fails closed
+PASS  [bug1304] ambiguous Bash repository claim fails closed
+PASS  [bug1304] reused Bash runtime identity fails as collision
+PASS  [bug1304] unreadable Bash repository registry fails closed
+PASS  [bug1304] Bash repository refusal does not expose registry paths or claim ids
+ok    feat2225 harness-eng-lead: refused direct executable: member-ops
+ok    feat2225 harness-eng-lead: refused .agents symlink spelling: apply
+ok    feat2225 harness-eng-lead: refused python3 prefix: ops
+ok    feat2225 harness-eng-lead: refused python3 flags, absolute path: replay
+ok    feat2225 harness-eng-lead: refused env python3 prefix: member-ops
+ok    feat2225 harness-eng-lead: refused /usr/bin/env with an assignment: apply
+ok    feat2225 harness-eng-lead: refused bash -c nested: apply
+ok    feat2225 harness-eng-lead: refused sh -c nested: replay
+ok    feat2225 harness-eng-lead: refused compound after cd: member-ops
+ok    feat2225 harness-eng-lead: refused stdin heredoc: member-ops
+ok    feat2225 harness-eng-lead: refused merge-gate merge-distill
+ok    feat2225 harness-eng-lead: refused bash -c nested merge-distill
+ok    feat2225 harness-eng-lead: read allowed: replay --check
+ok    feat2225 harness-eng-lead: read allowed: verify-receipt
+ok    feat2225 harness-eng-lead: read allowed: subcommand --help
+ok    feat2225 harness-eng-lead: read allowed: top-level --help
+ok    feat2225 harness-eng-lead: read allowed: nested replay --check
+ok    feat2225 harness-eng-lead: read allowed: reading the CLI source
+ok    feat2225 harness-eng-lead: read allowed: the command quoted as text
+ok    feat2225 harness-code-reviewer: refused direct executable: member-ops
+ok    feat2225 harness-code-reviewer: refused .agents symlink spelling: apply
+ok    feat2225 harness-code-reviewer: refused python3 prefix: ops
+ok    feat2225 harness-code-reviewer: refused python3 flags, absolute path: replay
+ok    feat2225 harness-code-reviewer: refused env python3 prefix: member-ops
+ok    feat2225 harness-code-reviewer: refused /usr/bin/env with an assignment: apply
+ok    feat2225 harness-code-reviewer: refused bash -c nested: apply
+ok    feat2225 harness-code-reviewer: refused sh -c nested: replay
+ok    feat2225 harness-code-reviewer: refused compound after cd: member-ops
+ok    feat2225 harness-code-reviewer: refused stdin heredoc: member-ops
+ok    feat2225 harness-code-reviewer: refused merge-gate merge-distill
+ok    feat2225 harness-code-reviewer: refused bash -c nested merge-distill
+ok    feat2225 harness-code-reviewer: read allowed: replay --check
+ok    feat2225 harness-code-reviewer: read allowed: verify-receipt
+ok    feat2225 harness-code-reviewer: read allowed: subcommand --help
+ok    feat2225 harness-code-reviewer: read allowed: top-level --help
+ok    feat2225 harness-code-reviewer: read allowed: nested replay --check
+ok    feat2225 harness-code-reviewer: read allowed: reading the CLI source
+ok    feat2225 harness-code-reviewer: read allowed: the command quoted as text
+ok    feat2225 harness-dev-ops: refused direct executable: member-ops
+ok    feat2225 harness-dev-ops: refused .agents symlink spelling: apply
+ok    feat2225 harness-dev-ops: refused python3 prefix: ops
+ok    feat2225 harness-dev-ops: refused python3 flags, absolute path: replay
+ok    feat2225 harness-dev-ops: refused env python3 prefix: member-ops
+ok    feat2225 harness-dev-ops: refused /usr/bin/env with an assignment: apply
+ok    feat2225 harness-dev-ops: refused bash -c nested: apply
+ok    feat2225 harness-dev-ops: refused sh -c nested: replay
+ok    feat2225 harness-dev-ops: refused compound after cd: member-ops
+ok    feat2225 harness-dev-ops: refused stdin heredoc: member-ops
+ok    feat2225 harness-dev-ops: refused merge-gate merge-distill
+ok    feat2225 harness-dev-ops: refused bash -c nested merge-distill
+ok    feat2225 harness-dev-ops: read allowed: replay --check
+ok    feat2225 harness-dev-ops: read allowed: verify-receipt
+ok    feat2225 harness-dev-ops: read allowed: subcommand --help
+ok    feat2225 harness-dev-ops: read allowed: top-level --help
+ok    feat2225 harness-dev-ops: read allowed: nested replay --check
+ok    feat2225 harness-dev-ops: read allowed: reading the CLI source
+ok    feat2225 harness-dev-ops: read allowed: the command quoted as text
+ok    feat2225 harness-backend-dev: refused direct executable: member-ops
+ok    feat2225 harness-backend-dev: refused .agents symlink spelling: apply
+ok    feat2225 harness-backend-dev: refused python3 prefix: ops
+ok    feat2225 harness-backend-dev: refused python3 flags, absolute path: replay
+ok    feat2225 harness-backend-dev: refused env python3 prefix: member-ops
+ok    feat2225 harness-backend-dev: refused /usr/bin/env with an assignment: apply
+ok    feat2225 harness-backend-dev: refused bash -c nested: apply
+ok    feat2225 harness-backend-dev: refused sh -c nested: replay
+ok    feat2225 harness-backend-dev: refused compound after cd: member-ops
+ok    feat2225 harness-backend-dev: refused stdin heredoc: member-ops
+ok    feat2225 harness-backend-dev: refused merge-gate merge-distill
+ok    feat2225 harness-backend-dev: refused bash -c nested merge-distill
+ok    feat2225 harness-backend-dev: read allowed: replay --check
+ok    feat2225 harness-backend-dev: read allowed: verify-receipt
+ok    feat2225 harness-backend-dev: read allowed: subcommand --help
+ok    feat2225 harness-backend-dev: read allowed: top-level --help
+ok    feat2225 harness-backend-dev: read allowed: nested replay --check
+ok    feat2225 harness-backend-dev: read allowed: reading the CLI source
+ok    feat2225 harness-backend-dev: read allowed: the command quoted as text
+ok    feat2225 main session: allowed direct executable: member-ops
+ok    feat2225 main session: allowed .agents symlink spelling: apply
+ok    feat2225 main session: allowed python3 prefix: ops
+ok    feat2225 main session: allowed python3 flags, absolute path: replay
+ok    feat2225 main session: allowed env python3 prefix: member-ops
+ok    feat2225 main session: allowed /usr/bin/env with an assignment: apply
+ok    feat2225 main session: allowed bash -c nested: apply
+ok    feat2225 main session: allowed sh -c nested: replay
+ok    feat2225 main session: allowed compound after cd: member-ops
+ok    feat2225 main session: allowed stdin heredoc: member-ops
+ok    feat2225 main session: allowed merge-gate merge-distill
+ok    feat2225 main session: allowed bash -c nested merge-distill
+ok    feat2225 repository-tier Expertise redirect names expertise_apply with the repository tier
+
+89/89 FEAT-2225 expertise CLI cases passed.
+PASS test-bash-write-guard.py
+----- test-check-state.py (exit 0, 0.96s) -----
+ok    version 1 produces no undeclared step key report
+ok    version 2 reports one undeclared step key with run, step and key
+ok    version 2 declared keys plus evidence produce no report
+
+3/3 T-07 undeclared step key cases passed.
+ALL PASSED
+PASS test-check-state.py
+----- test-check-state-table.py (exit 0, 6.52s) -----
+ok - --list exits 0 and executes nothing (no VIOLATION or note rows)
+ok - --list names every active row once, in table order, INV-35 first and INV-44 last
+ok - every row is an INV-N identity — the OMP port check is INV-45, the digest-verdict cross-check INV-46 (ruling 2026-09-21)
+ok - --list carries the retired numbers, marked retired, never as runnable rows
+ok - --list shows each row's scope, reads and authority
+ok - no arguments runs the full table: exit 1 with INV-5 violations for both features
+ok - features are iterated in SORTED order, not filesystem order
+ok - the report tail is unchanged: rows then exit, no verb-mode chatter
+ok - --only INV-5 runs exactly that invariant: its two violations and nothing else
+ok - --only INV-3 reports only notes and exits 0
+ok - --only takes a comma list and keeps table order (INV-3's notes print after INV-5's violations, as the report always did)
+ok - --only on a RETIRED number resolves deterministically: says so, runs nothing, exit 0
+ok - --only on an unknown name is a command error: exit 2, names --list
+ok - --feature limits feature-scoped rows to that feature
+ok - --feature and --only INTERSECT
+ok - --feature naming no feature runs no feature-scoped row (repo rows still speak)
+ok - --changed on a clean tree runs nothing path-mapped and is SILENT (exit 0, no output)
+ok - --changed maps a dirty STATE.md to the rows that read it, scoped to that feature
+ok - --changed sees an UNTRACKED file and selects the rows that read handoff notes, for that feature only
+ok - --changed handles a RENAME pair: both sides count as dirty, INV-2 runs for that feature and is clean
+ok - --changed intersects with --only: a selected row that reads nothing dirty runs nothing (silent)
+ok - --changed revalidates arbitrary target-local evidence without a feature.json edit
+ok - --changed fleet registry alone revalidates authoritative feature bindings
+ok - a repo-scoped row that loops features sees ALL of them without --feature (INV-24 undeclared-repo finding x2)
+ok - ...and is narrowed by --feature because it loops ctx.features
+
+ALL PASSED
+PASS test-check-state-table.py
+----- test-checker-structure-locks.py (exit 0, 6.98s) -----
+PASS audit_modules_load_from_the_bin_under_test
+PASS feat61_lock_clean_tree_has_no_findings
+PASS feat61_lock_station_literal_mutant_fails_for_its_own_finding
+PASS feat61_lock_drifted_bucket_mutant_fails_for_both_partial_buckets
+PASS feat61_lock_d11_cross_bucket_predicate_and_key_iteration_are_not_flagged
+PASS feat61_lock_second_loader_mutant_fails_for_its_own_finding
+PASS feat61_lock_cli_reports_clean_and_exits_0
+PASS feat62_clean_tree_has_no_findings
+PASS feat62_module_body_loop_mutant_fails_for_its_own_finding
+PASS feat62_module_body_conditional_mutant_fails_for_its_own_finding
+PASS feat62_module_body_try_mutant_fails_for_its_own_finding
+PASS feat62_module_body_read_mutant_fails_for_its_own_finding
+PASS feat62_reparse_mutant_fails_for_its_own_finding
+PASS feat62_reads_undeclared_file_mutant_fails
+PASS feat62_reads_undeclared_git_mutant_fails
+PASS feat62_reads_undeclared_gh_mutant_fails
+PASS feat62_reads_misdeclared_gh_board_resource_fails
+PASS feat62_reads_misdeclared_gh_endpoint_resource_fails
+PASS feat62_reads_misdeclared_git_op_resource_fails
+PASS feat62_reads_lock_follows_helpers
+PASS feat62_reads_declared_input_is_silent
+PASS feat62_reads_unprefixed_declaration_fails
+PASS feat62_authority_missing_decision_fails
+PASS feat62_authority_struck_decision_fails
+PASS feat62_authority_striking_a_cited_decision_reddens_its_rows
+PASS feat62_authority_unreadable_index_is_loud_not_silent
+PASS feat62_posture_workflow_mutant_fails
+PASS feat62_posture_hook_mutant_fails
+PASS feat62_posture_ci_runs_the_full_checker
+PASS feat62_cli_reports_clean_and_exits_0
+PASS feat63_reparse_load_feature_json_mutant_fails_for_its_own_finding
+PASS feat63_reparse_load_harness_json_mutant_fails_for_its_own_finding
+PASS feat63_census_clean_tree_has_no_findings
+PASS feat63_census_checker_except_exception_mutant_is_one_finding_naming_check_state
+PASS feat63_census_checker_bare_except_mutant_is_one_finding_naming_check_state
+PASS feat63_census_frozen_script_plus_one_is_one_finding_naming_it
+PASS feat63_census_frozen_script_minus_one_is_clean
+PASS feat63_census_allowance_never_transfers_between_files
+PASS feat63_census_unlisted_script_has_a_zero_ceiling
+PASS feat65_census_a_hook_plus_one_is_one_finding_against_ceiling_0
+PASS feat64_ceiling_factory_decompose.py_is_zero
+PASS feat64_ceiling_feature_schema.py_is_zero
+PASS feat64_ceiling_gh_cost_log.py_is_zero
+PASS feat64_ceiling_handoff_done_when.py_is_zero
+PASS feat64_ceiling_handoff_policy.py_is_zero
+PASS feat64_ceiling_harness_yaml.py_is_zero
+PASS feat64_ceiling_run_identity.py_is_zero
+PASS feat64_ceiling_worktree_terminal.py_is_zero
+PASS feat64_ceiling_board-station.py_is_zero
+PASS feat64_ceiling_check-omp-port.py_is_zero
+PASS feat64_ceiling_check-plan-routes.py_is_zero
+PASS feat64_ceiling_check-skill-weight.py_is_zero
+PASS feat64_ceiling_gh-sync.py_is_zero
+PASS feat64_ceiling_post-merge-sweep.py_is_zero
+PASS feat64_ceiling_run-unit-tests.py_is_zero
+PASS feat64_ceiling_upgrade-config.py_is_zero
+PASS feat64_ceiling_harness_boundary_is_exactly_two
+PASS feat64_census_lib_except_exception_mutant_is_one_finding_naming_handoff_policy.py
+PASS feat64_census_lib_bare_except_mutant_is_one_finding_naming_handoff_policy.py
+PASS feat64_census_tool_except_exception_mutant_is_one_finding_naming_gh-sync.py
+PASS feat64_census_tool_bare_except_mutant_is_one_finding_naming_gh-sync.py
+PASS feat64_census_third_harness_boundary_catch_fails_against_two
+PASS feat64_census_reduction_mutant_is_clean
+PASS feat69_clean_package_has_no_findings
+PASS feat69_module_body_rule_covers_a_package_file
+PASS feat69_reads_lock_follows_an_imported_helper_two_calls_deep
+PASS feat69_reads_lock_sees_a_spawn_two_helpers_deep_across_modules
+PASS feat69_reads_lock_walks_into_ctx_methods_from_a_family
+PASS feat69_row_defined_outside_its_family_fails
+PASS feat69_assignment_alias_is_not_a_definition
+PASS feat69_row_no_family_claims_fails
+PASS feat69_census_scans_entry_and_every_package_file
+PASS feat69_census_entry_broad_catch_is_one_finding_naming_check_state
+PASS feat69_census_family_broad_catch_is_one_finding_naming_the_module
+
+ALL PASS
+PASS test-checker-structure-locks.py
+----- test-code-grade-cli.py (exit 0, 8.59s) -----
+PASS test-code-grade-cli
+PASS test-code-grade-cli.py
+----- test-check-state-worktrees.py (exit 0, 14.17s) -----
+ok - case (u.1) a worktree UNDER .claude/worktrees/ is silent
+ok - case (u.2) a sibling worktree is a VIOLATION, not a note
+ok - case (u.3) the not-my-root branch DOES carry `git worktree remove`
+ok - case (u.4) a session ROOTED in an out-of-place worktree is a VIOLATION too — severity does not branch
+ok - case (u.5) the LEGITIMATE worktree under the main checkout is silent even from an out-of-place root
+ok - case (u.6) the own-root line names .claude/worktrees and does NOT say `git worktree remove`
+ok - case (u.7) F-B: an unimportable harness_boundary.py is a REFUSAL that names it, not a silent skip of INV-25
+ok - (x.1) a mixed tree -> exit 1, INV-27 names the reader, its form-set tag and the remedy
+ok - (x.2) an unjudgeable tree -> exit 1, INV-27 CANNOT VERIFY
+ok - (x.3) an applicable clean tree -> NO INV-27 line
+ok - (x.4) no control-plane marker -> NO INV-27 line
+ok - (x.5) unimportable layout_migration -> INV-27 CANNOT RUN, exit 1
+ok - INV-29 (a.1) default branch Done + standing worktree -> one INV-29 at VIOLATION
+ok - INV-29 (a.2) the SAME fixture at Review -> no INV-29 line at all
+ok - INV-29 (b.1) the line NAMES the worktree directory found
+ok - INV-29 (b.2) the line CARRIES the removal command
+ok - INV-29 (b.3) the command carries THIS worktree's own repo and id
+ok - INV-29 (b.4) and NOT the sibling worktree's identity
+ok - INV-29 (b.5) the sibling worktree gets its own line with its own id
+ok - INV-29 (c.1) working tree Done, default branch Review -> silent
+ok - INV-29 (c.2) the INVERSE — default branch Done, working tree Review -> one line
+ok - INV-29 (d.1) a dirty Done worktree still fires
+ok - INV-29 (d.2) the message says the tree is DIRTY
+ok - INV-29 (d.3) and says remove will DECLINE until the changes are dealt with
+ok - INV-29 (e) a Done feature's worktree in a SECOND fleet-declared repository produces an INV-29 line from ONE run
+ok - INV-29 (f.1) genuinely absent from the default branch -> SILENT
+ok - INV-29 (f.2) a full-named Done sibling -> fires
+ok - INV-29 (f.3) a SHORT-named worktree whose landed dir is full-named and Done -> fires
+ok - INV-29 (f.4) the SHORT-named worktree's command carries its OWN directory name
+ok - INV-29 (f.5) and NOT the landed full name
+ok - INV-29 (f.9) SC-17(c): the printed script path resolves in a real checkout
+ok - INV-29 (f.7) SC-17(c): the printed command RUNS and exits 0
+ok - INV-29 (f.8) SC-17(c): and that worktree is GONE afterwards
+ok - INV-29 (f.6) a landed feature.json that is present but UNPARSEABLE -> fires
+ok - INV-31 fires at VIOLATION when core.hooksPath is unset, saying so and carrying the fix command
+ok - INV-31 fires when core.hooksPath names another directory, quoting the value found
+ok - INV-31 is silent when an ABSOLUTE core.hooksPath names the same directory
+ok - INV-31 reports a MISSING post-merge as its own finding, with its own fix, never as a tail on the config one
+ok - INV-31 reports a NON-EXECUTABLE post-merge, naming the mode it found and the fix
+ok - INV-31 is SILENT when the hook is installed and executable
+PASS test-check-state-worktrees.py
+----- test-check-state-plans.py (exit 0, 18.13s) -----
+ok - case (h): issue #16 — `review_sha: none` is a placeholder, not a pin, so INV-6 fires
+ok - case (i): a pinned SHA does not trip INV-6
+ok - case (j): no validator run, so INV-6 stays silent even on a placeholder
+ok - case (l1) 21 runs against a 20 budget is NOTED
+ok - case (l2) exactly 20 does NOT fire — the boundary is >, not >=
+ok - case (l3) a per-feature max_total_runs: 30 silences it
+ok - case (l4) INV-22 NEVER gates — exit code identical over and under budget
+ok - case (l5) the CONFIGURED value is read — budget 5 with 7 runs names 5, not 20
+ok - case (l6) budgets present but key missing counts against the default 20
+ok - case (l7) no budgets block at all counts against the default 20
+ok - case (n/feature.json over): at 301 feature.json / 120 STATE.md lines, INV-23 fires on [feature.json] — wanted [feature.json]
+ok - case (n/STATE.md over): at 300 feature.json / 121 STATE.md lines, INV-23 fires on [STATE.md] — wanted [STATE.md]
+ok - case (n/both within): at 300 feature.json / 120 STATE.md lines, INV-23 fires on [nothing] — wanted [nothing]
+ok - case (inv35.a) an unquoted ` #217` is reported, naming the line and the number
+ok - case (inv35.b) the flagged fixture actually loses `#217` when parsed (real='close out the fix for')
+ok - case (inv35.c) a quoted ` #217` is silent
+ok - case (inv35.l) a multiline double-quoted `#217` is silent
+ok - case (inv35.m) a multiline single-quoted `#217` is silent
+ok - case (inv35.n) unquoted `notes: close out #217` is reported
+ok - case (inv35.d) a whole-line comment is silent
+ok - case (inv35.e) a `#` inside a block scalar is silent
+ok - case (inv35.f) `# text` with no digit is silent
+ok - case (inv35.g) a digit inside an already-started comment is silent
+ok - case (inv35.h) an apostrophe before the truncation point does not suppress the report
+ok - case (inv35.i) a coincidental block-indicator substring does not suppress a real truncation earlier on the line
+ok - case (inv35.j) a quoted key does not suppress a real truncation in its value
+ok - case (inv35.k) a hyphenated key's block scalar is recognised and exempt
+ok - case (p/over): CLAUDE.md at 81 lines -> INV-23 fires (want fires)
+ok - case (p/at the budget): CLAUDE.md at 80 lines -> INV-23 silent (want silent)
+ok - case (p/warn): the CLAUDE.md finding is a `note`, not a `VIOLATION` — warn level, so it cannot halt /harness entry
+ok - case (q/approved): INV-3 is silent on plan.yaml
+ok - case (q/pending): INV-3 notes on plan.yaml
+ok - case (q/malformed): a plan.yaml that does not load is reported, not skipped
+ok - case (q/inv5): STATE.md naming a task the plan.yaml lacks is a violation
+ok - INV-6 exempts a plan-phase run (code_grade: n_a)
+ok - INV-6 still fires on a code run with no pin
+ok - INV-6 fails closed on an unknown code_grade
+ok - INV-6 fires when a code run sits beside an exempt plan run
+ok - INV-6 exemption survives signature (not keyed on approval.status)
+ok - INV-6 silent on a pinned feature with both run kinds
+ok - INV-6 does not exempt a case-variant code_grade
+ok - INV-6's violation names code_grade: n_a
+ok - INV-6's exemption has a documented producer (SKILL.md step 6 names code_grade: n_a)
+ok - case (inv34.a) a feature with no plan.yaml is reported, naming the file
+ok - case (inv34.b) a station-only plan.yaml is enough — no INV-34 line
+ok - case (inv34.c) a station-only plan is exempt from the approval and STATE.md-task checks
+ok - case (inv34.d) a plan WITH tasks is still checked for approval and for STATE.md task ids
+ok - case (inv34.e) a SIGNED plan emptied to `tasks: []` does NOT inherit the station-only exemption
+ok - case (inv34.f) the station_only marker CANNOT be minted onto a task-bearing plan to exempt it
+PASS test-check-state-plans.py
+----- test-corpus-non-regression.py (exit 0, 8.15s) -----
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 8.048s
+
+OK
+PASS test-corpus-non-regression.py
+----- test-check-state-feat59.py (exit 0, 32.00s) -----
+ok - case INV-37 uses binding/provenance, never factory claims (claims)
+ok - case INV-37 uses binding/provenance, never factory claims (opened)
+ok - case INV-37 uses binding/provenance, never factory claims (wrong-repo)
+ok - case INV-37 uses binding/provenance, never factory claims (bound-owner-off)
+ok - case (38.a) a well-formed by-perspective BRIEF is silent
+ok - case (38.a2) a by-perspective BRIEF is NOT graded for `## Requirements`/REQ-NN
+ok - case (38.b) a perspective no SC discharges is a VIOLATION naming it
+ok - case (38.c) an SC tagged with an undeclared perspective names the SC and the tag
+ok - case (38.d) an SC with no perspective tag is a VIOLATION naming the SC
+ok - case (38.e) an old-shape BRIEF (REQ-NN, untagged SCs) is not graded
+ok - case (38.f) a perspective with a parenthetical qualifier matches its bare tag
+ok - case (38.g) the heading with no perspective under it is a VIOLATION
+ok - case (39.a) cycles_used 11 > max_total_cycles 10 is a VIOLATION naming both
+ok - case (39.b) cycles_used == max_total_cycles is silent — the boundary is >
+ok - case (39.c) a raise above the harness.json default with no decision names DEC-157
+ok - case (39.d) the same raise with a matching budget_decisions entry is silent
+ok - case (39.e) a decision recording a DIFFERENT value does not cover the current one
+ok - case (39.f) max_total_cycles equal to the default needs no decision
+ok - case (39.g) a record predating the FEAT-59 keys is NOTED, not failed
+ok - case (39.h) a by-perspective BRIEF puts a key-less record in era — graded
+ok - case (39.i) cycles_used 12 with max_total_cycles inherited from the default 10 is a VIOLATION
+ok - case (39.j) cycles_used at the inherited default is silent
+ok - case (40.a) mission with no judgement of kind mission is a VIOLATION
+ok - case (40.b) mission with its matching judgement is silent
+ok - case (40.b2) mission plan whose LAST mission judgement decided patch is a VIOLATION naming both
+ok - case (40.b3) two mission judgements, the last matching the current mission, is silent
+ok - case (40.c) a FAIL run followed by another run with no regate names the run
+ok - case (40.d) the same with a regate judgement is silent
+ok - case (40.e) a FAIL run that nothing follows needs no regate yet
+ok - case (40.f) two re-gates against one regate judgement names the uncovered run
+ok - case (40.g) a handoff at seq-1 with a run after it and no succession names the note
+ok - case (40.h) the same with a succession judgement is silent
+ok - case (40.i) a handoff at seq-2 with exactly two runs has no successor run yet
+ok - case (40.j) an in-era handoff with no seq-N on line one is refused, not skipped
+ok - case (40.k) the three checks are independent — all three fire on one record
+ok - case (40.l) a record predating the ledger is NOTED once, never failed
+ok - case (40.m) a legacy record with nothing to grade emits no note at all
+ok - case (40d.a) a freshly signed plan is silent — the hashes agree with sign-approval
+ok - case (40d.b) an unledgered intent change is ONE violation naming the task and the remedy
+ok - case (40d.g) a files change is caught
+ok - case (40d.h) a verify change is caught, on the task it belongs to
+ok - case (40d.i) two independently changed tasks are two violations
+ok - case (40d.c) the matching amendment judgement silences it
+ok - case (40d.d) an OVERRULED matching amendment still covers — the ledger is the record
+ok - case (40d.e) an amendment for ANOTHER task does not cover
+ok - case (40d.f) another judgement kind naming the task does not cover
+ok - case (40d.j) a presentation-only rewrite (quoting, list form) hashes the same — silent
+ok - case (40d.k) a plan with no signed_task_hashes (signed before BUG-1716) is not graded
+ok - case (40d.l) a pending approval is not graded by this trigger
+ok - case (40d.m) the text trigger reports beside, not instead of, the other triggers
+ok - case (61.a) a check-skill-weight exec exception is INV-42 CANNOT RUN naming it
+ok - case (61.b) the failed exec leaves no check_skill_weight entry in sys.modules
+ok - case (61.c) a null module spec is INV-42 CANNOT RUN as an ImportError naming the path
+ok - case (61.d) the dataclass loader observes its own name in sys.modules during exec
+ok - case (61.e) a duplicate key in schemas/run-state.json is INV-16 CANNOT be checked, never last-wins
+ok - case (61.f) a step schema without its properties keeps its natural KeyError
+ok - case (61.g) a schema without steps keeps its natural KeyError
+ok - case (1928.a) a bare-text digest with no fenced mapping is an INV-15 finding
+ok - case (1928.b) a final mapping missing a required key names it
+ok - case (1928.c) a historical final mapping with out-of-schema keys is accepted
+ok - case a recorded refused BLOCKED closure preserves prose without INV-15
+ok - case duplicate run IDs cannot exempt a refused closure
+ok - case a refused marker cannot exempt PASS
+ok - case a refused marker cannot exempt PENDING
+ok - case (41.a) an unscoped check-state.py invocation is a VIOLATION naming the SC
+ok - case (41.b) `--feature` scopes it — silent
+ok - case (41.c) the feature directory path scopes it — silent
+ok - case (41.d) naming the script as a subject is a mention, not an invocation
+ok - case (41.e) an old-shape BRIEF is not graded
+ok - case (41.f) check-domain.py is covered too
+ok - case (41.g) a bare span the SC RUNS is an invocation
+ok - case (41.h) the feature id in the SC text scopes it — silent
+ok - case (49.a) an excluded-kind SC with no gaps section is a VIOLATION naming it
+ok - case (49.b) the same SC named under '## Verification gaps' is silent
+ok - case (49.c) an active kind needs no gaps line even when absent
+ok - case (49.d) verify: manual needs a gaps line naming the SC too
+ok - case (49.e) a manual SC named under '## Verification gaps' is silent
+ok - case (49.f) verify: inspection never needs a gaps line
+ok - case (49.g) an old-shape BRIEF is not graded
+ok - case (49.h) a record with no plan.yaml (DEC-174 direct build) is outside the rule
+ok - case (43.a) succession recorded AFTER run 2 started is a VIOLATION naming both
+ok - case (43.b) succession recorded before run 2 started is silent
+ok - case (43.c) succession at exactly run 2's start is silent (no later than)
+ok - case (43.d) an unparseable succession `at` is CANNOT VERIFY naming the field
+ok - case (43.e) a successor run with no started_at is CANNOT VERIFY naming started_at
+ok - case (43.h) two handoffs match two successions in order; only the second is retrospective
+ok - case (43.f) a MISSING succession is INV-40's finding, not INV-43's
+ok - case (43.g) a handoff with no successor run yet has nothing to grade
+ok - case (43.i) a legacy record is never graded by INV-43
+ok - case (43.j) at station review the retrospective succession is a VIOLATION
+ok - case (43.j2) at station done (shipped) nothing is graded
+ok - case (43.k) before seam_era_start the retrospective succession is a NOTE naming would-fail
+ok - case (43.l) on the seam_era_start date it is graded — a VIOLATION
+ok - case (43.m) the boundary is by date at a terminal station too
+ok - case (44.a) a conforming rejected record is silent on INV-44 and on the approval gate
+ok - case (44.b) cycles_used other than integer 0 is a VIOLATION naming cycles
+ok - case (44.c) zero runs is a VIOLATION naming the count
+ok - case (44.d) two runs is a VIOLATION naming the count
+ok - case (44.e) the one run owned by a lead is a VIOLATION naming the agent
+ok - case (44.f) no reject judgement is a VIOLATION naming the kind and remedy
+ok - case (44.g) an approved plan under a rejected station is a VIOLATION
+ok - case (44.h) a signed BRIEF under a rejected station is a VIOLATION
+ok - case (44.i) a panel mapping under a rejected station is a VIOLATION
+ok - case (44.j) every bad dimension is reported separately
+ok - case (44.k) the same record at any other station is not INV-44's to grade
+ok - case (63.a) an unimportable feature_schema is the diagnosed config violation naming the failure
+ok - case (63.b) the 300-line fallback is gone — nothing is graded against a guessed budget
+ok - case (47.a) a PASS validate run over a same-cycle qa BLOCKED note is a VIOLATION naming the note and the run
+ok - case (47.c) the unsuffixed validate-validator run is cycle 0
+ok - case (47.b) member notes at PASS/n/a are silent; an earlier cycle's BLOCKED note belongs to that cycle's FAIL run, not this one
+ok - case (47.d) a plan-review note is not a validate member note
+ok - case (47.e) a legacy record is not graded
+PASS test-check-state-feat59.py
+----- test-check-state-shipped.py (exit 0, 21.23s) -----
+...................
+----------------------------------------------------------------------
+Ran 19 tests in 21.149s
+
+OK
+PASS test-check-state-shipped.py
+----- test-factory-issue-types.py (exit 0, 4.98s) -----
+ok    CASE A: decompose exits 0 so step 6 is reached
+ok    CASE A: the parent is typed IT_feature via an updateIssue argv carrying I_node41
+ok    CASE A: T-01 (bugfix) is typed IT_bug via an updateIssue argv carrying I_node42
+ok    CASE A: T-02 (config) is typed IT_task via an updateIssue argv carrying I_node43
+ok    CASE A: T-03 (feature change_type — D-18, never IT_feature) is typed IT_task via an updateIssue argv carrying I_node44
+ok    CASE B: no create argv carries --label bug
+ok    CASE B: no create argv carries --label chore
+ok    CASE B: every create argv still carries --label harness
+ok    CASE B: every create argv still carries --label feature:FEAT-91-factory-types
+ok    CASE B: factory:claimed is applied exactly where it is today (nowhere on a created issue)
+ok    CASE C: decompose exits 0
+ok    CASE C: four issues created (parent + three tasks)
+ok    CASE C: labels unchanged — bugfix task still carries bug
+ok    CASE C: labels unchanged — config task still carries chore
+ok    CASE C: zero updateIssue argv when types are absent
+ok    CASE C: exactly one '^factory: issue types ' diagnostic line for a run creating four issues
+ok    CASE D: decompose exits 0
+ok    CASE D: github.issue_types Bug->Story types the bugfix task's updateIssue IT_story
+ok    CASE D: github.issue_types parent->Story types the parent's updateIssue IT_story
+ok    CASE D: Task is not overridden — the config task still types IT_task
+ok    CASE D: Task is not overridden — the feature task (D-18) still types IT_task
+ok    CASE E: after the first run the bugfix task's issue number is recorded
+ok    CASE E: the number and the create-time provenance are written as the string 'created' (not True, not absent) after a failed type-apply
+ok    CASE E: the rerun makes no second issue-create argv for that task
+ok    CASE E: the rerun makes an updateIssue call for the recorded number
+ok    CASE E: the flag is promoted to True only after the rerun's apply succeeds
+ok    CASE F: the parent is recorded as 4242 (adopted, not created)
+ok    CASE F: zero updateIssue argv carries the node id derived from 4242
+ok    CASE F: factory.yaml's typed mapping records the parent as the string 'adopted'
+ok    CASE F: rerun without --parent leaves the parent recorded as 4242 (not typed by us)
+ok    CASE F: rerun still makes zero updateIssue argv for node id 4242
+ok    CASE F: rerun marker is still 'adopted' — never True and never 'created'
+ok    CASE G: the first run exits 0
+ok    CASE G: the rerun makes zero 'issue create' argv (everything already recorded)
+ok    CASE G: the lazily-called-detector trap — the rerun's combined stdout+stderr still contains exactly one '^factory: issue types ' line, even though it created nothing
+ok    CASE H: the first run exits 0
+ok    CASE H: zero updateIssue argv carries the node id derived from the recorded parent 555
+ok    CASE H: zero updateIssue argv carries the node id derived from the recorded task issue 556
+ok    CASE H: absent provenance is never typed — no typed entry for the parent afterwards
+ok    CASE H: absent provenance is never typed — no typed entry for the already-recorded task afterwards
+ok    CASE H: the rerun still exits 0
+ok    CASE H: rerun still leaves the parent untyped — absent provenance is unknown provenance on any later run too
+ok    CASE H: rerun still leaves the already-recorded task untyped
+ok    CASE H: the tasks that are NOT recorded (T-02, T-03) still get typed, proving the bound rather than a dead run
+ok    CASE I: REQ-07's refuse-before-create — the run exits non-zero
+ok    CASE I: zero argv containing 'issue create' reached the fake — the parent's create included, since the refusal precedes every create
+ok    CASE I: zero argv containing updateIssue reached the fake
+ok    CASE I: specifically, zero updateIssue argv carries the node id derived from 701
+ok    CASE I: the combined stdout+stderr names both 'Task' and 'github.issue_types'
+ok    CASE I: factory.yaml afterwards records no parent number
+ok    CASE I: factory.yaml afterwards records no task issue number other than the seeded remnant
+ok    CASE I: the remnant is unchanged — T-01's recorded number is still 701 and its typed value is still exactly 'created', not True, not absent, not rewritten
+ok    CASE J: the backfill is the sole source of a missing type — the run exits non-zero
+ok    CASE J: zero argv containing 'issue create' reached the fake — the parent's create included
+ok    CASE J: zero argv containing updateIssue reached the fake
+ok    CASE J: specifically, zero updateIssue argv carries the node id derived from 703
+ok    CASE J: the combined stdout+stderr names both 'Bug' and 'github.issue_types'
+ok    CASE J: factory.yaml afterwards records no parent number
+ok    CASE J: factory.yaml afterwards records no task issue number other than the seeded remnant
+ok    CASE J: the remnant is unchanged — 703 is still recorded and its typed value is still exactly 'created', not True, not absent, not rewritten
+
+ALL PASSED
+PASS test-factory-issue-types.py
+----- test-corpus-real-owner.py (exit 0, 12.06s) -----
+........
+----------------------------------------------------------------------
+Ran 8 tests in 11.968s
+
+OK
+probe pin /Users/molchairuangutai/GitHub/harness/.claude/worktrees/.pins/BUG-20261006-fleet-planning-recovery--f1559-51385--probe at f5bf58d9b3690d01c9675ba118588b66b631d819 (owner /Users/molchairuangutai/GitHub/harness)
+PASS test-corpus-real-owner.py
+----- test-feature-corpus-census.py (exit 0, 1.75s) -----
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 1.689s
+
+OK
+PASS test-feature-corpus-census.py
+----- test-check-state-records.py (exit 0, 29.66s) -----
+ok - INV-32 plan panel fixtures, including inv32-red
+ok - INV-32 unrated severities fail closed
+ok - #2095 off-template panel findings are INV-32 violations on non-terminal plans only
+ok - INV-32 pre-era plan is exempt with a note
+ok - INV-32 era boundary is exact (08-30 exempt, 08-31 graded)
+ok - INV-32 patch mission is exempt with a note; plan and no-mission are graded
+ok - INV-32 patch exemption holds for exactly one task; three tasks is a VIOLATION naming the count and SC-02
+ok - INV-32 undated approval is a violation naming approval.date
+ok - INV-32 era guard is load-bearing (real=0 mutant=1 violations)
+ok - INV-32 era boundary comes from harness.json, not a literal
+ok - INV-32 null panel_era_start exempts nothing
+ok - BUG-440 INV-46 reconciles digest verdicts without mutation
+ok - BUG-1305 INV-36 detects clobbers and stays silent on owned/legacy runs
+ok - T-06 INV-37 fires for FEAT-9001-fixture with no build_entry
+ok - T-06 INV-37 fires for BUG-9-x with no build_entry
+ok - T-06 INV-37 accepts a provenanced opened receipt
+ok - T-06 INV-37 accepts a provenanced terminal receipt
+ok - T-06 INV-37 remains disabled for an unbound sync-off feature
+ok - T-06 INV-37 factory claims do not prove a mirror receipt
+ok - T-06 recovery_command_for returns open for a building plan with no started work
+ok - T-06 recovery_command_for returns recover-terminal for each trigger alone
+ok - historical refused completion remains BLOCKED, hash-bound, and distinct from a later accepted return
+ok - INV-7 (SC-04): run-end records F's evidenced zero
+ok - INV-7 (SC-04): no cycle or FAIL-count violation for three FAILs against a total of 1
+ok - INV-7 (SC-04): L's unevidenced count is reported as a note
+ok - INV-7 (SC-04): U's absent count is reported as unknown attribution
+ok - INV-7 (SC-04): F's evidenced count draws no note
+ok - live validation (SC-06): record-refusal records R's provenance
+ok - live validation (SC-06): the live validator still rejects R's refused prose
+ok - live validation (SC-06): close-run refuses the same prose for a new run, leaving the record unchanged
+ok - live validation (SC-06): complete run Q with no digest is still a violation
+ok - case (inv33.a) a stale review_sha is reported
+ok - case (inv33.b) a current review_sha is silent
+ok - case (inv33.c) a terminal station is silent
+ok - case (inv33.d) a pin with no plan file at that path is silent
+ok - case (inv33.a) a stale review_sha is reported, naming the feature, the pinned sha and the last sha to touch the plan
+ok - case (inv33.b) a current review_sha is silent even though a later commit touched the plan — a content comparison, not a commit comparison
+ok - case (inv33.c) a terminal station is silent — a shipped plan is a record, not a contract (operator Q6)
+ok - case (inv33.d) a pin that resolves but holds no plan at that path is silent, at a NON-TERMINAL station
+ok - case (inv33.e) a station-only change after the pin (top-level and task status) is silent
+ok - case (inv33.f) a serialization-only change after the pin is silent
+ok - case (inv33.g) a non-station status change after the pin still reports STALE
+ok - case (inv33.h) a status nested inside a task still reports STALE
+ok - case (inv33.i) control: the same changed plan with a resolvable pin reports STALE
+ok - case (inv33.i) a placeholder pin is silent
+ok - case (inv33.i) a pin that does not resolve is silent
+ok - case (inv33.i) no plan file on disk is silent
+ok - case (inv33.i) no git work tree is silent
+ok - case (inv33.j) an unloadable plan.yaml edited after the pin reports STALE
+ok - case (inv33.j) a legacy PLAN.md compares as bytes, station line included
+PASS test-check-state-records.py
+----- test-feature-json-merge.py (exit 0, 1.36s) -----
+PASS - case1: MergeRefusal propagated
+PASS - case1: file byte-identical to before
+PASS - case2: both concurrent writers' entries survive (lock serialised, did not clobber)
+PASS - case3: refused
+PASS - case3: refusal names a JSON decode error
+PASS - case3: file left as the original valid document
+PASS - case4: refused
+PASS - case4: refusal names a missing required key
+PASS - case4: file byte-identical to before
+PASS - case5: refused with the destination code
+PASS - case5: no file created at the refused path
+PASS - case6: CLI exits 0
+PASS - case6: branch landed
+PASS - case6: every other key survived unchanged
+PASS - case7: CLI exits 0
+PASS - case7: run entry appended
+PASS - case8: CLI exits 0
+PASS - case8: github block landed
+PASS - case9: CLI exits non-zero
+PASS - case9: stderr names the schema problem
+PASS - case9: file byte-identical to before
+PASS - case10: CLI exits non-zero for a missing file
+PASS - case10: no file created
+PASS - case11: refused
+PASS - case11: refusal names the NEW problem (review_sha)
+PASS - case11: refusal does NOT name the pre-existing problem (status)
+PASS - case11: file byte-identical to before
+PASS - case12: accepted, not refused
+PASS - case12: unrelated key landed
+PASS - case12: pre-existing problem (missing branch) still present, unreported as a refusal
+PASS - case13: schema-clean candidate lands over an unparseable base
+PASS - case13: differently-broken candidate over an unparseable base is refused
+PASS - case13: refusal names a JSON decode error
+PASS - case13: file left as the original unparseable base, not overwritten
+PASS - case14: default tail_regex still refuses a non-canonical path, code 9
+PASS - case14: default-refused path created nothing
+PASS - case14: a custom tail_regex accepts the same non-canonical path
+PASS - case15: the write exits 0 and lands
+PASS - case15: the checker's row reaches stderr under the feedback header
+PASS - case15: the checker runs AFTER the writer's lock is released (GC-03)
+PASS - case15: a refused write prints no feedback and leaves the bytes alone
+PASS - 41/41 checks passed
+PASS test-feature-json-merge.py
+----- test-gen-decisions-index.py (exit 0, 2.12s) -----
+ok - test_row_per_distinct_dec_matches_authority
+ok - test_argv_is_validated_and_only_the_write_path_writes
+ok - test_malformed_row_is_reported_not_silently_dropped
+ok - test_refs_graph_omits_ids_with_no_live_heading
+ok - test_preserves_hand_written_rulings_by_dec_number
+ok - test_strips_inline_ok_stale_marker_on_a_row
+ok - test_committed_index_matches_a_fresh_regeneration
+ok - test_committed_index_is_complete_and_within_budget
+ok - test_orphaned_ruling_is_reported_not_silently_dropped
+ok - test_root_resolves_through_harness_boundary_not_the_retired_variable
+ok - test_no_amendment_construct_survives_in_the_authority
+ok - test_dec_233_entry_names_every_removed_enforcement_point
+PASS test-gen-decisions-index.py
+----- test-dispatch-guard.py (exit 0, 14.81s) -----
+PASS  case 1: a name parameter is refused with the BLOCKED marker and no unavailable line
+PASS  case 1: a name parameter: stderr names what was read, and no model refusal
+PASS  case 1: a name beside a per-call model is refused with the BLOCKED marker and no unavailable line
+PASS  case 1: a name beside a per-call model: stderr names what was read, and no model refusal
+PASS  case 1: no first-line feature is refused with the BLOCKED marker and no unavailable line
+PASS  case 1: no first-line feature: stderr names what was read, and no model refusal
+PASS  case 2: a governed dispatch with no model exits 0 and says nothing
+PASS  case 2: a governed dispatch with a per-call model exits 0 and says nothing
+PASS  case 2b: subagent_type and prompt is not read as the dispatch (exit 0, no claim)
+PASS  case 2b: agent with a prompt alias is not read as the dispatch (exit 2, no claim)
+PASS  case 3: a non-harness agent_type exits 0 even with a model
+PASS  case 3: and says nothing
+PASS  case 4: an unreadable payload exits 0
+PASS  case 4: and says so on stderr
+PASS  feat65: a claim-step defect passes through hook_guard, named
+PASS  feat65: the registry's own unreadable class keeps the typed claim-step sentence
+PASS  feat65: KeyboardInterrupt escapes the guard
+PASS  feat65: a deliberate SystemExit keeps its own exit code
+PASS  case 5: the main session is never governed
+PASS  case 5: and says nothing
+PASS  case 6: a second single-flight dispatch exits 2
+PASS  case 6: stderr names the single-flight refusal
+PASS  case 6: stderr carries the RECORDED started_at, so the claim was really read
+PASS  case 6: stderr names the RECORDED dispatcher
+PASS  case 6: stderr carries the SINGLE-AGENT release command, never release-all
+PASS  case 6: it cites the issue so the reader can find out why
+PASS  case 7: the FIRST single-flight dispatch is allowed
+PASS  case 7: exactly one harness-pm claim was recorded
+PASS  case 7: the claim names the DISPATCHER from agent_type
+PASS  case 8: two parallel non-single-flight dispatches BOTH exit 0
+PASS  case 8: BOTH claims are on disk
+PASS  case 8: each claim names the dispatcher from agent_type
+PASS  case 9: a claim whose supervisor is gone does NOT refuse the dispatch
+PASS  case 9: and stderr SAYS it expired, so the leak is visible
+PASS  case 10: the refusal payload is ALLOWED when the library is gone
+PASS  case 10: and stderr NAMES the module, so the gap is not silent
+PASS  case 11 missing_feature_line_refused: a governed dispatch with no HARNESS-FEATURE line exits 2
+PASS  case 11 missing_feature_line_refused: stderr NAMES the missing field
+PASS  case 12 claim_lands_in_declared_worktree: the dispatch is allowed
+PASS  case 12 claim_lands_in_declared_worktree: the claim lands in the DECLARED worktree
+PASS  case 12 claim_lands_in_declared_worktree: and the main checkout registry is untouched
+PASS  case 27: feature_root places the short-form feature in its worktree
+PASS  case 27: the guard's claim receipt names that same root
+PASS  case 27: and the claim row lives in the worktree registry, not the main checkout's
+PASS  case 13: a later HARNESS-FEATURE line is refused
+PASS  case 13: a malformed flow id is refused
+PASS  case 14: different features may each hold a pm claim
+PASS  case 14: a duplicate pm for one feature is refused
+PASS  case 15: OMP governed dispatch is allowed
+PASS  case 15: claim records OMP runtime and supervising pid
+PASS  case 15: stdout returns a machine-readable claim receipt
+PASS  case 15b: OMP Main dispatch is allowed
+PASS  case 15b: OMP Main dispatch records an orchestrator claim
+PASS  case 15b: OMP Main dispatch returns a claim receipt
+PASS  case 15c: OMP Main -> eng-lead on an all-direct plan is refused (exit 2)
+PASS  case 15c: the refusal names DEC-174 and tells main to build directly
+PASS  case 15c: the refused dispatch leaves the registry unchanged
+PASS  case 15c: OMP Main -> eng-lead on a mixed plan still claims
+PASS  case 15d: OMP Main -> harness-product-lead (plan) on an all-direct plan starts and claims
+PASS  case 15d: OMP Main -> harness-product-lead (patch) on an all-direct plan starts and claims
+PASS  case 15d: OMP Main -> harness-validator-lead (validate) on an all-direct plan starts and claims
+PASS  case 15d: OMP Main -> harness-validator-lead (fix) on an all-direct plan starts and claims
+PASS  case 15d: OMP Main -> eng-lead on a team-only plan starts and claims
+PASS  case 15d: OMP Main -> eng-lead on a missing execution_mode plan starts and claims
+PASS  case 15d: OMP Main -> eng-lead on a empty tasks plan starts and claims
+PASS  case 15d: OMP Main -> eng-lead on a invalid plan starts and claims
+PASS  case 15d: OMP Main -> eng-lead on a absent plan starts and claims
+PASS  case 15e: Main -> eng-lead with a missing feature record is refused (exit 2)
+PASS  case 15e: missing record: the refusal is the registered-run preflight's, not DEC-174's
+PASS  case 15e: missing record: the refused dispatch leaves the registry unchanged
+PASS  case 15e: Main -> eng-lead with a mismatched feature record is refused (exit 2)
+PASS  case 15e: mismatched record: the refusal is the registered-run preflight's, not DEC-174's
+PASS  case 15e: mismatched record: the refused dispatch leaves the registry unchanged
+PASS  case 15e: Main -> eng-lead with a unparseable feature record is refused (exit 2)
+PASS  case 15e: unparseable record: the refusal is the registered-run preflight's, not DEC-174's
+PASS  case 15e: unparseable record: the refused dispatch leaves the registry unchanged
+PASS  case 25: a dispatch with no harness_runtime exits 2
+PASS  case 25: stderr names the missing runtime and DEC-233
+PASS  case 25: a dispatch naming another runtime exits 2
+PASS  case 25: no claim was recorded on either refusal
+PASS  case 26: an OMP dispatch with absent supervisor_pid exits 2
+PASS  case 26: an OMP dispatch with zero supervisor_pid exits 2
+PASS  case 26: an OMP dispatch with bool supervisor_pid exits 2
+PASS  case 26: an OMP dispatch with string supervisor_pid exits 2
+PASS  case 26: no claim was recorded on any refusal
+PASS  case 16: macOS system Python can run the dispatch guard
+PASS  case 16: system-Python path still returns a claim receipt
+PASS  case 17: shell-less product lead without a root exits 2
+PASS  case 17: missing root refusal names persona and anchor
+PASS  case 17: shell-less product lead with matching root exits 0
+PASS  case 17: bash-enabled backend lead needs no feature root
+PASS  case 17: mismatched absolute root exits 2
+PASS  case 17: mismatch names declared and resolver roots
+PASS  case 18a: an inverted run-dir slug is refused
+PASS  case 18a/b: stderr names the slug and the run-dir slug wording
+PASS  case 18b: stderr names a compliant form ending in -eng
+PASS  case 18g: the refusal strands no claim for the dispatched persona
+PASS  case 18h: pasting the refusal back is not itself refused
+PASS  case 18h: the paste-back carries no run-dir slug refusal
+PASS  case 18h: the paste-back is not refused for a missing feature line
+PASS  case 19: slug t01-eng is not refused
+PASS  case 19: slug plan-product is not refused
+PASS  case 19: slug 2026-08-26-2-plan-product is not refused
+PASS  case 20: no run-dir reference is not refused
+PASS  case 20: stderr carries no run-dir slug refusal
+PASS  case 21: a grant-less manifest is not refused
+PASS  case 21: stderr says the manifest declares no run-dir write grant
+PASS  case 21: stderr does not claim the derivation failed
+PASS  case 22: t01-oddsquad is not refused
+PASS  case 22: oddsquad-t01 is refused
+PASS  case 22: the refusal names oddsquad in its compliant form
+PASS  case 23: an unparseable manifest is not refused
+PASS  case 23: stderr says the run-dir vocabulary derivation failed
+PASS  case 23: stderr does not carry the no-run-dir-grant text
+PASS  case 27a: orchestrator -> member is not refused by dispatch-guard
+PASS  case 27b: orchestrator -> lead still passes
+PASS  case 27c: lead -> peer lead is not refused by dispatch-guard
+PASS  case 27d: lead -> own member still passes
+PASS  case 27e: a member with spawns: [] is not refused by dispatch-guard
+PASS  f2274: an own crash passes through as exactly one unavailable line
+PASS  f2274: an unreadable payload passes through as exactly one unavailable line
+PASS  f2274: the claim step's own registry failure passes through as exactly one unavailable line
+PASS  f2274: the registry library missing passes through as exactly one unavailable line
+PASS  f2274: harness_boundary itself missing passes through as exactly one unavailable line
+PASS  f2274: a normal governed pass exits 0 with no unavailable line
+PASS  f2274: a non-harness caller exits 0 with no unavailable line
+PASS  f2274: the main session exits 0 with no unavailable line
+PASS  f2274: a non-harness dispatched target exits 0 with no unavailable line
+PASS  f2274: a deliberate refusal is exit 2 with no unavailable line
+PASS  f2274 v2: a failed run-dir vocabulary derivation is one unavailable line
+PASS  f2274 v2: unreadable target tool grants are one unavailable line
+PASS  f2274 v2: a readable shell-less grant passes with no unavailable line
+PASS  f2274 v2: a grant-less run-dir manifest passes with no unavailable line
+PASS  f2274 v2: the grant-less control reached the declared-empty vocabulary
+PASS  f2274 v2: a non-governed target passes with no unavailable line
+PASS  case 29: name: is refused
+PASS  case 29: the refusal names the value
+PASS  case 30: plain: allowed with one claim and a receipt
+PASS  case 30: plain: the guard says nothing about schema controls
+PASS  case 30: with controls: allowed with one claim and a receipt
+PASS  case 30: with controls: the guard says nothing about schema controls
+PASS  case 30: schema controls do not change the guard's decision or claim
+PASS  case 30: exact factory repository dispatch is allowed
+PASS  case 30: the claim carries the fleet segment as its repository
+PASS  case 30: repository feature without its locator is refused
+PASS  case 30: repository locator disagreeing with the artifact is refused
+PASS  case 31: a binding held only by the feature worktree is accepted
+PASS  case 31: the claim lands in the worktree with the fleet segment
+PASS  case 31: the main checkout holds no copy of the record
+PASS  case 31: the worktree's binding still demands its locator
+PASS  case 31: and still refuses a locator that disagrees with it
+PASS  case 31: a disagreeing main-checkout copy does not override the worktree record
+PASS  case 32: eng-lead distill start with no mission is refused before any claim
+PASS  case 32: eng-lead distill start with a conflicting mission is refused before any claim
+PASS  case 32: eng-lead distill start with two missions is refused before any claim
+PASS  case 32: eng-lead distill start with the distill mission starts and claims
+PASS  case 32: an ordinary eng-lead build start still needs no mission
+PASS  case 33: harness-eng-lead -> harness-backend-dev under distill-eng with no mission is refused before any claim
+PASS  case 33: harness-eng-lead -> harness-backend-dev under distill-eng with a conflicting mission is refused before any claim
+PASS  case 33: harness-eng-lead -> harness-backend-dev under distill-eng with no feature-tree root is refused before any claim
+PASS  case 33: harness-eng-lead -> harness-backend-dev under distill-eng with a foreign feature-tree root is refused before any claim
+PASS  case 33: harness-eng-lead -> harness-backend-dev under distill-eng with the mission and its tree starts and claims
+PASS  case 33: harness-validator-lead -> harness-code-reviewer under distill-validator with no mission is refused before any claim
+PASS  case 33: harness-validator-lead -> harness-code-reviewer under distill-validator with a conflicting mission is refused before any claim
+PASS  case 33: harness-validator-lead -> harness-code-reviewer under distill-validator with no feature-tree root is refused before any claim
+PASS  case 33: harness-validator-lead -> harness-code-reviewer under distill-validator with a foreign feature-tree root is refused before any claim
+PASS  case 33: harness-validator-lead -> harness-code-reviewer under distill-validator with the mission and its tree starts and claims
+PASS  case 33: harness-validator-lead -> harness-qa under distill-validator with no mission is refused before any claim
+PASS  case 33: harness-validator-lead -> harness-qa under distill-validator with a conflicting mission is refused before any claim
+PASS  case 33: harness-validator-lead -> harness-qa under distill-validator with no feature-tree root is refused before any claim
+PASS  case 33: harness-validator-lead -> harness-qa under distill-validator with a foreign feature-tree root is refused before any claim
+PASS  case 33: harness-validator-lead -> harness-qa under distill-validator with the mission and its tree starts and claims
+PASS  case 33: harness-eng-lead -> harness-backend-dev under r1-eng with an ordinary build dispatch and no mission starts and claims
+PASS  case 34: a distill lead's child declaring another feature is refused
+PASS  case 35: an ordinary build lead's member carrying the distill marker is refused before any claim
+PASS  case 36: a lead start on an ordinary registered run carrying the distill marker is refused before any claim
+PASS  case 37: the orchestrator of a feature with a registered distill-* run starts with the marker
+PASS  case 37: the orchestrator of a feature with no distill-* run is refused the marker
+178 of 178 cases passed
+PASS test-dispatch-guard.py
+----- test-factory-decompose.py (exit 0, 12.92s) -----
+factory: decompose: feature.json invalid: /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-u_1os9un/tmpysw2eylw/.harness/features/FEAT-99-fixture/feature.json — has a factory.parent that is not a recorded issue number
+factory: issue types could not be determined on acme/widget (Could not resolve to a Repository with the name 'acme/widget'.) - labels only
+factory: decompose: unexpected failure: RuntimeError: boom, kill before any edge — re-run with FACTORY_DEBUG=1 for a traceback
+ok    (1) unsigned plan: exits 2
+ok    (1) unsigned plan: nothing on stdout
+ok    (1) unsigned plan: names the plan path on stderr
+ok    (1) unsigned plan: zero mutating calls
+ok    (1b) unparseable plan.yaml: exits 2
+ok    (1b) unparseable plan.yaml: names the plan path on stderr
+ok    (1b) unparseable plan.yaml: does not leak the exception class name
+ok    (1b) unparseable plan.yaml: zero mutating calls
+ok    (1c) unparseable feature.json: exits 2
+ok    (1c) unparseable feature.json: names the feature.json path on stderr
+ok    (1c) unparseable feature.json: does not leak the exception class name
+ok    (1c) unparseable feature.json: zero mutating calls
+ok    (1d) non-mapping factory value refuses and names the file
+ok    (1d) quoted parent is coerced through load_factory
+ok    (1d) bool parent refuses rather than becoming absence
+ok    (1d) integer parent remains an integer through load_factory
+ok    (1d) absent factory key remains the empty record
+ok    (1d) absent feature.json remains the empty record
+ok    (1d) non-UTF-8 feature.json refuses and names the file through load_factory
+ok    (2) signed two-task plan: exits 0
+ok    (2) two issues created
+ok    (2) two board items added
+ok    (2) two stations set
+ok    (2) both stations set to the fleet's ready option
+ok    (2) feature.json records two issue numbers
+ok    (2) feature.json records two item ids
+ok    (3) second publish: exits 0
+ok    (3) second publish: zero calls of any kind on the mutating/board/edge/id surface (preflight is expected and excluded from this list)
+ok    (3) second publish: zero internal_id calls specifically
+ok    (4) unlisted repo: exits 2
+ok    (4) unlisted repo: zero calls of any kind
+ok    (5) config task carries chore
+ok    (5) feature task does not carry chore
+ok    (5) neither carries bug
+ok    (6) a raising board add exits 2
+ok    (6) feature.json still carries the created issue number
+ok    (7) precondition: one issue recorded, zero items recorded
+ok    (7) resume: exits 0
+ok    (7) resume: zero create_issue calls
+ok    (7) resume: project_item_add IS called
+ok    (7) resume: the item's station is set to the ready option
+ok    (7) resume: feature.json now carries an item id
+ok    (8) ensure_labels runs before the first create_issue
+ok    (8) ensure_labels' argument set contains factory:claimed
+ok    (8) created issue 'T-01 do the thing' carries harness
+ok    (8) created issue 'T-01 do the thing' carries feature:FEAT-99-fixture
+ok    (8) created issue 'T-01 do the thing' never carries factory:claimed
+ok    (8) created issue 'T-02 do the thing' carries harness
+ok    (8) created issue 'T-02 do the thing' carries feature:FEAT-99-fixture
+ok    (8) created issue 'T-02 do the thing' never carries factory:claimed
+ok    (9) keys outside the factory block round-trip unchanged
+ok    (9) the github block survives
+ok    (9) a factory key was written
+ok    (10) unsigned-plan refusal: zero mutating calls over the FULL call list
+ok    (11) body has exactly two blank-line-separated parts (intent, then meta)
+ok    (11) intent appears first, verbatim
+ok    (11) change_type line present
+ok    (11) traces line is comma-separated on one line
+ok    (12) exits 0
+ok    (12) parent carries exactly harness + feature:<FEAT>
+ok    (12) parent body is problem, blank line, **Goal:** line
+ok    (12) parent body carries no change_type/traces line
+ok    (12) feature.json records the created parent and no parent_origin (DEC-203)
+ok    (13) exits 0
+ok    (13) no issue is created for the adopted parent
+ok    (13) feature.json records parent 777 and no parent_origin (DEC-203)
+ok    (13) feature:<FEAT> label applied to the adopted parent
+ok    (13) no call edits the adopted parent's title or body
+ok    (14) the parent's number appears in NO project_item_add call
+ok    (15) exactly two attach calls, one per task
+ok    (15) attach ('attach_sub_issue', ('acme/widget', 1, 900101)) carries the INTERNAL id, not an issue number
+ok    (15) attach ('attach_sub_issue', ('acme/widget', 1, 900101)) targets parent 1
+ok    (15) attach ('attach_sub_issue', ('acme/widget', 1, 900102)) carries the INTERNAL id, not an issue number
+ok    (15) attach ('attach_sub_issue', ('acme/widget', 1, 900102)) targets parent 1
+ok    (16) exits 0
+ok    (16) exactly six blocked_by calls for T-12
+ok    (16) each names a distinct resolved blocker id
+ok    (17) no edge call precedes the last create_issue call
+ok    (18) exits exactly 2
+ok    (18) stderr names both task ids
+ok    (18) no traceback appears anywhere in the output
+ok    (18) refusal precedes any remote write: zero mutating calls
+ok    (19) precondition: two issues, two items, empty edges
+ok    (19) run 2: exits 0
+ok    (19) run 2: zero create_issue calls
+ok    (19) run 2: zero project_item_add calls
+ok    (19) run 2: draws every parent and blocked_by edge
+ok    (19) run 3: draws nothing at all
+ok    (20a) already-drawn blocked_by: exits 0
+ok    (20a) feature.json records the edge exactly as a successful call would
+ok    (20a) a stderr line names both task ids
+ok    (20a) the run continues to draw every later edge (both attaches present)
+ok    (20b) the attach twin STAYS FATAL: exits 2
+ok    (20b) feature.json records NO parent receipt for that task
+ok    (21) a non-already-drawn GhError on blocked_by stays fatal: exits 2
+ok    (21) no receipt recorded for that edge
+ok    (22) os.replace was called at least once
+ok    (22) feature.json WAS opened for reading at least once (anti-vacuum)
+ok    (22) feature.json was opened only for reading, never in a truncating mode
+ok    (SC-20) plan.yaml is byte-identical
+ok    (SC-20) BRIEF.md is byte-identical
+ok    (SC-20) feature.json is the only file whose hash changed
+ok    (C-3a) unsigned-plan refusal: nothing on stdout
+ok    (C-3a) unsigned-plan refusal: exactly one stderr line
+ok    (C-3b) happy path stdout is exactly one JSON object
+ok    (C-3b) payload carries the expected keys
+ok    (C-3b) payload carries no parent_origin (DEC-203)
+ok    (C-3c) a plain KeyError from create_issue exits 2, not 1
+ok    (S2-missing) exits exactly 2 (EXIT_REFUSED, not 1/'nothing to do')
+ok    (S2-missing) nothing on stdout
+ok    (S2-missing) stderr names the plan path
+ok    (S2-missing) stderr names the missing/unusable field: 'feature'
+ok    (S2-missing) zero mutating gh calls — no remote write at all
+ok    (S2-missing) preflight itself never ran either — refused before step 3
+ok    (S2-missing) no 'feature:None' label anywhere in what reached gh
+ok    (S2-missing) no bare 'feature:' label anywhere in what reached gh either
+ok    (S2-empty) exits exactly 2 (EXIT_REFUSED, not 1/'nothing to do')
+ok    (S2-empty) nothing on stdout
+ok    (S2-empty) stderr names the plan path
+ok    (S2-empty) stderr names the missing/unusable field: 'feature'
+ok    (S2-empty) zero mutating gh calls — no remote write at all
+ok    (S2-empty) preflight itself never ran either — refused before step 3
+ok    (S2-empty) no 'feature:None' label anywhere in what reached gh
+ok    (S2-empty) no bare 'feature:' label anywhere in what reached gh either
+ok    (S2-whitespace) exits exactly 2 (EXIT_REFUSED, not 1/'nothing to do')
+ok    (S2-whitespace) nothing on stdout
+ok    (S2-whitespace) stderr names the plan path
+ok    (S2-whitespace) stderr names the missing/unusable field: 'feature'
+ok    (S2-whitespace) zero mutating gh calls — no remote write at all
+ok    (S2-whitespace) preflight itself never ran either — refused before step 3
+ok    (S2-whitespace) no 'feature:None' label anywhere in what reached gh
+ok    (S2-whitespace) no bare 'feature:' label anywhere in what reached gh either
+ok    (D4fix-1) run 1 exits 2
+ok    (D4fix-1) run 1: project_item_add WAS called (proves the run reached step 7)
+ok    (D4fix-1) run 1: issue recorded
+ok    (D4fix-1) run 1: item NOT recorded as complete (the orphan does not land in the ledger)
+ok    (D4fix-2) run 2, same persistent failure: exits non-zero
+ok    (D4fix-2) run 2: item STILL not recorded as complete
+ok    (D4-3) precondition: issue recorded, item not recorded
+ok    (D4-3) resume with existing board item: exits 0
+ok    (D4-3) project_item_add was NOT called on the recovery run
+ok    (D4-3) project_items was called ZERO times — the whole-board scan is gone
+ok    (D4-3) issue_board_item_id was called EXACTLY ONCE (the targeted read-before-write)
+ok    (D4-3) issue_board_item_id called with (repo, issue_number, board_number)
+ok    (D4-3) project_field_set called with the RESOLVED existing item id
+ok    (D4-3) feature.json records the resolved existing item id
+ok    (D4-3b) resume with a board lookup miss: exits 0
+ok    (D4-3b) issue_board_item_id WAS called (the lookup happened)
+ok    (D4-3b) project_item_add IS called on a lookup miss (the fallback)
+ok    (D4-3c) resume with a closed issue: exits 0
+ok    (D4-3c) project_item_add was NOT called on the recovery run
+ok    (D4-3c) the lookup call args are exactly (repo, issue_num, board_number) — NOT the no-state-scoping property, which this check cannot exercise (see comment above)
+ok    (D4-3c) project_field_set called with the RESOLVED existing item id
+ok    (D4-4) board missing a required column: exits 2
+ok    (D4-4) board missing a required column: zero mutating calls
+ok    (D4-4) board missing a required column: the validation read itself happened
+ok    (D4-4) board missing a required column: stderr names the offending station
+ok    (D4-4) board missing a required column: stderr names the required column
+ok    (D4-4) board missing a required column: stderr names the board's real options
+ok    (D4-4) board missing a required column: nothing on stdout
+ok    (T-03) two-repo fleet, --repo A: exits 0
+ok    (T-03) project_item_add called at least once, all against A's board (acme, 3)
+ok    (T-03) project_item_add issues no call against B's board (other-org, 7)
+ok    (T-03) project_field_set called at least once, all against A's board (acme, 3)
+ok    (T-03) project_field_set issues no call against B's board (other-org, 7)
+ok    (T-03) the station set to the derived ready column on A's board
+ok    (T-03) the station-validation read is against A's board and field, never B's
+ok    (C3-1) write_factory's key survives the interleave
+ok    (C3-1) the unrelated concurrent writer's key survives the interleave
+ok    (C3-2) write_factory refuses a candidate introducing a new schema problem
+ok    (C3-2) feature.json left byte-identical after the refusal
+ok    (C4-1) created document carries the given feature_id
+ok    (C4-1) created document carries every schema-required key
+ok    (C4-1) created document's factory.repo carries the given repo
+ok    (C4-2) write_factory without feat_id refuses to create, code 9
+ok    (C4-2) no file created at the refused path
+ok    BUG-285 wrong parent refuses before parent or task issue creation
+ok    BUG-285 wrong issues refuses before parent or task issue creation
+
+179/179 checks passed.
+ok    FEAT-64: a non-UTF-8 BRIEF is (None, None)
+ok    FEAT-64: a missing BRIEF is (None, None)
+ok    FEAT-64: an unrelated RuntimeError escapes extract_brief
+PASS test-factory-decompose.py
+----- test-factory-integration.py (exit 0, 12.10s) -----
+ok    (A) config: no arguments exits 2
+ok    (A) config: no arguments never exits 1
+ok    (A) config: no arguments writes nothing to stdout
+ok    (A) config: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (A) decompose: no arguments exits 2
+ok    (A) decompose: no arguments never exits 1
+ok    (A) decompose: no arguments writes nothing to stdout
+ok    (A) decompose: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (A) claim: no arguments exits 2
+ok    (A) claim: no arguments never exits 1
+ok    (A) claim: no arguments writes nothing to stdout
+ok    (A) claim: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (A) workspace: no arguments exits 2
+ok    (A) workspace: no arguments never exits 1
+ok    (A) workspace: no arguments writes nothing to stdout
+ok    (A) workspace: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (A) land: no arguments exits 2
+ok    (A) land: no arguments never exits 1
+ok    (A) land: no arguments writes nothing to stdout
+ok    (A) land: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (B) missing --fleet path: exits 2
+ok    (B) missing --fleet path: nothing on stdout
+ok    (B) missing --fleet path: stderr names the path
+ok    (B): the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (C) decompose: auth failure exits 2
+ok    (C) decompose: auth failure never exits 1
+ok    (C) decompose: auth failure writes nothing to stdout
+ok    (C) decompose: auth failure writes to stderr
+ok    (C) claim: auth failure exits 2
+ok    (C) claim: auth failure never exits 1
+ok    (C) claim: auth failure writes nothing to stdout
+ok    (C) claim: auth failure writes to stderr
+ok    (C) land: auth failure exits 2
+ok    (C) land: auth failure never exits 1
+ok    (C) land: auth failure writes nothing to stdout
+ok    (C) land: auth failure writes to stderr
+ok    (D-config) success: exits 0
+ok    (D-config) success: stdout is one JSON object
+ok    (D-config) success: payload carries repos, and no board on either the fleet or any repos entry
+ok    (D-config): the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (D-decompose) success: exits 0
+ok    (D-decompose) success: stdout is one JSON object
+ok    (D-decompose) success: one issue recorded for T-1
+ok    (D-decompose): the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (D-claim) success: exits 0
+ok    (D-claim) success: stdout is one JSON object
+ok    (D-claim) success: payload branch is factory/issue-600
+ok    (D-claim) success: board item actually moved to Building
+ok    (D-claim): the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (D-workspace) success: exits 0
+ok    (D-workspace) success: stdout is one JSON object
+ok    (D-workspace) success: payload path is under workspace_root
+ok    (D-workspace) success: payload branch is factory/issue-800
+ok    (D-workspace): the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (D-land) success: exits 0
+ok    (D-land) success: stdout is one JSON object
+ok    (D-land) success: payload carries a pull request url
+ok    (D-land) success: board item actually moved to Review
+ok    (D-land): the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (E) ref refused for every candidate: exits 1
+ok    (E) ref refused for every candidate: writes nothing to stdout
+ok    (E): the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (F) decompose exits 0
+ok    (F) decompose: stdout is one JSON object
+ok    (F) decompose: one issue per task
+ok    (F) decompose: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (F) decompose: both board items boarded at the fleet's declared ready station
+ok    (F) claim exits 0
+ok    (F) claim: stdout is one JSON object
+ok    (F) claim: claimed the T-1 issue (unblocked candidate)
+ok    (F) claim: payload branch is factory/issue-<n>
+ok    (F) claim: board item actually moved to Building
+ok    (F) claim: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (F) workspace exits 0
+ok    (F) workspace: stdout is one JSON object
+ok    (F) workspace: payload path is under workspace_root
+ok    (F) workspace: payload branch matches claim's branch
+ok    (F) workspace: the payload path is an actual directory on disk
+ok    (F) workspace: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (F) workspace: recorded git commands include a checkout of factory/issue-<n>
+ok    (F) land exits 0
+ok    (F) land: stdout is one JSON object
+ok    (F) land: opened exactly one pull request
+ok    (F) land: board item actually moved to Review
+ok    (F) land: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (F) land: recorded git commands include a push of factory/issue-<n> to origin
+ok    (G1) -b --track form: workspace exits 0 against real git
+ok    (G1) -b --track form: HEAD equals origin's factory/issue-1
+ok    (G1) -b --track form: local branch tracks origin/factory/issue-1
+ok    (G1): the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (G2) fixture sanity: local factory/issue-2 differs from origin's before the run
+ok    (G2) fixture sanity: local factory/issue-2 has no upstream before the run
+ok    (G2) -B --track form: workspace exits 0 against real git
+ok    (G2) -B --track form: HEAD force-aligned onto origin's factory/issue-2
+ok    (G2) -B --track form: local branch now tracks origin/factory/issue-2
+ok    (G2): the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (G) live-git smoke check ran against a real git binary (/usr/bin/git, git version 2.54.0 (Apple Git-157))
+ok    (H) decompose against the two-board fleet exits 0
+ok    (H) decompose: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (H) claim against the two-board fleet exits 0
+ok    (H) claim: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (H) land against the two-board fleet exits 0
+ok    (H) land: the root override was not silently discarded (no 'discarding HARNESS_PROJECT_DIR')
+ok    (H) at least one gh call was recorded (anti-vacuum)
+ok    (H) no recorded gh call names the other repository's board number
+ok    (H) at least one recorded gh call names the served repository's own board number (proves the check above has power)
+ok    (I) project_create: forked process exits 0
+ok    (I) project_create: one call resolves the owner id, one call mutates createProjectV2
+ok    (I) project_create: the title is sent verbatim as a GraphQL variable
+ok    (I) project_link_repository: forked process exits 0
+ok    (I) project_link_repository: resolves the repo id then mutates linkProjectV2ToRepository
+ok    (I) project_link_repository: repo owner/name split sent verbatim
+ok    (I) project_single_select_create: forked process exits 0
+ok    (I) project_single_select_create: mutates createProjectV2Field, sends every option's color and description explicitly
+ok    (I) project_single_select_extend: forked process exits 0
+ok    (I) project_single_select_extend: mutates updateProjectV2Field, never createProjectV2Field, sending every option in the given order
+ok    (J) board_lifecycle.py provision: forked process exits 0 against a complete board
+ok    (J) board_lifecycle.py provision: reports its own verdict on stdout (anti-vacuum — an __main__ block that forgets to dispatch also exits 0 with an empty log, which would make the exit-0 and zero-mutations checks below pass for the wrong reason)
+ok    (J) board_lifecycle.py provision: at least one gh call was actually recorded
+ok    (J) board_lifecycle.py provision: performs ZERO mutations against a complete board
+ok    (K) board_lifecycle.py audit: forked process exits 1 against a fixture carrying one finding (the EXIT STATUS, not an in-process SystemExit catch)
+ok    (K) board_lifecycle.py audit: the finding's text appears on stdout
+ok    (L) board_lifecycle.py audit STATUS: forked process exits 1 against a plan.yaml active station disagreeing with its parent card (the EXIT STATUS, not an in-process SystemExit catch)
+ok    (L) board_lifecycle.py audit STATUS: the finding names the feature dir, the recorded active station, its column, and the actual station backlog
+ok    (M) board_lifecycle.py reconcile with NO flags: exits 0 (the dry-run default, even though a fixable REASON finding is present)
+ok    (M) board_lifecycle.py reconcile with NO flags: the finding is previewed, not silently skipped (anti-vacuum)
+ok    (M) board_lifecycle.py reconcile with NO flags: ZERO mutations reached the stub gh -- --apply was never defaulted to
+ok    (N) board_lifecycle.py retitle with NO flags: exits 0 (the dry-run default, even though a pending rename is present)
+ok    (N) board_lifecycle.py retitle with NO flags: the pending rename is previewed, not silently skipped (anti-vacuum)
+ok    (N) board_lifecycle.py retitle with NO flags: ZERO rename calls reached the stub gh -- --apply was never defaulted to
+ok    (N) board_lifecycle.py retitle with NO flags: the issue's title on the stub's own state is untouched by the preview
+
+131/131 checks passed.
+PASS test-factory-integration.py
+----- test-expertise-merge.py (exit 0, 16.84s) -----
+PASS  case1: naive last-writer-wins loses P-02
+PASS  case1: naive last-writer-wins loses P-03
+PASS  case2: apply A exits 0
+PASS  case2: apply B exits 0
+PASS  case2: P-01 present after both applies
+PASS  case2: P-02 present after both applies
+PASS  case2: P-03 present after both applies
+PASS  case2: P-04 present after both applies
+PASS  case2: check-expertise.py still accepts the merged file
+PASS  case3: 20 concurrent trials admit only the union outcome or the lock outcome
+PASS  case4: divergent text exits 7
+PASS  case4: existing text appears in stdout
+PASS  case4: proposed text appears in stdout
+PASS  case4: file is byte identical to before
+PASS  case4: a following apply still exits 0
+PASS  case5: cap overflow exits 8
+PASS  case5: stdout names the section
+PASS  case5: stdout names the cap
+PASS  case5: file is byte identical to before
+PASS  case5: a following apply still exits 0
+PASS  case6: target file absent before apply
+PASS  case6: exits 0
+PASS  case6: file created
+PASS  case6: proposed entry present
+PASS  case6: a following apply still exits 0
+PASS  case9: a non-Expertise --file is REFUSED with exit 9
+PASS  case9: ...and the refused file is UNTOUCHED
+PASS  case9: a `..` escape carrying a legal tail is REFUSED — the match is on the realpath, not the argument
+PASS  case9: the project tier is ALLOWED — exit 0
+PASS  case9: the repository tier is ALLOWED — exit 0
+PASS  case8: CAPS mapping found in expertise-merge.py
+PASS  case8: CAPS mapping found in check-expertise.py
+PASS  case8: Patterns cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Gotchas cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Outcomes cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Open cap agrees between expertise-merge.py and check-expertise.py
+PASS  case10: a following apply exits 0 after the lock holder is SIGKILLed
+PASS  case10: the proposed entry is on disk after recovery
+PASS  case11: replace at capacity exits 0
+PASS  case11: stdout carries REPLACED P-07
+PASS  case11: Patterns still holds 15 entries
+PASS  case11: the 7th entry line is P-07
+PASS  case11: the 7th entry line carries the new text
+PASS  case11: check-expertise.py still accepts the written file
+PASS  case12: drop exits 0
+PASS  case12: stdout carries DROPPED G-03
+PASS  case12: the string - G-03: is absent from the file
+PASS  case12: G-01 is still present
+PASS  case12: G-02 is still present
+PASS  case12: G-04 is still present
+PASS  case12: G-05 is still present
+PASS  case12: check-expertise.py still accepts the written file
+PASS  case13: missing target exits 10
+PASS  case13: combined output carries MISSING TARGET
+PASS  case13: combined output carries the id P-99
+PASS  case13: combined output carries the section Patterns
+PASS  case13: file sha256 is unchanged
+PASS  case13: file content is byte identical to before
+PASS  case13: a following add-only apply still exits 0
+PASS  case14: (b) a duplicate id in one section exits 11
+PASS  case14: (b) combined output carries AMBIGUOUS TARGET
+PASS  case14: (b) combined output carries the id P-04
+PASS  case14: (b) combined output carries the section Patterns
+PASS  case14: (b) combined output carries a reason
+PASS  case14: (b) file sha256 is unchanged
+PASS  case14: (c) two ops naming the same target exits 11
+PASS  case14: (c) combined output carries AMBIGUOUS TARGET
+PASS  case14: (c) combined output carries the id P-01
+PASS  case14: (c) combined output carries the section Patterns
+PASS  case14: (c) combined output carries a reason
+PASS  case14: (c) file sha256 is unchanged
+PASS  case15: atomic failure exits non-zero
+PASS  case15: file sha256 equals the sha256 taken before the invocation
+PASS  case15: a following add-only apply still exits 0
+PASS  case16: add-only proposal exits 0
+PASS  case16: stdout carries the ADDED token
+PASS  case16: stdout carries the PRESERVED token
+PASS  case16: stdout carries the APPLIED token
+PASS  case16: same-id-different-text proposal still exits 7
+PASS  case16: over-cap proposal still exits 8
+PASS  case17: the op: vocabulary anchor matches the real SKILL.md exactly once
+PASS  case17: contract_drift(real SKILL.md) returns no failures
+PASS  case17: copy (a) actually removed the phrase 'drop of the absorbed id'
+PASS  case17: copy (a) — rewrite phrase removed — reddens the FIRST direction (CONTRACT - ACCEPTED)
+PASS  case17: copy (a) does not redden the SECOND direction (ACCEPTED - CONTRACT)
+PASS  case17: copy (b) actually inserted the extra verb prune
+PASS  case17: copy (b) — extra verb prune inserted — reddens the FIRST direction (CONTRACT - ACCEPTED)
+PASS  case17: copy (b) does not redden the SECOND direction (ACCEPTED - CONTRACT)
+PASS  case17: copy (c) actually removed the verb drop from the vocabulary line
+PASS  case17: copy (c) — drop removed from the vocabulary line — reddens the SECOND direction (ACCEPTED - CONTRACT)
+PASS  case17: copy (c) does not redden the FIRST direction (CONTRACT - ACCEPTED)
+PASS  case18: neither child exits during the 2.0s hold window while the test holds the production lock (2.01s observed)
+PASS  case18: child A (apply) exits 0 once the lock is released
+PASS  case18: child B (ops) exits 0 once the lock is released
+PASS  case18: the Patterns id census is exactly the original eight plus P-09 and P-10
+PASS  case18: the P-07 entry carries child B's marker text
+PASS  case19: multi-op composition exits 0
+PASS  case19: stdout carries DROPPED P-01
+PASS  case19: stdout carries REPLACED P-05
+PASS  case19: the id sequence is exactly P-02, P-03, P-04, P-05 in file order
+PASS  case19: the P-05 entry carries the marker text
+PASS  case19: no other entry carries the marker text
+PASS  case19: check-expertise.py still accepts the written file
+PASS  case20: (a) missing section key exits 12
+PASS  case20: (a) combined output carries MALFORMED OPS
+PASS  case20: (a) combined output names the offending key section
+PASS  case20: (a) combined output names the op's index
+PASS  case20: (a) file sha256 is unchanged
+PASS  case20: (a) a following add-only apply still exits 0, so the file is still writable
+PASS  case20: (b) empty section key exits 12
+PASS  case20: (b) combined output carries MALFORMED OPS
+PASS  case20: (b) combined output names the offending key section
+PASS  case20: (b) combined output names the op's index
+PASS  case20: (b) file sha256 is unchanged
+PASS  case20: (c) digest-shaped mapping exits 12
+PASS  case20: (c) combined output carries MALFORMED OPS
+PASS  case20: (c) combined output carries the literal token expertise_update
+PASS  case20: (c) file sha256 is unchanged
+PASS  case21: (U+000A) an entry embedding it exits 12
+PASS  case21: (U+000A) combined output carries MALFORMED OPS
+PASS  case21: (U+000A) file sha256 is unchanged
+PASS  case21: (U+000B) an entry embedding it exits 12
+PASS  case21: (U+000B) combined output carries MALFORMED OPS
+PASS  case21: (U+000B) file sha256 is unchanged
+PASS  case21: (U+000C) an entry embedding it exits 12
+PASS  case21: (U+000C) combined output carries MALFORMED OPS
+PASS  case21: (U+000C) file sha256 is unchanged
+PASS  case21: (U+000D) an entry embedding it exits 12
+PASS  case21: (U+000D) combined output carries MALFORMED OPS
+PASS  case21: (U+000D) file sha256 is unchanged
+PASS  case21: (U+001C) an entry embedding it exits 12
+PASS  case21: (U+001C) combined output carries MALFORMED OPS
+PASS  case21: (U+001C) file sha256 is unchanged
+PASS  case21: (U+001D) an entry embedding it exits 12
+PASS  case21: (U+001D) combined output carries MALFORMED OPS
+PASS  case21: (U+001D) file sha256 is unchanged
+PASS  case21: (U+001E) an entry embedding it exits 12
+PASS  case21: (U+001E) combined output carries MALFORMED OPS
+PASS  case21: (U+001E) file sha256 is unchanged
+PASS  case21: (U+0085) an entry embedding it exits 12
+PASS  case21: (U+0085) combined output carries MALFORMED OPS
+PASS  case21: (U+0085) file sha256 is unchanged
+PASS  case21: (U+2028) an entry embedding it exits 12
+PASS  case21: (U+2028) combined output carries MALFORMED OPS
+PASS  case21: (U+2028) file sha256 is unchanged
+PASS  case21: (U+2029) an entry embedding it exits 12
+PASS  case21: (U+2029) combined output carries MALFORMED OPS
+PASS  case21: (U+2029) file sha256 is unchanged
+PASS  case21: the forged entry never reaches the file
+PASS  case21: (cap bypass) U+2028 replace on at-cap Gotchas exits 12
+PASS  case21: (cap bypass) re-parsed Gotchas count stays 15
+PASS  case21: (cross-section) VT-embedded forged header exits 12
+PASS  case21: (cross-section) re-parsed Patterns count stays 14
+PASS  case21: (cross-section) re-parsed Gotchas count stays 15
+PASS  case22: (U+000A) a target embedding it exits 12
+PASS  case22: (U+000A) combined output carries MALFORMED OPS
+PASS  case22: (U+000A) file sha256 is unchanged
+PASS  case22: (U+000B) a target embedding it exits 12
+PASS  case22: (U+000B) combined output carries MALFORMED OPS
+PASS  case22: (U+000B) file sha256 is unchanged
+PASS  case22: (U+000C) a target embedding it exits 12
+PASS  case22: (U+000C) combined output carries MALFORMED OPS
+PASS  case22: (U+000C) file sha256 is unchanged
+PASS  case22: (U+000D) a target embedding it exits 12
+PASS  case22: (U+000D) combined output carries MALFORMED OPS
+PASS  case22: (U+000D) file sha256 is unchanged
+PASS  case22: (U+001C) a target embedding it exits 12
+PASS  case22: (U+001C) combined output carries MALFORMED OPS
+PASS  case22: (U+001C) file sha256 is unchanged
+PASS  case22: (U+001D) a target embedding it exits 12
+PASS  case22: (U+001D) combined output carries MALFORMED OPS
+PASS  case22: (U+001D) file sha256 is unchanged
+PASS  case22: (U+001E) a target embedding it exits 12
+PASS  case22: (U+001E) combined output carries MALFORMED OPS
+PASS  case22: (U+001E) file sha256 is unchanged
+PASS  case22: (U+0085) a target embedding it exits 12
+PASS  case22: (U+0085) combined output carries MALFORMED OPS
+PASS  case22: (U+0085) file sha256 is unchanged
+PASS  case22: (U+2028) a target embedding it exits 12
+PASS  case22: (U+2028) combined output carries MALFORMED OPS
+PASS  case22: (U+2028) file sha256 is unchanged
+PASS  case22: (U+2029) a target embedding it exits 12
+PASS  case22: (U+2029) combined output carries MALFORMED OPS
+PASS  case22: (U+2029) file sha256 is unchanged
+PASS  case22: the forged line never reaches the file
+PASS  case22: re-parsed Patterns count stays 1
+PASS  case23: a non-string target exits 12, not 1
+PASS  case23: combined output carries MALFORMED OPS
+PASS  case23: combined output carries no Python traceback
+PASS  case23: file sha256 is unchanged
+PASS  case24: (a) add matching neither occurrence exits 11, not the pre-fix outcome
+PASS  case24: (a) combined output carries AMBIGUOUS TARGET
+PASS  case24: (a) combined output carries the id P-07
+PASS  case24: (a) file sha256 is unchanged
+PASS  case24: (b) add matching the surviving occurrence exits 11, not the pre-fix outcome
+PASS  case24: (b) combined output carries AMBIGUOUS TARGET
+PASS  case24: (b) file sha256 is unchanged
+PASS  case25: (too-long id vanishes on reparse) exits 12
+PASS  case25: (too-long id vanishes on reparse) combined output carries MALFORMED OPS
+PASS  case25: (too-long id vanishes on reparse) combined output carries the malformed target
+PASS  case25: (too-long id vanishes on reparse) file sha256 is unchanged
+PASS  case25: (a) re-parsed Gotchas holds no new entry
+PASS  case25: (id-embedding target refused, not aliased) exits 12
+PASS  case25: (id-embedding target refused, not aliased) combined output carries MALFORMED OPS
+PASS  case25: (id-embedding target refused, not aliased) combined output carries the malformed target
+PASS  case25: (id-embedding target refused, not aliased) file sha256 is unchanged
+PASS  case25: (b) re-parsed Patterns holds exactly one P-01
+PASS  case25: (b) a following legitimate replace of P-01 exits 0, not 11
+PASS  case26: well-formed add exits 0
+PASS  case26: rendered file contains the new entry
+PASS  case27a: duplicate ids exit 11
+PASS  case27a: message carries AMBIGUOUS TARGET, section, id and reason
+PASS  case27a: destination bytes unchanged
+PASS  case27b: identical duplicate ids exit 11
+PASS  case27b: message carries AMBIGUOUS TARGET, section, id and reason
+PASS  case27b: destination bytes unchanged
+PASS  case27c: absent destination exits 11
+PASS  case27c: message carries AMBIGUOUS TARGET
+PASS  case27c: nothing created at the absent destination
+PASS  member strict: persona key rejected with 12
+PASS  member absent craft: exits 0
+PASS  member absent craft: canonical title plus the four sections
+PASS  member absent craft: before/after per-section counts returned
+PASS  member absent craft: outcomes returned
+PASS  member strict: state key rejected with 12
+PASS  member absent craft: result passes check-expertise
+PASS  member receipt: persona feature runtime parent recorded
+PASS  member receipt: checkout-relative destination
+PASS  member receipt: exact accepted ops
+PASS  member receipt: absent original recorded as null
+PASS  member receipt: before/after content hashes
+PASS  member receipt: content-derived 64-hex batch identity returned too
+PASS  member strict: unknown key rejected with 12
+PASS  member strict: rejects left every byte alone
+PASS  batches: both calls succeed
+PASS  batches: ordered 1 then 2
+PASS  batches: distinct content-derived identities
+PASS  batches: second batch originals are the first batch's text and absence
+PASS  batches: second batch starts from the first batch's result
+PASS  batches: ops recorded exactly in call order
+PASS  batches: counts reflect the second call only
+PASS  ops regression: persona is still not a low-level op key
+PASS  batches: a different parent for the same runtime id is refused with 15
+PASS  member strict: empty list without supersedes refused with 12
+PASS  member receipt: identity is stable across identical fixtures
+PASS  batches: a different persona for the same runtime id is refused with 15
+PASS  batches: those refusals changed nothing
+PASS  member strict: undecodable JSON refused with 12
+PASS  member absent repository: exits 0
+PASS  member absent repository: canonical file
+PASS  member absent repository: receipt destination
+PASS  ops regression: plain ops still applies
+PASS  ops regression: plain ops writes no receipt
+PASS  apply regression: union apply still works
+PASS  member boundary: undeclared repository refused with 9
+PASS  member boundary: dot-dot repository refused with 9
+PASS  member boundary: path repository refused with 9
+PASS  member boundary: repository tier without segment refused with 9
+PASS  member boundary: craft tier with a segment refused with 9
+PASS  member boundary: non harness persona refused with 9
+PASS  member boundary: persona traversal refused with 9
+PASS  member boundary: unknown feature refused with 9
+PASS  member boundary: feature traversal refused with 9
+PASS  member boundary: refusals wrote nothing
+PASS  refusal: missing target refused with 10
+PASS  receipt failure: call fails with 15
+PASS  receipt failure: success was not published
+PASS  receipt failure: the target did persist
+PASS  member boundary: symlinked repository segment refused with 9
+PASS  refusal: a multi-op batch with one bad op applies nothing
+PASS  receipt failure: verification fails closed on the missing receipt
+PASS  refusal: candidate failing check-expertise refused with 14
+PASS  refusal: target bytes, receipts and notes unchanged, no applied batch
+PASS  refusal: the refused runtime has no receipt
+PASS  member boundary: symlinked craft tier (global/control-plane stand-in) refused with 9
+PASS  receipt failure: replay fails closed on the unreceipted change
+PASS  refusal: cap overflow refused with 8
+PASS  refusal: cap overflow preserved every byte
+PASS  verify: ordered active batches verify on their FINAL effect (superseded intermediate absent)
+PASS  verify: reports measured per-section counts
+PASS  verify: read-only (no file, lock or receipt changed or added)
+PASS  member boundary: symlink onto another tree's legal-looking .harness/expertise refused with 9
+PASS  verify: wrong runtime refused with 15
+PASS  member boundary: symlinked repository segment with a legal-looking tail refused with 9
+PASS  member boundary: nothing landed in the symlink targets
+PASS  member boundary: nothing landed outside the checkout
+PASS  member boundary: no receipt after refusals
+PASS  verify: wrong persona refused with 15
+PASS  verify: wrong parent refused with 15
+PASS  verify: wrong destination refused with 15
+PASS  verify: op not exactly recorded refused with 15
+PASS  verify: fabricated op refused with 15
+PASS  verify: persona missing from item refused with 15
+PASS  replay selection: earlier distill's receipt on main is ignored (replay succeeds)
+PASS  replay selection: only the current PR's receipt is read
+PASS  replay --check is read-only
+PASS  replay --check reports the checkout file already equals the replay
+PASS  verify: file reverted to the superseded intermediate is a mismatch
+PASS  verify: entry removed after the receipt is a mismatch
+PASS  replay independent: two callers replacing one base entry refuse (identical text not hidden)
+PASS  replay independent: refusal names both runs
+PASS  replay independent: refused file stays byte-identical
+PASS  verify: identical existing add is PRESERVED
+PASS  replay collision: the first worktree replays cleanly onto its own base
+PASS  verify: preserved add verifies and is listed as preserved
+PASS  verify: an invented application (receipt edited, file never changed) is refused
+PASS  replay independent: replace versus drop of one entry refuses too
+PASS  replay collision: --check succeeds
+PASS  replay collision: original-to-replayed id mapping (first free positive id)
+PASS  replay collision: --check left the file alone and says it is stale
+PASS  replay changed main: replace/drop over a changed or vanished entry refuse with 13
+PASS  replay changed main: replace refusal names persona run destination section id batch
+PASS  replay changed main: vanished drop target is DISAPPEARED
+PASS  replay changed main: refused file byte-identical
+PASS  replay collision: write run succeeds
+PASS  replay collision: both entries survive, identical add preserved, later reference remapped
+PASS  replay collision: base and result hash evidence
+PASS  evidence: a receipt whose content no longer matches its identity fails replay with 15
+PASS  evidence: ... and fails verification with 15
+PASS  evidence: undecodable receipt fails replay with 15
+PASS  replay repeat: second replay rebuilds from the base, not from its own output
+PASS  replay repeat: second replay finds the file already up to date
+PASS  supersession: the original judgment is refused first
+PASS  replay collision: result passes check-expertise
+PASS  supersession: another persona cannot retire the batch
+PASS  evidence: restored receipt replays
+PASS  replay cap: exactly at the cap succeeds
+PASS  supersession: another destination cannot retire the batch
+PASS  verify full: a clean receipted add verifies
+PASS  evidence: an Expertise change with no receipt is refused with 15
+PASS  supersession: unknown batch reference refused with 15
+PASS  supersession: a reference needs the explicit main base (12)
+PASS  supersession: malformed reference refused with 12
+PASS  verify full: receipted P-01 add plus unreceipted deletion of pre-existing G-01 refuses
+PASS  evidence: a receipt naming a file the checkout lacks is refused with 15
+PASS  replay cap: overflow refuses rather than truncates
+PASS  replay cap: refused file byte-identical
+PASS  evidence: cyclic supersession is refused with 15 and named
+PASS  supersession: failing replacement ops refuse with 10
+PASS  supersession: all refusals wrote nothing and retired nothing
+PASS  verify full: receipted add plus unreceipted edit of another entry refuses
+PASS  supersession: failed replacement leaves the old batch active (replay still refuses)
+PASS  verify full: restored file verifies again
+PASS  verify c2 member: the receipted application itself lands
+PASS  supersession: same persona re-dispatched child replaces the refused batch
+PASS  supersession: file is the main reconstruction plus the new ops
+PASS  supersession: historical receipt is immutable
+PASS  supersession: replacement receipt records the exact reference
+PASS  verify c2 member: unreceipted G-01 deletion COMMITTED before the first receipted application refuses (base=default)
+PASS  verify full: unreceipted G-01 deletion BEFORE the receipted add refuses
+PASS  supersession: replay now succeeds and the file is already the replay
+PASS  verify c2 member: unreceipted G-01 deletion COMMITTED before the first receipted application refuses (base=--base)
+PASS  supersession: replay is idempotent
+PASS  supersession: replacement receipt verifies with its authorization reference
+PASS  supersession: replacement verifies its complete destination with no --base (superseded write honoured)
+PASS  verify c2 member: a committed receipted application on a feature branch verifies (base=default)
+PASS  supersession: the retired batch no longer verifies as active
+PASS  verify c2 member: a committed receipted application on a feature branch verifies (base=--base)
+PASS  supersession: a second replacement of the same batch is ambiguous (15)
+PASS  supersession: ambiguous attempt wrote nothing
+PASS  supersession: a reference whose receipt is already on main is outside this PR (15)
+PASS  verify c2 lead: the receipted application itself lands
+PASS  verify c2 lead: unreceipted G-01 deletion COMMITTED before the first receipted application refuses (base=default)
+PASS  supersession: empty replacement withdraws the judgment
+PASS  supersession: withdrawal leaves exactly the main blob
+PASS  supersession: withdrawal is an empty batch, not a fabricated op
+PASS  verify c2 lead: unreceipted G-01 deletion COMMITTED before the first receipted application refuses (base=--base)
+PASS  supersession: replay after withdrawal succeeds
+PASS  supersession: withdrawal verifies with an empty claimed list
+PASS  verify c2 lead: a committed receipted application on a feature branch verifies (base=default)
+PASS  verify c2 lead: a committed receipted application on a feature branch verifies (base=--base)
+PASS  verify c2: no default branch and no --base refuses with 15, NO AUTHORIZED BASE
+PASS  verify c2: the runtime whose write is on the chain verifies
+PASS  verify c2: an active batch off the write chain refuses and is named (unchained-batch guard)
+PASS test-expertise-merge.py
+PASS test-expertise-merge.py
+----- test-gh-sync-board-add.py (exit 0, 1.78s) -----
+ok    a.1 start-task exits 0 for an issue with no project item
+ok    a.2 the absent card is looked up, added exactly once, then set to Building with the returned item id
+ok    a.3 the present parent card is set with its own item id and never added
+ok    p.1 with both cards on the board, start-task exits 0 and adds nothing
+ok    p.2 both present cards are set to Building with their own item ids
+
+ALL PASSED
+PASS test-gh-sync-board-add.py
+----- test-check-plan-routes.py (exit 0, 49.92s) -----
+PASS case_41_t09_comment_only_manifest_difference_is_NOT_a_deviation
+PASS case_41_t09_a_ROUTE_difference_still_deviates
+PASS case_41_t09_an_unparseable_branch_manifest_still_deviates
+PASS case_01_ungranted_undeclared_exits_nonzero
+PASS case_02_output_has_task_id
+PASS case_03_output_has_offending_path
+PASS case_04_all_granted_exits_0
+PASS case_05_ungranted_declared_main_session_exits_0
+PASS case_06_wildcard_produces_unresolved_glob
+PASS case_07_wildcard_exit_status_matches_task_removed
+PASS case_08_source_mentions_check_domain_py
+PASS case_09_source_has_no_fnmatch
+PASS case_16_source_has_no_glob_to_re
+PASS case_10_template_has_lanes_section
+PASS case_11_template_has_team_token
+PASS case_12_template_has_main_session_direct_token
+PASS case_13_runner_discovers_integration_directory
+PASS case_14_granted_but_main_session_produces_deviation
+PASS case_15_deviation_plan_still_exits_0
+PASS case_17_midpattern_wildcard_grant_no_violation
+PASS case_17_midpattern_wildcard_grant_reports_ok
+PASS case_17_midpattern_wildcard_grant_exits_0
+PASS case_17b_ok_line_names_the_exact_granting_set
+ok case_18a_block_form_first_entry_not_falsely_rejected
+ok case_18b_block_form_LATER_entry_is_checked_the_fail_open
+ok case_18d_block_form_OK_line_names_the_UNION_of_granted_sets
+ok case_18e_wrapped_same_line_continuation_is_read
+ok case_18f_unparseable_files_value_is_reported_not_silent
+ok case_18c_same_line_form_still_parsed
+PASS case_19a_argvless_output_is_independent_of_cwd
+PASS case_19a3_argvless_reports_a_count_at_all
+PASS case_19a3b_discovery_finds_the_live_plan_and_skips_the_shipped_one
+PASS case_19a3c_the_examined_line_reports_dirs_entered_and_shipped_skipped
+PASS case_19a3d_explicit_paths_print_no_examined_line
+PASS case_19a2_argvless_names_the_root_it_scanned
+PASS case_19b_unresolvable_root_exits_2_not_0
+PASS case_19b2_unresolvable_root_says_why_on_stderr
+PASS case_19b3_unusable_project_dir_is_reported_not_silently_replaced
+PASS case_19b4_a_valid_project_dir_is_not_warned_about
+PASS case_19b5_an_unset_project_dir_is_not_warned_about
+PASS case_19a4_discovery_finds_exactly_the_feature_plans
+PASS case_19a5_the_scan_line_matches_the_glob_that_ran
+PASS case_19c_zero_feature_project_is_not_an_error
+PASS case_19c2_zero_feature_project_scans_the_declared_root
+PASS case_19d_explicit_path_unaffected_by_the_root_guard
+PASS case_19d2_explicit_path_with_no_tasks_still_exits_0
+PASS case_20_logical_lines_is_string_and_comment_aware
+PASS case_20_board_station_py_probes_the_manifest
+PASS case_20_gh_sync_py_probes_the_manifest
+PASS case_20_prune_run_evidence_py_probes_the_manifest
+PASS case_20_the_detector_is_not_blind
+PASS case_21_a_bare_harness_dir_is_not_a_project_root
+PASS case_22a_unreadable_feature_dir_exits_2
+PASS case_22b_unreadable_plan_file_exits_2
+PASS case_22c_broken_symlink_plan_is_reported_not_skipped
+PASS case_22d_a_readable_tree_is_not_flagged
+PASS case_23a_plan_yaml_granted_path_is_OK
+PASS case_23b_plan_yaml_ungranted_path_is_a_VIOLATION
+PASS case_23c_an_annotated_path_resolves_to_NOBODY_not_silently_cleaned
+PASS case_23d_a_malformed_plan_yaml_exits_2_not_1
+PASS case_23e_the_per_task_machine_budget_fires
+PASS case_23f_the_budget_stays_silent_on_a_normal_task
+PASS case_23h_an_over_budget_task_sets_the_EXIT_CODE_not_just_stdout
+PASS case_23i_the_budget_boundary_is_exact
+PASS case_23j_every_budgeted_field_counts_exactly_once
+PASS case_23j2_BUDGETED_FIELDS_is_still_the_eleven_this_case_pins
+PASS case_23g_both_plan_yaml_and_PLAN_md_is_refused
+PASS case_24_backlog_is_checked
+PASS case_24_plan_is_checked
+PASS case_24_ready_is_checked
+PASS case_24_building_is_checked
+PASS case_24_review_is_checked
+PASS case_24_done_is_skipped
+PASS case_24_abandoned_is_skipped
+PASS case_24_Done_is_checked
+PASS case_24_finished_stations_is_a_subset_of_the_station_vocabulary
+PASS case_24_no_feature_yaml_is_checked_not_skipped
+PASS case_24_feature_yaml_a_sequence_is_checked_not_crashed
+PASS case_24_feature_yaml_a_bare_scalar_is_checked_not_crashed
+PASS case_24_feature_yaml_status_is_a_list_is_checked_not_crashed
+PASS case_24_feature_yaml_a_mapping_with_no_status_is_checked_not_crashed
+PASS case_24_ten_key_feature_json_with_a_done_plan_station_is_skipped_end_to_end
+PASS case_27a_owner_manifest_controls_routes
+PASS case_27b_prior_revision_false_ok
+PASS case_27c_unreadable_owner_manifest_refuses
+PASS case_41a_legal_task_statuses_is_the_mandate_plus_the_terminal_stations
+PASS case_41b_every_legal_task_status_and_an_absent_one_are_accepted
+PASS case_41c_task_status_pending_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_Building_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_Done_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_shipped_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_in-progress_is_a_VIOLATION_naming_the_value
+PASS case_41c_task_status_exits_1_with_one_violation_per_value
+PASS case_41c_the_violation_names_every_legal_value
+PASS case_41d_an_absent_or_legal_top_level_status_is_accepted
+PASS case_41f_top_level_status_pending_is_a_VIOLATION_naming_the_value
+PASS case_41f_top_level_status_Done_is_a_VIOLATION_naming_the_value
+PASS case_41f_top_level_status_nonsense_is_a_VIOLATION_naming_the_value
+PASS case_41f_top_level_status_exits_1_with_one_violation_per_value
+PASS 2077: a served plan's product paths are granted through the fleet product base
+PASS 2077: a segment the fleet does not declare is a violation, not a silent pass
+PASS case_41_t07_is_shipped_FEAT-A-shipped_is_shipped
+PASS case_41_t07_is_shipped_FEAT-B-building_is_checked
+PASS case_41_t07_is_shipped_FEAT-C-no-plan_is_checked
+PASS case_41_t07_is_shipped_FEAT-D-plan-md-era_is_shipped
+PASS case_41_t07_is_shipped_FEAT-E-both_is_checked
+PASS feat64_manifest_deviation_unrelated_RuntimeError_escapes
+PASS feat64_live_plan_loaded_exactly_once_per_execution
+PASS feat64_shipped_plan_loaded_exactly_once_and_skipped
+PASS canonical_reader_audit_module_loads_from_the_bin_under_test
+PASS canonical_reader_alias_and_nested_calls
+PASS canonical_reader_enclosing_symbol
+PASS canonical_reader_ignores_prose_and_helper_strings
+PASS canonical_reader_finds_bare_inward_primitive
+PASS canonical_reader_every_legal_exemption
+PASS canonical_reader_rejects_invented_exemption
+PASS canonical_reader_rejects_duplicate_row
+PASS canonical_reader_rejects_missing_live_row
+PASS canonical_reader_rejects_stale_artifact_row
+PASS canonical_reader_rejects_wrong_dec174_route
+PASS canonical_reader_task_files_must_name_source
+PASS canonical_reader_task_file_glob_names_source
+PASS canonical_reader_current_plan_owns_its_source
+PASS canonical_reader_cross_plan_omitted_source_refuses
+PASS canonical_reader_cross_plan_unreadable_plan_refuses
+PASS canonical_reader_planless_rows_read_no_plan
+PASS canonical_reader_planless_row_is_not_an_ownership_finding
+PASS canonical_reader_live_inventory_has_no_document_plan
+PASS canonical_reader_live_inventory_named_plan_resolves[.claude/skills/harness/bin/board_lifecycle.py::_label_owned_numbers::load_feature_json#1]
+PASS canonical_reader_live_inventory_named_plan_resolves[.claude/skills/harness/bin/check_state/board.py::_inv37_local_repo::load_fleet#1]
+PASS canonical_reader_audit_holds_on_bin_plus_named_plans
+PASS canonical_reader_named_plan_check_accepts_a_resolving_row
+PASS canonical_reader_named_plan_check_refuses_a_missing_plan
+PASS canonical_reader_named_plan_check_refuses_a_missing_task
+PASS canonical_reader_accepts_exact_extracted_reader
+PASS canonical_reader_relocation_wrong_file_refuses
+PASS canonical_reader_relocation_raw_parser_refuses
+PASS canonical_reader_missing_relocation_refuses
+PASS canonical_reader_second_state_yaml_reader_trips
+PASS canonical_reader_live_classification_consistent
+PASS canonical_reader_live_audit_is_zero
+PASS canonical_reader_scans_converted_python_entrypoints
+PASS canonical_reader_T-03_postcondition
+PASS canonical_reader_T-04_postcondition
+PASS canonical_reader_T-05_postcondition
+PASS canonical_reader_T-06_postcondition
+PASS canonical_reader_T-07_postcondition
+PASS canonical_reader_unclassified_json_file_names_exact_remedy
+PASS canonical_reader_unclassified_json_string_names_exact_remedy
+PASS canonical_reader_unclassified_pyyaml_names_exact_remedy
+PASS canonical_reader_unclassified_harness_yaml_file_names_exact_remedy
+PASS canonical_reader_unclassified_harness_yaml_string_names_exact_remedy
+PASS canonical_reader_unclassified_load_plan_names_exact_remedy
+PASS canonical_reader_unclassified_load_fleet_names_exact_remedy
+PASS canonical_reader_unclassified_manifest_domains_names_exact_remedy
+PASS canonical_reader_unclassified_load_feature_json_names_exact_remedy
+PASS canonical_reader_unclassified_accessor_module_call_is_rejected
+PASS canonical_reader_T07_terminal_rejects_missing
+PASS canonical_reader_T07_terminal_rejects_task_drift
+PASS canonical_reader_T07_terminal_rejects_disposition_drift
+PASS canonical_reader_T07_terminal_rejects_remedy_drift
+PASS canonical_reader_T07_terminal_rejects_partial_canonical_and_raw
+PASS canonical_reader_T07_terminal_rejects_new_raw_row
+PASS canonical_reader_T07_terminal_accepts_exact_live_state
+PASS canonical_reader_discovery_rejects_1_of_2_files
+PASS canonical_reader_discovery_rejects_0_of_2_files
+
+ALL PASS
+PASS test-check-plan-routes.py
+----- test-gh-backlog-issue-types.py (exit 0, 5.84s) -----
+ok    CASE A: bug:a defect -> Bug is typed IT_bug
+ok    CASE A: chore:a chore -> Task is typed IT_task
+ok    CASE A: enhancement:a wish -> Feature is typed IT_feature
+ok    CASE A: three issue create argv reached the fake
+ok    CASE B: no create argv carries --label bug
+ok    CASE B: no create argv carries --label chore
+ok    CASE B: every create argv carries --label harness
+ok    CASE C: three issues created
+ok    CASE C: bug item labels are exactly harness, bug
+ok    CASE C: chore item labels are exactly harness, chore
+ok    CASE C: enhancement item labels are exactly harness
+ok    CASE C: zero updateIssue argv reached the fake
+ok    CASE C: exactly one 'gh-sync: issue types ' line for a three-issue run
+ok    CASE C: no backlog-issues.json is written in compatibility mode
+ok    CASE D: backlog-issues.json exists after a successful run
+ok    CASE D: 'bug:a defect' recorded with number 41 and typed true
+ok    CASE D: 'chore:a chore' recorded with number 42 and typed true
+ok    CASE D: 'enhancement:a wish' recorded with number 43 and typed true
+ok    CASE D: zero issue create argv on the rerun (everything already recorded)
+ok    CASE D: exactly one argv containing issueTypes on the zero-create rerun
+ok    CASE D: zero 'gh-sync: issue types ' lines on the zero-create rerun
+ok    CASE E: 'bug:a defect' has a receipt entry after a failed type-apply
+ok    CASE E: 'bug:a defect''s typed value is exactly false (not absent)
+ok    CASE E: 'chore:a chore' has a receipt entry after a failed type-apply
+ok    CASE E: 'chore:a chore''s typed value is exactly false (not absent)
+ok    CASE E: 'enhancement:a wish' has a receipt entry after a failed type-apply
+ok    CASE E: 'enhancement:a wish''s typed value is exactly false (not absent)
+ok    CASE E: the rerun makes no issue create argv
+ok    CASE E: the rerun makes no issue close argv
+ok    CASE E: the rerun makes no issue delete argv
+ok    CASE E: the rerun updateIssue's the recorded node id for number 41
+ok    CASE E: the rerun updateIssue's the recorded node id for number 42
+ok    CASE E: the rerun updateIssue's the recorded node id for number 43
+ok    CASE E: 'bug:a defect''s typed value is promoted to True after the backfill
+ok    CASE E: 'chore:a chore''s typed value is promoted to True after the backfill
+ok    CASE E: 'enhancement:a wish''s typed value is promoted to True after the backfill
+ok    CASE F: the second run makes three MORE issue create argv
+ok    CASE F: no backlog-issues.json exists after either run
+ok    CASE F: no stdout line names a skipped recorded item
+ok    CASE F: the second invocation still prints exactly one diagnostic line
+ok    CASE G: the run refuses (non-zero exit)
+ok    CASE G: zero issue create argv reached the fake
+ok    CASE G: zero updateIssue argv reached the fake
+ok    CASE G: zero updateIssue argv carries a node id derived from remnant 601
+ok    CASE G: the refusal names both Task and github.issue_types
+ok    CASE G: the seeded remnant is unchanged - number still 601
+ok    CASE G: the seeded remnant is unchanged - typed still exactly false
+ok    CASE G: no entry was recorded for the chore item
+ok    CASE G: no entry was recorded for the enhancement item
+ok    CASE H: the run refuses (non-zero exit) though nothing to be CREATED needs Bug
+ok    CASE H: the refusal names both Bug and github.issue_types
+ok    CASE H: zero issue create argv reached the fake
+ok    CASE H: zero updateIssue argv reached the fake
+ok    CASE H: zero updateIssue argv carries a node id derived from remnant 602
+ok    CASE H: the seeded remnant is unchanged - number still 602
+ok    CASE H: the seeded remnant is unchanged - typed still exactly false
+ok    CASE H: no entry was recorded for the chore item
+ok    CASE H: no entry was recorded for the enhancement item
+ok    CASE I: a malformed create URL is a mirror SKIP, exit 0, no traceback
+ok    CASE I: no backlog receipt entry is written for the unreadable create
+ok    CASE I: exactly one create was dispatched, never a second
+
+ALL PASSED
+PASS test-gh-backlog-issue-types.py
+----- test-feature-worktree.py (exit 0, 11.98s) -----
+PASS  GUARD: path --repo harness --id FEAT-90 resolves inside the fixture directory
+PASS  create harness FEAT-90 succeeds
+PASS  create harness FEAT-91 succeeds
+PASS  create org/repoB FEAT-92 succeeds
+PASS  create org/repoB FEAT-93 succeeds
+PASS  SC-01 layout: FEAT-90 destination matches dest_for()
+PASS  SC-01 layout: FEAT-91 destination matches dest_for()
+PASS  SC-01 layout: FEAT-92 destination matches dest_for()
+PASS  SC-01 layout: FEAT-93 destination matches dest_for()
+PASS  SC-01 conflation guard: FEAT-90 not under workspace_root/.claude/worktrees
+PASS  SC-01 conflation guard: FEAT-91 not under workspace_root/.claude/worktrees
+PASS  SC-01 conflation guard: FEAT-92 not under workspace_root/.claude/worktrees
+PASS  SC-01 conflation guard: FEAT-93 not under workspace_root/.claude/worktrees
+PASS  SC-01 conflation guard: FEAT-92 is under workspace_root/repoB/.claude/worktrees/repoB
+PASS  SC-01 conflation guard: FEAT-93 is under workspace_root/repoB/.claude/worktrees/repoB
+PASS  SC-01 isolation: FEAT-90 sees its own marker file
+PASS  SC-01 isolation: FEAT-90 does not see FEAT-91's marker file
+PASS  SC-01 isolation: FEAT-90 does not see FEAT-92's marker file
+PASS  SC-01 isolation: FEAT-90 does not see FEAT-93's marker file
+PASS  SC-01 isolation: FEAT-91 sees its own marker file
+PASS  SC-01 isolation: FEAT-91 does not see FEAT-90's marker file
+PASS  SC-01 isolation: FEAT-91 does not see FEAT-92's marker file
+PASS  SC-01 isolation: FEAT-91 does not see FEAT-93's marker file
+PASS  SC-01 isolation: FEAT-92 sees its own marker file
+PASS  SC-01 isolation: FEAT-92 does not see FEAT-90's marker file
+PASS  SC-01 isolation: FEAT-92 does not see FEAT-91's marker file
+PASS  SC-01 isolation: FEAT-92 does not see FEAT-93's marker file
+PASS  SC-01 isolation: FEAT-93 sees its own marker file
+PASS  SC-01 isolation: FEAT-93 does not see FEAT-90's marker file
+PASS  SC-01 isolation: FEAT-93 does not see FEAT-91's marker file
+PASS  SC-01 isolation: FEAT-93 does not see FEAT-92's marker file
+PASS  SC-01 branch isolation: FEAT-90 HEAD names feat/FEAT-90
+PASS  SC-01 branch isolation: FEAT-91 HEAD names feat/FEAT-91
+PASS  SC-01 branch isolation: FEAT-92 HEAD names feat/FEAT-92
+PASS  SC-01 branch isolation: FEAT-93 HEAD names feat/FEAT-93
+PASS  SC-01 branch isolation: FEAT-90 branch differs from FEAT-91
+PASS  SC-01 branch isolation: FEAT-90 branch differs from FEAT-92
+PASS  SC-01 branch isolation: FEAT-90 branch differs from FEAT-93
+PASS  SC-01 branch isolation: FEAT-91 branch differs from FEAT-92
+PASS  SC-01 branch isolation: FEAT-91 branch differs from FEAT-93
+PASS  SC-01 branch isolation: FEAT-92 branch differs from FEAT-93
+PASS  SC-02 cut point: FEAT-90 merge-base with main equals its pre-create tip
+PASS  SC-02 cut point: FEAT-91 merge-base with main equals its pre-create tip
+PASS  SC-02 cut point: FEAT-92 merge-base with master equals its pre-create tip
+PASS  SC-02 cut point: FEAT-93 merge-base with master equals its pre-create tip
+PASS  SC-01b case A: all four concurrent committers succeed against their own worktree
+PASS  SC-01b case A: all six pairwise write windows genuinely overlapped under contention
+PASS  SC-01b case A: assert_commit_isolation holds across four concurrently-committed worktrees
+PASS  SC-01b case A: no branch outside the four expected ones advanced (repoA main, repoB master unchanged)
+PASS  SC-01b case A: FEAT-90 working directory is clean after concurrent commits (scoped to this case's own files)
+PASS  SC-01b case A: FEAT-90 HEAD still names its own branch after concurrent commits
+PASS  SC-01b case A: FEAT-91 working directory is clean after concurrent commits (scoped to this case's own files)
+PASS  SC-01b case A: FEAT-91 HEAD still names its own branch after concurrent commits
+PASS  SC-01b case A: FEAT-92 working directory is clean after concurrent commits (scoped to this case's own files)
+PASS  SC-01b case A: FEAT-92 HEAD still names its own branch after concurrent commits
+PASS  SC-01b case A: FEAT-93 working directory is clean after concurrent commits (scoped to this case's own files)
+PASS  SC-01b case A: FEAT-93 HEAD still names its own branch after concurrent commits
+PASS  SC-01b case B: the successful committers' write windows genuinely overlapped
+PASS  SC-01b case B: the shared-checkout collision was detected (IsolationViolation raised, or a committer failure recorded)
+PASS  REQ-07: workspace_root/repoB still exists
+PASS  REQ-07: workspace_root/repoB still holds its .git directory
+PASS  REQ-07: workspace_root/repoB still reports master as its own current branch
+PASS  create refuses an existing destination: second create for repoA FEAT-90 exits 3
+PASS  create refuses an existing destination: the first tree is untouched
+PASS  list: repoA exits 0
+PASS  list: repoA prints its two features and two fleet planning worktrees
+PASS  list: FEAT-90 branch and path fields match the created worktree
+PASS  list: FEAT-91 branch and path fields match the created worktree
+PASS  undeclared --repo org/nope exits 2
+PASS  undeclared --repo org/nope names fleet.yaml on stderr
+PASS  SC-07 refuse (untracked): remove exits 4
+PASS  SC-07 refuse (untracked): stdout names WOULD DISCARD untracked.txt
+PASS  SC-07 refuse (untracked): the tree and the untracked file still exist on disk
+PASS  SC-07 refuse (tracked): remove exits 4 on an otherwise fully landed tree
+PASS  SC-07 refuse (tracked): stdout names WOULD DISCARD .harness/team-config.yaml
+PASS  SC-04 refuse: remove exits 5 when the artifact is unmerged
+PASS  SC-04 refuse: stdout names MISSING .harness/harness/features/FEAT-96/BRIEF.md
+PASS  SC-04 refuse: the tree still exists on disk
+PASS  SC-04 allow: remove exits 0 once the artifact is landed
+PASS  SC-04 allow: stdout names VERIFIED .harness/harness/features/FEAT-96/BRIEF.md
+PASS  SC-04 allow: the final line begins REMOVED
+PASS  SC-04 allow: the destination directory no longer exists
+PASS  SC-04 differs: remove exits 5 when worktree and default-branch blobs differ
+PASS  SC-04 differs: stdout names DIFFERS .harness/harness/features/FEAT-97/BRIEF.md
+PASS  SC-04 differs: the tree still exists on disk
+PASS  no artifact directory at all: remove exits 5
+PASS  no artifact directory at all: stdout names the directory .harness/harness/features/FEAT-98
+PASS  no artifact directory at all: the tree still exists on disk
+PASS  #726 fixture: the ignored run file leaves the tree CLEAN
+PASS  #726: an IGNORED artifact does not block remove
+PASS  #726: stdout never names the ignored path as MISSING
+PASS  #726: the tracked artifact is still VERIFIED, so the check did not go blind
+PASS  #726: the worktree is gone
+PASS  #726 guard: an UNLANDED TRACKED artifact still refuses, exit 5
+PASS  #726 guard: stdout names MISSING .harness/harness/features/FEAT-71/BRIEF.md
+PASS  #726 guard: the tree survives the refusal
+PASS  BUG-2399 aborted run: remove refuses with exit 4
+PASS  BUG-2399 aborted run: stdout names WOULD DISCARD for the run evidence
+PASS  BUG-2399 aborted run: the worktree and its evidence survive byte-identical
+PASS  #727: a SHORT --id resolves to the one matching feature directory
+PASS  #727: the resolved artifact is verified — .harness/harness/features/FEAT-72-a-slugged-name/BRIEF.md
+PASS  #727: the worktree is gone
+PASS  #727 guard: an AMBIGUOUS short id refuses, exit 5
+PASS  #727 guard: the refusal names BOTH candidates so the operator can disambiguate
+PASS  #727 guard: the tree survives the refusal
+PASS  behind: a freshly cut worktree is current, exit 0
+PASS  behind: two commits behind main exits 6
+PASS  behind: the refusal names the count, not just that it is behind
+PASS  behind: the refusal lists each missing commit's subject
+PASS  behind: the refusal names the merge command that fixes it
+PASS  behind: the refusal states it compared against LOCAL main
+PASS  behind: after the printed merge command, it is current again, exit 0
+PASS  behind: an absent worktree exits 3, never 6
+PASS  behind RED: original refuses (rc=6) where the mutant passes (rc=0), so CASE B discriminates
+PASS  behind (#1850): current with a STALE local main but behind origin/main exits 6
+PASS  behind (#1850): the refusal names the remote ref it compared against
+PASS  behind (#1850): after merging what origin holds it is current, exit 0
+PASS  behind (#1850): an unreachable origin falls back to LOCAL main and says so on stderr
+PASS  2056 create: both worktrees exist, labelled by role, code path last
+PASS  2056 create: the planning worktree is a harness checkout on feat/<id>
+PASS  2056 path: names the planning worktree and ends with the code worktree
+PASS  2056 behind: checks both worktrees
+PASS  2056 remove: unlanded planning artifacts refuse, and both worktrees stay
+PASS  2056 remove: once landed, both worktrees are removed
+PASS  2056 create: a failed code worktree rolls back the planning worktree and branch
+PASS  2056 create: the branch is cut from origin/main, without the unpushed commit
+PASS test-feature-worktree.py
+PASS test-feature-worktree.py
+----- test-gh-issue-types.py (exit 0, 11.61s) -----
+ok    CASE A: parent is typed IT_feature
+ok    CASE A: T-01 bugfix is typed IT_bug
+ok    CASE A: T-02 config is typed IT_task
+ok    CASE A: T-03 logic is typed IT_task
+ok    CASE A: T-04 feature is typed IT_task
+ok    CASE B: no create argv carries --label bug
+ok    CASE B: no create argv carries --label chore
+ok    CASE B: every create argv carries --label harness
+ok    CASE B: the four sub-issue creates still carry --milestone FEAT-77-types
+ok    CASE C: five issues created
+ok    CASE C: parent labels are exactly harness
+ok    CASE C: bugfix labels are exactly harness, bug
+ok    CASE C: config labels are exactly harness, chore
+ok    CASE C: logic labels are exactly harness
+ok    CASE C: feature labels are exactly harness
+ok    CASE C: zero updateIssue argv reached the fake
+ok    CASE C: exactly one 'gh-sync: issue types ' line for a five-issue run
+ok    CASE D: zero issue create argv on the rerun (everything already recorded)
+ok    CASE D: still exactly one 'gh-sync: issue types ' line on the rerun
+ok    CASE E: parent -> Epic (override key parent)
+ok    CASE E: T-01 bugfix -> Defect (override key Bug)
+ok    CASE E: T-02 config -> Maintenance (override key Task)
+ok    CASE E: T-03 logic -> Maintenance (override key Task)
+ok    CASE E: T-04 feature -> Maintenance (override key Task)
+ok    CASE F: the run refuses (non-zero exit)
+ok    CASE F: zero issue create argv reached the fake
+ok    CASE F: zero updateIssue argv reached the fake
+ok    CASE F: zero updateIssue argv carries a node id derived from the remnant 501
+ok    CASE F: the refusal names both Task and github.issue_types
+ok    CASE F: the remnant's issue number is unchanged (501)
+ok    CASE F: the remnant's provenance is still exactly 'created'
+ok    CASE G: T-01's typed value is 'created' after a failed type-apply
+ok    CASE G: T-01's typed value is not True after a failed type-apply
+ok    CASE G: the rerun creates no issue for the already-recorded T-01
+ok    CASE G: the rerun contains no issue delete argv anywhere
+ok    CASE G: the rerun contains no issue close argv anywhere
+ok    CASE G: the rerun's log carries an updateIssue call for T-01's recorded node id
+ok    CASE G: T-01's typed value is promoted to True after the backfill
+ok    CASE H: no updateIssue argv carries a node id derived from adopted parent 4242
+ok    CASE H: no updateIssue argv carries a node id derived from source_issues #100
+ok    CASE H: no updateIssue argv carries a node id derived from source_issues #200
+ok    CASE H: the parent's typed provenance is recorded as 'adopted'
+ok    CASE H2: the rerun without --parent still emits zero updateIssue for 4242
+ok    CASE H2: the parent's typed provenance stays exactly 'adopted' across the rerun
+ok    CASE I: the run still exits 0 when type detection fails
+ok    CASE I: issues are still created (five, today's labels)
+ok    CASE I: bugfix create still carries --label bug
+ok    CASE I: config create still carries --label chore
+ok    CASE I: exactly one 'gh-sync: issue types ' line is printed
+ok    CASE J: zero updateIssue argv carries a node id derived from legacy parent 9001
+ok    CASE J: zero updateIssue argv carries a node id derived from legacy T-01 9002
+ok    CASE J: github.typed has no entry for 'parent' after the first run
+ok    CASE J: github.typed has no entry for T-01 after the first run
+ok    CASE J: the first run still exits 0
+ok    CASE J: the first run still creates the three tasks that are not recorded
+ok    CASE J: zero updateIssue for 9001 on the rerun too
+ok    CASE J: zero updateIssue for 9002 on the rerun too
+ok    CASE J: github.typed still has no entry for 'parent' after the rerun
+ok    CASE J: github.typed still has no entry for T-01 after the rerun
+ok    CASE J: the rerun still exits 0
+ok    CASE K: the run refuses (non-zero exit) though nothing to be CREATED needs Bug
+ok    CASE K: zero issue create argv reached the fake
+ok    CASE K: zero updateIssue argv reached the fake
+ok    CASE K: zero updateIssue argv carries a node id derived from the remnant 502
+ok    CASE K: the refusal names both Bug and github.issue_types
+ok    CASE K: the remnant's issue number is unchanged (502)
+ok    CASE K: the remnant's provenance is still exactly 'created'
+
+ALL PASSED
+PASS test-gh-issue-types.py
+----- test-gh-close-gate.py (exit 0, 12.82s) -----
+ok    gh issue close is DENIED, as a structured permissionDecision at exit 0
+ok    clause 1 — the FINISHED route comes first, and its answer is to type nothing
+ok    clause 2 — the DROPPED route is a RUNNABLE command, not a bare name: interpreter, path, feature dir, the mandatory --reason-file, and --yes
+ok    clause 3 — the UNTRACKED escape, because this gate cannot resolve an issue number and a false deny is only acceptable if the refusal says how to recover
+ok    gh api state=closed is DENIED
+ok    the two denials return the IDENTICAL reason string — asserted by equality, so a second wording cannot drift into existence
+ok    denied in position: 'cd /tmp && gh issue close 728'
+ok    denied in position: 'FOO=1 gh issue close 728'
+ok    denied in position: 'echo hi | gh issue close 728'
+ok    denied in position: 'true; gh issue close 728'
+ok    denied whatever the argument order: 'gh api -f state=closed -X PATCH repos/o/r/issues/9'
+ok    denied whatever the argument order: 'gh api repos/o/r/issues/9 -X PATCH -f state=closed'
+ok    allowed, with NO output at all: 'gh issue view 728'
+ok    allowed, with NO output at all: 'gh issue list --repo o/r --state closed'
+ok    allowed, with NO output at all: 'git status'
+ok    allowed, with NO output at all: 'python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes'
+ok    allowed, with NO output at all: 'python3 .claude/skills/harness/bin/gh-sync.py ship d'
+ok    allowed, with NO output at all: 'gh api repos/o/r/issues/9'
+ok    a compound command carrying BOTH a close and a gh-sync.py call is still denied
+ok    evasion denied — a quote inside the subcommand: 'gh "issue" close 5'
+ok    evasion denied — single quotes on every word: "gh 'issue' 'close' 5"
+ok    evasion denied — an absolute path to the same binary: '/opt/homebrew/bin/gh issue close 5'
+ok    evasion denied — reached through env: '/usr/bin/env gh issue close 5'
+ok    evasion denied — a backslash, which defeats an alias not a gate: '\\gh issue close 5'
+ok    evasion denied — a whole command line inside one eval token: 'eval "gh issue close 5"'
+ok    evasion denied — a whole command line inside one bash -c token: "bash -c 'gh issue close 5'"
+ok    evasion denied — the same through sh: 'sh -c "gh issue close 5"'
+ok    evasion denied — command substitution in an assignment: 'x=$(gh issue close 5)'
+ok    evasion denied — the binary produced by a substitution: '$(echo gh) issue close 5'
+ok    evasion denied — a quoted state value: 'gh api -X PATCH repos/o/r/issues/5 -f state="closed"'
+ok    evasion denied — the state hidden in a JSON body on stdin, invisible to the command string: 'gh api --method PATCH repos/o/r/issues/5 --input -'
+ok    evasion denied — the GraphQL mutation, which never spells state=closed: 'gh api graphql -f query="mutation{closeIssue(input:{issueId:"x"}){clientMutationId}}"'
+ok    an unbalanced quote still DENIES when the line is genuinely a close
+ok    an unlexable line carrying a real close is caught by the text fallback
+ok    an unlexable line that closes NOTHING is allowed — an English contraction
+ok    an unlexable line that closes NOTHING is allowed — a possessive in a commit message
+ok    an unlexable line that closes NOTHING is allowed — a possessive inside a heredoc, ahead of a legitimate gh issue comment
+ok    a close inside a quoted string DENIES, as the header commits to — the gate cannot distinguish echo from eval without running the shell
+ok    KNOWN BLIND SPOT — a binary that exists only after shell expansion is NOT caught, and the gate is a guardrail against habit rather than a security boundary
+ok    every evasion route returns the IDENTICAL reason string, so the operator learns one answer to one question
+ok    tokenizing does not widen the refusal to: 'gh pr close 5'
+ok    tokenizing does not widen the refusal to: 'gh issue close-milestone 5'
+ok    tokenizing does not widen the refusal to: 'gh api repos/o/r/issues/5 --jq .state'
+ok    tokenizing does not widen the refusal to: 'gh api -X GET repos/o/r/issues/5'
+ok    tokenizing does not widen the refusal to: "git commit -m 'closes the loop'"
+ok    tokenizing does not widen the refusal to: 'gh issue edit 5 --add-label wontfix'
+ok    github.sync false: the gate exits 0 with no output, even for gh issue close — it costs nothing where the mirror is off
+ok    duplicate harness.json keys refuse a matching close at exit 2 rather than choosing one
+ok    no harness.json at all: a matching close is refused at exit 2
+ok    corpus row agrees with the healthy gate (match): 'gh issue close 728 --repo x/y'
+ok    corpus row agrees with the healthy gate (match): 'gh api -X PATCH repos/o/r/issues/9 -f state=closed'
+ok    corpus row agrees with the healthy gate (match): 'cd /tmp && gh issue close 728'
+ok    corpus row agrees with the healthy gate (match): 'FOO=1 gh issue close 728'
+ok    corpus row agrees with the healthy gate (match): 'echo hi | gh issue close 728'
+ok    corpus row agrees with the healthy gate (match): 'true; gh issue close 728'
+ok    corpus row agrees with the healthy gate (match): 'gh api -f state=closed -X PATCH repos/o/r/issues/9'
+ok    corpus row agrees with the healthy gate (match): 'gh api repos/o/r/issues/9 -X PATCH -f state=closed'
+ok    corpus row agrees with the healthy gate (match): 'gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d'
+ok    corpus row agrees with the healthy gate (match): 'gh "issue" close 5'
+ok    corpus row agrees with the healthy gate (match): "gh 'issue' 'close' 5"
+ok    corpus row agrees with the healthy gate (match): '/opt/homebrew/bin/gh issue close 5'
+ok    corpus row agrees with the healthy gate (match): '/usr/bin/env gh issue close 5'
+ok    corpus row agrees with the healthy gate (match): '\\gh issue close 5'
+ok    corpus row agrees with the healthy gate (match): 'eval "gh issue close 5"'
+ok    corpus row agrees with the healthy gate (match): "bash -c 'gh issue close 5'"
+ok    corpus row agrees with the healthy gate (match): 'sh -c "gh issue close 5"'
+ok    corpus row agrees with the healthy gate (match): 'x=$(gh issue close 5)'
+ok    corpus row agrees with the healthy gate (match): '$(echo gh) issue close 5'
+ok    corpus row agrees with the healthy gate (match): 'gh api -X PATCH repos/o/r/issues/5 -f state="closed"'
+ok    corpus row agrees with the healthy gate (match): 'gh api --method PATCH repos/o/r/issues/5 --input -'
+ok    corpus row agrees with the healthy gate (match): 'gh api graphql -f query="mutation{closeIssue(input:{issueId:"x"}){clientMutationId}}"'
+ok    corpus row agrees with the healthy gate (match): 'gh issue close "5'
+ok    corpus row agrees with the healthy gate (match): "echo it's here; gh issue close 5"
+ok    corpus row agrees with the healthy gate (match): "echo 'gh issue close is refused here'"
+ok    corpus row agrees with the healthy gate (match): 'echo gh issue close'
+ok    corpus row agrees with the healthy gate (unrelated): 'gh issue view 728'
+ok    corpus row agrees with the healthy gate (unrelated): 'gh issue list --repo o/r --state closed'
+ok    corpus row agrees with the healthy gate (unrelated): 'git status'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/gh-sync.py ship d'
+ok    corpus row agrees with the healthy gate (unrelated): 'gh api repos/o/r/issues/9'
+ok    corpus row agrees with the healthy gate (unrelated): "echo it's fine"
+ok    corpus row agrees with the healthy gate (unrelated): 'git commit -m "don\'t close the loop"'
+ok    corpus row agrees with the healthy gate (unrelated): "cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\ngh issue comment 8 --repo o/r --body-file /tmp/x.md"
+ok    corpus row agrees with the healthy gate (unrelated): 'G=gh; $G issue close 5'
+ok    corpus row agrees with the healthy gate (unrelated): 'gh pr close 5'
+ok    corpus row agrees with the healthy gate (unrelated): 'gh issue close-milestone 5'
+ok    corpus row agrees with the healthy gate (unrelated): 'gh api repos/o/r/issues/5 --jq .state'
+ok    corpus row agrees with the healthy gate (unrelated): 'gh api -X GET repos/o/r/issues/5'
+ok    corpus row agrees with the healthy gate (unrelated): "git commit -m 'closes the loop'"
+ok    corpus row agrees with the healthy gate (unrelated): 'gh issue edit 5 --add-label wontfix'
+ok    corpus row agrees with the healthy gate (unrelated): 'echo hi'
+ok    corpus row agrees with the healthy gate (unrelated): 'git branch -d x'
+ok    FEAT-65: an unexpected resolver defect REFUSES a matching close at exit 2, named
+ok    resolver defect: a matching command is refused, named: 'gh issue close 728 --repo x/y'
+ok    resolver defect: a matching command is refused, named: 'gh api -X PATCH repos/o/r/issues/9 -f state=closed'
+ok    resolver defect: a matching command is refused, named: 'cd /tmp && gh issue close 728'
+ok    resolver defect: a matching command is refused, named: 'FOO=1 gh issue close 728'
+ok    resolver defect: a matching command is refused, named: 'echo hi | gh issue close 728'
+ok    resolver defect: a matching command is refused, named: 'true; gh issue close 728'
+ok    resolver defect: a matching command is refused, named: 'gh api -f state=closed -X PATCH repos/o/r/issues/9'
+ok    resolver defect: a matching command is refused, named: 'gh api repos/o/r/issues/9 -X PATCH -f state=closed'
+ok    resolver defect: a matching command is refused, named: 'gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d'
+ok    resolver defect: a matching command is refused, named: 'gh "issue" close 5'
+ok    resolver defect: a matching command is refused, named: "gh 'issue' 'close' 5"
+ok    resolver defect: a matching command is refused, named: '/opt/homebrew/bin/gh issue close 5'
+ok    resolver defect: a matching command is refused, named: '/usr/bin/env gh issue close 5'
+ok    resolver defect: a matching command is refused, named: '\\gh issue close 5'
+ok    resolver defect: a matching command is refused, named: 'eval "gh issue close 5"'
+ok    resolver defect: a matching command is refused, named: "bash -c 'gh issue close 5'"
+ok    resolver defect: a matching command is refused, named: 'sh -c "gh issue close 5"'
+ok    resolver defect: a matching command is refused, named: 'x=$(gh issue close 5)'
+ok    resolver defect: a matching command is refused, named: '$(echo gh) issue close 5'
+ok    resolver defect: a matching command is refused, named: 'gh api -X PATCH repos/o/r/issues/5 -f state="closed"'
+ok    resolver defect: a matching command is refused, named: 'gh api --method PATCH repos/o/r/issues/5 --input -'
+ok    resolver defect: a matching command is refused, named: 'gh api graphql -f query="mutation{closeIssue(input:{issueId:"x"}){clientMutationId}}"'
+ok    resolver defect: a matching command is refused, named: 'gh issue close "5'
+ok    resolver defect: a matching command is refused, named: "echo it's here; gh issue close 5"
+ok    resolver defect: a matching command is refused, named: "echo 'gh issue close is refused here'"
+ok    resolver defect: a matching command is refused, named: 'echo gh issue close'
+ok    resolver defect: an unrelated command passes untouched: 'gh issue view 728'
+ok    resolver defect: an unrelated command passes untouched: 'gh issue list --repo o/r --state closed'
+ok    resolver defect: an unrelated command passes untouched: 'git status'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/gh-sync.py ship d'
+ok    resolver defect: an unrelated command passes untouched: 'gh api repos/o/r/issues/9'
+ok    resolver defect: an unrelated command passes untouched: "echo it's fine"
+ok    resolver defect: an unrelated command passes untouched: 'git commit -m "don\'t close the loop"'
+ok    resolver defect: an unrelated command passes untouched: "cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\ngh issue comment 8 --repo o/r --body-file /tmp/x.md"
+ok    resolver defect: an unrelated command passes untouched: 'G=gh; $G issue close 5'
+ok    resolver defect: an unrelated command passes untouched: 'gh pr close 5'
+ok    resolver defect: an unrelated command passes untouched: 'gh issue close-milestone 5'
+ok    resolver defect: an unrelated command passes untouched: 'gh api repos/o/r/issues/5 --jq .state'
+ok    resolver defect: an unrelated command passes untouched: 'gh api -X GET repos/o/r/issues/5'
+ok    resolver defect: an unrelated command passes untouched: "git commit -m 'closes the loop'"
+ok    resolver defect: an unrelated command passes untouched: 'gh issue edit 5 --add-label wontfix'
+ok    resolver defect: an unrelated command passes untouched: 'echo hi'
+ok    resolver defect: an unrelated command passes untouched: 'git branch -d x'
+ok    no harness root: a matching close is refused at exit 2, named
+ok    no harness root: an unrelated command exits 0 untouched
+ok    body failure: a matching close is refused at exit 2, named
+ok    body failure: an unrelated command exits 0 untouched
+ok    config fault (no harness.json): a matching close is refused at exit 2, named
+ok    config fault (no harness.json): an unrelated command exits 0 untouched
+ok    config fault (not JSON): a matching close is refused at exit 2, named
+ok    config fault (not JSON): an unrelated command exits 0 untouched
+ok    config fault (a document that is not a mapping): a matching close is refused at exit 2, named
+ok    config fault (a document that is not a mapping): an unrelated command exits 0 untouched
+ok    config fault (a github block that is a list): a matching close is refused at exit 2, named
+ok    config fault (a github block that is a list): an unrelated command exits 0 untouched
+ok    config fault (a github block that is null): a matching close is refused at exit 2, named
+ok    config fault (a github block that is null): an unrelated command exits 0 untouched
+ok    valid config, github.sync false: a matching close exits 0 untouched
+ok    valid config, no github block: a matching close exits 0 untouched
+
+ALL PASSED
+PASS test-gh-close-gate.py
+----- test-gh-sync-record.py (exit 0, 14.00s) -----
+ok    ship closes NO issue, whatever the recorded parent_origin (DEC-203)
+ok    ship with no board configured says so, in one line
+ok    ship with no board configured STILL closes the milestone -- the issue lifecycle runs to completion
+ok    ship with no board configured STILL records the terminal station
+ok    T-03 ship names recover-terminal
+ok    ship leaves an adopted parent open
+ok    ship closes the milestone regardless of parent origin
+ok    ship leaves a parent with no recorded origin open
+ok    ship --body-file posts once
+ok    ship without --body-file posts nothing
+ok    ship with an empty body file exits 1
+ok    status: an unknown value is refused with exit 2
+ok    status: the refusal names the offending value
+ok    status: an unknown value writes no station of any kind
+ok    status: an unknown value leaves plan.yaml's station unrecorded
+ok    status plan: exits 0 and records local station first
+ok    status plan: writes the exact shared projection without duplicates
+ok    status plan: every card selects the declared phase
+ok    status ready: exits 0 and records local station first
+ok    status ready: writes the exact shared projection without duplicates
+ok    status ready: every card selects the declared phase
+ok    status building: exits 0 and records local station first
+ok    status building: writes the exact shared projection without duplicates
+ok    status building: every card selects the declared phase
+ok    status review: exits 0 and records local station first
+ok    status review: writes the exact shared projection without duplicates
+ok    status review: every card selects the declared phase
+ok    status Ready, no-board: retains local station and makes no remote write
+ok    status Ready, sync-off: retains local station and makes no remote write
+ok    status Ready, zero sub-issues: exits 0
+ok    status Ready, zero sub-issues: moves the recorded parent through projection
+ok    status Ready, unsigned plan: refused with exit 2
+ok    status Ready, unsigned plan: names the value ready in the refusal
+ok    status Ready, unsigned plan: no station write reaches the fake
+ok    status ready, unsigned plan: plan.yaml station is NOT recorded as ready
+ok    status Review, unfinished tasks: refused with exit 2
+ok    status Review, unfinished tasks: names the value review in the refusal
+ok    status Review, unfinished tasks: no station write reaches the fake
+ok    status Review, unfinished tasks: feature.json status is NOT recorded as Review
+ok    status Review, task station outside the vocabulary: refused with exit 2
+ok    status Review, task station outside the vocabulary: names the value, no traceback
+ok    status Review, task station outside the vocabulary: station is NOT recorded
+ok    status Ready, one write raises: process still exits 0
+ok    status Ready, one write raises: ITEM_41's write was attempted (and is what failed)
+ok    status Ready, one write raises: every later projected card is still attempted
+ok    status Ready, one write raises: one stderr ERROR line naming the issue
+ok    status Ready, one write raises: local station remains recorded
+ok    record-pr writes the number when the branch has exactly one merged PR
+ok    record-pr leaves pr null when the branch has no merged PR
+ok    record-pr leaves pr null when the branch has two merged PRs
+ok    record-pr never overwrites a pr that is already an integer
+ok    record-pr --pr writes the number given without querying
+ok    ship records the pr in feature.json and the station in plan.yaml
+ok    #1853: after ship feature.json and plan.yaml are CLEAN against HEAD — the pr record is committed too
+ok    #1853: the commit carries exactly ship's two files and not the operator's staged one
+ok    record-pr exits 0 on every branch case
+ok    record-pr --pr abc exits non-zero with no traceback
+
+ALL PASSED
+PASS test-gh-sync-record.py
+----- test-harness-config-readers.py (exit 0, 6.68s) -----
+............
+----------------------------------------------------------------------
+Ran 12 tests in 6.539s
+
+OK
+PASS test-harness-config-readers.py
+----- test-harness-constraints.py (exit 0, 0.05s) -----
+ok    the rule file .omp/rules/harness-constraints.md exists
+ok    frontmatter agents is exactly ['harness-*']
+ok    frontmatter alwaysApply is exactly true
+ok    no project-wide sticky .omp/RULES.md was created (main keeps AGENTS.md only)
+ok    content group 1 worktree-only work, one feature per worktree, absolute reads of other features
+ok    content group 2 decision discipline: search the index, open governing entries, struck decisions
+ok    content group 3 check command-verifiable claims before writing them
+ok    content group 4 no shell wait loops or self-supervision of children
+ok    content group 5 DEC-174: never execute changes through the enforcement path being changed
+ok    exclusion: the obsolete GSD bullet is not carried
+ok    exclusion: the commit-time check-state step is not carried
+ok    harness-product-lead: escalation guidance present
+ok    harness-eng-lead: escalation guidance present
+ok    harness-validator-lead: escalation guidance present
+
+14 passed, 0 failed
+PASS test-harness-constraints.py
+----- test-harness-config-upgrade.py (exit 0, 1.12s) -----
+......
+----------------------------------------------------------------------
+Ran 6 tests in 1.043s
+
+OK
+PASS test-harness-config-upgrade.py
+----- test-feature-corpus.py (exit 0, 26.67s) -----
+................../Users/molchairuangutai/GitHub/harness/.claude/worktrees/.pins/FEAT-2489-plan-routes-split--r-20261124-9-validate-validator--harness-qa/.claude/skills/harness/bin/layout_migration.py:230: ResourceWarning: unclosed file <_io.TextIOWrapper name='/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-7fobkxzu/f58-sparse-15to9nnw/owner/.claude/worktrees/harness/FEAT-99-new/.harness/team-config.yaml' mode='r' encoding='utf-8'>
+  text = open(path, encoding="utf-8", errors="replace").read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+.............
+----------------------------------------------------------------------
+Ran 31 tests in 26.464s
+
+OK
+PASS test-feature-corpus.py
+----- test-harness-yaml.py (exit 0, 2.81s) -----
+PyYAML is not importable by this python3 interpreter; allowing this session once.
+python3 -m pip install --break-system-packages pyyaml
+# Homebrew Python: install WITHOUT --user — the Harness guard ignores per-user
+# packages. Homebrew's PEP 668 warning applies: installing into its Python this
+# way can break the Homebrew installation, so that is a choice you make knowingly.
+PyYAML is not importable, and this session's one-time bootstrap grant was already used by an EARLIER session — failing closed. Install PyYAML to restore normal operation:
+python3 -m pip install --break-system-packages pyyaml
+# Homebrew Python: install WITHOUT --user — the Harness guard ignores per-user
+# packages. Homebrew's PEP 668 warning applies: installing into its Python this
+# way can break the Homebrew installation, so that is a choice you make knowingly.
+PyYAML is not importable and the bootstrap marker at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-4mvlgvow/tmprlb0swe0/.harness/.pyyaml-bootstrap could not be written ([Errno 13] Permission denied: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-4mvlgvow/tmprlb0swe0/.harness/.pyyaml-bootstrap'), so a one-time grant cannot be recorded — failing closed rather than granting one that never expires.
+python3 -m pip install --break-system-packages pyyaml
+# Homebrew Python: install WITHOUT --user — the Harness guard ignores per-user
+# packages. Homebrew's PEP 668 warning applies: installing into its Python this
+# way can break the Homebrew installation, so that is a choice you make knowingly.
+ok   test_merge_key_override_is_not_a_duplicate
+ok   test_missing_pyyaml_is_reportable_not_a_second_crash
+ok   test_duplicate_key_is_catchable_as_a_parse_error
+ok   test_duplicate_key_raises
+ok   test_nested_duplicate_key_raises
+ok   test_bare_date_scalar_stays_str
+ok   test_int_and_bool_resolvers_are_not_stripped
+ok   test_manifest_domains_matches_the_regex_walk_on_the_real_manifest
+ok   test_docs_domain_grant_is_exhaustive_over_every_persona
+ok   test_docs_domain_witness_reddens_on_addition_removal_and_census_drift
+ok   test_manifest_domains_excludes_non_canonical_read_true
+{"systemMessage": "[harness] PyYAML is missing, so the write guards cannot read the domain manifest. This session is granted ONE bootstrap pass and later sessions will be blocked. Install it now:\npython3 -m pip install --break-system-packages pyyaml\n# Homebrew Python: install WITHOUT --user \u2014 the Harness guard ignores per-user\n# packages. Homebrew's PEP 668 warning applies: installing into its Python this\n# way can break the Homebrew installation, so that is a choice you make knowingly."}
+ok   test_bootstrap_marker_lifecycle
+ok   test_marker_self_unlinks_when_yaml_imports
+ok   test_require_or_die_ignores_the_retired_project_dir_variable
+ok   test_require_or_die_survives_a_missing_harness_boundary
+ok   test_exactly_one_guarded_import_in_the_tree
+ok   test_c_loader_is_used_when_libyaml_is_available
+ok   test_load_plan_accepts_a_well_formed_plan
+ok   test_every_required_task_field_is_actually_required
+ok   test_load_plan_rejects_the_shapes_that_broke_PLAN_md
+ok   test_load_plan_backticked_path_is_not_silently_cleaned
+ok   test_load_plan_reports_line_and_column_on_malformed_yaml
+ok   test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan
+ok   test_load_plan_accepts_a_station_only_record_and_only_with_a_station
+ok   test_load_plan_verify_shape_gated_on_pending_approval
+ok   test_feat64_load_str_boundary_is_typed
+ok   test_feat64_require_or_die_cleanup_boundary_is_typed
+PASS test-harness-yaml.py
+----- test-gh-sync-start-task.py (exit 0, 15.87s) -----
+ok    start-task exits 0
+ok    start-task sets T-02's OWN issue station to Building
+ok    start-task then sets the PARENT's station to Building (distinct item id)
+ok    exactly two field-sets, one per item id
+ok    #642 replay: exits 0 (a refusal is not a failure, D-02/DEC-146)
+ok    #642 replay: no station write of any kind reaches the fake
+ok    #642 replay: refuses, naming the issue, the task id, the current station and why
+ok    open at Backlog: exits 0
+ok    open at Backlog: still writes the sub-issue's station to Building
+ok    open at Backlog: still writes the parent's station too
+ok    open but card at Done: exits 0
+ok    open but card at Done: refused, no station write reaches the fake
+ok    open but card at Done: refusal line printed
+ok    closed but card at Building: exits 0
+ok    closed but card at Building: refused, no station write reaches the fake
+ok    closed but card at Building: refusal line printed
+ok    guard read fails: exits 0 (a failed guard read is not a gate either)
+ok    guard read fails: falls through and still writes the sub-issue's station
+ok    guard read fails: falls through and still writes the parent's station
+ok    guard read fails: one ERROR line printed, not a silent swallow
+ok    renamed board: exit 0 — a failed card write still never gates
+ok    renamed board: one loud ERROR naming the option the board does not offer
+ok    renamed board: the harness NEVER writes the renamed option — it derives the fixed name and stops, rather than hunting for a column that fits
+ok    every task done: exits 0
+ok    every task done, then start-task: the parent follows the PLAN WRITE to building, never the pre-command review
+ok    a Done feature exits 0
+ok    a Done feature writes NO PARENT station — the terminal exemption
+ok    loud pair (item-edit fails): process still exits 0
+ok    loud pair (item-edit fails): stderr carries the gh-sync: ERROR line naming the card whose write failed
+ok    loud pair (item-edit fails): a failed card write does not stop the write that follows it — the parent write was still attempted
+ok    loud pair (gh absent): one SKIP line, exit 0
+ok    loud pair (gh absent): no item-edit call is even attempted
+ok    no board configured: open exits 0
+ok    no board configured: prints the plain no-board line, not a SKIP
+ok    no board configured: open still recorded T-02's issue — the lifecycle ran, not skipped
+ok    no board configured: start-task exits 0
+ok    no board configured: no item-edit call is ever made
+ok    no board configured: the issue lifecycle still ran — T-01 and T-02 are recorded
+ok    plan write fails: start-task REFUSES, exit 2 — not a best-effort carry-on
+ok    plan write fails: the refusal names the task, the plan path and the verb that failed
+ok    plan write fails: NO card is written — the mirror never runs ahead of the truth
+ok    T-07: the terminal exemption fires from plan.yaml's `done` — the parent's card is NOT rewritten on a shipped feature
+ok    T-07 NEGATIVE CONTROL: a live plan.yaml station does NOT exempt — the parent rule still runs and writes
+ok    T-04 absent receipt refuses
+ok    T-04 BUG-named absent receipt refuses
+ok    T-12 absent receipt with a trailing slash refuses the same way
+ok    T-04 station discriminator
+ok    T-04 recovery-required recover-terminal horn names the derived command
+ok    (D0) load_plan RAISES on the dangling fixture (T-02 depends_on T-99, absent)
+ok    (D0) load_plan RETURNS on the paired legal fixture (T-02 depends_on T-01, present)
+ok    (d) start-task over the dangling fixture: exit status EXACTLY 2
+ok    (d) exactly one stderr line names BOTH T-02 and T-99
+ok    (d) no Traceback anywhere in the output
+ok    (e) start-task over the legal fixture: exits 0, exactly as today
+ok    (e) start-task sets T-02's OWN issue station to Building, exactly as today
+ok    (f) status Ready over the dangling fixture: exit status UNCHANGED from today (2)
+ok    (f) the existing refusal line is UNCHANGED from today (captured pair, additive)
+ok    (f) stderr ALSO carries a line naming BOTH T-02 and T-99, additive to the above
+ok    (g) status Ready over the legal fixture: exits 0
+ok    (g) status Ready over the legal fixture: parent and task cards move to Ready
+ok    (h) start-task over a top-level station outside the vocabulary: exit 2, names the value, no traceback
+ok    (h) the task's OWN card was written before the parent rule refused
+ok    refuse() default: still exits 2, unaffected by the new parameter
+ok    refuse() default: message on stdout, exactly as before
+ok    refuse() default: nothing written to stderr
+ok    refuse(stream=sys.stderr): exits 2
+ok    refuse(stream=sys.stderr): message on stderr, not stdout
+
+ALL PASSED
+PASS test-gh-sync-start-task.py
+----- test-harness-merge.py (exit 0, 5.76s) -----
+PASS - case1: transform receives None for missing file
+PASS - case1: file created with transform output
+PASS - case2: transform receives original bytes
+PASS - case2: result is exactly transform's bytes
+PASS - case3: MergeRefusal propagated
+PASS - case3: file byte-identical to before
+PASS - case3: no tempfile left behind
+PASS - case4: locked_update returned normally after stale lock killed
+PASS - case4: transform output is on disk
+PASS - case5: contention admits only the two legal outcomes over 20 trials
+PASS - case6: no torn read observed by concurrent reader
+PASS - case6: reader observed at least one read
+PASS - case6: reader observed both the short and long body while racing the writer
+PASS - case7: matching resolved path is accepted
+PASS - case7: non-matching path raises MergeRefusal(9)
+PASS - case7: symlink escape (literal ends in matching tail via symlinked 'mydir', realpath resolves outside and does not match) raises MergeRefusal(9)
+PASS - case8: acquire raises MergeRefusal(6) against a live holder
+PASS - case8: refusal lines name the lock path
+PASS - case9: the override still refuses a live holder with exit 6
+PASS - case9: the refusal names the overridden budget
+PASS - case9: and takes the short budget, not the 10s default
+PASS - case9: an explicit timeout= wins over the override
+PASS - case9: override '0' is refused loudly, naming the variable
+PASS - case9: override '-1' is refused loudly, naming the variable
+PASS - case9: override 'soon' is refused loudly, naming the variable
+PASS - case9: override 'nan' is refused loudly, naming the variable
+PASS - case9: override 'inf' is refused loudly, naming the variable
+PASS - case9: override '1e999' is refused loudly, naming the variable
+PASS - 28/28 checks passed
+PASS test-harness-merge.py
+----- test-inflight-registry.py (exit 0, 3.81s) -----
+inflight_registry: BLOCKED - runtime child lineage has no matching claim
+PASS - case1: claim returns True
+PASS - case1: live_claim returns a claim
+PASS - case1: recorded dispatcher matches
+PASS - case1: recorded cwd matches
+PASS - case2: first pm claim succeeds
+PASS - case2: second pm claim is refused (single-flight)
+PASS - case2: stored started_at is still the FIRST claim's
+PASS - case2: first backend-dev claim succeeds
+PASS - case2: second backend-dev claim ALSO succeeds (parallel squad is legal)
+PASS - case2: registry holds two claims for backend-dev
+PASS - case2: both started_at values are present
+PASS - case2b: eng-lead children include backend-dev
+PASS - case2b: eng-lead children include frontend-dev
+PASS - case2b: eng-lead children exclude pm
+PASS - case2b: eng-lead children exclude qa
+PASS - case2b: product-lead children include pm
+PASS - case2b: product-lead children include qa
+PASS - case2b: product-lead children exclude backend-dev
+PASS - case2b: product-lead children exclude frontend-dev
+PASS - case2c: stale child is not returned
+PASS - case2c: stale claim is gone from the file afterwards
+PASS - case3: stale claim is treated as absent
+PASS - case3: live_claim reports one expired
+PASS - case3: a following claim succeeds after staleness expiry
+PASS - case4: release removes the SOLE claim and returns True
+PASS - case4: no live claim remains
+PASS - case4: releasing an absent claim returns False
+PASS - case4: releasing an absent claim does not create the file
+PASS - case5: harness-pm is single-flight
+PASS - case5: harness-backend-dev is not single-flight
+PASS - case6: first line begins with the dispatch-guard marker
+PASS - case6: the agent name appears
+PASS - case6: an ISO-8601 timestamp appears
+PASS - case6: #628 is referenced (issue #551 moved here, item 6)
+PASS - case6: the original #551 single-flight report is still noted
+PASS - case6: the plan.yaml-overwrite sentence is NOT tagged #551 (it is #628's issue now)
+PASS - case6: the release command appears byte-for-byte
+PASS - case6b: first line begins with the check-digest marker
+PASS - case6b: the returning agent is named
+PASS - case6b: the first child is named
+PASS - case6b: the second child is named
+PASS - case6b: two ISO-8601 timestamps appear
+PASS - case6b: #551 is referenced
+PASS - case7: 20 trials each produce exactly one successful claim() and one stored claim
+PASS - case7: informational — a LOCKED-style split-decision outcome was admitted 0/20 times
+PASS - case8: claim against a corrupt registry does not raise
+PASS - case8: claim succeeds, treating the corrupt file as empty
+PASS - case8: a message naming the file appears on stderr
+PASS - case9: release_all returns 3
+PASS - case9: the registry is empty afterwards
+PASS - case9: CLI list exits 0
+PASS - case9: CLI list prints NO CLAIMS
+PASS - case10: no fcntl usage
+PASS - case10: no O_EXCL usage
+PASS - case10: no os.replace usage
+PASS - case10: calls harness_merge.locked_update
+PASS - case13: release_refuses_ambiguous - two live claims are refused, not oldest-popped, and 0 is returned
+PASS - case13: release_refuses_ambiguous - both claims remain on disk untouched
+PASS - case13: release_refuses_ambiguous - stderr says how many were left
+PASS - case14: remedy_is_absolute - release_cmd(root, agent) exists
+PASS - case14: remedy_is_absolute - the remedy is rooted at the checkout, not a relative CLI path
+PASS - case14: remedy_is_absolute - a featureless remedy cannot be composed at all
+PASS - case14: remedy_is_absolute - the remedy names ONE agent, never release-all
+PASS - case15: pm claims for different features run together
+PASS - case15: a second pm for the same feature is refused
+PASS - case16: an old OMP claim stays live while its supervisor lives
+PASS - case16: the live OMP claim is not counted expired
+PASS - case16: an OMP claim is stale immediately when its supervisor dies
+PASS - case16: the dead-supervisor claim is counted expired
+PASS - case17: targeted feature release removes one claim
+PASS - case17: targeted feature release leaves the other feature live
+PASS - case18: a legacy claim is not live, however fresh
+PASS - case18: it is reported expired
+PASS - case18: every subsequent write uses schema version 2
+PASS - case18: schema version 2 stores one, now empty, claims list
+PASS - case18: legacy persona keys are not written back
+PASS - case19: OMP identity attaches to the pending claim
+PASS - case19: terminal OMP identity releases only its claim
+PASS - case19: released OMP claim is gone
+PASS - case19b: parallel claims exist
+PASS - case19b: parent pre-binds both named children
+PASS - case19b: exact child and parent lineage authorizes
+PASS - case19b: a sibling parent cannot borrow the child claim
+PASS - case19b: an unclaimed child id cannot borrow a parallel claim
+PASS - case19b: task result augments an already-bound child with its job id
+PASS - case19b: exact runtime lineage filters the live claim set
+PASS - case19b: a sibling parent sees no matching live claim
+PASS - case19b: a unique parent-bound claim accepts the runtime child id
+PASS - case19b: runtime authorization is idempotent
+PASS - case19b: a bound claim rejects a different runtime child id
+PASS - case19b: authorize CLI approves exact runtime lineage
+PASS - case19b: authorize CLI blocks a mismatched parent lineage
+PASS - case20: targeted recovery removes one dead-supervisor claim
+PASS - case20: targeted recovery leaves another feature untouched
+PASS - case21: queried dead claim expires
+PASS - case21: unrelated dead feature is left for targeted reconciliation
+PASS - case22: the claim pins the supervisor start time
+PASS - case22: a live pid with a foreign start time is expired, not trusted
+PASS - case22: reconcile also clears it, so recovery does not need the operator
+PASS - case23: a verified supervisor keeps its claim at any age
+PASS - case24: an unverifiable claim is still live inside the backstop
+PASS - case24: past the backstop it expires even though the pid is alive
+PASS - case25: a genuinely live child DOES hold its parent
+PASS - case25: a stranded child no longer holds its parent
+PASS - case26: the ps read is the only subprocess in the module
+PASS - case26: the ps child is pinned to the C locale
+PASS - case26: our own start time still reads under a non-English LC_TIME
+PASS - case27: NaN survives json.loads, so the corruption guard misses it
+PASS - case27: a NaN start time is read without raising
+PASS - case27: and past the backstop it clears, so NaN cannot strand
+PASS - case27: Infinity survives json.loads, so the corruption guard misses it
+PASS - case27: a Infinity start time is read without raising
+PASS - case27: and past the backstop it clears, so Infinity cannot strand
+PASS - case27: -Infinity survives json.loads, so the corruption guard misses it
+PASS - case27: a -Infinity start time is read without raising
+PASS - case27: and past the backstop it clears, so -Infinity cannot strand
+PASS - case28: a featureless claim still composes a remedy
+PASS - case28: and the selector it prints actually matches that claim
+PASS - case29: a fresh `runtime: claude` claim reads as absent
+PASS - case29: and is counted as expired
+PASS - case29: a claim with no runtime is not a live child either
+PASS - case29: both are gone from disk afterwards
+PASS - the children refusal names the blocking rule and never says a repeated return ships
+PASS - case35: feature-root uses linked checkout rather than owner root
+PASS - case35: feature-root CLI resolves linked worktree
+PASS - case35: feature-root accepts a short-form worktree basename
+PASS - case35: feature-root CLI falls back to owner root
+PASS - case35: feature-root requires --feature
+PASS - case35: feature-root CLI refuses an ambiguous worktree
+PASS - case36: live_claims returns every matching claim oldest first
+PASS - case36: live_claims is byte-for-byte read only
+PASS - case36: a claim whose supervisor is gone does not bind
+PASS - case36: missing registry returns an empty list
+PASS - case36: test process identity is measurable
+PASS - case36: proven OMP identity binds past the backstop
+PASS - case37: unparseable json raises UnreadableRegistry naming its file
+PASS - case37: json list raises UnreadableRegistry naming its file
+PASS - case37: unsupported mapping raises UnreadableRegistry naming its file
+PASS - case37: absent remains distinct from unreadable
+PASS - case38: run-start binds the unique repository receipt
+PASS - case38: same-persona siblings under one parent bind independently
+PASS - case38b: mismatches refuse with their named state
+PASS - case38b: a runtime id held by another active dispatch is a collision
+PASS - case38b: an unreadable registry is refused as unreadable
+PASS - case38c: a released repository claim is refused as released
+PASS - case38c: authorize never binds a pending repository receipt
+PASS - case38: a run with no receipt creates a claim bound to its exact id
+PASS - case38: a settled agent woken under its id reuses that one claim
+PASS - case38: the unique unbound parent receipt is bound, not duplicated
+PASS - case38: an ambiguous receipt pair is never selected; the run gets its own claim
+PASS - case38: another parent's receipt is never bound
+PASS - case38: a persona outside SINGLE_FLIGHT_AGENTS keeps two live same-feature claims
+PASS - case38: an exact id under a different parent is refused, not rebound
+PASS - case39: a second live pm is refused, naming the holder, retryable after it settles
+PASS - case39: once the holder settles the same run start succeeds
+PASS - case39: an unreadable registry is a non-retryable operator condition, left as found
+PASS - case40: a unique match in a linked worktree yields its feature and that registry root
+PASS - case40: a unique owner-root match yields the owner root
+PASS - case40: zero exact matches refuse; a parent id or persona is never a match
+PASS - case40: the find-run command exits 2 with the structured refusal
+PASS - case40: the same id in two registries refuses rather than choosing
+PASS - case40: any unreadable registry refuses, non-retryable, even with a match elsewhere
+PASS - case41: run-start writes the registry feature_root resolves (short-form worktree)
+PASS - feat65: a failing ps probe still answers None
+PASS - feat65: an unrelated defect in the ps probe escapes
+PASS - feat65: an ambiguous worktree lookup falls back to the owner root
+PASS - feat65: an unrelated lookup defect escapes feature_root
+PASS - feat65: the direct feature-root command stays loud and nonzero on a defect
+PASS - 168/168 checks passed
+PASS test-inflight-registry.py
+----- test-inject-expertise.py (exit 0, 3.17s) -----
+PASS case1: both tiers present, precedence rule stated once
+PASS feat65: an unexpected resolver defect is loud and nonzero, not absorbed
+PASS case2: two repository segments sorted, precedence line exactly once
+PASS case3: craft only, no repository text of any kind
+PASS case4: no Expertise still receives control-plane context
+PASS case4b: injected root is absolute control plane, never product cwd
+PASS case4c: unresolved root is injected loudly without blocking
+PASS case4d: callable checker over agent body 'clean'
+PASS case4d: callable checker over agent body 'UNANCHORED'
+PASS response: one JSON object carrying only a top-level context string
+PASS drift parity with the checker CLI: all four files clean
+PASS drift parity with the checker CLI: findings across two files past the five-location cap
+PASS checker outcome: a syntax error
+PASS checker outcome: an import-time exception
+PASS checker outcome: an import-time SystemExit
+PASS checker outcome: no violations function
+PASS checker outcome: a violations exception
+PASS checker outcome: a violations SystemExit
+PASS checker outcome: a malformed finding
+PASS checker outcome: checker output on stdout
+PASS checker runs in-process: four calls, all in the hook's pid
+PASS capped body parity: empty
+PASS capped body parity: one unterminated line
+PASS capped body parity: exactly 40 lines
+PASS capped body parity: 41 lines
+PASS capped body parity: exactly 150 lines
+PASS capped body parity: 151 lines
+PASS capped body parity: 150 lines and an unterminated 151st
+PASS capped body parity: 41 CRLF lines
+PASS capped body parity: 151 CR lines
+PASS capped body parity: mixed CRLF/CR/LF
+PASS capped body parity: Unicode splitline separators
+PASS capped body parity: 151 blank lines
+PASS case5a: missing agent_type -> exit 0, no traceback
+PASS case5b: invalid JSON payload -> exit 0, no traceback
+PASS case6: non-harness agent -> exit 0, empty stdout
+PASS case7a: 41-line repository file truncates at 40, not 150
+PASS case7b: 41-line craft file (no repo tier) — no truncation notice
+PASS case8: 151-line craft file truncates at 150
+PASS case10: repository tier, no craft tier at all
+PASS case11: unparseable team-config.yaml, no fleet.yaml -> unaffected, no traceback
+PASS case12: agent_type='harness-' -> exit 0, empty stdout, no leaked body
+PASS case12: agent_type='harness-qa/../../etc' -> exit 0, empty stdout, no leaked body
+PASS case12: agent_type='harness-*' -> exit 0, empty stdout, no leaked body
+PASS case12: agent_type='harness-qa;id' -> exit 0, empty stdout, no leaked body
+PASS case13: dangling symlink in repository tier -> unreadable guard skips it, no leak, clean stderr
+
+46/46 cases passed.
+PASS test-inject-expertise.py
+----- test-integration-shard-aggregation.py (exit 0, 3.01s) -----
+PASS all-success exact coverage at the tested commit: exit 0 
+PASS all-success exact coverage at the tested commit: diagnostic '4 expected files completed exactly once' 
+PASS all-success exact coverage at the tested commit: final PASS summary 
+PASS checks-result failure: exit 1 
+PASS checks-result failure: diagnostic 'checks-result is failure' 
+PASS checks-result failure: final FAIL summary 
+PASS checks-result skipped: exit 1 
+PASS checks-result skipped: diagnostic 'checks-result is skipped' 
+PASS checks-result skipped: final FAIL summary 
+PASS checks-result cancelled: exit 1 
+PASS checks-result cancelled: diagnostic 'checks-result is cancelled' 
+PASS checks-result cancelled: final FAIL summary 
+PASS checks-result missing: exit 1 
+PASS checks-result missing: diagnostic 'checks-result is missing' 
+PASS checks-result missing: final FAIL summary 
+PASS checks-result unrecognized: exit 2 
+PASS checks-result unrecognized: diagnostic 'checks-result 'neutral' is not one of' 
+PASS checks-result unrecognized: final FAIL summary 
+PASS checks-result absent: exit 2 
+PASS checks-result absent: diagnostic 'checks-result was not supplied' 
+PASS checks-result absent: final FAIL summary 
+PASS matrix-result failure: exit 1 
+PASS matrix-result failure: diagnostic 'matrix-result is failure' 
+PASS matrix-result failure: final FAIL summary 
+PASS matrix-result skipped: exit 1 
+PASS matrix-result skipped: diagnostic 'matrix-result is skipped' 
+PASS matrix-result skipped: final FAIL summary 
+PASS matrix-result cancelled: exit 1 
+PASS matrix-result cancelled: diagnostic 'matrix-result is cancelled' 
+PASS matrix-result cancelled: final FAIL summary 
+PASS matrix-result missing: exit 1 
+PASS matrix-result missing: diagnostic 'matrix-result is missing' 
+PASS matrix-result missing: final FAIL summary 
+PASS matrix-result unrecognized: exit 2 
+PASS matrix-result unrecognized: diagnostic 'matrix-result 'neutral' is not one of' 
+PASS matrix-result unrecognized: final FAIL summary 
+PASS matrix-result absent: exit 2 
+PASS matrix-result absent: diagnostic 'matrix-result was not supplied' 
+PASS matrix-result absent: final FAIL summary 
+PASS missing manifest: exit 1 
+PASS missing manifest: diagnostic 'no manifest for shard 3' 
+PASS missing manifest: final FAIL summary 
+PASS duplicate shard id: exit 1 
+PASS duplicate shard id: diagnostic 'shard 4 has 2 manifests' 
+PASS duplicate shard id: final FAIL summary 
+PASS extra manifest: exit 1 
+PASS extra manifest: diagnostic 'shard_index 5 outside 1..4' 
+PASS extra manifest: final FAIL summary 
+PASS malformed JSON: exit 2 
+PASS malformed JSON: diagnostic 'shard-2/manifest.json: malformed JSON' 
+PASS malformed JSON: final FAIL summary 
+PASS wrong commit (HEAD) in manifest: exit 1 
+PASS wrong commit (HEAD) in manifest: diagnostic 'tested_commit a8cd2663116482cac9f88ecf7338cef3acf04634 is not the supplied 6a8743ac5ae263a661aaf7d46fd52109e87a5e59' 
+PASS wrong commit (HEAD) in manifest: final FAIL summary 
+PASS foreign suite kind: exit 1 
+PASS foreign suite kind: diagnostic 'kind 'unit' is not integration' 
+PASS foreign suite kind: final FAIL summary 
+PASS unknown tested commit: exit 2 
+PASS unknown tested commit: diagnostic 'cannot list tested commit' 
+PASS unknown tested commit: final FAIL summary 
+PASS abbreviated tested commit: exit 2 
+PASS abbreviated tested commit: diagnostic '--commit must be a full hexadecimal object id' 
+PASS abbreviated tested commit: final FAIL summary 
+PASS omitted file (absent at HEAD too): exit 1 
+PASS omitted file (absent at HEAD too): diagnostic 'tests/integration/test-d.py: omitted' 
+PASS omitted file (absent at HEAD too): final FAIL summary 
+PASS HEAD-only file is unexpected: exit 1 
+PASS HEAD-only file is unexpected: diagnostic 'tests/integration/test-e.py: unexpected' 
+PASS HEAD-only file is unexpected: final FAIL summary 
+PASS working-tree-only file is unexpected: exit 1 
+PASS working-tree-only file is unexpected: diagnostic 'tests/integration/test-f.py: unexpected' 
+PASS working-tree-only file is unexpected: final FAIL summary 
+PASS within-shard duplicate: exit 1 
+PASS within-shard duplicate: diagnostic 'duplicated within shard 1' 
+PASS within-shard duplicate: final FAIL summary 
+PASS cross-shard duplicate: exit 1 
+PASS cross-shard duplicate: diagnostic 'tests/integration/test-a.py: completed 2 times' 
+PASS cross-shard duplicate: final FAIL summary 
+PASS selected without completion: exit 1 
+PASS selected without completion: diagnostic 'selected but has no completed record' 
+PASS selected without completion: final FAIL summary 
+PASS failing completed file: exit 1 
+PASS failing completed file: diagnostic 'tests/integration/test-a.py returned 1' 
+PASS failing completed file: final FAIL summary 
+PASS empty expected suite: exit 1 
+PASS empty expected suite: diagnostic 'no tests/integration/test-*.py' 
+PASS empty expected suite: final FAIL summary 
+PASS HEAD's own coverage is not the tested commit's: exit 1 
+PASS HEAD's own coverage is not the tested commit's: diagnostic 'tests/integration/test-d.py: omitted' 
+PASS HEAD's own coverage is not the tested commit's: final FAIL summary 
+PASS unit discovery reads only the tested commit's top-level tests/unit/test-*.py 
+PASS discovery without a kind keeps the integration default 
+PASS an exact unit receipt at the tested commit passes: exit 0 
+PASS an exact unit receipt at the tested commit passes: diagnostic '' 
+PASS a HEAD-only unit file is unexpected: exit 1 
+PASS a HEAD-only unit file is unexpected: diagnostic 'tests/unit/test-head-unit.py: unexpected' 
+PASS a working-tree-only unit file is unexpected: exit 1 
+PASS a working-tree-only unit file is unexpected: diagnostic 'tests/unit/test-worktree-unit.py: unexpected' 
+PASS an omitted unit file is refused: exit 1 
+PASS an omitted unit file is refused: diagnostic 'tests/unit/test-unit.py: omitted' 
+PASS the CLI has no --kind option: exit 2 
+PASS the CLI has no --kind option: diagnostic 'unrecognized argument '--kind'' 
+PASS the CLI has no --kind option: final FAIL summary 
+PASS unit receipts are refused under the CLI's integration default: exit 1 
+PASS unit receipts are refused under the CLI's integration default: diagnostic 'kind 'unit' is not integration' 
+PASS unit receipts are refused under the CLI's integration default: final FAIL summary 
+0 failed
+PASS test-integration-shard-aggregation.py
+----- test-layout-migration.py (exit 0, 1.86s) -----
+ok   - case 1: real root exits 0
+ok   - case 1: non-zero feature-dir count
+ok   - case 1: non-zero doc-root count
+ok   - case 1: non-zero reader-file count
+ok   - case 1: X+Y+Z == 2 — every declared surface judged, none skipped
+ok   - case 2: split features evidence -> exit 1, FEATURES named
+ok   - case 3: migrated evidence, one legacy reader -> exit 1, named, tagged [legacy]
+ok   - case 4: split docs evidence -> exit 1, DOCS named
+ok   - case 5a: migrated docs, one legacy reader -> exit 1, tagged [legacy] (FINISH it)
+ok   - case 5b: legacy docs, one migrated reader -> exit 1, tagged [migrated] (REVERT it)
+ok   - case 6: fully migrated, both surfaces -> exit 0
+ok   - case 7: FEATURES migrated, DOCS legacy -> exit 0
+ok   - case 8: DOCS migrated, FEATURES legacy -> exit 0
+ok   - case 9: a reader carrying NEITHER form -> exit 2, named, tagged [neither]
+ok   - case 10: an unreadable reader -> exit 2, tagged [unreadable], distinct in text
+ok   - case 11: no disk evidence of either shape -> exit 2, exact phrase present
+ok   - case 12: a reader carrying BOTH forms -> exit 1, named, tagged [both]
+ok   - case 13: MIXED on one surface, CANNOT_VERIFY on the other -> exit 2 (CV outranks)
+ok   - case 14: readers present but no fleet marker -> exit 0, NOT APPLICABLE
+ok   - case 14: both trailer lines print with all counts zero
+ok   - case 15: marker added, legacy everywhere -> CLEAN with non-zero counts (case 14 passed because of the marker, not an empty scan)
+ok   - case 16: zero rows for a surface -> CANNOT_VERIFY, exit 2, exact phrase, surface still reported
+ok   - case 17: a row keyed to a non-enum surface is a LOUD error
+ok   - case 18: scan() prints nothing and does not exit
+ok   - case 18: clean -> exit_code 0
+ok   - case 18: mixed -> exit_code 1
+ok   - case 18: cannot-verify -> exit_code 2
+ok   - case 19: evidence under an UNDECLARED segment -> exit 2, phrase + path named
+ok   - case 19: the same shape under a DECLARED segment stays ordinary evidence
+ok   - case 20 parity: MIXED, one migrated reader on legacy evidence — real gate and render name the same reader set
+ok   - case 20 parity: CANNOT_VERIFY neither — real gate and render name the same reader set
+ok   - case 20 parity: CANNOT_VERIFY neither — the cause clause is identical in both
+ok   - case 20 parity: CANNOT_VERIFY unreadable — real gate and render name the same reader set
+ok   - case 20 parity: CANNOT_VERIFY unreadable — the cause clause is identical in both
+ok   - case 20 parity: CANNOT_VERIFY no-evidence — real gate and render name the same reader set
+ok   - case 20 parity: CANNOT_VERIFY no-evidence — the cause clause is identical in both
+ok   - case 20 parity: CANNOT_VERIFY undeclared-segment (carries detail) — real gate and render name the same reader set
+ok   - case 20 parity: CANNOT_VERIFY undeclared-segment (carries detail) — the cause clause is identical in both
+ok   - case 20 parity: CLEAN names nobody at either site — real gate and render name the same reader set
+ok   - case 21: real root's harness/docs surface is CLEAN with migrated evidence
+ok   - case 22: real root's harness/features surface is CLEAN with migrated evidence
+PASS test-layout-migration.py
+----- test-member-expertise.py (exit 0, 0.30s) -----
+PASS  harness-orchestrator: tools carry expertise_apply
+PASS  harness-orchestrator: keeps write
+PASS  harness-orchestrator: keeps own-file grant .harness/expertise/harness-orchestrator.md
+PASS  harness-orchestrator: keeps own-file grant .harness/*/expertise/harness-orchestrator.md
+PASS  harness-product-lead: tools carry expertise_apply
+PASS  harness-product-lead: keeps write
+PASS  harness-product-lead: keeps own-file grant .harness/expertise/harness-product-lead.md
+PASS  harness-product-lead: keeps own-file grant .harness/*/expertise/harness-product-lead.md
+PASS  harness-eng-lead: tools carry expertise_apply
+PASS  harness-eng-lead: keeps write
+PASS  harness-eng-lead: keeps own-file grant .harness/expertise/harness-eng-lead.md
+PASS  harness-eng-lead: keeps own-file grant .harness/*/expertise/harness-eng-lead.md
+PASS  harness-validator-lead: tools carry expertise_apply
+PASS  harness-validator-lead: keeps write
+PASS  harness-validator-lead: keeps own-file grant .harness/expertise/harness-validator-lead.md
+PASS  harness-validator-lead: keeps own-file grant .harness/*/expertise/harness-validator-lead.md
+PASS  harness-pm: tools carry expertise_apply
+PASS  harness-pm: keeps write
+PASS  harness-pm: keeps own-file grant .harness/expertise/harness-pm.md
+PASS  harness-pm: keeps own-file grant .harness/*/expertise/harness-pm.md
+PASS  harness-visual-designer: tools carry expertise_apply
+PASS  harness-visual-designer: keeps write
+PASS  harness-visual-designer: keeps own-file grant .harness/expertise/harness-visual-designer.md
+PASS  harness-visual-designer: keeps own-file grant .harness/*/expertise/harness-visual-designer.md
+PASS  harness-documentor: tools carry expertise_apply
+PASS  harness-documentor: keeps write
+PASS  harness-documentor: keeps own-file grant .harness/expertise/harness-documentor.md
+PASS  harness-documentor: keeps own-file grant .harness/*/expertise/harness-documentor.md
+PASS  harness-frontend-dev: tools carry expertise_apply
+PASS  harness-frontend-dev: keeps write
+PASS  harness-frontend-dev: keeps own-file grant .harness/expertise/harness-frontend-dev.md
+PASS  harness-frontend-dev: keeps own-file grant .harness/*/expertise/harness-frontend-dev.md
+PASS  harness-backend-dev: tools carry expertise_apply
+PASS  harness-backend-dev: keeps write
+PASS  harness-backend-dev: keeps own-file grant .harness/expertise/harness-backend-dev.md
+PASS  harness-backend-dev: keeps own-file grant .harness/*/expertise/harness-backend-dev.md
+PASS  harness-ai-dev: tools carry expertise_apply
+PASS  harness-ai-dev: keeps write
+PASS  harness-ai-dev: keeps own-file grant .harness/expertise/harness-ai-dev.md
+PASS  harness-ai-dev: keeps own-file grant .harness/*/expertise/harness-ai-dev.md
+PASS  harness-data-engineer: tools carry expertise_apply
+PASS  harness-data-engineer: keeps write
+PASS  harness-data-engineer: keeps own-file grant .harness/expertise/harness-data-engineer.md
+PASS  harness-data-engineer: keeps own-file grant .harness/*/expertise/harness-data-engineer.md
+PASS  harness-dev-ops: tools carry expertise_apply
+PASS  harness-dev-ops: keeps write
+PASS  harness-dev-ops: keeps own-file grant .harness/expertise/harness-dev-ops.md
+PASS  harness-dev-ops: keeps own-file grant .harness/*/expertise/harness-dev-ops.md
+PASS  harness-qa: tools carry expertise_apply
+PASS  harness-qa: keeps write
+PASS  harness-qa: keeps own-file grant .harness/expertise/harness-qa.md
+PASS  harness-qa: keeps own-file grant .harness/*/expertise/harness-qa.md
+PASS  harness-code-reviewer: tools carry expertise_apply
+PASS  harness-code-reviewer: keeps write
+PASS  harness-code-reviewer: keeps own-file grant .harness/expertise/harness-code-reviewer.md
+PASS  harness-code-reviewer: keeps own-file grant .harness/*/expertise/harness-code-reviewer.md
+PASS  harness-security-reviewer: tools carry expertise_apply
+PASS  harness-security-reviewer: keeps write
+PASS  harness-security-reviewer: keeps own-file grant .harness/expertise/harness-security-reviewer.md
+PASS  harness-security-reviewer: keeps own-file grant .harness/*/expertise/harness-security-reviewer.md
+PASS  harness-ui-reviewer: tools carry expertise_apply
+PASS  harness-ui-reviewer: keeps write
+PASS  harness-ui-reviewer: keeps own-file grant .harness/expertise/harness-ui-reviewer.md
+PASS  harness-ui-reviewer: keeps own-file grant .harness/*/expertise/harness-ui-reviewer.md
+PASS  harness-product-lead: still holds no bash or edit
+PASS  harness-eng-lead: still holds no bash or edit
+PASS  harness-validator-lead: still holds no bash or edit
+PASS  harness-code-reviewer: still holds no edit
+PASS  harness-security-reviewer: still holds no edit
+PASS  harness-ui-reviewer: still holds no edit
+PASS  distillation.md: members apply through the tool
+PASS  distillation.md: writes land in the feature tree
+PASS  distillation.md: Main lands the distill through the gate
+PASS  distillation.md: pre-merge reconstruction by replay
+PASS  distillation.md: refusal returns to the original member to re-judge
+PASS  distillation.md: the marker reaches every child
+PASS  distillation.md: no scribe route (main session applying members' ops)
+PASS  harness-distill: documents expertise_apply
+PASS  harness-distill: digest items carry persona
+PASS  harness-distill: no `state` on a digest item
+PASS  harness-distill: no shell member-application recipe
+PASS  harness-distill: no control-plane write destination
+PASS  harness-expertise: writable tiers live under the feature tree
+PASS  harness-curate: names the original persona under distill
+PASS  harness-curate: no inline cross-persona application
+
+0 failure(s)
+PASS test-member-expertise.py
+----- test-merge-gitignore.py (exit 0, 1.44s) -----
+PASS preserves_existing_content
+PASS check_complete_is_read_only
+PASS check_incomplete_reports_missing_and_is_read_only
+PASS absent_target_receives_each_rule_once
+PASS partial_target_retains_present_rule_and_adds_missing_once
+PASS second_merge_is_byte_identical
+PASS explicit_project_root_ignores_caller_cwd
+PASS bug2399_repository_rules_track_run_records
+PASS bug2399_fresh_install_tracks_run_records
+PASS bug2399_check_reports_obsolete_broad_rules
+PASS bug2399_merge_replaces_broad_rules
+PASS bug2399_merge_corrects_shipped_rationale_only
+PASS bug2399_line_endings_preserved
+PASS bug2399_operator_checklist_commands_compose
+14 passed; 0 failed
+PASS test-merge-gitignore.py
+----- test-hooks-install.py (exit 0, 7.64s) -----
+PASS: commands verbatim: step 1's command string is present in SKILL.md
+PASS: commands verbatim: step 2's set command is present in SKILL.md
+PASS: commands verbatim: step 2's get command is present in SKILL.md
+PASS: (a) SC-08 first half: before the setup step, core.hooksPath does not resolve to the tracked hooks directory
+PASS: setup step exits 0 on a fresh clone
+PASS: (b) SC-08 second half #1: after the setup step, core.hooksPath resolves to the tracked hooks directory
+PASS: (b) SC-08 second half #2: the post-merge file there is executable
+PASS: (c) SC-13 clause 1: both runs exit 0
+PASS: (c) SC-13 clause 1: value after the second run equals the first
+PASS: (d) SC-13 clause 2: the step's stdout carries the value it found
+PASS: (d) found value reported equals the pre-set unrelated value
+PASS: (d) SC-13 clause 3: no run leaves the clone pointing at a directory the harness did not write without having said so — value is unchanged and the report above proves it was said
+PASS: (d) RED PROOF precondition: unconditional variant still passes clause one (idempotence)
+PASS: (d) RED PROOF: unconditional variant FAILS clause 2 — it never reports the value it found
+PASS: (d) RED PROOF: unconditional variant also silently overwrites the unrelated value (clause 3 violation) without having said so
+PASS: (e-green) setup step exits 0
+PASS: (e-green) core.hooksPath points at the tracked dir after setup
+PASS: (e-green) real merge succeeds
+PASS: (e-green) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (e-green) SC-14: the terminal feature's worktree is gone after a real merge, with NOTHING hand-installed into .git/hooks/
+PASS: (e-green) the sweep removed the worktree by the normal path, never the build-entry retention branch
+PASS: (e) RED PROOF still passes (a): before setup, not installed
+PASS: (e) RED PROOF still passes (b): after setup, resolves + executable
+PASS: (e) RED PROOF still passes (c): idempotent
+PASS: (e) RED PROOF still passes (d): reports the unrelated value found
+PASS: (e-red) setup step exits 0
+PASS: (e-red) core.hooksPath points at the tracked dir after setup
+PASS: (e-red) real merge succeeds
+PASS: (e-red) RED PROOF: the shim reports the missing sweep rather than silently doing nothing
+PASS: (e-red) RED PROOF: with the shim repointed at a nonexistent sweep, the worktree SURVIVES the merge
+EXIT=0
+PASS test-hooks-install.py
+----- test-observations-merge.py (exit 0, 1.96s) -----
+PASS  case1: naive whole-file write loses bullet B
+PASS  case2: apply exits 0
+PASS  case2: bullet A present
+PASS  case2: bullet B present
+PASS  case2: bullet C present
+PASS  case2: A appears before B, and both remain in base order
+PASS  case3: apply exits 0
+PASS  case3: exactly one copy of the byte-identical record
+PASS  case4: apply exits 0
+PASS  case4: normalised-identical record (wrapping/trailing-space) not duplicated
+PASS  case4b: apply exits 0
+PASS  case4b: record differing only in trailing blank-line count dedups as one copy
+PASS  case5: two different records both kept, exit 0 (no conflict exit exists)
+PASS  case5: bullet A present
+PASS  case5: bullet B present
+PASS  case6: apply exits 0
+PASS  case6: the exact multi-line record text survives
+PASS  case7: 20 concurrent trials admit only the union outcome or the lock outcome
+PASS  case7: informational — the exit-6 lock branch was taken in 0/20 trials
+PASS  case8: base file does not exist before apply
+PASS  case8: create exits 0
+PASS  case8: the file now exists
+PASS  case8: bullet A present
+PASS  case8: a generated title line beginning with a hash is present
+PASS  case8b: first apply on a fresh feature exits 0
+PASS  case8b: the log is created with the entry
+PASS  case9: a source path is REFUSED with exit 9
+PASS  case9: ...and the refused file is untouched
+PASS  case9: the escape's literal argument ends in the full legal-looking tail
+PASS  case9: a symlink escape whose LITERAL argument looks legal but RESOLVES elsewhere is REFUSED with exit 9
+PASS  case9: ...and the file behind the symlink is untouched
+PASS  case9: an Expertise file path is REFUSED with exit 9 — it belongs to a different tool
+PASS  case9: ...and the Expertise file is untouched
+PASS  case9: a legitimate observations path is ALLOWED — exit 0
+PASS test-observations-merge.py
+PASS test-observations-merge.py
+----- test-onboarding-split.py (exit 0, 0.02s) -----
+PASS: harness-init/SKILL.md: does not match 'Track A'
+PASS: harness-init/SKILL.md: does not match 'Track B'
+PASS: harness-init/SKILL.md: does not match 'factory/fleet.yaml'
+PASS: harness-init/SKILL.md: does not match 'The approval gate'
+PASS: harness-init/SKILL.md: does not match 'then the BRIEF'
+PASS: harness-init/SKILL.md: does not match 'Design pass'
+PASS: harness-init/SKILL.md: does not match 'harness-visual-designer'
+PASS: harness-add-repo/SKILL.md exists
+PASS: harness-add-repo/SKILL.md: does not match 'The approval gate'
+PASS: harness-add-repo/SKILL.md: does not match 'then the BRIEF'
+PASS: harness-add-repo/SKILL.md: does not match 'Design pass'
+PASS: harness-add-repo/SKILL.md: does not match 'harness-visual-designer'
+PASS: harness-add-repo/SKILL.md: matches a default_branch spelling ('default_branch')
+PASS: harness-add-repo/SKILL.md: matches factory/fleet.yaml ('factory/fleet.yaml')
+PASS: harness-add-repo/SKILL.md: matches the central-tree segment path ('<control-plane>/.harness/<segment>')
+PASS: harness-add-repo/SKILL.md: default_branch, then factory/fleet.yaml, then the segment path — first occurrences in that order
+PASS: .omp/commands/harness-plan.md: does not match 'harness-init'
+PASS: .omp/commands/harness-grilling.md: does not match 'harness-init'
+PASS: harness-add-repo/SKILL.md: has a Preflight heading
+PASS: harness-add-repo/SKILL.md: does not match 'claude --version'
+PASS: harness-init/SKILL.md: does not match 'claude --version' (CLI-probe guard)
+PASS: harness-init/SKILL.md: does not match '2.1.217' (CLI-probe guard)
+PASS: synthetic ordering regression: correctly-ordered markers pass the ordering clause
+PASS: synthetic ordering regression: reversed markers fail the ordering clause
+EXIT=0
+PASS test-onboarding-split.py
+----- test-panel-findings.py (exit 0, 0.11s) -----
+PASS  case1: id starts with PF-
+PASS  case1: id total length is 35
+PASS  case1: suffix is 32 lowercase hex characters
+PASS  case2: normalization-only difference gives the same id
+PASS  case3: one-character summary change gives a different id
+PASS  case4: different readers give different ids
+PASS  case5a: empty reader exits 2
+PASS  case5b: whitespace-only summary exits 2
+PASS  case6: unicode summary round-trips without raising
+9/9 checks passed
+PASS test-panel-findings.py
+PASS test-panel-findings.py
+----- test-gh-sync-ship.py (exit 0, 26.97s) -----
+ok    ship: exits 0
+ok    ship: card #41 reaches the done station
+ok    ship: card #42 reaches the done station
+ok    ship: card #50 reaches the done station
+ok    ship: card #40 reaches the done station
+ok    ship: closes NO issue - no `issue close` argv anywhere in the run
+ok    ship: closes NO issue - no state=closed PATCH against an ISSUE (the milestone PATCH is a milestone, not a card)
+ok    ship: the milestone is still PATCHed closed
+ok    ship: prints the all-clear line when nothing was held and nothing failed
+ok    ship: prints NO HELD summary line when nothing was held
+ok    ship: prints NO FAILED line when nothing failed
+ok    ship: no line contains 'gh-sync: SKIP' - post-merge-sweep.py's worktree gate greps that literal and a healthy run must not trip it
+ok    ship: records the terminal status
+ok    ship D-10: a task sub-issue reaches Done regardless of what sub_issues would say about it
+ok    ship D-10: ship makes NO sub_issues read for a task sub-issue - the depth-1 exemption is a saved call, not just a skipped branch
+ok    ship HELD: the parent is NOT moved to Done
+ok    ship HELD: exactly ONE held line, naming the LOWEST-numbered open child
+ok    ship HELD: the parenthetical distinguishes a stationed child from a missing one
+ok    ship HELD: the summary line lists the held card and its child
+ok    ship HELD: a run with holds and no failures prints NO FAILED line
+ok    ship HELD: exit status is still 0 - a hold is a healthy outcome
+ok    ship HELD: a child that is not on the board at all counts as OPEN, with its own parenthetical
+ok    ship HELD: a child on the board with NO station set counts as OPEN, reported as not at Done rather than not on the board
+ok    ship ORDERING: a parent whose only open children are cards THIS RUN lands reaches Done in that same run
+ok    ship REFRESH: a source_issues entry that is itself a child of the parent, moved in step 5's own pass, still lets the parent land in the same run
+ok    ship UNKNOWN: a sub_issues read that fails leaves the card UNMOVED - unknown is never childless
+ok    ship UNKNOWN: it prints one stderr line naming the issue
+ok    ship UNKNOWN: the miss is REPORTED on the FAILED line, so the sweep keeps the tree
+ok    ship UNKNOWN: exit status is still 0
+ok    ship FAILED: one card's failure does not stop the remaining child writes
+ok    ship FAILED: the summary names exactly the card whose write failed
+ok    ship FAILED: the FAILED line never covers a held card - this run held nothing
+ok    ship FAILED: exit status is still 0 - best-effort per card (DEC-146)
+ok    ship FAILED: no line carries 'gh-sync: SKIP'
+ok    ship AUDIT: it runs, and every finding is printed under ship's own prefix
+ok    ship AUDIT ORDERING: a card THIS RUN moved to Done produces no STATION finding - the audit runs after the writes, not before
+ok    ship AUDIT: a summary line counts the findings
+ok    ship AUDIT: no audit line carries 'gh-sync: SKIP' or 'gh-sync: FAILED'
+ok    ship AUDIT: an audit that cannot run leaves the exit status 0
+ok    ship AUDIT: it prints one stderr line saying the audit could not run
+ok    ship AUDIT: the cards were still written and the status still recorded
+ok    FEAT-64: an unrelated RuntimeError inside the audit escapes ship (traceback, not 'the board audit could not run')
+ok    REQ-10 guard: status Review still writes the review station for #40
+ok    REQ-10 guard: status Review still writes the review station for #41
+ok    REQ-10 guard: status Review still writes the review station for #42
+ok    SC-12: `status Ready` writes NO done station - ship is the only writer
+ok    SC-12: `start-task` writes NO done station - ship is the only writer
+ok    SC-12: `abandon` writes NO done station - ship is the only writer
+ok    SC-12 (secondary): exactly one place BINDS the done station for writing, and it is cmd_ship's own local
+ok    T-10 defect one: after a successful ship the station file is CLEAN against HEAD
+ok    T-10 defect one: ship names the commit it made
+ok    T-10 defect one: the commit subject names the feature and the station
+ok    T-10 defect one: the commit carries the plan and nothing outside ship's two files
+ok    BUG-1114: a ship given a RELATIVE feature dir still COMMITS the station
+ok    BUG-1114: and it does not claim the station was already committed when it was not
+ok    BUG-1114: the commit subject is the same one the absolute path produces
+ok    T-10 defect one DISCRIMINATOR: an unrelated STAGED file is NOT swept into the station commit — it is still uncommitted afterwards
+ok    T-10 defect one: a SECOND ship commits nothing and says the file is already clean
+ok    T-10 defect two: ship REFUSES a feature dir inside a worktree, exit 1
+ok    T-10 defect two: the refusal STATES THE REASON — the worktree is about to be deleted, so the station would not survive
+ok    T-10 defect two: the refusal names the equivalent path in the MAIN CHECKOUT
+ok    T-10 defect two: it is a REFUSAL and not a SKIP — the sweep must not read this as permission to delete
+ok    T-10: ship still reports SKIP with its exact positive-signal wording when there is no recorded milestone
+ok    BUG-1129 fixture: validated=False writes NO note (the case below is about its absence)
+ok    BUG-1129: ship REFUSES (exit 1) a feature with no notes/handoff-validate.md, saying `validation incomplete` and naming the missing note
+ok    BUG-1129: the refusal made NO GitHub write of any kind — no card, milestone, comment or close
+ok    BUG-1129: it is a REFUSAL, not a SKIP — the sweep must not read it as permission to remove the worktree
+ok    BUG-1129: plan.yaml is byte-identical after the refusal (station 'building' preserved, nothing else written)
+ok    BUG-1129: a plan that cannot be evaluated grants no exemption — ship refuses (exit 1) naming the note and the parse failure, with no GitHub write
+ok    BUG-1129 fixture: the default ship fixture writes notes/handoff-validate.md with every handoff section
+ok    BUG-1129: an all-main-session-direct plan ships WITHOUT the note (DEC-174 exemption shared with INV-17)
+ok    T-10: with NO git repository the station commit fails LOUDLY but does not change the exit status
+ok    T-10: and that failure line contains NEITHER sweep signal word, so an uncommitted station cannot cancel a worktree removal
+ok    F-01 fixture: the sweep's gate literals are discoverable in post-merge-sweep.py, so this case cannot pass by asserting against a string nothing actually reads
+ok    F-01 (absent plan.yaml): ship says the station was not recorded
+ok    F-01 (absent plan.yaml): and that line carries a literal post-merge-sweep.py gates on, so the sweep keeps the worktree holding the only record of the station
+ok    F-01 (set-feature-station exits non-zero): ship says the station was not recorded
+ok    F-01 (set-feature-station exits non-zero): and that line carries a literal post-merge-sweep.py gates on, so the sweep keeps the worktree holding the only record of the station
+
+ALL PASSED
+PASS test-gh-sync-ship.py
+----- test-pinned-checkout.py (exit 0, 1.64s) -----
+PASS - classify skips pinned checkouts (no INV-29 unresolved record)
+PASS - add prints the checkout path and exits 0
+PASS - checkout lives under the disposable pins root
+PASS - checkout is detached at exactly the pin
+PASS - add is idempotent for the same run and pin
+PASS - add refuses to move an existing run's checkout to another pin
+PASS - add refuses an abbreviated sha
+PASS - add refuses a sha the repository does not have
+PASS - a second reader on the same run id gets its own checkout
+PASS - a key part containing '--' is refused (the separator)
+PASS - remove deletes this reader's checkout and worktree entry, not the other reader's
+PASS - remove of an absent run is a no-op success
+PASS - sweep removes only checkouts older than the window
+PASS - sweep --dry-run names the checkout and leaves it
+PASS - outside a harness checkout the tool refuses
+all checks passed
+PASS test-pinned-checkout.py
+----- test-lead-start-return.py (exit 0, 22.12s) -----
+PASS [startup] SC-02/product/plan-approved: harness-product-lead HARNESS-MISSION: plan on a plan with approved approval is refused before any claim, naming target and observed status
+PASS [startup] SC-02/product/plan-absent-status: harness-product-lead HARNESS-MISSION: plan on a plan with absent-status approval is refused before any claim, naming target and observed status
+PASS [control] SC-02/product/plan-pending: harness-product-lead HARNESS-MISSION: plan on a pending plan starts
+PASS [startup] SC-02/validator/plan-approved: harness-validator-lead HARNESS-MISSION: plan on a plan with approved approval is refused before any claim, naming target and observed status
+PASS [startup] SC-02/validator/plan-absent-status: harness-validator-lead HARNESS-MISSION: plan on a plan with absent-status approval is refused before any claim, naming target and observed status
+PASS [control] SC-02/validator/plan-pending: harness-validator-lead HARNESS-MISSION: plan on a pending plan starts
+PASS [control] SC-02/product/draft-no-plan: a product plan-team start with no plan file may draft it
+PASS [startup] SC-02/validator/no-plan: a standalone validator plan panel with no plan file is refused
+PASS [control] SC-02/validator/validate-approved: a validator validate start against an approved plan is not a plan panel
+PASS [control] SC-02/validator/fix-approved: a validator fix start against an approved plan is not a plan panel
+PASS [control] SC-02/product/patch-approved: a product patch start declares patch explicitly and is not a plan panel
+PASS [control] SC-02/eng/build-no-mission: a registered engineering-lead build start with no mission starts against an approved plan
+PASS [control] SC-02/eng/simplify-no-mission: a registered engineering-lead simplify start with no mission starts against an approved plan
+PASS [control] SC-02/eng/distill: harness-eng-lead HARNESS-MISSION: distill still starts on its registered distill run
+PASS [refusal] SC-02/eng/distill-unregistered: harness-eng-lead HARNESS-MISSION: distill on a non-distill run is refused (FEAT-2225 F1)
+PASS [control] SC-02/product/distill: harness-product-lead HARNESS-MISSION: distill still starts on its registered distill run
+PASS [refusal] SC-02/product/distill-unregistered: harness-product-lead HARNESS-MISSION: distill on a non-distill run is refused (FEAT-2225 F1)
+PASS [control] SC-02/validator/distill: harness-validator-lead HARNESS-MISSION: distill still starts on its registered distill run
+PASS [refusal] SC-02/validator/distill-unregistered: harness-validator-lead HARNESS-MISSION: distill on a non-distill run is refused (FEAT-2225 F1)
+PASS [startup] SC-02/product/mission-missing: harness-product-lead with no HARNESS-MISSION is refused before any claim
+PASS [startup] SC-02/product/mission-conflicting: harness-product-lead with conflicting HARNESS-MISSION lines is refused before any claim
+PASS [startup] SC-02/validator/mission-missing: harness-validator-lead with no HARNESS-MISSION is refused before any claim
+PASS [startup] SC-02/validator/mission-conflicting: harness-validator-lead with conflicting HARNESS-MISSION lines is refused before any claim
+PASS [startup] SC-02/eng/zero-no-mission: an engineering-lead start with zero matching runs is refused independently of mission
+PASS [startup] SC-02/eng/two-no-mission: an engineering-lead start with two matching runs is refused independently of mission
+PASS [startup] SC-02/scope/mission-missing: the plan scope reader dispatched with no HARNESS-MISSION: plan is refused
+PASS [control] SC-02/scope/pending: the plan scope reader with HARNESS-MISSION: plan on a pending plan starts
+PASS [control] SC-02/scope/validator-code-review: a validator's ordinary code-review dispatch needs no mission
+PASS [startup] SC-02/scope/approved-while-lead-running: a scope-reader dispatch after the plan is approved under a running plan lead is refused before the reader works
+PASS [control] SC-04/eng/start-bind: harness-eng-lead with one registered run starts, registers its runtime claim and binds
+PASS [control] SC-04/eng/missing-binding: harness-eng-lead missing-binding return is still refused with nothing appended
+PASS [control] SC-04/eng/wrong-child: harness-eng-lead wrong-child return is still refused with nothing appended
+PASS [control] SC-04/eng/wrong-parent: harness-eng-lead wrong-parent return is still refused with nothing appended
+PASS [control] SC-04/eng/wrong-feature: harness-eng-lead wrong-feature return is still refused with nothing appended
+PASS [control] SC-04/eng/wrong-checkout: harness-eng-lead wrong-checkout return is still refused with nothing appended
+PASS [control] SC-04/eng/wrong-artifact: harness-eng-lead wrong-artifact return is still refused with nothing appended
+PASS [control] SC-04/eng/authorized-append: harness-eng-lead return appends to exactly its registered destination
+PASS [startup] SC-04/eng/unregistered-witness: harness-eng-lead with no registered run is refused at dispatch, before any claim, instead of working to an unauthorizable return
+PASS [control] SC-04/product/start-bind: harness-product-lead with one registered run starts, registers its runtime claim and binds
+PASS [control] SC-04/product/missing-binding: harness-product-lead missing-binding return is still refused with nothing appended
+PASS [control] SC-04/product/wrong-child: harness-product-lead wrong-child return is still refused with nothing appended
+PASS [control] SC-04/product/wrong-parent: harness-product-lead wrong-parent return is still refused with nothing appended
+PASS [control] SC-04/product/wrong-feature: harness-product-lead wrong-feature return is still refused with nothing appended
+PASS [control] SC-04/product/wrong-checkout: harness-product-lead wrong-checkout return is still refused with nothing appended
+PASS [control] SC-04/product/wrong-artifact: harness-product-lead wrong-artifact return is still refused with nothing appended
+PASS [control] SC-04/product/authorized-append: harness-product-lead return appends to exactly its registered destination
+PASS [startup] SC-04/product/unregistered-witness: harness-product-lead with no registered run is refused at dispatch, before any claim, instead of working to an unauthorizable return
+PASS [control] SC-04/validator/start-bind: harness-validator-lead with one registered run starts, registers its runtime claim and binds
+PASS [control] SC-04/validator/missing-binding: harness-validator-lead missing-binding return is still refused with nothing appended
+PASS [control] SC-04/validator/wrong-child: harness-validator-lead wrong-child return is still refused with nothing appended
+PASS [control] SC-04/validator/wrong-parent: harness-validator-lead wrong-parent return is still refused with nothing appended
+PASS [control] SC-04/validator/wrong-feature: harness-validator-lead wrong-feature return is still refused with nothing appended
+PASS [control] SC-04/validator/wrong-checkout: harness-validator-lead wrong-checkout return is still refused with nothing appended
+PASS [control] SC-04/validator/wrong-artifact: harness-validator-lead wrong-artifact return is still refused with nothing appended
+PASS [control] SC-04/validator/authorized-append: harness-validator-lead return appends to exactly its registered destination
+PASS [startup] SC-04/validator/unregistered-witness: harness-validator-lead with no registered run is refused at dispatch, before any claim, instead of working to an unauthorizable return
+PASS [control] SC-04/scope/pending-return: a pending-plan scope review starts and returns normally
+PASS [control] SC-04/scope/approved-after-start: a plan approved after a valid start is refused at the reader's return
+PASS [startup] SC-04/scope/approved-witness: a plan-panel lead start on an approved plan is refused at dispatch, before any claim, instead of its readers being refused at yield
+PASS [control] SC-04/distill-pin: a forwarded distill mission still pins the reviewer's gate fields
+60 of 60 cases passed
+PASS test-lead-start-return.py
+----- test-gh-sync-abandon.py (exit 0, 55.99s) -----
+ok    abandon --yes removes the feature's runs/ evidence (#1996)
+ok    abandon prunes only runs/: the feature's notes stay
+ok    abandon closes 3 subs not_planned
+ok    abandon closes the milestone
+ok    abandon posts via --body-file
+ok    abandon closes an ADOPTED parent not_planned — origin decides nothing now
+ok    abandon labels sub-issue #41 abandoned
+ok    abandon labels sub-issue #42 abandoned
+ok    abandon labels sub-issue #43 abandoned
+ok    abandon labels the adopted parent it closed
+ok    ensure_labels sends colour b60205 for the abandoned label
+ok    abandon closes the parent not_planned, exactly once
+ok    abandon labels sub-issue #41 abandoned
+ok    abandon labels a created parent that closes
+ok    abandon closes a parent that carries no origin at all — the leave-open default is gone, and the key is still absent from the saved block
+ok    abandon without --reason-file exits 1
+ok    abandon with an empty reason file exits 1
+ok    abandon with a nonexistent reason path exits 1
+ok    abandon with an unreadable reason file exits 1
+ok    abandon with a BINARY reason file exits 1, not a traceback
+ok    abandon with no recorded milestone never builds milestones/None
+ok    abandon with no milestone but WITH issues still records the terminal station
+ok    abandon with sync disabled -> SKIP, exit 0
+ok    ship records plan.yaml station done
+ok    abandon records plan.yaml station abandoned
+ok    ship leaves every other top-level key unchanged
+ok    abandon leaves every other top-level key unchanged
+ok    abandon dry run: names the runs/ it would remove and leaves it (#1996)
+ok    abandon dry run: exits 0
+ok    abandon dry run: makes ZERO writes - no close, no label, no comment
+ok    abandon dry run: one would-line per recorded sub-issue
+ok    abandon dry run: the sub-issue line names all four acts — detach, close, label, and the return to the backlog — so the dry run and the real run diff by eye
+ok    abandon dry run: the parent line says it returns to the backlog too
+ok    abandon dry run: one would-line for the milestone
+ok    abandon dry run: the parent is LABELLED as the parent, never as one more number - it now closes unconditionally, so a column of numbers would hide the epic
+ok    abandon dry run: it says what the operator must do next
+ok    abandon dry run: does NOT record the status
+ok    abandon --yes: the numbers it actually closes, in order, equal the numbers the dry run listed - ONE renderer, so the operator confirms the list that executes
+ok    abandon --yes: every sub-issue is closed not_planned
+ok    abandon --yes: the PARENT is closed not_planned whatever its history - the confirmation replaces the old origin gate
+ok    abandon --yes: everything it closed is labelled abandoned, parent included
+ok    abandon --yes: the milestone is closed
+ok    abandon --yes: records the terminal station in plan.yaml
+ok    #13 failing close API: exit 0, the failure is named with its diagnostic
+ok    #13 failing close API: later item writes still run (#42, the parent and the milestone)
+ok    #13 failing close API: the abandoned station is still recorded locally
+ok    abandon, label create fails: no SKIP, exit 0, the failed create named with its diagnostic
+ok    abandon, label create fails: every item still closes and reseats, the milestone closes
+ok    abandon, label create fails: no dependent --add-label, and each closed item reports the gap
+ok    abandon, label create fails: the abandoned station is still recorded locally
+ok    abandon --yes BEFORE the directory: does not die with 'is not a directory'
+ok    abandon --yes BEFORE the directory: behaves identically - status recorded, parent closed
+ok    --yes on ship is a caller error before any gh call
+ok    legacy origin key: abandon reads the block without crashing
+ok    legacy origin key: the parent closes anyway - the key is read but decides nothing
+ok    abandon: exits 0 with a board configured
+ok    abandon: card #41 is returned to the BACKLOG station, not left at Done
+ok    abandon: card #42 is returned to the BACKLOG station, not left at Done
+ok    abandon: card #40 is returned to the BACKLOG station, not left at Done
+ok    abandon: NO card is written to the done station
+ok    abandon: the backlog write comes AFTER the close — a write before it would be overwritten by GitHub's Item-closed workflow
+ok    abandon: sub-issue #41 is DETACHED from parent #40, so it cannot hold the parent open
+ok    abandon: sub-issue #42 is DETACHED from parent #40, so it cannot hold the parent open
+ok    abandon: the detach comes BEFORE the close — a detach is a write on the parent, and doing it first means a failed close cannot leave a half-detached child
+ok    abandon: everything it closed still carries the abandoned label
+ok    abandon: still records status Abandoned
+ok    abandon: exits 0 even when a detach cannot be made
+ok    abandon: the close still runs when the detach fails
+ok    abandon exits 0
+ok    abandon writes BACKLOG for the sub-issue's card, never the done station
+ok    abandon writes BACKLOG for the parent's card too
+ok    the close precedes the backlog write, because a close moves the card to done at t+0s and a write made before it would be silently overwritten
+ok    a failing --add-label does not abort the run — no SKIP, exit 0
+ok    a failing --add-label on the FIRST issue still leaves every later issue closed
+ok    a failing --add-label still leaves the card in the BACKLOG, never at done — the cosmetic write cannot cost the state correction
+ok    the label failure is REPORTED on stderr, naming the issue
+ok    _record_status still runs — feature.json reaches Abandoned
+ok    reject invalid successor refuses before any mutation
+ok    reject multiline reason refuses before any mutation
+ok    reject numeric report: names parent, successor, comment, label, milestone, backlog and station
+ok    reject numeric report: makes no mutations
+ok    reject numeric report: does not record the station
+ok    reject numeric: closes only parent then reseats it, comments, labels, closes milestone, and records rejected
+ok    reject numeric: the station is still `building` at EVERY remote write — recorded last
+ok    reject none: closes only parent without label/link or station mutation
+ok    reject numeric, label fails: exits 1 naming the failed step
+ok    reject numeric, label fails: reports the close and comment that landed and the steps not run
+ok    reject numeric, label fails: nothing after the label ran and the station is NOT rejected
+ok    reject, label create fails: no SKIP, exit 1, the failed create named with its diagnostic
+ok    reject, label create fails: the halt report names what landed and what did not run
+ok    reject, label create fails: no --add-label, backlog or milestone write, and no station
+ok    reject first-sync report: names the source ticket, no parent, and the station
+ok    reject first-sync: comments on the source ticket, reseats it, closes and labels nothing
+ok    reject first-sync: the station is still `plan` at every remote write — recorded last
+ok    reject first-sync: status is rejected and source_issues is exactly [1714]
+ok    reject first-sync: byte-for-byte, the plan differs from its baseline only by the station line
+ok    reject first-sync: the drafted BRIEF is byte-identical
+ok    reject first-sync none: exits 0 and leaves the station to the caller (already rejected here)
+ok    reject none, comment fails: exits 1 naming the failed step and the close that landed
+ok    reject none, comment fails: backlog and milestone did NOT run
+ok    reject none, comment fails: the station is untouched
+ok    reject with neither parent nor source_issues: refused (exit 1) and no station write
+ok    close-sources: exits 0
+ok    close-sources: source #51 is closed not_planned
+ok    close-sources: source #51's card returns to Backlog AFTER its close
+ok    close-sources: source #51 is labelled abandoned
+ok    close-sources: source #51's comment carries the ORIGINAL --reason-file path, never its contents
+ok    close-sources: source #52 is closed not_planned
+ok    close-sources: source #52's card returns to Backlog AFTER its close
+ok    close-sources: source #52 is labelled abandoned
+ok    close-sources: source #52's comment carries the ORIGINAL --reason-file path, never its contents
+ok    close-sources: the reason text itself is never composed into any gh argument
+ok    close-sources: the parent is still closed alongside the sources
+ok    close-sources: station abandoned
+ok    close-sources: the plan differs only by its station line, and feature.json (the mirror) is not refreshed
+ok    close-sources dry run: exits 0 and says how to confirm
+ok    close-sources dry run: one close line for source #51 naming not_planned, the abandoned label and the backlog
+ok    close-sources dry run: one reason-comment line for source #51
+ok    close-sources dry run: one close line for source #52 naming not_planned, the abandoned label and the backlog
+ok    close-sources dry run: one reason-comment line for source #52
+ok    close-sources dry run: ZERO writes of any kind
+ok    close-sources dry run: every byte of the feature directory — plan, feature.json and runs/ — is unchanged
+ok    close-sources dry run: names the runs/ it would remove
+ok    dry run names the label setup the real run performs, and a reason line for the task-issue source #41
+ok    a source that is also a task issue receives the ORIGINAL reason file exactly once
+ok    that same issue is closed exactly once, and source #52 is fully disposed
+ok    an empty plan has no label line in the dry run and creates no label
+ok    close-sources: the numbers actually written, in order, equal the numbers the dry run listed, sources included
+ok    abandon [neither flag]: exits 0
+ok    abandon [neither flag]: ZERO source comments, closes, labels or board writes
+ok    abandon [neither flag]: the parent is closed exactly when --yes is given
+ok    abandon [neither flag]: no remote write of any kind, station not recorded
+ok    abandon [--yes only]: exits 0
+ok    abandon [--yes only]: ZERO source comments, closes, labels or board writes
+ok    abandon [--yes only]: the parent is closed exactly when --yes is given
+ok    abandon [--close-sources only]: exits 0
+ok    abandon [--close-sources only]: ZERO source comments, closes, labels or board writes
+ok    abandon [--close-sources only]: the parent is closed exactly when --yes is given
+ok    abandon [--close-sources only]: no remote write of any kind, station not recorded
+ok    abandon [--close-sources --yes]: exits 0
+ok    abandon [--close-sources --yes]: BOTH sources receive comment, close, backlog and label
+ok    abandon [--close-sources --yes]: the parent is closed exactly when --yes is given
+ok    close-sources with NO sources: parent, task and milestone disposal is unchanged
+ok    unopened + close-sources: no SKIP, exits 0
+ok    unopened + close-sources: plan-only source #51 is closed, reseated, labelled and commented
+ok    unopened + close-sources: plan-only source #52 is closed, reseated, labelled and commented
+ok    unopened + close-sources: the stale mirror's #99 is never touched
+ok    unopened + close-sources: records abandoned and prunes runs/
+ok    unopened + close-sources: the station is recorded BEFORE runs/ is pruned
+ok    unopened + close-sources: every other artifact — feature.json and the plan's source list — is preserved
+ok    unopened + --yes only: records abandoned, prunes runs/, and makes ZERO remote writes (sources untouched without --close-sources)
+ok    unopened with no sources at all: still records abandoned, no remote write
+ok    unopened dry run: lists both sources, writes nothing, preserves every byte
+ok    already abandoned, absent runs/: exits 0 and disposes both sources
+ok    already abandoned, absent runs/: the station is NOT rewritten
+ok    already abandoned, absent runs/: runs/ is gone afterwards
+ok    already abandoned, retained runs/: exits 0 and disposes both sources
+ok    already abandoned, retained runs/: the station is NOT rewritten
+ok    already abandoned, retained runs/: runs/ is gone afterwards
+ok    already abandoned, retained runs/: it is pruned and named
+ok    already abandoned, no --close-sources: a local no-op — exit 0, no remote write
+ok    failed source close: exits 0, names #51 on stderr and in the FAILED summary
+ok    failed source close: the LATER source #52 is still fully disposed
+ok    failed source close: #51 gets no backlog or label write (the close came first)
+ok    failed source close: the parent, station and runs/ prune still finish
+ok    failed source comment and label: exits 0, both failures reported for #51
+ok    failed source comment and label: #51 is still closed and reseated
+ok    failed source comment and label: source #52 is fully disposed and the station is recorded
+ok    source/task alias, --yes, no --close-sources: exits 0 and ZERO gh calls name #41, 52 included
+ok    source/task alias, --yes: the skip is reported as a gap naming --close-sources
+ok    source/task alias, --yes: the non-aliased #40 is still closed and the station recorded
+ok    source/task alias, dry run, no --close-sources: exits 0 and ZERO gh calls name #41, 52 included
+ok    source/task alias, dry run: the skip is reported as a gap naming --close-sources
+ok    source/task alias, --close-sources --yes: #41 is commented once, closed once, reseated and labelled, and source #52 is disposed
+ok    source/parent alias, --yes, no --close-sources: exits 0 and ZERO gh calls name #40, 52 included
+ok    source/parent alias, --yes: the skip is reported as a gap naming --close-sources
+ok    source/parent alias, --yes: the non-aliased #41 is still closed and the station recorded
+ok    source/parent alias, dry run, no --close-sources: exits 0 and ZERO gh calls name #40, 52 included
+ok    source/parent alias, dry run: the skip is reported as a gap naming --close-sources
+ok    source/parent alias, --close-sources --yes: #40 is commented once, closed once, reseated and labelled, and source #52 is disposed
+ok    station write refused (plan.yaml absent): runs/ is preserved, nothing is pruned, no plan.yaml appears, and the gap is reported
+ok    --close-sources on ship exits 1 naming abandon, with no gh call and no change
+ok    --close-sources on reject exits 1 naming abandon, with no gh call and no change
+ok    --close-sources on open exits 1 naming abandon, with no gh call and no change
+ok    --close-sources on status exits 1 naming abandon, with no gh call and no change
+ok    --close-sources on recover-terminal exits 1 naming abandon, with no gh call and no change
+
+ALL PASSED
+PASS test-gh-sync-abandon.py
+----- test-plan-merge.py (exit 0, 24.53s) -----
+PASS  apply_indent_mismatch_exits_0
+PASS  apply_indent_mismatch_leaves_a_PARSEABLE_plan
+PASS  apply_indent_mismatch_added_the_decision
+PASS  apply_indent_mismatch_preserves_the_base_item
+PASS  case1: naive whole-file write loses T-02
+PASS  case1: naive whole-file write loses T-03
+PASS  case1: naive whole-file write loses T-04
+PASS  case1: naive whole-file write loses T-05
+PASS  case1: naive whole-file write loses T-06
+PASS  case1: naive whole-file write loses T-07
+PASS  case1: naive whole-file write loses T-08
+PASS  case1: naive whole-file write loses T-09
+PASS  case1: naive whole-file write loses T-10
+PASS  case1: naive whole-file write loses T-11
+PASS  case1: naive whole-file write loses T-12
+PASS  case1: naive whole-file write loses T-13
+PASS  case1: naive whole-file write loses T-14
+PASS  case2: first apply exits 0
+PASS  case2: T-01 present after first apply
+PASS  case2: T-02 present after first apply
+PASS  case2: T-03 present after first apply
+PASS  case2: T-04 present after first apply
+PASS  case2: T-05 present after first apply
+PASS  case2: T-06 present after first apply
+PASS  case2: T-07 present after first apply
+PASS  case2: T-08 present after first apply
+PASS  case2: T-09 present after first apply
+PASS  case2: T-10 present after first apply
+PASS  case2: T-11 present after first apply
+PASS  case2: T-12 present after first apply
+PASS  case2: T-13 present after first apply
+PASS  case2: T-14 present after first apply
+PASS  case2: second apply exits 0
+PASS  case2: T-01 present after second apply
+PASS  case2: T-02 present after second apply
+PASS  case2: T-03 present after second apply
+PASS  case2: T-04 present after second apply
+PASS  case2: T-05 present after second apply
+PASS  case2: T-06 present after second apply
+PASS  case2: T-07 present after second apply
+PASS  case2: T-08 present after second apply
+PASS  case2: T-09 present after second apply
+PASS  case2: T-10 present after second apply
+PASS  case2: T-11 present after second apply
+PASS  case2: T-12 present after second apply
+PASS  case2: T-13 present after second apply
+PASS  case2: T-14 present after second apply
+PASS  case2: T-15 present after second apply
+PASS  case3: exit 0
+PASS  case3: the exact byte slice of the base's approval block occurs verbatim in the result
+PASS  case3: number of hash-comment lines in the whole file is unchanged
+PASS  case3: stdout carries IGNORED-APPROVAL
+PASS  case4: 20 concurrent trials admit only the union outcome or the lock outcome
+PASS  case4: informational — the exit-6 lock branch was taken in 0/20 trials
+PASS  case5: a changed field on an existing id exits 0
+PASS  case5: the named field is replaced
+PASS  case5: the new field is added
+PASS  case5: the omitted field is kept
+PASS  case5: stdout logs the replacement per field with both values
+PASS  case5: T-01 is byte-identical after the replace
+PASS  case5: T-02 is byte-identical after the replace
+PASS  case5: T-04 is byte-identical after the replace
+PASS  case5: T-05 is byte-identical after the replace
+PASS  case5: the approval block is untouched (base was pending)
+PASS  case5: the task count is unchanged — replace never adds an item
+PASS  case6: first apply exits 0
+PASS  case6: second apply exits 0
+PASS  case6: file is byte identical after the second, idempotent apply
+PASS  case7: a source path is REFUSED with exit 9
+PASS  case7: ...and the refused file is untouched
+PASS  case7: the escape's literal argument ends in the matching tail
+PASS  case7: a symlink escape whose LITERAL argument matches but RESOLVES elsewhere is REFUSED with exit 9
+PASS  case7: ...and the file behind the symlink is untouched
+PASS  case7: a legitimate fixture plan.yaml is ALLOWED — exit 0
+PASS  case8: unparseable proposal exits 5
+PASS  case8: stdout/stderr names the proposal side
+PASS  case8: base file is byte identical to before
+PASS  issue #720: a proposal with a duplicated key exits 5, never 0
+PASS  issue #720: the refusal names the duplicate key
+PASS  issue #720: the base is left byte-identical — no merge that later breaks a downstream reader
+PASS  issue #720 half 2: a duplicate key already on disk refuses the merge, exit 5
+PASS  issue #720 half 2: the refusal names the base side
+PASS  issue #720 half 2: the base is left byte-identical
+PASS  case9: exit 0
+PASS  case9: leading comments survive byte identical
+PASS  case9: T-15 was added
+PASS  case10a: differing approval exits 8
+PASS  case10a: stdout/stderr names the approval mapping and both loaded values
+PASS  case10a: file is byte identical to before (nothing applied)
+PASS  case10a: T-15 is absent, asserted by id
+PASS  case10b: proposal with no approval key exits 0
+PASS  case10b: T-15 is present
+PASS  case10c: loaded-equal-but-reflowed approval exits 0
+PASS  case10c: T-15 is present
+PASS  case11a: base file does not exist before apply
+PASS  case11a: create with no approval key exits 0
+PASS  case11a: the file now exists
+PASS  case11a: T-01 present in the created file
+PASS  case11a: T-02 present in the created file
+PASS  case11a: T-03 present in the created file
+PASS  case11a: apply seeds approval as pending
+PASS  case11a: a newly created plan can be signed
+PASS  case11b: base file does not exist before apply
+PASS  case11b: create with an approval key exits 8
+PASS  case11b: no file was created by the refused apply
+PASS  case11b: stdout/stderr names the approval mapping
+PASS  case11b: stdout/stderr names the main session as the signer
+PASS  case11b: no stray tempfile/plan.yaml left behind after the refusal
+PASS  set-task-station exits 0
+PASS  set-task-station changes EXACTLY one line
+PASS  set-task-station changes T-02's status line and nothing else
+PASS  set-task-station leaves the leading comment intact
+PASS  set-task-station leaves T-01 and T-03 ready
+PASS  set-task-station exits 3 on an unknown task id
+PASS  set-task-station's exit-3 message NAMES the ids the plan does carry
+PASS  set-task-station writes nothing on an unknown task id
+PASS  set-feature-station exits 0 when the key is absent
+PASS  set-feature-station INSERTS status immediately after feature:
+PASS  set-feature-station exits 0 when the key is present
+PASS  set-feature-station REPLACES rather than appending a second key
+PASS  set-feature-station does not touch a task's status
+PASS  set-panel exits 0 for a complete panel mapping
+PASS  set-panel replaces the whole panel mapping
+PASS  set-panel leaves tasks and approval unchanged
+PASS  set-panel refuses a mapping missing last_run before writing
+PASS  set-panel refusal leaves plan byte-identical
+PASS  amend --show emits a structured list value and hash
+PASS  amend --yaml-value replaces a list field
+PASS  structured amend leaves sibling tasks intact
+PASS  set-task-station exits 4 on the illegal station 'Done'
+PASS  set-task-station's exit-4 line lists the legal stations for 'Done', rejected included
+PASS  set-task-station writes nothing when 'Done' is refused
+PASS  set-task-station exits 4 on the illegal station 'icebox'
+PASS  set-task-station's exit-4 line lists the legal stations for 'icebox', rejected included
+PASS  set-task-station writes nothing when 'icebox' is refused
+PASS  set-task-station exits 4 on the illegal station ''
+PASS  set-task-station's exit-4 line lists the legal stations for '', rejected included
+PASS  set-task-station writes nothing when '' is refused
+PASS  set-task-station exits 4 on the illegal station 'abandonded'
+PASS  set-task-station's exit-4 line lists the legal stations for 'abandonded', rejected included
+PASS  set-task-station writes nothing when 'abandonded' is refused
+PASS  set-feature-station exits 4 on the illegal station 'Done'
+PASS  set-feature-station's exit-4 line lists the legal stations for 'Done', rejected included
+PASS  set-feature-station writes nothing when 'Done' is refused
+PASS  set-feature-station exits 4 on the illegal station 'icebox'
+PASS  set-feature-station's exit-4 line lists the legal stations for 'icebox', rejected included
+PASS  set-feature-station writes nothing when 'icebox' is refused
+PASS  set-feature-station exits 4 on the illegal station ''
+PASS  set-feature-station's exit-4 line lists the legal stations for '', rejected included
+PASS  set-feature-station writes nothing when '' is refused
+PASS  set-feature-station exits 4 on the illegal station 'abandonded'
+PASS  set-feature-station's exit-4 line lists the legal stations for 'abandonded', rejected included
+PASS  set-feature-station writes nothing when 'abandonded' is refused
+PASS  set-task-station ACCEPTS abandoned, a terminal station
+PASS  set-feature-station ACCEPTS abandoned (FEAT-1714 T-03: reject's one station write)
+PASS  set-task-station ACCEPTS rejected, a terminal station
+PASS  set-feature-station ACCEPTS rejected (FEAT-1714 T-03: reject's one station write)
+PASS  sign-approval exits 0
+PASS  sign-approval writes status: approved
+PASS  sign-approval writes approved_by
+PASS  sign-approval writes date, and it reloads as the string that was passed
+PASS  sign-approval leaves status: pending behind nowhere
+PASS  sign-approval does not disturb the tasks
+PASS  re-signing a ruled plan exits 0
+PASS  re-signing a ruled plan writes the requested approval date
+PASS  re-signing a ruled plan preserves its existing ruling
+PASS  1157: sign-approval accepts repeatable --overrule
+PASS  1157: each ruling records finding, attribution, date, and full reason
+PASS  1157: an overrule for a non-current finding is refused without writing
+PASS  1157: an empty overrule reason is refused without writing
+PASS  1157: a risk acceptance with an invalid date is refused without writing
+PASS  1157: an unattributed risk acceptance is refused without writing
+PASS  sign-approval inserts an absent approval mapping
+PASS  the inserted approval records the exact signature
+PASS  inserting approval preserves every pre-existing byte
+PASS  F-02 (colon and space breaks the mapping): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (colon and space breaks the mapping): approved_by round-trips as the exact string passed
+PASS  F-02 (colon and space breaks the mapping): the tasks are undisturbed
+PASS  F-02 (a leading hash is swallowed as a comment): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a leading hash is swallowed as a comment): approved_by round-trips as the exact string passed
+PASS  F-02 (a leading hash is swallowed as a comment): the tasks are undisturbed
+PASS  F-02 (a YAML boolean word must stay a STRING): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a YAML boolean word must stay a STRING): approved_by round-trips as the exact string passed
+PASS  F-02 (a YAML boolean word must stay a STRING): the tasks are undisturbed
+PASS  F-02 (a trailing colon): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a trailing colon): approved_by round-trips as the exact string passed
+PASS  F-02 (a trailing colon): the tasks are undisturbed
+PASS  F-02 (a quote of its own): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a quote of its own): approved_by round-trips as the exact string passed
+PASS  F-02 (a quote of its own): the tasks are undisturbed
+PASS  F-02 (a bare newline): it exited 0, so the plan it wrote MUST parse
+PASS  F-02 (a bare newline): approved_by round-trips as the exact string passed
+PASS  F-02 (a bare newline): the tasks are undisturbed
+PASS  F-02 NEGATIVE CONTROL: an ordinary signer name stays unquoted
+PASS  F-02: a duplicate approved_by key in the base is REFUSED at exit 5 — caught by the stricter loader before signing, not after
+PASS  F-02: the refusal names the duplicate key, so a reader can act on it
+PASS  F-02: and the plan is left BYTE-IDENTICAL — a refusal that had already written would be worse than the bug
+PASS  comparison loop: a clean-parsing but mismatched reload is REFUSED
+PASS  comparison loop: the refusal names both the value asked for and the value it would reload as — a reader cannot act on 'refused' alone
+PASS  HIGH-1: `apply` REFUSES to mint station_only onto a plan that has tasks
+PASS  HIGH-1: and the plan is left BYTE-IDENTICAL — a refusal that had already written would be the defect it is meant to prevent
+PASS  HIGH-1: the refusal names the marker, so the operator can act on it
+PASS  amend --show prints a 64-char sha256 for the named field
+PASS  amend --show prints the field's MULTI-LINE body, not just its first line
+PASS  amend --show does not modify the plan
+PASS  amend replaces a multi-line decision field
+PASS  the new prose is present
+PASS  the OLD prose is gone — a replace that appends is not a replace
+PASS  the sibling decision D-14 survives untouched
+PASS  the tasks: key is untouched
+PASS  the result still parses as YAML
+PASS  amend refuses a stale --expect-sha256
+PASS  and leaves the plan BYTE-IDENTICAL
+PASS  and the refusal reports the ACTUAL hash, so the caller can re-read
+PASS  amend without --expect-sha256 is refused
+PASS  and nothing is written
+PASS  amend refuses an absent id
+PASS  and names the ids that ARE present
+PASS  and does NOT list decision ids for a --key tasks miss — a refusal that suggests a wrong next step is worse than a terse one
+PASS  amend refuses a field the item does not carry
+PASS  and does not insert it
+PASS  amend refuses --key approval
+PASS  and the plan is unchanged
+PASS  amend succeeds on a single-line task field
+PASS  the leading comment survives the splice
+PASS  the new title is present
+PASS  amend accepts a value carrying a colon, a dash and a hash
+PASS  the value ROUND-TRIPS byte-identical through yaml.safe_load
+PASS  amend accepts a value that is a YAML boolean word
+PASS  `yes` reloads as the STRING 'yes', not the boolean True
+PASS  V1: --show binds to the REAL verify, not the prose inside intent
+PASS  V1: and does not return the intent body
+PASS  V2: an identity replace of a block field SUCCEEDS
+PASS  V2: and the value is byte-identical, trailing newline included
+PASS  V2: and the emitted form is still a literal block
+PASS  V3: _verify_amend ACCEPTS a value that reloads as asked
+PASS  V3: and REFUSES when the reloaded value is not what was asked for
+PASS  V3: the refusal names both values, so the caller can see the difference
+PASS  V3: and REFUSES a duplicate id rather than accepting the first match
+PASS  V4: an unparseable base refuses rather than crashing
+PASS  V4: and the refusal says the plan on disk does not parse
+PASS  a duplicate id is refused, not bound to the first match
+PASS  and the plan is unchanged
+PASS  N1: the amendment succeeds
+PASS  N1: the comment BETWEEN fields survives
+PASS  N1: the blank line between fields survives
+PASS  N1: and the new value landed
+PASS  N1b: --show returns the WHOLE block value, comment line included
+PASS  N1b: and an identity replace keeps it
+PASS  N1b: the comment line survives the round trip
+PASS  N3: --show emits the VALUE, not the block with its key line
+PASS  N3: feeding --show output back succeeds
+PASS  N3: and the value is unchanged — a true round trip
+PASS  N5: the fixture base really is schema-valid (or this case is vacuous)
+PASS  N5: a schema-breaking amendment on a schema-valid base is refused
+PASS  N5: and the plan is unchanged
+PASS  neither station verb writes the approval mapping
+PASS  the approval block's own bytes are untouched by the station verbs
+PASS  only the feature status key was added to the head
+PASS  a governed agent's sign-approval exits 10
+PASS  the refusal names the agent and REQ-05/DEC-120
+PASS  the plan is untouched — no partial write on refusal
+PASS  an absent HARNESS_AGENT_TYPE may still sign
+PASS  the signature actually lands
+PASS  add-tasks exits 0
+PASS  add-tasks adds the new task
+PASS  add-tasks reports through the same ADDED/APPLIED contract as apply
+PASS  F1: `|` round-trips byte-identical through --show -> --value-file
+PASS  F1: `|` keeps its emitted form
+PASS  F1: `|-` round-trips byte-identical through --show -> --value-file
+PASS  F1: `|-` keeps its emitted form
+PASS  F1: `|+` round-trips byte-identical through --show -> --value-file
+PASS  F1: `|+` keeps its emitted form
+PASS  F1: `>` round-trips byte-identical through --show -> --value-file
+PASS  F1: `>` keeps its emitted form
+PASS  F1: a list field is refused rather than flattened to text
+PASS  F1: a null field is refused rather than shown as an empty string
+PASS  F1: and neither refusal wrote anything
+PASS  F2: the under-lock check ACCEPTS a block that still matches
+PASS  F2: and REFUSES a block that changed under the lock
+PASS  F2: naming the field, so the caller knows what to re-read
+PASS  F2: and the check is WIRED INTO the locked transform (reachability, not behaviour)
+PASS  bug201: the fixture base is a LEGAL plan (artifact_accessors.load_plan accepts it)
+PASS  bug201a: apply refuses a dangling depends_on with exit 5
+PASS  bug201a: refusal names ILLEGAL PLAN
+PASS  bug201a: refusal names the dangling id T-99
+PASS  bug201a: base file is byte identical to before the refused apply
+PASS  bug201b: the paired apply naming a real dependency exits 0
+PASS  bug201b: T-03 is present after the allowed apply
+PASS  delete: a two-list multi-item delete exits 0
+PASS  delete: the receipt names every id that went
+PASS  delete: the receipt states the reason
+PASS  delete: and the reason is NOT written into the plan
+PASS  delete: EVERY surviving byte is identical (chunk-derived expectation)
+PASS  delete: the document NOTE after the deleted first task survives
+PASS  delete: the blank line the deleted last decision carried goes with it
+PASS  delete: the survivors are exactly the items not named
+PASS  delete: deleting a task whose last line is a block-body comment exits 0
+PASS  delete: the `#` line inside the `|` body went with the item
+PASS  delete: the `#` line between the items did not
+PASS  delete: and nothing else moved
+PASS  delete: two consecutive blank-separated items delete cleanly
+PASS  delete: exactly one separator survives, with no blank-line residue
+PASS  delete: and the blank INSIDE no body was disturbed
+PASS  delete: an absent id is refused with exit 3
+PASS  delete: the refusal names the id that is not there
+PASS  delete: and lists the ids that are, scoped to that list
+PASS  delete: the valid id named in the same call is NOT deleted
+PASS  delete: the same id twice is refused with exit 2
+PASS  delete: naming the id that was repeated
+PASS  delete: no --task and no --decision is refused with exit 2
+PASS  delete: an empty --reason is refused with exit 2
+PASS  delete: none of the three refusals touched the file
+PASS  delete-dangling: the fixture base IS a legal plan (or (a) proves nothing)
+PASS  delete-dangling a: a delete that would dangle an edge is refused with exit 4
+PASS  delete-dangling a: and the refusal names the edge, not just the id
+PASS  delete-dangling a: the plan is byte-identical after the refusal
+PASS  delete-dangling b: the fixture base is ALREADY schema-illegal, so do-no-harm skips the schema check (or (b) proves nothing)
+PASS  delete-dangling b: the edge is refused even where the schema cannot see it
+PASS  delete-dangling b: naming the edge
+PASS  delete-dangling b: and nothing was written
+PASS  delete-dangling c: deleting BOTH ends of the edge in one call exits 0
+PASS  delete-dangling c: and only the independent task is left
+PASS  delete: an id carried twice by the plan is refused, not resolved to the first
+PASS  delete: and the ambiguous plan is unchanged
+PASS  delete: a deletion that makes a legal plan illegal is refused with exit 5
+PASS  delete: and the legal plan survives byte-identical
+PASS  delete: an unparseable base is refused with exit 5
+PASS  delete: and the refusal blames the plan on disk, not the splice
+PASS  delete: leaving the broken file exactly as it was
+PASS  delete: a --file that is not a plan.yaml under features/ is refused with exit 9
+PASS  delete: an unacquirable lock is refused with exit 6
+PASS  delete: naming the lock it could not take
+PASS  delete: and the plan is untouched while another writer holds the lock
+PASS  delete-verify: a survivor that quietly lost a field is refused with exit 5
+PASS  delete-verify: and the refusal says the ids matched, so it was a boundary error
+PASS  delete-verify: a splice that took an item nobody named is refused, naming both id lists
+PASS  delete-verify: the CORRECT deletion is accepted (or this case refuses everything)
+PASS  delete-verify: and the check is WIRED IN (reachability, not behaviour)
+PASS  record-panel exits 0 on a well-formed lead digest
+PASS  record-panel writes cycle and last_run (the run directory) from the call
+PASS  record-panel transcribes every reader, skipped ones with persona and reason
+PASS  record-panel writes id (content hash), severity, reader, kind, summary and an open disposition per finding
+PASS  record-panel leaves tasks and approval byte-identical
+PASS  record-panel puts panel: BEFORE tasks:, where the template has it
+PASS  record-panel's receipt names the cycle
+PASS  record-panel (carry) exits 0
+PASS  the carried finding's lines are byte-identical, comment and quoting included
+PASS  the carried finding keeps disposition resolved and resolved_by
+PASS  the new finding is appended after the carried one with disposition open
+PASS  cycle, last_run and readers are replaced
+PASS  record-panel (carry) leaves tasks byte-identical
+PASS  record-panel's receipt says which ids were carried and which added
+PASS  record-panel refuses a finding without kind (exit 5) and names it
+PASS  record-panel refuses a kind outside the enum
+PASS  record-panel refuses a proportionality finding without scope (DEC-228)
+PASS  record-panel refuses a proportionality scope outside task|mission
+PASS  record-panel refuses a skipped reader without persona and reason
+PASS  record-panel refuses a digest with no DIGEST block
+PASS  record-panel refuses an unfenced digest (no bare-text fallback)
+PASS  record-panel reads the last fenced mapping and refuses its non-mapping DIGEST
+PASS  every record-panel refusal leaves the plan byte-identical
+PASS  check exits 0 when every anchor, route and trace resolves
+PASS  check's receipt says how many anchors it resolved
+PASS  check exits 1 when anything fails to resolve
+PASS  check: missing symbol on its own line
+PASS  check: quote not found on its own line
+PASS  check: path in a missing directory on its own line
+PASS  check: the same ungranted path is ALSO a route failure, on its own line
+PASS  check: trace id absent from the BRIEF on its own line
+PASS  check: SC-01 present in the BRIEF is NOT reported
+PASS  check: ungranted execution_agent on its own line, naming who IS granted
+PASS  check: team task without execution_agent on its own line
+PASS  check: the shared route gate's NOBODY VIOLATION is reported too, not deduped
+PASS  check: exactly these eight failures, nothing else
+PASS  check: an absent sibling BRIEF fails every trace loudly
+PASS  check: an otherwise valid plan with shared files still exits 0 (SC-02)
+PASS  check: exactly one OVERLAP line per shared path — two here, not one per anchor (SC-01)
+PASS  check: a.py named three ways by T-01 and once by T-02 is ONE line naming both, once each
+PASS  check: new_module.py shared by T-01 and T-03
+PASS  check: a file one task names is never an overlap
+PASS  check: repeated anchors confined to one task print no OVERLAP
+PASS  check: an existing failure keeps its exit 1 when overlap is also present
+PASS  check: the overlap is still reported beside the failure
+PASS  2239: check fails an over-budget task the CI route gate refuses
+PASS  2239: check fails an illegal top-level status the CI route gate refuses
+PASS  2239: check fails an illegal task status the CI route gate refuses
+PASS  2239: a gate-clean plan passes check beside another feature's violating plan
+PASS  2239: check exits 5 when the route gate cannot load the plan, before any OK line
+PASS  2239: check fails on a finding only the shared processor emits
+PASS  2239: the harness plan is asked with --root
+PASS  2239: a served plan is asked with --root, never --code-root, and check's manifest root
+PASS  2064: a product plan resolves anchors in its code worktree and routes in the harness manifest
+PASS  2064: the receipt names the code worktree it resolved against
+PASS  2064: a product route still fails for an agent the manifest does not grant
+PASS  2064: a product plan without --code-root exits 2 naming how to get it
+PASS  2064: a --code-root that is not a directory exits 2
+PASS  2064: harness's own plan refuses --code-root
+PASS  2064: the segmentless .harness/features/ layout is harness's own, not a product
+PASS  2065: a create anchor under absent directories resolves
+PASS  2065: create on an existing file, under a file, and a bare path in a missing directory each fail on their own line
+PASS  2065: a dangling link is neither absent nor a directory to create beneath
+PASS  2065: { path: .claude/skills/harness/bin/*.py, create: true } is refused at write
+PASS  2065: { path: .claude/skills/harness/bin/m.py, create: false } is refused at write
+PASS  2065: { path: .claude/skills/harness/bin/m.py, create: true, quote: x } is refused at write
+PASS  apply refuses a line-number anchor when creating a plan (exit 2, names the entry)
+PASS  and creates nothing
+PASS  apply refuses a line-number anchor on an existing plan (exit 2, names the entry)
+PASS  add-tasks refuses a line-number anchor on an existing plan (exit 2, names the entry)
+PASS  the plan is byte-identical after both refusals
+PASS  amend refuses a line-number anchor in files (exit 2, names the entry)
+PASS  amend's refusal leaves the plan byte-identical
+PASS  amend accepts path#symbol and {path, quote} anchors
+PASS  set-lanes exits 0 on a well-formed lanes mapping
+PASS  set-lanes writes the mapping verbatim
+PASS  set-lanes leaves tasks and approval byte-identical
+PASS  set-lanes REPLACES an existing mapping rather than adding a second key
+PASS  set-lanes refuses a mapping without rows, naming the key
+PASS  set-lanes refuses a row whose lane is not team|main-session-direct
+PASS  set-lanes refusals leave the plan byte-identical
+PASS  set-key replaces an existing scalar-list key
+PASS  set-key keeps the comment introducing the next key, the approval bytes and the tasks
+PASS  set-key inserts an absent key before tasks: and it reloads
+PASS  set-key runs the lanes validator rather than bypassing it
+PASS  set-key refuses approval (exit 2) and names its route
+PASS  set-key refuses tasks (exit 2) and names its route
+PASS  set-key refuses decisions (exit 2) and names its route
+PASS  set-key refuses status (exit 2) and names its route
+PASS  set-key refuses a key name the indexer could not find again
+PASS  set-key refusals leave the plan byte-identical
+PASS  set-panel exits 0
+PASS  set-panel reloads as the value supplied
+PASS  set-panel keeps the unchanged finding's bytes — quoting and comment included
+PASS  set-panel writes the new finding
+PASS  set-panel replaces a finding whose content changed
+PASS  and the changed finding is no longer byte-identical to its old form
+PASS  reset/apply exits 0
+PASS  reset/apply: approval.status is pending after apply
+PASS  reset/apply: approval.reset_at is an ISO instant
+PASS  reset/apply: approval.reset_reason names the verb and the ids
+PASS  reset/apply: the signer and date are kept, so the operator can see what was voided
+PASS  reset/apply: the receipt says approval was reset
+PASS  reset/add-tasks exits 0
+PASS  reset/add-tasks: approval.status is pending after add-tasks
+PASS  reset/add-tasks: approval.reset_at is an ISO instant
+PASS  reset/add-tasks: approval.reset_reason names the verb and the ids
+PASS  reset/add-tasks: the signer and date are kept, so the operator can see what was voided
+PASS  reset/apply-replace exits 0
+PASS  reset/apply-replace: a replaced field on an existing task keeps approved (D-04)
+PASS  reset/delete-items exits 0
+PASS  reset/delete-items: approval.status is pending after delete-items
+PASS  reset/delete-items: approval.reset_at is an ISO instant
+PASS  reset/delete-items: approval.reset_reason names the verb and the ids
+PASS  reset/delete-items: the signer and date are kept, so the operator can see what was voided
+PASS  reset/amend exits 0
+PASS  reset/amend: amending a field on an existing task keeps approved (D-04)
+PASS  re-signing writes approved and drops reset_at/reset_reason
+PASS  resume/plan: feature returns to plan while approval is pending
+PASS  resume/plan: reset records the classified resume station
+PASS  resume/plan: reset receipt is emitted only after the reset lands
+PASS  resume/ready: unrelated bytes survive the combined locked splice
+PASS  resume/building: feature returns to plan while approval is pending
+PASS  resume/building: reset records the classified resume station
+PASS  resume/building: reset receipt is emitted only after the reset lands
+PASS  resume/ready: feature returns to plan while approval is pending
+PASS  resume/ready: reset records the classified resume station
+PASS  resume/ready: reset receipt is emitted only after the reset lands
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/ready: feature returns to plan while approval is pending
+PASS  resume/ready: reset records the classified resume station
+PASS  resume/ready: reset receipt is emitted only after the reset lands
+PASS  resume/ready/'Building': a task station outside the vocabulary raises rather than classifies
+PASS  resume/ready/'Building': the refused mutation leaves the plan byte-identical
+PASS  resume/building/'': a task station outside the vocabulary raises rather than classifies
+PASS  resume/building/'': the refused mutation leaves the plan byte-identical
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/review: reapproval emits the stored station and clears reset metadata
+PASS  resume/initial: an initial signature emits ready
+PASS  resume/review: feature returns to plan while approval is pending
+PASS  resume/review: reset records the classified resume station
+PASS  resume/review: reset receipt is emitted only after the reset lands
+PASS  resume/pending: new ready work demotes a stale review target to building
+PASS  resume/pending: reapproval emits the recomputed target
+PASS  resume/done: task mutation does not reopen a terminal feature
+PASS  resume/abandoned: task mutation does not reopen a terminal feature
+PASS  no-network NEGATIVE CONTROL: the same guard reddens when gh is invoked
+PASS  no-network: local plan mutation succeeds
+PASS  no-network: local plan mutation never invokes gh
+PASS  a pending plan's approval bytes are untouched by apply
+PASS  amending a decision leaves approval approved
+PASS  deleting a decision leaves approval approved
+PASS  an apply that changes nothing leaves approval approved
+PASS  revoke-approval pauses at Plan with the reset and resume record
+PASS  revoke-approval keeps the voided signer, date, rulings, and unrelated bytes
+PASS  a fresh signature supersedes a revocation's reset record
+PASS  revoke-approval refuses a plan that is not approved (exit 5, names the status)
+PASS  revoke-approval refuses an empty reason (exit 2)
+PASS  revoke-approval refuses a governed agent (exit 10), as sign-approval does
+PASS  every refusal leaves the plan byte-identical
+PASS  sign-approval --rework refuses when the sibling feature.json is absent (exit 2)
+PASS  and writes no signature in that case
+PASS  sign-approval --rework without --decision is exit 2
+PASS  sign-approval --rework with a non-integer is exit 2
+PASS  no signature was written by the refused calls
+PASS  sign-approval --rework refuses a --decision that is not a file under the feature dir
+PASS  and writes neither signature nor ruling
+PASS  sign-approval --rework exits 0
+PASS  the approval is signed
+PASS  feature.json carries the rework ruling per C1
+PASS  the other feature.json keys are untouched
+PASS  the receipt records the ruling
+PASS  f3/quoted: apply exits 0
+PASS  f3/quoted: a quoted "approved" reloads as pending with the reset record
+PASS  f3/quoted: the receipt says APPROVAL-RESET only because it landed
+PASS  f3/indent4: apply exits 0
+PASS  f3/indent4: a four-space approval body reloads as pending with the reset record
+PASS  f3/indent4: the reset lines are written at the body's own indent
+PASS  f3/flow: a shape the splice cannot reset is REFUSED with the signature verifier's exit 5
+PASS  f3/flow: nothing is written — the plan is byte-identical
+PASS  f3/flow: no APPROVAL-RESET receipt over a standing signature
+PASS  f4: a feature.json refusal propagates feature_json_write's exit 11
+PASS  f4: and leaves approval pending — the plan is byte-identical
+PASS  f4: no SIGNED receipt for a signature that was not written
+PASS  f4: a plan refusal after the ruling was recorded still refuses (exit 5)
+PASS  f4: the ruling stands in feature.json
+PASS  f4: the refusal says the ruling was recorded and the plan is re-signed
+PASS  f7/status-only: apply exits 0
+PASS  f7/status-only: T-01 keeps its station
+PASS  f7/status-only: the signature stands — a status-only difference is not a task change
+PASS  f7/status-only: the receipt prints IGNORED, not REPLACED or APPROVAL-RESET
+PASS  f7/status-only: every other byte is identical
+PASS  f7/mixed: apply exits 0
+PASS  f7/mixed: the title is replaced and the station is kept
+PASS  f7/mixed: a replaced field on an existing task keeps the signature (BUG-1716 D-04)
+PASS  f7/mixed: REPLACED names the title and IGNORED names the status
+PASS  f8: record-panel exits 0
+PASS  f8: a new finding the digest calls resolved is written open
+PASS  f8: a new finding with a nonsense disposition is written open, not refused
+PASS  f8: the carried finding keeps its base disposition against the digest's open
+PASS  f10/last: record-panel exits 0
+PASS  f10/last: the carried finding and its trailing note are one contiguous run of bytes, and the new finding follows the note
+PASS  f10/last: the block-level comment stays after the whole list, before tasks:
+PASS  f10/last: the panel reloads with both findings
+PASS  f10/between: record-panel exits 0
+PASS  f10/between: a comment between two carried findings is kept, in place
+PASS  f10/between: the panel reloads with all three findings
+PASS  b1716/sign: exits 0 and prints HASHED
+PASS  b1716/sign: one hash per task, sha256 of the canonical JSON
+PASS  b1716/sign: hashes are 64 lowercase hex characters
+PASS  b1716/sign: a reflowed plan (quoting, order, list form) hashes identically
+PASS  b1716/sign: a changed value changes that task's hash
+PASS  b1716/sign: the other task's hash is unchanged
+PASS  b1716/sign: a refused signature leaves feature.json byte-identical
+PASS  b1716/285: exits 0 naming each target
+PASS  b1716/285: intent carries the digest's now
+PASS  b1716/285: verify carries the digest's now
+PASS  b1716/285: files carries the digest's now
+PASS  b1716/285: the `|` verify body keeps its block form
+PASS  b1716/285: approval and the preamble are byte-identical, comment included
+PASS  b1716/285: T-01 is byte-identical
+PASS  b1716/285: decisions are byte-identical
+PASS  b1716/285: T-03's title and status are untouched
+PASS  b1716/285: three amendment judgements in digest order, by the orchestrator
+PASS  b1716/285: reasons are the digest's
+PASS  b1716/285: every `at` is distinct and increasing
+PASS  b1716/285: signed_task_hashes are not revised by the amendment
+PASS  b1716/285: the ledger still validates
+PASS  b1716/285: a rerun is refused (exit 6) naming the already-applied state
+PASS  b1716/285: the rerun writes nothing to either file
+PASS  b1716/refuse/no amendments: exit 2 naming the fault
+PASS  b1716/refuse/no amendments: both files byte-identical
+PASS  b1716/refuse/absent amendments: exit 2 naming the fault
+PASS  b1716/refuse/absent amendments: both files byte-identical
+PASS  b1716/refuse/not a mapping: exit 5 naming the fault
+PASS  b1716/refuse/not a mapping: both files byte-identical
+PASS  b1716/refuse/extra key: exit 5 naming the fault
+PASS  b1716/refuse/extra key: both files byte-identical
+PASS  b1716/refuse/missing key: exit 5 naming the fault
+PASS  b1716/refuse/missing key: both files byte-identical
+PASS  b1716/refuse/SC id: exit 5 naming the fault
+PASS  b1716/refuse/SC id: both files byte-identical
+PASS  b1716/refuse/decision id: exit 5 naming the fault
+PASS  b1716/refuse/decision id: both files byte-identical
+PASS  b1716/refuse/bad field: exit 5 naming the fault
+PASS  b1716/refuse/bad field: both files byte-identical
+PASS  b1716/refuse/empty reason: exit 5 naming the fault
+PASS  b1716/refuse/empty reason: both files byte-identical
+PASS  b1716/refuse/long reason: exit 5 naming the fault
+PASS  b1716/refuse/long reason: both files byte-identical
+PASS  b1716/refuse/intent as list: exit 5 naming the fault
+PASS  b1716/refuse/intent as list: both files byte-identical
+PASS  b1716/refuse/files as string: exit 5 naming the fault
+PASS  b1716/refuse/files as string: both files byte-identical
+PASS  b1716/refuse/line anchor: exit 5 naming the fault
+PASS  b1716/refuse/line anchor: both files byte-identical
+PASS  b1716/refuse/absent task: exit 3 naming the fault
+PASS  b1716/refuse/absent task: both files byte-identical
+PASS  b1716/refuse/stale was: exit 6 naming the fault
+PASS  b1716/refuse/stale was: both files byte-identical
+PASS  b1716/refuse/duplicate target: exit 5 naming the fault
+PASS  b1716/refuse/duplicate target: both files byte-identical
+PASS  b1716/refuse/second entry stale: exit 6 naming the fault
+PASS  b1716/refuse/second entry stale: both files byte-identical
+PASS  b1716/refuse/no feature.json: exit 2 naming the ledger path
+PASS  b1716/refuse/no feature.json: the plan is byte-identical
+PASS  b1716/approval: record-amendments exits 0
+PASS  b1716/approval: the approved block survives byte for byte
+PASS  b1716/approval: amend on an existing task no longer resets the signature
+PASS  b1716/approval: apply replacing a field on an existing task keeps the signature
+PASS  b1716/approval: adding a task still resets approval to pending
+PASS  b1716/atomic: a ledger refusal under the lock exits nonzero naming LOCKED
+PASS  b1716/atomic: the refusal says nothing was written and leaves no journal
+PASS  b1716/atomic: neither file changed
+PASS  b1716/atomic: released, the same two-entry digest lands both entries
+PASS  b1716/io: a PermissionError on the ledger write exits nonzero naming it
+PASS  b1716/io: the refusal says nothing was written and leaves no journal
+PASS  b1716/io: neither file changed
+PASS  feat62: the write still exits 0 with its receipt on stdout
+PASS  feat62: the checker's non-clean row reaches stderr under the feedback header
+PASS  feat62: the checker runs AFTER the writer's lock is released (GC-03)
+PASS  feat62: the feedback never leaks into stdout
+PASS  feat62: a refused write prints NO feedback
+PASS  feat62: a clean --changed run leaves stderr empty
+PASS  feat70/sc03: exits 0 naming both targets, no traceback
+PASS  feat70/sc03: the block-scalar field reloads as the digest's now
+PASS  feat70/sc03: the `|` header survives with the longer body
+PASS  feat70/sc03: the second entry, in the later task, lands
+PASS  feat70/sc03: two amendment judgements in digest order
+PASS  feat70/sc03: the ledger still validates
+PASS  1985: a signed field without --reason is refused, both files untouched
+PASS  1985: the signed field lands with one amendment judgement naming it
+PASS  1985: a field INV-40 does not grade needs no reason and adds no judgement
+PASS  1985: a failed ledger write exits nonzero naming the PermissionError, says nothing was written, leaves no journal and both files byte-identical
+PASS  2095: set-panel refuses a prose disposition (exit 5), naming the finding and disposition
+PASS  2095: set-panel writes nothing on a prose disposition
+PASS  2095: set-panel refuses a free key (exit 5), naming the finding and resolution
+PASS  2095: set-panel writes nothing on a free key
+PASS  2095: set-panel refuses resolved_by on an open finding (exit 5), naming the finding and resolved_by
+PASS  2095: set-panel writes nothing on resolved_by on an open finding
+PASS  2095: set-panel refuses resolved_by naming no task in the plan (exit 5), naming the finding and T-09
+PASS  2095: set-panel writes nothing on resolved_by naming no task in the plan
+PASS  2095: set-panel refuses a severity outside the enum (exit 5), naming the finding and severe
+PASS  2095: set-panel writes nothing on a severity outside the enum
+PASS  2095: set-panel refuses a missing summary (exit 5), naming the finding and summary
+PASS  2095: set-panel writes nothing on a missing summary
+PASS  2095: set-panel accepts a resolved finding whose resolved_by names a plan task
+PASS  2095: record-panel refuses to carry an off-template base finding (exit 5)
+PASS  2095: record-panel writes nothing when it refuses
+PASS  2095: sign-approval refuses an open high finding (exit 4), naming it and both remedies
+PASS  2095: sign-approval writes nothing over an open high finding
+PASS  2095: sign-approval refuses an open critical finding (exit 4), naming it and both remedies
+PASS  2095: sign-approval writes nothing over an open critical finding
+PASS  2095: sign-approval refuses an open unrated finding (exit 4), naming it and both remedies
+PASS  2095: sign-approval writes nothing over an open unrated finding
+PASS  2095: sign-approval refuses an off-template finding even when it does not gate
+PASS  2095: sign-approval signs an open high finding overruled in the same call
+PASS  2095: sign-approval signs an open high finding already ruled
+PASS  2095: sign-approval signs a resolved high finding
+PASS  2095: sign-approval signs an open med finding
+PASS  2096: sign-approval signs the BRIEF's ## Approval with the plan
+PASS  2096: the BRIEF outside its ## Approval block is byte-identical
+PASS  2096: re-signing leaves an approved BRIEF byte-identical
+PASS  2096: sign-approval refuses a BRIEF with no ## Approval block (exit 5), naming BRIEF.md
+PASS  2096: with no ## Approval block, neither file is written
+PASS  2096: sign-approval refuses a BRIEF with no BRIEF.md (exit 5), naming BRIEF.md
+PASS  2096: with no BRIEF.md, neither file is written
+PASS  2096: a plan-side refusal leaves the BRIEF pending
+PASS  2096: a signer with a line break is one quoted BRIEF line
+PASS  2102: set-panel refuses a persona as a panel reader (exit 5), naming it
+PASS  2102: record-panel refuses a persona as a panel reader (exit 5), naming it
+PASS  2102: set-panel accepts all four slots, design included
+PASS  2349: apply adds a decision to an inline-empty decisions list (exit 0)
+PASS  2349: the written plan reloads with D-01 and its fields, tasks untouched
+PASS  2349: apply adds a task to an inline-empty tasks list (exit 0)
+PASS  2349: the written plan reloads with T-01 and its fields
+PASS  2349: a non-empty flow-style decisions base is still refused (exit 5)
+PASS  2349: the refused base is byte identical
+PASS  2420: apply drafts T-01 into an inline-empty tasks list (exit 0)
+PASS  2420: apply does not seed a station on the drafted task
+PASS  2420: set-task-station gives the drafted task its first station (exit 0)
+PASS  2420: the written plan reloads with T-01 at building
+PASS  2488/a/record-amendments: the fixture signs (exit 0)
+PASS  2488/a/record-amendments twin: the fixture signs (exit 0)
+PASS  2488/a/record-amendments: the twin's record-amendments exits 0
+PASS  2488/a/record-amendments: the re-run exits 6 saying 'recorded before'
+PASS  2488/a/record-amendments: both files are at the journal's after images
+PASS  2488/a/record-amendments: the field equals now and the amendment is ledgered exactly once
+PASS  2488/a/record-amendments: no journal remains
+PASS  2488/a/record-amendments/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/a/record-amendments/d: one more re-run leaves both files byte-identical
+PASS  2488/a/amend: the fixture signs (exit 0)
+PASS  2488/a/amend twin: the fixture signs (exit 0)
+PASS  2488/a/amend: the twin's amend exits 0
+PASS  2488/a/amend: the re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/a/amend: both files are at the journal's after images
+PASS  2488/a/amend: the field equals now and the amendment is ledgered exactly once
+PASS  2488/a/amend: no journal remains
+PASS  2488/a/amend/d: one more re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/a/amend/d: one more re-run leaves both files byte-identical
+PASS  2488/b/record-amendments: the fixture signs (exit 0)
+PASS  2488/b/record-amendments twin: the fixture signs (exit 0)
+PASS  2488/b/record-amendments: the twin's record-amendments exits 0
+PASS  2488/b/record-amendments: the re-run exits 6 saying 'recorded before'
+PASS  2488/b/record-amendments: both files are at the journal's after images
+PASS  2488/b/record-amendments: the field equals now and the amendment is ledgered exactly once
+PASS  2488/b/record-amendments: no journal remains
+PASS  2488/b/record-amendments/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/b/record-amendments/d: one more re-run leaves both files byte-identical
+PASS  2488/b/amend: the fixture signs (exit 0)
+PASS  2488/b/amend twin: the fixture signs (exit 0)
+PASS  2488/b/amend: the twin's amend exits 0
+PASS  2488/b/amend: the re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/b/amend: both files are at the journal's after images
+PASS  2488/b/amend: the field equals now and the amendment is ledgered exactly once
+PASS  2488/b/amend: no journal remains
+PASS  2488/b/amend/d: one more re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/b/amend/d: one more re-run leaves both files byte-identical
+PASS  2488/c/record-amendments: the fixture signs (exit 0)
+PASS  2488/c/record-amendments twin: the fixture signs (exit 0)
+PASS  2488/c/record-amendments: the twin's record-amendments exits 0
+PASS  2488/c/record-amendments: the re-run exits 6 saying 'recorded before'
+PASS  2488/c/record-amendments: both files are at the journal's after images
+PASS  2488/c/record-amendments: the field equals now and the amendment is ledgered exactly once
+PASS  2488/c/record-amendments: no journal remains
+PASS  2488/c/record-amendments/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/c/record-amendments/d: one more re-run leaves both files byte-identical
+PASS  2488/c/amend: the fixture signs (exit 0)
+PASS  2488/c/amend twin: the fixture signs (exit 0)
+PASS  2488/c/amend: the twin's amend exits 0
+PASS  2488/c/amend: the re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/c/amend: both files are at the journal's after images
+PASS  2488/c/amend: the field equals now and the amendment is ledgered exactly once
+PASS  2488/c/amend: no journal remains
+PASS  2488/c/amend/d: one more re-run exits 6 saying '--expect-sha256 does not match'
+PASS  2488/c/amend/d: one more re-run leaves both files byte-identical
+PASS  2488/e: the fixture signs (exit 0)
+PASS  2488/e twin: the fixture signs (exit 0)
+PASS  2488/e: the twin's record-amendments exits 0
+PASS  2488/e: write_feature_json returns
+PASS  2488/e: cycles_used equals 1
+PASS  2488/e: the plan carries the amendment, ledgered exactly once
+PASS  2488/e: no journal remains
+PASS  2488/e/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/e/d: one more re-run leaves both files byte-identical
+PASS  2488/e/b: the fixture signs (exit 0)
+PASS  2488/e/b twin: the fixture signs (exit 0)
+PASS  2488/e/b: the twin's record-amendments exits 0
+PASS  2488/e/b: write_feature_json returns
+PASS  2488/e/b: cycles_used equals 1
+PASS  2488/e/b: the plan carries the amendment, ledgered exactly once
+PASS  2488/e/b: no journal remains
+PASS  2488/e/b/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/e/b/d: one more re-run leaves both files byte-identical
+PASS  2488/e/c: the fixture signs (exit 0)
+PASS  2488/e/c twin: the fixture signs (exit 0)
+PASS  2488/e/c: the twin's record-amendments exits 0
+PASS  2488/e/c: write_feature_json returns
+PASS  2488/e/c: cycles_used equals 1
+PASS  2488/e/c: the plan carries the amendment, ledgered exactly once
+PASS  2488/e/c: no journal remains
+PASS  2488/e/c/d: one more re-run exits 6 saying 'recorded before'
+PASS  2488/e/c/d: one more re-run leaves both files byte-identical
+PASS  2488/f/record-amendments: the fixture signs (exit 0)
+PASS  2488/f/record-amendments twin: the fixture signs (exit 0)
+PASS  2488/f/record-amendments: the twin's record-amendments exits 0
+PASS  2488/f/record-amendments: the re-run exits 5 naming JOURNAL DIVERGED
+PASS  2488/f/record-amendments: the exit-5 message names the journal's path
+PASS  2488/f/record-amendments: plan.yaml, feature.json and the journal stay byte-identical
+PASS  2488/f/amend: the fixture signs (exit 0)
+PASS  2488/f/amend twin: the fixture signs (exit 0)
+PASS  2488/f/amend: the twin's amend exits 0
+PASS  2488/f/amend: the re-run exits 5 naming JOURNAL DIVERGED
+PASS  2488/f/amend: the exit-5 message names the journal's path
+PASS  2488/f/amend: plan.yaml, feature.json and the journal stay byte-identical
+PASS  2488/g: the fixture signs (exit 0)
+PASS  2488/g: a ledgered amend prints AMENDED judgement=amendment, APPLIED plan, APPLIED feature.json
+PASS  2488/g: an unledgered amend prints AMENDED then APPLIED plan
+PASS  2488/g: neither carries APPROVAL-RESET
+PASS  2488/h: the fixture signs (exit 0)
+PASS  2488/h: write_plan_and_ledger returns normally
+PASS  2488/h: both files carry the change, ledgered exactly once
+PASS  2488/h: no journal remains
+PASS  2488/h: the feedback failure is noted on stderr
+PASS  2488/k: the fixture signs (exit 0)
+PASS  2488/k: write_plan_and_ledger returns normally on a closed stderr
+PASS  2488/k: the amendment landed, ledgered exactly once, no journal
+PASS  2488/k: _locked_plan_update returns normally on a closed stderr
+PASS  2488/k: the plain write landed
+PASS  2488/k: receipts to a closed stdout, with stderr closed too, return normally
+PASS  2488/l/record-amendments: the fixture signs (exit 0)
+PASS  2488/l/record-amendments: exits 0 with no Traceback
+PASS  2488/l/record-amendments: the amendment landed, ledgered exactly once, no journal
+PASS  2488/l/record-amendments: stderr says the write landed
+PASS  2488/l/amend: the fixture signs (exit 0)
+PASS  2488/l/amend: exits 0 with no Traceback
+PASS  2488/l/amend: the amendment landed, ledgered exactly once, no journal
+PASS  2488/l/amend: stderr says the write landed
+PASS  2488/m/record-amendments: the fixture signs (exit 0)
+PASS  2488/m/record-amendments: exits 0
+PASS  2488/m/record-amendments: the amendment landed, ledgered exactly once, no journal
+PASS  2488/m/amend: the fixture signs (exit 0)
+PASS  2488/m/amend: exits 0
+PASS  2488/m/amend: the amendment landed, ledgered exactly once, no journal
+PASS  2488/n/record-amendments/stdout=working,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=working,stderr=working: exits 0
+PASS  2488/n/record-amendments/stdout=working,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=working,stderr=working: stdout is exactly the receipts
+PASS  2488/n/record-amendments/stdout=working,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/record-amendments/stdout=working,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: exits 0
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/record-amendments/stdout=broken,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: exits 0
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: nothing reached the closed stdout's fd
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/record-amendments/stdout=closed,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/record-amendments/stdout=none,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=none,stderr=working: exits 0
+PASS  2488/n/record-amendments/stdout=none,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=none,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/record-amendments/stdout=none,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/record-amendments/stdout=working,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=working,stderr=broken: exits 0
+PASS  2488/n/record-amendments/stdout=working,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=working,stderr=broken: stdout is exactly the receipts
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: exits 0
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: stdout is exactly the receipts
+PASS  2488/n/record-amendments/stdout=working,stderr=closed: nothing reached the closed stderr's fd
+PASS  2488/n/record-amendments/stdout=working,stderr=none: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=working,stderr=none: exits 0
+PASS  2488/n/record-amendments/stdout=working,stderr=none: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=working,stderr=none: stdout is exactly the receipts
+PASS  2488/n/record-amendments/stdout=broken,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=broken,stderr=broken: exits 0
+PASS  2488/n/record-amendments/stdout=broken,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=none,stderr=none: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=none,stderr=none: exits 0
+PASS  2488/n/record-amendments/stdout=none,stderr=none: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=none,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=none,stderr=broken: exits 0
+PASS  2488/n/record-amendments/stdout=none,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/record-amendments/stdout=broken,stderr=none: the fixture signs (exit 0)
+PASS  2488/n/record-amendments/stdout=broken,stderr=none: exits 0
+PASS  2488/n/record-amendments/stdout=broken,stderr=none: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=working,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=working,stderr=working: exits 0
+PASS  2488/n/amend/stdout=working,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=working,stderr=working: stdout is exactly the receipts
+PASS  2488/n/amend/stdout=working,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/amend/stdout=working,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/amend/stdout=broken,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=broken,stderr=working: exits 0
+PASS  2488/n/amend/stdout=broken,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=broken,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/amend/stdout=broken,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/amend/stdout=closed,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=closed,stderr=working: exits 0
+PASS  2488/n/amend/stdout=closed,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=closed,stderr=working: nothing reached the closed stdout's fd
+PASS  2488/n/amend/stdout=closed,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/amend/stdout=closed,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/amend/stdout=none,stderr=working: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=none,stderr=working: exits 0
+PASS  2488/n/amend/stdout=none,stderr=working: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=none,stderr=working: stderr carries the relay row, no receipt and no Traceback
+PASS  2488/n/amend/stdout=none,stderr=working: stderr notes the landed write exactly when stdout failed
+PASS  2488/n/amend/stdout=working,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=working,stderr=broken: exits 0
+PASS  2488/n/amend/stdout=working,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=working,stderr=broken: stdout is exactly the receipts
+PASS  2488/n/amend/stdout=working,stderr=closed: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=working,stderr=closed: exits 0
+PASS  2488/n/amend/stdout=working,stderr=closed: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=working,stderr=closed: stdout is exactly the receipts
+PASS  2488/n/amend/stdout=working,stderr=closed: nothing reached the closed stderr's fd
+PASS  2488/n/amend/stdout=working,stderr=none: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=working,stderr=none: exits 0
+PASS  2488/n/amend/stdout=working,stderr=none: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=working,stderr=none: stdout is exactly the receipts
+PASS  2488/n/amend/stdout=broken,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=broken,stderr=broken: exits 0
+PASS  2488/n/amend/stdout=broken,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=none,stderr=none: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=none,stderr=none: exits 0
+PASS  2488/n/amend/stdout=none,stderr=none: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=none,stderr=broken: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=none,stderr=broken: exits 0
+PASS  2488/n/amend/stdout=none,stderr=broken: both files landed exactly once, no journal
+PASS  2488/n/amend/stdout=broken,stderr=none: the fixture signs (exit 0)
+PASS  2488/n/amend/stdout=broken,stderr=none: exits 0
+PASS  2488/n/amend/stdout=broken,stderr=none: both files landed exactly once, no journal
+PASS  2488/o: stdout a capture with no fileno and no flush: the receipts and the relay return normally
+PASS  2488/o: stdout a capture with no fileno and no flush: stderr gets the landed note and the relay row
+PASS  2488/o: stderr a capture with no fileno and no flush: the receipts and the relay return normally
+PASS  2488/o: stderr a capture with no fileno and no flush: stdout carries exactly the receipt
+PASS  2488/o: stdout a capture whose fileno() is unsupported: the receipts and the relay return normally
+PASS  2488/o: stdout a capture whose fileno() is unsupported: stderr gets the landed note and the relay row
+PASS  2488/o: stderr a capture whose fileno() is unsupported: the receipts and the relay return normally
+PASS  2488/o: stderr a capture whose fileno() is unsupported: stdout carries exactly the receipt
+PASS  2488/o: a broken stdout on caller-owned fd 16: the receipts and the relay return normally
+PASS  2488/o: a broken stdout on caller-owned fd 16: the fd is the caller's pipe afterwards
+PASS  2488/o: a broken stderr on caller-owned fd 16: the receipts and the relay return normally
+PASS  2488/o: a broken stderr on caller-owned fd 16: the fd is the caller's pipe afterwards
+PASS  2488/i: the fixture signs (exit 0)
+PASS  2488/i: the injected feature.json rename was reached
+PASS  2488/i: write_plan_and_ledger raises MergeRefusal(2)
+PASS  2488/i: its lines name the journal and say the next plan-merge or feature.json write completes it
+PASS  2488/i: no line says nothing was written
+PASS  2488/i: the CLI re-run leaves both files carrying the change, ledgered once
+PASS  2488/i: no journal remains
+PASS  2488/j: the fixture signs (exit 0)
+PASS  2488/j twin: the fixture signs (exit 0)
+PASS  2488/j: the twin's record-amendments exits 0
+PASS  2488/j: recovery reached the injected feature.json rename
+PASS  2488/j: _resolve_plan exits 2
+PASS  2488/j: stderr names the journal and says the transaction stays pending
+PASS  2488/j: no Traceback and no line saying nothing was written
+PASS  2488/j: the plan is at its after image, feature.json at its before image, the journal kept
+PASS  2488/j: write_plan_and_ledger raises MergeRefusal(2) with the same replay lines
+PASS  2488/j: no line says nothing was written
+PASS  2488/j: the splice's text is in neither file
+PASS  2488/j: the CLI re-run exits 6 as in (a)
+PASS  2488/j: both files carry the amendment exactly once, no journal remains
+PASS  2488/show: the fixture signs (exit 0)
+PASS  2488/show twin: the fixture signs (exit 0)
+PASS  2488/show: the twin's amend exits 0
+PASS  2488/show: amend --show exits 0
+PASS  2488/show: plan.yaml, feature.json and the journal stay byte-identical
+PASS  2488/show: the next amend completes the pair (exit 6 on the stale hash), the amendment ledgered exactly once, no journal left
+PASS test-plan-merge.py
+PASS test-plan-merge.py
+----- test-plan-sign-gate.py (exit 0, 12.54s) -----
+ok    a payload with NO agent_type may sign — an absent agent_type is the main session
+ok    an EMPTY agent_type may sign too — empty and absent are the same author
+ok    an agent invoking sign-approval is DENIED at exit 2
+ok    the refusal names sign-approval LITERALLY, so a log line read without the command still says what was refused
+ok    the refusal states the RULE — the signature is the user's, relayed by the main session
+ok    the refusal names awaiting_user, which is what the agent should return instead
+ok    an ABSOLUTE path to plan-merge.py is denied — basename, not the literal string
+ok    eval carrying the command in ONE token is denied — the token is re-scanned
+ok    bash -c carrying the command in ONE token is denied
+ok    a QUOTED script name is denied — shlex resolves the quoting before basename
+ok    an UNLEXABLE command line still denies, through the raw-text fallback
+ok    NEGATIVE CONTROL: an unlexable line that is NOT a signing attempt is allowed — the fallback is a text scan, never a blanket deny
+ok    NEGATIVE CONTROL: set-task-station is ALLOWED for an agent — this gate refuses ONE verb, not the tool
+ok    NEGATIVE CONTROL: apply is ALLOWED for an agent
+ok    NEGATIVE CONTROL: an ordinary command is ALLOWED for an agent
+ok    NEGATIVE CONTROL: the bare word sign-approval WITHOUT plan-merge.py before it is allowed — a grep or a receipt is not a signing attempt
+ok    F-03: `plan-merge.py -- sign-approval` is DENIED — argparse drops the separator, so adjacency is not what makes a line a signing attempt
+ok    F-03: `plan-merge.py -- -- sign-approval` is DENIED — argparse drops the separator, so adjacency is not what makes a line a signing attempt
+ok    F-03 NEGATIVE CONTROL: an `apply` call that merely MENTIONS sign-approval later on the line is still allowed — separators are skipped, arbitrary tokens are not
+ok    F-03: the TEXT fallback also skips the separator — an unlexable line carrying `plan-merge.py -- sign-approval` is DENIED
+ok    F-03 NEGATIVE CONTROL: an unlexable line that is not a signing attempt is still allowed — the fallback is a scan, never a blanket deny
+ok    H-02: `plan-merge.py \<newline>sign-approval` is DENIED — bash removes the continuation and signs, so the gate must read the line the way bash does
+ok    H-02: the TEXT fallback also removes the continuation — an unlexable line carrying `plan-merge.py \<newline>sign-approval` is DENIED
+ok    H-02 NEGATIVE CONTROL: a continuation inside an ordinary `apply` call is still allowed — the line is rejoined, not blanket-denied
+ok    C2-03: `plan-merge.py${IFS}sign-approval` is DENIED — bash word-splits the expansion, so the gate must treat it as the whitespace it may become
+ok    C2-03: `plan-merge.py"${IFS}"sign-approval` is DENIED — bash word-splits the expansion, so the gate must treat it as the whitespace it may become
+ok    C2-03: `plan-merge.py${IFS}${IFS}sign-approval` is DENIED — bash word-splits the expansion, so the gate must treat it as the whitespace it may become
+ok    C2-03 PRECISION CONTROL: `$IFSsign-approval` is ALLOWED — bash reads the longest name, so this line cannot sign, and a gate that denied it would be guessing
+ok    C2-03: the TEXT fallback also neutralises the expansion — an unlexable line carrying `plan-merge.py${IFS}sign-approval` is DENIED
+ok    C2-03 NEGATIVE CONTROL: expansions used as ordinary arguments on an `apply` line are still allowed — words between the tool and the verb still break adjacency
+ok    MF-1: `plan-merge.py$(printf " ")sign-approval` is DENIED — a command substitution word-splits exactly as ${IFS} does
+ok    MF-1: `plan-merge.py$(echo)sign-approval` is DENIED — a command substitution word-splits exactly as ${IFS} does
+ok    MF-1: `plan-merge.py$(:)sign-approval` is DENIED — a command substitution word-splits exactly as ${IFS} does
+ok    MF-1: `plan-merge.py`printf ' '`sign-approval` is DENIED — a command substitution word-splits exactly as ${IFS} does
+ok    MF-1: `plan-merge.py$(printf "%s" " ")sign-approval` is DENIED — a command substitution word-splits exactly as ${IFS} does
+ok    MF-1: a NESTED command substitution is DENIED — the scan must balance parens, not stop at the first one
+ok    MF-1 NEGATIVE CONTROL: a substitution as an ordinary argument on an `apply` line is still allowed — neutralising it does not make every mention of the verb a signing attempt
+ok    MF-1: a normal signing call carrying a substitution in --date is still DENIED
+ok    HIGH-2: the tool invoked through xargs -I{} placeholder is DENIED — the gate cannot see which verb it will receive, so it must refuse rather than guess
+ok    HIGH-2: the tool invoked through xargs appending is DENIED — the gate cannot see which verb it will receive, so it must refuse rather than guess
+ok    HIGH-2: the tool invoked through xargs reading a FILE, verb absent from the line is DENIED — the gate cannot see which verb it will receive, so it must refuse rather than guess
+ok    HIGH-2: the tool invoked through find -exec is DENIED — the gate cannot see which verb it will receive, so it must refuse rather than guess
+ok    HIGH-2 NEGATIVE CONTROL: an xargs line that does not invoke plan-merge.py is still allowed — grepping for the verb is legitimate work
+ok    HIGH-2 NEGATIVE CONTROL: `bash -c` with a non-signing nested line is still allowed — recursion determines its verb, so it is not indirection
+ok    HIGH-2: `bash -c` carrying a real signing call is still DENIED, via recursion
+ok    F6: the main session (no agent_type) may run raise-cycles
+ok    F6: an agent invoking raise-cycles is DENIED at exit 2
+ok    F6: the raise-cycles refusal names the verb LITERALLY and the rule (main session)
+ok    F6: the raise-cycles refusal does NOT lead with sign-approval — one verb was refused, and the reader must not learn the wrong one
+ok    F6: `bash -c` carrying raise-cycles is DENIED via recursion
+ok    F6: the TEXT fallback denies an unlexable line carrying `feature-record.py -- raise-cycles`
+ok    F6: the main session (no agent_type) may run set-rework
+ok    F6: an agent invoking set-rework is DENIED at exit 2
+ok    F6: the set-rework refusal names the verb LITERALLY and the rule (main session)
+ok    F6: the set-rework refusal does NOT lead with sign-approval — one verb was refused, and the reader must not learn the wrong one
+ok    F6: `bash -c` carrying set-rework is DENIED via recursion
+ok    F6: the TEXT fallback denies an unlexable line carrying `feature-record.py -- set-rework`
+ok    F6: feature-record.py through xargs is DENIED — the verb is undeterminable, the same indirection rule as plan-merge.py
+ok    F6 NEGATIVE CONTROL: `feature-record.py run-start` is ALLOWED for an agent
+ok    F6 NEGATIVE CONTROL: `feature-record.py run-end` is ALLOWED for an agent
+ok    F6 NEGATIVE CONTROL: `feature-record.py judgement` is ALLOWED for an agent
+ok    F6 NEGATIVE CONTROL: `feature-record.py set-mission` is ALLOWED for an agent
+ok    F6 NEGATIVE CONTROL: `feature-record.py spend` is ALLOWED for an agent
+ok    F6 NEGATIVE CONTROL: `feature-record.py propose-rework` is ALLOWED for an agent
+ok    F6 NEGATIVE CONTROL: the bare word raise-cycles without feature-record.py before it is allowed
+ok    F6 NEGATIVE CONTROL: a judgement whose --reason MENTIONS raise-cycles is allowed — position, not substring
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml'
+ok    corpus row agrees with the healthy gate (match): '/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p'
+ok    corpus row agrees with the healthy gate (match): 'eval "python3 plan-merge.py sign-approval --file p.yaml"'
+ok    corpus row agrees with the healthy gate (match): "bash -c 'python3 plan-merge.py sign-approval --file p.yaml'"
+ok    corpus row agrees with the healthy gate (match): 'python3 "plan-merge.py" sign-approval --file p.yaml'
+ok    corpus row agrees with the healthy gate (match): 'python3 plan-merge.py sign-approval --name "O\'Brien'
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py -- -- sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01"
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01"
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py"${IFS}"sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01"
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py$(printf " ")sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py$(echo)sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py$(:)sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): "python3 .claude/skills/harness/bin/plan-merge.py`printf ' '`sign-approval --file p.yaml --by Someone --date 2026-01-01"
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py$(printf "%s" " ")sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf " ")")sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by Someone --date $(date +%F)'
+ok    corpus row agrees with the healthy gate (match): 'echo sign-approval | xargs -I{} python3 .claude/skills/harness/bin/plan-merge.py {} --file p.yaml --by A --date 2026-01-01'
+ok    corpus row agrees with the healthy gate (match): 'echo sign-approval | xargs python3 .claude/skills/harness/bin/plan-merge.py'
+ok    corpus row agrees with the healthy gate (match): 'xargs python3 .claude/skills/harness/bin/plan-merge.py < /tmp/verb.txt'
+ok    corpus row agrees with the healthy gate (match): 'find . -name p.yaml -exec python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file {} \\;'
+ok    corpus row agrees with the healthy gate (match): "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by A --date 2026-01-01'"
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'
+ok    corpus row agrees with the healthy gate (match): 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'
+ok    corpus row agrees with the healthy gate (match): "bash -c 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'"
+ok    corpus row agrees with the healthy gate (match): "bash -c 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'"
+ok    corpus row agrees with the healthy gate (match): "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- raise-cycles --file f.json"
+ok    corpus row agrees with the healthy gate (match): "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- set-rework --file f.json"
+ok    corpus row agrees with the healthy gate (match): 'echo raise-cycles | xargs python3 .claude/skills/harness/bin/feature-record.py'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/plan-merge.py set-task-station --file p --task T-01 --station done'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p --proposal x'
+ok    corpus row agrees with the healthy gate (unrelated): 'git status --porcelain'
+ok    corpus row agrees with the healthy gate (unrelated): 'grep -rn sign-approval .claude/skills/harness/bin/'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml  # not a sign-approval call'
+ok    corpus row agrees with the healthy gate (unrelated): "echo it's fine && git status"
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml \\\n--proposal q.yaml  # not a sign-approval call'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval --file p.yaml'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml   # not a sign-approval call'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml) --proposal q.yaml  # not a sign-approval call'
+ok    corpus row agrees with the healthy gate (unrelated): 'echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/'
+ok    corpus row agrees with the healthy gate (unrelated): "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml'"
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/feature-record.py run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/feature-record.py run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 --reason r'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/feature-record.py set-mission --file f.json --mission patch --by harness-orchestrator --reason r'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/feature-record.py spend --file f.json'
+ok    corpus row agrees with the healthy gate (unrelated): 'python3 .claude/skills/harness/bin/feature-record.py propose-rework --file f.json'
+ok    corpus row agrees with the healthy gate (unrelated): 'grep -rn raise-cycles .claude/skills/harness/'
+ok    corpus row agrees with the healthy gate (unrelated): "python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by o --kind continue --decision stop --reason 'no raise-cycles without the operator'"
+ok    corpus row agrees with the healthy gate (unrelated): "echo it's fine"
+ok    corpus row agrees with the healthy gate (unrelated): 'git status'
+ok    corpus row agrees with the healthy gate (unrelated): 'echo hi'
+ok    corpus row agrees with the healthy gate (unrelated): 'gh pr close 5'
+ok    corpus row agrees with the healthy gate (unrelated): 'git branch -d x'
+ok    FEAT-65: under a resolver defect the unrelated `git status` passes untouched
+ok    FEAT-65: an unexpected resolver defect REFUSES an agent's sign-approval at exit 2, named
+ok    FEAT-65: an unexpected resolver defect REFUSES an agent's raise-cycles at exit 2, named
+ok    FEAT-65: an unexpected resolver defect REFUSES an agent's set-rework at exit 2, named
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml'
+ok    resolver defect: a matching command is refused, named: '/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p'
+ok    resolver defect: a matching command is refused, named: 'eval "python3 plan-merge.py sign-approval --file p.yaml"'
+ok    resolver defect: a matching command is refused, named: "bash -c 'python3 plan-merge.py sign-approval --file p.yaml'"
+ok    resolver defect: a matching command is refused, named: 'python3 "plan-merge.py" sign-approval --file p.yaml'
+ok    resolver defect: a matching command is refused, named: 'python3 plan-merge.py sign-approval --name "O\'Brien'
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py -- -- sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01"
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01"
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py"${IFS}"sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01"
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf " ")sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo)sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py$(:)sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: "python3 .claude/skills/harness/bin/plan-merge.py`printf ' '`sign-approval --file p.yaml --by Someone --date 2026-01-01"
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf "%s" " ")sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf " ")")sign-approval --file p.yaml --by Someone --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by Someone --date $(date +%F)'
+ok    resolver defect: a matching command is refused, named: 'echo sign-approval | xargs -I{} python3 .claude/skills/harness/bin/plan-merge.py {} --file p.yaml --by A --date 2026-01-01'
+ok    resolver defect: a matching command is refused, named: 'echo sign-approval | xargs python3 .claude/skills/harness/bin/plan-merge.py'
+ok    resolver defect: a matching command is refused, named: 'xargs python3 .claude/skills/harness/bin/plan-merge.py < /tmp/verb.txt'
+ok    resolver defect: a matching command is refused, named: 'find . -name p.yaml -exec python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file {} \\;'
+ok    resolver defect: a matching command is refused, named: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by A --date 2026-01-01'"
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'
+ok    resolver defect: a matching command is refused, named: 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'
+ok    resolver defect: a matching command is refused, named: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'"
+ok    resolver defect: a matching command is refused, named: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'"
+ok    resolver defect: a matching command is refused, named: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- raise-cycles --file f.json"
+ok    resolver defect: a matching command is refused, named: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- set-rework --file f.json"
+ok    resolver defect: a matching command is refused, named: 'echo raise-cycles | xargs python3 .claude/skills/harness/bin/feature-record.py'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/plan-merge.py set-task-station --file p --task T-01 --station done'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p --proposal x'
+ok    resolver defect: an unrelated command passes untouched: 'git status --porcelain'
+ok    resolver defect: an unrelated command passes untouched: 'grep -rn sign-approval .claude/skills/harness/bin/'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml  # not a sign-approval call'
+ok    resolver defect: an unrelated command passes untouched: "echo it's fine && git status"
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml \\\n--proposal q.yaml  # not a sign-approval call'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval --file p.yaml'
+ok    resolver defect: an unrelated command passes untouched: 'python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml   # not a sign-approval call'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml) --proposal q.yaml  # not a sign-approval call'
+ok    resolver defect: an unrelated command passes untouched: 'echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/'
+ok    resolver defect: an unrelated command passes untouched: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml'"
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/feature-record.py run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/feature-record.py run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 --reason r'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/feature-record.py set-mission --file f.json --mission patch --by harness-orchestrator --reason r'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/feature-record.py spend --file f.json'
+ok    resolver defect: an unrelated command passes untouched: 'python3 .claude/skills/harness/bin/feature-record.py propose-rework --file f.json'
+ok    resolver defect: an unrelated command passes untouched: 'grep -rn raise-cycles .claude/skills/harness/'
+ok    resolver defect: an unrelated command passes untouched: "python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by o --kind continue --decision stop --reason 'no raise-cycles without the operator'"
+ok    resolver defect: an unrelated command passes untouched: "echo it's fine"
+ok    resolver defect: an unrelated command passes untouched: 'git status'
+ok    resolver defect: an unrelated command passes untouched: 'echo hi'
+ok    resolver defect: an unrelated command passes untouched: 'gh pr close 5'
+ok    resolver defect: an unrelated command passes untouched: 'git branch -d x'
+ok    no harness root: an agent's sign-approval is refused at exit 2, named
+ok    no harness root: an unrelated command exits 0 untouched
+ok    body failure: an agent's raise-cycles is refused at exit 2, named
+ok    body failure: an unrelated command exits 0 untouched
+
+all checks passed.
+PASS test-plan-sign-gate.py
+----- test-run-pool.py (exit 0, 3.09s) -----
+ok    captured output stays inside its file block
+ok    one failure propagates after every file runs
+ok    completed seam records every finished script with its return code
+ok    completed seam keeps default output
+ok    every file runs exactly once
+ok    environment selects 1 workers
+ok    environment selects 3 workers
+ok    invalid worker value 0 is loud
+ok    invalid worker value many is loud
+ok    completion order is not input order
+ok    default worker count is capped
+ok    mutation check covers clean, direct, subprocess, and creation
+ok    mutation check catches dangling and directory symlinks
+ok    only __pycache__ bytecode is excluded
+ok    empty and missing watched directories refuse
+
+0 failed
+PASS test-run-pool.py
+----- test-post-merge-sweep.py (exit 0, 7.55s) -----
+PASS: FEAT-64: an unrelated RuntimeError inside the sweep escapes (traceback, not 'post-merge-sweep: ERROR' + exit 0)
+PASS: FEAT-64: the worktree is left standing when the sweep dies
+PASS: --dry-run exits 0
+PASS: --dry-run SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: --dry-run leaves the terminal worktree standing
+PASS: --dry-run mentions the feature id in its output
+PASS: --dry-run makes no `gh` invocation
+PASS: (a) fast-forward merge succeeds
+PASS: (a) MEASURED: fast-forward fires post-merge with hook arg 0
+PASS: (a) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (a) the Done feature's worktree is gone after the merge
+PASS: (b) squash merge succeeds
+PASS: (b) MEASURED: squash fires post-merge with hook arg 1
+PASS: (b) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (b) the Done feature's worktree is gone after the merge
+PASS: (c) sweep run from inside its own eligible worktree exits 0
+PASS: (c) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (c) SELF-EXCLUSION: that worktree is still standing afterwards
+PASS: (c) SELF-EXCLUSION: stdout states the sweep declined because it is running inside the worktree
+PASS: (c) RED PROOF: with the self-exclusion guard removed, an unguarded sweep DELETES the worktree it is running inside — demonstrating the guard was load-bearing
+PASS: (d) sweep over two terminal features exits 0
+PASS: (d) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (d) SC-11: milestone close call logged for FEAT-930-two-a's OWN milestone (801), checked on its own
+PASS: (d) SC-11: milestone close call logged for FEAT-931-two-b's OWN milestone (802), checked separately from FEAT-930's
+PASS: (d) both worktrees removed after their own record succeeded
+PASS: (e) sweep exits 0 even though the `gh` write for one feature failed
+PASS: (e) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (e) D-04 ORDER: the feature whose write failed keeps its worktree standing — removal never runs ahead of a confirmed record
+PASS: (e) D-04 ORDER: the OTHER feature, whose write succeeded, has its worktree removed
+PASS: (f) sweep exits 0 on an unresolved record
+PASS: (f) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (f) the unresolved record is printed
+PASS: (f) the unresolved record's worktree is left standing
+PASS: (g) sweep exits 0 even though ship SKIPped
+PASS: (g) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (g) SKIP IS NOT SUCCESS: a feature whose ship exited 0 but printed `gh-sync: SKIP` keeps its worktree standing
+PASS: (g) no milestone-close call was ever made for this feature (ship SKIPped before reaching gh() for the write)
+PASS: (g) absent Build entry keeps a worktree even when the older SKIP guard is removed
+PASS: BUG-1129: the sweep keeps the worktree of a feature whose validate handoff does not exist
+PASS: BUG-1129: the refusal is named in the sweep's output
+PASS: BUG-1129: no milestone-close call was made — nothing on GitHub changed
+PASS: (g2) sweep exits 0 even though ship reported FAILED
+PASS: (g2) FAILED IS NOT SUCCESS: a ship that exited 0 but printed `gh-sync: FAILED` keeps its worktree standing
+PASS: (g2) the declined removal PRINTS a reason naming FAILED, rather than silently leaving the tree
+PASS: (g2) HELD IS STILL SUCCESS: a ship that only held cards has its worktree removed as usual
+PASS: (g2) absent Build entry keeps a worktree even when the older FAILED guard is removed
+PASS: (h) fixture precondition: outside_cwd is not inside any git repository
+PASS: (h) sweep exits 0 when invoked with cwd outside any git repository
+PASS: (h) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (h) MEASURED DEFECT PROOF: the sweep still finds and sweeps the repository's terminal worktree despite cwd being OUTSIDE it
+PASS: (h) the milestone close call reached gh for this feature's own milestone (999), proving the record-then-remove flow actually ran
+PASS: T-07 absent build_entry keeps the worktree
+PASS: T-07 recovery-required keeps the worktree
+PASS: T-07 opened removes the worktree
+PASS: T-07 recovered-terminal removes the worktree
+PASS: T-07 unparseable feature.json keeps the worktree
+PASS: T-07 sync false removes the worktree
+PASS: T-13 not-applicable removes the worktree
+PASS: T-07 no receipt keeps the worktree for every feature id
+PASS: (i) sweep exits 0 when invoked from inside a linked worktree
+PASS: (i) BIN_DIR-derived root resolves to the LINKED WORKTREE it actually runs from, not the main checkout
+PASS: (i) RESOLVED-PATH PROOF: the main-checkout root used for feat_dir is R, the ACTUAL main checkout — never WT_CALLER, the linked worktree the script happens to run from
+PASS: (i) the milestone close call reached gh for R's LANDED milestone (810)
+PASS: (i) DIVERGENCE PROOF: WT_CALLER's own divergent milestone (811) was NEVER closed — the sweep did not write into the wrong copy
+PASS: (i) the terminal worktree under R was removed, proving feat_dir was found and ship succeeded against the correct main-checkout copy
+PASS: an unbound legacy mapping is proven by the owner binding, so the terminal worktree is swept
+PASS: opened cannot remove wrong-repository mirror evidence
+PASS: --dry-run names the leaked node_modules and leaves it
+PASS: sweep removes node_modules under .harness/ and nothing outside it
+EXIT=0
+PASS test-post-merge-sweep.py
+----- test-plan-team.py (exit 0, 8.82s) -----
+ok    (0a) plan.yaml is hosted by product-lead and its steps are exactly draft, scope, should-not-exist, design, apply, goalcheck
+ok    (0b) every reader depends on draft and on nothing else, so the three dispatch in one turn
+ok    (0c) apply depends on every reader; goalcheck depends on apply
+ok    (0d) the plan is drafted, applied and goal-checked by pm — one author
+ok    (1a) should-not-exist step's prompt asks what should not be built at all
+ok    (1b) scope step's prompt asks which tasks serve no live requirement and hunts orphan SCs, not orphan REQs (SC-12)
+ok    (1c) references/plan-phase.md asks does this plan deliver the operator's stated intent
+ok    (1d) the goalcheck step asks the same question, verbatim
+ok    (1e) plan/scope's prompt names `kind`
+ok    (1e) plan/should-not-exist's prompt names `kind`
+ok    (1e) plan/design's prompt names `kind`
+ok    (1e) validate/qa's prompt names `kind`
+ok    (1e) validate/code's prompt names `kind`
+ok    (1e) validate/security's prompt names `kind`
+ok    (1e) validate/ui's prompt names `kind`
+ok    (1e) fix/qa's prompt names `kind`
+ok    (1e) fix/code's prompt names `kind`
+ok    (1e) fix/security's prompt names `kind`
+ok    (1e) fix/ui's prompt names `kind`
+ok    (1f) validate/qa's prompt names `fail_first` and is gate-only
+ok    (1f) fix/qa's prompt names `fail_first` and is gate-only
+ok    (1g) apply runs plan-merge.py record-panel and plan-merge.py check
+ok    (2) plan/draft output .harness/harness/features/FEAT-90-fixture/BRIEF.md resolves to persona pm
+ok    (2) plan/draft output .harness/harness/features/FEAT-90-fixture/plan.yaml resolves to persona pm
+ok    (2) plan/scope output .harness/harness/features/FEAT-90-fixture/notes/review-harness-code-reviewer-plan-c0.md resolves to persona code-reviewer
+ok    (2) plan/should-not-exist outputs list is empty (its correct state — skipped, not counted)
+ok    (2) plan/design output .harness/harness/features/FEAT-90-fixture/notes/review-harness-ui-reviewer-plan-c0.md resolves to persona ui-reviewer
+ok    (2) plan/apply output .harness/harness/features/FEAT-90-fixture/BRIEF.md resolves to persona pm
+ok    (2) plan/apply output .harness/harness/features/FEAT-90-fixture/plan.yaml resolves to persona pm
+ok    (2) plan/goalcheck output .harness/harness/features/FEAT-90-fixture/notes/research-FEAT-90-fixture-goalcheck-plan.md resolves to persona pm
+ok    (2) validate/qa output .harness/harness/features/FEAT-90-fixture/notes/review-harness-qa-c0.md resolves to persona qa
+ok    (2) validate/code output .harness/harness/features/FEAT-90-fixture/notes/review-harness-code-reviewer-c0.md resolves to persona code-reviewer
+ok    (2) validate/security output .harness/harness/features/FEAT-90-fixture/notes/review-harness-security-reviewer-c0.md resolves to persona security-reviewer
+ok    (2) validate/ui output .harness/harness/features/FEAT-90-fixture/notes/review-harness-ui-reviewer-c0.md resolves to persona ui-reviewer
+ok    (2) validate/goalcheck output .harness/harness/features/FEAT-90-fixture/notes/research-FEAT-90-fixture-goalcheck-validate-c0.md resolves to persona pm
+ok    (2) fix/fix output .harness/harness/features/FEAT-90-fixture/notes/receipt-harness-backend-dev-fix-c0.md resolves to persona backend-dev
+ok    (2) fix/qa output .harness/harness/features/FEAT-90-fixture/notes/review-harness-qa-c0.md resolves to persona qa
+ok    (2) fix/code output .harness/harness/features/FEAT-90-fixture/notes/review-harness-code-reviewer-c0.md resolves to persona code-reviewer
+ok    (2) fix/security output .harness/harness/features/FEAT-90-fixture/notes/review-harness-security-reviewer-c0.md resolves to persona security-reviewer
+ok    (2) fix/ui output .harness/harness/features/FEAT-90-fixture/notes/review-harness-ui-reviewer-c0.md resolves to persona ui-reviewer
+ok    (3) plan/scope's loop_back outputs are empty or carry the literal {{cycle}}
+ok    (3) plan/should-not-exist's loop_back outputs are empty or carry the literal {{cycle}}
+ok    (3) plan/design's loop_back outputs are empty or carry the literal {{cycle}}
+ok    (3) fix/fix's loop_back outputs are empty or carry the literal {{cycle}}
+ok    (4a) should-not-exist persona is not a canonical .omp/agents/ role
+ok    (4b) should-not-exist step's outputs list is empty
+ok    (4c) plan/scope's persona code-reviewer is a Validation squad member (borrowed read-only under DEC-118 as amended)
+ok    (4c) plan/design's persona ui-reviewer is a Validation squad member (borrowed read-only under DEC-118 as amended)
+ok    (4d) validate/qa's persona qa is a Validation or Product member
+ok    (4d) validate/code's persona code-reviewer is a Validation or Product member
+ok    (4d) validate/security's persona security-reviewer is a Validation or Product member
+ok    (4d) validate/ui's persona ui-reviewer is a Validation or Product member
+ok    (4d) validate/goalcheck's persona pm is a Validation or Product member
+ok    (4e) fix/fix's persona is the dispatch-resolved `{{persona}}` (the owning dev, an Engineering member named by the orchestrator)
+ok    (4f) fix/qa's persona qa is a Validation squad member
+ok    (4f) fix/code's persona code-reviewer is a Validation squad member
+ok    (4f) fix/security's persona security-reviewer is a Validation squad member
+ok    (4f) fix/ui's persona ui-reviewer is a Validation squad member
+ok    (4g) no team step names a lead — a lead never spawns a lead
+ok    (4h) the fix dev is never also a reader in the same run: author ≠ reviewer
+ok    (5) .omp/agents/ holds exactly sixteen harness-*.md files
+ok    (6) plan.yaml carries no literal `then: halt`
+ok    (6) plan/scope's loop_back carries then: escalate and a max_cycles
+ok    (6) plan/should-not-exist's loop_back carries then: escalate and a max_cycles
+ok    (6) plan/design's loop_back carries then: escalate and a max_cycles
+ok    (6) fix.yaml carries no literal `then: halt`
+ok    (6) fix/fix's loop_back carries then: escalate and a max_cycles
+ok    (7a) harness-plan.md has a Target state bullet
+ok    (7b) the Target state bullet no longer names the retired plan-panel team
+ok    (8a) code-reviewer is in harness-product-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) fable-advisor is in harness-product-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) pm is in harness-product-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) ui-reviewer is in harness-product-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8c) harness-product-lead.md's spawns: names no lead
+ok    (8a) code-reviewer is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) harness-ai-dev is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) harness-backend-dev is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) harness-data-engineer is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) harness-dev-ops is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) harness-frontend-dev is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) pm is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) qa is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) security-reviewer is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8a) ui-reviewer is in harness-validator-lead.md's frontmatter spawns: allowlist (the host's preflight enforces this as a hard gate)
+ok    (8c) harness-validator-lead.md's spawns: names no lead
+ok    (9) plan/scope output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) plan/scope c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-code-reviewer-plan-c0.md resolves to persona code-reviewer
+ok    (9) plan/scope c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-code-reviewer-plan-c1.md resolves to persona code-reviewer
+ok    (9) plan/design output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) plan/design c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-ui-reviewer-plan-c0.md resolves to persona ui-reviewer
+ok    (9) plan/design c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-ui-reviewer-plan-c1.md resolves to persona ui-reviewer
+ok    (9) validate/qa output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) validate/qa c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-qa-c0.md resolves to persona qa
+ok    (9) validate/qa c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-qa-c1.md resolves to persona qa
+ok    (9) validate/code output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) validate/code c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-code-reviewer-c0.md resolves to persona code-reviewer
+ok    (9) validate/code c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-code-reviewer-c1.md resolves to persona code-reviewer
+ok    (9) validate/security output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) validate/security c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-security-reviewer-c0.md resolves to persona security-reviewer
+ok    (9) validate/security c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-security-reviewer-c1.md resolves to persona security-reviewer
+ok    (9) validate/ui output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) validate/ui c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-ui-reviewer-c0.md resolves to persona ui-reviewer
+ok    (9) validate/ui c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-ui-reviewer-c1.md resolves to persona ui-reviewer
+ok    (9) validate/goalcheck output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) validate/goalcheck c0 output .harness/harness/features/FEAT-90-fixture/notes/research-FEAT-90-fixture-goalcheck-validate-c0.md resolves to persona pm
+ok    (9) validate/goalcheck c1 output .harness/harness/features/FEAT-90-fixture/notes/research-FEAT-90-fixture-goalcheck-validate-c1.md resolves to persona pm
+ok    (9) fix/fix output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) fix/fix c0 output .harness/harness/features/FEAT-90-fixture/notes/receipt-harness-backend-dev-fix-c0.md resolves to persona backend-dev
+ok    (9) fix/fix c1 output .harness/harness/features/FEAT-90-fixture/notes/receipt-harness-backend-dev-fix-c1.md resolves to persona backend-dev
+ok    (9) fix/qa output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) fix/qa c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-qa-c0.md resolves to persona qa
+ok    (9) fix/qa c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-qa-c1.md resolves to persona qa
+ok    (9) fix/code output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) fix/code c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-code-reviewer-c0.md resolves to persona code-reviewer
+ok    (9) fix/code c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-code-reviewer-c1.md resolves to persona code-reviewer
+ok    (9) fix/security output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) fix/security c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-security-reviewer-c0.md resolves to persona security-reviewer
+ok    (9) fix/security c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-security-reviewer-c1.md resolves to persona security-reviewer
+ok    (9) fix/ui output does not overwrite a prior cycle's record: c0 path differs from c1 path
+ok    (9) fix/ui c0 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-ui-reviewer-c0.md resolves to persona ui-reviewer
+ok    (9) fix/ui c1 output .harness/harness/features/FEAT-90-fixture/notes/review-harness-ui-reviewer-c1.md resolves to persona ui-reviewer
+ok    (10) template: names exactly the five row fields
+ok    (10m) template: deleting 'names exactly the five row fields' reddens its assertion
+ok    (10) template: instantiates the explicit empty list
+ok    (10m) template: deleting 'instantiates the explicit empty list' reddens its assertion
+ok    (10) template: example needs no real decision id
+ok    (10m) template: deleting 'example needs no real decision id' reddens its assertion
+ok    (10) template: drafted_at is writer-owned, not user-filled
+ok    (10m) template: deleting 'drafted_at is writer-owned, not user-filled' reddens its assertion
+ok    (10) patch-lane: one-task plan still carries the block
+ok    (10m) patch-lane: deleting 'one-task plan still carries the block' reddens its assertion
+ok    (10) patch-lane: one-task plan still runs the check, adding no panel
+ok    (10m) patch-lane: deleting 'one-task plan still runs the check, adding no panel' reddens its assertion
+ok    (10) plan/draft: every new draft carries the five-field block
+ok    (10m) plan/draft: deleting 'every new draft carries the five-field block' reddens its assertion
+ok    (10) plan/draft: explicit empty list when nothing is affected
+ok    (10m) plan/draft: deleting 'explicit empty list when nothing is affected' reddens its assertion
+ok    (10) plan/draft: verbatim clauses
+ok    (10m) plan/draft: deleting 'verbatim clauses' reddens its assertion
+ok    (10) plan/draft: resolvable amend/strike successor
+ok    (10m) plan/draft: deleting 'resolvable amend/strike successor' reddens its assertion
+ok    (10) plan/draft: a task owns DECISIONS.md
+ok    (10m) plan/draft: deleting 'a task owns DECISIONS.md' reddens its assertion
+ok    (10) plan/draft: then runs plan-merge.py check
+ok    (10m) plan/draft: deleting 'then runs plan-merge.py check' reddens its assertion
+ok    (10) plan/scope: searches touched surfaces independently of the plan's list
+ok    (10m) plan/scope: deleting 'searches touched surfaces independently of the plan's list' reddens its assertion
+ok    (10) plan/scope: flags omissions
+ok    (10m) plan/scope: deleting 'flags omissions' reddens its assertion
+ok    (10) plan/scope: flags an unjustified empty list
+ok    (10m) plan/scope: deleting 'flags an unjustified empty list' reddens its assertion
+ok    (10) plan/scope: applies DEC-188 strike-vs-amend
+ok    (10m) plan/scope: deleting 'applies DEC-188 strike-vs-amend' reddens its assertion
+ok    (10) plan/scope: softer strike needs operator authorization
+ok    (10m) plan/scope: deleting 'softer strike needs operator authorization' reddens its assertion
+ok    (10) plan/scope: mechanical defects left to the check
+ok    (10m) plan/scope: deleting 'mechanical defects left to the check' reddens its assertion
+ok    (10) validate/goalcheck: points at canonical harness-pm Mode 2 at the supplied pin
+ok    (10m) validate/goalcheck: deleting 'points at canonical harness-pm Mode 2 at the supplied pin' reddens its assertion
+ok    (10) pm Mode 2: third falsifiable unit
+ok    (10m) pm Mode 2: deleting 'third falsifiable unit' reddens its assertion
+ok    (10) pm Mode 2: keep rows are not graded
+ok    (10m) pm Mode 2: deleting 'keep rows are not graded' reddens its assertion
+ok    (10) pm Mode 2: per-row read pinned at review_sha, never the working tree
+ok    (10m) pm Mode 2: deleting 'per-row read pinned at review_sha, never the working tree' reddens its assertion
+ok    (10) pm Mode 2: sc_status row: DEC id, verdict, inspection method
+ok    (10m) pm Mode 2: deleting 'sc_status row: DEC id, verdict, inspection method' reddens its assertion
+ok    (10) pm Mode 2: evidence names review_sha, path and pinned line
+ok    (10m) pm Mode 2: deleting 'evidence names review_sha, path and pinned line' reddens its assertion
+ok    (10) pm Mode 2: amend and strike landing tests
+ok    (10m) pm Mode 2: deleting 'amend and strike landing tests' reddens its assertion
+ok    (10) pm Mode 2: strike alternative: successor-justified deletion with repointed citations
+ok    (10m) pm Mode 2: deleting 'strike alternative: successor-justified deletion with repointed citations' reddens its assertion
+ok    (10) pm Mode 2: mention or green suite is insufficient
+ok    (10m) pm Mode 2: deleting 'mention or green suite is insufficient' reddens its assertion
+ok    (10) pm Mode 2: failed landing fails the goal-check, routed to the owning task
+ok    (10m) pm Mode 2: deleting 'failed landing fails the goal-check, routed to the owning task' reddens its assertion
+ok    (10) pm Mode 2: missing owner is a plan/scope defect, not success
+ok    (10m) pm Mode 2: deleting 'missing owner is a plan/scope defect, not success' reddens its assertion
+ok    (10) validator gate: failed dispositions become must_fix against the owning task
+ok    (10m) validator gate: deleting 'failed dispositions become must_fix against the owning task' reddens its assertion
+ok    (10) validator gate: clean QA cannot erase a failed landing
+ok    (10m) validator gate: deleting 'clean QA cannot erase a failed landing' reddens its assertion
+ok    (10z) template's decisions_affected is the instantiated empty list, not a comment
+
+184/184 checks passed.
+PASS test-plan-team.py
+----- test-run-unit-tests-kinds.py (exit 0, 0.33s) -----
+PASS the locally_run kinds are exactly the declared live probes 
+PASS registered live probe tests/manual/probe-handoff-comprehension.py 
+PASS registered live probe tests/manual/probe-issue-types.py 
+PASS registered live probe tests/manual/probe-omp-session-accessor.py 
+PASS claiming a live probe in the automated matrix is loud 
+PASS dropping a second live probe kind is loud 
+PASS dropping probe kind is loud 
+PASS --kind all excludes every live probe 
+PASS manual live probes are layout-valid 
+PASS test-run-unit-tests-kinds.py
+----- test-station-argument-spelling.py (exit 0, 0.12s) -----
+PASS - the instruction scope is non-empty
+PASS - at least the measured number of station-argument occurrences are found
+PASS - harness-plan.md is among the swept occurrence files
+PASS - github-mirror.md is among the swept occurrence files
+PASS - SKILL.md is among the swept occurrence files
+PASS - every station argument in the instruction scope is an accepted station
+PASS - the unmutated scratch copy reports no offender
+PASS - the sweep reddens on a reintroduced capital
+PASS test-station-argument-spelling.py
+----- test-harness-config-fixtures.py (exit 0, 54.89s) -----
+0 finding(s)
+PASS test-harness-config-fixtures.py
+----- test-run-unit-tests-layout.py (exit 0, 2.98s) -----
+PASS clean layout 
+PASS runs unit 
+PASS runs integration 
+PASS bogus refused 
+PASS unknown kind refused 
+PASS empty unit 
+PASS empty integration 
+PASS duplicate 
+PASS planted 
+PASS git clean tree runs both sentinels 
+PASS git tracked rogue refused before sentinels 
+PASS git three tracked rogues reported in sorted path order 
+PASS git enumeration failure refused before sentinels 
+PASS git untracked rogue is not reported and both sentinels run 
+PASS FEAT-64: an unrelated RuntimeError in suite_layout.violations escapes the runner as itself, not as 'MISCONFIGURED: layout check crashed' 
+PASS FEAT-64: a documented layout data-shape failure keeps the 'layout check crashed' rendering at exit 2 
+PASS test-run-unit-tests-layout.py
+----- test-structure-audit-single-pass.py (exit 0, 3.36s) -----
+PASS audit_modules_load_from_the_bin_under_test
+COUNTS in_process_consolidation_findings {"embedded": 1, "foreign": 0, "nodes": 253539, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253539}
+PASS in_process_consolidation_findings_every_node_visited_exactly_once
+PASS in_process_consolidation_findings_visits_no_node_outside_a_parsed_tree
+PASS in_process_consolidation_findings_parses_no_source_twice
+PASS in_process_consolidation_findings_parses_embedded_programs
+PASS in_process_consolidation_findings_parses_the_overlapping_checker_sources
+COUNTS in_process_feat62_findings {"embedded": 1, "foreign": 0, "nodes": 253539, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253539}
+PASS in_process_feat62_findings_every_node_visited_exactly_once
+PASS in_process_feat62_findings_visits_no_node_outside_a_parsed_tree
+PASS in_process_feat62_findings_parses_no_source_twice
+PASS in_process_feat62_findings_parses_embedded_programs
+PASS in_process_feat62_findings_parses_the_overlapping_checker_sources
+COUNTS in_process_broad_catch_findings {"embedded": 1, "foreign": 0, "nodes": 253539, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253539}
+PASS in_process_broad_catch_findings_every_node_visited_exactly_once
+PASS in_process_broad_catch_findings_visits_no_node_outside_a_parsed_tree
+PASS in_process_broad_catch_findings_parses_no_source_twice
+PASS in_process_broad_catch_findings_parses_embedded_programs
+PASS in_process_broad_catch_findings_parses_the_overlapping_checker_sources
+COUNTS cli_consolidation_audit {"embedded": 1, "exit": 0, "foreign": 0, "nodes": 253539, "not_once": 0, "reparsed": [], "trees": 105, "visits": 253539}
+PASS cli_consolidation_audit_every_node_visited_exactly_once
+PASS cli_consolidation_audit_visits_no_node_outside_a_parsed_tree
+PASS cli_consolidation_audit_parses_no_source_twice
+PASS cli_consolidation_audit_parses_embedded_programs
+PASS cli_consolidation_audit_parses_the_overlapping_checker_sources
+PASS cli_consolidation_audit_exit_is_a_verdict
+
+ALL PASS
+PASS test-structure-audit-single-pass.py
+----- test-run-unit-tests-shards.py (exit 0, 4.79s) -----
+PASS every discovered integration file appears in exactly one shard 
+PASS partition is deterministic across invocations 
+PASS each shard prints its selection in lexical order 
+PASS sharding applies to the selected unit suite too 
+PASS longest-processing-time weighting, not round-robin 
+PASS equal weights break ties by path, then lowest shard 
+PASS unknown new file uses default_seconds and is included once 
+PASS stale weight keys add no files 
+PASS empty shard succeeds without invoking the pool 
+PASS empty shard writes an empty completed-file manifest 
+PASS rejects missing shard value before tests run 
+PASS rejects malformed fraction before tests run 
+PASS rejects non-decimal before tests run 
+PASS rejects signed value before tests run 
+PASS rejects zero index before tests run 
+PASS rejects zero count before tests run 
+PASS rejects negative before tests run 
+PASS rejects index above count before tests run 
+PASS rejects repeated shard before tests run 
+PASS rejects repeated manifest before tests run 
+PASS rejects manifest without shard before tests run 
+PASS rejects missing manifest value before tests run 
+PASS rejects check-layout with shard before tests run 
+PASS rejects check-layout with manifest before tests run 
+PASS rejects a manifest inside the watched bin tree 
+PASS --kind accepted after --shard 
+PASS failing shard exits nonzero 
+PASS manifest records actual completed files and their return codes 
+PASS manifest identity fields 
+PASS checked-in duration document provenance 
+PASS checked-in weights are positive finite integration records 
+PASS default_seconds is the median measured duration 
+
+0 failed
+PASS test-run-unit-tests-shards.py
+----- test-typescript-typecheck.py (exit 0, 2.11s) -----
+PASS tracked .ts discovery is non-empty
+PASS the four settled sources are tracked
+PASS every tracked .ts is in the compiler's file list
+PASS no tracked source suppresses the compiler
+PASS bun run typecheck passes on the real tree
+PASS the clean copy passes the same command
+PASS one deliberate type error fails the same command, naming the poisoned file
+PASS test_kinds.typecheck is active with exactly this command and no _reason
+PASS test-typescript-typecheck.py
+PASS test-typescript-typecheck.py
+----- test-upgrade-config.py (exit 0, 2.55s) -----
+ok    FEAT-64: an unrelated RuntimeError in load_harness_json escapes upgrade-config
+ok    the script RUNS as a subprocess (F-03: NameError on every invocation)
+ok    it reads a real manifest without raising
+ok    a malformed manifest does not pass silently
+ok    a QUOTED schema_version behaves like a bare one (was read as absent)
+ok    prose containing `name:` is not harvested as an agent
+ok    Q2: a YAML-truthy name (`- name: no`) does not vanish from the roster
+ok    missing-templates message points at an incomplete checkout, not the retired command
+ok    unparsable shipped template message points at a complete checkout, not the retired command
+ok    --check never rewrites team-config.yaml (safe_dump would strip its comments)
+ok    a new budgets key (orchestrator_context_warn_tokens) propagates from the template at the template's value, 200000
+ok    panel_era_start ARRIVES in a schema-2 project through the real merge, at the template's null
+ok    a project's OWN panel_era_start survives the upgrade and is not reset to the template's null
+
+13/13 cases passed.
+PASS test-upgrade-config.py
+----- test-validate-feature-json.py (exit 0, 3.02s) -----
+PASS accepted_all_ten_keys
+PASS accepted_only_seven_required_keys
+PASS accepted_omitting_optional_max_total_runs
+PASS accepted_omitting_optional_github
+PASS accepted_omitting_optional_factory
+PASS rejected_omitting_required_feature_id
+PASS rejected_omitting_required_branch
+PASS rejected_omitting_required_pr
+PASS rejected_omitting_required_review_sha
+PASS rejected_omitting_required_cycles_used
+PASS rejected_omitting_required_max_total_cycles
+PASS rejected_omitting_required_runs
+PASS rejected_status_Backlog_as_undeclared
+PASS rejected_status_Plan_as_undeclared
+PASS rejected_status_Ready_as_undeclared
+PASS rejected_status_Building_as_undeclared
+PASS rejected_status_Review_as_undeclared
+PASS rejected_status_Done_as_undeclared
+PASS rejected_status_backlog_as_undeclared
+PASS rejected_status_plan_as_undeclared
+PASS rejected_status_ready_as_undeclared
+PASS rejected_status_building_as_undeclared
+PASS rejected_status_review_as_undeclared
+PASS rejected_status_done_as_undeclared
+PASS rejected_status_abandoned_as_undeclared
+PASS rejected_phase_undeclared
+PASS rejected_undeclared_top_level_key
+PASS rejected_undeclared_runs_item_key
+PASS accepted_runs_item_code_grade_n_a
+PASS rejected_runs_item_code_grade_other_value
+PASS rejected_runs_item_code_grade_case_variant
+PASS rejected_undeclared_github_sub_key
+PASS rejected_prose_key_runs_item
+PASS rejected_status_shipped
+PASS rejected_pr_string_none
+PASS cli_clean_file_exit_exactly_0
+PASS case_749a: a key declared in the WRITTEN tree's schema is accepted
+PASS case_749b: an UNDECLARED key is still rejected against the written tree
+PASS case_749c: with no tree schema, the module's own schema still governs
+PASS cli_invalid_file_exit_exactly_1
+PASS cli_invalid_file_stderr_names_branch
+PASS cli_jsonschema_unavailable_exit_exactly_3
+PASS cli_jsonschema_unavailable_not_0_or_1
+PASS cli_jsonschema_unavailable_stderr_names_required
+PASS json_extension_rejects_yaml_content
+PASS yaml_extension_accepts_same_content
+PASS problems_for_text_at_least_two_problems
+PASS problems_for_text_display_path_in_every_line
+PASS forced_unavailable_returns_non_empty
+PASS forced_unavailable_single_line
+PASS forced_unavailable_names_required
+PASS forced_unavailable_names_install_command
+PASS case_migrated_depth: the sweep reports ONE file, not zero
+PASS case_migrated_depth: the scanning line names the migrated glob
+PASS case_migrated_depth: a TWELVE-file sweep is counted as twelve, not two
+PASS case_root_resolves: CLAUDE_PROJECT_DIR alone does not redirect the sweep (scans the real repo root, not the tmp fixture with its single file)
+PASS case_root_resolves: HARNESS_PROJECT_DIR + team-config.yaml IS honoured
+PASS accepted_source_issues_list_of_integers
+PASS rejected_source_issues_non_integer
+PASS rejected_source_issues_quoted_number
+PASS rejected_undeclared_sibling_of_source_issues
+PASS accepted_github_block_without_source_issues
+PASS accepted_signed_task_hashes_and_amendment_judgement
+PASS rejected_signed_task_hash_sc_key
+PASS rejected_signed_task_hash_uppercase
+PASS rejected_signed_task_hash_short
+PASS rejected_signed_task_hash_list
+PASS rejected_overruled_false
+PASS rejected_overruled_regate
+PASS accepted_github_build_entry_opened
+PASS accepted_github_build_entry_recovery-required
+PASS accepted_github_build_entry_not-applicable
+PASS accepted_github_build_entry_recovered-terminal
+PASS rejected_github_build_entry_illegal_value_'opened '
+PASS rejected_github_build_entry_illegal_value_'reopened'
+PASS rejected_github_build_entry_hyphen_misspelling
+PASS accepted_github_block_without_build_entry
+PASS t15_a_entry_without_agent_is_refused_and_names_index_and_key
+PASS t15_b_every_entry_without_agent_is_refused_for_every_feature
+PASS t15_d_a_new_entry_naming_its_agent_validates
+PASS t15_d_an_empty_agent_string_is_refused_so_the_check_is_on_the_value
+PASS t15_e_the_agent_rule_is_load_bearing
+     (red proof counts: original 1, mutant 0)
+
+ALL PASS
+PASS test-validate-feature-json.py
+----- test-gh-sync-open.py (exit 0, 74.18s) -----
+ok    single override: open dispatches no default gh binary
+ok    single override: every mirror operation is bracketed by the cost counter
+ok    single override: one gh-cost line per measured operation
+ok    gh launch failure is the ordinary mirror SKIP, exit 0
+ok    gh_try launch failure returns (False, diagnostic of at most 200 chars), no exit
+ok    malformed parent create URL: SKIP, exit 0, no traceback, nothing recorded
+ok    malformed parent create URL: no automatic second create, Build entry not not-applicable
+ok    malformed task create URL: SKIP, exit 0, no traceback, nothing recorded
+ok    malformed task create URL: no automatic second create, Build entry not not-applicable
+ok    failed first label create: SKIP, exit 0, and no dependent issue create
+ok    existing label (exit 1, gh's already-exists stderr) is accepted: open creates its issues
+ok    label creates keep their per-label colours and never --force
+ok    fleet open uses remote default-branch product config and records target provenance
+ok    fleet fixtures cannot escape the shared fake through env_extra
+ok    open refuses unproven active fleet receipts before any mutation
+ok    start-task refuses unproven active fleet receipts before any mutation
+ok    status refuses unproven active fleet receipts before any mutation
+ok    record-pr refuses unproven active fleet receipts before any mutation
+ok    ship refuses unproven active fleet receipts before any mutation
+ok    abandon refuses unproven active fleet receipts before any mutation
+ok    reject refuses unproven active fleet receipts before any mutation
+ok    backlog refuses unproven active fleet receipts before any mutation
+ok    recover-terminal refuses unproven active fleet receipts before any mutation
+ok    status on a bound feature succeeds against product/app and never calls the owner repository
+ok    start-task on a bound feature succeeds against product/app and never calls the owner repository
+ok    record-pr on a bound feature succeeds against product/app and never calls the owner repository
+ok    ship on a bound feature succeeds against product/app and never calls the owner repository
+ok    abandon on a bound feature succeeds against product/app and never calls the owner repository
+ok    reject on a bound feature succeeds against product/app and never calls the owner repository
+ok    backlog on a bound feature succeeds against product/app and never calls the owner repository
+ok    recover-terminal on a bound feature succeeds against product/app and never calls the owner repository
+ok    open refuses an unreadable product config before any mutation, with no owner fallback
+ok    open refuses a product config naming another repository before any mutation, with no owner fallback
+ok    open refuses a product config with sync off before any mutation, with no owner fallback
+ok    open refuses a factory.repo missing from the fleet before any mutation, with no owner fallback
+ok    replacement full archives verbatim and creates only target roles
+ok    full replacement task belongs to the confirmed new milestone, not the old title
+ok    full replacement completed recovery is a byte-identical no-op without duplicate creates
+ok    replacement terminal archives verbatim and creates only target roles
+ok    terminal replacement completed recovery is a byte-identical no-op without duplicate creates
+ok    approved task addition preserves the completed recovery and existing receipts
+ok    task added after completed recovery belongs to its confirmed replacement milestone
+ok    amended completed full replacement completed recovery is a byte-identical no-op without duplicate creates
+ok    uncertain parent creation retains its exact durable intent and confirmed milestone
+ok    uncertain restart refuses without retry, lookup, adoption or metadata rewrite
+ok    adoption rejects mismatched feature without changing pending evidence or creating objects
+ok    adoption rejects mismatched role without changing pending evidence or creating objects
+ok    adoption rejects mismatched number without changing pending evidence or creating objects
+ok    adoption rejects mismatched numeric-type without changing pending evidence or creating objects
+ok    adoption rejects mismatched recovery without changing pending evidence or creating objects
+ok    adoption rejects mismatched plan without changing pending evidence or creating objects
+ok    adoption rejects mismatched operator without changing pending evidence or creating objects
+ok    adoption rejects mismatched ownership without changing pending evidence or creating objects
+ok    adoption rejects mismatched duplicate-effect without changing pending evidence or creating objects
+ok    separately evidenced adoption clears only its pending role and resumes the same generation
+ok    replacement refuses missing-yes before archive or remote mutation
+ok    replacement refuses wrong-feature before archive or remote mutation
+ok    replacement refuses wrong-repo before archive or remote mutation
+ok    replacement refuses wrong-plan before archive or remote mutation
+ok    replacement refuses duplicate-effect before archive or remote mutation
+ok    replacement refuses changed-plan before archive or remote mutation
+ok    replacement refuses unsigned before archive or remote mutation
+ok    replacement refuses traversal before archive or remote mutation
+ok    replacement refuses outside before archive or remote mutation
+ok    replacement refuses symlink before archive or remote mutation
+ok    explicit recovery can replace unproven same-repository receipts without retroactive ownership claims
+ok    uncertain milestone never falls back to title lookup or another create
+ok    provably undispatched create clears only its intent and retains the recovery generation
+ok    known undispatched recovery resumes normally without a second archive
+ok    confirmed receipt OSError preserves named pending intent and prohibits restart creation
+ok    confirmed receipt SystemExit preserves named pending intent and prohibits restart creation
+ok    confirmed receipt MergeRefusal preserves named pending intent and prohibits restart creation
+ok    milestone adoption resumes the same generation without recreating its uncertain role
+ok    task creation uses the adopted milestone identity even with an unrelated title
+ok    milestone adoption completed recovery is a byte-identical no-op without duplicate creates
+ok    task adoption rejects an already-owned parent ISSUE number without changing any receipt
+ok    task:T-01 adoption resumes the same generation without recreating its uncertain role
+ok    task:T-01 adoption completed recovery is a byte-identical no-op without duplicate creates
+ok    gh missing -> SKIP, exit 0
+ok    sync disabled -> SKIP, exit 0
+ok    sync on with repo unpinned is an invalid config -> REFUSED at exit 2 naming github.repo
+ok    bad feature dir -> ERROR, exit 1
+ok    open exits 0
+ok    milestone created with SC checklist
+ok    3 issues created
+ok    T-01 issue create carries the exact title "FEAT-05-export-fix — T-01 — streaming export rebuild" (T-16)
+ok    parent created and recorded
+ok    parent title carries the H1 phrase
+ok    every call pins the pinned repo - --repo/repos flag, auth, or an api graphql line carrying the exact owner=implentio and name=fake GraphQL values
+ok    T-01 unlabeled beyond harness (feature)
+ok    T-02 labeled chore (ci)
+ok    T-03 labeled bug (bugfix)
+ok    absorbs cited in T-01 body
+ok    issue numbers recorded in feature.json
+ok    created parent records its NUMBER and no origin key at all (DEC-203 item 4)
+ok    three sub-issues attached to the parent
+ok    attach uses internal id not number
+ok    labels ensured before any issue create
+ok    re-run open creates nothing
+ok    close-task is not a subcommand any more
+ok    ship PATCHes milestone closed
+ok    backlog creates 3 issues, exit 0
+ok    backlog natures label correctly
+ok    backlog issues carry NO milestone
+ok    malformed backlog item -> ERROR exit 1
+ok    empty phrase titles the parent with no trailing em-dash
+ok    --parent adopts
+ok    an ADOPTED parent records its number and no origin key either — where a parent came from is not recorded on either path
+ok    recorded-not-attached task is attached on re-run
+ok    pre-existing parent survives per-task saves
+ok    a github block written with the old origin key is read without crashing, and the key is not written back
+ok    phrase containing an em-dash is taken whole
+ok    failed attach is a SKIP, exit 0, for the new subcommand too (SC-12)
+ok    issue recorded before the failed attach survives the crash
+ok    open skips an abandoned task instead of creating a permanent child
+ok    (eleven-key) open exits 0
+ok    (eleven-key) every non-github key survives untouched
+ok    (eleven-key) a github block was written
+ok    T-06C: a populated github: block loads, quoted milestone coerced by _opt_int
+ok    T-06C: a feature.json with no github: block returns the default, does not raise
+ok    fix1 B row1a: absent feature.json returns the default rec, does not raise
+ok    fix1 B row1b: dict present with no github key returns the default rec
+ok    fix1 B row2: 0 bytes on disk
+ok    fix1 B row2: a 0-byte feature.json raises SystemExit, never loads as empty
+ok    fix1 B row4: non-UTF-8 feature.json refuses through load_recorded and names the file
+ok    fix1 B row2 (a_list): a non-mapping document raises SystemExit
+ok    fix1 B row2 (a_scalar): a non-mapping document raises SystemExit
+ok    fix1 B row4 (github=a_string): a non-mapping github: value raises SystemExit
+ok    fix1 B row4 (github=a_list): a non-mapping github: value raises SystemExit
+ok    fix1 A: a failed save_recorded leaves feature.json byte-identical, never truncated
+ok    fix1 A: no leftover temp file after a failed save_recorded
+ok    finding 2: save_recorded round-trips a feature.json with no github block yet
+ok    finding 2: save_recorded round-trips a feature.json with an existing github block
+ok    finding 2: save_recorded round-trips a feature.json with other keys present
+ok    migrated_depth: a segment-deep feature dir resolves the root rather than skipping
+ok    not_onboarded: no harness.json above -> REFUSED at exit 2, naming the unreadable config, with no feature.json written
+ok    open records source_issues from plan.yaml
+ok    source_issues survives every save during a full open run
+ok    open on a plan with no source_issues records none and still succeeds
+ok    save_recorded refuses when feature.json is absent
+ok    the closes subcommand exits non-zero and is named as unknown
+ok    the closes subcommand renders NO Closes line — not even a deprecation notice carrying one
+ok    cmd_open still mirrors plan.yaml's source_issues into feature.json, in order
+ok    T-02 open records opened
+ok    T-02 sync false records not-applicable
+ok    T-02 unpinned repo is refused at exit 2 and records nothing
+ok    T-02 first-call failure records recovery-required
+ok    T-02 partial remote write records nothing
+ok    T-02 second open stays opened
+ok    T-02 opened never downgrades
+ok    T-02 contract error records nothing
+ok    T-03 report and ask writes nothing
+ok    T-03 recover-terminal creates milestone and parent only
+ok    T-03 FEAT-55 shape adopts and creates nothing
+ok    T-03 second run is idempotent
+ok    T-03 parent contract error refuses
+ok    T-03 gh failure records nothing
+ok    BUG-285 wrong parent refuses before parent or task issue creation
+ok    BUG-285 wrong issues refuses before parent or task issue creation
+
+ALL PASSED
+PASS test-gh-sync-open.py
+----- test-suite-claim-preservation.py (exit 0, 16.85s) -----
+PASS a persona-wide release reddens exactly the parent-settlement checks 
+0 failure(s)
+PASS test-suite-claim-preservation.py
+----- test-validate-digest-shadows.py (exit 0, 13.81s) -----
+PASS  floor: the floor kind reported satisfied is accepted
+PASS  floor: matrix_ok true with the floor kind missing is refused, naming it
+PASS  floor: matrix_ok true with kinds: [] is refused as unverifiable
+PASS  floor: a FAIL that reports the gap is not held to the floor
+PASS  floor: an excluded kind (functional, status: excluded) never enters the floor
+PASS  floor: a docs task and an unstarted logic task impose no floor
+PASS  empty floor: suite n/a with kinds [] and matrix_ok true is accepted
+PASS  explicitly excluded kind: suite n/a with kinds [] and matrix_ok true is accepted
+PASS  empty floor: suite n/a beside a reported kind still declines a gate
+PASS  empty floor: matrix_ok n/a with PASS is still refused
+PASS  non-empty floor: suite n/a with PASS is refused
+PASS  conditional bugfix row: suite n/a with PASS is refused
+PASS  unknown change_type: suite n/a with PASS is refused
+PASS  no started task: suite n/a with PASS is refused
+PASS  active kind with null cmd: suite n/a with PASS is refused
+PASS  unresolvable floor: suite n/a with PASS is refused
+PASS  human: an honest list is accepted
+PASS  human: an empty list over a range with a human commit is refused
+PASS  human: omitting the field is refused as a missing required field
+PASS  human: a bot commit claimed as human is refused and named
+PASS  human: no human commits and [] is accepted
+PASS  dirty: a PASS over a modified tracked file is refused, naming it
+PASS  dirty: a FAIL over a modified tracked file is refused, naming it
+PASS  dirty: BLOCKED is the honest return and is accepted
+PASS  dirty: a change under .harness/ does not count
+PASS  dirty: an untracked file does not count
+PASS  kinds: satisfied on a runnable kind and not_applicable on an excluded one pass
+PASS  kinds: an unknown state is refused
+PASS  kinds: misconfigured under a FAIL verdict is refused
+PASS  kinds: misconfigured under BLOCKED is accepted
+PASS  kinds: not_applicable on a kind with a runnable cmd is refused
+PASS  kinds: satisfied on a kind with no cmd is refused
+PASS  kinds: a kind harness.json does not declare is refused
+PASS  receipt: task_verify pass with no receipt on disk is refused
+PASS  receipt: a receipt without the verbatim verify command is refused
+PASS  receipt: the verbatim command in the receipt is accepted
+PASS  receipt: a non-pass return is not held to the receipt
+PASS  inspection: an inspection SC with no file:line citation is refused, named
+PASS  inspection: every inspection SC cited is accepted
+PASS  inspection: an unreadable artifact is not this check's finding
+PASS  ranking: low before high is refused
+PASS  ranking: high before low is accepted
+PASS  grade2: fixture grades 2 (skipped: fixture graded otherwise)
+PASS  qa: FAIL with every gate green and fail-first evidence present is refused
+PASS  qa: FAIL with a green suite and NO fail-first evidence is the mandated return (P59)
+PASS  qa: FAIL with a failing suite is accepted
+46 of 46 cases passed
+PASS test-validate-digest-shadows.py
+----- test-omp-native-gate-runtime.py (exit 0, 55.70s) -----
+ok    control: a normal broad-gate pass is allowed with no unavailable outcome
+ok    control: a broad gate's explicit refusal stays a block, not unavailable
+ok    control: a narrow gate's structured deny of a matching command stays a block
+ok    control: a narrow gate allows an unrelated command with no unavailable outcome
+ok    broad check-domain, guarded crash: the call is allowed and reported unavailable
+ok    broad check-domain, startup failure before the guard: the call is allowed and reported unavailable
+ok    broad check-domain, missing gate: the call is allowed and reported unavailable
+ok    broad check-domain, missing interpreter: the call is allowed and reported unavailable
+ok    broad check-domain, spawn error (not executable): the call is allowed and reported unavailable
+ok    broad check-domain, unexpected termination (SIGKILL): the call is allowed and reported unavailable
+ok    broad bash-write-guard.py, guarded crash: allowed and reported unavailable
+ok    broad bash-write-guard.py: the outcome names the script stem 'bash-write-guard', not a diagnostic label
+ok    broad dispatch-guard.py, guarded crash: allowed and reported unavailable
+ok    broad dispatch-guard.py: the outcome names the script stem 'dispatch-guard', not a diagnostic label
+ok    broad validate-digest.py, guarded crash: allowed and reported unavailable
+ok    broad validate-digest.py: the outcome names the script stem 'validate-digest', not a diagnostic label
+ok    validate-digest, absent digest_object: still a refusal, not unavailable
+ok    validate-digest, null digest_object: still a refusal, not unavailable
+ok    validate-digest, empty digest_object: still a refusal, not unavailable
+ok    validate-digest, unknown persona schema: allowed and reported unavailable
+ok    dispatch-guard, name parameter: still a refusal at the adapter, not unavailable
+ok    dispatch-guard, missing first-line feature marker: still a refusal at the adapter, not unavailable
+ok    dispatch-guard, per-call model: the same outcome as the dispatch without it
+ok    narrow gh-close-gate, startup failure before the guard: a matching command is refused
+ok    narrow gh-close-gate, startup failure before the guard: an unrelated command is allowed silently
+ok    narrow gh-close-gate, missing gate: a matching command is refused
+ok    narrow gh-close-gate, missing gate: an unrelated command is allowed silently
+ok    narrow gh-close-gate, missing interpreter: a matching command is refused
+ok    narrow gh-close-gate, missing interpreter: an unrelated command is allowed silently
+ok    narrow gh-close-gate, spawn error (not executable): a matching command is refused
+ok    narrow gh-close-gate, spawn error (not executable): an unrelated command is allowed silently
+ok    narrow gh-close-gate, unexpected termination (SIGKILL): a matching command is refused
+ok    narrow gh-close-gate, unexpected termination (SIGKILL): an unrelated command is allowed silently
+ok    narrow gh-close-gate, dependency failure after applicability: a matching command is refused
+ok    narrow gh-close-gate, dependency failure after applicability: an unrelated command is allowed silently
+ok    narrow branch-create-gate.py, dependency failure: a matching command is refused
+ok    narrow branch-create-gate.py, dependency failure: an unrelated command is allowed silently
+ok    narrow branch-create-gate.py, missing gate: a matching command is refused
+ok    narrow branch-create-gate.py, missing gate: an unrelated command is allowed silently
+ok    narrow plan-sign-gate.py, dependency failure: a matching command is refused
+ok    narrow plan-sign-gate.py, dependency failure: an unrelated command is allowed silently
+ok    narrow plan-sign-gate.py, missing gate: a matching command is refused
+ok    narrow plan-sign-gate.py, missing gate: an unrelated command is allowed silently
+ok    test-gh-close-gate.py exposes APPLICABILITY_CORPUS with matching and unrelated entries
+ok    gh-close-gate.py python classifier: 'gh issue close 728 --repo x/y' -> match
+ok    gh-close-gate.py extension classifier: 'gh issue close 728 --repo x/y' -> match
+ok    gh-close-gate.py startup failure: 'gh issue close 728 --repo x/y' -> refused
+ok    gh-close-gate.py python classifier: 'gh api -X PATCH repos/o/r/issues/9 -f state=closed' -> match
+ok    gh-close-gate.py extension classifier: 'gh api -X PATCH repos/o/r/issues/9 -f state=closed' -> match
+ok    gh-close-gate.py startup failure: 'gh api -X PATCH repos/o/r/issues/9 -f state=closed' -> refused
+ok    gh-close-gate.py python classifier: 'cd /tmp && gh issue close 728' -> match
+ok    gh-close-gate.py extension classifier: 'cd /tmp && gh issue close 728' -> match
+ok    gh-close-gate.py startup failure: 'cd /tmp && gh issue close 728' -> refused
+ok    gh-close-gate.py python classifier: 'FOO=1 gh issue close 728' -> match
+ok    gh-close-gate.py extension classifier: 'FOO=1 gh issue close 728' -> match
+ok    gh-close-gate.py startup failure: 'FOO=1 gh issue close 728' -> refused
+ok    gh-close-gate.py python classifier: 'echo hi | gh issue close 728' -> match
+ok    gh-close-gate.py extension classifier: 'echo hi | gh issue close 728' -> match
+ok    gh-close-gate.py startup failure: 'echo hi | gh issue close 728' -> refused
+ok    gh-close-gate.py python classifier: 'true; gh issue close 728' -> match
+ok    gh-close-gate.py extension classifier: 'true; gh issue close 728' -> match
+ok    gh-close-gate.py startup failure: 'true; gh issue close 728' -> refused
+ok    gh-close-gate.py python classifier: 'gh api -f state=closed -X PATCH repos/o/r/issues/9' -> match
+ok    gh-close-gate.py extension classifier: 'gh api -f state=closed -X PATCH repos/o/r/issues/9' -> match
+ok    gh-close-gate.py startup failure: 'gh api -f state=closed -X PATCH repos/o/r/issues/9' -> refused
+ok    gh-close-gate.py python classifier: 'gh api repos/o/r/issues/9 -X PATCH -f state=closed' -> match
+ok    gh-close-gate.py extension classifier: 'gh api repos/o/r/issues/9 -X PATCH -f state=closed' -> match
+ok    gh-close-gate.py startup failure: 'gh api repos/o/r/issues/9 -X PATCH -f state=closed' -> refused
+ok    gh-close-gate.py python classifier: 'gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d' -> match
+ok    gh-close-gate.py extension classifier: 'gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d' -> match
+ok    gh-close-gate.py startup failure: 'gh issue close 1 && python3 .claude/skills/harness/bin/gh-sync.py ship d' -> refused
+ok    gh-close-gate.py python classifier: 'gh "issue" close 5' -> match
+ok    gh-close-gate.py extension classifier: 'gh "issue" close 5' -> match
+ok    gh-close-gate.py startup failure: 'gh "issue" close 5' -> refused
+ok    gh-close-gate.py python classifier: "gh 'issue' 'close' 5" -> match
+ok    gh-close-gate.py extension classifier: "gh 'issue' 'close' 5" -> match
+ok    gh-close-gate.py startup failure: "gh 'issue' 'close' 5" -> refused
+ok    gh-close-gate.py python classifier: '/opt/homebrew/bin/gh issue close 5' -> match
+ok    gh-close-gate.py extension classifier: '/opt/homebrew/bin/gh issue close 5' -> match
+ok    gh-close-gate.py startup failure: '/opt/homebrew/bin/gh issue close 5' -> refused
+ok    gh-close-gate.py python classifier: '/usr/bin/env gh issue close 5' -> match
+ok    gh-close-gate.py extension classifier: '/usr/bin/env gh issue close 5' -> match
+ok    gh-close-gate.py startup failure: '/usr/bin/env gh issue close 5' -> refused
+ok    gh-close-gate.py python classifier: '\\gh issue close 5' -> match
+ok    gh-close-gate.py extension classifier: '\\gh issue close 5' -> match
+ok    gh-close-gate.py startup failure: '\\gh issue close 5' -> refused
+ok    gh-close-gate.py python classifier: 'eval "gh issue close 5"' -> match
+ok    gh-close-gate.py extension classifier: 'eval "gh issue close 5"' -> match
+ok    gh-close-gate.py startup failure: 'eval "gh issue close 5"' -> refused
+ok    gh-close-gate.py python classifier: "bash -c 'gh issue close 5'" -> match
+ok    gh-close-gate.py extension classifier: "bash -c 'gh issue close 5'" -> match
+ok    gh-close-gate.py startup failure: "bash -c 'gh issue close 5'" -> refused
+ok    gh-close-gate.py python classifier: 'sh -c "gh issue close 5"' -> match
+ok    gh-close-gate.py extension classifier: 'sh -c "gh issue close 5"' -> match
+ok    gh-close-gate.py startup failure: 'sh -c "gh issue close 5"' -> refused
+ok    gh-close-gate.py python classifier: 'x=$(gh issue close 5)' -> match
+ok    gh-close-gate.py extension classifier: 'x=$(gh issue close 5)' -> match
+ok    gh-close-gate.py startup failure: 'x=$(gh issue close 5)' -> refused
+ok    gh-close-gate.py python classifier: '$(echo gh) issue close 5' -> match
+ok    gh-close-gate.py extension classifier: '$(echo gh) issue close 5' -> match
+ok    gh-close-gate.py startup failure: '$(echo gh) issue close 5' -> refused
+ok    gh-close-gate.py python classifier: 'gh api -X PATCH repos/o/r/issues/5 -f state="closed"' -> match
+ok    gh-close-gate.py extension classifier: 'gh api -X PATCH repos/o/r/issues/5 -f state="closed"' -> match
+ok    gh-close-gate.py startup failure: 'gh api -X PATCH repos/o/r/issues/5 -f state="closed"' -> refused
+ok    gh-close-gate.py python classifier: 'gh api --method PATCH repos/o/r/issues/5 --input -' -> match
+ok    gh-close-gate.py extension classifier: 'gh api --method PATCH repos/o/r/issues/5 --input -' -> match
+ok    gh-close-gate.py startup failure: 'gh api --method PATCH repos/o/r/issues/5 --input -' -> refused
+ok    gh-close-gate.py python classifier: 'gh api graphql -f query="mutation{closeIssue(input:{issueId:"x"}){clientMutationId}}"' -> match
+ok    gh-close-gate.py extension classifier: 'gh api graphql -f query="mutation{closeIssue(input:{issueId:"x"}){clientMutationId}}"' -> match
+ok    gh-close-gate.py startup failure: 'gh api graphql -f query="mutation{closeIssue(input:{issueId:"x"}){clientMutationId}}"' -> refused
+ok    gh-close-gate.py python classifier: 'gh issue close "5' -> match
+ok    gh-close-gate.py extension classifier: 'gh issue close "5' -> match
+ok    gh-close-gate.py startup failure: 'gh issue close "5' -> refused
+ok    gh-close-gate.py python classifier: "echo it's here; gh issue close 5" -> match
+ok    gh-close-gate.py extension classifier: "echo it's here; gh issue close 5" -> match
+ok    gh-close-gate.py startup failure: "echo it's here; gh issue close 5" -> refused
+ok    gh-close-gate.py python classifier: "echo 'gh issue close is refused here'" -> match
+ok    gh-close-gate.py extension classifier: "echo 'gh issue close is refused here'" -> match
+ok    gh-close-gate.py startup failure: "echo 'gh issue close is refused here'" -> refused
+ok    gh-close-gate.py python classifier: 'echo gh issue close' -> match
+ok    gh-close-gate.py extension classifier: 'echo gh issue close' -> match
+ok    gh-close-gate.py startup failure: 'echo gh issue close' -> refused
+ok    gh-close-gate.py python classifier: 'gh issue view 728' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh issue view 728' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh issue view 728' -> allowed
+ok    gh-close-gate.py python classifier: 'gh issue list --repo o/r --state closed' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh issue list --repo o/r --state closed' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh issue list --repo o/r --state closed' -> allowed
+ok    gh-close-gate.py python classifier: 'git status' -> unrelated
+ok    gh-close-gate.py extension classifier: 'git status' -> unrelated
+ok    gh-close-gate.py startup failure: 'git status' -> allowed
+ok    gh-close-gate.py python classifier: 'python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes' -> unrelated
+ok    gh-close-gate.py extension classifier: 'python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes' -> unrelated
+ok    gh-close-gate.py startup failure: 'python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes' -> allowed
+ok    gh-close-gate.py python classifier: 'python3 .claude/skills/harness/bin/gh-sync.py ship d' -> unrelated
+ok    gh-close-gate.py extension classifier: 'python3 .claude/skills/harness/bin/gh-sync.py ship d' -> unrelated
+ok    gh-close-gate.py startup failure: 'python3 .claude/skills/harness/bin/gh-sync.py ship d' -> allowed
+ok    gh-close-gate.py python classifier: 'gh api repos/o/r/issues/9' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh api repos/o/r/issues/9' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh api repos/o/r/issues/9' -> allowed
+ok    gh-close-gate.py python classifier: "echo it's fine" -> unrelated
+ok    gh-close-gate.py extension classifier: "echo it's fine" -> unrelated
+ok    gh-close-gate.py startup failure: "echo it's fine" -> allowed
+ok    gh-close-gate.py python classifier: 'git commit -m "don\'t close the loop"' -> unrelated
+ok    gh-close-gate.py extension classifier: 'git commit -m "don\'t close the loop"' -> unrelated
+ok    gh-close-gate.py startup failure: 'git commit -m "don\'t close the loop"' -> allowed
+ok    gh-close-gate.py python classifier: "cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\ngh issue comment 8 --repo o/r --body-file /tmp/x.md" -> unrelated
+ok    gh-close-gate.py extension classifier: "cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\ngh issue comment 8 --repo o/r --body-file /tmp/x.md" -> unrelated
+ok    gh-close-gate.py startup failure: "cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\ngh issue comment 8 --repo o/r --body-file /tmp/x.md" -> allowed
+ok    gh-close-gate.py python classifier: 'G=gh; $G issue close 5' -> unrelated
+ok    gh-close-gate.py extension classifier: 'G=gh; $G issue close 5' -> unrelated
+ok    gh-close-gate.py startup failure: 'G=gh; $G issue close 5' -> allowed
+ok    gh-close-gate.py python classifier: 'gh pr close 5' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh pr close 5' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh pr close 5' -> allowed
+ok    gh-close-gate.py python classifier: 'gh issue close-milestone 5' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh issue close-milestone 5' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh issue close-milestone 5' -> allowed
+ok    gh-close-gate.py python classifier: 'gh api repos/o/r/issues/5 --jq .state' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh api repos/o/r/issues/5 --jq .state' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh api repos/o/r/issues/5 --jq .state' -> allowed
+ok    gh-close-gate.py python classifier: 'gh api -X GET repos/o/r/issues/5' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh api -X GET repos/o/r/issues/5' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh api -X GET repos/o/r/issues/5' -> allowed
+ok    gh-close-gate.py python classifier: "git commit -m 'closes the loop'" -> unrelated
+ok    gh-close-gate.py extension classifier: "git commit -m 'closes the loop'" -> unrelated
+ok    gh-close-gate.py startup failure: "git commit -m 'closes the loop'" -> allowed
+ok    gh-close-gate.py python classifier: 'gh issue edit 5 --add-label wontfix' -> unrelated
+ok    gh-close-gate.py extension classifier: 'gh issue edit 5 --add-label wontfix' -> unrelated
+ok    gh-close-gate.py startup failure: 'gh issue edit 5 --add-label wontfix' -> allowed
+ok    gh-close-gate.py python classifier: 'echo hi' -> unrelated
+ok    gh-close-gate.py extension classifier: 'echo hi' -> unrelated
+ok    gh-close-gate.py startup failure: 'echo hi' -> allowed
+ok    gh-close-gate.py python classifier: 'git branch -d x' -> unrelated
+ok    gh-close-gate.py extension classifier: 'git branch -d x' -> unrelated
+ok    gh-close-gate.py startup failure: 'git branch -d x' -> allowed
+ok    test-branch-create-gate.py exposes APPLICABILITY_CORPUS with matching and unrelated entries
+ok    branch-create-gate.py python classifier: 'git checkout -b feat/FEAT-99-nope' -> match
+ok    branch-create-gate.py extension classifier: 'git checkout -b feat/FEAT-99-nope' -> match
+ok    branch-create-gate.py startup failure: 'git checkout -b feat/FEAT-99-nope' -> refused
+ok    branch-create-gate.py python classifier: 'git checkout -B fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git checkout -B fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git checkout -B fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git -C repo checkout -b feat/FEAT-99-nope' -> match
+ok    branch-create-gate.py extension classifier: 'git -C repo checkout -b feat/FEAT-99-nope' -> match
+ok    branch-create-gate.py startup failure: 'git -C repo checkout -b feat/FEAT-99-nope' -> refused
+ok    branch-create-gate.py python classifier: 'cd repo && git checkout -b fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'cd repo && git checkout -b fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'cd repo && git checkout -b fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git checkout --track -b fix/123-typo origin/main' -> match
+ok    branch-create-gate.py extension classifier: 'git checkout --track -b fix/123-typo origin/main' -> match
+ok    branch-create-gate.py startup failure: 'git checkout --track -b fix/123-typo origin/main' -> refused
+ok    branch-create-gate.py python classifier: 'git checkout -b=fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git checkout -b=fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git checkout -b=fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git switch -c fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git switch -c fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git switch -c fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git switch --create fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git switch --create fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git switch --create fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git -c core.x=y switch -C fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git -c core.x=y switch -C fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git -c core.x=y switch -C fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git worktree add ../wt -b fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git worktree add ../wt -b fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git worktree add ../wt -b fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git worktree add -B fix/123-typo ../wt' -> match
+ok    branch-create-gate.py extension classifier: 'git worktree add -B fix/123-typo ../wt' -> match
+ok    branch-create-gate.py startup failure: 'git worktree add -B fix/123-typo ../wt' -> refused
+ok    branch-create-gate.py python classifier: 'git branch fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git branch fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git branch fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git -C repo branch fix/123-typo' -> match
+ok    branch-create-gate.py extension classifier: 'git -C repo branch fix/123-typo' -> match
+ok    branch-create-gate.py startup failure: 'git -C repo branch fix/123-typo' -> refused
+ok    branch-create-gate.py python classifier: 'git branch fix/123-typo main' -> match
+ok    branch-create-gate.py extension classifier: 'git branch fix/123-typo main' -> match
+ok    branch-create-gate.py startup failure: 'git branch fix/123-typo main' -> refused
+ok    branch-create-gate.py python classifier: 'git status' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git status' -> unrelated
+ok    branch-create-gate.py startup failure: 'git status' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch -d x' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch -d x' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch -d x' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch -D old' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch -D old' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch -D old' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch --list' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch --list' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch --list' -> allowed
+ok    branch-create-gate.py python classifier: 'git branch --show-current' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git branch --show-current' -> unrelated
+ok    branch-create-gate.py startup failure: 'git branch --show-current' -> allowed
+ok    branch-create-gate.py python classifier: 'git checkout main' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git checkout main' -> unrelated
+ok    branch-create-gate.py startup failure: 'git checkout main' -> allowed
+ok    branch-create-gate.py python classifier: 'git checkout -- file.txt' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git checkout -- file.txt' -> unrelated
+ok    branch-create-gate.py startup failure: 'git checkout -- file.txt' -> allowed
+ok    branch-create-gate.py python classifier: 'git checkout -b' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git checkout -b' -> unrelated
+ok    branch-create-gate.py startup failure: 'git checkout -b' -> allowed
+ok    branch-create-gate.py python classifier: 'git switch main' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git switch main' -> unrelated
+ok    branch-create-gate.py startup failure: 'git switch main' -> allowed
+ok    branch-create-gate.py python classifier: 'git worktree add ../wt main' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git worktree add ../wt main' -> unrelated
+ok    branch-create-gate.py startup failure: 'git worktree add ../wt main' -> allowed
+ok    branch-create-gate.py python classifier: 'git worktree list' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git worktree list' -> unrelated
+ok    branch-create-gate.py startup failure: 'git worktree list' -> allowed
+ok    branch-create-gate.py python classifier: 'git log --oneline' -> unrelated
+ok    branch-create-gate.py extension classifier: 'git log --oneline' -> unrelated
+ok    branch-create-gate.py startup failure: 'git log --oneline' -> allowed
+ok    branch-create-gate.py python classifier: 'echo git branch' -> unrelated
+ok    branch-create-gate.py extension classifier: 'echo git branch' -> unrelated
+ok    branch-create-gate.py startup failure: 'echo git branch' -> allowed
+ok    branch-create-gate.py python classifier: 'echo hi' -> unrelated
+ok    branch-create-gate.py extension classifier: 'echo hi' -> unrelated
+ok    branch-create-gate.py startup failure: 'echo hi' -> allowed
+ok    branch-create-gate.py python classifier: 'gh pr close 5' -> unrelated
+ok    branch-create-gate.py extension classifier: 'gh pr close 5' -> unrelated
+ok    branch-create-gate.py startup failure: 'gh pr close 5' -> allowed
+ok    test-plan-sign-gate.py exposes APPLICABILITY_CORPUS with matching and unrelated entries
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml' -> refused
+ok    plan-sign-gate.py python classifier: '/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p' -> match
+ok    plan-sign-gate.py extension classifier: '/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p' -> match
+ok    plan-sign-gate.py startup failure: '/opt/homebrew/bin/python3 /abs/path/to/plan-merge.py sign-approval --file p' -> refused
+ok    plan-sign-gate.py python classifier: 'eval "python3 plan-merge.py sign-approval --file p.yaml"' -> match
+ok    plan-sign-gate.py extension classifier: 'eval "python3 plan-merge.py sign-approval --file p.yaml"' -> match
+ok    plan-sign-gate.py startup failure: 'eval "python3 plan-merge.py sign-approval --file p.yaml"' -> refused
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 plan-merge.py sign-approval --file p.yaml'" -> match
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 plan-merge.py sign-approval --file p.yaml'" -> match
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 plan-merge.py sign-approval --file p.yaml'" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 "plan-merge.py" sign-approval --file p.yaml' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 "plan-merge.py" sign-approval --file p.yaml' -> match
+ok    plan-sign-gate.py startup failure: 'python3 "plan-merge.py" sign-approval --file p.yaml' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 plan-merge.py sign-approval --name "O\'Brien' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 plan-merge.py sign-approval --name "O\'Brien' -> match
+ok    plan-sign-gate.py startup failure: 'python3 plan-merge.py sign-approval --name "O\'Brien' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py -- -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py -- -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py -- -- sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py -- sign-approval --file p.yaml --by Someone --date 2026-01-01" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval --file p.yaml --by Someone --date 2026-01-01" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py"${IFS}"sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py"${IFS}"sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py"${IFS}"sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py${IFS}${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py${IFS}sign-approval --file p.yaml --by Someone --date 2026-01-01" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(:)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(:)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(:)sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: "python3 .claude/skills/harness/bin/plan-merge.py`printf ' '`sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py extension classifier: "python3 .claude/skills/harness/bin/plan-merge.py`printf ' '`sign-approval --file p.yaml --by Someone --date 2026-01-01" -> match
+ok    plan-sign-gate.py startup failure: "python3 .claude/skills/harness/bin/plan-merge.py`printf ' '`sign-approval --file p.yaml --by Someone --date 2026-01-01" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf "%s" " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf "%s" " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(printf "%s" " ")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf " ")")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf " ")")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf " ")")sign-approval --file p.yaml --by Someone --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by Someone --date $(date +%F)' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by Someone --date $(date +%F)' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by Someone --date $(date +%F)' -> refused
+ok    plan-sign-gate.py python classifier: 'echo sign-approval | xargs -I{} python3 .claude/skills/harness/bin/plan-merge.py {} --file p.yaml --by A --date 2026-01-01' -> match
+ok    plan-sign-gate.py extension classifier: 'echo sign-approval | xargs -I{} python3 .claude/skills/harness/bin/plan-merge.py {} --file p.yaml --by A --date 2026-01-01' -> match
+ok    plan-sign-gate.py startup failure: 'echo sign-approval | xargs -I{} python3 .claude/skills/harness/bin/plan-merge.py {} --file p.yaml --by A --date 2026-01-01' -> refused
+ok    plan-sign-gate.py python classifier: 'echo sign-approval | xargs python3 .claude/skills/harness/bin/plan-merge.py' -> match
+ok    plan-sign-gate.py extension classifier: 'echo sign-approval | xargs python3 .claude/skills/harness/bin/plan-merge.py' -> match
+ok    plan-sign-gate.py startup failure: 'echo sign-approval | xargs python3 .claude/skills/harness/bin/plan-merge.py' -> refused
+ok    plan-sign-gate.py python classifier: 'xargs python3 .claude/skills/harness/bin/plan-merge.py < /tmp/verb.txt' -> match
+ok    plan-sign-gate.py extension classifier: 'xargs python3 .claude/skills/harness/bin/plan-merge.py < /tmp/verb.txt' -> match
+ok    plan-sign-gate.py startup failure: 'xargs python3 .claude/skills/harness/bin/plan-merge.py < /tmp/verb.txt' -> refused
+ok    plan-sign-gate.py python classifier: 'find . -name p.yaml -exec python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file {} \\;' -> match
+ok    plan-sign-gate.py extension classifier: 'find . -name p.yaml -exec python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file {} \\;' -> match
+ok    plan-sign-gate.py startup failure: 'find . -name p.yaml -exec python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file {} \\;' -> refused
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by A --date 2026-01-01'" -> match
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by A --date 2026-01-01'" -> match
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by A --date 2026-01-01'" -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml' -> match
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml' -> match
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml' -> refused
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'" -> match
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'" -> match
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py raise-cycles --file f.json --to 30 --decision notes/raise.md'" -> refused
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'" -> match
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'" -> match
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 .claude/skills/harness/bin/feature-record.py set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml'" -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- raise-cycles --file f.json" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- raise-cycles --file f.json" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- raise-cycles --file f.json" -> refused
+ok    plan-sign-gate.py python classifier: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- set-rework --file f.json" -> match
+ok    plan-sign-gate.py extension classifier: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- set-rework --file f.json" -> match
+ok    plan-sign-gate.py startup failure: "echo it's fine; python3 .claude/skills/harness/bin/feature-record.py -- set-rework --file f.json" -> refused
+ok    plan-sign-gate.py python classifier: 'echo raise-cycles | xargs python3 .claude/skills/harness/bin/feature-record.py' -> match
+ok    plan-sign-gate.py extension classifier: 'echo raise-cycles | xargs python3 .claude/skills/harness/bin/feature-record.py' -> match
+ok    plan-sign-gate.py startup failure: 'echo raise-cycles | xargs python3 .claude/skills/harness/bin/feature-record.py' -> refused
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py set-task-station --file p --task T-01 --station done' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py set-task-station --file p --task T-01 --station done' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py set-task-station --file p --task T-01 --station done' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p --proposal x' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p --proposal x' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p --proposal x' -> allowed
+ok    plan-sign-gate.py python classifier: 'git status --porcelain' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'git status --porcelain' -> unrelated
+ok    plan-sign-gate.py startup failure: 'git status --porcelain' -> allowed
+ok    plan-sign-gate.py python classifier: 'grep -rn sign-approval .claude/skills/harness/bin/' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'grep -rn sign-approval .claude/skills/harness/bin/' -> unrelated
+ok    plan-sign-gate.py startup failure: 'grep -rn sign-approval .claude/skills/harness/bin/' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml  # not a sign-approval call' -> allowed
+ok    plan-sign-gate.py python classifier: "echo it's fine && git status" -> unrelated
+ok    plan-sign-gate.py extension classifier: "echo it's fine && git status" -> unrelated
+ok    plan-sign-gate.py startup failure: "echo it's fine && git status" -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml \\\n--proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml \\\n--proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml \\\n--proposal q.yaml  # not a sign-approval call' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval --file p.yaml' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval --file p.yaml' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval --file p.yaml' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml   # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml   # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml   # not a sign-approval call' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml) --proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml) --proposal q.yaml  # not a sign-approval call' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml) --proposal q.yaml  # not a sign-approval call' -> allowed
+ok    plan-sign-gate.py python classifier: 'echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/' -> unrelated
+ok    plan-sign-gate.py startup failure: 'echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/' -> allowed
+ok    plan-sign-gate.py python classifier: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml'" -> unrelated
+ok    plan-sign-gate.py extension classifier: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml'" -> unrelated
+ok    plan-sign-gate.py startup failure: "bash -c 'python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml --proposal q.yaml'" -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 --reason r' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 --reason r' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 --reason r' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py set-mission --file f.json --mission patch --by harness-orchestrator --reason r' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py set-mission --file f.json --mission patch --by harness-orchestrator --reason r' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py set-mission --file f.json --mission patch --by harness-orchestrator --reason r' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py spend --file f.json' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py spend --file f.json' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py spend --file f.json' -> allowed
+ok    plan-sign-gate.py python classifier: 'python3 .claude/skills/harness/bin/feature-record.py propose-rework --file f.json' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'python3 .claude/skills/harness/bin/feature-record.py propose-rework --file f.json' -> unrelated
+ok    plan-sign-gate.py startup failure: 'python3 .claude/skills/harness/bin/feature-record.py propose-rework --file f.json' -> allowed
+ok    plan-sign-gate.py python classifier: 'grep -rn raise-cycles .claude/skills/harness/' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'grep -rn raise-cycles .claude/skills/harness/' -> unrelated
+ok    plan-sign-gate.py startup failure: 'grep -rn raise-cycles .claude/skills/harness/' -> allowed
+ok    plan-sign-gate.py python classifier: "python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by o --kind continue --decision stop --reason 'no raise-cycles without the operator'" -> unrelated
+ok    plan-sign-gate.py extension classifier: "python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by o --kind continue --decision stop --reason 'no raise-cycles without the operator'" -> unrelated
+ok    plan-sign-gate.py startup failure: "python3 .claude/skills/harness/bin/feature-record.py judgement --file f.json --by o --kind continue --decision stop --reason 'no raise-cycles without the operator'" -> allowed
+ok    plan-sign-gate.py python classifier: "echo it's fine" -> unrelated
+ok    plan-sign-gate.py extension classifier: "echo it's fine" -> unrelated
+ok    plan-sign-gate.py startup failure: "echo it's fine" -> allowed
+ok    plan-sign-gate.py python classifier: 'git status' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'git status' -> unrelated
+ok    plan-sign-gate.py startup failure: 'git status' -> allowed
+ok    plan-sign-gate.py python classifier: 'echo hi' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'echo hi' -> unrelated
+ok    plan-sign-gate.py startup failure: 'echo hi' -> allowed
+ok    plan-sign-gate.py python classifier: 'gh pr close 5' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'gh pr close 5' -> unrelated
+ok    plan-sign-gate.py startup failure: 'gh pr close 5' -> allowed
+ok    plan-sign-gate.py python classifier: 'git branch -d x' -> unrelated
+ok    plan-sign-gate.py extension classifier: 'git branch -d x' -> unrelated
+ok    plan-sign-gate.py startup failure: 'git branch -d x' -> allowed
+ok    test-merge-gate.py exposes APPLICABILITY_CORPUS with matching and unrelated entries
+ok    merge-gate.py python classifier: 'git merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git merge' -> match
+ok    merge-gate.py extension classifier: 'git merge' -> match
+ok    merge-gate.py startup failure: 'git merge' -> refused
+ok    merge-gate.py python classifier: 'git merge --no-ff feature/test' -> match
+ok    merge-gate.py extension classifier: 'git merge --no-ff feature/test' -> match
+ok    merge-gate.py startup failure: 'git merge --no-ff feature/test' -> refused
+ok    merge-gate.py python classifier: "git merge -m 'release --abort' feature/test" -> match
+ok    merge-gate.py extension classifier: "git merge -m 'release --abort' feature/test" -> match
+ok    merge-gate.py startup failure: "git merge -m 'release --abort' feature/test" -> refused
+ok    merge-gate.py python classifier: 'git merge -F /tmp/message feature/test' -> match
+ok    merge-gate.py extension classifier: 'git merge -F /tmp/message feature/test' -> match
+ok    merge-gate.py startup failure: 'git merge -F /tmp/message feature/test' -> refused
+ok    merge-gate.py python classifier: 'git merge feature/test --abort' -> match
+ok    merge-gate.py extension classifier: 'git merge feature/test --abort' -> match
+ok    merge-gate.py startup failure: 'git merge feature/test --abort' -> refused
+ok    merge-gate.py python classifier: 'git -C /repo merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git -C /repo merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git -C /repo merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git -c core.pager=cat merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git -c core.pager=cat merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git -c core.pager=cat merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git --git-dir=/repo/.git --no-pager merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git --git-dir=/repo/.git --no-pager merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git --git-dir=/repo/.git --no-pager merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git --attr-source HEAD merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'git --attr-source HEAD merge feature/test' -> match
+ok    merge-gate.py startup failure: 'git --attr-source HEAD merge feature/test' -> refused
+ok    merge-gate.py python classifier: '/usr/bin/git merge feature/test' -> match
+ok    merge-gate.py extension classifier: '/usr/bin/git merge feature/test' -> match
+ok    merge-gate.py startup failure: '/usr/bin/git merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'git "merge" feature/test' -> match
+ok    merge-gate.py extension classifier: 'git "merge" feature/test' -> match
+ok    merge-gate.py startup failure: 'git "merge" feature/test' -> refused
+ok    merge-gate.py python classifier: 'cd /repo && git merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'cd /repo && git merge feature/test' -> match
+ok    merge-gate.py startup failure: 'cd /repo && git merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'echo git merge feature/test' -> match
+ok    merge-gate.py extension classifier: 'echo git merge feature/test' -> match
+ok    merge-gate.py startup failure: 'echo git merge feature/test' -> refused
+ok    merge-gate.py python classifier: 'gh pr merge 12 --squash' -> match
+ok    merge-gate.py extension classifier: 'gh pr merge 12 --squash' -> match
+ok    merge-gate.py startup failure: 'gh pr merge 12 --squash' -> refused
+ok    merge-gate.py python classifier: '/opt/homebrew/bin/gh pr merge 12' -> match
+ok    merge-gate.py extension classifier: '/opt/homebrew/bin/gh pr merge 12' -> match
+ok    merge-gate.py startup failure: '/opt/homebrew/bin/gh pr merge 12' -> refused
+ok    merge-gate.py python classifier: 'true; gh pr merge --auto' -> match
+ok    merge-gate.py extension classifier: 'true; gh pr merge --auto' -> match
+ok    merge-gate.py startup failure: 'true; gh pr merge --auto' -> refused
+ok    merge-gate.py python classifier: "bash -c 'git merge feature/test'" -> match
+ok    merge-gate.py extension classifier: "bash -c 'git merge feature/test'" -> match
+ok    merge-gate.py startup failure: "bash -c 'git merge feature/test'" -> refused
+ok    merge-gate.py python classifier: 'sh -c "gh pr merge 12 --squash"' -> match
+ok    merge-gate.py extension classifier: 'sh -c "gh pr merge 12 --squash"' -> match
+ok    merge-gate.py startup failure: 'sh -c "gh pr merge 12 --squash"' -> refused
+ok    merge-gate.py python classifier: 'eval "git -C /repo merge feature/test"' -> match
+ok    merge-gate.py extension classifier: 'eval "git -C /repo merge feature/test"' -> match
+ok    merge-gate.py startup failure: 'eval "git -C /repo merge feature/test"' -> refused
+ok    merge-gate.py python classifier: "grep -rn 'git merge' docs/" -> match
+ok    merge-gate.py extension classifier: "grep -rn 'git merge' docs/" -> match
+ok    merge-gate.py startup failure: "grep -rn 'git merge' docs/" -> refused
+ok    merge-gate.py python classifier: 'bash -c "sh -c \'bash -c \\"git merge feature/test\\"\'"' -> match
+ok    merge-gate.py extension classifier: 'bash -c "sh -c \'bash -c \\"git merge feature/test\\"\'"' -> match
+ok    merge-gate.py startup failure: 'bash -c "sh -c \'bash -c \\"git merge feature/test\\"\'"' -> refused
+ok    merge-gate.py python classifier: 'git merge feature/test "unclosed' -> match
+ok    merge-gate.py extension classifier: 'git merge feature/test "unclosed' -> match
+ok    merge-gate.py startup failure: 'git merge feature/test "unclosed' -> refused
+ok    merge-gate.py python classifier: 'git merge --abort' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge --abort' -> unrelated
+ok    merge-gate.py startup failure: 'git merge --abort' -> allowed
+ok    merge-gate.py python classifier: 'git merge --continue' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge --continue' -> unrelated
+ok    merge-gate.py startup failure: 'git merge --continue' -> allowed
+ok    merge-gate.py python classifier: 'git merge --quit' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge --quit' -> unrelated
+ok    merge-gate.py startup failure: 'git merge --quit' -> allowed
+ok    merge-gate.py python classifier: 'git merge -s ours --abort' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge -s ours --abort' -> unrelated
+ok    merge-gate.py startup failure: 'git merge -s ours --abort' -> allowed
+ok    merge-gate.py python classifier: 'git -C /repo merge --abort' -> unrelated
+ok    merge-gate.py extension classifier: 'git -C /repo merge --abort' -> unrelated
+ok    merge-gate.py startup failure: 'git -C /repo merge --abort' -> allowed
+ok    merge-gate.py python classifier: "bash -c 'git merge --abort'" -> unrelated
+ok    merge-gate.py extension classifier: "bash -c 'git merge --abort'" -> unrelated
+ok    merge-gate.py startup failure: "bash -c 'git merge --abort'" -> allowed
+ok    merge-gate.py python classifier: 'bash -c "bash -c \\"bash -c \\\\\\"bash -c \\\\\\\\\\\\\\"git merge feature/test\\\\\\\\\\\\\\"\\\\\\"\\""' -> unrelated
+ok    merge-gate.py extension classifier: 'bash -c "bash -c \\"bash -c \\\\\\"bash -c \\\\\\\\\\\\\\"git merge feature/test\\\\\\\\\\\\\\"\\\\\\"\\""' -> unrelated
+ok    merge-gate.py startup failure: 'bash -c "bash -c \\"bash -c \\\\\\"bash -c \\\\\\\\\\\\\\"git merge feature/test\\\\\\\\\\\\\\"\\\\\\"\\""' -> allowed
+ok    merge-gate.py python classifier: 'echo merge' -> unrelated
+ok    merge-gate.py extension classifier: 'echo merge' -> unrelated
+ok    merge-gate.py startup failure: 'echo merge' -> allowed
+ok    merge-gate.py python classifier: 'echo "merge' -> unrelated
+ok    merge-gate.py extension classifier: 'echo "merge' -> unrelated
+ok    merge-gate.py startup failure: 'echo "merge' -> allowed
+ok    merge-gate.py python classifier: 'rg merge src/' -> unrelated
+ok    merge-gate.py extension classifier: 'rg merge src/' -> unrelated
+ok    merge-gate.py startup failure: 'rg merge src/' -> allowed
+ok    merge-gate.py python classifier: 'git status' -> unrelated
+ok    merge-gate.py extension classifier: 'git status' -> unrelated
+ok    merge-gate.py startup failure: 'git status' -> allowed
+ok    merge-gate.py python classifier: 'git log --grep merge' -> unrelated
+ok    merge-gate.py extension classifier: 'git log --grep merge' -> unrelated
+ok    merge-gate.py startup failure: 'git log --grep merge' -> allowed
+ok    merge-gate.py python classifier: 'git mergetool' -> unrelated
+ok    merge-gate.py extension classifier: 'git mergetool' -> unrelated
+ok    merge-gate.py startup failure: 'git mergetool' -> allowed
+ok    merge-gate.py python classifier: 'git merge-base main HEAD' -> unrelated
+ok    merge-gate.py extension classifier: 'git merge-base main HEAD' -> unrelated
+ok    merge-gate.py startup failure: 'git merge-base main HEAD' -> allowed
+ok    merge-gate.py python classifier: 'git -C merge status' -> unrelated
+ok    merge-gate.py extension classifier: 'git -C merge status' -> unrelated
+ok    merge-gate.py startup failure: 'git -C merge status' -> allowed
+ok    merge-gate.py python classifier: 'gh pr view 12' -> unrelated
+ok    merge-gate.py extension classifier: 'gh pr view 12' -> unrelated
+ok    merge-gate.py startup failure: 'gh pr view 12' -> allowed
+ok    merge-gate.py python classifier: 'gh pr list --search merge' -> unrelated
+ok    merge-gate.py extension classifier: 'gh pr list --search merge' -> unrelated
+ok    merge-gate.py startup failure: 'gh pr list --search merge' -> allowed
+ok    merge-gate.py python classifier: 'python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7' -> unrelated
+ok    merge-gate.py extension classifier: 'python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7' -> unrelated
+ok    merge-gate.py startup failure: 'python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7' -> allowed
+ok    FEAT-2337: bun is on PATH
+ok    FEAT-2337 heartbeat: the event loop ticks while a real gate runs
+ok    FEAT-2337 heartbeat: the slow gate's own pass is unchanged
+ok    FEAT-2337 past the budget, broad bash-write-guard is visibly unavailable
+ok    FEAT-2337 past the budget, broad bash-write-guard is visibly unavailable: settled within the budget plus slack
+ok    FEAT-2337 past the budget, broad bash-write-guard is visibly unavailable: no orphan survives
+ok    FEAT-2337 past the budget, a matching narrow gh-close-gate command is refused
+ok    FEAT-2337 past the budget, a matching narrow gh-close-gate command is refused: settled within the budget plus slack
+ok    FEAT-2337 past the budget, a matching narrow gh-close-gate command is refused: no orphan survives
+ok    FEAT-2337 past the budget, an unrelated narrow gh-close-gate command is allowed silently
+ok    FEAT-2337 past the budget, an unrelated narrow gh-close-gate command is allowed silently: settled within the budget plus slack
+ok    FEAT-2337 past the budget, an unrelated narrow gh-close-gate command is allowed silently: no orphan survives
+ok    FEAT-2337 past the budget, a guarded merge is refused by a timed-out merge-gate
+ok    FEAT-2337 past the budget, a guarded merge is refused by a timed-out merge-gate: settled within the budget plus slack
+ok    FEAT-2337 past the budget, a guarded merge is refused by a timed-out merge-gate: no orphan survives
+ok    FEAT-2337 past the budget, unrelated Bash is allowed silently past a timed-out merge-gate
+ok    FEAT-2337 past the budget, unrelated Bash is allowed silently past a timed-out merge-gate: settled within the budget plus slack
+ok    FEAT-2337 past the budget, unrelated Bash is allowed silently past a timed-out merge-gate: no orphan survives
+ok    FEAT-2337 past the budget, helper inflight_registry keeps its non-blocking reason
+ok    FEAT-2337 past the budget, helper inflight_registry keeps its non-blocking reason: settled within the budget plus slack
+ok    FEAT-2337 past the budget, helper inflight_registry keeps its non-blocking reason: no orphan survives
+ok    FEAT-2337 merge-gate unexpected termination (SIGKILL): the guarded merge is refused
+ok    FEAT-2337 merge-gate unexpected termination (SIGKILL): every command it does not guard is allowed silently
+ok    FEAT-2337 merge-gate startup failure before the guard: the guarded merge is refused
+ok    FEAT-2337 merge-gate startup failure before the guard: every command it does not guard is allowed silently
+ok    FEAT-2337 merge-gate missing interpreter: the guarded merge is refused
+ok    FEAT-2337 merge-gate missing interpreter: every command it does not guard is allowed silently
+ok    FEAT-2337 overlap: all five real Bash gates start before any finishes
+ok    FEAT-2337 overlap: an unrelated command runs every gate, in declared order
+ok    FEAT-2337 composition: a real Bash refusal still blocks the call
+ok    FEAT-2337 composition: plan-sign-gate alone refuses its command (control)
+ok    FEAT-2337 composition: the declared-first refusal (gh-close-gate) leads, the later one is not shown
+ok    FEAT-2337 composition: the unavailable bash-write-guard notice rides beside it
+ok    FEAT-2337 benchmark wiring: a failing ratio exits 1
+ok    FEAT-2337 benchmark wiring: a passing ratio exits 0
+ok    FEAT-2337 benchmark wiring: too few samples are malformed and exit 2
+ok    FEAT-2337 benchmark wiring: a non-numeric timing is malformed and exits 2
+
+606 passed, 0 failed in 54.1s
+PASS test-omp-native-gate-runtime.py
+----- test-plan-decision-dispositions.py (exit 0, 57.29s) -----
+PASS explicit empty list passes
+PASS keep with the clause in its own section passes
+PASS a markdown clause matches verbatim
+PASS a clause under a deeper subheading is still the decision's section
+PASS amend to this plan's D id passes
+PASS strike to an indexed DEC passes
+PASS strike of a STRUCK decision is permitted
+PASS an eligible draft without decisions_affected fails
+PASS an unindexed dec fails with row index and dec
+PASS keep on STRUCK fails
+PASS amend on title-case Struck fails
+PASS a clause from a neighbouring section fails
+PASS a partial clause match fails
+PASS markdown is not normalised away
+PASS whitespace is not normalised away
+PASS a clause only in a fenced DEC-10 example fails the DEC-10 row
+PASS a nested-fence DEC-10 example is still fenced
+PASS the real DEC-10 section's clause passes beside fenced impostors
+PASS DEC-11's section runs past its fenced examples
+PASS a clause after a ```python run inside an open fence fails the DEC-10 row
+PASS the real DEC-10 clause passes beside the info-string spoof
+PASS rule 1 closer: the spoof clause fails the DEC-10 row
+PASS rule 1 closer: the genuine DEC-10 clause passes
+PASS rule 1 opener: the spoof clause fails the DEC-10 row
+PASS rule 1 opener: the genuine DEC-10 clause passes
+PASS rule 2: a 3-space DEC-11 heading ends DEC-10's section
+PASS rule 2: a 3-space heading is DEC-11's own heading
+PASS rule 2: a 4-space `## DEC-10` neither starts nor ends a section
+PASS rule 2 spoof: the spoof clause fails the DEC-10 row
+PASS rule 2 spoof: the genuine DEC-10 clause passes
+PASS rule 3: the spoof clause fails the DEC-10 row
+PASS rule 3: the genuine DEC-10 clause passes
+PASS rule 5: the spoof clause fails the DEC-10 row
+PASS rule 5: the genuine DEC-10 clause passes
+PASS rule 4 ~~~ in ```: the spoof clause fails the DEC-10 row
+PASS rule 4 ~~~ in ```: the genuine DEC-10 clause passes
+PASS rule 4 ``` in ~~~: the spoof clause fails the DEC-10 row
+PASS rule 4 ``` in ~~~: the genuine DEC-10 clause passes
+PASS rule 3 tilde: the spoof clause fails the DEC-10 row
+PASS rule 3 tilde: the genuine DEC-10 clause passes
+PASS identifier 'DEC-10x — not DEC-10': the spoof clause fails the DEC-10 row
+PASS identifier 'DEC-10x — not DEC-10': the genuine DEC-10 clause passes
+PASS identifier 'DEC-10_a': the spoof clause fails the DEC-10 row
+PASS identifier 'DEC-10_a': the genuine DEC-10 clause passes
+PASS identifier 'DEC-10-1 — another id': the spoof clause fails the DEC-10 row
+PASS identifier 'DEC-10-1 — another id': the genuine DEC-10 clause passes
+PASS identifier 'DEC-10.5': the spoof clause fails the DEC-10 row
+PASS identifier 'DEC-10.5': the genuine DEC-10 clause passes
+PASS identifier: `## DEC-10: Ten` is DEC-10's heading
+PASS identifier: `## DEC-10 (Ten)` is DEC-10's heading
+PASS identifier: `## DEC-10` is DEC-10's heading
+PASS an amend to a D id this plan lacks fails
+PASS a strike to an unindexed DEC fails
+PASS an amend with no task owning DECISIONS.md fails
+PASS a keep needs no owning task
+PASS a symbol anchor on DECISIONS.md owns it
+PASS a content anchor (normalised path) on DECISIONS.md owns it
+PASS disposition failures sit beside unrelated anchor failures
+PASS a served plan checks against its own segment's decisions
+PASS a served plan never borrows the harness decision corpus
+PASS a draft stamped before activation is not newly refused
+PASS a draft stamped exactly at activation is eligible
+PASS a draft stamped after activation is eligible
+PASS an offset instant compares as an instant
+PASS an offset instant before activation is pre-era
+PASS a null era requires the block on every stamped draft
+PASS an undated legacy pending draft is not refused
+PASS a malformed drafted_at is a diagnostic
+PASS a naive drafted_at is a diagnostic
+PASS an approved in-era plan is history, not a draft
+PASS a landed plan is history
+PASS an approved plan may drop a quoted clause after signature
+PASS apply creates the plan
+PASS creation stamps a timezone-qualified UTC drafted_at
+PASS the stamp is the writer's creation instant
+PASS creation refuses a caller-supplied drafted_at
+PASS the refused creation writes no file
+PASS creation refuses a malformed decisions_affected row
+PASS the refused malformed creation writes no file
+PASS creation with a valid row still creates
+PASS set-key backdate on stamped plan: refused nonzero
+PASS set-key backdate on stamped plan: plan bytes identical
+PASS set-key forward-date on stamped plan: refused nonzero
+PASS set-key forward-date on stamped plan: plan bytes identical
+PASS set-key null on stamped plan: refused nonzero
+PASS set-key null on stamped plan: plan bytes identical
+PASS set-key backdate on undated plan: refused nonzero
+PASS set-key backdate on undated plan: plan bytes identical
+PASS set-key forward-date on undated plan: refused nonzero
+PASS set-key forward-date on undated plan: plan bytes identical
+PASS set-key null on undated plan: refused nonzero
+PASS set-key null on undated plan: plan bytes identical
+PASS apply backdate on stamped plan (byte-preserving): refused nonzero
+PASS apply backdate on stamped plan (byte-preserving): plan bytes identical
+PASS apply forward-date on stamped plan (byte-preserving): refused nonzero
+PASS apply forward-date on stamped plan (byte-preserving): plan bytes identical
+PASS apply null on stamped plan (byte-preserving): refused nonzero
+PASS apply null on stamped plan (byte-preserving): plan bytes identical
+PASS apply backdate on undated plan (byte-preserving): refused nonzero
+PASS apply backdate on undated plan (byte-preserving): plan bytes identical
+PASS apply forward-date on undated plan (byte-preserving): refused nonzero
+PASS apply forward-date on undated plan (byte-preserving): plan bytes identical
+PASS apply null on undated plan (byte-preserving): refused nonzero
+PASS apply null on undated plan (byte-preserving): plan bytes identical
+PASS the copy carries the rendering switch
+PASS apply backdate on stamped plan (safe_dump rendering): refused nonzero
+PASS apply backdate on stamped plan (safe_dump rendering): plan bytes identical
+PASS apply forward-date on stamped plan (safe_dump rendering): refused nonzero
+PASS apply forward-date on stamped plan (safe_dump rendering): plan bytes identical
+PASS apply null on stamped plan (safe_dump rendering): refused nonzero
+PASS apply null on stamped plan (safe_dump rendering): plan bytes identical
+PASS apply backdate on undated plan (safe_dump rendering): refused nonzero
+PASS apply backdate on undated plan (safe_dump rendering): plan bytes identical
+PASS apply forward-date on undated plan (safe_dump rendering): refused nonzero
+PASS apply forward-date on undated plan (safe_dump rendering): plan bytes identical
+PASS apply null on undated plan (safe_dump rendering): refused nonzero
+PASS apply null on undated plan (safe_dump rendering): plan bytes identical
+PASS stamped plan: ordinary apply edit succeeds
+PASS stamped plan: ordinary set-key edit succeeds
+PASS stamped plan: stamp unchanged or still absent
+PASS stamped plan: bytes outside the edit preserved
+PASS undated legacy plan (no backfill): ordinary apply edit succeeds
+PASS undated legacy plan (no backfill): ordinary set-key edit succeeds
+PASS undated legacy plan (no backfill): stamp unchanged or still absent
+PASS undated legacy plan (no backfill): bytes outside the edit preserved
+PASS apply carrying the unchanged stamp is accepted
+PASS an unchanged stamp is preserved, not replaced
+127/127 passed
+PASS test-plan-decision-dispositions.py
+----- test-merge-gate.py (exit 0, 61.46s) -----
+ok    an unbound legacy mapping is proven by the owner binding that created it
+ok    opened is not proof of ownership for a wrong-repository mirror
+ok    owner sync-off and factory claims cannot bypass an invalid authoritative binding
+ok    T-05 recovery-required denies
+ok    T-05 non-era absent build_entry denies naming feature and re-run command
+ok    T-05 unpinned repo with sync on is an invalid config: the merge is denied with the loader's diagnosis and the repair command
+ok    T-05 opened allows
+ok    T-05 not-applicable allows
+ok    T-05 recovered-terminal allows
+ok    T-05 sync false allows
+ok    T-05 branch matching no feature allows
+ok    FEAT-2225 unreadable git merge ref denies rather than guessing non-distill
+ok    T-05 non-merge command allows
+ok    T-05 path-prefixed gh is still detected
+ok    T-05 bash -c wrapped merge is still detected
+ok    T-05 absent or recovery-required build_entry denies for every feature id
+ok    T-05 unresolvable gh falls back and denies a locally owed receipt
+ok    FEAT-2225 gh outage with no matching feature denies: changed paths unreadable
+ok    T-05 gh head outage with readable ordinary diff and no matching feature allows
+ok    T-05 gh outage with a feature owing a receipt denies
+ok    T-05 empty plan fails closed
+ok    T-05 unrelated non-object feature record does not block healthy merge
+ok    T-05 no-record branch ignores unrelated malformed record
+ok    T-05 duplicate valid records claiming the branch deny naming both
+ok    T-05 single owner plus unrelated malformed record still allows
+ok    T-05 single owner ignores unreadable malformed non-object and different-branch noise
+ok    T-05 git -C global flag merge is still detected
+ok    T-05 git -c config global flag merge is still detected
+ok    T-05 git --work-tree global flag merge is still detected
+ok    T-05 git --no-ff merge is still detected
+ok    T-05 git --squash merge is still detected
+ok    T-05 git -m merge is still detected
+ok    T-05 merge -F detached value denies
+ok    T-05 merge --cleanup detached value denies
+ok    T-05 global --attr-source before merge is still detected
+ok    T-05 merge with no identifiable ref denies
+ok    T-05 merge --abort on an owing branch allows
+ok    T-05 merge --continue on an owing branch allows
+ok    T-05 merge --quit on an owing branch allows
+ok    duplicate harness.json keys deny the merge with the loader's diagnosis rather than choosing one
+ok    FEAT-65: a receipt-evaluation defect is BLOCKED by the closed guard and named
+ok    FEAT-65: KeyboardInterrupt escapes the guard
+ok    FEAT-65: a deliberate SystemExit keeps its own exit code
+ok    FEAT-2225 valid distill merges once, holding the owner lock, at the exact head
+ok    FEAT-2225 valid distill emits head, main and committed hash evidence
+ok    FEAT-2225 raw git merge of a distill candidate is refused with the merge-distill command
+ok    FEAT-2225 raw gh pr merge of a distill candidate is refused with the merge-distill command
+ok    FEAT-2225 nested raw gh distill merge is refused
+ok    FEAT-2225 repository-tier Expertise change is a distill candidate whatever the branch name
+ok    FEAT-2225 unreadable gh changed-path evidence refuses
+ok    FEAT-2225 ordinary gh merge with a valid receipt still allows
+ok    FEAT-2225 the merge-distill command itself is not a raw merge
+ok    FEAT-2225 distill waits on the one owner-checkout lock and refuses LOCKED
+ok    FEAT-2225 lock refusal exits with the merge core's LOCKED code
+ok    FEAT-2225 distill refuses a head that does not contain current main
+ok    FEAT-2225 distill refuses a worktree that is not at the PR head
+ok    FEAT-2225 distill rechecks main immediately before merging
+ok    FEAT-2225 distill rechecks the PR head immediately before merging
+ok    FEAT-2225 distill refuses committed Expertise that differs from the replay
+ok    FEAT-2225 distill refuses when replay --check refuses (unreceipted change)
+ok    FEAT-2225 replay-valid distill with missing build-entry evidence refuses with recovery guidance before gh merge
+ok    FEAT-2225 replay-valid distill with wrong-repository build-entry evidence refuses with recovery guidance before gh merge
+ok    FEAT-2225 replay-valid distill with recovery-required build-entry evidence refuses with recovery guidance before gh merge
+ok    FEAT-2225 distill refuses a feature id that does not own the PR
+ok    FEAT-2225 merge-distill refuses a PR that changes no Expertise
+ok    FEAT-2225 a shipped feature's distill candidate is not exempt
+ok    BUG-2399 merge-distill refuses while the distill run's own records are uncommitted
+ok    BUG-2399 ordinary git add stages the distill records and leaves run UI out
+ok    BUG-2399 the same distill merges once, at the new head, after its records are committed
+ok    FEAT-2337 corpus: 'git merge feature/test' is refused
+ok    FEAT-2337 corpus: 'git merge' is refused
+ok    FEAT-2337 corpus: 'git merge --no-ff feature/test' is refused
+ok    FEAT-2337 corpus: "git merge -m 'release --abort' feature/test" is refused
+ok    FEAT-2337 corpus: 'git merge -F /tmp/message feature/test' is refused
+ok    FEAT-2337 corpus: 'git merge feature/test --abort' is refused
+ok    FEAT-2337 corpus: 'git -C /repo merge feature/test' is refused
+ok    FEAT-2337 corpus: 'git -c core.pager=cat merge feature/test' is refused
+ok    FEAT-2337 corpus: 'git --git-dir=/repo/.git --no-pager merge feature/test' is refused
+ok    FEAT-2337 corpus: 'git --attr-source HEAD merge feature/test' is refused
+ok    FEAT-2337 corpus: '/usr/bin/git merge feature/test' is refused
+ok    FEAT-2337 corpus: 'git "merge" feature/test' is refused
+ok    FEAT-2337 corpus: 'cd /repo && git merge feature/test' is refused
+ok    FEAT-2337 corpus: 'echo git merge feature/test' is refused
+ok    FEAT-2337 corpus: 'gh pr merge 12 --squash' is refused
+ok    FEAT-2337 corpus: '/opt/homebrew/bin/gh pr merge 12' is refused
+ok    FEAT-2337 corpus: 'true; gh pr merge --auto' is refused
+ok    FEAT-2337 corpus: "bash -c 'git merge feature/test'" is refused
+ok    FEAT-2337 corpus: 'sh -c "gh pr merge 12 --squash"' is refused
+ok    FEAT-2337 corpus: 'eval "git -C /repo merge feature/test"' is refused
+ok    FEAT-2337 corpus: "grep -rn 'git merge' docs/" is refused
+ok    FEAT-2337 corpus: 'bash -c "sh -c \'bash -c \\"git merge feature/test\\"\'"' is refused
+ok    FEAT-2337 corpus: 'git merge feature/test "unclosed' is refused
+ok    FEAT-2337 corpus: 'git merge --abort' is allowed
+ok    FEAT-2337 corpus: 'git merge --continue' is allowed
+ok    FEAT-2337 corpus: 'git merge --quit' is allowed
+ok    FEAT-2337 corpus: 'git merge -s ours --abort' is allowed
+ok    FEAT-2337 corpus: 'git -C /repo merge --abort' is allowed
+ok    FEAT-2337 corpus: "bash -c 'git merge --abort'" is allowed
+ok    FEAT-2337 corpus: 'bash -c "bash -c \\"bash -c \\\\\\"bash -c \\\\\\\\\\\\\\"git merge feature/test\\\\\\\\\\\\\\"\\\\\\"\\""' is allowed
+ok    FEAT-2337 corpus: 'echo merge' is allowed
+ok    FEAT-2337 corpus: 'echo "merge' is allowed
+ok    FEAT-2337 corpus: 'rg merge src/' is allowed
+ok    FEAT-2337 corpus: 'git status' is allowed
+ok    FEAT-2337 corpus: 'git log --grep merge' is allowed
+ok    FEAT-2337 corpus: 'git mergetool' is allowed
+ok    FEAT-2337 corpus: 'git merge-base main HEAD' is allowed
+ok    FEAT-2337 corpus: 'git -C merge status' is allowed
+ok    FEAT-2337 corpus: 'gh pr view 12' is allowed
+ok    FEAT-2337 corpus: 'gh pr list --search merge' is allowed
+ok    FEAT-2337 corpus: 'python3 .claude/skills/harness/bin/merge-gate.py merge-distill --root R --feature F --pr 7' is allowed
+ALL PASSED
+PASS test-merge-gate.py
+----- test-worktree-state-hooks.py (exit 0, 18.74s) -----
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 18.635s
+
+OK
+PASS test-worktree-state-hooks.py
+----- test-worktree-terminal.py (exit 0, 10.09s) -----
+PASS: (a) landed Done, exact name -> terminal
+PASS: (b) landed Review -> omitted from the returned list
+PASS: (d) never landed -> exempt_absent
+PASS: (e) short-named prefix of one landed Done dir -> terminal, NOT exempt_absent
+PASS: (f) landed feature.json unparseable -> unresolved
+PASS: ambiguous prefix (matches 2 landed dirs) -> unresolved, never exempt_absent
+PASS: landed rejected -> terminal, like every FINISHED station
+PASS: landed station outside the vocabulary -> unresolved, naming the value, never omitted
+PASS: (h) uncommitted change in a Done worktree -> terminal with dirty True
+PASS: every returned record carries exactly the six documented keys, klass is always one of CLASSES
+PASS: records are sorted by path
+PASS: root itself is never a returned record
+PASS: (c) landed Review, working copy Done -> NOT terminal (omitted)
+PASS: (c) inverse: landed Done, working copy Review -> terminal regardless
+PASS: (c) red proof, forward: working-tree-reading stub wrongly says terminal for a landed-Review worktree
+PASS: (c) red proof, inverse: working-tree-reading stub wrongly says omitted for a landed-Done worktree
+PASS: (a) red-proof stub PASSES: exact-match Done -> terminal
+PASS: (d) red-proof stub PASSES: truly absent -> exempt_absent
+PASS: (e) red-proof stub FAILS: short-named prefix wrongly folded into exempt_absent instead of terminal
+PASS: (f) red-proof stub FAILS: unparseable landed JSON wrongly folded into exempt_absent instead of unresolved
+PASS: (g) real second git repo, fleet-resolved default branch, real worktree add, landed Done -> terminal
+PASS: (i) classify_all(probe_root) includes the harness half's own terminal record
+PASS: (i) classify_all(probe_root) includes the second repository's terminal record
+PASS: (i) RED PROOF: classify(probe_root) alone (classify_all==classify) never returns a record for the second repository's worktree
+PASS: (j) real second repository's terminal record is unaffected by an absent declared repo alongside it
+PASS: (j) absent checkout: no record for the never-created directory, and classify_all does not raise
+PASS: (k) present-but-unenumerable: exactly one repository-level record, klass unresolved
+PASS: (k) present-but-unenumerable: record path equals the declared directory
+PASS: (j)/(k) RED PROOF: a stub skipping every non-enumerable declared repo passes (j) but fails (k) — emits no record at all for unenum-repo
+PASS: (j)/(k) RED PROOF: a stub reporting every non-enumerable declared repo passes (k) but fails (j) — wrongly emits a record for absent-repo too
+PASS: (l) fleet.yaml unloadable: classify_all returns an unresolved record whose path is the fleet path
+PASS: (l) fleet.yaml unloadable: classify_all still returns the harness root's own records
+PASS: (l) RED PROOF: a stub that swallows the fleet-load exception (catches it, returns only the harness half's own records) never emits a fleet-path record, while the real classify_all against the SAME unloadable fleet.yaml does
+PASS: (m) classify(<linked worktree as root>) never returns a record for the main checkout
+PASS: (m) the linked worktree passed as root IS itself classified (landed Done -> terminal), not silently skipped
+PASS: (n) repository with no linked worktrees yields no records and does not raise
+PASS: T-07: plan.yaml station `done` -> terminal, with NO feature.json status present
+PASS: T-07: the reason names the lowercase station read from plan.yaml
+PASS: T-07 NEGATIVE CONTROL: station `review` is NOT terminal -- omitted entirely
+PASS: FEAT-1714: plan.yaml station `rejected` -> terminal, reason naming the station
+PASS: T-07 scan: the TOP-LEVEL station is returned
+PASS: T-07 scan: an INDENTED task status is never mistaken for the feature's station
+PASS: T-07 scan: a trailing comment is stripped
+PASS: T-07 scan: quotes are stripped
+PASS: T-07 scan: a plan with no top-level status yields an empty mapping, not a failure
+PASS: direct build: signed DEC-174 BRIEF with no feature.json -> terminal
+PASS: direct build: the reason names DEC-174
+PASS: CONTROL: a pending DEC-174 BRIEF stays unresolved
+PASS: CONTROL: DEC-174 outside the approval block does not qualify
+PASS: (n) a git that cannot launch is None from _run_git
+PASS: (n) a git that cannot launch is (False, '') from _worktree_list_raw
+PASS: (n) an unrelated RuntimeError escapes both git launchers
+PASS: (n) an unrelated RuntimeError escapes _repo_arg_for_segment
+PASS: (n) an unrelated RuntimeError escapes the landed feature.json read
+PASS: (n) a FeatureJsonError from the landed read is 'unparseable'
+PASS: (n) an unrelated RuntimeError escapes the landed plan.yaml read
+PASS: (n) MissingDependency (by class) falls back to the top-level status scan
+PASS: (2056) a fleet planning worktree classifies terminal under its segment
+PASS: (2056) the removal --repo for a fleet segment is its owner/repo name
+PASS test-worktree-terminal.py
+----- test-worktree-state.py (exit 0, 27.52s) -----
+.............................
+----------------------------------------------------------------------
+Ran 29 tests in 27.365s
+
+OK
+PASS test-worktree-state.py
+----- test-validate-digest.py (exit 0, 49.07s) -----
+ok    [sentinel] one live sentinel per governed persona was seeded
+ok    [feat65] a defect reading the payload passes through with exactly the hook_guard line
+ok    [feat65] an unreadable payload is the hook's own failure and takes the same template
+ok    [feat65] a defect in the registry errand is no longer reported in its own sentence
+ok    [feat65] KeyboardInterrupt escapes the guard
+ok    [feat65] a deliberate SystemExit keeps its own exit code
+ok    [feat65] the direct CLI is not wrapped: a validator defect is loud and nonzero
+
+6/6 FEAT-65 guard cases passed.
+ok    [feat65] [f2274] a persona with no schema passes through visibly unavailable
+ok    [feat65] [f2274] a payload with no agent identity passes through visibly unavailable
+ok    [feat65] [f2274] stop_hook_active does not change the missing-identity outcome
+ok    [feat65] [f2274] a missing claim registry on a passing return is visibly unavailable, once
+ok    [feat65] [f2274] a valid governed digest is a normal pass with no unavailable line
+ok    [feat65] [f2274] a non-governed agent passes through with no unavailable line
+ok    [feat65] [f2274] a truthy legacy stop_hook_active is a contract refusal, never a pass or unavailable
+ok    [feat65] [f2274] absent/null/blank/non-object digest_object stays a contract refusal
+ok    [feat65] [f2274] a contract violation is a refusal, never unavailable
+
+9/9 FEAT-65 guard cases passed.
+ok    lead, block-style members
+ok    amendments: the three BUG-285 recommendations are accepted eng-lead amendments
+ok    amendments: absent is refused — every field is required, `[]` says none
+ok    amendments: empty list is legal
+ok    amendments: inline mappings for all three fields
+ok    amendments: block mapping entry
+ok    amendments: unknown key is refused naming index and key
+ok    amendments: missing key is refused
+ok    amendments: not a list is refused
+ok    amendments: entry that is not a mapping is refused
+ok    amendments: SC id as task is refused
+ok    amendments: decision id as task is refused
+ok    amendments: field outside intent/files/verify is refused
+ok    amendments: empty reason is refused
+ok    amendments: reason over 240 is refused
+ok    amendments: intent with a list value is refused
+ok    amendments: files with a string value is refused
+ok    amendments: files with a line-number anchor is refused
+ok    amendments: files with a bad mapping entry is refused
+ok    amendments: second entry's fault is reported at its index
+ok    amendments: a product lead may not carry the field
+ok    amendments: a validator lead may not carry the field
+ok    lead, fully inline lists
+ok    nested must_fix must NOT satisfy the top-level one
+ok    a lead return missing steps_run and cycles_used is refused, naming both
+ok    doer, inline — unchanged behaviour
+ok    main-session (DEC-174 direct build) validates as dev
+ok    main-session with task_verify fail and VERDICT PASS is refused like any dev
+ok    drifted key spelling is caught
+ok    enum near-miss is caught, not normalized
+ok    open_questions as a count, not a list
+ok    a null list field is refused — null is not an empty list
+ok    no VERDICT at all
+ok    PASS over a failing member is rejected
+ok    FAIL over an escalating member is rejected
+ok    lead may report worse than its members
+ok    a members entry with no verdict is rejected
+ok    a skipped member is explicit and excluded from worst-wins
+ok    all skipped members cannot support a lead verdict
+ok    mandatory member cannot be laundered as skipped
+ok    a member's nested headline does not satisfy the top-level one
+ok    an int does not satisfy a str-typed field
+ok    a bare NULLABLE scalar key must not silently become an empty list
+ok    a member entry carrying open_questions is refused at that member
+ok    a hyphenated universal key is refused
+ok    orchestrator digest with the reconciled schema
+ok    orchestrator briefing is NULLABLE — `none` when nothing was written
+ok    rejected: reject judgement with a superseding issue is accepted
+ok    rejected: superseded_by none (should not be planned) is accepted
+ok    rejected: judgement none is refused, naming the mapping a rejection carries
+ok    rejected: kind other than reject is refused
+ok    rejected: superseded_by zero is refused
+ok    rejected: superseded_by negative is refused
+ok    rejected: superseded_by boolean is refused
+ok    rejected: empty reason is refused
+ok    rejected: reason over 240 characters is refused
+ok    rejected: multiline reason is refused
+ok    rejected: a missing key is refused
+ok    rejected: an extra key is refused
+ok    rejected: cycles_used must be integer zero
+ok    a judgement mapping on any other status is refused
+ok    object: a real FAIL object validates
+ok    object: a real object missing matrix_ok is refused for that field
+ok    object: a wrapped {data: ...} object is not a digest
+ok    object: a list is not a digest
+ok    object: a JSON string is not a digest
+ok    dev refusing an under-specified task can say suite: n/a
+ok    suite: n/a with VERDICT PASS is a fail-open and is REJECTED
+ok    an analysis dev -- task: none AND files_touched: [] -- may say suite: n/a with PASS
+ok    task: none but files WERE touched -- suite: n/a with PASS is still REJECTED, because `task: none` is a claim and the edit is the fact
+ok    a REAL task whose verify passed still owes a suite result -- suite: n/a with PASS is REJECTED even with nothing touched
+ok    #2145: the dev nothing-touched refusal names the task: none route for a non-plan dispatch
+ok    qa that cannot run the suite can say matrix_ok: n/a
+ok    matrix_ok: n/a with VERDICT PASS is REJECTED — the gate did not run
+ok    reviewer scoping out of a non-UI diff may PASS with severity_max: n/a
+ok    visual-designer deciding no DESIGN.md is needed may say contract: n/a
+ok    pm blocked before sizing may say surface: n/a and risk: n/a
+ok    matrix_ok: mostly is STILL rejected after n/a became legal
+ok    severity_max: medium is STILL rejected after n/a became legal
+ok    dev-ops suite: n/a still accepted (it had the value before DEC-173)
+ok    dev missing task_verify under a real task is rejected
+ok    dev task_verify: fail + PASS is rejected
+ok    dev task_verify: n/a + PASS is rejected
+ok    dev-ops task_verify: fail + PASS is rejected — no carve-out on this value either
+ok    dev-ops task_verify: n/a + PASS is rejected — no carve-out
+ok    dev task_verify: n/a + BLOCKED is the honest refusal, accepted
+ok    dev task_verify: n/a + FAIL is accepted — the same refusal, other verdict
+ok    dev-ops task_verify: n/a + BLOCKED is accepted — refusal, not the carve-out
+ok    dev-ops task_verify: n/a + FAIL is accepted
+ok    dev task: none with task_verify omitted is refused — the hatch is `n/a` now
+ok    dev-ops task: none with task_verify omitted is refused
+ok    dev task: bogus is rejected — the field is constrained
+ok    dev omitting task entirely is rejected — the field is required
+ok    dev task: none + task_verify: fail is rejected as a contradiction
+ok    dev task: none + task_verify: n/a is accepted — the honest DEC-121 spelling
+ok    dev suite: fail + PASS is rejected — the fail-value gate
+ok    qa suite: fail + PASS is rejected
+ok    qa matrix_ok: false + PASS is rejected — the BOOLEAN half
+ok    dev-ops suite: fail + PASS stays accepted — D-03 ruling, not a claim it is right
+ok    a documentor digest carries neither new field and is still accepted
+ok    code reviewer omission of code_grade is rejected
+ok    code_grade's missing-field hint names the four legal values, not the list wording
+ok    a lead missing needs_approval is told true, false or `none`
+ok    an orchestrator missing judgement is told the mapping or `none`
+ok    FEAT-59 finding without kind is rejected, naming the entry
+ok    FEAT-59 finding with a kind outside the enum is rejected, naming the value
+ok    FEAT-59 kind: substantive (near-miss) is rejected, not normalised
+ok    FEAT-59 a bare-string finding has no kind and is rejected
+ok    FEAT-59 the error names the offending entry's index, not the first
+ok    FEAT-59 kind: substance is accepted (inline entry)
+ok    FEAT-59 kind: form is accepted (block-mapping entry)
+ok    FEAT-59 kind: proportionality with scope: mission is accepted
+ok    DEC-228 kind: proportionality with scope: task is accepted
+ok    DEC-228 kind: proportionality without scope is rejected, naming the entry
+ok    DEC-228 kind: proportionality with a scope outside task|mission is rejected
+ok    FEAT-59 findings: [] is accepted — an explicit empty list asserts you looked
+ok    FEAT-59 findings as an INT count is rejected — it is a list of kinded entries
+ok    FEAT-59 lead findings passthrough: kinded entries are accepted alongside readers:
+ok    FEAT-59 lead findings passthrough: an entry without kind is rejected
+ok    FEAT-59 qa PASS + matrix_ok: true + fail_first: [] is REJECTED — a green suite with no fail-first evidence is not a pass
+ok    FEAT-59 qa matrix_ok: n/a with fail_first: [] is accepted — no gate ran
+ok    FEAT-59 qa FAIL with fail_first: [] is accepted — the gate is on PASS
+ok    FEAT-59 qa omitting fail_first is rejected — every field is required
+ok    FEAT-59 fail_first entry without sc is rejected, naming the index
+ok    FEAT-59 fail_first entry with empty evidence is rejected, naming the index
+ok    FEAT-59 fail_first bare-string entry is rejected
+ok    FEAT-59 fail_first sc must be an SC-NN id
+ok    #1854: a member's nested block list stays inside that member
+ok    #1854: a nested list does not hide a member that genuinely lacks a verdict
+ok    #1854: a nested member verdict still rolls up worst-wins
+
+130/130 CLI cases passed.
+ok    [dec156-worktree-red] owner-root join misses the worktree digest
+ok    [bug919] #919 agreement: a green receipt for every claimed kind is accepted
+ok    [bug919] #919 disagreement: the runner's own red receipt refuses the false PASS
+ok    [bug919] #919 non-PASS: a BLOCKED return reads no receipt
+ok    [bug919] #919 missing evidence refuses — a missing receipt never fails open
+ok    [bug919] RED proof: with the qa wiring removed, the same unproven PASS is accepted
+ok    [bug919] BUG-1756 SC-01, migrated: a unit-only claim reads only the unit receipt
+ok    [bug919] BUG-1756 SC-02, migrated: every red kind is named, not only the first
+ok    [bug919] BUG-1756 SC-03, migrated: a claim naming no kinds is refused, not defaulted
+ok    [bug919] BUG-1756 SC-04, migrated: a git spawn OSError while reading receipts refuses, never fails open
+ok    [bug919] BUG-1756 SC-04, migrated: a git timeout while reading receipts refuses, never fails open
+
+10/10 bug919 cases passed.
+ok    [feat2337] a PASS whose unit and integration receipts are exact at the pin is accepted
+ok    [feat2337] an accepted PASS releases QA's own claim
+ok    [feat2337] a dispatch pin agreeing with the registered review_sha is accepted
+ok    [feat2337] only claimed kinds are read: a unit-only claim needs no integration receipt
+ok    [feat2337] a missing claimed receipt refuses the PASS
+ok    [feat2337] a refused PASS keeps QA's own claim for the retry
+ok    [feat2337] a qa BLOCKED return reads no receipt
+ok    [feat2337] a failing-verdict qa return reads no receipt
+ok    [feat2337] a non-qa persona reads no receipt
+ok    [feat2337] a PASS naming no kind is refused — no default to every kind
+ok    [feat2337] an unsupported kind cannot stand in for unit or integration
+ok    [feat2337] schema 2 refuses the PASS
+ok    [feat2337] an integration manifest under the unit name refuses the PASS
+ok    [feat2337] shard 2/2 refuses the PASS
+ok    [feat2337] shard index 0 refuses the PASS
+ok    [feat2337] a red runner exit refuses the PASS
+ok    [feat2337] a string runner exit refuses the PASS
+ok    [feat2337] a boolean record exit refuses the PASS
+ok    [feat2337] a red record refuses the PASS
+ok    [feat2337] an omitted file refuses the PASS
+ok    [feat2337] a selection with no completed record refuses the PASS
+ok    [feat2337] an extra file refuses the PASS
+ok    [feat2337] a duplicate record refuses the PASS
+ok    [feat2337] an abbreviated tested_commit refuses the PASS
+ok    [feat2337] an option-like tested_commit refuses the PASS
+ok    [feat2337] an unknown tested_commit refuses the PASS
+ok    [feat2337] a non-string tested_commit refuses the PASS
+ok    [feat2337] a duplicated key refuses the PASS
+ok    [feat2337] malformed JSON refuses the PASS
+ok    [feat2337] a non-object document refuses the PASS
+ok    [feat2337] undecodable bytes refuses the PASS
+ok    [feat2337] a missing receipt refuses the PASS
+ok    [feat2337] a directory at the receipt path refuses the PASS
+ok    [feat2337] a FIFO at the receipt path refuses the PASS
+ok    [feat2337] a symlinked receipt refuses the PASS
+ok    [feat2337] a symlinked qa directory refuses the PASS
+ok    [feat2337] a receipt in another run's directory is not this run's receipt
+ok    [feat2337] a digest artifact naming another checkout's receipt is not this run's receipt
+ok    [feat2337] a payload with no parent id refuses the PASS
+ok    [feat2337] a parent the live claim does not record refuses the PASS
+ok    [feat2337] a QA run whose parent is not the validator lead refuses the PASS
+ok    [feat2337] a runtime with no live claim refuses the PASS
+ok    [feat2337] a dispatch pin disagreeing with review_sha refuses the PASS
+ok    [feat2337] no open validator run refuses the PASS
+ok    [feat2337] an ended validator run refuses the PASS
+ok    [feat2337] two open validator runs refuses the PASS
+ok    [feat2337] an unpinned feature refuses the PASS
+ok    [feat2337] an unresolvable review_sha refuses the PASS
+ok    [feat2337] positive control: the argv shim records a direct runner invocation
+ok    [feat2337] positive control: the pre-FEAT-2337 validator's rerun is recorded by the shim
+ok    [feat2337] an accepted PASS is decided from receipts alone
+ok    [feat2337] a refused PASS is refused, never retried by running the suite
+ok    [feat2337] zero runner invocations across the accepted and refused returns
+ok    [feat2337] a receipt refusal is a refusal, never an unavailable outcome
+ok    [feat2337] a ledger-only descendant is accepted
+ok    [feat2337] a merge of ledger-only lines is accepted
+ok    [feat2337] HEAD moving past an exact-pin receipt does not move its expectation
+ok    [feat2337] a code change after the pin is refused
+ok    [feat2337] another feature's ledger change is refused
+ok    [feat2337] a separator-less prefix sibling is not the feature directory
+ok    [feat2337] a code change followed by its revert is not ledger-only
+ok    [feat2337] a rename into the feature directory still changes its source
+ok    [feat2337] a merge bringing in a code commit is refused
+ok    [feat2337] an older commit than the pin is refused
+ok    [feat2337] a divergent commit is refused
+ok    [feat2337] an untracked working-tree test the runner picked up is unexpected
+ok    [feat2337] a fix run whose code-changing descendant is HEAD is accepted
+ok    [feat2337] a fix run recorded at the exact pin is accepted
+ok    [feat2337] a fix run's uncommitted note in its own feature directory is accepted
+ok    [feat2337] a fix run whose tested_commit is not HEAD is refused
+ok    [feat2337] a fix run on history divergent from the pin is refused
+ok    [feat2337] a fix run with a modified tracked file is refused
+ok    [feat2337] a fix run with an untracked file is refused
+ok    [feat2337] a validate-slug run with code changes is still refused
+ok    [feat2337] a validate-slug run dispatched as validate with code changes is still refused
+ok    [feat2337] a fix slug whose dispatch carries no mission is refused
+ok    [feat2337] a fix slug dispatched as validate is refused
+ok    [feat2337] a validate slug dispatched as fix is refused
+ok    [feat2337] a fix mission on a run id without the fix- token is refused
+
+79/79 feat2337 cases passed.
+ok    qa carries neither new field and is still accepted
+ok    FEAT-59 qa PASS with populated fail_first is accepted
+ok    FEAT-59 fail_first block-mapping entries are accepted
+
+3/3 pinned qa cases passed.
+ok unterminated tag before valid criterion: owned inspection citation
+ok many unterminated tags: owned inspection citation
+ok many blank lines: owned inspection citation
+ok mode belongs to its own criterion: owned inspection citation
+ok many tagged criteria without modes: owned inspection citation
+ok many distinct tagged inspection criteria: owned inspection citation
+ok foreign BRIEF cannot waive automated evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok invalid JSON record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok nonmapping JSON record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok undecodable record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok disappeared record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok FIFO record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok same-directory symlink record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok excessive decoder depth record cannot bypass QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok corrupt deep-json cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: feature.json invalid: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-mn532wl1/vd-append-zqlqlaem/.harness/harness/features/FEAT-90-hook-case/feature.json — does not parse: maximum recursion depth exceeded Your return is valid; the durable
+ok malformed BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok linked BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok heading BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok checked BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok opaque BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok sibling BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok foreign BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok nested BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok nested-directory BRIEF cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok ambiguous checkout cannot waive QA evidence: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok foreign authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok nested authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok listing authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok pointers authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok git-parent authorization context cannot waive QA: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: linked-worktree metadata does not resolve reciprocally: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-mn532wl1/unknown-checkout-hiwz1axe/FEAT-90 Your return is valid; the durable digest 
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: [Errno 62] Too many levels of symbolic links: '/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-mn532wl1/unknown-checkout-e0f3zmrb/FEAT-90/.git' Your return is valid; the durable digest is 
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: linked-worktree metadata does not resolve reciprocally: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-mn532wl1/unknown-checkout-1f4ad06a/FEAT-90 Your return is valid; the durable digest 
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: [Errno 2] No such file or directory: '/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-mn532wl1/unknown-checkout-pdfu5hb6/FEAT-90/missing-owner/.git/worktrees/missing-admin/gitdir' Your ret
+ok unknown harness-qa physical checkout refuses: exit=2 Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again — every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:
+  - fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a green suite wi
+ok unknown harness-eng-lead physical checkout refuses: exit=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot resolve the feature checkout: linked caller checkout ownership is unknown: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-mn532wl1/unknown-checkout-b3990i9s/FEAT-90 Your return is valid; the durable digest is what a s
+ok caller pointer symlink refuses harness-qa: exit=2
+ok admin pointer symlink refuses harness-qa: exit=2
+ok caller pointer symlink refuses harness-eng-lead: exit=2
+ok admin pointer symlink refuses harness-eng-lead: exit=2
+ok    [bug919/#1185] #1185: the owner checkout's receipts accept the PASS before the ambiguity
+ok    [bug919/#1185] #1185: an ambiguous feature checkout refuses, never substitutes the owner
+
+2/2 bug919/#1185 cases passed.
+ok    [bug919/#1883] #1883: an artifact in another worktree of the family lends it no receipts
+ok    [bug919/#1883] #1883: the feature's own linked checkout supplies its receipts
+
+2/2 bug919/#1883 cases passed.
+ok    code-grade and review-policy gates: review bindings
+ok    code-grade and review-policy gates: review repository
+ok    code-grade and review-policy gates: BUG-1081 enforcement
+ok    code-grade and review-policy gates: review policy
+ok    [hook] F1.1 quoted headline text must not satisfy the verdict lookup
+ok    [hook] F1.3 unquoted apostrophe must not fuse list entries
+ok    [hook] F1.4 empty members against a nonzero steps_run is rejected
+ok    [hook] fail-open crash: list-valued enum is a reported violation, not a crash
+ok    [hook] object [hook]: absent data is refused with the object instruction
+ok    [hook] object [hook]: null data is refused with the object instruction
+ok    [hook] object [hook]: string data carrying digest TEXT is refused, never parsed
+ok    [hook] object [hook]: blank string data is refused
+ok    [hook] object [hook]: a list is refused
+ok    [hook] pass-through: non-harness agent_type is not governed
+ok    [hook] pass-through: non-harness agent_type is not governed, whatever data it yields
+ok    [hook] legacy stop_hook_active: a schema violation is still refused
+ok    [hook] legacy stop_hook_active: a semantic violation is still refused
+ok    [hook] legacy stop_hook_active: a valid object settles normally
+ok    [hook] legacy stop_hook_active: string data is refused
+ok    [hook] F6 missing agent_type key is loud, not silent
+ok    [hook] F6 missing agent_type with string data is refused
+ok    [hook] object [hook]: missing matrix_ok is exit 2, naming the field
+ok    [hook] object [hook]: a wrapped {data: ...} object is exit 2
+ok    [hook] dec156-worktree-narrative: the bound worktree digest gains the validated block
+ok    [hook] dec156-worktree-valid: an identical last object is left alone
+ok    [hook] dec156-worktree-nofeature: missing feature identity refuses the return
+ok    [hook] #1855: qa on a distill dispatch may PASS with suite/matrix_ok n/a
+ok    [hook] #1855: the same qa return outside distill is still the fail-open it always was
+ok    [hook] #1855: qa on a distill dispatch may not decorate the return with a suite it did not run
+ok    [hook] #1855: code-reviewer on a distill dispatch may PASS with code_grade n_a and no range
+ok    [hook] #1855: the same reviewer return outside distill is refused at the binding
+ok    [hook] #1855: a distill reviewer claiming a grade is refused — there is no diff to grade
+ok    [hook] #1855: an unknown mission changes nothing
+
+29/29 hook cases passed.
+ok    [append] identical to the last fenced mapping: nothing is written
+ok    [append] a changed object is appended as a correction, prior bytes intact
+ok    [append] a historical block outside today's schema is compared, never validated
+ok    [append] prose with no fenced block gains the block after the prose
+ok    [append] prose with no trailing newline still gets a fence on its own line
+ok    [append] an unfinished prose fence refuses before any bytes change
+ok    [append] an unfinished fence after an earlier record cannot hide a correction
+ok    [append] a closed prose fence still permits a readable record
+ok    [append] a missing digest in the resolved run directory is refused, nothing created
+ok    [append] an unwritable digest is refused and left unchanged
+ok    [append] a symlinked digest is not a safe target and is refused
+ok    [append] an invalid lead object is refused before any write
+ok    [append] a non-lead return naming the same digest.md never writes it
+ok    [append] a repeated identical yield appends once, then nothing
+ok    [append] the direct CLI validates a lead object and never writes its digest
+ok    [append] unauthorized product relative target stays byte-identical
+ok    [append] unauthorized validator relative target stays byte-identical
+ok    [append] unauthorized other-eng relative target stays byte-identical
+ok    [append] unauthorized other-feature relative target stays byte-identical
+ok    [append] unauthorized product absolute target stays byte-identical
+ok    [append] unauthorized parent-symlink relative target stays byte-identical
+ok    [append] unauthorized parent-symlink absolute target stays byte-identical
+ok    [append] startup refuses wrong-parent without issuing digest authority
+ok    [append] startup refuses ambiguous-run without issuing digest authority
+ok    [append] startup binds a linked-worktree feature whose claim cwd is the owner checkout
+ok    [append] startup refuses a claim held only in another checkout's registry
+
+26/26 SC-07 append cases passed.
+ok corrupt record cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: feature.json invalid: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-mn532wl1/vd-append-9x1b2729/.harness/harness/features/FEAT-90-hook-case/feature.json — does not parse: Expecting property name enclosed in double quotes: line 1 column 2
+ok corrupt manifest cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: authorization cannot read writable grants: duplicate key 'teams' at line 2, column 1 — a repeated key is silently shadowed by its last occurrence. Replace the placeholder when filling it in; never append a second copy (DEC-156). Your return is valid; 
+ok corrupt foreign cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: authorization feature record is not local to its feature directory Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).
+ok corrupt nested cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: authorization feature record is not local to its feature directory Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).
+ok corrupt nested-directory cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: authorization feature record is not local to its feature directory Your return is valid; the durable digest is what a successor reads, so it must be written before you finish (DEC-156).
+ok corrupt symlink cannot bypass durable lead evidence: startup=2 yield=2 check-digest: REFUSED harness-eng-lead's return: [Errno 62] Too many levels of symbolic links: '/private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/ht-mn532wl1/vd-append-8bwnfs2k/.harness/harness/features/FEAT-90-hook-case/feature.json' Your return is valid; the durable digest is what a success
+ok ambiguous lead startup/yield: startup=2, yield=2
+ok    1: a valid pm return exits 0
+ok    1: and its claim is GONE from the registry
+ok    2: an invalid digest still exits 2
+ok    2: the rejected job retains its claim for correction
+ok    2: correction completes the same job and releases its claim
+ok    3: with a truthy legacy stop_hook_active, an invalid digest still exits 2
+ok    3: with a truthy legacy stop_hook_active, the rejected job retains its claim for correction
+ok    3: with a truthy legacy stop_hook_active, correction completes the same job and releases its claim
+ok    4: the returning persona's own claim is released
+ok    4: and an UNRELATED harness-pm claim is untouched
+ok    5: a valid digest still exits 0 with inflight_registry absent
+ok    5: and stderr NAMES the missing module
+ok    6: a lead returning with children in flight exits 2
+ok    6: stderr carries the children-in-flight refusal
+ok    6: stderr names BOTH children
+ok    6: stderr cites the issue
+ok    6: the lead KEEPS its own claim while its children are live
+ok    7: a lead with NO children carries no children marker
+ok    8: a member with a claim naming it as parent still exits 0
+ok    8: and no children marker
+ok    9: a truthy legacy stop_hook_active with a live child is refused (exit 2)
+ok    9: and the lead and child claims both stay live
+ok    10: a live child refuses the parent's return
+ok    10: and the refusal names the exact release command for that child
+
+24/24 T-09 cases passed.
+PASS a SUSPENDED return with a live child is refused
+PASS the refused SUSPENDED return leaves the parent claim live
+PASS a terminal PASS with a live child is refused
+PASS a live child with absent yield data is refused
+PASS the absent-message refusal leaves the parent claim live
+PASS a live child with null yield data is refused
+PASS the null-message refusal leaves the parent claim live
+ok    [bug1898] harness-ai-dev return missing its runtime id is refused
+ok    [bug1898] harness-ai-dev return missing its runtime id releases nothing
+ok    [bug1898] harness-ai-dev return missing its feature is refused
+ok    [bug1898] harness-ai-dev return missing its feature releases nothing
+ok    [bug1898] harness-backend-dev return missing its runtime id is refused
+ok    [bug1898] harness-backend-dev return missing its runtime id releases nothing
+ok    [bug1898] harness-backend-dev return missing its feature is refused
+ok    [bug1898] harness-backend-dev return missing its feature releases nothing
+ok    [bug1898] harness-code-reviewer return missing its runtime id is refused
+ok    [bug1898] harness-code-reviewer return missing its runtime id releases nothing
+ok    [bug1898] harness-code-reviewer return missing its feature is refused
+ok    [bug1898] harness-code-reviewer return missing its feature releases nothing
+ok    [bug1898] harness-data-engineer return missing its runtime id is refused
+ok    [bug1898] harness-data-engineer return missing its runtime id releases nothing
+ok    [bug1898] harness-data-engineer return missing its feature is refused
+ok    [bug1898] harness-data-engineer return missing its feature releases nothing
+ok    [bug1898] harness-dev-ops return missing its runtime id is refused
+ok    [bug1898] harness-dev-ops return missing its runtime id releases nothing
+ok    [bug1898] harness-dev-ops return missing its feature is refused
+ok    [bug1898] harness-dev-ops return missing its feature releases nothing
+ok    [bug1898] harness-documentor return missing its runtime id is refused
+ok    [bug1898] harness-documentor return missing its runtime id releases nothing
+ok    [bug1898] harness-documentor return missing its feature is refused
+ok    [bug1898] harness-documentor return missing its feature releases nothing
+ok    [bug1898] harness-eng-lead return missing its runtime id is refused
+ok    [bug1898] harness-eng-lead return missing its runtime id releases nothing
+ok    [bug1898] harness-eng-lead return missing its feature is refused
+ok    [bug1898] harness-eng-lead return missing its feature releases nothing
+ok    [bug1898] harness-frontend-dev return missing its runtime id is refused
+ok    [bug1898] harness-frontend-dev return missing its runtime id releases nothing
+ok    [bug1898] harness-frontend-dev return missing its feature is refused
+ok    [bug1898] harness-frontend-dev return missing its feature releases nothing
+ok    [bug1898] harness-orchestrator return missing its runtime id is refused
+ok    [bug1898] harness-orchestrator return missing its runtime id releases nothing
+ok    [bug1898] harness-orchestrator return missing its feature is refused
+ok    [bug1898] harness-orchestrator return missing its feature releases nothing
+ok    [bug1898] harness-pm return missing its runtime id is refused
+ok    [bug1898] harness-pm return missing its runtime id releases nothing
+ok    [bug1898] harness-pm return missing its feature is refused
+ok    [bug1898] harness-pm return missing its feature releases nothing
+ok    [bug1898] harness-product-lead return missing its runtime id is refused
+ok    [bug1898] harness-product-lead return missing its runtime id releases nothing
+ok    [bug1898] harness-product-lead return missing its feature is refused
+ok    [bug1898] harness-product-lead return missing its feature releases nothing
+ok    [bug1898] harness-qa return missing its runtime id is refused
+ok    [bug1898] harness-qa return missing its runtime id releases nothing
+ok    [bug1898] harness-qa return missing its feature is refused
+ok    [bug1898] harness-qa return missing its feature releases nothing
+ok    [bug1898] harness-security-reviewer return missing its runtime id is refused
+ok    [bug1898] harness-security-reviewer return missing its runtime id releases nothing
+ok    [bug1898] harness-security-reviewer return missing its feature is refused
+ok    [bug1898] harness-security-reviewer return missing its feature releases nothing
+ok    [bug1898] harness-ui-reviewer return missing its runtime id is refused
+ok    [bug1898] harness-ui-reviewer return missing its runtime id releases nothing
+ok    [bug1898] harness-ui-reviewer return missing its feature is refused
+ok    [bug1898] harness-ui-reviewer return missing its feature releases nothing
+ok    [bug1898] harness-validator-lead return missing its runtime id is refused
+ok    [bug1898] harness-validator-lead return missing its runtime id releases nothing
+ok    [bug1898] harness-validator-lead return missing its feature is refused
+ok    [bug1898] harness-validator-lead return missing its feature releases nothing
+ok    [bug1898] harness-visual-designer return missing its runtime id is refused
+ok    [bug1898] harness-visual-designer return missing its runtime id releases nothing
+ok    [bug1898] harness-visual-designer return missing its feature is refused
+ok    [bug1898] harness-visual-designer return missing its feature releases nothing
+ok    [bug1898] a BLOCKED return without identity is not refused for identity
+ok    [bug1898] and it releases nothing
+ok    [bug1898] occurrence-1: QA's exact claim is released
+ok    [bug1898] occurrence-1: PM's claim id, ids and timestamps survive unchanged
+ok    [bug1898] the claim is released from the feature worktree's registry
+ok    [bug1898] and the owner checkout's registry is untouched
+ok    [bug1898] a parent with an exact live child is refused
+ok    [bug1898] and every claim, its own included, remains
+ok    [bug1898] the recovery command targets the one child exactly
+ok    [bug1898] and never a persona-wide or bulk release
+ok    [bug1898] after the child settles the identical yield passes
+ok    [bug1898] and releases only the parent
+ok    [bug1898] an unreadable registry refuses a parent's PASS return
+ok    [bug1898] and names the unreadable registry and the BLOCKED way out
+ok    [bug1898] a parent's BLOCKED return is not held by the unreadable registry
+ok    [bug1898] a leaf's return is not held by it
+ok    [bug1898] the unreadable registry is left exactly as found
+
+81/81 BUG-1898 exact-release checks passed.
+
+37/37 T-04 undeclared digest key cases passed.
+ok    [member-expertise] leaf: an applied item without persona is refused (new returns require it)
+ok    [member-expertise] leaf: an item carrying state is refused (closed shape)
+ok    [member-expertise] leaf: an item naming another persona is refused
+ok    [member-expertise] leaf: a fabricated item no receipt records is refused
+ok    [member-expertise] leaf: an applied op the return omits is refused, never silently cleared
+ok    [member-expertise] leaf: an empty list on distill with applied ops is refused too
+ok    [member-expertise] leaf: no distill mission on the dispatch refuses a nonempty list
+ok    [member-expertise] leaf: a conflicting mission refuses a nonempty list
+ok    [member-expertise] leaf: a spoofed parent the live claim does not record is refused
+ok    [member-expertise] leaf: its own applied ops, each with persona, verify and pass
+ok    [member-expertise] leaf: a direct file-tool change the receipt does not match is refused
+ok    [member-expertise] leaf: items with no receipt at all are refused, never invented
+ok    [member-expertise] leaf: an empty list with nothing applied stays legal on distill
+
+13/13 member-expertise leaf checks passed.
+ok    [member-expertise] lead: omitting a child's applied op is refused
+ok    [member-expertise] lead: a child's op relabelled as the lead's own is refused
+ok    [member-expertise] lead: a same-persona op from a run that is not its child is refused (persona equality is not provenance)
+ok    [member-expertise] lead: an empty list beside applied ops is refused
+ok    [member-expertise] lead: its own and its actual child's ops, mixed personas, verify and pass
+ok    [member-expertise] lead: the durable record gains the verified consolidation
+ok    [member-expertise] durable: the lead's digest.md validates with its verified ops
+ok    [member-expertise] durable: validation never rewrites the record, historical block included
+ok    [member-expertise] durable: a file changed after application fails the durable check
+ok    [member-expertise] durable: feature-record.py close-run refuses that run at its digest stage
+ok    [member-expertise] durable: a bare JSON object with applied ops has no trusted distill context
+ok    [member-expertise] context: a member whose parent's registered run is not a distill run is refused
+ok    [member-expertise] context: a lead whose registered run is not a distill run is refused
+
+13/13 member-expertise lead checks passed.
+ok    [member-expertise] supersession: the re-dispatched member returns its authorized replacement
+ok    [member-expertise] supersession: a lead consolidating the retired batch is refused
+ok    [member-expertise] supersession: the lead consolidates only the active replacement
+ok    [member-expertise] withdrawal: the member's empty withdrawal returns an empty list
+ok    [member-expertise] withdrawal: no applied item is invented for the withdrawn batch
+ok    [member-expertise] withdrawal: the lead's empty consolidation passes
+ok    [member-expertise] orchestrator: confirming a member's op as its own list is refused
+ok    [member-expertise] orchestrator: its own distilled op verifies and passes
+
+8/8 member-expertise supersession checks passed.
+ok    [member-expertise] authority: a member of a lead's registered distill run
+ok    [member-expertise] authority: a lead on its own registered distill run
+ok    [member-expertise] authority: the orchestrator of a feature with a registered distill run
+ok    [member-expertise] authority: a parent the live claim does not record is refused
+ok    [member-expertise] authority: a runtime holding no live claim is refused
+ok    [member-expertise] authority: an ungoverned agent is refused
+ok    [member-expertise] authority: an unreadable request fails closed
+ok    [member-expertise] authority: a member of an ordinary registered run is refused
+ok    [member-expertise] authority: a lead on an ordinary registered run is refused
+ok    [member-expertise] authority: the orchestrator of a feature with no distill run is refused
+
+10/10 member-expertise authority checks passed.
+ok    [member-expertise] F2 control: the member's receipted add verifies before any other change
+ok    [member-expertise] F2 control: the lead's consolidation verifies and is recorded
+ok    [member-expertise] F2 durable: an unreceipted deletion of a pre-existing entry fails the durable check
+ok    [member-expertise] F2 durable: feature-record.py close-run refuses the run at its digest stage
+ok    [member-expertise] F2 live: the member's yield is refused after the unreceipted deletion
+ok    [member-expertise] F2 live: the lead's yield is refused after the unreceipted deletion
+
+6/6 member-expertise F2 checks passed.
+ok    [member-expertise] committed tamper live: the member's yield is refused
+ok    [member-expertise] committed tamper live: the lead's yield is refused
+ok    [member-expertise] committed tamper durable: the durable check refuses
+ok    [member-expertise] committed tamper durable: close-run refuses the run at its digest stage
+
+4/4 member-expertise committed tamper checks passed.
+ok    [bug2253] every failing file is named once — names with spaces included, none cut to a tail
+ok    [bug2253] echoed run_pool-shaped output adds no file and hides none
+ok    [bug2253] a red runner exit with every record green is still named, with its receipt
+ok    [feat2398] SC-01 unresolved: BLOCKED reporting only it misconfigured is the one acceptance
+ok    [feat2398] SC-01 unresolved: reported satisfied is refused with both repairs
+ok    [feat2398] SC-01 unresolved: reported not_applicable is refused with both repairs
+ok    [feat2398] SC-01 unresolved: reported missing is refused with both repairs
+ok    [feat2398] SC-01 unresolved: reported locally_run is refused with both repairs
+ok    [feat2398] SC-01 unresolved: misconfigured under VERDICT PASS is refused
+ok    [feat2398] SC-01 unresolved: misconfigured under VERDICT FAIL is refused
+ok    [feat2398] SC-01 unresolved: misconfigured under VERDICT ESCALATE is refused
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under BLOCKED with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under BLOCKED with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under BLOCKED with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under ESCALATE with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under ESCALATE with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under ESCALATE with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under FAIL with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under FAIL with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under FAIL with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 unresolved: omitting the required kind under PASS with matrix_ok True refuses
+ok    [feat2398] SC-01 active/null: BLOCKED reporting only it misconfigured is the one acceptance
+ok    [feat2398] SC-01 active/null: reported satisfied is refused with both repairs
+ok    [feat2398] SC-01 active/null: reported not_applicable is refused with both repairs
+ok    [feat2398] SC-01 active/null: reported missing is refused with both repairs
+ok    [feat2398] SC-01 active/null: reported locally_run is refused with both repairs
+ok    [feat2398] SC-01 active/null: misconfigured under VERDICT PASS is refused
+ok    [feat2398] SC-01 active/null: misconfigured under VERDICT FAIL is refused
+ok    [feat2398] SC-01 active/null: misconfigured under VERDICT ESCALATE is refused
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under BLOCKED with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under BLOCKED with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under BLOCKED with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under ESCALATE with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under ESCALATE with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under ESCALATE with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under FAIL with matrix_ok True refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under FAIL with matrix_ok False refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under FAIL with matrix_ok n/a refuses
+ok    [feat2398] SC-01/SC-04 active/null: omitting the required kind under PASS with matrix_ok True refuses
+ok    [feat2398] SC-02: a signed excluded kind may be not_applicable
+ok    [feat2398] SC-02: a runnable active kind may not be not_applicable
+ok    [feat2398] SC-02: a configured locally_run kind may be reported locally_run
+ok    [feat2398] SC-02: locally_run is refused for a kind not configured locally_run
+ok    [feat2398] SC-02: active satisfied under BLOCKED is accepted
+ok    [feat2398] SC-02: active missing under FAIL is accepted (ordinary coverage FAIL)
+ok    [feat2398] SC-02: a Verification gaps disclosure changes no outcome (refused identically)
+ok    [feat2398] SC-03: an unbound Harness feature reads its pinned policy, not the current tree
+ok    [feat2398] SC-03: an unpinned Harness feature refuses instead of reading the current tree
+ok    [feat2398] SC-03: an unpinned feature may still stop with a kind-free BLOCKED
+ok    [feat2398] SC-03: the CLI with no trusted feature refuses QA kind policy, never the install tree
+ok    [feat2398] SC-03: the CLI refuses an empty-kind PASS asserting the matrix (no pin to judge it)
+ok    [feat2398] SC-03: the CLI accepts a kind-free BLOCKED (QA stopping without a pin)
+ok    [feat2398] SC-04: early BLOCKED may omit configured runnable and locally_run kinds
+ok    [feat2398] SC-04: early FAIL with matrix_ok false may omit configured kinds
+ok    [feat2398] SC-04: PASS with matrix_ok true still requires every floor kind satisfied
+ok    [feat2398] SC-04: an omitted conditional kind is QA's judgement, not mechanically required
+ok    [feat2398] SC-04: a reported unresolved conditional must be misconfigured/BLOCKED
+ok    [feat2398] SC-04: an all-excluded floor keeps the no-kind exemption
+ok    [feat2398] SC-04: an unresolved floor kind denies the no-kind exemption
+ok    [feat2398] SC-03 product: the product's pinned policy applies, not the planning tree's
+ok    [feat2398] SC-03 product: the misconfigured report is accepted at the same pin
+ok    [feat2398] SC-03 product: another pin's statuses and matrix select differently
+ok    [feat2398] SC-03 product: an agreeing abbreviated dispatch pin is the same policy
+ok    [feat2398] SC-03 product: a disagreeing dispatch pin refuses
+ok    [feat2398] SC-03 product: a dispatch pin may supply an absent recorded pin
+ok    [feat2398] SC-03 product: no review pin at all refuses without fallback
+ok    [feat2398] SC-03 product: a malformed factory binding refuses without fallback
+ok    [feat2398] SC-03 product: an unlisted factory.repo refuses without fallback
+ok    [feat2398] SC-03 product: an unavailable product repository refuses without fallback
+ok    [feat2398] SC-03 product: an unresolvable review commit refuses without fallback
+ok    [feat2398] SC-03 product: a pinned commit with no harness.json refuses without fallback
+ok    [feat2398] SC-03 product: an invalid pinned harness.json refuses without fallback
+
+69/69 feat2398 cases passed.
+ok    [sentinel] every unrelated live claim is byte-identical after the suite
+
+ALL PASSED.
+PASS test-validate-digest.py
+pool: 8 workers, 95 files, 178.00s wall
+slowest: test-gh-sync-open.py 74.18s, test-merge-gate.py 61.46s, test-plan-decision-dispositions.py 57.29s

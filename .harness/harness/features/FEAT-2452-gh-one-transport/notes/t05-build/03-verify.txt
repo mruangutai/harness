@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "<stdin>", line 23, in <module>
+AssertionError: tests/unit/test-wayfind.py
+exit=1

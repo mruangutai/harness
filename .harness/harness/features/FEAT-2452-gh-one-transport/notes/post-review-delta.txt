@@ -1,0 +1,98 @@
+$ git diff --stat caeebc7cb24b7205bb5d5ad5191cd6541fc3519a..HEAD -- ':!.harness/harness/features/'
+ .claude/skills/harness/references/github-mirror.md |  2 +-
+ .../canonical-reader-classification.json           | 25 ++++++----------------
+ tests/unit/test-factory-gh.py                      |  2 +-
+ 3 files changed, 8 insertions(+), 21 deletions(-)
+
+Justification: github-mirror.md:106 and the test-factory-gh.py:2204 comment are wording-only (answers-2026-11-23-validate-c2.md). canonical-reader-classification.json is a test-side inventory relocation with no executable line (answers-2026-11-23-inventory.md).
+
+$ git diff caeebc7cb24b7205bb5d5ad5191cd6541fc3519a..HEAD -- ':!.harness/harness/features/'
+diff --git a/.claude/skills/harness/references/github-mirror.md b/.claude/skills/harness/references/github-mirror.md
+index 1c7dfe07..23efffd8 100644
+--- a/.claude/skills/harness/references/github-mirror.md
++++ b/.claude/skills/harness/references/github-mirror.md
+@@ -103,7 +103,7 @@ success on state they could not read.
+ | `gh-sync.py` `gh()`: any failed call, launch failure included | `SKIP` line, exit 0 | Earlier writes stand; later ones in the run do not happen. A re-run resumes from the recorded numbers. |
+ | `gh-sync.py` `gh_try`: per-item ship/abandon writes (close, label, comment, detach, milestone close) | `(False, diagnostic)`; one stderr line and the next item is attempted; exit 0 | Failed items are listed, never retried. |
+ | `gh-sync.py` invalid repository binding or provenance | Refusal, exit 2 | Nothing local or remote is changed. |
+-| `gh-sync.py` checked label create | A gh answer that the label already exists (nonzero and `label with name … already exists`) passes. Any other failure, a launch failure included, goes to the caller's policy: `open` and `recover-terminal` take the `SKIP`, exit 0. `abandon` prints one stderr line per closed ticket and continues, exit 0. `reject` halts with its failure report, exit 1. | No label is attached after a failed create. `abandon` still attempts every other write independently, in plan order. A ticket whose close succeeds is reseated to the backlog and reported as closed but not labelled. A ticket whose close also fails is reported (`could not close`, and in the closing `FAILED n of m` line) and is neither reseated nor labelled. Later tickets, the milestone close and the local `abandoned` station write still run. `reject` has already closed and commented on the parent. Its backlog return, milestone close and `rejected` station do not run, and its report lists what landed and what did not. |
++| `gh-sync.py` checked label create | A gh answer that the label already exists (nonzero and `label with name … already exists`) passes. Any other failure, a launch failure included, goes to the caller's policy: `open` and `recover-terminal` take the `SKIP`, exit 0. `abandon` prints one stderr line per closed ticket and continues, exit 0. `reject` halts with its failure report, exit 1. | No label is attached after a failed create. `abandon` still attempts every other write independently, in plan order. A ticket whose close succeeds is reported as closed but not labelled, and its reseat to the backlog is attempted when a board is configured. A ticket whose close also fails is reported (`could not close`, and in the closing `FAILED n of m` line) and is neither reseated nor labelled. Later tickets, the milestone close and the local `abandoned` station write still run. `reject` has already closed and commented on the parent. Its backlog return, milestone close and `rejected` station do not run, and its report lists what landed and what did not. |
+ | `gh-sync.py` ordinary milestone create | On **any** failure it looks the milestone up by title; no match is the `SKIP`, exit 0. | The milestone number is recorded immediately after the create or the lookup. |
+ | `gh-sync.py` replacement create under mirror recovery | Refusal, exit 2. No retry, and no discovery by title. | The durable `pending_create` intent is saved before dispatch. Only a provably undispatched launch (missing binary, permission) clears it; every uncertain outcome keeps it and requires an evidenced `--adopt-receipt`. |
+ | `gh-sync.py` ordinary create whose URL is unreadable | `SKIP`, exit 0 | Nothing is recorded. The create may have landed; find and record it before a re-run. |
+diff --git a/tests/integration/canonical-reader-classification.json b/tests/integration/canonical-reader-classification.json
+index 751cbeba..e31a5e8a 100644
+--- a/tests/integration/canonical-reader-classification.json
++++ b/tests/integration/canonical-reader-classification.json
+@@ -1220,10 +1220,10 @@
+       "disposition": "canonical",
+       "execution_route": "team",
+       "file": ".claude/skills/harness/bin/gh-sync.py",
+-      "id": ".claude/skills/harness/bin/gh-sync.py::_record_pr::json_string#1",
++      "id": ".claude/skills/harness/bin/gh-sync.py::_merged_pull_requests::json_string#1",
+       "reason": "",
+       "remedy": "artifact_accessors.parse_gh_json",
+-      "symbol": "_record_pr",
++      "symbol": "_merged_pull_requests",
+       "task": "T-03"
+     },
+     {
+@@ -2097,19 +2097,6 @@
+       "symbol": "cfg",
+       "task": "T-03"
+     },
+-    {
+-      "artifact": "GitHub JSON output",
+-      "category": "json_string",
+-      "dec174_category": "none",
+-      "disposition": "canonical",
+-      "execution_route": "team",
+-      "file": ".claude/skills/harness/bin/wayfind.py",
+-      "id": ".claude/skills/harness/bin/wayfind.py::gh_json::json_string#1",
+-      "reason": "",
+-      "remedy": "artifact_accessors.parse_gh_json",
+-      "symbol": "gh_json",
+-      "task": "T-03"
+-    },
+     {
+       "artifact": "fleet.yaml",
+       "category": "load_fleet",
+@@ -2422,10 +2409,10 @@
+       "disposition": "canonical",
+       "execution_route": "team",
+       "file": ".claude/skills/harness/bin/gh-sync.py",
+-      "id": ".claude/skills/harness/bin/gh-sync.py::load_config::load_feature_json#1",
++      "id": ".claude/skills/harness/bin/gh-sync.py::_feature_doc::load_feature_json#1",
+       "reason": "",
+       "remedy": "artifact_accessors.load_feature_json",
+-      "symbol": "load_config",
++      "symbol": "_feature_doc",
+       "task": "none"
+     },
+     {
+@@ -2448,10 +2435,10 @@
+       "disposition": "canonical",
+       "execution_route": "team",
+       "file": ".claude/skills/harness/bin/gh-sync.py",
+-      "id": ".claude/skills/harness/bin/gh-sync.py::_replacement_create::parse_gh_json#1",
++      "id": ".claude/skills/harness/bin/gh-sync.py::_replacement_number::parse_gh_json#1",
+       "reason": "",
+       "remedy": "artifact_accessors.parse_gh_json",
+-      "symbol": "_replacement_create",
++      "symbol": "_replacement_number",
+       "task": "none"
+     },
+     {
+diff --git a/tests/unit/test-factory-gh.py b/tests/unit/test-factory-gh.py
+index a973e615..a1d84b67 100644
+--- a/tests/unit/test-factory-gh.py
++++ b/tests/unit/test-factory-gh.py
+@@ -2201,7 +2201,7 @@ _T01_REJECTED_URLS = (
+     ("bare path", "/issues/12"),
+     ("extra segment", "https://github.com/o/r/issues/12/comments"),
+     ("two lines", "https://github.com/o/r/issues/12\nhttps://github.com/o/r/issues/13"),
+-    # B1 (c2): owner is [A-Za-z0-9-], repo is [A-Za-z0-9._-] and never `.` or `..`.
++    # B1 (c2): owner is [A-Za-z0-9_-], repo is [A-Za-z0-9._-] and never `.` or `..`.
+     ("owner carries a query", "https://github.com/o?x/r/issues/42"),
+     ("owner carries a fragment", "https://github.com/o#x/r/issues/42"),
+     ("repo carries a query", "https://github.com/o/r?x/issues/42"),

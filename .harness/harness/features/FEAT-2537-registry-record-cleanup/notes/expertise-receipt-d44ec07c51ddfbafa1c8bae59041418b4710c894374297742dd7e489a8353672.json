@@ -1,0 +1,34 @@
+{
+  "batches": [
+    {
+      "after_sha256": "675ccd2e35c2fcd4bad6073face7fd09fcdc8ee5aaa7311c96f0ff4172f6931d",
+      "before_sha256": "878898b484f9122a17501e86f4205e900afc0eec2777a264e605f1a05a92d767",
+      "destination": ".harness/expertise/harness-security-reviewer.md",
+      "id": "48f451add109a13bdb6d40311a6c0d684d11db938fde0c46348689e090fbd6b5",
+      "ops": [
+        {
+          "entry": "WHEN proposing fail-closed handling for damaged state DO check which supported repair operations still work on that same state and weigh losing the last repair route against the evidence recovery would discard — a safe refusal can leave operators with only more destructive manual repair.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-05",
+          "why": "G-15 protects evidence and P-11 traces enforcement consumers; neither tests repair availability. This is more actionable than G-05's fix-cost heuristic, which can cut reachability analysis short."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a reachability argument requires proving no trigger exists (e.g. across arbitrary shell) DO weigh it against fix cost — an unprovable negative paired with a one-line fix means the reachability investigation is the wrong expenditure; grade on blast radius and auditability instead.",
+          "section": "Gotchas",
+          "target": "G-05"
+        }
+      ],
+      "recorded_at_ns": 1795617451342777000,
+      "seq": 1,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2537-registry-record-cleanup",
+  "parent_id": "Feat2537DistillValidator",
+  "persona": "harness-security-reviewer",
+  "runtime_id": "Feat2537DistillValidator.UnlikelyMouse",
+  "schema": 1
+}

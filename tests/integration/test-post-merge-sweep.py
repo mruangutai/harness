@@ -79,7 +79,7 @@ import sys
 import tempfile
 
 from git_support import (add_worktree, commit_all, commit_feature, commit_files, feature_rel,
-                         init_repo, quiet_git)
+                         init_repo, plan_text, quiet_git)
 from harness_config_support import write_config
 
 SCRIPT = os.path.abspath(__file__)
@@ -101,7 +101,7 @@ BIN_ENTRIES = sorted(
     f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
 )
 # The entry scripts' sibling directories, linked so a fixture entry finds them beside it:
-# packages (check_state/, plan_merge/ — FEAT-69/FEAT-70) and data (config-schemas/ — the
+# packages (check_state/, plan_merge/ — FEAT-69/FEAT-70) and data (schemas/ — the
 # validated harness.json read needs the schema, FEAT-2297).
 BIN_PACKAGES = sorted(
     d for d in os.listdir(BIN_DIR)
@@ -158,6 +158,8 @@ def _install_fixture_bin(fixture_root):
     os.makedirs(fixture_bin, exist_ok=True)
     for name in BIN_ENTRIES + BIN_PACKAGES:
         os.symlink(os.path.join(BIN_DIR, name), os.path.join(fixture_bin, name))
+    os.symlink(os.path.join(os.path.dirname(BIN_DIR), "schemas"),
+               os.path.join(os.path.dirname(fixture_bin), "schemas"))
     return os.path.join(fixture_bin, "post-merge-sweep.py")
 
 
@@ -1157,6 +1159,117 @@ def case_prototype_node_modules():
     return results
 
 
+_STAMP = ".shape-sweep-stamp"
+_STAMP_IDS = ("FEAT-909-stamp-bad", "FEAT-910-stamp-done", "FEAT-911-stamp-live",
+              "FEAT-912-stamp-absent")
+
+
+def _commit_bad_utf8_feature(repo, feature_id):
+    bad_dir = os.path.join(repo, feature_rel("harness", feature_id))
+    os.makedirs(bad_dir, exist_ok=True)
+    with open(os.path.join(bad_dir, "feature.json"), "wb") as f:
+        f.write(b'{"feature_id": "\xff"}')
+    with open(os.path.join(bad_dir, "plan.yaml"), "w") as f:
+        f.write(plan_text(feature_id, "done"))
+    subprocess.run(["git", "add", bad_dir], cwd=repo, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
+
+
+def _shape_stamp_fixture(tmp):
+    """A fixture main checkout with landed done/building/longer-prefix/undecodable features and
+    one stamp per case plus the plain stamp. Returns (repo, sweep, stamps: name -> bytes)."""
+    repo = _repo(os.path.join(tmp, "R"))
+    os.makedirs(os.path.join(repo, ".harness"), exist_ok=True)
+    with open(os.path.join(repo, ".harness", "team-config.yaml"), "w") as f:
+        f.write("schema: team-config/1\n")
+    sweep = _install_fixture_bin(repo)
+    for fid, status in (("FEAT-910-stamp-done", "Done"), ("FEAT-911-stamp-live", "Building"),
+                        ("FEAT-912-stamp-absent-longer", "Done")):
+        _commit_feature(repo, fid, status)
+    _commit_bad_utf8_feature(repo, "FEAT-909-stamp-bad")
+    stamps = {_STAMP: b"plain"}
+    stamps.update({f"{_STAMP}.{fid}": f"mark {fid}".encode() for fid in _STAMP_IDS})
+    for name, data in stamps.items():
+        with open(os.path.join(repo, ".harness", name), "wb") as f:
+            f.write(data)
+    return repo, sweep, stamps
+
+
+def _stamp_intact(repo, stamps, name):
+    path = os.path.join(repo, ".harness", name)
+    if not os.path.isfile(path):
+        return False
+    with open(path, "rb") as f:
+        return f.read() == stamps[name]
+
+
+def _stamp_lines(stdout, feature_id):
+    """Lines naming this feature's stamp, with the id removed so a marker check cannot be met
+    by the id's own text (#2458 MF-2)."""
+    needle = f"{_STAMP}.{feature_id}"
+    return [line.replace(feature_id, "") for line in stdout.splitlines() if needle in line]
+
+
+def _one_kept_line(stdout, feature_id, absent):
+    lines = _stamp_lines(stdout, feature_id)
+    return (len(lines) == 1 and "unresolved" in lines[0] and "removed" not in lines[0]
+            and "would remove" not in lines[0] and ("absent" in lines[0]) == absent)
+
+
+def _shape_stamp_dry_rows(repo, stamps, dry):
+    detail = f"exit={dry.returncode} stdout={dry.stdout!r} stderr={dry.stderr!r}"
+    return [
+        ("stamps (1): --dry-run exits 0 and every stamp keeps its bytes",
+         dry.returncode == 0 and all(_stamp_intact(repo, stamps, n) for n in stamps), detail),
+        ("stamps (2): --dry-run names the finished feature's stamp as would remove",
+         f"would remove .harness/{_STAMP}.FEAT-910-stamp-done" in dry.stdout, detail),
+        ("stamps (3): --dry-run names the never-landed stamp once, unresolved and absent",
+         _one_kept_line(dry.stdout, "FEAT-912-stamp-absent", absent=True), detail),
+    ]
+
+
+def _shape_stamp_wet_rows(repo, stamps, dry, wet):
+    detail = f"exit={wet.returncode} stdout={wet.stdout!r} stderr={wet.stderr!r}"
+    done_path = os.path.join(repo, ".harness", f"{_STAMP}.FEAT-910-stamp-done")
+    both = dry.stdout + "\n" + wet.stdout
+    return [
+        ("stamps (4): the real run exits 0 and removes the finished feature's stamp",
+         wet.returncode == 0 and not os.path.lexists(done_path), detail),
+        ("stamps (5): the plain stamp is untouched", _stamp_intact(repo, stamps, _STAMP), detail),
+        ("stamps (6): a live feature's stamp stays and neither run names it",
+         _stamp_intact(repo, stamps, f"{_STAMP}.FEAT-911-stamp-live")
+         and "FEAT-911-stamp-live" not in both, detail),
+        ("stamps (7): the never-landed stamp stays, named once, unresolved and absent, never "
+         "removed",
+         _stamp_intact(repo, stamps, f"{_STAMP}.FEAT-912-stamp-absent")
+         and _one_kept_line(wet.stdout, "FEAT-912-stamp-absent", absent=True), detail),
+        ("stamps (8): the undecodable record's stamp stays, named once per run, unresolved and "
+         "not absent",
+         _stamp_intact(repo, stamps, f"{_STAMP}.FEAT-909-stamp-bad")
+         and all(_one_kept_line(out, "FEAT-909-stamp-bad", absent=False)
+                 for out in (dry.stdout, wet.stdout)), detail),
+    ]
+
+
+def case_shape_stamps():
+    """#2458: a per-feature shape-sweep stamp goes when its feature is finished on the default
+    branch; the plain stamp, a live feature's stamp, a never-landed id's stamp (even one that
+    prefixes a landed done id) and an undecodable record's stamp all stay. Each kept unresolved
+    stamp is named once; a live stamp is never named; --dry-run deletes nothing."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, sweep, stamps = _shape_stamp_fixture(tmp)
+        _gh_log, env = _stub_gh(tmp)
+        dry = subprocess.run([sweep, "--dry-run"], cwd=repo, capture_output=True, text=True,
+                             env=env)
+        _assert_resolved_root_in_fixture(results, "stamps dry run", dry.stdout, repo)
+        results += _shape_stamp_dry_rows(repo, stamps, dry)
+        wet = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
+        _assert_resolved_root_in_fixture(results, "stamps real run", wet.stdout, repo)
+        results += _shape_stamp_wet_rows(repo, stamps, dry, wet)
+    return results
+
+
 # Every job builds its own tempdir fixture and never touches cwd or os.environ, so jobs run in a
 # pool of fresh interpreters; map() yields them in this order, so the report is unchanged.
 JOBS = (
@@ -1177,7 +1290,8 @@ JOBS = (
     + [case_linked_worktree_main_checkout,
        case_duplicate_receipt_inputs,
        case_unproven_mirror_retention,
-       case_prototype_node_modules]
+       case_prototype_node_modules,
+       case_shape_stamps]
 )
 
 

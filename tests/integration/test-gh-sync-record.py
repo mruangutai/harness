@@ -218,8 +218,7 @@ def main():
 
     # ---------- T-13: gh-sync.py status <feature-dir> <Status> ----------
     # Couples recording feature.json's phase status to the station writes that event implies.
-    # Every case sets BOTH FACTORY_GH and GH_SYNC_GH (D-11) — gh_board's calls go through
-    # factory_gh, which reads FACTORY_GH, not GH_SYNC_GH.
+    # Every case points FACTORY_GH, the only binary override, at the fake.
 
     # --- an unknown Status value is refused, exit 2, before anything is recorded or written.
     with tempfile.TemporaryDirectory() as tmpSt1:

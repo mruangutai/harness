@@ -43,7 +43,7 @@ for what changed.
 ## Output
 
 Return an object through YieldTool — never fenced YAML text. The field list is the schema,
-`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/digest-schemas/harness-code-reviewer.json`; one complete example:
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/schemas/digest/harness-code-reviewer.json`; one complete example:
 
 ```js
 yield({data: {

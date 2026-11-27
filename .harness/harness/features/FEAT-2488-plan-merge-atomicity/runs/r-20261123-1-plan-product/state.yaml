@@ -1,0 +1,104 @@
+schema_version: 2
+run_id: r-20261123-1-plan-product
+run_uid: 8822ddc361824ad28a2161b861fa071d
+feature: FEAT-2488-plan-merge-atomicity
+squad: product
+host: harness-product-lead
+status: blocked
+steps:
+  - id: draft
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/features/FEAT-2488-plan-merge-atomicity/BRIEF.md
+    evidence:
+      tasks: 2
+      anchors: 14
+      check_failures: 0
+      open_questions: 3
+  - id: scope
+    persona: harness-code-reviewer
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: ESCALATE
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    redispatched_at: seq-9
+    recompleted_at: seq-10
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/review-harness-code-reviewer-plan-c2.md
+    note: c1 repairs confirmed; c2 FAIL on 3 new substance findings, applied but unread; max_cycles spent, then escalate
+    evidence:
+      c1_findings: 5
+      c2_findings: 3
+      c1_repaired: true
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    evidence:
+      findings: 4
+      persisted_in: panel-c1.md
+      trimmed_by: apply
+  - id: design
+    persona: harness-ui-reviewer
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/review-harness-ui-reviewer-plan-c1.md
+    evidence:
+      ui_in_scope: false
+      prototype_required: false
+  - id: apply
+    persona: harness-pm
+    depends_on: [scope, should-not-exist, design]
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    cycles: 0
+    redispatches: 1
+    dispatched_at: seq-5
+    completed_at: seq-6
+    redispatched_at: seq-11
+    recompleted_at: seq-12
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/research-journal-design.md
+    evidence:
+      panel_cycle: 2
+      panel_findings: 12
+      resolved: 12
+      declined_with_evidence: 1
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: [apply]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    redispatches: 1
+    dispatched_at: seq-7
+    completed_at: seq-8
+    redispatched_at: seq-13
+    recompleted_at: seq-14
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2488-plan-merge-atomicity/.harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/research-FEAT-2488-plan-merge-atomicity-goalcheck-plan.md
+    evidence:
+      operator: pass
+      code_maintainer: pass
+      reader: pass

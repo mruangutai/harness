@@ -54,7 +54,7 @@ This example is complete for `harness-documentor`. For every Harness persona:
 
 1. The dispatcher omits `outputSchema` and `schemaMode`. The OMP task hook refuses either key at
    task top level or inside `tasks[]` before its claim side effect.
-2. The hook loads `.claude/skills/harness/bin/digest-schemas/harness-<persona>.json`, resolves
+2. The hook loads `.claude/skills/harness/schemas/digest/harness-<persona>.json`, resolves
    `common.json`, projects a ref-free provider bundle, and injects it with `schemaMode: strict`.
 3. The agent passes one mapping as YieldTool `data`. The top level is exactly `VERDICT`, `DIGEST`,
    and `artifact`; every persona-schema property is present. Conditional fields stay present with

@@ -1,0 +1,94 @@
+{
+  "batches": [
+    {
+      "after_sha256": "3f82a93c680533cdf96ff2ed1bf4dda55074a8fa5e3d992077e35f9af0604471",
+      "before_sha256": "234564e34a36bbbd8c7e8241aef2a3d0ed64caa3ab112d8f6e477f1517fb1f36",
+      "destination": ".harness/harness/expertise/harness-orchestrator.md",
+      "id": "d03130ff3377dc74655da0e33fd1093e8c1930e307f46837d22d6f24fa10a8ba",
+      "ops": [
+        {
+          "entry": "WHEN a plan run returns pending DO read every panel finding's disposition before returning it for signature — pm can apply remedies and leave findings open. Ask the signer to accept them as applied, never to overrule: an overrule records the reviewer wrong about a defect the plan fixed.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-13",
+          "why": "The signer refused the orchestrator's framing that six open findings with applied remedies needed an overrule; accept-as-applied is the honest disposition and keeps the ledger consistent."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a plan run returns pending DO read every panel finding's disposition before returning the plan for signature — pm can apply the findings and leave them all open, and an open high finding makes the plan unsignable without an overrule.",
+          "section": "Patterns",
+          "target": "P-13"
+        }
+      ],
+      "recorded_at_ns": 1795541734099045000,
+      "seq": 1,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "9ef967dfb52715dedc1efd111f7d62f2054db27057e1fe349b55cf5428bc79d1",
+      "before_sha256": "b14334d5098269795e0a41d422c1752960bd78d021d8339d9f68b50a6b3f0d64",
+      "destination": ".harness/expertise/harness-orchestrator.md",
+      "id": "14991d429362f271fa1df2292c8b11ec8e9402b8c7747640c37710736471ed02",
+      "ops": [
+        {
+          "entry": "WHEN briefing a fix or forwarding a contract for signature DO state the class by the invariant the work guarantees, with a LEAVE list and an exhaustive census as evidence — a class built by enumerating measured mechanisms is still an instance list and closes one member per round.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-04",
+          "why": "A behaviour contract for a verbatim move, worded as identical-except-a-closed-list, took three signer amendments; even a class defined by enumerated mechanisms with bounds borrowed from two instances was falsified. It terminated only when anchored on the move's own guarantee with a census as evidence. Sharpens P-04 from fix briefs to contracts at signature."
+        },
+        {
+          "op": "drop",
+          "section": "Gotchas",
+          "target": "G-01",
+          "why": "Displaced as the weakest Gotcha: the repository tier already carries the same grant-check rule for Expertise ops, and each persona now applies its own ops through the tool, so the stranding it guards against no longer has a route."
+        },
+        {
+          "entry": "WHEN a command writes state, a hash or a signature from files on disk DO run it alone, after the edits and registrations it reads have landed — batched in parallel with its own input it can run first and record the stale input at exit 0.",
+          "op": "add",
+          "section": "Gotchas",
+          "target": "G-17",
+          "why": "Happened twice in one feature: a signing verb batched with the edit it depended on re-hashed a signed task, and a lead dispatch raced the run registration it needed. The batching habit is the cause, and nothing reports it."
+        },
+        {
+          "entry": "Whether an upstream merge landing after a validation PASS needs a re-pin and re-validation. One ruling kept the pin: the delta decomposed into already-validated upstream code plus a mechanically measured remainder, void on any further code commit. Nothing rules the case generally.",
+          "op": "add",
+          "section": "Open",
+          "target": "OQ-05",
+          "why": "The doctrine's re-pin rule presumes rework, not a post-PASS merge; one operator-delegated ruling is a data point, not a rule, and P-02 read literally would have forced the heavier route."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN dispatching a fix DO brief the class contract — the invariant and its full state matrix — plus an explicit LEAVE list, never the instances reviewers measured. An instance brief closes one member per round; the LEAVE list stops a member re-judging what is already settled.",
+          "section": "Patterns",
+          "target": "P-04"
+        },
+        {
+          "original": "WHEN routing Expertise ops DO check the owner's own domain grant first. The domain hook blocks the orchestrator from writing ANOTHER agent's file, but leads and members hold their own with `upsert: true` — telling a lead not to self-apply strands its ops with no owner at all.",
+          "section": "Gotchas",
+          "target": "G-01"
+        },
+        {
+          "original": null,
+          "section": "Gotchas",
+          "target": "G-17"
+        },
+        {
+          "original": null,
+          "section": "Open",
+          "target": "OQ-05"
+        }
+      ],
+      "recorded_at_ns": 1795541734151372000,
+      "seq": 2,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2489-plan-routes-split",
+  "parent_id": "Main",
+  "persona": "harness-orchestrator",
+  "runtime_id": "DistillE2_Orchestrator",
+  "schema": 1
+}

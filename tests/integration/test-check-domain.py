@@ -236,7 +236,7 @@ def _undeclared_cases():
         ("schema_version 2 refuses an undeclared step key, names it and gives its route",
          strict.returncode == 2 and "undeclared step key" in strict.stderr
          and "rogue_step_key" in strict.stderr
-         and "run-state-schema.json" in strict.stderr
+         and "schemas/run-state.json" in strict.stderr
          and "`evidence`" in strict.stderr, strict),
         ("schema_version 2 names a missing required step key",
          missing.returncode == 2
@@ -253,7 +253,7 @@ def _declared_type_cases():
          invalid.returncode == 2
          and "declared step field has invalid value" in invalid.stderr
          and "cycles" in invalid.stderr
-         and "run-state-schema.json" in invalid.stderr
+         and "schemas/run-state.json" in invalid.stderr
          and "under `evidence`" not in invalid.stderr,
          invalid),
     ]
@@ -284,8 +284,8 @@ def _evidence_cases():
 
 def _declared_shape_case():
     with open(os.path.join(
-            ROOT, ".claude", "skills", "harness", "bin",
-            "run-state-schema.json")) as handle:
+            ROOT, ".claude", "skills", "harness", "schemas",
+            "run-state.json")) as handle:
         schema = json.load(handle)
     schema_keys = set(schema["properties"]["steps"]["items"]["properties"])
     result = _fire_new(_full_step_state(), "full-step")
@@ -301,18 +301,19 @@ def _declared_shape_case():
 # boundary has always printed, so those two receipts are byte-identical before and after.
 def _schema_copy_fire(schema_text, slug):
     """A fresh version-2 checkpoint write through a copy of the hook whose sibling
-    run-state-schema.json holds `schema_text`."""
+    schemas/run-state.json holds `schema_text`."""
     root = fixture(FIXTURE_MANIFEST)
     iso = isolated_bin(root)
-    with open(os.path.join(iso, "run-state-schema.json"), "w", encoding="utf-8") as handle:
+    with open(os.path.join(os.path.dirname(iso), "schemas", "run-state.json"), "w",
+              encoding="utf-8") as handle:
         handle.write(schema_text)
     return fire(root, f".harness/harness/features/FEAT-X/runs/{slug}/state.yaml",
                 _state("2"), hook=os.path.join(iso, "check-domain.py"))
 
 
 def _run_schema_contract_cases():
-    with open(os.path.join(ROOT, ".claude", "skills", "harness", "bin",
-                           "run-state-schema.json"), encoding="utf-8") as handle:
+    with open(os.path.join(ROOT, ".claude", "skills", "harness", "schemas",
+                           "run-state.json"), encoding="utf-8") as handle:
         live = handle.read()
     duplicate = live.replace('  "title":', '  "title": "duplicate",\n  "title":', 1)
     if duplicate == live:
@@ -323,7 +324,7 @@ def _run_schema_contract_cases():
     no_steps = _schema_copy_fire('{"properties": {}}', "schema-no-steps")
     cannot = "run-state schema CANNOT be checked; the write is denied."
     return [
-        ("a duplicate key in run-state-schema.json is refused as unreadable, never last-wins",
+        ("a duplicate key in schemas/run-state.json is refused as unreadable, never last-wins",
          dup.returncode == 2 and cannot in dup.stderr
          and "ArtifactAccessError" in dup.stderr and "duplicate key: 'title'" in dup.stderr,
          dup),

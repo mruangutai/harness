@@ -11,4 +11,7 @@ def isolated_bin(dest_root):
     # Four levels up from bin is the project root derived by copied hook scripts.
     destination = os.path.join(dest_root, ".claude", "skills", "harness", "bin")
     os.makedirs(os.path.dirname(destination), exist_ok=True)
+    # The schemas live beside bin, and the copied loaders resolve them as ../schemas.
+    shutil.copytree(os.path.join(os.path.dirname(source), "schemas"),
+                    os.path.join(os.path.dirname(destination), "schemas"))
     return shutil.copytree(source, destination)

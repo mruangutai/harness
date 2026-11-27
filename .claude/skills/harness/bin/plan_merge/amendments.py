@@ -10,8 +10,8 @@ import amendment_contract
 import feature_json_write
 import harness_merge
 from plan_merge.guards import (
-    _die, _refuse_illegal_amendment, _reload_or_refuse, _replace_bytes, _resolve_plan,
-    _restore_plan, _sole_item,
+    _die, _pending_replay_lines, _print_receipts, _refuse_illegal_amendment, _relay_after_commit,
+    _reload_or_refuse, _resolve_plan, _sole_item,
 )
 from plan_merge.text import (
     _field_block, _item_by_id, _item_range, _render_field, _structured_field_lines,
@@ -147,9 +147,9 @@ def _verify_amendments_landed(reloaded, entries):
                     "amendment's `now` — REFUSING to write a splice that lies."])
 
 
-def _record_amendment_judgements(feature_json, judgements):
-    """Append `judgements` to feature.json's ledger via feature_json_write (its own lock,
-    schema check and refusal)."""
+def _ledger_transform(feature_json, judgements):
+    """The ledger side of the pair: feature.json's bytes with `judgements` appended to its
+    `judgements` ledger, or a refusal when the file vanished since the preflight."""
     def transform(base):
         doc = feature_json_write.parse_doc(base, feature_json)
         if doc is None:
@@ -160,7 +160,7 @@ def _record_amendment_judgements(feature_json, judgements):
         doc["judgements"] = (list(ledger) if isinstance(ledger, list) else []) + judgements
         return json.dumps(doc, indent=2) + "\n"
 
-    feature_json_write.write_feature_json(feature_json, transform)
+    return transform
 
 
 def _record_amendments_locked(resolved, feature_json, entries):
@@ -171,30 +171,61 @@ def _record_amendments_locked(resolved, feature_json, entries):
                           lambda base: _amended_plan_bytes(base, entries), judgements)
 
 
-def write_plan_and_ledger(resolved, feature_json, splice, judgements):
-    """Both writes under the PLAN's lock, plan first, ledger second, and the plan RESTORED if
-    the ledger write fails for ANY reason — a refusal or an ordinary I/O error (validate c0
-    V-01, c1 V-01). Before this the ledger landed first, so a plan write that failed
-    afterwards left a judgement for an amendment that never reached the plan — the audit
-    trail lying in the direction nothing detects. The lock is held across the restore.
+def _pair_failure(exc, resolved, feature_json):
+    """The refusal reporting a failed pair write, decided by the core's exception type alone —
+    never by looking at the disk. `exc` is a JournalPending, a MergeRefusal, or an OSError or
+    ValueError raised before the journal was published."""
+    if isinstance(exc, harness_merge.JournalPending) and exc.replay:
+        return harness_merge.MergeRefusal(2, _pending_replay_lines(exc))
+    if isinstance(exc, harness_merge.JournalPending):
+        return harness_merge.MergeRefusal(2, [
+            f"plan-merge: the write to {resolved} and {feature_json} failed after its intent "
+            f"journal was published: {type(exc.cause).__name__}: {exc.cause}",
+            f"  the transaction is journaled in {exc.journal}; the next plan-merge or "
+            "feature.json write completes it."])
+    if isinstance(exc, harness_merge.MergeRefusal):
+        return harness_merge.MergeRefusal(exc.code, list(exc.lines) + ["  nothing was written."])
+    return harness_merge.MergeRefusal(
+        2, [f"plan-merge: the ledger write to {feature_json} failed: {type(exc).__name__}: {exc}",
+            "  nothing was written."])
 
-    The changed-state feedback (FEAT-62 T-03) is NOT relayed here for the plan: the ledger
-    write inside write_feature_json relays once with both files already dirty, and a second
-    --changed run over the same tree would only repeat it."""
-    with harness_merge.acquire(resolved + ".lock"):
-        with open(resolved, "rb") as fh:
-            base_bytes = fh.read()
-        spliced = splice(base_bytes)
-        _replace_bytes(resolved, spliced)
-        try:
-            _record_amendment_judgements(feature_json, judgements)
-        except harness_merge.MergeRefusal as refusal:
-            raise harness_merge.MergeRefusal(
-                refusal.code, list(refusal.lines) + _restore_plan(resolved, base_bytes))
-        except BaseException as exc:
-            raise harness_merge.MergeRefusal(
-                2, [f"plan-merge: the ledger write to {feature_json} failed: "
-                    f"{type(exc).__name__}: {exc}"] + _restore_plan(resolved, base_bytes)) from exc
+
+def write_plan_and_ledger(resolved, feature_json, splice, judgements):
+    """The plan splice and its ledger judgements as ONE journaled transaction:
+    harness_merge.locked_pair_update with plan.yaml as the primary, replaced before
+    feature.json, under plan.yaml.lock then feature.json.lock — the one lock order, never
+    reversed. The ledger side keeps feature.json's schema non-regression check
+    (feature_json_write.schema_checked_transform).
+
+    Both transforms run before anything is written, so a refusal or error there — a stale
+    `was`, a schema regression, LOCKED, an unopenable lock — leaves both files as they were,
+    and the refusal says nothing was written. There is NO compensation path. Once the intent
+    journal is published the transaction is committed-pending: a failure after that point is
+    reported as journaled, and the next plan-merge or feature.json write naming either file
+    completes it. A failed replay of an EARLIER journal is committed-pending too, and this
+    call's own change was never attempted. The outcome is read from the core's exception
+    type, never from the disk. The handled classes are the boundary's real ones —
+    JournalPending, MergeRefusal, then OSError and ValueError (json, UTF-8 and base64 faults,
+    the pair's own ValueError); anything else is a bug and propagates as a traceback, a
+    published journal kept on disk for the next write to roll forward.
+
+    The changed-state feedback (FEAT-62 T-03) runs once, for the ledger, after the commit, when
+    both files are already dirty; a second --changed run for the plan would only repeat it. It
+    is advisory: the write has landed, so a feedback failure is noted on stderr and the verb
+    still prints its receipts and exits 0.
+
+    LEDGER-FIRST STAYS REJECTED (BUG-1716 validate c0 V-01, c1 V-01). The ledger once landed
+    first, so a plan write that failed afterwards left a judgement for an amendment the plan
+    never carried: the audit trail lying in the direction nothing detects. The journal now
+    rolls either order forward. Plan-first still decides what is left if a journal is ever
+    removed by hand before completion: an unledgered plan edit, which INV-40 reports."""
+    try:
+        ledger_path, ledger = feature_json_write.schema_checked_transform(
+            feature_json, _ledger_transform(feature_json, judgements))
+        harness_merge.locked_pair_update(resolved, splice, ledger_path, ledger)
+    except (harness_merge.JournalPending, harness_merge.MergeRefusal, OSError, ValueError) as exc:
+        raise _pair_failure(exc, resolved, feature_json) from exc
+    _relay_after_commit(ledger_path)
 
 
 def _record_amendments_preflight(resolved, feature_json, entries):
@@ -224,8 +255,6 @@ def cmd_record_amendments(args):
         _record_amendments_locked(resolved, feature_json, entries)
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
-    for entry in entries:
-        print(f"AMENDED {entry['task']}.{entry['field']} judgement=amendment")
-    print(f"APPLIED {resolved}")
-    print(f"APPLIED {feature_json}")
+    _print_receipts(*[f"AMENDED {entry['task']}.{entry['field']} judgement=amendment"
+                      for entry in entries], f"APPLIED {resolved}", f"APPLIED {feature_json}")
     sys.exit(0)

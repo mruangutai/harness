@@ -1,0 +1,37 @@
+# guards.py mutants. Each runs in an rsync copy of the worktree (no .git, no node_modules) with only plan_merge/guards.py mutated; the copy's own tests/integration/test-plan-merge.py, env -u PYTHONUNBUFFERED -u HARNESS_AGENT_TYPE -u CLAUDE_PROJECT_DIR; the three c4 stdio cases; FAIL lines only
+## mutant M0 control: the copy unmutated
+
+## mutant M1 _silence dup2s over whatever fileno() names
+FAIL  2488/o: a broken stdout on caller-owned fd 4: the fd is the caller's pipe afterwards
+FAIL  2488/o: a broken stderr on caller-owned fd 4: the fd is the caller's pipe afterwards
+FAIL - 2 failed of 106
+
+## mutant M2 _emit without the None check
+FAIL  2488/n/record-amendments/stdout=working,stderr=none: stdout is exactly the receipts
+FAIL  2488/n/amend/stdout=working,stderr=none: stdout is exactly the receipts
+FAIL - 2 failed of 106
+
+## mutant M4 _emit never silences
+FAIL  2488/n/record-amendments/stdout=broken,stderr=working: exits 0
+FAIL  2488/n/record-amendments/stdout=working,stderr=broken: exits 0
+FAIL  2488/n/record-amendments/stdout=broken,stderr=broken: exits 0
+FAIL  2488/n/record-amendments/stdout=none,stderr=broken: exits 0
+FAIL  2488/n/record-amendments/stdout=broken,stderr=none: exits 0
+FAIL  2488/n/amend/stdout=broken,stderr=working: exits 0
+FAIL  2488/n/amend/stdout=working,stderr=broken: exits 0
+FAIL  2488/n/amend/stdout=broken,stderr=broken: exits 0
+FAIL  2488/n/amend/stdout=none,stderr=broken: exits 0
+FAIL  2488/n/amend/stdout=broken,stderr=none: exits 0
+FAIL - 10 failed of 106
+
+## mutant M5 relay outside _emit
+FAIL  2488/n/record-amendments/stdout=working,stderr=none: stdout is exactly the receipts
+FAIL  2488/n/amend/stdout=working,stderr=none: stdout is exactly the receipts
+FAIL - 2 failed of 106
+
+## mutant M3 catch tuple without AttributeError (after _NoFilenoCapture lost its flush)
+FAIL  2488/o: stdout a capture with no fileno and no flush: the receipts and the relay return normally
+FAIL  2488/o: stdout a capture with no fileno and no flush: stderr gets the landed note and the relay row
+FAIL  2488/o: stderr a capture with no fileno and no flush: the receipts and the relay return normally
+FAIL - 3 failed of 106
+

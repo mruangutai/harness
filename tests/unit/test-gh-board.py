@@ -4,9 +4,10 @@
 Every case asserts a VALUE, never that a call happened: a test that counts calls passes just as
 well when the value is wrong, which is the vacuous shape this feature exists to remove.
 
-**BOTH `FACTORY_GH` AND `GH_SYNC_GH` are set to the same fake in every case that touches gh.**
-`factory_gh.run_gh` reads `FACTORY_GH` while `gh-sync.py` reads `GH_SYNC_GH`; a test injecting
-through one alone sends the other module's calls to the REAL gh — real network, real board.
+**`FACTORY_GH` is the one binary override.** Every case that touches gh enters `fake_gh` or
+`fake_gh_failing`, which apply `tests/offline_gh_support.offline_gh_env` to os.environ through
+`patch.dict(..., clear=True)`: FACTORY_GH names the fake, inherited `GH_*` variables are gone and a
+sentinel `gh` heads PATH. On exit each asserts the sentinel never ran, so no case reaches real gh.
 
     ./test-gh-board.py    -> exit 0 all pass, 1 otherwise
 """
@@ -18,10 +19,13 @@ _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
 import json
 from harness_config_support import write_config  # noqa: E402
+from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
+import contextlib
 import os
 import stat
 import sys
 import tempfile
+from unittest import mock
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -49,25 +53,33 @@ def write_harness_json(root, github):
     write_config(os.path.join(root, ".harness", "harness.json"), {"github": github})
 
 
-def fake_gh(tmp, payload):
-    """A gh that prints `payload` verbatim for any argv, exit 0."""
-    path = os.path.join(tmp, "fake-gh")
+def _install(tmp, name, script):
+    path = os.path.join(tmp, name)
     with open(path, "w") as f:
-        f.write("#!/bin/bash\ncat <<'EOF'\n" + payload + "\nEOF\n")
+        f.write(script)
     os.chmod(path, os.stat(path).st_mode | stat.S_IEXEC)
-    os.environ["FACTORY_GH"] = path
-    os.environ["GH_SYNC_GH"] = path
     return path
+
+
+@contextlib.contextmanager
+def _offline(tmp, path):
+    """os.environ confined to FACTORY_GH=`path` for the block; the sentinel must stay unused."""
+    env, sentinel_log = offline_gh_env(path, tmp)
+    with mock.patch.dict(os.environ, env, clear=True):
+        yield path
+    try:
+        assert_sentinel_unused(sentinel_log)
+    except AssertionError as exc:
+        check("no case dispatches the default gh binary", False, str(exc))
+
+
+def fake_gh(tmp, payload):
+    """A gh that prints `payload` verbatim for any argv, exit 0, confined for the block."""
+    return _offline(tmp, _install(tmp, "fake-gh", "#!/bin/bash\ncat <<'EOF'\n" + payload + "\nEOF\n"))
 
 
 def fake_gh_failing(tmp):
-    path = os.path.join(tmp, "fake-gh-fail")
-    with open(path, "w") as f:
-        f.write("#!/bin/bash\necho 'boom' >&2\nexit 3\n")
-    os.chmod(path, os.stat(path).st_mode | stat.S_IEXEC)
-    os.environ["FACTORY_GH"] = path
-    os.environ["GH_SYNC_GH"] = path
-    return path
+    return _offline(tmp, _install(tmp, "fake-gh-fail", "#!/bin/bash\necho 'boom' >&2\nexit 3\n"))
 
 
 # ---------------- load_board ----------------
@@ -151,8 +163,7 @@ except TypeError:
 # provokes it, never crash the whole suite and take out unrelated checks (the T-01 fixture-
 # isolation lesson, repeated here for the content-null case).
 
-with tempfile.TemporaryDirectory() as tmp:
-    fake_gh(tmp, json.dumps({
+with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({
         "data": {"user": {"projectV2": {"items": {
             "totalCount": 4,
             "pageInfo": {"hasNextPage": False, "endCursor": None},
@@ -167,7 +178,7 @@ with tempfile.TemporaryDirectory() as tmp:
                  "fieldValueByName": {"name": "Review"}},
             ],
         }}}}
-    }))
+    })):
     board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
     try:
         st = gh_board.board_stations(board, "mruangutai/harness")
@@ -189,10 +200,9 @@ with tempfile.TemporaryDirectory() as tmp:
     check("board_stations: item with NO status key is present with value None, not dropped",
           isinstance(st, dict) and 327 in st and st[327] is None, repr(st))
 
-with tempfile.TemporaryDirectory() as tmp:
-    # Isolated fixture: exactly one node, content null, nothing else — a mutation that crashes
-    # on null content reddens only this block, never the three checks above.
-    fake_gh(tmp, json.dumps({
+# Isolated fixture: exactly one node, content null, nothing else — a mutation that crashes
+# on null content reddens only this block, never the three checks above.
+with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({
         "data": {"user": {"projectV2": {"items": {
             "totalCount": 1,
             "pageInfo": {"hasNextPage": False, "endCursor": None},
@@ -200,7 +210,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 {"content": None, "fieldValueByName": None},
             ],
         }}}}
-    }))
+    })):
     board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
     try:
         st = gh_board.board_stations(board, "mruangutai/harness")
@@ -214,14 +224,13 @@ with tempfile.TemporaryDirectory() as tmp:
 # values, absent means off the board, None means on it with no value — because `read_station`
 # reads either map without knowing which produced it.
 
-with tempfile.TemporaryDirectory() as tmp:
-    fake_gh(tmp, json.dumps({"data": {"repository": {
+with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({"data": {"repository": {
         "i326": {"number": 326, "projectItems": {"pageInfo": {"hasNextPage": False}, "nodes": [
             {"project": {"number": 3}, "fieldValueByName": {"name": "Building"}}]}},
         "i327": {"number": 327, "projectItems": {"pageInfo": {"hasNextPage": False}, "nodes": [
             {"project": {"number": 3}, "fieldValueByName": None}]}},
         "i328": None,
-    }}}))
+    }}})):
     board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
     try:
         st = gh_board.board_stations_for(board, "mruangutai/harness", [326, 327, 328])
@@ -245,11 +254,10 @@ with tempfile.TemporaryDirectory() as tmp:
           and gh_board.read_station(st, 327) == (None, "no station set")
           and gh_board.read_station(st, 328) == (None, "not on the board"), repr(st))
 
-with tempfile.TemporaryDirectory() as tmp:
-    # A gh that EXITS 3 for any argv. If an empty number set reached the network at all, this
-    # would raise and the check below would redden — which is the only way to assert "no call"
-    # through a fake binary rather than an in-process recorder.
-    fake_gh_failing(tmp)
+# A gh that EXITS 3 for any argv. If an empty number set reached the network at all, this
+# would raise and the check below would redden — which is the only way to assert "no call"
+# through a fake binary rather than an in-process recorder.
+with tempfile.TemporaryDirectory() as tmp, fake_gh_failing(tmp):
     board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
     try:
         st = gh_board.board_stations_for(board, "mruangutai/harness", [])
@@ -272,8 +280,7 @@ check("read_station: present with a None value -> (None, 'no station set')",
 
 # ---------------- set_station ----------------
 
-with tempfile.TemporaryDirectory() as tmp:
-    fake_gh_failing(tmp)
+with tempfile.TemporaryDirectory() as tmp, fake_gh_failing(tmp):
     board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
     raised = None
     try:

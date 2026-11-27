@@ -1,0 +1,34 @@
+schema_version: 2
+run_id: distill-product
+run_uid: 2430207c656a4b79aa73ff5e72a5f910
+feature: FEAT-2452-gh-one-transport
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: distill-pm
+    persona: harness-pm
+    task: distill-product
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/expertise/harness-pm.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/expertise/harness-pm.md
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/.harness/harness/features/FEAT-2452-gh-one-transport/notes/research-FEAT-2452-gh-one-transport-distill.md
+    note: 7 ops in 2 batches (craft 6, repo 1); LC-1 -> P-18, LC-2 -> G-21; counts unchanged at cap; criteria 1-6 met.
+    evidence:
+      craft_batch: 13417dc3373273b5f2828cff4075f719934d2a7381ff1ac643179691fdb1e91e
+      repo_batch: 066c48114965bceb7285e0e9dab7092a31395f726eefe6cfbb8c4d066c274916
+      ops_applied: 7
+      lead_candidates_relayed: 2
+      lead_candidates_applied: 2
+      lead_own_ops: 0

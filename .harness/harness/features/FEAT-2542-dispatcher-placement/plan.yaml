@@ -1,0 +1,331 @@
+schema: plan/1
+feature: FEAT-2542-dispatcher-placement
+approval:
+  date: '2026-11-26'
+  approved_by: Mike Ruangutai (delegated to fable-advisor)
+  status: approved
+  rulings:
+    - finding: PF-0017166a75cb353dd551d85bd7d61a78
+      who: Mike Ruangutai (delegated to fable-advisor)
+      date: '2026-11-26'
+      reason: id-less lead path is host-unreachable (DEC-218); contract keys on carrying the id; rows stay asserted as SC-02 LEAVE with signpost comment
+drafted_at: '2026-11-26T16:15:40Z'
+status: done
+source_issues: [2542, 2532]
+
+panel:
+  last_run: plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-309f48cdcedbf909ab82e5498efcb731
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-01 demands a baseline failure set the planned cases cannot produce.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-5bd4c7e2d9c22bd3f8bedaf1f044a322
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: The T-01 checkout being tested is not the final review pin.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-8833220de88a57f753f4013b0eff3664
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: The scope-reader exemption and its enforcing preflight can disagree on registered distill state.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-ffad756dce4ea37a6c2e5c1fa63b40b9
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: The proposed ambiguity remedy does not select the surplus claim's registry.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-6cb02861164d00358b884fde7388983d
+    severity: low
+    reader: code-reviewer
+    kind: form
+    summary: Complete the affected-decision rows without amending DEC-100 or DEC-253.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-83a8ba7961f1073e49b1fbb9f9ea97ca
+    severity: med
+    reader: ui-reviewer
+    kind: substance
+    summary: The ambiguous-claim remedy does not identify how to target the surplus claim’s registry.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-c356bbe7ce38cc31328914a874668f07
+    severity: med
+    reader: ui-reviewer
+    kind: substance
+    summary: The registry-error remedy assumes an escaped OSError names a file.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-88cfa7473ff8f72ec654c4f353dc9400
+    severity: med
+    reader: ui-reviewer
+    kind: substance
+    summary: The persona-mismatch remedy stops at inspection.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-658a0cb4a7eb0306c85fedc3290e4e6a
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: Case 38/39/41 matrices re-assert one causally identical branch across ~90 redundant rows
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-0017166a75cb353dd551d85bd7d61a78
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: Case 41's id-less-lead rows pin a lenient pass-through the plan itself
+      calls host-unreachable
+    disposition: open
+lanes:
+  resolved_at: 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8
+  rows:
+    - {surface: .claude/skills/harness/bin/**, lane: main-session-direct, reason: DEC-174 enumerates dispatch-guard.py as enforcement layer built directly.}
+    - {surface: tests/integration/**, lane: main-session-direct, reason: DEC-174 includes the test file of each enumerated gate.}
+    - {surface: .harness/harness/docs/**, lane: main-session-direct, reason: The decision record accompanies a direct enforcement change.}
+    - {surface: .harness/harness/features/FEAT-2542-dispatcher-placement/notes/**, lane: main-session-direct, reason: The build-time characterization receipt is written by the main session that runs the suites.}
+
+decisions:
+  - id: D-01
+    choice: A dispatcher in LEADS carrying harness_agent_id is placed only by its own runtime claim (find_run_claim, persona-matched); persona-mismatch, not-found, ambiguous, structured unreadable and escaped UnreadableRegistry/OSError are each an exit-2 lineage denial before any claim, never the declared feature and never the unavailable outcome; Main, non-lead dispatchers and a lead payload without harness_agent_id keep the declared-feature path.
+    because: A failed placement silently replaced by the child's declaration drops a distill run's obligations with no backstop (measured at 2e7a2c77), DEC-100's unavailable channel is for safe own-failures and a refusal outranks it, and DEC-218/DEC-250 already refuse the same states elsewhere.
+    dec: DEC-258
+  - id: D-02
+    choice: The product-lead to code-reviewer scope-reader rule holds unless the product lead's trusted placement resolves to its one open registered distill-* run; the route and the distill preflight consume one dispatch-local answer, the placement feature and its registered-run classification each read once, so they cannot disagree; rejected are a declared-mission exemption, a run-id or phase-field plan detector, panel existence as the discriminator, and reordering the start and distill preflights.
+    because: Declared text supplies no authority (DEC-250), run records carry no phase field, a panel is written only after the reader wave, and the distill preflight already enforces marker, feature and tree root against the bound run, so a distill-placed lead declaring plan is still refused.
+    dec: DEC-258
+
+decisions_affected:
+- dec: DEC-100
+  disposition: keep
+  clause: 'A refusal outranks it: exit 2 or a structured'
+  successor: none
+  reason: Placement failure is a lineage refusal inside DEC-100, not an unavailable gate failure; dispatch-guard's own-failure unavailable posture and the terminal claim-step pass-through are unchanged.
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful;
+  successor: none
+  reason: The plan is authored through the harness while every task executes main-session-direct.
+- dec: DEC-204
+  disposition: keep
+  clause: none, several, or an unreadable registry is a refusal, never a
+  successor: none
+  reason: Exact-runtime-id placement and exact release are the mechanism the new denials and their remedies use; claim schema, release semantics and the revival path are unchanged.
+- dec: DEC-214
+  disposition: keep
+  clause: 'A persona that holds NO shell never resolves it: its dispatcher does, and passes it on a'
+  successor: none
+  reason: The HARNESS-FEATURE-TREE-ROOT prerequisite is enforced unchanged on every distill-placed child; only the scope-reader route ahead of it changes.
+- dec: DEC-218
+  disposition: keep
+  clause: Mismatch, ambiguity, missing identity, and authorization
+  successor: none
+  reason: The new dispatch-side denials apply the same lineage semantics; the write-side scope and treat-as-empty claim recovery are untouched.
+- dec: DEC-228
+  disposition: keep
+  clause: The code-reviewer's plan-target binding
+  successor: none
+  reason: The scope reader's route and pending-plan contract survive for every dispatch not placed in a registered distill run.
+- dec: DEC-250
+  disposition: keep
+  clause: Missing identity or claim, a child id held by another active
+  successor: none
+  reason: Cited as lineage for the distinct-denial-at-exit-2 shape; its factory-only repository scope is unchanged.
+- dec: DEC-253
+  disposition: keep
+  clause: This adds no direct file-tool denial.
+  successor: none
+  reason: Its registered-distill dispatch prerequisite is restored for a product distill, so a borrowed reader can reach caller-bound apply; the apply route and the raw own-Expertise Write grants stay unchanged.
+
+tasks:
+  - id: T-01
+    title: Bind governed-lead dispatch placement or refuse it, and key the scope-reader route on that placement
+    traces: [SC-01, SC-02, SC-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 makes dispatch-guard.py and test-dispatch-guard.py enforcement layer; the main session edits them and runs the tests directly, never through a team run.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/dispatch-guard.py#_mission_scope
+    - tests/integration/test-dispatch-guard.py
+    - path: .harness/harness/features/FEAT-2542-dispatcher-placement/notes/characterization-pin.md
+      create: true
+    verify: |
+      python3 tests/integration/test-dispatch-guard.py && python3 tests/integration/test-lead-start-return.py && python3 tests/unit/test-lead-start-preflight.py && python3 tests/unit/test-broad-catch-census.py && git diff --quiet 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8 HEAD -- tests/integration/test-lead-start-return.py .claude/skills/harness/bin/inflight_registry.py && R=.harness/harness/features/FEAT-2542-dispatcher-placement/notes/characterization-pin.md && git show HEAD:$R | grep -qx 'base_sha: 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8' && git show HEAD:$R | grep -qx 'dec_number: DEC-258' && P=$(git show HEAD:$R | sed -n 's/^predicted_red: //p' | sort) && test -n "$P" && test "$P" = "$(git show HEAD:$R | sed -n 's/^observed_red: //p' | sort)" && T=$(git show HEAD:$R | sed -n 's/^tested_sha: \([0-9a-f]\{40\}\)$/\1/p' | tail -n 1) && test -n "$T" && git merge-base --is-ancestor "$T" HEAD && ! git diff --quiet 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8 "$T" -- .claude/skills/harness/bin/dispatch-guard.py && git diff --quiet "$T" HEAD -- .claude/skills/harness/bin/dispatch-guard.py tests/integration/test-dispatch-guard.py && test "$(git show HEAD:$R | sed -n 's/^pin_run_exit: //p' | tail -n 1)" = 0
+    intent: |
+      HARNESS-FEATURE: FEAT-2542-dispatcher-placement. Product checkout: Harness itself, feature worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2542-dispatcher-placement (branch feat/FEAT-2542-dispatcher-placement, base 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8). This repository ships no docs/spec.md, docs/decisions.md or docs/architecture.md; the authority read for this task is .harness/harness/docs/DECISIONS.md entries DEC-100, DEC-174, DEC-204, DEC-214, DEC-218, DEC-228, DEC-250 and DEC-253, plus the BRIEF and notes/research-FEAT-2542-dispatcher-placement-characterization.md (its Contract table is the expected outcome, its Appendix A the measured base outcome, of every row below). Run every command from the worktree root and keep every relative-path edit inside this worktree.
+
+      Route: the main session does this task directly after the BRIEF and plan are signed (DEC-174). Never dispatch a team run or a lead for it. Edit only the three files in files:. inflight_registry.py, tests/integration/test-lead-start-return.py and every other file stay byte-identical to base.
+
+      Step 0, decision number, before any edit. Run git fetch origin main, then grep -c '^## DEC-258 ' on .harness/harness/docs/DECISIONS.md and on the output of git show origin/main:.harness/harness/docs/DECISIONS.md. If either count is not 0, stop and report to the operator: D-01, D-02, BRIEF SC-04 and the refusal text below all cite DEC-258, so a renumber is a plan amendment ruled before any source is written, never an edit inside T-01 or T-02. Otherwise the number is DEC-258 for this task and T-02.
+
+      Step 1, tests first, in tests/integration/test-dispatch-guard.py, reusing its helpers (_checkout, _distill_checkout, _register_lead_run, _LEAD_RUNS, _bind_lead_runtime, _distill_task, _distill_fire, _claims_for, _read_registry, _load_registry_module, fire, _unavailable_gates) and isolated_bin from the bin directory.
+
+      Naming rule. Every new assertion is its own check() call named <row id>:<field>, with the row ids listed below. Fields:
+      exit: the stated exit code.
+      claim: a refused row leaves no claim of the dispatched persona in the owner registry or any linked worktree registry and no harness_claim on stdout; a proceeding row leaves exactly one claim of the dispatched persona.
+      receipt: proceeding rows only; stdout carries a harness_claim for the dispatched persona.
+      cause: stderr contains every listed fragment and none of the listed excluded fragments.
+      remedy: lineage rows only; stderr contains find-run --agent-id Orch.Lead and that cause's remedy fragments from Step 3 (ii).
+      unavailable: lineage rows only; _unavailable_gates(result) is empty.
+      bytes: unreadable rows only; the corrupted registry file reads exactly {not json after the dispatch.
+      run-reads: the witness row only, defined in (b).
+      A lineage row asserts exit 2, claim, cause (fragments BLOCKED, lineage, Orch.Lead and cannot be placed (<cause token>)), remedy and unavailable, plus bytes when its state is unreadable-owner or unreadable-linked. Cause tokens: persona-mismatch, not-found, ambiguous, unreadable for both unreadable states, registry-error for both escaped states.
+
+      (a) Fixtures. X is DISTILL_FEATURE (FEAT-90-one-root-fixture). Y is FEAT-91-other-fixture, a feature directory whose feature.json has runs [] (built as case_34 builds it).
+      A product-lead checkout helper: X's feature.json runs[] holds exactly one open PENDING harness-product-lead run with a given id (or none), a plan.yaml beside it with a given approval.status in the shape test-lead-start-return.py write_plan uses, the product grant .harness/*/features/*/runs/*-product/** in team-config.yaml, and the harness-code-reviewer agent file copied in.
+      A placement writer that puts runtime id Orch.Lead (parent Orch) into one of eight registry states with the real registry API:
+      ok: claim_run_start as the dispatching lead in X;
+      persona-mismatch: claim_run_start in X as harness-validator-lead when the dispatcher is harness-eng-lead or harness-product-lead, and as harness-eng-lead when it is harness-validator-lead;
+      not-found: no claim;
+      ambiguous: claim_run_start as the dispatching lead in X and again in Y, two live rows for one id;
+      unreadable-owner: a valid ok claim, then the owner .harness/.inflight-claims.json overwritten with the exact bytes {not json;
+      unreadable-linked: the checkout made a git repository with one commit, a git worktree added at .claude/worktrees/harness/BUG-99-unrelated, the valid ok claim kept in the owner registry and {not json written to that worktree's .harness/.inflight-claims.json;
+      escaped-unreadable: a valid ok claim, dispatch fired through an isolated_bin copy of the bin tree whose inflight_registry.py has appended a find_run_claim override raising UnreadableRegistry(<owner registry path>);
+      escaped-oserror: the same, with the override raising OSError('injected placement fault'), which carries no filename.
+      A run-read witness: an isolated_bin copy whose digest_destination.py has appended a wrapper around registered_destination that appends one JSON line with the call's feature and lead to the file named by the environment variable FEAT2542_RUN_READ_LOG, then returns the original's result.
+
+      (b) case_38_product_reader_route_keys_on_trusted_placement. Dispatcher harness-product-lead with harness_agent_id Orch.Lead, child harness-code-reviewer declaring X with HARNESS-FEATURE-TREE-ROOT: <checkout>, unless a row says otherwise. Placements, each in registry state ok: distill = open distill-product run, approved plan; plan = open plan-product run, pending plan; norun = runs empty, pending plan. Missions: distill = HARNESS-MISSION: distill; plan = HARNESS-MISSION: plan; missing = no mission line; conflicting = two lines, distill then plan; other = HARNESS-MISSION: validate.
+      Each row gives its outcome, then its base prediction: green means every field passes at base, otherwise the fields named red at base.
+      c38/distill/distill: exit 0, claim, receipt; the check detail labels it the FEAT-2489 payload. Red at base: exit, claim, receipt.
+      c38/distill/plan: exit 2, claim, cause plan-panel start for and refused before any work. Green.
+      c38/distill/missing: exit 2, claim, cause child of a bound distill run but has no HARNESS-MISSION line. Red: cause.
+      c38/distill/conflicting: exit 2, claim, cause conflicting or malformed HARNESS-MISSION. Green.
+      c38/distill/other: exit 2, claim, cause child of a bound distill run but declares 'validate'. Red: cause.
+      c38/plan/distill and c38/norun/distill: exit 2, claim, cause declares 'distill'; the plan team's scope reader declares plan. Green.
+      c38/plan/plan: exit 0, claim, receipt. Green.
+      c38/norun/plan: exit 2, claim, cause authorization requires exactly one matching open registered lead run. Green.
+      c38/plan/missing and c38/norun/missing: exit 2, claim, cause has no HARNESS-MISSION line, excluded child of a bound distill run. Green.
+      c38/plan/conflicting and c38/norun/conflicting: exit 2, claim, cause conflicting or malformed HARNESS-MISSION. Green.
+      c38/plan/other and c38/norun/other: exit 2, claim, cause declares 'validate'; the plan team's scope reader declares plan. Green.
+      c38/distill-pending/plan: open distill-product run, pending plan, mission plan; exit 2, claim, cause child of a bound distill run but declares 'plan'. Green.
+      c38/distill/foreign-feature: distill placement, mission distill, child declaring Y with its tree-root line; exit 2, claim, cause bound distill run is for FEAT-90-one-root-fixture. Red: cause.
+      c38/distill/no-tree-root: distill placement, mission distill, no tree-root line; exit 2, claim, cause is a child of a bound distill run and requires HARNESS-FEATURE-TREE-ROOT. Red: cause.
+      c38/distill/foreign-tree-root: distill placement, mission distill, child declaring X with HARNESS-FEATURE-TREE-ROOT: FEATURE_TREE_ROOT, the suite's own root and not <checkout>, as case 33's a foreign feature-tree root shape builds it; exit 2, claim, cause declared feature-tree root. Red: cause, so Step 2's inventory carries predicted_red: c38/distill/foreign-tree-root:cause; base refuses it at the plan-route mission rule before any tree-root check, the same refusal Appendix A measured for R/distill-placed/distill.
+      c38/distill/run-reads: c38/distill/distill fired through the run-read witness; one assertion, run-reads: exit 0 and the log holds exactly one line, whose lead is harness-product-lead. Red: run-reads.
+      Failure rows: product lead on the distill placement (open distill-product run, approved plan), one mission per failure state so every state and every mission meets a failure; case 40 adds distill for not-found and persona-mismatch. Each is a lineage row. Red at base: cause, remedy; exit, claim, unavailable and bytes are green, because base refuses these before the claim step.
+      c38/fail-persona-mismatch/plan; c38/fail-not-found/missing; c38/fail-ambiguous/distill; c38/fail-unreadable-owner/conflicting; c38/fail-unreadable-linked/other; c38/fail-escaped-unreadable/distill; c38/fail-escaped-oserror/plan.
+      These failure rows are also case 39's coverage of the harness-product-lead to harness-code-reviewer pair, whose ok state is c38/distill/distill.
+
+      (c) case_39_governed_lead_placement_is_bind_or_refuse. Each dispatch carries harness_agent_id Orch.Lead on the lead's open distill-<suffix> run (_LEAD_RUNS suffix).
+      harness-eng-lead to harness-backend-dev on distill-eng, in all eight states, two children each: bound (declares X, HARNESS-MISSION: distill and its tree-root line) and exploit (declares Y, no marker, no tree-root line), rows c39/eng/<state>/bound and c39/eng/<state>/exploit.
+      State ok: bound is exit 0, claim, receipt; exploit is exit 2, claim, cause bound distill run is for FEAT-90-one-root-fixture. Green.
+      Each other state: both children are lineage rows. Red at base: exit, claim, cause, remedy, and bytes for unreadable-owner only (the base claim step rewrites the owner registry); unavailable and the unreadable-linked bytes are green.
+      harness-validator-lead to harness-qa on distill-validator, bound child only: c39/validator/ok/bound is exit 0, claim, receipt, green; c39/validator/not-found/bound is a lineage row, red: exit, claim, cause, remedy.
+
+      (d) case_40_distill_exemption_never_fires_on_failed_placement. Product lead in the not-found and persona-mismatch states, child harness-code-reviewer declaring X with its tree-root line. All four rows are lineage rows.
+      c40/<state>/distill-run: open distill-product run, approved plan, mission distill. Red: cause, remedy.
+      c40/<state>/plan-run: open plan-product run, pending plan, mission plan. Red: exit, claim, cause, remedy (base exits 0 and claims).
+
+      (e) case_41_main_and_non_lead_keep_prior_outcomes. Each control dispatches harness-backend-dev declaring Y with no marker, and asserts exit 0 and claim. Run each control in two states: unreadable-owner, the worst on-disk state, which also keeps the claim step's DEC-218 treat-as-empty recovery; and escaped-oserror, where find_run_claim raises if anything calls it, so a passing row proves the control never reads placement and no other registry state can change its outcome. Rows c41/<control>/<state>, all green at base. Controls:
+      main: agent_type Main, harness_agent_id Main, no parent id;
+      orchestrator-id: harness-orchestrator with harness_agent_id Orch.Lead;
+      orchestrator-no-id: harness-orchestrator with no runtime id;
+      lead-no-id: harness-eng-lead with no harness_agent_id. Put a comment above the lead-no-id rows: they assert SC-02's LEAVE clause for an id-less lead payload; the host refuses an id-less governed nested Task (DEC-218), and the signer's OQ-1 ruling governs them, so a signed hardening changes exactly these rows.
+
+      (f) case_30_repository_header_binds_exact_factory_claim and case_31_repository_binding_read_from_the_feature_worktree dispatch as harness-eng-lead with harness_agent_id LeadOne and no claim, which is the not-found class. Before their dispatches, bind LeadOne with _load_registry_module().claim_run_start(inflight_registry.feature_root(<checkout>, feature), harness-eng-lead, feature, LeadOne, OrchestratorOne, supervisor_pid=os.getpid(), cwd=<checkout>); in case 31 that is the feature worktree's registry. Leave their assertions unchanged.
+      Register cases 38 to 41 in CASES after case_37_orchestrator_keeps_registered_distill_authority.
+
+      Step 2, fail-first at base source, one inventory for both runs. Before editing dispatch-guard.py, create notes/characterization-pin.md with these lines: dec_number: DEC-258; base_sha: 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8; then, under a heading Row inventory, one line predicted_red: <check name> for every assertion that (b) to (e) mark red at base, and no other. Confirm git diff --quiet 2e7a2c77d61e3ae93180dc6d71a355ff7b85d8f8 -- .claude/skills/harness/bin/dispatch-guard.py exits 0, then run python3 tests/integration/test-dispatch-guard.py and append, under a heading Base run: head_at_base_run: <git rev-parse HEAD>; base_run_exit: <exit code>; and one line observed_red: <check name> per FAIL line. The two sets must be equal, and every case 1 to 37 assertion, including the rebound cases 30 and 31, must pass. Any difference means a fixture misses its intended branch: stop and report, and never edit a prediction to fit an observation.
+
+      Step 3, production edit, in .claude/skills/harness/bin/dispatch-guard.py only.
+      (i) Add _dispatcher_placement() in the FEAT-2225 T-04 block, beside DISTILL_RUN_RE and LEADS, memoized with a module-level sentinel so find_run_claim runs at most once per dispatch. It returns None when agent is not in LEADS, or when d.get('harness_agent_id') is not a non-empty string; that is the prior declared-feature path. Otherwise it calls reg.find_run_claim(owner_root, agent_id) inside try/except (reg.UnreadableRegistry, OSError) as exc; use exactly that typed tuple, never a broad except (the FEAT-65 census requires zero broad catches here). An exception is a refusal with cause registry-error and detail type(exc).__name__: exc. ok true with found['claim'].get('agent') == agent returns found['feature']. ok true with another persona is a refusal with cause persona-mismatch. ok false is a refusal with cause found['cause'] (unreadable, not-found or ambiguous) and detail found['message'].
+      (i') Feature validity. After the ok check and before the persona check, an ok result whose found['feature'] is not a non-empty str (isinstance(feature, str) and feature) is a refusal with cause unreadable, detail: the live claim bound to <agent_id> in <found root> names no feature (a malformed claim row), and the unreadable remedy. Add no separate sentinel object: _lookup_placement returns a non-empty str or exits 2, so the persona-mismatch remedy never prints a missing feature. An omitted feature is find_run_claim's LEGACY_FEATURE, a non-empty str, and passes.
+      (ii) Refuse through _refuse with, in order, the lines below; a | separates printed lines. Every printed command follows four rules (validate c0 OQ-1): (1) it is python3 <script> <args>, where <script> is the real sibling path os.path.join(os.path.dirname(os.path.realpath(__file__)), 'inflight_registry.py'), computed once, never the bare script name; (2) every interpolated part, agent_id, feature and root included, is shell-quoted with shlex.quote; (3) no prose punctuation adjoins a command: the command is its own line, indented four spaces, and the prose introducing it ends with ':' on the line before; (4) the contract sentence is the narrowed one under last. Below, command: <args> stands for that command line.
+      first: dispatch-guard: BLOCKED — lineage: <agent> run <agent_id> cannot be placed (<cause>), so its dispatch of <dispatched> for <declared> is refused.
+      second: two spaces and the detail; for persona-mismatch the detail is: the live claim bound to <agent_id> belongs to <claim persona> (feature <found feature>, registry <found root>), not <agent>.
+      third, the remedy lines chosen by cause (remedy fragments asserted in tests in brackets):
+      unreadable: Repair each unreadable registry named above in place and never delete it: an unreadable registry is never read as no claims (DEC-218). Then re-dispatch. [never delete it]
+      registry-error whose exception names files (exc.paths for UnreadableRegistry, [exc.filename] for an OSError whose filename is not None): The placement lookup raised on <comma-joined paths>; repair that registry in place and never delete it (DEC-218), then re-dispatch. [repair that registry in place, and the owner registry path]
+      registry-error that names no file: The placement lookup raised without naming a file, so no registry is known to be corrupt: run the Inspect command below to reproduce the error and repair only what it names; never delete a registry. [without naming a file; excluded fragment: repair that registry in place]
+      not-found: This lead's run holds no live claim: re-dispatch the lead so its run start reclaims before it dispatches; never re-declare a feature to work around it. [re-dispatch the lead]
+      ambiguous: Several live claims are bound to <agent_id> in the registries named above, and the guard never chooses. For each named root, list its claims to see each claim's feature: | command: list --root <root> | The surplus claim is the one whose feature is not this lead's open registered run in that feature's feature.json runs[]; if that does not single one out, the operator decides with the lead's dispatcher. Release only that claim, in its own registry: | command: release --agent-id <agent_id> --feature <its feature> --root <its root> | If release refuses because that registry holds more than one match, stop and repair the registry by hand; never release by persona. The <root>, <its feature> and <its root> placeholders stay for the operator to fill in. [list --root; release --agent-id Orch.Lead --feature]
+      persona-mismatch: Leave a live claim of uncertain ownership alone. If that <claim persona> run is live, dispatch this work from a <agent> run that holds its own claim (a fresh lead run claims at its run start); only if the operator confirms that claim is stale, release it in its own registry, then re-dispatch: | command: release --agent-id <agent_id> --feature <found feature> --root <found root> | Never relabel a dispatch to pass. [belongs to <claim persona>; Never relabel]
+      last, always: Inspect: | command: find-run --agent-id <agent_id> --root <owner_root> | A governed lead's dispatch is placed by its own runtime claim (DEC-258); a placement that cannot be established is refused, never silently rebound to the declared feature.
+      (iii) In the module-level sequence, call _dispatcher_placement() exactly once, after _direct_orchestration_refusal() and before _start_preflight(). A failed placement then refuses before any other preflight and before the claim step. Do not reorder _start_preflight and _distill_preflight.
+      (iv) One dispatch-local placement answer serves both the route and the distill preflight. Add _placed_distill_feature(), memoized with its own module-level sentinel: None when _dispatcher_placement() is None; otherwise, with destinations, errors from _destinations(), the result of _distill_run_feature(destinations, errors, <placement feature>, agent), computed once, so the dispatcher's registered run is read once per dispatch. _mission_scope: plan_route = dispatched == PLAN_READER and agent == PLAN_TEAM_LEAD and _placed_distill_feature() is None. Keep declares and the return tuple unchanged. Rewrite its docstring to say the scope-reader route yields only to the dispatching product lead's trusted distill placement.
+      (v) _bound_distill_feature, agent branch: when agent is in LEADS, return _placed_distill_feature() if _dispatcher_placement() is not None, else _distill_run_feature(destinations, errors, declared, agent), which is the prior id-less path. The dispatched-in-LEADS branch is unchanged. Delete _dispatcher_feature; grep the bin directory and tests to confirm it has no other caller.
+      (vi) Rewrite the BUG-2110 mission-applicability comment and the FEAT-2225 T-04 comment block to state the placement contract, the single dispatch-local placement answer and the placement-keyed route, citing DEC-258, #2542 and #2532.
+      Leave these unchanged: _start_preflight, _distill_preflight, _refuse_unbound_distill_marker, _require_distill_feature, _require_distill_mission, the terminal claim try/except with its emit_unavailable, and every other refusal text.
+
+      Step 4, pin run and receipt. Run the four suites and the git diff check of verify; all must exit 0 and the dispatch-guard suite must print no FAIL line. Commit the three files as the T-01 commit. Then append, under a heading Pin run: tested_sha: <git rev-parse HEAD of that commit>; pin_run_exit: <exit code of python3 tests/integration/test-dispatch-guard.py at that commit>; that suite's final N of N cases passed line; the exit code of each other suite. Commit the receipt alone, then run verify, which reads the receipt at HEAD. If anything later changes dispatch-guard.py or test-dispatch-guard.py, re-run the four suites at the new commit and append a new Pin run block with its own tested_sha and pin_run_exit; the last block is the one graded, and T-02's verify re-checks at the end of the build that both files at HEAD equal that tested_sha.
+      Never run a shell wait loop. No new public interface, retry, telemetry, dependency or documentation change belongs to this task.
+  - id: T-02
+    title: Record the placement contract and placement-keyed scope-reader route as DEC-258
+    traces: [SC-03, SC-04, SC-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The decision record for a DEC-174 enforcement change is written by the main session that builds it, against the landed T-01 symbols.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      grep -q "DEC-258 — A governed lead" .harness/harness/docs/DECISIONS.md && grep -Eq "^- DEC-258 @[0-9]+ .* :: .{20,}" .harness/harness/docs/DECISIONS-INDEX.md && python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md && python3 .claude/skills/harness/bin/check-decision-anchors.py && python3 tests/integration/test-gen-decisions-index.py && python3 -c "import sys, yaml; d = yaml.safe_load(open('.harness/harness/features/FEAT-2542-dispatcher-placement/plan.yaml')); sys.exit(0 if sorted(d.get('source_issues') or []) == [2532, 2542] else 1)" && grep -q "(DEC-258)" .claude/skills/harness/bin/dispatch-guard.py && python3 tests/integration/test-dispatch-guard.py && R=.harness/harness/features/FEAT-2542-dispatcher-placement/notes/characterization-pin.md && T=$(git show HEAD:$R | sed -n 's/^tested_sha: \([0-9a-f]\{40\}\)$/\1/p' | tail -n 1) && test -n "$T" && git merge-base --is-ancestor "$T" HEAD && git diff --quiet "$T" HEAD -- .claude/skills/harness/bin/dispatch-guard.py tests/integration/test-dispatch-guard.py
+    intent: |
+      HARNESS-FEATURE: FEAT-2542-dispatcher-placement. Product checkout: Harness itself, feature worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2542-dispatcher-placement. It ships no docs/spec.md, docs/decisions.md or docs/architecture.md; the authority read is .harness/harness/docs/DECISIONS.md (DEC-100, DEC-174, DEC-204, DEC-214, DEC-218, DEC-228, DEC-250, DEC-253, DEC-254 and DEC-257 as the format model), the BRIEF, plan.yaml decisions D-01 and D-02, the research note, and notes/characterization-pin.md. The main session writes this directly after T-01 lands. Edit only DECISIONS.md and DECISIONS-INDEX.md.
+
+      Number. Use the dec_number T-01 recorded in notes/characterization-pin.md, which is DEC-258. If HEAD's DECISIONS.md already carries a DEC-258 heading when this task starts, stop and report to the operator: renumbering would rewrite T-01's gated source and the signed plan, so it is an operator-ruled amendment, never an edit inside this task.
+
+      Append one entry after DEC-257, headed exactly:
+      DEC-258 — A governed lead's dispatch binds to its own runtime placement or is refused; the scope-reader route keys on that placement
+      as a level-two heading.
+
+      Follow DEC-255 and DEC-257's shape: Chose, Over, Because, Tradeoff accepted, Record. Cite symbols, never file:line anchors (check-decision-anchors.py). It must state:
+
+      Chose, rule 1 (#2542). A dispatcher in LEADS whose payload carries harness_agent_id is placed only by its own runtime claim through find_run_claim, persona-matched. dispatch-guard.py _dispatcher_placement runs once, before any other preflight and before any claim. There are five denial states, each an exit-2 lineage refusal naming its cause token, the runtime id, a remedy specific to that cause and the find-run inspect command:
+      structured unreadable (unreadable): repair in place, never delete;
+      escaped UnreadableRegistry or OSError (registry-error): repair the named registry, or, when the exception names no file, reproduce it with find-run before repairing anything;
+      not-found: re-dispatch the lead so its run start reclaims;
+      ambiguous: the operator identifies the surplus claim per registry root with list --root and releases only it in its own registry with --root, never by persona; the guard never chooses;
+      ok with a persona mismatch (persona-mismatch): a live claim of uncertain ownership is left alone; work is re-dispatched from a correctly claimed lead run, or the operator releases a confirmed-stale claim in its own registry.
+      None of the five is ever the declared feature, and none is ever the unavailable outcome. An unreadable registry is left as found.
+      Unchanged: Main, non-lead dispatchers with or without harness_agent_id, and a lead payload without harness_agent_id keep the declared-feature path. The host already refuses an id-less governed nested Task (DEC-218), so the guard does not duplicate that refusal.
+      Chose, rule 2 (#2532). The harness-product-lead to harness-code-reviewer scope-reader rule in _mission_scope holds unless that trusted placement resolves to the lead's one open registered distill-* run, matched by registered_destination and DISTILL_RUN_RE. The route and the distill preflight consume one dispatch-local answer, _placed_distill_feature, read once, so the exemption and its enforcement cannot see different run state. A distill-placed start then flows into the unchanged distill preflight, which enforces marker, feature and tree root. A distill-placed lead declaring plan is still refused, so no relabeling works in either direction.
+      Over: the unavailable outcome for these states; the silent declared-feature fallback, which is the defect; a declared-mission or child-field exemption; a run-id or phase-field plan detector, since run records carry no phase; panel existence; reordering _start_preflight and _distill_preflight; reading the registered run separately for the route and for the preflight; relaxing find_run_claim's any-unreadable strictness, which backs release_run and markerless revival.
+      Because:
+      the measured base behaviour in the research note: all seven failed-placement fixtures claimed, and the FEAT-2489 product distill dispatch was refused without consulting placement;
+      the hook lets a governed lead dispatch only from a ready, claimed run, so a failed placement is an anomaly with no backstop;
+      DEC-100's own text, A refusal outranks it;
+      DEC-204, a run recovers its feature only from the one live claim bound to its exact runtime id, and release is exact;
+      DEC-218, cannot-read is never no-claims;
+      DEC-250, text supplies no authority.
+      Tradeoff accepted:
+      a corrupt registry or lost claim now stops that lead's dispatches until the operator repairs it;
+      the escaped state is reachable only by fault injection, proven through a copied bin tree;
+      Main and non-lead dispatches keep the claim step's DEC-218 treat-as-empty recovery.
+      Record: FEAT-2542 (#2542, #2532); D-01 and D-02 with their signer and date from plan.yaml approval. State that it amends none of DEC-100, DEC-174, DEC-204, DEC-214, DEC-218, DEC-228, DEC-250 or DEC-253; that DEC-214's HARNESS-FEATURE-TREE-ROOT prerequisite is enforced unchanged on a distill-placed child; that DEC-253's registered-distill dispatch prerequisite is restored for a product distill while its caller-bound apply and raw Write grants are unchanged; and that it was executed main-session-direct under DEC-174. Refs: DEC-100, DEC-174, DEC-204, DEC-214, DEC-218, DEC-228, DEC-250, DEC-253.
+
+      Then run python3 .claude/skills/harness/bin/gen-decisions-index.py in write mode. Hand-write the ruling text after the ' :: ' of the new DEC-258 row; the generator never writes it:
+      A governed lead's nested dispatch binds to its own runtime claim or is refused at exit 2 in five states; the scope-reader rule yields only to a placed distill-* run.
+      Never hand-edit line anchors; regenerate them. Leave every other entry and row unchanged. Commit, then run verify: its last steps are the build's terminal gate, re-running the dispatch-guard suite and checking that dispatch-guard.py and test-dispatch-guard.py at HEAD equal the last tested_sha in notes/characterization-pin.md. If they differ, apply T-01 Step 4's re-run rule before this task closes. Only plan.yaml station writes may follow this commit before the review pin.

@@ -19,6 +19,7 @@ _anchor_sys.path.insert(0, _anchor_bin)
 import io
 import json
 import os
+import subprocess
 import sys
 import tempfile
 
@@ -46,12 +47,14 @@ def check(name, cond, detail=""):
 
 
 _real_resolve_root = harness_boundary.resolve_root
-_real_subprocess_run = gh_cost_log.subprocess.run
+# Every gh launch — the counter read through factory_gh.launch_gh included — goes through the
+# one shared subprocess.run module attribute, so that is the one attribute every case patches.
+_real_subprocess_run = subprocess.run
 
 
 def restore():
     harness_boundary.resolve_root = _real_resolve_root
-    gh_cost_log.subprocess.run = _real_subprocess_run
+    subprocess.run = _real_subprocess_run
 
 
 def redirect(tmp):
@@ -204,7 +207,7 @@ restore()
 
 with tempfile.TemporaryDirectory() as tmp:
     path = redirect(tmp)
-    gh_cost_log.subprocess.run = raising_run
+    subprocess.run = raising_run
     os.environ["HARNESS_GH_COST_LOG"] = "1"
     try:
         raised = False
@@ -234,7 +237,7 @@ restore()
 
 with tempfile.TemporaryDirectory() as tmp:
     path = redirect(tmp)
-    gh_cost_log.subprocess.run = counter_stub([999])
+    subprocess.run = counter_stub([999])
     os.environ["HARNESS_GH_COST_LOG"] = "1"
     try:
         with gh_cost_log.measured(gh_cost_log._COUNTER_ARGV) as m:
@@ -280,6 +283,8 @@ restore()
 # existing OFF case above calls record() directly and only exercises record()'s OWN, separate
 # guard at :112.
 
+from unittest.mock import patch  # noqa: E402
+import importlib  # noqa: E402
 import importlib.util as _ilu  # noqa: E402
 
 import factory_gh as _fgh  # noqa: E402
@@ -299,9 +304,9 @@ def _load_gh_sync():
 def _counting_fake(rc=0, stdout="ok"):
     """Stands in for the gh binary itself. Every subprocess.run call this drives — the
     counter's own rate_limit read AND the 'real' invocation — lands here, because
-    `gh_cost_log.subprocess`, `factory_gh.subprocess` and the freshly-loaded gh-sync module's
-    `subprocess` are the SAME imported module object (Python caches modules by name), so
-    patching `.run` on any one of them patches all of them."""
+    factory_gh and the freshly-loaded gh-sync module launch through the SAME imported
+    `subprocess` module object (Python caches modules by name), so patching its `.run` patches
+    every launch."""
     calls = []
 
     def fake_run(argv, **kwargs):
@@ -328,7 +333,7 @@ def _counting_fake(rc=0, stdout="ok"):
 with tempfile.TemporaryDirectory() as tmp:
     path = redirect(tmp)
     fake_run, calls = _counting_fake()
-    gh_cost_log.subprocess.run = fake_run
+    subprocess.run = fake_run
     os.environ["HARNESS_GH_COST_LOG"] = "1"
     try:
         _fgh.run_gh(["issue", "view", "1"])
@@ -346,7 +351,7 @@ restore()
 with tempfile.TemporaryDirectory() as tmp:
     path = redirect(tmp)
     fake_run, calls = _counting_fake()
-    gh_cost_log.subprocess.run = fake_run
+    subprocess.run = fake_run
     os.environ.pop("HARNESS_GH_COST_LOG", None)
     _fgh.run_gh(["issue", "view", "1"])
     check("factory_gh.run_gh wrap site, OFF: no line written",
@@ -359,7 +364,7 @@ restore()
 with tempfile.TemporaryDirectory() as tmp:
     path = redirect(tmp)
     fake_run, calls = _counting_fake()
-    gh_cost_log.subprocess.run = fake_run
+    subprocess.run = fake_run
     os.environ["HARNESS_GH_COST_LOG"] = "1"
     try:
         _ghs = _load_gh_sync()
@@ -378,7 +383,7 @@ restore()
 with tempfile.TemporaryDirectory() as tmp:
     path = redirect(tmp)
     fake_run, calls = _counting_fake()
-    gh_cost_log.subprocess.run = fake_run
+    subprocess.run = fake_run
     os.environ.pop("HARNESS_GH_COST_LOG", None)
     _ghs = _load_gh_sync()
     _ghs.gh(["issue", "view", "1"])
@@ -398,7 +403,7 @@ restore()
 with tempfile.TemporaryDirectory() as tmp:
     path = redirect(tmp)
     fake_run, calls = _counting_fake(rc=1)
-    gh_cost_log.subprocess.run = fake_run
+    subprocess.run = fake_run
     os.environ["HARNESS_GH_COST_LOG"] = "1"
     try:
         try:
@@ -430,7 +435,7 @@ restore()
 with tempfile.TemporaryDirectory() as tmp:
     path = redirect(tmp)
     fake_run, calls = _counting_fake(rc=1)
-    gh_cost_log.subprocess.run = fake_run
+    subprocess.run = fake_run
     os.environ.pop("HARNESS_GH_COST_LOG", None)  # ensure genuinely unset
     try:
         _fgh.run_gh(["issue", "view", "1"])
@@ -454,14 +459,14 @@ restore()
 # counter could not be read".
 with tempfile.TemporaryDirectory() as tmp:
     redirect(tmp)
-    gh_cost_log.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("no gh"))
+    subprocess.run = lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("no gh"))
     check("FEAT-64: an absent counter binary reads None", gh_cost_log._read_counter() is None)
     class _R:
         returncode = 0
         stdout = "not-a-number"
-    gh_cost_log.subprocess.run = lambda *a, **k: _R()
+    subprocess.run = lambda *a, **k: _R()
     check("FEAT-64: a counter that prints junk reads None", gh_cost_log._read_counter() is None)
-    gh_cost_log.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    subprocess.run = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
     try:
         gh_cost_log._read_counter()
         escaped = False
@@ -484,6 +489,145 @@ with tempfile.TemporaryDirectory() as tmp:
         del os.environ["HARNESS_GH_COST_LOG"]
     check("FEAT-64: an unrelated RuntimeError escapes record", escaped)
 restore()
+
+
+# ---------------- FEAT-2452 T-01: the counter reads through factory_gh.launch_gh -------------
+# The counter read shares the one launch and FACTORY_GH boundary but stays outside cost
+# accounting: launch_gh is never measured, and only try_gh (which run_gh adapts) measures, once.
+# Every case pins FACTORY_GH to one fake binary path and patches the shared subprocess.run, so
+# no real gh can start even if a case's own patch were missed.
+_T01_FAKE_GH = os.path.join(TESTS_DIR, "t01-fake-gh-never-installed")
+_T01_OPERATION = ["issue", "view", "1"]
+
+
+def _launch_boom(*a, **k):
+    raise AssertionError(f"unexpected launch: {a!r}")
+
+
+def t01_case(name, fn):
+    os.environ["FACTORY_GH"] = _T01_FAKE_GH
+    try:
+        fn()
+    except Exception as exc:
+        check(f"T-01 {name}: ran to its checks", False, f"{type(exc).__name__}: {exc}")
+    finally:
+        os.environ.pop("FACTORY_GH", None)
+        os.environ.pop("HARNESS_GH_COST_LOG", None)
+        restore()
+
+
+def t01_counter_uses_launch_gh():
+    seen = []
+
+    def fake_launch(args, *, input=None):
+        seen.append((list(args), input))
+        return subprocess.CompletedProcess(args, 0, "1234\n", "")
+
+    subprocess.run = _launch_boom
+    with patch.multiple(_fgh, launch_gh=fake_launch, run_gh=_launch_boom, try_gh=_launch_boom):
+        value = gh_cost_log._read_counter()
+    check("T-01 _read_counter: reads the counter through factory_gh.launch_gh only",
+          value == 1234 and seen == [(gh_cost_log._COUNTER_ARGV, None)], f"value={value!r} seen={seen}")
+
+
+def t01_counter_failures_read_none():
+    def failed_launch(args, *, input=None):
+        raise _fgh.GhError(list(args), None, "", "", "gh not found", "gh", "install gh")
+
+    def nonzero_launch(args, *, input=None):
+        return subprocess.CompletedProcess(args, 1, "", "HTTP 401")
+
+    subprocess.run = _launch_boom
+    with patch.object(_fgh, "launch_gh", failed_launch):
+        typed = gh_cost_log._read_counter()
+    with patch.object(_fgh, "launch_gh", nonzero_launch):
+        nonzero = gh_cost_log._read_counter()
+    check("T-01 _read_counter: a typed launch failure and a nonzero counter both read None",
+          typed is None and nonzero is None, f"typed={typed!r} nonzero={nonzero!r}")
+
+
+def _t01_measured_operation(fn, rc):
+    """Drive fn over one operation with telemetry ON and the one fake binary; return the
+    launches, the recorded lines and fn's result."""
+    with tempfile.TemporaryDirectory() as tmp:
+        path = redirect(tmp)
+        fake_run, calls = _counting_fake(rc=rc)
+        subprocess.run = fake_run
+        os.environ["HARNESS_GH_COST_LOG"] = "1"
+        result = fn(_T01_OPERATION)
+        os.environ.pop("HARNESS_GH_COST_LOG", None)
+        lines = [l for l in read_lines(path) if "coverage" not in l]
+    return calls, lines, result
+
+
+def t01_telemetry_one_fake_binary():
+    counter = [_T01_FAKE_GH] + gh_cost_log._COUNTER_ARGV
+    expected = [counter, [_T01_FAKE_GH] + _T01_OPERATION, counter]
+    for rc in (0, 1):
+        calls, lines, result = _t01_measured_operation(_fgh.try_gh, rc)
+        check(f"T-01 telemetry rc={rc}: before-counter, operation, after-counter, nothing else",
+              calls == expected, f"calls={calls}")
+        check(f"T-01 telemetry rc={rc}: one recorded line with the real return code",
+              len(lines) == 1 and lines[0].get("rc") == rc and lines[0].get("argv") == _T01_OPERATION
+              and isinstance(lines[0].get("before"), int), f"lines={lines}")
+        check(f"T-01 telemetry rc={rc}: the result keeps the real process status",
+              result.status == rc and result.ok == (rc == 0), repr(result))
+
+
+def t01_run_gh_measures_once():
+    counter = [_T01_FAKE_GH] + gh_cost_log._COUNTER_ARGV
+    calls, lines, _ = _t01_measured_operation(_fgh.run_gh, 0)
+    check("T-01 telemetry run_gh: the adapter adds no second measurement",
+          calls == [counter, [_T01_FAKE_GH] + _T01_OPERATION, counter] and len(lines) == 1,
+          f"calls={calls} lines={lines}")
+
+
+def t01_launch_gh_is_not_measured():
+    calls, lines, result = _t01_measured_operation(_fgh.launch_gh, 0)
+    check("T-01 launch_gh: telemetry ON still launches exactly once and records nothing",
+          calls == [[_T01_FAKE_GH] + _T01_OPERATION] and lines == [] and result.returncode == 0,
+          f"calls={calls} lines={lines}")
+
+
+def _t01_fresh_modules(order):
+    """Import order's modules afresh with every launch failing loudly, then hand them back;
+    the caller restores the originals."""
+    launches = []
+    subprocess.run = lambda argv, **k: launches.append(list(argv))
+    for name in ("factory_gh", "gh_cost_log"):
+        sys.modules.pop(name, None)
+    fresh = {name: importlib.import_module(name) for name in order}
+    return fresh, launches
+
+
+def t01_import_orders():
+    originals = {name: sys.modules[name] for name in ("factory_gh", "gh_cost_log")}
+    for order in (("gh_cost_log", "factory_gh"), ("factory_gh", "gh_cost_log")):
+        try:
+            fresh, launches = _t01_fresh_modules(order)
+            fgh, cost = fresh["factory_gh"], fresh["gh_cost_log"]
+            fgh.launch_gh = lambda args, *, input=None: subprocess.CompletedProcess(args, 0, "77", "")
+            subprocess.run = _launch_boom
+            value = cost._read_counter()
+        finally:
+            sys.modules.update(originals)
+        check(f"T-01 import {' then '.join(order)}: no gh launch at import",
+              launches == [], f"launches={launches}")
+        check(f"T-01 import {' then '.join(order)}: factory_gh wires the same gh_cost_log",
+              fgh.gh_cost_log is cost, f"{fgh.gh_cost_log!r} vs {cost!r}")
+        check(f"T-01 import {' then '.join(order)}: the counter resolves factory_gh at call time",
+              value == 77, f"value={value!r}")
+
+
+for _name, _fn in (
+    ("counter uses launch_gh", t01_counter_uses_launch_gh),
+    ("counter failures read None", t01_counter_failures_read_none),
+    ("telemetry one fake binary", t01_telemetry_one_fake_binary),
+    ("run_gh measures once", t01_run_gh_measures_once),
+    ("launch_gh is not measured", t01_launch_gh_is_not_measured),
+    ("import orders", t01_import_orders),
+):
+    t01_case(_name, _fn)
 
 
 if FAILURES:

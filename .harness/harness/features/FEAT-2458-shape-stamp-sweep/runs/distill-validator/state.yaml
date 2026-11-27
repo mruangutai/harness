@@ -1,0 +1,53 @@
+schema_version: 2
+run_id: distill-validator
+run_uid: 88432ea20cf04c29aeaa063c1d760486
+feature: FEAT-2458-shape-stamp-sweep
+squad: validator
+host: harness-validator-lead
+team: distill
+status: complete
+verdict: PASS
+digest: runs/distill-validator/digest.md
+steps:
+  - id: distill-qa
+    persona: harness-qa
+    seq: 1
+    depends_on: []
+    outputs: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2458-shape-stamp-sweep/notes/qa-distill.md
+    note: 5 ops (craft P-02 P-09 P-14 replace; repo G-13 replace, G-15 add); receipt dbb2bef7 verified against files
+  - id: distill-code
+    persona: harness-code-reviewer
+    seq: 1
+    depends_on: []
+    outputs: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2458-shape-stamp-sweep/notes/expertise-receipt-972a214e33e68e198a92eeaf424fb5a392db59a1c56a1097027a18dd9ac049d5.json
+    note: 2 craft replaces (P-07, G-12); 1 rejected; receipt verified against file
+  - id: distill-security
+    persona: harness-security-reviewer
+    seq: 1
+    depends_on: []
+    outputs: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2458-shape-stamp-sweep/notes/review-harness-security-reviewer-distill.md
+    note: 2 craft replaces (P-04, G-07); 1 rejected; receipt 0231fabc verified against file

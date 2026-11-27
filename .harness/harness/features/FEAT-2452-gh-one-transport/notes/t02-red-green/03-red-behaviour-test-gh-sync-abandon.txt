@@ -1,0 +1,14 @@
+gh-sync.py unchanged at 351e6fea
+Traceback (most recent call last):
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/tests/integration/test-gh-sync-abandon.py", line 1270, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/tests/integration/test-gh-sync-abandon.py", line 66, in main
+    r = run(["abandon", featA, "--reason-file", reasonA, "--yes"], tmpA)
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/tests/integration/gh_sync_support.py", line 219, in run
+    assert_sentinel_unused(sentinel_log)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2452-gh-one-transport/tests/offline_gh_support.py", line 45, in assert_sentinel_unused
+    raise AssertionError(f"default gh binary was dispatched: {logged.strip()!r}")
+AssertionError: default gh binary was dispatched: 'auth status'
+exit=1

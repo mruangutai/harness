@@ -1,0 +1,15 @@
+# Cycle 2 security review — FEAT-2458
+
+**PASS — no new security findings.** Production and the route inventory are byte-identical to cycle 1. The rework changes two integration tests and introduces no new security exposure. The cycle-1 lead's two non-gating advisory dispositions stand; no new evidence changes their severity.
+
+**Pinned evidence.** `git diff --name-status 322b12b0..f42393e23d81c840332e2132ce711053caa737ad` listed 7 code/test/inventory paths and 16 feature-record paths. From cycle 1 (`9b5b6a7a05c3dc8aa382699e33477d2f0397281c`) to this pin, the only paths outside the feature record were `tests/integration/test-post-merge-sweep.py` (T-02) and `tests/integration/test-worktree-terminal.py` (T-01), both modified by `b4536600`. `git rev-parse <pin>:<path>` returned identical blob IDs across both cycles for `worktree_terminal.py`, `post-merge-sweep.py`, `check-plan-routes.py`, `canonical-reader-classification.json`, and `test-check-plan-routes.py`. The last three remove the retired helper's registry/inventory entry and update the count in a test docstring; the feature records carry workflow state and evidence, not new hook logic.
+
+| Boundary | OWASP / STRIDE assessment |
+|---|---|
+| T-01: stamp ID → landed Git read | Exact directory-name matching precedes Git object reads; branch-qualified paths are passed as argv, not shell text. Missing or undecodable inputs do not authorize deletion (`worktree_terminal.py:52–57,182–221,439–450,601–640`). |
+| T-02: classifier → unlink and operator output | SC-06: `_sweep_shape_stamps` unlinks only on the shared `terminal` verdict, skips leaf symlinks, never selects the shared stamp, and exits the deletion branch in dry-run (`post-merge-sweep.py:341–375`). Output includes names, reasons, and OS error context, not stamp bytes or landed blob bodies. Parent-path and basename-output residual risks remain the settled cycle-1 advisories. No new auth path, credentials, dependency, or network/export sink in the pinned changes. |
+| T-01/T-02: test runner → filesystem, subprocesses, logs | Both tests use `TemporaryDirectory` and literal fixture IDs. T-02 still invokes the fixture-local sweep via argv in both modes with a local `gh` stub and retains the resolved-root assertions; diagnostics capture subprocess output, not the environment (`test-post-merge-sweep.py:119–163,227–247,1167–1195,1219–1269`). T-01 passes the Python probe as argv, renders paths/IDs as Python literals, and sets `HARNESS_PROJECT_DIR` to the probe (`test-worktree-terminal.py:497–501,1143–1213`). No new source of executable or credential data. |
+
+**Rework checks.** Static inspection confirms the sweep strips the fixture ID before checking `absent` on rows (3), (7), and (8), and the classifier strips it before checking the reason on row (i) (`test-post-merge-sweep.py:1206–1249`; `test-worktree-terminal.py:1106–1139`). The pinned static grader reported 17 passing functions, including every changed test function, and the same two grade-2 production functions already reasoned in cycle 1. No hooks, integration tests, or mutants were executed by this reader.
+
+**Open questions:** None.

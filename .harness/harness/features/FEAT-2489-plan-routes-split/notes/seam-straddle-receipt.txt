@@ -1,0 +1,303 @@
+FEAT-2489 seam-straddle manual receipt: evidence for SC-02's sixth sanctioned item (ESC-1, validate c0 ruling,
+notes/answers-2026-11-24-validate-c0.md). Recorded 2026-11-24 by FixE2_C1 (fix round 1). Inspection evidence, not a
+test: split-equivalence.py gains no seam-straddling sample (C1; the ruling's "Lead disagreement").
+
+BASE 261fdf726428bd8325fbd3d4beccad23b67e83cc
+PIN  778ea99267e614255c99604c95ae2a966db86761
+TREE pin .claude/skills/harness/bin d542c641c93f20a5a5f3567aa52d0171c625f201
+TREE pin tests 3f8731cd34fe2a850bc9e4a00054eba89f684eb9
+Interpreter: Python 3.15.2; env without CLAUDE_PROJECT_DIR, HARNESS_PROJECT_DIR, HARNESS_AGENT_TYPE; PYTHONDONTWRITEBYTECODE=1.
+
+Method. A throwaway driver (source in the appendix; lived in /tmp, never committed, no git writes) extracts
+`git archive BASE` and `git archive PIN` into fresh temp trees (one pair per variant, plus a pristine pair), plants
+the SAME text in the SAME function on both sides (located by AST, inserted as the function's first statement after
+its docstring, at the body's indent), and runs each side's entry once per variant with HARNESS_PROJECT_DIR and cwd
+set to the perturbed tree. The pin side is the whole pin archive, not the checker's matched tree; it differs from
+base outside bin/ and tests/ only under this feature's own directory (projection_confined).
+  (a)  a broad catch (try/pass/except Exception/pass) in _clean, which stays in check-plan-routes.py, AND in
+       _may_be_program, which moved (base: check-plan-routes.py; pin: structure_audit.py). --consolidation-audit.
+       The entry runs from the perturbed tree itself.
+  (b)  a parse error ("def probe_unparseable(:") in _normalized_reader_name, which moved (base: check-plan-routes.py;
+       pin: canonical_reader_audit.py). --canonical-reader-audit. Because the base entry cannot import itself
+       unparseable (and the pin entry cannot import an unparseable canonical_reader_audit.py), the runner is the
+       pristine archive of the same revision, and HARNESS_PROJECT_DIR names the perturbed tree that the audit scans
+       (harness_boundary.resolve_root takes an override that carries .harness/team-config.yaml).
+  (b2) (b) plus a json.loads reader with no inventory row in the retained _clean. This is code-reviewer CR-1's case:
+       "a parse error in moved code no longer hides retained readers".
+  (r)  control for (b2): the same unrowed reader alone, without the parse error; each entry runs in-tree.
+  Controls: the pristine pair, both modes.
+
+Run outputs, recorded WHOLE: stdout and stderr verbatim, with exit codes. Absolute temp paths are left as printed.
+================================================================================================================
+TMP /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0
+PLANT a base: broad catch -> .claude/skills/harness/bin/check-plan-routes.py::_clean (inserted before line 177)
+PLANT a base: broad catch -> .claude/skills/harness/bin/check-plan-routes.py::_may_be_program (inserted before line 2529)
+PLANT b2 base: unrowed reader -> .claude/skills/harness/bin/check-plan-routes.py::_clean (inserted before line 177)
+PLANT r base: unrowed reader -> .claude/skills/harness/bin/check-plan-routes.py::_clean (inserted before line 177)
+PLANT b base: syntax error -> .claude/skills/harness/bin/check-plan-routes.py::_normalized_reader_name (inserted before line 1054)
+PLANT b2 base: syntax error -> .claude/skills/harness/bin/check-plan-routes.py::_normalized_reader_name (inserted before line 1056)
+PLANT a pin: broad catch -> .claude/skills/harness/bin/check-plan-routes.py::_clean (inserted before line 182)
+PLANT a pin: broad catch -> .claude/skills/harness/bin/structure_audit.py::_may_be_program (inserted before line 846)
+PLANT b2 pin: unrowed reader -> .claude/skills/harness/bin/check-plan-routes.py::_clean (inserted before line 182)
+PLANT r pin: unrowed reader -> .claude/skills/harness/bin/check-plan-routes.py::_clean (inserted before line 182)
+PLANT b pin: syntax error -> .claude/skills/harness/bin/canonical_reader_audit.py::_normalized_reader_name (inserted before line 146)
+PLANT b2 pin: syntax error -> .claude/skills/harness/bin/canonical_reader_audit.py::_normalized_reader_name (inserted before line 146)
+
+===== (a) broad catches straddling the seam, --consolidation-audit, each entry runs in its own perturbed tree
+----- (a) base: runner=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/a-base/.claude/skills/harness/bin/check-plan-routes.py HARNESS_PROJECT_DIR=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/a-base argv=['--consolidation-audit']
+--- stdout (whole)
+CONSOLIDATION .claude/skills/harness/bin/check-plan-routes.py carries 2 broad catch(es) (`except Exception` or bare `except:`) against ceiling 0 — narrow the new one to the boundary's real error class (FEAT-63 SC-04)
+1 consolidation finding(s) under bin/
+--- stderr (whole)
+exit=1
+----- (a) pin: runner=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/a-pin/.claude/skills/harness/bin/check-plan-routes.py HARNESS_PROJECT_DIR=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/a-pin argv=['--consolidation-audit']
+--- stdout (whole)
+CONSOLIDATION .claude/skills/harness/bin/check-plan-routes.py carries 1 broad catch(es) (`except Exception` or bare `except:`) against ceiling 0 — narrow the new one to the boundary's real error class (FEAT-63 SC-04)
+CONSOLIDATION .claude/skills/harness/bin/structure_audit.py carries 1 broad catch(es) (`except Exception` or bare `except:`) against ceiling 0 — narrow the new one to the boundary's real error class (FEAT-63 SC-04)
+2 consolidation finding(s) under bin/
+--- stderr (whole)
+exit=1
+
+===== (b) moved function unparseable, --canonical-reader-audit; runner = pristine archive of the same rev
+----- (b) base: runner=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/pristine-base/.claude/skills/harness/bin/check-plan-routes.py HARNESS_PROJECT_DIR=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/b-base argv=['--canonical-reader-audit']
+--- stdout (whole)
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::<module> source_parse remedy=repair source: invalid syntax (check-plan-routes.py, line 1054). PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_manifest_deviation::harness_yaml_file#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.manifest_domains. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_manifest_deviation::harness_yaml_file#2: observed state=missing; expected disposition=canonical remedy=artifact_accessors.manifest_domains. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::process_plan_yaml::load_plan#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.load_plan. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_load_plan_once::load_plan#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.load_plan. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_classification_document json_file: artifact row absent from AST. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_task_files::load_plan#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.load_plan. PLAN AMENDMENT REQUIRED
+0 unresolved reader site(s) across 101 Python file(s)
+--- stderr (whole)
+exit=2
+----- (b) pin: runner=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/pristine-pin/.claude/skills/harness/bin/check-plan-routes.py HARNESS_PROJECT_DIR=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/b-pin argv=['--canonical-reader-audit']
+--- stdout (whole)
+CLASSIFICATION .claude/skills/harness/bin/canonical_reader_audit.py::<module> source_parse remedy=repair source: invalid syntax (canonical_reader_audit.py, line 146). PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/canonical_reader_audit.py::_classification_document json_file: artifact row absent from AST. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/canonical_reader_audit.py::_task_files::load_plan#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.load_plan. PLAN AMENDMENT REQUIRED
+0 unresolved reader site(s) across 103 Python file(s)
+--- stderr (whole)
+exit=2
+
+===== (b2) as (b), plus a json.loads reader with no inventory row planted in the retained function _clean on both sides
+----- (b2) base: runner=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/pristine-base/.claude/skills/harness/bin/check-plan-routes.py HARNESS_PROJECT_DIR=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/b2-base argv=['--canonical-reader-audit']
+--- stdout (whole)
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::<module> source_parse remedy=repair source: invalid syntax (check-plan-routes.py, line 1056). PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_manifest_deviation::harness_yaml_file#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.manifest_domains. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_manifest_deviation::harness_yaml_file#2: observed state=missing; expected disposition=canonical remedy=artifact_accessors.manifest_domains. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::process_plan_yaml::load_plan#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.load_plan. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_load_plan_once::load_plan#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.load_plan. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_classification_document json_file: artifact row absent from AST. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_task_files::load_plan#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.load_plan. PLAN AMENDMENT REQUIRED
+0 unresolved reader site(s) across 101 Python file(s)
+--- stderr (whole)
+exit=2
+----- (b2) pin: runner=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/pristine-pin/.claude/skills/harness/bin/check-plan-routes.py HARNESS_PROJECT_DIR=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/b2-pin argv=['--canonical-reader-audit']
+--- stdout (whole)
+CLASSIFICATION .claude/skills/harness/bin/canonical_reader_audit.py::<module> source_parse remedy=repair source: invalid syntax (canonical_reader_audit.py, line 146). PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_clean json_string remedy=artifact_accessors.parse_gh_json: live AST row absent from migration inventory. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/canonical_reader_audit.py::_classification_document json_file: artifact row absent from AST. PLAN AMENDMENT REQUIRED
+CLASSIFICATION .claude/skills/harness/bin/canonical_reader_audit.py::_task_files::load_plan#1: observed state=missing; expected disposition=canonical remedy=artifact_accessors.load_plan. PLAN AMENDMENT REQUIRED
+0 unresolved reader site(s) across 103 Python file(s)
+--- stderr (whole)
+exit=2
+
+===== (r) control for (b2): the same unrowed reader alone, no parse error; each entry runs in its own perturbed tree
+----- (r) base: runner=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/r-base/.claude/skills/harness/bin/check-plan-routes.py HARNESS_PROJECT_DIR=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/r-base argv=['--canonical-reader-audit']
+--- stdout (whole)
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_clean json_string remedy=artifact_accessors.parse_gh_json: live AST row absent from migration inventory. PLAN AMENDMENT REQUIRED
+0 unresolved reader site(s) across 101 Python file(s)
+--- stderr (whole)
+exit=2
+----- (r) pin: runner=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/r-pin/.claude/skills/harness/bin/check-plan-routes.py HARNESS_PROJECT_DIR=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/seam-ru07p2r0/r-pin argv=['--canonical-reader-audit']
+--- stdout (whole)
+CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_clean json_string remedy=artifact_accessors.parse_gh_json: live AST row absent from migration inventory. PLAN AMENDMENT REQUIRED
+0 unresolved reader site(s) across 103 Python file(s)
+--- stderr (whole)
+exit=2
+
+===== controls: pristine trees (no perturbation), both modes
+CONTROL base --consolidation-audit exit=0 last_stdout='0 consolidation finding(s) under bin/' stderr_bytes=0
+CONTROL pin --consolidation-audit exit=0 last_stdout='0 consolidation finding(s) under bin/' stderr_bytes=0
+CONTROL base --canonical-reader-audit exit=0 last_stdout='0 unresolved reader site(s) across 101 Python file(s)' stderr_bytes=0
+CONTROL pin --canonical-reader-audit exit=0 last_stdout='0 unresolved reader site(s) across 103 Python file(s)' stderr_bytes=0
+================================================================================================================
+
+Key lines
+  (a)  base: "CONSOLIDATION .../check-plan-routes.py carries 2 broad catch(es) ... against ceiling 0 ..."
+             "1 consolidation finding(s) under bin/"                                               exit=1
+       pin:  "CONSOLIDATION .../check-plan-routes.py carries 1 broad catch(es) ... against ceiling 0 ..."
+             "CONSOLIDATION .../structure_audit.py carries 1 broad catch(es) ... against ceiling 0 ..."
+             "2 consolidation finding(s) under bin/"                                               exit=1
+  (b)  base: 7 CLASSIFICATION lines: check-plan-routes.py::<module> source_parse (line 1054), 4 retained rows
+             (_manifest_deviation #1/#2, process_plan_yaml, _load_plan_once) "observed state=missing", and
+             the moved _classification_document and _task_files rows; "0 unresolved ... across 101"   exit=2
+       pin:  3 CLASSIFICATION lines: canonical_reader_audit.py::<module> source_parse (line 146), and the moved
+             _classification_document and _task_files rows at their pin locators; "0 unresolved ... across 103"
+                                                                                                    exit=2
+  (b2) base: the same 7 lines as (b) (source_parse at line 1056; the planted reader shifted it 2 lines) exit=2
+       pin:  (b)'s 3 lines + "CLASSIFICATION .../check-plan-routes.py::_clean json_string
+             remedy=artifact_accessors.parse_gh_json: live AST row absent from migration inventory. ..." exit=2
+  (r)  base and pin: that same _clean line, byte-identical, and nothing else besides the summary     exit=2 / 2
+  Controls: consolidation exit 0/0 ("0 consolidation finding(s) under bin/"); canonical exit 0/0 (101 / 103 files).
+
+Conservation argument (sixth item: "bounded by conservation and fail-closedness")
+1. Sites preserved. Every planted site counted at base is counted at the pin exactly once, in the file the move gave it.
+   (a): base counts 2 sites in check-plan-routes.py; the pin counts the same 2, 1 in check-plan-routes.py (_clean,
+   retained) and 1 in structure_audit.py (_may_be_program, moved): 2 = 1 + 1. (b)/(b2): the one parse error is
+   reported once on each side, in the file holding _normalized_reader_name (check-plan-routes.py at base,
+   canonical_reader_audit.py at the pin). Only its locator differs: path and the line number in the SyntaxError
+   text, which is item five.
+2. Exits equal. (a) 1/1; (b) 2/2; (b2) 2/2; (r) 2/2; controls 0/0 in both modes.
+3. Summary. (a) "1 consolidation finding(s)" becomes "2" (+1): two files now each carry one site against their own
+   ceiling 0, where base had one file carrying two. With k of the three files holding a site, the summary rises by
+   k - 1 (at most +2). Canonical: the unresolved count is 0 on every side, and the Python-file count rises by D=2
+   (item four).
+4. Parse-scope confinement. A parse failure drops only its own file's candidates. At base the error sits in
+   check-plan-routes.py, so the 4 retained reader rows in it also read "observed state=missing". At the pin, the
+   retained file parses: those rows are observed and their 4 findings do not arise (b: 7 lines become 3), and an
+   unrowed retained reader is admitted and reported (b2: +1 line). (r) shows that +1 line is byte-identical to the
+   base audit's own finding for the same site whenever check-plan-routes.py parses. It is the base audit's finding,
+   unmasked by confinement; it is not a new class. Both (b2) sides were already finding-triggering (exit 2).
+5. No tree clean at base gains a finding, and none that triggers at base goes clean at the pin.
+   - Broad catch: BROAD_CATCH_CEILINGS is {"harness_boundary.py": 2} at base (check-plan-routes.py:2503) and at the
+     pin (structure_audit.py:824), so all three split files have ceiling 0 on both sides. A clean base means
+     check-plan-routes.py counts 0. By SC-01's verbatim move, the three pin files' counts sum to the base count, so
+     each is 0 and none can exceed its ceiling. Conversely, a base finding (count >= 1) puts at least 1 site in some
+     pin file, and that file exceeds ceiling 0.
+   - Parse: a pin file can fail to parse only on a statement or module header the move copied verbatim from
+     check-plan-routes.py, where the same text fails at base, so a clean base cannot yield a pin parse failure.
+     Conversely, a base parse failure lands in whichever of the three files holds the bad statement, and that file
+     carries its own source_parse finding at the pin. The finding-triggering state persists (b, b2: exit 2/2).
+   - The controls confirm the clean case directly: 0/0 exits and the same summaries in both modes.
+6. Text. Every pin finding's text differs from its base counterpart only in its locator (path, and line number where
+   printed: item five) and its per-file count, in the producer's existing walk order (a: check-plan-routes.py, then
+   structure_audit.py, per the census walk).
+
+Appendix: driver source (throwaway; /tmp/seamstraddle/receipt.py, not committed)
+"""Throwaway seam-straddle receipt driver (FEAT-2489 fix round 1; never committed)."""
+import ast, json, os, shutil, subprocess, sys, tempfile
+
+CHECKOUT = sys.argv[1]
+BASE, HEAD = sys.argv[2], sys.argv[3]
+BIN = ".claude/skills/harness/bin"
+ENTRY = BIN + "/check-plan-routes.py"
+INVENTORY = "tests/integration/canonical-reader-classification.json"
+SCRUB = ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR", "HARNESS_AGENT_TYPE")
+CATCH = ["try:", "    pass", "except Exception:  # FEAT-2489 seam-straddle probe", "    pass"]
+UNPARSEABLE = ["def probe_unparseable(:  # FEAT-2489 seam-straddle probe"]
+RETAINED_CATCH_FN = "_clean"            # stays in check-plan-routes.py
+MOVED_CATCH_FN = "_may_be_program"      # base: check-plan-routes.py; pin: structure_audit.py
+MOVED_PARSE_FN = "_normalized_reader_name"  # base: check-plan-routes.py; pin: canonical_reader_audit.py
+READER = ["import json  # FEAT-2489 seam-straddle probe", "json.loads(\"{}\")  # FEAT-2489 seam-straddle probe: a reader with no inventory row"]
+
+
+def extract(rev, root):
+    os.mkdir(root)
+    archive = subprocess.Popen(["git", "archive", rev], cwd=CHECKOUT, stdout=subprocess.PIPE)
+    subprocess.run(["tar", "-x", "-C", root], stdin=archive.stdout, check=True)
+    archive.stdout.close()
+    assert archive.wait() == 0
+
+
+def defining_file(root, name):
+    """The one bin/ top-level .py among the three split files that defines NAME at top level."""
+    hits = []
+    for base in ("check-plan-routes.py", "canonical_reader_audit.py", "structure_audit.py"):
+        path = os.path.join(root, BIN, base)
+        if not os.path.isfile(path):
+            continue
+        tree = ast.parse(open(path, encoding="utf-8").read())
+        hits += [(path, node) for node in tree.body
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name]
+    assert len(hits) == 1, (name, hits)
+    return hits[0]
+
+
+def plant(root, name, lines):
+    """Insert LINES as the first statement after NAME's docstring, at the body's indent."""
+    path, node = defining_file(root, name)
+    body = node.body
+    first = body[1] if (len(body) > 1 and isinstance(body[0], ast.Expr)
+                        and isinstance(getattr(body[0], "value", None), ast.Constant)
+                        and isinstance(body[0].value.value, str)) else body[0]
+    source = open(path, encoding="utf-8").read().split("\n")
+    indent = " " * first.col_offset
+    at = first.lineno - 1
+    source[at:at] = [indent + line for line in lines]
+    open(path, "w", encoding="utf-8").write("\n".join(source))
+    return f"{os.path.relpath(path, root)}::{name} (inserted before line {first.lineno})"
+
+
+def drop_row(root, row_id):
+    path = os.path.join(root, INVENTORY)
+    document = json.load(open(path))
+    before = len(document["rows"])
+    document["rows"] = [row for row in document["rows"] if row.get("id") != row_id]
+    assert len(document["rows"]) == before - 1, row_id
+    open(path, "w").write(json.dumps(document, indent=2) + "\n")
+
+
+def run(runner, scanned, argv):
+    env = {k: v for k, v in os.environ.items() if k not in SCRUB}
+    env.update(PYTHONDONTWRITEBYTECODE="1", HARNESS_PROJECT_DIR=scanned)
+    result = subprocess.run([sys.executable, os.path.join(runner, ENTRY), *argv], cwd=scanned,
+                            env=env, capture_output=True, timeout=120)
+    return result.returncode, result.stdout.decode(), result.stderr.decode()
+
+
+def record(title, side, runner, scanned, argv):
+    code, out, err = run(runner, scanned, argv)
+    print(f"----- {title} {side}: runner={runner}/{ENTRY} HARNESS_PROJECT_DIR={scanned} argv={argv}")
+    print("--- stdout (whole)")
+    print(out, end="" if out.endswith("\n") or not out else "\n[no trailing newline]\n")
+    print("--- stderr (whole)")
+    print(err, end="" if err.endswith("\n") or not err else "\n[no trailing newline]\n")
+    print(f"exit={code}")
+    return code, out, err
+
+
+def main():
+    tmp = tempfile.mkdtemp(prefix="seam-")
+    revs = {"base": BASE, "pin": HEAD}
+    trees = {}
+    for variant in ("pristine", "a", "b", "b2", "r"):
+        for side, rev in revs.items():
+            trees[variant, side] = os.path.join(tmp, f"{variant}-{side}")
+            extract(rev, trees[variant, side])
+    print(f"TMP {tmp}")
+    for side in revs:
+        print(f"PLANT a {side}: broad catch -> {plant(trees['a', side], RETAINED_CATCH_FN, CATCH)}")
+        print(f"PLANT a {side}: broad catch -> {plant(trees['a', side], MOVED_CATCH_FN, CATCH)}")
+        print(f"PLANT b2 {side}: unrowed reader -> {plant(trees['b2', side], RETAINED_CATCH_FN, READER)}")
+        print(f"PLANT r {side}: unrowed reader -> {plant(trees['r', side], RETAINED_CATCH_FN, READER)}")
+        for variant in ("b", "b2"):
+            print(f"PLANT {variant} {side}: syntax error -> {plant(trees[variant, side], MOVED_PARSE_FN, UNPARSEABLE)}")
+    print()
+    print("===== (a) broad catches straddling the seam, --consolidation-audit, each entry runs in its own perturbed tree")
+    for side in revs:
+        record("(a)", side, trees["a", side], trees["a", side], ["--consolidation-audit"])
+    print()
+    print("===== (b) moved function unparseable, --canonical-reader-audit; runner = pristine archive of the same rev")
+    for side in revs:
+        record("(b)", side, trees["pristine", side], trees["b", side], ["--canonical-reader-audit"])
+    print()
+    print("===== (b2) as (b), plus a json.loads reader with no inventory row planted in the retained function _clean on both sides")
+    for side in revs:
+        record("(b2)", side, trees["pristine", side], trees["b2", side], ["--canonical-reader-audit"])
+    print()
+    print("===== (r) control for (b2): the same unrowed reader alone, no parse error; each entry runs in its own perturbed tree")
+    for side in revs:
+        record("(r)", side, trees["r", side], trees["r", side], ["--canonical-reader-audit"])
+    print()
+    print("===== controls: pristine trees (no perturbation), both modes")
+    for argv in (["--consolidation-audit"], ["--canonical-reader-audit"]):
+        for side in revs:
+            code, out, err = run(trees["pristine", side], trees["pristine", side], argv)
+            last = out.rstrip("\n").rsplit("\n", 1)[-1]
+            print(f"CONTROL {side} {argv[0]} exit={code} last_stdout={last!r} stderr_bytes={len(err)}")
+    shutil.rmtree(tmp)
+
+
+main()

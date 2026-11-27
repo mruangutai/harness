@@ -379,6 +379,8 @@ if d is not None:
 def _feat65_fire(root, sibling, override):
     mbin = os.path.join(tempfile.mkdtemp(), "bin")
     shutil.copytree(BIN, mbin)
+    shutil.copytree(os.path.join(os.path.dirname(BIN), "schemas"),
+                    os.path.join(os.path.dirname(mbin), "schemas"))
     with open(os.path.join(mbin, sibling), "a", encoding="utf-8") as handle:
         handle.write("\n\n" + override)
     return subprocess.run([os.path.join(mbin, "merge-gate.py")],

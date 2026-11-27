@@ -26,13 +26,19 @@ Exit 0 = done (or planned). Exit 1 = a problem the caller must surface.
 Repo comes from .harness/harness.json `github.repo`, pinned at init and never
 re-inferred (DEC-138). github.sync false, or gh missing/unauthenticated -> exit 1
 with the markdown-fallback instruction; wayfinding then runs in files-only mode.
+
+Every gh call goes through factory_gh (FACTORY_GH is the one binary override). Reads
+fail CLOSED: a failed or unparseable read raises GhError, caught once in cli(), so an
+outage can never make a blocked ticket eligible or let resolve write after an
+unverified parent. Only blockers and parent_of treat a genuine HTTP 404 as absence.
 """
+import json
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import artifact_accessors
+import factory_gh
 import gh_issues as ghi
 import harness_boundary
 
@@ -63,16 +69,80 @@ def cfg():
     return gh["repo"]  # the schema requires a pinned owner/name repo whenever sync is on
 
 
-def gh_json(args, allow_fail=False):
-    r = subprocess.run([ghi.gh_bin()] + args, capture_output=True, text=True)
-    if r.returncode != 0:
-        if allow_fail:
-            return None
-        die(f"gh {' '.join(args[:3])}… failed: {(r.stderr or '').strip().splitlines()[-1:] or ''}")
-    try:
-        return artifact_accessors.parse_gh_json(r.stdout or "null", "wayfind GitHub response")
-    except artifact_accessors.ArtifactAccessError:
-        return r.stdout.strip()
+def gh_json(args):
+    """The strict-JSON value of a gh read; GhError on any launch, exit or JSON failure."""
+    return factory_gh.run_gh(args, json_out=True)
+
+
+# gh exits 1 for EVERY HTTP error; its explicit not-found marker is the only absence signal.
+_HTTP_404 = "(HTTP 404)"
+
+
+ABSENT = object()  # a confirmed 404 — distinct from any successful JSON value, null included
+
+
+def gh_json_or_absent(args):
+    """gh_json, except that a genuine 404 returns ABSENT: a COMPLETED gh process (integer,
+    non-zero status — None is a launch failure) whose captured stderr carries "(HTTP 404)".
+    Exit 1 alone, other 404 digits and any status-zero result (even malformed JSON with a 404
+    in stderr) raise GhError. Local on purpose: only blockers and parent_of may read absence."""
+    result = factory_gh.try_gh(args, json_out=True)
+    if result.ok:
+        return result.value
+    if isinstance(result.status, int) and result.status != 0 and _HTTP_404 in result.stderr:
+        return ABSENT
+    raise result.error
+
+
+def unusable(args, value, want):
+    """GhError for a successful read whose payload is not the shape the caller needs."""
+    return factory_gh.GhError(args, 0, json.dumps(value), "",
+                              f"gh {' '.join(args[:2])} returned an unusable payload",
+                              args[1] if len(args) > 1 else "gh",
+                              f"expected {want}; only a confirmed HTTP 404 means absence")
+
+
+def require(args, value, ok, want):
+    """value itself when ok; otherwise the typed unusable GhError, raised before any decision."""
+    if not ok:
+        raise unusable(args, value, want)
+    return value
+
+
+# The decision-field checks (M1, FEAT-2452 c2). Every field frontier or resolve DECIDES on is
+# checked before the decision, so a malformed successful payload can never read as "closed",
+# "unclaimed" or "no section": it is unusable, exactly like a failed read.
+def _string(value):
+    return isinstance(value, str)
+
+
+def _list(value):
+    return isinstance(value, list)
+
+
+def _state(value):
+    """An issue state: a string whose lowercase is open or closed. Missing, null, unknown and
+    non-string states are unusable, never 'not open'."""
+    return isinstance(value, str) and value.lower() in ("open", "closed")
+
+
+def _number(value):
+    """A positive integer issue number; bool, 0, negatives, strings and floats are not."""
+    return type(value) is int and value >= 1
+
+
+def _fields(value, **checks):
+    """value is a JSON object whose every named field passes its check."""
+    return isinstance(value, dict) and all(check(value.get(f)) for f, check in checks.items())
+
+
+def _list_of(value, item_ok):
+    return isinstance(value, list) and all(item_ok(item) for item in value)
+
+
+def _labels(value):
+    """gh's labels: a list of label objects, each with a string name."""
+    return _list_of(value, lambda label: _fields(label, name=_string))
 
 
 def do(cmds, apply):
@@ -81,10 +151,7 @@ def do(cmds, apply):
         if not apply:
             print("  would run: gh " + " ".join(c))
             continue
-        r = subprocess.run([ghi.gh_bin()] + c, capture_output=True, text=True)
-        if r.returncode != 0:
-            die(f"gh {' '.join(c[:3])}… failed: {(r.stderr or '').strip()}")
-        out = (r.stdout or "").strip()
+        out = factory_gh.run_gh(c)
         if out:
             print(f"  {out.splitlines()[-1]}")
     if not apply:
@@ -100,50 +167,79 @@ def ensure_labels(repo, apply):
              "--description", LABELS[n][1]] for n in missing], apply)
 
 
+def issue_args(repo, num, fields):
+    return ["issue", "view", str(num), "-R", repo, "--json", fields]
+
+
 def issue(repo, num, fields="number,title,state,assignees,labels,body"):
-    d = gh_json(["issue", "view", str(num), "-R", repo, "--json", fields], allow_fail=True)
-    if d is None:
-        die(f"issue #{num} not readable in {repo}")
-    return d
+    return gh_json(issue_args(repo, num, fields))
+
+
+def checked_issue(repo, num, want, **checks):
+    """issue() for a read a decision rests on: exactly the JSON fields named in `checks`, each
+    passing its check, or the typed unusable GhError."""
+    args = issue_args(repo, num, ",".join(checks))
+    value = gh_json(args)
+    return require(args, value, _fields(value, **checks), want)
 
 
 def sub_issues(repo, num):
-    return gh_json(["api", f"repos/{repo}/issues/{num}/sub_issues", "--paginate"]) or []
+    """The map's tickets: a list of issue objects, each with a positive number and an open or
+    closed state (frontier and map decide on both); anything else raises."""
+    args = ["api", f"repos/{repo}/issues/{num}/sub_issues", "--paginate"]
+    value = gh_json(args)
+    return require(args, value, _list_of(value, lambda s: _fields(s, number=_number, state=_state)),
+                   "a JSON list of issue objects, each with a positive number and an open or closed state")
 
 
 def blockers(repo, num):
-    return gh_json(["api", f"repos/{repo}/issues/{num}/dependencies/blocked_by",
-                    "--paginate"], allow_fail=True) or []
+    """The issues blocking #num (404 = none). Any other payload that is not a list of issue
+    objects, each with an open or closed state, raises."""
+    args = ["api", f"repos/{repo}/issues/{num}/dependencies/blocked_by", "--paginate"]
+    value = gh_json_or_absent(args)
+    if value is ABSENT:
+        return []
+    return require(args, value, _list_of(value, lambda b: _fields(b, state=_state)),
+                   "a JSON list of issue objects, each with an open or closed state")
 
 
 def ticket_type(iss):
-    for l in iss.get("labels", []):
-        n = l["name"] if isinstance(l, dict) else str(l)
+    for l in iss["labels"]:  # frontier verified a list of label objects with string names
+        n = l["name"]
         if n.startswith("wayfinder:") and n.split(":", 1)[1] in TYPES:
             return n.split(":", 1)[1]
     return "?"
 
 
 def frontier(repo, mapnum):
-    """Open sub-issues whose every blocker is closed and which nobody has claimed."""
+    """Open sub-issues whose every blocker is closed and which nobody has claimed. Every field
+    decided on (states, numbers, assignees, labels) is verified before the decision."""
     out = []
     for s in sub_issues(repo, mapnum):
-        if (s.get("state") or "").lower() != "open":
+        if s["state"].lower() != "open":
             continue
         num = s["number"]
-        if any((b.get("state") or "").lower() == "open" for b in blockers(repo, num)):
+        if any(b["state"].lower() == "open" for b in blockers(repo, num)):
             continue
-        full = issue(repo, num, "number,title,assignees,labels")
-        if full.get("assignees"):
+        full = checked_issue(repo, num, f"issue #{num} with its own number, a string title, an "
+                             "assignees list and a list of named labels",
+                             number=lambda n: _number(n) and n == num, title=_string,
+                             assignees=_list, labels=_labels)
+        if full["assignees"]:
             continue                      # claimed — another session owns it
         out.append(full)
     return out
 
 
 def parent_of(repo, num):
-    """The map a ticket belongs to, via the sub-issues parent endpoint (404 = no parent)."""
-    p = gh_json(ghi.parent_args(repo, num), allow_fail=True)
-    return p.get("number") if isinstance(p, dict) else None
+    """The map a ticket belongs to, via the sub-issues parent endpoint (404 = no parent).
+    Any other payload without a positive integer `number` raises GhError."""
+    args = ghi.parent_args(repo, num)
+    p = gh_json_or_absent(args)
+    if p is ABSENT:
+        return None
+    return require(args, p, _fields(p, number=_number),
+                   "an issue object with a positive integer number")["number"]
 
 
 def append_gist(repo, mapnum, line, apply):
@@ -154,7 +250,7 @@ def append_gist(repo, mapnum, line, apply):
     that silently stops being an index. Inserted at the END of the section so the list reads
     in resolution order.
     """
-    body = issue(repo, mapnum, "body").get("body") or ""
+    body = checked_issue(repo, mapnum, "an issue object with a string body", body=_string)["body"]
     head = "## Decisions so far"
     if head not in body:
         die(f"map #{mapnum} has no '{head}' section — fix the map body first; the gist has "
@@ -168,10 +264,7 @@ def append_gist(repo, mapnum, line, apply):
     if not apply:
         print(f"  would append to map #{mapnum} '## Decisions so far':\n    {line}")
         return
-    r = subprocess.run([ghi.gh_bin(), "issue", "edit", str(mapnum), "-R", repo, "--body-file", "-"],
-                       input=new_body, capture_output=True, text=True)
-    if r.returncode != 0:
-        die(f"gh issue edit (map body) failed: {(r.stderr or '').strip()}")
+    factory_gh.run_gh(["issue", "edit", str(mapnum), "-R", repo, "--body-file", "-"], input=new_body)
     print(f"  gisted on map #{mapnum}")
 
 
@@ -261,9 +354,9 @@ def main():
                   f"-F sub_issue_id=<the new issue's internal id, NOT its number>")
             print("DRY RUN — nothing changed. Re-run with --apply.")
             return 0
-        url = gh_json(["issue", "create", "-R", repo, "--label", f"wayfinder:{ttype}",
-                       "--title", title, "--body", "## Question\n\n<the decision this resolves>\n"])
-        num = str(url).rstrip("/").split("/")[-1]
+        create = ["issue", "create", "-R", repo, "--label", f"wayfinder:{ttype}",
+                  "--title", title, "--body", "## Question\n\n<the decision this resolves>\n"]
+        num = str(factory_gh.issue_number_from_url(create, factory_gh.run_gh(create)))
         # THE TRAP, and it has TWO layers. sub_issues takes the child's internal id,
         # never its number -- and `gh issue view --json id` returns the GraphQL NODE
         # id (`I_kwDO...`), not the REST integer the endpoint wants. The node id is
@@ -309,14 +402,23 @@ def main():
         if mapnum is None:
             die(f"ticket #{t} has no parent map — attach it first "
                 f"(wayfind.py ticket <map#> <type> …), or this is not a wayfinding ticket.")
-        ti = issue(repo, t, "title")
+        ti = checked_issue(repo, t, "an issue object with a string title", title=_string)
         do([comment, ["issue", "close", t, "-R", repo]], apply)
-        append_gist(repo, mapnum, f"- [#{t} {ti.get('title','')}]"
+        append_gist(repo, mapnum, f"- [#{t} {ti['title']}]"
                     f"(https://github.com/{repo}/issues/{t}) — {gist}", apply)
         return 0
 
     die(f"unknown subcommand {sub!r}")
 
 
+def cli():
+    """The CLI entry: one GhError catch turns any gh failure into the wayfind-prefixed
+    diagnostic and exit 1, never a traceback; the functions above stay typed for tests."""
+    try:
+        return main()
+    except factory_gh.GhError as error:
+        die(f"gh {' '.join(error.argv[:3])}… failed: {error}")
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(cli())

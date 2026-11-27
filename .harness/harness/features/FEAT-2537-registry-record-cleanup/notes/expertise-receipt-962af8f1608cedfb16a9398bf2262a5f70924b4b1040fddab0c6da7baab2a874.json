@@ -1,0 +1,94 @@
+{
+  "batches": [
+    {
+      "after_sha256": "f221367f18df227a0dcd4d6e0c42a054a60c7edefa1edc5b643f57c2e70d63eb",
+      "before_sha256": "0e94748d78e1b9624a94ea794ce1b4ec3a329d78773aa7bab0db27bd2ee8af86",
+      "destination": ".harness/harness/expertise/harness-pm.md",
+      "id": "ad4e4eb509a4506e067083eed9ac5ed281406937e5d08f47380bc48859f33095",
+      "ops": [
+        {
+          "entry": "WHEN running check-plan-routes.py DO pass your own plan.yaml FILE: with no argument it reports every live plan, so other features' DEVIATION lines read as yours, and handed a directory it raises IsADirectoryError and exits 1, which reads as a gate failure rather than a bad argument.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-05",
+          "why": "Merges G-10 into G-05 (same script, same argument rule) to free a Gotchas slot; no longer than the longer input."
+        },
+        {
+          "op": "drop",
+          "section": "Gotchas",
+          "target": "G-10",
+          "why": "Absorbed into G-05."
+        },
+        {
+          "entry": "WHEN quoting a decisions_affected clause that wraps across a DECISIONS.md line break DO write it as a double-quoted scalar with a literal \\n at the break: plan-merge check requires the clause as an exact substring of the decision's section, newlines included, so a space-joined wrap fails as not verbatim.",
+          "op": "add",
+          "section": "Gotchas",
+          "target": "G-16",
+          "why": "Own log bullet 1; confirmed at control plane plan_merge/check.py _rows_faults (str(clause) not in section). Repository-specific gate behaviour."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN running check-plan-routes.py DO pass your own plan's path. With no argument it reports over every live plan, so other features' DEVIATION lines land in your output and read as yours; only the summary line is global.",
+          "section": "Gotchas",
+          "target": "G-05"
+        },
+        {
+          "original": "WHEN running check-plan-routes.py DO pass a plan.yaml FILE: handed the feature directory it raises IsADirectoryError and exits 1, which reads as a gate failure rather than as a bad argument.",
+          "section": "Gotchas",
+          "target": "G-10"
+        },
+        {
+          "original": null,
+          "section": "Gotchas",
+          "target": "G-16"
+        }
+      ],
+      "recorded_at_ns": 1795617082137194000,
+      "seq": 1,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "531d81df8f79278ba586c259abcca51b746b746072f4e3952e76d7046a2ec510",
+      "before_sha256": "04a9f00f35e236e3b2b9b303d0577220000c40e18865fd4a56a2befd7362957c",
+      "destination": ".harness/expertise/harness-pm.md",
+      "id": "95fef527065e4f6e8b81a9fdc5f4c1030e6ab4a361f60ffe013fa73a4ce40986",
+      "ops": [
+        {
+          "entry": "WHEN a plan removes a branch that accepts a class of inputs DO enumerate what its predicate actually accepted, including the vacuous instance and data-carrying instances, not only the minimal example, and require a case-level test witness per signed behaviour delta before signature; otherwise deltas surface only by validation probes.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-11",
+          "why": "Own log bullets 2-3 and both rulings' Gap: the empty instance was caught at intake, the row-carrying foreign-version instance escaped to validate untested. Displaces P-11, which duplicates the preloaded harness-brief red flag (an SC quantifying over more than the work can touch)."
+        },
+        {
+          "entry": "WHEN a predicate or criterion names raw input, bytes or exact output DO treat decoded, parsed, trimmed or newline-normalized forms as a different clause: specify which form is contractual, require a case where normalization changes the outcome, and grade a normalized comparison partial, never adequate by argument.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-06",
+          "why": "My goal-check called a json.loads comparison 'adequate' for a bytes clause; the c1 ruling found a text-mode read let a CRLF mutant pass, costing an escalation. Sharpens G-06 to cover grading as well as specifying; drops its narrow passthrough sub-clause; same length."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a criterion quantifies over a scope DO check, before dispatch, that the tasks tracing to it carry file lists covering that scope. A task naming one file cannot satisfy a clause over every document, so the criterion fails at goal-check for a planning reason no retry can fix.",
+          "section": "Patterns",
+          "target": "P-11"
+        },
+        {
+          "original": "WHEN a path or input predicate is contractual DO specify whether it classifies raw or normalized input and require cases where normalization changes category. Preserve the original-entry passthrough rule separately; trimming or unquoting before classification can invalidate an otherwise matching predicate.",
+          "section": "Gotchas",
+          "target": "G-06"
+        }
+      ],
+      "recorded_at_ns": 1795617087666621000,
+      "seq": 2,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2537-registry-record-cleanup",
+  "parent_id": "Feat2537DistillProduct",
+  "persona": "harness-pm",
+  "runtime_id": "Feat2537DistillProduct.ArrogantWhitefish",
+  "schema": 1
+}

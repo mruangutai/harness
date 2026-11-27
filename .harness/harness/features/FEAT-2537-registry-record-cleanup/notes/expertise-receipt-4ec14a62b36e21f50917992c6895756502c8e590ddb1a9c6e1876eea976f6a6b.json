@@ -1,0 +1,86 @@
+{
+  "batches": [
+    {
+      "after_sha256": "60f710d560a4721903f577c9c560d55c4db8d3c7670590d747823064df1cb520",
+      "before_sha256": "309c90eb6e9374ffb98b54ff622b7ccee6384996755b55f99c378d5086c029f1",
+      "destination": ".harness/harness/expertise/harness-orchestrator.md",
+      "id": "7639f3f2af18e648c195365612e64e4e49e798d018c74e5afe25b16914d3e82d",
+      "ops": [
+        {
+          "entry": "WHEN a feature's pull request is about to merge DO append and commit your observations log first — the post-merge sweep ships the feature and then removes its worktree, so a log left uncommitted there never reaches the merged branch and can vanish before distillation reads it.",
+          "op": "add",
+          "section": "Gotchas",
+          "target": "G-17",
+          "why": "The orchestrator log was still uncommitted at merge and survived only because the sweep removes a worktree after the ship record lands. Turns on this repository's post-merge-sweep.py (ship, then feature-worktree remove), so repository tier; Gotchas had a free slot."
+        }
+      ],
+      "originals": [
+        {
+          "original": null,
+          "section": "Gotchas",
+          "target": "G-17"
+        }
+      ],
+      "recorded_at_ns": 1795617734673590000,
+      "seq": 1,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "65a1264f12dd8632912bc687ea565576d36c4ab2745a00973b70bb56993e90a3",
+      "before_sha256": "9ef967dfb52715dedc1efd111f7d62f2054db27057e1fe349b55cf5428bc79d1",
+      "destination": ".harness/expertise/harness-orchestrator.md",
+      "id": "3fa3da868dd32aa5f6a39c8f09dd4f49eb77cea97557768ee4ad49b10e9c6c01",
+      "ops": [
+        {
+          "entry": "WHEN a ruling grants exactly one fix round DO quote its operative wording verbatim in the fix dispatch as the acceptance, and brief the letter rather than the intent — an intent-met fix that misses the letter fails re-validation, and the round it then needs was never granted.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-06",
+          "why": "One granted round was spent on a fix that met the ruling's intent but not its literal wording (a text-mode read where it said raw bytes), forcing a completion round and a full extra validate dispatch. Displaces G-06, the weakest Gotcha: it turns on one repository's record file and its failure is cheap and self-diagnosing."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN an acceptance you hand a lead says the tree must be clean DO exclude the feature record file — run-start and the host token stamp rewrite it during every run, so a clean-tree gate over it fails on the dispatch's own bookkeeping.",
+          "section": "Gotchas",
+          "target": "G-06"
+        }
+      ],
+      "recorded_at_ns": 1795617734718881000,
+      "seq": 2,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "8914f643bee0fbac161ad01527dce594bac79f0d71f1ba52f200cf36ea5a92ce",
+      "before_sha256": "60f710d560a4721903f577c9c560d55c4db8d3c7670590d747823064df1cb520",
+      "destination": ".harness/harness/expertise/harness-orchestrator.md",
+      "id": "1d68ca9006abeaaad43e1527e89b626366f832aa8be74066e9e62631c619c3ba",
+      "ops": [
+        {
+          "entry": "WHEN a feature's pull request is about to merge DO leave one orchestrator observation uncommitted in the worktree — the post-merge sweep removes a clean worktree once the ship record lands and keeps a dirty one, and distillation needs the worktree; the distill commit stages the log.",
+          "op": "add",
+          "section": "Gotchas",
+          "target": "G-17",
+          "why": "Re-judgment: my first G-17 inverted the log bullet and directed committing the log first, which would let the sweep remove the worktree before distill. The worktree survived the ship-record merge because the log was uncommitted; check-state's INV-29 text confirms remove declines on a dirty tree."
+        }
+      ],
+      "originals": [
+        {
+          "original": null,
+          "section": "Gotchas",
+          "target": "G-17"
+        }
+      ],
+      "recorded_at_ns": 1795617811260989000,
+      "seq": 3,
+      "supersedes": [
+        "7639f3f2af18e648c195365612e64e4e49e798d018c74e5afe25b16914d3e82d"
+      ]
+    }
+  ],
+  "feature": "FEAT-2537-registry-record-cleanup",
+  "parent_id": "Main",
+  "persona": "harness-orchestrator",
+  "runtime_id": "Feat2537DistillOrch",
+  "schema": 1
+}

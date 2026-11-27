@@ -1,0 +1,9 @@
+# rg 'mkstemp|os\.replace' .claude/skills/harness/bin/plan_merge/
+# exit code: 1 (1 = no match)
+# rg -n 'def _replace_bytes|def _restore_plan|harness-merge.journal|JOURNAL_SUFFIX' .claude/skills/harness/bin/plan_merge/
+# exit code: 1
+# SC-05: check( calls in the three successors (base: 1 + 4 + 3 = 8)
+case_1985_amend_writes_nothing_when_the_ledger_fails 1
+case_b1716_record_amendments_is_all_or_nothing 4
+case_b1716_record_amendments_writes_nothing_on_a_ledger_io_error 3
+total 8

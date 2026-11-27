@@ -1,0 +1,120 @@
+schema_version: 2
+run_id: plan-product
+run_uid: 4edff9ac0ef24b6cb08748b7c2efe50a
+feature: FEAT-2542-dispatcher-placement
+squad: product
+host: harness-product-lead
+team: plan
+status: complete
+steps:
+  - id: draft
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2542-dispatcher-placement/BRIEF.md
+      - .harness/harness/features/FEAT-2542-dispatcher-placement/plan.yaml
+    mutates_repo: true
+    on_fail: none
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    artifact: .harness/harness/features/FEAT-2542-dispatcher-placement/BRIEF.md
+    note: 2 tasks T-01 T-02, SC-01..SC-05, DEC-258 new, check 0 failures; probe 98 rows 59 changed 39 same
+    evidence:
+      check_failures: 0
+      probe_rows: 98
+      probe_changed: 59
+  - id: scope
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: [draft]
+    outputs:
+      - .harness/harness/features/FEAT-2542-dispatcher-placement/notes/review-harness-code-reviewer-plan-c1.md
+    mutates_repo: false
+    on_fail: loop_back
+    max_cycles: 1
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    dispatched_at: seq-3
+    completed_at: seq-4
+    cycles: 0
+    artifact: .harness/harness/features/FEAT-2542-dispatcher-placement/notes/review-harness-code-reviewer-plan-c1.md
+    note: findings-FAIL not invalid return; no loop_back; 2 high 2 med substance 1 low form go to apply
+  - id: should-not-exist
+    persona: fable-advisor
+    seq: 2
+    depends_on: [draft]
+    outputs: []
+    mutates_repo: false
+    on_fail: loop_back
+    max_cycles: 1
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-3
+    completed_at: seq-4
+    cycles: 0
+    artifact: runs/plan-product/panel-c1.md
+    note: ran; 1 proportionality scope task low, 1 substance low
+  - id: design
+    persona: harness-ui-reviewer
+    seq: 2
+    depends_on: [draft]
+    outputs:
+      - .harness/harness/features/FEAT-2542-dispatcher-placement/notes/review-harness-ui-reviewer-plan-c1.md
+    mutates_repo: false
+    on_fail: loop_back
+    max_cycles: 1
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    dispatched_at: seq-3
+    completed_at: seq-4
+    cycles: 0
+    artifact: .harness/harness/features/FEAT-2542-dispatcher-placement/notes/review-harness-ui-reviewer-plan-c1.md
+    note: in scope on denial text; 3 med substance remedy wording
+  - id: apply
+    persona: harness-pm
+    seq: 3
+    depends_on: [scope, should-not-exist, design]
+    outputs:
+      - .harness/harness/features/FEAT-2542-dispatcher-placement/BRIEF.md
+      - .harness/harness/features/FEAT-2542-dispatcher-placement/plan.yaml
+    mutates_repo: true
+    on_fail: none
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    dispatched_at: seq-5
+    completed_at: seq-6
+    redispatched_at: seq-9
+    recompleted_at: seq-10
+    redispatches: 1
+    cycles: 1
+    routed_by: harness-product-lead
+    artifact: .harness/harness/features/FEAT-2542-dispatcher-placement/plan.yaml
+    note: 9 of 10 resolved, PF-0017 open; send-back added c38/distill/foreign-tree-root (GC-1), check exit 0
+    evidence:
+      findings_resolved: 9
+      findings_open: 1
+  - id: goalcheck
+    persona: harness-pm
+    seq: 4
+    depends_on: [apply]
+    outputs:
+      - .harness/harness/features/FEAT-2542-dispatcher-placement/notes/research-FEAT-2542-dispatcher-placement-goalcheck-plan.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    dispatched_at: seq-7
+    completed_at: seq-8
+    cycles: 0
+    artifact: .harness/harness/features/FEAT-2542-dispatcher-placement/notes/research-FEAT-2542-dispatcher-placement-goalcheck-plan.md
+    note: 4 perspectives met; test-matrix partial (GC-1) later discharged by apply send-back, lead-verified by grep plan.yaml c38/distill/foreign-tree-root
