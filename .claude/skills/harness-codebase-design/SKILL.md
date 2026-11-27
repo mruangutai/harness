@@ -54,6 +54,25 @@ the seam. `harness-code-risk-grading` is the measured proxy for the layers axis;
 proxy, reader load is the thing. **The 30-second test:** can a new reader answer "where does X
 come from?" and "what can change X?" in 30 seconds? If not, cut layers or cut state.
 
+## Layout — where a split lands
+
+When a file has more than one thing to say, split it at the seam where its functions' reads
+diverge, in the same change (`harness-craft` › delete-first, "Put it where its inputs are"). Give
+the split one shape:
+
+- **The entry stays put and thin.** The file callers invoke keeps its name and path, and only
+  parses and dispatches. No logic stays behind.
+- **The package is the entry's twin.** One package named for the entry, never flat siblings
+  sharing a prefix: the directory is the grouping a prefix only imitates.
+- **Name a module for what its functions read**, never by subject or by kind (`utils`, `helpers`,
+  `common`). Short nouns the package path completes: `orders/refund`, not `orders/order_refund`.
+- **One home per domain.** Other code imports from the package; no second module serves the
+  same domain beside it.
+- **A split moves code without changing it.** Callers migrate in the same change, and no
+  re-export shim stays behind.
+
+Size is judged in review, never capped: a file is too long when it says two things.
+
 ## Applying it
 
 - **eng-lead, at dispatch:** name the seam and the interface the task creates or reshapes; state
@@ -70,3 +89,8 @@ come from?" and "what can change X?" in 30 seconds? If not, cut layers or cut st
 - **code-reviewer, stage two:** shallow module (interface nearly as complex as its implementation),
   tests reaching past the interface, adapters nothing varies across — each is a finding shape with
   a concrete failure scenario attached, per `harness-code-review`.
+- **eng-lead at architecture review, code-reviewer at stage two — layout:** flat
+  prefixed siblings, a module named by subject or kind, an entry that kept logic, two homes for
+  one domain, or a re-export shim — each is a finding with its concrete failure scenario, per
+  `harness-code-review`. In the Harness control plane, also judge a `bin/` change against the
+  layout entry in AGENTS.md's project map.

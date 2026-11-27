@@ -1,0 +1,20 @@
+# FEAT-2557 · T-01 · cycle 2 code review
+
+**PASS — the c1 must-fix and DEC-149 citation issue are closed.** DEC-259 names the live INV-40 re-export as a finding, not a waiver. One non-gating wording advisory remains. Reviewed `cf7b422b2e55ae4c9129a8009e240b56c6e25035..afd20116a2d5b9ffcbd243cb61c1f282e3935318`; fix range starts at `5c600680`. Human commits in scope: `5c600680`, `ef69b397`.
+
+## Stage 1 — spec compliance and inspection
+
+- **SC-01** — `.claude/skills/harness-codebase-design/SKILL.md:57` has the exact heading; `:59` split trigger and delete-first citation, `:63` thin entry at the same path, `:65` twin package/no flat siblings, `:67` read-based short names, `:69` one domain home, `:71` unchanged move/caller migration/no shim, `:74` review/no cap. The section is language-neutral.
+- **SC-02** — `.claude/skills/harness-codebase-design/SKILL.md:92–96` names both review roles, all five findings, and the AGENTS.md project-map check.
+- **SC-03** — `.claude/skills/harness/bin/LAYOUT.md:3–21` contains only the agreed scope, two-column table and Python mechanics. All named bin paths resolve at the pin; both initializers are zero bytes.
+- **SC-04** — `AGENTS.md:25` is the only LAYOUT.md path; `AGENTS.md:50` is the exact pathless convention.
+- **SC-05 / D-01** — `.harness/harness/docs/DECISIONS.md:8758–8809` records the layout, three homes, review-only ruling and FEAT-69/70/71 history. The qualification at `:8790–8794` leaves Chose (`:8760–8765`) intact and sharpens, rather than changes, T-01’s signed intent. Pinned `gen-decisions-index.py --stdout` exactly matched `DECISIONS-INDEX.md` (DEC-259 row `:242`; only its derived tags changed). `check-decision-anchors.py` exited 0: 25 anchors, 0 failed.
+- **SC-06** — `git diff --name-status` from merge base to pin contains only the five product docs cited above and this feature’s directory; `5c600680..afd20116` changes only the two decision docs (`.harness/harness/docs/DECISIONS.md:8790`, `.harness/harness/docs/DECISIONS-INDEX.md:242`) and feature records. No Python, enforcement, test or delete-first changes; code grade `n_a`.
+
+## Stage 2 — evidence and finding
+
+- **Must-fix closure:** `a98451c5:plan-merge.py` (under `bin/`) already re-exported the symbol at `:139`; the pin still imports `plan_merge.approval.signed_task_hash` at `plan-merge.py:141`. `check_state/ctx.py:360–365` loads that script by path and reads the attribute; `check_state/feature_record.py:626–637` uses it for INV-40. Dropping the shim first would raise `AttributeError`; an import failure instead goes to `ctx.bad`, not a silent pass (`ctx.py:366–372`, `runner.py:221,281`). Both entry and loader are unchanged. The new prose tells the reader to migrate the actual caller before removing the shim.
+- **Citation closure:** Pinned `.omp/agents/harness-*.md` `autoloadSkills` lists contain the skill for ai-dev (`:25`), backend-dev, data-engineer, dev-ops and frontend-dev (each `:23`), eng-lead (`:26`) and code-reviewer (`:22`). DEC-259 `:8799–8801` points to that frontmatter for current delivery and uses DEC-149 only for origin (`DECISIONS.md:3464–3473`). DEC-235 supports leaving craft leaves unpreloaded (`:7992–8009`). The pinned weight check emitted no overage note (largest: eng-lead, 5,178 words).
+- **T-01 · form · low:** The words “with one exception” (`DECISIONS.md:8791`) can make FEAT-70 sound like an exhaustive precedent for all of Chose. FEAT-70 also created `plan_merge/guards.py` (its `:1` groups destination, reload, schema and lock by kind), and the landed change altered block-scalar rendering (`a98451c5^` `plan-merge.py:2904–2912` vs `a98451c5` `plan_merge/text.py:418–433`, paths under `bin/`). A reviewer treating everything but the shim as precedent could accept another kind-named `guards` bucket despite the explicit Applying-it rule. This does not reopen the gate: the paragraph documents the historical entry/package shape and calls the actual shim a finding. For precision, describe the shared shape without claiming an exception count.
+
+No new open questions or scope changes.

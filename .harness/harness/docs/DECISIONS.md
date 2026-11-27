@@ -8752,3 +8752,56 @@ DEC-228, DEC-250 or DEC-253:
 
 Executed main-session-direct under DEC-174. Refs: DEC-100, DEC-174, DEC-204, DEC-214, DEC-218,
 DEC-228, DEC-250, DEC-253.
+
+## DEC-259 — A long file splits into a thin entry over its twin package, modules named by what they read; review enforces it, no lint
+
+**Chose:** a long file splits where its functions' reads diverge, in the same change. The entry
+keeps its name and path and only parses and dispatches. The code moves into one twin package named
+for the entry, never flat siblings sharing a prefix. Modules are named for what their functions
+read, never by subject or by kind. Each domain has one home. A split moves code without changing
+it, migrates every caller in the same change and leaves no re-export shim. Size is judged in
+review, never capped.
+
+The rule has three homes:
+- `harness-codebase-design`'s `## Layout — where a split lands`, language-neutral and binding in
+  every repository Harness builds, with its review findings in that skill's `## Applying it` for
+  eng-lead architecture review and code-reviewer stage two;
+- `.claude/skills/harness/bin/LAYOUT.md`, the Harness Python mechanics: a hyphenated entry, an
+  underscore package with an empty `__init__.py`, an entry that puts its own directory on
+  `sys.path` and imports what it dispatches, flat modules serving one package moving into it, and
+  cross-cutting ones such as `harness_boundary.py` staying flat;
+- `AGENTS.md`, whose project map row locates `LAYOUT.md` and whose pathless Conventions bullet
+  sends the main session to the skill before it writes code.
+
+**Over:**
+- a lint, length cap or ratchet: there is no evidence the prose fails, and FEAT-69 ruled
+  prose first;
+- flat prefixed siblings in the `check_state_*` style, and `utils`, `helpers` or `common` modules;
+- the rule in `harness-digest-dev`, which is the dev return contract (DEC-126), not a writing
+  rule;
+- the rule only in `AGENTS.md`, which specialists never load; the main session loads no
+  autoloaded skill, so it needs the `AGENTS.md` pointer as well;
+- a size column in `LAYOUT.md`, since sizes rot and read as a target;
+- a script catalogue in `LAYOUT.md`, since every script's docstring already says what it does.
+
+**Because:**
+- FEAT-69 (`d8b139de`, #1981) split `check-state.py` into `check_state/`, and FEAT-70
+  (`a98451c5`, #1990) split `plan-merge.py` into `plan_merge/`, in this shape, with one exception
+  this rule now names as a finding: `plan-merge.py` still re-exports
+  `plan_merge.approval.signed_task_hash`, because `check_state/ctx.py` `_load_hash_module` loads
+  the entry by path for INV-40. Removing it means migrating that loader first.
+- The convention's only full record was the FEAT-69 grilling note
+  (`.harness/notes/grilling-long-file-check-state-package-2026-09-28.md`, readable with
+  `git show d8b139de:<path>`). FEAT-71 (`a41f7cfc`) removed it, which left delete-first's one
+  split bullet as the only written rule.
+- `harness-codebase-design` is in the `autoloadSkills` frontmatter of every specialist that writes
+  code and of eng-lead and code-reviewer, so a rule written there reaches each of them in every
+  repository. DEC-149 brought the skill in, and DEC-235 keeps craft leaves unpreloaded.
+
+**Tradeoff accepted:**
+- Enforcement is a reviewer reading a diff; nothing mechanical catches a deviation.
+- Test-code layout is not covered, and harness-qa does not load the skill.
+
+**Record:** FEAT-2557 (#2557), plan decision D-01, signed by Mike Ruangutai on 2026-11-27.
+Executed main-session-direct under the operator's INV-32 ruling. Refs: DEC-149, DEC-158, DEC-202,
+DEC-205, DEC-235.
