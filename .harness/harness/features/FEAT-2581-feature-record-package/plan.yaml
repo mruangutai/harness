@@ -1,9 +1,56 @@
 schema: plan/1
 feature: FEAT-2581-feature-record-package
 approval:
-  status: pending
+  date: '2026-11-27'
+  approved_by: operator
+  status: approved
+  rulings:
+    - finding: PF-7999938a71e04c7860729d303f2b261f
+      who: operator
+      date: '2026-11-27'
+      reason: D-02 authorized by the operator (PL-01); measured records ruled after build
+    - finding: PF-d35d903d6c203003e66e3318fb098185
+      who: operator
+      date: '2026-11-27'
+      reason: operator keeps the bun-spawned class (PL-04)
+    - finding: PF-502d3541ddcee716cab0352ee9cd74cd
+      who: operator
+      date: '2026-11-27'
+      reason: operator keeps the bun-spawned class (PL-04)
+    - finding: PF-15af830698dd3f01b0b8ae282b52d78b
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-40325938c65b7df545d14241497b98f0
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-db2ae14a85c1a4e340b15bfecd4220f1
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-eec01ba2a60d3e9448d0c0a40c6a9b3b
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-5f54f524a721755e1a97984b4409881d
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-2528cfa8fb25dfde07a5cd4afc8c742e
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-a688e503b02a740a0aa1056852fe3e93
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-42a75f8f0b1fd63654040cd3baf0c0da
+      who: operator
+      date: '2026-11-27'
+      reason: stale wording fixed at build per operator signature
 drafted_at: '2026-11-27T16:23:46Z'
-status: plan
+status: ready
 source_issues: [2581, 2569]
 panel:
   last_run: repanel3-product

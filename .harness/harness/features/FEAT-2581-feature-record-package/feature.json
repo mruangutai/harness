@@ -115,5 +115,41 @@
       "reason": "repanel3-product FAIL: the four PL-11 findings closed but the one read raised 7 new substance findings in T-03 verify and BRIEF; operator ruled no further round; they return open for ruling at signature"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-2581-feature-record-package/notes/answers-2026-11-27-signature.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "fccdcad718382cc6cdb517aea5ef8da417653568a90332ede6b2b04d0e9d39a6",
+    "T-02": "0af862266abe8a785d1fd973d9cc0b638eb35669435cd17ec7545df56bf722bd",
+    "T-03": "28bd6b9d82dbea4c193afaf46c02afaa0af821d8518a5684c9652138507f59e9"
+  },
+  "github": {
+    "milestone": 145,
+    "parent": 2594,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2595,
+      "T-02": 2596,
+      "T-03": 2597
+    },
+    "source_issues": [
+      2581,
+      2569
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
