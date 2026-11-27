@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2557-code-layout-pattern",
   "branch": "feat/FEAT-2557-code-layout-pattern",
   "pr": null,
-  "review_sha": "5c600680e7f46af124fa3281392fa7b25623e982",
+  "review_sha": "afd20116a2d5b9ffcbd243cb61c1f282e3935318",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -52,6 +52,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-27T15:23:19+00:00"
+    },
+    {
+      "id": "r-20261127-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-27T15:24:57+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261127-2-validate-validator/digest.md",
+        "sha256": "7a202a9ffcaf616e163c042bf8c5d310b091c9804c04d79fb321fa848897c7af"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T15:31:38+00:00"
     }
   ],
   "judgements": [
@@ -89,6 +104,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Main session took over as orchestrator under DEC-174 after re-signature, built T-01 per handoff-plan, and continues into validate."
+    },
+    {
+      "at": "2026-11-27T15:24:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2: fix c1 applied main-session-direct at afd20116",
+      "reason": "Main session continues as orchestrator past handoff-build; one substance must-fix fixed inside the 1-round ruling; re-validate at afd20116."
+    },
+    {
+      "at": "2026-11-27T15:24:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Main session continues as orchestrator past handoff-build; one substance must-fix fixed inside the 1-round ruling; re-validate at afd20116."
     }
   ],
   "mission": "patch",
