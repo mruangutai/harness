@@ -1,0 +1,6 @@
+**FAIL — T-01 cannot name changed schema files in the refusal as SC-01 requires.** This is a text-only review of the operator-facing OMP refusal; no `DESIGN.md` was found, and the text contract is in `BRIEF.md` and `plan.yaml`.
+
+- **Substance · medium:** `plan.yaml:73–76` collapses all schema entries into one directory hash and constructs `PATHS` only from changed fingerprint keys. Changing `common.json`, adding `extra.json`, or removing `harness-pm.json` would therefore produce the schema directory path, not the individual changed file path that `BRIEF.md:32–40` and `plan.yaml:87` require. The restart remedy still works, but the diagnostic loses the detail it promises and those tests cannot pass as written.
+- **Must fix before approval:** Make T-01 retain enough information to name changed, added, and removed schema files relative to the loaded checkout. Explicitly specify the reported path for whole-directory removal and align the assertions and T-02 wording with that contract.
+
+The refusal states the action (`restart omp`) in plain text without relying on color. Visual design, theme parity, focus, and layout are not applicable; SC-10 is the planned check that the live OMP terminal actually shows the one-line remedy. No open questions.

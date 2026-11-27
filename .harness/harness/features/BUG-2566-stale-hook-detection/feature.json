@@ -1,0 +1,113 @@
+{
+  "feature_id": "BUG-2566-stale-hook-detection",
+  "branch": "feat/BUG-2566-stale-hook-detection",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-27-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T16:00:03+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-01-plan-product/digest.md",
+        "sha256": "1274b27c5670a515cb67ea34f114b1792b6082ba0c5356c14f2d633df6a9af3f"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T16:25:57+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-02-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T16:33:29+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-02-plan-product/digest.md",
+        "sha256": "6dd4a20b71e78907aaeb42a78d5e54d4856f6e6542a16d566d2b789d87a4f5f3"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T16:50:40+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-03-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-27T16:55:29+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-03-plan-product/digest.md",
+        "sha256": "8b0f58e1159588512adce335a79a9e74f79160027d0ba58a0708c6a00c69f0e4"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T17:05:20+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-27T16:00:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "adds a refusal to every governed tool call: new enforcement surface"
+    },
+    {
+      "at": "2026-11-27T16:33:29+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "apply operator answers, re-panel T-01, T-02",
+      "reason": "plan FAIL: two high applied unread; operator changed fingerprint set and took BLOCKED carve-out"
+    },
+    {
+      "at": "2026-11-27T16:55:29+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "final pm pass T-01 plus goal-check, no re-read",
+      "reason": "re-read FAIL on 4 T-01 substance findings (med/low); operator approved a final pm pass with goal-check, no re-read"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2566-stale-hook-detection/.harness/harness/features/BUG-2566-stale-hook-detection/notes/answers-2026-11-27-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "ff32566499f7effbd5261320afbe5cc46c48f8affd929588ae3c9e148a445e3d",
+    "T-02": "88c7554a84bc4d99fa908007197698d96db62a10d0175ac1671d24a99b0b2f61"
+  },
+  "github": {
+    "milestone": 144,
+    "parent": 2590,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2591,
+      "T-02": 2592
+    },
+    "source_issues": [
+      2566
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

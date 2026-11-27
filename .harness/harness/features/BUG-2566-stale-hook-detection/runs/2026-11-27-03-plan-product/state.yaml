@@ -1,0 +1,36 @@
+schema_version: 2
+run_id: 2026-11-27-03-plan-product
+run_uid: 47244949d6804e5eacdb1ca155e52697
+feature: BUG-2566-stale-hook-detection
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: apply
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/BUG-2566-stale-hook-detection/notes/research-apply-c3.md
+    note: 4 remedies in T-01.intent via amend; record-panel c3 + set-panel exit 0; 16/16 resolved T-01; check exit 0
+  - id: goalcheck
+    persona: harness-pm
+    seq: 2
+    depends_on: [apply]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: .harness/harness/features/BUG-2566-stale-hook-detection/notes/research-BUG-2566-stale-hook-detection-goalcheck-plan.md
+    note: SC-01..SC-10 met-in-plan vs amended intent; 3 non-blocking advisories
