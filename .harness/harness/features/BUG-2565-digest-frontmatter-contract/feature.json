@@ -2,7 +2,7 @@
   "feature_id": "BUG-2565-digest-frontmatter-contract",
   "branch": "feat/BUG-2565-digest-frontmatter-contract",
   "pr": null,
-  "review_sha": "ed064577a769b853e291cd71117404cb5dfc3731",
+  "review_sha": "3ab3471f2615ceb3e8b5ab5ef5c6d6efbccb7450",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
