@@ -1691,7 +1691,7 @@ describe("OMP task lifecycle adapter", () => {
   // `data` object is the digest the validator receives.
   const leadCtx = () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
   const mainCtx = () => ompContext("/repo", "Main", undefined, "main-session");
-  const guardCalls = (calls: Array<{ script: string }>) =>
+  const guardCalls = <Call extends { script: string }>(calls: Call[]) =>
     calls.filter((call) => call.script === "dispatch-guard.py");
   const digestCalls = <Call extends { script: string }>(calls: Call[]) =>
     calls.filter((call) => call.script === "validate-digest.py");
