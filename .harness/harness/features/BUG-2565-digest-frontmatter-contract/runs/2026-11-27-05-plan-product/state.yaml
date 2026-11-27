@@ -1,0 +1,37 @@
+schema_version: 2
+run_id: 2026-11-27-05-plan-product
+run_uid: 9ae793bb96b74e22b845187ad5710c0d
+feature: BUG-2565-digest-frontmatter-contract
+squad: product
+host: harness-product-lead
+team: plan
+status: complete
+verdict: PASS
+severity_max: med
+digest: .harness/harness/features/BUG-2565-digest-frontmatter-contract/runs/2026-11-27-05-plan-product/digest.md
+steps:
+  - id: answers
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/BUG-2565-digest-frontmatter-contract/plan.yaml
+      - .harness/harness/features/BUG-2565-digest-frontmatter-contract/notes/research-answers-c4-apply.md
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: Q-R4-1 applied; panel cycle 4 recorded; 5 PFs resolved; check 0 failures; approval pending
+    artifact: .harness/harness/features/BUG-2565-digest-frontmatter-contract/notes/research-answers-c4-apply.md
+    evidence:
+      pf_ids_resolved: [PF-3e23c499bba318c133baf80026c1592a, PF-cbf8dece633693ce07ab5a284be1a0cf, PF-25a87adffad1fd1f463f52b21ddb5b3e, PF-50024d3fe46e0d0aeb31788c55e947bf, PF-120f5374d27296822e9d10ea9d8adab9]
+      anchors_resolved: 36
+      check_failures: 0
+      approval_reset: false
+      brief_changed: false
+      open_gating_findings: 0

@@ -1,0 +1,169 @@
+{
+  "feature_id": "BUG-2565-digest-frontmatter-contract",
+  "branch": "feat/BUG-2565-digest-frontmatter-contract",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-27-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-11-27T15:14:32+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-01-plan-product/digest.md",
+        "sha256": "f099746412aab68912d4353e9484ab0960934b4322e7642343ba4c929dadbcb9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T15:38:46+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-02-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T15:38:56+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-02-plan-product/digest.md",
+        "sha256": "d2e6650e1ccda038d8b187f51cbb8c15219badb39e28e2f8b6437d2c5d7239cd"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T15:55:59+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-03-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T15:59:38+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-03-plan-product/digest.md",
+        "sha256": "0308e3390a13b805eb4ecf1cc3bced84781dceb62853006b7ababa7f92abe064"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T16:25:55+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-04-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T16:33:28+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-04-plan-product/digest.md",
+        "sha256": "3bf429a942909258430714570f88079050677f1e8d0c2c7bf2105fecdeb5019b"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T16:50:38+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-05-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-27T16:55:28+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-05-plan-product/digest.md",
+        "sha256": "a22975746d2ba8393fb5022ae24e0ab46be871488690157cd4dabafc29197a4a"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T17:05:17+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-27T15:14:31+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "changes an enforcement surface: yield gate failure class, digest schema delivery, new frontmatter drift check"
+    },
+    {
+      "at": "2026-11-27T15:59:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel T-01, T-02, T-04",
+      "reason": "scope reader FAIL: two high substance findings applied unread; operator ordered a scope re-read over T-01/T-02/T-04"
+    },
+    {
+      "at": "2026-11-27T16:33:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel T-01, T-02",
+      "reason": "scope re-read FAIL: T-01 three high, T-02 one med open; operator approved pm re-key plus bounded re-read"
+    },
+    {
+      "at": "2026-11-27T16:55:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "final pm pass T-01/T-02, no re-read",
+      "reason": "re-read FAIL on 2 med test-shape residuals; operator approved a final pm pass with no re-read"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2565-digest-frontmatter-contract/.harness/harness/features/BUG-2565-digest-frontmatter-contract/notes/answers-2026-11-27-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "e297553cf8f535aa9488af9297b58a44ceb20ebafb52650fdf40eaf9e74e00b4",
+    "T-02": "0e26ec1a496eebad2b4be7d5c88d56acd6b60c7287883e52165e21e357baf3f0",
+    "T-03": "5df484f46d5b9f1bc87e6ccdec4d47b5f34d18aa52619e4616dffd5ade33ebf2",
+    "T-04": "f0aac929fa43b621701f865950553ab2405f751dc32b51cbcbb04b433a525298",
+    "T-05": "a4627a47d644a35b3f80d20ac62f9b87f0cb16509f42580a0a8095f006920b0f",
+    "T-06": "cf83adaaf9eaf0457f45d9aab10c5a4fb8390e21231e73689e9959492d2cbdbb"
+  },
+  "github": {
+    "milestone": 143,
+    "parent": 2583,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 2584,
+      "T-02": 2585,
+      "T-03": 2586,
+      "T-04": 2587,
+      "T-05": 2588,
+      "T-06": 2589
+    },
+    "source_issues": [
+      2565,
+      2482
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "T-06": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
