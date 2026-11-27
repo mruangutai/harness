@@ -459,7 +459,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The amendments record the DEC-174 enforcement-layer change and land with it in the main session, as FEAT-2557 landed DEC-259.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
