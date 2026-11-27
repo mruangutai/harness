@@ -53,6 +53,22 @@
       "cycles_used": 1,
       "ended_at": "2026-11-27T17:51:26+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "repanel3-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T18:31:24+00:00",
+      "tokens": 118016,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/repanel3-product/digest.md",
+        "sha256": "ee68c1f06ab8db8d4c136c6edd79ff2c3a4080302e21476dd8dabed54050edee"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T18:55:16+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -83,6 +99,20 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "third plan-phase FAIL: 4 med substance findings open in T-03 verify plus the D-02 authorization; plan phase past its advisory minutes; operator decides one more bounded re-panel or a ruling at signature"
+    },
+    {
+      "at": "2026-11-27T18:31:24+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan re-panel cycle 4 over T-03 verify only, operator-ruled PL-11 (a)",
+      "reason": "repanel2-product FAIL: 4 med substance findings open in T-03 verify; operator answered PL-11 (a) in notes/answers-2026-11-27-plan-escalate.md: one bounded re-panel, pm rewrites around four guarantees, scope and design read once"
+    },
+    {
+      "at": "2026-11-27T18:55:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "repanel3-product FAIL: the four PL-11 findings closed but the one read raised 7 new substance findings in T-03 verify and BRIEF; operator ruled no further round; they return open for ruling at signature"
     }
   ],
   "mission": "plan"

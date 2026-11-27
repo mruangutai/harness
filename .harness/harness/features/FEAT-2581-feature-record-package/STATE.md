@@ -3,12 +3,12 @@
 ## Current
 
 - feature: FEAT-2581-feature-record-package
-- run: runs/repanel2-product/state.yaml (FAIL, panel cycle 3; preceded by plan-product FAIL, repanel-product FAIL)
+- run: runs/repanel3-product/state.yaml (FAIL, panel cycle 4; preceded by plan-product, repanel-product, repanel2-product, all FAIL)
 - squad: none
-- status: awaiting-user (plan and BRIEF pending, unsigned; cycles_used 3 of 10)
+- status: awaiting-user (plan and BRIEF pending, unsigned; cycles_used 3 of 10; no further plan round, operator ruling PL-11 (a))
 
 ## Open Questions
 
-- PL-11 (blocking): four med substance findings open and unapplied in T-03 verify (PF-96cdf9f1, PF-3882d444, PF-cf9cf710, PF-a37e5b40) — one more bounded re-panel, or a ruling at signature. Blocks the orchestrator.
-- PL-01 (blocking): authorize D-02 (PF-7999938a) — diagnostics naming deleted files point at the loaded module. Blocks signature.
-- PL-03, PL-04, PL-05, PL-06, PL-07, PL-09, PL-10 (non-blocking): runs/repanel2-product/digest.md.
+- OQ-SIG-C4 (blocking signature): rule the 8 open cycle-4 findings at signature — substance PF-15af8306, PF-40325938, PF-db2ae14a, PF-5f54f524, PF-eec01ba2, PF-2528cfa8, PF-a688e503; form PF-42a75f8f. Pointers: runs/repanel3-product/digest.md.
+- Carried, already ruled in notes/answers-2026-11-27-plan-escalate.md, written at signature: PF-7999938a (D-02), PF-d35d903d, PF-502d3541.
+- OQ-C4-1, OQ-C4-2, OQ-C4-3 (non-blocking): runs/repanel3-product/digest.md.

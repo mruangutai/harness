@@ -33,14 +33,18 @@ changes the destination. Every figure here was re-measured in the worktree at ba
    strict_json_loads, load_frontmatter, load_omp_config and load_harness_json. **None belongs to
    the moving loader**; all 4 stay. The moving loader's only row is the historical
    `feature_json_write.py::load_feature_json::json_string#1` (T-07 relocation identity).
-3. **Remedy strings.** 24 rows not sourced from moving code carry
+3. **Remedy strings.** 24 rows carry (corrected 2026-11-27, re-counted at e12381fd: 23 rows not
+   sourced from moving code plus the moved loader's own `feature_json_write.py` row; first written
+   as "24 rows not sourced from moving code")
    `remedy: artifact_accessors.load_feature_json`; `canonical_reader_audit.py` matches a canonical
    row only when a call's resolved callee equals the remedy, and classifies a call as
    `load_feature_json` only via `READER_CALL_CATEGORIES` or an `artifact_accessors.` prefix. After
    the move those 24 remedies, `READER_CATEGORY_REMEDIES["load_feature_json"]`,
    `READER_CALL_CATEGORIES` (its dead `feature_json_write.load_feature_json` key) and the two T07
    dicts must name `feature_record.read.load_feature_json`. Row ids of callers do not change (the
-   category is still `load_feature_json`). This exceeds "change only file and id" → D-01.
+   category is still `load_feature_json`). This exceeds "change only file and id" → D-01. The
+   operator accepted the correction at PL-03 (2026-11-27); the moved loader's row changes file,
+   id and remedy.
 4. **Diagnostic text.** Several gate diagnostics name the module they failed to import:
    check-domain.py (`feature_schema is not importable ... Expected at
    .agents/skills/harness/bin/feature_schema.py`, `feature_schema CRASHED`), check_state board,

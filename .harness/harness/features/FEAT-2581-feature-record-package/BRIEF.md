@@ -44,7 +44,7 @@ compatibility shim left anywhere; the decision record says so without an excepti
   verify: inspection
 - SC-07 (code maintainer): At the pin, `check-plan-routes.py --canonical-reader-audit` exits 0 with zero unresolved reader sites; in `tests/integration/canonical-reader-classification.json` every row formerly sourced from `feature-record.py`, `feature_schema.py` or `feature_json_write.py` names its `feature_record/` owner in `file` and `id`, the `feature-json-merge.py` row is gone, every `load_feature_json` remedy reads `feature_record.read.load_feature_json`, the four `artifact_accessors.py` rows are unchanged, and `scanned_files` equals the live tree. The reviewer reads the audit output recorded in the receipt (`git show <review_sha>:<path>`) and the JSON at the pin.
   verify: inspection
-- SC-08 (operator): Read at the pin, each diagnostic that named `feature_schema`, `feature_schema.py` or `plan-merge.py` as the module that failed to import or crashed (check-domain, INV-23, INV-26, INV-37, INV-40) names the `feature_record/` module or `plan_merge/approval.py` actually loaded. The committed receipt captures, as raw bytes before any decoding, the whole stdout and stderr of every check-state and check-domain gate subprocess whose output the existing tests capture, plus the canonical-reader audit run at both the baseline and the pin, and compares each stream whole between baseline and pin; every differing stream — the D-02 inventory items (those literals, the `RepoModuleError` renderings in INV-7, the refusal-evidence check and `harness_config`, the reads column of the check-state `--list` output), relocated traceback frames, the audit's scanned Python file count, and any other byte — is written to `build-divergences.md` as a `divergence:` record with its exact old and new bytes; an inventory item no existing test reaches is recorded as an unreached record, never given a new test. Each such record stays red until `notes/divergence-rulings.json` carries the operator's ruling on it, so none is exempted in advance; `build-divergences.md` also lists every test expectation T-01 changed with its old and new bytes. The reviewer cites each `file` and symbol and the receipt's `d02_item` lines, read with `git show <review_sha>:<path>`.
+- SC-08 (operator): Read at the pin, each diagnostic that named `feature_schema`, `feature_schema.py` or `plan-merge.py` as the module that failed to import or crashed (check-domain, INV-23, INV-26, INV-37, INV-40) names the `feature_record/` module or `plan_merge/approval.py` actually loaded. The committed receipt captures, as raw bytes before any decoding, the whole stdout and stderr of every check-state and check-domain gate subprocess whose output the existing tests capture, plus the canonical-reader audit run at both the baseline and the pin, and compares each stream whole between baseline and pin; every differing stream — the D-02 inventory items (those literals, the `RepoModuleError` renderings in INV-7, the refusal-evidence check and `harness_config`, the reads column of the check-state `--list` output), relocated traceback frames, the audit's scanned Python file count, and any other byte — is written to `build-divergences.md` as a `divergence:` record with its exact old and new bytes and a readable rendering of what changed, both recomputed from the committed records; an inventory item no existing test reaches is recorded as an unreached `divergence:` record carrying its file, symbol and old and new source read from both refs, never given a new test. Each such record stays red until `notes/divergence-rulings.json` carries the operator's own ruling on it, so none is exempted in advance; `build-divergences.md` also lists every test expectation T-01 changed with its old and new bytes, as the baseline-to-pin diff of each changed test path. The reviewer cites each `file` and symbol and the receipt's `d02_item` lines, read with `git show <review_sha>:<path>`.
   verify: inspection
 - SC-09 (code maintainer): Read at the pin with `git show <review_sha>:.harness/harness/docs/DECISIONS.md`, DEC-259 no longer names a `plan-merge.py` re-export exception, DEC-220 and DEC-150 name the `feature_record/` modules that now hold the binding predicate and the line budget, and `gen-decisions-index.py --stdout` equals the committed `DECISIONS-INDEX.md`. The reviewer cites the lines.
   verify: inspection
@@ -67,7 +67,8 @@ compatibility shim left anywhere; the decision record says so without an excepti
   never compared.
 - SC-08 measures only D-02 branches that an existing test drives through a captured gate
   subprocess. An item that no existing test reaches carries no measured bytes: the receipt records
-  it as unreached, and the operator rules on its source text alone.
+  it as unreached, and the operator rules on its source text alone — the named symbol's source at
+  the baseline and at the pin, read through `git show`.
 
 ## Constraints
 
@@ -96,18 +97,29 @@ compatibility shim left anywhere; the decision record says so without an excepti
 - Test files change only imports and copy/patch targets; `tests/integration/fixtures/
   prior-check-domain.fixture` is a frozen prior copy and is not edited.
 - Disclosure for signature: byte identity is required of every output, the twelve regraded
-  functions included. D-02 repoints the import-failure diagnostics; those, the wrapped
+  functions included. D-02 repoints the import-failure diagnostics; signing authorizes that
+  source change only, never its output bytes (PL-01). Those diagnostics, the wrapped
   `RepoModuleError` renderings, relocated traceback frames, any other changed byte of a captured
   gate stream and the canonical-reader audit's scanned Python file count are inventoried, never
-  exempted — each measured difference stays red until the operator rules on that record (Q3 a).
-  The classification `remedy` of 24 caller rows also changes with the loader (D-01).
+  exempted — each measured difference stays red until you rule on that record, which you do
+  personally, with every measured divergence presented together at the ship review and none
+  delegated (PL-05). Each arrives in `build-divergences.md` with its exact bytes and a readable
+  rendering of what changed.
+  The classification `remedy` of the 24 rows naming `artifact_accessors.load_feature_json`
+  (23 caller rows and the moved loader's own row) changes with the loader, as do
+  canonical_reader_audit's category, remedy and T07 keys and two test expectations (D-01). You
+  accepted this at PL-03; it supersedes the grilling's rule that classification rows change only
+  file and id.
   T-03's proof exceeds Settled Q3 (a)'s "reusing FEAT-70's receipt-script structure with no new
   proof framework": its committed raw-measurement store (`notes/measurements/{baseline,pin}.jsonl.gz`),
   its `recorder/sitecustomize.py` interception of every test process and its verify that
   recomputes the divergences from those records have no FEAT-70 counterpart (FEAT-70 committed
   scripts, summary receipts and divergences only, `git ls-tree a98451c5`). They are the price of
-  PF-14c27514, measured evidence bound to the pin; signing accepts that exceedance unless you
-  amend Q3 (a).
+  PF-14c27514, measured evidence bound to the pin. You accepted this exceedance as disclosed
+  (PL-10) and the gzip measurement files as proposed (PL-09); Q3 (a) is not amended. Since those
+  answers, the cycle-4 rewrite adds one record per test file run to the same store (its exit,
+  stdout, stderr and case list), so the receipt's case and failure lines are recomputed rather
+  than trusted; the measurement files grow by that much beyond what PL-09 accepted.
 
 ## Out of scope
 

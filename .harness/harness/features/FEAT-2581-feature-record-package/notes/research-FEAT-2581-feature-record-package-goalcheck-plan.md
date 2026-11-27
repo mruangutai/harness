@@ -311,3 +311,38 @@ SC-05, SC-06 and SC-08. It also added one sentence to the BRIEF disclosure.
 - **Settled Q3 (a) — now delivered-with-operator-question (it was delivered).** The BRIEF
   discloses that T-03 exceeds "FEAT-70's receipt-script structure with no new proof framework"
   as the price of PF-14c27514. Only the operator can amend Q3 (a).
+
+## Addendum 2026-11-27 — repanel3-product cycle-4 apply (goal-check NOT re-run, SC-09)
+
+**BLUF: both grades stand; no grade was re-run. Grade-bearing text moved in T-03 (verify and
+intent), D-01.because and BRIEF SC-08, the third Verification-gaps bullet and the Constraints
+disclosure.** The apply follows the operator's answers (notes/answers-2026-11-27-plan-escalate.md).
+
+- **operator — PASS stands, evidence widened.** T-03's verify is now keyed on four guarantees
+  rather than per finding:
+  - strict decode: canonical base64 only, validated decoding, so `!!!!` is refused (PF-96cdf9f1);
+  - every disclosed field derived: each receipt line except the verdicts, and every
+    `build-divergences.md` record body, is recomputed from the committed measurements and from
+    `git show` at the baseline and the pin. The d02# source-only file, symbol and source now come
+    from a fixed item table plus the refs (PF-3882d444);
+  - every SC-08 record present: one `divergence:` record in `build-divergences.md` per divergence of
+    every kind, plus `test_change` records carrying each changed test path's diff (PF-cf9cf710);
+  - a readable account per ruled id: an injective line rendering inside each record (PF-a37e5b40).
+
+  To make "every disclosed field" true, rather than true only for the four named fields, the
+  store gains `suite` records, one per test file per side. `baseline_failing`, `case_set`,
+  unit/integration FAIL lines, `d02_item`/`d02_item_record`, `gate_captures` and the pin audit's
+  zero-unresolved count are no longer trusted from the receipt. This narrows what the verify
+  accepts; it does not change what SC-03/04/05/06/08/10 promise. SC-08's text now names the
+  readable rendering, the unreached record's file, symbol and source, and the test-expectation
+  diff form. PL-05 (personal ruling at the ship review) is written into the T-03 intent and
+  the BRIEF disclosure.
+- **code maintainer — PASS stands.** D-01.because now states that the 24 remedy rows are 23
+  caller rows plus the moved loader's own row, and records PL-03. SC-07 is unchanged; T-01's text
+  is untouched (a non-goal of this pass).
+- **Settled Q3 (a) — delivered-with-operator-ruling.** PL-10 accepted the exceedance as disclosed.
+  The cycle-4 suite records grow the same store, and the BRIEF discloses that growth beyond PL-09.
+- **Carried:** nothing was executed against a built tree, because none exists yet. The verify was
+  compiled, its helpers were exercised on toy inputs, and its item table was resolved at
+  e12381fd (all 11 symbols found). That is evidence that the verify is well-formed, not that it
+  goes green.
