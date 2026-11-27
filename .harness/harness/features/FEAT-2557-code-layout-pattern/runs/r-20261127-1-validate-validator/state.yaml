@@ -1,0 +1,103 @@
+schema_version: 2
+run_uid: 7c595a2901e045ff9659adb76ec28ea5
+run_id: r-20261127-1-validate-validator
+feature: FEAT-2557-code-layout-pattern
+squad: validator
+host: harness-validator-lead
+status: failed
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2557-code-layout-pattern/notes/review-harness-qa-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2557-code-layout-pattern/notes/review-harness-qa-c1.md
+    note: docs requires no kind; no receipt written; six low verify-guard weaknesses, advisory
+    evidence:
+      matrix_ok: true
+      required_kinds: 0
+      receipts_written: 0
+  - id: code
+    persona: harness-code-reviewer
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2557-code-layout-pattern/notes/review-harness-code-reviewer-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2557-code-layout-pattern/notes/review-harness-code-reviewer-c1.md
+    note: DEC-259 cites FEAT-70 as conformant; plan-merge.py keeps signed_task_hash re-export (lead verified at source)
+    evidence:
+      severity_max: high
+      findings: 3
+  - id: security
+    persona: harness-security-reviewer
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2557-code-layout-pattern/notes/review-harness-security-reviewer-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2557-code-layout-pattern/notes/review-harness-security-reviewer-c1.md
+    note: scoped out on measured 24-path census
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2557-code-layout-pattern/notes/review-harness-ui-reviewer-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2557-code-layout-pattern/notes/review-harness-ui-reviewer-c1.md
+    note: scoped out on measured 24-path census
+  - id: goalcheck
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2557-code-layout-pattern/notes/research-FEAT-2557-code-layout-pattern-goalcheck-validate-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2557-code-layout-pattern/notes/research-FEAT-2557-code-layout-pattern-goalcheck-validate-c1.md
+    note: three perspectives met; SC-05 met on letter; lead overrules on provenance accuracy
+    evidence:
+      perspectives_met: 3
+      decision_rows_met: 7

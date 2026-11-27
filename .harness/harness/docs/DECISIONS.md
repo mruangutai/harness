@@ -8788,14 +8788,17 @@ The rule has three homes:
 
 **Because:**
 - FEAT-69 (`d8b139de`, #1981) split `check-state.py` into `check_state/`, and FEAT-70
-  (`a98451c5`, #1990) split `plan-merge.py` into `plan_merge/`, in this shape.
+  (`a98451c5`, #1990) split `plan-merge.py` into `plan_merge/`, in this shape, with one exception
+  this rule now names as a finding: `plan-merge.py` still re-exports
+  `plan_merge.approval.signed_task_hash`, because `check_state/ctx.py` `_load_hash_module` loads
+  the entry by path for INV-40. Removing it means migrating that loader first.
 - The convention's only full record was the FEAT-69 grilling note
   (`.harness/notes/grilling-long-file-check-state-package-2026-09-28.md`, readable with
   `git show d8b139de:<path>`). FEAT-71 (`a41f7cfc`) removed it, which left delete-first's one
   split bullet as the only written rule.
-- `harness-codebase-design` is autoloaded by every specialist that writes code and by eng-lead
-  and code-reviewer, so a rule written there reaches each of them in every repository (DEC-149,
-  DEC-235).
+- `harness-codebase-design` is in the `autoloadSkills` frontmatter of every specialist that writes
+  code and of eng-lead and code-reviewer, so a rule written there reaches each of them in every
+  repository. DEC-149 brought the skill in, and DEC-235 keeps craft leaves unpreloaded.
 
 **Tradeoff accepted:**
 - Enforcement is a reviewer reading a diff; nothing mechanical catches a deviation.
