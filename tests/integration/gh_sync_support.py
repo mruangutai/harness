@@ -878,41 +878,6 @@ if args and args[0] == "api" and any("/contents/" in arg for arg in args):
         sys.exit(67)
     print(base64.b64encode(text.encode("utf-8")).decode("ascii"))
     sys.exit(0)
-milestones = os.path.join(os.path.dirname({delegate!r}), "milestone-state.json")
-def load(path):
-    if not os.path.exists(path):
-        return {{}}
-    with open(path, encoding="utf-8") as source:
-        return json.load(source)
-def save(path, value):
-    with open(path, "w", encoding="utf-8") as target:
-        json.dump(value, target)
-creating_milestone = args[:3] == ["api", "-X", "POST"] and args[3].endswith("/milestones")
-creating_task = args[:2] == ["issue", "create"] and "--milestone" in args
-if creating_milestone or creating_task:
-    remote = load(milestones)
-    if creating_task and remote:
-        repo = args[args.index("--repo") + 1]
-        title = args[args.index("--milestone") + 1]
-        selected = [int(number) for number, name in remote.get(repo, {{}}).items() if name == title]
-        if len(selected) != 1:
-            print("milestone title does not resolve uniquely in target repository", file=sys.stderr)
-            sys.exit(1)
-    result = subprocess.run([{delegate!r}] + args, capture_output=True, text=True)
-    sys.stdout.write(result.stdout)
-    sys.stderr.write(result.stderr)
-    if result.returncode == 0 and creating_milestone:
-        try:
-            response = json.loads(result.stdout)
-        except json.JSONDecodeError:
-            response = {{}}
-        number = response.get("number") if isinstance(response, dict) else None
-        if type(number) is int:
-            repo = args[3][len("repos/"):-len("/milestones")]
-            title = next(arg[len("title="):] for arg in args if arg.startswith("title="))
-            remote.setdefault(repo, {{}})[str(number)] = title
-            save(milestones, remote)
-    sys.exit(result.returncode)
 os.execv({delegate!r}, [{delegate!r}] + args)
 """
     with open(gh_path, "w", encoding="utf-8") as target:

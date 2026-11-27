@@ -96,7 +96,6 @@ Testable offline: every gh call goes through factory_gh.try_gh/run_gh, so FACTOR
 call time, is the only binary override (tests point it at a fake that logs calls).
 """
 import json
-from datetime import datetime, timezone
 import os
 import re
 import shutil
@@ -276,7 +275,7 @@ def gh_try(args):
 def _provenance_preflight(doc, repo, feat_dir):
     problem = feature_schema.mirror_provenance_problem(doc, repo)
     if problem:
-        refuse(f"mirror provenance: {problem}. Run: "
+        refuse(f"mirror provenance: {problem}. To recover, "
                f"{feature_schema.recovery_command_line(feat_dir, doc, repo)}")
 
 
@@ -903,7 +902,7 @@ def _record_pr(feat_dir, repo, pr_arg=None):
 
 
 def _recorded_github(rec):
-    """Serialize the mirror generation independently of the locked feature update."""
+    """The github block save_recorded writes from REC."""
     github = {
         "milestone": rec["milestone"], "parent": rec["parent"],
         "attached": rec["attached"], "issues": dict(sorted(rec["issues"].items())),
@@ -1139,11 +1138,11 @@ def _created_issue_number(args, url):
 
 
 
-def _milestone_create_args(repo, brief, title):
+def _milestone_create_args(repo, brief):
     desc = (f"{brief['problem']}\n\n**Goal:** {brief['goal']}\n\n## Definition of done\n"
             + "\n".join(f"- [ ] {sid}: {txt}" for sid, txt in brief["scs"]))
     return ["api", "-X", "POST", f"repos/{repo}/milestones",
-            "-f", f"title={title}", "-f", f"description={desc}"]
+            "-f", f"title={brief['feat']}", "-f", f"description={desc}"]
 
 
 def _open_ensure_milestone(feat_dir, repo, brief, rec):
@@ -1151,7 +1150,7 @@ def _open_ensure_milestone(feat_dir, repo, brief, rec):
     if rec["milestone"] is not None:
         print(f"gh-sync: milestone #{rec['milestone']} already recorded — skipping")
         return
-    args = _milestone_create_args(repo, brief, brief["feat"])
+    args = _milestone_create_args(repo, brief)
     result = factory_gh.try_gh(args)
     if result.ok:
         rec["milestone"] = artifact_accessors.parse_gh_json(
@@ -1248,7 +1247,6 @@ def _open_sync_task(feat_dir, repo, brief, rec, task, state):
         print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
     else:
         _open_create_task(feat_dir, repo, brief, rec, task, state)
-        _BUILD_ENTRY["remote_written"] = True
     _open_attach_task(feat_dir, repo, rec, task)
 
 
@@ -1290,8 +1288,6 @@ def _open_apply(feat_dir, repo, rec, parent_arg=None, issue_types=None):
 
 
 def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
-    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
-    _provenance_preflight(doc, repo, feat_dir)
     rec = load_recorded(feat_dir)
     _open_apply(feat_dir, repo, rec, parent_arg, issue_types)
 
@@ -1376,8 +1372,6 @@ def cmd_recover_terminal(feat_dir, repo, parent_arg=None, yes=False):
     UNARMED: nothing is recorded, the field stays absent, and the feature stays
     non-terminal — the same funnel `open` uses, never special-cased for this command.
     """
-    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
-    _provenance_preflight(doc, repo, feat_dir)
     rec = load_recorded(feat_dir)
     rec["repo"] = repo
     conflict = _recover_terminal_conflict(rec, parent_arg)
@@ -1448,7 +1442,7 @@ def _build_entry_preflight(feat_dir, rec):
     recovery = feature_schema.recovery_command_line(feat_dir, doc, _BUILD_ENTRY.get("repo"))
     if entry is None:
         refuse(f"this feature has no recorded build entry, so Build must not start. "
-               f"Run {recovery} first.")
+               f"First {recovery}.")
     if entry == "recovery-required":
         _build_entry_recovery_notice(feat_dir)
 
@@ -2379,7 +2373,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
         recovery = feature_schema.recovery_command_line(feat_dir, doc, repo)
         skip(f"no recorded milestone — there is nothing to close. "
-             f"Run {recovery} to create the receipt, then ship again.")
+             f"To create the receipt, {recovery}, then ship again.")
 
     # The comment is UNCONDITIONAL: posts on any recorded parent whatever its origin.
     if body_file is not None and rec["parent"] is not None:
