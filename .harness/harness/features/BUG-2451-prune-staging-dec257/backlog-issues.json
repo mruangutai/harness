@@ -1,0 +1,22 @@
+{
+  "bug:prune-run-evidence: a recorded ui/ directory that is listable but not searchable passes the unreadable check, so prune half-finishes before rmtree raises": {
+    "number": 2574,
+    "typed": true
+  },
+  "bug:prune-run-evidence: an unreadable ui/ directory in an unrecorded run is not checked before pruning": {
+    "number": 2575,
+    "typed": true
+  },
+  "bug:prune-run-evidence writes unreadable directory names to stderr unescaped; a newline in a name can forge a status line": {
+    "number": 2576,
+    "typed": true
+  },
+  "bug:Orchestrators forward or hand-write outputSchema/schemaMode on lead dispatches despite the instruction not to; each such dispatch first returned no result": {
+    "number": 2577,
+    "typed": true
+  },
+  "chore:test-prune-run-evidence forbidden-claim guard treats a missing DEC-238/DEC-257 section as clean, so a retyped heading plus a claim stays green": {
+    "number": 2578,
+    "typed": true
+  }
+}

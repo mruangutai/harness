@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2451-prune-staging-dec257",
   "branch": "feat/BUG-2451-prune-staging-dec257",
-  "pr": null,
+  "pr": 2567,
   "review_sha": "a97dbc6a8337cfbe9402d2a727aa28797a1efaf8",
   "cycles_used": 0,
   "max_total_cycles": 10,
@@ -117,6 +117,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "c3 FAIL on one new med must-fix MF-3R (missing DEC-238/DEC-257 heading anchor empties the claim scan); the operator authorised no rework after the extra MF-2R round so nothing is dispatched; returned as OQ-B"
+    },
+    {
+      "at": "2026-11-27T15:45:07+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "distill-skipped",
+      "reason": "Operator ship call 2026-11-27: distill skipped (notes/answers-2026-11-27-ship.md)"
     }
   ],
   "mission": "patch",
