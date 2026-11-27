@@ -1,0 +1,96 @@
+schema_version: 2
+run_id: 2026-11-26-01-plan-product
+run_uid: 940d8df0b77a48e488d4883883a4927e
+feature: FEAT-2516-stamp-sweep-hardening
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: draft
+    persona: harness-pm
+    depends_on: []
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2516-stamp-sweep-hardening/notes/research-stamp-sweep-hardening-plan.md
+    evidence:
+      tasks: 5
+      check_exit: 0
+  - id: scope
+    persona: harness-code-reviewer
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    note: valid reader return; FAIL carries findings to apply, not a loop_back
+    artifact: .harness/harness/features/FEAT-2516-stamp-sweep-hardening/notes/review-harness-code-reviewer-plan-c1.md
+    evidence:
+      severity_max: high
+      findings: 7
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    evidence:
+      severity_max: low
+      findings: 3
+  - id: design
+    persona: harness-ui-reviewer
+    depends_on: [draft]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    note: self-scoped out, no user-facing surface
+    artifact: .harness/harness/features/FEAT-2516-stamp-sweep-hardening/notes/review-harness-ui-reviewer-plan-c1.md
+  - id: apply
+    persona: harness-pm
+    depends_on: [scope, should-not-exist, design]
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-5
+    completed_at: seq-6
+    artifact: .harness/harness/features/FEAT-2516-stamp-sweep-hardening/notes/research-stamp-sweep-hardening-plan.md
+    evidence:
+      record_panel_exit: 0
+      check_exit: 0
+      anchors: 16
+      findings_recorded: 10
+  - id: goalcheck
+    persona: harness-pm
+    depends_on: [apply]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-7
+    completed_at: seq-8
+    artifact: .harness/harness/features/FEAT-2516-stamp-sweep-hardening/notes/research-FEAT-2516-stamp-sweep-hardening-goalcheck-plan.md
+    evidence:
+      operator: pass
+      code_maintainer: partial
+      orchestrator: pass

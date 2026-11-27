@@ -1,0 +1,43 @@
+{
+  "feature_id": "FEAT-2516-stamp-sweep-hardening",
+  "branch": "feat/FEAT-2516-stamp-sweep-hardening",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-26-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-27T02:57:58+00:00",
+      "tokens": 156735,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-26-01-plan-product/digest.md",
+        "sha256": "1498ec2bae391acf52d8e861641645c38440f0e54590db1312275b29285e0906"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T03:33:04+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-27T02:57:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "changes classify_feature's public result vocabulary, gate-imported worktree_terminal.py, the post-merge hook body and ledger writer feature-record.py: enforcement surfaces, main-session-direct under DEC-174"
+    },
+    {
+      "at": "2026-11-27T03:33:05+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan run ESCALATE: all reader findings applied but two high T-03 remedies unread and D-03 departs from settled grilling text; no re-panel - both go to the batched signature (DEC-176)"
+    }
+  ],
+  "mission": "plan"
+}

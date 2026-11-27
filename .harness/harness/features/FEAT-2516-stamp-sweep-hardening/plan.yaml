@@ -1,0 +1,374 @@
+schema: plan/1
+feature: FEAT-2516-stamp-sweep-hardening
+approval:
+  status: pending
+drafted_at: '2026-11-27T03:10:49Z'
+status: plan
+source_issues: [2516, 2517, 2518, 2520, 2521, 2522, 2523, 2524]
+
+panel:
+  last_run: 2026-11-26-01-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-d0e16ad5b4a9fab34128f5c6b16aa569
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-03 can attribute a fix round without meeting the receipt contract.
+    disposition: open
+  - id: PF-3a8e31e4d16b464b1bf83d162422642f
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-03 resolves fleet fix commits in the central planning repository.
+    disposition: open
+  - id: PF-590e7bb66eaf70494d9a0c48e18f222b
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-03's strict timestamp cutoff can omit a real rework round.
+    disposition: open
+  - id: PF-4901fed0cc7a72efee68a71410844f07
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-01's duplicate-hit diagnostic does not name either segment.
+    disposition: open
+  - id: PF-f289eddeae75367a4e8f05e80cdf171b
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-02's escape assertions pass if the control-name diagnostic is suppressed.
+    disposition: open
+  - id: PF-94a4029f71b6a7f3b257b07a1799758f
+    severity: med
+    reader: scope
+    kind: form
+    summary: The draft omits decisions governing close-run, spend, regates and served
+      repository separation.
+    disposition: open
+  - id: PF-6cf433c16773dc4186d9c691bcfdda40
+    severity: low
+    reader: scope
+    kind: form
+    summary: The plan leaves ledger prose internally inconsistent and overstates stamp
+      containment.
+    disposition: open
+  - id: PF-980581d8f43882619714514c48dd7d2d
+    severity: info
+    reader: should-not-exist
+    kind: substance
+    summary: "Grilling's settled B-1/B-4 item \u2014 'have the integration runner\
+      \ invoke --canonical-reader-self-test' \u2014 must stay unbuilt; D-03's decline\
+      \ is verified correct and the gate should not push the plan back toward the\
+      \ grilling text."
+    disposition: open
+  - id: PF-06e545e7da6a985309d576fd6e688b69
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: "T-04's verify runs `test-check-plan-routes.py --canonical-reader-self-test`,\
+      \ keeping alive and exercising a flag whose only remaining caller is that verify\
+      \ line \u2014 the very entry point D-03 declares obsolete."
+    disposition: open
+  - id: PF-92bcdbb1b631bf2f9d172b82e67d7350
+    severity: low
+    reader: should-not-exist
+    kind: form
+    summary: T-03.E rewrites `test_the_window_opens_exactly_at_the_first_validate_start`
+      to assert the opposite of its name (a regate AT the window's opening no longer
+      counts) without directing a rename.
+    disposition: open
+lanes:
+  resolved_at: e83c4e207f2d6f110692e37452054bae6923857a
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 - worktree_terminal.py and check-plan-routes.py are gate-imported, post-merge-sweep.py is a hook body and feature-record.py is the ledger writer.
+    - surface: .claude/skills/harness/schemas/**
+      lane: main-session-direct
+      reason: DEC-174 - feature.json's schema is read by the ledger writer and the INV-7 gate this feature changes.
+    - surface: .claude/skills/harness/references/**
+      lane: main-session-direct
+      reason: the ledger and build-phase references document the route this feature adds and land with it.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 - these are the tests of the changed enforcement path.
+    - surface: .github/workflows/**
+      lane: main-session-direct
+      reason: the CI comment correction lands with the canonical-reader guard it describes.
+    - surface: .harness/harness/docs/**
+      lane: main-session-direct
+      reason: the DEC-157 amendment and its regenerated index land with the ledger change.
+
+decisions:
+  - id: D-01
+    choice: classify_feature returns a distinct fourth class, absent, for an id landed nowhere, beside terminal, not_terminal and unresolved; the stamp sweep keeps such a stamp and labels it absent, and no code or test reads a reason string to detect absence.
+    because: "the operator chose option A at grilling, reversing FEAT-2458 plan D-01 (absent folded into unresolved); the rejected alternative, a collision-proof reason phrase as issue 2517 first proposed, still makes every caller parse prose."
+    dec: none
+  - id: D-02
+    choice: A main-session-direct fix round enters cycles_used only through run-end or close-run with --fix-receipt and --by on a FAIL run. The receipt is a strict-JSON authorization note under the feature directory, recommended name notes/fix-round-RUNID.json, whose effects list holds exactly one main-session-fix effect carrying exactly run_id, the digest path and sha256, the resulting cycles_used and a 40-hex fix_commit; C must equal the digest count plus one. The writer resolves fix_commit in the feature's code repository (the factory.repo fleet checkout when bound, else the repository holding the feature), INV-7 checks the same receipt contract but never re-resolves the commit, and the run records cycle_evidence source main-session-fix.
+    because: an evidence_ref must hash an immutable regular file under the feature directory, and feature.json is the mutable ledger feature-record.py rewrites, so the receipt cannot live there; one FAIL run is answered by at most one fix round before the next run re-gates it, so the delta is exactly one; a served feature's fix lands in the product checkout, not the planning checkout that holds feature.json (DEC-221), and a squash merge can later drop the commit, so only the writer resolves it.
+    dec: DEC-157
+  - id: D-03
+    choice: The canonical-reader cases keep running inside the default CASES tuple that the integration runner executes, guarded by a case asserting that every CANONICAL_READER_CASES member is in CASES; no runner step passes --canonical-reader-self-test. The --canonical-reader-self-test flag stays a supported local entry point, and T-04's verify runs it as the direct evidence that the self-test is green.
+    because: FEAT-2489 (PR 2530, which closed 2519) made the default run a superset of the self-test, so a runner step passing the flag would run the same cases twice; that step is the alternative the grilling text would re-suggest.
+    dec: none
+
+decisions_affected:
+- dec: DEC-157
+  disposition: amend
+  clause: 'The sole `digest_record.py` reader must find the same verdict and a non-boolean, non-negative
+
+    integer `DIGEST.cycles_used` exactly equal to C.'
+  successor: D-02
+  reason: a main-session-direct fix round has no run and no lead send-back, so exact equality kept it out of the hard bound; the one exception is the digest count plus one on an operator-signed receipt naming the round.
+- dec: DEC-174
+  disposition: keep
+  clause: 'Self-hosting stops at the enforcement layer: the harness plans its own work, it does not execute changes to its own guards'
+  successor: none
+  reason: every task is main-session-direct; the feature changes a hook body, gate-imported modules and the ledger writer.
+- dec: DEC-180
+  disposition: keep
+  clause: The window survives only as the first-run bound, where no mark exists yet.
+  successor: none
+  reason: the sweep still deletes only finished features' marks, which returns them to the first-run bound; how check-domain.py writes and reads marks is unchanged.
+- dec: DEC-238
+  disposition: keep
+  clause: the control-plane post-merge sweep removes pins older than a day.
+  successor: none
+  reason: the stamp step keeps the sweep's dry-run posture and adds a containment refusal; the pin and node_modules steps are unchanged.
+- dec: DEC-191
+  disposition: keep
+  clause: 'Operator-history
+
+    metadata also binds an immutable authorization note, operator and timestamp.'
+  successor: none
+  reason: the new main-session-fix cycle_evidence source is a closed schema value binding the same evidence_ref and authorization note, operator and timestamp.
+- dec: DEC-226
+  disposition: keep
+  clause: INV-39 enforces `cycles_used <= max_total_cycles`
+  successor: none
+  reason: the hard bound is unchanged; a main-session fix round now reaches it through D-02.
+- dec: DEC-159
+  disposition: keep
+  clause: 'composes those five authorities in that
+
+    order as subprocesses'
+  successor: none
+  reason: close-run stays a composition of the existing authorities; the fix receipt rides its run-end stage and adds no stage of its own.
+- dec: DEC-221
+  disposition: keep
+  clause: 'features and
+
+    expertise already resolve centrally through `factory_config.features_root`'
+  successor: none
+  reason: a served feature keeps its ledger and receipt in the control plane while its fix commit lands in the product checkout, so the writer resolves the commit in the bound repository.
+- dec: DEC-227
+  disposition: keep
+  clause: 'It advises; nothing reads it as a
+
+    gate.'
+  successor: none
+  reason: spend counts each rework round once but stays advisory; nothing gates on rework_rounds.
+- dec: DEC-230
+  disposition: keep
+  clause: 'a FAIL run followed by another run with no
+
+    `regate` entry'
+  successor: none
+  reason: every FAIL run still owes its regate; spend now matches each regate to the FAIL run it answers with INV-40's own ordering.
+
+tasks:
+  - id: T-01
+    title: Give classify_feature an absent class and tell an unreadable fleet tree from a missing one, with tests
+    traces: [SC-01, SC-02, SC-03, SC-09]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - worktree_terminal.py is imported by check-state.py's INV-29 gate and by the post-merge hook.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/worktree_terminal.py#classify_feature
+      - tests/integration/test-worktree-terminal.py#_feature_row
+    verify: |
+      python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-checker-structure-locks.py && python3 tests/unit/test-broad-catch-census.py && grep -q 'return "absent", ' .claude/skills/harness/bin/worktree_terminal.py
+    intent: |
+      Execute in the main session under DEC-174, inside the feature worktree .claude/worktrees/harness/FEAT-2516-stamp-sweep-hardening only; every relative path here is relative to that worktree root and no edit may land outside it. Run gates with HARNESS_AGENT_TYPE unset.
+
+      Product checkout: the harness repository itself (segment harness). It carries no docs/spec.md, docs/decisions.md or docs/architecture.md; its decision record is .harness/harness/docs/DECISIONS.md. Read DEC-174 and the FEAT-34 D-02 shared-predicate note in worktree_terminal.py's module docstring before editing. The BRIEF is .harness/harness/features/FEAT-2516-stamp-sweep-hardening/BRIEF.md (SC-01, SC-02, SC-03); plan D-01 is the absent class.
+
+      Write the test changes first and observe the never-landed, strict-prefix and unreadable-tree rows fail before touching production code.
+
+      Production, .claude/skills/harness/bin/worktree_terminal.py:
+      1. Add a private helper _landed_entry_state(owner_root, default_branch, rel) returning "present", "missing" or None. It runs _run_git(["ls-tree", default_branch, "--", rel], owner_root); None when the result is None or its returncode is not 0; "missing" when stdout holds no non-empty line; otherwise "present". This lists the PARENT tree's entry, so it answers whether rel exists on the branch even when rel's own tree object cannot be read.
+      2. In classify_feature, keep steps a to c (default branch, harness features names, exact harness hit) unchanged. Rewrite the fleet walk: unreadable = []; for each segment in _fleet_segments(factory_config): seg_rel = os.path.join(".harness", segment, "features"); seg_names = _landed_dir_names(root, default_branch, seg_rel); when seg_names is None, call _landed_entry_state(root, default_branch, seg_rel): if it is "missing", skip the segment (a declared segment with no landed features directory); otherwise (present or None) append segment to unreadable and skip it; when seg_names is not None and feature_id is in seg_names, append (segment, seg_rel) to hits. After the walk, in this order: if unreadable is non-empty return ("unresolved", f"the landed features directory of fleet segment(s) {', '.join(unreadable)} could not be read, so {feature_id} is not decided from the other segments"), whatever hits holds; if hits is empty return ("absent", f"{feature_id} is absent from {default_branch}'s features directory"); if more than one hit return ("unresolved", f"{feature_id} is landed under {len(hits)} segments' features directories ({', '.join(segment for segment, _ in hits)})"), the existing count wording followed by every hit segment in walk order; otherwise classify the one hit through _landed_classification exactly as now.
+      3. Rewrite classify_feature's docstring: klass is "terminal", "not_terminal", "unresolved" or "absent"; absent means landed in no readable features directory; an unreadable fleet features tree is unresolved and names the segment; callers branch on klass and never read the reason to decide anything (#2517, #2518). Update the module docstring's classify_feature sentence to say it returns one of four classes. CLASSES stays exactly ("terminal", "exempt_absent", "unresolved"): it is classify()'s vocabulary. Publish no new constant.
+      4. Do not modify _landed_dir_names, _resolve_landed, _planning_segment, _match_landed_id, classify or classify_all. Add no broad except (zero ceiling in tests/integration/test-checker-structure-locks.py and tests/unit/test-broad-catch-census.py) and no new json, yaml or fleet parse call (the canonical-reader audit inventories them).
+
+      Tests, tests/integration/test-worktree-terminal.py:
+      1. _feature_row: ok additionally requires isinstance(reason, str) and reason != "" (a truthy non-string reason fails; #2522). Keep the id-stripping for must and must_not markers.
+      2. _LOCAL_FEATURE_ROWS: rows (d) and (i) expect klass "absent" with must=() and must_not=(); rows (e), (f) and (k) expect "unresolved" with must_not=() (the klass alone separates them from absent); (k) keeps must=("unparseable",). Update the row names to say absent class. No row may test a reason string for the word absent.
+      3. Add case_classify_feature_fleet_trees and append it to main()'s results after case_classify_feature_fleet. Fixture: probe_root from _build_probe_repo(tmp); workspace_root as in _build_fleet_feature_fixture; _write_fleet declaring acme/second-repo, acme/third-repo and acme/empty-repo, each default_branch main. Commit with _commit_feature (plan_station done unless named): FEAT-930-two-segments under repo_segment second-repo and again under third-repo; FEAT-931-elsewhere-done under second-repo; FEAT-934-third-only under third-repo with plan_station building (so third-repo's features tree differs from second-repo's); FEAT-933-harness-done under repo_segment harness. Commit nothing under empty-repo. Classify through _classify_features_in_subprocess, each row its own result tuple via _feature_row:
+         (l) FEAT-930-two-segments gives unresolved, must=("2 segments", "second-repo", "third-repo").
+         (m) FEAT-932-nowhere, never committed, gives absent (the missing empty-repo directory is skipped, never unreadable).
+         Then make third-repo's features tree unreadable: oid = git rev-parse main:.harness/third-repo/features in probe_root; obj = os.path.join(probe_root, ".git", "objects", oid[:2], oid[2:]); append a row (n0) that fails unless obj is a regular file and oid differs from git rev-parse main:.harness/second-repo/features; os.remove(obj). Classify again in a fresh subprocess:
+         (n) FEAT-932-nowhere gives unresolved, must=("third-repo",).
+         (o) FEAT-931-elsewhere-done gives unresolved, must=("third-repo",) - never terminal from the readable segment's hit.
+         (p) FEAT-933-harness-done gives terminal (a harness hit never walks the fleet).
+      Every other pre-existing case stays unmodified and green.
+  - id: T-02
+    title: Label absent stamps, refuse a redirected .harness and escape stamp names in the sweep, with tests
+    traces: [SC-03, SC-04, SC-05, SC-06, SC-09]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - post-merge-sweep.py is the post-merge hook body.
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/post-merge-sweep.py#_sweep_shape_stamps
+      - tests/integration/test-post-merge-sweep.py#_one_kept_line
+    verify: |
+      python3 tests/integration/test-post-merge-sweep.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-checker-structure-locks.py && python3 tests/unit/test-broad-catch-census.py && python3 tests/unit/test-no-distribution.py && grep -q 'klass == "absent"' .claude/skills/harness/bin/post-merge-sweep.py
+    intent: |
+      Execute in the main session under DEC-174 after T-01 has landed, inside the feature worktree .claude/worktrees/harness/FEAT-2516-stamp-sweep-hardening only; every relative path here is relative to that worktree root and no edit may land outside it. Run gates with HARNESS_AGENT_TYPE unset.
+
+      Product checkout: the harness repository itself (segment harness). It carries no docs/spec.md, docs/decisions.md or docs/architecture.md; its decision record is .harness/harness/docs/DECISIONS.md. Read DEC-174, DEC-180 (a deleted stamp falls back to the window) and DEC-238 (the sweep's dry-run posture) before editing. The BRIEF is .harness/harness/features/FEAT-2516-stamp-sweep-hardening/BRIEF.md (SC-03 to SC-06); plan D-01 is the absent class.
+
+      Write the test changes first and observe the absent-label, redirected-.harness and control-character rows fail before editing post-merge-sweep.py.
+
+      Production, .claude/skills/harness/bin/post-merge-sweep.py:
+      1. Add a module-level private helper _shown(text) returning text unchanged when text.isprintable() is True and repr(text) otherwise. Every stamp name and every reason the stamp step prints goes through it, so a newline, ESC or other control character never reaches stdout raw (#2521).
+      2. In _sweep_shape_stamps(main_checkout_root), before listing: root_real = os.path.realpath(main_checkout_root); harness_real = os.path.realpath(os.path.join(main_checkout_root, ".harness")). When os.path.commonpath([root_real, harness_real]) != root_real or harness_real == root_real, print exactly one line, post-merge-sweep: stamps: refused: .harness resolves outside the main checkout ({_shown(harness_real)}), and return without listing, classifying or deleting anything (#2520).
+      3. List harness_real (the existing could-not-list line on OSError stays). Keep the existing name filter: the prefix .shape-sweep-stamp., a non-empty remainder, os.path.isfile and not os.path.islink. path = os.path.join(harness_real, name). When os.path.commonpath([root_real, os.path.realpath(path)]) != root_real, print post-merge-sweep: stamps: refused: .harness/{_shown(name)} resolves outside the main checkout and continue.
+      4. klass, reason = worktree_terminal.classify_feature(main_checkout_root, feature_id). Branch on klass alone, never on reason: "absent" prints exactly post-merge-sweep: stamps: kept .harness/{_shown(name)} — absent: {_shown(reason)}; "unresolved" prints the same line labelled unresolved; "terminal" removes the stamp as now (DRY_RUN prints would remove, else os.remove(path) with the removed or could-not-remove line), each line naming .harness/{_shown(name)}; any other klass prints nothing and deletes nothing. Deletion still happens on terminal only.
+      5. Catch only OSError, never a broad except (zero ceiling). Add no json, yaml or fleet parse call.
+      6. Update _sweep_shape_stamps's docstring: a kept stamp is labelled absent or unresolved from classify_feature's class; the step refuses when .harness or a stamp path resolves outside the main checkout; names and reasons print escaped (#2517, #2520, #2521).
+
+      Tests, tests/integration/test-post-merge-sweep.py:
+      1. _stamp_lines(stdout, feature_id): a line names a stamp only when it contains the exact token .harness/.shape-sweep-stamp.FEATURE_ID followed by whitespace or the end of the line (re.escape the token; a longer id such as FEAT-912-stamp-absent-longer does not count) (#2522).
+      2. _one_kept_line(stdout, feature_id, label): exactly one line names the stamp, and it fully matches post-merge-sweep: stamps: kept \.harness/ESCAPED-TOKEN — LABEL: \S.* where LABEL is "absent" or "unresolved", so the reason is non-empty. The label is the sweep's class, never reason text.
+      3. Rows (3) and (7) use label absent; row (8) uses label unresolved in both runs. Row (7) also fails when any line of either run that contains FEAT-912-stamp-absent as a whole token (regex FEAT-912-stamp-absent not followed by a word character or hyphen) contains removed or would remove.
+      4. Add case_shape_stamps_redirected_harness and append it to JOBS: build _shape_stamp_fixture(tmp) and _stub_gh(tmp); os.rename the fixture's .harness to os.path.join(tmp, "outside", "harness-real") (create the outside directory first) and os.symlink that target at the fixture's .harness. Run the sweep without --dry-run. Rows, each its own tuple: exit 0; the target's .shape-sweep-stamp.FEAT-910-stamp-done keeps its bytes; exactly one stdout line starts with post-merge-sweep: stamps: and it contains refused and .harness resolves outside the main checkout.
+      5. Add case_shape_stamps_link_and_controls and append it to JOBS: a fixture main checkout built like _shape_stamp_fixture's repo setup, committing FEAT-913-stamp-link and FEAT-915-stamp-done with status Done. Write os.path.join(tmp, "link-target") holding b"target", and os.symlink it at .harness/.shape-sweep-stamp.FEAT-913-stamp-link. Write a regular stamp file .harness/.shape-sweep-stamp.FEAT-914-ctl followed by the characters newline, ESC, [2K and the text post-merge-sweep: stamps: removed .harness/forged, plus .harness/.shape-sweep-stamp.FEAT-915-stamp-done. Run --dry-run then the real run. Rows: after the real run the link still exists as a link and link-target holds b"target"; no stdout line of either run contains FEAT-913-stamp-link; neither stdout contains a newline-split forged line, meaning no line starts with post-merge-sweep: stamps: removed .harness/forged and no line contains the ESC character; in each run, count the stdout lines containing FEAT-914-ctl and require exactly 1 before any other FEAT-914-ctl assertion, so a suppressed diagnostic fails; that one line must start with P = "post-merge-sweep: stamps: kept .harness/" + repr(name) + " — absent: ", where name is the exact stamp file name the fixture wrote, must be longer than P, and must contain a backslash followed by n; the dry-run stdout contains would remove .harness/.shape-sweep-stamp.FEAT-915-stamp-done verbatim.
+      Call _assert_resolved_root_in_fixture for every run. Every other pre-existing case stays green.
+  - id: T-03
+    title: Route an operator-signed main-session fix round into cycles_used and count rework rounds once
+    traces: [SC-10, SC-11, SC-12]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - feature-record.py is the ledger writer and feature_schema.py backs the INV-7 gate.
+    depends_on: []
+    status: ready
+    files:
+    - .claude/skills/harness/bin/feature-record.py#_run_end_digest
+    - .claude/skills/harness/bin/feature_schema.py#run_evidence_problems
+    - path: .claude/skills/harness/schemas/feature.json
+      quote: '"source": {"enum": ["lead-digest", "operator-history"]}'
+    - .claude/skills/harness/bin/validate-digest.py#_qa_code_repository
+    - path: tests/integration/canonical-reader-classification.json
+      quote: validate-digest.py::_qa_code_repository::load_fleet#1
+    - tests/unit/test-feature-record.py#SpendTest
+    - .claude/skills/harness/references/ledger.md
+    - .claude/skills/harness/references/build-phase.md
+    verify: |
+      python3 tests/unit/test-feature-record.py && python3 tests/unit/test-digest-record.py && python3 tests/unit/test-prune-run-evidence.py && python3 tests/unit/test-broad-catch-census.py && python3 tests/integration/test-check-state-table.py && python3 tests/integration/test-validate-digest.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && grep -q 'main-session-fix' .claude/skills/harness/schemas/feature.json && grep -q 'fix-round-' .claude/skills/harness/references/ledger.md && grep -q 'fix-round-' .claude/skills/harness/references/build-phase.md && ! grep -q 'def _qa_code_repository' .claude/skills/harness/bin/validate-digest.py
+    intent: |
+      Execute in the main session under DEC-174, inside the feature worktree .claude/worktrees/harness/FEAT-2516-stamp-sweep-hardening only; every relative path here is relative to that worktree root and no edit may land outside it. Run gates with HARNESS_AGENT_TYPE unset.
+
+      Product checkout: the harness repository itself (segment harness). It carries no docs/spec.md, docs/decisions.md or docs/architecture.md; its decision record is .harness/harness/docs/DECISIONS.md. Read DEC-157 (the cycle unit and run-end's exact-count rule this amends), DEC-191 (cycle_evidence is a closed shape) DEC-226, DEC-221 (a served feature's ledger lives in the control plane, its code in the product checkout), DEC-159 (close-run composes run-end) and DEC-230 (every FAIL run owes a regate), and .claude/skills/harness/references/ledger.md sections Runs and The cycle budget, before editing. The BRIEF is .harness/harness/features/FEAT-2516-stamp-sweep-hardening/BRIEF.md (SC-10, SC-11, SC-12); plan D-02 is the receipt.
+
+      Write the unit tests first and observe the run-end acceptance, close-run acceptance, bound-feature acceptance, FEAT-2458-shaped and one-second spend assertions fail before editing production code.
+
+      A. The shared receipt contract, .claude/skills/harness/bin/feature_schema.py (writer and INV-7 call the same function):
+      1. verify_evidence_ref gains a keyword-only parameter sole_effect=False. When it is True and a subject is given, after the note is parsed and before matching, count the entries of effects that are dicts whose "effect" value equals subject["effect"]; unless that count is exactly 1, raise ValueError(f"authorization evidence requires exactly one {subject['effect']} effect"). Existing callers pass nothing and keep their behaviour.
+      2. Add a private _FIX_EFFECT_KEYS = frozenset({"effect", "run_id", "digest", "cycles_used", "fix_commit"}) and a public verify_fix_receipt(feature_dir, authorization, subject, verdict, digest_path), where subject is {"feature_id", "run_id", "digest": {"path", "sha256"}, "cycles_used", "effect": "main-session-fix"}. In order: verdict must equal "FAIL", else ValueError("a main-session fix receipt answers a FAIL run only"); effect = verify_evidence_ref(feature_dir, authorization, subject, sole_effect=True); set(effect) must equal _FIX_EFFECT_KEYS, else ValueError("main-session fix effect must carry exactly effect, run_id, digest, cycles_used and fix_commit"); effect["fix_commit"] must be a str fully matching [0-9a-f]{40}, else ValueError("main-session fix effect needs a 40-hex fix_commit"); record = digest_record.load_record(digest_path), count = record DIGEST.cycles_used, and unless type(count) is int, count is not negative and subject["cycles_used"] equals count plus one, ValueError("main-session fix attribution must be the digest count plus one"). Return effect. It never resolves fix_commit: a squash merge can drop the commit, so only the writer resolves it.
+      3. Move validate-digest.py's _qa_code_repository into feature_schema.py as the public code_repository(record, feature_dir), body, local imports and return contract unchanged: (root, name, None), or (None, None, why). Add public planning_root(feature_dir) returning os.path.realpath(os.path.join(feature_dir, "..", "..", "..", "..")) and use it inside code_repository. In .claude/skills/harness/bin/validate-digest.py, _repo_root_for_feature keeps its docstring and returns feature_schema.planning_root(feature_dir) (import feature_schema locally, as the module already does elsewhere); its one _qa_code_repository call site calls feature_schema.code_repository(record, feature_dir); delete _qa_code_repository. Change nothing else in validate-digest.py.
+      4. tests/integration/canonical-reader-classification.json: replace, at the same position, the row whose id is .claude/skills/harness/bin/validate-digest.py::_qa_code_repository::load_fleet#1 with a row whose file is .claude/skills/harness/bin/feature_schema.py, id .claude/skills/harness/bin/feature_schema.py::code_repository::load_fleet#1 and symbol code_repository, every other field copied from the .claude/skills/harness/bin/feature_schema.py::_bound_mirror_binding::load_fleet#1 row. scanned_files stays unchanged. check-plan-routes.py --canonical-reader-audit must exit 0 afterwards.
+
+      B. The writer, .claude/skills/harness/bin/feature-record.py:
+      1. run-end gains --fix-receipt (dest fix_receipt) and --by. close-run gains --fix-receipt; its existing --by is shared. _close_run_options refuses, exit REFUSAL_CODE before any stage: --fix-receipt with --refused-return, --fix-receipt without --by, and --fix-receipt with a --verdict other than FAIL. The close-run run-end stage argv appends --fix-receipt PATH --by NAME when --fix-receipt is given.
+      2. _record_run_end refuses, writing nothing: --fix-receipt without --by, --by without --fix-receipt, --fix-receipt without --digest, --fix-receipt with a --verdict other than FAIL, and --fix-receipt on a run _is_refused reports.
+      3. _run_end_digest takes doc as well and resolves directory with os.path.abspath. Without a receipt the existing equality check is unchanged. With one: authorization = feature_schema.resolve_evidence_ref(directory, args.fix_receipt); subject = {"feature_id": doc["feature_id"], "run_id": entry["id"], "digest": {"path": ref["path"], "sha256": ref["sha256"]}, "cycles_used": args.cycles_used, "effect": "main-session-fix"}; effect = feature_schema.verify_fix_receipt(directory, authorization, subject, args.verdict, the digest's absolute path), which replaces the equality check for this close. Then code_root, _name, why = feature_schema.code_repository(doc, directory); a why raises ValueError(why); code_grade.commit_oid(code_root, effect["fix_commit"]) must return effect["fix_commit"], and a ValueError from it or a different result raises ValueError(f"fix receipt names no commit in {code_root}"). This resolves a bound feature's commit in its fleet checkout (DEC-221) and an unbound feature's in the repository holding it. Return the authorization ref with the digest ref. Every error stays inside the existing typed catch and refuses writing nothing.
+      4. Record with a receipt: entry["cycle_evidence"] = {"source": "main-session-fix", "path", "sha256" of the digest, "by": args.by, "at": now_iso(), "authorization": the receipt ref}, plus previous when _run_end_digest computed one. A replay whose existing cycle_evidence has source main-session-fix with the same path, sha256, authorization and by writes nothing new (at is kept); a replay with a different authorization or by is refused as conflicting with the recorded receipt. The feature total moves by the attribution delta exactly as now.
+      5. Add no json, yaml or fleet parse call beyond the one moved in A.3. Catch no broad exception.
+
+      C. INV-7, feature_schema.py run_evidence_problems: replace the two-way source branch with three explicit ones and an unknown-source problem. lead-digest and operator-history keep their current checks. main-session-fix: verify_run_digest_owner for the path and each previous entry, verify_evidence_ref for each previous entry, then verify_fix_receipt(feature_dir, evidence["authorization"], the subject of B.3 with cycles_used = run["cycles_used"], run.get("verdict"), path).
+
+      D. .claude/skills/harness/schemas/feature.json cycle_evidence: add main-session-fix to the source enum and turn the single if/then into allOf of two: the existing operator-history rule unchanged, and source main-session-fix requires by, at and authorization (previous stays allowed).
+
+      E. spend, feature-record.py: a regate is counted by the FAIL run it re-gates, using INV-40's own ledger-order matching (_owed_regate: the k-th regate answers the k-th FAIL run). Rewrite _regate_rounds to take (doc, runs, first_validate, opened), where runs is spend_for's dict-filtered list: return None when first_validate is None; failed = the indices of runs whose verdict, stripped and upper-cased, is FAIL, in ledger order; for k, judgement in enumerate(_judgements_of(doc, "regate")): when k is less than len(failed), count it if failed[k] is at least first_validate and that run's id does not match DISTILL_RUN (its run is in the rework window), whatever its timestamp; otherwise (no FAIL run left for it to answer) keep today's rule and count it only when its at parses and _not_before(at, opened) holds with opened not None. Return the count, or None when it is 0, so the fix-run fallback stays. Delete _regate_stamps if nothing else calls it. run-start writes the regate in the same write as the run it opens, stamped in the same second, so a timestamp cannot tell the plan FAIL's regate from a same-second successor's; FEAT-2458 printed rework_rounds 2 for one round (#2524). Update the module docstring's spend paragraph and spend_for's docstring to say rounds are counted by the FAIL run each regate answers.
+
+      F. tests/unit/test-feature-record.py:
+      1. SpendTest: leave every existing test unmodified, test_the_window_opens_exactly_at_the_first_validate_start included (its regates answer no FAIL run, so the timestamp rule still governs them). Add test_a_feat_2458_shaped_ledger_counts_one_round: runs 2026-09-11-01-plan-product FAIL 10:00-10:20, 2026-09-11-04-validate-validator FAIL 12:00-12:30, 2026-09-11-05-validate-validator PASS 13:00-13:15 (dict(self.timed(...), verdict="FAIL") for the FAIL runs), regates at 12:00 and 13:00, expect 1. Add test_regates_in_one_second_count_by_the_run_they_answer: the same ledger with both validate runs started at 12:00 and the first ended at 12:00, both regates at 12:00, expect 1.
+      2. Add class FixReceiptTest(FeatureRecordCase). setUp places feature.json at self.tmp/.harness/harness/features/FEAT-77-record/feature.json (four levels, so feature_schema.planning_root is self.tmp), runs git init, config and one commit in self.tmp as PinReviewTest does, and keeps self.head. The digest is self.lead_evidence(0, "FAIL"). A note helper writes strict JSON {"feature_id": "FEAT-77-record", "effects": [effect]} to notes/fix-round-r1.json, the effect {"effect": "main-session-fix", "run_id": "r1", "digest": the digest ref from feature_schema.resolve_evidence_ref, "cycles_used": 1, "fix_commit": self.head}, with keyword overrides and extra effects.
+         Acceptance: run-end --verdict FAIL --cycles-used 1 --digest D --fix-receipt notes/fix-round-r1.json --by operator on a run first closed FAIL with --cycles-used 0 succeeds; run and feature cycles_used are 1; cycle_evidence has source main-session-fix, by, at and the note's path and sha256; an identical replay leaves the file bytes unchanged; assert_clean holds.
+         close-run acceptance: the run opened as CloseRunTest.OPEN, its digest LEAD_DIGEST with VERDICT FAIL (validate-digest.py -- harness-eng-lead accepts that text), closed by close-run --verdict FAIL --cycles-used 0, then by close-run --verdict FAIL --cycles-used 1 --fix-receipt NOTE --by operator; exit 0 and cycle_evidence source main-session-fix.
+         Bound-feature acceptance: feature.json carries factory {"repo": "acme/product"}; self.tmp/.harness/factory/fleet.yaml holds {"schema": "factory-fleet/1", "repos": [{"name": "acme/product", "default_branch": "main"}], "workspace_root": str(self.tmp / "ws")}; a separate git repository at self.tmp/ws/product holds one commit; a note whose fix_commit is that product commit is accepted, and a note whose fix_commit is self.head (planning repository only) is refused.
+         Refusals, one test each, each asserting a non-zero exit and unchanged file bytes: no --fix-receipt with C=1; C=2 with the receipt; --verdict PASS with the receipt (PASS digest); a note naming another run_id, another digest sha256, another cycles_used, another feature_id; a note with a second main-session-fix effect for another run; an effect with an extra key; a fix_commit of 39 hex characters; a 40-hex fix_commit that resolves to no commit; a note path with parent traversal; --fix-receipt without --by; close-run with --fix-receipt and --refused-return.
+         Reader: feature_schema.run_evidence_problems returns [] for the accepted record; returns a problem after the note's bytes change; returns a problem for an in-memory copy of the accepted run with verdict PASS; returns a problem for a record built in memory over a fresh note whose fix_commit is "x" * 40 with cycle_evidence pointing at that note's ref. The schema refuses a main-session-fix cycle_evidence with no authorization.
+
+      G. Documentation, .claude/skills/harness/references/ledger.md:
+      1. Section Runs: the close-run synopsis gains [--fix-receipt NOTE --by OPERATOR]. The sentence For an accepted close, C is the exact non-boolean, non-negative integer DIGEST.cycles_used, never inferred from the verdict. gains: except on the main-session fix route below, where C is that count plus one.
+      2. After the refused-return paragraphs, add a paragraph naming the route. When the main session builds a fix round itself (a main-session-direct segment, never a run), the main session writes, on the operator's word, a strict-JSON note for the FAIL run the round answered. Its recommended name is notes/fix-round-RUNID.json; any regular file under the feature directory is accepted. It holds feature_id and an effects list with exactly one main-session-fix effect carrying exactly effect, run_id, digest (path and sha256), cycles_used (the digest's count plus one) and fix_commit (the fix commit's full 40-hex id, resolved at write time in the feature's code repository: the factory.repo fleet checkout for a bound feature, else the repository holding the feature). Show both command forms: feature-record.py run-end --file FEATURE.json --id RUNID --verdict FAIL --cycles-used C --digest DIGEST --fix-receipt NOTE --by OPERATOR, and feature-record.py close-run --file FEATURE.json --id RUNID --digest DIGEST --verdict FAIL --cycles-used C --fix-receipt NOTE --by OPERATOR. The next run-start still owes its regate.
+      3. The evidence_ref paragraph: after the historical effects sentence, add that the main-session-fix effect is the one non-historical effect, with the shape above.
+      4. Section Spend: state that rework_rounds counts a regate by the FAIL run it re-gates, INV-40's ledger-order matching, and only when that run is in the rework window; a regate with no FAIL run to answer counts when stamped at or after the first validate run's start.
+      .claude/skills/harness/references/build-phase.md step 6: after the sentence each round is one cycles_used and one regate judgement, add one sentence pointing a main-session-direct fix round to ledger.md's fix-receipt route (notes/fix-round-RUNID.json).
+  - id: T-04
+    title: Guard that the canonical-reader cases run in the default integration run, and correct the CI comment
+    traces: [SC-07, SC-08, SC-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - test-check-plan-routes.py tests the gate-imported check-plan-routes.py and its canonical-reader audit.
+    depends_on: []
+    status: ready
+    files:
+      - tests/integration/test-check-plan-routes.py#CASES
+      - {path: .github/workflows/tests.yml, quote: 'name: Canonical-reader audit'}
+    verify: |
+      python3 tests/integration/test-check-plan-routes.py && python3 tests/integration/test-check-plan-routes.py --canonical-reader-self-test && grep -q 'CANONICAL_READER_CASES' .github/workflows/tests.yml && ! grep -q 'runner invokes, so the FEAT-62' .github/workflows/tests.yml
+    intent: |
+      Execute in the main session under DEC-174, inside the feature worktree .claude/worktrees/harness/FEAT-2516-stamp-sweep-hardening only; every relative path here is relative to that worktree root and no edit may land outside it. Run gates with HARNESS_AGENT_TYPE unset.
+
+      Product checkout: the harness repository itself (segment harness). It carries no docs/spec.md, docs/decisions.md or docs/architecture.md; its decision record is .harness/harness/docs/DECISIONS.md. Read DEC-174 before editing. The BRIEF is .harness/harness/features/FEAT-2516-stamp-sweep-hardening/BRIEF.md (SC-07, SC-08); plan D-03 records why no runner step passes --canonical-reader-self-test. #2519 is already closed by PR 2530 (FEAT-2489), which put every CANONICAL_READER_CASES member into CASES; this task guards that and closes #2516.
+
+      1. tests/integration/test-check-plan-routes.py: add case_canonical_reader_cases_run_by_default(), defined before the CASES tuple and listed in CASES (never in CANONICAL_READER_CASES). It calls check("canonical_reader_cases_run_by_default", missing == [], repr(missing)) where missing is the list of __name__ of each member of CANONICAL_READER_CASES not in CASES, and check("canonical_reader_t07_terminal_contract_runs_by_default", case_canonical_reader_t07_terminal_contract in CASES, "") using the file's existing check helper. Before committing, show it red: temporarily delete the *CANONICAL_READER_CASES line from CASES, run the file and see both checks FAIL, then restore the file byte for byte and see it pass. Change nothing else.
+      2. .github/workflows/tests.yml: in the comment above the step named Canonical-reader audit, replace the clause saying the inventory was checked only by test-check-plan-routes.py --canonical-reader-self-test, which no runner invokes, with text stating that since FEAT-2489 every CANONICAL_READER_CASES member runs in the default run of test-check-plan-routes.py inside the integration shards, guarded by case_canonical_reader_cases_run_by_default, and that this step runs the permanent audit on every PR. Keep the rest of the comment's history sentence (the FEAT-62/69/70 splits left it 72 findings stale) in past tense, and change no command, regex or step outside the comment.
+  - id: T-05
+    title: Amend DEC-157 for the main-session fix receipt, regenerate the index, and run the cumulative gate
+    traces: [SC-09, SC-10]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - DECISIONS-INDEX.md is checked by the gen-decisions-index gate, and this task runs the terminal gate over the enforcement changes of T-01 to T-04.
+    depends_on: [T-01, T-02, T-03, T-04]
+    status: ready
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md && grep -q 'main-session-fix' .harness/harness/docs/DECISIONS.md && ! grep -q 'cycles_used. exactly equal to C\.' .harness/harness/docs/DECISIONS.md && python3 tests/integration/test-gen-decisions-index.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-post-merge-sweep.py && python3 tests/integration/test-check-plan-routes.py && python3 tests/integration/test-checker-structure-locks.py && python3 tests/integration/test-check-state-table.py && python3 tests/integration/test-validate-digest.py && python3 tests/unit/test-feature-record.py && python3 tests/unit/test-broad-catch-census.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+    intent: |
+      Execute in the main session under DEC-174 after T-01 to T-04 have landed, inside the feature worktree .claude/worktrees/harness/FEAT-2516-stamp-sweep-hardening only; every relative path here is relative to that worktree root and no edit may land outside it. Run gates with HARNESS_AGENT_TYPE unset.
+
+      Product checkout: the harness repository itself (segment harness). It carries no docs/spec.md, docs/decisions.md or docs/architecture.md; its decision record is .harness/harness/docs/DECISIONS.md. Read DEC-157 and DEC-188 (amend in place; strike records stay) before editing. The plan row is decisions_affected DEC-157 amend, successor D-02.
+
+      1. .harness/harness/docs/DECISIONS.md, DEC-157, the paragraph beginning Accumulation is mechanized; classification is not. Replace the sentence The sole digest_record.py reader must find the same verdict and a non-boolean, non-negative integer DIGEST.cycles_used exactly equal to C. with this text, formatting code identifiers in backticks as the surrounding paragraph does: The sole digest_record.py reader must find the same verdict and a non-boolean, non-negative integer DIGEST.cycles_used equal to C, or equal to C minus one when the run closes FAIL and --fix-receipt and --by name an operator-signed main-session fix round for it (FEAT-2516 D-02, #2524): a strict-JSON note under the feature directory, recommended name notes/fix-round-RUNID.json, holding exactly one main-session-fix effect that binds the run, its digest path and SHA-256, C and a fix commit the writer resolves in the feature's code repository, recorded as cycle_evidence source main-session-fix with the operator and time. A main-session-direct segment is still not a run; this is how its fix round reaches the bound. Change no other sentence of DEC-157 and no index ruling text.
+      2. Regenerate the index with python3 .claude/skills/harness/bin/gen-decisions-index.py (the in-place write mode); lengthening DEC-157 shifts every later row's line anchor. Keep every hand-written ruling tail.
+      3. Run this task's verify as the cumulative terminal gate over T-01 to T-04 and record its exit code and the last line of each suite's output in the build receipt.

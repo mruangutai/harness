@@ -1,0 +1,8 @@
+# Observations — harness-pm — FEAT-2516-stamp-sweep-hardening
+
+- 2026-11-26: Backlog issues drafted from a ship review can be delivered by an unrelated later feature before intake (B-4/#2519 closed by FEAT-2489 #2530; B-1 mechanically met by the same commit). Re-measure each row on main before planning it, and plan only a guard for what already holds.
+- 2026-11-26: plan-merge apply stores a plain scalar holding " #NNNN" truncated at the hash (INV-35 flags it after the write); quote any decision field that cites an issue number, or write "issue NNNN".
+- 2026-11-26: verify_evidence_ref only requires ONE MATCHING effect, so a note with several same-kind effects for different runs passes per run; a receipt that must be unique needs a sole-effect count, not the subject match.
+- 2026-11-26: A commit named in a control-plane ledger must be resolved via the feature binding (validate-digest _qa_code_repository), never the directory holding feature.json; moving a load_fleet call moves its canonical-reader-classification row id too.
+- 2026-11-26: now_iso is second-precision and run-start stamps the regate in the same second as the run it opens, so any timestamp cutoff for rework rounds is ambiguous; INV-40 ledger-order matching is the identity.
+- 2026-11-26: Plan goal-check against grilling: a plan decision (D-03) that declines a settled operator instruction for a sound reason still leaves the perspective partial until the operator ratifies at signature; panel endorsement does not substitute. A grilling's "all N issues close with this feature" goes stale when a sibling feature closes one first (#2519 by PR #2530) — check issue state, not source_issues alone.
