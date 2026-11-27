@@ -30,8 +30,8 @@ worktree at `<harness>/.claude/worktrees/harness/<id>` beside the repository's C
 feature to the planning worktree by basename, which is where every governed write and claim goes.
 `--repo harness` has one worktree, which is both.
 
-The segment string itself (".claude/worktrees") is read from harness_boundary.WORKTREES_SEGMENT,
-imported lazily, and is not spelled a second time anywhere in this file.
+The segment string itself (".claude/worktrees") is read from harness_boundary.WORKTREES_SEGMENT
+and is not spelled a second time anywhere in this file.
 """
 import argparse
 import os
@@ -39,43 +39,25 @@ import re
 import subprocess
 import sys
 import artifact_accessors
+import harness_boundary
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Module-level gate constants. T-01 declares them; T-02's `remove` reads them by name to decide
-# whether to refuse a dirty tree or an unlanded artifact directory. A test proves its assertions
-# discriminate by mutating a SOURCE COPY of this file, replacing these two literals by name.
-# There is no environment variable and no command-line flag that changes either — SC-07 forbids
-# a force flag on this CLI, so neither constant is reachable from outside the source text.
-REFUSE_ON_DIRTY = True
-REQUIRE_LANDED = True
 
 # The flow-id form this CLI accepts: FEAT or BUG, a number, and an optional kebab slug — the same
 # vocabulary branch-create-gate.py already accepts (see its `flow=$(printf ... FEAT|BUG ...)`).
 _ID_RE = re.compile(r"^(FEAT|BUG)-[0-9]+[a-z0-9-]*$")
 
 
-def _harness_boundary():
-    try:
-        import harness_boundary
-    except ImportError as exc:
-        sys.stderr.write(f"feature-worktree: cannot import harness_boundary: {exc}\n")
-        sys.exit(2)
-    return harness_boundary
-
-
 def dest_for(owner_root, segment, id):
     """The one function that computes a worktree's destination. Never reimplemented elsewhere."""
-    hb = _harness_boundary()
-    return os.path.join(owner_root, hb.WORKTREES_SEGMENT, segment, id)
+    return os.path.join(owner_root, harness_boundary.WORKTREES_SEGMENT, segment, id)
 
 
 def resolve_repo(repo):
     """Return (owner_root, segment, default_branch) for --repo's two accepted forms. Exits 2 on
     every failure to resolve, per the CLI's contract."""
     if repo == "harness":
-        hb = _harness_boundary()
-        return hb.resolve_root(_BIN_DIR), "harness", "main"
+        return harness_boundary.resolve_root(_BIN_DIR), "harness", "main"
 
     if "/" not in repo:
         sys.stderr.write(
@@ -109,13 +91,26 @@ def targets(repo):
             ("code", owner_root, segment, None, branch)]
 
 
-def _run_git(args, cwd):
-    return subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True)
+def _run_git(args, cwd, stdin=None):
+    return subprocess.run(["git"] + args, cwd=cwd, input=stdin, capture_output=True, text=True)
 
 
-def _branch_exists(owner_root, branch):
-    r = _run_git(["rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"], owner_root)
-    return r.returncode == 0
+def _git_or_exit(args, cwd, stdin=None):
+    """stdout of a git command that must succeed; its stderr and exit 4 otherwise."""
+    r = _run_git(args, cwd, stdin)
+    if r.returncode != 0:
+        sys.stderr.write(r.stderr)
+        sys.exit(4)
+    return r.stdout
+
+
+def _z(text):
+    """The non-empty fields of git's NUL-separated (-z) output."""
+    return [f for f in text.split("\0") if f]
+
+
+def _ref_exists(cwd, ref):
+    return _run_git(["rev-parse", "--verify", "--quiet", ref], cwd).returncode == 0
 
 
 def _cut_point(owner_root, default_branch):
@@ -125,22 +120,29 @@ def _cut_point(owner_root, default_branch):
     branch was cut from a local `main` holding an unpushed ship commit. A repository with no
     reachable origin falls back to the local branch and SAYS SO, the same named-fallback voice
     `behind` uses (#1850)."""
-    fetch = _run_git(["fetch", "-q", "origin", default_branch], owner_root)
-    if fetch.returncode == 0:
-        remote = f"refs/remotes/origin/{default_branch}"
-        if _run_git(["rev-parse", "--verify", "--quiet", remote], owner_root).returncode == 0:
-            return f"origin/{default_branch}"
-        return "FETCH_HEAD"
-    print(f"feature-worktree: COULD NOT FETCH origin/{default_branch} in {owner_root}; cutting "
-          f"from LOCAL {default_branch} instead (#2056).", file=sys.stderr)
-    return default_branch
+    if not _fetch_default(owner_root, default_branch,
+                          f"cutting from LOCAL {default_branch} instead (#2056)."):
+        return default_branch
+    if _ref_exists(owner_root, f"refs/remotes/origin/{default_branch}"):
+        return f"origin/{default_branch}"
+    return "FETCH_HEAD"
+
+
+def _fetch_default(cwd, default_branch, fallback):
+    """Fetch origin/<default> once. A failed fetch is said aloud, naming the fallback."""
+    fetch = _run_git(["fetch", "-q", "origin", default_branch], cwd)
+    if fetch.returncode != 0:
+        print(f"feature-worktree: COULD NOT FETCH origin/{default_branch} in {cwd}; {fallback}",
+              file=sys.stderr)
+        print(f"  {fetch.stderr.strip()}", file=sys.stderr)
+    return fetch.returncode == 0
 
 
 def _add_worktree(owner_root, dest, branch, default_branch):
     """(result, branch_was_new). A reused branch keeps its own history; a new one is cut from
     _cut_point."""
     os.makedirs(os.path.dirname(dest), exist_ok=True)
-    if _branch_exists(owner_root, branch):
+    if _ref_exists(owner_root, f"refs/heads/{branch}"):
         return _run_git(["worktree", "add", dest, branch], owner_root), False
     base = _cut_point(owner_root, default_branch)
     return _run_git(["worktree", "add", "-b", branch, dest, base], owner_root), True
@@ -193,9 +195,8 @@ def cmd_create(args):
 
 
 def _parse_worktree_porcelain(text):
-    """Yield (path, branch) for every entry in `git worktree list --porcelain` output. `branch`
-    is None for a detached HEAD entry — none of this CLI's own worktrees are ever detached, so
-    that case is inert here, not asserted on."""
+    """[(path, branch)] for every entry in `git worktree list --porcelain` output. `branch` is
+    None for a detached HEAD entry."""
     entries = []
     path = None
     branch = None
@@ -215,15 +216,10 @@ def _parse_worktree_porcelain(text):
 
 def cmd_list(args):
     owner_root, _segment, _default_branch = resolve_repo(args.repo)
-    hb = _harness_boundary()
-    worktrees_root = os.path.realpath(os.path.join(owner_root, hb.WORKTREES_SEGMENT))
+    worktrees_root = os.path.realpath(os.path.join(owner_root, harness_boundary.WORKTREES_SEGMENT))
 
-    r = _run_git(["worktree", "list", "--porcelain"], owner_root)
-    if r.returncode != 0:
-        sys.stderr.write(r.stderr)
-        sys.exit(4)
-
-    for path, branch in _parse_worktree_porcelain(r.stdout):
+    listing = _git_or_exit(["worktree", "list", "--porcelain"], owner_root)
+    for path, branch in _parse_worktree_porcelain(listing):
         real_path = os.path.realpath(path)
         try:
             common = os.path.commonpath([real_path, worktrees_root])
@@ -255,18 +251,6 @@ def _linked_worktree_paths(owner_root):
     return {os.path.realpath(path) for path, _branch in _parse_worktree_porcelain(r.stdout)}
 
 
-def _status_paths(text):
-    """Yield the path named by each `git status --porcelain` line, taking the destination side
-    of a rename ('R  old -> new')."""
-    for line in text.splitlines():
-        if not line:
-            continue
-        rest = line[3:] if len(line) > 3 else line.lstrip()
-        if " -> " in rest:
-            rest = rest.split(" -> ", 1)[1]
-        yield rest
-
-
 def cmd_remove(args):
     """Every gate for every worktree of the feature runs before ANY is removed, so a fleet
     feature is never left with one half of its pair. The landed-artifact gate applies to the
@@ -291,104 +275,63 @@ def _gate_removal(fid, owner_root, segment, default_branch, dest):
         )
         sys.exit(3)
 
-    # GATE 2 - DIRTY TREE, guarded by REFUSE_ON_DIRTY.
-    if REFUSE_ON_DIRTY:
-        r = _run_git(["status", "--porcelain"], dest)
-        if r.returncode != 0:
-            sys.stderr.write(r.stderr)
-            sys.exit(4)
-        paths = list(_status_paths(r.stdout))
-        if paths:
-            for p in paths:
-                print(f"WOULD DISCARD {p}")
-            print(f"{len(paths)} change(s) would be discarded in {dest}")
-            sys.exit(4)
+    # GATE 2 - a dirty tree would lose its changes.
+    status = _git_or_exit(["status", "--porcelain=v1", "-z", "--no-renames"], dest)
+    paths = [entry[3:] for entry in _z(status)]
+    if paths:
+        for p in paths:
+            print(f"WOULD DISCARD {p}")
+        print(f"{len(paths)} change(s) would be discarded in {dest}")
+        sys.exit(4)
 
-    # GATE 3 - ARTIFACTS LANDED, guarded by REQUIRE_LANDED.
-    if REQUIRE_LANDED and segment is not None:
-        # ISSUE #727 - ONE --id FEEDS TWO PATHS AND THEY DISAGREE ON EVERY REAL WORKTREE.
-        # dest_for() above named the WORKTREE `<id>`; this names the ARTIFACT directory. Measured
-        # 2026-08-23: all four live worktrees are `FEAT-32` while every feature directory is
-        # `FEAT-32-concurrent-write-merge`, so no single --id satisfied both -- the short form died
-        # here with MISSING ARTIFACT DIRECTORY and the long form died at gate 1 with "not a linked
-        # worktree". Resolve the short form to the one feature directory it prefixes.
-        #
-        # REFUSE ON AMBIGUITY, never guess. Two candidates have no right answer and this deletes a
-        # checkout; a coin flip is strictly worse than a refusal the operator can act on.
-        artifact_id = fid
-        features_abs = os.path.join(dest, ".harness", segment, "features")
-        if not os.path.isdir(os.path.join(features_abs, artifact_id)) and os.path.isdir(features_abs):
-            cands = sorted(
-                d for d in os.listdir(features_abs)
-                if d.startswith(fid + "-") and os.path.isdir(os.path.join(features_abs, d))
-            )
-            if len(cands) > 1:
-                print(f"AMBIGUOUS FLOW ID {fid} matches {len(cands)} feature directories:")
-                for c in cands:
-                    print(f"  {c}")
-                print("Pass the full flow id. Nothing was removed.")
-                sys.exit(5)
-            if len(cands) == 1:
-                artifact_id = cands[0]
+    # GATE 3 - every tracked artifact file has landed on the default branch. A code worktree
+    # holds no artifacts.
+    if segment is not None:
+        _gate_landed(fid, segment, default_branch, dest)
 
-        artifact_rel = os.path.join(".harness", segment, "features", artifact_id)
-        artifact_abs = os.path.join(dest, artifact_rel)
-        if not os.path.isdir(artifact_abs):
-            print(f"MISSING ARTIFACT DIRECTORY {artifact_rel}")
-            sys.exit(5)
 
-        # ISSUE #726 - THE QUESTION IS "IS EVERY TRACKED FILE LANDED", NOT "DOES EVERY PATH EXIST".
-        # An IGNORED file (run UI under `.harness/*/features/*/runs/*/ui/**`, or any project
-        # ignore) is untracked by construction and can never reach the default branch. Walking
-        # the filesystem meant this gate refused forever on such files, which made act 3 of the
-        # worktree lifecycle (SKILL.md) unrunnable while run records were still ignored (#726).
-        #
-        # `git ls-files` is the right source and NOT merely a convenience: gate 2 above already
-        # refused a dirty tree, so by this line every file that is neither ignored nor tracked has
-        # already stopped the run. Tracked-and-unlanded therefore still refuses, which is the whole
-        # point of the gate and is asserted separately.
-        r = _run_git(["ls-files", "-z", "--", artifact_rel], dest)
-        if r.returncode != 0:
-            sys.stderr.write(r.stderr)
-            sys.exit(4)
-        tracked = [x for x in r.stdout.split("\0") if x]
+def _artifact_id(fid, features_abs):
+    """The feature directory `fid` names. A worktree is named by the short id (`FEAT-32`) while
+    its feature directory carries the slug (#727), so a short id resolves to the one directory it
+    prefixes. Two candidates refuse: this deletes a checkout, so it never guesses."""
+    if os.path.isdir(os.path.join(features_abs, fid)) or not os.path.isdir(features_abs):
+        return fid
+    cands = sorted(d for d in os.listdir(features_abs)
+                   if d.startswith(fid + "-") and os.path.isdir(os.path.join(features_abs, d)))
+    if len(cands) > 1:
+        print(f"AMBIGUOUS FLOW ID {fid} matches {len(cands)} feature directories:")
+        for c in cands:
+            print(f"  {c}")
+        print("Pass the full flow id. Nothing was removed.")
+        sys.exit(5)
+    return cands[0] if cands else fid
 
-        landed_fail = False
-        for rel in tracked:
-            fpath = os.path.join(dest, rel)
-            r = _run_git(["hash-object", fpath], dest)
-            if r.returncode != 0:
-                sys.stderr.write(r.stderr)
-                sys.exit(4)
-            worktree_hash = r.stdout.strip()
 
-            r = _run_git(["rev-parse", f"{default_branch}:{rel}"], owner_root)
-            if r.returncode != 0:
-                print(f"MISSING {rel}")
-                landed_fail = True
-                continue
-            landed_hash = r.stdout.strip()
+def _gate_landed(fid, segment, default_branch, dest):
+    features_rel = os.path.join(".harness", segment, "features")
+    artifact_rel = os.path.join(features_rel, _artifact_id(fid, os.path.join(dest, features_rel)))
+    if not os.path.isdir(os.path.join(dest, artifact_rel)):
+        print(f"MISSING ARTIFACT DIRECTORY {artifact_rel}")
+        sys.exit(5)
 
-            if landed_hash != worktree_hash:
-                print(f"DIFFERS {rel}")
-                landed_fail = True
-            else:
-                print(f"VERIFIED {rel}")
-
-        if landed_fail:
-            sys.exit(5)
+    # Tracked files only: an ignored file (run UI under runs/*/ui/) can never land (#726), and
+    # gate 2 already refused every untracked file that is not ignored.
+    tracked = _z(_git_or_exit(["ls-files", "-z", "--", artifact_rel], dest))
+    # A = absent from the default branch, anything else = its content differs there.
+    diff = _z(_git_or_exit(["diff", "--name-status", "-z", "--no-renames", "--diff-filter=AMT",
+                            default_branch, "--", artifact_rel], dest))
+    changed = dict(zip(diff[1::2], diff[0::2]))
+    for rel in tracked:
+        status = changed.get(rel)
+        print(f"{'VERIFIED' if status is None else 'MISSING' if status == 'A' else 'DIFFERS'} {rel}")
+    if changed:
+        sys.exit(5)
 
 
 def _remove_worktree(owner_root, dest):
     """THE REMOVAL, once every gate of every worktree has passed."""
-    r = _run_git(["worktree", "remove", dest], owner_root)
-    if r.returncode != 0:
-        sys.stderr.write(r.stderr)
-        sys.exit(4)
-    r = _run_git(["worktree", "prune"], owner_root)
-    if r.returncode != 0:
-        sys.stderr.write(r.stderr)
-        sys.exit(4)
+    _git_or_exit(["worktree", "remove", dest], owner_root)
+    _git_or_exit(["worktree", "prune"], owner_root)
 
     print(f"REMOVED {dest}")
 
@@ -396,39 +339,9 @@ def _remove_worktree(owner_root, dest):
 def cmd_behind(args):
     """REFUSE a ship whose worktree is behind the repository's default branch. Exit 6.
 
-    WHY THIS EXISTS, measured 2026-08-21. FEAT-31's worktree sat SIX commits behind `main`
-    when its build was about to be dispatched, and the gap was not cosmetic: it held
-    `expertise-merge.py` and DEC-197, a tool and a decision that two of that plan's own
-    tasks needed. The build would have re-derived a rule it should have cited, against a
-    tree that did not contain it. Nothing reported this; the operator asked.
-
-    WHY LOCAL `main` AND NOT `origin/main`, decided rather than defaulted. This is a local
-    git question and `git rev-list` answers it offline in ~10ms for zero GraphQL points.
-    Routing it through `gh` was considered and rejected on a measurement: none of the three
-    in-flight feature branches existed on the remote at all, because nothing is pushed until
-    PR time — so `gh` would have answered "no such branch" for exactly the case this catches.
-    The accepted cost: if local `main` is itself stale this UNDER-reports. That is the safe
-    direction; it never accuses a tree that is actually current.
-
-    SUPERSEDED ON THE TARGET, 2026-09-22 (#1850). Both premises above hold and neither was
-    the point: the feature branch need not exist remotely, because the comparison target is
-    the DEFAULT branch, which always does. Under-reporting was measured NOT safe: FEAT-61's
-    local `main` had missed one merge, `behind` printed `current with main`, and the PR
-    opened from that worktree was CONFLICTING with zero CI runs — GitHub fires no
-    `pull_request` workflow when it cannot compute a merge commit. So the target is now
-    `origin/<default>` after one `git fetch origin <default>` (one network call, still no
-    GraphQL, compared as FETCH_HEAD so no refspec is assumed). When the fetch fails the
-    check falls back to LOCAL `<default>` and SAYS SO in the COULD-NOT voice — a named
-    fallback, never a pass dressed as a comparison.
-
-    NO THRESHOLD, DELIBERATELY. An earlier design gated on whether the missing commits
-    touched `.claude/` or the decision docs, to stay quiet on ordinary drift. That
-    discriminator exists because the check was going to live in `check-state.py`, which runs
-    at every door AND before every commit. At the SHIP DOOR it runs once per ship, so any
-    commit behind is worth stopping for and the fix is one merge.
-
-    WHAT THIS DOES NOT CATCH, said rather than discovered: a build that starts current and
-    drifts behind while it runs. The check fires at the door, not mid-flight.
+    The target is `origin/<default>` after one fetch: a stale local default branch once let a
+    PR open CONFLICTING with no CI run (#1850). A failed fetch falls back to the local branch and
+    says so. Any commit behind refuses; the check runs at the ship door, not during a build.
     """
     codes = [_behind_one(owner_root, dest_for(owner_root, wt_segment, args.id), default_branch)
              for _role, owner_root, wt_segment, _artifact, default_branch in targets(args.repo)]
@@ -443,17 +356,14 @@ def _behind_one(owner_root, dest, default_branch):
         print(f"feature-worktree: no worktree at {dest}", file=sys.stderr)
         return 3
 
-    fetch = _run_git(["fetch", "-q", "origin", default_branch], dest)
-    if fetch.returncode == 0:
+    if _fetch_default(dest, default_branch,
+                      f"comparing against LOCAL {default_branch} instead (#1850); if that ref "
+                      f"is itself stale this check under-reports."):
         target, label = "FETCH_HEAD", f"origin/{default_branch}"
         remedy = f"git -C {dest} fetch origin {default_branch} && git -C {dest} merge FETCH_HEAD"
     else:
         target, label = default_branch, f"LOCAL {default_branch}"
         remedy = f"git -C {dest} merge {default_branch}"
-        print(f"feature-worktree: COULD NOT FETCH origin/{default_branch} in {dest}; comparing "
-              f"against LOCAL {default_branch} instead (#1850).", file=sys.stderr)
-        print(f"  {fetch.stderr.strip()}", file=sys.stderr)
-        print(f"  If that ref is itself stale this check under-reports.", file=sys.stderr)
 
     r = _run_git(["rev-list", "--count", f"HEAD..{target}"], dest)
     if r.returncode != 0:
@@ -488,42 +398,20 @@ def _behind_one(owner_root, dest, default_branch):
 def _build_parser():
     parser = argparse.ArgumentParser(prog="feature-worktree.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
-
-    p_create = sub.add_parser("create")
-    p_create.add_argument("--repo", required=True)
-    p_create.add_argument("--id", required=True)
-
-    p_list = sub.add_parser("list")
-    p_list.add_argument("--repo", required=True)
-
-    p_path = sub.add_parser("path")
-    p_path.add_argument("--repo", required=True)
-    p_path.add_argument("--id", required=True)
-
-    p_remove = sub.add_parser("remove")
-    p_remove.add_argument("--repo", required=True)
-    p_remove.add_argument("--id", required=True)
-
-    p_behind = sub.add_parser("behind")
-    p_behind.add_argument("--repo", required=True)
-    p_behind.add_argument("--id", required=True)
-
+    for name, func, takes_id in (("create", cmd_create, True), ("list", cmd_list, False),
+                                 ("path", cmd_path, True), ("remove", cmd_remove, True),
+                                 ("behind", cmd_behind, True)):
+        p = sub.add_parser(name)
+        p.add_argument("--repo", required=True)
+        if takes_id:
+            p.add_argument("--id", required=True)
+        p.set_defaults(func=func)
     return parser
 
 
 def main():
-    parser = _build_parser()
-    args = parser.parse_args()
-    if args.cmd == "create":
-        cmd_create(args)
-    elif args.cmd == "list":
-        cmd_list(args)
-    elif args.cmd == "path":
-        cmd_path(args)
-    elif args.cmd == "remove":
-        cmd_remove(args)
-    elif args.cmd == "behind":
-        cmd_behind(args)
+    args = _build_parser().parse_args()
+    args.func(args)
 
 
 if __name__ == "__main__":
