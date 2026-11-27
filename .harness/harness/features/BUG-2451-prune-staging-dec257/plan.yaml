@@ -67,7 +67,7 @@ tasks:
 - id: T-01
   title: Remove pruner staging while retaining both safety refusals
   change_type: bugfix
-  status: ready
+  status: done
   depends_on: []
   traces: [SC-01, SC-02, SC-03, SC-04]
   execution_mode: main-session-direct
