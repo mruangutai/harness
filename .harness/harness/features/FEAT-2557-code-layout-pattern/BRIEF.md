@@ -87,9 +87,10 @@ Each inspection SC is graded on `git show <review_sha>:<path>`, never the workin
   that leaf already points readers to `harness-codebase-design` twice, which eight seats preload;
   a second, section-level pointer would be a second home for the same link.
 - Routing by `check-domain.py --resolve`: the skill and AGENTS.md have no squad grant (declared
-  main-session step, DEC-179); `bin/**` is backend-dev's; `.harness/harness/docs/**` is
-  documentor's. Three routes, so three tasks — the patch lane's one task yields to one route per
-  task.
+  main-session step, DEC-179), so under the operator's INV-32 ruling
+  (`notes/answers-2026-11-27-inv32.md`) all five files are one main-session-direct task. The
+  DEVIATION for the granted files (`bin/**` backend-dev's, `.harness/harness/docs/**`
+  documentor's) is accepted by that ruling.
 - SUPPLIES: DEC-149 and DEC-235 (`harness-codebase-design` is the home for reader-side design
   rules; craft leaves are read at the seam), DEC-158 (rule in the skill, history in DECISIONS.md),
   DEC-202 (AGENTS.md points, never copies; `.claude/skills/` is the authored tree), DEC-205 (the new

@@ -21,6 +21,22 @@
       "cycles_used": 0,
       "ended_at": "2026-11-27T14:36:57+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "revise-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-27T14:58:07+00:00",
+      "tokens": 65455,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/revise-product/digest.md",
+        "sha256": "27a267cdc0ab81534d9a34ebdc2edfb323bb7956fb3ba35abcdb1084c9be233d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T15:04:04+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -30,7 +46,63 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "cause known (the convention never reached a skill; its only full record was removed by FEAT-71), diff bounded to five named files, and no hook, gate, validator or schema changes \u2014 prose applied in review."
+    },
+    {
+      "at": "2026-11-27T15:01:46.175075+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "INV-32 ruling notes/answers-2026-11-27-inv32.md: one main-session-direct task folds old T-01, T-02 and T-03"
+    },
+    {
+      "at": "2026-11-27T15:01:53.076817+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "INV-32 ruling notes/answers-2026-11-27-inv32.md: one main-session-direct task folds old T-01, T-02 and T-03"
+    },
+    {
+      "at": "2026-11-27T15:01:54.694617+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "INV-32 ruling notes/answers-2026-11-27-inv32.md: one main-session-direct task folds old T-01, T-02 and T-03"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/FEAT-2557-code-layout-pattern/notes/answers-2026-11-27-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-02": "734d945510d26a5e12829f8a367d3d859a741ed62a5048eec08ec83fb97cfe49",
+    "T-01": "f90bbf26c1253bd4506d7792cfb859574b937117ced8c5d376dbec6ae31be387",
+    "T-03": "c7bc8b9bb35d6bb3131c334bfb63e1aa191dac682a6237251a9b847e47f529c2"
+  },
+  "github": {
+    "milestone": 142,
+    "parent": 2558,
+    "attached": [
+      "T-02",
+      "T-01",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 2560,
+      "T-02": 2559,
+      "T-03": 2561
+    },
+    "source_issues": [
+      2557
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

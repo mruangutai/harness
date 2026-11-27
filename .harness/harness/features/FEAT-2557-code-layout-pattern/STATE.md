@@ -3,11 +3,11 @@
 ## Current
 
 - feature: FEAT-2557-code-layout-pattern
-- run: .harness/harness/features/FEAT-2557-code-layout-pattern/runs/plan-product/ (PASS)
+- run: .harness/harness/features/FEAT-2557-code-layout-pattern/runs/revise-product/ (PASS)
 - squad: none
-- status: awaiting-user (signature; BRIEF.md and plan.yaml pending)
+- status: awaiting-user (re-signature; BRIEF.md and plan.yaml pending, one main-session-direct task T-01)
 
 ## Open Questions
 
-- Q-01 (non-blocking): three routes gave three tasks where patch-lane.md specifies one; accept the split at signature.
-- Q-02 (non-blocking): DEC-259 is free in this worktree; confirm no in-flight feature lands it first.
+- Q-01 (non-blocking): dropped-task cards #2559 (T-02) and #2561 (T-03) are still recorded in feature.json github; no gh-sync.py verb reconciles a task deleted from a plan, so INV-26 reports both.
+- Q-02 (non-blocking): the three T-01 amendment judgements read by: main-session though pm's plan-merge.py amend wrote them.
