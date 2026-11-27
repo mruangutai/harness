@@ -3,12 +3,9 @@ feature: FEAT-2557-code-layout-pattern
 approval:
   date: '2026-11-27'
   approved_by: Mike Ruangutai
-  status: pending
-  reset_at: '2026-11-27T15:01:39+00:00'
-  reset_reason: delete-items T-02, T-03
-  resume_station: ready
+  status: approved
 drafted_at: '2026-11-27T14:35:15Z'
-status: plan
+status: ready
 source_issues: [2557]
 lanes:
   resolved_at: cf7b422b2e55ae4c9129a8009e240b56c6e25035

@@ -73,33 +73,25 @@
   "rework": {
     "rounds": 1,
     "wall_clock_minutes": 45,
-    "decision": ".harness/harness/features/FEAT-2557-code-layout-pattern/notes/answers-2026-11-27-signoff.md"
+    "decision": ".harness/harness/features/FEAT-2557-code-layout-pattern/notes/answers-2026-11-27-resign.md"
   },
   "signed_task_hashes": {
-    "T-02": "734d945510d26a5e12829f8a367d3d859a741ed62a5048eec08ec83fb97cfe49",
-    "T-01": "f90bbf26c1253bd4506d7792cfb859574b937117ced8c5d376dbec6ae31be387",
-    "T-03": "c7bc8b9bb35d6bb3131c334bfb63e1aa191dac682a6237251a9b847e47f529c2"
+    "T-01": "ea8568867bc147a4d9c87f246ed08b3a768ec6a50c00651511b2a76b9eaf1097"
   },
   "github": {
     "milestone": 142,
     "parent": 2558,
     "attached": [
-      "T-02",
-      "T-01",
-      "T-03"
+      "T-01"
     ],
     "issues": {
-      "T-01": 2560,
-      "T-02": 2559,
-      "T-03": 2561
+      "T-01": 2560
     },
     "source_issues": [
       2557
     ],
     "typed": {
       "T-01": true,
-      "T-02": true,
-      "T-03": true,
       "parent": true
     },
     "build_entry": "opened",
