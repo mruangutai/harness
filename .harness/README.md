@@ -173,10 +173,19 @@ That example is the complete `harness-documentor` shape. Each persona's exact cl
 `none` or `[]` when the schema calls for no value, never null or omission. Minimal list items are
 closed too.
 
-The task hook refuses dispatcher-supplied `outputSchema` or `schemaMode`, then injects the target
-persona's canonical schema in strict mode. YieldTool validates `data` as the object; malformed data
-returns an actionable retryable tool error to the same job. There is no prose parser, last-message
-fallback, host-synthesized digest, or compatibility alias.
+Each harness agent definition carries `structured: true` and an `output:` generated from its
+persona schema plus `common.json` by `.claude/skills/harness/bin/gen-agent-output.py`, never
+hand-edited; `check-omp-port.py` fails on drift. Global `task.structured` stays at OMP's default
+(off), so the task tool exposes no schema parameter and a dispatcher has nothing to supply, copy or
+be refused for. Agent frontmatter cannot set strict mode, so the yield hook is the barrier: a yield
+with no data is refused, and a yield the validator cannot check is refused, never passed. That
+refusal says the fault is Harness's and tells the child to yield the same object once more and
+then stop; a contract refusal instead carries the validator's own reason. Measured on OMP 19.2.1
+(this feature's `notes/research-yield-refusal-probe.md`): a hook-refused yield does not use up one
+of OMP's schema retries, and after repeated refusals the dispatcher's task result is `failed`
+with OMP's "exited without calling yield" warning and the child's final text naming the cause,
+never the refused object. There is no prose parser, last-message fallback, host-synthesized
+digest, or compatibility alias.
 
 Members yield objects to their lead. A lead first writes the human team report at
 `<run>/digest.md`, then yields its object. `validate-digest.py` alone appends the validated object as
