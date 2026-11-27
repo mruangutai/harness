@@ -145,7 +145,7 @@ def _i3_offline_missing_receipt_is_graded():
 def _i4_offline_owner_repo_conflicts_with_factory_repo():
     ok, lines = _offline_receipt_case({"build_entry": "opened", "repo": "org/repo"})
     ok = ok and _has(lines, "'org/repo' conflicts with bound repository 'org/prod'",
-                     "gh-sync.py recover-mirror ", "--previous-repo org/repo")
+                     "edit the github block of", "github.repo is 'org/prod'")
     return ("(i.4) offline: github.repo naming the owner is graded against factory.repo",
             ok, f"lines={lines}")
 
@@ -153,7 +153,7 @@ def _i4_offline_owner_repo_conflicts_with_factory_repo():
 def _i5_offline_unproven_active_mirror():
     ok, lines = _offline_receipt_case({"build_entry": "opened", "milestone": 1, "parent": 16})
     ok = ok and _has(lines, "nonempty mirror has no matching github.repo provenance",
-                     "gh-sync.py recover-mirror ")
+                     "edit the github block of", "github.repo is 'org/prod'")
     return ("(i.5) offline: an active bound mirror without github.repo stays unproven",
             ok, f"lines={lines}")
 

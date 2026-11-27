@@ -1063,12 +1063,12 @@ def case_unproven_mirror_retention():
                 results.append(("an unbound legacy mapping is proven by the owner binding, so "
                                 "the terminal worktree is swept",
                                 observed.returncode == 0 and not os.path.isdir(dest)
-                                and "recover-mirror" not in observed.stdout,
+                                and "edit the github block of" not in observed.stdout,
                                 f"stdout={observed.stdout!r}"))
             else:
                 results.append(("opened cannot remove wrong-repository mirror evidence",
                                 observed.returncode == 0 and os.path.isdir(dest)
-                                and "recover-mirror" in observed.stdout,
+                                and "edit the github block of" in observed.stdout,
                                 f"stdout={observed.stdout!r}"))
     return results
 

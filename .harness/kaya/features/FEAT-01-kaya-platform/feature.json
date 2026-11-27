@@ -299,60 +299,6 @@
       14
     ],
     "build_entry": "opened",
-    "repo": "mruangutai/kaya",
-    "history": [
-      {
-        "recovery_id": "25a09cc3-8755-460b-8658-71730b3a6162",
-        "at": "2026-11-07T14:29:44.614155+00:00",
-        "repo": "mruangutai/harness",
-        "reason": "Approval transaction mirrored into mruangutai/harness (milestone 100, parent 2116, tasks 2117-2126, all closed not_planned; Harness #14 unrelated and untouched). No implementation started: full replacement in mruangutai/kaya from the unchanged signed plan, projecting signed source #14 (#2172).",
-        "evidence": {
-          "path": "notes/research-fleet-planning-recovery-authorization.md",
-          "sha256": "a6ec5e0986310e1025ea2dcedfb4b7ec65205b27e72a3bac31adbe6fad3d0df2"
-        },
-        "previous": {
-          "milestone": 100,
-          "parent": 2116,
-          "attached": [
-            "T-01",
-            "T-02",
-            "T-03",
-            "T-04",
-            "T-05",
-            "T-06",
-            "T-07",
-            "T-08",
-            "T-09",
-            "T-10"
-          ],
-          "issues": {
-            "T-01": 2117,
-            "T-02": 2118,
-            "T-03": 2119,
-            "T-04": 2120,
-            "T-05": 2121,
-            "T-06": 2122,
-            "T-07": 2123,
-            "T-08": 2124,
-            "T-09": 2125,
-            "T-10": 2126
-          },
-          "source_issues": [
-            14
-          ],
-          "build_entry": "opened"
-        }
-      }
-    ],
-    "recovery": {
-      "id": "25a09cc3-8755-460b-8658-71730b3a6162",
-      "from_repo": "mruangutai/harness",
-      "to_repo": "mruangutai/kaya",
-      "mode": "full",
-      "state": "complete",
-      "plan_sha256": "1c5d6bfbace6034faebb291fa18b63a42446831b86715258f8722ae32c5fb462",
-      "started_at": "2026-11-07T14:29:44.614155+00:00",
-      "completed_at": "2026-11-07T14:34:53.529534+00:00"
-    }
+    "repo": "mruangutai/kaya"
   }
 }

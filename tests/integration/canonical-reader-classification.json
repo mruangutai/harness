@@ -2430,19 +2430,6 @@
       "task": "none"
     },
     {
-      "artifact": "gh JSON output",
-      "category": "parse_gh_json",
-      "dec174_category": "none",
-      "disposition": "canonical",
-      "execution_route": "team",
-      "file": ".claude/skills/harness/bin/gh-sync.py",
-      "id": ".claude/skills/harness/bin/gh-sync.py::_replacement_number::parse_gh_json#1",
-      "reason": "",
-      "remedy": "artifact_accessors.parse_gh_json",
-      "symbol": "_replacement_number",
-      "task": "none"
-    },
-    {
       "artifact": "feature.json",
       "category": "load_feature_json",
       "dec174_category": "none",
@@ -2453,46 +2440,6 @@
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
       "symbol": "cmd_open",
-      "task": "none"
-    },
-    {
-      "artifact": "plan.yaml",
-      "category": "load_plan",
-      "dec174_category": "none",
-      "disposition": "canonical",
-      "execution_route": "team",
-      "file": ".claude/skills/harness/bin/gh-sync.py",
-      "id": ".claude/skills/harness/bin/gh-sync.py::_replacement_plan::load_plan#1",
-      "reason": "",
-      "remedy": "artifact_accessors.load_plan",
-      "symbol": "_replacement_plan",
-      "task": "none"
-    },
-    {
-      "artifact": "feature.json",
-      "category": "json_string",
-      "dec174_category": "none",
-      "disposition": "exempt",
-      "execution_route": "team",
-      "exemption": "canonical_writer_transform",
-      "file": ".claude/skills/harness/bin/gh-sync.py",
-      "id": ".claude/skills/harness/bin/gh-sync.py::_begin_replacement.transform::json_string#1",
-      "reason": "The locked feature writer decodes current bytes inside its transform.",
-      "remedy": "none",
-      "symbol": "_begin_replacement.transform",
-      "task": "none"
-    },
-    {
-      "artifact": "feature.json",
-      "category": "load_feature_json",
-      "dec174_category": "none",
-      "disposition": "canonical",
-      "execution_route": "team",
-      "file": ".claude/skills/harness/bin/gh-sync.py",
-      "id": ".claude/skills/harness/bin/gh-sync.py::cmd_recover_mirror::load_feature_json#1",
-      "reason": "",
-      "remedy": "artifact_accessors.load_feature_json",
-      "symbol": "cmd_recover_mirror",
       "task": "none"
     },
     {

@@ -167,13 +167,13 @@ with tempfile.TemporaryDirectory() as tmp:
           got == "open", repr(got))
 
 # A plan-flow SIMPLIFY run an engineering lead hosts before signature grades a specification
-# (code_grade n_a): replacement stays full. An engineering run that reviewed code is started work.
+# (code_grade n_a): recovery stays open. An engineering run that reviewed code is started work.
 with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9011-fixture-plan-simplify")
     write_plan(d, "ready", [{"id": "T-01", "status": "ready"}])
     plan_flow = {"id": "r1", "squad": "engineering", "verdict": "PASS", "code_grade": "n_a"}
     built = {"id": "r2", "squad": "engineering", "verdict": "PASS"}
-    legs = [feature_schema.recovery_command_for(d, {"runs": runs}, replacement=True)
+    legs = [feature_schema.recovery_command_for(d, {"runs": runs})
             for runs in ([plan_flow], [plan_flow, built])]
     check("a plan-flow engineering simplify run is not started work; a code-graded one is",
           legs == ["open", "recover-terminal"], repr(legs))
@@ -237,11 +237,6 @@ if callable(allows):
         ("legacy unbound recovered-terminal",
          {"github": {"milestone": 3, "parent": 7, "build_entry": "recovered-terminal"}}, True),
         ("unresolved owner repository", {"github": {"parent": 7, "build_entry": "opened"}}, None),
-        ("replacement in progress", {"github": {"repo": "org/product", "build_entry": "opened",
-                                                "recovery": {"state": "in-progress"}}}, False),
-        ("uncertain create", {"github": {
-            "repo": "org/product", "build_entry": "recovered-terminal",
-            "recovery": {"state": "complete", "pending_create": {"role": "parent"}}}}, False),
         ("legacy unbound sync-off", {"github": {"build_entry": "not-applicable"}}, True),
     ):
         repo = None if expected is None else "org/product"

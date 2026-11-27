@@ -267,8 +267,6 @@ def _enforce_receipt(feature_schema, github, feat_dir, document, root):
     if not bound and not github.get("sync"):
         problem = feature_schema.mirror_provenance_problem(document, github.get("repo"))
         if not problem:
-            problem = "; ".join(feature_schema.mirror_evidence_problems(feat_dir, document))
-        if not problem:
             return None
         return (f"merge-gate: {feat}: {problem}. Run: "
                 f"{feature_schema.recovery_command_line(feat_dir, document, github.get('repo'))}")
@@ -276,10 +274,9 @@ def _enforce_receipt(feature_schema, github, feat_dir, document, root):
         repo, _board, _types = feature_schema.resolve_binding(document, root)
     except artifact_accessors.FleetError as error:
         return f"merge-gate: {feat} has an invalid authoritative repository binding: {error}"
-    problems = feature_schema.mirror_evidence_problems(feat_dir, document)
-    if not problems and feature_schema.receipt_allows_merge(document, repo):
+    if feature_schema.receipt_allows_merge(document, repo):
         return None
-    detail = "; ".join(problems) or feature_schema.mirror_provenance_problem(document, repo) or "receipt absent or incomplete"
+    detail = feature_schema.mirror_provenance_problem(document, repo) or "receipt absent or incomplete"
     return (f"merge-gate: {feat} needs its GitHub mirror recovery completed before this merge can continue "
             f"({detail}). Run: {feature_schema.recovery_command_line(feat_dir, document, repo)}")
 

@@ -148,7 +148,7 @@ for provenance in (None, "elsewhere/wrong"):
               r.returncode == 0 and d is None, f"decision={d} reason={reason}")
     else:
         check("opened is not proof of ownership for a wrong-repository mirror",
-              d == "deny" and "recover-mirror" in reason and "--previous-repo" in reason, reason)
+              d == "deny" and "edit the github block of" in reason and "elsewhere/wrong" in reason, reason)
 
 root, directory = fixture(entry="opened", sync=False)
 record = os.path.join(directory, "feature.json")
@@ -390,7 +390,7 @@ def _feat65_fire(root, sibling, override):
 
 
 root, _ = fixture()
-sig = "def recovery_command_for(feat_dir, feature_doc=None, bound_repo=None, *, replacement=False):\n"
+sig = "def recovery_command_for(feat_dir, feature_doc=None):\n"
 r = _feat65_fire(root, "feature_schema.py", sig + "    raise RuntimeError('FEAT-65 injected')\n")
 check("FEAT-65: a receipt-evaluation defect is BLOCKED by the closed guard and named",
       r.returncode == 2 and r.stdout == "" and "RuntimeError: FEAT-65 injected" in r.stderr,
@@ -657,7 +657,7 @@ def case_distill_replay_invalid():
 def case_distill_build_entry():
     for name, kwargs, needles in (
         ("missing", {"entry": None}, ("gh-sync.py open",)),
-        ("wrong-repository", {"entry": "opened", "repo": "elsewhere/wrong"}, ("recover-mirror", "--previous-repo")),
+        ("wrong-repository", {"entry": "opened", "repo": "elsewhere/wrong"}, ("edit the github block of",)),
         ("recovery-required", {"entry": "recovery-required"}, ("needs its GitHub mirror recovery completed",)),
     ):
         fx = distill_fixture(**kwargs)

@@ -148,10 +148,8 @@ def _pointer(path):
     return "/" + "/".join(str(p) for p in path)
 
 
-def recovery_command_for(feat_dir, feature_doc=None, bound_repo=None, *, replacement=False):
-    """Select replacement versus compatible receipt recovery, sharing work-started rules."""
-    if feature_doc is not None and not replacement and mirror_provenance_problem(feature_doc, bound_repo):
-        return "recover-mirror"
+def recovery_command_for(feat_dir, feature_doc=None):
+    """Select the receipt recovery command, sharing work-started rules."""
     import artifact_accessors
     import harness_yaml
     try:
@@ -174,14 +172,15 @@ def recovery_command_for(feat_dir, feature_doc=None, bound_repo=None, *, replace
 
 
 def recovery_command_line(feat_dir, feature_doc=None, bound_repo=None):
-    """Render every gate's recovery instruction from the same selection."""
-    command = recovery_command_for(feat_dir, feature_doc, bound_repo)
+    """Render every gate's recovery instruction from the same selection. A mapping with bad
+    provenance has no command: no tool can prove which repository its numbers live in."""
+    path = os.path.join(os.path.realpath(feat_dir), "feature.json")
+    if feature_doc is not None and mirror_provenance_problem(feature_doc, bound_repo):
+        return (f"edit the github block of {path} by hand (no command repairs it) so "
+                f"github.repo is {bound_repo!r} and every recorded number lives there")
+    command = recovery_command_for(feat_dir, feature_doc)
     line = f"python3 .claude/skills/harness/bin/gh-sync.py {command} {os.path.realpath(feat_dir)}"
-    if command != "recover-mirror":
-        return line + (" --yes" if command == "recover-terminal" else "")
-    github = (feature_doc or {}).get("github") or {}
-    previous = (github.get("recovery") or {}).get("from_repo") or github.get("repo") or "<previous-owner/name>"
-    return f"{line} --previous-repo {previous} --evidence <target-local-authorization> --yes"
+    return line + (" --yes" if command == "recover-terminal" else "")
 
 
 # SC-07 (FEAT-31 T-15): every runs[] entry names the agent that executed it. The rule runs
@@ -563,11 +562,6 @@ def mirror_provenance_problem(doc, bound_repo):
         return f"recorded github.repo {recorded_repo!r} conflicts with bound repository {bound_repo!r}"
     if active and (not bound_repo or effective_recorded_repo(doc, bound_repo) != bound_repo):
         return "nonempty mirror has no matching github.repo provenance"
-    recovery = github.get("recovery") or {}
-    if recovery and (recovery.get("state") != "complete" or recovery.get("pending_create")):
-        return "mirror replacement is in progress or has an uncertain pending create"
-    if recovery and recovery.get("to_repo") != bound_repo:
-        return "mirror replacement targets a different bound repository"
     return None
 
 
@@ -584,58 +578,3 @@ def receipt_allows_merge(doc, bound_repo):
     return False
 
 
-def mirror_receipt_for_role(github, role):
-    if role in {"milestone", "parent"}:
-        return github.get(role)
-    if isinstance(role, str) and re.fullmatch(r"task:T-[0-9]{2,}", role):
-        return (github.get("issues") or {}).get(role[5:])
-    raise ValueError(f"invalid mirror object role: {role!r}")
-
-
-def _verify_archived_mirror(feature_dir, feature_id, item):
-    effect = verify_evidence_ref(feature_dir, item["evidence"], {
-        "feature_id": feature_id, "effect": "recover-mirror",
-        "from_repo": item["repo"], "reason": item["reason"]})
-    if not all(isinstance(effect.get(key), str) and effect[key].strip() for key in ("by", "reason")):
-        raise ValueError("mirror authorization requires an operator identity and reason")
-    previous_repo = item["previous"].get("repo")
-    if previous_repo is not None and previous_repo != item["repo"]:
-        raise ValueError("archived mapping conflicts with its previous repository")
-
-
-def _verify_recovery_generation(feature_dir, feature_id, history, recovery):
-    matches = [item for item in history if item["recovery_id"] == recovery["id"]]
-    if len(matches) != 1 or matches[0]["repo"] != recovery["from_repo"]:
-        raise ValueError("recovery requires exactly one matching archived generation")
-    verify_evidence_ref(feature_dir, matches[0]["evidence"], {
-        "feature_id": feature_id, "effect": "recover-mirror",
-        "from_repo": recovery["from_repo"], "to_repo": recovery["to_repo"],
-        "mode": recovery["mode"], "plan_sha256": recovery["plan_sha256"]})
-
-
-def _verify_reconciled_receipt(feature_dir, feature_id, github, recovery, ref):
-    effect = verify_evidence_ref(feature_dir, ref, {
-        "feature_id": feature_id, "effect": "adopt-receipt", "recovery_id": recovery["id"],
-        "repo": recovery["to_repo"], "plan_sha256": recovery["plan_sha256"]})
-    number = effect.get("number")
-    if type(number) is not int or number <= 0 or mirror_receipt_for_role(github, effect.get("role")) != number:
-        raise ValueError("adoption proof does not match its recorded object")
-    if not all(isinstance(effect.get(key), str) and effect[key].strip() for key in ("by", "ownership_evidence")):
-        raise ValueError("adoption requires operator identity and ownership evidence")
-
-
-def mirror_evidence_problems(feature_dir, doc):
-    """Check immutable replacement authorizations without consulting remote objects."""
-    github = doc.get("github") or {}
-    history = github.get("history") or []
-    recovery = github.get("recovery") or {}
-    try:
-        for item in history:
-            _verify_archived_mirror(feature_dir, doc["feature_id"], item)
-        if recovery:
-            _verify_recovery_generation(feature_dir, doc["feature_id"], history, recovery)
-            for ref in recovery.get("reconciliation", []):
-                _verify_reconciled_receipt(feature_dir, doc["feature_id"], github, recovery, ref)
-    except (OSError, ValueError, TypeError, KeyError) as error:
-        return [f"mirror evidence: {error}"]
-    return []

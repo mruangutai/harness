@@ -17,11 +17,11 @@ one open registered run. `dispatch-guard.py` refuses at exit 2, before any claim
 or several matching open runs; register the missing run, or close surplus ones with their real
 outcome. Header declarations follow `harness-zero-micro-management`'s dispatch header.
 
-1. **Build entry.** Require the signature-created `github.build_entry` and the shared binding,
-   provenance and evidence proof. Ordinary Build never creates the mirror. Compatible absence or
-   partial creation goes to main-owned idempotent `gh-sync.py open <feature-dir>`; an unproven,
-   wrong-repository or in-progress mapping requires explicitly authorized `recover-mirror`, never
-   another `open`. `github-mirror.md` owns that procedure; no target-config failure falls back to
+1. **Build entry.** Require the signature-created `github.build_entry` and the shared binding
+   and provenance proof. Ordinary Build never creates the mirror. Compatible absence or partial
+   creation goes to main-owned idempotent `gh-sync.py open <feature-dir>`; an unproven or
+   wrong-repository mapping refuses and needs a hand fix of the `github` block, never another
+   `open`. `github-mirror.md` owns that procedure; no target-config failure falls back to
    Harness. Compatible `recovery-required` may proceed but still gates merge. After preflight,
    run `gh-sync.py status <feature-dir> building` before task dispatch.
 2. **The eng segment.** Dispatch the named `build` team — resolve it

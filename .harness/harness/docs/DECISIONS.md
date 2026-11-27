@@ -5581,12 +5581,10 @@ a shape a machine can check), DEC-154, DEC-160, DEC-174 (the enforcement layer i
 never through a run whose gates are the thing changing), DEC-183, and DEC-190 for the library.
 
 **Evidence is typed state, not a notes escape hatch.** Optional `runs[].cycle_evidence` and
-`runs[].refusal`, plus `github.repo`, `history` and `recovery`, have closed shapes and named
+`runs[].refusal`, plus `github.repo`, have closed shapes and named
 consumers. The shared `evidence_ref` is exactly `{path, sha256}`: a normalized feature-local
 regular file whose bytes match the hash, with no traversal or symlink escape. Operator-history
-metadata also binds an immutable authorization note, operator and timestamp. Archived `previous`
-uses the same non-recursive mirror definition as the active core; it cannot contain another
-history or recovery. `validation_exit`, `return_status` and arbitrary prose keys are not proofs.
+metadata also binds an immutable authorization note, operator and timestamp. `validation_exit`, `return_status` and arbitrary prose keys are not proofs.
 The frozen legacy `runs[].return_disposition: refused` marker stays readable only because named
 readers still read it: INV-15/INV-46 accept it as grandfathered data with its closed BLOCKED
 identity, and run-end/close-run replay it unchanged. No writer remains, and an entry never
@@ -6379,10 +6377,9 @@ against one bounded station snapshot per invocation, applies each finding to tha
 number, and continues after a per-card write failure so later mismatches are still attempted.
 
 Every projection, adoption and lifecycle consumer first resolves the feature's repository binding
-and verifies its active `github.repo`, recovery state and evidence (DEC-220). Invalid mappings
+and verifies its active `github.repo` (DEC-220). Invalid mappings
 produce human findings, never actionable issue numbers. Created versus adopted origin is still
-irrelevant to the child rule; repository ownership is not. Replacement recovery gains no ninth
-read-back purpose: uncertain creates require separately authorized exact receipts, not discovery.
+irrelevant to the child rule; repository ownership is not.
 
 **4. The parent rule.** A card is not moved to done while its ticket has an open child. Ship skips
 it and prints one line naming the child that held it open.
@@ -7320,8 +7317,8 @@ proposals that rewrite or remove.
 compatible missing receipts; it never repairs an invalid mapping. `github.build_entry` records
 `opened`, `recovery-required`, `not-applicable` or `recovered-terminal`; absence means the
 post-signature transaction did not complete. Build consumes the receipt rather than routinely
-creating a mirror. Compatible absence or partial creation goes to main-owned `open`; an unproven,
-wrong-repository or in-progress mapping goes to explicit `recover-mirror`. Invalid provenance
+creating a mirror. Compatible absence or partial creation goes to main-owned `open`; an unproven or
+wrong-repository mapping refuses and is corrected by hand. Invalid provenance
 refuses before station changes or remote mutation, even if its old marker says `opened`.
 
 **One binding and receipt predicate.** `feature_schema.resolve_binding` treats non-null
@@ -7329,7 +7326,7 @@ refuses before station changes or remote mutation, even if its old marker says `
 default-branch `product_config`/`board_for`, with no ancestor/disk fallback. A bound target must
 enable sync and declare the matching repository and valid board; failure never routes to Harness.
 Unbound sync-off/null-board semantics remain legal. Active object numbers need matching
-`github.repo`; archived numbers and `factory.claims` are not active provenance. An unbound feature's
+`github.repo`; `factory.claims` is not active provenance. An unbound feature's
 pre-provenance mapping with absent `github.repo` is proven by construction: the owner binding that
 created it is the one that resolves it, with no second destination, so
 `feature_schema.effective_recorded_repo` reads that absence as the owner repository. A bound
@@ -7341,22 +7338,10 @@ is no era exception set, so merge and sweep apply the same receipt predicate to 
 feature without a valid receipt takes `open` or explicit recovery like any other.
 `recovery-required` may continue compatible Build but still gates merge.
 
-**Replacement recovery is main-owned, explicit and never retroactive.**
-`gh-sync.py recover-mirror <feat> --previous-repo <owner/name> --evidence <authorization> --yes`
-requires the unchanged signed plan and immutable target-local authorization naming feature,
-repositories, plan hash and full/terminal effects. It archives the prior mapping verbatim once,
-including original absence of `repo`; it starts an empty target mapping without promoting old
-numbers to source tickets or ownership proof. Full mode recreates the approved task DAG; terminal
-mode creates no historical task issues. `recover-terminal` remains compatible terminal adoption,
-not wrong-mapping replacement.
-
-Each create persists its exact pending role before dispatch and its confirmed number before the
-next create. A provably undispatched failure may clear that intent; an uncertain result or failed
-confirmed save preserves it and refuses with the recovery id and role. Restart never retries,
-polls, searches titles or scans for a match. Only `--adopt-receipt <role>=<positive-number>` with
-a distinct immutable authorization for that exact pending role, recovery, repository, plan hash,
-number, operator and ownership basis can resume the same generation. A completed repeat is a
-durable no-op. While recovery is incomplete, merge refuses and sweep retains the worktree.
+**No command repairs an invalid mapping.** No tool can prove which repository a recorded number
+lives in. The refusal names the feature's `feature.json`, and the operator corrects its `github`
+block by hand. `recover-terminal` remains compatible terminal adoption only. While a mapping is
+invalid, merge refuses and sweep retains the worktree.
 
 **Over:** making a remote mirror write failure a development gate (DEC-138); substituting an
 owner's config when an authoritative target cannot resolve; running `open` after merge, which
