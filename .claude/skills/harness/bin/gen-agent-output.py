@@ -10,8 +10,8 @@ projection of schemas/digest/<persona>.json + common.json (digest_projection.pro
 Every other frontmatter line and the body stay byte-identical, line endings included. A
 generated key is recognised as YAML reads it, quoted or bare; its value runs through the indented
 lines and `- ` sequence items after it, with any blank or comment lines between them. Before a
-write, both frontmatters are parsed strictly, and a result that would not parse or would gain or
-lose any other key is refused.
+write, both frontmatters are parsed strictly, and a result that would not parse or would change
+any other key or its value is refused.
 
 Without --check it writes each file whose bytes change and prints `wrote RELPATH`. With
 --check it writes nothing, prints `DRIFT RELPATH` per stale agent and exits 1, else prints
@@ -104,28 +104,28 @@ def closing(lines):
     return ends[1]
 
 
-def other_keys(front, what):
-    """The frontmatter's top-level keys outside GENERATED, read by the canonical strict reader
-    (duplicate keys refused)."""
+def other_entries(front, what):
+    """The frontmatter's top-level entries outside GENERATED, keys and values, read by the
+    canonical strict reader (duplicate keys refused)."""
     try:
         parsed, _body = artifact_accessors.load_frontmatter("---\n" + "".join(front) + "---\n", what)
     except artifact_accessors.ArtifactAccessError as error:
         raise ValueError(str(error)) from None
-    return set(parsed) - set(GENERATED)
+    return {key: value for key, value in parsed.items() if key not in GENERATED}
 
 
 def render(text, bundle):
     """`text` with its frontmatter's generated keys replaced by freshly rendered ones, inserted
-    immediately before the closing `---` in the file's own line ending. Refused, never written,
-    when the result would not parse or would gain or lose any other key."""
+    immediately before the closing `---` in the file's own line ending. Refused when the result
+    would not parse or would change any other key or its value."""
     lines = [line for line in re.split(r"(?<=\n)", text) if line]
     close = closing(lines)
     newline = lines[0][len(bare(lines[0])):] or "\n"
     dumped = yaml.safe_dump(bundle, sort_keys=False, default_flow_style=False, allow_unicode=True, width=4096)
     generated = ["structured: true", "output:", *("  " + line for line in dumped.rstrip("\n").split("\n"))]
     front = [*kept(lines[1:close]), *(line + newline for line in generated)]
-    if other_keys(front, "regenerated") != other_keys(lines[1:close], "current"):
-        raise ValueError("regeneration would change the frontmatter's other keys; nothing written")
+    if other_entries(front, "regenerated") != other_entries(lines[1:close], "current"):
+        raise ValueError("regeneration would change another frontmatter key or its value")
     return "".join([lines[0], *front, *lines[close:]])
 
 
@@ -163,7 +163,7 @@ def main(argv):
     try:
         agents = [regenerate(root, persona) for persona in digest_schema.PERSONAS]
     except Refused as error:
-        print(error, file=sys.stderr)
+        print(f"{error}; nothing written", file=sys.stderr)
         return 2
     return report([(path, rel, rendered) for path, rel, text, rendered in agents if rendered != text], check)
 

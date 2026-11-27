@@ -587,10 +587,10 @@
       "disposition": "canonical",
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/gen-agent-output.py",
-      "id": ".claude/skills/harness/bin/gen-agent-output.py::other_keys::load_frontmatter#1",
+      "id": ".claude/skills/harness/bin/gen-agent-output.py::other_entries::load_frontmatter#1",
       "reason": "",
       "remedy": "artifact_accessors.load_frontmatter",
-      "symbol": "other_keys",
+      "symbol": "other_entries",
       "task": "none"
     },
     {

@@ -267,8 +267,38 @@ def case_generator_edges():
          and after.split("\n---\n", 1)[0].count("\nstructured: true\n") == 1)
 
 
+def refused(name, rewrite):
+    """Regenerate one agent after `rewrite(text)`: the generator must exit 2 with its bytes unchanged."""
+    root = generator_root()
+    qa = root / ".omp/agents/harness-qa.md"
+    try:
+        before = rewrite(qa.read_bytes().decode("utf-8")).encode("utf-8")
+        qa.write_bytes(before)
+        run = generate(root)
+        check(name, run.returncode == 2 and qa.read_bytes() == before and "nothing written" in run.stderr,
+              f"exit {run.returncode}: {run.stderr[:300]}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def lookalike_in_description(line):
+    """A stale output plus a multiline single-quoted description whose middle line spells `line`."""
+    description = f"\ndescription: 'first\n{line}\nlast'\n"
+    return lambda text: re.sub(r"\ndescription: .*\n", lambda _match: description, text, count=1) \
+        .replace("additionalProperties: false", "additionalProperties: true", 1)
+
+
+def case_generator_guard():
+    # Each also fails if the pre-write guard is deleted: the lossy rewrite would then exit 0.
+    refused("a bare output: line inside a multiline description is refused, never deleted",
+            lookalike_in_description("output: middle"))
+    refused("an escaped quoted output key inside a multiline description is refused, never deleted",
+            lookalike_in_description('"out\\u0070ut": middle'))
+
+
 def main():
-    for case in (case_projection, case_refusals, case_fresh_read, case_generator, case_generator_edges):
+    for case in (case_projection, case_refusals, case_fresh_read, case_generator, case_generator_edges,
+                 case_generator_guard):
         try:
             case()
         except Exception as error:  # noqa: BLE001 — a crashing case is a failing case, reported by name

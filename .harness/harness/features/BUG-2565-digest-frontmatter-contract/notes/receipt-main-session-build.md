@@ -102,3 +102,22 @@ Operator ruling: `notes/answers-2026-11-27-validate-c2.md`. A third round, narro
   - `test-check-omp-port.py`: 39/39.
   - Port gate: ok; `gen-agent-output.py --check`: ok.
   - Code grade: no function below its bar.
+
+## Fix round 3 (validate run 2026-11-27-08, ESCALATE on F-2)
+
+Operator ruling: `notes/answers-2026-11-27-validate-c3.md`. A fourth round, narrow to F-2, with the budget at 4 rounds / 165 minutes.
+
+- **RED first.** In `case_generator_guard`, two witnesses place a generated-key lookalike line inside a multiline single-quoted description:
+  - a bare `output: middle`;
+  - an escaped `"out\u0070ut": middle`.
+  Both expect exit 2 with the bytes unchanged.
+  - The first drafts were refused by accident: an indented closing line was eaten, which broke the parse. With the closing line unindented, both reproduced the silent loss: exit 0, line deleted.
+  - Both also fail if the guard is deleted (mutant M2), since the lossy rewrite then exits 0.
+- **Repair.** `other_entries` returns the non-generated keys **and values** of the strictly parsed frontmatter. `render` refuses on any difference, and every refusal prints "nothing written". The classification row was renamed to match.
+- **Checks after the last edit:**
+  - `test-digest-projection.py`: PASS.
+  - T-03 verify (16/16 parity): exit 0.
+  - `test-check-omp-port.py`: 39/39.
+  - Port gate: ok; `gen-agent-output.py --check`: ok.
+  - Code grade: no function below its bar.
+  - `test-check-plan-routes.py`: ALL PASS.
