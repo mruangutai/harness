@@ -253,6 +253,18 @@ def case_generator_edges():
     edge("an indentationless output sequence is replaced whole, never orphaned",
          lambda text: re.sub(r"\noutput:\n(?:  .*\n)+", "\noutput:\n- stale\n- stale\n", text, count=1),
          lambda before, after: "- stale" not in after and front_keys(after).count("output") == 1)
+    edge("a dash-prefixed sibling key after a stale output survives byte-for-byte",
+         lambda text: re.sub(r"(\noutput:\n(?:  .*\n)+)", r"\1-mode: keep\n", text, count=1)
+         .replace("additionalProperties: false", "additionalProperties: true", 1),
+         lambda before, after: "\n-mode: keep\n" in after.split("\n---\n", 1)[0])
+    edge("a commented indentationless output sequence leaves no orphan item, and a comment before the next key stays",
+         lambda text: re.sub(r"\noutput:\n(?:  .*\n)+", "\noutput:\n# stale note\n- stale\n# about mode\nmode: keep\n", text, count=1),
+         lambda before, after: "- stale" not in after and "# stale note" not in after
+         and "\n# about mode\nmode: keep\n" in after)
+    edge("an escaped quoted structured key is replaced, never duplicated",
+         lambda text: text.replace("\nstructured: true\n", '\n"struc\\u0074ured": true\n', 1),
+         lambda before, after: "struc\\u0074ured" not in after
+         and after.split("\n---\n", 1)[0].count("\nstructured: true\n") == 1)
 
 
 def main():

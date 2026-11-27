@@ -581,6 +581,33 @@
       "task": "none"
     },
     {
+      "artifact": "agent frontmatter, current and regenerated",
+      "category": "load_frontmatter",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/gen-agent-output.py",
+      "id": ".claude/skills/harness/bin/gen-agent-output.py::other_keys::load_frontmatter#1",
+      "reason": "",
+      "remedy": "artifact_accessors.load_frontmatter",
+      "symbol": "other_keys",
+      "task": "none"
+    },
+    {
+      "artifact": "one quoted frontmatter key token",
+      "category": "harness_yaml_string",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "main-session-direct",
+      "exemption": "in_memory_validation",
+      "file": ".claude/skills/harness/bin/gen-agent-output.py",
+      "id": ".claude/skills/harness/bin/gen-agent-output.py::top_key::harness_yaml_string#1",
+      "reason": "The generator decodes one quoted key token already in memory so a generated key is recognised as YAML reads it; the whole frontmatter is still read through artifact_accessors.load_frontmatter.",
+      "remedy": "none",
+      "symbol": "top_key",
+      "task": "none"
+    },
+    {
       "artifact": "durable run digest.md fenced YAML block",
       "category": "harness_yaml_string",
       "dec174_category": "validator",

@@ -80,3 +80,25 @@ Operator rulings: `notes/answers-2026-11-27-validate-c1.md`. OQ-2's residual is 
   - `test-check-omp-port.py`: 39/39.
   - Port gate: ok.
 - **Advisory test-function grades left as is.** These are med, never blocking: `walk` and `case_generator` in the projection test are at grade 2. Both are flat fixture walkers whose branches are one assertion each, and splitting them would scatter one case's fixture across helpers.
+
+## Fix round 2 (validate run 2026-11-27-07, ESCALATE on F-1)
+
+Operator ruling: `notes/answers-2026-11-27-validate-c2.md`. A third round, narrow to F-1, with the budget at 3 rounds / 135 minutes.
+
+- **RED first.** Three raw-byte witnesses were observed failing before any production edit:
+  - a dash-prefixed sibling key (`-mode: keep`) after a stale `output:` was deleted;
+  - a commented indentationless sequence left an orphan, or dropped the comment before the next key;
+  - an escaped quoted key (`"struc\u0074ured"`) was duplicated.
+- **Repair in `gen-agent-output.py`, inside T-03's files:**
+  - `SEQUENCE_ITEM` continues a value only for `-` followed by whitespace or end of line.
+  - `value_end` absorbs blank and comment lines only between continuation lines, never after the last one.
+  - `top_key` decodes a quoted key through `harness_yaml.load_str`.
+  - `render` reads the current and regenerated frontmatter through `artifact_accessors.load_frontmatter`, which refuses duplicate keys. It refuses, writing nothing, if either fails to parse or the non-generated key set differs.
+- **Reader classification.** The `other_keys` (canonical, `load_frontmatter`) and `top_key` (exempt, in-memory) rows were added.
+- **Checks after the last edit:**
+  - `test-digest-projection.py`: PASS.
+  - T-03 verify (16/16 parity): exit 0.
+  - `test-check-plan-routes.py`: ALL PASS.
+  - `test-check-omp-port.py`: 39/39.
+  - Port gate: ok; `gen-agent-output.py --check`: ok.
+  - Code grade: no function below its bar.

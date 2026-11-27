@@ -1,3 +1,4 @@
 # Observations — harness-qa — BUG-2565-digest-frontmatter-contract
 
 - 2026-11-27: Main-session-direct build verified only per-task verify blocks; the full integration kind was never run, and two integration files (test-gen-decisions-index.py ruling cap, test-check-plan-routes.py canonical-reader inventory) went red from T-06 and T-03 additions — new bin/*.py readers need a canonical-reader-classification.json row and hand-written index rulings must stay ≤30 words.
+- 2026-11-27: Fail-first for generator witnesses: whole pin tree via git archive with only the two production blobs swapped from the prior SHA gave exactly the new witnesses red and every old case green — clean P-07 control. Generator --check prints ok on frontmatter it rendered unparseable (blank line inside stale output); only check-omp-port catches it — a self-check that never re-parses its own output is weaker than it reads.

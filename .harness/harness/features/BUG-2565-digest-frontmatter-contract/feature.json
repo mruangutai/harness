@@ -2,7 +2,7 @@
   "feature_id": "BUG-2565-digest-frontmatter-contract",
   "branch": "feat/BUG-2565-digest-frontmatter-contract",
   "pr": null,
-  "review_sha": "0a837c4dbdaee1e55a709200bf9956ab71049e2a",
+  "review_sha": "ed064577a769b853e291cd71117404cb5dfc3731",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -100,6 +100,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-27T18:23:20+00:00"
+    },
+    {
+      "id": "2026-11-27-07-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-27T18:32:33+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-07-validate-validator/digest.md",
+        "sha256": "02105b00c2ad09502f22cefd30ee43039f8e5e6b971349f6edd4459f7e932831"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T18:47:09+00:00"
     }
   ],
   "judgements": [
@@ -141,9 +156,9 @@
   ],
   "mission": "plan",
   "rework": {
-    "rounds": 2,
-    "wall_clock_minutes": 90,
-    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2565-digest-frontmatter-contract/.harness/harness/features/BUG-2565-digest-frontmatter-contract/notes/answers-2026-11-27-signoff.md"
+    "rounds": 3,
+    "wall_clock_minutes": 135,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2565-digest-frontmatter-contract/.harness/harness/features/BUG-2565-digest-frontmatter-contract/notes/answers-2026-11-27-validate-c2.md"
   },
   "signed_task_hashes": {
     "T-01": "e297553cf8f535aa9488af9297b58a44ceb20ebafb52650fdf40eaf9e74e00b4",
