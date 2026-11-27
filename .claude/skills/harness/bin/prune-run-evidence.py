@@ -26,7 +26,7 @@ Exit 2 is refusal, before anything changes (dry-run included): no such feature, 
 (nothing is shipped, so nothing is pruned), a --keep naming no run directory, or any recorded
 cycle_evidence path missing from disk (every missing path is named). Exit 1 is a failure, also
 found before anything changes (dry-run included): a recorded run holds a directory it cannot
-read (every unreadable directory is named), so nothing is pruned.
+read, its ui/ included (every unreadable directory is named), so nothing is pruned.
 """
 import argparse
 import json
@@ -170,17 +170,16 @@ def _recorded_run_ids(record):
 
 
 def _unreadable_dirs(feature_dir, name):
-    """Every directory under runs/<name>/ outside its ui/ that os.walk cannot list. A linked run
-    directory is never walked and os.walk does not descend linked subdirectories."""
+    """Every directory under runs/<name>/, its ui/ included, that os.walk cannot list. A linked run
+    directory is never walked, and os.walk descends no linked subdirectory, a linked ui/ included."""
     run_dir = os.path.join(feature_dir, "runs", name)
     if os.path.islink(run_dir) or not os.path.isdir(run_dir):
         return []
     unreadable = []
     def note(error):
         unreadable.append(os.path.relpath(error.filename, feature_dir).replace(os.sep, "/"))
-    for current, dirs, _files in os.walk(run_dir, onerror=note):
-        if current == run_dir and "ui" in dirs:
-            dirs.remove("ui")
+    for _walked in os.walk(run_dir, onerror=note):
+        pass
     return unreadable
 
 
