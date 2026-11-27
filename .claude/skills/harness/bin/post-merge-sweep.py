@@ -233,12 +233,11 @@ def _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
             artifact_accessors.FleetError) as exc:
         print(f"post-merge-sweep: SKIP removal of {path} — could not read Build entry receipt: {exc}")
         return False
-    detail = provenance
     receipt_missing = sync_enabled and not feature_schema.receipt_allows_merge(feature_doc, repo)
-    if detail or receipt_missing:
-        detail = detail or "Build-entry receipt absent or incomplete"
+    if provenance or receipt_missing:
+        detail = provenance or "Build-entry receipt absent or incomplete"
         print(f"post-merge-sweep: SKIP removal of {path} — {feature_id}: {detail}. "
-              f"The worktree stays until recovery and ship succeed. Run: "
+              f"The worktree stays until recovery and ship succeed. To recover, "
               f"{feature_schema.recovery_command_line(feat_dir, feature_doc, repo)}")
         return False
     return True
