@@ -53,7 +53,7 @@ def main(argv):
         print("usage: gen-agent-output.py [--check] [ROOT]", file=sys.stderr)
         return 2
     root = Path(rest[0]).resolve() if rest else DEFAULT_ROOT
-    schemas = root / ".claude/skills/harness/schemas/digest"
+    schemas = root / digest_projection.SCHEMA_RELPATH
     drift = []
     for persona in digest_schema.PERSONAS:
         path = root / ".omp/agents" / f"{persona}.md"

@@ -41,6 +41,9 @@ CONDITIONALS = frozenset(("if", "then", "else"))
 DROPPED = ANNOTATIONS | BOUNDS | CONDITIONALS
 SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 INDEX = re.compile(r"0|[1-9][0-9]*")
+# The schema directory relative to a checkout root, for callers that check a root other than
+# this script's own (digest_schema.SCHEMA_DIR is that own checkout's absolute path).
+SCHEMA_RELPATH = ".claude/skills/harness/schemas/digest"
 
 
 class ProjectionError(Exception):

@@ -175,7 +175,7 @@ def agent_output_errors(root: Path, path: Path, meta: dict, name: str) -> list[s
     if meta.get("structured") is not True:
         errors.append(f"{rel} must set structured: true so its yield is bound to its digest schema")
     try:
-        bundle = digest_projection.provider_bundle(name, root / ".claude/skills/harness/schemas/digest")
+        bundle = digest_projection.provider_bundle(name, root / digest_projection.SCHEMA_RELPATH)
     except digest_projection.ProjectionError as exc:
         return [*errors, f"{rel}: digest schema for {name} cannot be projected: {exc}"]
     if not typed_equal(meta.get("output"), bundle):
