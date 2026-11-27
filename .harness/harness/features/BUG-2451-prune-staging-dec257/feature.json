@@ -51,6 +51,21 @@
       },
       "cycles_used": 0,
       "ended_at": "2026-11-27T03:44:45+00:00"
+    },
+    {
+      "id": "2026-11-27-04-validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T13:28:04+00:00",
+      "tokens": 139024,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-04-validate-c3-validator/digest.md",
+        "sha256": "c7a9cb6ec7588ff8ba59d89ccf0e92ab82180ac15aa176e40c877512f0ff0b5d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T13:41:07+00:00"
     }
   ],
   "judgements": [
@@ -88,6 +103,20 @@
       "kind": "continue",
       "decision": "extra-fix-round-MF-2R",
       "reason": "Operator 2026-11-27 grants one narrow test-only round for MF-2R beyond the spent 1-round ruling (notes/answers-2026-11-27-c2-ruling.md)"
+    },
+    {
+      "at": "2026-11-27T13:28:04+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 3",
+      "reason": "c2 FAIL (MF-2R) fixed main-session-direct at c9596b9a under the operator's extra test-only round (answers-2026-11-27-c2-ruling.md); one re-verify over pin a97dbc6a, no further rework authorised"
+    },
+    {
+      "at": "2026-11-27T13:41:10+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "c3 FAIL on one new med must-fix MF-3R (missing DEC-238/DEC-257 heading anchor empties the claim scan); the operator authorised no rework after the extra MF-2R round so nothing is dispatched; returned as OQ-B"
     }
   ],
   "mission": "patch",
