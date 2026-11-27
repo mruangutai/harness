@@ -172,14 +172,15 @@ def recovery_command_for(feat_dir, feature_doc=None):
 
 
 def recovery_command_line(feat_dir, feature_doc=None, bound_repo=None):
-    """Render every gate's recovery instruction from the same selection. A mapping with bad
-    provenance has no command: no tool can prove which repository its numbers live in."""
-    path = os.path.join(os.path.realpath(feat_dir), "feature.json")
+    """Every gate's recovery instruction, verb included ("run …" or "edit …"). A mapping with
+    bad provenance has no command: no tool can prove which repository its numbers live in."""
+    real = os.path.realpath(feat_dir)
     if feature_doc is not None and mirror_provenance_problem(feature_doc, bound_repo):
-        return (f"edit the github block of {path} by hand (no command repairs it) so "
-                f"github.repo is {bound_repo!r} and every recorded number lives there")
+        return (f"edit the github block of {os.path.join(real, 'feature.json')} by hand (no "
+                f"command repairs it) so github.repo is {bound_repo!r} and every recorded "
+                f"number lives there")
     command = recovery_command_for(feat_dir, feature_doc)
-    line = f"python3 .claude/skills/harness/bin/gh-sync.py {command} {os.path.realpath(feat_dir)}"
+    line = f"run python3 .claude/skills/harness/bin/gh-sync.py {command} {real}"
     return line + (" --yes" if command == "recover-terminal" else "")
 
 

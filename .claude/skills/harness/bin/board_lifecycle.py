@@ -538,7 +538,7 @@ def _status_findings(root, board, stations, repo_name):
             continue
         provenance = feature_schema.mirror_provenance_problem(feature_doc, repo_name)
         if provenance:
-            findings.append(_finding("STATUS", f"STATUS: mirror provenance for {feat_dir}: {provenance}. Run: "
+            findings.append(_finding("STATUS", f"STATUS: mirror provenance for {feat_dir}: {provenance}. To recover, "
                                      f"{feature_schema.recovery_command_line(feat_dir, feature_doc, repo_name)}"))
             continue
         if invalid is not None:

@@ -25,7 +25,7 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 | `notes/` | **Project-scoped** durable artifacts only (cross-feature research, docs sweeps). Anything belonging to a FEAT lives in that feature's `notes/` | the owning agent |
 | `logs/<date>.md` | Append-only **cross-flow** stream: flow started, escalation, briefing. Never loaded at spawn | **main session only** |
 | `features/<FEAT>/STATE.md` | That flow's live pointer: `## Current` + `## Open Questions`. **No history** — `logs/` is for that. One per feature, so concurrent flows never share a writer | that feature's **orchestrator** |
-| `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, run list | that feature's **orchestrator** |
+| `features/<FEAT>/feature.json` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, run list | that feature's **orchestrator** |
 | `features/<FEAT>/runs/<run>/` | One team run: `state.yaml` + the lead's `digest.md` | that run's **lead** |
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
 | `.omp/agents/*.md` | Canonical role definitions. **Deliberately unowned by every agent** — editing the organization is self-modification, so agents raise `open_questions` instead. | **you** (main session) |
@@ -44,7 +44,7 @@ Three rules explain most of the table:
   member's outputs go to its own namespaced path — which is also what makes parallel steps safe.
 - **`## Approval` is written by the main session.** `pm` owns `BRIEF.md` and `PLAN.md` but never
   signs them, because signing means asking you and only the main session has a user channel.
-- **An orchestrator owns its whole feature** — that flow's `STATE.md`, `feature.yaml`, and the
+- **An orchestrator owns its whole feature** — that flow's `STATE.md`, `feature.json`, and the
   feature-wide cycle budget. Leads own one run each; the main session owns only the
   cross-flow log and your approvals.
 

@@ -268,7 +268,7 @@ def _enforce_receipt(feature_schema, github, feat_dir, document, root):
         problem = feature_schema.mirror_provenance_problem(document, github.get("repo"))
         if not problem:
             return None
-        return (f"merge-gate: {feat}: {problem}. Run: "
+        return (f"merge-gate: {feat}: {problem}. To recover, "
                 f"{feature_schema.recovery_command_line(feat_dir, document, github.get('repo'))}")
     try:
         repo, _board, _types = feature_schema.resolve_binding(document, root)
@@ -278,7 +278,7 @@ def _enforce_receipt(feature_schema, github, feat_dir, document, root):
         return None
     detail = feature_schema.mirror_provenance_problem(document, repo) or "receipt absent or incomplete"
     return (f"merge-gate: {feat} needs its GitHub mirror recovery completed before this merge can continue "
-            f"({detail}). Run: {feature_schema.recovery_command_line(feat_dir, document, repo)}")
+            f"({detail}). To recover, {feature_schema.recovery_command_line(feat_dir, document, repo)}")
 
 
 def _handle_owners(feature_schema, github, branch, owners, root):

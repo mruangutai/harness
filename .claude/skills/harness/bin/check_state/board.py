@@ -307,7 +307,7 @@ def _inv37_repo(ctx, _fs37, doc, bound):
 
 def _inv37_finding(_fs37, _feat37, _fp37, doc, repo, detail):
     return (f"INV-37 {_feat37}: github.sync is enabled but the feature has no usable "
-            f"Build-entry receipt ({detail}) - run "
+            f"Build-entry receipt ({detail}) - "
             f"{_fs37.recovery_command_line(_fp37, doc, repo)}.")
 
 def _inv37_feature(ctx, _fs37, plan_docs, _feat37):
