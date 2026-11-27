@@ -1,6 +1,6 @@
 schema: plan/1
 feature: BUG-2565-digest-frontmatter-contract
-status: ready
+status: building
 approval:
   date: '2026-11-27'
   approved_by: operator
@@ -263,7 +263,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 - a live probe of the yield gate's host behaviour, run before the gate changes; the main session holds the omp binary and credentials.
   depends_on: []
-  status: ready
+  status: done
   files:
   - .harness/harness/features/BUG-2565-digest-frontmatter-contract/notes/research-yield-refusal-probe.md
   verify: |
@@ -320,7 +320,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 - changes the yield gate and the task hook in harness-hooks.ts with their tests.
   depends_on: [T-01]
-  status: ready
+  status: done
   files:
   - .omp/extensions/harness-hooks.ts
   - .omp/extensions/digest-schema.ts
@@ -355,7 +355,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 - the projection becomes part of check-omp-port.py, a gate.
   depends_on: [T-01]
-  status: ready
+  status: done
   files:
   - .claude/skills/harness/bin/digest_projection.py
   - .claude/skills/harness/bin/gen-agent-output.py
@@ -395,7 +395,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 - check-omp-port.py is the port gate; agent definitions and config are NOBODY surfaces.
   depends_on: [T-02, T-03]
-  status: ready
+  status: done
   files:
   - .omp/agents/harness-ai-dev.md
   - .omp/agents/harness-backend-dev.md
@@ -435,7 +435,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 - a live probe of the cutover result, run by the main session that holds the omp binary and credentials.
   depends_on: [T-04]
-  status: ready
+  status: done
   files:
   - .harness/harness/features/BUG-2565-digest-frontmatter-contract/notes/research-frontmatter-binding-probe.md
   verify: |
@@ -473,7 +473,7 @@ tasks:
   execution_mode: main-session-direct
   execution_reason: DEC-174 - the operator routed every task of this gate change main-session-direct; DEC-254 requires a task owning DECISIONS.md.
   depends_on: [T-01, T-02, T-04, T-05]
-  status: ready
+  status: done
   files:
   - .harness/README.md
   - .harness/harness/docs/BUILD.md
