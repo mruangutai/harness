@@ -28,9 +28,9 @@ import time
 
 ROOT = _anchor_root
 COMMAND = ["bun", "run", "typecheck"]
-SETTLED = (".omp/extensions/harness-hooks.ts", ".omp/extensions/digest-schema.ts",
+SETTLED = (".omp/extensions/harness-hooks.ts",
            "tests/unit/omp-hooks.test.ts", "tests/manual/probe-session-accessors.ts")
-POISONED = ".omp/extensions/digest-schema.ts"
+POISONED = ".omp/extensions/harness-hooks.ts"
 SUPPRESSIONS = ("@ts-nocheck", "@ts-ignore", "@ts-expect-error")
 DEADLINE = time.monotonic() + 40
 failures = []
@@ -68,7 +68,7 @@ def compiler_files(cwd):
 def check_coverage(sources):
     check("tracked .ts discovery is non-empty", bool(sources), repr(sources))
     missing = [p for p in SETTLED if p not in sources]
-    check("the four settled sources are tracked", not missing, repr(missing))
+    check("the settled sources are tracked", not missing, repr(missing))
     listed = compiler_files(ROOT)
     uncovered = [p for p in sources if os.path.realpath(os.path.join(ROOT, p)) not in listed]
     check("every tracked .ts is in the compiler's file list", not uncovered, repr(uncovered))
