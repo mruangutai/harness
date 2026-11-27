@@ -104,9 +104,13 @@ def _git_or_exit(args, cwd, stdin=None):
     return r.stdout
 
 
-def _branch_exists(owner_root, branch):
-    r = _run_git(["rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"], owner_root)
-    return r.returncode == 0
+def _z(text):
+    """The non-empty fields of git's NUL-separated (-z) output."""
+    return [f for f in text.split("\0") if f]
+
+
+def _ref_exists(cwd, ref):
+    return _run_git(["rev-parse", "--verify", "--quiet", ref], cwd).returncode == 0
 
 
 def _cut_point(owner_root, default_branch):
@@ -119,8 +123,7 @@ def _cut_point(owner_root, default_branch):
     if not _fetch_default(owner_root, default_branch,
                           f"cutting from LOCAL {default_branch} instead (#2056)."):
         return default_branch
-    remote = f"refs/remotes/origin/{default_branch}"
-    if _run_git(["rev-parse", "--verify", "--quiet", remote], owner_root).returncode == 0:
+    if _ref_exists(owner_root, f"refs/remotes/origin/{default_branch}"):
         return f"origin/{default_branch}"
     return "FETCH_HEAD"
 
@@ -139,7 +142,7 @@ def _add_worktree(owner_root, dest, branch, default_branch):
     """(result, branch_was_new). A reused branch keeps its own history; a new one is cut from
     _cut_point."""
     os.makedirs(os.path.dirname(dest), exist_ok=True)
-    if _branch_exists(owner_root, branch):
+    if _ref_exists(owner_root, f"refs/heads/{branch}"):
         return _run_git(["worktree", "add", dest, branch], owner_root), False
     base = _cut_point(owner_root, default_branch)
     return _run_git(["worktree", "add", "-b", branch, dest, base], owner_root), True
@@ -248,18 +251,6 @@ def _linked_worktree_paths(owner_root):
     return {os.path.realpath(path) for path, _branch in _parse_worktree_porcelain(r.stdout)}
 
 
-def _status_paths(text):
-    """Yield the path named by each `git status --porcelain -z` entry. A rename or copy entry
-    is followed by its source path, which is skipped."""
-    entries = iter(text.split("\0"))
-    for entry in entries:
-        if not entry:
-            continue
-        if entry[0] in "RC":
-            next(entries, None)
-        yield entry[3:]
-
-
 def cmd_remove(args):
     """Every gate for every worktree of the feature runs before ANY is removed, so a fleet
     feature is never left with one half of its pair. The landed-artifact gate applies to the
@@ -285,7 +276,8 @@ def _gate_removal(fid, owner_root, segment, default_branch, dest):
         sys.exit(3)
 
     # GATE 2 - a dirty tree would lose its changes.
-    paths = list(_status_paths(_git_or_exit(["status", "--porcelain", "-z"], dest)))
+    status = _git_or_exit(["status", "--porcelain=v1", "-z", "--no-renames"], dest)
+    paths = [entry[3:] for entry in _z(status)]
     if paths:
         for p in paths:
             print(f"WOULD DISCARD {p}")
@@ -295,7 +287,7 @@ def _gate_removal(fid, owner_root, segment, default_branch, dest):
     # GATE 3 - every tracked artifact file has landed on the default branch. A code worktree
     # holds no artifacts.
     if segment is not None:
-        _gate_landed(fid, owner_root, segment, default_branch, dest)
+        _gate_landed(fid, segment, default_branch, dest)
 
 
 def _artifact_id(fid, features_abs):
@@ -315,7 +307,7 @@ def _artifact_id(fid, features_abs):
     return cands[0] if cands else fid
 
 
-def _gate_landed(fid, owner_root, segment, default_branch, dest):
+def _gate_landed(fid, segment, default_branch, dest):
     features_rel = os.path.join(".harness", segment, "features")
     artifact_rel = os.path.join(features_rel, _artifact_id(fid, os.path.join(dest, features_rel)))
     if not os.path.isdir(os.path.join(dest, artifact_rel)):
@@ -324,29 +316,15 @@ def _gate_landed(fid, owner_root, segment, default_branch, dest):
 
     # Tracked files only: an ignored file (run UI under runs/*/ui/) can never land (#726), and
     # gate 2 already refused every untracked file that is not ignored.
-    tracked = [x for x in _git_or_exit(["ls-files", "-z", "--", artifact_rel], dest).split("\0") if x]
-    if not tracked:
-        return
-    worktree = _git_or_exit(["hash-object", "--stdin-paths"], dest,
-                            stdin="\n".join(tracked) + "\n").split()
-    landed = {}
-    for entry in _git_or_exit(["ls-tree", "-r", "-z", default_branch, "--", artifact_rel],
-                              owner_root).split("\0"):
-        if entry:
-            meta, path = entry.split("\t", 1)
-            landed[path] = meta.split()[2]
-
-    landed_fail = False
-    for rel, worktree_hash in zip(tracked, worktree):
-        if rel not in landed:
-            print(f"MISSING {rel}")
-            landed_fail = True
-        elif landed[rel] != worktree_hash:
-            print(f"DIFFERS {rel}")
-            landed_fail = True
-        else:
-            print(f"VERIFIED {rel}")
-    if landed_fail:
+    tracked = _z(_git_or_exit(["ls-files", "-z", "--", artifact_rel], dest))
+    # A = absent from the default branch, anything else = its content differs there.
+    diff = _z(_git_or_exit(["diff", "--name-status", "-z", "--no-renames", "--diff-filter=AMT",
+                            default_branch, "--", artifact_rel], dest))
+    changed = dict(zip(diff[1::2], diff[0::2]))
+    for rel in tracked:
+        status = changed.get(rel)
+        print(f"{'VERIFIED' if status is None else 'MISSING' if status == 'A' else 'DIFFERS'} {rel}")
+    if changed:
         sys.exit(5)
 
 
@@ -379,13 +357,13 @@ def _behind_one(owner_root, dest, default_branch):
         return 3
 
     if _fetch_default(dest, default_branch,
-                      f"comparing against LOCAL {default_branch} instead (#1850)."):
+                      f"comparing against LOCAL {default_branch} instead (#1850); if that ref "
+                      f"is itself stale this check under-reports."):
         target, label = "FETCH_HEAD", f"origin/{default_branch}"
         remedy = f"git -C {dest} fetch origin {default_branch} && git -C {dest} merge FETCH_HEAD"
     else:
         target, label = default_branch, f"LOCAL {default_branch}"
         remedy = f"git -C {dest} merge {default_branch}"
-        print("  If that ref is itself stale this check under-reports.", file=sys.stderr)
 
     r = _run_git(["rev-list", "--count", f"HEAD..{target}"], dest)
     if r.returncode != 0:
