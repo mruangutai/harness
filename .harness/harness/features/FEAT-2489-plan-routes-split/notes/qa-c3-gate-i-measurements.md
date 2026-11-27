@@ -1,0 +1,568 @@
+# QA c3 gate (i) and CI-gate raw measurements (r-20261124-10-validate-validator, pin 776909d2ab6cf9c4f5facc3f627d5839c52aa72a, base 261fdf726428bd8325fbd3d4beccad23b67e83cc)
+
+Evidence for notes/review-harness-qa-c3.md. Throwaway drivers lived in /tmp/qa-c3 only (never committed); their source is reproduced here. Interpreter python3 3.15.2 (host). Env for every run: PYTHONUNBUFFERED, NO_COLOR, FORCE_COLOR, HARNESS_AGENT_TYPE, CLAUDE_PROJECT_DIR unset; TERM=xterm-256color.
+
+## A. CI Plan-route gate step (tests.yml step body via yaml.safe_load, bash -e, HARNESS_PROJECT_DIR=<pin>) -> exit 0
+
+````text
+scanning /Users/molchairuangutai/GitHub/harness/.claude/worktrees/.pins/FEAT-2489-plan-routes-split--r-20261124-10-validate-validator--harness-qa/.harness/*/features/*/{plan.yaml,PLAN.md}
+MANIFEST /Users/molchairuangutai/GitHub/harness/.harness/team-config.yaml
+DEVIATION T-01 tests/integration/test-check-plan-routes.py, .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t01-canonical-self-test.txt, .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t01-default-run.txt granted to harness-backend-dev, harness-dev-ops, harness-orchestrator, harness-qa but declared main-session-direct
+DEVIATION T-02 .harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py granted to harness-orchestrator but declared main-session-direct
+DEVIATION T-03 .claude/skills/harness/bin/check-plan-routes.py, .claude/skills/harness/bin/canonical_reader_audit.py, .claude/skills/harness/bin/structure_audit.py, .claude/skills/harness/bin/plan_merge/check.py, tests/integration/test-check-plan-routes.py, tests/integration/test-checker-structure-locks.py, tests/integration/test-structure-audit-single-pass.py, tests/unit/test-structure-audit-index.py, tests/unit/test-broad-catch-census.py, .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t03-stale-inventory.txt granted to harness-backend-dev, harness-dev-ops, harness-orchestrator, harness-qa but declared main-session-direct
+DEVIATION T-04 tests/integration/canonical-reader-classification.json, .harness/harness/features/FEAT-2489-plan-routes-split/notes/equivalence-final.txt, .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t04-suites.txt granted to harness-backend-dev, harness-dev-ops, harness-orchestrator, harness-qa but declared main-session-direct
+OK T-01: declared main-session-direct (apps/web/package.json, apps/web/tsconfig.json, apps/web/next.config.ts, apps/web/next-env.d.ts, eslint.config.mjs, apps/web/vitest.config.ts, playwright.config.ts, .node-version, .npmrc, .env.example, .gitignore ungranted)
+OK T-02 granted to harness-backend-dev, harness-data-engineer, harness-dev-ops, harness-frontend-dev, harness-qa
+OK T-03 granted to harness-backend-dev, harness-frontend-dev
+OK T-04 granted to harness-data-engineer
+OK T-05 granted to harness-backend-dev, harness-frontend-dev
+OK T-06 granted to harness-backend-dev, harness-frontend-dev
+OK T-07 granted to harness-backend-dev, harness-frontend-dev
+OK T-08 granted to harness-backend-dev, harness-dev-ops, harness-qa
+OK T-09: declared main-session-direct (.harness/harness.json ungranted)
+OK T-10 granted to harness-documentor
+0 violation(s) across 2 plan(s)
+examined 39 feature dir(s); 37 skipped as shipped
+route gate entered 39 feature dir(s), checked 2 live plan(s); checker exit 0
+````
+
+## B. CI Canonical-reader audit step -> exit 0
+
+````text
+0 unresolved reader site(s) across 103 Python file(s)
+````
+
+## C. split-equivalence.py --base 261fdf72... --head 776909d2... (run from the pin, HARNESS_PROJECT_DIR also unset) -> exit 0, stderr empty
+
+````text
+BASE 261fdf726428bd8325fbd3d4beccad23b67e83cc
+HEAD 776909d2ab6cf9c4f5facc3f627d5839c52aa72a
+TREE base .claude/skills/harness/bin 1d22ba06caa66fcd23765e25e5b96ff70c1eaab8
+TREE base tests fb0bdc5a189ccde6249d20262e2b1883eefa64c4
+TREE head .claude/skills/harness/bin d542c641c93f20a5a5f3567aa52d0171c625f201
+TREE head tests 3f8731cd34fe2a850bc9e4a00054eba89f684eb9
+PROJECTED .claude/skills/harness/bin/canonical_reader_audit.py overlaid
+PROJECTED .claude/skills/harness/bin/check-plan-routes.py overlaid
+PROJECTED .claude/skills/harness/bin/plan_merge/check.py overlaid
+PROJECTED .claude/skills/harness/bin/structure_audit.py overlaid
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/BRIEF.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/STATE.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/backlog-issues.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/feature.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/amend-T-03-verify-receipt.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/amend-T-03-verify.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-2026-11-24-inv32.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-2026-11-24-signoff.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-2026-11-24-t03-verify.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-2026-11-24-validate-c0.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/answers-2026-11-24-validate-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/equivalence-final.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/fix-c1-build/cr2-red-green.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/gate-after-build.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/gate-after-fix-c1.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t01-default-run.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t04-suites.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/per-file-state-census.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c1-failfirst-repro.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c1-runner-integration-output.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c1-runner-unit-output.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c2-cr3-probe.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c2-runner-integration-output.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/qa-c2-runner-unit-output.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/receipt-gh-sync-open-2026-11-24.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/receipt-sign-approval-2026-11-24.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t01-canonical-self-test.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t03-stale-inventory.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-plan.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-validate-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-validate-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-plan-routes-split.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-plan-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-plan-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-plan-c3.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-plan-c4.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-qa-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-qa-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-security-reviewer-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-security-reviewer-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-ui-reviewer-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-ui-reviewer-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-ui-reviewer-plan-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/seam-straddle-receipt.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/signoff-panel-value.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/simplify-build.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-T-03.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-T-04.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-c1-T-02.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-c1-T-04.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-final-T-01.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-final-T-02.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/notes/verify-final-T-03.txt excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/observations/harness-pm.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/observations/harness-qa.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/plan.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-1-plan-product/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-1-plan-product/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-1-plan-product/panel-c1.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-1-plan-product/sendback-criteria.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-1-plan-product/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-2-plan-validator/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-2-plan-validator/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-2-plan-validator/panel-c2.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-2-plan-validator/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-3-plan-product/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-3-plan-product/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-3-plan-product/sendback-criteria.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-3-plan-product/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-4-plan-validator/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-4-plan-validator/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-4-plan-validator/panel-c3.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-4-plan-validator/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-5-plan-product/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-5-plan-product/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-5-plan-product/sendback-criteria.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-5-plan-product/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-6-plan-validator/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-6-plan-validator/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-6-plan-validator/panel-c4.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-6-plan-validator/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-7-plan-product/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-7-plan-product/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-7-plan-product/sendback-criteria.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-7-plan-product/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-8-validate-validator/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-8-validate-validator/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-8-validate-validator/qa/manifest-integration.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-8-validate-validator/qa/manifest-unit.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-8-validate-validator/state.yaml excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/.run-identity.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/digest.md excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/qa/manifest-integration.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/qa/manifest-unit.json excluded
+PROJECTED .harness/harness/features/FEAT-2489-plan-routes-split/runs/r-20261124-9-validate-validator/state.yaml excluded
+PROJECTED tests/integration/canonical-reader-classification.json overlaid
+PROJECTED tests/integration/test-check-plan-routes.py overlaid
+PROJECTED tests/integration/test-checker-structure-locks.py overlaid
+PROJECTED tests/integration/test-structure-audit-single-pass.py overlaid
+PROJECTED tests/unit/test-broad-catch-census.py overlaid
+PROJECTED tests/unit/test-structure-audit-index.py overlaid
+MAP .claude/skills/harness/bin/check-plan-routes.py::BIN_REL -> .claude/skills/harness/bin/structure_audit.py::BIN_REL
+MAP .claude/skills/harness/bin/check-plan-routes.py::BROAD_CATCH_CEILINGS -> .claude/skills/harness/bin/structure_audit.py::BROAD_CATCH_CEILINGS
+MAP .claude/skills/harness/bin/check-plan-routes.py::CANONICAL_ACCESSOR_NAMES -> .claude/skills/harness/bin/canonical_reader_audit.py::CANONICAL_ACCESSOR_NAMES
+MAP .claude/skills/harness/bin/check-plan-routes.py::CHECKER_PACKAGE_REL -> .claude/skills/harness/bin/structure_audit.py::CHECKER_PACKAGE_REL
+MAP .claude/skills/harness/bin/check-plan-routes.py::CHECKER_REL -> .claude/skills/harness/bin/structure_audit.py::CHECKER_REL
+MAP .claude/skills/harness/bin/check-plan-routes.py::CHECKER_TABLE_MODULE -> .claude/skills/harness/bin/structure_audit.py::CHECKER_TABLE_MODULE
+MAP .claude/skills/harness/bin/check-plan-routes.py::CONFIG_ARTIFACT -> .claude/skills/harness/bin/canonical_reader_audit.py::CONFIG_ARTIFACT
+MAP .claude/skills/harness/bin/check-plan-routes.py::DECISIONS_INDEX_REL -> .claude/skills/harness/bin/structure_audit.py::DECISIONS_INDEX_REL
+MAP .claude/skills/harness/bin/check-plan-routes.py::GENERIC_JSON_REMEDY -> .claude/skills/harness/bin/canonical_reader_audit.py::GENERIC_JSON_REMEDY
+MAP .claude/skills/harness/bin/check-plan-routes.py::LEGAL_MAIN_SESSION_TOKEN -> .claude/skills/harness/bin/canonical_reader_audit.py::LEGAL_MAIN_SESSION_TOKEN
+MAP .claude/skills/harness/bin/check-plan-routes.py::LEGAL_READER_EXEMPTIONS -> .claude/skills/harness/bin/canonical_reader_audit.py::LEGAL_READER_EXEMPTIONS
+MAP .claude/skills/harness/bin/check-plan-routes.py::MODULE_LOADER_HOME -> .claude/skills/harness/bin/structure_audit.py::MODULE_LOADER_HOME
+MAP .claude/skills/harness/bin/check-plan-routes.py::READER_CALL_CATEGORIES -> .claude/skills/harness/bin/canonical_reader_audit.py::READER_CALL_CATEGORIES
+MAP .claude/skills/harness/bin/check-plan-routes.py::READER_CATEGORY_REMEDIES -> .claude/skills/harness/bin/canonical_reader_audit.py::READER_CATEGORY_REMEDIES
+MAP .claude/skills/harness/bin/check-plan-routes.py::READER_CLASSIFICATION_REL -> .claude/skills/harness/bin/canonical_reader_audit.py::READER_CLASSIFICATION_REL
+MAP .claude/skills/harness/bin/check-plan-routes.py::READER_CLASSIFICATION_SCHEMA -> .claude/skills/harness/bin/canonical_reader_audit.py::READER_CLASSIFICATION_SCHEMA
+MAP .claude/skills/harness/bin/check-plan-routes.py::ROW_FAMILIES -> .claude/skills/harness/bin/structure_audit.py::ROW_FAMILIES
+MAP .claude/skills/harness/bin/check-plan-routes.py::STATION_TABLE_REL -> .claude/skills/harness/bin/structure_audit.py::STATION_TABLE_REL
+MAP .claude/skills/harness/bin/check-plan-routes.py::T07_RELOCATED_IMPLEMENTATIONS -> .claude/skills/harness/bin/canonical_reader_audit.py::T07_RELOCATED_IMPLEMENTATIONS
+MAP .claude/skills/harness/bin/check-plan-routes.py::T07_TERMINAL_REMEDIES -> .claude/skills/harness/bin/canonical_reader_audit.py::T07_TERMINAL_REMEDIES
+MAP .claude/skills/harness/bin/check-plan-routes.py::_AuditSession -> .claude/skills/harness/bin/structure_audit.py::_AuditSession
+MAP .claude/skills/harness/bin/check-plan-routes.py::_BLOCK_KINDS -> .claude/skills/harness/bin/structure_audit.py::_BLOCK_KINDS
+MAP .claude/skills/harness/bin/check-plan-routes.py::_BOARD_READ_CALLEE -> .claude/skills/harness/bin/structure_audit.py::_BOARD_READ_CALLEE
+MAP .claude/skills/harness/bin/check-plan-routes.py::_BOOTSTRAP_END_TARGET -> .claude/skills/harness/bin/structure_audit.py::_BOOTSTRAP_END_TARGET
+MAP .claude/skills/harness/bin/check-plan-routes.py::_CLASSIFICATION_REMEDY_OVERRIDES -> .claude/skills/harness/bin/canonical_reader_audit.py::_CLASSIFICATION_REMEDY_OVERRIDES
+MAP .claude/skills/harness/bin/check-plan-routes.py::_FAMILY_OF_ROW -> .claude/skills/harness/bin/structure_audit.py::_FAMILY_OF_ROW
+MAP .claude/skills/harness/bin/check-plan-routes.py::_INDEX_KINDS -> .claude/skills/harness/bin/structure_audit.py::_INDEX_KINDS
+MAP .claude/skills/harness/bin/check-plan-routes.py::_INPUT_LITERAL -> .claude/skills/harness/bin/structure_audit.py::_INPUT_LITERAL
+MAP .claude/skills/harness/bin/check-plan-routes.py::_INVARIANT_FN -> .claude/skills/harness/bin/structure_audit.py::_INVARIANT_FN
+MAP .claude/skills/harness/bin/check-plan-routes.py::_LITERAL_CANDIDATES -> .claude/skills/harness/bin/structure_audit.py::_LITERAL_CANDIDATES
+MAP .claude/skills/harness/bin/check-plan-routes.py::_POSTURE_DIRS -> .claude/skills/harness/bin/structure_audit.py::_POSTURE_DIRS
+MAP .claude/skills/harness/bin/check-plan-routes.py::_PREDICATE_PARENTS -> .claude/skills/harness/bin/structure_audit.py::_PREDICATE_PARENTS
+MAP .claude/skills/harness/bin/check-plan-routes.py::_PackageFunctions -> .claude/skills/harness/bin/structure_audit.py::_PackageFunctions
+MAP .claude/skills/harness/bin/check-plan-routes.py::_READER_CALLEES -> .claude/skills/harness/bin/structure_audit.py::_READER_CALLEES
+MAP .claude/skills/harness/bin/check-plan-routes.py::_READ_KINDS -> .claude/skills/harness/bin/structure_audit.py::_READ_KINDS
+MAP .claude/skills/harness/bin/check-plan-routes.py::_ReaderAliasCollector -> .claude/skills/harness/bin/canonical_reader_audit.py::_ReaderAliasCollector
+MAP .claude/skills/harness/bin/check-plan-routes.py::_ReaderCallCollector -> .claude/skills/harness/bin/canonical_reader_audit.py::_ReaderCallCollector
+MAP .claude/skills/harness/bin/check-plan-routes.py::_SHARED_SOURCE_LOADERS -> .claude/skills/harness/bin/structure_audit.py::_SHARED_SOURCE_LOADERS
+MAP .claude/skills/harness/bin/check-plan-routes.py::_SHARED_SOURCE_TEXTS -> .claude/skills/harness/bin/structure_audit.py::_SHARED_SOURCE_TEXTS
+MAP .claude/skills/harness/bin/check-plan-routes.py::_SOURCE_ERRORS -> .claude/skills/harness/bin/structure_audit.py::_SOURCE_ERRORS
+MAP .claude/skills/harness/bin/check-plan-routes.py::_SPAWN_CALLEES -> .claude/skills/harness/bin/structure_audit.py::_SPAWN_CALLEES
+MAP .claude/skills/harness/bin/check-plan-routes.py::_STATION_EXPORTS -> .claude/skills/harness/bin/structure_audit.py::_STATION_EXPORTS
+MAP .claude/skills/harness/bin/check-plan-routes.py::_SourceIndex -> .claude/skills/harness/bin/structure_audit.py::_SourceIndex
+MAP .claude/skills/harness/bin/check-plan-routes.py::_argv_tokens -> .claude/skills/harness/bin/structure_audit.py::_argv_tokens
+MAP .claude/skills/harness/bin/check-plan-routes.py::_audit_result -> .claude/skills/harness/bin/canonical_reader_audit.py::_audit_result
+MAP .claude/skills/harness/bin/check-plan-routes.py::_authority_findings -> .claude/skills/harness/bin/structure_audit.py::_authority_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_bootstrap_end -> .claude/skills/harness/bin/structure_audit.py::_bootstrap_end
+MAP .claude/skills/harness/bin/check-plan-routes.py::_broad_catch_count -> .claude/skills/harness/bin/structure_audit.py::_broad_catch_count
+MAP .claude/skills/harness/bin/check-plan-routes.py::_broad_catch_finding -> .claude/skills/harness/bin/structure_audit.py::_broad_catch_finding
+MAP .claude/skills/harness/bin/check-plan-routes.py::_broad_catch_findings -> .claude/skills/harness/bin/structure_audit.py::_broad_catch_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_broad_count -> .claude/skills/harness/bin/structure_audit.py::_broad_count
+MAP .claude/skills/harness/bin/check-plan-routes.py::_cached -> .claude/skills/harness/bin/structure_audit.py::_cached
+MAP .claude/skills/harness/bin/check-plan-routes.py::_call_symbol -> .claude/skills/harness/bin/structure_audit.py::_call_symbol
+MAP .claude/skills/harness/bin/check-plan-routes.py::_called_names -> .claude/skills/harness/bin/structure_audit.py::_called_names
+MAP .claude/skills/harness/bin/check-plan-routes.py::_callee_name -> .claude/skills/harness/bin/structure_audit.py::_callee_name
+MAP .claude/skills/harness/bin/check-plan-routes.py::_candidate_is_accounted -> .claude/skills/harness/bin/canonical_reader_audit.py::_candidate_is_accounted
+MAP .claude/skills/harness/bin/check-plan-routes.py::_candidate_matches_canonical_row -> .claude/skills/harness/bin/canonical_reader_audit.py::_candidate_matches_canonical_row
+MAP .claude/skills/harness/bin/check-plan-routes.py::_candidate_matches_relocated -> .claude/skills/harness/bin/canonical_reader_audit.py::_candidate_matches_relocated
+MAP .claude/skills/harness/bin/check-plan-routes.py::_candidate_matches_relocated_row -> .claude/skills/harness/bin/canonical_reader_audit.py::_candidate_matches_relocated_row
+MAP .claude/skills/harness/bin/check-plan-routes.py::_candidate_matches_remedy -> .claude/skills/harness/bin/canonical_reader_audit.py::_candidate_matches_remedy
+MAP .claude/skills/harness/bin/check-plan-routes.py::_canonical_row_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_canonical_row_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_census_names -> .claude/skills/harness/bin/structure_audit.py::_census_names
+MAP .claude/skills/harness/bin/check-plan-routes.py::_checker_module_name -> .claude/skills/harness/bin/structure_audit.py::_checker_module_name
+MAP .claude/skills/harness/bin/check-plan-routes.py::_checker_package_paths -> .claude/skills/harness/bin/structure_audit.py::_checker_package_paths
+MAP .claude/skills/harness/bin/check-plan-routes.py::_checker_trees -> .claude/skills/harness/bin/structure_audit.py::_checker_trees
+MAP .claude/skills/harness/bin/check-plan-routes.py::_classification_document -> .claude/skills/harness/bin/canonical_reader_audit.py::_classification_document
+MAP .claude/skills/harness/bin/check-plan-routes.py::_classification_shape_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_classification_shape_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_classification_structure -> .claude/skills/harness/bin/canonical_reader_audit.py::_classification_structure
+MAP .claude/skills/harness/bin/check-plan-routes.py::_classification_task_files -> .claude/skills/harness/bin/canonical_reader_audit.py::_classification_task_files
+MAP .claude/skills/harness/bin/check-plan-routes.py::_classified_disposition_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_classified_disposition_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_classified_row_finding -> .claude/skills/harness/bin/canonical_reader_audit.py::_classified_row_finding
+MAP .claude/skills/harness/bin/check-plan-routes.py::_classified_rows_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_classified_rows_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_decisions_index -> .claude/skills/harness/bin/structure_audit.py::_decisions_index
+MAP .claude/skills/harness/bin/check-plan-routes.py::_declared_covers -> .claude/skills/harness/bin/structure_audit.py::_declared_covers
+MAP .claude/skills/harness/bin/check-plan-routes.py::_exempt_row_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_exempt_row_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_exemption_finding -> .claude/skills/harness/bin/canonical_reader_audit.py::_exemption_finding
+MAP .claude/skills/harness/bin/check-plan-routes.py::_expanded_task_paths -> .claude/skills/harness/bin/canonical_reader_audit.py::_expanded_task_paths
+MAP .claude/skills/harness/bin/check-plan-routes.py::_feat62_findings -> .claude/skills/harness/bin/structure_audit.py::_feat62_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_feature_station_literal_findings -> .claude/skills/harness/bin/structure_audit.py::_feature_station_literal_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_gh_resource -> .claude/skills/harness/bin/structure_audit.py::_gh_resource
+MAP .claude/skills/harness/bin/check-plan-routes.py::_git_resource -> .claude/skills/harness/bin/structure_audit.py::_git_resource
+MAP .claude/skills/harness/bin/check-plan-routes.py::_input_literals -> .claude/skills/harness/bin/structure_audit.py::_input_literals
+MAP .claude/skills/harness/bin/check-plan-routes.py::_inv_rows -> .claude/skills/harness/bin/structure_audit.py::_inv_rows
+MAP .claude/skills/harness/bin/check-plan-routes.py::_invariant_functions -> .claude/skills/harness/bin/structure_audit.py::_invariant_functions
+MAP .claude/skills/harness/bin/check-plan-routes.py::_is_broad_catch -> .claude/skills/harness/bin/structure_audit.py::_is_broad_catch
+MAP .claude/skills/harness/bin/check-plan-routes.py::_is_import_guard -> .claude/skills/harness/bin/structure_audit.py::_is_import_guard
+MAP .claude/skills/harness/bin/check-plan-routes.py::_is_main_guard -> .claude/skills/harness/bin/structure_audit.py::_is_main_guard
+MAP .claude/skills/harness/bin/check-plan-routes.py::_is_station_concatenation -> .claude/skills/harness/bin/structure_audit.py::_is_station_concatenation
+MAP .claude/skills/harness/bin/check-plan-routes.py::_is_string_assign -> .claude/skills/harness/bin/structure_audit.py::_is_string_assign
+MAP .claude/skills/harness/bin/check-plan-routes.py::_lifecycle_buckets -> .claude/skills/harness/bin/structure_audit.py::_lifecycle_buckets
+MAP .claude/skills/harness/bin/check-plan-routes.py::_literal_candidates -> .claude/skills/harness/bin/structure_audit.py::_literal_candidates
+MAP .claude/skills/harness/bin/check-plan-routes.py::_may_be_program -> .claude/skills/harness/bin/structure_audit.py::_may_be_program
+MAP .claude/skills/harness/bin/check-plan-routes.py::_migration_row_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_migration_row_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_migration_row_state -> .claude/skills/harness/bin/canonical_reader_audit.py::_migration_row_state
+MAP .claude/skills/harness/bin/check-plan-routes.py::_migration_violations -> .claude/skills/harness/bin/canonical_reader_audit.py::_migration_violations
+MAP .claude/skills/harness/bin/check-plan-routes.py::_module_body_finding -> .claude/skills/harness/bin/structure_audit.py::_module_body_finding
+MAP .claude/skills/harness/bin/check-plan-routes.py::_module_body_findings -> .claude/skills/harness/bin/structure_audit.py::_module_body_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_module_body_shape -> .claude/skills/harness/bin/structure_audit.py::_module_body_shape
+MAP .claude/skills/harness/bin/check-plan-routes.py::_module_functions -> .claude/skills/harness/bin/structure_audit.py::_module_functions
+MAP .claude/skills/harness/bin/check-plan-routes.py::_module_loader_findings -> .claude/skills/harness/bin/structure_audit.py::_module_loader_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_named_plans -> .claude/skills/harness/bin/canonical_reader_audit.py::_named_plans
+MAP .claude/skills/harness/bin/check-plan-routes.py::_names_shared_text -> .claude/skills/harness/bin/structure_audit.py::_names_shared_text
+MAP .claude/skills/harness/bin/check-plan-routes.py::_names_station_export -> .claude/skills/harness/bin/structure_audit.py::_names_station_export
+MAP .claude/skills/harness/bin/check-plan-routes.py::_normalized_reader_name -> .claude/skills/harness/bin/canonical_reader_audit.py::_normalized_reader_name
+MAP .claude/skills/harness/bin/check-plan-routes.py::_observed_inputs -> .claude/skills/harness/bin/structure_audit.py::_observed_inputs
+MAP .claude/skills/harness/bin/check-plan-routes.py::_ownership_finding -> .claude/skills/harness/bin/canonical_reader_audit.py::_ownership_finding
+MAP .claude/skills/harness/bin/check-plan-routes.py::_ownership_task_files -> .claude/skills/harness/bin/canonical_reader_audit.py::_ownership_task_files
+MAP .claude/skills/harness/bin/check-plan-routes.py::_package_import_module -> .claude/skills/harness/bin/structure_audit.py::_package_import_module
+MAP .claude/skills/harness/bin/check-plan-routes.py::_package_imports -> .claude/skills/harness/bin/structure_audit.py::_package_imports
+MAP .claude/skills/harness/bin/check-plan-routes.py::_parsed_program -> .claude/skills/harness/bin/structure_audit.py::_parsed_program
+MAP .claude/skills/harness/bin/check-plan-routes.py::_posture_file_findings -> .claude/skills/harness/bin/structure_audit.py::_posture_file_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_posture_files -> .claude/skills/harness/bin/structure_audit.py::_posture_files
+MAP .claude/skills/harness/bin/check-plan-routes.py::_posture_findings -> .claude/skills/harness/bin/structure_audit.py::_posture_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_posture_lines -> .claude/skills/harness/bin/structure_audit.py::_posture_lines
+MAP .claude/skills/harness/bin/check-plan-routes.py::_qualified_name -> .claude/skills/harness/bin/canonical_reader_audit.py::_qualified_name
+MAP .claude/skills/harness/bin/check-plan-routes.py::_reachable -> .claude/skills/harness/bin/structure_audit.py::_reachable
+MAP .claude/skills/harness/bin/check-plan-routes.py::_read_source -> .claude/skills/harness/bin/structure_audit.py::_read_source
+MAP .claude/skills/harness/bin/check-plan-routes.py::_reader_category -> .claude/skills/harness/bin/canonical_reader_audit.py::_reader_category
+MAP .claude/skills/harness/bin/check-plan-routes.py::_reader_source_paths -> .claude/skills/harness/bin/canonical_reader_audit.py::_reader_source_paths
+MAP .claude/skills/harness/bin/check-plan-routes.py::_reads_findings -> .claude/skills/harness/bin/structure_audit.py::_reads_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_reads_in -> .claude/skills/harness/bin/structure_audit.py::_reads_in
+MAP .claude/skills/harness/bin/check-plan-routes.py::_reparse_findings -> .claude/skills/harness/bin/structure_audit.py::_reparse_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_reparsing_calls -> .claude/skills/harness/bin/structure_audit.py::_reparsing_calls
+MAP .claude/skills/harness/bin/check-plan-routes.py::_respelled_bucket -> .claude/skills/harness/bin/structure_audit.py::_respelled_bucket
+MAP .claude/skills/harness/bin/check-plan-routes.py::_route_finding -> .claude/skills/harness/bin/canonical_reader_audit.py::_route_finding
+MAP .claude/skills/harness/bin/check-plan-routes.py::_row_family_finding -> .claude/skills/harness/bin/structure_audit.py::_row_family_finding
+MAP .claude/skills/harness/bin/check-plan-routes.py::_row_inputs -> .claude/skills/harness/bin/structure_audit.py::_row_inputs
+MAP .claude/skills/harness/bin/check-plan-routes.py::_row_is_canonical -> .claude/skills/harness/bin/canonical_reader_audit.py::_row_is_canonical
+MAP .claude/skills/harness/bin/check-plan-routes.py::_row_label -> .claude/skills/harness/bin/canonical_reader_audit.py::_row_label
+MAP .claude/skills/harness/bin/check-plan-routes.py::_row_lookup -> .claude/skills/harness/bin/canonical_reader_audit.py::_row_lookup
+MAP .claude/skills/harness/bin/check-plan-routes.py::_row_observed_findings -> .claude/skills/harness/bin/structure_audit.py::_row_observed_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_row_reads_findings -> .claude/skills/harness/bin/structure_audit.py::_row_reads_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_row_remedy -> .claude/skills/harness/bin/canonical_reader_audit.py::_row_remedy
+MAP .claude/skills/harness/bin/check-plan-routes.py::_run_canonical_reader_audit -> .claude/skills/harness/bin/canonical_reader_audit.py::_run_canonical_reader_audit
+MAP .claude/skills/harness/bin/check-plan-routes.py::_run_consolidation_audit -> .claude/skills/harness/bin/structure_audit.py::_run_consolidation_audit
+MAP .claude/skills/harness/bin/check-plan-routes.py::_scan_reader_tree -> .claude/skills/harness/bin/canonical_reader_audit.py::_scan_reader_tree
+MAP .claude/skills/harness/bin/check-plan-routes.py::_scanned_manifest_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_scanned_manifest_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_selected_migration_rows -> .claude/skills/harness/bin/canonical_reader_audit.py::_selected_migration_rows
+MAP .claude/skills/harness/bin/check-plan-routes.py::_spawn_resource -> .claude/skills/harness/bin/structure_audit.py::_spawn_resource
+MAP .claude/skills/harness/bin/check-plan-routes.py::_state_reader_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_state_reader_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_string_constants -> .claude/skills/harness/bin/structure_audit.py::_string_constants
+MAP .claude/skills/harness/bin/check-plan-routes.py::_string_literal_collection -> .claude/skills/harness/bin/structure_audit.py::_string_literal_collection
+MAP .claude/skills/harness/bin/check-plan-routes.py::_t07_expected_finding -> .claude/skills/harness/bin/canonical_reader_audit.py::_t07_expected_finding
+MAP .claude/skills/harness/bin/check-plan-routes.py::_t07_extra_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_t07_extra_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_t07_row_matches_contract -> .claude/skills/harness/bin/canonical_reader_audit.py::_t07_row_matches_contract
+MAP .claude/skills/harness/bin/check-plan-routes.py::_t07_terminal_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_t07_terminal_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_t07_terminal_message -> .claude/skills/harness/bin/canonical_reader_audit.py::_t07_terminal_message
+MAP .claude/skills/harness/bin/check-plan-routes.py::_t07_terminal_observation -> .claude/skills/harness/bin/canonical_reader_audit.py::_t07_terminal_observation
+MAP .claude/skills/harness/bin/check-plan-routes.py::_table_tree -> .claude/skills/harness/bin/structure_audit.py::_table_tree
+MAP .claude/skills/harness/bin/check-plan-routes.py::_task_files -> .claude/skills/harness/bin/canonical_reader_audit.py::_task_files
+MAP .claude/skills/harness/bin/check-plan-routes.py::_task_migration_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_task_migration_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_token_text -> .claude/skills/harness/bin/structure_audit.py::_token_text
+MAP .claude/skills/harness/bin/check-plan-routes.py::_unaccounted_candidate_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_unaccounted_candidate_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_unmigrated_row_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_unmigrated_row_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::_unwrap_set_call -> .claude/skills/harness/bin/structure_audit.py::_unwrap_set_call
+MAP .claude/skills/harness/bin/check-plan-routes.py::_valid_classification_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::_valid_classification_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::audit_canonical_readers -> .claude/skills/harness/bin/canonical_reader_audit.py::audit_canonical_readers
+MAP .claude/skills/harness/bin/check-plan-routes.py::broad_catch_census_paths -> .claude/skills/harness/bin/structure_audit.py::broad_catch_census_paths
+MAP .claude/skills/harness/bin/check-plan-routes.py::broad_catch_findings -> .claude/skills/harness/bin/structure_audit.py::broad_catch_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::classification_task_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::classification_task_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::consolidation_findings -> .claude/skills/harness/bin/structure_audit.py::consolidation_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::feat62_findings -> .claude/skills/harness/bin/structure_audit.py::feat62_findings
+MAP .claude/skills/harness/bin/check-plan-routes.py::reader_candidates_from_source -> .claude/skills/harness/bin/canonical_reader_audit.py::reader_candidates_from_source
+MAP .claude/skills/harness/bin/check-plan-routes.py::reader_classification_findings -> .claude/skills/harness/bin/canonical_reader_audit.py::reader_classification_findings
+PASS projection_confined
+CLI clean:route argv=[] old_exit=0 new_exit=0 mapped=0
+--- old stdout
+| scanning <ROOT>/.harness/*/features/*/{plan.yaml,PLAN.md}
+| MANIFEST <ROOT>/.harness/team-config.yaml
+| OK T-01: declared main-session-direct (apps/web/package.json, apps/web/tsconfig.json, apps/web/next.config.ts, apps/web/next-env.d.ts, eslint.config.mjs, apps/web/vitest.config.ts, playwright.config.ts, .node-version, .npmrc, .env.example, .gitignore ungranted)
+| OK T-02 granted to harness-backend-dev, harness-data-engineer, harness-dev-ops, harness-frontend-dev, harness-qa
+| OK T-03 granted to harness-backend-dev, harness-frontend-dev
+| OK T-04 granted to harness-data-engineer
+| OK T-05 granted to harness-backend-dev, harness-frontend-dev
+| OK T-06 granted to harness-backend-dev, harness-frontend-dev
+| OK T-07 granted to harness-backend-dev, harness-frontend-dev
+| OK T-08 granted to harness-backend-dev, harness-dev-ops, harness-qa
+| OK T-09: declared main-session-direct (.harness/harness.json ungranted)
+| OK T-10 granted to harness-documentor
+| 0 violation(s) across 1 plan(s)
+| examined 37 feature dir(s); 36 skipped as shipped
+--- old stderr
+--- diff stdout
+--- diff stderr
+PASS cli_equivalent[clean:route]
+CLI clean:canonical argv=['--canonical-reader-audit'] old_exit=0 new_exit=0 mapped=0
+--- old stdout
+| 0 unresolved reader site(s) across 101 Python file(s)
+--- old stderr
+--- diff stdout
+| --- old
+| +++ new
+| @@ -1 +1 @@
+| -0 unresolved reader site(s) across 101 Python file(s)
+| +0 unresolved reader site(s) across 103 Python file(s)
+--- diff stderr
+PASS cli_equivalent[clean:canonical]
+CLI clean:consolidation argv=['--consolidation-audit'] old_exit=0 new_exit=0 mapped=0
+--- old stdout
+| 0 consolidation finding(s) under bin/
+--- old stderr
+--- diff stdout
+--- diff stderr
+PASS cli_equivalent[clean:consolidation]
+CLI clean:help argv=['--help'] old_exit=2 new_exit=2 mapped=0
+--- old stdout
+| MANIFEST <ROOT>/.harness/team-config.yaml
+--- old stderr
+| ERROR: --help does not exist
+--- diff stdout
+--- diff stderr
+PASS cli_equivalent[clean:help]
+CLI clean:both_flags argv=['--canonical-reader-audit', '--consolidation-audit'] old_exit=2 new_exit=2 mapped=0
+--- old stdout
+| MANIFEST <ROOT>/.harness/team-config.yaml
+--- old stderr
+| ERROR: --canonical-reader-audit does not exist
+--- diff stdout
+--- diff stderr
+PASS cli_equivalent[clean:both_flags]
+CLI clean:missing_plan argv=['does-not-exist/plan.yaml'] old_exit=2 new_exit=2 mapped=0
+--- old stdout
+| MANIFEST <ROOT>/.harness/team-config.yaml
+--- old stderr
+| ERROR: does-not-exist/plan.yaml does not exist
+--- diff stdout
+--- diff stderr
+PASS cli_equivalent[clean:missing_plan]
+CLI perturbed:canonical argv=['--canonical-reader-audit'] old_exit=2 new_exit=2 mapped=1
+--- old stdout
+| CLASSIFICATION .claude/skills/harness/bin/zz_split_probe_b.py::<module> source_parse remedy=repair source: invalid syntax (zz_split_probe_b.py, line 1). PLAN AMENDMENT REQUIRED
+| CLASSIFICATION scanned-file manifest differs from the live Python tree. PLAN AMENDMENT REQUIRED
+| CLASSIFICATION .claude/skills/harness/bin/zz_split_probe_a.py::probe_file json_file remedy=artifact_accessors.load_harness_json: live AST row absent from migration inventory. PLAN AMENDMENT REQUIRED
+| CLASSIFICATION .claude/skills/harness/bin/zz_split_probe_a.py::probe_text json_string remedy=artifact_accessors.parse_gh_json: live AST row absent from migration inventory. PLAN AMENDMENT REQUIRED
+| CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_classification_document json_file remedy=none: exemption requires a reason. PLAN AMENDMENT REQUIRED
+| 0 unresolved reader site(s) across 103 Python file(s)
+--- old stderr
+--- diff stdout
+| --- old
+| +++ new
+| @@ -2,5 +2,5 @@
+|  CLASSIFICATION scanned-file manifest differs from the live Python tree. PLAN AMENDMENT REQUIRED
+|  CLASSIFICATION .claude/skills/harness/bin/zz_split_probe_a.py::probe_file json_file remedy=artifact_accessors.load_harness_json: live AST row absent from migration inventory. PLAN AMENDMENT REQUIRED
+|  CLASSIFICATION .claude/skills/harness/bin/zz_split_probe_a.py::probe_text json_string remedy=artifact_accessors.parse_gh_json: live AST row absent from migration inventory. PLAN AMENDMENT REQUIRED
+| -CLASSIFICATION .claude/skills/harness/bin/check-plan-routes.py::_classification_document json_file remedy=none: exemption requires a reason. PLAN AMENDMENT REQUIRED
+| -0 unresolved reader site(s) across 103 Python file(s)
+| +CLASSIFICATION .claude/skills/harness/bin/canonical_reader_audit.py::_classification_document json_file remedy=none: exemption requires a reason. PLAN AMENDMENT REQUIRED
+| +0 unresolved reader site(s) across 105 Python file(s)
+--- diff stderr
+PASS cli_equivalent[perturbed:canonical]
+CLI perturbed:consolidation argv=['--consolidation-audit'] old_exit=1 new_exit=1 mapped=0
+--- old stdout
+| CONSOLIDATION .claude/skills/harness/bin/zz_split_probe_b.py::<module> source_parse: invalid syntax (zz_split_probe_b.py, line 1)
+| CONSOLIDATION .claude/skills/harness/bin/zz_split_probe_a.py carries 2 broad catch(es) (`except Exception` or bare `except:`) against ceiling 0 — narrow the new one to the boundary's real error class (FEAT-63 SC-04)
+| CONSOLIDATION .claude/skills/harness/bin/zz_split_probe_b.py broad-catch census cannot parse it (FEAT-63 SC-04)
+| 3 consolidation finding(s) under bin/
+--- old stderr
+--- diff stdout
+--- diff stderr
+PASS cli_equivalent[perturbed:consolidation]
+ALL PASS
+````
+
+## D. Pristine controls: controls.py (unplanted git-archive trees, each side its own entry in-tree) -> driver exit 0, stderr empty
+
+````python
+"""Throwaway pristine-control driver (FEAT-2489 validate c3 QA; never committed).
+Usage: python3 controls.py <checkout> <BASE> <PIN>. Unplanted git-archive trees; each side's own entry in-tree."""
+import os, shutil, subprocess, sys, tempfile
+CHECKOUT, BASE, PIN = sys.argv[1:4]
+ENTRY = ".claude/skills/harness/bin/check-plan-routes.py"
+SCRUB = ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR", "HARNESS_AGENT_TYPE", "PYTHONUNBUFFERED", "NO_COLOR", "FORCE_COLOR")
+def extract(rev, root):
+    os.mkdir(root)
+    a = subprocess.Popen(["git", "archive", rev], cwd=CHECKOUT, stdout=subprocess.PIPE)
+    subprocess.run(["tar", "-x", "-C", root], stdin=a.stdout, check=True); a.stdout.close(); assert a.wait() == 0
+def run(tree, argv):
+    env = {k: v for k, v in os.environ.items() if k not in SCRUB}
+    env.update(PYTHONDONTWRITEBYTECODE="1", HARNESS_PROJECT_DIR=tree, TERM="xterm-256color")
+    r = subprocess.run([sys.executable, os.path.join(tree, ENTRY), *argv], cwd=tree, env=env, capture_output=True, timeout=600)
+    return r.returncode, r.stdout.decode(), r.stderr.decode()
+tmp = tempfile.mkdtemp(prefix="qa-c3-ctl-")
+trees = {"base": os.path.join(tmp, "base"), "pin": os.path.join(tmp, "pin")}
+extract(BASE, trees["base"]); extract(PIN, trees["pin"])
+print(f"TMP {tmp}\nPYTHON {sys.executable} {sys.version.split()[0]}")
+for argv in (["--canonical-reader-audit"], ["--consolidation-audit"], []):
+    for side, tree in trees.items():
+        code, out, err = run(tree, argv)
+        print(f"----- CONTROL {argv or '[default route mode]'} {side} exit={code} stderr_bytes={len(err.encode())}")
+        print("--- stdout (whole)"); print(out.replace(tmp, "<TMP>"), end="")
+        print("--- stderr (whole)"); print(err.replace(tmp, "<TMP>"), end="")
+shutil.rmtree(tmp)
+````
+
+````text
+TMP /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/qa-c3-ctl-vms80tg0
+PYTHON /opt/homebrew/opt/python@3.15/bin/python3.15 3.15.2
+----- CONTROL ['--canonical-reader-audit'] base exit=0 stderr_bytes=0
+--- stdout (whole)
+0 unresolved reader site(s) across 101 Python file(s)
+--- stderr (whole)
+----- CONTROL ['--canonical-reader-audit'] pin exit=0 stderr_bytes=0
+--- stdout (whole)
+0 unresolved reader site(s) across 103 Python file(s)
+--- stderr (whole)
+----- CONTROL ['--consolidation-audit'] base exit=0 stderr_bytes=0
+--- stdout (whole)
+0 consolidation finding(s) under bin/
+--- stderr (whole)
+----- CONTROL ['--consolidation-audit'] pin exit=0 stderr_bytes=0
+--- stdout (whole)
+0 consolidation finding(s) under bin/
+--- stderr (whole)
+----- CONTROL [default route mode] base exit=0 stderr_bytes=0
+--- stdout (whole)
+scanning <TMP>/base/.harness/*/features/*/{plan.yaml,PLAN.md}
+MANIFEST <TMP>/base/.harness/team-config.yaml
+OK T-01: declared main-session-direct (apps/web/package.json, apps/web/tsconfig.json, apps/web/next.config.ts, apps/web/next-env.d.ts, eslint.config.mjs, apps/web/vitest.config.ts, playwright.config.ts, .node-version, .npmrc, .env.example, .gitignore ungranted)
+OK T-02 granted to harness-backend-dev, harness-data-engineer, harness-dev-ops, harness-frontend-dev, harness-qa
+OK T-03 granted to harness-backend-dev, harness-frontend-dev
+OK T-04 granted to harness-data-engineer
+OK T-05 granted to harness-backend-dev, harness-frontend-dev
+OK T-06 granted to harness-backend-dev, harness-frontend-dev
+OK T-07 granted to harness-backend-dev, harness-frontend-dev
+OK T-08 granted to harness-backend-dev, harness-dev-ops, harness-qa
+OK T-09: declared main-session-direct (.harness/harness.json ungranted)
+OK T-10 granted to harness-documentor
+0 violation(s) across 1 plan(s)
+examined 37 feature dir(s); 36 skipped as shipped
+--- stderr (whole)
+----- CONTROL [default route mode] pin exit=0 stderr_bytes=0
+--- stdout (whole)
+scanning <TMP>/pin/.harness/*/features/*/{plan.yaml,PLAN.md}
+MANIFEST <TMP>/pin/.harness/team-config.yaml
+DEVIATION T-01 tests/integration/test-check-plan-routes.py, .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t01-canonical-self-test.txt, .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t01-default-run.txt granted to harness-backend-dev, harness-dev-ops, harness-orchestrator, harness-qa but declared main-session-direct
+DEVIATION T-02 .harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py granted to harness-orchestrator but declared main-session-direct
+DEVIATION T-03 .claude/skills/harness/bin/check-plan-routes.py, .claude/skills/harness/bin/canonical_reader_audit.py, .claude/skills/harness/bin/structure_audit.py, .claude/skills/harness/bin/plan_merge/check.py, tests/integration/test-check-plan-routes.py, tests/integration/test-checker-structure-locks.py, tests/integration/test-structure-audit-single-pass.py, tests/unit/test-structure-audit-index.py, tests/unit/test-broad-catch-census.py, .harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t03-stale-inventory.txt granted to harness-backend-dev, harness-dev-ops, harness-orchestrator, harness-qa but declared main-session-direct
+DEVIATION T-04 tests/integration/canonical-reader-classification.json, .harness/harness/features/FEAT-2489-plan-routes-split/notes/equivalence-final.txt, .harness/harness/features/FEAT-2489-plan-routes-split/notes/green-t04-suites.txt granted to harness-backend-dev, harness-dev-ops, harness-orchestrator, harness-qa but declared main-session-direct
+OK T-01: declared main-session-direct (apps/web/package.json, apps/web/tsconfig.json, apps/web/next.config.ts, apps/web/next-env.d.ts, eslint.config.mjs, apps/web/vitest.config.ts, playwright.config.ts, .node-version, .npmrc, .env.example, .gitignore ungranted)
+OK T-02 granted to harness-backend-dev, harness-data-engineer, harness-dev-ops, harness-frontend-dev, harness-qa
+OK T-03 granted to harness-backend-dev, harness-frontend-dev
+OK T-04 granted to harness-data-engineer
+OK T-05 granted to harness-backend-dev, harness-frontend-dev
+OK T-06 granted to harness-backend-dev, harness-frontend-dev
+OK T-07 granted to harness-backend-dev, harness-frontend-dev
+OK T-08 granted to harness-backend-dev, harness-dev-ops, harness-qa
+OK T-09: declared main-session-direct (.harness/harness.json ungranted)
+OK T-10 granted to harness-documentor
+0 violation(s) across 2 plan(s)
+examined 38 feature dir(s); 36 skipped as shipped
+--- stderr (whole)
+````
+
+## E. One boundary beyond (P-11): crossbin.py, the pin tree run by base bin vs pin bin -> driver exit 0
+
+````python
+"""Throwaway: pin tree with base bin vs pin tree with pin bin, default route mode (FEAT-2489 c3 QA; never committed)."""
+import os, shutil, subprocess, sys, tempfile
+CHECKOUT, BASE, PIN = sys.argv[1:4]
+BIN = ".claude/skills/harness/bin"; ENTRY = BIN + "/check-plan-routes.py"
+SCRUB = ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR", "HARNESS_AGENT_TYPE", "PYTHONUNBUFFERED", "NO_COLOR", "FORCE_COLOR")
+def extract(rev, root, paths=()):
+    os.makedirs(root, exist_ok=True)
+    a = subprocess.Popen(["git", "archive", rev, *paths], cwd=CHECKOUT, stdout=subprocess.PIPE)
+    subprocess.run(["tar", "-x", "-C", root], stdin=a.stdout, check=True); a.stdout.close(); assert a.wait() == 0
+def run(tree, argv):
+    env = {k: v for k, v in os.environ.items() if k not in SCRUB}
+    env.update(PYTHONDONTWRITEBYTECODE="1", HARNESS_PROJECT_DIR=tree, TERM="xterm-256color")
+    r = subprocess.run([sys.executable, os.path.join(tree, ENTRY), *argv], cwd=tree, env=env, capture_output=True, timeout=600)
+    return r.returncode, r.stdout.decode().replace(tree, "<T>"), r.stderr.decode().replace(tree, "<T>")
+tmp = tempfile.mkdtemp(prefix="qa-c3-xb-")
+pin, mixed = os.path.join(tmp, "pin"), os.path.join(tmp, "pin-basebin")
+extract(PIN, pin); extract(PIN, mixed); shutil.rmtree(os.path.join(mixed, BIN)); extract(BASE, mixed, [BIN])
+ok = True
+for argv in ([], ["--consolidation-audit"], ["--help"], ["does-not-exist/plan.yaml"]):
+    a, b = run(mixed, argv), run(pin, argv)
+    same = a == b; ok &= same
+    print(f"XBIN {argv or '[default route mode]'} basebin_exit={a[0]} pinbin_exit={b[0]} identical_stdout_stderr={same}")
+    if not same:
+        import difflib
+        for side, x, y in (("stdout", a[1], b[1]), ("stderr", a[2], b[2])):
+            sys.stdout.writelines(difflib.unified_diff(x.splitlines(True), y.splitlines(True), f"basebin {side}", f"pinbin {side}"))
+shutil.rmtree(tmp); print("ALL IDENTICAL" if ok else "DIFFERS")
+````
+
+````text
+XBIN [default route mode] basebin_exit=0 pinbin_exit=0 identical_stdout_stderr=True
+XBIN ['--consolidation-audit'] basebin_exit=0 pinbin_exit=0 identical_stdout_stderr=True
+XBIN ['--help'] basebin_exit=2 pinbin_exit=2 identical_stdout_stderr=True
+XBIN ['does-not-exist/plan.yaml'] basebin_exit=2 pinbin_exit=2 identical_stdout_stderr=True
+ALL IDENTICAL
+````
+
+## F. Fail-first reproduction driver failfirst.py (outputs compared by diff against the red receipts; see the review note)
+
+````python
+"""Throwaway fail-first reproduction (FEAT-2489 c3 QA; never committed). Usage: failfirst.py <checkout>"""
+import os, shutil, subprocess, sys, tempfile
+CK = sys.argv[1]
+SCRUB = ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR", "HARNESS_AGENT_TYPE", "PYTHONUNBUFFERED", "NO_COLOR", "FORCE_COLOR")
+def extract(rev, root):
+    os.mkdir(root); a = subprocess.Popen(["git", "archive", rev], cwd=CK, stdout=subprocess.PIPE)
+    subprocess.run(["tar", "-x", "-C", root], stdin=a.stdout, check=True); a.stdout.close(); assert a.wait() == 0
+def run(tree, argv, out, hpd=False):
+    env = {k: v for k, v in os.environ.items() if k not in SCRUB}
+    env.update(PYTHONDONTWRITEBYTECODE="1", TERM="xterm-256color")
+    if hpd: env["HARNESS_PROJECT_DIR"] = tree
+    r = subprocess.run([sys.executable, *argv], cwd=tree, env=env, capture_output=True, timeout=1200)
+    open(out, "w").write(r.stdout.decode() + r.stderr.decode()); return r.returncode
+tmp = tempfile.mkdtemp(prefix="qa-c3-ff-")
+base, t03 = os.path.join(tmp, "base"), os.path.join(tmp, "t03")
+extract("261fdf726428bd8325fbd3d4beccad23b67e83cc", base); extract("3b6f2a421d9bbe58f783bcc362c09a36319577ea", t03)
+print("t01 self-test exit", run(base, ["tests/integration/test-check-plan-routes.py", "--canonical-reader-self-test"], "/tmp/qa-c3/ff-t01.out"))
+print("t03 default exit", run(t03, ["tests/integration/test-check-plan-routes.py"], "/tmp/qa-c3/ff-t03.out"))
+print("t03 audit exit", run(t03, [".claude/skills/harness/bin/check-plan-routes.py", "--canonical-reader-audit"], "/tmp/qa-c3/ff-t03-audit.out", hpd=True))
+shutil.rmtree(tmp)
+````

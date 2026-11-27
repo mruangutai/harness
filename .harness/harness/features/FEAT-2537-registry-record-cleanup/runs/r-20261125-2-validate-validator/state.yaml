@@ -1,0 +1,108 @@
+schema_version: 2
+run_id: r-20261125-2-validate-validator
+run_uid: e45d84b7844e48298c456d7e4e5e0282
+feature: FEAT-2537-registry-record-cleanup
+squad: validator
+host: harness-validator-lead
+status: blocked
+steps:
+  - id: qa
+    persona: harness-qa
+    task: validate-qa-gate
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-qa-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/qa-r-20261125-2-validate-validator.md
+    note: unit 68/68, integration 95/95, typecheck 0, verify exit 0; fail-first SC-01 and SC-02 red
+    evidence:
+      matrix_ok: true
+      unit_named: 68
+      integration_named: 95
+      ci_ran: false
+  - id: code
+    persona: harness-code-reviewer
+    task: validate-code-review
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-code-reviewer-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: ESCALATE
+    lead_verdict: ESCALATE
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-code-reviewer-c1.md
+    note: malformed-v2 row-loss delta needs signer; case 18 not byte-exact
+    evidence:
+      severity_max: high
+      code_grade: grade_2
+  - id: security
+    persona: harness-security-reviewer
+    task: validate-security-review
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-security-reviewer-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: ESCALATE
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-security-reviewer-c1.md
+    note: writer row loss and dispatch fallback widening; both remedies need a ruling
+    evidence:
+      severity_max: med
+  - id: ui
+    persona: harness-ui-reviewer
+    task: validate-ui-review
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-ui-reviewer-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/review-harness-ui-reviewer-c1.md
+    note: out of scope by measured census
+  - id: goalcheck
+    persona: harness-pm
+    task: validate-goalcheck
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/research-FEAT-2537-registry-record-cleanup-goalcheck-validate-c1.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2537-registry-record-cleanup/notes/research-FEAT-2537-registry-record-cleanup-goalcheck-validate-c1.md
+    note: SC-03, SC-04, DEC-199/204/218 met; SC-01/02 partial pending qa

@@ -5,11 +5,10 @@ Two consumers follow: `gh-sync.py` writes stations, `check-state.py`'s INV-26 co
 Two copies of this logic is precisely the drift this feature exists to remove, so everything
 about "which station is this at, and what should it be" lives here and nowhere else.
 
-**THE FAKE-BINARY TRAP, and it is not optional to know.** `factory_gh.run_gh` reads the
-`FACTORY_GH` environment variable to find the `gh` binary; `gh-sync.py` reads `GH_SYNC_GH`.
-A test that injects a fake through `GH_SYNC_GH` alone leaves every call THIS module makes going
-to the **real** `gh` — real network, real board, real writes. **Every test that exercises this
-module, here and in T-03 and T-04, sets BOTH variables to the same fake.**
+**ONE BINARY OVERRIDE: `FACTORY_GH`.** Every call this module makes goes through `factory_gh`,
+which reads `FACTORY_GH` at call time to find the `gh` binary; `gh-sync.py` uses the same
+transport. A test that exercises this module sets only `FACTORY_GH` to its fake, confined with
+`tests/offline_gh_support.offline_gh_env`, so no call reaches the real `gh`.
 
 **This module raises; it never prints and never exits.** `factory_gh.preflight()` is never called
 from here: its callers exit non-zero, and this module's callers must not (D-02 — a station failure

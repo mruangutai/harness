@@ -23,9 +23,91 @@ import yaml
 
 from gh_sync_support import (
     FAKE_GH, FAKE_GH_SHIP, FAKE_GH_STATIONS, add_plan_station, calls, check, edits_to,
-    install_gh, read_feature_json, read_plan_station, report, run, ship_env, stage, stage_ship,
-    stage_station, write_feature_json, write_validate_handoff)
+    install_gh, label_create_fails, read_feature_json, read_plan_station, report, run, ship_env,
+    stage, stage_ship, stage_station, write_feature_json, write_validate_handoff)
 from harness_config_support import write_config
+
+
+def _label_create_failure_run(tmp, feat_name, args):
+    """H1 (FEAT-2452 c1): a board-wired feature whose `label create` fails with a 403 that is
+    not gh's existing-label reply; runs `gh-sync ARGS[0] <feat> ARGS[1:] --reason-file --yes`."""
+    install_gh(tmp, label_create_fails(FAKE_GH_STATIONS))
+    feat = stage_station(tmp, feat_name, [("T-01", "pending"), ("T-02", "pending")],
+                         issues={"T-01": 41, "T-02": 42}, parent=40, milestone=7)
+    reason = os.path.join(tmp, "reason.txt")
+    open(reason, "w").write("dropped")
+    result = run([args[0], feat, *args[1:], "--reason-file", reason, "--yes"], tmp,
+                 {"FACTORY_GH": os.path.join(tmp, "gh")})
+    return feat, result, calls(tmp)
+
+
+def _closed_and_reseated(log, num):
+    """True when issue NUM was closed not_planned and its card then written to the backlog."""
+    closed = any(f"issues/{num} " in l and "state_reason=not_planned" in l for l in log)
+    return closed and any(f"--id ITEM_{num}" in l and "OPT_BACKLOG" in l for l in log)
+
+
+def _check_named_create_failure(case, r, rc, phrase):
+    """No mirror SKIP, exit RC, and the failed create named on stderr with gh's diagnostic."""
+    check(f"{case}: no SKIP, exit {rc}, the failed create named with its diagnostic",
+          r.returncode == rc and "gh-sync: SKIP" not in r.stdout
+          and phrase in r.stderr and "HTTP 403" in r.stderr,
+          f"rc={r.returncode} {r.stdout}{r.stderr}")
+
+
+def _check_abandon_label_gap(case, r, log):
+    """Every item still closes and reseats, the milestone closes, nothing is labelled, and each
+    closed item reports the label gap."""
+    check(f"{case}: every item still closes and reseats, the milestone closes",
+          all(_closed_and_reseated(log, n) for n in (41, 42, 40))
+          and any("milestones/7" in l and "state=closed" in l for l in log), str(log))
+    check(f"{case}: no dependent --add-label, and each closed item reports the gap",
+          not any("--add-label" in l for l in log)
+          and all(f"#{n} closed but not labelled `abandoned`" in r.stderr for n in (41, 42, 40)),
+          f"{r.stderr} log={log}")
+
+
+def abandon_label_create_failure_case():
+    """H1: abandon's caller policy survives a failed `abandoned` label create. The check still
+    runs BEFORE any attachment, so no `--add-label` is attempted against a missing label, but
+    the run continues per item, reports the gap and records the local station. This is also
+    the #13 failing-first case (G1): at 15a240bc the create failure SKIP-exits before any close."""
+    case = "abandon, label create fails"
+    with tempfile.TemporaryDirectory() as tmp:
+        feat, r, log = _label_create_failure_run(tmp, "FEAT-40-abandon-label-create-fails",
+                                                 ["abandon"])
+        _check_named_create_failure(case, r, 0, "label abandoned could not be created")
+        _check_abandon_label_gap(case, r, log)
+        check(f"{case}: the abandoned station is still recorded locally",
+              read_plan_station(feat) == "abandoned", read_plan_station(feat))
+
+
+_REJECT_HALT_LINES = ("landed before the failure: close parent #40",
+                      "landed before the failure: post comment on parent #40",
+                      "NOT run: return parent #40 to backlog", "NOT run: close milestone #7",
+                      "station was NOT written")
+
+
+def _wrote_after_label(log):
+    """Any `--add-label`, milestone or backlog write: none may follow a failed label step."""
+    return any("--add-label" in l or "milestones/7" in l or ("ITEM_40" in l and "OPT_BACKLOG" in l)
+               for l in log)
+
+
+def reject_label_create_failure_case():
+    """H1: reject's caller policy survives a failed `superseded` label create. The label step
+    halts through _RejectHalt: report, exit 1, nothing after it, no station. At 15a240bc the
+    create failure SKIP-exits 0 and the report never prints."""
+    case = "reject, label create fails"
+    with tempfile.TemporaryDirectory() as tmp:
+        feat, r, log = _label_create_failure_run(tmp, "FEAT-REJECT-LABEL-CREATE-FAILS",
+                                                 ["reject", "--superseded-by", "88"])
+        _check_named_create_failure(case, r, 1, "ERROR - label superseded could not be created")
+        check(f"{case}: the halt report names what landed and what did not run",
+              all(line in r.stderr for line in _REJECT_HALT_LINES), r.stderr)
+        check(f"{case}: no --add-label, backlog or milestone write, and no station",
+              not _wrote_after_label(log) and read_plan_station(feat) != "rejected",
+              f"log={log} station={read_plan_station(feat)}")
 
 
 def main():
@@ -445,6 +527,26 @@ def main():
         check("abandon --yes: records the terminal station in plan.yaml",
               read_plan_station(featA3) == "abandoned", read_plan_station(featA3))
 
+    # --- #13: a failing REST close keeps the continue policy: diagnostic, later writes, station ---
+    with tempfile.TemporaryDirectory() as tmpA13:
+        featA13, reasonA13 = _abandon_fixture(tmpA13)
+        install_gh(tmpA13, FAKE_GH.replace(
+            'case "$1 $2" in',
+            'case "$*" in\n  *"issues/41 -f state=closed"*) echo "HTTP 502: Bad Gateway" >&2; exit 1 ;;\n'
+            'esac\ncase "$1 $2" in', 1))
+        r = run(["abandon", featA13, "--reason-file", reasonA13, "--yes"], tmpA13)
+        logA13 = calls(tmpA13)
+        check("#13 failing close API: exit 0, the failure is named with its diagnostic",
+              r.returncode == 0 and "could not close" in r.stderr and "#41" in r.stderr
+              and "HTTP 502" in r.stderr and "FAILED 1 of" in r.stdout, r.stdout + r.stderr)
+        check("#13 failing close API: later item writes still run (#42, the parent and the milestone)",
+              any("issues/42" in l and "state_reason=not_planned" in l for l in logA13)
+              and any("issues/40" in l and "state_reason=not_planned" in l for l in logA13)
+              and any("milestones/7" in l and "state=closed" in l for l in logA13), str(logA13))
+        check("#13 failing close API: the abandoned station is still recorded locally",
+              read_plan_station(featA13) == "abandoned", read_plan_station(featA13))
+    abandon_label_create_failure_case()
+
     # --- --yes BEFORE the directory behaves identically to --yes after it ----------------------------
     # Without the name-search strip in main(), `abandon --yes <dir>` reads --yes as the feature
     # directory and dies "--yes is not a directory" -- at exactly the moment the operator is being
@@ -739,6 +841,7 @@ def main():
               not any("milestones/7" in line for line in logR4)
               and not any("ITEM_40" in line and "OPT_BACKLOG" in line for line in logR4)
               and read_plan_station(featR4) != "rejected", f"log={logR4} station={read_plan_station(featR4)}")
+    reject_label_create_failure_case()
 
     # validate c0 F-01 / SC-02 (VAL-06): the FIRST-SYNC record — no parent, no milestone,
     # nothing harness-created on GitHub — is exactly where a first-run intake rejects. The

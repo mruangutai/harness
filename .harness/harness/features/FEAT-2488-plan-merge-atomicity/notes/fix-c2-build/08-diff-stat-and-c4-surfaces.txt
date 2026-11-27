@@ -1,0 +1,26 @@
+# git diff --stat HEAD (13500626) vs working tree, all paths outside .harness/, 2026-11-24T02:29:53Z
+ .claude/skills/harness/bin/harness_merge.py        |  39 ++++--
+ .claude/skills/harness/bin/plan_merge/amend.py     |  12 +-
+ .../skills/harness/bin/plan_merge/amendments.py    |  25 +---
+ .claude/skills/harness/bin/plan_merge/guards.py    |  37 +++++-
+ tests/integration/test-plan-merge.py               | 142 +++++++++++++++++++--
+ tests/unit/test-harness-merge-journal.py           | 108 ++++++++++++++--
+ 6 files changed, 300 insertions(+), 63 deletions(-)
+
+# git diff --stat 2491336e (signature base) vs working tree, outside .harness/
+ .claude/skills/harness/bin/feature_json_write.py   |  85 ++-
+ .claude/skills/harness/bin/harness_merge.py        | 465 +++++++++++-
+ .claude/skills/harness/bin/plan-merge.py           |   4 +-
+ .claude/skills/harness/bin/plan_merge/amend.py     |  28 +-
+ .../skills/harness/bin/plan_merge/amendments.py    |  95 ++-
+ .claude/skills/harness/bin/plan_merge/approval.py  |  16 +-
+ .claude/skills/harness/bin/plan_merge/check.py     |   2 +-
+ .claude/skills/harness/bin/plan_merge/guards.py    | 117 ++-
+ .../canonical-reader-classification.json           |  14 +
+ tests/integration/test-plan-merge.py               | 637 +++++++++++++++-
+ tests/unit/test-harness-merge-journal.py           | 831 +++++++++++++++++++++
+ 11 files changed, 2111 insertions(+), 183 deletions(-)
+
+# C4 forbidden surfaces vs HEAD and vs 2491336e (empty = untouched)
+## HEAD
+## 2491336e43310cb3e95ae3110d098726ed4dc454

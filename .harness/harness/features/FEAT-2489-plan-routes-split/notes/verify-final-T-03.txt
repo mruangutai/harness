@@ -1,0 +1,1 @@
+PASS T-03: moved and committed; CLI-equivalent except the stale canonical inventory; satellites green

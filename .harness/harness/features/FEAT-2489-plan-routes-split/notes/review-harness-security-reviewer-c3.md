@@ -1,0 +1,18 @@
+# Security review — FEAT-2489, validate c3
+
+**PASS — no new actionable security issue.** The c3 delta adds no runtime attack surface. It is entirely feature records, but is not just BRIEF and notes. SEC-1 remains backlog #2526; it is not reopened.
+
+**Pinned census.** `git diff --name-status 25132b7e..776909d2` returned **19 paths** (4 modified, 15 added), all under the feature directory:
+
+- Modified: `BRIEF.md`, `backlog-issues.json`, `feature.json`, `observations/harness-qa.md`.
+- Added in `notes/`: `answers-2026-11-24-validate-c1.md`, `per-file-state-census.md`, `qa-c2-cr3-probe.md`, `qa-c2-runner-integration-output.md`, `qa-c2-runner-unit-output.md`, `research-FEAT-2489-plan-routes-split-goalcheck-validate-c2.md`, and `review-harness-{code-reviewer,qa,security-reviewer,ui-reviewer}-c2.md` (four files).
+- Added under `runs/r-20261124-9-validate-validator/`: `.run-identity.json`, `digest.md`, `qa/manifest-integration.json`, `qa/manifest-unit.json`, `state.yaml`.
+
+**Full scope.** `261fdf726428bd8325fbd3d4beccad23b67e83cc..776909d2ab6cf9c4f5facc3f627d5839c52aa72a`: **108 paths**. In scope: three executable bin files (entry and both audit libraries), six test paths (five test scripts plus the live canonical-reader inventory), the local `notes/split-equivalence.py` evidence driver, and feature records as governance inputs or disclosure outputs (5 top-level files, 51 other notes, 2 observations, 39 run records). The fourth bin path, `plan_merge/check.py`, changes only a comment and adds no executable surface. Git shows identical bin, tests and workflow trees at `be0807b0`, `25132b7e` and c3; the evidence driver also matches c2. The prior security reviews cover the same executable tree.
+
+**OWASP / STRIDE.**
+- **Tampering, availability, privilege (T-03/T-04):** `check-plan-routes.py:34–45` imports the sibling audit modules from its own bin before reading plan arguments. A writer to that bin already controls executable checkout code. Both moved modules' top-level function definitions match base source text; the live inventory only relocates two identities and adds two scanned paths. The unchanged `.github/workflows/tests.yml:176–254` rejects an absent summary and propagates the checker status; missing/bad imports do not produce a green required gate. The prior P1/P2/P4 measurements are covered by the signer’s SC-02 item six and the per-file census, not new c3 behavior. Test module selection remains a caller-chosen code-under-test path, not runtime authorization.
+- **Spoofing, tampering and repudiation (signer/run records):** `BRIEF.md:33` follows the delegated ESC-2 ruling; the `amended:` line is a record, not an authorization field (`check_state/ctx.py:115–121`, `plan_merge/approval.py:357–396`, `worktree_terminal.py:404–414`). The prior run's recorded digest SHA-256 matches the committed digest, and both manifests name `25132b7e`, not c3. These records add no new verifier or permission.
+- **Injection and disclosure:** no added network, login, credential-handling, shell, or export path at c3. The full-diff equivalence driver uses argv lists to run Git, tar and the local selected checkout; its temporary directory is not a sandbox. CLI diagnostics retain their existing sink. Added QA output contains test names/results and local path metadata, not a new log channel. Targeted credential signature and keyword checks found no credential values; the credential keyword hit in the c2 integration output is a test label. The matched-tree receipt names the actual c3 bin/test tree IDs. No candidate code, gate, suite or probe was rerun.
+
+**Findings / open questions:** none.

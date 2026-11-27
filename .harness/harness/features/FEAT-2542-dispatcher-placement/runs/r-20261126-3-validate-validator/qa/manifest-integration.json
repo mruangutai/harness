@@ -1,0 +1,487 @@
+{
+  "tested_commit": "2ec0916f8bf6b5d10607e36486ccbeb959ca4822",
+  "kind": "integration",
+  "shard_index": 1,
+  "shard_count": 1,
+  "schema": 1,
+  "selected_files": [
+    "tests/integration/test-bash-write-guard.py",
+    "tests/integration/test-board-lifecycle.py",
+    "tests/integration/test-board-station.py",
+    "tests/integration/test-branch-create-gate.py",
+    "tests/integration/test-check-decision-anchors.py",
+    "tests/integration/test-check-domain-approval.py",
+    "tests/integration/test-check-domain-artifact.py",
+    "tests/integration/test-check-domain-claims.py",
+    "tests/integration/test-check-domain-grant.py",
+    "tests/integration/test-check-domain-post.py",
+    "tests/integration/test-check-domain-worktree-parity.py",
+    "tests/integration/test-check-domain-worktree.py",
+    "tests/integration/test-check-domain.py",
+    "tests/integration/test-check-expertise.py",
+    "tests/integration/test-check-fixture-secrets.py",
+    "tests/integration/test-check-instruction-paths.py",
+    "tests/integration/test-check-omp-port.py",
+    "tests/integration/test-check-plan-routes.py",
+    "tests/integration/test-check-skill-weight.py",
+    "tests/integration/test-check-state-corpus.py",
+    "tests/integration/test-check-state-entry.py",
+    "tests/integration/test-check-state-feat59.py",
+    "tests/integration/test-check-state-handoff.py",
+    "tests/integration/test-check-state-inv26.py",
+    "tests/integration/test-check-state-inv37-offline.py",
+    "tests/integration/test-check-state-inv51.py",
+    "tests/integration/test-check-state-plans.py",
+    "tests/integration/test-check-state-records.py",
+    "tests/integration/test-check-state-shipped.py",
+    "tests/integration/test-check-state-table.py",
+    "tests/integration/test-check-state-worktrees.py",
+    "tests/integration/test-check-state.py",
+    "tests/integration/test-checker-structure-locks.py",
+    "tests/integration/test-code-grade-cli.py",
+    "tests/integration/test-corpus-non-regression.py",
+    "tests/integration/test-corpus-real-owner.py",
+    "tests/integration/test-dispatch-guard.py",
+    "tests/integration/test-expertise-merge.py",
+    "tests/integration/test-factory-decompose.py",
+    "tests/integration/test-factory-integration.py",
+    "tests/integration/test-factory-issue-types.py",
+    "tests/integration/test-feature-corpus-census.py",
+    "tests/integration/test-feature-corpus.py",
+    "tests/integration/test-feature-json-merge.py",
+    "tests/integration/test-feature-worktree.py",
+    "tests/integration/test-gen-decisions-index.py",
+    "tests/integration/test-gh-backlog-issue-types.py",
+    "tests/integration/test-gh-close-gate.py",
+    "tests/integration/test-gh-issue-types.py",
+    "tests/integration/test-gh-sync-abandon.py",
+    "tests/integration/test-gh-sync-board-add.py",
+    "tests/integration/test-gh-sync-open.py",
+    "tests/integration/test-gh-sync-record.py",
+    "tests/integration/test-gh-sync-ship.py",
+    "tests/integration/test-gh-sync-start-task.py",
+    "tests/integration/test-harness-config-fixtures.py",
+    "tests/integration/test-harness-config-readers.py",
+    "tests/integration/test-harness-config-upgrade.py",
+    "tests/integration/test-harness-constraints.py",
+    "tests/integration/test-harness-merge.py",
+    "tests/integration/test-harness-yaml.py",
+    "tests/integration/test-hooks-install.py",
+    "tests/integration/test-inflight-registry.py",
+    "tests/integration/test-inject-expertise.py",
+    "tests/integration/test-integration-shard-aggregation.py",
+    "tests/integration/test-layout-migration.py",
+    "tests/integration/test-lead-start-return.py",
+    "tests/integration/test-member-expertise.py",
+    "tests/integration/test-merge-gate.py",
+    "tests/integration/test-merge-gitignore.py",
+    "tests/integration/test-observations-merge.py",
+    "tests/integration/test-omp-native-gate-runtime.py",
+    "tests/integration/test-onboarding-split.py",
+    "tests/integration/test-panel-findings.py",
+    "tests/integration/test-pinned-checkout.py",
+    "tests/integration/test-plan-decision-dispositions.py",
+    "tests/integration/test-plan-merge.py",
+    "tests/integration/test-plan-sign-gate.py",
+    "tests/integration/test-plan-team.py",
+    "tests/integration/test-post-merge-sweep.py",
+    "tests/integration/test-run-pool.py",
+    "tests/integration/test-run-unit-tests-kinds.py",
+    "tests/integration/test-run-unit-tests-layout.py",
+    "tests/integration/test-run-unit-tests-shards.py",
+    "tests/integration/test-station-argument-spelling.py",
+    "tests/integration/test-structure-audit-single-pass.py",
+    "tests/integration/test-suite-claim-preservation.py",
+    "tests/integration/test-typescript-typecheck.py",
+    "tests/integration/test-upgrade-config.py",
+    "tests/integration/test-validate-digest-shadows.py",
+    "tests/integration/test-validate-digest.py",
+    "tests/integration/test-validate-feature-json.py",
+    "tests/integration/test-worktree-state-hooks.py",
+    "tests/integration/test-worktree-state.py",
+    "tests/integration/test-worktree-terminal.py"
+  ],
+  "runner_exit": 0,
+  "completed_files": [
+    {
+      "path": "tests/integration/test-check-decision-anchors.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-board-station.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-domain-approval.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-domain-claims.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-domain-artifact.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-branch-create-gate.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-expertise.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-fixture-secrets.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-instruction-paths.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-domain.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-domain-grant.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-skill-weight.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-domain-worktree.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-domain-worktree-parity.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-domain-post.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-omp-port.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-entry.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-handoff.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-board-lifecycle.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-inv51.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-corpus.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-inv37-offline.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-inv26.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-bash-write-guard.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-table.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-checker-structure-locks.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-code-grade-cli.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-worktrees.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-corpus-non-regression.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-plans.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-feat59.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-shipped.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-corpus-real-owner.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-factory-issue-types.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-feature-corpus-census.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-state-records.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-feature-json-merge.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gen-decisions-index.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-factory-integration.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-check-plan-routes.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-factory-decompose.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-expertise-merge.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gh-sync-board-add.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gh-backlog-issue-types.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-dispatch-guard.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-feature-worktree.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gh-issue-types.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gh-close-gate.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-harness-config-readers.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gh-sync-record.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-harness-constraints.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-harness-config-upgrade.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-feature-corpus.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-harness-yaml.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gh-sync-start-task.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-harness-merge.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-inflight-registry.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-inject-expertise.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-layout-migration.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-integration-shard-aggregation.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-member-expertise.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-hooks-install.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-merge-gitignore.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-observations-merge.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-onboarding-split.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-panel-findings.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-pinned-checkout.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gh-sync-ship.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-lead-start-return.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-plan-merge.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gh-sync-abandon.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-plan-sign-gate.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-run-pool.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-run-unit-tests-kinds.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-post-merge-sweep.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-plan-team.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-station-argument-spelling.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-harness-config-fixtures.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-run-unit-tests-layout.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-typescript-typecheck.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-structure-audit-single-pass.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-run-unit-tests-shards.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-upgrade-config.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-validate-feature-json.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-gh-sync-open.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-suite-claim-preservation.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-validate-digest-shadows.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-omp-native-gate-runtime.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-plan-decision-dispositions.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-merge-gate.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-worktree-state-hooks.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-worktree-terminal.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-worktree-state.py",
+      "returncode": 0
+    },
+    {
+      "path": "tests/integration/test-validate-digest.py",
+      "returncode": 0
+    }
+  ]
+}

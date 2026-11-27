@@ -1,0 +1,171 @@
+{
+  "feature_id": "FEAT-2542-dispatcher-placement",
+  "branch": "feat/FEAT-2542-dispatcher-placement",
+  "pr": 2550,
+  "review_sha": "2ec0916f8bf6b5d10607e36486ccbeb959ca4822",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-26T15:58:24+00:00",
+      "tokens": 191648,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/plan-product/digest.md",
+        "sha256": "61742b1238943b1182dfb85f7534940a57368a5a14688b438dbf26eefbb286d1"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-26T16:40:01+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261126-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-26T17:08:46+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261126-2-validate-validator/digest.md",
+        "sha256": "0222c4fd01032eec448f5607e1a0e24b35f6c7c52618ec26f3b7d2ce39f4e97c"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-26T17:25:20+00:00"
+    },
+    {
+      "id": "r-20261126-3-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-26T17:44:28+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261126-3-validate-validator/digest.md",
+        "sha256": "8898711a0911479478c2bd488caa195e1c97db03abdb9f5f34b33eda276b2523"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-26T17:55:50+00:00"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-26T18:05:44+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-product/digest.md",
+        "sha256": "48c51161f846fadae7cf237b73d598a85114f485aa9d07c340e0e18345ad401a"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-26T18:14:08+00:00"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-26T18:14:14+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-validator/digest.md",
+        "sha256": "673e644cb62f12f39b9dc807fab42b4f1be518cbcdaba67a905ad50efb56daa1"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-26T18:20:42+00:00"
+    },
+    {
+      "id": "distill-orchestrator",
+      "squad": "orchestrator",
+      "agent": "harness-orchestrator",
+      "verdict": "PASS",
+      "started_at": "2026-11-26T18:20:47+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-orchestrator/digest.md",
+        "sha256": "76241f6cc08e797535da01eb9d17f0e4123ff0399fdcfe5bc88ecc178463bbb0"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-26T18:21:57+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-26T15:58:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Cause and files known, but five placement states flip from silent pass-through to refusal: new enforcement policy needing a new DEC, class-contract SCs and a base-vs-pin probe before signature; patch condition 3 fails in substance."
+    },
+    {
+      "at": "2026-11-26T16:40:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Plan run FAIL is worst-wins over reader verdicts whose findings pm applied; no re-panel on my own (DEC-230): whether the applied substance fixes need a re-read goes to the signer as one question with a recommendation"
+    },
+    {
+      "at": "2026-11-26T17:06:34.626266+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-02.intent",
+      "reason": "DEC-258 index ruling cut 32->30 words to pass T-02's own verify cap (test-gen-decisions-index.py); prose only, no contract change; ruled by AdvisorA3Wording (notes/answers-2026-11-26-t02-wording.md)."
+    },
+    {
+      "at": "2026-11-26T17:08:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan-product FAIL regated: fixes accepted as applied at signature, proceed to validate",
+      "reason": "AdvisorA2Sign SQ-1 re-read all 9 applied panel fixes at source and ruled them accepted as applied; plan signed 2026-11-26 (notes/answers-2026-11-26-signoff.md)."
+    },
+    {
+      "at": "2026-11-26T17:42:29.767961+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "Validate c0 must_fix 1 and OQ-1: an ok claim naming no feature is refused as unreadable; printed commands made copy-runnable (rules 1-4). Ruled by AdvisorA4Validate (notes/answers-2026-11-26-validate-c0.md)."
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-2542-dispatcher-placement/notes/answers-2026-11-26-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "e66be8b01070c9c0f74d5ea6d11421c687bade1cd6b572e5dda03f925d74cac1",
+    "T-02": "f00e25304bf2151a0cc3a234c9958933b6a66f53ecd9232aacf575d4cfc5ba04"
+  },
+  "github": {
+    "milestone": 141,
+    "parent": 2547,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2548,
+      "T-02": 2549
+    },
+    "source_issues": [
+      2542,
+      2532
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

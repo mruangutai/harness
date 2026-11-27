@@ -1,0 +1,46 @@
+{
+  "batches": [
+    {
+      "after_sha256": "5a271658529b16147f07aaa71503e94ec4fff1604b0c511e580427b7b9185541",
+      "before_sha256": "2d5a89474c10b68d9ca93ea54be72fd558d4f3180eda505f8a647ee1096837a3",
+      "destination": ".harness/expertise/harness-pm.md",
+      "id": "67633e70ab0f6a91afa2ccf6aaf5cf181594921125ba5df91e072b62a0029339",
+      "ops": [
+        {
+          "entry": "WHEN a verify asserts by text search DO make the match discriminate: a fixture id containing the asserted token matches whatever reason prints, and an erroring search passes a zero-count test. Name fixtures free of asserted tokens; assert the search's exit status or pair it with a positive control.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-14",
+          "why": "Plan authored fixture ids containing the asserted token; a reason-dropping mutant stayed green until validate. Same blind-match family as G-14 (search passes regardless), so merged into it rather than displacing a survivor at a full section."
+        },
+        {
+          "entry": "WHEN a task departs from an operator-facing contract — implementing one the operator left unresolved, or swapping a mechanism the operator named — DO keep the settled contract or put the choice, with its measured effect, to the operator before signature; otherwise the plan silently overrides the operator.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-12",
+          "why": "Applied plan replaced the operator's named mechanism with an equivalent walk; only goal-check surfaced it as a choice. P-12 covered unresolved contracts only; widened to named ones at the same length."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a verify asserts absence by counting DO NOT wrap the search in `test \"$(cmd | wc -l)\" = 0`: a search that errors prints nothing, the count is zero and the test passes. Assert the search's exit status, or pair it with a positive control that must match.",
+          "section": "Gotchas",
+          "target": "G-14"
+        },
+        {
+          "original": "WHEN a task turns an explicitly unresolved operator-facing contract into implementation requirements DO retain only the settled contract or obtain the missing ruling before signature; otherwise the plan silently chooses an observable behavior the operator reserved.",
+          "section": "Patterns",
+          "target": "P-12"
+        }
+      ],
+      "recorded_at_ns": 1795534283736220000,
+      "seq": 1,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2458-shape-stamp-sweep",
+  "parent_id": "Feat2458Distill.NuttyHalibut",
+  "persona": "harness-pm",
+  "runtime_id": "Feat2458Distill.NuttyHalibut.OuterTiger",
+  "schema": 1
+}

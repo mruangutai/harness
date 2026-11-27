@@ -1,0 +1,80 @@
+{
+  "batches": [
+    {
+      "after_sha256": "cd07fcc6f9ef1781fb8767fbd7d8de81d3be022a4c592006435040bfc2e4ee9a",
+      "before_sha256": "234564e34a36bbbd8c7e8241aef2a3d0ed64caa3ab112d8f6e477f1517fb1f36",
+      "destination": ".harness/harness/expertise/harness-orchestrator.md",
+      "id": "0551fde9f96b95fc68e934de7cb99181452b303e04b4389b1390af204867be39",
+      "ops": [
+        {
+          "entry": "WHEN a FAIL run's fix lands main-session-direct, outside any run DO leave cycles_used as the lead digest evidences it and name the uncounted round in the return and the briefing — run-end refuses a count that disagrees with the digest's own evidence.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-11",
+          "why": "The old entry directed a re-close with run-end --cycles-used 1; the ship review records that call refused, and feature-record.py carries the refusal ('cycles_used disagrees with authentic digest evidence')."
+        },
+        {
+          "entry": "WHEN pinning review_sha DO use feature-record.py pin-review, and sequence seam commit, pin, gh-sync status review, commit, re-pin, commit so the pin-precedes-station invariant never trips.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-12",
+          "why": "The old entry said feature-record.py has no review_sha verb; its --help now lists pin-review. The sequencing half still holds."
+        },
+        {
+          "op": "drop",
+          "section": "Gotchas",
+          "target": "G-04",
+          "why": "Premise false in the tree: run digests and state files are tracked, and git check-ignore exits 1 on a runs digest path; only runs/*/ui is ignored."
+        },
+        {
+          "op": "drop",
+          "section": "Gotchas",
+          "target": "G-09",
+          "why": "Same false premise: run digests are tracked and survive the merge, so they do not die with the worktree."
+        },
+        {
+          "entry": "WHEN a distill dispatch says to bring a merged feature's worktree current DO diff its tree against the remote default-branch tip, never rebase — the write guard refuses every HEAD move, an empty diff after a squash merge shows content already current, and moving history is the main session's.",
+          "op": "add",
+          "section": "Gotchas",
+          "target": "G-16",
+          "why": "Prior distill run: git rebase was refused by bash-write-guard, while git diff HEAD origin/main was empty after the squash merge."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN a FAIL run's fix lands main-session-direct, outside any run DO attribute its cycle by re-closing that FAIL run with run-end --cycles-used 1 — check-state demands cycles_used cover every FAIL run, the re-close rewrites ended_at but keeps tokens, and the regate judgement lands on the next run-start.",
+          "section": "Patterns",
+          "target": "P-11"
+        },
+        {
+          "original": "WHEN pinning review_sha DO write it through feature_json_write.write_feature_json with a transform (lock plus schema check) — feature-record.py has no review_sha verb — and sequence seam commit, pin, gh-sync status review, commit, re-pin, commit so the pin-precedes-station invariant never trips.",
+          "section": "Patterns",
+          "target": "P-12"
+        },
+        {
+          "original": "WHEN a run directory or its digests appear absent from git status or from a gitignore-respecting search DO NOT read that as a false digest claim — the runs tree is gitignored here, so search it with gitignore off and settle ownership with git check-ignore.",
+          "section": "Gotchas",
+          "target": "G-04"
+        },
+        {
+          "original": "WHEN dispatching feature-close distillation after a merge DO name the surviving artifacts explicitly — the runs tree is gitignored, so every run digest died with the worktree the post-merge hook removed, leaving only `notes/` and `observations/`. Unnamed, a lead hunts for files that no longer exist.",
+          "section": "Gotchas",
+          "target": "G-09"
+        },
+        {
+          "original": null,
+          "section": "Gotchas",
+          "target": "G-16"
+        }
+      ],
+      "recorded_at_ns": 1795534777937455000,
+      "seq": 1,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2458-shape-stamp-sweep",
+  "parent_id": "Main",
+  "persona": "harness-orchestrator",
+  "runtime_id": "Feat2458Distill2",
+  "schema": 1
+}

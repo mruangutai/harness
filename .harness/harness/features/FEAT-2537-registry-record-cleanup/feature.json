@@ -1,0 +1,153 @@
+{
+  "feature_id": "FEAT-2537-registry-record-cleanup",
+  "branch": "feat/FEAT-2537-registry-record-cleanup",
+  "pr": 2543,
+  "review_sha": "c67ba818977af535508b3a861b5eeead5bd39410",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261125-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-25T13:17:04+00:00",
+      "tokens": 88651,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261125-1-plan-product/digest.md",
+        "sha256": "dff4e7c922300131c3d754acc67df1b8ee6a93235fe7a30c8eda8ba349fce97a"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-25T13:26:14+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261125-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-25T13:34:58+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261125-2-validate-validator/digest.md",
+        "sha256": "e651010c4be088e6896720219383c01968e4619e669d989383360bb3176ed139"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-25T13:51:29+00:00"
+    },
+    {
+      "id": "r-20261125-3-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-25T13:53:11+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261125-3-validate-validator/digest.md",
+        "sha256": "0304896f114224e3a793cd1e11914cb5a76550fb0b6c7668e0d60d115f1b617d"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-25T14:03:43+00:00"
+    },
+    {
+      "id": "r-20261125-4-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-25T14:06:55+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261125-4-validate-validator/digest.md",
+        "sha256": "05d95e4f4684dc6f2144d7847ca6ff5af6591be5d5c2c3309115b0c8327cfcad"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-25T14:16:28+00:00"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-25T14:29:02+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-product/digest.md",
+        "sha256": "ac755c3aa8f976a3afa97246a43660553d3d6fa794c17a0a27c8820d27986898"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-25T14:33:44+00:00"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-25T14:33:49+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-validator/digest.md",
+        "sha256": "65afa3a0952c7d20527a52736bef856f0f9131541da175b9f475baed4021d602"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-25T14:41:10+00:00"
+    },
+    {
+      "id": "distill-orchestrator",
+      "squad": "orchestrator",
+      "agent": "harness-orchestrator",
+      "verdict": "PASS",
+      "started_at": "2026-11-25T14:41:17+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-orchestrator/digest.md",
+        "sha256": "3873effa843fb798fa7b4726cf0d840cbbd6602089f86d83ef33f1b8cf865afc"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-25T14:42:42+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-25T13:17:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause verified line-by-line at source, diff bounded to named files (~50 LOC plus three ledger passages), no new interface, schema or enforcement surface; sole delta is the ruled fail-closed refusal of extinct v1"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/FEAT-2537-registry-record-cleanup/notes/answers-2026-11-25-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "c3d8e9cf1539750fb88637a5159d6106a5668cf0e1a597402e47072508483e70"
+  },
+  "github": {
+    "milestone": 140,
+    "parent": 2540,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2541
+    },
+    "source_issues": [
+      2537
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

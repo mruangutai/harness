@@ -1,5 +1,6 @@
-"""gh_cost_log.py — records every gh invocation made through factory_gh.run_gh and gh-sync.py's
-gh wrapper, together with the GraphQL points it cost (FEAT-29 T-03).
+"""gh_cost_log.py — records every gh invocation measured through factory_gh's shared transport
+(try_gh, which run_gh adapts) and gh-sync.py's gh wrapper, together with the GraphQL points it
+cost (FEAT-29 T-03).
 
 EVERY COST FIGURE BELOW CARRIES ITS THREE CONDITIONS — the board, that board's item count, and
 the commit it was measured at. A figure without them cannot be re-derived and therefore cannot
@@ -32,7 +33,6 @@ import contextlib
 import datetime
 import json
 import os
-import subprocess
 
 import harness_boundary
 
@@ -47,9 +47,10 @@ _MAX_ARG_LEN = 80
 _VALUE_FLAGS = ("-f", "-F")
 
 COVERAGE_NOTICE = (
-    "This log records only gh invocations made through factory_gh.run_gh and gh-sync.py's own "
-    "gh wrapper; a gh command typed directly into Bash by the main session or by any agent is "
-    "INVISIBLE to it, so this file is not a complete account of GraphQL spend."
+    "This log records only gh invocations measured through factory_gh's shared transport "
+    "(try_gh, which run_gh adapts) and gh-sync.py's own gh wrapper; a gh command typed directly "
+    "into Bash by the main session or by any agent is INVISIBLE to it, so this file is not a "
+    "complete account of GraphQL spend."
 )
 
 
@@ -68,25 +69,22 @@ def is_counter_call(argv):
     return list(argv) == _COUNTER_ARGV
 
 
-def _counter_binary():
-    # Same env var factory_gh.run_gh resolves its binary from, read independently here rather
-    # than by importing factory_gh — factory_gh imports THIS module to wire measured() around
-    # its own subprocess call, so importing it back here would be circular.
-    return os.environ.get("FACTORY_GH", "gh")
-
-
 def _read_counter():
-    """Read the GraphQL counter. Returns an int, or None on ANY failure. Never raises — the
-    counter must never be able to break the gh call it is watching."""
+    """Read the GraphQL counter. Returns an int, or None on ANY counter failure — a typed launch
+    failure, a non-zero exit or unreadable output. Never raises for those — the counter must
+    never be able to break the gh call it is watching; a programming error still escapes.
+
+    It launches through factory_gh.launch_gh, the shared binary-resolution and launch-error
+    boundary, which never measures — so the counter is never itself measured and stays outside
+    cost accounting. The import is function-local because factory_gh imports THIS module at its
+    top to wrap try_gh in measured(); by the time a counter is read, both modules are loaded."""
+    import factory_gh
     try:
-        r = subprocess.run(
-            [_counter_binary()] + list(_COUNTER_ARGV),
-            capture_output=True, text=True, stdin=subprocess.DEVNULL,
-        )
+        r = factory_gh.launch_gh(_COUNTER_ARGV)
         if r.returncode != 0:
             return None
         return int(r.stdout.strip())
-    except (OSError, subprocess.SubprocessError, UnicodeError, ValueError):
+    except (factory_gh.GhError, ValueError):
         return None
 
 

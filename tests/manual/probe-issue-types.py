@@ -6,8 +6,8 @@ Run on a credentialled host:
     python3 tests/manual/probe-issue-types.py
 
 This is the ONE check in this feature that touches the real API. Every other
-criterion runs against a fake; this file must NEVER import a fixture, never set
-GH_SYNC_GH, and never fall back to a canned response - a fixture-derived pass here
+criterion runs against a fake; this file must NEVER import a fixture, never honour a
+binary override, and never fall back to a canned response - a fixture-derived pass here
 would make the single live gate a no-op.
 
 IT CREATES NOTHING BY DEFAULT (D-19). The default invocation is READ-ONLY: it reports
@@ -41,7 +41,7 @@ sys.path.insert(0, _BIN)
 import artifact_accessors  # noqa: E402
 import gh_issue_types  # noqa: E402
 
-# Deliberately hardcoded, never GH_SYNC_GH: this script must never see a fixture gh.
+# Deliberately hardcoded, never an override: this script must never see a fixture gh.
 GH = "gh"
 
 

@@ -1,0 +1,71 @@
+{
+  "batches": [
+    {
+      "after_sha256": "c5fae2fe1420ae5583953c6db2400fed64212a32c4787367fb9e4bb252675c0d",
+      "before_sha256": "ab4d47127aad01394f261964e909497c2f8417e03e0eba15cf087a27498130b6",
+      "destination": ".harness/harness/expertise/harness-product-lead.md",
+      "id": "555a3fcf5463fb0e6761a121453f629d5c1e187c820ae2e520dd9916adae430b",
+      "ops": [
+        {
+          "entry": "WHEN a product distill run must reach a borrowed plan reader DO dispatch harness-code-reviewer with HARNESS-MISSION: distill — dispatch-guard now places the lead by its own registered distill run, so older distill digests recording that refusal are stale precedent, not a reason to skip the reader.",
+          "op": "add",
+          "section": "Patterns",
+          "target": "P-04",
+          "why": "The product-lead to code-reviewer distill dispatch ran without refusal in this run; earlier product distill digests record it as refused and the reader's lesson undelivered."
+        }
+      ],
+      "originals": [
+        {
+          "original": null,
+          "section": "Patterns",
+          "target": "P-04"
+        }
+      ],
+      "recorded_at_ns": 1795716736105465000,
+      "seq": 1,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "7e60844085160c0798d07bb7d69b92d3942ef62f6e529ca6372defd095474c69",
+      "before_sha256": "822037a9cc50851823af5addf9e97a35de2ffd71d1368096a0848fda97aa29e4",
+      "destination": ".harness/expertise/harness-product-lead.md",
+      "id": "b0e300b797629b03c83e84feeb081285e9ca8f921ac5e998ec571942ce58eaec",
+      "ops": [
+        {
+          "entry": "WHEN assessing or relaying a cited line DO open the enclosing function, not just the grep hit — a pointer can be sound while its prose gloss is wrong, and a grep hit confirms the text but not which code path owns it.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-02",
+          "why": "I relayed a ruling's gloss 'writer at :870' after grepping the line; the member opened it and found it inside release_cmd, not the claim writer, and narrowed the entry. Old P-02 already said open a cited line; the grep-hit-vs-enclosing-function gap is the sharper rule."
+        },
+        {
+          "entry": "WHEN apply remediates a high plan-reader finding and the team runs no re-read step DO put it to the operator as one blocking signature question with a recommendation, naming applied text that prescribes literal commands or gate-read literals as unread — a signer's re-read grades substance, not rendering.",
+          "op": "replace",
+          "section": "Outcomes",
+          "target": "O-10",
+          "why": "Outcome of following O-10: the signer accepted the applied remediations as re-read, and validate later found the applied printed repair commands unrunnable as printed (bare script, punctuation adjoining a path, unquoted). The question had not flagged literal text as the unread risk."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN assessing a member's cited evidence DO open at least one cited line rather than counting them — a pointer can be sound while the prose gloss of it is wrong, and a pointer's whole value is that it survives being opened.",
+          "section": "Patterns",
+          "target": "P-02"
+        },
+        {
+          "original": "WHEN apply remediates a high plan-reader finding and the team runs no re-read step DO put it to the operator as one blocking signature question with a recommendation instead of re-spawning the reader — an overrule-as-applied costs no spawn, and the run's FAIL still records the unread gap.",
+          "section": "Outcomes",
+          "target": "O-10"
+        }
+      ],
+      "recorded_at_ns": 1795716741577394000,
+      "seq": 2,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2542-dispatcher-placement",
+  "parent_id": "Main",
+  "persona": "harness-product-lead",
+  "runtime_id": "Feat2542DistillProduct",
+  "schema": 1
+}

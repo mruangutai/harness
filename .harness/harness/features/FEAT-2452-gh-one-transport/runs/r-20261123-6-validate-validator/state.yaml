@@ -1,0 +1,13 @@
+schema_version: 2
+run_id: r-20261123-6-validate-validator
+run_uid: 60e8d94d757049269facfef234e8c686
+feature: FEAT-2452-gh-one-transport
+squad: validation
+host: harness-validator-lead
+status: complete
+steps:
+- {id: qa, persona: harness-qa, status: complete, verdict: PASS, lead_verdict: PASS, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/review-harness-qa-c2.md], artifact: ../../notes/review-harness-qa-c2.md, note: "unit 67 and integration 95 green with receipts; P1-P3 reds reproduced; P4 seam gap pre-existing", evidence: {unit_tests: 67, integration_tests: 95, receipt_unit: qa/manifest-unit.json, receipt_integration: qa/manifest-integration.json, review_sha: e282689dd01a1a45eb22f08be67b1e2a9b437fb1}}
+- {id: code, persona: harness-code-reviewer, status: complete, verdict: FAIL, lead_verdict: FAIL, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/review-harness-code-reviewer-c2.md], artifact: ../../notes/review-harness-code-reviewer-c2.md, note: "H1 G1 closed; T-04 stateless blocker admitted as closed (high)", evidence: {severity_max: high, code_grade: pass}}
+- {id: security, persona: harness-security-reviewer, status: complete, verdict: PASS, lead_verdict: PASS, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/review-harness-security-reviewer-c2.md], artifact: ../../notes/review-harness-security-reviewer-c2.md, note: "same T-04 defect rated med; two low advisories", evidence: {severity_max: med}}
+- {id: ui, persona: harness-ui-reviewer, status: complete, verdict: PASS, lead_verdict: PASS, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/review-harness-ui-reviewer-c2.md], artifact: ../../notes/review-harness-ui-reviewer-c2.md, note: "self-scoped out on measured census", evidence: {diff_paths: 169, fix_delta_paths: 41}}
+- {id: goalcheck, persona: harness-pm, status: complete, verdict: PASS, lead_verdict: PASS, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/research-FEAT-2452-gh-one-transport-goalcheck-validate-c2.md], artifact: ../../notes/research-FEAT-2452-gh-one-transport-goalcheck-validate-c2.md, note: "both perspectives pass; SC-05 met literal with narrowed #13 reading"}

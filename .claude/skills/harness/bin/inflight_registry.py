@@ -2,8 +2,9 @@
 """Feature-scoped in-flight claim store for Harness dispatch supervision.
 
 Every mutation crosses harness_merge.locked_update. Version 2 stores one claims list so identity
-is explicit rather than encoded in object keys. Version 1 persona-keyed files are accepted on read
-and rewritten as version 2 by the next mutation; version 1 is never written.
+is explicit rather than encoded in object keys. Only version 2 is read or written: a strict reader
+refuses any other shape as unreadable, and a locked writer treats it as empty, warning when the
+file held non-v2 content; a missing or blank file is treated as empty silently.
 """
 import datetime
 import json
@@ -71,21 +72,8 @@ def _parse(base, path):
     if raw.get("schema_version") == SCHEMA_VERSION and isinstance(raw.get("claims"), list):
         return {"schema_version": SCHEMA_VERSION, "claims": list(raw["claims"])}
 
-    # Clean cutover reader. The next locked operation writes only version 2.
-    claims = []
-    for agent, entries in raw.items():
-        if not isinstance(agent, str) or not isinstance(entries, list):
-            continue
-        for entry in entries:
-            if not isinstance(entry, dict):
-                claims.append(entry)
-                continue
-            migrated = dict(entry)
-            migrated.setdefault("claim_id", uuid.uuid4().hex)
-            migrated.setdefault("agent", agent)
-            migrated.setdefault("feature", LEGACY_FEATURE)
-            claims.append(migrated)
-    return {"schema_version": SCHEMA_VERSION, "claims": claims}
+    print(f"inflight_registry: {path} is not a version-2 registry, treating as empty", file=sys.stderr)
+    return _empty()
 
 
 def _update_registry(root, mutator):
@@ -294,13 +282,9 @@ def _read_strict(root):
 
 
 def _known_shape(raw):
-    """A version-2 document, or a version-1 `{persona: [claims]}` map."""
-    if not isinstance(raw, dict):
-        return False
-    if "schema_version" in raw:
-        return raw["schema_version"] == SCHEMA_VERSION and isinstance(raw.get("claims"), list)
-    return all(isinstance(key, str) and isinstance(entries, list)
-               for key, entries in raw.items())
+    """A version-2 document; every other shape is unreadable."""
+    return (isinstance(raw, dict) and raw.get("schema_version") == SCHEMA_VERSION
+            and isinstance(raw.get("claims"), list))
 
 
 def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
@@ -536,31 +520,6 @@ def live_claim(root, agent, now=None, feature=None):
         visible = [c for c in live if _matches(c, agent=agent) and _visible(c, feature)]
         oldest = min(visible, key=lambda c: c["started_at"]) if visible else None
         return data, (oldest, expired)
-
-    return _update_registry(root, mutator)
-
-
-def live_children(root, dispatcher, now=None, feature=None):
-    now = now if now is not None else time.time()
-    path = _registry_path(root)
-    if not os.path.exists(path):
-        return []
-
-    def mutator(data):
-        live, retained, _expired = _expire_where(
-            data.get("claims", []),
-            now,
-            lambda claim: _matches(claim, feature=feature)
-            and isinstance(claim, dict)
-            and claim.get("dispatcher") == dispatcher,
-        )
-        data["claims"] = retained
-        children = [
-            (c.get("agent"), c)
-            for c in live
-            if c.get("dispatcher") == dispatcher and _visible(c, feature)
-        ]
-        return data, children
 
     return _update_registry(root, mutator)
 

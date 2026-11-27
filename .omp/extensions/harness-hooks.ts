@@ -1710,7 +1710,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // BUG-1898 (live probe S2): a hub-woken agent runs a new turn through agent.prompt(),
   // which emits agent_start but never before_agent_start. Its claim was released when it
   // settled, so the wake re-opens the gate here — the same exact-id claim step, with the
-  // feature this session already runs. A first run arrives already ready and is untouched.
+  // feature this session already runs. A first run that claimed cleanly arrives ready and is
+  // untouched; a first run left held by a run-start conflict (runGate.state "held") is
+  // re-opened here as well, which is the ordinary run-start retry and is intended.
   pi.on("agent_start", async (_event: Dict, ctx: any) => {
     const assignment = runtimeAgentId ? "" : adoptPersistedRun(ctx);
     if (!currentAgent || runGate.state === "ready") return;
@@ -2070,7 +2072,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // `pi.events` an extension holds — for a first run and for every message-woken turn
   // alike. `pi.on` is the hook dispatcher and never carried it, so no child was ever
   // released here. A settled child is released by its own runtime id and nothing else. The
-  // bus awaits an async listener (and reports its failure), so the settlement is returned.
+  // bus does not await an async listener: it reports the listener's failure, but settlement
+  // here is no ordering barrier. The awaited tool_result release and the yield-side settle in
+  // validate-digest.py are the barriers.
   pi.events.on("task:subagent:lifecycle", async (data: unknown) => {
     const event = (data && typeof data === "object" ? data : {}) as Dict;
     const agentId = text(event.id);

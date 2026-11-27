@@ -454,8 +454,8 @@
       "disposition": "exempt",
       "execution_route": "team",
       "exemption": "test_or_migration_corpus",
-      "file": ".claude/skills/harness/bin/check-plan-routes.py",
-      "id": ".claude/skills/harness/bin/check-plan-routes.py::_classification_document::json_file#1",
+      "file": ".claude/skills/harness/bin/canonical_reader_audit.py",
+      "id": ".claude/skills/harness/bin/canonical_reader_audit.py::_classification_document::json_file#1",
       "reason": "The audit reads its own deterministic classification corpus.",
       "remedy": "none",
       "symbol": "_classification_document",
@@ -467,8 +467,8 @@
       "dec174_category": "enforcement_mechanical",
       "disposition": "canonical",
       "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/check-plan-routes.py",
-      "id": ".claude/skills/harness/bin/check-plan-routes.py::_task_files::load_plan#1",
+      "file": ".claude/skills/harness/bin/canonical_reader_audit.py",
+      "id": ".claude/skills/harness/bin/canonical_reader_audit.py::_task_files::load_plan#1",
       "reason": "",
       "remedy": "artifact_accessors.load_plan",
       "symbol": "_task_files",
@@ -1220,10 +1220,10 @@
       "disposition": "canonical",
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
-      "id": ".claude/skills/harness/bin/gh-sync.py::_record_pr::json_string#1",
+      "id": ".claude/skills/harness/bin/gh-sync.py::_merged_pull_requests::json_string#1",
       "reason": "",
       "remedy": "artifact_accessors.parse_gh_json",
-      "symbol": "_record_pr",
+      "symbol": "_merged_pull_requests",
       "task": "T-03"
     },
     {
@@ -1410,6 +1410,20 @@
       "reason": "",
       "remedy": "artifact_accessors.load_json_mapping",
       "symbol": "_schema_and_validator",
+      "task": "none"
+    },
+    {
+      "artifact": "harness_merge intent journal",
+      "category": "json_string",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "main-session-direct",
+      "exemption": "module_internal_format",
+      "file": ".claude/skills/harness/bin/harness_merge.py",
+      "id": ".claude/skills/harness/bin/harness_merge.py::_read_journal::json_string#1",
+      "reason": "The locked-write core owns and parses its own intent journal format.",
+      "remedy": "none",
+      "symbol": "_read_journal",
       "task": "none"
     },
     {
@@ -1822,19 +1836,6 @@
       "task": "none"
     },
     {
-      "artifact": "fleet.yaml",
-      "category": "load_fleet",
-      "dec174_category": "enforcement_mechanical",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/post-merge-sweep.py",
-      "id": ".claude/skills/harness/bin/post-merge-sweep.py::_repo_arg_for_segment::load_fleet#1",
-      "reason": "",
-      "remedy": "artifact_accessors.load_fleet",
-      "symbol": "_repo_arg_for_segment",
-      "task": "T-07"
-    },
-    {
       "artifact": "harness.json",
       "category": "json_file",
       "dec174_category": "hook_or_gate",
@@ -2095,19 +2096,6 @@
       "reason": "",
       "remedy": "artifact_accessors.load_harness_json",
       "symbol": "cfg",
-      "task": "T-03"
-    },
-    {
-      "artifact": "GitHub JSON output",
-      "category": "json_string",
-      "dec174_category": "none",
-      "disposition": "canonical",
-      "execution_route": "team",
-      "file": ".claude/skills/harness/bin/wayfind.py",
-      "id": ".claude/skills/harness/bin/wayfind.py::gh_json::json_string#1",
-      "reason": "",
-      "remedy": "artifact_accessors.parse_gh_json",
-      "symbol": "gh_json",
       "task": "T-03"
     },
     {
@@ -2422,10 +2410,10 @@
       "disposition": "canonical",
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/gh-sync.py",
-      "id": ".claude/skills/harness/bin/gh-sync.py::load_config::load_feature_json#1",
+      "id": ".claude/skills/harness/bin/gh-sync.py::_feature_doc::load_feature_json#1",
       "reason": "",
       "remedy": "artifact_accessors.load_feature_json",
-      "symbol": "load_config",
+      "symbol": "_feature_doc",
       "task": "none"
     },
     {
@@ -2514,6 +2502,7 @@
     ".claude/skills/harness/bin/board-station.py",
     ".claude/skills/harness/bin/board_lifecycle.py",
     ".claude/skills/harness/bin/branch-create-gate.py",
+    ".claude/skills/harness/bin/canonical_reader_audit.py",
     ".claude/skills/harness/bin/check-decision-anchors.py",
     ".claude/skills/harness/bin/check-domain.py",
     ".claude/skills/harness/bin/check-expertise.py",
@@ -2578,6 +2567,7 @@
     ".claude/skills/harness/bin/run-unit-tests.py",
     ".claude/skills/harness/bin/run_identity.py",
     ".claude/skills/harness/bin/run_pool.py",
+    ".claude/skills/harness/bin/structure_audit.py",
     ".claude/skills/harness/bin/suite_layout.py",
     ".claude/skills/harness/bin/upgrade-config.py",
     ".claude/skills/harness/bin/validate-digest.py",

@@ -6,9 +6,11 @@ resolves its root via `harness_boundary.resolve_root()` (HARNESS_PROJECT_DIR + t
 team-config.yaml MARKER), never board-station.py's own team-config.yaml walk-up, so the fixture
 writes that marker instead.
 
-THE FAKE-BINARY TRAP (D-11): every case sets BOTH FACTORY_GH and GH_SYNC_GH to the SAME fake, even
-though board_lifecycle.py itself only imports factory_gh — a future refactor routing some call
-through gh-sync's own wrapper must not silently reach the real `gh`.
+ONE BINARY OVERRIDE: FACTORY_GH. board_lifecycle.py reaches gh only through factory_gh, which reads
+FACTORY_GH at call time. `_stub_env` builds every case's environment with
+`tests/offline_gh_support.offline_gh_env` (FACTORY_GH names the fake, inherited `GH_*` variables
+are dropped, a sentinel `gh` heads PATH), and `run`/`run_module` assert the sentinel never ran, so
+no case reaches the real `gh`.
 
     ./test-board-lifecycle.py    -> exit 0 all pass, 1 otherwise
 """
@@ -34,6 +36,7 @@ SCRIPT = os.path.join(HERE, "board_lifecycle.py")
 sys.path.insert(0, HERE)
 import harness_boundary  # noqa: E402 -- only to read the MARKER path, never imported twice
 from harness_config_support import build_config, write_config  # noqa: E402
+from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
 
 FAILURES = []
 
@@ -203,9 +206,13 @@ case "$*" in
     fi
     exit 0 ;;
   *"label create"*)
-    # T-06: board_lifecycle.py's own direct shell-out (never a helper) for the `abandoned`
-    # label. Always succeeds here; the swallow-on-failure behaviour is this module's own, not
-    # this fake's, to prove.
+    # T-06: board_lifecycle.py's own `abandoned` label create, sent through factory_gh.
+    # FEAT-2452 T-03: LABEL_CREATE_STDERR, when set, makes it print that text and exit 1 --
+    # gh's existing-label answer or a real failure, whichever the case names.
+    if [ -n "$LABEL_CREATE_STDERR" ]; then
+      echo "$LABEL_CREATE_STDERR" >&2
+      exit 1
+    fi
     if [ -n "$FAKE_STATE" ]; then
       touch "$FAKE_STATE"
     fi
@@ -379,7 +386,8 @@ def _served_board_contents_b64(board):
 def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
               options=None, issues=None, stations=None, workflows=None, fail_match=None,
               item_id=None, fake_state=None, issues_after=None, stations_after=None,
-              workflows_after=None, contents_b64=None, linked_repos=None, malformed_match=None):
+              workflows_after=None, contents_b64=None, linked_repos=None, malformed_match=None,
+              label_create_stderr=None):
     """The stub environment `run` forks with, built once so a SECOND entry point can reuse it.
 
     Extracted for T-04: `audit_findings` is a library function, so its contract -- what it
@@ -389,10 +397,8 @@ def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     tmp = os.path.dirname(root) if os.path.basename(root) == "root" else root
     gh_path = install_gh(tmp)
     log_path = os.path.join(tmp, "calls.log")
-    env = dict(os.environ)
+    env, sentinel_log = offline_gh_env(gh_path, tmp)
     env["HARNESS_PROJECT_DIR"] = root
-    env["FACTORY_GH"] = gh_path
-    env["GH_SYNC_GH"] = gh_path
     env["FAKE_LOG"] = log_path
     env["RESOLVE_JSON"] = resolve
     env["PROBE_JSON"] = probe
@@ -409,8 +415,9 @@ def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     env["WORKFLOWS_JSON_AFTER"] = workflows_after or ""
     env["CONTENTS_B64"] = contents_b64 or ""
     env["LINKED_REPOS_JSON"] = linked_repos if linked_repos is not None else _LINKED_REPOS_DEFAULT
+    env["LABEL_CREATE_STDERR"] = label_create_stderr or ""
     env.pop("HARNESS_GH_COST_LOG", None)
-    return env, tmp, log_path
+    return env, tmp, log_path, sentinel_log
 
 
 def _log_lines(log_path):
@@ -420,13 +427,22 @@ def _log_lines(log_path):
         return [l for l in f.read().splitlines() if l]
 
 
+def _check_offline(sentinel_log):
+    """Record a FAIL when the default-binary sentinel ran; silent otherwise."""
+    try:
+        assert_sentinel_unused(sentinel_log)
+    except AssertionError as exc:
+        check("no case dispatches the default gh binary", False, str(exc))
+
+
 def run(root, args, cwd=None, **kw):
     """Fork the real script. Returns (CompletedProcess, log_lines)."""
-    env, tmp, log_path = _stub_env(root, **kw)
+    env, tmp, log_path, sentinel_log = _stub_env(root, **kw)
     r = subprocess.run(
         [sys.executable, SCRIPT] + args,
         capture_output=True, text=True, env=env, cwd=cwd or tmp,
     )
+    _check_offline(sentinel_log)
     return r, _log_lines(log_path)
 
 
@@ -438,12 +454,13 @@ def run_module(root, code, cwd=None, **kw):
     finding list and PRINT NOTHING, and neither claim is visible through `cmd_audit`'s
     stdout -- which prints. The forked process imports the module directly, so anything the
     function writes to stdout lands in `r.stdout` and fails the absence assertion."""
-    env, tmp, log_path = _stub_env(root, **kw)
+    env, tmp, log_path, sentinel_log = _stub_env(root, **kw)
     env["PYTHONPATH"] = os.path.dirname(SCRIPT) + os.pathsep + env.get("PYTHONPATH", "")
     r = subprocess.run(
         [sys.executable, "-c", code],
         capture_output=True, text=True, env=env, cwd=cwd or tmp,
     )
+    _check_offline(sentinel_log)
     return r, _log_lines(log_path)
 
 
@@ -904,7 +921,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ============================================================================
 # T-05: board_lifecycle.py audit -- the finite finding list, including workflow state.
-# Every case sets BOTH FACTORY_GH and GH_SYNC_GH to the same fake (D-11), via `run()` above.
+# Every case runs with FACTORY_GH as the one override, via `run()` above.
 # ============================================================================
 
 # ---------------- audit case 1: a clean board -- exit 0, zero findings -------------------
@@ -1310,8 +1327,8 @@ with tempfile.TemporaryDirectory() as base:
           bool(r.stderr.strip()) and len(r.stderr.strip().splitlines()) == 1, repr(r.stderr))
 
 # ============================================================================
-# T-06: board_lifecycle.py reconcile -- the write side of audit. Every case sets BOTH
-# FACTORY_GH and GH_SYNC_GH to the same fake (D-11), via run()'s own defaults.
+# T-06: board_lifecycle.py reconcile -- the write side of audit. Every case runs with
+# FACTORY_GH as the one override, via run()'s own defaults.
 # ============================================================================
 
 # ---------------- BUG-1699: active feature reconciliation covers every unique live card -----
@@ -1526,6 +1543,84 @@ with tempfile.TemporaryDirectory() as base:
           "must never report a zero exit with the board half migrated",
           r.returncode == 1, f"rc={r.returncode}")
 
+# ---------------- reconcile case 4b (FEAT-2452 T-03): the abandoned label create is checked ---
+# The create goes through factory_gh.try_gh. Only gh's existing-label answer (nonzero status,
+# "label with name" and "already exists") is idempotent; any other failure, a launch failure
+# included, raises into the per-card catch: no label is attached, the next card is still
+# attempted, the finding survives and the run exits 1. Same stderr as T-02's regression.
+
+_EXISTING_LABEL = ('label with name "abandoned" already exists; use `--force` to update its '
+                   'color and description')
+_LABEL_ISSUES = json.dumps([
+    {"number": 30, "stateReason": "NOT_PLANNED", "labels": []},
+    {"number": 31, "stateReason": "NOT_PLANNED", "labels": []},
+])
+_LABEL_ISSUES_AFTER = json.dumps([
+    {"number": 30, "stateReason": "NOT_PLANNED", "labels": [{"name": "abandoned"}]},
+    {"number": 31, "stateReason": "NOT_PLANNED", "labels": [{"name": "abandoned"}]},
+])
+_LAUNCH_FAILS = (
+    "import runpy, sys, factory_gh\n"
+    "real = factory_gh.launch_gh\n"
+    "def launch(args, *, input=None):\n"
+    "    if list(args[:2]) == ['label', 'create']:\n"
+    "        raise factory_gh.GhError(args, None, '', '', 'gh could not be launched', 'gh',\n"
+    "                                 'OSError: simulated launch failure')\n"
+    "    return real(args, input=input)\n"
+    "factory_gh.launch_gh = launch\n"
+    f"sys.argv = [{SCRIPT!r}, 'reconcile', '--apply']\n"
+    f"runpy.run_path({SCRIPT!r}, run_name='__main__')\n"
+)
+
+
+def _write_label_fixture(base):
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    write_feature(root, "widget", "FEAT-DROP-A", None, github_issues={"T-01": 30})
+    write_feature(root, "widget", "FEAT-DROP-B", None, github_issues={"T-01": 31})
+    return root
+
+
+def _label_creates(log):
+    return [l for l in log if "label\x01create\x01abandoned" in l]
+
+
+def _label_edits(log):
+    return [l for l in log if "issue\x01edit" in l and "abandoned" in l]
+
+
+for case, how in (("nonzero", {"label_create_stderr": "HTTP 403: Resource not accessible"}),
+                  ("launch failure", {"code": _LAUNCH_FAILS})):
+    with tempfile.TemporaryDirectory() as base:
+        root = _write_label_fixture(base)
+        if "code" in how:
+            r, log = run_module(root, how["code"], issues=_LABEL_ISSUES)
+        else:
+            r, log = run(root, ["reconcile", "--apply"], issues=_LABEL_ISSUES, **how)
+        check(f"reconcile LABEL ({case} create): no label is attached after the failed create",
+              not _label_edits(log), repr(log))
+        check(f"reconcile LABEL ({case} create): the later card is still attempted -- two "
+              "failures reported",
+              r.stderr.count("fix failed") == 2, repr(r.stderr))
+        check(f"reconcile LABEL ({case} create): both findings survive, exit 1",
+              r.returncode == 1 and "LABEL: issue #30" in r.stdout
+              and "LABEL: issue #31" in r.stdout,
+              f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+with tempfile.TemporaryDirectory() as base:
+    root = _write_label_fixture(base)
+    r, log = run(root, ["reconcile", "--apply"], issues=_LABEL_ISSUES,
+                 label_create_stderr=_EXISTING_LABEL,
+                 fake_state=os.path.join(base, "fixed-marker"), issues_after=_LABEL_ISSUES_AFTER)
+    check("reconcile LABEL (existing label, exit 1): accepted -- both cards get the label, exit 0",
+          len(_label_edits(log)) == 2 and r.returncode == 0,
+          f"rc={r.returncode} log={log} stderr={r.stderr!r}")
+    creates = _label_creates(log)
+    check("reconcile LABEL: the create keeps colour b60205 and its description, never --force",
+          len(creates) == 2
+          and all("--color\x01b60205" in l and "--description\x01created\x01by\x01harness\x01gh-sync"
+                  in l and "--force" not in l for l in creates), repr(creates))
+
 # ---------------- reconcile case 5: DECLARATION and WORKFLOW residuals never gate exit 0 --
 
 with tempfile.TemporaryDirectory() as base:
@@ -1604,7 +1699,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ============================================================================
 # T-17: board_lifecycle.py retitle -- the task-ticket title backfill.
-# Every case sets BOTH FACTORY_GH and GH_SYNC_GH to the same fake (D-11), via `run()` above.
+# Every case runs with FACTORY_GH as the one override, via `run()` above.
 # retitle never touches a project or a card, only issue titles, so most of these cases never
 # even set a board -- `default_github()`'s board is present only because `_resolve_board` is
 # reused for the repo-name half and discards it.

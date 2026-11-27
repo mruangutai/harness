@@ -1,0 +1,114 @@
+# env -u HARNESS_AGENT_TYPE -u CLAUDE_PROJECT_DIR python3 tests/integration/test-check-state-feat59.py
+ok - case INV-37 uses binding/provenance, never factory claims (claims)
+ok - case INV-37 uses binding/provenance, never factory claims (opened)
+ok - case INV-37 uses binding/provenance, never factory claims (wrong-repo)
+ok - case INV-37 uses binding/provenance, never factory claims (bound-owner-off)
+ok - case (38.a) a well-formed by-perspective BRIEF is silent
+ok - case (38.a2) a by-perspective BRIEF is NOT graded for `## Requirements`/REQ-NN
+ok - case (38.b) a perspective no SC discharges is a VIOLATION naming it
+ok - case (38.c) an SC tagged with an undeclared perspective names the SC and the tag
+ok - case (38.d) an SC with no perspective tag is a VIOLATION naming the SC
+ok - case (38.e) an old-shape BRIEF (REQ-NN, untagged SCs) is not graded
+ok - case (38.f) a perspective with a parenthetical qualifier matches its bare tag
+ok - case (38.g) the heading with no perspective under it is a VIOLATION
+ok - case (39.a) cycles_used 11 > max_total_cycles 10 is a VIOLATION naming both
+ok - case (39.b) cycles_used == max_total_cycles is silent — the boundary is >
+ok - case (39.c) a raise above the harness.json default with no decision names DEC-157
+ok - case (39.d) the same raise with a matching budget_decisions entry is silent
+ok - case (39.e) a decision recording a DIFFERENT value does not cover the current one
+ok - case (39.f) max_total_cycles equal to the default needs no decision
+ok - case (39.g) a record predating the FEAT-59 keys is NOTED, not failed
+ok - case (39.h) a by-perspective BRIEF puts a key-less record in era — graded
+ok - case (39.i) cycles_used 12 with max_total_cycles inherited from the default 10 is a VIOLATION
+ok - case (39.j) cycles_used at the inherited default is silent
+ok - case (40.a) mission with no judgement of kind mission is a VIOLATION
+ok - case (40.b) mission with its matching judgement is silent
+ok - case (40.b2) mission plan whose LAST mission judgement decided patch is a VIOLATION naming both
+ok - case (40.b3) two mission judgements, the last matching the current mission, is silent
+ok - case (40.c) a FAIL run followed by another run with no regate names the run
+ok - case (40.d) the same with a regate judgement is silent
+ok - case (40.e) a FAIL run that nothing follows needs no regate yet
+ok - case (40.f) two re-gates against one regate judgement names the uncovered run
+ok - case (40.g) a handoff at seq-1 with a run after it and no succession names the note
+ok - case (40.h) the same with a succession judgement is silent
+ok - case (40.i) a handoff at seq-2 with exactly two runs has no successor run yet
+ok - case (40.j) an in-era handoff with no seq-N on line one is refused, not skipped
+ok - case (40.k) the three checks are independent — all three fire on one record
+ok - case (40.l) a record predating the ledger is NOTED once, never failed
+ok - case (40.m) a legacy record with nothing to grade emits no note at all
+ok - case (40d.a) a freshly signed plan is silent — the hashes agree with sign-approval
+ok - case (40d.b) an unledgered intent change is ONE violation naming the task and the remedy
+ok - case (40d.g) a files change is caught
+ok - case (40d.h) a verify change is caught, on the task it belongs to
+ok - case (40d.i) two independently changed tasks are two violations
+ok - case (40d.c) the matching amendment judgement silences it
+ok - case (40d.d) an OVERRULED matching amendment still covers — the ledger is the record
+ok - case (40d.e) an amendment for ANOTHER task does not cover
+ok - case (40d.f) another judgement kind naming the task does not cover
+ok - case (40d.j) a presentation-only rewrite (quoting, list form) hashes the same — silent
+ok - case (40d.k) a plan with no signed_task_hashes (signed before BUG-1716) is not graded
+ok - case (40d.l) a pending approval is not graded by this trigger
+ok - case (40d.m) the text trigger reports beside, not instead of, the other triggers
+ok - case (61.a) a check-skill-weight exec exception is INV-42 CANNOT RUN naming it
+ok - case (61.b) the failed exec leaves no check_skill_weight entry in sys.modules
+ok - case (61.c) a null module spec is INV-42 CANNOT RUN as an ImportError naming the path
+ok - case (61.d) the dataclass loader observes its own name in sys.modules during exec
+ok - case (61.e) a duplicate key in schemas/run-state.json is INV-16 CANNOT be checked, never last-wins
+ok - case (61.f) a step schema without its properties keeps its natural KeyError
+ok - case (61.g) a schema without steps keeps its natural KeyError
+ok - case (1928.a) a bare-text digest with no fenced mapping is an INV-15 finding
+ok - case (1928.b) a final mapping missing a required key names it
+ok - case (1928.c) a historical final mapping with out-of-schema keys is accepted
+ok - case a recorded refused BLOCKED closure preserves prose without INV-15
+ok - case duplicate run IDs cannot exempt a refused closure
+ok - case a refused marker cannot exempt PASS
+ok - case a refused marker cannot exempt PENDING
+ok - case (41.a) an unscoped check-state.py invocation is a VIOLATION naming the SC
+ok - case (41.b) `--feature` scopes it — silent
+ok - case (41.c) the feature directory path scopes it — silent
+ok - case (41.d) naming the script as a subject is a mention, not an invocation
+ok - case (41.e) an old-shape BRIEF is not graded
+ok - case (41.f) check-domain.py is covered too
+ok - case (41.g) a bare span the SC RUNS is an invocation
+ok - case (41.h) the feature id in the SC text scopes it — silent
+ok - case (49.a) an excluded-kind SC with no gaps section is a VIOLATION naming it
+ok - case (49.b) the same SC named under '## Verification gaps' is silent
+ok - case (49.c) an active kind needs no gaps line even when absent
+ok - case (49.d) verify: manual needs a gaps line naming the SC too
+ok - case (49.e) a manual SC named under '## Verification gaps' is silent
+ok - case (49.f) verify: inspection never needs a gaps line
+ok - case (49.g) an old-shape BRIEF is not graded
+ok - case (49.h) a record with no plan.yaml (DEC-174 direct build) is outside the rule
+ok - case (43.a) succession recorded AFTER run 2 started is a VIOLATION naming both
+ok - case (43.b) succession recorded before run 2 started is silent
+ok - case (43.c) succession at exactly run 2's start is silent (no later than)
+ok - case (43.d) an unparseable succession `at` is CANNOT VERIFY naming the field
+ok - case (43.e) a successor run with no started_at is CANNOT VERIFY naming started_at
+ok - case (43.h) two handoffs match two successions in order; only the second is retrospective
+ok - case (43.f) a MISSING succession is INV-40's finding, not INV-43's
+ok - case (43.g) a handoff with no successor run yet has nothing to grade
+ok - case (43.i) a legacy record is never graded by INV-43
+ok - case (43.j) at station review the retrospective succession is a VIOLATION
+ok - case (43.j2) at station done (shipped) nothing is graded
+ok - case (43.k) before seam_era_start the retrospective succession is a NOTE naming would-fail
+ok - case (43.l) on the seam_era_start date it is graded — a VIOLATION
+ok - case (43.m) the boundary is by date at a terminal station too
+ok - case (44.a) a conforming rejected record is silent on INV-44 and on the approval gate
+ok - case (44.b) cycles_used other than integer 0 is a VIOLATION naming cycles
+ok - case (44.c) zero runs is a VIOLATION naming the count
+ok - case (44.d) two runs is a VIOLATION naming the count
+ok - case (44.e) the one run owned by a lead is a VIOLATION naming the agent
+ok - case (44.f) no reject judgement is a VIOLATION naming the kind and remedy
+ok - case (44.g) an approved plan under a rejected station is a VIOLATION
+ok - case (44.h) a signed BRIEF under a rejected station is a VIOLATION
+ok - case (44.i) a panel mapping under a rejected station is a VIOLATION
+ok - case (44.j) every bad dimension is reported separately
+ok - case (44.k) the same record at any other station is not INV-44's to grade
+ok - case (63.a) an unimportable feature_schema is the diagnosed config violation naming the failure
+ok - case (63.b) the 300-line fallback is gone — nothing is graded against a guessed budget
+ok - case (47.a) a PASS validate run over a same-cycle qa BLOCKED note is a VIOLATION naming the note and the run
+ok - case (47.c) the unsuffixed validate-validator run is cycle 0
+ok - case (47.b) member notes at PASS/n/a are silent; an earlier cycle's BLOCKED note belongs to that cycle's FAIL run, not this one
+ok - case (47.d) a plan-review note is not a validate member note
+ok - case (47.e) a legacy record is not graded
+# exit code: 0

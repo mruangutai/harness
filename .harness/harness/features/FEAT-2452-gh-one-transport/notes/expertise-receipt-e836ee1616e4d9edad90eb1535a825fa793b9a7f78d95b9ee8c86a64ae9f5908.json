@@ -1,0 +1,70 @@
+{
+  "batches": [
+    {
+      "after_sha256": "8130d5d873f933540f11c73fdb714f35494d481a7dc45d28e868631491b89788",
+      "before_sha256": "1329916655e26b455c26ab1634fc9e4a94318304a573932f9d764e4b5a2ab099",
+      "destination": ".harness/expertise/harness-orchestrator.md",
+      "id": "a0be7784683f5a491183b1e0d60d5cef9c82fcea6f593fbf8cba36e4bc5d11e7",
+      "ops": [
+        {
+          "op": "drop",
+          "section": "Patterns",
+          "target": "P-10",
+          "why": "Weakest entry at cap: it instructs dispatching distillation to a member, and the orchestrator has no member path; displaced by P-17."
+        },
+        {
+          "entry": "WHEN validation has passed and a pull request is next DO run every CI check step in a fresh clone with a scrubbed environment — the validate matrix is not the CI step list, so an audit no validator ran reddens the pull request instead.",
+          "op": "add",
+          "section": "Patterns",
+          "target": "P-17",
+          "why": "One observation: a local clean-clone run of all CI steps caught reader-inventory drift three validate rounds never executed."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN dispatching distillation to a member DO hand it the paths to its own prior artifacts and say self-derived candidates count as its own material. Without that, every entry in its file traces to your relay and the acceptance rate grades your dispatch rather than its judgement.",
+          "section": "Patterns",
+          "target": "P-10"
+        },
+        {
+          "original": null,
+          "section": "Patterns",
+          "target": "P-17"
+        }
+      ],
+      "recorded_at_ns": 1795455685284593000,
+      "seq": 1,
+      "supersedes": []
+    },
+    {
+      "after_sha256": "234564e34a36bbbd8c7e8241aef2a3d0ed64caa3ab112d8f6e477f1517fb1f36",
+      "before_sha256": "3c40ad827a15e0a193dc69d628fbddd326aa664cc10c7efbde160948cabd0d7c",
+      "destination": ".harness/harness/expertise/harness-orchestrator.md",
+      "id": "645af5b130a596ee34310e9b749c66c37295b7cc0f50ff8b2d1d51f246a4ac82",
+      "ops": [
+        {
+          "entry": "WHEN a plan run returns pending DO read every panel finding's disposition before returning the plan for signature — pm can apply the findings and leave them all open, and an open high finding makes the plan unsignable without an overrule.",
+          "op": "add",
+          "section": "Patterns",
+          "target": "P-13",
+          "why": "One observation: seven dispositions, one high, were left open after the findings were applied; the plan-phase reference does not mention dispositions."
+        }
+      ],
+      "originals": [
+        {
+          "original": null,
+          "section": "Patterns",
+          "target": "P-13"
+        }
+      ],
+      "recorded_at_ns": 1795455685308171000,
+      "seq": 2,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2452-gh-one-transport",
+  "parent_id": "Main",
+  "persona": "harness-orchestrator",
+  "runtime_id": "DistD_Orchestrator",
+  "schema": 1
+}

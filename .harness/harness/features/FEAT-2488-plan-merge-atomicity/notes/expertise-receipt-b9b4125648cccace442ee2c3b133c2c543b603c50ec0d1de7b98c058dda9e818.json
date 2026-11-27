@@ -1,0 +1,58 @@
+{
+  "batches": [
+    {
+      "after_sha256": "143b0f2bbc1a6432aa9f4651d99941aa620bad6fa31e34c750cf994c5d8aa618",
+      "before_sha256": "646b752c5d3afa85720f372f326887651e546e54417efc7f97f388cb4c874853",
+      "destination": ".harness/expertise/harness-validator-lead.md",
+      "id": "c1f5b71090dbe4041340b23704c8aaf112e9e10011bb47d4200135a761be6542",
+      "ops": [
+        {
+          "entry": "WHEN you rate a gating finding lower than its raiser and no squad may remedy it DO escalate both ratings by name, plus whether each prescribed remedy actually remedies it — the split and the remedy fit are what the tier above decides, and reconciling either hides it.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-04",
+          "why": "Final-round escalation was decidable only because both ratings were carried AND the lead showed the terminal descope remedied neither finding; the ruling adopted both points verbatim."
+        },
+        {
+          "entry": "WHEN ruling a must-fix against a defect class DO hand down the class's full state matrix — every axis the decision consumes, each state a caller can produce — and require a discriminating mutant per cell; an instance-scoped remedy closes one member per round, and rounds are budgeted.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-12",
+          "why": "Two classes cascaded one member per round until the brief listed the full state matrix and demanded discriminating mutants; generalizes the old input-axis wording to any defect class."
+        },
+        {
+          "entry": "WHEN runner receipts are green DO report them as that host's interpreter and environment, never as CI, until every required CI lock and interpreter version has run — host env can mask CI failures; a failure outside the verify set is an assurance gap first, then an ownership question.",
+          "op": "replace",
+          "section": "Gotchas",
+          "target": "G-03",
+          "why": "My digests headlined 'CI is green' from host-run receipts; a CI-only interpreter version then failed because host colour env masked it. Sharpens G-03 without growing it."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN you rate a panel's gating finding lower than the reviewer who raised it and no squad may remedy it DO escalate carrying both ratings by name, not one reconciled rating — the split is the decision the tier above must make, and reconciling it hides that it was contested.",
+          "section": "Patterns",
+          "target": "P-04"
+        },
+        {
+          "original": "WHEN ruling a must-fix against a class of unusable input DO name every axis the decision consumes — container shape, each read field's type and domain, and related records' identity — a remedy scoped to the observed instance leaves the adjacent axis for the next round, and rounds are budgeted.",
+          "section": "Patterns",
+          "target": "P-12"
+        },
+        {
+          "original": "WHEN scoped feature gates are green DO not report whole-suite compatibility until every required CI lock has run; a failure outside the verify set is an assurance gap first, then a source-ownership question for the dependency-owning module.",
+          "section": "Gotchas",
+          "target": "G-03"
+        }
+      ],
+      "recorded_at_ns": 1795495846133158000,
+      "seq": 1,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2488-plan-merge-atomicity",
+  "parent_id": "Main",
+  "persona": "harness-validator-lead",
+  "runtime_id": "DistillE_Validator",
+  "schema": 1
+}

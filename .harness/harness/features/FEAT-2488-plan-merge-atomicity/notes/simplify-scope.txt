@@ -1,0 +1,11 @@
+.claude/skills/harness/bin/feature_json_write.py
+.claude/skills/harness/bin/harness_merge.py
+.claude/skills/harness/bin/plan-merge.py
+.claude/skills/harness/bin/plan_merge/amend.py
+.claude/skills/harness/bin/plan_merge/amendments.py
+.claude/skills/harness/bin/plan_merge/approval.py
+.claude/skills/harness/bin/plan_merge/check.py
+.claude/skills/harness/bin/plan_merge/guards.py
+tests/integration/canonical-reader-classification.json
+tests/integration/test-plan-merge.py
+tests/unit/test-harness-merge-journal.py

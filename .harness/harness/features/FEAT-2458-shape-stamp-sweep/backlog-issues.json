@@ -1,0 +1,38 @@
+{
+  "chore:SC-07 evidence: point the T-07 terminal contract at --canonical-reader-audit, or move its case into CASES (FEAT-2458 B-1)": {
+    "number": 2516,
+    "typed": false
+  },
+  "enhancement:classify_feature absence marker: replace the bare substring 'absent' with a phrase that ids and stations cannot collide with (FEAT-2458 B-2)": {
+    "number": 2517,
+    "typed": false
+  },
+  "enhancement:classify_feature: tell an unreadable fleet features tree apart from a missing one (FEAT-2458 B-3)": {
+    "number": 2518,
+    "typed": false
+  },
+  "bug:test-check-plan-routes --canonical-reader-self-test has 2 failures and no runner invokes it (FEAT-2458 B-4)": {
+    "number": 2519,
+    "typed": true
+  },
+  "bug:post-merge stamp sweep: a symlinked .harness parent can redirect the unlink outside the main checkout (FEAT-2458 B-5)": {
+    "number": 2520,
+    "typed": true
+  },
+  "bug:post-merge stamp sweep: control characters in a stamp file name can forge a diagnostic line (FEAT-2458 B-6)": {
+    "number": 2521,
+    "typed": true
+  },
+  "chore:FEAT-2458 test precision: _feature_row non-string reason, kept-line token match, row (7)/(8) strictness (FEAT-2458 B-7)": {
+    "number": 2522,
+    "typed": true
+  },
+  "chore:test classify_feature's multi-segment-hit branch and the stamp sweep's symlink-skip branch (FEAT-2458 B-8)": {
+    "number": 2523,
+    "typed": true
+  },
+  "bug:a main-session-direct fix round has no route into cycles_used; spend reports rework_rounds 2 for one round (FEAT-2458 B-9)": {
+    "number": 2524,
+    "typed": true
+  }
+}

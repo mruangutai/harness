@@ -1,0 +1,93 @@
+schema_version: 2
+run_id: distill-validator
+run_uid: defb4bdb40e04b6dbbcff23ca60932cb
+feature: FEAT-2489-plan-routes-split
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: distill-qa
+    persona: harness-qa
+    task: distill-validator
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/expertise/harness-qa.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-qa-distill.md
+    note: 5 ops; craft P15/G15/O10/Open1->0, repo G14->15
+    evidence:
+      craft_batch: c486b80fd0f2736faa646d0f60f63f5fc0eb15d7d4fc561704130c832c599da0
+      repo_batch: f3f4dcdf8a9ab08a0fd35ffb2762952aa64329fd082db3c6cfcd9292ba826856
+      ops_applied: 5
+  - id: distill-code-reviewer
+    persona: harness-code-reviewer
+    task: distill-validator
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/expertise/harness-code-reviewer.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-code-reviewer-distill.md
+    note: both class-census candidates merged into craft P-08 replace; counts unchanged
+    evidence:
+      craft_batch: b5a4fb48b2d3e7299ecf291c0e6a17f47a020f173314342a3916ff6c1330a08d
+      ops_applied: 1
+  - id: distill-security-reviewer
+    persona: harness-security-reviewer
+    task: distill-validator
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/expertise/harness-security-reviewer.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/harness/features/FEAT-2489-plan-routes-split/notes/review-harness-security-reviewer-distill.md
+    note: SEC-1 trust-boundary rule as craft P-02 replace; path-metadata advisory rejected
+    evidence:
+      craft_batch: c0351e3179da2795a19551697efc9b24b6682c4e0a05e1d7f665f5a6cc328604
+      ops_applied: 1
+  - id: distill-pm-goalcheck
+    persona: harness-pm
+    task: distill-validator
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/expertise/harness-pm.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2489-plan-routes-split/.harness/harness/features/FEAT-2489-plan-routes-split/notes/research-FEAT-2489-plan-routes-split-goalcheck-distill.md
+    note: receipt-reach grading rule as craft P-12 replace; counts unchanged
+    evidence:
+      craft_batch: d250d3fb83fada668193219a420d1da0c30a26016f9c996f66880ec16fdc02a1
+      ops_applied: 1

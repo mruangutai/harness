@@ -1,0 +1,29 @@
+schema_version: 2
+run_id: r-20261124-3-plan-product
+run_uid: f4406c9217b849cca6e633772172b35a
+feature: FEAT-2489-plan-routes-split
+squad: product
+host: harness-product-lead
+team: plan
+status: complete
+steps:
+  - id: apply
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2489-plan-routes-split/BRIEF.md
+      - .harness/harness/features/FEAT-2489-plan-routes-split/plan.yaml
+    mutates_repo: true
+    on_fail: none
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2489-plan-routes-split/notes/research-plan-routes-split.md
+    note: both c2 remedies applied; PF-2411 PF-6efa PF-5dbe open pending re-read; check 0 failures per pm
+    evidence:
+      plan_merge_check_failures: 0
+      open_findings: [PF-241126189d3c3d16550a5f09c7532ff3, PF-6efa88c834c89ca43eea0322509703d9, PF-5dbe6b5eecda5efa44c6d9624e826e1a]

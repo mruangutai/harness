@@ -1,0 +1,34 @@
+{
+  "batches": [
+    {
+      "after_sha256": "49af5493fe8daa0d27b3fdc42b20f207df4791f419200556c3f15cd8a23ee28b",
+      "before_sha256": "675ccd2e35c2fcd4bad6073face7fd09fcdc8ee5aaa7311c96f0ff4172f6931d",
+      "destination": ".harness/expertise/harness-security-reviewer.md",
+      "id": "92ec21b5f127b65513a41609c848f9ecd66b087ec0c788d4587c47f05d2b8ea0",
+      "ops": [
+        {
+          "entry": "WHEN grading a fail-open that requires damaged or tampered state DO check whether the security contract explicitly covers that state. If it does, grade the lost protection without discounting merely because the state is abnormal; report actor access and reachability separately.",
+          "op": "replace",
+          "section": "Patterns",
+          "target": "P-14",
+          "why": "The lead and ruler upheld high because the guard existed to refuse damaged state. P-12 covers capability delta, P-17 irreversibility, and O-04 evidence provenance; none tests whether the precondition is the threat the control promises to handle. This broader grading rule displaces the narrower filesystem recovery naming heuristic."
+        }
+      ],
+      "originals": [
+        {
+          "original": "WHEN auditing filesystem recovery discovery DO compare the names discovery trusts, the names legitimate producers emit, and the names write authorization reserves; check every path component a write can implicitly create, not just its final component.",
+          "section": "Patterns",
+          "target": "P-14"
+        }
+      ],
+      "recorded_at_ns": 1795717078334346000,
+      "seq": 1,
+      "supersedes": []
+    }
+  ],
+  "feature": "FEAT-2542-dispatcher-placement",
+  "parent_id": "Feat2542DistillValidator",
+  "persona": "harness-security-reviewer",
+  "runtime_id": "Feat2542DistillValidator.ScrawnyGecko",
+  "schema": 1
+}

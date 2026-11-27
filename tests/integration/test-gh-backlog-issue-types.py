@@ -43,6 +43,7 @@ import tempfile
 
 from gh_sync_support import install_gh
 from harness_config_support import write_config
+from offline_gh_support import assert_sentinel_unused, offline_gh_env
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -112,12 +113,13 @@ def stage(tmp, feat_name="FEAT-88-backlog", repo="owner/name", issue_types=None)
 
 
 def run(feat_dir, tmp, env_extra=None, log="calls.log", items=None):
-    env = dict(os.environ)
+    env, sentinel_log = offline_gh_env(os.path.join(tmp, "gh"), tmp)
     env["FAKE_LOG"] = os.path.join(tmp, log)
-    env["GH_SYNC_GH"] = os.path.join(tmp, "gh")
     env.update(env_extra or {})
     args = ["backlog", feat_dir] + list(items if items is not None else ITEMS)
-    return subprocess.run([SYNC] + args, capture_output=True, text=True, env=env)
+    result = subprocess.run([SYNC] + args, capture_output=True, text=True, env=env)
+    assert_sentinel_unused(sentinel_log)
+    return result
 
 
 def calls(tmp, log="calls.log"):
@@ -161,6 +163,25 @@ def check(name, cond, detail=""):
     else:
         fails += 1
         print(f"FAIL  {name}\n      {detail}")
+
+
+def case_i():
+    """CASE I (#1542): a create URL with no positive /issues/<n> tail is an ordinary mirror SKIP:
+    no traceback, no backlog receipt entry, no second create."""
+    with tempfile.TemporaryDirectory() as tmp:
+        install_gh(tmp, FAKE_GH_TYPES.replace(
+            'echo "https://github.com/implentio/fake/issues/$n" ;;',
+            'echo "https://github.com/implentio/fake/issues/" ;;'))
+        feat_dir = stage(tmp)
+        result = run(feat_dir, tmp, {"FAKE_TYPES": "available"})
+        creates = [l for l in calls(tmp) if "issue create" in l]
+        check("CASE I: a malformed create URL is a mirror SKIP, exit 0, no traceback",
+              result.returncode == 0 and "gh-sync: SKIP" in result.stdout
+              and "Traceback" not in result.stderr, result.stdout + result.stderr)
+        check("CASE I: no backlog receipt entry is written for the unreadable create",
+              not read_receipt(feat_dir), f"{read_receipt(feat_dir)}")
+        check("CASE I: exactly one create was dispatched, never a second",
+              len(creates) == 1, f"{creates}")
 
 
 def case_a_b():
@@ -378,6 +399,7 @@ case_e()
 case_f()
 case_g()
 case_h()
+case_i()
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

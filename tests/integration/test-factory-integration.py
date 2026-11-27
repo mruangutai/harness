@@ -51,6 +51,7 @@ import os
 
 import factory_config
 from harness_config_support import build_config, write_config
+from offline_gh_support import assert_sentinel_unused, offline_gh_env
 import re
 import stat
 import subprocess
@@ -1316,8 +1317,7 @@ def run_factory_gh_call(td, script, gh_state=None):
     write_exec(gh, _FAKE_GH_SRC)
     state_path = gh_state or write_state(os.path.join(td, "gh_state.json"))
     call_log = os.path.join(td, "gh_call_log.jsonl")
-    env = dict(os.environ)
-    env["FACTORY_GH"] = gh
+    env, sentinel_log = offline_gh_env(gh, td)
     env["GH_STATE"] = state_path
     env["GH_CALL_LOG"] = call_log
     env.pop("HARNESS_GH_COST_LOG", None)
@@ -1325,6 +1325,7 @@ def run_factory_gh_call(td, script, gh_state=None):
         [sys.executable, "-c", script], cwd=BIN_DIR, env=env,
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
+    assert_sentinel_unused(sentinel_log)
     calls = []
     if os.path.exists(call_log):
         with open(call_log, encoding="utf-8") as f:
@@ -1410,10 +1411,8 @@ with tempfile.TemporaryDirectory() as td:
     write_exec(gh, _FAKE_GH_SRC)
     state_path = write_state(os.path.join(td, "gh_state.json"))
     call_log = os.path.join(td, "gh_call_log.jsonl")
-    env = dict(os.environ)
+    env, sentinel_log = offline_gh_env(gh, td)
     env["HARNESS_PROJECT_DIR"] = root
-    env["FACTORY_GH"] = gh
-    env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path
     env["GH_CALL_LOG"] = call_log
     env.pop("HARNESS_GH_COST_LOG", None)
@@ -1421,6 +1420,7 @@ with tempfile.TemporaryDirectory() as td:
         [sys.executable, BOARD_LIFECYCLE, "provision"], cwd=BIN_DIR, env=env,
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
+    assert_sentinel_unused(sentinel_log)
     calls = []
     if os.path.exists(call_log):
         with open(call_log, encoding="utf-8") as f:
@@ -1460,10 +1460,8 @@ with tempfile.TemporaryDirectory() as td:
                 "assignees": [], "stateReason": None},
     })
     call_log = os.path.join(td, "gh_call_log.jsonl")
-    env = dict(os.environ)
+    env, sentinel_log = offline_gh_env(gh, td)
     env["HARNESS_PROJECT_DIR"] = root
-    env["FACTORY_GH"] = gh
-    env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path
     env["GH_CALL_LOG"] = call_log
     env.pop("HARNESS_GH_COST_LOG", None)
@@ -1471,6 +1469,7 @@ with tempfile.TemporaryDirectory() as td:
         [sys.executable, BOARD_LIFECYCLE, "audit"], cwd=BIN_DIR, env=env,
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
+    assert_sentinel_unused(sentinel_log)
     check("(K) board_lifecycle.py audit: forked process exits 1 against a fixture carrying "
           "one finding (the EXIT STATUS, not an in-process SystemExit catch)",
           r.returncode == 1, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
@@ -1507,10 +1506,8 @@ with tempfile.TemporaryDirectory() as td:
         "ITEM1": {"number": 950, "repo": "acme/widget", "station": "Backlog"},
     })
     call_log = os.path.join(td, "gh_call_log.jsonl")
-    env = dict(os.environ)
+    env, sentinel_log = offline_gh_env(gh, td)
     env["HARNESS_PROJECT_DIR"] = root
-    env["FACTORY_GH"] = gh
-    env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path
     env["GH_CALL_LOG"] = call_log
     env.pop("HARNESS_GH_COST_LOG", None)
@@ -1518,6 +1515,7 @@ with tempfile.TemporaryDirectory() as td:
         [sys.executable, BOARD_LIFECYCLE, "audit"], cwd=BIN_DIR, env=env,
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
+    assert_sentinel_unused(sentinel_log)
     check("(L) board_lifecycle.py audit STATUS: forked process exits 1 against a plan.yaml "
           "active station disagreeing with its parent card (the EXIT STATUS, not an in-process "
           "SystemExit catch)",
@@ -1551,10 +1549,8 @@ with tempfile.TemporaryDirectory() as td:
                 "assignees": [], "stateReason": None},
     })
     call_log = os.path.join(td, "gh_call_log.jsonl")
-    env = dict(os.environ)
+    env, sentinel_log = offline_gh_env(gh, td)
     env["HARNESS_PROJECT_DIR"] = root
-    env["FACTORY_GH"] = gh
-    env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path
     env["GH_CALL_LOG"] = call_log
     env.pop("HARNESS_GH_COST_LOG", None)
@@ -1562,6 +1558,7 @@ with tempfile.TemporaryDirectory() as td:
         [sys.executable, BOARD_LIFECYCLE, "reconcile"], cwd=BIN_DIR, env=env,
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
+    assert_sentinel_unused(sentinel_log)
     calls = []
     if os.path.exists(call_log):
         with open(call_log, encoding="utf-8") as f:
@@ -1599,10 +1596,8 @@ with tempfile.TemporaryDirectory() as td:
                 "milestone": "FEAT-INTEG-RETITLE"},
     })
     call_log = os.path.join(td, "gh_call_log.jsonl")
-    env = dict(os.environ)
+    env, sentinel_log = offline_gh_env(gh, td)
     env["HARNESS_PROJECT_DIR"] = root
-    env["FACTORY_GH"] = gh
-    env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path
     env["GH_CALL_LOG"] = call_log
     env.pop("HARNESS_GH_COST_LOG", None)
@@ -1610,6 +1605,7 @@ with tempfile.TemporaryDirectory() as td:
         [sys.executable, BOARD_LIFECYCLE, "retitle"], cwd=BIN_DIR, env=env,
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
+    assert_sentinel_unused(sentinel_log)
     calls = []
     if os.path.exists(call_log):
         with open(call_log, encoding="utf-8") as f:

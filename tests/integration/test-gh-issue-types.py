@@ -37,6 +37,7 @@ import tempfile
 
 from gh_sync_support import install_gh
 from harness_config_support import write_config
+from offline_gh_support import assert_sentinel_unused, offline_gh_env
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -187,12 +188,13 @@ def stage(tmp, feat_name="FEAT-77-types", repo="owner/name", issue_types=None,
 
 
 def run(feat_dir, tmp, env_extra=None, log="calls.log", extra_args=None):
-    env = dict(os.environ)
+    env, sentinel_log = offline_gh_env(os.path.join(tmp, "gh"), tmp)
     env["FAKE_LOG"] = os.path.join(tmp, log)
-    env["GH_SYNC_GH"] = os.path.join(tmp, "gh")
     env.update(env_extra or {})
     args = ["open", feat_dir] + (extra_args or [])
-    return subprocess.run([SYNC] + args, capture_output=True, text=True, env=env)
+    result = subprocess.run([SYNC] + args, capture_output=True, text=True, env=env)
+    assert_sentinel_unused(sentinel_log)
+    return result
 
 
 def calls(tmp, log="calls.log"):

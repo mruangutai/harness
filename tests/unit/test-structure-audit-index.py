@@ -5,6 +5,7 @@ The index is one breadth-first, parent-aware traversal of a parsed tree; each fa
 fills must be exactly what the replaced `ast.walk` scans returned, in the same order, and a
 subtree question must answer exactly as `ast.walk(subject)` would. The session is built fresh
 per public audit call: nothing it read survives into the next call or crosses to another root.
+CHECK_PLAN_ROUTES_BIN, when set, names the checker whose bin directory is under test.
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
@@ -12,7 +13,6 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 import ast
-import importlib.util
 import os
 import sys
 import tempfile
@@ -21,6 +21,9 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_REL = os.path.join(".claude", "skills", "harness", "bin")
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(ROOT, BIN_REL, "check-plan-routes.py")
+AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT))
+sys.path.insert(0, AUDIT_DIR)
+import structure_audit  # noqa: E402
 
 SOURCE = '''
 import subprocess
@@ -50,13 +53,6 @@ def check(name, cond, detail=""):
     print(f"{'PASS' if cond else 'FAIL'} {name}{'' if cond else ' ' + detail}")
     if not cond:
         failures.append(name)
-
-
-def cpr():
-    spec = importlib.util.spec_from_file_location("_cpr_index_under_test", SCRIPT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def _walk_parents(tree):
@@ -164,17 +160,20 @@ def case_each_invocation_is_fresh(mod):
         with open(os.path.join(one, BIN_REL, "probe.py"), "w", encoding="utf-8") as stream:
             stream.write(_BROAD)
         check("an_edit_between_invocations_is_seen", len(mod.broad_catch_findings(one)) == 1)
-    leaked = [name for name, value in vars(mod).items()
-              if isinstance(value, (mod._AuditSession, mod._SourceIndex))]
+    leaked = [name for name, value in vars(structure_audit).items()
+              if isinstance(value, (structure_audit._AuditSession, structure_audit._SourceIndex))]
     check("no_session_or_index_is_retained_at_module_scope", leaked == [], repr(leaked))
 
 
 def main():
-    mod = cpr()
+    check("audit_modules_load_from_the_bin_under_test",
+          all(os.path.dirname(os.path.abspath(m.__file__)) == AUDIT_DIR
+              for m in (structure_audit, sys.modules["canonical_reader_audit"])),
+          f"{structure_audit.__file__}, {sys.modules['canonical_reader_audit'].__file__}")
     for case in (case_index_facts_match_ast_walk, case_subtree_queries_match_ast_walk,
                  case_embedded_programs_count_once, case_session_caches_once_and_keeps_errors,
                  case_each_invocation_is_fresh):
-        case(mod)
+        case(structure_audit)
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
         sys.exit(1)

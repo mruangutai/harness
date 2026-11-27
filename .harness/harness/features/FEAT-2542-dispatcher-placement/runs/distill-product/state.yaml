@@ -1,0 +1,60 @@
+schema_version: 2
+run_id: distill-product
+run_uid: e658d8facfe242ce86e40a223e45eb30
+feature: FEAT-2542-dispatcher-placement
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: distill-pm
+    persona: harness-pm
+    task: distill-product
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2542-dispatcher-placement/.harness/expertise/harness-pm.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2542-dispatcher-placement/.harness/harness/expertise/harness-pm.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2542-dispatcher-placement/.harness/harness/features/FEAT-2542-dispatcher-placement/notes/research-FEAT-2542-dispatcher-placement-distill.md
+    note: C1-C3 accepted plus own bullet 4; craft P-18 P-08 P-01 O-12 replaced; no repo ops; criteria 1-6 met
+    evidence:
+      craft_batch: 8788965837ffda64aaf7fcb992cc4f2d40d9f626fd28c39bbc972bf60fe68818
+      ops_applied: 4
+      lead_candidates_relayed: 3
+      lead_candidates_applied: 3
+  - id: distill-code-reviewer
+    persona: harness-code-reviewer
+    task: distill-product
+    seq: 1
+    depends_on: []
+    outputs:
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2542-dispatcher-placement/.harness/expertise/harness-code-reviewer.md
+      - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2542-dispatcher-placement/.harness/harness/expertise/harness-code-reviewer.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2542-dispatcher-placement/.harness/harness/features/FEAT-2542-dispatcher-placement/notes/review-harness-code-reviewer-distill.md
+    note: dispatch not refused (mission distill); CR1 craft P-14 replaced, CR2 repo G-12 added and narrowed; criteria met
+    evidence:
+      craft_batch: 49b600e921a2cf60555efc2b734a981232d410b8377e0e4570d443bc8e26e314
+      repo_batch: 5d5e7b7df3c85c3eec1590c0df4d4c10fcd9af4a237747113f7e7428381bb975
+      ops_applied: 2
+      lead_candidates_relayed: 2
+      lead_candidates_applied: 2
+      dispatch_refused: false
+      lead_own_craft_batch: b0e300b797629b03c83e84feeb081285e9ca8f921ac5e998ec571942ce58eaec
+      lead_own_repo_batch: 555a3fcf5463fb0e6761a121453f629d5c1e187c820ae2e520dd9916adae430b

@@ -1,0 +1,3 @@
+usage: code-grade.py [-h] [--base BASE] [--head HEAD] [--json] [paths ...]
+code-grade.py: error: provide PATH... or both --base REF and --head REF
+exit=2

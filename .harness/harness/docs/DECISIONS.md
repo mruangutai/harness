@@ -3130,10 +3130,12 @@ closed ticket with a distinct icon and no explanation is opaque to the only audi
 exists for, which is why the abandonment reason is posted at all.
 
 **Shared code, and migration scope.** The three GitHub primitives — the internal-id attach, the
-parent read, the blocking-edge write — plus the internal-id lookup and `gh_bin()` live in exactly one
-place, `.claude/skills/harness/bin/gh_issues.py`, as **argv builders**; each caller keeps its own
-runner, because `gh-sync.py` skips-and-exits-0 on an environmental failure while `wayfind.py` dies
-exit 1. `gh-sync.py` imports only `internal_id_args` and `attach_sub_issue_args`, and its containing
+parent read, the blocking-edge write — plus the internal-id lookup live in exactly one place,
+`.claude/skills/harness/bin/gh_issues.py`, as **argv builders**. `factory_gh` is the one shared
+transport: it resolves `FACTORY_GH` and launches `gh` for every operator and library caller.
+Failure policy stays at each caller, because `gh-sync.py` skips-and-exits-0 on an environmental
+failure while `wayfind.py` dies exit 1.
+`gh-sync.py` imports only `internal_id_args` and `attach_sub_issue_args`, and its containing
 **no** call to `parent_args` or `blocked_by_args` is a standing regression guard for the write-only
 rule. **No `blocked_by` edge is emitted by the Issues sync at all**: the builder exists and its only
 caller is wayfinding. Migration was new-features-only — no backfill, no retrofit, no edit to any
@@ -6031,8 +6033,9 @@ the dispatch check. Under the blocking host a parent's `task` call holds until i
 parent yielding with a live child is a defect, not a waiting state (DEC-204, DEC-233). The residual, plainly: an
 orphaned child of an interrupted parent has no parent left to refuse it.
 
-**The refusal keeps no state.** `validate-digest.py` reads live children fresh on each yield, and `live_children` is
-a read that only expires dead claims, so a yield that finds a child still live is refused again. One observed
+**The refusal keeps no state.** `validate-digest.py` reads live children fresh on each yield through the exact-parent
+strict read `live_claims(root, None, parent_agent_id=...)`, which writes nothing, so a yield that finds a child still
+live is refused again. One observed
 orchestrator run on the code path the lead tier uses carried two refusals naming DIFFERENT child sets, which is a
 distinct refusal event and not replayed context (`agent-a89be3fd837d1b779`). `inflight_registry.py`'s refusal message
 carries no once-only bound; it ends by naming the rule for a lead or orchestrator whose child is live — under a
@@ -6606,8 +6609,9 @@ from an ambiguous set. A run that cannot claim is held:
 Before Write, Edit, or Bash the registry still verifies the exact child and parent pair; a
 mismatch, ambiguity, missing identity, or registry error refuses before the mutation gate runs.
 Single-flight is keyed by `(feature, persona)`, so
-two PMs for one feature are refused while PMs for different features are legal. The version-1
-persona-keyed object is read once for migration and every following write is version 2. There is one
+two PMs for one feature are refused while PMs for different features are legal. Only version 2 is read or
+written: a strict reader refuses a version-1 persona-keyed object, or any other non-v2 object, as unreadable, and a
+locked writer treats it as empty with a stderr warning, as it does a corrupt file. There is one
 locked registry implementation, still `inflight_registry.py`.
 
 **OMP liveness follows the supervisor, not elapsed time or child session id.** An OMP claim remains
@@ -7254,7 +7258,7 @@ ungoverned.
 claim whose supervisor identity cannot be proven ages out at the `OMP_UNVERIFIED_TTL_SECONDS =
 86400` backstop, above the 7,200-second longest measured leaf run. A claim carrying any other
 `runtime`, or none, is expired. The binding enumerator and the dispatch-side answers — single-flight
-admission, `live_children`, and reconciliation counts — read that same rule. The former non-OMP
+admission, the held-child read (exact-parent `live_claims`), and reconciliation counts — read that same rule. The former non-OMP
 binding horizon and the separate 1,200-second dispatch TTL, `CLAIM_TTL_SECONDS`, existed only for
 the compatibility host and are removed (DEC-233).
 
@@ -8674,3 +8678,78 @@ tree. Retention is unchanged: DEC-238 still decides what ship keeps and what aba
 
 **Record:** BUG-2399 (#2399); D-01 signed by fable-advisor under the operator's delegation on
 2026-11-22. Cites DEC-238, which it does not amend. Refs: DEC-112, DEC-174.
+
+## DEC-258 — A governed lead's dispatch binds to its own runtime placement or is refused; the scope-reader route keys on that placement
+
+**Chose:** two rules in `dispatch-guard.py`.
+
+*Rule 1 (#2542).* A dispatcher in `LEADS` whose payload carries `harness_agent_id` is placed only
+by its own runtime claim: `find_run_claim`, persona-matched. `_dispatcher_placement` runs once per
+dispatch, after the direct-orchestration refusal and before any other preflight and before any
+claim. Five denial states are each an exit-2 lineage refusal naming its cause token, the runtime
+id, a remedy specific to that cause and the `find-run` inspect command:
+- structured unreadable (`unreadable`): repair the registry in place, never delete it; an ok
+  claim that names no feature (null or empty) is a malformed record, refused as unreadable too;
+- an escaped `UnreadableRegistry` or `OSError` (`registry-error`): repair the named registry, or,
+  when the exception names no file, reproduce it with `find-run` before repairing anything;
+- `not-found`: re-dispatch the lead so its run start reclaims;
+- `ambiguous`: the operator identifies the surplus claim per registry root with `list --root`
+  and releases only it, in its own registry, with `--root`, never by persona; the guard never
+  chooses;
+- ok with a persona mismatch (`persona-mismatch`): a live claim of uncertain ownership is left
+  alone; the work is re-dispatched from a correctly claimed lead run, or the operator releases a
+  confirmed-stale claim in its own registry.
+
+None of the five is ever the declared feature, and none is ever the unavailable outcome. An
+unreadable registry is left as found. Unchanged: Main, non-lead dispatchers with or without
+`harness_agent_id`, and a lead payload without `harness_agent_id` keep the declared-feature path.
+The host already refuses an id-less governed nested Task (DEC-218), so the guard does not duplicate
+that refusal.
+
+*Rule 2 (#2532).* The `harness-product-lead` → `harness-code-reviewer` scope-reader rule in
+`_mission_scope` holds unless that trusted placement resolves to the lead's one open registered
+`distill-*` run, matched by `registered_destination` and `DISTILL_RUN_RE`. The route and the distill
+preflight consume one dispatch-local answer, `_placed_distill_feature`, read once, so the exemption
+and its enforcement cannot see different run state. A distill-placed start then flows into the
+unchanged distill preflight, which enforces marker, feature and tree root. A distill-placed lead
+declaring `plan` is still refused, so no relabeling works in either direction.
+
+**Over:**
+- the unavailable outcome for these states;
+- the silent declared-feature fallback, which is the defect;
+- an exemption keyed on the declared mission or any child-supplied field;
+- a run-id or phase-field plan detector, since run records carry no phase;
+- panel existence as the discriminator;
+- reordering `_start_preflight` and `_distill_preflight`;
+- reading the registered run separately for the route and for the preflight;
+- relaxing `find_run_claim`'s any-unreadable strictness, which backs `release_run` and markerless
+  revival.
+
+**Because:**
+- The measured base behaviour in FEAT-2542's characterization note: all seven failed-placement
+  fixtures claimed, and the FEAT-2489 product distill dispatch was refused without consulting
+  placement.
+- The hook lets a governed lead dispatch only from a ready, claimed run, so a failed placement is
+  an anomaly with no backstop.
+- DEC-100's own text: a refusal outranks it.
+- DEC-204: a run recovers its feature only from the one live claim bound to its exact runtime id,
+  and release is exact.
+- DEC-218: cannot-read is never no-claims.
+- DEC-250: text supplies no authority.
+
+**Tradeoff accepted:**
+- A corrupt registry or a lost claim now stops that lead's dispatches until the operator repairs
+  it.
+- The escaped state is reachable only by fault injection, proven through a copied bin tree.
+- Main and non-lead dispatches keep the claim step's DEC-218 treat-as-empty recovery.
+
+**Record:** FEAT-2542 (#2542, #2532); D-01 and D-02 signed by Mike Ruangutai (delegated to
+fable-advisor) on 2026-11-26. It amends none of DEC-100, DEC-174, DEC-204, DEC-214, DEC-218,
+DEC-228, DEC-250 or DEC-253:
+- DEC-214's `HARNESS-FEATURE-TREE-ROOT` prerequisite is enforced unchanged on a distill-placed
+  child;
+- DEC-253's registered-distill dispatch prerequisite is restored for a product distill, while its
+  caller-bound apply and raw `Write` grants are unchanged.
+
+Executed main-session-direct under DEC-174. Refs: DEC-100, DEC-174, DEC-204, DEC-214, DEC-218,
+DEC-228, DEC-250, DEC-253.

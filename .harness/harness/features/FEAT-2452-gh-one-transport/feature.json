@@ -1,0 +1,245 @@
+{
+  "feature_id": "FEAT-2452-gh-one-transport",
+  "branch": "feat/FEAT-2452-gh-one-transport",
+  "pr": 2471,
+  "review_sha": "caeebc7cb24b7205bb5d5ad5191cd6541fc3519a",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "r-20261123-1-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-23T13:32:47+00:00",
+      "tokens": 80271,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-1-plan-product/digest.md",
+        "sha256": "8c17f60c08066fb1ca76ec09293b8e1af1ffd6880c7280c2da3dd388827b1c1d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T14:07:15+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261123-2-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T14:07:16+00:00",
+      "tokens": 103439,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-2-simplify-eng/digest.md",
+        "sha256": "19e43a50233a1d2d8305a5b35b4df79749fdd69788456a2fe11d47dde992ab80"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T14:13:49+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261123-3-simplify-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T14:13:50+00:00",
+      "tokens": 76147,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-3-simplify-apply-product/digest.md",
+        "sha256": "c82659e389a40cba675e98e03f6c716dabbb3c6e7ea59d093b7af9665c0f71c8"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T14:22:03+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261123-4-amend-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T14:26:56+00:00",
+      "tokens": 93220,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-4-amend-apply-product/digest.md",
+        "sha256": "b4e7793b12cdbf71d4fd64d2ca58b0d948d0ac6b9efcf4618e03fc8da56247f9"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-23T15:01:00+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261123-5-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T16:07:45+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-5-validate-validator/digest.md",
+        "sha256": "656157f538dc3ce929ea404ae8a78bcdda6d54df4328c67b730466ee3c777862"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T16:24:07+00:00"
+    },
+    {
+      "id": "r-20261123-6-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-23T16:36:03+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-6-validate-validator/digest.md",
+        "sha256": "ce33b45bde6dbe6dde05f8bdd9bb92f4d6b8db2a6583d258e1fa3479e7677dcf"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T16:48:21+00:00"
+    },
+    {
+      "id": "r-20261123-7-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-23T16:58:37+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261123-7-validate-validator/digest.md",
+        "sha256": "0a34388151fed9d4528feeeef2da55e9d73ce97f946a7d060baca8d81c9d7dd8"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T17:10:45+00:00"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T17:30:25+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-product/digest.md",
+        "sha256": "51baedadb9ca9dfedab740b40404997875a26b922a0234bafd65a636aaaf8dc2"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T17:35:57+00:00"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T17:35:58+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-validator/digest.md",
+        "sha256": "dc3d0a765dddca89e78a773175062e28b64d837c20ea5d9987fd1de499a92fe9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T17:40:11+00:00"
+    },
+    {
+      "id": "distill-orchestrator",
+      "squad": "orchestrator",
+      "agent": "harness-orchestrator",
+      "verdict": "PASS",
+      "started_at": "2026-11-23T17:40:40+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/distill-orchestrator/digest.md",
+        "sha256": "6a8f62abb24043d08d14bb86092fbe8519634e26c3f54a39990b8dd62b06ea4c"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-23T17:42:52+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-23T13:32:46+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "factory_gh transport plus mirror, wayfind, board_lifecycle, gh_cost_log, ~10 tests, a reference doc: not patch-scale; factory_gh is in check-state's chain so DEC-174 forces main-session-direct; confirmed by fable-advisor"
+    },
+    {
+      "at": "2026-11-23T16:36:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel",
+      "reason": "fix c1 (e282689d) closed H1, H2, G1, F1 and A1 from validate c0; re-panel at the new pin"
+    },
+    {
+      "at": "2026-11-23T16:58:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "re-panel",
+      "reason": "fix c2 closed M1, M2 and folded B1/B3 from validate c1; re-panel at the new pin (last rework round)"
+    },
+    {
+      "at": "2026-11-23T17:13:50+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "validate c2 ESCALATE ruled (a) by fable-advisor under delegation: ship; R1+S2 backlogged as #2470; V1/V2 wording-only post-review delta"
+    },
+    {
+      "at": "2026-11-23T17:42:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "distill-orchestrator ops applied via expertise_apply and replayed clean; digest validator accepts applied ops only in a lead's run digest, so no orchestrator distill path exists for main-session-direct features"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-2452-gh-one-transport/notes/answers-2026-11-23-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "e460ee75aceecf7223a161be55a1843224923e4ea937f54d2292f71289d28b4e",
+    "T-02": "1a1d0bf69e8d16c514b5455e095a4f2ad5649cb0ecbb0979dc5c2050a9c49bcf",
+    "T-03": "ac025cafb213be5d19133b9c8fb1a6dbb87298790f101149996117cb47d2f3c4",
+    "T-04": "d3e07cfe5fdd94249318b3e42b362cd557bf3df0c210a01fa090f40da0b183d7",
+    "T-05": "b48b88e4f6630f2857e00bf8e5b4b00679f149825ebbc3a949ec7ded285b2e51"
+  },
+  "github": {
+    "milestone": 136,
+    "parent": 2462,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 2463,
+      "T-02": 2464,
+      "T-03": 2465,
+      "T-04": 2466,
+      "T-05": 2467
+    },
+    "source_issues": [
+      2452
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

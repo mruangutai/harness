@@ -1,0 +1,24 @@
+python3 - <<'PY'
+import os, subprocess, sys
+from concurrent.futures import ThreadPoolExecutor
+env = {k: v for k, v in os.environ.items() if k not in ('CLAUDE_PROJECT_DIR', 'HARNESS_PROJECT_DIR', 'HARNESS_AGENT_TYPE')}
+git = lambda *a: subprocess.run(['git', *a], capture_output=True, text=True).returncode
+base = subprocess.run(['git', 'merge-base', 'HEAD', 'main'], capture_output=True, text=True, check=True).stdout.strip()
+assert git('cat-file', '-e', 'HEAD:.claude/skills/harness/bin/canonical_reader_audit.py') == 0 and git('diff', '--quiet', 'HEAD', '--', '.claude/skills/harness/bin', 'tests') == 0, 'T-03 subjects must be committed'
+stale = git('diff', '--quiet', base, 'HEAD', '--', 'tests/integration/canonical-reader-classification.json') == 0
+jobs = [['.harness/harness/features/FEAT-2489-plan-routes-split/notes/split-equivalence.py'], ['.claude/skills/harness/bin/run_pool.py', '--workers', '4', 'tests/integration/test-checker-structure-locks.py', 'tests/integration/test-structure-audit-single-pass.py', 'tests/unit/test-structure-audit-index.py', 'tests/unit/test-broad-catch-census.py'], ['tests/integration/test-check-plan-routes.py'], ['.claude/skills/harness/bin/check-plan-routes.py', '--canonical-reader-audit']]
+with ThreadPoolExecutor(4) as ex:
+    eq, pool, t, a = ex.map(lambda argv: subprocess.run([sys.executable, *argv], capture_output=True, text=True, timeout=58, env=env), jobs)
+el, tl = eq.stdout.splitlines(), t.stdout.splitlines()
+fails, tf = {l.split()[1] for l in el if l.startswith('FAIL ')}, [l.split()[1] for l in tl if l.startswith('FAIL ')]
+cls = [l for l in a.stdout.splitlines() if l.startswith('CLASSIFICATION ')]
+keys = ('scanned-file manifest', 'canonical_reader_audit.py', 'check-plan-routes.py::_classification_document', 'check-plan-routes.py::_task_files')
+assert sum(l.startswith(('PASS ', 'FAIL ')) for l in el) == 9 and pool.returncode == 0 and 'FAIL ' not in pool.stdout, el[-30:] + pool.stdout.splitlines()[-20:]
+assert 'PASS canonical_reader_audit_module_loads_from_the_bin_under_test' in tl and 'structure_audit._decisions_index' in open('.claude/skills/harness/bin/plan_merge/check.py').read(), tl[-20:]
+if stale:
+    assert 'cli_equivalent[clean:canonical]' in fails and fails <= {'cli_equivalent[clean:canonical]', 'cli_equivalent[perturbed:canonical]'} and t.returncode == 1 and tf and all(n.startswith('canonical_reader_') for n in tf), (sorted(fails), tf)
+    assert a.returncode == 2 and cls and all(any(k in l for k in keys) for l in cls) and sum(1 for l in open('.harness/harness/features/FEAT-2489-plan-routes-split/notes/red-t03-stale-inventory.txt').read().splitlines() if l.startswith('exit=') and l[5:].lstrip('-').isdigit()) == 3, cls
+else:
+    assert not fails and t.returncode == 0 and not tf and a.returncode == 0 and not cls, (sorted(fails), tf, cls)
+print('PASS T-03: moved and committed; CLI-equivalent except the stale canonical inventory; satellites green')
+PY

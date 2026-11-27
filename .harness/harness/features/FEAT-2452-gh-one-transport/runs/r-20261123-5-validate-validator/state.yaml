@@ -1,0 +1,13 @@
+schema_version: 2
+run_id: r-20261123-5-validate-validator
+run_uid: ef5c05a86bb442d9a40f456beab4888c
+feature: FEAT-2452-gh-one-transport
+squad: validation
+host: harness-validator-lead
+status: complete
+steps:
+- {id: qa, persona: harness-qa, status: complete, verdict: PASS, lead_verdict: PASS, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/review-harness-qa-c1.md], artifact: ../../notes/review-harness-qa-c1.md, note: "unit 67 and integration 95 green with receipts; #13 abandon has no red", evidence: {unit_tests: 67, integration_tests: 95, receipt_unit: qa/manifest-unit.json, receipt_integration: qa/manifest-integration.json}}
+- {id: code, persona: harness-code-reviewer, status: complete, verdict: FAIL, lead_verdict: FAIL, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/review-harness-code-reviewer-c1.md], artifact: ../../notes/review-harness-code-reviewer-c1.md, note: "two high substance findings: T-02 label skip, T-04 payload absence", evidence: {severity_max: high, code_grade: pass}}
+- {id: security, persona: harness-security-reviewer, status: complete, verdict: PASS, lead_verdict: PASS, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/review-harness-security-reviewer-c1.md], artifact: ../../notes/review-harness-security-reviewer-c1.md, note: "med: opt-in telemetry logs inline resolve body", evidence: {severity_max: med}}
+- {id: ui, persona: harness-ui-reviewer, status: complete, verdict: PASS, lead_verdict: PASS, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/review-harness-ui-reviewer-c1.md], artifact: ../../notes/review-harness-ui-reviewer-c1.md, note: "self-scoped out on measured 137-path census", evidence: {diff_paths: 137}}
+- {id: goalcheck, persona: harness-pm, status: complete, verdict: FAIL, lead_verdict: FAIL, depends_on: [], mutates_repo: false, cycles: 0, max_cycles: 2, dispatched_at: seq-1, completed_at: seq-2, outputs: [notes/research-FEAT-2452-gh-one-transport-goalcheck-validate-c1.md], artifact: ../../notes/research-FEAT-2452-gh-one-transport-goalcheck-validate-c1.md, note: "operator partial on SC-05 abandon fail-first; maintainer pass"}
