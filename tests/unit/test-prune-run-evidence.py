@@ -16,6 +16,7 @@ import ast
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -595,14 +596,50 @@ SHIP_PARAGRAPH = ("""It keeps every validator-squad validate or fix run recorded
   refuses with exit 2 naming every recorded cycle_evidence path missing from disk and with exit 1
   naming every unreadable directory under a recorded run.""")
 FORBIDDEN = ("force-stag", "force stag", "git add", "`runs/**` is ignored", "runs/** is ignored", "would stage", "staged runs/")
+# DEC-257 exactly as it stands: its history quotes two FORBIDDEN phrases in order to reject them, so
+# it is exempt from the scan only while it equals this byte for byte; any change to it is scanned.
+DEC_257 = """## DEC-257 — Retained run evidence is tracked like any artifact; only run UI is ephemeral
+
+**Chose:** every file a run writes under `.harness/*/features/*/runs/<id>/` is ordinary tracked
+material, except `runs/<id>/ui/` (screenshots and traces, which the gate reads from disk). That
+covers `digest.md`, `state.yaml`, `.run-identity.json`, acceptance notes, panel files, rulings and
+QA receipts. The orchestrator's normal feature-directory commit carries them, with no `git add -f`.
+The repository `.gitignore` and the fleet `templates/gitignore.snippet` both ship the one narrow
+rule `.harness/*/features/*/runs/*/ui/**`, with no negations, and keep `.harness/**/*.lock`.
+`merge-gitignore.py` replaces the two broad rules Harness once shipped (`.harness/features/*/runs/**`
+and `.harness/*/features/*/runs/**`) and their false rationale, and `--check` reports them. An
+existing checkout narrows through the operator checklist in `references/checkout-upgrade.md`: review
+the evidence the old rule hid, stage it by explicit path, and commit it separately before teams
+resume.
+
+**Over:** keeping the broad ignore and force-staging the records at some seam, which leaves git
+tracking files its own rules ignore, so a re-clone, `git rm -r --cached` or a clean silently
+diverges from the record; and letting INV-7 tolerate an absent digest in CI, which deletes the
+evidence #2177 pinned.
+
+**Because:** DEC-238 already keeps these records at ship, and INV-7 and INV-36 read them as cycle
+evidence. An ignore rule that called them "ephemeral scratch" contradicted both. Nothing in the
+flow committed them, so every feature PR went red at the repository-state gate in CI until someone
+force-added them by hand (#2399). The rule's deadlock rationale was false too: the dirty-tree halt
+(SPEC §8.6) whitelists `.harness/**`.
+
+**Tradeoff accepted:** two gates now see uncommitted run records, by design and with their
+semantics unchanged. `merge-gate.py merge-distill` refuses uncommitted `.harness` changes, so a
+distill run's own records are committed and pushed before it runs. `feature-worktree.py remove`
+refuses an aborted run's untracked records (GATE 2, exit 4) instead of discarding them with the
+tree. Retention is unchanged: DEC-238 still decides what ship keeps and what abandon prunes.
+
+**Record:** BUG-2399 (#2399); D-01 signed by fable-advisor under the operator's delegation on
+2026-11-22. Cites DEC-238, which it does not amend. Refs: DEC-112, DEC-174.
+"""
 DOCS = ROOT / ".harness" / "harness" / "docs"
 SHIP = ROOT / ".omp" / "commands" / "harness-ship.md"
 
 
 def claims(text):
-    """Forbidden phrases in `text`, matched across line wraps."""
+    """Forbidden phrases in `text`, in any letter case, matched across line wraps."""
     joined = " ".join(text.split())
-    return [phrase for phrase in FORBIDDEN if phrase in joined]
+    return [phrase for phrase in FORBIDDEN if re.search(re.escape(phrase), joined, re.IGNORECASE)]
 
 
 def restored(surface):
@@ -618,12 +655,6 @@ def section(text, start, end):
     begin = text.find(start)
     stop = text.find(end, begin + len(start)) if begin >= 0 else -1
     return text[begin:stop if stop >= 0 else len(text)] if begin >= 0 else ""
-
-
-def without(text, start, end):
-    """`text` with section(text, start, end) cut out."""
-    cut = section(text, start, end)
-    return text.replace(cut, "", 1) if cut else text
 
 
 def imported_modules(module):
@@ -646,23 +677,28 @@ def pruner_claims(source):
 
 
 def test_text():
-    """This file minus its FORBIDDEN literal, the one place it names the phrases it rejects."""
+    """This file minus its FORBIDDEN and DEC_257 literals: the phrases it rejects and the pinned
+    history it compares against, not claims of its own."""
     source = Path(__file__).read_text(encoding="utf-8")
-    literal = next(node for node in ast.parse(source).body if isinstance(node, ast.Assign)
-                   and any(getattr(t, "id", "") == "FORBIDDEN" for t in node.targets))
-    return source.replace(ast.get_source_segment(source, literal), "", 1)
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", "") in ("FORBIDDEN", "DEC_257") for t in node.targets):
+            source = source.replace(ast.get_source_segment(source, node), "", 1)
+    return source
 
 
 def current_texts():
-    """Every current line of the five owned files, whole, except unchanged history: DEC-257's own
-    decision and its index row, and this file's FORBIDDEN literal."""
+    """The pruner, this file and harness-ship.md whole; in the decision documents, the surfaces T-01
+    owns (DEC-238 and its index row) plus DEC-257 and its row, DEC-257 exempt only while it is
+    byte-identical to DEC_257. Other decisions are not T-01's text and are not scanned."""
     decisions = (DOCS / "DECISIONS.md").read_text(encoding="utf-8")
     index = (DOCS / "DECISIONS-INDEX.md").read_text(encoding="utf-8")
+    dec_257 = section(decisions, "## DEC-257 ", "\n## DEC-")
     return {
         str(TOOL): TOOL.read_text(encoding="utf-8"),
         "tests/unit/test-prune-run-evidence.py": test_text(),
-        "DECISIONS.md": without(decisions, "\n## DEC-257 ", "\n## DEC-"),
-        "DECISIONS-INDEX.md": without(index, "\n- DEC-257 @", "\n"),
+        "DECISIONS.md DEC-238": section(decisions, "## DEC-238 ", "\n## DEC-"),
+        "DECISIONS.md DEC-257": "" if dec_257 == DEC_257 else dec_257,
+        "DECISIONS-INDEX.md DEC-238 and DEC-257 rows": section(index, "\n- DEC-238 @", "\n") + section(index, "\n- DEC-257 @", "\n"),
         "harness-ship.md": SHIP.read_text(encoding="utf-8"),
     }
 
@@ -686,8 +722,8 @@ def restoration_errors():
 
 
 def five_file_cases():
-    """No forbidden claim anywhere in the five files' current text, the restored surfaces equal
-    their 5e51124e text plus the one refusal sentence exactly, and the subject launches nothing."""
+    """No forbidden claim, in any case, in the five files' current text (current_texts), the restored
+    surfaces equal their 5e51124e text plus the one refusal sentence exactly, and the subject launches nothing."""
     bad = [f"{name}: {phrase}" for name, text in current_texts().items() for phrase in claims(text)]
     bad += pruner_claims(TOOL.read_text(encoding="utf-8")) + restoration_errors()
     check("five-file current claims and historical restoration", not bad, str(bad))

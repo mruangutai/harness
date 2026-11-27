@@ -81,6 +81,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "c2 FAIL on one med must-fix MF-2R (case-sensitive forbidden-claim guard); the 1-round rework ruling is spent by fix-c1 so no fix is dispatched; returned to the operator as OQ-A"
+    },
+    {
+      "at": "2026-11-27T13:14:59+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "extra-fix-round-MF-2R",
+      "reason": "Operator 2026-11-27 grants one narrow test-only round for MF-2R beyond the spent 1-round ruling (notes/answers-2026-11-27-c2-ruling.md)"
     }
   ],
   "mission": "patch",

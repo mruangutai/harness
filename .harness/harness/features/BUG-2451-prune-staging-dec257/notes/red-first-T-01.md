@@ -96,7 +96,7 @@ FAIL - refused prunes over unreadable ui/ directories leave every feature file b
 - Fixed pruner sha256: a6bc1fe5972c768ff847e9a740ebfb71dcba291263fbb8a0d71e9eb98399ad7a.
 
 ### GREEN
-T-01 `verify:` run verbatim exits 0, with 55 PASS, 0 FAIL and `all checks passed`. The three grepped lines matched, and the index diff is empty.
+T-01 `verify:` run verbatim exits 0. The test prints 52 PASS, 0 FAIL and `all checks passed`. The three grepped lines matched, and the index diff is empty. (Corrected in c2: this line first said 55 PASS. That number counted `^PASS` lines in the verify output, which prints the three grepped PASS lines a second time, so 52 + 3 = 55. The test's own count is 52, as qa, pm and the orchestrator measured.)
 
 ### QA-F1 and QA-F2: against 47d6c54d (sha256 55df0581…a93ef, same command with the `-47d6c54d.py` sibling)
 - Result: exit 1, `12 failure(s)` and 40 PASS.
@@ -144,3 +144,56 @@ Each probe is a scratch copy of the worktree (rsync without .git, node_modules o
 - The forbidden-claim scan reads whole files with no git:
   - TOOL, this test file without its `FORBIDDEN` literal, DECISIONS.md without the DEC-257 section, DECISIONS-INDEX.md without the DEC-257 row, and harness-ship.md.
   - Phrases are matched across line wraps.
+
+## c2 fix — MF-2R with A-3 folded in (validate run 2026-11-26-03, pin b7e1f26e; operator ruling notes/answers-2026-11-27-c2-ruling.md)
+
+Only `tests/unit/test-prune-run-evidence.py` changed; the pruner and the docs are untouched.
+
+- Test at the pin: `git show b7e1f26e:tests/unit/test-prune-run-evidence.py` (blob a9d66fcb13f57f476fdae986599fedc891a6c1dc, sha256 291b798eeb5427ff20d80ca60a85f581bac55d957f6c52f2b07c569e4405931d).
+- Fixed test: sha256 da00345e348f7ec22d34f9bd7fa9a51f0665bf8fb21e5917bb77081580fbcd57.
+- Pruner: unchanged, sha256 a6bc1fe5972c768ff847e9a740ebfb71dcba291263fbb8a0d71e9eb98399ad7a.
+
+### Change
+1. **Case-insensitive matching.** `claims()` matches each FORBIDDEN phrase with `re.search(re.escape(phrase), joined, re.IGNORECASE)`, across line wraps.
+2. **DEC-257 pin.** `DEC_257` embeds DEC-257's current section exactly: from `## DEC-257 ` up to the next `\n## DEC-`, trailing newline included. DEC-257 is exempt only while its section equals that byte for byte. Any change puts the whole section in the scan.
+3. **A-3 scope.** In DECISIONS.md the scan reads the DEC-238 section, which T-01 amends, and DEC-257 under the pin. In DECISIONS-INDEX.md it reads the DEC-238 and DEC-257 rows. Other decisions are not T-01's text and are no longer scanned. The pruner (TOOL), this test file and harness-ship.md are still scanned whole.
+   - The test file is scanned without its `FORBIDDEN` and `DEC_257` literals.
+   - The comment above `DEC_257` was reworded so that it quotes no forbidden phrase. The first draft's comment named two phrases, and the unmutated control went red on it; it was fixed before the runs below.
+
+### No false failure: measured before landing
+Every surface the scan will read was checked case-insensitively against FORBIDDEN:
+
+| surface | hits |
+|---|---|
+| DEC-257 section | `force-stag` (`force-staging`, :8675) and `git add` (`git add -f`, :8666), both exempt while pinned |
+| DEC-238 section | none |
+| DEC-238 and DEC-257 index rows | none |
+| DECISIONS.md without DEC-257 | none |
+| harness-ship.md | none |
+| pruner | none |
+| test file | only its `FORBIDDEN` literal |
+
+### GREEN
+- `python3 tests/unit/test-prune-run-evidence.py`: exit 0, 52 PASS, 0 FAIL, `all checks passed`.
+- T-01 `verify:` run verbatim: exit 0. Its output has 55 `^PASS` lines, which is the 52 plus the three grepped lines printed again.
+
+### Probes
+Each probe ran on a scratch rsync copy of the worktree under /tmp/bug2451-c2-probes, without .git, node_modules or features/, with exactly one mutation. Each copy ran `python3 tests/unit/test-prune-run-evidence.py` twice: once with the fixed test ("new") and once with the b7e1f26e test copied in ("old"). `subject-switch` also sets `PRUNE_RUN_EVIDENCE_BIN` to the 47d6c54d pruner. Every RED is an assertion failure in the five-file check; subject-switch also fails the behavioural checks.
+
+| probe | mutation | new rc / PASS / FAIL — five-file detail | old (b7e1f26e test) |
+|---|---|---|---|
+| control | none | 0 / 52 / 0 — PASS | 0 / 52 / 0 — PASS |
+| capitalised-claim | harness-ship.md step intro gains `Force-stage retained records.` | **1 / 51 / 1** — `harness-ship.md: force-stag` | 0 / 52 / 0 — PASS (missed) |
+| dec257-one-char | DEC-257 `with no \`git add -f\`` → `with No \`git add -f\`` | **1 / 51 / 1** — `DECISIONS.md DEC-257: force-stag`, `…: git add` | 0 / 52 / 0 — PASS (missed) |
+| unrelated-dec100-git-add | DEC-100's last line `Folded into task 7.` → `Folded into task 7; git add the result.` (no line added, so the index stays fresh) | **0 / 52 / 0 — PASS** | 1 / 51 / 1 — `DECISIONS.md: git add` (A-3 false red) |
+| ship-extra-space | `placeholder. Before` → `placeholder.  Before` | 1 / 51 / 1 — `ship prune paragraph text` | same |
+| bullet-extra-space | `value. Before` → `value.  Before` | 1 / 51 / 1 — `DEC-238 ship bullet text` | same |
+| ship-wrap-change | `it⏎  refuses with` → `it refuses⏎  with` | 1 / 51 / 1 — `ship prune paragraph text` | same |
+| ship-intro-claim | ship intro gains ``; `runs/**` is ignored`` | 1 / 51 / 1 — ``harness-ship.md: `runs/**` is ignored`` | same |
+| test-comment-claim | a test comment gains `` `runs/**` is ignored`` | 1 / 51 / 1 — ``tests/unit/test-prune-run-evidence.py: `runs/**` is ignored`` | same |
+| decisions-other-claim | DEC-238 "Abandon prunes." bullet gains `` `runs/**` is ignored.`` | 1 / 51 / 1 — ``DECISIONS.md DEC-238: `runs/**` is ignored`` | same (label `DECISIONS.md`) |
+| index-row-claim | DEC-238 index row gains `force-stages records` | 1 / 51 / 1 — `DECISIONS-INDEX.md DEC-238 and DEC-257 rows: force-stag` | same (label `DECISIONS-INDEX.md`) |
+| pruner-docstring-claim | pruner docstring gains ``; `runs/**` is ignored`` | 1 / 51 / 1 — ``…/prune-run-evidence.py: `runs/**` is ignored`` | same |
+| subject-switch | `PRUNE_RUN_EVIDENCE_BIN` = 47d6c54d pruner | 1 / 40 / 12 — five-file names `prune-run-evidence-47d6c54d.py: force-stag`, `…: git add`, … | same |
+
+On the two required mutants, capitalised-claim and dec257-one-char, the b7e1f26e test stays green and the fixed test goes red at assertion level. The unrelated `git add` in DEC-100 reddens the b7e1f26e test but leaves the fixed test green. All of the c1 probes are still red.
