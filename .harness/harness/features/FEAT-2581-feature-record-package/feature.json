@@ -1,0 +1,89 @@
+{
+  "feature_id": "FEAT-2581-feature-record-package",
+  "branch": "feat/FEAT-2581-feature-record-package",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T16:07:00+00:00",
+      "tokens": 204477,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/plan-product/digest.md",
+        "sha256": "c623bd7accdb31e3d0fe5fd83c506d9b724546c453baea46347fc6da9758c962"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-27T17:08:25+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "repanel-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T17:08:39+00:00",
+      "tokens": 147453,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/repanel-product/digest.md",
+        "sha256": "7f58cb2262ed9cdcb977b7d9600441ca652acbfcf0867407932c63e67a49e9b6"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-27T17:29:29+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "repanel2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T17:29:37+00:00",
+      "tokens": 177160,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/repanel2-product/digest.md",
+        "sha256": "bada06f8b905b8275d250dc6f30923f956660d24c35c7d71e3200ab2571f8184"
+      },
+      "cycles_used": 1,
+      "ended_at": "2026-11-27T17:51:26+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-27T16:06:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "the diff is about 26 production importers, about 20 tests, the classification JSON and DEC-259; it creates a new import surface, changes enforcement-layer code, and the identity proof needs a separate pin task INV-32 forbids for a patch"
+    },
+    {
+      "at": "2026-11-27T17:08:39+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan re-panel cycle 2 over T-01 and T-03",
+      "reason": "plan-product FAIL: scope reader's substance findings were applied by pm but not re-read; plan-phase.md re-panels substance findings over the tasks they name in a new run directory"
+    },
+    {
+      "at": "2026-11-27T17:29:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan re-panel cycle 3 over T-01 and T-03, with an in-run re-read of any applied text",
+      "reason": "repanel-product FAIL: 4 substance items applied unread (PF-14c2, PF-c36e, PF-c82f, PF-390f); lead recommends re-panel; surface narrowed 5 to 4; last re-panel I run without the operator"
+    },
+    {
+      "at": "2026-11-27T17:51:27+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "third plan-phase FAIL: 4 med substance findings open in T-03 verify plus the D-02 authorization; plan phase past its advisory minutes; operator decides one more bounded re-panel or a ruling at signature"
+    }
+  ],
+  "mission": "plan"
+}
