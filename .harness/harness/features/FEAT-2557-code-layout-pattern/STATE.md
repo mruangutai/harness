@@ -9,5 +9,5 @@
 
 ## Open Questions
 
-- Q-01 (non-blocking): dropped-task cards #2559 (T-02) and #2561 (T-03) are still recorded in feature.json github; no gh-sync.py verb reconciles a task deleted from a plan, so INV-26 reports both.
+- Q-01 (non-blocking): dropped-task cards #2559 and #2561 are still recorded in feature.json github; no gh-sync.py verb reconciles a task deleted from a plan, so INV-26 reports both.
 - Q-02 (non-blocking): the three T-01 amendment judgements read by: main-session though pm's plan-merge.py amend wrote them.
