@@ -5,7 +5,7 @@ approval:
   approved_by: main-session
   status: approved
 drafted_at: '2026-11-23T13:31:38Z'
-status: review
+status: done
 source_issues: [2451]
 lanes:
   resolved_at: 47d6c54de1d91459f84f61ca92e27a47ba553308
