@@ -776,7 +776,7 @@ reads every gate run as exactly one of three outcomes:
 | Outcome | What the gate does | What the agent sees |
 |---|---|---|
 | **Refusal** | `exit 2`, or a structured deny on stdout | the call is blocked, with the gate's reason |
-| **Unavailable** | its own failure: one stdout line `{"decision": "unavailable", "gate": "<script stem>", "reason": …}` at exit 0; the extension synthesizes the same for an abnormal exit, a signal, a missing gate or interpreter, a spawn error, or a kill at the 30-second budget | the call proceeds, with passive context `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` on every occurrence, phase-tagged (pre, post, dispatch, yield), never deduplicated, never an error result |
+| **Unavailable** | its own failure: one stdout line `{"decision": "unavailable", "gate": "<script stem>", "reason": …}` at exit 0; the extension synthesizes the same for an abnormal exit, a signal, a missing gate or interpreter, a spawn error, or a kill at the 30-second budget | the call proceeds (pre, post, dispatch), with passive context `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` on every occurrence, phase-tagged, never deduplicated, never an error result; a yield is refused, never passed (BUG-2565) |
 | **Allow** | `exit 0` and nothing else | nothing |
 
 A refusal outranks an unavailable line in the same output; omp discards `additionalContext` on a

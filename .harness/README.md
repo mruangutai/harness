@@ -182,9 +182,10 @@ with no data is refused, and a yield the validator cannot check is refused, neve
 refusal says the fault is Harness's and tells the child to yield the same object once more and
 then stop; a contract refusal instead carries the validator's own reason. Measured on OMP 19.2.1
 (this feature's `notes/research-yield-refusal-probe.md`): a hook-refused yield does not use up one
-of OMP's schema retries, and after repeated refusals the dispatcher's task result is `failed`
-with OMP's "exited without calling yield" warning and the child's final text naming the cause,
-never the refused object. There is no prose parser, last-message fallback, host-synthesized
+of OMP's schema retries, and after three refusals the dispatcher's task result was `failed` with
+OMP's "exited without calling yield" warning and the child's final text naming the cause. No
+refused object reaches the dispatcher as task data, though the child's own final text may quote
+it. There is no prose parser, last-message fallback, host-synthesized
 digest, or compatibility alias.
 
 Members yield objects to their lead. A lead first writes the human team report at

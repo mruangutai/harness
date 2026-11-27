@@ -2,7 +2,7 @@
   "feature_id": "BUG-2565-digest-frontmatter-contract",
   "branch": "feat/BUG-2565-digest-frontmatter-contract",
   "pr": null,
-  "review_sha": "60241c866fc413748eeb48f3ed9280b0b646088b",
+  "review_sha": "bb401aaea16b9b36a954daef3cebafb2401efe89",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -85,6 +85,21 @@
       "tokens": null,
       "ended_at": "2026-11-27T17:05:17+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-06-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-27T17:30:19+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-06-validate-validator/digest.md",
+        "sha256": "514890a77951780bcf64a66e92f4469a7dadcfc43dc2c803b86be1770ee91d15"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T18:23:20+00:00"
     }
   ],
   "judgements": [
@@ -115,6 +130,13 @@
       "kind": "regate",
       "decision": "final pm pass T-01/T-02, no re-read",
       "reason": "re-read FAIL on 2 med test-shape residuals; operator approved a final pm pass with no re-read"
+    },
+    {
+      "at": "2026-11-27T18:23:40.581698+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "operator ruling OQ-1 (validate run 06): T-03 owns the reader-classification rows for its two new scripts"
     }
   ],
   "mission": "plan",

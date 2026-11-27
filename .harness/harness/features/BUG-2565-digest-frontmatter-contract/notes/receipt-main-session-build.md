@@ -52,3 +52,31 @@ over the code diff `104252db..5385422f`:
 
 The dispatching main-session process loaded the pre-change `harness-hooks.ts` and keeps enforcing
 it until omp restarts. That stale-process class is BUG-2566's subject.
+
+## Fix round 1 (validate run 2026-11-27-06, ESCALATE)
+
+Operator rulings: `notes/answers-2026-11-27-validate-c1.md`. OQ-2's residual is now issue #2593.
+
+- **RED first.** Four regression witnesses were added to `tests/unit/test-digest-projection.py` and observed failing before any production edit:
+  - a `$ref`-reached root anyOf was not refused ("no ProjectionError");
+  - CRLF bytes were lost when stale output was rewritten;
+  - a quoted `"structured"` key was duplicated;
+  - an indentationless `output:` sequence was orphaned.
+  The first CRLF witness passed vacuously, because `read_text` normalises newlines and an up-to-date file is never written. It was sharpened to force a rewrite, and it then failed.
+- **T-03 refactor.**
+  - `digest_projection.project` became a keyword-handler table (`KEYWORDS`, `_Site`). The `root` flag survives `$ref`. `resolve_ref` was split into `split_ref` and `step`.
+  - `gen-agent-output.py` keeps line endings: it splits on `\n` keeping each terminator and reads and writes bytes. It recognises quoted keys (`TOP_KEY`) and treats indentationless sequence items as part of the value. It writes nothing if any persona fails (`Refused`, `report`).
+  - `code-grade.py` over both files: no function below its bar. The 16 agents regenerate byte-identical (`agent output: ok`).
+- **OQ-1.** `tests/integration/canonical-reader-classification.json` classifies `_Loader.document` and lists both scripts in `scanned_files`. T-03's `files:` was amended to own it.
+- **T-06.**
+  - The DEC-100, DEC-127 and DEC-208 index rulings are within the 30-word cap.
+  - The SPEC refusal-table Unavailable row names the yield refusal.
+  - README and BUILD state "three refusals" and narrow D-03 to task data (OQ-4). The probe receipt gained a correction line.
+  - The harness-team lead-schema sentence no longer says the schema is injected.
+- **Checks after the last edit:**
+  - T-01, T-03 (16/16 parity) and T-06 verifies: exit 0.
+  - `test-gen-decisions-index.py`: exit 0.
+  - `test-check-plan-routes.py`: ALL PASS.
+  - `test-check-omp-port.py`: 39/39.
+  - Port gate: ok.
+- **Advisory test-function grades left as is.** These are med, never blocking: `walk` and `case_generator` in the projection test are at grade 2. Both are flat fixture walkers whose branches are one assertion each, and splitting them would scatter one case's fixture across helpers.

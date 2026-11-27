@@ -23,6 +23,7 @@ refused rather than guessed, so a provider schema looser in SHAPE than the contr
 produced. This is a rule-for-rule port of the TypeScript loader it replaces
 (`git show 104252db:.omp/extensions/digest-schema.ts`).
 """
+import collections
 import copy
 import os
 import re
@@ -82,9 +83,9 @@ class _Loader:
         self.documents[file] = parsed
         return parsed
 
-    def resolve_ref(self, ref, loc):
-        """One `$ref` to (node, its file#pointer location). Only relative file references and
-        JSON-pointer fragments resolve; a URI with a scheme or an absolute path is refused."""
+    def split_ref(self, ref, loc):
+        """`ref`'s (file part, fragment). Only relative file references and JSON-pointer
+        fragments resolve; a URI with a scheme or an absolute path is refused."""
         if not isinstance(ref, str):
             self.fail(loc, f"$ref must be a string, got {ref!r}")
         file_part, _, fragment = ref.partition("#")
@@ -92,21 +93,28 @@ class _Loader:
             self.fail(loc, f"unsupported reference {ref!r} — only relative file references resolve")
         if fragment and not fragment.startswith("/"):
             self.fail(loc, f"unsupported reference {ref!r} — the fragment must be a JSON pointer")
+        return file_part, fragment
+
+    def resolve_ref(self, ref, loc):
+        """One `$ref` to (node, its file#pointer location)."""
+        file_part, fragment = self.split_ref(ref, loc)
         file = os.path.normpath(os.path.join(os.path.dirname(loc[0]), file_part)) if file_part else loc[0]
         node = self.document(file, loc)
         for encoded in (fragment[1:].split("/") if fragment else []):
-            try:
-                token = unquote(encoded, errors="strict").replace("~1", "/").replace("~0", "~")
-            except UnicodeDecodeError:
-                self.fail(loc, f"unresolved reference {ref!r}: malformed pointer token")
-            if isinstance(node, list) and INDEX.fullmatch(token) and int(token) < len(node):
-                node = node[int(token)]
-            elif isinstance(node, dict) and token in node:
-                node = node[token]
-            else:
-                self.fail(loc, f"unresolved reference {ref!r}: no {token!r} in "
-                               f"{os.path.relpath(file, self.root)}")
+            node = self.step(node, encoded, loc, ref, file)
         return node, (file, fragment)
+
+    def step(self, node, encoded, loc, ref, file):
+        """`node`'s child named by one encoded JSON-pointer token of `ref`."""
+        try:
+            token = unquote(encoded, errors="strict").replace("~1", "/").replace("~0", "~")
+        except UnicodeDecodeError:
+            self.fail(loc, f"unresolved reference {ref!r}: malformed pointer token")
+        if isinstance(node, list) and INDEX.fullmatch(token) and int(token) < len(node):
+            return node[int(token)]
+        if isinstance(node, dict) and token in node:
+            return node[token]
+        self.fail(loc, f"unresolved reference {ref!r}: no {token!r} in {os.path.relpath(file, self.root)}")
 
     def typed(self, child, child_loc, what, stack):
         """A property or array element must say what it is: OpenAI strict refuses an untyped
@@ -118,82 +126,124 @@ class _Loader:
             self.fail(child_loc, f"{what} admits any value — it must declare a type, an enum or an anyOf")
         return projected
 
-    def project(self, node, loc, stack):
+    def project(self, node, loc, stack, root=False):
+        """`node` projected. `root` marks the persona schema's own top level and survives a
+        `$ref`, so a root anyOf is refused whichever document spells it."""
         if not isinstance(node, dict):
             self.fail(loc, f"a schema must be an object, got {node!r}")
         if "$ref" in node:
-            siblings = [key for key in node if key != "$ref" and key not in ANNOTATIONS]
-            if siblings:
-                self.fail(loc, f"unsupported keyword(s) beside $ref: {', '.join(siblings)}")
-            target, target_loc = self.resolve_ref(node["$ref"], loc)
-            key = f"{target_loc[0]}#{target_loc[1]}"
-            if key in stack:
-                chain = " -> ".join(os.path.relpath(entry, self.root) for entry in [*stack, key])
-                self.fail(loc, f"reference cycle: {chain}")
-            return self.project(target, target_loc, [*stack, key])
-
-        def at(*tokens):
-            escaped = (token.replace("~", "~0").replace("/", "~1") for token in tokens)
-            return loc[0], loc[1] + "".join("/" + token for token in escaped)
-
+            return self.follow(node, loc, stack, root)
         out = {}
         for keyword, value in node.items():
             if keyword in DROPPED:
                 continue
-            if keyword == "type":
-                names = value if isinstance(value, list) else [value]
-                if not names or any(not isinstance(name, str) or name not in TYPES for name in names):
-                    self.fail(at(keyword), f"unsupported type {value!r}")
-                out["type"] = list(value) if isinstance(value, list) else value
-            elif keyword == "properties":
-                if not isinstance(value, dict):
-                    self.fail(at(keyword), "properties must be an object")
-                out["properties"] = {name: self.typed(child, at(keyword, name), "a property", stack)
-                                     for name, child in value.items()}
-            elif keyword == "required":
-                if not isinstance(value, list) or any(not isinstance(name, str) for name in value):
-                    self.fail(at(keyword), "required must be an array of strings")
-                out["required"] = list(value)
-            elif keyword == "additionalProperties":
-                if value is not False:
-                    self.fail(at(keyword), f"unsupported additionalProperties {value!r} — only false projects")
-                out["additionalProperties"] = False
-            elif keyword == "items":
-                out["items"] = self.typed(value, at(keyword), "array items", stack)
-            elif keyword == "enum":
-                if not isinstance(value, list) or not value:
-                    self.fail(at(keyword), "enum must be a non-empty array")
-                if "const" in node:
-                    self.fail(at(keyword), "enum and const together are unsupported")
-                out["enum"] = copy.deepcopy(value)
-            elif keyword == "const":
-                out["enum"] = [copy.deepcopy(value)]
-            elif keyword == "allOf":
-                # Only a list of conditionals (if/then/else) is a pure value constraint to drop.
-                if not isinstance(value, list) or any(
-                        not isinstance(branch, dict) or any(key not in CONDITIONALS | ANNOTATIONS for key in branch)
-                        for branch in value):
-                    self.fail(at(keyword), "unsupported allOf — only a list of if/then/else conditionals is dropped")
-            elif keyword == "anyOf":
-                if not isinstance(value, list) or not value:
-                    self.fail(at(keyword), "anyOf must be a non-empty array")
-                if not loc[1] and not stack:
-                    self.fail(at(keyword), "anyOf at the schema root is unsupported")
-                branches = [self.project(branch, at(keyword, str(index)), stack)
-                            for index, branch in enumerate(value)]
-                # Branches that only require keys constrain the enclosing object; they are not
-                # alternative shapes. Alternatives must each carry a type or an enum.
-                if all(set(branch) <= {"required"} for branch in branches):
-                    continue
-                if any(not {"type", "enum"} & branch.keys() for branch in branches):
-                    self.fail(at(keyword), "unsupported anyOf — every alternative must carry a type or an enum")
-                out["anyOf"] = branches
-            else:
-                self.fail(at(keyword), f"unsupported keyword {keyword!r}")
+            handler = KEYWORDS.get(keyword)
+            if handler is None:
+                self.fail(_at(loc, keyword), f"unsupported keyword {keyword!r}")
+            handler(self, value, _Site(node, _at(loc, keyword), stack, root), out)
+        self.require_items(out, loc)
+        return out
+
+    def follow(self, node, loc, stack, root):
+        siblings = [key for key in node if key != "$ref" and key not in ANNOTATIONS]
+        if siblings:
+            self.fail(loc, f"unsupported keyword(s) beside $ref: {', '.join(siblings)}")
+        target, target_loc = self.resolve_ref(node["$ref"], loc)
+        key = f"{target_loc[0]}#{target_loc[1]}"
+        if key in stack:
+            chain = " -> ".join(os.path.relpath(entry, self.root) for entry in [*stack, key])
+            self.fail(loc, f"reference cycle: {chain}")
+        return self.project(target, target_loc, [*stack, key], root)
+
+    def require_items(self, out, loc):
         types = out.get("type", [])
         if "array" in (types if isinstance(types, list) else [types]) and "items" not in out:
             self.fail(loc, "array schema without items — every array must declare its element schema")
-        return out
+
+    def keyword_type(self, value, site, out):
+        names = value if isinstance(value, list) else [value]
+        if not names or any(not isinstance(name, str) or name not in TYPES for name in names):
+            self.fail(site.loc, f"unsupported type {value!r}")
+        out["type"] = list(value) if isinstance(value, list) else value
+
+    def keyword_properties(self, value, site, out):
+        if not isinstance(value, dict):
+            self.fail(site.loc, "properties must be an object")
+        out["properties"] = {name: self.typed(child, _at(site.loc, name), "a property", site.stack)
+                             for name, child in value.items()}
+
+    def keyword_required(self, value, site, out):
+        if not isinstance(value, list) or any(not isinstance(name, str) for name in value):
+            self.fail(site.loc, "required must be an array of strings")
+        out["required"] = list(value)
+
+    def keyword_additional_properties(self, value, site, out):
+        if value is not False:
+            self.fail(site.loc, f"unsupported additionalProperties {value!r} — only false projects")
+        out["additionalProperties"] = False
+
+    def keyword_items(self, value, site, out):
+        out["items"] = self.typed(value, site.loc, "array items", site.stack)
+
+    def keyword_enum(self, value, site, out):
+        if not isinstance(value, list) or not value:
+            self.fail(site.loc, "enum must be a non-empty array")
+        if "const" in site.node:
+            self.fail(site.loc, "enum and const together are unsupported")
+        out["enum"] = copy.deepcopy(value)
+
+    def keyword_const(self, value, site, out):
+        out["enum"] = [copy.deepcopy(value)]
+
+    def keyword_all_of(self, value, site, out):
+        """Only a list of conditionals (if/then/else) is a pure value constraint to drop."""
+        if not isinstance(value, list) or not all(_conditional(branch) for branch in value):
+            self.fail(site.loc, "unsupported allOf — only a list of if/then/else conditionals is dropped")
+
+    def keyword_any_of(self, value, site, out):
+        if not isinstance(value, list) or not value:
+            self.fail(site.loc, "anyOf must be a non-empty array")
+        if site.root:
+            self.fail(site.loc, "anyOf at the schema root is unsupported")
+        branches = [self.project(branch, _at(site.loc, str(index)), site.stack)
+                    for index, branch in enumerate(value)]
+        # Branches that only require keys constrain the enclosing object; they are not
+        # alternative shapes, and project to nothing.
+        if not all(set(branch) <= {"required"} for branch in branches):
+            out["anyOf"] = self.alternatives(branches, site.loc)
+
+    def alternatives(self, branches, loc):
+        """`branches` as alternative shapes, each of which must carry a type or an enum."""
+        if any(not {"type", "enum"} & branch.keys() for branch in branches):
+            self.fail(loc, "unsupported anyOf — every alternative must carry a type or an enum")
+        return branches
+
+
+# Where one keyword of a node is projected: the node, the keyword's own location, the $ref
+# stack, and whether the node is the persona schema's top level.
+_Site = collections.namedtuple("_Site", "node loc stack root")
+
+KEYWORDS = {
+    "type": _Loader.keyword_type,
+    "properties": _Loader.keyword_properties,
+    "required": _Loader.keyword_required,
+    "additionalProperties": _Loader.keyword_additional_properties,
+    "items": _Loader.keyword_items,
+    "enum": _Loader.keyword_enum,
+    "const": _Loader.keyword_const,
+    "allOf": _Loader.keyword_all_of,
+    "anyOf": _Loader.keyword_any_of,
+}
+
+
+def _at(loc, *tokens):
+    """`loc` extended by JSON-pointer tokens, each escaped."""
+    escaped = (token.replace("~", "~0").replace("/", "~1") for token in tokens)
+    return loc[0], loc[1] + "".join("/" + token for token in escaped)
+
+
+def _conditional(branch):
+    return isinstance(branch, dict) and set(branch) <= CONDITIONALS | ANNOTATIONS
 
 
 def provider_bundle(persona, directory=digest_schema.SCHEMA_DIR):
@@ -209,4 +259,4 @@ def provider_bundle(persona, directory=digest_schema.SCHEMA_DIR):
         raise ProjectionError(f"digest schema directory {directory} cannot be resolved: {error.strerror}") from error
     loader = _Loader(root)
     file = os.path.join(root, f"{canonical}.json")
-    return loader.project(loader.document(file, None), (file, ""), [])
+    return loader.project(loader.document(file, None), (file, ""), [], root=True)

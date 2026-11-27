@@ -143,8 +143,8 @@ Never write that fenced block yourself. The digest-of-digests shape: `team-run-s
 
 ## Reporting up
 
-Return an object through YieldTool, never fenced YAML text (`harness-handoff`). Your injected lead
-schema owns the required fields (DEC-121, DEC-237), e.g.
+Return an object through YieldTool, never fenced YAML text (`harness-handoff`). Your lead schema,
+carried by your agent definition, owns the required fields (DEC-121, DEC-237), e.g.
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-eng-lead.json`;
 product-lead and validator-lead have their own `harness-<persona>.json` with the same fields.
 **Before your first lead return, read

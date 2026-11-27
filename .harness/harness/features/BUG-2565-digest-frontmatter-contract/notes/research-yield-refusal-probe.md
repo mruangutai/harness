@@ -23,6 +23,7 @@ RESULT END
 ## What it means
 
 - **No refused payload reaches the parent** (D-03 gate passes). Run A: the hook refused every yield. The child yielded the same object twice, then tried an `error` yield, which was also refused. It ended without an accepted yield. The parent's task result was `failed (exit 1)` with OMP's "Subagent exited without calling yield tool after 3 reminders" warning and the child's final text naming the cause. No data was delivered.
+  - *Correction (validate run 2026-11-27-06, operator ruling OQ-4):* "no refused payload" holds for task **data** only. In Run A the child's own final text, which the parent's failure result carries, quoted the refused object. D-03 bounds task data; the child's prose is not covered.
 - **Hook refusals do not consume OMP's schema-retry budget.** Run C: after three hook refusals, OMP's own schema check rejected attempt 4 (`{"wrong": true}`) with "2 retry attempt(s) remain", which is the full budget minus one. The parent received attempt 5's valid object, never the invalid one.
 - **OMP itself rejects a data-less `type: result` yield** when nothing was submitted before it (Run B), with "Empty result retries remaining". D-04 refuses it in the hook regardless.
 - Side observation for T-02/T-06: under a refusing validator, a child's `{"error": …}` yield, which has no `data`, is refused like any other. So the child cannot report failure through yield, and the parent sees `failed` plus the child's final text. That matches D-02's instruction to stop and name the cause.

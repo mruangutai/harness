@@ -360,6 +360,7 @@ tasks:
   - .claude/skills/harness/bin/digest_projection.py
   - .claude/skills/harness/bin/gen-agent-output.py
   - tests/unit/test-digest-projection.py
+  - tests/integration/canonical-reader-classification.json
   verify: |
     set -eu
     python3 tests/unit/test-digest-projection.py

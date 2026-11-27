@@ -58,8 +58,9 @@ This example is complete for `harness-documentor`. For every Harness persona:
 2. Global `task.structured` stays off, so the task tool exposes no schema parameter and the
    dispatcher supplies none. Agent frontmatter cannot set strict mode, so the yield hook refuses a
    yield with no data, and a yield the validator cannot check is refused, never passed. Measured on
-   OMP 19.2.1: a hook refusal does not use up one of OMP's schema retries, and after repeated
-   refusals the dispatcher sees a `failed` task result naming the cause, never the refused object.
+   OMP 19.2.1: a hook refusal does not use up one of OMP's schema retries, and after three
+   refusals the dispatcher saw a `failed` task result naming the cause, with no refused object as
+   task data (the child's own final text may quote it).
 3. The agent passes one mapping as YieldTool `data`. The top level is exactly `VERDICT`, `DIGEST`,
    and `artifact`; every persona-schema property is present. Conditional fields stay present with
    `none` or `[]`, null is forbidden, and minimal list-item variants are closed.

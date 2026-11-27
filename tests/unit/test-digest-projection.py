@@ -7,6 +7,7 @@ each harness agent's frontmatter as `structured: true` plus `output:`.
 """
 from pathlib import Path
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -127,6 +128,10 @@ def case_refusals():
     refusal("an anyOf at the schema root names file and pointer",
             lambda t: put(t, "harness-qa.json", {"anyOf": [{"type": "object"}, {"type": "null"}]}),
             "harness-qa.json", "/anyOf: anyOf at the schema root is unsupported")
+    refusal("an anyOf at the schema root reached through $ref names the referenced pointer",
+            lambda t: (put(t, "common.json", {"$defs": {"r": {"anyOf": [{"type": "object"}, {"type": "null"}]}}}),
+                       put(t, "harness-qa.json", {"$ref": "common.json#/$defs/r"})),
+            "common.json", "/$defs/r/anyOf: anyOf at the schema root is unsupported")
 
 
 def case_fresh_read():
@@ -212,8 +217,46 @@ def case_generator():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def edge(name, rewrite, accept):
+    """Regenerate one agent after `rewrite(text)`; `accept(before, after)` judges the bytes."""
+    root = generator_root()
+    qa = root / ".omp/agents/harness-qa.md"
+    try:
+        before = rewrite(qa.read_bytes().decode("utf-8"))
+        qa.write_bytes(before.encode("utf-8"))
+        run = generate(root)
+        after = qa.read_bytes().decode("utf-8")
+        stable = generate(root, "--check").returncode == 0
+        check(name, run.returncode == 0 and stable and accept(before, after), run.stderr or after[:400])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+FRONT_KEY = re.compile(r"""^(?:"([^"]*)"|'([^']*)'|([^\s:#"'-][^:]*?))\s*:(?:\s|$)""")
+
+
+def front_keys(text):
+    """Top-level frontmatter keys, unquoted, one entry per occurrence."""
+    lines = text.replace("\r\n", "\n").split("\n")
+    found = (FRONT_KEY.match(line) for line in lines[1:lines.index("---", 1)])
+    return [next(group for group in match.groups() if group is not None) for match in found if match]
+
+
+def case_generator_edges():
+    edge("CRLF frontmatter and body keep their CRLF bytes when stale output is rewritten",
+         lambda text: text.replace("additionalProperties: false", "additionalProperties: true", 1).replace("\n", "\r\n"),
+         lambda before, after: "\n" not in after.replace("\r\n", "")
+         and after.split("\r\n---\r\n", 1)[1] == before.split("\r\n---\r\n", 1)[1])
+    edge("a quoted structured key is replaced, never duplicated",
+         lambda text: text.replace("\nstructured: true\n", '\n"structured": true\n', 1),
+         lambda before, after: front_keys(after).count("structured") == 1 and '"structured"' not in after)
+    edge("an indentationless output sequence is replaced whole, never orphaned",
+         lambda text: re.sub(r"\noutput:\n(?:  .*\n)+", "\noutput:\n- stale\n- stale\n", text, count=1),
+         lambda before, after: "- stale" not in after and front_keys(after).count("output") == 1)
+
+
 def main():
-    for case in (case_projection, case_refusals, case_fresh_read, case_generator):
+    for case in (case_projection, case_refusals, case_fresh_read, case_generator, case_generator_edges):
         try:
             case()
         except Exception as error:  # noqa: BLE001 — a crashing case is a failing case, reported by name

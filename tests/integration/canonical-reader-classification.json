@@ -568,6 +568,19 @@
       "task": "T-05"
     },
     {
+      "artifact": "schemas/digest/*.json persona digest schemas",
+      "category": "load_json_mapping",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/digest_projection.py",
+      "id": ".claude/skills/harness/bin/digest_projection.py::_Loader.document::load_json_mapping#1",
+      "reason": "",
+      "remedy": "artifact_accessors.load_json_mapping",
+      "symbol": "_Loader.document",
+      "task": "none"
+    },
+    {
       "artifact": "durable run digest.md fenced YAML block",
       "category": "harness_yaml_string",
       "dec174_category": "validator",
@@ -2491,6 +2504,7 @@
     ".claude/skills/harness/bin/code-grade.py",
     ".claude/skills/harness/bin/code_grade.py",
     ".claude/skills/harness/bin/digest_destination.py",
+    ".claude/skills/harness/bin/digest_projection.py",
     ".claude/skills/harness/bin/digest_record.py",
     ".claude/skills/harness/bin/digest_schema.py",
     ".claude/skills/harness/bin/dispatch-guard.py",
@@ -2509,6 +2523,7 @@
     ".claude/skills/harness/bin/feature_json_write.py",
     ".claude/skills/harness/bin/feature_schema.py",
     ".claude/skills/harness/bin/gate_policy.py",
+    ".claude/skills/harness/bin/gen-agent-output.py",
     ".claude/skills/harness/bin/gen-craft-index.py",
     ".claude/skills/harness/bin/gen-decisions-index.py",
     ".claude/skills/harness/bin/gh-close-gate.py",
