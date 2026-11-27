@@ -21,6 +21,21 @@
       "cycles_used": 0,
       "ended_at": "2026-11-23T13:34:33+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-26-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T03:07:38+00:00",
+      "tokens": 135864,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-26-02-validate-validator/digest.md",
+        "sha256": "967df0a58abf865388ba3b3b6cb0fba385adcd22143d7f9f007d1cda74e72562"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T03:18:14+00:00"
     }
   ],
   "judgements": [
@@ -30,6 +45,13 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "Cause known: #2447 built on a pre-DEC-257 base, merged without textual conflict, shipped force-staging DEC-257 had made false. Diff bounded to pruner, test, ship paragraph, DEC-238 bullet; removes behaviour, adds no interface/schema/gate"
+    },
+    {
+      "at": "2026-11-27T03:07:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Build seam crossed in one session: T-01 verified at a4356cb5, pin b2c1f55e contains it, zero cycles and zero rework minutes spent; same orchestrator continues into the single validate run"
     }
   ],
   "mission": "patch",
