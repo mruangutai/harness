@@ -325,11 +325,10 @@ def _inv37_feature(ctx, _fs37, plan_docs, _feat37):
             return [f"INV-37 {_feat37}: invalid authoritative repository binding: {error}"]
     else:
         repo = (ctx.cj.get("github") or {}).get("repo")
-    problems = _fs37.mirror_evidence_problems(_fp37, doc)
     provenance = _fs37.mirror_provenance_problem(doc, repo)
-    if not problems and not provenance and (not enabled or _fs37.receipt_allows_merge(doc, repo)):
+    if not provenance and (not enabled or _fs37.receipt_allows_merge(doc, repo)):
         return bad
-    detail = "; ".join(problems) or provenance or "receipt absent or incomplete"
+    detail = provenance or "receipt absent or incomplete"
     bad.append(_inv37_finding(_fs37, _feat37, _fp37, doc, repo, detail))
     return bad
 

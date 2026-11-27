@@ -134,8 +134,8 @@ byte-verified before any commit.
   (SC-03); `scope: task` findings never do, however many (DEC-228). Procedure:
   `plan-phase.md`.
 - **Build** — require the signature-created `github.build_entry` plus valid repository provenance.
-  Compatible missing/partial receipts may use main-owned `open`; invalid mappings require explicitly
-  authorized `recover-mirror`, never ordinary `open` (`github-mirror.md`). Compatible
+  Compatible missing/partial receipts may use main-owned `open`; invalid mappings refuse and need a
+  hand fix of the `github` block, never ordinary `open` (`github-mirror.md`). Compatible
   `recovery-required` may continue but gates merge. Run
   `gh-sync.py status <feature-dir> building` before task dispatch, then send the
   `build` team to `harness-eng-lead` (single-squad, DEC-118). **A `PASS` carrying `amendments:` is

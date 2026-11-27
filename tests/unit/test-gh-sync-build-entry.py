@@ -243,40 +243,4 @@ check("BE-30 milestone recorded plus --parent 9 given adopts by number, and no a
       creates == ["adopt parent #9 (given via --parent)"] and no_mentions,
       f"creates={creates!r} no_mentions={no_mentions}")
 
-# A signed plan can acquire a ledgered amendment without rewriting its original hashes.
-# Recovery must recognize that approval, but neither an unrelated amendment nor a missing
-# original signature may bless changed task text.
-with tempfile.TemporaryDirectory() as tmp:
-    from plan_merge.approval import signed_task_hashes
-
-    d = feat_dir(tmp, "FEAT-9110-fixture")
-    plan = {"approval": {"status": "approved"}, "tasks": [
-        {"id": "T-01", "title": "Recovery approval", "change_type": "cross_module",
-         "execution_mode": "main-session-direct", "files": ["original.py"],
-         "intent": "fix", "verify": "unit"}]}
-    doc = base_doc("FEAT-9110-fixture")
-    doc["signed_task_hashes"] = signed_task_hashes(plan)
-    plan["tasks"][0]["files"].append("approved-regression.py")
-    Path(d, "plan.yaml").write_text(json.dumps(plan), encoding="utf-8")
-    for label, judgements, accepted in (
-        ("ledgered amendment", [{"kind": "amendment", "decision": "T-01.files"}], True),
-        ("unrelated amendment", [{"kind": "amendment", "decision": "T-02.files"}], False),
-        ("unledgered edit", [], False),
-    ):
-        doc["judgements"] = judgements
-        try:
-            gh_sync._replacement_plan(d, doc)
-            allowed = True
-        except ValueError:
-            allowed = False
-        check(f"mirror replacement approval: {label}", allowed == accepted)
-    doc["signed_task_hashes"] = {}
-    doc["judgements"] = [{"kind": "amendment", "decision": "T-01.files"}]
-    try:
-        gh_sync._replacement_plan(d, doc)
-        allowed = True
-    except ValueError:
-        allowed = False
-    check("mirror replacement refuses missing original task signatures", not allowed)
-
 sys.exit(1 if failures else 0)
