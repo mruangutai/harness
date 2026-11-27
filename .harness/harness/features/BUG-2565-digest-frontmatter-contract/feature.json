@@ -2,7 +2,7 @@
   "feature_id": "BUG-2565-digest-frontmatter-contract",
   "branch": "feat/BUG-2565-digest-frontmatter-contract",
   "pr": null,
-  "review_sha": "266134088b034dca73259ed0e9c8bf4601312fb6",
+  "review_sha": "dca6017d59edf5222bbd41de08d2a8a2a0f74c51",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -130,6 +130,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-27T19:08:02+00:00"
+    },
+    {
+      "id": "2026-11-27-09-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-27T19:10:44+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-09-validate-validator/digest.md",
+        "sha256": "be609efa3885f00dff4f8d59eeb86efa7f0b3d714c0d9df23287dc55760625f7"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T19:41:25+00:00"
     }
   ],
   "judgements": [
