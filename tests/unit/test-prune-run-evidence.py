@@ -3,19 +3,24 @@
 (every PASS validator validate/fix run and every run bound to the shipped pin) and drops only
 the other runs' `runs/<id>/ui/` (#1997). Every run directory, digest.md, state.yaml,
 .run-identity.json and other non-UI file survives byte-for-byte (#2294): #2177 pins each recorded
-run's digest as check-state cycle evidence. Every surviving non-UI file of each feature.json
-recorded run is force-staged into the git index (`runs/**` is ignored), and a missing
-cycle_evidence path refuses with exit 2 before anything changes (#2399). Fixtures are real git
-repositories with the run directories ignored, so the index assertions exercise `git add -f`.
+run's digest as check-state cycle evidence. Run records are tracked like any artifact (DEC-257),
+so the pruner runs no git command and leaves the index byte-identical (#2451). Before any
+mutation, dry-run included, a missing recorded cycle_evidence path refuses with exit 2 and an
+unreadable directory under a recorded run, its ui/ included, fails with exit 1, each naming every
+offender (#2399). Fixtures are real git repositories ignoring only `runs/*/ui/**`, as DEC-257's
+.gitignore does.
 
 PRUNE_RUN_EVIDENCE_BIN overrides the subject so the regressions can be proven RED against a
 reverted copy of the pruner."""
+import ast
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
+import textwrap
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -50,8 +55,35 @@ def check(name, condition, detail=""):
         print("       " + detail[:500])
 
 
+def scrubbed_env():
+    return {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")}
+
+
 def tool(root, *args):
-    return subprocess.run([sys.executable, str(TOOL), "--root", str(root), *args], capture_output=True, text=True)
+    return subprocess.run([sys.executable, str(TOOL), "--root", str(root), *args],
+                          capture_output=True, text=True, env=scrubbed_env())
+
+
+# Runs the subject under an audit hook: any subprocess or exec it starts — a read-only
+# `git status` included — is logged and raised inside the subject, so it cannot succeed.
+NO_SUBPROCESS = textwrap.dedent("""
+    import os, runpy, sys
+    def hook(event, args):
+        if event in ("subprocess.Popen", "os.posix_spawn", "os.exec", "os.spawn", "os.system", "os.fork"):
+            with open(os.environ["PRUNE_SUBPROCESS_LOG"], "a", encoding="utf-8") as log:
+                log.write(f"{event} {args!r}\\n")
+            raise RuntimeError(f"prune-run-evidence started a subprocess: {event}")
+    sys.addaudithook(hook)
+    sys.argv = sys.argv[1:]
+    runpy.run_path(sys.argv[0], run_name="__main__")
+""")
+
+
+def hooked_tool(root, log, *args):
+    env = scrubbed_env()
+    env["PRUNE_SUBPROCESS_LOG"] = str(log)
+    return subprocess.run([sys.executable, "-c", NO_SUBPROCESS, str(TOOL), "--root", str(root), *args],
+                          capture_output=True, text=True, env=env)
 
 
 def git(root, *args):
@@ -61,20 +93,13 @@ def git(root, *args):
 
 
 def checkout(root):
-    """A real git repository that ignores run directories the way .gitignore:11 does."""
+    """A real git repository that ignores only run UI lanes, as DEC-257's .gitignore does."""
     (root / ".harness").mkdir(parents=True, exist_ok=True)
     (root / ".harness" / "team-config.yaml").write_text("agents: {}\n")
-    (root / ".gitignore").write_text(".harness/*/features/*/runs/**\n")
+    (root / ".gitignore").write_text(".harness/*/features/*/runs/*/ui/**\n")
     git(root, "init", "-q")
     git(root, "add", ".gitignore", ".harness/team-config.yaml")
     git(root, "commit", "-q", "-m", "init")
-
-
-def staged_runs(root, feat):
-    """{path relative to runs/: index blob bytes} of every indexed file under the feature's runs/."""
-    prefix = str((feat / "runs").relative_to(root)) + "/"
-    paths = [p for p in git(root, "ls-files", "-z").decode().split("\0") if p.startswith(prefix)]
-    return {p[len(prefix):]: git(root, "cat-file", "blob", f":{p}") for p in paths}
 
 
 def index_bytes(root):
@@ -125,7 +150,7 @@ def records_intact(name, feat, before):
 
 
 def dry_run_cases(root, feat):
-    records, ui = files_bytes(feat, ui=False), files_bytes(feat, ui=True)
+    records, ui, files = files_bytes(feat, ui=False), files_bytes(feat, ui=True), tree_bytes(feat)
     dry = tool(root, "--feature", "FEAT-9-thing", "--dry-run")
     would = [line for line in dry.stdout.splitlines() if line.startswith("would remove")]
     expected = [f"would remove runs/{r}/ui" for r in ALL_RUNS if r not in EXPECTED_KEPT and r != "plan-c0-product"]
@@ -133,6 +158,7 @@ def dry_run_cases(root, feat):
           dry.returncode == 0 and would == expected, dry.stdout + dry.stderr)
     check("dry-run changes no bytes", files_bytes(feat, ui=True) == ui and ui_runs(feat) == sorted(r for r, _v, s in RUNS if s))
     records_intact("dry-run leaves every run record byte-identical", feat, records)
+    check("dry-run leaves every file in the feature byte-identical, feature.json included", tree_bytes(feat) == files)
 
 
 def retention_cases(root, feat):
@@ -169,7 +195,7 @@ def recorded(feat, extra):
     (feat / "feature.json").write_text(json.dumps(record))
 
 
-def staging_feature(root):
+def records_feature(root):
     """RUNS plus panel, acceptance and nested qa manifests in a kept and a pruned recorded run,
     and an unrecorded run holding both a record and a UI lane."""
     feat = feature(root, RUNS)
@@ -187,41 +213,74 @@ def staging_feature(root):
     return feat
 
 
-def expected_staged(feat):
-    return {k: v for k, v in files_bytes(feat, ui=False).items() if not k.startswith("stray-run/")}
+def tracked_repo(root):
+    """records_feature committed as DEC-257 tracks it, then a modified tracked record, an
+    untracked record in a recorded run and an unrelated change already staged."""
+    checkout(root)
+    feat = records_feature(root)
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "records")
+    with open(feat / "runs" / "validate-c2-validator" / "digest.md", "a", encoding="utf-8") as handle:
+        handle.write("edited after commit\n")
+    (feat / "runs" / "build-c0-eng" / "late.md").write_bytes(b"late record\n")
+    (root / "unrelated.txt").write_bytes(b"pre-staged\n")
+    git(root, "add", "unrelated.txt")
+    return feat
 
 
-def staging_dry_run(root, feat, expected):
-    files, index = tree_bytes(feat), index_bytes(root)
-    dry = tool(root, "--feature", "FEAT-9-thing", "--dry-run")
-    would = sorted(line for line in dry.stdout.splitlines() if line.startswith("would stage"))
-    check("dry-run names every non-UI file of every recorded run it would stage, and nothing else",
-          dry.returncode == 0 and would == sorted(f"would stage runs/{k}" for k in expected), dry.stdout + dry.stderr)
-    check("dry-run leaves every file and the git index byte-identical",
-          tree_bytes(feat) == files and index_bytes(root) == index and not staged_runs(root, feat))
+MODES = (("dry-run", ("--dry-run",)), ("prune", ()))
 
 
-def staging_prune(root, feat, expected):
-    pruned = tool(root, "--feature", "FEAT-9-thing")
-    staged = staged_runs(root, feat)
-    check("prune force-stages every surviving non-UI file of every recorded run, kept or pruned, nested qa/ included, byte-identical",
-          pruned.returncode == 0 and staged == expected,
-          f"rc={pruned.returncode} missing={sorted(set(expected) - set(staged))} extra={sorted(set(staged) - set(expected))}")
-    check("prune stages no ui/ file and nothing of an unrecorded run",
-          not [k for k in staged if k.split("/")[1] == "ui" or k.startswith("stray-run/")], str(sorted(staged)))
+def unchanged_as_mode(feat, args, before):
+    """Dry-run changes no feature byte; a prune keeps every run record and drops fix-c3-eng's ui/."""
+    files, records = before
+    if args:
+        return tree_bytes(feat) == files
+    return files_bytes(feat, ui=False) == records and not (feat / "runs" / "fix-c3-eng" / "ui").exists()
 
 
-def staging_cases():
+def no_git_hooked(label, args):
+    """One mode under the audit hook in a fresh tracked repository: (no subprocess, every leg passed)."""
     with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        checkout(root)
-        feat = staging_feature(root)
-        expected = expected_staged(feat)
-        staging_dry_run(root, feat, expected)
-        staging_prune(root, feat, expected)
-        again = tool(root, "--feature", "FEAT-9-thing")
-        check("a repeated prune exits 0 and leaves the same staged records",
-              again.returncode == 0 and staged_runs(root, feat) == expected, again.stdout + again.stderr)
+        root = Path(tmp) / "repo"
+        root.mkdir()
+        feat = tracked_repo(root)
+        log = Path(tmp) / "subprocess.log"
+        index, before = index_bytes(root), (tree_bytes(feat), files_bytes(feat, ui=False))
+        ran = hooked_tool(root, log, "--feature", "FEAT-9-thing", *args)
+        started = log.read_text(encoding="utf-8") if log.exists() else ""
+        quiet = ran.returncode == 0 and not started
+        check(f"{label} starts no subprocess and exits 0", quiet, f"rc={ran.returncode} log={started} {ran.stderr}")
+        no_stage = "stage" not in ran.stdout + ran.stderr
+        check(f"{label} prints no staging output", no_stage, ran.stdout)
+        verb = "would remove" if args else "removed"
+        behaves = (f"{verb} runs/fix-c3-eng/ui" in ran.stdout and unchanged_as_mode(feat, args, before)
+                   and index_bytes(root) == index)
+        check(f"{label} prunes as before and leaves every run record and the index byte-identical", behaves,
+              ran.stdout + ran.stderr)
+        return quiet, quiet and no_stage and behaves
+
+
+def no_git_index(label, args):
+    """The same mode with no hook in a fresh tracked repository, so a git call that would write the
+    index runs and the raw index bytes catch it."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "repo"
+        root.mkdir()
+        feat = tracked_repo(root)
+        index, before = index_bytes(root), (tree_bytes(feat), files_bytes(feat, ui=False))
+        ran = tool(root, "--feature", "FEAT-9-thing", *args)
+        same = ran.returncode == 0 and index_bytes(root) == index and unchanged_as_mode(feat, args, before)
+        check(f"{label} leaves the real git index byte-identical", same,
+              f"rc={ran.returncode} index {len(index)} -> {len(index_bytes(root))} bytes {ran.stderr}")
+        return same
+
+
+def no_git_cases():
+    hooked = [no_git_hooked(label, args) for label, args in MODES]
+    unhooked = [no_git_index(label, args) for label, args in MODES]
+    check("pruner invokes no git subprocess", all(quiet for quiet, _ in hooked))
+    check("real temporary git repository index is byte-identical", all(ok for _, ok in hooked) and all(unhooked))
 
 
 def evidence_feature(root):
@@ -246,11 +305,12 @@ def evidence_refused(root, feat, missing):
 
 
 def evidence_complete(root, feat):
+    index = index_bytes(root)
     complete = tool(root, "--feature", "FEAT-9-thing")
-    staged = staged_runs(root, feat)
-    digests = [f"validate-c{n}-validator/digest.md" for n in (1, 2, 3)]
-    check("complete cycle evidence permits the prune and stages every digest",
-          complete.returncode == 0 and all(d in staged for d in digests), complete.stdout + complete.stderr)
+    digests = [feat / "runs" / f"validate-c{n}-validator" / "digest.md" for n in (1, 2, 3)]
+    check("complete cycle evidence permits the prune, keeps every digest and leaves the index alone",
+          complete.returncode == 0 and all(d.is_file() for d in digests) and index_bytes(root) == index,
+          complete.stdout + complete.stderr)
 
 
 def missing_evidence_cases():
@@ -268,32 +328,87 @@ def missing_evidence_cases():
         evidence_complete(root, feat)
 
 
+UNREADABLE = ["runs/build-c0-eng/qa", "runs/validate-c2-validator/qa"]
+
+
 def unreadable_checks(root, feat):
     files, index = tree_bytes(feat / "runs" / "fix-c3-eng" / "ui"), index_bytes(root)
     for label, args in (("dry-run", ("--dry-run",)), ("prune", ())):
         failed = tool(root, "--feature", "FEAT-9-thing", *args)
-        check(f"{label} fails with exit 1 naming an unreadable subtree of a recorded run",
-              failed.returncode == 1 and "runs/build-c0-eng/qa" in failed.stderr, f"rc={failed.returncode} {failed.stderr}")
-        check(f"a {label} over an unreadable subtree stages nothing and removes no ui/",
-              index_bytes(root) == index and not staged_runs(root, feat)
-              and tree_bytes(feat / "runs" / "fix-c3-eng" / "ui") == files)
+        check(f"{label} fails with exit 1 naming every unreadable directory under a recorded run",
+              failed.returncode == 1 and all(p in failed.stderr for p in UNREADABLE), f"rc={failed.returncode} {failed.stderr}")
+        check(f"a {label} over unreadable directories changes no index byte and removes no ui/",
+              index_bytes(root) == index and tree_bytes(feat / "runs" / "fix-c3-eng" / "ui") == files)
 
 
 def unreadable_cases():
-    """An unreadable qa/ inside a recorded run must not be silently left out of the record (c1 MF-1)."""
+    """Unreadable qa/ directories inside recorded runs refuse the prune before anything changes (c1 MF-1)."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         checkout(root)
-        feat = staging_feature(root)
-        qa = feat / "runs" / "build-c0-eng" / "qa"
-        qa.chmod(0)
+        feat = records_feature(root)
+        dirs = [feat / p for p in UNREADABLE]
+        for qa in dirs:
+            qa.chmod(0)
         try:
-            if os.access(qa, os.R_OK):
+            if os.access(dirs[0], os.R_OK):
                 print("SKIP - unreadable subtree: chmod 000 has no effect for this user (root?)")
                 return
             unreadable_checks(root, feat)
         finally:
-            qa.chmod(0o755)
+            for qa in dirs:
+                qa.chmod(0o755)
+
+
+UNREADABLE_UI = ["runs/fix-c3-eng/ui/evidence", "runs/fix-c5-eng/ui", "runs/validate-c2-validator/ui/evidence"]
+
+
+def readable_bytes(path):
+    """{relative path: bytes} of every file os.walk can reach; an unreadable directory is passed over."""
+    found = {}
+    for current, _dirs, files in os.walk(path):
+        for name in files:
+            found[os.path.relpath(os.path.join(current, name), path)] = Path(current, name).read_bytes()
+    return found
+
+
+def named_unreadable(stderr):
+    _head, sep, tail = stderr.strip().partition("cannot read recorded run content: ")
+    return set(tail.split(", ")) if sep else set()
+
+
+def unreadable_ui_checks(root, feat):
+    files, index = readable_bytes(feat), index_bytes(root)
+    for label, args in MODES:
+        failed = tool(root, "--feature", "FEAT-9-thing", *args)
+        check(f"{label} fails with exit 1 naming every unreadable directory under a recorded run's ui/",
+              failed.returncode == 1 and set(UNREADABLE_UI) <= named_unreadable(failed.stderr),
+              f"rc={failed.returncode} {failed.stderr}")
+        check(f"a {label} over unreadable ui/ directories removes no readable lane and changes no index byte",
+              readable_bytes(feat) == files and index_bytes(root) == index)
+
+
+def unreadable_ui_cases():
+    """Unreadable directories inside recorded runs' ui/ lanes — a kept lane, a pruned lane's subtree
+    and a pruned ui/ itself — beside readable prunable lanes refuse before anything changes (c1 MF-1)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "repo"
+        root.mkdir()
+        feat = tracked_repo(root)
+        before = tree_bytes(feat)
+        dirs = [feat / p for p in UNREADABLE_UI]
+        for directory in dirs:
+            directory.chmod(0)
+        try:
+            if os.access(dirs[0], os.R_OK):
+                print("SKIP - unreadable ui/: chmod 000 has no effect for this user (root?)")
+                return
+            unreadable_ui_checks(root, feat)
+        finally:
+            for directory in dirs:
+                directory.chmod(0o755)
+        check("refused prunes over unreadable ui/ directories leave every feature file byte-identical",
+              tree_bytes(feat) == before)
 
 
 def outside_ui(base, sha):
@@ -345,13 +460,6 @@ def symlink_prune(root, feat, destinations, before):
           after == before and all(after), str([sorted(a) for a in after]))
 
 
-def symlink_staging(root, feat):
-    staged = sorted(staged_runs(root, feat))
-    through = [k for k in staged if k.split("/")[0] in ("build-alias", "evil-alias") or "/notes-link/" in f"/{k}"]
-    check("staging never follows a linked run or linked subdirectory and stages no external content",
-          not through and "ui-link-run/digest.md" in staged and "validate-c2-validator/digest.md" in staged, str(staged))
-
-
 def symlink_cases():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -363,8 +471,9 @@ def symlink_cases():
         (feat / "runs" / "validate-c2-validator" / "notes-link").symlink_to(root / "outside-notes", target_is_directory=True)
         before = [tree_bytes(d) for d in destinations]
         symlink_dry_run(root, destinations, before)
+        notes = tree_bytes(root / "outside-notes")
         symlink_prune(root, feat, destinations, before)
-        symlink_staging(root, feat)
+        check("a linked subdirectory's external content is left byte-identical", tree_bytes(root / "outside-notes") == notes)
 
 
 def blocked_feature(root):
@@ -396,7 +505,7 @@ def blocked_feature(root):
 def check_state(root):
     """The real check-state.py, scoped to the fixture feature's cycle-evidence row, rooted at
     the fixture only (inherited roots cleared first)."""
-    env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")}
+    env = scrubbed_env()
     env.update(HARNESS_PROJECT_DIR=str(root))
     return subprocess.run([sys.executable, str(CHECK_STATE), "--feature", "FEAT-9-thing", "--only", "INV-7"],
                           cwd=root, env=env, capture_output=True, text=True)
@@ -456,6 +565,170 @@ def duplicate_key_case(root):
           f"rc={refused_dup.returncode} stderr={refused_dup.stderr}")
 
 
+REFUSALS = ("Before any mutation, including dry-run, it refuses with exit 2 naming every recorded cycle_evidence "
+            "path missing from disk and with exit 1 naming every unreadable directory under a recorded run.")
+# DEC-238's ship bullet and the /harness-ship prune paragraph exactly as they stood at 5e51124e,
+# each with the anchor the one refusal sentence follows and that sentence exactly as wrapped (#2451).
+# Current text must equal the historical text with the insertion, character for character.
+SHIP_BULLET = ("""- **Ship keeps the record and drops the rest.** `prune-run-evidence.py` keeps every validator-squad
+  validate or fix run (`validate-…`, `fix-cN-…`) recorded PASS — the validator-lead hosts the fix
+  team too, so after a failed validate a reader's last PASS lives in a fix run — and every run
+  whose `results.json` names the shipped `review_sha`. For every other run (engineering, product,
+  reconciliation, distill) it deletes only `runs/<id>/ui/`, never the run directory, `digest.md`,
+  `state.yaml` or `.run-identity.json`, because #2177 pins each recorded run's digest as
+  check-state cycle evidence. It refuses a feature whose `review_sha` is unset,
+  empty or a `PLACEHOLDER_UNSET` value. `/harness-ship` runs it before the ship PR. Trace ZIPs are never
+  committed at all (`runs/*/ui/traces/` is ignored); the gate reads them from disk.""",
+               "`PLACEHOLDER_UNSET` value.",
+               """ Before any mutation, including dry-run, it refuses with
+  exit 2 naming every recorded cycle_evidence path missing from disk and with exit 1 naming every
+  unreadable directory under a recorded run.""")
+SHIP_PARAGRAPH = ("""It keeps every validator-squad validate or fix run recorded PASS (a reader's judgement lives in
+  that run's directory, so that is the last PASS of every reader) and every run whose
+  `results.json` names the shipped `review_sha`; for every other run (eng, product,
+  reconciliation, distill) it deletes only `runs/<id>/ui/`, and refuses a feature whose
+  `review_sha` is unset, empty or a placeholder. Every run directory, `digest.md`, `state.yaml`
+  and `.run-identity.json` survives — check-state pins each recorded run's digest as cycle
+  evidence (#2177). Commit the removal as `[harness:human] <flow-id>: prune run evidence at
+  ship`.""",
+                  "empty or a placeholder.",
+                  """ Before any mutation, including dry-run, it
+  refuses with exit 2 naming every recorded cycle_evidence path missing from disk and with exit 1
+  naming every unreadable directory under a recorded run.""")
+FORBIDDEN = ("force-stag", "force stag", "git add", "`runs/**` is ignored", "runs/** is ignored", "would stage", "staged runs/")
+# DEC-257 exactly as it stands: its history quotes two FORBIDDEN phrases in order to reject them, so
+# it is exempt from the scan only while it equals this byte for byte; any change to it is scanned.
+DEC_257 = """## DEC-257 — Retained run evidence is tracked like any artifact; only run UI is ephemeral
+
+**Chose:** every file a run writes under `.harness/*/features/*/runs/<id>/` is ordinary tracked
+material, except `runs/<id>/ui/` (screenshots and traces, which the gate reads from disk). That
+covers `digest.md`, `state.yaml`, `.run-identity.json`, acceptance notes, panel files, rulings and
+QA receipts. The orchestrator's normal feature-directory commit carries them, with no `git add -f`.
+The repository `.gitignore` and the fleet `templates/gitignore.snippet` both ship the one narrow
+rule `.harness/*/features/*/runs/*/ui/**`, with no negations, and keep `.harness/**/*.lock`.
+`merge-gitignore.py` replaces the two broad rules Harness once shipped (`.harness/features/*/runs/**`
+and `.harness/*/features/*/runs/**`) and their false rationale, and `--check` reports them. An
+existing checkout narrows through the operator checklist in `references/checkout-upgrade.md`: review
+the evidence the old rule hid, stage it by explicit path, and commit it separately before teams
+resume.
+
+**Over:** keeping the broad ignore and force-staging the records at some seam, which leaves git
+tracking files its own rules ignore, so a re-clone, `git rm -r --cached` or a clean silently
+diverges from the record; and letting INV-7 tolerate an absent digest in CI, which deletes the
+evidence #2177 pinned.
+
+**Because:** DEC-238 already keeps these records at ship, and INV-7 and INV-36 read them as cycle
+evidence. An ignore rule that called them "ephemeral scratch" contradicted both. Nothing in the
+flow committed them, so every feature PR went red at the repository-state gate in CI until someone
+force-added them by hand (#2399). The rule's deadlock rationale was false too: the dirty-tree halt
+(SPEC §8.6) whitelists `.harness/**`.
+
+**Tradeoff accepted:** two gates now see uncommitted run records, by design and with their
+semantics unchanged. `merge-gate.py merge-distill` refuses uncommitted `.harness` changes, so a
+distill run's own records are committed and pushed before it runs. `feature-worktree.py remove`
+refuses an aborted run's untracked records (GATE 2, exit 4) instead of discarding them with the
+tree. Retention is unchanged: DEC-238 still decides what ship keeps and what abandon prunes.
+
+**Record:** BUG-2399 (#2399); D-01 signed by fable-advisor under the operator's delegation on
+2026-11-22. Cites DEC-238, which it does not amend. Refs: DEC-112, DEC-174.
+"""
+DOCS = ROOT / ".harness" / "harness" / "docs"
+SHIP = ROOT / ".omp" / "commands" / "harness-ship.md"
+
+
+def claims(text):
+    """Forbidden phrases in `text`, in any letter case, matched across line wraps."""
+    joined = " ".join(text.split())
+    return [phrase for phrase in FORBIDDEN if re.search(re.escape(phrase), joined, re.IGNORECASE)]
+
+
+def restored(surface):
+    """The 5e51124e text with the one refusal sentence inserted after its anchor, exactly."""
+    historical, anchor, insertion = surface
+    if historical.count(anchor) != 1 or insertion.replace("\n  ", " ") != f" {REFUSALS}":
+        return None
+    return historical.replace(anchor, anchor + insertion)
+
+
+def section(text, start, end):
+    """text from `start` up to (not including) the first `end` after it; '' when absent."""
+    begin = text.find(start)
+    stop = text.find(end, begin + len(start)) if begin >= 0 else -1
+    return text[begin:stop if stop >= 0 else len(text)] if begin >= 0 else ""
+
+
+def imported_modules(module):
+    names = set()
+    for node in ast.walk(module):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            names |= {alias.name for alias in node.names} | {getattr(node, "module", None)}
+    return names
+
+
+def pruner_claims(source):
+    """The subject itself (TOOL, so PRUNE_RUN_EVIDENCE_BIN switches it): no process launch, no
+    staging code, and a docstring stating both refusals."""
+    module = ast.parse(source)
+    docstring = ast.get_docstring(module) or ""
+    bad = sorted(imported_modules(module) & {"subprocess", "pty", "multiprocessing"})
+    bad += [call for call in ("os.system", "os.popen", "os.exec", "os.spawn", "_stage") if call in source]
+    refusals = all(word in docstring for word in ("Exit 2", "Exit 1", "unreadable", "dry-run included"))
+    return bad + ([] if refusals else ["docstring refusals"])
+
+
+def test_text():
+    """This file minus its FORBIDDEN and DEC_257 literals: the phrases it rejects and the pinned
+    history it compares against, not claims of its own."""
+    source = Path(__file__).read_text(encoding="utf-8")
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", "") in ("FORBIDDEN", "DEC_257") for t in node.targets):
+            source = source.replace(ast.get_source_segment(source, node), "", 1)
+    return source
+
+
+def current_texts():
+    """The pruner, this file and harness-ship.md whole; in the decision documents, the surfaces T-01
+    owns (DEC-238 and its index row) plus DEC-257 and its row, DEC-257 exempt only while it is
+    byte-identical to DEC_257. Other decisions are not T-01's text and are not scanned."""
+    decisions = (DOCS / "DECISIONS.md").read_text(encoding="utf-8")
+    index = (DOCS / "DECISIONS-INDEX.md").read_text(encoding="utf-8")
+    dec_257 = section(decisions, "## DEC-257 ", "\n## DEC-")
+    return {
+        str(TOOL): TOOL.read_text(encoding="utf-8"),
+        "tests/unit/test-prune-run-evidence.py": test_text(),
+        "DECISIONS.md DEC-238": section(decisions, "## DEC-238 ", "\n## DEC-"),
+        "DECISIONS.md DEC-257": "" if dec_257 == DEC_257 else dec_257,
+        "DECISIONS-INDEX.md DEC-238 and DEC-257 rows": section(index, "\n- DEC-238 @", "\n") + section(index, "\n- DEC-257 @", "\n"),
+        "harness-ship.md": SHIP.read_text(encoding="utf-8"),
+    }
+
+
+def restoration_errors():
+    decisions = (DOCS / "DECISIONS.md").read_text(encoding="utf-8")
+    bullet = section(decisions, "- **Ship keeps the record and drops the rest.**", "\n- **")
+    bad = [] if bullet == restored(SHIP_BULLET) else ["DEC-238 ship bullet text"]
+    generated = subprocess.run([sys.executable, str(BIN / "gen-decisions-index.py"), "--stdout"],
+                               capture_output=True, text=True, cwd=ROOT, env=scrubbed_env())
+    bad += [] if generated.stdout == (DOCS / "DECISIONS-INDEX.md").read_text(encoding="utf-8") else ["stale DECISIONS-INDEX.md"]
+    text = SHIP.read_text(encoding="utf-8")
+    paragraph = section(text + "\n", "It keeps every validator-squad validate or fix run", "\n\n")  # ends at a blank line or EOF
+    bad += [] if paragraph == restored(SHIP_PARAGRAPH) else ["ship prune paragraph text"]
+    order = [text.find(marker) for marker in (
+        "- **Terminus:**", '- **On "ship", before the PR — prune run evidence (#1997).**',
+        "python3 .claude/skills/harness/bin/prune-run-evidence.py --feature <flow-id> --dry-run\n",
+        "python3 .claude/skills/harness/bin/prune-run-evidence.py --feature <flow-id>\n", paragraph)]
+    bad += [] if -1 not in order and order == sorted(order) else ["ship step position or invocations"]
+    return bad + ([] if "[harness:human] <flow-id>: prune run evidence at\n  ship`" in text else ["ship commit name"])
+
+
+def five_file_cases():
+    """No forbidden claim, in any case, in the five files' current text (current_texts), the restored
+    surfaces equal their 5e51124e text plus the one refusal sentence exactly, and the subject launches nothing."""
+    bad = [f"{name}: {phrase}" for name, text in current_texts().items() for phrase in claims(text)]
+    bad += pruner_claims(TOOL.read_text(encoding="utf-8")) + restoration_errors()
+    check("five-file current claims and historical restoration", not bad, str(bad))
+
+
 def main():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -467,9 +740,11 @@ def main():
     explicit_keep_cases()
     blocked_no_ui_cases()
     symlink_cases()
-    staging_cases()
+    no_git_cases()
     missing_evidence_cases()
     unreadable_cases()
+    unreadable_ui_cases()
+    five_file_cases()
     print(f"{len(FAILURES)} failure(s)" if FAILURES else "all checks passed")
     return 1 if FAILURES else 0
 
