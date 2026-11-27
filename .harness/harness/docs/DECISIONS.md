@@ -523,14 +523,14 @@ lead owns its `state.yaml`.
 file would have 2–3 leads writing it in a multi-squad flow, breaking single-writer.
 **Tradeoff accepted:** `ls features/<feat>/runs/` is the feature's full history, which grows.
 
-## DEC-47 — Declaration and live state are separated; feature status lives only in `feature.yaml`
+## DEC-47 — Declaration and live state are separated; feature status lives only in `feature.json`
 
-**Chose:** `PLAN.md ## Features` is the pm-owned, approval-gated declaration; `feature.yaml` is
+**Chose:** `PLAN.md ## Features` is the pm-owned, approval-gated declaration; `feature.json` is
 orchestrator-owned execution fact and holds **no** name, traces or task list — only a `feature_id`
 join key.
-**Over:** status on the PLAN feature entry; or a self-describing `feature.yaml`.
+**Over:** status on the PLAN feature entry; or a self-describing `feature.json`.
 **Because:** declaring status in both places gives two sources of truth that diverge. And duplicating
-the declaration into `feature.yaml` would let an agent redefine what FEAT-01 *means* without your
+the declaration into `feature.json` would let an agent redefine what FEAT-01 *means* without your
 signature.
 **Tradeoff accepted:** reading a feature's full picture requires both files.
 
@@ -550,7 +550,7 @@ no status field on a REQ that could drift.
 
 ## DEC-49 — The retry budget is feature-level, not run-level
 
-**Chose:** `cycles_used` / `max_total_cycles` in `feature.yaml`.
+**Chose:** `cycles_used` / `max_total_cycles` in `feature.json`.
 **Over:** a counter inside a run's `state.yaml`.
 **Because:** a fix cycle spawns a *new eng run* plus a *new validator run*, so the loop spans runs. A
 counter inside one run's file cannot bound it.
@@ -2878,7 +2878,7 @@ under task 14.
 The first smoke flow wrote `.harness/BRIEF.md` and `.harness/PLAN.md` at the root — where a second
 feature would overwrite them. The user's call: **a folder named for the feature holds generically
 named files**, not derived filenames at the root. `BRIEF.md`, `PLAN.md` and `DESIGN.md` join
-`STATE.md`/`feature.yaml` in `.harness/features/<FEAT>/` — one dir is one feature's whole world,
+`STATE.md`/`feature.json` in `.harness/features/<FEAT>/` — one dir is one feature's whole world,
 templates stay generic, and the namespace already existed (DEC-120). "Decisions" needs no file:
 `D-NN` is PLAN's `## Decisions` section. `notes/` keeps its FEAT-in-filename convention because runs
 prune while notes persist — and it is now **enforced by domain glob** (`research-FEAT-*.md`), since
@@ -2931,7 +2931,7 @@ Consequences, each recorded where it acts:
 
 - **The work survives and the money is not wasted** — a resume reconciles rather than redoes.
 - **Disk can hold a run no orchestrator records.** Nothing flagged the inverse of INV-8, so
-  **INV-12** now warns on any run dir absent from `feature.yaml` — verified firing on the live
+  **INV-12** now warns on any run dir absent from `feature.json` — verified firing on the live
   debris before this entry was written.
 - The rerun's actual targets all passed: pm produced the DEC-129/130 layout **first try, zero
   domain rejections** — instructed, not rejection-taught — with `## Problem` preceding `## Goal`.
@@ -3509,7 +3509,8 @@ taught the opposite: step 5 said "APPEND the per-member roll-up to STATE.md."
 
 
 Three changes. **A shape gate in check-domain.py** (stage two, after the domain check): a `Write`
-to `.harness/features/*/feature.yaml` over 200 lines or 20 comment lines, or to `STATE.md` over
+to `.harness/features/*/feature.json` over its line budget (200 lines or 20 comment lines while it
+was `feature.yaml`; 300 lines since FEAT-14, `feature_schema.py`), or to `STATE.md` over
 120 lines or carrying any section besides the two legal ones, is DENIED with the routing table as
 the reason — current truth replaces `## Current`, per-run findings go to that run's digest,
 rationale to notes/. Accretion is impossible: the governed writers hold Write not Edit, so every
@@ -3523,7 +3524,7 @@ gate's first draft passed everything; payload now rides an env var.
 **The playbook's reading and writing rules corrected:** step 1 scopes reads (Grep BRIEF/PLAN by
 task id; on resume the handoff prompt IS the working set; runs/ and notes/ are archives read by
 pointer, never a startup sweep); step 5 now says REPLACE `## Current`, data-not-narrative for
-feature.yaml; the DEC-148 relay text names the three correct homes instead of "STATE.md" loosely.
+feature.json; the DEC-148 relay text names the three correct homes instead of "STATE.md" loosely.
 
 **Enforcement honestly labeled:** the reading rule is advisory (reads cannot be gated); the write
 gate is physics; the context watchdog names whoever ignores the advisory part. The pilot host's existing
