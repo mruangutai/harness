@@ -626,9 +626,9 @@ def test_exactly_one_guarded_import_in_the_tree():
     # Assertion 2 — the generalised anti-fallback rule: one guarded import per
     # required dependency, each living in the module whose job IS that
     # dependency's policy. FEAT-14 (D-04) added jsonschema as a second
-    # required dependency, so feature_schema.py is now allowed alongside
+    # required dependency, so feature_record/schema.py is now allowed alongside
     # harness_yaml.py. check-domain.py is T-06's tight try around
-    # `import feature_schema` — T-06 is main-session-direct and lands AFTER
+    # `import feature_record.schema` — T-06 is main-session-direct and lands AFTER
     # this fix, so it holds zero occurrences of the needle right now. This
     # MUST be a subset (`<=`), never `==`: an equality assertion sized to all
     # three fails immediately (check-domain.py is empty today), and one sized
@@ -649,7 +649,7 @@ def test_exactly_one_guarded_import_in_the_tree():
     # raises adds no fallback path, it names one that already existed. Same category as
     # check-domain.py and feature-worktree.py: first-party siblings, never a third-party
     # dependency.
-    allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.py",
+    allowed = {"harness_yaml.py", "schema.py", "check-domain.py",
                "feature-worktree.py", "bash-write-guard.py", "dispatch-guard.py",
                "inject-expertise.py", "validate-digest.py"}
     assert set(guarded_hits) <= allowed, (

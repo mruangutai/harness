@@ -72,7 +72,7 @@ _RUN_STATE = "path:.harness/*/features/*/runs/*/state.yaml"
 _HANDOFF = "path:.harness/*/features/*/notes/handoff-*.md"
 # Evidence operands may name any regular file inside their feature, regardless of suffix.
 _FEATURE_EVIDENCE = "path:.harness/*/features/*/**"
-_EVIDENCE_READER = "path:.claude/skills/harness/bin/feature_schema.py"
+_EVIDENCE_READER = "path:.claude/skills/harness/bin/feature_record/evidence.py"
 
 INVARIANTS = (
     Group("plan-scalar", (

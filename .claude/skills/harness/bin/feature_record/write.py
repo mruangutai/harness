@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""feature_json_write.py — the one locked, schema-validated read-modify-write entry point for
+"""feature_record/write.py — the one locked, schema-validated read-modify-write entry point for
 feature.json (stale-anchor-write-hazard, 2026-08-30).
 
 This is a LIBRARY, never a gate: it never calls sys.exit and it is never registered as a hook.
@@ -14,7 +13,7 @@ entry point in between to intercept. THIS MODULE CANNOT PREVENT THAT SPECIFIC SH
 INCIDENT: an editor tool that patches file bytes directly by line offset never calls into
 Python at all, so no library, however careful, sits in that path. What this module DOES close
 is the adjacent hazard of every writer that DOES go through Python -- today, gh-sync.py's three
-call sites -- racing each other or writing a document feature_schema.py would reject. See the
+call sites -- racing each other or writing a document feature_record/schema.py would reject. See the
 feature's receipt for the fuller argument.
 
 This module builds no lock or rename primitive of its own (DEC-199): it is entirely a thin,
@@ -25,16 +24,15 @@ locked_pair_update writes for plan_merge's amendment pair, is fsync'd. That pair
 this module's schema check through schema_checked_transform, which writes nothing itself.
 python3 stdlib only, matching harness_merge.py's own constraint.
 """
-import os
+import json
 import re
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import artifact_accessors  # noqa: E402  (local import, after sys.path fix-up)
-import factory_cli  # noqa: E402  (local import, after sys.path fix-up)
-import feature_schema  # noqa: E402  (local import, after sys.path fix-up)
-import harness_boundary  # noqa: E402  (local import, after sys.path fix-up)
-import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
+import harness_boundary
+import harness_merge
+from feature_record import read, schema
+from feature_record.read import SCHEMA_REFUSAL_CODE
+
 
 # A features directory either directly under a .harness segment or nested one segment deeper
 # (repo-tier), a FEAT- or BUG- prefixed directory, and the literal filename feature.json.
@@ -45,72 +43,15 @@ FEATURE_JSON_TAIL = re.compile(
     r"(?:^|/)\.harness/(?:[^/]+/)?features/(?:FEAT|BUG)-[^/]+/feature\.json$"
 )
 
+
 _WHAT = "a feature's feature.json under a features directory"
+
+
 _HINT_LINES = [
     "  a legal path looks like .harness/features/FEAT-NN-slug/feature.json or",
     "  .harness/<repo>/features/FEAT-NN-slug/feature.json.",
     "  This tool writes feature.json only.",
 ]
-
-# The refusal code THIS module raises for a validation failure (invalid JSON or schema
-# violation) or a UTF-8 encoding failure -- distinct from harness_merge's own 6 (lock
-# timeout) and 9 (destination refusal), so a caller can tell "somebody else holds the lock"
-# and "wrong path" apart from "the write would have produced a document nothing can read".
-SCHEMA_REFUSAL_CODE = 11
-
-
-def parse_doc(base, display):
-    """Parse `base` -- bytes as read by harness_merge.locked_update, or None when the file
-    does not exist -- into a dict, or return None unchanged when `base` is None.
-
-    "the file does not exist" and "the file holds an empty/absent-github mapping" are
-    different states a caller may need to tell apart (gh-sync.py's save_recorded refuses the
-    former and tolerates the latter), so this never collapses None into {}.
-
-    Raises MergeRefusal(SCHEMA_REFUSAL_CODE) when `base` is present but is not valid JSON, or
-    parses to something other than a JSON mapping.
-
-    Decodes through artifact_accessors.strict_json_loads (FEAT-61 T-01): the duplicate-key
-    and non-finite rejection that used to be two private hooks copied here is the accessor's
-    one primitive, so feature.json is read to the same strictness whether it is loaded for a
-    write here or for a read anywhere else. Only the translation into this module's refusal
-    code and line shape lives here.
-    """
-    if base is None:
-        return None
-    try:
-        doc = artifact_accessors.strict_json_loads(base.decode("utf-8"))
-    except (UnicodeDecodeError, ValueError) as e:
-        raise harness_merge.MergeRefusal(
-            SCHEMA_REFUSAL_CODE, [f"{display}: not valid JSON: {e}"]
-        )
-    if not isinstance(doc, dict):
-        raise harness_merge.MergeRefusal(
-            SCHEMA_REFUSAL_CODE,
-            [f"{display}: parsed but is not a JSON mapping (got {type(doc).__name__})"],
-        )
-    return doc
-
-
-
-
-def opt_int(value):
-    """A recorded issue/milestone number as int, or None for `none`/absent/junk -- moved
-    here from gh-sync.py's private `_opt_int` (BUG-285 property 7) so the one coercion
-    gh-sync.py's `load_recorded` needs at three call sites (milestone, parent, each `issues`
-    member) lives beside the reader it belongs to, instead of duplicated wherever it is
-    needed.
-
-    Tolerates the quoted form the old `(\\d+)` regex silently read as ABSENT -- and "absent"
-    here meant gh-sync believed nothing was recorded and would create a duplicate parent or
-    milestone. `bool` is excluded explicitly: it is an `int` subclass in Python, so
-    `parent: true` would otherwise become `1`."""
-    if value is None or isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    s = str(value).strip()
-    return int(s) if s.isdigit() else None
 
 
 def schema_checked_transform(path, transform, tail_regex=None):
@@ -134,7 +75,7 @@ def schema_checked_transform(path, transform, tail_regex=None):
             # Bytes on disk that are not even UTF-8 establish no leniency: treat as if
             # nothing were there, so the candidate must be fully schema-clean.
             return set()
-        return set(feature_schema.problems_for_text(base_text, resolved, for_path=resolved))
+        return set(schema.problems_for_text(base_text, resolved, for_path=resolved))
 
     def _transform(base):
         text = transform(base)
@@ -145,7 +86,7 @@ def schema_checked_transform(path, transform, tail_regex=None):
             raise harness_merge.MergeRefusal(
                 SCHEMA_REFUSAL_CODE, [f"{resolved}: not valid UTF-8: {e}"]
             )
-        candidate_problems = feature_schema.problems_for_text(decoded, resolved, for_path=resolved)
+        candidate_problems = schema.problems_for_text(decoded, resolved, for_path=resolved)
         if candidate_problems:
             baseline = _baseline_problems(base)
             new_problems = [p for p in candidate_problems if p not in baseline]
@@ -162,7 +103,7 @@ def write_feature_json(path, transform, timeout=None, tail_regex=None):
     `transform(base)` receives the file's current bytes, or None when it does not exist --
     identical to harness_merge.locked_update's own contract -- and returns the candidate
     document TEXT (str or bytes) to write. That text is validated with
-    feature_schema.problems_for_text before the atomic replace.
+    schema.problems_for_text before the atomic replace.
 
     THE POLICY IS MONOTONIC NON-REGRESSION, not "any problem refuses" -- and the difference
     is deliberate, found empirically rather than assumed: schemas/feature.json's eight
@@ -225,3 +166,39 @@ def write_feature_json(path, transform, timeout=None, tail_regex=None):
     resolved, wrapped = schema_checked_transform(path, transform, tail_regex)
     harness_merge.locked_update(resolved, wrapped, timeout=timeout)
     harness_boundary.relay_changed_state_feedback(resolved)
+
+
+REFUSAL_CODE = 2
+
+
+def _refuse(lines):
+    raise harness_merge.MergeRefusal(REFUSAL_CODE, lines)
+
+
+def _exit_refused(lines):
+    for line in lines:
+        print(line, file=sys.stderr)
+    sys.exit(REFUSAL_CODE)
+
+
+def _apply(path, mutate):
+    """Load `path`'s document, apply `mutate(doc) -> doc`, and write the result under the
+    lock. A `path` whose document does not exist is refused: this CLI records onto an
+    existing feature.json only — it is never the tool that instantiates one."""
+
+    def transform(base):
+        doc = read.parse_doc(base, path)
+        if doc is None:
+            raise harness_merge.MergeRefusal(
+                read.SCHEMA_REFUSAL_CODE,
+                [f"REFUSED: {path} does not exist.",
+                 "  this tool records onto an existing feature.json only."],
+            )
+        return json.dumps(mutate(doc), indent=2) + "\n"
+
+    try:
+        write_feature_json(path, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)

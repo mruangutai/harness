@@ -50,7 +50,7 @@ approval:
       date: '2026-11-27'
       reason: stale wording fixed at build per operator signature
 drafted_at: '2026-11-27T16:23:46Z'
-status: ready
+status: building
 source_issues: [2581, 2569]
 panel:
   last_run: repanel3-product
@@ -388,7 +388,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns feature-record.py, the importing gate scripts, their owning tests and the reader classification directly to the main session.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/feature[-_]record*
       - .claude/skills/harness/bin/*.py

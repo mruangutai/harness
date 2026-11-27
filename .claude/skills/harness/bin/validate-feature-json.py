@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""validate-feature-json.py — thin CLI over feature_schema.py (FEAT-14 D-03).
+"""validate-feature-json.py — thin CLI over feature_record/schema.py (FEAT-14 D-03).
 
 Argument parsing, printing and exit codes only — no schema logic lives here;
-that is feature_schema.py's job, so check-domain.py can import the same
+that is feature_record/schema.py's job, so check-domain.py can import the same
 logic in process.
 
 Usage:
@@ -33,7 +33,7 @@ if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 
 import feature_corpus
-import feature_schema
+from feature_record import schema as record_schema
 import harness_boundary
 
 KEEP_SUFFIXES = ("json", "yaml", "yml")
@@ -71,18 +71,18 @@ def discover_paths():
 
 
 def main(argv):
-    if not feature_schema.JSONSCHEMA_AVAILABLE:
+    if not record_schema.JSONSCHEMA_AVAILABLE:
         # Checked BEFORE touching any path: exit 3 is a verdict about the
         # checker, not about any file, so it is decided before any file is
         # even looked at.
-        sys.stderr.write(feature_schema.UNAVAILABLE_MESSAGE + "\n")
+        sys.stderr.write(record_schema.UNAVAILABLE_MESSAGE + "\n")
         sys.exit(3)
 
     paths = argv[1:] if len(argv) > 1 else discover_paths()
 
     any_problem = False
     for path in paths:
-        for line in feature_schema.problems_for_file(path):
+        for line in record_schema.problems_for_file(path):
             print(line, file=sys.stderr)
             any_problem = True
 

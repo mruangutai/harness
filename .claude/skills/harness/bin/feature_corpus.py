@@ -225,7 +225,7 @@ def landed_dirs(owner):
 def _entry(segment, fid, path):
     """One feature directory as a mapping: segment, id, path, record (path of its feature.json
     or None), document (parsed mapping or None) and error (why it would not parse, or None)."""
-    import artifact_accessors
+    from feature_record import read as record_read
 
     record = os.path.join(path, RECORD_FILE)
     entry = {"segment": segment, "id": fid, "path": path, "record": None,
@@ -233,8 +233,8 @@ def _entry(segment, fid, path):
     if os.path.isfile(record):
         entry["record"] = record
         try:
-            entry["document"] = artifact_accessors.load_feature_json(record)
-        except artifact_accessors.FeatureJsonError as exc:
+            entry["document"] = record_read.load_feature_json(record)
+        except record_read.FeatureJsonError as exc:
             entry["error"] = str(exc)
     return entry
 

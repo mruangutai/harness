@@ -1019,12 +1019,12 @@ def _feat64_fleet_rows(w, artifact_accessors):
                  _escapes(lambda: w._repo_arg_for_segment("other", _FC)), "")]
 
 
-def _feat64_landed_json_rows(w, artifact_accessors):
+def _feat64_landed_json_rows(w, record_read):
     with _patched(w, "_landed_blob_text", lambda *a: ("{}", None)):
-        with _patched(artifact_accessors, "load_feature_json", _raiser(RuntimeError("unrelated"))):
+        with _patched(record_read, "load_feature_json", _raiser(RuntimeError("unrelated"))):
             escaped = _escapes(lambda: w._read_landed_feature_json("/r", "main", "x/feature.json"))
-        with _patched(artifact_accessors, "load_feature_json",
-                      _raiser(artifact_accessors.FeatureJsonError("bad", "x", "fix"))):
+        with _patched(record_read, "load_feature_json",
+                      _raiser(record_read.FeatureJsonError("bad", "x", "fix"))):
             got = w._read_landed_feature_json("/r", "main", "x/feature.json")
     return [("(n) an unrelated RuntimeError escapes the landed feature.json read", escaped, ""),
             ("(n) a FeatureJsonError from the landed read is 'unparseable'", got == (None, "unparseable"), repr(got))]
@@ -1049,8 +1049,9 @@ def case_feat64_boundaries_are_typed():
     reading as "unresolved"."""
     import worktree_terminal as w
     import artifact_accessors
+    from feature_record import read as record_read
     return (_feat64_git_launcher_rows(w) + _feat64_fleet_rows(w, artifact_accessors)
-            + _feat64_landed_json_rows(w, artifact_accessors) + _feat64_landed_yaml_rows(w))
+            + _feat64_landed_json_rows(w, record_read) + _feat64_landed_yaml_rows(w))
 
 
 def case_fleet_planning_worktree_resolves_to_its_segment():

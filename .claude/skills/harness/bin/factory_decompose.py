@@ -21,7 +21,7 @@ over the whole document -- load it, set the `factory` key, json.dump the whole t
 preserving every other top-level key (a `github:` block from gh-sync.py included) unchanged.
 plan.yaml and BRIEF.md are read-only inputs and are never written (D-01, SC-03, SC-20).
 
-That read-modify-write goes through feature_json_write.write_feature_json (DEC-199,
+That read-modify-write goes through feature_record.write.write_feature_json (DEC-199,
 stale-anchor-write-hazard), the same locked, schema-ratcheted entry point gh-sync.py's three
 call sites already share: the fcntl lock on feature.json's sibling `.lock` file, the
 same-directory tempfile, fsync and atomic rename this module's own `write_factory` used to
@@ -41,7 +41,7 @@ import factory_cli
 import factory_config
 import factory_gh
 import artifact_accessors
-import feature_json_write
+from feature_record import read as record_read, write as record_write
 import gh_issue_types
 import harness_merge
 import harness_yaml
@@ -113,8 +113,8 @@ def load_factory(feat_dir):
     path = os.path.join(feat_dir, "feature.json")
     factory = _empty_factory()
     try:
-        doc = artifact_accessors.load_feature_json(path)
-    except artifact_accessors.FeatureJsonError as e:
+        doc = record_read.load_feature_json(path)
+    except record_read.FeatureJsonError as e:
         factory_cli.refuse(TOOL, "feature.json invalid", path, e.next_step)
     if doc is None or "factory" not in doc:
         return factory
@@ -127,14 +127,14 @@ def load_factory(feat_dir):
     repo = f.get("repo")
     factory["repo"] = repo if isinstance(repo, str) and repo else None
 
-    parent = feature_json_write.opt_int(f.get("parent"))
+    parent = record_read.opt_int(f.get("parent"))
     if parent is not None:
         factory["parent"] = parent
 
     issues = f.get("issues")
     if isinstance(issues, dict):
         for key, value in issues.items():
-            factory["issues"][str(key)] = feature_json_write.opt_int(value)
+            factory["issues"][str(key)] = record_read.opt_int(value)
 
     items = f.get("items")
     if isinstance(items, dict):
@@ -169,7 +169,7 @@ def load_factory(feat_dir):
 # test-factory-integration.py's own decompose fixtures at :635-636 and :708-709, which run
 # the standalone CLI against a bare tmp dir). write_factory therefore enforces only that the
 # resolved path is named feature.json, never the canonical harness layout gh-sync.py's own
-# callers stay constrained to (feature_json_write.FEATURE_JSON_TAIL, unchanged by this).
+# callers stay constrained to (feature_record.write.FEATURE_JSON_TAIL, unchanged by this).
 FEATURE_JSON_BASENAME_TAIL = re.compile(r"(?:^|/)feature\.json$")
 
 
@@ -192,13 +192,13 @@ def _factory_block(factory):
 
 def write_factory(feat_dir, factory, feat_id=None):
     """Write the `factory:` key into feature.json through
-    feature_json_write.write_feature_json (DEC-199, stale-anchor-write-hazard cycle 3): the
+    feature_record.write.write_feature_json (DEC-199, stale-anchor-write-hazard cycle 3): the
     same fcntl lock on feature.json's sibling `.lock` file, same-directory tempfile, fsync
     and atomic rename this function's own private `_atomic_write`-shaped primitive gave it,
     now shared with gh-sync.py's three call sites instead of duplicated a third time. Every
     other top-level key (a `github:` block from gh-sync.py included) round-trips unchanged.
     A candidate that would introduce a schema problem the base did not already carry is
-    refused by write_feature_json itself (feature_schema.py, monotonic non-regression) and
+    refused by write_feature_json itself (feature_record/schema.py, monotonic non-regression) and
     leaves feature.json byte-for-byte unchanged.
 
     CREATION IS AN EXPLICIT OPT-IN (stale-anchor-write-hazard T-c4, replacing cycle 3's
@@ -251,7 +251,7 @@ def write_factory(feat_dir, factory, feat_id=None):
         doc["factory"] = _factory_block(factory)
         return json.dumps(doc, indent=2) + "\n"
 
-    feature_json_write.write_feature_json(path, transform, tail_regex=FEATURE_JSON_BASENAME_TAIL)
+    record_write.write_feature_json(path, transform, tail_regex=FEATURE_JSON_BASENAME_TAIL)
 
 
 # --------------------------------------------------------------------------

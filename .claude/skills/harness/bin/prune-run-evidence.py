@@ -36,7 +36,7 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import artifact_accessors  # noqa: E402
+from feature_record import read as record_read  # noqa: E402
 import harness_boundary  # noqa: E402
 import harness_yaml  # noqa: E402
 
@@ -117,8 +117,8 @@ def _load_record(args):
     if feature_dir is None:
         return f"no feature {args.feature!r} under {root}"
     try:
-        record = artifact_accessors.load_feature_json(os.path.join(feature_dir, "feature.json"))
-    except artifact_accessors.FeatureJsonError as error:
+        record = record_read.load_feature_json(os.path.join(feature_dir, "feature.json"))
+    except record_read.FeatureJsonError as error:
         return f"{args.feature} has an invalid feature record: {error}"
     if not _has_review_pin(record):
         return f"{args.feature} has no review_sha — nothing is shipped, so nothing is pruned"

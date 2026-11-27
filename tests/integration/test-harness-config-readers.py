@@ -158,10 +158,10 @@ READERS = {
                                    lambda v: v == {"universal": 1900, "agent": 5500}),
     "code-grade._load_test_kinds": (lambda r: _module("cg", "code-grade.py")._load_test_kinds(r),
                                     lambda v: "unit" in v),
-    "feature-record._budgets_for": (lambda r: _module("fr", "feature-record.py")._budgets_for(
+    "feature_record.budget._budgets_for": (lambda r: _module("fr", "feature_record/budget.py")._budgets_for(
         str(_feature_dir(r) / "feature.json")), lambda v: v["rework_round_minutes"] == 45),
-    "feature_schema._owner_mirror_binding": (
-        lambda r: _module("fs", "feature_schema.py")._owner_mirror_binding(str(r)), lambda v: v == (None, None, {})),
+    "feature_record.binding._owner_mirror_binding": (
+        lambda r: _module("fs", "feature_record/binding.py")._owner_mirror_binding(str(r)), lambda v: v == (None, None, {})),
     "gate_policy.load_policy": (lambda r: _module("gp", "gate_policy.py").load_policy(
         str(r / ".harness" / "harness.json")), lambda v: v == {"review": "advisory_unless_high"}),
     "gh-sync._unbound_project_config": (_unbound, lambda v: v["github"]["sync"] is False),

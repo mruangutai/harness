@@ -11,6 +11,7 @@ from contextlib import contextmanager
 import artifact_accessors
 import harness_boundary
 import harness_yaml
+from feature_record import read as record_read
 
 LEAD_SQUADS = {"harness-eng-lead": "engineering", "harness-product-lead": "product",
                "harness-validator-lead": "validator"}
@@ -60,9 +61,9 @@ def registered_feature(root, feature):
     record_path, feature_dir = _registered_record_location(root, feature)
     try:
         with open(record_path, "rb", opener=harness_boundary.authorization_descriptor) as source:
-            record = artifact_accessors.load_feature_json(
+            record = record_read.load_feature_json(
                 text=source.read().decode("utf-8"), context=record_path)
-    except (artifact_accessors.FeatureJsonError, OSError, UnicodeError) as error:
+    except (record_read.FeatureJsonError, OSError, UnicodeError) as error:
         raise AuthorizationError(str(error)) from error
     if not isinstance(record, dict) or record.get("feature_id") != feature:
         raise AuthorizationError("authorization feature record identity does not match")

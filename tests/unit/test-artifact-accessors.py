@@ -14,6 +14,7 @@ BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 sys.path.insert(0, str(BIN))
 sys.path.insert(0, str(ROOT / "tests"))
 import artifact_accessors as accessors  # noqa: E402
+from feature_record import read as record_read  # noqa: E402
 from harness_config_support import build_config  # noqa: E402
 
 
@@ -141,7 +142,7 @@ class JsonContracts(unittest.TestCase):
                 with self.subTest(block=block):
                     path.write_text(json.dumps(block), encoding="utf-8")
                     with self.assertRaisesRegex(Exception, "recorded issue number|issues"):
-                        accessors.load_feature_json(path)
+                        record_read.load_feature_json(path)
 
     def test_feature_json_preserves_absent_blocks_and_numeric_strings(self):
         document = {
@@ -151,16 +152,16 @@ class JsonContracts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "feature.json"
             path.write_text(json.dumps(document), encoding="utf-8")
-            self.assertEqual(document, accessors.load_feature_json(path))
+            self.assertEqual(document, record_read.load_feature_json(path))
 
     def test_feature_json_excessive_depth_is_a_typed_input_error(self):
         text = '{"feature_id":"F1","nested":' + "[" * 10000 + "0" + "]" * 10000 + "}"
         with mock.patch("json.scanner.make_scanner", json.scanner.py_make_scanner):
-            with self.assertRaises(accessors.FeatureJsonError):
-                accessors.load_feature_json(text=text, context="F1 feature.json")
+            with self.assertRaises(record_read.FeatureJsonError):
+                record_read.load_feature_json(text=text, context="F1 feature.json")
 
     # FEAT-61 T-01: ONE strict decoding primitive. Every strict JSON reader in bin/ (harness.json,
-    # feature.json, gh payloads, feature_json_write.parse_doc) goes through it, so a tightening
+    # feature.json, gh payloads, feature_record.read.parse_doc) goes through it, so a tightening
     # lands everywhere at once instead of in whichever of two hand-copied hook pairs got edited.
     def test_strict_json_loads_rejects_nested_duplicates_and_nonfinite_as_valueerror(self):
         for text in (

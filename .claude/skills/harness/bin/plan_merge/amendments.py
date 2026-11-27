@@ -7,7 +7,7 @@ from datetime import timedelta
 from datetime import timezone
 
 import amendment_contract
-import feature_json_write
+from feature_record import read as record_read, write as record_write
 import harness_merge
 from plan_merge.guards import (
     _die, _pending_replay_lines, _print_receipts, _refuse_illegal_amendment, _relay_after_commit,
@@ -151,10 +151,10 @@ def _ledger_transform(feature_json, judgements):
     """The ledger side of the pair: feature.json's bytes with `judgements` appended to its
     `judgements` ledger, or a refusal when the file vanished since the preflight."""
     def transform(base):
-        doc = feature_json_write.parse_doc(base, feature_json)
+        doc = record_read.parse_doc(base, feature_json)
         if doc is None:
             raise harness_merge.MergeRefusal(
-                feature_json_write.SCHEMA_REFUSAL_CODE,
+                record_read.SCHEMA_REFUSAL_CODE,
                 [f"REFUSED: {feature_json} vanished between the preflight and the write."])
         ledger = doc.get("judgements")
         doc["judgements"] = (list(ledger) if isinstance(ledger, list) else []) + judgements
@@ -195,7 +195,7 @@ def write_plan_and_ledger(resolved, feature_json, splice, judgements):
     harness_merge.locked_pair_update with plan.yaml as the primary, replaced before
     feature.json, under plan.yaml.lock then feature.json.lock — the one lock order, never
     reversed. The ledger side keeps feature.json's schema non-regression check
-    (feature_json_write.schema_checked_transform).
+    (feature_record.write.schema_checked_transform).
 
     Both transforms run before anything is written, so a refusal or error there — a stale
     `was`, a schema regression, LOCKED, an unopenable lock — leaves both files as they were,
@@ -220,7 +220,7 @@ def write_plan_and_ledger(resolved, feature_json, splice, judgements):
     rolls either order forward. Plan-first still decides what is left if a journal is ever
     removed by hand before completion: an unledgered plan edit, which INV-40 reports."""
     try:
-        ledger_path, ledger = feature_json_write.schema_checked_transform(
+        ledger_path, ledger = record_write.schema_checked_transform(
             feature_json, _ledger_transform(feature_json, judgements))
         harness_merge.locked_pair_update(resolved, splice, ledger_path, ledger)
     except (harness_merge.JournalPending, harness_merge.MergeRefusal, OSError, ValueError) as exc:
@@ -240,9 +240,9 @@ def _record_amendments_preflight(resolved, feature_json, entries):
             2, [f"plan-merge: {feature_json} does not exist, so the amendment judgements have "
                 "nowhere to go — REFUSING to amend the plan without its ledger."])
     with open(feature_json, "rb") as fh:
-        if feature_json_write.parse_doc(fh.read(), feature_json) is None:
+        if record_read.parse_doc(fh.read(), feature_json) is None:
             raise harness_merge.MergeRefusal(
-                feature_json_write.SCHEMA_REFUSAL_CODE, [f"plan-merge: {feature_json} is empty."])
+                record_read.SCHEMA_REFUSAL_CODE, [f"plan-merge: {feature_json} is empty."])
 
 
 def cmd_record_amendments(args):

@@ -111,7 +111,7 @@ def _run(features, cards, bindings=None, fail=None, owner_sync=True, gh_ok=True)
         os.makedirs(os.path.join(root, ".harness"))
         write_config(os.path.join(root, ".harness", "harness.json"), cj)
         ctx = _Ctx(root, cj, features, gh_ok)
-        board.harness_boundary.load_repo_module = {"gh_board": gb, "feature_schema": fs}.get
+        board.harness_boundary.load_repo_module = {"gh_board": gb, "feature_record.binding": fs}.get
         try:
             bad, _warn = board.inv_26(ctx)
         except factory_gh.GhError as error:

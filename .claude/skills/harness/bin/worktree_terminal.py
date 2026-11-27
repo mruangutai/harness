@@ -19,6 +19,7 @@ import re
 import subprocess
 import sys
 import artifact_accessors
+from feature_record import read as record_read
 
 
 CLASSES = ("terminal", "exempt_absent", "unresolved")
@@ -229,9 +230,9 @@ def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
     if err is not None:
         return None, err
     try:
-        data = artifact_accessors.load_feature_json(
+        data = record_read.load_feature_json(
             text=text, context=f"{default_branch}:{feature_json_rel}")
-    except artifact_accessors.FeatureJsonError:
+    except record_read.FeatureJsonError:
         return None, "unparseable"
     return data, None
 

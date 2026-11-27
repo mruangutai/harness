@@ -5,7 +5,7 @@ import sys
 import yaml
 from datetime import datetime, timezone
 
-import artifact_accessors
+from feature_record import read as record_read
 import harness_merge
 import harness_yaml
 from plan_merge.amendments import write_plan_and_ledger
@@ -239,8 +239,8 @@ def _ledgered_target(args, resolved):
         return None
     feature_json = os.path.join(os.path.dirname(resolved), "feature.json")
     try:
-        record = artifact_accessors.load_feature_json(feature_json)
-    except artifact_accessors.FeatureJsonError as error:
+        record = record_read.load_feature_json(feature_json)
+    except record_read.FeatureJsonError as error:
         _die(2, f"plan-merge: cannot tell whether {args.id}.{args.field} is signed text — {error}")
     signed = record.get("signed_task_hashes") if isinstance(record, dict) else None
     return feature_json if isinstance(signed, dict) and args.id in signed else None

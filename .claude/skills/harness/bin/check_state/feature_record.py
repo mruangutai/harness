@@ -204,7 +204,7 @@ def inv_7(ctx, feat):
     if doc is None:
         return bad, warn
     try:
-        feature_schema = harness_boundary.load_repo_module("feature_schema")
+        record_evidence = harness_boundary.load_repo_module("feature_record.evidence")
     except harness_boundary.RepoModuleError as error:
         return [f"INV-7 CANNOT RUN for {feat}: {error}"], warn
     directory = os.path.dirname(ctx.path(feat, "feature.json"))
@@ -214,7 +214,7 @@ def inv_7(ctx, feat):
     attributed = 0
     for run in doc.get("runs", []):
         bad.extend(f"{feat}: run {run['id']} cycle/refusal evidence: {problem}"
-                   for problem in feature_schema.run_evidence_problems(
+                   for problem in record_evidence.run_evidence_problems(
                        directory, doc.get("feature_id", feat), run, doc.get("runs", [])))
         count = run.get("cycles_used")
         if count is None:
@@ -418,13 +418,13 @@ def _inv23_feature_json(ctx, feat):
     # THE COUNT EXCLUDES `runs:` (FEAT-54 backlog B-4), through the SAME helper the
     # write-time gate uses — the vocabulary sync this block's header promises now covers the
     # definition of a counted line, not only the wording of the message.
-    # An unimportable feature_schema is CANNOT RUN (FEAT-63 T-02, ruled 2026-09-21). It used to
+    # An unimportable feature_record.schema is CANNOT RUN (FEAT-63 T-02, ruled 2026-09-21). It used to
     # fall back to grading the whole file against a hard-coded 300 — a budget nobody
     # maintained, applied silently, which is the fail-open shape this wave removes.
     try:
-        _fs_inv23 = harness_boundary.load_repo_module("feature_schema")
+        _fs_inv23 = harness_boundary.load_repo_module("feature_record.schema")
     except harness_boundary.RepoModuleError as _fse:
-        return [f"INV-23 CANNOT RUN for {fpath(feat, 'feature.json')}: feature_schema.py did not "
+        return [f"INV-23 CANNOT RUN for {fpath(feat, 'feature.json')}: feature_record/schema.py did not "
                 f"import ({type(_fse.cause).__name__}: {_fse.cause}), so its line budget cannot be "
                 f"graded. The module ships with this repository."]
     _inv23_budget = _fs_inv23.FEATURE_JSON_LINE_BUDGET
@@ -582,7 +582,7 @@ def inv_47(ctx, feat):
 # ordinal of the run that wrote it; run N+1 onward is the successor's. An in-era note with no
 # marker is refused rather than skipped, because a note that cannot be placed cannot be
 # matched -- the same posture INV-32 takes on an undated approval. (d) recomputes with the
-# hash plan-merge.py owns (`signed_task_hash`), never a re-spelling of it; an overruled
+# hash plan_merge/approval.py owns (`signed_task_hash`), never a re-spelling of it; an overruled
 # amendment still covers -- the ledger is the historical record whatever the operator ruled;
 # a record with no `signed_task_hashes` (signed before BUG-1716) and a pending approval are
 # not graded; malformed hash data is the schema gate's finding, not this one's.

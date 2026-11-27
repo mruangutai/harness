@@ -359,7 +359,7 @@ def case_o():
     checks, ok_all = [], True
     for what, dpat, spat in (
         # The feature.json pair is GONE because the DUPLICATE is gone: FEAT-54's B-4 moved
-        # the number and the counting rule into feature_schema.FEATURE_JSON_LINE_BUDGET, and
+        # the number and the counting rule into feature_record.schema.FEATURE_JSON_LINE_BUDGET, and
         # both gates now import it. That pair is policed by its own block below, which
         # asserts the single source AND that neither gate's fallback literal disagrees with
         # it — a fallback that drifts is the same defect this case exists to catch, just
@@ -386,7 +386,7 @@ def case_o():
     # gates read it BY NAME, and every fallback literal they carry for an unimportable helper
     # equals it. The third is the one a reader would miss — a fallback saying 250 would
     # silently enforce a different budget on exactly the path nobody tests.
-    schema_src = open(os.path.join(here, "feature_schema.py"), encoding="utf-8").read()
+    schema_src = open(os.path.join(here, "feature_record", "schema.py"), encoding="utf-8").read()
     declared = _re.search(r"^FEATURE_JSON_LINE_BUDGET = (\d+)$", schema_src, _re.M)
     fallbacks = sorted({int(x) for x in
                         _re.findall(r"_(?:inv23_)?budget = (\d+)", dom + sta)})

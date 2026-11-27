@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Unit floor for feature_schema.recovery_command_for and the uniform Build-entry rule (T-11,
+"""Unit floor for feature_record.schema.recovery_command_for and the uniform Build-entry rule (T-11,
 BUG-1309, DEC-217's Over clause; FEAT-71 removed the per-feature era exemption). Each case is
 aimed at a state or observable that no
 integration bed reaches (see tests/integration/test-check-state.py:4622-4699's fixture, which
 always writes exactly one task with os.path.join'd paths — see this task's plan.yaml intent for
 the case-by-case cross-check). Mutation-based discrimination proof for these cases lives outside
-this file (throwaway scripts against a mutated copy, never the real feature_schema.py) and is
+this file (throwaway scripts against a mutated copy, never the real feature_record modules) and is
 recorded in this task's receipt.
 
 python3 stdlib only. gh-sync.py's own BIN-dir resolution convention
@@ -25,7 +25,8 @@ ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 sys.path.insert(0, str(BIN))
 sys.path.insert(0, str(ROOT / "tests"))
-import feature_schema  # noqa: E402
+from feature_record import binding as record_binding, evidence as record_evidence  # noqa: E402
+from feature_record import schema as record_schema  # noqa: E402
 from harness_config_support import write_config  # noqa: E402
 
 failures = []
@@ -89,8 +90,10 @@ def module_feature_id_tables(module):
     return tables
 
 
-TABLES = module_feature_id_tables(feature_schema)
-check("FEAT-71 feature_schema holds no per-feature id table", TABLES == {},
+TABLES = {f"{module.__name__}.{name}": ids
+          for module in (record_schema, record_evidence, record_binding)
+          for name, ids in module_feature_id_tables(module).items()}
+check("FEAT-71 feature_record holds no per-feature id table", TABLES == {},
       repr({name: f"{len(ids)} ids, e.g. {ids[:3]}" for name, ids in TABLES.items()}))
 PROBE_IDS = ["FEAT-90-fixture", "BUG-9-x", "PR-9-fixture"] + sorted(
     {i for ids in TABLES.values() for i in ids})
@@ -103,7 +106,7 @@ with tempfile.TemporaryDirectory() as tmp:
         for slash in (False, True):
             d = feat_dir(tmp, name, trailing_slash=slash)
             write_plan(d, "building", [{"id": "T-01"}])
-            got = feature_schema.recovery_command_for(d)
+            got = record_schema.recovery_command_for(d)
             if got != "open":
                 shortcut.append((name, slash, got))
     check("BE-02 a building plan with no task done is open for every feature id",
@@ -112,7 +115,7 @@ with tempfile.TemporaryDirectory() as tmp:
 # BE-10: a feature with no Build-entry receipt (absent, or recovery-required) never allows a
 # merge, whatever its id.
 allowed = [(name, entry) for name in PROBE_IDS for entry in (None, "recovery-required")
-           if feature_schema.receipt_allows_merge(
+           if record_binding.receipt_allows_merge(
                {"feature_id": name, "github": {} if entry is None else {"build_entry": entry}},
                "org/product")]
 check("BE-10 no receipt allows no merge for any feature id", allowed == [],
@@ -121,7 +124,7 @@ check("BE-10 no receipt allows no merge for any feature id", allowed == [],
 # BE-03: a feature with no plan.yaml returns recover-terminal.
 with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9002-fixture-no-plan")
-    got = feature_schema.recovery_command_for(d)
+    got = record_schema.recovery_command_for(d)
     check("BE-03 a feature with no plan.yaml returns recover-terminal",
           got == "recover-terminal", repr(got))
 
@@ -130,7 +133,7 @@ with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9003-fixture-bad-yaml")
     with open(os.path.join(d, "plan.yaml"), "w", encoding="utf-8") as f:
         f.write("status: building\ntasks: [\n  - unterminated flow sequence\n")
-    got = feature_schema.recovery_command_for(d)
+    got = record_schema.recovery_command_for(d)
     check("BE-04 a feature whose plan.yaml does not parse returns recover-terminal",
           got == "recover-terminal", repr(got))
 
@@ -139,7 +142,7 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9004-fixture-plan-done")
     write_plan(d, "done", [{"id": "T-01", "status": "building"}])
-    got = feature_schema.recovery_command_for(d)
+    got = record_schema.recovery_command_for(d)
     check("BE-06 plan status done returns recover-terminal", got == "recover-terminal", repr(got))
 
 # BE-08: a plan at status building with THREE tasks, none carrying a status of done, returns
@@ -148,11 +151,11 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as tmp:
     d1 = feat_dir(tmp, "FEAT-9005-fixture-three-open")
     write_plan(d1, "building", [{"id": "T-01"}, {"id": "T-02"}, {"id": "T-03"}])
-    leg1 = feature_schema.recovery_command_for(d1)
+    leg1 = record_schema.recovery_command_for(d1)
     d2 = feat_dir(tmp, "FEAT-9006-fixture-last-done")
     write_plan(d2, "building",
                [{"id": "T-01"}, {"id": "T-02"}, {"id": "T-03", "status": "done"}])
-    leg2 = feature_schema.recovery_command_for(d2)
+    leg2 = record_schema.recovery_command_for(d2)
     check("BE-08 building with three tasks none done is open, and only-last-done is "
           "recover-terminal",
           leg1 == "open" and leg2 == "recover-terminal",
@@ -162,7 +165,7 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9007-fixture-empty-tasks")
     write_plan(d, "building", [])
-    got = feature_schema.recovery_command_for(d)
+    got = record_schema.recovery_command_for(d)
     check("BE-09 plan status building with an empty tasks list returns open",
           got == "open", repr(got))
 
@@ -173,7 +176,7 @@ with tempfile.TemporaryDirectory() as tmp:
     write_plan(d, "ready", [{"id": "T-01", "status": "ready"}])
     plan_flow = {"id": "r1", "squad": "engineering", "verdict": "PASS", "code_grade": "n_a"}
     built = {"id": "r2", "squad": "engineering", "verdict": "PASS"}
-    legs = [feature_schema.recovery_command_for(d, {"runs": runs})
+    legs = [record_schema.recovery_command_for(d, {"runs": runs})
             for runs in ([plan_flow], [plan_flow, built])]
     check("a plan-flow engineering simplify run is not started work; a code-graded one is",
           legs == ["open", "recover-terminal"], repr(legs))
@@ -185,7 +188,7 @@ for name in PROBE_IDS:
     doc = {"feature_id": name, "branch": "none", "pr": None, "review_sha": "none",
            "cycles_used": 0, "max_total_cycles": 10,
            "runs": [{"id": "r1", "squad": "eng", "verdict": "PASS"}]}
-    probs = feature_schema.problems_for_text(
+    probs = record_schema.problems_for_text(
         json.dumps(doc), f"/tmp/x/.harness/harness/features/{name}/feature.json")
     if not any("runs[0]" in p and "'agent'" in p for p in probs):
         exempted.append(name)
@@ -200,7 +203,7 @@ import artifact_accessors  # noqa: E402
 with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9010-fixture-bad-yaml")
     Path(d, "plan.yaml").write_text("schema: plan/1\ntasks: [\n", encoding="utf-8")
-    got = feature_schema.recovery_command_for(d)
+    got = record_schema.recovery_command_for(d)
     check("FEAT-64 BE-11 a plan.yaml that does not parse is recover-terminal",
           got == "recover-terminal", repr(got))
     _real = artifact_accessors.load_plan
@@ -209,7 +212,7 @@ with tempfile.TemporaryDirectory() as tmp:
     artifact_accessors.load_plan = _boom
     try:
         try:
-            feature_schema.recovery_command_for(d)
+            record_schema.recovery_command_for(d)
             escaped = False
         except RuntimeError:
             escaped = True
@@ -218,7 +221,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("FEAT-64 BE-12 an unrelated RuntimeError in the plan loader escapes recovery_command_for",
           escaped)
 
-allows = getattr(feature_schema, "receipt_allows_merge", None)
+allows = getattr(record_binding, "receipt_allows_merge", None)
 bound = {"repo": "org/product"}
 check("a bound feature's opened mapping without github.repo is not repository provenance",
       callable(allows) and not allows(
@@ -243,7 +246,7 @@ if callable(allows):
         check(f"repository-aware merge receipt: {name}",
               allows(doc, repo) is bool(expected))
 
-resolve = getattr(feature_schema, "resolve_binding", None)
+resolve = getattr(record_binding, "resolve_binding", None)
 check("the shared binding resolver exists", callable(resolve))
 if callable(resolve):
     with tempfile.TemporaryDirectory() as tmp:

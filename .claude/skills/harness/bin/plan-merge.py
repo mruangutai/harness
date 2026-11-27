@@ -121,8 +121,7 @@ re-parses its own splice as a self-check.
 
 Since FEAT-70 the verbs live in `plan_merge/` beside this file — `text` (splice primitives),
 `guards` (destination, reload, schema, the one write route), and one module per verb family —
-and this file is the argparse table plus `main`. It stays the one CLI every caller forks and the
-import surface check-state's INV-40 loads `signed_task_hash` from.
+and this file is the argparse table plus `main`. It stays the one CLI every caller forks.
 """
 import argparse
 import os
@@ -138,7 +137,6 @@ from plan_merge.amendments import cmd_record_amendments  # noqa: E402
 from plan_merge.panel import cmd_record_panel, cmd_set_key, cmd_set_lanes, cmd_set_panel  # noqa: E402
 from plan_merge.approval import cmd_revoke_approval, cmd_sign_approval  # noqa: E402
 from plan_merge.stations import cmd_set_feature_station, cmd_set_task_station  # noqa: E402
-from plan_merge.approval import signed_task_hash  # noqa: E402,F401  INV-40's import
 
 # EVERY VERB IS A ROW, NOT A PARAGRAPH (FEAT-41 F-05). `main` regressed from grade 4 to 3 on ABC
 # alone — cyclomatic 2, cognitive 1, ABC 23.8 — when T-03 turned one verb into five and each one
