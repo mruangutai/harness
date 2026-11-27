@@ -2,7 +2,7 @@
   "feature_id": "BUG-2451-prune-staging-dec257",
   "branch": "feat/BUG-2451-prune-staging-dec257",
   "pr": null,
-  "review_sha": "b7e1f26ecfdff7683d25009435a30098c5580c52",
+  "review_sha": "6e8c8c5856c6c89beea9677ae11e0c5082226423",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
