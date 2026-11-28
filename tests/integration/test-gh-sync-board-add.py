@@ -9,20 +9,14 @@ FACTORY_GH, the only binary override, points at the fake. No live GitHub is touc
 
     ./test-gh-sync-board-add.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-import os
+import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import tempfile
 
-from gh_sync_support import FAKE_GH_STATIONS, calls, check, install_gh, report, run, stage_station
+from gh_sync_support import (FAKE_GH_STATIONS, calls, check, edits_to, install_gh, report, run,
+                             stage_station)
 
 _LOOKUP = '  *"projectItems(first: 100)"*)\n'
-_ABSENT_AND_ADD = r'''  *"projectItems(first: 100)"*)
-    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
+_ABSENT_AND_ADD = _LOOKUP + r'''    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
     case " $ABSENT_ISSUES " in
       *" $num "*)
         printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":0,"nodes":[]}}}}}\n'
@@ -54,9 +48,8 @@ def _start_task(absent):
         feat = stage_station(tmp, "FEAT-89-board-add",
                              [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
                              issues={"T-01": 41, "T-02": 326}, parent=40)
-        gh = os.path.join(tmp, "gh")
         result = run(["start-task", feat, "T-02"], tmp,
-                     {"FACTORY_GH": gh, "ABSENT_ISSUES": " ".join(map(str, absent))})
+                     {"ABSENT_ISSUES": " ".join(map(str, absent))})
         return result.returncode, result.stdout + result.stderr, calls(tmp)
 
 
@@ -77,18 +70,18 @@ def case_absent_own_card_is_added_then_set():
           len(adds) == 1 and None not in (lookup, add, edit) and lookup < add < edit,
           f"lookup={lookup} add={add} edit={edit} adds={adds}")
     check("a.3 the present parent card is set with its own item id and never added",
-          _index(log, "project item-edit", "--id ITEM_40", "OPT_BUILDING") is not None
+          any("--id ITEM_40" in line for line in edits_to(log, "OPT_BUILDING"))
           and not any("issues/40" in line for line in adds), str(adds))
 
 
 def case_present_cards_are_never_added():
     code, out, log = _start_task(absent=[])
-    edits = [line for line in log if "project item-edit" in line]
+    edits = edits_to(log, "OPT_BUILDING")
     check("p.1 with both cards on the board, start-task exits 0 and adds nothing",
           code == 0 and not any("project item-add" in line for line in log), out)
     check("p.2 both present cards are set to Building with their own item ids",
-          _index(edits, "--id ITEM_326", "OPT_BUILDING") is not None
-          and _index(edits, "--id ITEM_40", "OPT_BUILDING") is not None, str(edits))
+          any("--id ITEM_326" in line for line in edits)
+          and any("--id ITEM_40" in line for line in edits), str(edits))
 
 
 def main():

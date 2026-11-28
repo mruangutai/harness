@@ -5,17 +5,23 @@ Slice of the former test-check-domain.py (issue #1527) — the --post sweep acro
 four write routes, the runs/<id>/state.yaml write path, and the handoff `Done when`
 validator. Shared fixtures and the block driver live in check_domain_support.py.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+from integration_support import BIN
 import errno, json, os, shutil, subprocess, sys, tempfile, time
-from isolated_bin import isolated_bin
+from check_support import Checks
 from check_domain_support import (FIXTURE_MANIFEST, HOOK, _env, _handoff_done_when_fixture,
     _handoff_text, _legal_feature_json, drive, fire, fire_post, fire_write_payload, fixture,
     make_linked_worktree)
+
+
+def _invoke(root, payload, argv=(HOOK,)):
+    """Run the hook once in pre mode unless argv says otherwise: payload as JSON on stdin."""
+    return subprocess.run(list(argv), input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root))
+
+
+# The four handoff sections without the "## Done when" one the validator requires.
+_MISSING_DONE_WHEN = "\n".join(["## Next", "next", "## Trust", "trust",
+                                "## Dead ends", "none", "## Working set", "set"]) + "\n"
 
 
 # ============ #132: the shape gate on the routes PreToolUse cannot reach ============
@@ -24,13 +30,6 @@ from check_domain_support import (FIXTURE_MANIFEST, HOOK, _env, _handoff_done_wh
 # One route of four. Each case below is one of those routes, run against a REAL file in a
 # fixture repo, because the whole point of the post mode is that it reads the disk rather
 # than a payload it could have been handed.
-
-POST = []
-
-
-def post(name, ok, detail=""):
-    POST.append((name, ok, detail))
-
 
 def _write_while_sweep_reads_fifo(root, payload, fifo_path, mid_write):
     """Block the sweep after its start mark, then perform one write it already walked past."""
@@ -66,6 +65,9 @@ def _write_while_sweep_reads_fifo(root, payload, fifo_path, mid_write):
 
 
 def run_post():
+    print("--- #132: shape coverage on all four write routes ---")
+    C = Checks()
+    post = C.check
     d = fixture(FIXTURE_MANIFEST)
     fdir = os.path.join(d, ".harness", "harness", "features", "FEAT-X")
     os.makedirs(fdir)
@@ -73,22 +75,12 @@ def run_post():
     rel_fy = ".harness/harness/features/FEAT-X/feature.json"
 
     def write(nlines):
-        # A LEGAL ten-key document, padded with blank lines to an exact length.
-        # T-06 put the schema on this path, so a fixture meant to be judged on its LINE
-        # COUNT must be schema-clean or it is denied for a reason its case never intended
-        # — a green-looking test asserting the wrong cause. Trailing whitespace is
-        # insignificant to a JSON parser, so padding this way changes the line count and
-        # nothing else.
-        import json as _json
-        doc = _json.dumps({"feature_id": "FEAT-X", "branch": "none", "pr": None, "review_sha": "none", "cycles_used": 0,
-                           "max_total_cycles": 10, "runs": []}, indent=2)
-        body = doc.splitlines()
         with open(fy, "w") as f:
-            f.write("\n".join(body + [""] * max(0, nlines - len(body))) + "\n")
+            f.write(_legal_feature_json(nlines))
 
-    def edit_payload(agent="harness-orchestrator"):
+    def edit_payload(path=fy, agent="harness-orchestrator"):
         p = {"tool_name": "Edit", "hook_event_name": "PostToolUse",
-             "tool_input": {"file_path": fy, "old_string": "a", "new_string": "b"}}
+             "tool_input": {"file_path": path, "old_string": "a", "new_string": "b"}}
         if agent:
             p["agent_type"] = agent
         return p
@@ -105,10 +97,9 @@ def run_post():
          r.returncode == 2 and "budget is 300" in r.stderr,
          f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
 
-    pre = subprocess.run([HOOK], input=json.dumps({
+    pre = _invoke(d, {
         "agent_type": "harness-orchestrator", "tool_name": "Edit",
-        "tool_input": {"file_path": fy, "old_string": "a", "new_string": "b"}}),
-        capture_output=True, text=True, env=_env(d))
+        "tool_input": {"file_path": fy, "old_string": "a", "new_string": "b"}})
     # The claim is about the SHAPE finding, not the exit code, and the difference is not
     # pedantry: harness-orchestrator has no domain in FIXTURE_MANIFEST, so the pre hook
     # exits 2 here for a DOMAIN reason. A first draft asserted `returncode == 0` and
@@ -125,10 +116,7 @@ def run_post():
 
     # --- ROUTE 4: the MAIN SESSION, which has no agent_type and was exempted from the
     # shape gate by the DOMAIN carve-out sitting above it.
-    r = subprocess.run([HOOK], input=json.dumps({
-        "tool_name": "Write",
-        "tool_input": {"file_path": fy, "content": "\n".join(["x: 1"] * 400)}}),
-        capture_output=True, text=True, env=_env(d))
+    r = fire_write_payload(d, fy, "\n".join(["x: 1"] * 400))
     post("route 4 — the MAIN SESSION is no longer exempt from the shape gate",
          r.returncode == 2 and "budget is 300" in r.stderr,
          f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
@@ -214,16 +202,10 @@ def run_post():
         with open(_cm, "w") as f:
             f.write("\n".join(f"line {i}" for i in range(_n)) + "\n")
         # route 1: main-session Write, measured on the payload
-        rw = subprocess.run([HOOK], input=json.dumps({
-            "tool_name": "Write",
-            "tool_input": {"file_path": _cm,
-                           "content": "\n".join(f"line {i}" for i in range(_n))}}),
-            capture_output=True, text=True, env=_env(d))
+        rw = fire_write_payload(d, _cm, "\n".join(f"line {i}" for i in range(_n)))
         # route 2: main-session Edit, measured on disk
         os.utime(_cm, None)
-        re_ = fire_post(d, {"tool_name": "Edit", "hook_event_name": "PostToolUse",
-                            "tool_input": {"file_path": _cm, "old_string": "a",
-                                           "new_string": "b"}})
+        re_ = fire_post(d, edit_payload(_cm, agent=None))
         hit_w = rw.returncode == 2 and "budget is 80" in rw.stderr
         hit_e = re_.returncode == 2 and "budget is 80" in re_.stderr
         post(f"CLAUDE.md at {_n} lines {'IS' if _want else 'is NOT'} over the 80 budget, "
@@ -265,26 +247,15 @@ def run_post():
     with open(_wfy, "w") as f:
         f.write(_legal_feature_json(400))
 
-    for label, path, payload_maker in (
-        ("post Edit", _wcm, lambda p: {"hook_event_name": "PostToolUse", "tool_name": "Edit",
-                                       "tool_input": {"file_path": p, "old_string": "a",
-                                                      "new_string": "b"}}),
-        ("post Edit (state file)", _wfy,
-         lambda p: {"hook_event_name": "PostToolUse", "tool_name": "Edit",
-                    "tool_input": {"file_path": p, "old_string": "a", "new_string": "b"}}),
-    ):
+    for label, path in (("post Edit", _wcm), ("post Edit (state file)", _wfy)):
         os.utime(path, None)
-        r = fire_post(d, payload_maker(path))
+        r = fire_post(d, edit_payload(path, agent=None))
         post(f"{label} on a worktree file names the WORKTREE it came from",
              r.returncode == 2 and ".claude/worktrees/wt1" in r.stderr,
              f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
 
     # The PRE route too — it measures a payload, and it printed the same bare name.
-    rw = subprocess.run([HOOK], input=json.dumps({
-        "tool_name": "Write",
-        "tool_input": {"file_path": _wcm,
-                       "content": "\n".join(f"x{i}" for i in range(81))}}),
-        capture_output=True, text=True, env=_env(d))
+    rw = fire_write_payload(d, _wcm, "\n".join(f"x{i}" for i in range(81)))
     post("pre Write on a worktree file names the WORKTREE it came from",
          rw.returncode == 2 and ".claude/worktrees/wt1" in rw.stderr,
          f"exit {rw.returncode}: {rw.stderr.strip().splitlines()[:1]}")
@@ -430,22 +401,15 @@ def run_post():
 
     shutil.rmtree(d, ignore_errors=True)
 
-    fails = 0
-    print("--- #132: shape coverage on all four write routes ---")
-    for name, ok, detail in POST:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(POST) - fails}/{len(POST)} post-mode cases passed.\n")
-    return fails
+    print(f"\n{C.ran - len(C.failed)}/{C.ran} post-mode cases passed.\n")
+    return len(C.failed)
 
 
 def run_sweep_scoped_to_feature():
     """#2026: a governed Bash sweep reads the root and its OWN feature's worktree only, with a
     high-water mark of its own; an unnamed caller still sweeps every linked worktree."""
-    results = []
+    print("--- #2026: the Bash sweep is scoped to the run's own feature ---")
+    C = Checks()
     d = fixture(FIXTURE_MANIFEST)
     own = make_linked_worktree(d, os.path.join(d, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
     other = make_linked_worktree(d, os.path.join(d, ".claude", "worktrees", "harness", "FEAT-91"), "FEAT-91")
@@ -467,25 +431,19 @@ def run_sweep_scoped_to_feature():
         bash(feature)                                     # settle both marks
     oversize(other, "FEAT-91")
     r_own = bash("FEAT-90-own")
-    results.append(("a governed sweep does not report a sibling feature's worktree",
-                    r_own.returncode == 0, f"exit {r_own.returncode}: {r_own.stderr.strip()[:160]}"))
+    C.check("a governed sweep does not report a sibling feature's worktree",
+            r_own.returncode == 0, f"exit {r_own.returncode}: {r_own.stderr.strip()[:160]}")
     r_main = bash()
-    results.append(("the unnamed sweep still reports it, its mark untouched by the governed one",
-                    r_main.returncode == 2 and "FEAT-91" in r_main.stderr,
-                    f"exit {r_main.returncode}: {r_main.stderr.strip()[:160]}"))
+    C.check("the unnamed sweep still reports it, its mark untouched by the governed one",
+            r_main.returncode == 2 and "FEAT-91" in r_main.stderr,
+            f"exit {r_main.returncode}: {r_main.stderr.strip()[:160]}")
     oversize(own, "FEAT-90")
     r_mine = bash("FEAT-90-own")
-    results.append(("a governed sweep reports its own feature's worktree",
-                    r_mine.returncode == 2 and "FEAT-90" in r_mine.stderr,
-                    f"exit {r_mine.returncode}: {r_mine.stderr.strip()[:160]}"))
+    C.check("a governed sweep reports its own feature's worktree",
+            r_mine.returncode == 2 and "FEAT-90" in r_mine.stderr,
+            f"exit {r_mine.returncode}: {r_mine.stderr.strip()[:160]}")
     shutil.rmtree(d, ignore_errors=True)
-
-    fails = 0
-    print("--- #2026: the Bash sweep is scoped to the run's own feature ---")
-    for name, ok, detail in results:
-        print(f"ok    {name}" if ok else f"FAIL  {name}\n      | {detail}")
-        fails += 0 if ok else 1
-    return fails
+    return len(C.failed)
 
 
 def run_runs_agent_write_path():
@@ -503,14 +461,8 @@ def run_runs_agent_write_path():
     bin/ into a tmpdir touches nothing real: `_derived` is only a fallback for
     HARNESS_PROJECT_DIR, which every call here sets explicitly through `_env`.
     """
-    fails = 0
-    local = []
-
-    def t(name, ok, detail=""):
-        nonlocal fails
-        local.append((name, ok, detail))
-        if not ok:
-            fails += 1
+    C = Checks()
+    t = C.check
 
     # A synthetic feature: the agent rule is uniform, so its very first runs entry must
     # carry `agent` exactly like any other feature's.
@@ -531,8 +483,7 @@ def run_runs_agent_write_path():
         payload = {"agent_type": "harness-orchestrator", "tool_name": "Write",
                    "tool_input": {"file_path": os.path.join(root, rel),
                                   "content": content}}
-        return subprocess.run([hook], input=json.dumps(payload), capture_output=True,
-                              text=True, env=_env(root))
+        return _invoke(root, payload, [hook])
 
     # A MANIFEST THAT GRANTS THE PATH, and this is the whole difference between a real
     # case and a green-looking one. FIXTURE_MANIFEST grants harness-orchestrator
@@ -574,59 +525,42 @@ teams:
         t("SC-07 write path RED: the rule's call site was found", False,
           "feature_record/schema.py does not contain the call site")
     else:
-        mutant_text = src.replace(needle, "")
-        if mutant_text == src:
-            t("SC-07 write path RED: the mutation changed the source", False,
-              "INCONCLUSIVE — replace() was a no-op")
-        else:
-            mtmp = tempfile.mkdtemp()
-            try:
-                mbin = os.path.join(mtmp, "bin")
-                shutil.copytree(bin_dir, mbin)
-                shutil.copytree(os.path.join(os.path.dirname(bin_dir), "schemas"),
-                                os.path.join(mtmp, "schemas"))
-                with open(os.path.join(mbin, "feature_record", "schema.py"), "w") as f:
-                    f.write(mutant_text)
-                mhook = os.path.join(mbin, os.path.basename(HOOK))
-                r_mut = fire_json(mhook, root, doc_bad)
-                n_real = 1 if r_bad.returncode == 2 else 0
-                n_mut = 1 if r_mut.returncode == 2 else 0
-                print(f"      red proof: original denials {n_real}, mutant {n_mut} "
-                      f"(exit {r_bad.returncode} vs {r_mut.returncode})")
-                t("SC-07 write path RED: the agent rule is load-bearing at the hook",
-                  n_mut < n_real,
-                  f"INCONCLUSIVE — original {n_real}, mutant {n_mut}")
-            finally:
-                shutil.rmtree(mtmp, ignore_errors=True)
+        # The needle is in src, so replace() always yields a changed mutant.
+        with tempfile.TemporaryDirectory() as mtmp:
+            mbin = os.path.join(mtmp, "bin")
+            shutil.copytree(bin_dir, mbin)
+            shutil.copytree(os.path.join(os.path.dirname(bin_dir), "schemas"),
+                            os.path.join(mtmp, "schemas"))
+            with open(os.path.join(mbin, "feature_record", "schema.py"), "w") as f:
+                f.write(src.replace(needle, ""))
+            r_mut = fire_json(os.path.join(mbin, os.path.basename(HOOK)), root, doc_bad)
+        n_real = 1 if r_bad.returncode == 2 else 0
+        n_mut = 1 if r_mut.returncode == 2 else 0
+        print(f"      red proof: original denials {n_real}, mutant {n_mut} "
+              f"(exit {r_bad.returncode} vs {r_mut.returncode})")
+        t("SC-07 write path RED: the agent rule is load-bearing at the hook",
+          n_mut < n_real,
+          f"INCONCLUSIVE — original {n_real}, mutant {n_mut}")
 
     shutil.rmtree(root, ignore_errors=True)
-    for name, ok, detail in local:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            print(f"FAIL  {name}")
-            if detail:
-                print(f"      | {detail}")
-    return fails
+    return len(C.failed)
 
 
-def _record_handoff_result(results, name, result, want, needles=None):
+def _record_handoff_result(checks, name, result, want, needles=None):
     needles = () if needles is None else (
         needles if isinstance(needles, tuple) else (needles,))
     stderr = result.stderr.lower()
     ok = result.returncode == want and all(needle.lower() in stderr for needle in needles)
-    results.append((name, ok, f"exit {result.returncode}: {result.stderr.strip()[:180]}"))
+    checks.check(name, ok, f"exit {result.returncode}: {result.stderr.strip()[:180]}")
 
 
-def _handoff_grammar_cases(results, root, target, valid):
-    missing = "\n".join(["## Next", "next", "## Trust", "trust",
-                         "## Dead ends", "none", "## Working set", "set"]) + "\n"
+def _handoff_grammar_cases(checks, root, target, valid):
     _record_handoff_result(
-        results, "handoff Done when missing",
-        fire_write_payload(root, target, missing), 2,
+        checks, "handoff Done when missing",
+        fire_write_payload(root, target, _MISSING_DONE_WHEN), 2,
         ("## Done when", "templates/HANDOFF.md"))
     _record_handoff_result(
-        results, "handoff Done when valid",
+        checks, "handoff Done when valid",
         fire_write_payload(root, target, _handoff_text(valid)), 0)
     malformed = [
         ("zero Scope", "Authority: plan-task:T-03.verify", "has 0 Scope: lines"),
@@ -648,11 +582,11 @@ def _handoff_grammar_cases(results, root, target, valid):
     ]
     for name, body, needle in malformed:
         _record_handoff_result(
-            results, f"handoff {name}",
+            checks, f"handoff {name}",
             fire_write_payload(root, target, _handoff_text(body)), 2, needle)
 
 
-def _handoff_pointer_cases(results, root, target):
+def _handoff_pointer_cases(checks, root, target):
     pointers = [
         ("plan", "plan-task:T-03.verify", "plan-task:T-99.verify"),
         ("brief", "brief-sc:SC-04", "brief-sc:SC-99"),
@@ -664,17 +598,17 @@ def _handoff_pointer_cases(results, root, target):
     ]
     for name, good, bad in pointers:
         _record_handoff_result(
-            results, f"handoff {name} resolves",
+            checks, f"handoff {name} resolves",
             fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {good}")), 0)
         _record_handoff_result(
-            results, f"handoff {name} unresolved",
+            checks, f"handoff {name} unresolved",
             fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {bad}")), 2, bad)
     legal_prefixes = ("plan-task:", "brief-sc:", "finding:", "approval:")
     for value in ("docs:whatever", "check-domain.py:1523"):
         _record_handoff_result(
-            results, f"handoff unknown authority {value}",
+            checks, f"handoff unknown authority {value}",
             fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {value}")), 2, legal_prefixes)
     feat = os.path.dirname(os.path.dirname(target))
@@ -688,12 +622,12 @@ def _handoff_pointer_cases(results, root, target):
             f.write(content)
         pointer = f"approval:{os.path.relpath(path, root)}#Approval"
         _record_handoff_result(
-            results, f"handoff approval rejects invalid ATX {name}",
+            checks, f"handoff approval rejects invalid ATX {name}",
             fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {pointer}")), 2, pointer)
 
 
-def _handoff_unsafe_cases(results, root, notes, target):
+def _handoff_unsafe_cases(checks, root, notes, target):
     for value in (
         "finding:/tmp/review.md#F-02",
         "finding:../review.md#F-02",
@@ -702,7 +636,7 @@ def _handoff_unsafe_cases(results, root, notes, target):
         "approval:../review.md#Approval",
     ):
         _record_handoff_result(
-            results, f"handoff unsafe authority {value!r}",
+            checks, f"handoff unsafe authority {value!r}",
             fire_write_payload(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {value}")), 2, "unsafe")
     outside = os.path.join(os.path.dirname(root), os.path.basename(root) + "-outside.md")
@@ -716,14 +650,14 @@ def _handoff_unsafe_cases(results, root, notes, target):
         rel_pointer = os.path.relpath(path, root)
         for kind, suffix in (("finding", "F-02"), ("approval", "Approval")):
             _record_handoff_result(
-                results, f"handoff {kind} {name}",
+                checks, f"handoff {kind} {name}",
                 fire_write_payload(root, target, _handoff_text(
                     f"Scope: done\nAuthority: {kind}:{rel_pointer}#{suffix}")),
                 2, "unsafe")
     return outside
 
 
-def _handoff_valid_pre_edit_cases(results, root, target, valid):
+def _handoff_valid_pre_edit_cases(checks, root, target, valid):
     with open(target, "w") as f:
         f.write(_handoff_text(valid))
     before = open(target, "rb").read()
@@ -736,26 +670,22 @@ def _handoff_valid_pre_edit_cases(results, root, target, valid):
         },
     }
     _record_handoff_result(
-        results, "handoff valid reconstructable PRE-Edit remains allowed",
-        subprocess.run(
-            [HOOK], input=json.dumps(permitted_edit), capture_output=True,
-            text=True, env=_env(root)),
-        0)
+        checks, "handoff valid reconstructable PRE-Edit remains allowed",
+        _invoke(root, permitted_edit), 0)
     pre_edit = {"tool_name": "Edit",
                 "tool_input": {"file_path": target,
                                "old_string": "Scope: build complete",
                                "new_string": "Scope:   "}}
-    pre_result = subprocess.run(
-        [HOOK], input=json.dumps(pre_edit), capture_output=True, text=True, env=_env(root))
+    pre_result = _invoke(root, pre_edit)
     _record_handoff_result(
-        results, "handoff pre-Edit blocks invalid candidate",
+        checks, "handoff pre-Edit blocks invalid candidate",
         pre_result, 2, "non-empty")
-    results.append(("handoff blocked pre-Edit leaves file unchanged",
-                    open(target, "rb").read() == before, "file bytes changed"))
+    checks.check("handoff blocked pre-Edit leaves file unchanged",
+                 open(target, "rb").read() == before, "file bytes changed")
     return before
 
 
-def _handoff_invalid_utf8_pre_edit_case(results, root, target, before):
+def _handoff_invalid_utf8_pre_edit_case(checks, root, target, before):
     unreadable = b"\xff\xfehandoff\n"
     with open(target, "wb") as f:
         f.write(unreadable)
@@ -768,31 +698,28 @@ def _handoff_invalid_utf8_pre_edit_case(results, root, target, before):
         },
     }
     try:
-        unreadable_result = subprocess.run(
-            [HOOK], input=json.dumps(unreadable_edit), capture_output=True,
-            text=True, env=_env(root))
+        unreadable_result = _invoke(root, unreadable_edit)
         combined = unreadable_result.stderr + unreadable_result.stdout
         unchanged = open(target, "rb").read() == unreadable
-        results.append((
+        checks.check(
             "handoff pre-Edit unreadable existing file fails closed",
             unreadable_result.returncode == 2
             and "cannot be reconstructed" in combined.lower()
             and unchanged,
             f"exit {unreadable_result.returncode}: {combined.strip()[:180]}; "
-            f"bytes unchanged: {unchanged}",
-        ))
+            f"bytes unchanged: {unchanged}")
     finally:
         with open(target, "wb") as f:
             f.write(before)
 
 
-def _handoff_pre_edit_cases(results, root, target, outside, valid):
+def _handoff_pre_edit_cases(checks, root, target, outside, valid):
     os.unlink(outside)
-    before = _handoff_valid_pre_edit_cases(results, root, target, valid)
-    _handoff_invalid_utf8_pre_edit_case(results, root, target, before)
+    before = _handoff_valid_pre_edit_cases(checks, root, target, valid)
+    _handoff_invalid_utf8_pre_edit_case(checks, root, target, before)
 
 
-def _handoff_validator_exception_case(results, root, valid):
+def _handoff_validator_exception_case(checks, root, valid):
     isolated = os.path.join(root, "isolated")
     isolated_bin = os.path.join(isolated, ".agents", "skills", "harness", "bin")
     os.makedirs(isolated_bin)
@@ -802,7 +729,7 @@ def _handoff_validator_exception_case(results, root, valid):
     # copy carries the boundary module and its one repo import too; without them the
     # refusal would name a missing module instead of the injected validator failure.
     for sibling in ("artifact_accessors.py", "harness_boundary.py", "run_identity.py"):
-        shutil.copy2(os.path.join(_anchor_bin, sibling), os.path.join(isolated_bin, sibling))
+        shutil.copy2(os.path.join(str(BIN), sibling), os.path.join(isolated_bin, sibling))
     with open(os.path.join(isolated_bin, "handoff_done_when.py"), "w") as f:
         f.write("def problems(*args, **kwargs):\n    raise RuntimeError('injected failure')\n")
     isolated_target = os.path.join(
@@ -814,43 +741,40 @@ def _handoff_validator_exception_case(results, root, valid):
         "tool_input": {"file_path": isolated_target, "content": _handoff_text(valid)},
     }
     _record_handoff_result(
-        results, "handoff validator exception fails closed",
-        subprocess.run([isolated_hook], input=json.dumps(isolated_payload),
-                       capture_output=True, text=True, env=_env(isolated)),
+        checks, "handoff validator exception fails closed",
+        _invoke(isolated, isolated_payload, [isolated_hook]),
         2, ("injected failure", "REFUSING"))
 
 
-def _handoff_existing_edit_cases(results, root, target, missing, valid):
+def _handoff_existing_edit_cases(checks, root, target, valid):
     # The existing-note edit route is the post-write sweep, not a second parser.
     with open(target, "w") as f:
-        f.write(missing)
+        f.write(_MISSING_DONE_WHEN)
     edit_payload = {"tool_name": "Edit", "hook_event_name": "PostToolUse",
                     "tool_input": {"file_path": target, "old_string": "old",
                                    "new_string": "new"}}
     _record_handoff_result(
-        results, "handoff edit without Done when",
-        subprocess.run([HOOK], input=json.dumps(edit_payload), capture_output=True,
-                       text=True, env=_env(root)), 2, "## Done when")
+        checks, "handoff edit without Done when",
+        _invoke(root, edit_payload), 2, "## Done when")
     with open(target, "w") as f:
         f.write(_handoff_text(valid))
     _record_handoff_result(
-        results, "handoff edit with Done when",
-        subprocess.run([HOOK], input=json.dumps(edit_payload), capture_output=True,
-                       text=True, env=_env(root)), 0)
+        checks, "handoff edit with Done when",
+        _invoke(root, edit_payload), 0)
 
 
-def _handoff_line_cap_cases(results, root, target, valid):
+def _handoff_line_cap_cases(checks, root, target, valid):
     sixty = _handoff_text(valid, trust_lines=50)
     sixty_one = _handoff_text(valid, trust_lines=51)
     assert len(sixty.splitlines()) == 60 and len(sixty_one.splitlines()) == 61
     _record_handoff_result(
-        results, "handoff 60-line boundary",
+        checks, "handoff 60-line boundary",
         fire_write_payload(root, target, sixty), 0)
     _record_handoff_result(
-        results, "handoff 61-line boundary",
+        checks, "handoff 61-line boundary",
         fire_write_payload(root, target, sixty_one), 2, "cap is 60")
     _record_handoff_result(
-        results, "handoff no per-section cap",
+        checks, "handoff no per-section cap",
         fire_write_payload(root, target, sixty), 0)
 
 
@@ -867,7 +791,7 @@ def _write_handoff_plan(feature_dir, task_id):
             "    intent: Exercise handoff authority resolution.\n")
 
 
-def _handoff_worktree_cases(results, root):
+def _handoff_worktree_cases(checks, root):
     wt_path = os.path.join(
         root, ".claude", "worktrees", "harness", "BUG-9-handoff-wt")
     make_linked_worktree(root, wt_path, "bug9-handoff")
@@ -881,23 +805,22 @@ def _handoff_worktree_cases(results, root):
     target = os.path.join(notes, "handoff-build.md")
     main_feat = os.path.join(
         root, ".harness", "harness", "features", "BUG-9-handoff-wt-fixture")
-    results.append((
-        "handoff worktree-only main root has no feature dir",
-        not os.path.exists(main_feat), main_feat))
+    checks.check("handoff worktree-only main root has no feature dir",
+                 not os.path.exists(main_feat), main_feat)
     _record_handoff_result(
-        results, "handoff worktree-only feature dir resolves",
+        checks, "handoff worktree-only feature dir resolves",
         fire_write_payload(
             root, target,
             _handoff_text("Scope: build complete\nAuthority: plan-task:T-03.verify")),
         0)
     _record_handoff_result(
-        results, "handoff worktree-only unresolvable pointer refused",
+        checks, "handoff worktree-only unresolvable pointer refused",
         fire_write_payload(
             root, target,
             _handoff_text("Scope: build complete\nAuthority: plan-task:T-99.verify")),
         2, ("T-99",))
     _record_handoff_result(
-        results, "handoff worktree-only brief-sc pointer refused",
+        checks, "handoff worktree-only brief-sc pointer refused",
         fire_write_payload(
             root, target, _handoff_text("Scope: build complete\nAuthority: brief-sc:SC-99")),
         2, (
@@ -908,34 +831,34 @@ def _handoff_worktree_cases(results, root):
         ))
 
 
-def _handoff_cycle_suffix_cases(results, root, notes, valid):
+def _handoff_cycle_suffix_cases(checks, root, notes, valid):
     """BUG-2295: one note per phase, superseded, never appended (DEC-159). A
     cycle-suffixed name is refused even when every content check passes, through Write
     and through Edit reconstruction; canonical names stay accepted."""
     for phase in ("build", "validate", "plan"):
         target = os.path.join(notes, f"handoff-{phase}.md")
         _record_handoff_result(
-            results, f"handoff canonical {phase} accepted",
+            checks, f"handoff canonical {phase} accepted",
             fire_write_payload(root, target, _handoff_text(valid)), 0)
     for stem, phase in (("build-c1", "build"), ("validate-c12", "validate"),
                         ("plan-c305", "plan"), ("Build-c1", "build"),
                         ("build-C1", "build"), ("VALIDATE-C12", "validate")):
-        _handoff_cycle_refusal_case(results, root, notes, stem, phase, valid)
+        _handoff_cycle_refusal_case(checks, root, notes, stem, phase, valid)
 
 
-def _record_cycle_refusal(results, name, result, phase):
+def _record_cycle_refusal(checks, name, result, phase):
     """The refusal names the canonical note LOWERCASED, compared case-sensitively —
     _record_handoff_result folds case, which would let `notes/handoff-Build.md` pass."""
     canonical = f"notes/handoff-{phase}.md"
-    _record_handoff_result(results, name, result, 2, (canonical, "supersede"))
-    results.append((f"{name} names {canonical} exactly", canonical in result.stderr,
-                     result.stderr.strip()[:180]))
+    _record_handoff_result(checks, name, result, 2, (canonical, "supersede"))
+    checks.check(f"{name} names {canonical} exactly", canonical in result.stderr,
+                 result.stderr.strip()[:180])
 
 
-def _handoff_cycle_refusal_case(results, root, notes, stem, phase, valid):
+def _handoff_cycle_refusal_case(checks, root, notes, stem, phase, valid):
     suffixed = os.path.join(notes, f"handoff-{stem}.md")
     _record_cycle_refusal(
-        results, f"handoff {stem} Write refused",
+        checks, f"handoff {stem} Write refused",
         fire_write_payload(root, suffixed, _handoff_text(valid)), phase)
     with open(suffixed, "w") as f:
         f.write(_handoff_text(valid))
@@ -944,41 +867,28 @@ def _handoff_cycle_refusal_case(results, root, notes, stem, phase, valid):
             "tool_input": {"file_path": suffixed,
                            "old_string": "Scope: build complete",
                            "new_string": "Scope: build complete and verified"}}
-    _record_cycle_refusal(
-        results, f"handoff {stem} Edit refused",
-        subprocess.run([HOOK], input=json.dumps(edit), capture_output=True,
-                       text=True, env=_env(root)), phase)
-    results.append((f"handoff {stem} refused Edit leaves file unchanged",
-                    open(suffixed, "rb").read() == before, "file bytes changed"))
+    _record_cycle_refusal(checks, f"handoff {stem} Edit refused", _invoke(root, edit), phase)
+    checks.check(f"handoff {stem} refused Edit leaves file unchanged",
+                 open(suffixed, "rb").read() == before, "file bytes changed")
     os.unlink(suffixed)
 
 
-def _report_handoff_results(results):
-    fails = 0
-    for name, ok, detail in results:
-        print(("ok   " if ok else "FAIL "), name, "" if ok else detail)
-        fails += not ok
-    return fails
-
-
 def run_handoff_done_when():
-    results = []
+    checks = Checks()
     with tempfile.TemporaryDirectory() as root:
         notes, target = _handoff_done_when_fixture(root)
         _write_handoff_plan(os.path.dirname(notes), "T-03")
         valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"
-        missing = "\n".join(["## Next", "next", "## Trust", "trust",
-                             "## Dead ends", "none", "## Working set", "set"]) + "\n"
-        _handoff_grammar_cases(results, root, target, valid)
-        _handoff_pointer_cases(results, root, target)
-        outside = _handoff_unsafe_cases(results, root, notes, target)
-        _handoff_pre_edit_cases(results, root, target, outside, valid)
-        _handoff_validator_exception_case(results, root, valid)
-        _handoff_existing_edit_cases(results, root, target, missing, valid)
-        _handoff_line_cap_cases(results, root, target, valid)
-        _handoff_cycle_suffix_cases(results, root, notes, valid)
-        _handoff_worktree_cases(results, root)
-    return _report_handoff_results(results)
+        _handoff_grammar_cases(checks, root, target, valid)
+        _handoff_pointer_cases(checks, root, target)
+        outside = _handoff_unsafe_cases(checks, root, notes, target)
+        _handoff_pre_edit_cases(checks, root, target, outside, valid)
+        _handoff_validator_exception_case(checks, root, valid)
+        _handoff_existing_edit_cases(checks, root, target, valid)
+        _handoff_line_cap_cases(checks, root, target, valid)
+        _handoff_cycle_suffix_cases(checks, root, notes, valid)
+        _handoff_worktree_cases(checks, root)
+    return len(checks.failed)
 
 
 def main():

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
+from integration_support import ROOT
+
 import copy
 import json
-import os
-from pathlib import Path
 import shutil
-import subprocess
-import tempfile
+import sys
 
-ROOT = Path(__file__).resolve().parents[2]
+from check_support import Checks
+from runner_tree_support import run_runner, sentinel_tree
+
 PROBE = "tests/manual/probe-handoff-comprehension.py"
 # Every live probe is a locally-run, credentialled kind, never a matrix (CI) claim, and each is
 # declared the same way. This table is the complete set of locally_run kinds.
@@ -17,16 +18,11 @@ LIVE_KINDS = {
     "omp_session_accessor": "tests/manual/probe-omp-session-accessor.py",
 }
 ISSUE_TYPES_PROBE = LIVE_KINDS["issue_types_live"]
-failures = []
+C = Checks()
+check = C.check
 
 
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL"), name, detail if not condition else "")
-    if not condition:
-        failures.append(name)
-
-
-def registration_problems(config, kind="handoff_comprehension"):
+def registration_problems(config, kind):
     probe = LIVE_KINDS[kind]
     problems = []
     kinds = config.get("test_kinds", {}) if isinstance(config, dict) else {}
@@ -52,22 +48,7 @@ def registration_problems(config, kind="handoff_comprehension"):
 
 
 def tree():
-    root = Path(tempfile.mkdtemp())
-    (root / ".harness").mkdir()
-    (root / ".harness/team-config.yaml").write_text("teams: []\n")
-    bin_dir = root / ".claude/skills/harness/bin"
-    bin_dir.mkdir(parents=True)
-    for name in (
-            "run-unit-tests.py", "harness_boundary.py", "run_identity.py",
-            "artifact_accessors.py", "suite_layout.py", "run_pool.py"):
-        shutil.copy2(ROOT / ".claude/skills/harness/bin" / name, bin_dir / name)
-    for kind in ("unit", "integration"):
-        directory = root / "tests" / kind
-        directory.mkdir(parents=True)
-        (directory / f"test-{kind}.py").write_text(f'print("PASS test-{kind}.py")\n')
-    # FEAT-2081: the runner's sharding data dependency travels with the copied tree.
-    durations = "tests/integration/integration-durations.json"
-    shutil.copy2(ROOT / durations, root / durations)
+    root = sentinel_tree()
     for probe in LIVE_KINDS.values():
         manual = root / probe
         manual.parent.mkdir(parents=True, exist_ok=True)
@@ -75,13 +56,6 @@ def tree():
                           'raise SystemExit(1)\n')
         manual.chmod(0o755)
     return root
-
-
-def run(root, *args):
-    env = dict(os.environ, HARNESS_PROJECT_DIR=str(root))
-    return subprocess.run(
-        [str(root / ".claude/skills/harness/bin/run-unit-tests.py"), *args],
-        cwd=root, env=env, text=True, capture_output=True, timeout=60)
 
 
 config = json.loads((ROOT / ".harness/harness.json").read_text())
@@ -107,24 +81,24 @@ check("dropping a second live probe kind is loud",
 
 missing_kind = copy.deepcopy(config)
 del missing_kind["test_kinds"]["handoff_comprehension"]
-missing_problems = registration_problems(missing_kind)
+missing_problems = registration_problems(missing_kind, "handoff_comprehension")
 check("dropping probe kind is loud",
       bool(missing_problems) and all(PROBE in problem for problem in missing_problems),
       repr(missing_problems))
 
 fixture = tree()
 try:
-    all_run = run(fixture, "--kind", "all")
+    all_run = run_runner(fixture, "--kind", "all")
     check("--kind all excludes every live probe",
           all_run.returncode == 0
           and "PASS test-unit.py" in all_run.stdout
           and "PASS test-integration.py" in all_run.stdout
           and "LIVE-PROBE-MUST-NOT-RUN" not in all_run.stdout + all_run.stderr,
           all_run.stdout + all_run.stderr)
-    layout = run(fixture, "--check-layout")
+    layout = run_runner(fixture, "--check-layout")
     check("manual live probes are layout-valid", layout.returncode == 0,
           layout.stdout + layout.stderr)
 finally:
     shutil.rmtree(fixture)
 
-raise SystemExit(1 if failures else 0)
+sys.exit(C.report())

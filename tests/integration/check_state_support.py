@@ -9,33 +9,24 @@ NOT NAMED test-*.py ON PURPOSE: suite_layout refuses a test-shaped file the runn
 tests/{unit,integration}/test-*.py glob would not select, so a shared module under
 tests/integration/ has to carry a name outside that vocabulary.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-from harness_config_support import build_config, write_config  # noqa: E402
-import artifact_accessors  # noqa: E402
+from integration_support import BIN
 import json
 import os
 import shutil
 import subprocess
-import sys
+
+import artifact_accessors
+from harness_config_support import build_config, write_config
+# THE MARKER IS READ FROM THE RESOLVER ITSELF, never spelled again here: a fixture that
+# writes its own copy of the filename stops being a fixture for the rule the moment the
+# rule moves (FEAT-42 T-21). Imported from BIN, THIS file's tree, not SCRIPT's, so a
+# reverted CHECK_STATE_BIN still grades against the live rule.
+from isolated_bin import isolated_bin  # noqa: F401  re-exported to the two mutation cases
+import harness_boundary as _hb
 
 # Overridable so a fix can be proven RED against a reverted copy — the same
 # VALIDATE_DIGEST_BIN escape test-validate-digest.py uses.
-SCRIPT = os.environ.get("CHECK_STATE_BIN") or os.path.join(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", ".claude", "skills", "harness", "bin"), "check-state.py"
-)
-
-# THE MARKER IS READ FROM THE RESOLVER ITSELF, never spelled again here: a fixture that
-# writes its own copy of the filename stops being a fixture for the rule the moment the
-# rule moves (FEAT-42 T-21). Imported from THIS file's directory, not SCRIPT's, so a
-# reverted CHECK_STATE_BIN still grades against the live rule.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", ".claude", "skills", "harness", "bin"))
-from isolated_bin import isolated_bin        # re-exported to the two mutation cases
-import harness_boundary as _hb
+SCRIPT = os.environ.get("CHECK_STATE_BIN") or str(BIN / "check-state.py")
 
 # FEAT-69: check-state.py is a thin entry over the check_state/ package beside it. A source
 # read or a mutant targets the package file that OWNS the text, never the entry; a scratch
@@ -133,7 +124,7 @@ def _root_env(tmp, env=None, **extra):
 
     Written only when .harness ALREADY exists and only when it is not already there: the
     "no .harness/ — project not onboarded" case builds no directory at all and must keep
-    reaching that branch, and INV-29's (e) and (f) write their own marker first.
+    reaching that branch.
     """
     env = dict(os.environ) if env is None else env
     env["HARNESS_PROJECT_DIR"] = tmp
@@ -161,17 +152,19 @@ def make_fixture(tmp, harness_json, parent_line):
     return h
 
 
+def _invoke(tmp, **extra):
+    """check-state.py run once against the fixture `tmp`, `extra` added to its environment."""
+    return subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True,
+                          env=_root_env(tmp, **extra), check=False)
+
+
 def run(tmp):
-    env = _root_env(tmp)
-    r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
+    r = _invoke(tmp)
     return r.returncode, r.stdout
 
 
 def _run_with_gh(tmp, fake):
-    env = dict(os.environ)
-    env = _root_env(tmp, env)
-    env["FACTORY_GH"] = fake
-    r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
+    r = _invoke(tmp, FACTORY_GH=fake)
     return r.returncode, r.stdout
 
 
@@ -181,10 +174,7 @@ def _run_with_gh_streams(tmp, fake):
     reports case and left the completes case green, because the traceback was never in the
     text it searched. The whole file being one python3 heredoc is what makes an abort total,
     and that is the property this second reader exists to see."""
-    env = dict(os.environ)
-    env = _root_env(tmp, env)
-    env["FACTORY_GH"] = fake
-    r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
+    r = _invoke(tmp, FACTORY_GH=fake)
     return r.returncode, r.stdout, r.stderr
 
 

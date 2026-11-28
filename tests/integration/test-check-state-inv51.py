@@ -5,19 +5,18 @@
 is the backstop for an abandonment recorded any other way (a hand edit of plan.yaml, an older
 abandon). Three cases on a throwaway tree: abandoned with runs/ is a VIOLATION naming the feature
 and the run ids; abandoned without runs/ is silent; a live feature with runs/ is silent."""
-import os as _anchor_os, sys as _anchor_sys
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_os.path.abspath(__file__)))
-
+import integration_support  # noqa: F401  sys.path seam: bin/ and tests/
 import json
 import os
-import subprocess
 import sys
 import tempfile
 
-from check_state_support import SCRIPT, _root_env
-from harness_config_support import write_config
+from check_state_support import run  # noqa: E402
+from check_support import Checks  # noqa: E402
+from harness_config_support import write_config  # noqa: E402
 
-FAILS = []
+C = Checks()
+check = C.check
 
 PLAN = """schema: plan/1
 feature: {feat}
@@ -33,13 +32,6 @@ tasks:
     verify: true
     intent: x
 """
-
-
-def check(name, ok, detail=""):
-    print(("ok   " if ok else "FAIL ") + name)
-    if not ok:
-        FAILS.append(name)
-        print("     " + detail[:500])
 
 
 def feature(root, feat, station, run_ids):
@@ -60,14 +52,10 @@ def feature(root, feat, station, run_ids):
 
 
 def inv51_lines(root):
-    r = subprocess.run([sys.executable, SCRIPT], cwd=root, capture_output=True, text=True, env=_root_env(root))
-    return [l for l in r.stdout.splitlines() if "INV-51" in l]
+    return [l for l in run(root)[1].splitlines() if "INV-51" in l]
 
 
 def tree(tmp):
-    os.makedirs(os.path.join(tmp, ".harness"))
-    with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w") as f:
-        f.write("agents: {}\n")
     write_config(os.path.join(tmp, ".harness", "harness.json"), {"github": {"sync": False}})
     feature(tmp, "FEAT-1-dropped", "abandoned", ["validate-c1-validator", "fix-c2-eng"])
     feature(tmp, "FEAT-2-clean", "abandoned", [])
@@ -87,8 +75,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         tree(tmp)
         assert_findings(inv51_lines(tmp))
-    print(f"{len(FAILS)} failure(s)" if FAILS else "all checks passed")
-    return 1 if FAILS else 0
+    return C.report()
 
 
 if __name__ == "__main__":

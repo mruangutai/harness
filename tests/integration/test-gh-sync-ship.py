@@ -7,12 +7,7 @@ subprocess invocations are unchanged. Shared fixtures live in gh_sync_support.py
 
     ./test-gh-sync-ship.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import json
 import os
 import re
@@ -23,8 +18,17 @@ import tempfile
 from gh_sync_support import (
     FAKE_GH_SHIP, FAKE_GH_STATIONS, HERE, SYNC, calls, check, edits_to, install_gh,
     moved_to_done, read_feature_json, read_plan_station, report, run, ship_env, stage_ship)
-from git_support import commit_all, init_repo
+from git_support import commit_all, git, git_out, init_repo
 from offline_gh_support import assert_sentinel_unused, offline_gh_env
+
+
+def _committed_ship(tmp, feat_name):
+    """A stations-board ship fixture for #41 under parent #40, committed into a fresh repo."""
+    install_gh(tmp, FAKE_GH_STATIONS)
+    feat = stage_ship(tmp, feat_name, {"T-01": 41})
+    init_repo(tmp, "main")
+    commit_all(tmp, "fixture")
+    return feat
 
 
 def main():
@@ -77,9 +81,10 @@ def main():
                 ship_env(tmpS2, "40=Review 41=Review 99=Backlog",
                          children={40: [41], 41: [99]}))
         logS2 = calls(tmpS2)
+        doneS2 = moved_to_done(logS2)
         check("ship D-10: a task sub-issue reaches Done regardless of what sub_issues would say "
               "about it",
-              41 in moved_to_done(logS2), "done=%s" % sorted(moved_to_done(logS2)))
+              41 in doneS2, "done=%s" % sorted(doneS2))
         check("ship D-10: ship makes NO sub_issues read for a task sub-issue - the depth-1 "
               "exemption is a saved call, not just a skipped branch",
               not any("issues/41/sub_issues" in l for l in logS2), str(logS2))
@@ -93,8 +98,9 @@ def main():
                          children={40: [78, 77, 41]}))
         logS3 = calls(tmpS3)
         heldS3 = [l for l in r.stdout.splitlines() if l.startswith("gh-sync: HELD — ")]
+        doneS3 = moved_to_done(logS3)
         check("ship HELD: the parent is NOT moved to Done",
-              40 not in moved_to_done(logS3), "done=%s" % sorted(moved_to_done(logS3)))
+              40 not in doneS3, "done=%s" % sorted(doneS3))
         check("ship HELD: exactly ONE held line, naming the LOWEST-numbered open child",
               len(heldS3) == 1 and "#40 waiting on open child #77" in heldS3[0],
               "%r stdout=%r" % (heldS3, r.stdout))
@@ -165,10 +171,10 @@ def main():
         r = run(["ship", featS8], tmpS8,
                 ship_env(tmpS8, "40=Review 41=Review", children={40: [41]},
                          SHIP_SUBISSUES_FAIL="40"))
+        doneS8 = moved_to_done(calls(tmpS8))
         check("ship UNKNOWN: a sub_issues read that fails leaves the card UNMOVED - unknown is "
               "never childless",
-              40 not in moved_to_done(calls(tmpS8)),
-              "done=%s" % sorted(moved_to_done(calls(tmpS8))))
+              40 not in doneS8, "done=%s" % sorted(doneS8))
         check("ship UNKNOWN: it prints one stderr line naming the issue",
               "#40" in r.stderr and "child list unreadable" in r.stderr, repr(r.stderr))
         # THE REPORT IS THE POINT, not the exit code. An earlier cut printed the stderr line and
@@ -329,28 +335,22 @@ def main():
     # FEAT-40 and issue 842. This asserts the file is CLEAN AGAINST HEAD after a successful ship,
     # which is the property the violation's absence actually depends on.
     with tempfile.TemporaryDirectory() as tmpC:
-        install_gh(tmpC, FAKE_GH_STATIONS)
-        featC = stage_ship(tmpC, "FEAT-50-commit-station", {"T-01": 41}, parent=40, milestone=7)
-        init_repo(tmpC, "main")
-        commit_all(tmpC, "fixture")
+        featC = _committed_ship(tmpC, "FEAT-50-commit-station")
         rC = run(["ship", featC], tmpC, ship_env(tmpC, "40=Review 41=Review"))
         planC = os.path.join(featC, "plan.yaml")
-        dirtyC = subprocess.run(["git", "status", "--porcelain", "--", planC], cwd=tmpC,
-                                capture_output=True, text=True).stdout.strip()
+        dirtyC = git_out(tmpC, "status", "--porcelain", "--", planC)
         check("T-10 defect one: after a successful ship the station file is CLEAN against HEAD",
               rC.returncode == 0 and dirtyC == "",
               f"exit {rC.returncode}; dirty={dirtyC!r}; out={rC.stdout[-500:]!r}")
         check("T-10 defect one: ship names the commit it made",
               "station done committed as" in rC.stdout, f"out={rC.stdout[-500:]!r}")
-        logC = subprocess.run(["git", "log", "-1", "--format=%s"], cwd=tmpC,
-                              capture_output=True, text=True).stdout.strip()
+        logC = git_out(tmpC, "log", "-1", "--format=%s")
         check("T-10 defect one: the commit subject names the feature and the station",
               logC == "FEAT-50-commit-station: station done at ship", f"subject={logC!r}")
         # ONLY SHIP'S OWN FILES — plan.yaml and, when `_record_pr` wrote one, feature.json
         # (#1853). A ship that swept in whatever the operator had staged would be a worse
         # surprise than the uncommitted station this fixes.
-        filesC = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"], cwd=tmpC,
-                                capture_output=True, text=True).stdout.split()
+        filesC = git(tmpC, "show", "--name-only", "--format=", "HEAD").stdout.split()
         check("T-10 defect one: the commit carries the plan and nothing outside ship's two files",
               any(f.endswith("plan.yaml") for f in filesC)
               and all(f.endswith(("plan.yaml", "feature.json")) for f in filesC),
@@ -373,10 +373,7 @@ def main():
     # point, since the defect only exists when the pathspec is resolved somewhere other than the repo
     # root. Same fixture, same assertions, one changed argument.
     with tempfile.TemporaryDirectory() as tmpR:
-        install_gh(tmpR, FAKE_GH_STATIONS)
-        featR = stage_ship(tmpR, "FEAT-52-relative-dir", {"T-01": 41}, parent=40, milestone=7)
-        init_repo(tmpR, "main")
-        commit_all(tmpR, "fixture")
+        featR = _committed_ship(tmpR, "FEAT-52-relative-dir")
         _envR, sentinelR = offline_gh_env(os.path.join(tmpR, "gh"), tmpR)
         _envR["FAKE_LOG"] = os.path.join(tmpR, "calls.log")
         _envR.update(ship_env(tmpR, "40=Review 41=Review"))
@@ -385,32 +382,26 @@ def main():
                             env=_envR)
         assert_sentinel_unused(sentinelR)
         planR = os.path.join(featR, "plan.yaml")
-        dirtyR = subprocess.run(["git", "status", "--porcelain", "--", planR], cwd=tmpR,
-                                capture_output=True, text=True).stdout.strip()
+        dirtyR = git_out(tmpR, "status", "--porcelain", "--", planR)
         check("BUG-1114: a ship given a RELATIVE feature dir still COMMITS the station",
               rR.returncode == 0 and dirtyR == "",
               f"exit {rR.returncode}; dirty={dirtyR!r}; out={rR.stdout[-600:]!r}")
         check("BUG-1114: and it does not claim the station was already committed when it was not",
               "already committed" not in rR.stdout and "station done committed as" in rR.stdout,
               f"out={rR.stdout[-600:]!r}")
-        logR = subprocess.run(["git", "log", "-1", "--format=%s"], cwd=tmpR,
-                              capture_output=True, text=True).stdout.strip()
+        logR = git_out(tmpR, "log", "-1", "--format=%s")
         check("BUG-1114: the commit subject is the same one the absolute path produces",
               logR == "FEAT-52-relative-dir: station done at ship", f"subject={logR!r}")
 
     # THE DISCRIMINATOR FOR "ONLY ONE FILE": an unrelated dirty file must survive the ship
     # uncommitted. Without this the case above passes against a `git commit -a`.
     with tempfile.TemporaryDirectory() as tmpD:
-        install_gh(tmpD, FAKE_GH_STATIONS)
-        featD = stage_ship(tmpD, "FEAT-51-only-one", {"T-01": 41}, parent=40, milestone=7)
-        init_repo(tmpD, "main")
-        commit_all(tmpD, "fixture")
+        featD = _committed_ship(tmpD, "FEAT-51-only-one")
         bystander = os.path.join(tmpD, "BYSTANDER.md")
         open(bystander, "w").write("edited by the operator, never staged by ship\n")
-        subprocess.run(["git", "add", bystander], cwd=tmpD, capture_output=True)
+        git(tmpD, "add", bystander)
         rD = run(["ship", featD], tmpD, ship_env(tmpD, "40=Review 41=Review"))
-        stillD = subprocess.run(["git", "status", "--porcelain", "--", bystander], cwd=tmpD,
-                                capture_output=True, text=True).stdout.strip()
+        stillD = git_out(tmpD, "status", "--porcelain", "--", bystander)
         check("T-10 defect one DISCRIMINATOR: an unrelated STAGED file is NOT swept into the "
               "station commit — it is still uncommitted afterwards",
               rD.returncode == 0 and stillD != "",
@@ -418,10 +409,7 @@ def main():
 
     # IDEMPOTENT. ship runs again and finds nothing to commit; that is not a failure and it says so.
     with tempfile.TemporaryDirectory() as tmpE:
-        install_gh(tmpE, FAKE_GH_STATIONS)
-        featE = stage_ship(tmpE, "FEAT-52-twice", {"T-01": 41}, parent=40, milestone=7)
-        init_repo(tmpE, "main")
-        commit_all(tmpE, "fixture")
+        featE = _committed_ship(tmpE, "FEAT-52-twice")
         run(["ship", featE], tmpE, ship_env(tmpE, "40=Review 41=Review"))
         rE2 = run(["ship", featE], tmpE, ship_env(tmpE, "40=Review 41=Review"))
         check("T-10 defect one: a SECOND ship commits nothing and says the file is already clean",
@@ -434,11 +422,10 @@ def main():
         # The owner checkout, with the worktrees segment underneath it, is what makes
         # harness_boundary.worktree_owner able to name the main-checkout path.
         owner = os.path.join(tmpW, "owner")
-        os.makedirs(owner)
-        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=owner, capture_output=True)
+        init_repo(owner, "main")
         wt_root = os.path.join(owner, ".claude", "worktrees", "harness", "FEAT-53-in-a-worktree")
         os.makedirs(wt_root)
-        featW = stage_ship(wt_root, "FEAT-53-in-a-worktree", {"T-01": 41}, parent=40, milestone=7)
+        featW = stage_ship(wt_root, "FEAT-53-in-a-worktree", {"T-01": 41})
         rW = run(["ship", featW], tmpW, ship_env(wt_root, "40=Review 41=Review",
                                                   FACTORY_GH=os.path.join(tmpW, "gh")))
         check("T-10 defect two: ship REFUSES a feature dir inside a worktree, exit 1",
@@ -565,7 +552,7 @@ def main():
     # still be absent from the output so the failure stays confined to this one line.
     with tempfile.TemporaryDirectory() as tmpN:
         install_gh(tmpN, FAKE_GH_STATIONS)
-        featN = stage_ship(tmpN, "FEAT-55-no-git", {"T-01": 41}, parent=40, milestone=7)
+        featN = stage_ship(tmpN, "FEAT-55-no-git", {"T-01": 41})
         rN = run(["ship", featN], tmpN, ship_env(tmpN, "40=Review 41=Review"))
         bothN = rN.stdout + rN.stderr
         check("T-10: with NO git repository the station commit fails LOUDLY but does not change "

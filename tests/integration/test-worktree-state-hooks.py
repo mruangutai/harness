@@ -17,19 +17,14 @@ What modern git does on its own, measured on git 2.54 before these cases were wr
     unstaged deletions (class A). The next merge re-applies them itself, so the class-A case is
     driven through `commit --amend`, which fires post-rewrite and does not.
 """
+from integration_support import ROOT
+
 import json
 import os
 import subprocess
 import sys
 import unittest
-from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(BIN))
-sys.path.insert(0, str(HERE.parent))
 import f58_sparse_fixture as F  # noqa: E402
 import git_support as G  # noqa: E402
 
@@ -38,17 +33,24 @@ SEGMENTS = ("harness", "kaya")
 
 class Hooked(unittest.TestCase):
     def setUp(self):
-        ctx = F.sparse_fixture()
-        self.fx = ctx.__enter__()
-        self.addCleanup(ctx.__exit__, None, None, None)
+        self.fx = self.enterContext(F.sparse_fixture())
         owner = self.fx.owner
         self.bin, self.hooks = F.install_hooks(owner, ROOT)
         self.env = dict(G.ENV, HARNESS_PROJECT_DIR=owner, GH_BIN="/nonexistent-gh")
 
+    def run_bin(self, script, *args, env, **kwargs):
+        return subprocess.run([sys.executable, os.path.join(self.bin, script), *args], env=env,
+                              capture_output=True, text=True, **kwargs)
+
+    def run_ok(self, script, *args, **kwargs):
+        """Run a creator script under self.env; it must exit 0. Returns its stdout."""
+        proc = self.run_bin(script, *args, env=self.env, **kwargs)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        return proc.stdout
+
     def state(self, checkout, mode="--verify"):
-        proc = subprocess.run([sys.executable, os.path.join(self.bin, "worktree-state.py"), mode,
-                               "--json", "--checkout", checkout], env=G.ENV,
-                              capture_output=True, text=True)
+        proc = self.run_bin("worktree-state.py", mode, "--json", "--checkout", checkout,
+                            env=G.ENV)
         doc = json.loads(proc.stdout)
         return proc.returncode, doc
 
@@ -74,8 +76,7 @@ class Creation(Hooked):
     def record_converges(self, checkout, segment, fid):
         F.write_files(checkout, {f".harness/{segment}/features/{fid}/feature.json":
                                  F.feature_json(fid, f"feat/{fid}")})
-        G.git(checkout, "add", "-A")
-        G.git(checkout, "commit", "-qm", f"record {fid}")
+        G.commit_all(checkout, f"record {fid}", git=G.checked_git)
         G.git(checkout, "commit", "-q", "--amend", "--no-edit")      # post-rewrite repairs
         doc = self.assert_converged(checkout)
         self.assertEqual((doc["active_feature"], doc["artifact_segment"]), (fid, segment))
@@ -88,11 +89,9 @@ class Creation(Hooked):
         self.record_converges(wt, "harness", "FEAT-8-fresh")
 
     def test_feature_worktree_create(self):
-        proc = subprocess.run([sys.executable, os.path.join(self.bin, "feature-worktree.py"),
-                               "create", "--repo", "harness", "--id", "FEAT-9-made"],
-                              env=self.env, capture_output=True, text=True)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        wt = proc.stdout.strip().splitlines()[-1]
+        out = self.run_ok("feature-worktree.py", "create", "--repo", "harness",
+                          "--id", "FEAT-9-made")
+        wt = out.strip().splitlines()[-1]
         self.assertEqual(wt, self.fx.worktree_path("FEAT-9-made"))
         self.assert_converged(wt)
         self.assert_recordless_cone(wt, "FEAT-9-made")
@@ -103,17 +102,13 @@ class Creation(Hooked):
         product = os.path.join(workspace, "kaya")
         os.makedirs(product)
         G.git(product, "init", "-q", "-b", "main")
-        F.write_files(product, {"README.md": "kaya\n"})
-        G.git(product, "add", "-A")
-        G.git(product, "commit", "-qm", "seed")
+        G.commit_files(product, {"README.md": "kaya\n"}, "seed", git=G.checked_git)
         self.fx.commit_owner({".harness/factory/fleet.yaml":
                               f"schema: factory-fleet/1\nworkspace_root: {workspace}\n"
                               f"repos:\n  - name: org/kaya\n    default_branch: main\n"}, "fleet")
-        proc = subprocess.run([sys.executable, os.path.join(self.bin, "feature-worktree.py"),
-                               "create", "--repo", "org/kaya", "--id", "FEAT-11-kplan"],
-                              env=self.env, capture_output=True, text=True)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        planning = next(line.split(" ", 1)[1] for line in proc.stdout.splitlines()
+        out = self.run_ok("feature-worktree.py", "create", "--repo", "org/kaya",
+                          "--id", "FEAT-11-kplan")
+        planning = next(line.split(" ", 1)[1] for line in out.splitlines()
                         if line.startswith("PLANNING "))
         self.assertEqual(planning, self.fx.worktree_path("FEAT-11-kplan"))   # harness segment
         self.assert_converged(planning)
@@ -122,12 +117,9 @@ class Creation(Hooked):
 
     def test_pinned_checkout_add(self):
         sha = G.git(self.fx.owner, "rev-parse", "HEAD").stdout.strip()
-        proc = subprocess.run([sys.executable, os.path.join(self.bin, "pinned-checkout.py"),
-                               "add", "--feature", "FEAT-2-beta", "--run-id", "r1",
-                               "--persona", "qa", "--sha", sha],
-                              env=self.env, cwd=self.fx.owner, capture_output=True, text=True)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        pin = proc.stdout.strip().splitlines()[-1]
+        out = self.run_ok("pinned-checkout.py", "add", "--feature", "FEAT-2-beta",
+                          "--run-id", "r1", "--persona", "qa", "--sha", sha, cwd=self.fx.owner)
+        pin = out.strip().splitlines()[-1]
         self.assertEqual(os.path.basename(pin), "FEAT-2-beta--r1--qa")
         doc = self.assert_converged(pin)
         self.assertEqual(doc["checkout_class"], "pin")
@@ -144,25 +136,26 @@ class Operations(Hooked):
         # hook its operation fires, never on whether creation happened to converge first.
         self.assertEqual(self.state(self.wt, "--repair")[0], 0)
         F.write_files(self.wt, {".harness/harness/features/FEAT-1-alpha/notes/w.md": "work\n"})
-        G.git(self.wt, "add", "-A")
-        G.git(self.wt, "commit", "-qm", "worktree work")
+        G.commit_all(self.wt, "worktree work", git=G.checked_git)
         self.fx.commit_owner({"newtop/file.txt": "new\n",
                               ".harness/harness/features/FEAT-2-beta/BRIEF.md": "# v2\n"},
                              "main grows a top-level directory and edits a hidden feature")
 
-    def test_merge(self):
-        proc = G.git(self.wt, "merge", "--no-edit", "main")
+    def assert_main_brought_in(self):
+        """Converged, newtop/ (stale-cone case) visible, and only FEAT-1-alpha on disk."""
         self.assert_converged(self.wt)
         self.assertTrue(os.path.isfile(os.path.join(self.wt, "newtop/file.txt")))
         self.assertEqual(F.feature_dirs_on_disk(self.wt), ["harness/FEAT-1-alpha"])
+
+    def test_merge(self):
+        proc = G.git(self.wt, "merge", "--no-edit", "main")
+        self.assert_main_brought_in()
         self.assertIn(f"post-merge-sweep: resolved repository root: {self.fx.owner}",
                       proc.stdout + proc.stderr)
 
     def test_rebase(self):
         G.git(self.wt, "rebase", "main")
-        self.assert_converged(self.wt)
-        self.assertTrue(os.path.isfile(os.path.join(self.wt, "newtop/file.txt")))
-        self.assertEqual(F.feature_dirs_on_disk(self.wt), ["harness/FEAT-1-alpha"])
+        self.assert_main_brought_in()
 
     def test_class_a_after_an_index_rewrite_is_repaired_by_amend(self):
         G.git(self.wt, "read-tree", "HEAD")

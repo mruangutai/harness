@@ -11,31 +11,18 @@ RED-proofs the sk- fix against the original broken pattern.
 
     ./test-check-fixture-secrets.py     -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import BIN  # noqa: E402 -- first import, puts tests/ on sys.path
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-sys.path.insert(0, HERE)
-from isolated_bin import isolated_bin
-GUARD = os.environ.get("CHECK_FIXTURE_SECRETS_BIN") or os.path.join(
-    HERE, "check-fixture-secrets.py")
+from check_support import Checks
 
-RESULTS = []
+GUARD = os.environ.get("CHECK_FIXTURE_SECRETS_BIN") or str(BIN / "check-fixture-secrets.py")
 
-
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
+C = Checks()
+check = C.check
 
 
 def write(tmp, name, content):
@@ -49,31 +36,36 @@ def fire(*paths, guard=GUARD):
     return subprocess.run([guard, *paths], capture_output=True, text=True)
 
 
-def run_cases():
-    tmp = tempfile.mkdtemp(prefix="check-fixture-secrets-")
+def check_blocked(tmp, label, name, content, needle, detail_stderr=True):
+    """Write one dirty file, fire the guard on it alone, and check it exits 1 naming needle."""
+    path = write(tmp, name, content)
+    r = fire(path)
+    detail = f"rc={r.returncode} {r.stderr!r}" if detail_stderr else f"rc={r.returncode}"
+    check(label, r.returncode == 1 and needle in r.stderr, detail)
+    return path
 
+
+def check_clean(tmp, label, name, content):
+    r = fire(write(tmp, name, content))
+    check(label, r.returncode == 0 and "clean" in r.stdout, f"rc={r.returncode} {r.stdout!r}")
+    return r
+
+
+def run_dirty_cases(tmp):
     # ---- THE ACTUAL DEFECT (#981, blind spot 1): a real Anthropic key shape. The
     # original sweep's `sk[-_][A-Za-z0-9]{8}` breaks at the hyphen three characters
     # into "ant" and never matches this.
-    anthropic_key = write(tmp, "anthropic.jsonl",
-                          '{"event": "auth", "key": "sk-ant-api03-'
-                          'AbCdEfGh12345678-XyZ99900112233"}\n')
-    r = fire(anthropic_key)
-    check("an sk-ant- key is caught — the exact shape that escaped before",
-          r.returncode == 1 and "BLOCKED" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+    anthropic_key = check_blocked(
+        tmp, "an sk-ant- key is caught — the exact shape that escaped before", "anthropic.jsonl",
+        '{"event": "auth", "key": "sk-ant-api03-AbCdEfGh12345678-XyZ99900112233"}\n', "BLOCKED")
 
     # ---- A hyphenated sk-proj- key, the other shape item 1 names.
-    proj_key = write(tmp, "proj.jsonl", '{"key": "sk-proj-AbCdEfGh-1234-5678-XyZ9"}\n')
-    r = fire(proj_key)
-    check("an sk-proj- key (hyphenated, non-Anthropic) is also caught",
-          r.returncode == 1 and "BLOCKED" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+    check_blocked(tmp, "an sk-proj- key (hyphenated, non-Anthropic) is also caught", "proj.jsonl",
+                  '{"key": "sk-proj-AbCdEfGh-1234-5678-XyZ9"}\n', "BLOCKED")
+    return anthropic_key
 
-    # ---- NEGATIVE CONTROL: a clean file passes.
-    clean = write(tmp, "clean.jsonl", '{"event": "tool_call", "name": "Read"}\n')
-    r = fire(clean)
-    check("a genuinely clean file passes, exit 0",
-          r.returncode == 0 and "clean" in r.stdout, f"rc={r.returncode} {r.stdout!r}")
 
+def run_regression_cases(tmp):
     # ---- REGRESSION: pre-existing coverage (GitHub PAT, AWS key, PEM header) is
     # unchanged by the sk- fix.
     for label, content in (
@@ -83,28 +75,27 @@ def run_cases():
         ("a PEM private key header", '-----BEGIN PRIVATE KEY-----\n'),
         ("a credential_pin literal", 'credential_pin=xyz\n'),
     ):
-        f = write(tmp, "regress-" + label.replace(" ", "-") + ".txt", content)
-        r = fire(f)
-        check(f"regression: {label} is still caught",
-              r.returncode == 1 and "BLOCKED" in r.stderr, f"rc={r.returncode}")
+        check_blocked(tmp, f"regression: {label} is still caught",
+                      "regress-" + label.replace(" ", "-") + ".txt", content, "BLOCKED",
+                      detail_stderr=False)
 
+
+def run_home_path_cases(tmp):
     # ---- THE ACTUAL DEFECT (#981, blind spot 2): a baked-in home-directory path,
     # matched regardless of who is RUNNING this check. `whoami` on the machine
     # running this test is never literally "alice" or "bob-dev-laptop", so a
     # $(whoami)-bound check would pass this vacuously; the home-directory-shape
     # check must not.
-    leaked_path = write(tmp, "leak.jsonl",
-                        '{"cwd": "/Users/alice-not-the-invoker/project/repo"}\n')
-    r = fire(leaked_path)
-    check("a baked-in /Users/<name>/ path is caught, independent of $(whoami)",
-          r.returncode == 1 and "home-directory" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+    leaked_path = check_blocked(
+        tmp, "a baked-in /Users/<name>/ path is caught, independent of $(whoami)", "leak.jsonl",
+        '{"cwd": "/Users/alice-not-the-invoker/project/repo"}\n', "home-directory")
+    check_blocked(tmp, "a baked-in /home/<name>/ path is caught too", "leak-home.jsonl",
+                  '{"path": "/home/bob-dev-laptop/.config/x"}\n', "home-directory",
+                  detail_stderr=False)
+    return leaked_path
 
-    leaked_home = write(tmp, "leak-home.jsonl",
-                        '{"path": "/home/bob-dev-laptop/.config/x"}\n')
-    r = fire(leaked_home)
-    check("a baked-in /home/<name>/ path is caught too",
-          r.returncode == 1 and "home-directory" in r.stderr, f"rc={r.returncode}")
 
+def run_misuse_cases(tmp, clean, anthropic_key, leaked_path):
     # ---- Multiple files: every file is checked, not short-circuited on the first.
     r = fire(clean, anthropic_key, leaked_path)
     check("multiple files: all are checked, one dirty file still blocks",
@@ -122,21 +113,48 @@ def run_cases():
     check("a missing file blocks rather than silently passing as clean",
           r.returncode == 1 and "not a readable file" in r.stderr, f"rc={r.returncode}")
 
-    # ---- FALSE-POSITIVE REGRESSION (code review of PR #1189): the unanchored
-    # sk-[A-Za-z0-9-]{16,} branch matched ordinary kebab-case text — "task-runner-
-    # for-this-project", "ask-your-teammate-about-this-config" — any word ending
-    # `-sk` followed by 16+ more hyphen/alnum characters, which saturates a
-    # captured transcript. The anchor `(^|[^A-Za-z0-9])` must let this stay clean.
-    kebab = write(tmp, "kebab.txt",
-                  "task-runner-for-this-project\n"
-                  "ask-your-teammate-about-this-config-value\n"
-                  "please-desk-check-the-risk-assessment-document\n")
-    r = fire(kebab)
-    check("ordinary kebab-case text (task-/ask-/desk-/risk-...) is NOT a false "
-          "positive after anchoring the sk- branch",
-          r.returncode == 0 and "clean" in r.stdout, f"rc={r.returncode} {r.stdout!r}")
 
-    return clean, anthropic_key
+def run_cases():
+    with tempfile.TemporaryDirectory(prefix="check-fixture-secrets-") as tmp:
+        anthropic_key = run_dirty_cases(tmp)
+
+        # ---- NEGATIVE CONTROL: a clean file passes.
+        clean = os.path.join(tmp, "clean.jsonl")
+        check_clean(tmp, "a genuinely clean file passes, exit 0", "clean.jsonl",
+                    '{"event": "tool_call", "name": "Read"}\n')
+
+        run_regression_cases(tmp)
+        leaked_path = run_home_path_cases(tmp)
+        run_misuse_cases(tmp, clean, anthropic_key, leaked_path)
+
+        # ---- FALSE-POSITIVE REGRESSION (code review of PR #1189): the unanchored
+        # sk-[A-Za-z0-9-]{16,} branch matched ordinary kebab-case text — "task-runner-
+        # for-this-project", "ask-your-teammate-about-this-config" — any word ending
+        # `-sk` followed by 16+ more hyphen/alnum characters, which saturates a
+        # captured transcript. The anchor `(^|[^A-Za-z0-9])` must let this stay clean.
+        check_clean(tmp, "ordinary kebab-case text (task-/ask-/desk-/risk-...) is NOT a false "
+                    "positive after anchoring the sk- branch", "kebab.txt",
+                    "task-runner-for-this-project\n"
+                    "ask-your-teammate-about-this-config-value\n"
+                    "please-desk-check-the-risk-assessment-document\n")
+
+
+def read_guard():
+    with open(GUARD, encoding="utf-8") as f:
+        return f.read()
+
+
+def fire_mutant(mutant_text, input_name, content, real_too=False):
+    """Run mutant_text as the guard (stdlib only, so a plain temp dir hosts it) on one input
+    file. Returns the mutant's result, or (real, mutant) when real_too also fires GUARD."""
+    with tempfile.TemporaryDirectory(prefix="check-fixture-secrets-mutant-") as d:
+        mutant = os.path.join(d, "check-fixture-secrets-mutant.py")
+        with open(mutant, "w", encoding="utf-8") as f:
+            f.write(mutant_text)
+        os.chmod(mutant, os.stat(GUARD).st_mode)
+        path = write(d, input_name, content)
+        muted = fire(path, guard=mutant)
+        return (fire(path), muted) if real_too else muted
 
 
 def run_positive_control_red_proof():
@@ -144,8 +162,7 @@ def run_positive_control_red_proof():
     pattern is broken, the script must refuse to run at all (exit 2), never silently
     report every file clean. Proven by mutating SECRET_PATTERN to a pattern that
     cannot match any of its own control values."""
-    with open(GUARD, encoding="utf-8") as f:
-        source = f.read()
+    source = read_guard()
     anchor = ("SECRET_PATTERN_TEXT = r'credential_pin|-----BEGIN|AKIA[0-9A-Z]{16}|"
               "(^|[^A-Za-z0-9])sk-ant-|(^|[^A-Za-z0-9])sk-[A-Za-z0-9-]{16,}|"
               "(ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}'")
@@ -155,25 +172,11 @@ def run_positive_control_red_proof():
         return
     broken = source.replace(
         anchor, "SECRET_PATTERN_TEXT = r'this-pattern-matches-nothing-real-xyz123'", 1)
-    if broken == source:
-        check("positive-control-red", False, "INCONCLUSIVE: mutant is byte-identical")
-        return
-    iso_root = tempfile.mkdtemp()
-    mutant = os.path.join(
-        isolated_bin(iso_root), ".check-fixture-secrets-mutant-%d.sh" % os.getpid())
-    try:
-        with open(mutant, "w", encoding="utf-8") as f:
-            f.write(broken)
-        os.chmod(mutant, os.stat(GUARD).st_mode)
-        tmp = tempfile.mkdtemp(prefix="check-fixture-secrets-redcontrol-")
-        clean = write(tmp, "clean.jsonl", '{"event": "tool_call"}\n')
-        r = fire(clean, guard=mutant)
-        check("positive-control-red: a broken secret pattern refuses to run at all "
-              "(exit 2), rather than silently reporting every file clean",
-              r.returncode == 2 and "POSITIVE CONTROL FAILED" in r.stderr,
-              f"rc={r.returncode} {r.stderr!r}")
-    finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
+    r = fire_mutant(broken, "clean.jsonl", '{"event": "tool_call"}\n')
+    check("positive-control-red: a broken secret pattern refuses to run at all "
+          "(exit 2), rather than silently reporting every file clean",
+          r.returncode == 2 and "POSITIVE CONTROL FAILED" in r.stderr,
+          f"rc={r.returncode} {r.stderr!r}")
 
 
 def _sk_ant_mutant(source):
@@ -195,49 +198,27 @@ def _sk_ant_mutant(source):
     return reverted
 
 
-def _exercise_sk_ant_mutant(reverted):
-    iso_root = tempfile.mkdtemp()
-    mutant = os.path.join(
-        isolated_bin(iso_root), ".check-fixture-secrets-skant-mutant-%d.sh" % os.getpid())
-    try:
-        with open(mutant, "w", encoding="utf-8") as mutant_file:
-            mutant_file.write(reverted)
-        os.chmod(mutant, os.stat(GUARD).st_mode)
-        tmp = tempfile.mkdtemp(prefix="check-fixture-secrets-skantred-")
-        key = write(tmp, "anthropic.jsonl",
-                    '{"key": "sk-ant-api03-AbCdEfGh12345678-XyZ99900112233"}\n')
-        return fire(key), fire(key, guard=mutant)
-    finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
-
-
 def run_sk_ant_red_proof():
     """Prove the original #981 sk-ant pattern silently accepted the reported key."""
-    with open(GUARD, encoding="utf-8") as guard_file:
-        source = guard_file.read()
+    source = read_guard()
     reverted = _sk_ant_mutant(source)
     if reverted is None or reverted == source:
         check("sk-ant-red", False, "INCONCLUSIVE: mutant could not be constructed")
         return
-    real, muted = _exercise_sk_ant_mutant(reverted)
+    real, muted = fire_mutant(reverted, "anthropic.jsonl",
+                              '{"key": "sk-ant-api03-AbCdEfGh12345678-XyZ99900112233"}\n',
+                              real_too=True)
     ok = real.returncode == 1 and muted.returncode == 0 and "Traceback" not in muted.stderr
     check("sk-ant-red: the original broken pattern silently passes the exact "
           "key that shipped invisibly before #981's fix",
           ok, f"real={real.returncode} mutant={muted.returncode}: {muted.stdout!r}")
 
+
 def main():
     run_cases()
     run_positive_control_red_proof()
     run_sk_ant_red_proof()
-    fails = 0
-    for name, ok, detail in RESULTS:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n        {detail}")
-    print(f"\n{len(RESULTS) - fails}/{len(RESULTS)} cases passed.")
-    return 1 if fails else 0
+    return C.report()
 
 
 if __name__ == "__main__":

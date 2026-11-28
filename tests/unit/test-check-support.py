@@ -10,7 +10,7 @@ import io
 import unittest
 
 import unit_support  # noqa: F401  (puts tests/ on sys.path)
-from check_support import Checks
+from check_support import Checks, raises
 
 
 def _run(results):
@@ -51,6 +51,24 @@ class CheckTests(unittest.TestCase):
         _code, out = _run([True, False])
         self.assertNotIn("detail-0", out)
         self.assertIn("detail-1", out)
+
+
+class RaisesTests(unittest.TestCase):
+    def test_raises_returns_the_exception_the_call_raised(self):
+        error = ValueError("boom")
+
+        def call():
+            raise error
+        self.assertIs(raises(call, ValueError), error)
+
+    def test_raises_returns_none_when_the_call_returns(self):
+        self.assertIsNone(raises(lambda: 1, ValueError))
+
+    def test_raises_lets_an_unexpected_exception_propagate(self):
+        def call():
+            raise KeyError("other")
+        with self.assertRaises(KeyError):
+            raises(call, ValueError)
 
 
 if __name__ == "__main__":

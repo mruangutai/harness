@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """Behavioral coverage for merge-gitignore.py through its real process boundary."""
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import ROOT, BIN
+import contextlib
 import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-HERE = Path(_anchor_bin)
+from git_support import git as isolated_git
+
+HERE = BIN
 SCRIPT = Path(os.environ.get("MERGE_GITIGNORE_BIN", HERE / "merge-gitignore.py")).resolve()
 SNIPPET = HERE.parent / "templates" / "gitignore.snippet"
 RULES = [
@@ -33,30 +32,33 @@ def require(condition, message):
         raise AssertionError(message)
 
 
-def rule_counts(content):
+def each_rule_once(content):
     lines = content.splitlines()
-    return {rule: lines.count(rule) for rule in RULES}
+    return all(lines.count(rule) == 1 for rule in RULES)
 
 
-def case_preserves_existing_content():
+@contextlib.contextmanager
+def project_target():
+    """A fresh temp dir holding an empty project/ directory; yields (project, project/.gitignore)."""
     with tempfile.TemporaryDirectory() as directory:
         project = Path(directory) / "project"
         project.mkdir()
-        target = project / ".gitignore"
+        yield project, project / ".gitignore"
+
+
+def case_preserves_existing_content():
+    with project_target() as (project, target):
         original = b"existing-first\n# distinctive existing comment\narchive/[abc]\nexisting-last\n"
         target.write_bytes(original)
         result = run(project)
         merged = target.read_bytes()
         require(result.returncode == 0, result.stderr)
         require(merged.startswith(original), "existing .gitignore bytes or order changed")
-        require(all(count == 1 for count in rule_counts(merged.decode("utf-8")).values()), "harness rules were not each added once")
+        require(each_rule_once(merged.decode("utf-8")), "harness rules were not each added once")
 
 
 def case_check_complete_is_read_only():
-    with tempfile.TemporaryDirectory() as directory:
-        project = Path(directory) / "project"
-        project.mkdir()
-        target = project / ".gitignore"
+    with project_target() as (project, target):
         original = ("complete-existing\n" + "\n".join(RULES) + "\n").encode()
         target.write_bytes(original)
         result = run(project, check=True)
@@ -65,10 +67,7 @@ def case_check_complete_is_read_only():
 
 
 def case_check_incomplete_reports_missing_and_is_read_only():
-    with tempfile.TemporaryDirectory() as directory:
-        project = Path(directory) / "project"
-        project.mkdir()
-        target = project / ".gitignore"
+    with project_target() as (project, target):
         original = ("incomplete-existing\n" + RULES[0] + "\n").encode()
         target.write_bytes(original)
         result = run(project, check=True)
@@ -89,35 +88,26 @@ def case_check_incomplete_reports_missing_and_is_read_only():
 
 
 def case_absent_target_receives_each_rule_once():
-    with tempfile.TemporaryDirectory() as directory:
-        project = Path(directory) / "project"
-        project.mkdir()
-        target = project / ".gitignore"
+    with project_target() as (project, target):
         result = run(project)
         require(result.returncode == 0, result.stderr)
         require(target.exists(), "merge did not create an absent .gitignore")
-        require(all(count == 1 for count in rule_counts(target.read_text(encoding="utf-8")).values()), "absent target did not receive every rule exactly once")
+        require(each_rule_once(target.read_text(encoding="utf-8")), "absent target did not receive every rule exactly once")
 
 
 def case_partial_target_retains_present_rule_and_adds_missing_once():
-    with tempfile.TemporaryDirectory() as directory:
-        project = Path(directory) / "project"
-        project.mkdir()
-        target = project / ".gitignore"
+    with project_target() as (project, target):
         present_rule = RULES[0]
         target.write_text("unrelated-keep\n%s\n" % present_rule, encoding="utf-8")
         result = run(project)
         content = target.read_text(encoding="utf-8")
         require(result.returncode == 0, result.stderr)
         require("unrelated-keep" in content.splitlines(), "partial target lost unrelated content")
-        require(all(count == 1 for count in rule_counts(content).values()), "partial target has missing or duplicate harness rules")
+        require(each_rule_once(content), "partial target has missing or duplicate harness rules")
 
 
 def case_second_merge_is_byte_identical():
-    with tempfile.TemporaryDirectory() as directory:
-        project = Path(directory) / "project"
-        project.mkdir()
-        target = project / ".gitignore"
+    with project_target() as (project, target):
         first = run(project)
         after_first = target.read_bytes()
         second = run(project)
@@ -142,10 +132,11 @@ def case_explicit_project_root_ignores_caller_cwd():
 
 
 # --- BUG-2399: non-UI run evidence is ordinary tracked material; only runs/*/ui/ stays out ---
-REPO_GITIGNORE = Path(_anchor_root) / ".gitignore"
+REPO_GITIGNORE = ROOT / ".gitignore"
 NARROW_RULE = ".harness/*/features/*/runs/*/ui/**"
 LOCK_RULE = ".harness/**/*.lock"
 BROAD_RULES = [".harness/features/*/runs/**", ".harness/*/features/*/runs/**"]
+HISTORICAL_TARGETS = (("legacy", BROAD_RULES[:1]), ("namespaced", BROAD_RULES[1:]), ("both", list(BROAD_RULES)))
 RUN_EVIDENCE = [
     "digest.md", "state.yaml", ".run-identity.json", "acceptance.md",
     "qa/manifest-unit.json", "qa/manifest-integration.json", "panel-c0.md", "altitude-ruling-c1.md",
@@ -154,17 +145,19 @@ RUN_EXCLUDED = ["ui/shot.webp", "ui/traces/trace.zip", "state.yaml.lock"]
 
 
 def git(repo, *args):
-    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
-    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
-    return subprocess.run(["git", "-C", str(repo), "-c", "core.excludesFile=", *args], env=env,
-                          capture_output=True, check=True, timeout=30).stdout
+    """Isolated git (git_support ENV: no system/global config, fixed identity) that also blanks
+    core.excludesFile, so a developer's XDG ignore file cannot hide or expose run files."""
+    return isolated_git(repo, "-c", "core.excludesFile=", *args).stdout
+
+
+def z_paths(repo, *args):
+    return set(filter(None, git(repo, *args, "-z").split("\0")))
 
 
 def git_repo(path):
+    """A fresh repo on main; identity comes from ENV and no global config can turn on signing."""
     path.mkdir(parents=True)
     git(path, "init", "-q", "-b", "main")
-    for key, value in (("user.email", "t@example.invalid"), ("user.name", "T"), ("commit.gpgsign", "false")):
-        git(path, "config", key, value)
     return path
 
 
@@ -178,16 +171,12 @@ def seed_run(repo, run_dir, names):
     return written
 
 
-def tracked(repo):
-    return set(filter(None, git(repo, "ls-files", "-z").decode().split("\0")))
-
-
 def require_records_tracked_and_ui_excluded(repo, label):
     run_dir = ".harness/acme/features/FEAT-1-fixture/runs/r-1"
     evidence = seed_run(repo, run_dir, RUN_EVIDENCE)
     excluded = seed_run(repo, run_dir, RUN_EXCLUDED)
     git(repo, "add", "--", ".harness")
-    staged = set(filter(None, git(repo, "diff", "--cached", "--name-only", "-z").decode().split("\0")))
+    staged = z_paths(repo, "diff", "--cached", "--name-only")
     missing = sorted(set(evidence) - staged)
     leaked = sorted(set(excluded) & staged)
     require(not missing, "BUG-2399 %s: ordinary git add left run evidence untracked: %r" % (label, missing))
@@ -213,18 +202,9 @@ def case_bug2399_fresh_install_tracks_run_records():
         require_records_tracked_and_ui_excluded(repo, "fresh snippet install")
 
 
-def historical_targets():
-    yield "legacy", [BROAD_RULES[0]]
-    yield "namespaced", [BROAD_RULES[1]]
-    yield "both", list(BROAD_RULES)
-
-
 def case_bug2399_check_reports_obsolete_broad_rules():
-    for label, broad in historical_targets():
-        with tempfile.TemporaryDirectory() as directory:
-            project = Path(directory) / "project"
-            project.mkdir()
-            target = project / ".gitignore"
+    for label, broad in HISTORICAL_TARGETS:
+        with project_target() as (project, target):
             lines = ["custom-first"] + RULES + [NARROW_RULE, LOCK_RULE] + broad + ["custom-last"]
             original = ("\n".join(lines) + "\n").encode()
             target.write_bytes(original)
@@ -235,24 +215,26 @@ def case_bug2399_check_reports_obsolete_broad_rules():
             require(target.read_bytes() == original, "BUG-2399 %s: --check modified .gitignore" % label)
 
 
+def require_broad_rules_migrated(lines, label):
+    """The merged lines drop every broad run rule, install the narrow UI rule once, write no
+    negation, and keep the project's own lines in order."""
+    require(not any(rule in lines for rule in BROAD_RULES), "BUG-2399 %s: broad run rule survived merge" % label)
+    require(lines.count(NARROW_RULE) == 1, "BUG-2399 %s: narrow UI rule not installed once" % label)
+    require(not any(line.startswith("!") for line in lines), "BUG-2399 %s: merge wrote a negation" % label)
+    kept = [line for line in lines if line in ("custom-first", "# my run notes are ephemeral", "custom-last")]
+    require(kept == ["custom-first", "# my run notes are ephemeral", "custom-last"],
+            "BUG-2399 %s: unrelated project lines lost or reordered: %r" % (label, kept))
+
+
 def case_bug2399_merge_replaces_broad_rules():
-    for label, broad in historical_targets():
-        with tempfile.TemporaryDirectory() as directory:
-            project = Path(directory) / "project"
-            project.mkdir()
-            target = project / ".gitignore"
+    for label, broad in HISTORICAL_TARGETS:
+        with project_target() as (project, target):
             target.write_text("custom-first\n# my run notes are ephemeral\n%s\ncustom-last\n" % "\n".join(broad),
                               encoding="utf-8")
             first = run(project)
             after_first = target.read_bytes()
-            lines = after_first.decode("utf-8").splitlines()
             require(first.returncode == 0, first.stderr)
-            require(not any(rule in lines for rule in BROAD_RULES), "BUG-2399 %s: broad run rule survived merge" % label)
-            require(lines.count(NARROW_RULE) == 1, "BUG-2399 %s: narrow UI rule not installed once" % label)
-            require(not any(line.startswith("!") for line in lines), "BUG-2399 %s: merge wrote a negation" % label)
-            kept = [line for line in lines if line in ("custom-first", "# my run notes are ephemeral", "custom-last")]
-            require(kept == ["custom-first", "# my run notes are ephemeral", "custom-last"],
-                    "BUG-2399 %s: unrelated project lines lost or reordered: %r" % (label, kept))
+            require_broad_rules_migrated(after_first.decode("utf-8").splitlines(), label)
             second = run(project)
             require(second.returncode == 0 and target.read_bytes() == after_first,
                     "BUG-2399 %s: second merge was not byte-identical" % label)
@@ -260,10 +242,7 @@ def case_bug2399_merge_replaces_broad_rules():
 
 
 def case_bug2399_merge_corrects_shipped_rationale_only():
-    with tempfile.TemporaryDirectory() as directory:
-        project = Path(directory) / "project"
-        project.mkdir()
-        target = project / ".gitignore"
+    with project_target() as (project, target):
         legacy_block = (
             "# --- harness ---\n"
             "# Run dirs are ephemeral; a dirty tree halts a team with BLOCKED, so these\n"
@@ -283,10 +262,7 @@ def case_bug2399_merge_corrects_shipped_rationale_only():
 
 
 def case_bug2399_line_endings_preserved():
-    with tempfile.TemporaryDirectory() as directory:
-        project = Path(directory) / "project"
-        project.mkdir()
-        target = project / ".gitignore"
+    with project_target() as (project, target):
         target.write_bytes(b"crlf-first\r\n.harness/*/features/*/runs/**\r\ncrlf-last\r\n")
         result = run(project)
         merged = target.read_bytes()
@@ -300,10 +276,6 @@ def case_bug2399_line_endings_preserved():
         require(merged.startswith(b"no-newline-first\nno-newline-last\n"),
                 "BUG-2399: unterminated last line not preserved before appended rules: %r" % merged[:80])
         require(NARROW_RULE.encode() + b"\n" in merged, "BUG-2399: narrow rule missing after unterminated input")
-
-
-def z_paths(repo, *args):
-    return set(filter(None, git(repo, *args, "-z").decode().split("\0")))
 
 
 def seed_fleet_checkout(repo):
@@ -332,7 +304,7 @@ def stage_reviewed_evidence(repo):
 def require_operator_commit(repo, evidence, excluded, before):
     """Checklist step 6: the separate operator commit tracks exactly the reviewed evidence."""
     git(repo, "commit", "-qm", "operator: track historical run evidence")
-    now = tracked(repo)
+    now = z_paths(repo, "ls-files")
     require(set(evidence) <= now and not set(excluded) & now,
             "BUG-2399 checklist: evidence untracked, or UI, lock or unrelated file tracked")
     require(all((repo / path).read_bytes() == data for path, data in before.items()),
@@ -357,26 +329,27 @@ def case_bug2399_operator_checklist_commands_compose():
 
 
 CASES = [
-    ("preserves_existing_content", case_preserves_existing_content),
-    ("check_complete_is_read_only", case_check_complete_is_read_only),
-    ("check_incomplete_reports_missing_and_is_read_only", case_check_incomplete_reports_missing_and_is_read_only),
-    ("absent_target_receives_each_rule_once", case_absent_target_receives_each_rule_once),
-    ("partial_target_retains_present_rule_and_adds_missing_once", case_partial_target_retains_present_rule_and_adds_missing_once),
-    ("second_merge_is_byte_identical", case_second_merge_is_byte_identical),
-    ("explicit_project_root_ignores_caller_cwd", case_explicit_project_root_ignores_caller_cwd),
-    ("bug2399_repository_rules_track_run_records", case_bug2399_repository_rules_track_run_records),
-    ("bug2399_fresh_install_tracks_run_records", case_bug2399_fresh_install_tracks_run_records),
-    ("bug2399_check_reports_obsolete_broad_rules", case_bug2399_check_reports_obsolete_broad_rules),
-    ("bug2399_merge_replaces_broad_rules", case_bug2399_merge_replaces_broad_rules),
-    ("bug2399_merge_corrects_shipped_rationale_only", case_bug2399_merge_corrects_shipped_rationale_only),
-    ("bug2399_line_endings_preserved", case_bug2399_line_endings_preserved),
-    ("bug2399_operator_checklist_commands_compose", case_bug2399_operator_checklist_commands_compose),
+    case_preserves_existing_content,
+    case_check_complete_is_read_only,
+    case_check_incomplete_reports_missing_and_is_read_only,
+    case_absent_target_receives_each_rule_once,
+    case_partial_target_retains_present_rule_and_adds_missing_once,
+    case_second_merge_is_byte_identical,
+    case_explicit_project_root_ignores_caller_cwd,
+    case_bug2399_repository_rules_track_run_records,
+    case_bug2399_fresh_install_tracks_run_records,
+    case_bug2399_check_reports_obsolete_broad_rules,
+    case_bug2399_merge_replaces_broad_rules,
+    case_bug2399_merge_corrects_shipped_rationale_only,
+    case_bug2399_line_endings_preserved,
+    case_bug2399_operator_checklist_commands_compose,
 ]
 
 
 def main():
     failures = 0
-    for name, case in CASES:
+    for case in CASES:
+        name = case.__name__[len("case_"):]
         try:
             case()
         except (AssertionError, OSError, subprocess.SubprocessError) as error:

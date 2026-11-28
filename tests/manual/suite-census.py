@@ -3,7 +3,6 @@
 import argparse
 import fnmatch
 import json
-import os
 from pathlib import Path
 import re
 import subprocess
@@ -20,6 +19,7 @@ from suite_layout import (  # noqa: E402
     is_test_shaped,
 )
 RESIDUE_TOKENS = ("UNIT_SCRIPTS", "INTEGRATION_SCRIPTS", "check-kinds")
+FENCED = re.compile(r"```(?:text)?\n(.*?)\n```", re.S)
 # Exactly three historical line exemptions, on purpose.
 RESIDUE_EXEMPTIONS = (
     (".harness/harness/docs/DECISIONS.md", "Eight of twelve"),
@@ -27,11 +27,16 @@ RESIDUE_EXEMPTIONS = (
     ("tests/manual/suite-census.py", "RESIDUE_TOKENS"),
 )
 
+def ls_tree(ref, *paths):
+    """Tracked path names at ref (optionally under paths) in the real checkout."""
+    return subprocess.run(["git", "ls-tree", "-r", "--name-only", ref, *paths], cwd=ROOT,
+                          text=True, capture_output=True, check=True).stdout.splitlines()
+
 def tests():
     return sorted(p for d in KIND_DIRS for p in d.glob("test-*.py"))
 
 def baseline(path):
-    text=Path(path).read_text(); blocks=re.findall(r"```(?:text)?\n(.*?)\n```",text,re.S)
+    text=Path(path).read_text(); blocks=FENCED.findall(text)
     rows={}
     for block in blocks:
         for line in block.splitlines():
@@ -55,11 +60,11 @@ def verdict(args):
     return 1 if bad and args.strict else 0
 
 def migration(args):
-    names=subprocess.run(["git","ls-tree","-r","--name-only",args.base,".claude/skills/harness/bin/"],cwd=ROOT,text=True,capture_output=True,check=True).stdout.splitlines()
+    names=ls_tree(args.base,".claude/skills/harness/bin/")
     base={Path(x).name for x in names if re.fullmatch(r"test-.*\.py",Path(x).name)}
     print(f"base test count: {len(base)}")
-    at_ref=subprocess.run(["git","ls-tree","-r","--name-only",args.base,"tests/unit","tests/integration"],cwd=ROOT,text=True,capture_output=True,check=True).stdout
-    if not base and "test-" in at_ref: print("base is after the migration; one-shot check cannot answer",file=sys.stderr); return 2
+    at_ref=ls_tree(args.base,"tests/unit","tests/integration")
+    if not base and any("test-" in x for x in at_ref): print("base is after the migration; one-shot check cannot answer",file=sys.stderr); return 2
     if len(base)<args.floor: print(f"base floor {args.floor} not met",file=sys.stderr); return 1
     deleted=set(args.deleted); bad=0
     for name in sorted(base):
@@ -70,22 +75,18 @@ def migration(args):
 
 
 def _vocabulary_paths(ref):
-    """Sorted (path, basename, agnostic, restricted) tuples matching either vocabulary tuple."""
-    names = subprocess.run(
-        ["git", "ls-tree", "-r", "--name-only", ref], cwd=ROOT, text=True,
-        capture_output=True, check=True,
-    ).stdout.splitlines()
+    """Sorted (path, agnostic, restricted) tuples matching either vocabulary tuple."""
     selected = []
-    for path in names:
-        basename = os.path.basename(path)
+    for path in ls_tree(ref):
+        basename = Path(path).name
         agnostic = any(fnmatch.fnmatch(basename, p) for p in AGNOSTIC_NAME_PATTERNS)
         restricted = any(fnmatch.fnmatch(basename, p) for p in RESTRICTED_NAME_PATTERNS)
         if agnostic or restricted:
-            selected.append((path, basename, agnostic, restricted))
+            selected.append((path, agnostic, restricted))
     return sorted(selected, key=lambda entry: entry[0])
 
 
-def _disposition(path, basename, agnostic, restricted, exception_paths):
+def _disposition(path, agnostic, restricted, exception_paths):
     if path.startswith("tests/"):
         return "in-tests-tree"
     if path in exception_paths:
@@ -98,8 +99,8 @@ def _disposition(path, basename, agnostic, restricted, exception_paths):
 def _measure(ref):
     exception_paths = {entry[0] for entry in DOCUMENTED_EXCEPTIONS}
     rows = []
-    for path, basename, agnostic, restricted in _vocabulary_paths(ref):
-        rows.append((path, _disposition(path, basename, agnostic, restricted, exception_paths)))
+    for path, agnostic, restricted in _vocabulary_paths(ref):
+        rows.append((path, _disposition(path, agnostic, restricted, exception_paths)))
     return rows
 
 
@@ -107,7 +108,7 @@ def _read_note_rows(path):
     """Parse an --against note's single fenced block into a row set.
 
     Prints the exact refusal message and returns None for zero or 2+ blocks."""
-    blocks = re.findall(r"```(?:text)?\n(.*?)\n```", Path(path).read_text(), re.S)
+    blocks = FENCED.findall(Path(path).read_text())
     if not blocks:
         print(f"note carries no fenced block: {path}", file=sys.stderr)
         return None
@@ -162,7 +163,7 @@ def tree_audit(args):
 def residue(args):
     if any("/expertise/" in f"/{p}/" for p,_ in RESIDUE_EXEMPTIONS): print("expertise exemption refused"); return 1
     if args.ref:
-        paths=subprocess.run(["git","ls-tree","-r","--name-only",args.ref],cwd=ROOT,text=True,capture_output=True,check=True).stdout.splitlines()
+        paths=ls_tree(args.ref)
         read=lambda p: subprocess.run(["git","show",f"{args.ref}:{p}"],cwd=ROOT,text=True,capture_output=True).stdout
         source=f"ref {args.ref}"
     else:
@@ -175,13 +176,14 @@ def residue(args):
                 if path.startswith((".harness/notes/",".harness/harness/features/",".harness/logs/")): positive+=1; continue
                 matches.append((path,n,line))
     if not positive: print("positive control empty"); return 1
-    bad=0
+    bad=0; used=set()
     for path,n,line in matches:
-        covered=any(path==p and frag in line for p,frag in RESIDUE_EXEMPTIONS)
-        print(f"{'covered' if covered else 'LIVE'} {path}:{n}:{line}")
-        bad += not covered
+        hits=[e for e in RESIDUE_EXEMPTIONS if path==e[0] and e[1] in line]
+        print(f"{'covered' if hits else 'LIVE'} {path}:{n}:{line}")
+        if hits: used.update(hits)
+        else: bad+=1
     for p,frag in RESIDUE_EXEMPTIONS:
-        if not any(path==p and frag in line for path,_,line in matches): print(f"stale exemption: {p} {frag}"); bad+=1
+        if (p,frag) not in used: print(f"stale exemption: {p} {frag}"); bad+=1
     return 1 if bad else 0
 
 def children(args):

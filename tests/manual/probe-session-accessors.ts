@@ -30,8 +30,6 @@ function tryCall(target: unknown, name: string): string {
 	try {
 		const result = typeof value === "function" ? (value as () => unknown).call(target) : value;
 		if (typeof result === "string") return result;
-		if (result === undefined) return "undefined";
-		if (result === null) return "null";
 		return JSON.stringify(result)?.slice(0, 240) ?? typeof result;
 	} catch (e) {
 		return `THREW: ${String(e).slice(0, 80)}`;

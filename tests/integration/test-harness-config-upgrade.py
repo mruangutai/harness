@@ -4,28 +4,26 @@
 Every project starts as a valid built config and is then explicitly aged: schema_version set to 2
 and kind statuses removed, which is the version-2 shape. Templates are the shipped ones.
 """
+from integration_support import BIN
 import json
-import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "tests"))
-from harness_config_support import EXCLUDED_KIND as EXCLUDED, build_config  # noqa: E402
-import artifact_accessors as accessors  # noqa: E402
+from harness_config_support import EXCLUDED_KIND as EXCLUDED, build_config
+import artifact_accessors as accessors
 
-SCRIPT = ROOT / ".claude" / "skills" / "harness" / "bin" / "upgrade-config.py"
-TEMPLATES = ROOT / ".claude" / "skills" / "harness" / "templates"
+SCRIPT = BIN / "upgrade-config.py"
+TEMPLATES = BIN.parent / "templates"
 
 
 def version_two(overrides=None):
     """A valid config aged to the version-2 shape: no kind carries a status."""
     document = build_config(overrides)
     document["schema_version"] = 2
-    for name, kind in document["test_kinds"].items():
+    for kind in document["test_kinds"].values():
         if kind["status"] != "excluded":
             del kind["status"]
     return document
@@ -33,7 +31,9 @@ def version_two(overrides=None):
 
 class Upgrade(unittest.TestCase):
     def setUp(self):
-        self.root = Path(tempfile.mkdtemp())
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
         (self.root / ".harness").mkdir()
         self.config = self.root / ".harness" / "harness.json"
         self.backup = self.root / ".harness" / "harness.json.harness-bak"
@@ -45,6 +45,14 @@ class Upgrade(unittest.TestCase):
     def run_cli(self, *args):
         return subprocess.run([sys.executable, str(SCRIPT), str(self.root), "--templates", str(TEMPLATES),
                                *args], capture_output=True, text=True)
+
+    def assert_refused(self, result, needle, original):
+        """Exit 1 without a traceback, needle reported, the source left as it was, and no backup."""
+        self.assertEqual(1, result.returncode, result.stdout + result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertIn(needle, result.stdout)
+        self.assertEqual(original, self.config.read_bytes() if self.config.exists() else None)
+        self.assertFalse(self.backup.exists())
 
     def product(self):
         return version_two({
@@ -88,21 +96,14 @@ class Upgrade(unittest.TestCase):
         self.assertFalse(self.backup.exists())
 
     def test_an_invalid_candidate_is_never_written(self):
-        for name, corrupt in {
-            "wrong present value": lambda d: d["gates"].update(review="strict"),
-            "newer version": lambda d: d.update(schema_version=4),
-        }.items():
+        for name, corrupt, needle in (
+                ("wrong present value", lambda d: d["gates"].update(review="strict"), "gates.review"),
+                ("newer version", lambda d: d.update(schema_version=4), "schema_version")):
             with self.subTest(name):
                 document = self.product()
                 corrupt(document)
                 original = self.write(document)
-                result = self.run_cli("--config-only")
-                self.assertEqual(1, result.returncode, result.stdout + result.stderr)
-                self.assertNotIn("Traceback", result.stderr)
-                self.assertIn("gates.review" if name == "wrong present value" else "schema_version",
-                              result.stdout)
-                self.assertEqual(original, self.config.read_bytes())
-                self.assertFalse(self.backup.exists())
+                self.assert_refused(self.run_cli("--config-only"), needle, original)
 
     def test_a_missing_or_unparseable_source_is_diagnosed_and_nothing_is_written(self):
         for name, source, needle in (("missing", None, "harness.json"),
@@ -111,12 +112,8 @@ class Upgrade(unittest.TestCase):
                 self.config.unlink(missing_ok=True)
                 if source is not None:
                     self.config.write_text(source, encoding="utf-8")
-                result = self.run_cli("--config-only")
-                self.assertEqual(1, result.returncode, result.stdout + result.stderr)
-                self.assertNotIn("Traceback", result.stderr)
-                self.assertIn(needle, result.stdout)
-                self.assertEqual(source, self.config.read_text(encoding="utf-8") if self.config.exists() else None)
-                self.assertFalse(self.backup.exists())
+                original = None if source is None else source.encode("utf-8")
+                self.assert_refused(self.run_cli("--config-only"), needle, original)
 
     def test_control_plane_upgrade_still_reports_its_manifest(self):
         self.write(self.product())

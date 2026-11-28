@@ -17,20 +17,14 @@ Nothing in this module runs a case: `drive()` IS the former main(), parameterise
 calling module's namespace so each file still DISCOVERS its own module-level run_* blocks
 rather than hand-maintaining a list.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import ROOT as _ROOT, BIN as _BIN, TESTS as _TESTS
 import contextlib, json, os, subprocess, sys, tempfile
+from concurrent.futures import ThreadPoolExecutor
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-sys.path.insert(0, HERE)
+TESTS_DIR = str(_TESTS / "integration")
+ROOT = str(_ROOT)
+HERE = str(_BIN)
 HOOK = os.environ.get("CHECK_DOMAIN_BIN") or os.path.join(HERE, "check-domain.py")
-ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
 
 def _env(root, **kw):
@@ -66,11 +60,15 @@ shared:
 """
 
 
+def _write_manifest(root, manifest_text):
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(manifest_text)
+
+
 def fixture(manifest_text):
     d = tempfile.mkdtemp()
-    os.makedirs(os.path.join(d, ".harness"))
-    with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
-        f.write(manifest_text)
+    _write_manifest(d, manifest_text)
     return d
 
 
@@ -108,11 +106,16 @@ def make_linked_worktree(root, wt_path, wt_id):
     return wt_path
 
 
+def _invoke(root, payload, argv=(HOOK,)):
+    """Run the hook once: `payload` as JSON on stdin, the fixture env for `root`."""
+    return subprocess.run(list(argv), input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root))
+
+
 def fire(root, path, content="x", agent="harness-documentor", hook=HOOK):
     payload = {"agent_type": agent, "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(root, path), "content": content}}
-    return subprocess.run([hook], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
+    return _invoke(root, payload, [hook])
 
 
 def fire_write_payload(root, path, content, *flags, hook=HOOK):
@@ -121,14 +124,11 @@ def fire_write_payload(root, path, content, *flags, hook=HOOK):
     domain phase than the one these callers exercise."""
     payload = {"tool_name": "Write",
                "tool_input": {"file_path": path, "content": content}}
-    return subprocess.run([hook, *flags], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
+    return _invoke(root, payload, [hook, *flags])
 
 
 def fire_post(root, payload, flag="--post"):
-    argv = [HOOK] + ([flag] if flag else [])
-    return subprocess.run(argv, input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
+    return _invoke(root, payload, [HOOK] + ([flag] if flag else []))
 
 
 def _legal_feature_json(nlines):
@@ -139,8 +139,7 @@ def _legal_feature_json(nlines):
     asserting the wrong cause. Trailing whitespace is insignificant to a JSON parser, so
     padding this way changes the line count and nothing else.
     """
-    import json as _json
-    body = _json.dumps({"feature_id": "FEAT-X", "branch": "none", "pr": None, "review_sha": "none", "cycles_used": 0,
+    body = json.dumps({"feature_id": "FEAT-X", "branch": "none", "pr": None, "review_sha": "none", "cycles_used": 0,
                         "max_total_cycles": 10, "runs": []}, indent=2).splitlines()
     return "\n".join(body + [""] * max(0, nlines - len(body))) + "\n"
 
@@ -150,8 +149,7 @@ def _fire_edit(root, full, old_s, new_s, agent="harness-pm", replace_all=False):
     if replace_all:
         ti["replace_all"] = True
     payload = {"agent_type": agent, "tool_name": "Edit", "tool_input": ti}
-    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
+    return _invoke(root, payload)
 
 
 def _handoff_text(body, trust_lines=1):
@@ -163,9 +161,7 @@ def _handoff_text(body, trust_lines=1):
 
 
 def _handoff_done_when_fixture(root):
-    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
-        f.write(FIXTURE_MANIFEST)
+    _write_manifest(root, FIXTURE_MANIFEST)
     feat = os.path.join(root, ".harness", "harness", "features", "FEAT-90-fixture")
     notes = os.path.join(feat, "notes")
     os.makedirs(notes, exist_ok=True)
@@ -223,6 +219,32 @@ def _run_block_captured(block_fn, label, stream=None):
     return total, _aggregation_verdict(label, tee.text(), total)
 
 
+def _fire_case(case):
+    _name, path, _want, agent, tool = case
+    payload = {"agent_type": agent, "tool_name": tool,
+               "tool_input": {"file_path": path, "content": "x"}}
+    return _invoke(ROOT, payload)
+
+
+def _run_cases(cases):
+    """The CASES table: each (name, path, want, agent, tool) row fires the hook against the
+    live checkout and must exit EXACTLY `want`. The rows share no state (none writes), so
+    they run concurrently and are judged and printed in table order. Returns the fail count."""
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(_fire_case, cases))
+    fails = 0
+    for (name, _path, want, _agent, _tool), r in zip(cases, results):
+        if r.returncode == want:
+            print(f"ok    {name}")
+            continue
+        fails += 1
+        verb = "should have BLOCKED (2)" if want == 2 else "should have PASSED (0)"
+        print(f"FAIL  {name}\n        {verb}, got {r.returncode}")
+        for l in (r.stdout + r.stderr).strip().splitlines()[:2]:
+            print(f"      | {l}")
+    print(f"\n{len(cases) - fails}/{len(cases)} cases passed.\n")
+    return fails
+
 
 def drive(namespace, cases=()):
     """The former main(): the CASES loop, then every module-level run_* block.
@@ -239,24 +261,7 @@ def drive(namespace, cases=()):
     problems = []
 
     if cases:
-        cases_tee = _AggTee(sys.stdout)
-        with contextlib.redirect_stdout(cases_tee):
-            for name, path, want, agent, tool in cases:
-                payload = {"agent_type": agent, "tool_name": tool,
-                           "tool_input": {"file_path": path, "content": "x"}}
-                r = subprocess.run([HOOK], input=json.dumps(payload),
-                                   capture_output=True, text=True,
-                                   env=_env(ROOT))
-                if r.returncode != want:
-                    fails += 1
-                    verb = "should have BLOCKED (2)" if want == 2 else "should have PASSED (0)"
-                    print(f"FAIL  {name}\n        {verb}, got {r.returncode}")
-                    for l in (r.stdout + r.stderr).strip().splitlines()[:2]:
-                        print(f"      | {l}")
-                else:
-                    print(f"ok    {name}")
-            print(f"\n{len(cases) - fails}/{len(cases)} cases passed.\n")
-        cases_verdict = _aggregation_verdict("CASES", cases_tee.text(), fails)
+        fails, cases_verdict = _run_block_captured(lambda: _run_cases(cases), "CASES")
         if cases_verdict is not None:
             problems.append(cases_verdict)
 

@@ -6,11 +6,7 @@ Each case invokes the real script as a subprocess against a fixture PLAN.md,
 and against the repo's own templates/PLAN.md, run-unit-tests.py and source
 for the static/textual checks (cases 8-13, 16).
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import ROOT, BIN, TESTS
 import ast
 import base64
 import io
@@ -23,15 +19,15 @@ import sys
 import tempfile
 import tokenize
 
-import artifact_accessors
-import feature_corpus
+import artifact_accessors  # noqa: E402
+import feature_corpus  # noqa: E402
+from check_support import Checks  # noqa: E402
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
+TESTS_DIR = str(TESTS / "integration")
+ROOT = str(ROOT)
+BIN_DIR = str(BIN)
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
     BIN_DIR, "check-plan-routes.py")
-REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 # The audit libraries UNDER TEST sit beside SCRIPT, so a mutant copy of bin named through
 # CHECK_PLAN_ROUTES_BIN is what gets imported — never the repo copy.
 AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT))
@@ -40,6 +36,7 @@ import canonical_reader_audit  # noqa: E402
 FIXTURE_DIR = os.path.join(TESTS_DIR, "fixtures")
 
 GRANTED_PATH = ".claude/skills/harness/bin/check-domain.py"  # granted to two agents
+NOBODY_PATH = ".agents/skills/harness-spec-driven/SKILL.md"  # resolves to NOBODY
 
 
 def cpr():
@@ -58,7 +55,8 @@ def cpr():
 UNGRANTED_PATH = "some/totally/nonexistent/zzz-surface.md"  # granted to nobody
 CASE17_PATH = ".harness/harness/features/FEAT-90-fixture/runs/1-eng/notes.md"  # synthetic flow
 
-failures = []
+C = Checks()
+check = C.check
 
 
 def run(*args, cwd=None, project_dir=None, script=None):
@@ -81,7 +79,7 @@ def run(*args, cwd=None, project_dir=None, script=None):
             env[_k] = project_dir
     return subprocess.run(
         [sys.executable, script or SCRIPT, *args],
-        cwd=cwd or REPO_ROOT,
+        cwd=cwd or ROOT,
         capture_output=True,
         text=True,
         timeout=60,
@@ -103,14 +101,6 @@ def task_block(tid, files, execution_mode):
         f"  change_type: logic\n"
         f"  execution_mode: {execution_mode}\n\n"
     )
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS {name}")
-    else:
-        print(f"FAIL {name} {detail}")
-        failures.append(name)
 
 
 def case_01_02_03():
@@ -167,7 +157,7 @@ def case_08_09_16():
 
 def case_10_11_12():
     """(10)(11)(12): templates/PLAN.md carries the ## Lanes section and both execution_mode tokens."""
-    tpl = os.path.join(REPO_ROOT, ".claude", "skills", "harness", "templates", "PLAN.md")
+    tpl = os.path.join(ROOT, ".claude", "skills", "harness", "templates", "PLAN.md")
     with open(tpl) as f:
         src = f.read()
     check("case_10_template_has_lanes_section", "## Lanes" in src)
@@ -209,11 +199,9 @@ def case_17():
         has_violation_for_t01 = any(
             line.startswith("VIOLATION") and "T-01" in line for line in lines
         )
-        has_ok_for_t01 = any(
-            line.startswith("OK") and "T-01" in line for line in lines
-        )
+        ok_line = next((l for l in lines if l.startswith("OK") and "T-01" in l), "")
         check("case_17_midpattern_wildcard_grant_no_violation", not has_violation_for_t01, r.stdout)
-        check("case_17_midpattern_wildcard_grant_reports_ok", has_ok_for_t01, r.stdout)
+        check("case_17_midpattern_wildcard_grant_reports_ok", bool(ok_line), r.stdout)
         check("case_17_midpattern_wildcard_grant_exits_0", r.returncode == 0, r.stdout + r.stderr)
 
         # (17b) THE CLAUSE THAT CAN ACTUALLY FAIL. The three assertions above pass under a
@@ -224,7 +212,6 @@ def case_17():
         # grant `.harness/*/features/*/runs/*-eng/**`, while a prefix implementation grants it to
         # most of the org. Asserting the EXACT set is what discriminates, and it fails on any
         # reimplementation regardless of how its variables are spelled.
-        ok_line = next((l for l in lines if l.startswith("OK") and "T-01" in l), "")
         granted = ok_line.split("granted to", 1)[-1].strip() if "granted to" in ok_line else ""
         check("case_17b_ok_line_names_the_exact_granting_set",
               granted == "harness-eng-lead, harness-orchestrator",
@@ -245,7 +232,6 @@ def case_18():
       (b) a genuinely ungranted LATER entry IS reported (the fail-open half),
       (c) the same-line form still works, so the fix did not trade one shape for another.
     """
-    results = []
     with tempfile.TemporaryDirectory() as td:
         block = write_plan(td, "# PLAN\n\n" + (
             "- T-01: block form\n"
@@ -256,10 +242,10 @@ def case_18():
             "  status: pending\n"))
         r = run(block)
         out = r.stdout
-        results.append(("case_18a_block_form_first_entry_not_falsely_rejected",
-                        "- .harness/harness/docs/SPEC.md ungranted" not in out, out))
-        results.append(("case_18b_block_form_LATER_entry_is_checked_the_fail_open",
-                        ".gitignore ungranted" in out, out))
+        check("case_18a_block_form_first_entry_not_falsely_rejected",
+                       "- .harness/harness/docs/SPEC.md ungranted" not in out, out)
+        check("case_18b_block_form_LATER_entry_is_checked_the_fail_open",
+                       ".gitignore ungranted" in out, out)
     # (18d) THE POSITIVE ASSERTION. 18a is NEGATIVE — "SPEC.md is not reported
     # ungranted" is satisfied by never resolving SPEC.md at all, and a mutant returning
     # entries[-1:] passed 18a/18b/18c together. Two paths with DIFFERENT granted sets,
@@ -274,11 +260,11 @@ def case_18():
             "  status: pending\n"))
         r4 = run(allg)
         ok_line = next((l for l in r4.stdout.splitlines() if l.startswith("OK T-01")), "")
-        results.append(("case_18d_block_form_OK_line_names_the_UNION_of_granted_sets",
-                        "harness-documentor" in ok_line
+        check("case_18d_block_form_OK_line_names_the_UNION_of_granted_sets",
+                       "harness-documentor" in ok_line
                         and "harness-backend-dev" in ok_line
                         and "harness-dev-ops" in ok_line,
-                        f"OK line was {ok_line!r}"))
+                        f"OK line was {ok_line!r}")
 
     # (18e) The WRAPPED same-line shape — trailing comma, value continues on the next
     # line. Live in FEAT-08 (3 tasks), where T-01 declared two paths and the checker
@@ -291,8 +277,8 @@ def case_18():
             "  execution_mode: team\n"
             "  status: pending\n"))
         r5 = run(wrapped)
-        results.append(("case_18e_wrapped_same_line_continuation_is_read",
-                        ".gitignore ungranted" in r5.stdout, r5.stdout))
+        check("case_18e_wrapped_same_line_continuation_is_read",
+                       ".gitignore ungranted" in r5.stdout, r5.stdout)
 
     # (18f) A files: value this parser cannot read must SAY SO, never return silently —
     # an empty entry list used to be indistinguishable from "every path granted".
@@ -303,8 +289,8 @@ def case_18():
             "  execution_mode: team\n"
             "  status: pending\n"))
         r6 = run(empty)
-        results.append(("case_18f_unparseable_files_value_is_reported_not_silent",
-                        "UNPARSED T-01" in r6.stdout, r6.stdout))
+        check("case_18f_unparseable_files_value_is_reported_not_silent",
+                       "UNPARSED T-01" in r6.stdout, r6.stdout)
 
     with tempfile.TemporaryDirectory() as td:
         same = write_plan(td, "# PLAN\n\n" + (
@@ -313,20 +299,8 @@ def case_18():
             "  execution_mode: team\n"
             "  status: pending\n"))
         r2 = run(same)
-        results.append(("case_18c_same_line_form_still_parsed",
-                        ".gitignore ungranted" in r2.stdout, r2.stdout))
-    ok = True
-    for name, passed, detail in results:
-        print(f"{'ok' if passed else 'FAIL'} {name}")
-        if not passed:
-            print(f"        {detail.strip()[:220]}")
-            ok = False
-    # RECORDS ITS OWN VERDICT, like every other case in this file. It used to RETURN one for
-    # main to interpret, which made main's loop carry a conditional for a single exception —
-    # the cost landed on the registry rather than on the case that was different.
-    if not ok:
-        failures.append("case_18")
-    return ok
+        check("case_18c_same_line_form_still_parsed",
+                       ".gitignore ungranted" in r2.stdout, r2.stdout)
 
 
 def case_19():
@@ -348,7 +322,7 @@ def case_19():
       (d) the explicit-path form is untouched by the root guard, even when
           CLAUDE_PROJECT_DIR points somewhere with no manifest at all.
     """
-    r_root = run(cwd=REPO_ROOT)
+    r_root = run(cwd=ROOT)
     r_tmp = run(cwd="/tmp")
     check("case_19a_argvless_output_is_independent_of_cwd",
           r_tmp.stdout == r_root.stdout and r_tmp.returncode == r_root.returncode,
@@ -394,7 +368,7 @@ def case_19():
     with tempfile.TemporaryDirectory() as _td3:
         _f3 = os.path.join(_td3, ".harness", "harness", "features")
         os.makedirs(_f3)
-        shutil.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
+        shutil.copy2(os.path.join(ROOT, ".harness", "team-config.yaml"),
                      os.path.join(_td3, ".harness", "team-config.yaml"))
         for _n, _station in (("FEAT-LIVE", "building"), ("FEAT-SHIPPED", "done")):
             os.makedirs(os.path.join(_f3, _n))
@@ -426,7 +400,7 @@ def case_19():
               f"stdout={_r3e.stdout[:300]!r}")
 
     check("case_19a2_argvless_names_the_root_it_scanned",
-          r_tmp.stdout.startswith("scanning ") and REPO_ROOT in r_tmp.stdout.splitlines()[0],
+          r_tmp.stdout.startswith("scanning ") and ROOT in r_tmp.stdout.splitlines()[0],
           r_tmp.stdout[:200])
 
     # (b) Neutralise BOTH root sources: a copy of the script four levels under a bare
@@ -437,8 +411,7 @@ def case_19():
         fake_bin = os.path.join(td, "root", "a", "b", "bin")
         os.makedirs(fake_bin)
         copy = os.path.join(fake_bin, "check-plan-routes.py")
-        with open(SCRIPT) as src, open(copy, "w") as dst:
-            dst.write(src.read())
+        shutil.copy2(SCRIPT, copy)
         # THE RESOLVER AND ITS DIRECT DEPENDENCIES GO WITH IT (FEAT-42 T-13,
         # BUG-1305 T-02, BUG-285 T-03). This case neutralises both ROOT sources;
         # it is not about a missing module. Without these modules beside the copy
@@ -480,6 +453,7 @@ def case_19():
         r2 = run(project_dir=td)
         check("case_19b4_a_valid_project_dir_is_not_warned_about",
               "discarding" not in r2.stderr, f"stderr={r2.stderr[:300]!r}")
+        zero_td, zero_run = td, r2      # also case (c)'s zero-feature fixture
     # ...and neither is an UNSET one, which is the common case and the one a valid-dir
     # fixture cannot reach: with the env var unset the discard branch IS entered (there is
     # nothing to discard), so a warning keyed on entering the branch rather than on the
@@ -558,17 +532,14 @@ def case_19():
 
     # (c) The other direction. A manifest is present, so the root IS known; there simply
     # are no features yet. Must be exit 0 and must scan the FIXTURE, not the real repo —
-    # which is also what fails if the env-var/derived precedence is ever flipped.
-    with tempfile.TemporaryDirectory() as td:
-        os.makedirs(os.path.join(td, ".harness", "harness", "features"))
-        with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
-            f.write("agents: {}\n")
-        r = run(project_dir=td)
-        check("case_19c_zero_feature_project_is_not_an_error", r.returncode == 0,
-              f"exit {r.returncode} stdout={r.stdout[:300]!r} stderr={r.stderr[:200]!r}")
-        check("case_19c2_zero_feature_project_scans_the_declared_root",
-              td in r.stdout and "0 violation(s) across 0 plan(s)" in r.stdout,
-              r.stdout[:300])
+    # which is also what fails if the env-var/derived precedence is ever flipped. The fixture
+    # is (b4)'s valid project dir: an empty features/ and an 'agents: {}' manifest.
+    r = zero_run
+    check("case_19c_zero_feature_project_is_not_an_error", r.returncode == 0,
+          f"exit {r.returncode} stdout={r.stdout[:300]!r} stderr={r.stderr[:200]!r}")
+    check("case_19c2_zero_feature_project_scans_the_declared_root",
+          zero_td in r.stdout and "0 violation(s) across 0 plan(s)" in r.stdout,
+          r.stdout[:300])
 
     # (d) The explicit-path form, from a cwd with no .harness and an env root with no
     # manifest. A guard applied outside the argv-less branch turns this into exit 2.
@@ -753,9 +724,8 @@ def _yaml_project(td, files=".harness/harness.json", extra="", status="ready"):
     """
     fd = os.path.join(td, ".harness", "harness", "features", "FEAT-A")
     os.makedirs(fd, exist_ok=True)
-    import shutil as _sh
-    _sh.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
-              os.path.join(td, ".harness", "team-config.yaml"))
+    shutil.copy2(os.path.join(ROOT, ".harness", "team-config.yaml"),
+                 os.path.join(td, ".harness", "team-config.yaml"))
     text = PLAN_YAML % files
     if status is None:
         text = text.replace("    status: ready\n", "", 1)
@@ -905,13 +875,13 @@ def case_23():
     """
     with tempfile.TemporaryDirectory() as td:
         _yaml_project(td)
-        r = run(project_dir=td)
+        r = default_run = run(project_dir=td)
         check("case_23a_plan_yaml_granted_path_is_OK",
               r.returncode == 0 and "OK T-01 granted to harness-dev-ops" in r.stdout,
               f"exit {r.returncode}: {r.stdout[:200]!r}")
 
     with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
+        _yaml_project(td, files=NOBODY_PATH)
         r = run(project_dir=td)
         check("case_23b_plan_yaml_ungranted_path_is_a_VIOLATION",
               r.returncode == 1 and "ungranted (NOBODY)" in r.stdout,
@@ -968,11 +938,9 @@ def case_23():
           f"exit {over_budget.returncode}: {over_budget.stdout[:240]!r}")
 
     # ...and does NOT fire on a normal task, or it is a cap on having tasks at all.
-    with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td)
-        r = run(project_dir=td)
-        check("case_23f_the_budget_stays_silent_on_a_normal_task",
-              f"budget is {cap}" not in r.stdout, r.stdout[:200])
+    # The default fixture is case_23a's, so its run answers this too.
+    check("case_23f_the_budget_stays_silent_on_a_normal_task",
+          f"budget is {cap}" not in default_run.stdout, default_run.stdout[:200])
 
     # THE BUDGET MUST GATE, NOT MERELY PRINT. `violations += 1` could be deleted with the
     # suite green, because case_23e asserts on stdout alone and every sibling in this file
@@ -1051,7 +1019,7 @@ def case_23():
     with tempfile.TemporaryDirectory() as td:
         fd = os.path.join(td, ".harness", "harness", "features", "FEAT-A")
         os.makedirs(fd)
-        shutil.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
+        shutil.copy2(os.path.join(ROOT, ".harness", "team-config.yaml"),
                      os.path.join(td, ".harness", "team-config.yaml"))
         with open(os.path.join(fd, "plan.yaml"), "w") as f:
             f.write(plan)
@@ -1064,11 +1032,12 @@ def case_23():
               f"depends_on + 7 scalars): {r.stdout[:160]!r}")
 
     # ...and the field list the case is written against has not drifted from production.
+    budgeted = cpr().BUDGETED_FIELDS
     check("case_23j2_BUDGETED_FIELDS_is_still_the_eleven_this_case_pins",
-          set(cpr().BUDGETED_FIELDS) == {"files", "verify", "traces", "depends_on",
+          set(budgeted) == {"files", "verify", "traces", "depends_on",
                                          "change_type", "execution_mode", "execution_agent",
                                          "execution_reason", "status", "id", "title"},
-          f"BUDGETED_FIELDS = {cpr().BUDGETED_FIELDS}")
+          f"BUDGETED_FIELDS = {budgeted}")
 
     # A feature carrying BOTH files is a half-finished migration, refused rather than
     # silently preferred — "which is authoritative" is the ambiguity #147 is about.
@@ -1080,6 +1049,15 @@ def case_23():
         check("case_23g_both_plan_yaml_and_PLAN_md_is_refused",
               r.returncode == 2 and "BOTH" in r.stderr,
               f"exit {r.returncode}: {r.stderr[:200]!r}")
+
+
+def _set_plan_station(fd, station):
+    """Insert a top-level `status: <station>` after plan.yaml's first line (`schema:`)."""
+    plan_path = os.path.join(fd, "plan.yaml")
+    with open(plan_path) as f:
+        text = f.read()
+    with open(plan_path, "w") as f:
+        f.write(text.replace("\n", f"\nstatus: {station}\n", 1))
 
 
 def case_24():
@@ -1103,28 +1081,18 @@ def case_24():
 
     Both directions, because a skip that skips everything would pass the first case alone.
     """
-    results = []
     for station, want_checked in (("backlog", True), ("plan", True), ("ready", True),
                                   ("building", True), ("review", True), ("done", False),
                                   ("abandoned", False), ("Done", True)):
         with tempfile.TemporaryDirectory() as td:
-            fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
+            fd = _yaml_project(td, files=NOBODY_PATH)
             # The station goes in plan.yaml's top-level `status`, which _yaml_project already
             # wrote — replace it rather than appending a second key.
-            plan_path = os.path.join(fd, "plan.yaml")
-            text = open(plan_path).read()
-            if text.startswith("schema:"):
-                text = text.replace("\n", f"\nstatus: {station}\n", 1)
-            else:
-                text = f"status: {station}\n" + text
-            with open(plan_path, "w") as f:
-                f.write(text)
+            _set_plan_station(fd, station)
             r = run(project_dir=td)
             checked = "ungranted (NOBODY)" in r.stdout
-            ok = checked == want_checked
-            results.append(ok)
             check(f"case_24_{station}_is_{'checked' if want_checked else 'skipped'}",
-                  ok, f"exit {r.returncode}, checked={checked}: {r.stdout[:160]!r}")
+                  checked == want_checked, f"exit {r.returncode}, checked={checked}: {r.stdout[:160]!r}")
 
     # THE SUBSET TIE IS NOW TO THE STATION VOCABULARY, NOT THE SCHEMA ENUM. schemas/feature.json
     # no longer HAS a status enum — T-07 deleted the key — so the old assertion could only be
@@ -1134,15 +1102,13 @@ def case_24():
     import factory_config
     vocabulary = set(factory_config.MANDATED_STATIONS) | set(factory_config.TERMINAL_STATIONS)
     finished = set(cpr().finished_stations())
-    ok = finished.issubset(vocabulary)
-    results.append(ok)
     check("case_24_finished_stations_is_a_subset_of_the_station_vocabulary",
-          ok, f"finished_stations={finished}, vocabulary={vocabulary}")
+          finished.issubset(vocabulary), f"finished_stations={finished}, vocabulary={vocabulary}")
 
     # A feature we CANNOT classify is checked, never skipped. The failure that matters is a
     # live plan going unexamined; an old one examined twice costs nothing.
     with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
+        _yaml_project(td, files=NOBODY_PATH)
         r = run(project_dir=td)              # no feature.json at all
         check("case_24_no_feature_yaml_is_checked_not_skipped",
               "ungranted (NOBODY)" in r.stdout, r.stdout[:200])
@@ -1179,14 +1145,13 @@ def case_24():
                         # how a load-bearing assertion gets deleted as redundant.
                         ("a_mapping_with_no_status", '{"feature_id": "FEAT-A"}\n')):
         with tempfile.TemporaryDirectory() as td:
-            fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
+            fd = _yaml_project(td, files=NOBODY_PATH)
             with open(os.path.join(fd, "feature.json"), "w") as f:
                 f.write(body)
             r = run(project_dir=td)
             ok = ("Traceback" not in r.stderr
                   and "ungranted (NOBODY)" in r.stdout
                   and "1 violation(s) across 1 plan(s)" in r.stdout)
-            results.append(ok)
             check(f"case_24_feature_yaml_{label}_is_checked_not_crashed",
                   ok, f"exit {r.returncode}, stderr={r.stderr[:120]!r}, "
                       f"stdout={r.stdout[-120:]!r}")
@@ -1227,40 +1192,27 @@ def case_24():
             "factory": {},
         }
 
-    def _with_station(fd, station):
-        plan_path = os.path.join(fd, "plan.yaml")
-        text = open(plan_path).read()
-        with open(plan_path, "w") as f:
-            f.write(text.replace("\n", f"\nstatus: {station}\n", 1))
+    # ONE FIXTURE PER STATION RATHER THAN A REWRITE OF ONE: the station lives in the plan, so
+    # flipping it in place would mean splicing the same file twice and asserting against
+    # whichever splice won. Two directories is cheaper than that ambiguity.
+    def _ten_key_run(station):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td, files=NOBODY_PATH)
+            with open(os.path.join(fd, "feature.json"), "w") as f:
+                f.write(json.dumps(_ten_key_doc()))
+            _set_plan_station(fd, station)
+            return run(project_dir=td)
 
-    with tempfile.TemporaryDirectory() as td:
-        fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
-        with open(os.path.join(fd, "feature.json"), "w") as f:
-            f.write(json.dumps(_ten_key_doc()))
-        _with_station(fd, "done")
-        r_done = run(project_dir=td)
-
-    with tempfile.TemporaryDirectory() as td:
-        # A SECOND FIXTURE RATHER THAN A REWRITE OF THE FIRST: the station now lives in the
-        # plan, so flipping it in place would mean splicing the same file twice and asserting
-        # against whichever splice won. Two directories is cheaper than that ambiguity.
-        fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
-        with open(os.path.join(fd, "feature.json"), "w") as f:
-            f.write(json.dumps(_ten_key_doc()))
-        _with_station(fd, "building")
-        r_building = run(project_dir=td)
+    r_done, r_building = _ten_key_run("done"), _ten_key_run("building")
 
     ok_done = ("ungranted (NOBODY)" not in r_done.stdout
                and "across 0 plan(s)" in r_done.stdout)
     ok_building = ("ungranted (NOBODY)" in r_building.stdout
                    and "across 1 plan(s)" in r_building.stdout)
-    ok = ok_done and ok_building
-    results.append(ok)
     check("case_24_ten_key_feature_json_with_a_done_plan_station_is_skipped_end_to_end",
-          ok,
+          ok_done and ok_building,
           f"done: exit {r_done.returncode}, stdout={r_done.stdout[:200]!r} | "
           f"building: exit {r_building.returncode}, stdout={r_building.stdout[:200]!r}")
-    return all(results)
 
 
 
@@ -1477,9 +1429,9 @@ def case_20():
         worse than no coverage: it reports green while hiding exactly the regression it was
         written to tolerate.
 
-        Returns (ok, seen_any).
+        Returns seen_any.
         """
-        ok, seen_any = True, 0
+        seen_any = 0
         for fname in sorted(os.listdir(here)):
             if not (fname.endswith(".py") or fname.endswith(".sh")) or fname.startswith("test-"):
                 continue
@@ -1488,16 +1440,15 @@ def case_20():
                 continue
             seen_any += result[0] == "probes"
             key = fname.replace(".", "_").replace("-", "_")
-            ok = _report_scan_result(key, fname, result) and ok
-        return ok, seen_any
+            _report_scan_result(key, fname, result)
+        return seen_any
 
     _assert_logical_lines_fixture()
-    ok, seen_any = _scan_all_files()
+    seen_any = _scan_all_files()
     check("case_20_the_detector_is_not_blind",
           seen_any >= 2,
           f"only {seen_any} file(s) matched any root probe — the pattern went blind, which "
           f"is how the previous draft passed while missing its own target")
-    return ok and seen_any >= 2
 
 
 
@@ -1694,7 +1645,6 @@ def _t09_devpair(td, branch_text):
     owner manifest are what all three sub-cases need — and because the code-grade gate rejected
     the inline version, which is the same complexity finding T-07 hit in this file.
     """
-    import importlib.util
     import harness_boundary
     owner = os.path.join(td, "owner")
     branch = os.path.join(td, "branch")
@@ -1704,10 +1654,7 @@ def _t09_devpair(td, branch_text):
         f.write(_T09_BASE_MANIFEST)
     with open(os.path.join(branch, harness_boundary.MARKER), "w") as f:
         f.write(branch_text)
-    spec = importlib.util.spec_from_file_location("_cpr_dev", SCRIPT)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod._manifest_deviation(branch, owner)
+    return cpr()._manifest_deviation(branch, owner)
 
 
 def case_41_t09_manifest_deviation_is_parsed_not_byte():
@@ -2028,12 +1975,13 @@ def case_canonical_reader_live_baseline():
         TESTS_DIR, "canonical-reader-classification.json")
     mod = canonical_reader_audit
     result = mod.audit_canonical_readers(ROOT, classification)
-    migration_findings = [
-        finding
-        for task in ("T-03", "T-04", "T-05", "T-06", "T-07")
-        for finding in mod.classification_task_findings(
-            ROOT, classification, task)
-    ]
+    # Each signed migration unit is complete or wholly untouched, never partial: one scan per
+    # task answers both its own postcondition and the aggregate consistency check.
+    migration_findings = []
+    for task in ("T-03", "T-04", "T-05", "T-06", "T-07"):
+        findings = mod.classification_task_findings(ROOT, classification, task)
+        check(f"canonical_reader_{task}_postcondition", findings == [], repr(findings))
+        migration_findings.extend(findings)
     check("canonical_reader_live_classification_consistent",
           migration_findings == [], repr(migration_findings))
     check("canonical_reader_live_audit_is_zero",
@@ -2047,17 +1995,6 @@ def case_canonical_reader_live_baseline():
     check("canonical_reader_scans_converted_python_entrypoints",
           converted <= {os.path.basename(path) for path in result["scanned_files"]},
           repr(result["scanned_files"]))
-
-
-def case_canonical_reader_task_postconditions():
-    """Signed migration units are complete or wholly untouched, never partial."""
-    classification = os.path.join(
-        TESTS_DIR, "canonical-reader-classification.json")
-    mod = canonical_reader_audit
-    for task in ("T-03", "T-04", "T-05", "T-06", "T-07"):
-        findings = mod.classification_task_findings(ROOT, classification, task)
-        check(f"canonical_reader_{task}_postcondition",
-              findings == [], repr(findings))
 
 
 def case_canonical_reader_unclassified_remedies():
@@ -2345,7 +2282,6 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_relocation_is_exact,
     case_canonical_reader_second_state_reader,
     case_canonical_reader_live_baseline,
-    case_canonical_reader_task_postconditions,
     case_canonical_reader_unclassified_remedies,
     case_canonical_reader_unclassified_accessor_module_call,
     case_canonical_reader_t07_terminal_contract,
@@ -2388,7 +2324,7 @@ def case_feat64_manifest_deviation_defect_escapes():
               "the broad catch turned a defect into a DEVIATION line")
 
 
-def _feat64_load_plan_calls(td, fd):
+def _feat64_load_plan_calls(td):
     """Run the checker over a project via a shim that counts artifact_accessors.load_plan calls
     per path; returns {path: count}."""
     counter = os.path.join(td, "load-plan-calls.txt")
@@ -2403,10 +2339,7 @@ def _feat64_load_plan_calls(td, fd):
                 "    return _real(path)\n"
                 "aa.load_plan = counted\n"
                 f"runpy.run_path({SCRIPT!r}, run_name='__main__')\n")
-    env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")}
-    env["HARNESS_PROJECT_DIR"] = td
-    env["CLAUDE_PROJECT_DIR"] = td
-    r = subprocess.run([sys.executable, shim], cwd=td, capture_output=True, text=True, env=env, timeout=60)
+    r = run(cwd=td, project_dir=td, script=shim)
     calls = {}
     if os.path.exists(counter):
         for line in open(counter).read().splitlines():
@@ -2420,14 +2353,14 @@ def case_feat64_plan_is_parsed_once_per_execution():
     with tempfile.TemporaryDirectory() as td:
         fd = _yaml_project(td)
         plan = os.path.join(fd, "plan.yaml")
-        r, calls = _feat64_load_plan_calls(td, fd)
+        r, calls = _feat64_load_plan_calls(td)
         check("feat64_live_plan_loaded_exactly_once_per_execution",
               r.returncode in (0, 1) and calls.get(plan) == 1,
               f"rc={r.returncode} calls={calls} stderr={r.stderr[-300:]!r}")
     with tempfile.TemporaryDirectory() as td:
         fd = _yaml_project(td, extra="status: done\n")
         plan = os.path.join(fd, "plan.yaml")
-        r, calls = _feat64_load_plan_calls(td, fd)
+        r, calls = _feat64_load_plan_calls(td)
         check("feat64_shipped_plan_loaded_exactly_once_and_skipped",
               r.returncode == 0 and calls.get(plan) == 1 and "1 skipped as shipped" in r.stdout,
               f"rc={r.returncode} calls={calls} stdout={r.stdout[-300:]!r}")
@@ -2479,9 +2412,8 @@ def _call_symbol(tree, call):
 def _call_has_keywords(call, required):
     values = {keyword.arg: keyword.value for keyword in call.keywords}
     try:
-        return all(ast.literal_eval(values[name]) == value
-                   for name, value in required.items() if name in values) \
-            and required.keys() <= values.keys()
+        return required.keys() <= values.keys() and all(
+            ast.literal_eval(values[name]) == value for name, value in required.items())
     except (ValueError, TypeError):
         return False
 
@@ -2565,11 +2497,7 @@ def main(argv=None):
         for case in CASES:
             case()
 
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        sys.exit(1)
-    print("\nALL PASS")
-    sys.exit(0)
+    sys.exit(C.report())
 
 
 if __name__ == "__main__":

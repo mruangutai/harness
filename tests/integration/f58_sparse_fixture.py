@@ -20,12 +20,12 @@ import contextlib
 import json
 import os
 import shutil
-import sys
 import tempfile
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from git_support import git  # noqa: E402
-from harness_config_support import build_config  # noqa: E402
+import integration_support  # noqa: F401  (puts tests/ on sys.path before the imports below)
+from git_support import git
+from harness_config_support import build_config
 
 # Non-feature paths every record-bearing checkout must keep. Fixture assertions import this; the
 # production derivation never reads it — it derives the cone from tracked directories alone.
@@ -47,8 +47,9 @@ FLEET_FEATURES = ("FEAT-10-kaya-app",)
 
 
 def feature_json(feature_id, branch):
-    return ('{"feature_id": "%s", "branch": "%s", "pr": null, "review_sha": "none", '
-            '"cycles_used": 0, "max_total_cycles": 5, "runs": []}\n' % (feature_id, branch))
+    return json.dumps({"feature_id": feature_id, "branch": branch, "pr": None,
+                       "review_sha": "none", "cycles_used": 0, "max_total_cycles": 5,
+                       "runs": []}) + "\n"
 
 
 def _owner_files():
@@ -113,9 +114,7 @@ class SparseFixture:
         os.makedirs(self.owner)
         self.run(self.owner, "init", "-q", "-b", "main")
         self.run(self.owner, "config", "core.hooksPath", self.no_hooks)
-        write_files(self.owner, _owner_files())
-        self.run(self.owner, "add", "-A")
-        self.run(self.owner, "commit", "-qm", "seed")
+        self.commit_owner(_owner_files(), "seed")
         return self
 
     def worktree_path(self, name, segment="harness"):
@@ -129,29 +128,26 @@ class SparseFixture:
         """A planning worktree the way `feature-worktree.py create` cuts one: a new branch at
         `ref`, at `<owner>/.claude/worktrees/<segment>/<name>`."""
         path = self.worktree_path(name, segment)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
         self.run(self.owner, "worktree", "add", "-q", "-b", branch or f"feat/{name}", path, ref)
         return path
 
     def add_pin(self, feature, run_id="run1", persona="qa", ref="HEAD"):
         """A validator pin the way `pinned-checkout.py` cuts one: detached at `ref`."""
         path = self.pin_path(feature, run_id, persona)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
         self.run(self.owner, "worktree", "add", "-q", "--detach", path, ref)
         return path
 
     def add_probe(self, name):
         """An arbitrary linked worktree OUTSIDE `.claude/worktrees` — not record-bearing."""
         path = os.path.join(self.base, "probes", name)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
         self.run(self.owner, "worktree", "add", "-q", "--detach", path, "HEAD")
         return path
 
     def clone(self, name="clone"):
         """A plain, non-linked clone of the owner."""
         path = os.path.join(self.base, name)
-        self.run(self.base, "clone", "-q", self.owner, path)
-        self.run(path, "config", "core.hooksPath", self.no_hooks)
+        self.run(self.base, "clone", "-q", "-c", f"core.hooksPath={self.no_hooks}", self.owner,
+                 path)
         return path
 
     def commit_owner(self, files, message):
@@ -192,11 +188,8 @@ def install_hooks(checkout, source_root):
 def sparse_fixture():
     """Build a fresh owner under a private temporary directory and remove exactly that
     directory afterwards. Nothing outside it is created or touched."""
-    base = os.path.realpath(tempfile.mkdtemp(prefix="f58-sparse-"))
-    try:
-        yield SparseFixture(base).build()
-    finally:
-        shutil.rmtree(base, ignore_errors=True)
+    with tempfile.TemporaryDirectory(prefix="f58-sparse-", ignore_cleanup_errors=True) as base:
+        yield SparseFixture(os.path.realpath(base)).build()
 
 
 def feature_dirs_on_disk(checkout):
@@ -225,18 +218,15 @@ def snapshot(checkout):
             if os.path.islink(path):
                 state[os.path.relpath(path, checkout)] = ("link", os.readlink(path))
                 continue
-            with open(path, "rb") as fh:
-                state[os.path.relpath(path, checkout)] = fh.read()
-    git_dir = git(checkout, "rev-parse", "--absolute-git-dir").stdout.strip()
-    common = git(checkout, "rev-parse", "--git-common-dir").stdout.strip()
-    common = common if os.path.isabs(common) else os.path.join(checkout, common)
+            state[os.path.relpath(path, checkout)] = Path(path).read_bytes()
+    git_dir, common = git(checkout, "rev-parse", "--absolute-git-dir", "--path-format=absolute",
+                          "--git-common-dir").stdout.splitlines()[:2]
     for label, path in (("index", os.path.join(git_dir, "index")),
                         ("config.worktree", os.path.join(git_dir, "config.worktree")),
                         ("sparse-checkout", os.path.join(git_dir, "info", "sparse-checkout")),
                         ("common-config", os.path.join(common, "config"))):
         if os.path.exists(path):
-            with open(path, "rb") as fh:
-                state[f"<git>/{label}"] = fh.read()
+            state[f"<git>/{label}"] = Path(path).read_bytes()
     return state
 
 

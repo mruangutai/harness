@@ -14,32 +14,19 @@ The dispatch allowlist dispatch-guard used to enforce is gone (T-01); omp's nati
 enforcement refuses a disallowed target. What the guard also carried was the instruction for
 what to do instead, and that now lives in the three lead personas.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import ROOT as _ROOT
 import os
 import sys
 
 import artifact_accessors
+from check_support import Checks
 
-ROOT = _anchor_root
+ROOT = str(_ROOT)
 RULE = os.path.join(ROOT, ".omp", "rules", "harness-constraints.md")
 LEADS = ("harness-product-lead", "harness-eng-lead", "harness-validator-lead")
 
-fails = 0
-passes = 0
-
-
-def check(name, ok, detail=""):
-    global fails, passes
-    if ok:
-        passes += 1
-        print(f"ok    {name}")
-    else:
-        fails += 1
-        print(f"FAIL  {name}\n      {detail}")
+C = Checks()
+check = C.check
 
 
 def read(path):
@@ -113,5 +100,4 @@ for lead in LEADS:
     missing = [n for n in LEAD_NEEDLES if n not in persona]
     check(f"{lead}: escalation guidance present", not missing, f"missing {missing}")
 
-print(f"\n{passes} passed, {fails} failed")
-sys.exit(1 if fails else 0)
+sys.exit(C.report())

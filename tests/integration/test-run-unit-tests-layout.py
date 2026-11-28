@@ -1,162 +1,125 @@
 #!/usr/bin/env python3
-import os
-from pathlib import Path
+from integration_support import ROOT  # noqa: F401  (first: puts tests/ and bin/ on sys.path)
+
+import contextlib
 import shutil
-import subprocess
-import tempfile
+import sys
 
-ROOT = Path(__file__).resolve().parents[2]
-RUNNER = ROOT / ".claude/skills/harness/bin/run-unit-tests.py"
-failures = []
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL"), name, detail if not condition else "")
-    if not condition: failures.append(name)
+from check_support import Checks
+from git_support import MAINTENANCE_OFF, checked_git, commit_all, commit_files, init_repo
+from runner_tree_support import run_runner as run, sentinel_tree as tree
 
-def tree():
-    r = Path(tempfile.mkdtemp())
-    (r/".harness").mkdir(); (r/".harness/team-config.yaml").write_text("teams: []\n")
-    b = r/".claude/skills/harness/bin"; b.mkdir(parents=True)
-    for name in (
-            "run-unit-tests.py", "harness_boundary.py", "run_identity.py",
-            "artifact_accessors.py", "suite_layout.py", "run_pool.py"):
-        shutil.copy2(ROOT/".claude/skills/harness/bin"/name, b/name)
-    for kind in ("unit", "integration"):
-        d=r/"tests"/kind; d.mkdir(parents=True); (d/f"test-{kind}.py").write_text(f'print("PASS test-{kind}.py")\n')
-    # FEAT-2081: the runner's sharding data dependency travels with the copied tree.
-    shutil.copy2(ROOT/"tests/integration/integration-durations.json", r/"tests/integration/integration-durations.json")
-    return r
+C = Checks()
+check = C.check
 
-def git_tree():
+
+@contextlib.contextmanager
+def fixture(git=False):
+    """A sentinel tree, committed to a fresh main-branch repo when `git`, removed on exit."""
     r = tree()
-    subprocess.run(["git", "init", "-b", "main", "-q"], cwd=r, check=True, capture_output=True)
-    # These repositories live for milliseconds. Background maintenance can race
-    # fixture teardown and recreate/remove files while shutil.rmtree walks .git.
-    subprocess.run(["git", "config", "--local", "maintenance.auto", "false"], cwd=r, check=True, capture_output=True)
-    subprocess.run(["git", "config", "--local", "gc.auto", "0"], cwd=r, check=True, capture_output=True)
-    git_commit(r)
-    return r
+    try:
+        if git:
+            # MAINTENANCE_OFF: background maintenance can race the rmtree of a short-lived .git.
+            init_repo(r, "main", config=MAINTENANCE_OFF, git=checked_git)
+            commit_all(r, "fixture", git=checked_git)
+        yield r
+    finally:
+        shutil.rmtree(r)
 
-def git_commit(r, message="fixture"):
-    subprocess.run(["git", "add", "-A"], cwd=r, check=True, capture_output=True)
-    subprocess.run(
-        ["git", "-c", "user.email=t@example.com", "-c", "user.name=t",
-         "commit", "-q", "-m", message],
-        cwd=r, check=True, capture_output=True)
 
-def run(r, *args):
-    env=dict(os.environ, HARNESS_PROJECT_DIR=str(r))
-    return subprocess.run([str(r/".claude/skills/harness/bin/run-unit-tests.py"), *args], cwd=r, env=env, text=True, capture_output=True, timeout=60)
+def both_ran(p):
+    return p.returncode == 0 and "PASS test-unit.py" in p.stdout and "PASS test-integration.py" in p.stdout
 
-r=tree()
-try:
+
+def misconfigured(p):
+    return [line for line in p.stderr.splitlines() if line.startswith("MISCONFIGURED:")]
+
+
+def patched_violations(r, body):
+    """Replace suite_layout.violations in r's copy with one whose body is `body`; run --check-layout."""
+    sl = r/".claude/skills/harness/bin/suite_layout.py"
+    sl.write_text(sl.read_text() + f"\n\ndef violations(root):\n    {body}\n")
+    return run(r, "--check-layout")
+
+
+with fixture() as r:
     p=run(r,"--check-layout"); check("clean layout", p.returncode == 0 and "PASS" not in p.stdout, p.stderr)
     for kind in ("unit","integration"):
         p=run(r,"--kind",kind); check(f"runs {kind}", p.returncode == 0 and f"PASS test-{kind}.py" in p.stdout, p.stdout+p.stderr)
     p=run(r,"--bogus"); check("bogus refused", p.returncode == 2 and "--check-layout" in p.stderr, p.stderr)
     p=run(r,"--kind","nonsense"); check("unknown kind refused", p.returncode == 2, p.stderr)
-finally: shutil.rmtree(r)
 
 for label, mutate, needle in [
  ("empty unit", lambda r:(r/"tests/unit/test-unit.py").unlink(), "tests/unit"),
  ("empty integration", lambda r:(r/"tests/integration/test-integration.py").unlink(), "tests/integration"),
  ("duplicate", lambda r:(r/"tests/integration/test-unit.py").write_text("pass\n"), "test-unit.py"),
  ("planted", lambda r:(r/".claude/skills/harness/bin/test-planted.py").write_text("pass\n"), "test-planted.py")]:
-    r=tree()
-    try:
+    with fixture() as r:
         mutate(r); p=run(r,"--check-layout"); check(label, p.returncode == 2 and needle in p.stderr, p.stderr)
-    finally: shutil.rmtree(r)
 
 # Repository-wide clause: the runner must present the refusal before any test
 # sentinel runs. Cases below drive run-unit-tests.py through a real Git checkout
 # so tracked_paths()'s self-ownership condition (suite_layout.py tracked at its
 # real relative path) is satisfied.
 
-# Case 1: clean git_tree() costs nothing — both sentinels run.
-r = git_tree()
-try:
+# Case 1: clean git tree costs nothing — both sentinels run.
+with fixture(git=True) as r:
     p = run(r, "--kind", "all")
-    check("git clean tree runs both sentinels",
-          p.returncode == 0 and "PASS test-unit.py" in p.stdout and "PASS test-integration.py" in p.stdout,
-          p.stdout + p.stderr)
-finally: shutil.rmtree(r)
+    check("git clean tree runs both sentinels", both_ran(p), p.stdout + p.stderr)
 
 # Case 2: one tracked rogue file is refused, and refused BEFORE any sentinel runs.
-r = git_tree()
-try:
-    (r/".harness/tools").mkdir(parents=True, exist_ok=True)
-    (r/".harness/tools/test_rogue.py").write_text("pass\n")
-    git_commit(r, "rogue")
+with fixture(git=True) as r:
+    commit_files(r, {".harness/tools/test_rogue.py": "pass\n"}, "rogue", git=checked_git)
     p = run(r, "--kind", "all")
-    misconfigured = [line for line in p.stderr.splitlines() if line.startswith("MISCONFIGURED:")]
     check("git tracked rogue refused before sentinels",
           p.returncode == 2
-          and any(".harness/tools/test_rogue.py" in line for line in misconfigured)
+          and any(".harness/tools/test_rogue.py" in line for line in misconfigured(p))
           and "PASS test-" not in p.stdout,
           p.stdout + p.stderr)
-finally: shutil.rmtree(r)
 
 # Case 3: three tracked rogues in different directories are all reported, in
 # sorted path order.
-r = git_tree()
-try:
+with fixture(git=True) as r:
     rogue_paths = [".harness/a/test_one.py", ".harness/b/test_two.py", ".harness/c/test_three.py"]
-    for rel in rogue_paths:
-        p_ = r/rel; p_.parent.mkdir(parents=True, exist_ok=True); p_.write_text("pass\n")
-    git_commit(r, "rogues")
+    commit_files(r, {rel: "pass\n" for rel in rogue_paths}, "rogues", git=checked_git)
     p = run(r, "--kind", "all")
-    misconfigured = [line for line in p.stderr.splitlines() if line.startswith("MISCONFIGURED:")]
-    ordered = [rel for line in misconfigured for rel in rogue_paths if rel in line]
+    lines = misconfigured(p)
+    ordered = [rel for line in lines for rel in rogue_paths if rel in line]
     check("git three tracked rogues reported in sorted path order",
-          p.returncode == 2 and all(any(rel in line for line in misconfigured) for rel in rogue_paths)
+          p.returncode == 2 and all(any(rel in line for line in lines) for rel in rogue_paths)
           and ordered == sorted(rogue_paths),
           p.stderr)
-finally: shutil.rmtree(r)
 
-# Case 4: .git replaced by an empty directory fails closed at the runner too.
-r = git_tree()
-try:
-    shutil.rmtree(r/".git")
+# Case 4: .git is an empty directory (no repository behind it); the runner fails closed too.
+with fixture() as r:
     (r/".git").mkdir()
     p = run(r, "--kind", "all")
     check("git enumeration failure refused before sentinels",
           p.returncode == 2 and "cannot enumerate tracked files under" in p.stderr and "PASS test-" not in p.stdout,
           p.stdout + p.stderr)
-finally: shutil.rmtree(r)
 
 # Case 5: untracked control — the same rogue shape, never added, is invisible.
-r = git_tree()
-try:
+with fixture(git=True) as r:
     (r/".harness/tools").mkdir(parents=True, exist_ok=True)
     (r/".harness/tools/test_rogue.py").write_text("pass\n")
     p = run(r, "--kind", "all")
-    check("git untracked rogue is not reported and both sentinels run",
-          p.returncode == 0 and "PASS test-unit.py" in p.stdout and "PASS test-integration.py" in p.stdout,
-          p.stdout + p.stderr)
-finally: shutil.rmtree(r)
+    check("git untracked rogue is not reported and both sentinels run", both_ran(p), p.stdout + p.stderr)
 
 # FEAT-64 (SC-03): _layout_output renders the documented layout-shape/rendering failures as a
 # traceback string and the runner exits 2 on them; an unrelated RuntimeError inside
 # suite_layout.violations propagates out of the runner as itself.
-r=tree()
-try:
-    sl = r/".claude/skills/harness/bin/suite_layout.py"
-    sl.write_text(sl.read_text() + "\n\n_real_violations = violations\ndef violations(root):\n    raise RuntimeError('unrelated defect')\n")
-    p=run(r,"--check-layout")
+with fixture() as r:
+    p = patched_violations(r, "raise RuntimeError('unrelated defect')")
     check("FEAT-64: an unrelated RuntimeError in suite_layout.violations escapes the runner as "
           "itself, not as 'MISCONFIGURED: layout check crashed'",
           p.returncode != 0 and "RuntimeError: unrelated defect" in p.stderr
           and "layout check crashed" not in p.stderr,
           f"rc={p.returncode} stdout={p.stdout!r} stderr={p.stderr[-300:]!r}")
-finally: shutil.rmtree(r)
-r=tree()
-try:
-    sl = r/".claude/skills/harness/bin/suite_layout.py"
-    sl.write_text(sl.read_text() + "\n\ndef violations(root):\n    raise ValueError('a documented layout-data shape failure')\n")
-    p=run(r,"--check-layout")
+with fixture() as r:
+    p = patched_violations(r, "raise ValueError('a documented layout-data shape failure')")
     check("FEAT-64: a documented layout data-shape failure keeps the 'layout check crashed' rendering at exit 2",
           p.returncode == 2 and "MISCONFIGURED: layout check crashed" in p.stderr
           and "ValueError: a documented layout-data shape failure" in p.stderr,
           f"rc={p.returncode} stderr={p.stderr[-300:]!r}")
-finally: shutil.rmtree(r)
 
-raise SystemExit(1 if failures else 0)
+sys.exit(C.report())

@@ -10,11 +10,7 @@ surface — `ensure_labels`, `create_issue`, `add_label`, `project_item_add`, `p
 `internal_id`, `attach_sub_issue`, `blocked_by` — and say so in their labels; `preflight` itself
 is expected on every run that reaches step 3.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import contextlib
 import hashlib
 import io
@@ -24,6 +20,7 @@ import re
 import sys
 import tempfile
 import time
+from unittest import mock
 
 import yaml
 
@@ -32,9 +29,13 @@ import factory_gh
 import factory_config as fc
 from feature_record import schema as record_schema, write as record_write
 import harness_merge
+import gh_issue_types
+from check_support import Checks, raises
+import factory_support as fsup
+from factory_support import board_stub, invoke, split_boards, write_yaml
 
-FAILS = 0
-RAN = 0
+C = Checks()
+check = C.check
 
 # --------------------------------------------------------------------------
 # The board no longer lives inside a repos[] fleet entry (T-02/T-03) — it is read remotely
@@ -45,38 +46,15 @@ RAN = 0
 # `write_fleet`, and the next `write_fleet` call for that repo name resets it.
 # --------------------------------------------------------------------------
 _STUB_BOARDS = {}
-
-
-def _fake_product_config(fleet, repo_name):
-    return {"github": {"board": _STUB_BOARDS.get(repo_name)}}
-
-
-fc.product_config = _fake_product_config
+fc.product_config = board_stub(_STUB_BOARDS)
 
 
 def write_fleet(fleet_path, fleet_dict):
     """Writes `fleet_dict` to disk with no repos[].board key, and registers each repository's
     board in `_STUB_BOARDS` so the module-scope `product_config` stub above returns it."""
-    clean_repos = []
-    for r in fleet_dict["repos"]:
-        r = dict(r)
-        board = r.pop("board", None)
-        if board is not None:
-            _STUB_BOARDS[r["name"]] = board
-        clean_repos.append(r)
-    clean = dict(fleet_dict)
-    clean["repos"] = clean_repos
+    clean, boards = split_boards(fleet_dict)
+    _STUB_BOARDS.update(boards)
     write_yaml(fleet_path, clean)
-
-
-def check(name, cond, detail=""):
-    global FAILS, RAN
-    RAN += 1
-    if cond:
-        print(f"ok    {name}")
-    else:
-        FAILS += 1
-        print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
 
 
 REPO = "acme/widget"
@@ -97,7 +75,7 @@ class Recorder:
         self.calls = []
         self._issue_seq = 100
         self._item_seq = 5000
-        self.raise_on = {}   # name -> exception instance, or callable(args) -> exception|None
+        self.raise_on = {}   # name -> exception instance raised when that function is hit
         # Matches good_fleet_dict's station option names exactly, so every existing fixture's
         # stations validate clean by default. Six, not three: D-06's required key set (widened
         # by FEAT-33 T-02), and _validate_stations (factory_decompose.py:228-241) refuses any
@@ -106,18 +84,15 @@ class Recorder:
         # The six DERIVED columns (FEAT-41 T-01): station_column capitalises each mandated
         # station, so a fake board must offer exactly these to be valid.
         self.field_options = ["Ready", "Building", "Review", "Backlog", "Done", "Plan"]
-        self.board_items = []   # project_items() return value, set per-test
         # issue_board_item_id() return value: number -> item id, set per-test. Consulted only
         # for the issue number asked; anything not in this map means "no item" (returns None).
         self.item_by_issue = {}
 
     def _hit(self, name, args):
         self.calls.append((name, args))
-        handler = self.raise_on.get(name)
-        if handler is not None:
-            exc = handler(args) if callable(handler) else handler
-            if exc is not None:
-                raise exc
+        exc = self.raise_on.get(name)
+        if exc is not None:
+            raise exc
 
     def mutating_calls(self):
         return [c for c in self.calls if c[0] in MUTATING_NAMES]
@@ -163,7 +138,7 @@ class Recorder:
 
     def project_items(self, owner, number, query=None, limit=500):
         self._hit("project_items", (owner, number, query, limit))
-        return list(self.board_items)
+        return []
 
     def issue_board_item_id(self, repo, number, board_number):
         self._hit("issue_board_item_id", (repo, number, board_number))
@@ -177,16 +152,17 @@ PATCHED = (
 )
 
 
+def _no_issue_types(_repo):
+    """Stands in for factory_gh.detect_issue_types, which otherwise launches a real `gh` query
+    per publish. Returns the classification a failed query gets, so every run takes the
+    labels-only path, and is not recorded in Recorder.calls."""
+    return gh_issue_types.classify_capability(1, "stubbed: this test never reaches gh")
+
+
 def patch_gh(rec):
-    saved = {name: getattr(factory_gh, name) for name in PATCHED}
-    for name in PATCHED:
-        setattr(factory_gh, name, getattr(rec, name))
-    return saved
-
-
-def unpatch_gh(saved):
-    for name, fn in saved.items():
-        setattr(factory_gh, name, fn)
+    """Every PATCHED factory_gh function routed to `rec`, for the duration of a with block."""
+    return mock.patch.multiple(factory_gh, detect_issue_types=_no_issue_types,
+                               **{name: getattr(rec, name) for name in PATCHED})
 
 
 # --------------------------------------------------------------------------
@@ -194,23 +170,10 @@ def unpatch_gh(saved):
 # --------------------------------------------------------------------------
 
 def good_fleet_dict(workspace_root):
-    return {
-        "schema": "factory-fleet/1",
-        "repos": [{
-            "name": REPO,
-            "default_branch": "main",
-            "board": {
-                "owner": "acme",
-                "number": 3,
-                "station_field": "Status",
-                "stations": ["backlog", "plan", "ready", "building", "review", "done"],
-            },
-        }],
-        "workspace_root": workspace_root,
-    }
+    return fsup.fleet(workspace_root, [fsup.repo(REPO, board=fsup.board("acme", 3, "Status"))])
 
 
-def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
+def two_repo_fleet_dict(workspace_root):
     """Two repos entries on two different board numbers, no fleet-level board. repo_a is on
     board 3 (matching good_fleet_dict's numbers/options so most existing assertions keep
     working when repo_a is what a test publishes against); repo_b is on a different board
@@ -218,32 +181,10 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
     board and never B's by inspecting the option names alone. `board` is a test-side carrier
     only (T-02/T-03) — `write_fleet` strips it before the fleet reaches disk and registers it
     in `_STUB_BOARDS` for the `product_config` stub instead."""
-    return {
-        "schema": "factory-fleet/1",
-        "repos": [
-            {
-                "name": repo_a,
-                "default_branch": "main",
-                "board": {
-                    "owner": "acme",
-                    "number": 3,
-                    "station_field": "Status",
-                    "stations": ["backlog", "plan", "ready", "building", "review", "done"],
-                },
-            },
-            {
-                "name": repo_b,
-                "default_branch": "main",
-                "board": {
-                    "owner": "other-org",
-                    "number": 7,
-                    "station_field": "Stage",
-                    "stations": ["backlog", "plan", "ready", "building", "review", "done"],
-                },
-            },
-        ],
-        "workspace_root": workspace_root,
-    }
+    return fsup.fleet(workspace_root, [
+        fsup.repo(REPO, board=fsup.board("acme", 3, "Status")),
+        fsup.repo("acme/other", board=fsup.board("other-org", 7, "Stage")),
+    ])
 
 
 def task(tid, title="do the thing", change_type="feature", depends_on=None, traces=None,
@@ -287,21 +228,12 @@ Give operators a live view of the pipeline. This is a longer goal sentence that 
 - SC-01: something measurable
 """
 
-NO_HEADINGS_BRIEF = "# just a title\n\nsome prose, no headings at all.\n"
-
-
-def write_yaml(path, data):
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f, sort_keys=False)
-
-
 def write_text(path, text):
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
 
 
-def make_feature(td, tasks=None, approved=True, feature_json_extra="{}", brief=GOOD_BRIEF,
-                  feat=FEAT):
+def make_feature(td, tasks=None, approved=True, feature_json_extra="{}"):
     """Build a temporary feature directory: plan.yaml, BRIEF.md, feature.json, fleet.yaml.
     Returns (feat_dir, fleet_path). Nested under .harness/features/<feat>/ (matching
     test-gh-sync.py's nested_feature_dir and feature_record.write.FEATURE_JSON_TAIL) —
@@ -309,11 +241,10 @@ def make_feature(td, tasks=None, approved=True, feature_json_extra="{}", brief=G
     feature_record.write.write_feature_json (stale-anchor-write-hazard cycle 3): a bare
     tempdir passed a feature.json worked only because write_factory carried no
     destination check at all before this feature."""
-    feat_dir = os.path.join(td, ".harness", "features", feat)
+    feat_dir = os.path.join(td, ".harness", "features", FEAT)
     os.makedirs(feat_dir, exist_ok=True)
-    write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict(tasks=tasks, approved=approved,
-                                                               feat=feat))
-    write_text(os.path.join(feat_dir, "BRIEF.md"), brief)
+    write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict(tasks=tasks, approved=approved))
+    write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
     write_text(os.path.join(feat_dir, "feature.json"), feature_json_extra)
     fleet_dir = os.path.join(td, "fleet")
     os.makedirs(fleet_dir, exist_ok=True)
@@ -329,9 +260,8 @@ def make_feature_bad_feature_key(td, mode, tasks=None):
     plan, tasks, BRIEF, fleet) matches the happy-path fixture exactly, so the ONLY
     thing wrong with this fixture is the `feature` key itself.
     Returns (feat_dir, fleet_path)."""
-    feat_dir = os.path.join(td, ".harness", "features", FEAT)
-    os.makedirs(feat_dir, exist_ok=True)
-    plan = plan_dict(tasks=tasks, approved=True, feat=FEAT)
+    feat_dir, fleet_path = make_feature(td, tasks=tasks)
+    plan = plan_dict(tasks=tasks)
     if mode == "missing":
         del plan["feature"]
     elif mode == "empty":
@@ -341,45 +271,34 @@ def make_feature_bad_feature_key(td, mode, tasks=None):
     else:
         raise ValueError(mode)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), plan)
-    write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
-    write_text(os.path.join(feat_dir, "feature.json"), "{}")
-    fleet_dir = os.path.join(td, "fleet")
-    os.makedirs(fleet_dir, exist_ok=True)
-    fleet_path = os.path.join(fleet_dir, "fleet.yaml")
-    write_fleet(fleet_path, good_fleet_dict(os.path.join(td, "workspaces")))
     return feat_dir, fleet_path
 
 
-def run_publish(feat_dir, fleet_path, rec, extra_args=None):
-    argv_saved = sys.argv
-    sys.argv = ["factory_decompose.py", feat_dir, "--repo", REPO, "--fleet", fleet_path]
-    if extra_args:
-        sys.argv += extra_args
-    saved = patch_gh(rec)
-    out, err = io.StringIO(), io.StringIO()
-    code = None
-    try:
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            try:
-                fd.factory_cli.run(
-                    fd.TOOL, fd._main,
-                    expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError),
-                )
-            except SystemExit as e:
-                code = e.code
-    finally:
-        sys.argv = argv_saved
-        unpatch_gh(saved)
-    return code, out.getvalue(), err.getvalue()
+def _publish():
+    fd.factory_cli.run(fd.TOOL, fd._main,
+                       expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError))
+
+
+def run_publish(feat_dir, fleet_path, rec, extra_args=None, repo_name=REPO):
+    """(code, stdout, stderr) of one in-process publish over `rec`; code is SystemExit.code,
+    or None when the entry point returned."""
+    argv = ["factory_decompose.py", feat_dir, "--repo", repo_name, "--fleet", fleet_path]
+    with patch_gh(rec):
+        result = invoke(_publish, argv + list(extra_args or []))
+    return result.code, result.out, result.err
+
+
+def refusal(feat_dir):
+    """load_factory's stderr when it refuses with SystemExit, or None when it returns."""
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        refused = raises(lambda: fd.load_factory(feat_dir), SystemExit)
+    return None if refused is None else err.getvalue()
 
 
 def read_factory_block(feat_dir):
     doc = yaml.safe_load(open(os.path.join(feat_dir, "feature.json"), encoding="utf-8").read())
     return (doc or {}).get("factory") or {}
-
-
-def issue_url(repo, num):
-    return f"https://github.com/{repo}/issues/{num}"
 
 
 def trailing_issue_number(url):
@@ -444,63 +363,50 @@ with tempfile.TemporaryDirectory() as td:
 with tempfile.TemporaryDirectory() as td:
     feat_dir, _ = make_feature(td, feature_json_extra=json.dumps({"factory": "x"}))
     factory_path = os.path.join(feat_dir, "feature.json")
-    refusal_err = io.StringIO()
-    try:
-        with contextlib.redirect_stderr(refusal_err):
-            fd.load_factory(feat_dir)
-        check("(1d) non-mapping factory value refuses", False,
-              "load_factory returned instead of raising")
-    except SystemExit:
-        check("(1d) non-mapping factory value refuses and names the file",
-              factory_path in refusal_err.getvalue(), refusal_err.getvalue())
+    err = refusal(feat_dir)
+    check("(1d) non-mapping factory value refuses and names the file",
+          err is not None and factory_path in err,
+          "load_factory returned instead of raising" if err is None else err)
 
 with tempfile.TemporaryDirectory() as td:
     feat_dir, _ = make_feature(
         td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": "7"}})
     )
-    check("(1d) quoted parent is coerced through load_factory",
-          fd.load_factory(feat_dir)["parent"] == 7, fd.load_factory(feat_dir))
+    got = fd.load_factory(feat_dir)
+    check("(1d) quoted parent is coerced through load_factory", got["parent"] == 7, got)
 
 with tempfile.TemporaryDirectory() as td:
     feat_dir, _ = make_feature(
         td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": True}})
     )
-    try:
-        fd.load_factory(feat_dir)
-        check("(1d) bool parent refuses rather than becoming absence", False, "returned")
-    except SystemExit:
-        check("(1d) bool parent refuses rather than becoming absence", True)
+    check("(1d) bool parent refuses rather than becoming absence",
+          refusal(feat_dir) is not None, "returned")
 
 with tempfile.TemporaryDirectory() as td:
     feat_dir, _ = make_feature(
         td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": 7}})
     )
-    check("(1d) integer parent remains an integer through load_factory",
-          fd.load_factory(feat_dir)["parent"] == 7, fd.load_factory(feat_dir))
+    got = fd.load_factory(feat_dir)
+    check("(1d) integer parent remains an integer through load_factory", got["parent"] == 7, got)
 
 with tempfile.TemporaryDirectory() as td:
     feat_dir, _ = make_feature(td, feature_json_extra=json.dumps({"feature_id": "F-absent"}))
-    check("(1d) absent factory key remains the empty record",
-          fd.load_factory(feat_dir) == fd._empty_factory(), fd.load_factory(feat_dir))
+    got = fd.load_factory(feat_dir)
+    check("(1d) absent factory key remains the empty record", got == fd._empty_factory(), got)
 
 with tempfile.TemporaryDirectory() as td:
-    check("(1d) absent feature.json remains the empty record",
-          fd.load_factory(td) == fd._empty_factory(), fd.load_factory(td))
+    got = fd.load_factory(td)
+    check("(1d) absent feature.json remains the empty record", got == fd._empty_factory(), got)
 
 with tempfile.TemporaryDirectory() as td:
     feat_dir, _ = make_feature(td)
     factory_path = os.path.join(feat_dir, "feature.json")
     with open(factory_path, "wb") as f:
         f.write(b"\xff\xfe")
-    refusal_err = io.StringIO()
-    try:
-        with contextlib.redirect_stderr(refusal_err):
-            fd.load_factory(feat_dir)
-        check("(1d) non-UTF-8 feature.json refuses through load_factory", False,
-              "load_factory returned instead of raising")
-    except SystemExit:
-        check("(1d) non-UTF-8 feature.json refuses and names the file through load_factory",
-              factory_path in refusal_err.getvalue(), refusal_err.getvalue())
+    err = refusal(feat_dir)
+    check("(1d) non-UTF-8 feature.json refuses and names the file through load_factory",
+          err is not None and factory_path in err,
+          "load_factory returned instead of raising" if err is None else err)
 
 # ============================================================================
 # 2. a signed two-task plan creates two issues, adds two board items, sets both stations
@@ -545,22 +451,7 @@ with tempfile.TemporaryDirectory() as td:
 with tempfile.TemporaryDirectory() as td:
     feat_dir, fleet_path = make_feature(td)
     rec = Recorder()
-    argv_saved = sys.argv
-    sys.argv = ["factory_decompose.py", feat_dir, "--repo", "someone/unlisted",
-                "--fleet", fleet_path]
-    saved = patch_gh(rec)
-    out, err = io.StringIO(), io.StringIO()
-    code = None
-    try:
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            try:
-                fd.factory_cli.run(fd.TOOL, fd._main,
-                                    expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError))
-            except SystemExit as e:
-                code = e.code
-    finally:
-        sys.argv = argv_saved
-        unpatch_gh(saved)
+    code, out, err = run_publish(feat_dir, fleet_path, rec, repo_name="someone/unlisted")
     check("(4) unlisted repo: exits 2", code == 2, f"code={code!r}")
     check("(4) unlisted repo: zero calls of any kind", rec.calls == [], rec.calls)
 
@@ -572,7 +463,6 @@ with tempfile.TemporaryDirectory() as td:
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec = Recorder()
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
-    creates = {c[1][0:1] + (c[1][3],): c for c in rec.calls if c[0] == "create_issue"}
     by_title = {c[1][1]: c[1][3] for c in rec.calls if c[0] == "create_issue"}
     t01_labels = next(l for title, l in by_title.items() if title.startswith("T-01"))
     t02_labels = next(l for title, l in by_title.items() if title.startswith("T-02"))
@@ -846,22 +736,9 @@ with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01"), task("T-02", depends_on=["T-01"])]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec0 = Recorder()
-    rec0.raise_on["attach_sub_issue"] = lambda args: RuntimeError("boom, kill before any edge")
-    argv_saved = sys.argv
-    sys.argv = ["factory_decompose.py", feat_dir, "--repo", REPO, "--fleet", fleet_path,
-                "--parent", "1"]
-    saved = patch_gh(rec0)
-    try:
-        try:
-            fd.factory_cli.run(fd.TOOL, fd._main,
-                                expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError))
-        except SystemExit:
-            pass
-        except RuntimeError:
-            pass
-    finally:
-        sys.argv = argv_saved
-        unpatch_gh(saved)
+    rec0.raise_on["attach_sub_issue"] = RuntimeError("boom, kill before any edge")
+    with contextlib.suppress(RuntimeError):
+        run_publish(feat_dir, fleet_path, rec0, extra_args=["--parent", "1"])
     fblock_mid = read_factory_block(feat_dir)
     check("(19) precondition: two issues, two items, empty edges",
           len(fblock_mid.get("issues") or {}) == 2 and len(fblock_mid.get("items") or {}) == 2
@@ -974,14 +851,8 @@ with tempfile.TemporaryDirectory() as td:
                   mode)
         return real_open(path, mode, *a, **kw)
 
-    import builtins
-    os.replace = fake_replace
-    builtins.open = fake_open
-    try:
+    with mock.patch.object(os, "replace", fake_replace), mock.patch("builtins.open", fake_open):
         code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
-    finally:
-        os.replace = real_replace
-        builtins.open = real_open
 
     check("(22) os.replace was called at least once", len(replace_calls) >= 1, replace_calls)
     check("(22) feature.json WAS opened for reading at least once (anti-vacuum)",
@@ -1153,12 +1024,9 @@ with tempfile.TemporaryDirectory() as td:
     rec2 = Recorder()
     rec2.item_by_issue[issue_num] = "ITEM-EXISTING"
 
-    def _boom(args):
-        raise AssertionError(
-            "project_item_add must not be called when the item already exists on the board"
-        )
-
-    rec2.raise_on["project_item_add"] = _boom
+    rec2.raise_on["project_item_add"] = AssertionError(
+        "project_item_add must not be called when the item already exists on the board"
+    )
     code, out, err = run_publish(feat_dir, fleet_path, rec2, extra_args=["--parent", "1"])
     check("(D4-3) resume with existing board item: exits 0", code in (0, None),
           f"code={code!r} err={err}")
@@ -1226,13 +1094,10 @@ with tempfile.TemporaryDirectory() as td:
     rec2 = Recorder()
     rec2.item_by_issue[issue_num] = "ITEM-CLOSED"
 
-    def _boom_c(args):
-        raise AssertionError(
-            "project_item_add must not be called when the item already exists on the board, "
-            "even when the issue is now closed"
-        )
-
-    rec2.raise_on["project_item_add"] = _boom_c
+    rec2.raise_on["project_item_add"] = AssertionError(
+        "project_item_add must not be called when the item already exists on the board, "
+        "even when the issue is now closed"
+    )
     code, out, err = run_publish(feat_dir, fleet_path, rec2, extra_args=["--parent", "1"])
     check("(D4-3c) resume with a closed issue: exits 0", code in (0, None),
           f"code={code!r} err={err}")
@@ -1254,14 +1119,7 @@ with tempfile.TemporaryDirectory() as td:
 # the mutating surface — the validation itself makes a project_field_options READ.
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
-    feat_dir = os.path.join(td, ".harness", "features", FEAT)
-    os.makedirs(feat_dir, exist_ok=True)
-    write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict())
-    write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
-    write_text(os.path.join(feat_dir, "feature.json"), "{}")
-    fleet_dir = os.path.join(td, "fleet")
-    os.makedirs(fleet_dir, exist_ok=True)
-    fleet_path = os.path.join(fleet_dir, "fleet.yaml")
+    feat_dir, fleet_path = make_feature(td)
     # RE-AIMED BY FEAT-41 T-02. This case used to rename the DECLARATION's ready station to
     # "Redy" and assert decompose refused because the board offered no such option. A renamed
     # declaration is now impossible — validate_board refuses it outright, before any board read,
@@ -1271,8 +1129,6 @@ with tempfile.TemporaryDirectory() as td:
     # exit 2, zero mutating calls, the validation read happened, stderr names the station, the
     # required column and the board's real options — which is why this is a re-aim and not a
     # deletion.
-    fleet_ok = good_fleet_dict(os.path.join(td, "workspaces"))
-    write_fleet(fleet_path, fleet_ok)
 
     rec = Recorder()
     rec.field_options = ["Backlog", "Plan", "Building", "Review", "Done"]  # no Ready column
@@ -1297,14 +1153,7 @@ with tempfile.TemporaryDirectory() as td:
 # using A's own ready option name, never B's.
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
-    feat_dir = os.path.join(td, ".harness", "features", FEAT)
-    os.makedirs(feat_dir, exist_ok=True)
-    write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict(tasks=[task("T-01")]))
-    write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
-    write_text(os.path.join(feat_dir, "feature.json"), "{}")
-    fleet_dir = os.path.join(td, "fleet")
-    os.makedirs(fleet_dir, exist_ok=True)
-    fleet_path = os.path.join(fleet_dir, "fleet.yaml")
+    feat_dir, fleet_path = make_feature(td, tasks=[task("T-01")])
     write_fleet(fleet_path, two_repo_fleet_dict(os.path.join(td, "workspaces")))
 
     rec = Recorder()
@@ -1490,7 +1339,6 @@ for _label, _factory in (
         check(f"BUG-285 {_label} refuses before parent or task issue creation",
               code == 2 and [c for c in rec.calls if c[0] == "create_issue"] == [],
               f"code={code!r} calls={rec.calls!r} err={err!r}")
-print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
 
 # FEAT-64 (SC-03): extract_brief's (None, None) covers the documented shapes — missing,
 # unreadable, non-UTF-8, malformed heading, empty section — at their real classes (OSError,
@@ -1501,18 +1349,10 @@ with tempfile.TemporaryDirectory() as _tmp64:
         _f.write(b"\xff\xfe## Problem\nx\n## Goal\ny\n")
     check("FEAT-64: a non-UTF-8 BRIEF is (None, None)", fd.extract_brief(_fd64) == (None, None))
     check("FEAT-64: a missing BRIEF is (None, None)", fd.extract_brief(os.path.join(_tmp64, "nope")) == (None, None))
-    _real_section = fd._section
-    fd._section = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
     with open(os.path.join(_fd64, "BRIEF.md"), "w", encoding="utf-8") as _f:
         _f.write("## Problem\nx\n## Goal\ny\n")
-    try:
-        try:
-            fd.extract_brief(_fd64)
-            _escaped = False
-        except RuntimeError:
-            _escaped = True
-    finally:
-        fd._section = _real_section
+    with mock.patch.object(fd, "_section", side_effect=RuntimeError("unrelated")):
+        _escaped = raises(lambda: fd.extract_brief(_fd64), RuntimeError) is not None
     check("FEAT-64: an unrelated RuntimeError escapes extract_brief", _escaped)
 
-sys.exit(1 if FAILS else 0)
+sys.exit(C.report())

@@ -17,6 +17,12 @@ Checks.report() -> int
 Checks.ran / Checks.failed
     The count of checks run and the list of failed names, for a file that prints its own extra
     summary.
+raises(call, exc) -> the exception, or None
+    Calls the zero-argument `call`. Returns the instance when it raises `exc` (a class or a
+    tuple, as `except` takes), None when it returns. Any other exception propagates, so a wrong
+    error crashes the file instead of reading as "did not raise":
+        err = raises(lambda: load_plan(path), PlanSchemaError)
+        check("load_plan refuses the dangling plan", err is not None and "T-99" in str(err), err)
 
 The runner reads only a child's exit code, so a file that drops `sys.exit(C.report())` passes
 with FAIL lines printed. Nothing here registers an atexit hook to cover for that. A file whose
@@ -24,6 +30,14 @@ check() does more (clears a memo first, tags a case id, returns an int) keeps a 
 wrapper that calls C.check.
 """
 import textwrap
+
+
+def raises(call, exc):
+    try:
+        call()
+    except exc as error:
+        return error
+    return None
 
 
 class Checks:

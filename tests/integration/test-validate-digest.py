@@ -15,32 +15,24 @@ object — as JSON on the CLI, as `digest_object` in a hook payload, or in-proce
 
     ./test-validate-digest.py     -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-import contextlib, importlib.util, json, subprocess, sys, os, shutil, tempfile, time
+from integration_support import ROOT as _ROOT, BIN as _BIN, TESTS as _TESTS
+import contextlib, functools, importlib.util, json, subprocess, sys, os, shutil, tempfile, time
 import concurrent.futures
 import copy
 import io
 import re
-import stat
+from unittest import mock
 import yaml
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-sys.path.insert(0, HERE)
+TESTS_DIR = str(_TESTS / "integration")
+ROOT = str(_ROOT)
+BIN_DIR = str(_BIN)
 from isolated_bin import isolated_bin
 from check_domain_support import make_linked_worktree
 from harness_config_support import build_config, write_config
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
-VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
+VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(BIN_DIR, "validate-digest.py")
 
 
 def obj_of(text):
@@ -89,7 +81,6 @@ def fixture(persona, text, complete=True):
         for field, value in filler.items():
             digest.setdefault(field, list(value) if isinstance(value, list) else value)
     return obj
-REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 # Vendored fixture data for check_prior_validator (Q11 cycle-27): the pre-FEAT-43 revision
 # of validate-digest.py/harness_yaml.py, committed inert so the control needs no `git show`
 # and no repository history to be hermetic in a shallow CI checkout.
@@ -1065,7 +1056,6 @@ def t09(name, ok, detail=""):
 
 
 def _reg_module():
-    import importlib.util
     sp = importlib.util.spec_from_file_location(
         "t09_ir", os.path.join(os.path.dirname(os.path.realpath(VALIDATE)),
                                "inflight_registry.py"))
@@ -1900,17 +1890,15 @@ RX_SHIM = ("#!/usr/bin/env python3\nimport sys\n"
            "print('SHIM_RAN')\n")
 PLAN_BASE = "dd04e52a898109fdbe09cf5fa14e1148161734d0"
 RX = []
-_RX_REG = []
 
 
 def rx(name, ok, detail=""):
     RX.append((name, ok, detail))
 
 
+@functools.cache
 def _rx_reg():
-    if not _RX_REG:
-        _RX_REG.append(_reg_module())
-    return _RX_REG[0]
+    return _reg_module()
 
 
 def _rx_write_all(root, files):
@@ -2032,17 +2020,10 @@ def _rx_report(group):
 
 
 def _rx_clear(path):
-    if os.path.islink(path) or os.path.isfile(path) or _rx_is_fifo(path):
-        os.remove(path)
-    elif os.path.isdir(path):
+    if os.path.isdir(path) and not os.path.islink(path):
         shutil.rmtree(path)
-
-
-def _rx_is_fifo(path):
-    try:
-        return stat.S_ISFIFO(os.lstat(path).st_mode)
-    except FileNotFoundError:
-        return False
+    elif os.path.lexists(path):
+        os.remove(path)
 
 
 @contextlib.contextmanager
@@ -2115,7 +2096,7 @@ def _rx_shimmed(root):
 def _rx_old_validator():
     """The plan base's validator, which still re-ran the suite, in an isolated bin; None in a
     checkout without that history. Only the shim's positive control runs it."""
-    proc = subprocess.run(["git", "-C", REPO_ROOT, "show",
+    proc = subprocess.run(["git", "-C", ROOT, "show",
                            f"{PLAN_BASE}:{RX_BIN}/validate-digest.py"],
                           capture_output=True, text=True)
     if proc.returncode != 0:
@@ -2540,15 +2521,11 @@ def _bug919_git_failure(root, raising):
 
     _rx_claim(root)
     err = io.StringIO()
-    subprocess.run = run_or_raise
-    try:
-        with contextlib.redirect_stderr(err):
-            code = validator.check_qa_matrix_claim("harness-qa", fixture(
-                "harness-qa", QA_PASS_WITH_KINDS), {"harness_feature": RX_FEATURE,
-                                                     "harness_agent_id": RX_QA_ID,
-                                                     "harness_parent_agent_id": RX_LEAD_ID})
-    finally:
-        subprocess.run = real_run
+    with mock.patch.object(subprocess, "run", run_or_raise), contextlib.redirect_stderr(err):
+        code = validator.check_qa_matrix_claim("harness-qa", fixture(
+            "harness-qa", QA_PASS_WITH_KINDS), {"harness_feature": RX_FEATURE,
+                                                 "harness_agent_id": RX_QA_ID,
+                                                 "harness_parent_agent_id": RX_LEAD_ID})
     return code, err.getvalue()
 
 
@@ -3667,15 +3644,9 @@ def _stdlib_python_json_decoder():
     with tempfile.TemporaryDirectory(prefix="python-json-decoder-") as directory:
         _write_verification_brief(os.path.join(directory, "sitecustomize.py"),
                                   "import json\njson.scanner.make_scanner = json.scanner.py_make_scanner\n")
-        original = os.environ.get("PYTHONPATH")
-        os.environ["PYTHONPATH"] = directory + os.pathsep + (original or "")
-        try:
+        path = directory + os.pathsep + os.environ.get("PYTHONPATH", "")
+        with mock.patch.dict(os.environ, {"PYTHONPATH": path}):
             yield
-        finally:
-            if original is None:
-                os.environ.pop("PYTHONPATH", None)
-            else:
-                os.environ["PYTHONPATH"] = original
 
 
 def _qa_record_read_failure_case(label, contents):

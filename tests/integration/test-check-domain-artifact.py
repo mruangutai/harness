@@ -6,17 +6,31 @@ BUG-1124's state.yaml upserts, BUG-1106's Edit route, BUG-1305's run-identity ma
 and identity cases, and BUG-151's self-check of the aggregation safeguard that the
 shared driver in check_domain_support.py applies to every block in this family.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+from integration_support import BIN
 import io, json, os, re, subprocess, sys, tempfile, yaml
 from isolated_bin import isolated_bin
 from check_domain_support import (HERE, HOOK, _aggregation_verdict, _env, _fire_edit,
     _handoff_done_when_fixture, _handoff_text, _run_block_captured, drive, fire, fire_post,
     fire_write_payload, fixture, fixture_fleet, make_linked_worktree)
+
+VALIDATE_DIGEST = str(BIN / "validate-digest.py")
+
+
+def _report(results, label, tag="", cut=None):
+    """Print each (name, ok, detail) in the column-0 ok/FAIL shape drive's aggregation
+    safeguard parses, then a pass-count line when `label` is given; return the failures."""
+    prefix = f"[{tag}] " if tag else ""
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    {prefix}{name}")
+            continue
+        failures += 1
+        shown = detail if cut is None else str(detail).strip()[:cut]
+        print(f"FAIL  {prefix}{name}\n      | {shown}")
+    if label:
+        print(f"\n{len(results) - failures}/{len(results)} {label} cases passed.")
+    return failures
 
 
 FEAT50_MANIFEST = """schema_version: 1
@@ -164,18 +178,6 @@ def _feat50_digest_red_case(root, path, clobber):
             f"real={clobber.returncode}, mutant={muted.returncode}: {muted.stderr}")
 
 
-def _report_feat50_artifact_results(results):
-    failures = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    {name}")
-            continue
-        failures += 1
-        print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(results) - failures}/{len(results)} FEAT-50 artifact-integrity cases passed.")
-    return failures
-
-
 def _bug1124_state_fixture():
     root = fixture("schema_version: 1\nteams: []\n")
     worktree = make_linked_worktree(
@@ -316,45 +318,52 @@ teams:
     )
 
 
-def run_feat50_artifact_integrity():
-    """Issues #1057/#1058: bind feature writes and preserve recorded digests."""
+def _feat50_binding_results():
     main, root, worktree, target, refused = _feat50_binding_case(
         "feature-checkout-main", FEAT50_FEATURE)
-    short, _short_root, _short_worktree, _short_target, _short_result = (
-        _feat50_binding_case("feature-checkout-main short prefix", "FEAT-X"))
-    digest_root, digest_path = _feat50_digest_fixture()
-    prior = "recorded cycle-0 text\n"
-    clobber_case, clobber = _feat50_digest_clobber_case(digest_root, digest_path, prior)
-    state_root1, state_path1 = _bug1124_state_fixture()
-    collision_case, collision = _bug1124_collision_case(state_root1, state_path1)
-    state_root2, state_path2 = _bug1124_state_fixture()
-    state_root3, state_path3 = _bug1124_state_fixture()
-    state_root4, state_path4 = _bug1124_state_fixture()
-    state_root5, state_path5 = _bug1124_state_fixture()
-    state_root6, state_path6 = _bug1124_state_fixture()
-    state_root7, state_path7 = _bug1124_state_fixture()
-    results = [
+    short = _feat50_binding_case("feature-checkout-main short prefix", "FEAT-X")[0]
+    return [
         main,
         short,
         _feat50_inside_case(root, worktree),
         _feat50_absent_case(),
         _feat50_binding_red_case(root, target, refused),
+    ]
+
+
+def _feat50_digest_results():
+    digest_root, digest_path = _feat50_digest_fixture()
+    prior = "recorded cycle-0 text\n"
+    clobber_case, clobber = _feat50_digest_clobber_case(digest_root, digest_path, prior)
+    return [
         clobber_case,
         _feat50_digest_append_case(digest_root, digest_path, prior),
         _feat50_digest_unreadable_case(digest_root, digest_path),
         _feat50_digest_post_case(digest_root, digest_path, prior),
         _feat50_digest_red_case(digest_root, digest_path, clobber),
-        collision_case,
-        _bug1124_upsert_case(state_root2, state_path2),
-        _bug1124_no_run_id_case(state_root3, state_path3),
-        _bug1124_new_file_case(state_root4, state_path4),
-        _bug1124_red_case(state_root1, state_path1, collision),
-        _bug1124_unreadable_case(state_root5, state_path5),
-        _bug1124_no_incoming_run_id_case(state_root6, state_path6),
-        _bug1124_prior_unparseable_case(state_root7, state_path7),
-        _feat52_foreign_cwd_receipt_pair(),
     ]
-    return _report_feat50_artifact_results(results)
+
+
+def _bug1124_state_results():
+    state_root, state_path = _bug1124_state_fixture()
+    collision_case, collision = _bug1124_collision_case(state_root, state_path)
+    return [
+        collision_case,
+        _bug1124_upsert_case(*_bug1124_state_fixture()),
+        _bug1124_no_run_id_case(*_bug1124_state_fixture()),
+        _bug1124_new_file_case(*_bug1124_state_fixture()),
+        _bug1124_red_case(state_root, state_path, collision),
+        _bug1124_unreadable_case(*_bug1124_state_fixture()),
+        _bug1124_no_incoming_run_id_case(*_bug1124_state_fixture()),
+        _bug1124_prior_unparseable_case(*_bug1124_state_fixture()),
+    ]
+
+
+def run_feat50_artifact_integrity():
+    """Issues #1057/#1058: bind feature writes and preserve recorded digests."""
+    results = (_feat50_binding_results() + _feat50_digest_results()
+               + _bug1124_state_results() + [_feat52_foreign_cwd_receipt_pair()])
+    return _report(results, "FEAT-50 artifact-integrity")
 
 
 def _fire_digest_edit(root, path, old_s, new_s, replace_all=False):
@@ -365,104 +374,106 @@ def _fire_digest_edit(root, path, old_s, new_s, replace_all=False):
     return _fire_edit(root, path, old_s, new_s, agent=None, replace_all=replace_all)
 
 
-def run_bug1106_edit_route_cases():
-    """Issue #1106, gap (a): an Edit targeting a run's digest.md or state.yaml is now
-    intercepted PRE-write, by reconstructing the full resulting content from the on-disk
-    prior and old_string/new_string, then running it through the SAME content guards the
-    Write route already uses (issue #1058's digest prefix test, issues #1124/#1106's
-    state.yaml run-identity test)."""
-    results = []
+def _fire_path_only_edit(root, path):
+    """The omp Edit shape: file_path only, no old_string/new_string to reconstruct from."""
+    payload = {"tool_name": "Edit", "tool_input": {"file_path": path}}
+    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root))
 
+
+def _bug1106_edit_after(fixture_fn, prior, old_s, new_s):
+    """Write `prior` into a fresh fixture, fire an agentless Edit; return (path, result)."""
+    root, path = fixture_fn()
+    _feat50_write_text(path, prior)
+    return path, _fire_digest_edit(root, path, old_s, new_s)
+
+
+def _bug1106_digest_edit_cases():
     # --- digest.md: a REPLACE-shaped Edit (old_string spans the whole prior text) must
     # be refused exactly like a Write that would replace it.
-    digest_root, digest_path = _feat50_digest_fixture()
     prior = "recorded cycle-0 text\n"
-    _feat50_write_text(digest_path, prior)
-    r = _fire_digest_edit(digest_root, digest_path, prior, "wholly different digest\n")
-    results.append(("bug1106 Edit route: replacing a run's digest.md via Edit is REFUSED",
-                    r.returncode == 2 and "replace rather than extend" in r.stderr,
-                    f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
+    digest_path, r = _bug1106_edit_after(
+        _feat50_digest_fixture, prior, prior, "wholly different digest\n")
+    results = [("bug1106 Edit route: replacing a run's digest.md via Edit is REFUSED",
+                r.returncode == 2 and "replace rather than extend" in r.stderr,
+                f"exit {r.returncode}: {r.stderr.strip()[:250]}")]
     on_disk = open(digest_path, encoding="utf-8").read()
     results.append(("bug1106 Edit route: the refused digest Edit left the file untouched",
                     on_disk == prior, repr((prior, on_disk))))
 
     # --- digest.md: a genuine APPEND-shaped Edit (old_string is a true prefix, new_string
     # extends it) is allowed — this is not a blanket "no Edit on digest.md" rule.
-    digest_root2, digest_path2 = _feat50_digest_fixture()
-    _feat50_write_text(digest_path2, prior)
-    r = _fire_digest_edit(digest_root2, digest_path2, prior, prior + "and more\n")
+    _, r = _bug1106_edit_after(_feat50_digest_fixture, prior, prior, prior + "and more\n")
     results.append(("bug1106 Edit route NEGATIVE CONTROL: a genuine append via Edit is "
                     "ALLOWED", r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+    return results
 
+
+def _bug1106_state_edit_cases():
     # --- state.yaml: an Edit that changes run_id to a DIFFERENT run is refused exactly
     # like the equivalent Write.
-    state_root, state_path = _bug1124_state_fixture()
-    _feat50_write_text(state_path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
-    r = _fire_digest_edit(state_root, state_path, "run_id: run-alpha", "run_id: run-beta")
-    results.append(("bug1106 Edit route: a state.yaml run_id collision via Edit is "
-                    "REFUSED",
-                    r.returncode == 2 and "different run's state" in r.stderr,
-                    f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
+    prior = "schema_version: 1\nrun_id: run-alpha\nstatus: building\n"
+    state_path, r = _bug1106_edit_after(
+        _bug1124_state_fixture, prior, "run_id: run-alpha", "run_id: run-beta")
+    results = [("bug1106 Edit route: a state.yaml run_id collision via Edit is "
+                "REFUSED",
+                r.returncode == 2 and "different run's state" in r.stderr,
+                f"exit {r.returncode}: {r.stderr.strip()[:250]}")]
     on_disk = open(state_path, encoding="utf-8").read()
     results.append(("bug1106 Edit route: the refused state.yaml Edit left the file "
                     "untouched", "run-alpha" in on_disk, on_disk))
 
     # --- state.yaml: the SAME run_id, a legitimate checkpoint upsert via Edit, is
     # allowed.
-    state_root2, state_path2 = _bug1124_state_fixture()
-    _feat50_write_text(state_path2, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
-    r = _fire_digest_edit(state_root2, state_path2, "status: building", "status: reviewing")
+    _, r = _bug1106_edit_after(
+        _bug1124_state_fixture, prior, "status: building", "status: reviewing")
     results.append(("bug1106 Edit route NEGATIVE CONTROL: a same-run_id checkpoint "
                     "upsert via Edit is ALLOWED",
                     r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+    return results
 
+
+def _bug1106_fail_closed_cases():
     # --- An ambiguous or unmatched Edit payload cannot describe the candidate bytes.
     # Governed artifacts fail closed and route the caller to a whole-file Write rather
     # than assuming the editor will reject the operation before this hook matters.
-    state_root3, state_path3 = _bug1124_state_fixture()
-    _feat50_write_text(state_path3, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
-    r = _fire_digest_edit(state_root3, state_path3, "no-such-text-in-file", "replacement")
-    results.append(("bug1106 Edit route: an unmatched old_string fails closed",
-                    r.returncode == 2
-                    and "Write the complete file instead" in r.stderr,
-                    f"exit {r.returncode}: {r.stderr[:200]}"))
+    _, unmatched = _bug1106_edit_after(
+        _bug1124_state_fixture, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n",
+        "no-such-text-in-file", "replacement")
+    _, ambiguous = _bug1106_edit_after(
+        _bug1124_state_fixture, "schema_version: 1\nrun_id: run-alpha\nstatus: x\nnote: x\n",
+        "x", "y")
+    return [
+        (name, r.returncode == 2 and "Write the complete file instead" in r.stderr,
+         f"exit {r.returncode}: {r.stderr[:200]}")
+        for name, r in (
+            ("bug1106 Edit route: an unmatched old_string fails closed", unmatched),
+            ("bug1106 Edit route: a non-unique old_string fails closed", ambiguous),
+        )
+    ]
 
-    state_root4, state_path4 = _bug1124_state_fixture()
-    _feat50_write_text(
-        state_path4, "schema_version: 1\nrun_id: run-alpha\nstatus: x\nnote: x\n")
-    r = _fire_digest_edit(state_root4, state_path4, "x", "y")
-    results.append(("bug1106 Edit route: a non-unique old_string fails closed",
-                    r.returncode == 2
-                    and "Write the complete file instead" in r.stderr,
-                    f"exit {r.returncode}: {r.stderr[:200]}"))
 
+def _bug1106_unrelated_edit_case():
     # --- An Edit to an UNRELATED file (not digest.md/state.yaml) is completely
     # unaffected by this widening — the PRE route stays Write-only for everything else.
     other_root, other_path = _feat50_digest_fixture()
     other_path = other_path.replace("digest.md", "notes.md")
     _feat50_write_text(other_path, "some notes\n")
     r = _fire_digest_edit(other_root, other_path, "some notes", "different notes entirely")
-    results.append(("bug1106 Edit route NEGATIVE CONTROL: an unrelated file's Edit is "
-                    "still unaffected (no PRE check runs at all for it)",
-                    r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
-
-    fails = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(results) - fails}/{len(results)} bug1106 Edit-route cases passed.")
-    return fails
+    return ("bug1106 Edit route NEGATIVE CONTROL: an unrelated file's Edit is "
+            "still unaffected (no PRE check runs at all for it)",
+            r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}")
 
 
-def _bug1305_digest_write(root, path, content):
-    payload = {"tool_name": "Write",
-               "tool_input": {"file_path": path, "content": content}}
-    return subprocess.run(
-        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
-        env=_env(root))
+def run_bug1106_edit_route_cases():
+    """Issue #1106, gap (a): an Edit targeting a run's digest.md or state.yaml is now
+    intercepted PRE-write, by reconstructing the full resulting content from the on-disk
+    prior and old_string/new_string, then running it through the SAME content guards the
+    Write route already uses (issue #1058's digest prefix test, issues #1124/#1106's
+    state.yaml run-identity test)."""
+    results = (_bug1106_digest_edit_cases() + _bug1106_state_edit_cases()
+               + _bug1106_fail_closed_cases() + [_bug1106_unrelated_edit_case()])
+    return _report(results, "bug1106 Edit-route")
 
 
 def _bug1305_edit_append_result(prior, artifact):
@@ -520,9 +531,9 @@ artifact: .harness/harness/features/FEAT-D-thing/runs/r1/digest.md
     combined = recorded + "\n```yaml\n" + corrected + "```\n"
     root, path = _feat50_digest_fixture()
     _feat50_write_text(path, recorded)
-    response = _bug1305_digest_write(root, path, combined)
+    response = fire_write_payload(root, path, combined)
     validation = subprocess.run(
-        [os.path.join(_anchor_bin, "validate-digest.py"), "harness-validator-lead"],
+        [VALIDATE_DIGEST, "harness-validator-lead"],
         input=combined, capture_output=True, text=True)
     return (
         "a complete corrected block repairs an invalid digest append-only",
@@ -537,7 +548,7 @@ def _bug1305_digest_write_result(name, prior, candidate, allowed, witness=False)
     _feat50_write_text(path, prior)
     if witness:
         _bug1305_write_marker(path)
-    response = _bug1305_digest_write(root, path, candidate)
+    response = fire_write_payload(root, path, candidate)
     expected = 0 if allowed else 2
     return name, response.returncode == expected, response.stderr
 
@@ -560,16 +571,7 @@ def run_bug1305_digest_repair_cases():
             "digest Write append remains allowed beside identity witness",
             prior, prior + artifact, True, witness=True),
     ]
-
-    failures = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    [bug1305-digest] {name}")
-        else:
-            failures += 1
-            print(f"FAIL  [bug1305-digest] {name}\n      | {str(detail).strip()[:300]}")
-    print(f"\n{len(results) - failures}/{len(results)} BUG-1305 digest cases passed.")
-    return failures
+    return _report(results, "BUG-1305 digest", "bug1305-digest", 300)
 
 
 def run_bug1106_shared_pattern_consistency():
@@ -612,16 +614,7 @@ def run_bug1106_shared_pattern_consistency():
         ("bug1106: RE_STATE_YAML's pattern text is byte-identical in both files",
          cd_state == hb_state, f"{cd_state!r} != {hb_state!r}"),
     ]
-    fails = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(results) - fails}/{len(results)} bug1106 pattern-consistency cases "
-          "passed.")
-    return fails
+    return _report(results, "bug1106 pattern-consistency")
 
 
 def _bug1305_marker_path(state_path):
@@ -675,10 +668,7 @@ def _bug1305_omp_edit_cases():
     _feat50_write_text(
         state, "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\n"
         "squad: eng\nhost: omp\nstatus: building\n")
-    payload = {"tool_name": "Edit", "tool_input": {"file_path": state}}
-    response = subprocess.run(
-        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
-        env=_env(root))
+    response = _fire_path_only_edit(root, state)
     refused = _bug1305_unverifiable_edit_result(
         "omp file-path-only state Edit fails closed", response)
 
@@ -704,10 +694,7 @@ def _bug1305_unreconstructable_artifact_cases(label, root, path, prior):
     absent = _fire_digest_edit(root, path, "missing", "replacement")
     _feat50_write_text(path, prior)
     unmatched = _fire_digest_edit(root, path, "missing", "replacement")
-    payload = {"tool_name": "Edit", "tool_input": {"file_path": path}}
-    omp_edit = subprocess.run(
-        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
-        env=_env(root))
+    omp_edit = _fire_path_only_edit(root, path)
     results = []
     for shape, response in (
         ("absent-prior", absent),
@@ -838,30 +825,35 @@ def _bug1305_marker_file_protection():
     ]
 
 
-def _bug1305_post_landing(root, state):
-    payload = {
+def _post_write(root, state):
+    return fire_post(root, {
         "tool_name": "Write", "hook_event_name": "PostToolUse",
         "tool_input": {"file_path": state},
-    }
-    response = fire_post(root, payload)
-    after_first = open(state, "rb").read()
+    })
+
+
+def _read_marker(state):
     marker_path = _bug1305_marker_path(state)
-    marker_first = open(marker_path, "rb").read() if os.path.isfile(marker_path) else b""
+    return open(marker_path, "rb").read() if os.path.isfile(marker_path) else b""
+
+
+def _bug1305_post_landing(root, state):
+    response = _post_write(root, state)
+    after_first = open(state, "rb").read()
+    marker_first = _read_marker(state)
     parsed = yaml.safe_load(after_first.decode("utf-8"))
     marker_doc = json.loads(marker_first) if marker_first else {}
     uid = parsed.get("run_uid") if isinstance(parsed, dict) else None
-    return response, payload, after_first, marker_first, marker_doc, uid
+    return response, after_first, marker_first, marker_doc, uid
 
 
 def _bug1305_marker_post_mint_cases():
     root, state = _bug1124_state_fixture()
     landed = "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n"
     _feat50_write_text(state, landed)
-    response, payload, after_first, marker_first, marker_doc, uid = (
-        _bug1305_post_landing(root, state))
-    fire_post(root, payload)
-    marker_path = _bug1305_marker_path(state)
-    marker_second = open(marker_path, "rb").read() if os.path.isfile(marker_path) else b""
+    response, after_first, marker_first, marker_doc, uid = _bug1305_post_landing(root, state)
+    _post_write(root, state)
+    marker_second = _read_marker(state)
     return [
         ("POST mints uid and matching witness", response.returncode == 0
          and re.fullmatch(r"[0-9a-f]{32}", str(uid or ""))
@@ -876,18 +868,12 @@ def _bug1305_marker_post_preservation_cases():
     explicit = "schema_version: 1\nrun_id: A\nrun_uid: fixed\n"
     _feat50_write_text(state, explicit)
     before = open(state, "rb").read()
-    fire_post(root, {
-        "tool_name": "Write", "hook_event_name": "PostToolUse",
-        "tool_input": {"file_path": state},
-    })
+    _post_write(root, state)
     preserved = open(state, "rb").read() == before
 
     root, state = _bug1124_state_fixture()
     _feat50_write_text(state, "{")
-    fire_post(root, {
-        "tool_name": "Write", "hook_event_name": "PostToolUse",
-        "tool_input": {"file_path": state},
-    })
+    _post_write(root, state)
     malformed = (
         open(state, encoding="utf-8").read() == "{"
         and not os.path.exists(_bug1305_marker_path(state)))
@@ -909,35 +895,16 @@ def run_bug1305_marker_cases():
         + _bug1305_marker_post_mint_cases()
         + _bug1305_marker_post_preservation_cases()
     )
-    failures = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    [bug1305] {name}")
-        else:
-            failures += 1
-            print(f"FAIL  [bug1305] {name}\n      | {str(detail).strip()[:300]}")
-    print(f"\n{len(results) - failures}/{len(results)} BUG-1305 marker cases passed.")
-    return failures
+    return _report(results, "BUG-1305 marker", "bug1305", 300)
 
 
-def _bug1305_identity_doc(run_id="A", run_uid=None, include_uid=True):
+def _bug1305_identity_doc(run_id="A", run_uid=None):
     text = (
         f"schema_version: 1\nrun_id: {run_id}\nfeature: FEAT-S-thing\n"
         "squad: eng\nhost: omp\nstatus: building\n")
-    if include_uid and run_uid is not None:
+    if run_uid is not None:
         text += f"run_uid: {run_uid}\n"
     return text
-
-
-def _bug1305_write_identity_marker(state, run_id="A", run_uid="U1"):
-    marker = {
-        "run_id": run_id, "feature": "FEAT-S-thing", "squad": "eng",
-        "host": "omp", "identity": "session", "run_uid": run_uid,
-        "created_at": "2026-09-05T00:00:00+00:00",
-    }
-    with open(os.path.join(os.path.dirname(state), ".run-identity.json"),
-              "w", encoding="utf-8") as handle:
-        json.dump(marker, handle)
 
 
 def _bug1305_identity_write(prior, incoming, marker=False, session_id=None):
@@ -945,7 +912,7 @@ def _bug1305_identity_write(prior, incoming, marker=False, session_id=None):
     if prior is not None:
         _feat50_write_text(state, prior)
     if marker:
-        _bug1305_write_identity_marker(state)
+        _bug1305_write_marker(state, run_uid="U1")
     payload = {"tool_name": "Write",
                "tool_input": {"file_path": state, "content": incoming}}
     if session_id is not None:
@@ -958,45 +925,37 @@ def _bug1305_identity_write(prior, incoming, marker=False, session_id=None):
 def _bug1305_identity_edit(new_string=""):
     root, state = _bug1124_state_fixture()
     _feat50_write_text(state, _bug1305_identity_doc(run_uid="U1"))
-    payload = {
-        "tool_name": "Edit",
-        "tool_input": {
-            "file_path": state, "old_string": "run_uid: U1\n", "new_string": new_string,
-        },
-    }
-    return subprocess.run(
-        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
-        env=_env(root))
+    return _fire_digest_edit(root, state, "run_uid: U1\n", new_string)
+
+
+def _refused(response, present, absent=()):
+    """Exit 2, every `present` text in stderr and no `absent` text."""
+    stderr = response.stderr
+    return (response.returncode == 2 and all(text in stderr for text in present)
+            and not any(text in stderr for text in absent))
 
 
 def _bug1305_identity_refusal_cases():
     prior = _bug1305_identity_doc(run_uid="U1")
-    missing = _bug1305_identity_write(
-        prior, _bug1305_identity_doc(include_uid=False))
+    missing = _bug1305_identity_write(prior, _bug1305_identity_doc())
     edit = _bug1305_identity_edit()
     different_edit = _bug1305_identity_edit("run_uid: U2\n")
     different = _bug1305_identity_write(
         prior, _bug1305_identity_doc(run_uid="U2"))
     precedence = _bug1305_identity_write(
         prior, _bug1305_identity_doc(run_id="B", run_uid="U1"), marker=True)
+    no_field = ("field disagreement",)
     return [
         ("modal collision Write omitting uid is refused",
-         missing.returncode == 2 and "U1" in missing.stderr
-         and "run identity" in missing.stderr and "field disagreement" not in missing.stderr,
-         missing.stderr),
+         _refused(missing, ("U1", "run identity"), no_field), missing.stderr),
         ("modal collision Edit removing uid is refused",
-         edit.returncode == 2 and "U1" in edit.stderr
-         and "run identity" in edit.stderr
-         and "field disagreement" not in edit.stderr, edit.stderr),
+         _refused(edit, ("U1", "run identity"), no_field), edit.stderr),
         ("different minted uid is refused",
-         different.returncode == 2 and "U1" in different.stderr
-         and "U2" in different.stderr, different.stderr),
+         _refused(different, ("U1", "U2")), different.stderr),
         ("different minted uid Edit is refused",
-         different_edit.returncode == 2 and "U1" in different_edit.stderr
-         and "U2" in different_edit.stderr, different_edit.stderr),
+         _refused(different_edit, ("U1", "U2")), different_edit.stderr),
         ("run_id disagreement keeps Issue 1124 precedence",
-         precedence.returncode == 2 and "Issue #1124" in precedence.stderr
-         and "Issue 1305" not in precedence.stderr, precedence.stderr),
+         _refused(precedence, ("Issue #1124",), ("Issue 1305",)), precedence.stderr),
     ]
 
 
@@ -1009,12 +968,12 @@ def _bug1305_identity_allow_cases():
         None,
         # `prior=None` creates a checkpoint; the helper remains version 1 for
         # the legacy update-path cases below.
-        _bug1305_identity_doc(include_uid=False).replace(
+        _bug1305_identity_doc().replace(
             "schema_version: 1", "schema_version: 2", 1),
         marker=True)
     zeroed = _bug1305_identity_write(
-        "", _bug1305_identity_doc(include_uid=False), marker=True)
-    legacy = _bug1305_identity_doc(include_uid=False)
+        "", _bug1305_identity_doc(), marker=True)
+    legacy = _bug1305_identity_doc()
     legacy_same = _bug1305_identity_write(legacy, legacy)
     legacy_new = _bug1305_identity_write(
         legacy, _bug1305_identity_doc(run_uid="U2"))
@@ -1035,15 +994,7 @@ def _bug1305_identity_allow_cases():
 def run_bug1305_identity_cases():
     """BUG-1305 SC-01: prior checkpoint uid owns resumed-write admission."""
     results = _bug1305_identity_refusal_cases() + _bug1305_identity_allow_cases()
-    failures = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    [bug1305-identity] {name}")
-        else:
-            failures += 1
-            print(f"FAIL  [bug1305-identity] {name}\n      | {str(detail).strip()[:300]}")
-    print(f"\n{len(results) - failures}/{len(results)} BUG-1305 identity cases passed.")
-    return failures
+    return _report(results, "BUG-1305 identity", "bug1305-identity", 300)
 
 
 def run_2056_main_session_feature_checkout():
@@ -1058,9 +1009,7 @@ def run_2056_main_session_feature_checkout():
 
     def main_write(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        payload = {"tool_name": "Write", "tool_input": {"file_path": path, "content": "{}"}}
-        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                              text=True, env=_env(root))
+        return fire_write_payload(root, path, "{}")
 
     in_main = main_write(os.path.join(root, rel))
     in_worktree = main_write(os.path.join(worktree, rel))
@@ -1073,13 +1022,7 @@ def run_2056_main_session_feature_checkout():
         ("main session: a non-feature path in the main checkout is untouched",
          other.returncode == 0, other.stderr),
     ]
-    fails = 0
-    for name, ok, detail in results:
-        print(("ok    " if ok else "FAIL  ") + f"[2056] {name}")
-        if not ok:
-            fails += 1
-            print(f"      | {detail[:240]}")
-    return fails
+    return _report(results, None, "2056", 240)
 
 
 def run_bug151_selfcheck_cases():

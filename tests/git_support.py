@@ -6,6 +6,10 @@ Two ways to run git, each with its exit-code policy explicit:
         Runs under ENV, the isolated environment: system and global git config disabled, a fixed
         author and committer identity, every inherited GIT_* variable dropped. check=True raises
         AssertionError naming the command on a non-zero exit; check=False never checks.
+    git_out(cwd, *args) -> str
+        git(cwd, *args).stdout.strip(): the same isolated environment and the same raising on a
+        non-zero exit, for the reads (rev-parse, symbolic-ref, status --porcelain) a caller
+        compares as a string.
     quiet_git(args, cwd) / checked_git(args, cwd)
         The `git=` callables the primitives below accept. quiet_git inherits os.environ and never
         checks the exit code (the default, the policy the integration callers were written
@@ -21,7 +25,16 @@ feature layout, plan text, and message are all supplied by the caller or spelled
 
 Import from a unit file:        from unit_support import ROOT   (puts tests/ on sys.path)
                                 from git_support import checked_git, init_repo, commit_files
-Import from an integration file: put tests/ (the parent of tests/integration) on sys.path first.
+Import from an integration file: from integration_support import ROOT   (puts tests/ on sys.path)
+                                 from git_support import git, git_out, checked_git, init_repo
+
+Git isolation is the default and stays the default. ENV drops every inherited GIT_* variable and
+disables system and global config; repository-local config (core.hooksPath, hooks under .git)
+still applies, which is why test-worktree-state-hooks.py runs its hook cases under git() and
+ENV. A file whose git must see the inherited environment, or a custom one, does not loosen ENV:
+it runs git through quiet_git (inherits os.environ, never checks) or keeps its own runner when it
+needs both a custom env and a loud failure -- test-hooks-install.py's _git(args, cwd, env=None)
+is that case and stays local.
 """
 import json
 import os
@@ -52,6 +65,11 @@ def git(cwd, *args, check=True):
         raise AssertionError(f"git {' '.join(args)} in {cwd} exited {proc.returncode}: "
                              f"{proc.stderr.strip()}")
     return proc
+
+
+def git_out(cwd, *args):
+    """Run git like git(cwd, *args) above and return its stdout stripped."""
+    return git(cwd, *args).stdout.strip()
 
 
 def quiet_git(args, cwd):

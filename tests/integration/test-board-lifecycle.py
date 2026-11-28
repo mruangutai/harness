@@ -14,39 +14,24 @@ no case reaches the real `gh`.
 
     ./test-board-lifecycle.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-import base64
-import json
-import os
-import stat
-import subprocess
-import sys
-import tempfile
+from integration_support import BIN
+import base64  # noqa: E402
+import contextlib  # noqa: E402
+import json  # noqa: E402
+import os  # noqa: E402
+import stat  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-SCRIPT = os.path.join(HERE, "board_lifecycle.py")
-sys.path.insert(0, HERE)
 import harness_boundary  # noqa: E402 -- only to read the MARKER path, never imported twice
+from check_support import Checks  # noqa: E402
 from harness_config_support import build_config, write_config  # noqa: E402
 from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
 
-FAILURES = []
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS  {name}")
-    else:
-        print(f"FAIL  {name}{(' — ' + detail) if detail else ''}")
-        FAILURES.append(name)
+SCRIPT = str(BIN / "board_lifecycle.py")
+C = Checks()
+check = C.check
 
 
 def write_root(root, github, fleet=None):
@@ -75,13 +60,24 @@ def write_root(root, github, fleet=None):
             )
 
 
-def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None,
+@contextlib.contextmanager
+def fresh_root(github=None):
+    """A new TemporaryDirectory per case, yielding (base, root) with write_root already run.
+    `github` defaults to default_github(). Never shared between cases: each one gets its own
+    calls.log beside its own root."""
+    with tempfile.TemporaryDirectory() as base:
+        root = os.path.join(base, "root")
+        write_root(root, default_github() if github is None else github)
+        yield base, root
+
+
+def write_feature(root, repo_slug, feat, parent=None, github_issues=None,
                    factory_issues=None, plan_station=None, source_issues=None,
                    task_statuses=None):
     """Write the feature receipt and optional plan consumed by lifecycle audit fixtures."""
     fdir = os.path.join(root, ".harness", repo_slug, "features", feat)
     os.makedirs(fdir, exist_ok=True)
-    doc = {} if status is None else {"status": status}
+    doc = {}
     github = {}
     if parent is not None:
         github["parent"] = parent
@@ -195,8 +191,7 @@ case "$*" in
     # T-06: factory_gh.issue_board_item_id, the query gh_board.set_station sends before its
     # own item-edit mutation. project.number MUST equal the fixture's board number (9,
     # `_BOARD["number"]`) -- set_station matches client-side against it.
-    item_id="${ITEM_ID:-ITEM_FAKE}"
-    echo "{\"data\":{\"repository\":{\"issue\":{\"projectItems\":{\"totalCount\":1,\"nodes\":[{\"id\":\"$item_id\",\"project\":{\"number\":9}}]}}}}}"
+    echo "{\"data\":{\"repository\":{\"issue\":{\"projectItems\":{\"totalCount\":1,\"nodes\":[{\"id\":\"ITEM_FAKE\",\"project\":{\"number\":9}}]}}}}}"
     exit 0 ;;
   *"project item-edit"*)
     # T-06: gh_board.set_station's own mutation, sent after the field-resolve
@@ -403,8 +398,8 @@ def _served_board_contents_b64(board):
 
 def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
               options=None, issues=None, stations=None, workflows=None, fail_match=None,
-              item_id=None, fake_state=None, issues_after=None, stations_after=None,
-              workflows_after=None, contents_b64=None, linked_repos=None, malformed_match=None,
+              fake_state=None, issues_after=None, stations_after=None,
+              contents_b64=None, linked_repos=None, malformed_match=None,
               label_create_stderr=None, repo_projects=_REPO_PROJECTS_NONE):
     """The stub environment `run` forks with, built once so a SECOND entry point can reuse it.
 
@@ -412,7 +407,7 @@ def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     RETURNS, and that it prints NOTHING -- cannot be asserted through a subcommand's stdout.
     `run_module` forks a `python -c` against this same environment instead. Nothing about
     `run`'s behaviour changes; it calls this and adds the argv."""
-    tmp = os.path.dirname(root) if os.path.basename(root) == "root" else root
+    tmp = os.path.dirname(root)
     gh_path = install_gh(tmp)
     log_path = os.path.join(tmp, "calls.log")
     env, sentinel_log = offline_gh_env(gh_path, tmp)
@@ -426,11 +421,9 @@ def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     env["WORKFLOWS_JSON"] = workflows if workflows is not None else _ALL_WORKFLOWS_ENABLED
     env["FAIL_MATCH"] = fail_match or ""
     env["MALFORMED_MATCH"] = malformed_match or ""
-    env["ITEM_ID"] = item_id or "ITEM_FAKE"
     env["FAKE_STATE"] = fake_state or os.path.join(tmp, "fake-state-absent-by-default")
     env["ISSUES_JSON_AFTER"] = issues_after or ""
     env["STATIONS_JSON_AFTER"] = stations_after or ""
-    env["WORKFLOWS_JSON_AFTER"] = workflows_after or ""
     env["CONTENTS_B64"] = contents_b64 or ""
     env["LINKED_REPOS_JSON"] = linked_repos if linked_repos is not None else _LINKED_REPOS_DEFAULT
     env["LABEL_CREATE_STDERR"] = label_create_stderr or ""
@@ -454,18 +447,23 @@ def _check_offline(sentinel_log):
         check("no case dispatches the default gh binary", False, str(exc))
 
 
-def run(root, args, cwd=None, **kw):
-    """Fork the real script. Returns (CompletedProcess, log_lines)."""
+def _fork(root, argv, pythonpath=False, **kw):
+    """Fork `python <argv>` in the stub environment, then assert the gh sentinel never ran.
+    Returns (CompletedProcess, log_lines)."""
     env, tmp, log_path, sentinel_log = _stub_env(root, **kw)
-    r = subprocess.run(
-        [sys.executable, SCRIPT] + args,
-        capture_output=True, text=True, env=env, cwd=cwd or tmp,
-    )
+    if pythonpath:
+        env["PYTHONPATH"] = os.path.dirname(SCRIPT) + os.pathsep + env.get("PYTHONPATH", "")
+    r = subprocess.run([sys.executable] + argv, capture_output=True, text=True, env=env, cwd=tmp)
     _check_offline(sentinel_log)
     return r, _log_lines(log_path)
 
 
-def run_module(root, code, cwd=None, **kw):
+def run(root, args, **kw):
+    """Fork the real script. Returns (CompletedProcess, log_lines)."""
+    return _fork(root, [SCRIPT] + args, **kw)
+
+
+def run_module(root, code, **kw):
     """Fork `python -c <code>` against the same stub environment, with board_lifecycle
     importable. Returns (CompletedProcess, log_lines).
 
@@ -473,14 +471,7 @@ def run_module(root, code, cwd=None, **kw):
     finding list and PRINT NOTHING, and neither claim is visible through `cmd_audit`'s
     stdout -- which prints. The forked process imports the module directly, so anything the
     function writes to stdout lands in `r.stdout` and fails the absence assertion."""
-    env, tmp, log_path, sentinel_log = _stub_env(root, **kw)
-    env["PYTHONPATH"] = os.path.dirname(SCRIPT) + os.pathsep + env.get("PYTHONPATH", "")
-    r = subprocess.run(
-        [sys.executable, "-c", code],
-        capture_output=True, text=True, env=env, cwd=cwd or tmp,
-    )
-    _check_offline(sentinel_log)
-    return r, _log_lines(log_path)
+    return _fork(root, ["-c", code], pythonpath=True, **kw)
 
 
 def mutation_calls(log):
@@ -491,6 +482,11 @@ def mutation_calls(log):
                "createProjectV2(", "project\x01item-edit", "label\x01create", "issue\x01edit",
                "state_reason=")
     return [l for l in log if any(m in l for m in markers)]
+
+
+def _creates(log):
+    """Every project_create call -- createProjectV2( but never createProjectV2Field."""
+    return [l for l in log if "createProjectV2(" in l and "createProjectV2Field" not in l]
 
 
 def number_arg(line):
@@ -511,9 +507,7 @@ def number_arg(line):
 
 # ---------------- case 1: complete board -- zero mutations, exit 0 ----------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"])
     check("complete board: exits 0",
           r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
@@ -529,9 +523,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- case 2: missing options -- extend with existing-then-additions ----------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     existing = ["Backlog", "Plan", "Ready", "Building"]
     r, log = run(root, ["provision"], options=_options_json(existing))
     extend_calls = [l for l in log if "updateProjectV2Field" in l]
@@ -553,9 +545,7 @@ with tempfile.TemporaryDirectory() as base:
 # which passes identically for a seventh key of any name; this is the literal-string guard
 # SC-08 names as board_lifecycle's own discriminating assertion.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], options=_options_json(["Backlog", "Plan"]))
     check("SC-08: no argv the fake receives contains the string 'Abandoned'",
           r.returncode == 0 and log and not any("Abandoned" in l for l in log),
@@ -563,9 +553,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- case 3: field absent -- created with all six, in declared order --------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], probe=_PROBE_ABSENT)
     create_calls = [l for l in log if "createProjectV2Field" in l]
     check("field absent: exits 0 and calls createProjectV2Field exactly once",
@@ -583,14 +571,12 @@ with tempfile.TemporaryDirectory() as base:
     # very log, so the substring checked here must exclude it, matching the established
     # in-tree convention (test-factory-integration.py:1239).
     check("field absent (disaster guard i): factory_gh.project_create was NOT called",
-          not any("createProjectV2(" in l and "createProjectV2Field" not in l for l in log),
+          not _creates(log),
           repr(log))
 
 # ---------------- case 4: field exists but is NOT single-select -- exit 2, zero mutations -
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], probe=_PROBE_TEXT_FIELD)
     check("field wrong type (disaster guard ii): exits 2",
           r.returncode == 2, f"rc={r.returncode} stderr={r.stderr!r}")
@@ -619,15 +605,13 @@ def _expected_options_literal(names):
     return ("[" + ", ".join(parts) + "]").replace(" ", "\x01")
 
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT)
     field_calls = [l for l in log if "createProjectV2Field" in l]
     check("no project: exits 3",
           r.returncode == 3, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
     check("no project: creates the project and links the repository",
-          any("createProjectV2(" in l and "createProjectV2Field" not in l for l in log)
+          bool(_creates(log))
           and any("linkProjectV2ToRepository" in l for l in log),
           repr(log))
     check("no project: reports the new project number",
@@ -670,10 +654,6 @@ def _lookups(log):
     return [l for l in log if "projectsV2(first:" in l]
 
 
-def _creates(log):
-    return [l for l in log if "createProjectV2(" in l and "createProjectV2Field" not in l]
-
-
 with tempfile.TemporaryDirectory() as base:
     # ADOPT-ONE. The adopted board carries GitHub's default Status options plus two declared
     # stations; it must be widened (union, Todo/In Progress kept), never exactly replaced.
@@ -705,9 +685,7 @@ for label, projects, linked in (
          _LINKED_REPOS_DEFAULT),
         ("one candidate whose link is unproven", [(17, "acme/widget board")],
          _LINKED_REPOS_UNLINKED)):
-    with tempfile.TemporaryDirectory() as base:
-        root = os.path.join(base, "root")
-        write_root(root, default_github())
+    with fresh_root() as (base, root):
         r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT,
                      repo_projects=_repo_projects_json(projects), linked_repos=linked)
         check(f"2618 refuse ({label}): exits 2 with zero mutations",
@@ -716,9 +694,7 @@ for label, projects, linked in (
         check(f"2618 refuse ({label}): names every candidate board",
               all(str(n) in r.stderr for n, _t in projects), repr(r.stderr))
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT,
                  repo_projects=_repo_projects_json(_REPO_PROJECTS_DECOYS))
     check("2618 create-when-none: the search ran, found no adoptable board, and created one",
@@ -735,9 +711,7 @@ with tempfile.TemporaryDirectory() as base:
 # be 4, never 2 ("nothing mutated") and never 3 ("clean success"). FAIL_MATCH is scoped to
 # createProjectV2Field, which no other call in this branch carries.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT,
                  fail_match="createProjectV2Field")
     check("SC-01: field-create failure after a successful create+link exits 4, never 2 or 3",
@@ -748,7 +722,7 @@ with tempfile.TemporaryDirectory() as base:
     check("SC-01: the field-create failure names the field it failed to create",
           "Status" in r.stderr, repr(r.stderr))
     check("SC-01: create and link really did happen before the field failure",
-          any("createProjectV2(" in l and "createProjectV2Field" not in l for l in log)
+          bool(_creates(log))
           and any("linkProjectV2ToRepository" in l for l in log),
           repr(log))
     check("SC-01: the field-create was actually attempted (the failure is a real call's, not a "
@@ -764,9 +738,7 @@ with tempfile.TemporaryDirectory() as base:
 # declared stations, deleting GitHub's Todo and In Progress. Safe there and only there -- a
 # brand-new board holds no items, so no card can lose its column.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT,
                  probe=_PROBE_FRESH_DEFAULT_STATUS,
                  options=_options_json(_GITHUB_DEFAULT_OPTIONS))
@@ -815,9 +787,7 @@ with tempfile.TemporaryDirectory() as base:
 # Same reasoning as 5b and 5c: a write landed (the project exists and is linked), so the code is
 # 4, never 2 ("nothing mutated") and never 3 ("clean success").
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT,
                  probe=_PROBE_FRESH_DEFAULT_STATUS,
                  options=_options_json(_GITHUB_DEFAULT_OPTIONS),
@@ -837,9 +807,7 @@ with tempfile.TemporaryDirectory() as base:
 # is not promised to stay still, and c2's own falsified comment is why this branch exists rather
 # than an assumption. A project was created, so it is exit 4, not the resolved path's exit 2.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_TEXT_FIELD)
     check("c3: a fresh board whose field is not single-select exits 4 (a project WAS created), "
           "never 2",
@@ -868,9 +836,7 @@ with tempfile.TemporaryDirectory() as base:
 # defend; the class-name assertions changed to "names the invalid body, is not called
 # UNEXPECTED" -- the KeyError/TypeError shapes named above still take the UNEXPECTED branch.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT,
                  probe=_PROBE_FRESH_DEFAULT_STATUS,
                  options=_options_json(_GITHUB_DEFAULT_OPTIONS),
@@ -884,12 +850,10 @@ with tempfile.TemporaryDirectory() as base:
     check("c4: it still tells the operator to record the number now",
           "record 42" in r.stderr, repr(r.stderr))
     check("c4: create and link really did land before the unexpected failure",
-          any("createProjectV2(" in l and "createProjectV2Field" not in l for l in log)
+          bool(_creates(log))
           and any("linkProjectV2ToRepository" in l for l in log), repr(log))
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT,
                  malformed_match="linkProjectV2ToRepository")
     check("c4: a NON-GhError in the LINK call after a successful create exits 4, never 2 -- the "
@@ -910,9 +874,7 @@ with tempfile.TemporaryDirectory() as base:
 # a bare `declared` there DELETES the operator's column. Case 2's fixture cannot catch that --
 # every option it holds is also declared, so union and bare-declared render identically.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     existing = ["Backlog", "Icebox", "Plan", "Ready"]
     r, log = run(root, ["provision"], options=_options_json(existing))
     extend_calls = [l for l in log if "updateProjectV2Field" in l]
@@ -942,9 +904,7 @@ with tempfile.TemporaryDirectory() as base:
 # the failure, and that the exit code is neither 2 (this module's OWN "nothing mutated" code)
 # nor 3 (the clean-success race code) -- both would misreport a run that DID create a project.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT,
                  fail_match="linkProjectV2ToRepository")
     check("MUST-FIX 2: create-then-link failure exits 4, never 2 (this module's own "
@@ -956,7 +916,7 @@ with tempfile.TemporaryDirectory() as base:
           "created project 42" in r.stdout, repr(r.stdout))
     check("MUST-FIX 2: createProjectV2( was actually called -- the project really was created, "
           "so 'nothing mutated' would be false",
-          any("createProjectV2(" in l and "createProjectV2Field" not in l for l in log),
+          bool(_creates(log)),
           repr(log))
     check("MUST-FIX 2: the stderr failure names the created project's number and the repo it "
           "failed to link",
@@ -967,9 +927,7 @@ with tempfile.TemporaryDirectory() as base:
 # Reuses case 2's missing-options fixture (which otherwise reaches the mutating "extend" branch)
 # so "zero mutations" is not a vacuous assertion of a run that would have done nothing anyway.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     existing = ["Backlog", "Plan", "Ready", "Building"]
     r, log = run(root, ["provision"], options=_options_json(existing),
                  linked_repos=_LINKED_REPOS_UNLINKED)
@@ -985,9 +943,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- case 6: an explicit null board -- exits 0, writes nothing --------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, {"sync": True, "repo": "acme/widget", "board": None})
+with fresh_root({"sync": True, "repo": "acme/widget", "board": None}) as (base, root):
     r, log = run(root, ["provision"])
     check("null board: exits 0 silently, no gh call at all",
           r.returncode == 0 and not log and "no board declared" in r.stdout,
@@ -1012,9 +968,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- audit case 1: a clean board -- exit 0, zero findings -------------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["audit"])
     check("audit clean board: exits 0",
           r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
@@ -1027,9 +981,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- audit case 2: DECLARATION -- a declared value the board lacks ----------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["audit"], options=_options_json(["Backlog", "Ready", "Building",
                                                           "Review", "Done"]))
     check("audit DECLARATION: exits 1", r.returncode == 1, f"rc={r.returncode}")
@@ -1039,9 +991,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- audit case 3: STATION -- a closed board issue off the done station -----
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     issues = json.dumps([{"number": 10, "stateReason": "COMPLETED", "labels": []}])
     r, log = run(root, ["audit"], issues=issues, stations=_stations_json({10: "Building"}))
     check("audit STATION: exits 1", r.returncode == 1, f"rc={r.returncode}")
@@ -1056,9 +1006,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- audit case 3b: STATION -- DEC-203 keeps an abandoned card at Backlog ----
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     issues = json.dumps([
         {"number": 11, "stateReason": "NOT_PLANNED", "labels": [{"name": "abandoned"}]},
         {"number": 12, "stateReason": "NOT_PLANNED", "labels": []},
@@ -1072,9 +1020,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- audit case 4: REASON -- a closed issue with a null close reason --------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     issues = json.dumps([{"number": 20, "stateReason": None, "labels": []}])
     r, log = run(root, ["audit"], issues=issues)
     check("audit REASON: exits 1", r.returncode == 1, f"rc={r.returncode}")
@@ -1083,10 +1029,8 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- audit case 5: LABEL -- not_planned with no abandoned label -------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-LBL", None, github_issues={"T-01": 30})
+with fresh_root() as (base, root):
+    write_feature(root, "widget", "FEAT-LBL", github_issues={"T-01": 30})
     issues = json.dumps([{"number": 30, "stateReason": "NOT_PLANNED", "labels": []}])
     r, log = run(root, ["audit"], issues=issues)
     check("audit LABEL: exits 1", r.returncode == 1, f"rc={r.returncode}")
@@ -1107,9 +1051,7 @@ with tempfile.TemporaryDirectory() as base:
 
 
 # #2151 review: a padded recorded number still counts.
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-ODD")
     os.makedirs(fdir)
     with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
@@ -1128,9 +1070,7 @@ for label, github in (("a non-list source_issues", {"source_issues": 99}),
                       ("a non-mapping issues block", {"issues": [33]}),
                       ("an isdigit source number int() rejects", {"source_issues": ["²"]}),
                       ("an unparseable feature.json", None)):
-    with tempfile.TemporaryDirectory() as base:
-        root = os.path.join(base, "root")
-        write_root(root, default_github())
+    with fresh_root() as (base, root):
         fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-ODD")
         os.makedirs(fdir)
         with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
@@ -1205,9 +1145,7 @@ for label, bound_repo, declare, served, owned in _LABEL_BINDINGS:
 
 # #2151 review: an unparseable record is a report-only STATUS residual -- reconcile never
 # dispatches a write for it, and does not crash.
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     fdir = os.path.join(root, ".harness", "widget", "features", "FEAT-ODD")
     os.makedirs(fdir)
     with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
@@ -1219,9 +1157,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- audit case 6: WORKFLOW -- renamed/absent reports MISSING ---------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     workflows = _workflows_json([("Item closed", True), ("Auto-close issue", True)])
     r, log = run(root, ["audit"], workflows=workflows)
     check("audit WORKFLOW (renamed/absent): exits 1", r.returncode == 1, f"rc={r.returncode}")
@@ -1233,9 +1169,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- audit case 7: WORKFLOW -- present but disabled -------------------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     workflows = _workflows_json([("Item closed", True), ("Auto-close issue", False),
                                   ("Pull request merged", True)])
     r, log = run(root, ["audit"], workflows=workflows)
@@ -1257,7 +1191,7 @@ with tempfile.TemporaryDirectory() as base:
     # state; FEAT-32 has since shipped and this shape is no longer on the real board.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-32-fixture", None, plan_station="review", parent=700,
+    write_feature(root, "widget", "FEAT-32-fixture", plan_station="review", parent=700,
                   github_issues={"T-01": 701})
     r, log = run(root, ["audit"], stations=_stations_json({700: "Building", 701: "Review"}))
     check("audit STATUS (FEAT-32 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
@@ -1273,7 +1207,7 @@ with tempfile.TemporaryDirectory() as base:
     # reconciliation is intentionally restricted to active feature phases.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-08", None, plan_station="done", parent=85,
+    write_feature(root, "widget", "FEAT-08", plan_station="done", parent=85,
                   github_issues={"T-01": 86})
     r, log = run(root, ["audit"], stations=_stations_json({85: "Backlog", 86: "Backlog"}))
     check("audit STATUS: Done remains ship-only and is outside active reconciliation",
@@ -1285,7 +1219,7 @@ with tempfile.TemporaryDirectory() as base:
     # Building parent card would be a STATUS finding if backlog leaked into "active".
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-BACKLOG", None, plan_station="backlog", parent=87,
+    write_feature(root, "widget", "FEAT-BACKLOG", plan_station="backlog", parent=87,
                   github_issues={"T-01": 88})
     r, log = run(root, ["audit"], stations=_stations_json({87: "Building", 88: "Building"}))
     check("audit STATUS: backlog is a column but outside active reconciliation, no STATUS finding",
@@ -1295,7 +1229,7 @@ with tempfile.TemporaryDirectory() as base:
     # A matching status and card -- no finding.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-CLEAN", None, plan_station="building", parent=500,
+    write_feature(root, "widget", "FEAT-CLEAN", plan_station="building", parent=500,
                   github_issues={"T-01": 501})
     r, log = run(root, ["audit"], stations=_stations_json({500: "Building", 501: "Building"}))
     check("audit STATUS: a matching status and card is NOT a finding",
@@ -1306,16 +1240,14 @@ with tempfile.TemporaryDirectory() as base:
     # though the parent card reads something that would otherwise mismatch every mapped status.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-ABANDONED", None, plan_station="abandoned", parent=600,
+    write_feature(root, "widget", "FEAT-ABANDONED", plan_station="abandoned", parent=600,
                   github_issues={"T-01": 601})
     r, log = run(root, ["audit"], stations=_stations_json({600: "Backlog"}))
     check("audit STATUS: exemption 1 -- Abandoned is exempt, no STATUS finding",
           r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-REJECTED", None, plan_station="rejected", parent=602,
+with fresh_root() as (base, root):
+    write_feature(root, "widget", "FEAT-REJECTED", plan_station="rejected", parent=602,
                   github_issues={"T-01": 603})
     r, log = run(root, ["audit"], stations=_stations_json({602: "Backlog"}))
     check("audit STATUS: rejected is terminal and has no board-column finding",
@@ -1325,7 +1257,7 @@ with tempfile.TemporaryDirectory() as base:
     # Exemption 2 -- no recorded parent (INV-21's finding, not this one).
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-NO-PARENT", None, plan_station="building", parent=None)
+    write_feature(root, "widget", "FEAT-NO-PARENT", plan_station="building", parent=None)
     r, log = run(root, ["audit"])
     check("audit STATUS: exemption 2 -- no recorded parent is exempt, no STATUS finding",
           r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
@@ -1334,7 +1266,7 @@ with tempfile.TemporaryDirectory() as base:
     # Product intake claims do not exempt a separately recorded, provenanced owner mirror.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-PRODUCT", None, plan_station="building", parent=400,
+    write_feature(root, "widget", "FEAT-PRODUCT", plan_station="building", parent=400,
                   factory_issues={"T-01": 401})
     r, log = run(root, ["audit"], stations=_stations_json({400: "Backlog"}))
     check("factory intake claims cannot exempt a provenanced owner mirror from station grading",
@@ -1353,7 +1285,7 @@ with tempfile.TemporaryDirectory() as base:
                fleet={"workspace_root": os.path.join(base, "ws"),
                       "repos": [{"name": "acme/gadget", "default_branch": "main"}]})
     # An active owner feature must not be compared with the product repository's card numbers.
-    write_feature(root, "widget", "FEAT-CROSSREPO-783", None, plan_station="building", parent=950,
+    write_feature(root, "widget", "FEAT-CROSSREPO-783", plan_station="building", parent=950,
                   github_issues={"T-01": 951})
     r, log = run(
         root, ["audit", "--repo", "acme/gadget"],
@@ -1368,7 +1300,7 @@ with tempfile.TemporaryDirectory() as base:
     write_root(root, default_github(),
                fleet={"workspace_root": os.path.join(base, "ws"),
                       "repos": [{"name": "acme/gadget", "default_branch": "main"}]})
-    write_feature(root, "widget", "FEAT-FLEET-BINDING", None, plan_station="building",
+    write_feature(root, "widget", "FEAT-FLEET-BINDING", plan_station="building",
                   parent=950, github_issues={"T-01": 951}, task_statuses=["ready"])
     path = os.path.join(root, ".harness", "widget", "features", "FEAT-FLEET-BINDING", "feature.json")
     with open(path) as source:
@@ -1398,9 +1330,7 @@ with tempfile.TemporaryDirectory() as base:
 # never be mistaken for exit 0 (clean) or exit 1 (findings). Forces the FIRST of the audit's
 # four network calls (project_field_options) to fail, so nothing after it ever runs.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["audit"], fail_match="options { id name }")
     check("audit GhError: exits 4, never 0 or 1",
           r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
@@ -1431,7 +1361,7 @@ def _write_all_card_fixture(base):
     root = os.path.join(base, "root")
     write_root(root, default_github())
     write_feature(
-        root, "widget", "BUG-1699-CARDS", None, plan_station="building", parent=100,
+        root, "widget", "BUG-1699-CARDS", plan_station="building", parent=100,
         source_issues=[101, 100, 101],
         github_issues={"T-01": 103, "T-02": 104, "T-03": 105},
         task_statuses=["ready", "abandoned", "building"],
@@ -1505,9 +1435,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- reconcile case 1: a GhError propagates as exit 4 -----------------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["reconcile", "--apply"], fail_match="options { id name }")
     check("reconcile GhError: exits 4, never 0 or 1",
           r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
@@ -1533,10 +1461,10 @@ _RECON_ISSUES_AFTER = json.dumps([
 def _write_recon_fixture(base):
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-RECON", None, plan_station="building", parent=40,
+    write_feature(root, "widget", "FEAT-RECON", plan_station="building", parent=40,
                   github_issues={"T-01": 41})
     # #2151: LABEL judges recorded tickets only, so the abandoned ticket #30 belongs to a feature.
-    write_feature(root, "widget", "FEAT-DROPPED", None, github_issues={"T-01": 30})
+    write_feature(root, "widget", "FEAT-DROPPED", github_issues={"T-01": 30})
     return root
 
 
@@ -1602,9 +1530,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- reconcile case 4: a failed write mid-bulk-fix is a residual, not a stop -
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     issues = json.dumps([
         {"number": 50, "stateReason": "COMPLETED", "labels": []},
         {"number": 51, "stateReason": "COMPLETED", "labels": []},
@@ -1662,8 +1588,8 @@ _LAUNCH_FAILS = (
 def _write_label_fixture(base):
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-DROP-A", None, github_issues={"T-01": 30})
-    write_feature(root, "widget", "FEAT-DROP-B", None, github_issues={"T-01": 31})
+    write_feature(root, "widget", "FEAT-DROP-A", github_issues={"T-01": 30})
+    write_feature(root, "widget", "FEAT-DROP-B", github_issues={"T-01": 31})
     return root
 
 
@@ -1709,9 +1635,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- reconcile case 5: DECLARATION and WORKFLOW residuals never gate exit 0 --
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     workflows = _workflows_json([("Item closed", True), ("Auto-close issue", True)])
     r, log = run(
         root, ["reconcile", "--apply"],
@@ -1728,10 +1652,8 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- reconcile case 6: Done remains ship-only -------------------------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-DONE-MISMATCH", None, plan_station="done", parent=85,
+with fresh_root() as (base, root):
+    write_feature(root, "widget", "FEAT-DONE-MISMATCH", plan_station="done", parent=85,
                   github_issues={"T-01": 86})
     r, log = run(
         root, ["reconcile", "--apply"], stations=_stations_json({85: "Backlog", 86: "Backlog"}))
@@ -1752,7 +1674,7 @@ with tempfile.TemporaryDirectory() as base:
     write_root(root, default_github(),
                fleet={"workspace_root": os.path.join(base, "ws"),
                       "repos": [{"name": "acme/gadget", "default_branch": "main"}]})
-    write_feature(root, "widget", "FEAT-CROSSREPO-RECON-783", None, plan_station="building", parent=960,
+    write_feature(root, "widget", "FEAT-CROSSREPO-RECON-783", plan_station="building", parent=960,
                   github_issues={"T-01": 961})
     r, log = run(
         root, ["reconcile", "--repo", "acme/gadget"],
@@ -1770,9 +1692,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- reconcile case 7: a fully reconciled fixture -- exit 0, zero writes -----
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     r, log = run(root, ["reconcile", "--apply"])
     check("reconcile (clean board): exits 0", r.returncode == 0, f"rc={r.returncode}")
     check("reconcile (clean board): performs ZERO mutations",
@@ -1802,9 +1722,7 @@ def rename_calls(log):
 
 # ---------------- retitle case 1: a ticket with a milestone -- renamed to the exact string -
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     old_title = "T-9 — Add the retitle command"
     new_title = "FEAT-9-widget — T-9 — Add the retitle command"  # byte-identical to what
     # gh-sync.py's cmd_open would write today for this same task (f"{feat} — {tid} — {title}",
@@ -1824,9 +1742,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- retitle case 2: a ticket with NO milestone -- refused, no rename call -----
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     issues = json.dumps([{"number": 202, "title": "T-3 — Something else", "milestone": None}])
     r, log = run(root, ["retitle", "--apply"], issues=issues)
     check("retitle (no milestone): exits 0 -- a per-ticket refusal never fails the whole run",
@@ -1840,9 +1756,7 @@ with tempfile.TemporaryDirectory() as base:
 # stop the bulk backfill -- the module docstring's own claim ("caught explicitly here exactly
 # as audit and reconcile catch it") is what this proves true, not merely asserts.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     issues = json.dumps([
         {"number": 401, "title": "T-1 — first ticket", "milestone": {"title": "FEAT-A"}},
         {"number": 402, "title": "T-2 — second ticket", "milestone": {"title": "FEAT-B"}},
@@ -1868,9 +1782,7 @@ with tempfile.TemporaryDirectory() as base:
 # exactly as the plan's step 4 describes -- a real feature id (`FEAT-NN-slug`) never begins
 # with `T-\d+`, so this shape does not occur on the live backfill and is not claimed to.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     issues = json.dumps([{"number": 303, "title": "T-9 — already renamed rest",
                            "milestone": {"title": "T-9"}}])
     r, log = run(root, ["retitle", "--apply"], issues=issues)
@@ -1885,9 +1797,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- retitle case 4: a truncated enumeration -- refused with exit 2 -----------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     issues = json.dumps([{"number": i, "title": "unrelated", "milestone": None}
                           for i in range(1000)])
     r, log = run(root, ["retitle", "--apply"], issues=issues)
@@ -1901,9 +1811,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- retitle case 5: --dry-run -- zero write calls ----------------------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     old_title = "T-9 — Add the retitle command"
     issues = json.dumps([{"number": 101, "title": old_title,
                            "milestone": {"title": "FEAT-9-widget"}}])
@@ -1944,9 +1852,7 @@ _AF_RETURNS = (
 
 # --- clause 1: it returns the findings cmd_audit prints, and prints NOTHING itself ---------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     issues = json.dumps([{"number": 10, "stateReason": "COMPLETED", "labels": []}])
     stations = _stations_json({10: "Building"})
 
@@ -1984,9 +1890,7 @@ with tempfile.TemporaryDirectory() as base:
 # GhError and continues: an audit that could not run must not stop a ship that already wrote
 # every card.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     code = (
         "import board_lifecycle as bl, factory_gh;"
         "\ntry:"
@@ -2004,9 +1908,7 @@ with tempfile.TemporaryDirectory() as base:
 
 # --- clause 3: no board declared returns [], matching cmd_audit's own branch ---------------
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, {"sync": True, "repo": "acme/widget", "board": None})
+with fresh_root({"sync": True, "repo": "acme/widget", "board": None}) as (base, root):
     r_fn, _ = run_module(root, _AF_RETURNS % None)
     check("audit_findings: no board declared returns an EMPTY LIST, not an error",
           "RESULT=[]" in r_fn.stdout, f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
@@ -2025,11 +1927,9 @@ with tempfile.TemporaryDirectory() as base:
 # `continue`s, and the STATUS class silently stops finding ANYTHING. That is the dangerous
 # direction: not a crash, a gate that passes because it compares nothing.
 
-with tempfile.TemporaryDirectory() as base:
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
+with fresh_root() as (base, root):
     # NO feature.json status — the post-migration shape. The station lives in plan.yaml.
-    write_feature(root, "widget", "FEAT-72-plan-station", None, parent=720,
+    write_feature(root, "widget", "FEAT-72-plan-station", parent=720,
                   github_issues={"T-01": 721}, plan_station="review")
     r, log = run(root, ["audit"], stations=_stations_json({720: "Building", 721: "Review"}))
     check("T-07 audit STATUS: a feature with NO feature.json status still yields a finding "
@@ -2053,11 +1953,10 @@ with tempfile.TemporaryDirectory() as base:
     # above passes on a repointing that reports a finding for every feature it reads.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-73-agrees", None, parent=730,
+    write_feature(root, "widget", "FEAT-73-agrees", parent=730,
                   github_issues={"T-01": 731}, plan_station="building")
     r, log = run(root, ["audit"], stations=_stations_json({730: "Building", 731: "Building"}))
     check("T-07 NEGATIVE CONTROL: plan station agreeing with the board is NOT a STATUS finding",
           "STATUS" not in r.stdout, f"rc={r.returncode} stdout={r.stdout!r}")
 
-print(f"\n{len(FAILURES)} failing." if FAILURES else "\nall checks passed.")
-sys.exit(1 if FAILURES else 0)
+sys.exit(C.report())

@@ -206,8 +206,9 @@ def measure_arm(
     print(f"covers every fact: {'yes' if complete else 'no'}")
     if error:
         print(f"error: {safe(error)}")
-    for fact in (fact for fact in facts if fact not in covered):
-        print(f"missing: {safe(fact)}")
+    for fact in facts:
+        if fact not in covered:
+            print(f"missing: {safe(fact)}")
     print("answer:")
     print(safe(answer) or "(no answer)")
     return len(covered), len(facts), complete
