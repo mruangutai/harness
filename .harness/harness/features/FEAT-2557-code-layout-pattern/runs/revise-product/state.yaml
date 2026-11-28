@@ -1,0 +1,36 @@
+schema_version: 2
+run_uid: f570f1fd5bb94c3e8db8fec83b6d2de1
+run_id: revise-product
+feature: FEAT-2557-code-layout-pattern
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: revise
+    persona: harness-pm
+    task: INV-32 ruling - collapse plan.yaml to one main-session-direct T-01, BRIEF routing bullet and Approval pending
+    seq: 1
+    depends_on: []
+    outputs:
+      - plan.yaml
+      - BRIEF.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: plan.yaml
+    note: "send-back if: tasks != [T-01]; T-01 files != the 5 ruling files; execution_agent present; mode not main-session-direct; reason lacks inv32 ruling file or DEC-179; traces not SC-01..06; any T-01/T-02/T-03 verify assertion dropped; approval not pending or hand-written; BRIEF diff beyond routing bullet + Approval; SC or decision added/dropped; no APPROVAL-RESET receipt or check output reported"
+    evidence:
+      tasks: 1
+      decisions: 1
+      sc_traced: 6
+      approval_status: pending
+      approval_reset_receipts: 1
+      plan_merge_check_failures: 0
+      plan_routes_violations: 0
+      deviation_lines: 0

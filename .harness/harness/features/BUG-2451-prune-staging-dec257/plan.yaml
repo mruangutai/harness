@@ -1,0 +1,95 @@
+schema: plan/1
+feature: BUG-2451-prune-staging-dec257
+approval:
+  date: '2026-11-23'
+  approved_by: main-session
+  status: approved
+drafted_at: '2026-11-23T13:31:38Z'
+status: done
+source_issues: [2451]
+lanes:
+  resolved_at: 47d6c54de1d91459f84f61ca92e27a47ba553308
+  rows:
+  - surface: .claude/skills/harness/bin/prune-run-evidence.py
+    lane: main-session-direct
+    reason: DEC-174 requires direct execution of gate changes.
+  - surface: tests/unit/test-prune-run-evidence.py
+    lane: main-session-direct
+    reason: DEC-174 includes the gate test in the direct task.
+  - surface: .omp/commands/harness-ship.md
+    lane: main-session-direct
+    reason: DEC-179 declares the NOBODY layer-0 command and DEC-174 direct route before signature.
+  - surface: .harness/harness/docs/DECISIONS.md
+    lane: main-session-direct
+    reason: The coupled DEC-238 correction belongs to the same DEC-174 and DEC-179 direct task.
+  - surface: .harness/harness/docs/DECISIONS-INDEX.md
+    lane: main-session-direct
+    reason: Index regeneration is coupled to the decision correction in the same direct task.
+decisions:
+- id: D-01
+  choice: Restore the DEC-238 ship bullet to 5e51124e plus one sentence stating both pre-mutation refusals.
+  because: DEC-257 already makes run records tracked and staging contradicts that contract while both safety refusals remain necessary.
+  dec: DEC-238
+decisions_affected:
+- dec: DEC-238
+  disposition: amend
+  clause: '**Ship keeps the record and drops the rest.**'
+  successor: D-01
+  reason: Restore only the ship bullet to 5e51124e plus exactly one sentence naming both refusals; T-01 owns DECISIONS.md.
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful;
+  successor: none
+  reason: Plan the bounded change here but main implements enforcement and tests directly.
+- dec: DEC-179
+  disposition: keep
+  clause: '**declared in the plan** as a main-session step'
+  successor: none
+  reason: Resolve and declare all five literal paths before signature including the NOBODY command.
+- dec: DEC-225
+  disposition: keep
+  clause: with no panel and no goal-check run
+  successor: none
+  reason: One bounded patch intake and one direct task preserve the patch lane with DEC-174 and DEC-179 routing override.
+- dec: DEC-254
+  disposition: keep
+  clause: 'Each row has exactly five fields:'
+  successor: none
+  reason: Declare affected decisions and a single owner for the decision amendment.
+- dec: DEC-257
+  disposition: keep
+  clause: The orchestrator's normal feature-directory commit carries them, with no
+  successor: none
+  reason: Remove contradictory staging without changing the tracked-record decision or its history.
+adequacy_notes: |
+  Exactly one direct bugfix task owns exactly five files and traces all four SCs. No panel, readers, record-panel, goal-check, engineering lead or dev dispatch. Product guidance documents are absent, not substituted. Pending proposal only; no signature or production tests in intake. Verification scopes forbidden positive claims to changed current text, preserving unchanged DEC-257 history and negative regression assertions. Intake receipt is notes/research-prune-staging-dec257.md.
+tasks:
+- id: T-01
+  title: Remove pruner staging while retaining both safety refusals
+  change_type: bugfix
+  status: done
+  depends_on: []
+  traces: [SC-01, SC-02, SC-03, SC-04]
+  execution_mode: main-session-direct
+  execution_reason: DEC-174 requires main to execute gate code and its tests directly; DEC-179 declares the NOBODY layer-0 ship command, with coupled decision text and index in the same direct patch as BUG-2399 precedent.
+  files:
+  - .claude/skills/harness/bin/prune-run-evidence.py
+  - tests/unit/test-prune-run-evidence.py
+  - .omp/commands/harness-ship.md
+  - .harness/harness/docs/DECISIONS.md
+  - .harness/harness/docs/DECISIONS-INDEX.md
+  intent: |
+    Work only in assigned PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2451-prune-staging-dec257. Main executes this entire task directly under DEC-174 and DEC-179; do not dispatch an engineering lead or owning dev. Source issue is 2451; settled input is /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-prune-staging-dec257-2026-11-23.md. Consult PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md if present at execution; all three are absent at intake, so report gaps and never invent or substitute their content.
+    Tests first, before any production edits. Author genuine regressions in tests/unit/test-prune-run-evidence.py and demonstrate assertion RED against exactly 47d6c54de1d91459f84f61ca92e27a47ba553308's pruner, using the existing PRUNE_RUN_EVIDENCE_BIN subject override and sibling imports. Import/setup failures are not RED. Preserve exact subject hash, command, test names, stdout/stderr and exits durably for QA, then demonstrate GREEN against the fixed pruner. Do not execute these production tests during intake. Scrub inherited project-root overrides before setting deliberate fixture roots.
+    Remove _stage_paths staging half, _stage, git add -f invocation, staged and would stage output, and every test asserting staging, including staged_runs, staging_* cases, expected_staged and symlink_staging where obsolete. Preserve their non-staging coverage. The pruner must run NO git command on any path. Test normal and dry-run in real temporary git repositories with initialized indexes, tracked run records and unrelated pre-staged changes; snapshot raw index bytes before and after, not just git status. Instrument git subprocess invocation at the subject boundary so even a read-only git call fails the regression. Test output must include PASS - pruner invokes no git subprocess and PASS - real temporary git repository index is byte-identical only after those behavioral checks pass.
+    Retain both existing checks and their tests before any mutation, including dry-run: exit 2 names EVERY recorded cycle_evidence path missing on disk; exit 1 names EVERY unreadable directory under recorded runs. Exercise multiple paths/directories, complete evidence success and file/index immutability for each refusal in both modes. The unreadable walk exists only to collect unreadable-directory errors and collects no staging paths. Remove staging-oriented success assertions without weakening missing-evidence or unreadable-directory assertions. Preserve BUG-2294 UI-only deletion, non-UI bytes, keep set, _passing_validate_runs, pin-run selection, symlink isolation, --keep/review-pin refusals and the existing CLI. Keep existing failure accounting and regression coverage; no local check-state parity expansion.
+    Restore only the DEC-238 Ship keeps the record and drops the rest bullet and the .omp/commands/harness-ship.md prune paragraph to their exact pre-2447 text from git show 5e51124e at those paths. Add exactly ONE sentence to each restored surface: Before any mutation, including dry-run, it refuses with exit 2 naming every recorded cycle_evidence path missing from disk and with exit 1 naming every unreadable directory under a recorded run. Preserve the ship step position, both command invocations and the existing [harness:human] <flow-id>: prune run evidence at ship commit name. Align the pruner module docstring with deletion-only behavior and both refusals. No force-staging or runs/**-is-ignored claim in these current surfaces. Regenerate DECISIONS-INDEX.md using python3 .claude/skills/harness/bin/gen-decisions-index.py. Leave all other decisions, including DEC-257, unchanged.
+    Out of scope exactly: .gitignore, templates/gitignore.snippet, DEC-257 itself, merge-gitignore.py, checkout-upgrade.md; BUG-2399 shipped records stay as history; local check-state parity. Do not edit feature.json or STATE.md. Verification must reject forbidden positive claims in changed current text across the five owned files, but not unchanged historical DEC-257 text or tests that negatively assert absence. Add the bounded absence/restoration checks to the owned unit file, not a sixth script: assert no production git subprocess, no staging output, exact historical text plus the single refusal sentence, unchanged CLI/ship ordering/commit name and no forbidden positive claims in changed text across all five files. Read all five paths explicitly and scope historical decision text rather than grepping DECISIONS.md wholesale. Unit checks should emit PASS - five-file current claims and historical restoration only after these assertions pass. No new public interface, schema or gate.
+  verify: |
+    set -e
+    output=$(python3 tests/unit/test-prune-run-evidence.py)
+    printf '%s\n' "$output"
+    printf '%s\n' "$output" | grep -Fx 'PASS - pruner invokes no git subprocess'
+    printf '%s\n' "$output" | grep -Fx 'PASS - real temporary git repository index is byte-identical'
+    printf '%s\n' "$output" | grep -Fx 'PASS - five-file current claims and historical restoration'
+    python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md

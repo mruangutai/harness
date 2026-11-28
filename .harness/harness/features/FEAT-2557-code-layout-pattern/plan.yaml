@@ -1,0 +1,160 @@
+schema: plan/1
+feature: FEAT-2557-code-layout-pattern
+approval:
+  date: '2026-11-27'
+  approved_by: Mike Ruangutai
+  status: approved
+drafted_at: '2026-11-27T14:35:15Z'
+status: done
+source_issues: [2557]
+lanes:
+  resolved_at: cf7b422b2e55ae4c9129a8009e240b56c6e25035
+  rows:
+  - surface: .claude/skills/harness-codebase-design/SKILL.md
+    lane: main-session-direct
+    reason: check-domain.py --resolve answers NOBODY; an ungranted skill is a declared main-session step (DEC-179).
+  - surface: AGENTS.md
+    lane: main-session-direct
+    reason: check-domain.py --resolve answers NOBODY; an ungranted surface is a declared main-session step (DEC-179).
+  - surface: .claude/skills/harness/bin/**
+    lane: main-session-direct
+    reason: granted to harness-backend-dev, but the operator's INV-32 ruling (notes/answers-2026-11-27-inv32.md) puts LAYOUT.md in the one main-session-direct task and accepts the DEVIATION.
+  - surface: .harness/harness/docs/**
+    lane: main-session-direct
+    reason: granted to harness-documentor, but the operator's INV-32 ruling (notes/answers-2026-11-27-inv32.md) puts DECISIONS.md and DECISIONS-INDEX.md in the one main-session-direct task and accepts the DEVIATION.
+decisions:
+  - id: D-01
+    choice: A long file splits into a thin entry kept at its path over a twin package whose modules are named for what their functions read, enforced by review alone, recorded as DEC-259 with its homes in harness-codebase-design, bin/LAYOUT.md and the AGENTS.md project map.
+    because: FEAT-69 and FEAT-70 applied it but FEAT-71 deleted its only full record, and a lint, length cap or ratchet was rejected for lack of evidence the prose fails.
+    dec: DEC-259
+decisions_affected:
+- dec: DEC-149
+  disposition: keep
+  clause: existing harness machinery rather than bolted on
+  successor: none
+  reason: The layout rule joins the existing harness-codebase-design skill as a section; no new skill is added.
+- dec: DEC-235
+  disposition: keep
+  clause: reader load, boundary discipline and
+  successor: none
+  reason: harness-codebase-design stays the folded home of reader-side design rules; the delete-first leaf is cited, not edited.
+- dec: DEC-158
+  disposition: keep
+  clause: History, incident detail, and superseded reasoning
+  successor: none
+  reason: The rule lands in the skill and LAYOUT.md; the FEAT-69/70 provenance lands only in DEC-259.
+- dec: DEC-202
+  disposition: keep
+  clause: Skills and artifacts stay selectively loaded; none is
+  successor: none
+  reason: AGENTS.md gains one pointer row and one pathless convention bullet; no skill or LAYOUT.md content is copied into it.
+- dec: DEC-179
+  disposition: keep
+  clause: The ungranted surface is still allowed;
+  successor: none
+  reason: Under the INV-32 ruling the whole patch is one main-session-direct task; the skill and AGENTS.md are its ungranted surfaces, declared with the step order written in its intent.
+- dec: DEC-205
+  disposition: keep
+  clause: An entry states current truth directly.
+  successor: none
+  reason: DEC-259 is a new present-tense entry; no existing entry is amended or struck.
+tasks:
+  - id: T-01
+    title: Write bin/LAYOUT.md, the harness-codebase-design Layout section and review bullet, the AGENTS.md map row and convention, and DEC-259 with its index row
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-06
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The operator's INV-32 ruling (notes/answers-2026-11-27-inv32.md) cuts this patch to one task over all five files; check-domain.py --resolve grants no squad the harness-codebase-design skill or AGENTS.md, so the main session writes all five directly in the intent's step order (DEC-179 declared step), and the ruling accepts the DEVIATION for the granted bin and .harness/harness/docs files.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness-codebase-design/SKILL.md
+    - AGENTS.md
+    - .claude/skills/harness/bin/LAYOUT.md
+    - .harness/harness/docs/DECISIONS.md
+    - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      set -eu
+      unset HARNESS_AGENT_TYPE
+      f=.claude/skills/harness/bin/LAYOUT.md; b=.claude/skills/harness/bin; s=.claude/skills/harness-codebase-design/SKILL.md; d=.harness/harness/docs/DECISIONS.md
+      test -f "$f"
+      for t in check-state.py check_state/ plan-merge.py plan_merge/ __init__.py sys.path harness_boundary.py harness_merge.py; do grep -qF -- "$t" "$f" || { echo "MISSING $t"; exit 1; }; done
+      for p in check-state.py check_state/__init__.py plan-merge.py plan_merge/__init__.py harness_boundary.py harness_merge.py; do test -f "$b/$p" || { echo "ABSENT $p"; exit 1; }; done
+      test ! -s "$b/check_state/__init__.py" && test ! -s "$b/plan_merge/__init__.py"
+      if grep -Eqiw 'lines|size|grade|graded' "$f"; then echo "FORBIDDEN size/grade wording"; exit 1; fi
+      if grep -Eq '^#{1,6} +A split|FEAT-|DEC-174' "$f"; then echo "FORBIDDEN section/provenance"; exit 1; fi
+      test "$(grep -c '^## Layout — where a split lands$' "$s")" = 1
+      sec=$(awk '/^## Layout — where a split lands$/{f=1;next} /^## /{f=0} f' "$s")
+      for t in delete-first utils helpers common shim review; do printf '%s\n' "$sec" | grep -qF -- "$t" || { echo "LAYOUT MISSING $t"; exit 1; }; done
+      if printf '%s\n' "$sec" | grep -Eq 'bin/|\.py|__init__|LAYOUT'; then echo "LAYOUT NOT LANGUAGE-NEUTRAL"; exit 1; fi
+      app=$(awk '/^## Applying it$/{f=1;next} /^## /{f=0} f' "$s")
+      for t in 'prefixed siblings' shim 'project map' AGENTS.md; do printf '%s\n' "$app" | grep -qF -- "$t" || { echo "APPLYING MISSING $t"; exit 1; }; done
+      test "$(grep -cF '.claude/skills/harness/bin/LAYOUT.md' AGENTS.md)" = 1
+      map=$(awk '/^## Project map$/{f=1;next} /^## /{f=0} f' AGENTS.md); printf '%s\n' "$map" | grep -qF '.claude/skills/harness/bin/LAYOUT.md'
+      conv=$(awk '/^## Conventions$/{f=1;next} /^## /{f=0} f' AGENTS.md); printf '%s\n' "$conv" | grep -qxF -- '- Before writing code, read the harness-codebase-design skill and, for Harness `bin/`, the layout entry in the project map.'
+      git diff --quiet HEAD -- .claude/skills/harness-craft/references/delete-first.md
+      test "$(grep -c '^## DEC-259 — ' "$d")" = 1
+      dsec=$(awk '/^## DEC-259 — /{f=1} f' "$d")
+      for t in FEAT-69 FEAT-70 FEAT-71 harness-codebase-design LAYOUT.md AGENTS.md D-01; do printf '%s\n' "$dsec" | grep -qF -- "$t" || { echo "DEC-259 MISSING $t"; exit 1; }; done
+      grep -Eq '^- DEC-259 @[0-9]+ .* :: .{20,}' .harness/harness/docs/DECISIONS-INDEX.md
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      python3 .claude/skills/harness/bin/check-decision-anchors.py
+      python3 tests/integration/test-gen-decisions-index.py
+      base=$(git merge-base HEAD main)
+      got=$( { git diff --name-only "$base" -- . ':!.harness/harness/features/FEAT-2557-code-layout-pattern'; git ls-files --others --exclude-standard -- . ':!.harness/harness/features/FEAT-2557-code-layout-pattern'; } | sort -u)
+      want=$(printf '%s\n' .claude/skills/harness-codebase-design/SKILL.md .claude/skills/harness/bin/LAYOUT.md .harness/harness/docs/DECISIONS-INDEX.md .harness/harness/docs/DECISIONS.md AGENTS.md | sort -u)
+      test "$got" = "$want" || { echo "SCOPE DRIFT"; printf '%s\n' "$got"; exit 1; }
+      echo LAYOUT-SKILL-AGENTS-DEC-OK
+    intent: |
+      HARNESS-FEATURE: FEAT-2557-code-layout-pattern. Main session, directly, under the operator's INV-32 ruling .harness/harness/features/FEAT-2557-code-layout-pattern/notes/answers-2026-11-27-inv32.md: this patch is one task over five files, built in the order of steps 1, 2 and 3 below. PRODUCT checkout is Harness itself, the feature worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2557-code-layout-pattern; every relative path below is inside it and every edit stays inside it. It ships no docs/spec.md, docs/decisions.md or docs/architecture.md; report that absence and do not create them. Authority read: DECISIONS-INDEX.md, then DECISIONS.md DEC-149, DEC-158, DEC-202, DEC-205, DEC-235, and DEC-255 and DEC-258 as the format model for step 3; this feature's BRIEF.md and plan.yaml decision D-01; the binding grilling .harness/notes/grilling-code-layout-pattern-2026-11-27.md in the main checkout /Users/molchairuangutai/GitHub/harness, read-only, whose Settled wording governs; delete-first.md in harness-craft/references for the split bullet the new section cites. Provenance for step 3 is readable from git: the FEAT-69 grilling via git show d8b139de:.harness/notes/grilling-long-file-check-state-package-2026-09-28.md, FEAT-69 commit 0e03dad4 and FEAT-70 commit a98451c5, FEAT-71's removal a41f7cfc.
+
+      Edit these five files and nothing else: .claude/skills/harness/bin/LAYOUT.md, .claude/skills/harness-codebase-design/SKILL.md, AGENTS.md, .harness/harness/docs/DECISIONS.md and .harness/harness/docs/DECISIONS-INDEX.md.
+
+      Step 1, first: LAYOUT.md. Create one new file, .claude/skills/harness/bin/LAYOUT.md. It is a layout note for Harness bin/, never a script catalogue (each script's docstring already says what it does). Content, in this order and nothing more:
+      1. A level-one title naming the layout of bin/, and one scope line: this file says how a bin/ script splits into an entry and a package; the language-neutral rule (where a split lands, how modules are named) is the Layout section of the harness-codebase-design skill, which this file does not restate.
+      2. A two-column Markdown table headed Entry and Package with exactly two rows: check-state.py to check_state/, and plan-merge.py to plan_merge/. No size, line-count or any third column: sizes rot and read as a target.
+      3. Naming: the entry keeps its hyphenated name and path because callers, hooks and tests invoke it by path; the package takes the importable underscore name of the entry; its __init__.py is empty.
+      4. The entry: keeps its module docstring and its bootstrap, puts its own directory on sys.path, and imports from the package what it dispatches (plan-merge.py inserts its directory and imports cmd_ functions from plan_merge modules, for example). The entry parses and dispatches; logic lives in the package.
+      5. Flat modules: a flat bin/ module that serves one package's domain moves into that package; only cross-cutting modules that many entries share stay flat, for example harness_boundary.py and harness_merge.py.
+      Do not include: an "A split" section, any size, line-count or grade-bar rule (harness-code-risk-grading covers grading), the DEC-174 splitting carve-out (AGENTS.md covers it), test forking, scanners following the code, FEAT ids or other provenance (that lives in DEC-259). Avoid the words lines, size and grade anywhere in the file, because the verify refuses them. Name only files that exist in bin/. No markdown links.
+
+      Step 2, after step 1 has written LAYOUT.md: the skill and AGENTS.md.
+
+      A. .claude/skills/harness-codebase-design/SKILL.md. Insert a new section headed exactly "## Layout — where a split lands" between "## Reader load — the two axes" and "## Applying it". It is language-neutral, for every repository Harness builds: no bin/, no .py, no __init__, no Harness path or script name. In a few bullets or short paragraphs it states each of these rules, in this order:
+      - Split where reads diverge: a file grown past one thing to say splits at the seam where its functions' reads diverge, in the same change; cite harness-craft's delete-first leaf (Put it where its inputs are) as the trigger, without restating it.
+      - The entry stays put and thin: the file callers invoke keeps its path and does parse and dispatch only, no logic.
+      - The package is the entry's twin: one package named for the entry, never flat siblings sharing a prefix.
+      - Modules are named for what their functions read, never by subject or by kind (utils, helpers, common); short nouns the package path completes.
+      - One home per domain: a domain lives in one module, never two.
+      - A split moves code without changing it; callers migrate in the same change; no re-export shim.
+      - Size is judged in review, never capped: no line limit, no ratchet.
+      Keep it compact (about 150 words): every agent that autoloads this skill pays for it on every spawn.
+
+      B. In the same file's "## Applying it", add one bullet after the code-reviewer stage-two bullet: for eng-lead at architecture review and code-reviewer at stage two, flat prefixed siblings, subject or kind module names, an entry that kept logic, two homes for one domain, and a re-export shim are findings (each with its concrete failure scenario, per harness-code-review); in the Harness control plane, also judge a bin/ change against the layout entry in AGENTS.md's project map. Do not edit the frontmatter or any other section.
+
+      C. AGENTS.md. In "## Project map" add one table row, What "Code layout of Harness bin/ (entry plus package)", Where .claude/skills/harness/bin/LAYOUT.md in backticks, placed after the Remaining build ledger row. In "## Conventions" add one bullet, first in the list, reading exactly:
+      - Before writing code, read the harness-codebase-design skill and, for Harness `bin/`, the layout entry in the project map.
+      The LAYOUT.md path appears in AGENTS.md exactly once, in the map row; the Conventions bullet names no location.
+
+      Decided at plan: harness-craft/references/delete-first.md gains no pointer to the new section. The section's own citation of delete-first makes the link, and that leaf already sends readers to harness-codebase-design twice (its Flatten and consolidate bullet and its closing line), a skill eight seats preload; a section-level pointer would be a second home for the same link (the grilling's one Not yet specified item). Do not edit it.
+
+      Step 3, last, after steps 1 and 2 have landed: DEC-259 and the index. Read the landed step 1 and step 2 text first (harness-codebase-design SKILL.md Layout section and Applying it bullet, .claude/skills/harness/bin/LAYOUT.md, the AGENTS.md map row and Conventions bullet).
+
+      Number. Append one entry after DEC-258 as DEC-259. If DECISIONS.md already carries a DEC-259 heading when this step starts, stop and report the collision for plan amendment; never overwrite it or choose another number silently.
+
+      Heading, level two: "DEC-259 — A long file splits into a thin entry over its twin package, modules named by what they read; review enforces it, no lint". Body in Chose / Over / Because / Tradeoff accepted / Record shape, citing symbols and paths, never file:line anchors (check-decision-anchors.py refuses them). It states current truth (DEC-205):
+      Chose: a long file splits where its functions' reads diverge; the entry keeps its path and only parses and dispatches; the code moves into one twin package, never flat prefixed siblings; modules are named for what their functions read, never by subject or kind; one home per domain; a split moves code unchanged, migrates callers in the same change, keeps no re-export shim; size is judged in review, never capped. The rule lives in harness-codebase-design's Layout section (language-neutral, every repository Harness builds) with its review findings in that skill's Applying it; the Harness Python mechanics live in .claude/skills/harness/bin/LAYOUT.md (hyphenated entry, underscore package with an empty __init__.py, entry inserts its directory on sys.path and imports what it dispatches, flat modules serving one package move into it, cross-cutting ones such as harness_boundary.py stay flat), reached from the AGENTS.md project map and a pathless Conventions bullet.
+      Over: a lint, length cap or ratchet (no evidence the prose fails; FEAT-69's prose-first ruling); flat check_state_ style prefixed siblings; utils, helpers or common modules; putting the rule in harness-digest-dev (the dev return contract, DEC-126) or only in AGENTS.md (the main session loads no autoloaded skills, specialists never see AGENTS.md); a size column in LAYOUT.md (sizes rot and read as a target); a script catalogue in LAYOUT.md (every script's docstring already says what it does).
+      Because: FEAT-69 split check-state.py into check_state/ and FEAT-70 split plan-merge.py into plan_merge/ in this shape; the convention's only full record, the FEAT-69 grilling note, was removed by FEAT-71, leaving delete-first's one split bullet as the sole written rule.
+      Tradeoff accepted: enforcement is a reviewer reading a diff; nothing mechanical catches a deviation; test-code layout is not covered.
+      Record: FEAT-2557 (#2557), plan.yaml decision D-01; signature line as the main session records it at sign-off, or the approver and date from plan.yaml approval if signed. Refs: DEC-149, DEC-158, DEC-202, DEC-205, DEC-235.
+
+      Index. Regenerate with python3 .claude/skills/harness/bin/gen-decisions-index.py (never hand-edit anchors), then write the DEC-259 row's ruling text after " :: " by hand, one sentence: a long file splits into a thin entry over its twin package with modules named by their reads, enforced by review alone; rule in harness-codebase-design, Harness mechanics in bin/LAYOUT.md. The generator does not produce that tail. Then confirm gen-decisions-index.py --stdout equals the file.
+
+      change_type is docs: prose only, so no test kind is required (harness.json test_matrix.docs). The verify checks all three steps in order and ends by asserting the whole feature diff from the merge base with main is exactly the five files above; it is the terminal check, so run it only after all three steps have landed.

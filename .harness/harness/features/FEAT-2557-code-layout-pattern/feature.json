@@ -1,0 +1,151 @@
+{
+  "feature_id": "FEAT-2557-code-layout-pattern",
+  "branch": "feat/FEAT-2557-code-layout-pattern",
+  "pr": 2568,
+  "review_sha": "afd20116a2d5b9ffcbd243cb61c1f282e3935318",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-27T14:29:45+00:00",
+      "tokens": 78211,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/plan-product/digest.md",
+        "sha256": "bb8b428de7690a6a8dd24f470094e22e4d32d5713b76ff1c3ce68db591f68af7"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T14:36:57+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "revise-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-27T14:58:07+00:00",
+      "tokens": 65455,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/revise-product/digest.md",
+        "sha256": "27a267cdc0ab81534d9a34ebdc2edfb323bb7956fb3ba35abcdb1084c9be233d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-27T15:04:04+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "r-20261127-1-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-27T15:15:03+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261127-1-validate-validator/digest.md",
+        "sha256": "e75eb5286d4ccc34f6747feaa01c6dd43d521fe766d68dc6856c9d2c821aba31"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T15:23:19+00:00"
+    },
+    {
+      "id": "r-20261127-2-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-27T15:24:57+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/r-20261127-2-validate-validator/digest.md",
+        "sha256": "7a202a9ffcaf616e163c042bf8c5d310b091c9804c04d79fb321fa848897c7af"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-27T15:31:38+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-27T14:29:44+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause known (the convention never reached a skill; its only full record was removed by FEAT-71), diff bounded to five named files, and no hook, gate, validator or schema changes \u2014 prose applied in review."
+    },
+    {
+      "at": "2026-11-27T15:01:46.175075+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "INV-32 ruling notes/answers-2026-11-27-inv32.md: one main-session-direct task folds old T-01, T-02 and T-03"
+    },
+    {
+      "at": "2026-11-27T15:01:53.076817+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "INV-32 ruling notes/answers-2026-11-27-inv32.md: one main-session-direct task folds old T-01, T-02 and T-03"
+    },
+    {
+      "at": "2026-11-27T15:01:54.694617+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "INV-32 ruling notes/answers-2026-11-27-inv32.md: one main-session-direct task folds old T-01, T-02 and T-03"
+    },
+    {
+      "at": "2026-11-27T15:15:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Main session took over as orchestrator under DEC-174 after re-signature, built T-01 per handoff-plan, and continues into validate."
+    },
+    {
+      "at": "2026-11-27T15:24:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2: fix c1 applied main-session-direct at afd20116",
+      "reason": "Main session continues as orchestrator past handoff-build; one substance must-fix fixed inside the 1-round ruling; re-validate at afd20116."
+    },
+    {
+      "at": "2026-11-27T15:24:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Main session continues as orchestrator past handoff-build; one substance must-fix fixed inside the 1-round ruling; re-validate at afd20116."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/FEAT-2557-code-layout-pattern/notes/answers-2026-11-27-resign.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "ea8568867bc147a4d9c87f246ed08b3a768ec6a50c00651511b2a76b9eaf1097"
+  },
+  "github": {
+    "milestone": 142,
+    "parent": 2558,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2560
+    },
+    "source_issues": [
+      2557
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
