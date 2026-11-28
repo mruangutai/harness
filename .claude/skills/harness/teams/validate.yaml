@@ -57,8 +57,10 @@ steps:
       or a path). A green suite with no fail-first evidence is `FAIL`, not `PASS` (SC-17).
       Run each satisfied active unit/integration kind ONCE from your managed checkout at
       {{review_sha}} with DEC-255's production runner command, recording its receipt at
-      this run's absolute `runs/<run-id>/qa/manifest-<kind>.json`; keep the tested commit and
-      full output in your note. A `suite: pass` PASS is checked against those receipts, never
+      this run's absolute `runs/<run-id>/qa/manifest-<kind>.json`; keep in your note one
+      summary per suite (what ran, at which commit, the verdict, the pass/fail/skip counts)
+      and write the raw output to the feature's `scratch/`, never into the note (DEC-261).
+      A `suite: pass` PASS is checked against those receipts, never
       by a second run, and `kinds: []` is refused. A refusal names each bad receipt and the
       command that repairs it — run that command; never hand-edit a receipt.
       You are auditing a pinned SHA, not building on it — **author nothing**: no tests, no

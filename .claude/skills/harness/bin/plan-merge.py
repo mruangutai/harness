@@ -65,10 +65,10 @@ factory_config declares — MANDATED_STATIONS plus TERMINAL_STATIONS, imported, 
 resolved through the harness.json of the checkout the target plan.yaml belongs to. The check runs
 BEFORE the lock is taken, so a refused value never opens the file. Once `set-feature-station`
 has written `rejected`, it removes the feature's local working files - notes/, runs/,
-observations/ and the project notes its feature.json claims - through bin/working_files.py
-(DEC-262); a refused station write removes nothing. Its exit 10, returned by no other path of
-that verb, means the station was recorded and only the cleanup failed: it names what was
-already removed and the feature-worktree.py clean retry command.
+observations/, scratch/ and the project notes its feature.json claims - through
+bin/working_files.py (DEC-262); a refused station write removes nothing. Its exit 10, returned
+by no other path of that verb, means the station was recorded and only the cleanup failed: it
+names what was already removed and the feature-worktree.py clean retry command.
 
 `approval:` has four controlled write paths: `apply` seeds a brand-new plan with the
 unsigned `status: pending` mapping, `sign-approval` is the only path that can transition it

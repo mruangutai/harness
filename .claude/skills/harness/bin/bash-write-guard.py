@@ -818,9 +818,10 @@ def _worktree_destination(args, sub):
 
 
 # --- NATIVE WORKTREE REMOVAL KEEPS WORKING FILES (FEAT-2641 T-11, ruling E4) -----------
-# notes/, runs/ and observations/ are ignored (DEC-262), and `git worktree remove` deletes an
-# ignored file without counting the tree dirty, so an unforced native removal would silently
-# drop a feature's undistilled working files that feature-worktree.py remove's GATE 2b keeps.
+# notes/, runs/, observations/ and scratch/ are ignored (DEC-262), and `git worktree remove`
+# deletes an ignored file without counting the tree dirty, so an unforced native removal would
+# silently drop a feature's undistilled working files that feature-worktree.py remove's GATE 2b
+# keeps.
 # The same count (working_files.untracked_counts) refuses it here; every failure refuses.
 def _git_effective_args(args):
     """(directory, args after git's global options): git's own `-C <dir>` options joined in

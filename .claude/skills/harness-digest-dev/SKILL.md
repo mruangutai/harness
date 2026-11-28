@@ -50,10 +50,11 @@ that command. Cross-check it against the same task in
 read — and if your dispatch and the plan disagree, return `BLOCKED` naming both strings rather
 than picking one; a paraphrased command verifies something nobody planned.
 
-Report the result as `task_verify`. Paste the command and its **verbatim** output into your receipt
-(the path is in `harness-handoff`). `validate-digest.py` refuses `task_verify: pass` when the receipt
-your `artifact:` names is missing or does not carry the command as `plan.yaml` spells it; the
-output itself is an audit trail a reviewer reads, not a gate.
+Report the result as `task_verify`. Paste into your receipt (the path is in `harness-handoff`) the
+verify command exactly as `plan.yaml` spells it, the commit it ran at, the verdict and the counts;
+write the raw output to the feature's `scratch/`, never into the receipt (DEC-261).
+`validate-digest.py` refuses `task_verify: pass` when the receipt your `artifact:` names is missing
+or does not carry the command as `plan.yaml` spells it.
 
 ## Refusing an under-specified task
 

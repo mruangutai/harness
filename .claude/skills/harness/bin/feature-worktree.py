@@ -4,8 +4,8 @@
 Every worktree criterion in the BRIEF is verify-automated evidence integration, and prose
 cannot be asserted (D-01) — so the worktree lifecycle ships as one CLI here, with `create`,
 `list`, `path`, `remove`, `behind` and `clean` subcommands. `clean` removes a feature's local
-working files (notes/, runs/, observations/ and its listed project notes, DEC-262) once its
-landed or worktree record reads a terminal station, through bin/working_files.py.
+working files (notes/, runs/, observations/, scratch/ and its listed project notes, DEC-262)
+once its landed or worktree record reads a terminal station, through bin/working_files.py.
 
 --repo accepts exactly two forms:
 
@@ -290,8 +290,9 @@ def _gate_removal(fid, owner_root, segment, default_branch, dest):
         print(f"{len(paths)} change(s) would be discarded in {dest}")
         sys.exit(4)
 
-    # GATE 2b - ignored working files (notes/, runs/, observations/) are invisible to GATE 2 and
-    # `git worktree remove` deletes them silently (DEC-262 D-08). Tracked files are GATE 3's.
+    # GATE 2b - ignored working files (notes/, runs/, observations/, scratch/) are invisible to
+    # GATE 2 and `git worktree remove` deletes them silently (DEC-262 D-08). Tracked files are
+    # GATE 3's.
     if segment is not None:
         _gate_working_files(fid, segment, dest)
 
@@ -314,7 +315,7 @@ def _untracked_under(entry, prefixes):
 
 def _dirty_paths(fid, segment, dest):
     """GATE 2's paths: `git status` entries less the untracked entries under the feature's
-    notes/, runs/ and observations/, which GATE 2b reports per directory."""
+    notes/, runs/, observations/ and scratch/, which GATE 2b reports per directory."""
     entries = _z(_git_or_exit(["status", "--porcelain=v1", "-z", "--no-renames"], dest))
     if segment is None or not any(_untracked_under(e, "") for e in entries):
         return [e[3:] for e in entries]

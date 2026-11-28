@@ -8,8 +8,8 @@ marker block (DEC-112).
 
 OBSOLETE RULES (BUG-2399, DEC-262). Harness once shipped three run rules: a
 broad run-directory ignore in two spellings, and later a run-UI-only rule.
-All three are replaced by the snippet's four working-file directory rules
-(a feature's notes/, runs/ and observations/, and .harness/notes/). Only those
+All three are replaced by the snippet's five working-file directory rules
+(a feature's notes/, runs/, observations/ and scratch/, and .harness/notes/). Only those
 exact shipped lines are removed, and the superseded rationale lines only
 inside a Harness marker block; project rules and prose are never touched.
 Line endings, order and unrelated bytes are preserved.
@@ -50,9 +50,9 @@ import sys
 USAGE = "usage: merge-gitignore.py <project-root> [--check]"
 HEADER = (
     "# --- harness ---\n"
-    "# A feature's notes/, runs/ and observations/ and .harness/notes/ are local working\n"
-    "# files, never committed (DEC-262). Everything else under .harness/ is committed on\n"
-    "# purpose - it is the record of what shipped.\n"
+    "# A feature's notes/, runs/, observations/ and scratch/ (raw verification output) and\n"
+    "# .harness/notes/ are local working files, never committed (DEC-262). Everything else\n"
+    "# under .harness/ is committed on purpose - it is the record of what shipped.\n"
 ).encode("utf-8")
 FOOTER = b"# --- end harness ---\n"
 BLOCK_OPEN, BLOCK_CLOSE = HEADER.split(b"\n", 1)[0], FOOTER.rstrip(b"\n")

@@ -1,9 +1,10 @@
 """working_files.py — the one owner of a feature's local working files and of the project-note
 path contract (FEAT-2641 D-05, DEC-262).
 
-A feature's notes/, runs/ and observations/ directories, and the .harness/notes/ files its
-feature.json `project_notes` list claims, are local working files: ignored, never committed, and
-removed once the feature reaches a terminal station. Every cleaning caller - feature-worktree.py
+A feature's notes/, runs/, observations/ and scratch/ directories (scratch/ holds raw
+verification output, DEC-261), and the .harness/notes/ files its feature.json `project_notes`
+list claims, are local working files: ignored, never committed, and removed once the feature
+reaches a terminal station. Every cleaning caller - feature-worktree.py
 clean and GATE 2b, gh-sync.py abandon, reject and skip-distill, plan-merge.py
 set-feature-station and merge-gate.py merge-distill - goes through this module, so each deletes
 the same bounded set and tells the operator the same retry command.
@@ -28,7 +29,7 @@ if _BIN not in sys.path:
 
 from feature_record import read as record_read  # noqa: E402
 
-WORKING_DIRS = ("notes", "runs", "observations")
+WORKING_DIRS = ("notes", "runs", "observations", "scratch")
 PROJECT_NOTE_RE = re.compile(r"^\.harness/notes/(?!\.\.?$)[^/]+$")
 _FEATURE_PATH_RE = re.compile(r"(?:^|/)\.harness/([^/]+)/features/([^/]+)$")
 # <checkout>/.harness/[<segment>/]features/<id>: the flat layout plan-merge.py accepts included.
@@ -88,9 +89,9 @@ def _candidates(feature_dir, owner_root, claims_dir):
 
 
 def targets(feature_dir, owner_root, claims_dir=None):
-    """Absolute paths that exist (lexists): notes/, runs/, observations/, then each project note
-    claims_dir (feature_dir when None) lists, under owner_root in list order. owner_root is
-    unread when none is listed."""
+    """Absolute paths that exist (lexists): notes/, runs/, observations/, scratch/, then each
+    project note claims_dir (feature_dir when None) lists, under owner_root in list order.
+    owner_root is unread when none is listed."""
     dirs, notes = _candidates(feature_dir, owner_root, claims_dir)
     return [p for p in dirs + notes if os.path.lexists(p)]
 

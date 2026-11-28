@@ -30,9 +30,11 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
 | `.omp/agents/*.md` | Canonical role definitions. **Deliberately unowned by every agent** — editing the organization is self-modification, so agents raise `open_questions` instead. | **you** (main session) |
 
-**Committed**, except each feature's `notes/`, `runs/` and `observations/` and the project
-`.harness/notes/`, which are git-ignored local working files removed at distill or by abandon,
-reject or clean (DEC-262).
+**Committed**, except each feature's `notes/`, `runs/`, `observations/` and `scratch/` and the
+project `.harness/notes/`, which are git-ignored local working files removed at distill or by
+abandon, reject or clean (DEC-262). A feature's `scratch/` is where raw verification output
+lives (runner logs, captured output, measurements); notes and receipts carry only its summary
+(DEC-261).
 
 ## Who writes what
 

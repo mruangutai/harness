@@ -30,12 +30,13 @@ def write(path, text="x\n"):
 
 
 def feature(root, name="FEAT-0-probe", notes=None):
-    """A .harness/harness/features/<name> directory with notes/, runs/ and observations/ files,
-    and feature.json listing `notes` as project_notes when given."""
+    """A .harness/harness/features/<name> directory with notes/, runs/, observations/ and
+    scratch/ files, and feature.json listing `notes` as project_notes when given."""
     fdir = os.path.join(root, ".harness", "harness", "features", name)
     write(os.path.join(fdir, "notes", "n.md"))
     write(os.path.join(fdir, "runs", "r", "digest.md"))
     write(os.path.join(fdir, "observations", "o.md"))
+    write(os.path.join(fdir, "scratch", "pytest.log"))
     doc = {} if notes is None else {"project_notes": notes}
     write(os.path.join(fdir, "feature.json"), json.dumps(doc))
     return fdir
@@ -80,6 +81,7 @@ def test_targets(tmp):
     shutil.rmtree(os.path.join(fdir, "runs"))
     got = wf.targets(fdir, owner)
     want = [os.path.join(fdir, "notes"), os.path.join(fdir, "observations"),
+            os.path.join(fdir, "scratch"),
             os.path.join(owner, ".harness/notes/b.md"), os.path.join(owner, ".harness/notes/a.md")]
     check("targets: order and lexists filtering", got == want, got)
 
@@ -168,12 +170,25 @@ def test_clean_command(tmp):
 
 def test_owner_none(tmp):
     fdir = feature(os.path.join(tmp, "none"))
-    check("targets with owner_root None lists the three directories",
+    check("targets with owner_root None lists the four directories",
           wf.targets(fdir, None) == [os.path.join(fdir, d) for d in wf.WORKING_DIRS])
     removed = wf.clean(fdir, None, emit=lambda _l: None)
-    check("clean with owner_root None removes notes/, runs/ and observations/",
+    check("clean with owner_root None removes notes/, runs/, observations/ and scratch/",
           removed == [os.path.join(fdir, d) for d in wf.WORKING_DIRS]
           and not any(os.path.lexists(os.path.join(fdir, d)) for d in wf.WORKING_DIRS), removed)
+
+
+def test_scratch(tmp):
+    """T-12 (D-13): scratch/ is a working-file class - listed after observations/ and removed."""
+    fdir = os.path.join(tmp, "scratch", ".harness", "harness", "features", "FEAT-0-probe")
+    write(os.path.join(fdir, "notes", "x.md"))
+    write(os.path.join(fdir, "observations", "o.md"))
+    write(os.path.join(fdir, "scratch", "pytest.log"))
+    got = wf.targets(fdir, None)
+    check("T-12: targets lists scratch/ after observations/",
+          got == [os.path.join(fdir, d) for d in ("notes", "observations", "scratch")], got)
+    wf.clean(fdir, None, emit=lambda _l: None)
+    check("T-12: clean removes scratch/", not os.path.lexists(os.path.join(fdir, "scratch")))
 
 
 def _survives(fdir):
@@ -294,6 +309,11 @@ def test_untracked_counts(tmp):
     got = wf.untracked_counts(repo, rel)
     check("untracked_counts counts untracked notes/ and runs/, never the tracked file",
           got == {"notes": 2, "runs": 1} and list(got) == ["notes", "runs"], got)
+    write(os.path.join(repo, rel, "scratch", "pytest.log"))
+    write(os.path.join(repo, rel, "scratch", "run.log"))
+    got = wf.untracked_counts(repo, rel)
+    check("T-12: untracked_counts counts two untracked scratch/ files",
+          got.get("scratch") == 2, got)
     check("untracked_counts raises on a failing git",
           raises(wf.untracked_counts, os.path.join(tmp, "not-a-repo"), rel))
 
@@ -304,7 +324,7 @@ def main():
         for test in (test_validator, test_targets, test_dry_run, test_symlinks,
                      test_directory_note_refuses, test_parent_symlink_refuses,
                      test_feature_directory, test_clean_command, test_owner_none,
-                     test_symlinked_ancestor_refuses, test_symlinked_feature_dir_refuses,
+                     test_scratch, test_symlinked_ancestor_refuses, test_symlinked_feature_dir_refuses,
                      test_swap_after_validation, test_claims_dir, test_untracked_counts):
             try:
                 test(tmp)

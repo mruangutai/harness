@@ -814,12 +814,14 @@ def _receipt_error(feature_dir, root, artifact, task_id):
     body = _read_or_none(artifact if os.path.isabs(artifact) else os.path.join(root, artifact))
     if body is None:
         return (f"task_verify: pass but the receipt {artifact} is not on disk. The receipt "
-                f"holds the verify command and its verbatim output; write it before returning.")
+                f"holds the verify command and its summary (commit, verdict, counts); write it "
+                f"before returning.")
     verify = _plan_verify_for(feature_dir, task_id) if feature_dir else None
     if verify and verify not in body:
         return (f"task_verify: pass but the receipt {artifact} does not carry the task's "
                 f"verify command verbatim ({verify[:80]!r}). Paste the command as plan.yaml "
-                f"spells it, then its output.")
+                f"spells it with its summary (commit, verdict, counts); raw output belongs in "
+                f"the feature's scratch/.")
     return None
 
 

@@ -8897,11 +8897,12 @@ DEC-31, DEC-123, DEC-174, DEC-206, DEC-228, DEC-230, DEC-237.
 ## DEC-261 — Verification output is scratch; only its summary is committed
 
 **Chose:** raw verification output is scratch: runner logs, measurement stores, divergence
-ledgers, generated receipts, receipt scripts and captured stdout/stderr. It is written outside the
-repository and deleted once the check that reads it has run; it is never committed. A feature
-commits one short summary per check: what ran, at which commit, the verdict, the counts and any
-operator rulings. PR CI is the independent proof that tests pass at merge. `runs/` records and QA
-manifests stay as DEC-238, DEC-255 and DEC-257 set them.
+ledgers, generated receipts, receipt scripts and captured stdout/stderr. It is written under the
+feature's git-ignored `scratch/` (`.harness/<segment>/features/<id>/scratch/`), never committed,
+and removed with the feature's other local working files (DEC-262). A feature commits one short
+summary per check: what ran, at which commit, the verdict, the counts and any operator rulings.
+PR CI is the independent proof that tests pass at merge. `runs/` records and QA manifests
+(`runs/<id>/qa/manifest-*.json`) are local working files under DEC-262, never committed.
 
 **Over:**
 - committing it at the pin: nothing reuses it after its one verification;
@@ -8916,18 +8917,18 @@ repository and the disk grew with data that has no reader.
 run. An operator ruling on a divergence is recorded in the summary, not beside the bytes it ruled
 on. What has already been committed stays in history.
 
-**Record:** operator ruling, 2026-11-28. Refs: DEC-238, DEC-252, DEC-255, DEC-257.
+**Record:** operator ruling, 2026-11-28. Refs: DEC-238, DEC-252, DEC-255, DEC-257, DEC-262.
 
 ## DEC-262 — Feature working files are local: notes, runs and observations are never committed
 
 **Chose:**
 
-A feature's `notes/` (prototypes, mockups and screenshots included), all of `runs/` and
-`observations/`, and every project note under `.harness/notes/`, are local working files. Four
-directory rules in `.gitignore` and `templates/gitignore.snippet` ignore them, the tracked copies
-were untracked with `git rm --cached` and history is never rewritten, and a committed guard test
-refuses any tracked one. The committed feature record is `feature.json`, `plan.yaml`, `BRIEF.md` and
-`STATE.md`.
+A feature's `notes/` (prototypes, mockups and screenshots included), all of `runs/`,
+`observations/` and `scratch/` (raw verification output, DEC-261), and every project note under
+`.harness/notes/`, are local working files. Five directory rules in `.gitignore` and
+`templates/gitignore.snippet` ignore them, the tracked copies were untracked with `git rm --cached`
+and history is never rewritten, and a committed guard test refuses any tracked one. The committed
+feature record is `feature.json`, `plan.yaml`, `BRIEF.md` and `STATE.md`.
 
 check-state retires INV-8, INV-12, INV-15, INV-16, INV-17, INV-18, INV-36, INV-43, INV-46, INV-47
 and INV-51, and INV-40 clause (c); the numbers are never reused (DEC-205). INV-7 keeps only the
@@ -8947,9 +8948,10 @@ staged only after every distill run is closed, while run directories, receipts a
 stay local and are read at runtime by validate-digest and dispatch-guard.
 
 One module, `bin/working_files.py`, owns cleanup and its path contract. It removes the feature
-directory's `notes/`, `runs/` and `observations/` recursively, unlinks each project note listed in
-`feature.json` `project_notes`, refuses before removing anything when a listed note is a directory
-or the `.harness/notes` parent is a symlink or resolves elsewhere, and never follows a symlink.
+directory's `notes/`, `runs/`, `observations/` and `scratch/` recursively, unlinks each project
+note listed in `feature.json` `project_notes`, refuses before removing anything when a listed note
+is a directory or the `.harness/notes` parent is a symlink or resolves elsewhere, and never follows
+a symlink.
 Every caller runs it only after its own terminal write has succeeded, so a refused write leaves
 every file in place: `merge-gate.py merge-distill` after a successful merge; `gh-sync.py abandon
 --yes` after it records `abandoned`; `plan-merge.py set-feature-station` whenever it has written
@@ -8976,11 +8978,11 @@ write, a feature with no validator-squad validate or fix run recorded PASS unles
 main-session-direct.
 
 `feature-worktree.py remove` refuses, exit 4, while the feature directory holds any untracked file
-under `notes/`, `runs/` or `observations/`, naming each directory with its file count and the clean
-command; the post-merge sweep therefore keeps a shipped feature's worktree until distill or clean
-has run. `bash-write-guard.py` refuses an unforced native `git worktree remove` on the same
-condition, naming the same directories and counts and pointing to `feature-worktree.py remove`
-(ruling E4).
+under `notes/`, `runs/`, `observations/` or `scratch/`, naming each directory with its file count
+and the clean command; the post-merge sweep therefore keeps a shipped feature's worktree until
+distill or clean has run. `bash-write-guard.py` refuses an unforced native `git worktree remove`
+on the same condition, naming the same directories and counts and pointing to
+`feature-worktree.py remove` (ruling E4).
 
 BUG-2451, FEAT-2557, BUG-2565, BUG-2566 and FEAT-2581, shipped with no distill commit, are declined
 with no preservation step: after this merges, `gh-sync.py skip-distill --yes` records each one's

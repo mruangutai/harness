@@ -131,12 +131,14 @@ def case_explicit_project_root_ignores_caller_cwd():
         require(caller_target.read_bytes() == caller_before, "caller cwd .gitignore changed")
 
 
-# --- DEC-262: notes/, runs/, observations/ and .harness/notes/ are local working files ---
+# --- DEC-262: notes/, runs/, observations/, scratch/ and .harness/notes/ are local working files ---
 REPO_GITIGNORE = ROOT / ".gitignore"
+SCRATCH_RULE = ".harness/*/features/*/scratch/"
 WORKING_RULES = [
     ".harness/*/features/*/notes/",
     ".harness/*/features/*/runs/",
     ".harness/*/features/*/observations/",
+    SCRATCH_RULE,
     ".harness/notes/",
 ]
 LOCK_RULE = ".harness/**/*.lock"
@@ -149,7 +151,8 @@ FEATURE = ".harness/acme/features/FEAT-1-fixture/"
 WORKING_FILES = [
     FEATURE + "notes/answers.md", FEATURE + "notes/prototypes/FEAT-1-fixture/shot.png",
     FEATURE + "runs/r-1/digest.md", FEATURE + "runs/r-1/ui/shot.webp",
-    FEATURE + "observations/a.md", ".harness/notes/project.md", FEATURE + "state.yaml.lock",
+    FEATURE + "observations/a.md", FEATURE + "scratch/pytest.log", ".harness/notes/project.md",
+    FEATURE + "state.yaml.lock",
 ]
 RECORD_FILES = [FEATURE + name for name in ("plan.yaml", "feature.json", "BRIEF.md", "STATE.md")]
 PREVIOUS_HEADER = (
@@ -235,7 +238,7 @@ def case_check_reports_obsolete_and_missing_and_is_read_only():
             require(target.read_bytes() == original, "DEC-262 %s: --check modified .gitignore" % label)
 
 
-def case_check_names_all_three_obsolete_and_four_missing():
+def case_check_names_all_three_obsolete_and_five_missing():
     with project_target() as (project, target):
         others = [rule for rule in RULES if rule not in WORKING_RULES]
         original = ("\n".join(["custom-first"] + others + OBSOLETE + ["custom-last"]) + "\n").encode()
@@ -325,6 +328,23 @@ def case_bug2399_line_endings_preserved():
                 "DEC-262: working-file rules missing after unterminated input")
 
 
+def case_scratch_rule_checked_then_added():
+    """FEAT-2641 T-12 (D-13): a project .gitignore holding every rule but scratch/'s is named
+    by --check without a write, then gains the scratch/ rule once on merge."""
+    with project_target() as (project, target):
+        original = ("custom-first\n" + "\n".join(r for r in RULES if r != SCRATCH_RULE) + "\n").encode()
+        target.write_bytes(original)
+        result = run(project, check=True)
+        missing = [line[len("  - "):] for line in result.stderr.splitlines() if line.startswith("  - ")]
+        require(result.returncode == 1 and missing == [SCRATCH_RULE],
+                "T-12: --check exited %d naming %r, want 1 naming the scratch rule" % (result.returncode, missing))
+        require(target.read_bytes() == original, "T-12: --check modified .gitignore")
+        merged = run(project)
+        lines = target.read_text(encoding="utf-8").splitlines()
+        require(merged.returncode == 0, merged.stderr)
+        require(lines.count(SCRATCH_RULE) == 1, "T-12: scratch rule not added exactly once: %r" % lines)
+
+
 CASES = [
     case_preserves_existing_content,
     case_check_complete_is_read_only,
@@ -336,11 +356,12 @@ CASES = [
     case_repository_rules_exclude_working_files,
     case_fresh_install_excludes_working_files,
     case_check_reports_obsolete_and_missing_and_is_read_only,
-    case_check_names_all_three_obsolete_and_four_missing,
+    case_check_names_all_three_obsolete_and_five_missing,
     case_merge_replaces_obsolete_rules,
     case_bug2399_merge_corrects_shipped_rationale_only,
     case_previous_header_rationale_removed,
     case_bug2399_line_endings_preserved,
+    case_scratch_rule_checked_then_added,
 ]
 
 

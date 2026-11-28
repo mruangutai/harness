@@ -148,6 +148,7 @@ teams:
           - { path: .harness/expertise/harness-documentor.md, upsert: true }
           - { path: .harness/*/expertise/harness-documentor.md, upsert: true }  # repository tier, 40-line budget
           - { path: .harness/*/features/*/observations/harness-documentor.md, upsert: true }   # hot layer (DEC-145)
+          - { path: .harness/*/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: ".", read: true }
 
   # ───────────────────────────────────────────────────────────────────────────
@@ -174,6 +175,7 @@ teams:
           - { path: .harness/expertise/harness-frontend-dev.md, upsert: true }
           - { path: .harness/*/expertise/harness-frontend-dev.md, upsert: true }  # repository tier, 40-line budget
           - { path: .harness/*/features/*/observations/harness-frontend-dev.md, upsert: true }   # hot layer (DEC-145)
+          - { path: .harness/*/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: ".", read: true }
 
       - name: harness-backend-dev
@@ -190,6 +192,7 @@ teams:
           - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
           - { path: .harness/*/expertise/harness-backend-dev.md, upsert: true }  # repository tier, 40-line budget
           - { path: .harness/*/features/*/observations/harness-backend-dev.md, upsert: true }   # hot layer (DEC-145)
+          - { path: .harness/*/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: ".", read: true }
 
       - name: harness-ai-dev
@@ -205,6 +208,7 @@ teams:
           - { path: .harness/expertise/harness-ai-dev.md, upsert: true }
           - { path: .harness/*/expertise/harness-ai-dev.md, upsert: true }  # repository tier, 40-line budget
           - { path: .harness/*/features/*/observations/harness-ai-dev.md, upsert: true }   # hot layer (DEC-145)
+          - { path: .harness/*/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: ".", read: true }
 
       - name: harness-data-engineer
@@ -220,6 +224,7 @@ teams:
           - { path: .harness/expertise/harness-data-engineer.md, upsert: true }
           - { path: .harness/*/expertise/harness-data-engineer.md, upsert: true }  # repository tier, 40-line budget
           - { path: .harness/*/features/*/observations/harness-data-engineer.md, upsert: true }   # hot layer (DEC-145)
+          - { path: .harness/*/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: ".", read: true }
 
       - name: harness-dev-ops
@@ -243,6 +248,7 @@ teams:
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
           - { path: .harness/*/expertise/harness-dev-ops.md, upsert: true }  # repository tier, 40-line budget
           - { path: .harness/*/features/*/observations/harness-dev-ops.md, upsert: true }   # hot layer (DEC-145)
+          - { path: .harness/*/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: ".", read: true }
         # SHARP EDGE (DEC-85): dev-ops holds Bash, which bypasses path checks
         # entirely. It is trusted by design — it owns the build and release
@@ -272,6 +278,7 @@ teams:
           - { path: .harness/*/features/*/notes/qa-*.md, upsert: true }   # assessments; the 3 reviewers each own one, qa owned none
           - { path: .harness/*/features/*/notes/review-harness-qa-*.md, upsert: true }   # Q6
           - { path: .harness/*/features/*/runs/*/qa/manifest-*.json, upsert: true }   # runner receipts only (DEC-255): no run log, state.yaml or digest.md
+          - { path: .harness/*/features/*/scratch/**, upsert: true }   # raw runner output, never committed (DEC-261)
           - { path: .harness/expertise/harness-qa.md, upsert: true }
           - { path: .harness/*/expertise/harness-qa.md, upsert: true }  # repository tier, 40-line budget
           - { path: .harness/*/features/*/observations/harness-qa.md, upsert: true }   # hot layer (DEC-145)

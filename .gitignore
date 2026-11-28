@@ -51,11 +51,12 @@ __pycache__/
 .harness/**/*.lock
 
 # --- harness ---
-# A feature's notes/, runs/ and observations/ and .harness/notes/ are local working
-# files, never committed (DEC-262). Everything else under .harness/ is committed on
-# purpose - it is the record of what shipped.
+# A feature's notes/, runs/, observations/ and scratch/ (raw verification output) and
+# .harness/notes/ are local working files, never committed (DEC-262). Everything else
+# under .harness/ is committed on purpose - it is the record of what shipped.
 .harness/*/features/*/notes/
 .harness/*/features/*/runs/
 .harness/*/features/*/observations/
+.harness/*/features/*/scratch/
 .harness/notes/
 # --- end harness ---

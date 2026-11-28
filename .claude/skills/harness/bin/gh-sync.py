@@ -1818,9 +1818,9 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
     AN UNOPENED OR ALREADY-ABANDONED RECORD STILL FINALIZES LOCALLY (BUG-2161, D-02). With no
     parent, milestone or tasks there is nothing to close on GitHub, but the feature is still
     abandoned: under `--yes` the station is recorded and the feature's local working files -
-    notes/, runs/, observations/ and every project note feature.json lists - are removed
-    (DEC-262 D-05). A station that already reads `abandoned` is not rewritten; the working files
-    are still removed and sources are still disposed when asked.
+    notes/, runs/, observations/, scratch/ and every project note feature.json lists - are
+    removed (DEC-262 D-05). A station that already reads `abandoned` is not rewritten; the
+    working files are still removed and sources are still disposed when asked.
 
     THE CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No `isatty()`
     branch, no default-on-no-TTY, no stdin read. No script in this directory calls `input()`,
@@ -2184,12 +2184,12 @@ def cmd_reject(feat_dir, repo, board, successor_arg, reason_file, yes=False):
     only after every GitHub mutation landed.
 
     WORKING FILES (DEC-262 D-05). The station write is what removes them: plan-merge.py
-    set-feature-station cleans notes/, runs/, observations/ and the listed project notes once
-    it has written `rejected` (T-10). So a numeric successor's preview lists one remove line per
-    working file after the station line, and `--yes` relays plan-merge's removal lines and runs
-    no cleanup of its own; a set-feature-station exit 10 (station landed, cleanup failed) exits
-    4 naming the clean command. `--superseded-by none` writes no station, so it removes nothing
-    and says so as its last line, preview and `--yes` alike."""
+    set-feature-station cleans notes/, runs/, observations/, scratch/ and the listed project
+    notes once it has written `rejected` (T-10). So a numeric successor's preview lists one
+    remove line per working file after the station line, and `--yes` relays plan-merge's
+    removal lines and runs no cleanup of its own; a set-feature-station exit 10 (station
+    landed, cleanup failed) exits 4 naming the clean command. `--superseded-by none` writes no
+    station, so it removes nothing and says so as its last line, preview and `--yes` alike."""
     successor = _reject_successor(successor_arg)
     comment_file = _reject_reason_file(reason_file, successor)
     try:

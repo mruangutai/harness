@@ -896,20 +896,21 @@ def case_gitignored_artifact_does_not_block(fx):
     default branch, and Gate 3 refused on it, making act 3 of the worktree lifecycle unrunnable.
     Run records are tracked since BUG-2399 (only `runs/*/ui/` is ignored), but the gate's contract
     is unchanged: an IGNORED file of any kind is not landed work. Since FEAT-2641 an ignored file
-    under notes/, runs/ or observations/ is GATE 2b's to refuse, so the fixture's arbitrary ignore
-    is a scratch/ directory GATE 2b does not read — one TRACKED artifact that IS landed, plus one
-    IGNORED file that never can be. The pre-fix code exits 5 naming the ignored path."""
+    under notes/, runs/, observations/ or scratch/ is GATE 2b's to refuse, so the fixture's
+    arbitrary ignore is a tmp-cache/ directory GATE 2b does not read — one TRACKED artifact that
+    IS landed, plus one IGNORED file that never can be. The pre-fix code exits 5 naming the
+    ignored path."""
     info = create_ok(fx, "harness", "FEAT-74")
     dest, seg = info["dest"], info["segment"]
 
     # The ignore rule, committed on the feature branch and merged, exactly as the real repo has it.
     with open(os.path.join(dest, ".gitignore"), "w") as f:
-        f.write(".harness/*/features/*/scratch/**\n")
+        f.write(".harness/*/features/*/tmp-cache/**\n")
     rel = _commit_artifact(dest, seg, "FEAT-74", "v1\n", "add artifact and ignore rule")
     _merge_into_default(info["owner_root"], "FEAT-74")
 
     # An IGNORED run artifact, written AFTER the merge. git status is clean; the path is not on main.
-    run_rel = os.path.join(".harness", seg, "features", "FEAT-74", "scratch", "r1", "digest.md")
+    run_rel = os.path.join(".harness", seg, "features", "FEAT-74", "tmp-cache", "r1", "digest.md")
     run_abs = os.path.join(dest, run_rel)
     os.makedirs(os.path.dirname(run_abs), exist_ok=True)
     with open(run_abs, "w") as f:
@@ -946,11 +947,11 @@ def case_gitignored_does_not_mask_a_real_miss(fx):
     dest, seg = info["dest"], info["segment"]
 
     with open(os.path.join(dest, ".gitignore"), "w") as f:
-        f.write(".harness/*/features/*/scratch/**\n")
+        f.write(".harness/*/features/*/tmp-cache/**\n")
     rel = _commit_artifact(dest, seg, "FEAT-71", "v1\n", "add artifact and ignore rule")
     # DELIBERATELY NOT MERGED.
 
-    run_abs = os.path.join(dest, ".harness", seg, "features", "FEAT-71", "scratch", "r1", "digest.md")
+    run_abs = os.path.join(dest, ".harness", seg, "features", "FEAT-71", "tmp-cache", "r1", "digest.md")
     os.makedirs(os.path.dirname(run_abs), exist_ok=True)
     with open(run_abs, "w") as f:
         f.write("ignored\n")
@@ -1009,9 +1010,10 @@ def case_remove_refuses_aborted_run_evidence(fx):
           os.path.isdir(dest) and survived, dest)
 
 
-# FEAT-2641 (DEC-262): the four working-file ignore rules the repository carries.
+# FEAT-2641 (DEC-262): the five working-file ignore rules the repository carries.
 WORKING_IGNORE = (".harness/*/features/*/notes/\n.harness/*/features/*/runs/\n"
-                  ".harness/*/features/*/observations/\n.harness/notes/\n")
+                  ".harness/*/features/*/observations/\n.harness/*/features/*/scratch/\n"
+                  ".harness/notes/\n")
 WORKING_FILES = (os.path.join("notes", "x.md"), os.path.join("runs", "r", "digest.md"),
                  os.path.join("observations", "a.md"))
 
@@ -1096,6 +1098,25 @@ def case_gate_2b_refuses_ignored_working_files(fx):
     check("GATE 2b: remove succeeds after clean --yes",
           r2.returncode == 0 and not os.path.isdir(dest),
           f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}")
+
+
+def case_gate_2b_counts_scratch(fx):
+    """T-12 (D-13, SC-19): one untracked file under scratch/ refuses remove with exit 4, named
+    per directory with its count; clean --yes at done removes scratch/."""
+    info, rel_dir = _working_fixture(fx, "FEAT-77", "FEAT-77", "done", "done")
+    dest = info["dest"]
+    scratch = os.path.join(dest, rel_dir, "scratch")
+    _write(os.path.join(scratch, "pytest.log"), "raw runner output\n")
+    r = run_cli(["remove", "--repo", "harness", "--id", "FEAT-77"], fx)
+    check("T-12 GATE 2b: an untracked scratch/ file refuses remove with exit 4, naming scratch/ "
+          "with its count",
+          r.returncode == 4
+          and f"WOULD DISCARD WORKING FILES {rel_dir}/scratch/ (1 files)" in r.stdout.splitlines(),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-77", "--yes"], fx)
+    check("T-12 clean --yes at done removes scratch/",
+          c.returncode == 0 and not os.path.lexists(scratch),
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
 
 
 def case_gate_2b_ignores_committed_notes(fx):
@@ -1555,6 +1576,7 @@ def main():
             case_clean_refuses_directory_note(fx)
             case_clean_short_id_and_root(root)
             case_gate_2b_counts_unignored_working_files(fx)
+            case_gate_2b_counts_scratch(fx)
             case_clean_refuses_symlinked_ancestor(fx)
             case_clean_reads_landed_claims(fx)
             case_clean_refuses_failed_worktree_list(fx)
